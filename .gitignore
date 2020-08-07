@@ -1,1 +1,5 @@
 /.vs
+/UnitTest/bin
+/UnitTest/obj
+/Zeze/bin
+/Zeze/obj
