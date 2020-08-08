@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Zeze.Serialize
 {
@@ -35,11 +35,11 @@ namespace Zeze.Serialize
         {
             /*
             if (readIndex < 0 || readIndex >= bytes.Length)
-                throw new Exception("readIndex < 0 || readIndex >= bytes.Length");
+                throw new Exception();
             if (writeIndex < 0 || writeIndex > bytes.Length)
-                throw new Exception("writeIndex < 0 || writeIndex > bytes.Length");
+                throw new Exception();
             if (readIndex > writeIndex)
-                throw new Exception("readIndex > writeIndex");
+                throw new Exception();
             */
 
             this.Bytes = bytes;
@@ -69,6 +69,20 @@ namespace Zeze.Serialize
             EnsureWrite(len);
             Buffer.BlockCopy(bs, offset, Bytes, WriteIndex, len);
             WriteIndex += len;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Replace(int writeIndex, byte[] src)
+        {
+            Replace(writeIndex, src, 0, src.Length);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Replace(int writeIndex, byte[] src, int offset, int len)
+        {
+            if (writeIndex < this.ReadIndex || writeIndex + len > this.WriteIndex)
+                throw new Exception();
+            Buffer.BlockCopy(src, offset, this.Bytes, writeIndex, len);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -106,7 +120,7 @@ namespace Zeze.Serialize
         private void EnsureRead(int size)
         {
             if (ReadIndex + size > WriteIndex)
-                 throw new Exception("ReaderIndex + size > WriterIndex");
+                 throw new Exception();
         }
 
         public void WriteBool(bool b)
@@ -184,7 +198,43 @@ namespace Zeze.Serialize
                 ReadIndex += 3;
                 return (short)x;
             }
-            throw new Exception("ReadShort");
+            throw new Exception();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteInt4(int x)
+        {
+            byte[] bs = BitConverter.GetBytes(x);
+            //if (false == BitConverter.IsLittleEndian)
+            //    Array.Reverse(bs);
+            Append(bs);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ReadInt4()
+        {
+            EnsureRead(4);
+            int x = BitConverter.ToInt32(Bytes, ReadIndex);
+            ReadIndex += 4;
+            return x;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteLong8(long x)
+        {
+            byte[] bs = BitConverter.GetBytes(x);
+            //if (false == BitConverter.IsLittleEndian)
+            //    Array.Reverse(bs);
+            Append(bs);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public long ReadLong8()
+        {
+            EnsureRead(8);
+            long x = BitConverter.ToInt64(Bytes, ReadIndex);
+            ReadIndex += 8;
+            return x;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

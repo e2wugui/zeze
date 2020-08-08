@@ -8,12 +8,5 @@ namespace Zeze.Serialize
     {
         public void Decode(ByteBuffer bb);
         public void Encode(ByteBuffer bb);
- 
-        public ByteBuffer Encode()
-        {
-            ByteBuffer bb = new ByteBuffer();
-            Encode(bb);
-            return bb;
-        }
-     }
+    }
 }
