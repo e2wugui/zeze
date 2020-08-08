@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Text;
 
 namespace Zeze.Util
 {
@@ -9,7 +7,7 @@ namespace Zeze.Util
     public class ChatHistoryMessage : Zeze.Serialize.Serializable
     {
         public const int TagDeleted = 1;
-        public const int TagRefence = 2;
+        public const int TagSeparate = 2;
 
         public const int TypeString = 0; // >0 user defined, <0 reserved
 
@@ -21,7 +19,26 @@ namespace Zeze.Util
         public byte[] Content { get; set; }
         public Dictionary<int, byte[]> Properties { get; set; } = new Dictionary<int, byte[]>();
         public string ContentStr  => (Type == TypeString) ? System.Text.Encoding.UTF8.GetString(Content) : BitConverter.ToString(Content);
-        public bool IsDeleted => (Tag & 1) != 0;
+        public bool IsDeleted => (Tag & TagDeleted) != 0;
+        public bool IsSeparate => (Tag & TagSeparate) != 0;
+
+        public void SaveContentToFile(string path)
+        {
+            using System.IO.FileStream fs = System.IO.File.Create(path);
+            fs.Write(this.Content, 0, this.Content.Length);
+        }
+
+        public static byte[] LoadContentFromFile(string path)
+        {
+            if (false == System.IO.File.Exists(path))
+                return Array.Empty<byte>();
+
+            using System.IO.FileStream fs = System.IO.File.Open(path, System.IO.FileMode.Open);
+            byte[] bytes = new byte[fs.Length];
+            fs.Read(bytes, 0, bytes.Length);
+
+            return bytes;
+        }
 
         public void Decode(Zeze.Serialize.ByteBuffer bb)
         {

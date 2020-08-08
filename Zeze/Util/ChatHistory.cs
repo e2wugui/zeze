@@ -16,10 +16,12 @@ namespace Zeze.Util
     {
         public string HistoryHome { get; }
         public string SessionHome { get; }
+        public string ContentHome { get; }
         public long SessionId { get; }
         public long MaxSingleDataFileLength { get; }
         public long SeparateContentLength { get; }
-        public long LastId { get { return lastId; } }
+        public long LastId { get; private set; }
+        public long FirstId { get; private set; }
 
         public ChatHistory(string historyHome, long sessionId, long maxSingleDataFileLength, long separateContentLength)
         {
@@ -28,7 +30,9 @@ namespace Zeze.Util
 
             this.HistoryHome = historyHome;
             this.SessionHome = System.IO.Path.Combine(historyHome, sessionId.ToString());
+            this.ContentHome = System.IO.Path.Combine(this.SessionHome, "contents");
             System.IO.Directory.CreateDirectory(this.SessionHome);
+            System.IO.Directory.CreateDirectory(this.ContentHome);
 
             this.SessionId = sessionId;
             this.MaxSingleDataFileLength = maxSingleDataFileLength;
@@ -60,21 +64,31 @@ namespace Zeze.Util
                 ChatHistoryMessage msg = new ChatHistoryMessage
                 {
                     Tag = 0,
-                    Id = lastId,
+                    Id = LastId,
                     Time = DateTime.Now.Ticks,
                     Sender = sender,
                     Type = type,
                     Content = content
                 };
 
+                if (this.SeparateContentLength > 0 && content.Length > this.SeparateContentLength)
+                {
+                    msg.Tag = ChatHistoryMessage.TagSeparate;
+                    msg.SaveContentToFile(System.IO.Path.Combine(this.ContentHome, msg.Id.ToString()));
+                    msg.Content = Array.Empty<byte>(); // 对于图片视频，这里可以考虑放一个缩小的提示性图片。
+                }
+
                 Zeze.Serialize.ByteBuffer bb = new Zeze.Serialize.ByteBuffer(msg.SizeHint());
                 int savedWriteIndex = bb.WriteIndex;
                 bb.Append(new byte[4]); // prepare for size bytes
                 msg.Encode(bb);
                 bb.Replace(savedWriteIndex, BitConverter.GetBytes(bb.Size - 4));
-                lastDataFile.Write(lastId, bb.Bytes, bb.ReadIndex, bb.Size);
+                lastDataFile.WriteToTail(bb.Bytes, bb.ReadIndex, bb.Size);
 
-                return lastId++; // 最后才真的增加，避免上面异常导致lastId已被增加。
+                if (this.MaxSingleDataFileLength > 0 && lastDataFile.DataFileLength > this.MaxSingleDataFileLength)
+                    OpenOrCreateLastDataFile(LastId + 1);
+
+                return LastId++; // 最后才真的增加，避免上面异常导致LastId已被增加。 
             }
         }
  
@@ -94,7 +108,7 @@ namespace Zeze.Util
             lock (this)
             {
                 if (count < 0)
-                    count = (int)(lastId - fromId);
+                    count = (int)(LastId - fromId);
 
                 int startIdIndex = FindStartIdIndex(fromId);
                 if (startIdIndex < 0)
@@ -103,7 +117,7 @@ namespace Zeze.Util
                 for (; count > 0 && startIdIndex < fileStartIds.Count; ++startIdIndex)
                 {
                     long startId = fileStartIds[startIdIndex];
-                    if (null != lastDataFile && lastDataFile.StartId == startId)
+                    if (lastDataFile.StartId == startId)
                     {
                         //int realReadCount = 
                         lastDataFile.Read(fromId, count, result);
@@ -126,10 +140,52 @@ namespace Zeze.Util
 
         public void DeleteMessage(long id)
         {
+            int startIdIndex = FindStartIdIndex(id);
+            if (startIdIndex < 0)
+                return;
+
+            long startId = fileStartIds[startIdIndex];
+            if (lastDataFile.StartId == startId)
+            {
+                lastDataFile.Delete(id);
+                return;
+            }
+
+            using (MessageFile mf = new MessageFile(this, startId))
+            {
+                mf.Delete(id);
+            }
         }
- 
+
+        public byte[] LoadContentFromFile(long id)
+        {
+            return ChatHistoryMessage.LoadContentFromFile(System.IO.Path.Combine(this.ContentHome, id.ToString()));
+        }
+
         public void DeleteFileBefore(long time)
         {
+            lock(this)
+            {
+                int index = 0;
+                for (; index < this.fileStartIds.Count - 1; ++index) // never delete last file.
+                {
+                    long startId = this.fileStartIds[index];
+                    string pathDat = System.IO.Path.Combine(this.SessionHome, startId + ".dat");
+                    string pathIdx = System.IO.Path.Combine(this.SessionHome, startId + ".idx");
+                    if (System.IO.File.GetLastWriteTime(pathDat).Ticks >= time)
+                        break;
+
+                    System.IO.File.Delete(pathDat);
+                    System.IO.File.Delete(pathIdx);
+                }
+                this.fileStartIds.RemoveRange(0, index);
+                this.FirstId = this.fileStartIds.Count > 0 ? this.fileStartIds[0] : 0;
+            }
+        }
+
+        public void DeleteContentFileBefore(long time)
+        {
+            DeleteFileBefore(this.ContentHome, time);
         }
 
         public void Dispose()
@@ -141,6 +197,7 @@ namespace Zeze.Util
         {
             public long StartId { get; private set; }
             public ChatHistory ChatHistory { get; private set; }
+            public long DataFileLength { get { return data.Length;  } }
 
             private System.IO.FileStream data;
             private System.IO.FileStream index;
@@ -154,14 +211,36 @@ namespace Zeze.Util
                 index = System.IO.File.Open(System.IO.Path.Combine(chatHistory.SessionHome, startId + ".idx"), System.IO.FileMode.OpenOrCreate);
             }
 
-            public void Write(long lastId, byte[] src, int offset, int length)
+            public void WriteToTail(byte[] src, int offset, int length)
             {
                 long offsetData = data.Seek(0, System.IO.SeekOrigin.End);
                 data.Write(src, offset, length);
-
-                index.Seek(lastId * 8, System.IO.SeekOrigin.Begin);
+                
+                index.Seek(0, System.IO.SeekOrigin.End);
                 byte[] offsetDataBytes = BitConverter.GetBytes(offsetData);
                 index.Write(offsetDataBytes, 0, offsetDataBytes.Length);
+            }
+
+            private long SeekDataOffset(long fromId)
+            {
+                if (fromId < StartId)
+                    return -1;
+
+                long indexOffset = (fromId - StartId) * 8;
+                if (indexOffset > index.Length - 8)
+                    return -1;
+
+                // 先读取索引，定位数据文件。
+                index.Seek(indexOffset, System.IO.SeekOrigin.Begin);
+                byte[] offsetBytes = new byte[8];
+                int rlen = index.Read(offsetBytes, 0, offsetBytes.Length);
+                if (rlen == 0) // eof
+                    return -1;
+                if (rlen != offsetBytes.Length)
+                    throw new Exception("read index error");
+
+                long dataOffset = BitConverter.ToInt64(offsetBytes);
+                return data.Seek(dataOffset, System.IO.SeekOrigin.Begin);
             }
 
             public int Read(long fromId, int count, List<ChatHistoryMessage> result)
@@ -169,25 +248,8 @@ namespace Zeze.Util
                 if (count <= 0)
                     return 0;
 
-                if (fromId < StartId)
+                if (SeekDataOffset(fromId) < 0)
                     return 0;
-
-                long indexOffset = (fromId - StartId) * 8;
-
-                if (indexOffset > index.Length - 8)
-                    return 0;
-
-                // 先读取索引，当定位到数据文件后，按顺序读取，不再依赖索引文件。
-                index.Seek(indexOffset, System.IO.SeekOrigin.Begin);
-                byte[] offsetBytes = new byte[8];
-                int rlen = index.Read(offsetBytes, 0, offsetBytes.Length);
-                if (rlen == 0) // eof
-                    return 0;
-                if (rlen != offsetBytes.Length)
-                    throw new Exception("read index error");
-
-                long dataOffset = BitConverter.ToInt64(offsetBytes);
-                data.Seek(dataOffset, System.IO.SeekOrigin.Begin);
 
                 int i = 0;
                 for (; i < count; ++i)
@@ -215,6 +277,34 @@ namespace Zeze.Util
 
                 return i;
             }
+
+            public void Delete(long id)
+            {
+                long offset = SeekDataOffset(id);
+                if (offset < 0)
+                    return;
+
+                byte[] head = new byte[4 + 4 + 9]; // size + tag + id
+                int headLen = data.Read(head, 0, head.Length);
+                if (headLen == 0) // eof
+                    return;
+
+                Zeze.Serialize.ByteBuffer bb = Zeze.Serialize.ByteBuffer.Wrap(head, 0, headLen);
+                int msgsize = bb.ReadInt4();
+                int tag = bb.ReadInt4();
+                long existid = bb.ReadLong();
+                if (existid != id)
+                    throw new Exception("msgId error"); // report or ignore
+
+                tag |= ChatHistoryMessage.TagDeleted;
+                byte[] newtagBytes = BitConverter.GetBytes(tag);
+                long tagoffset = offset + 4;
+                if (tagoffset != data.Seek(tagoffset, System.IO.SeekOrigin.Begin))
+                    throw new Exception("seek error");
+
+                data.Write(newtagBytes, 0, 4);
+            }
+
             public void Dispose()
             {
                 data.Close();
@@ -222,7 +312,6 @@ namespace Zeze.Util
             }
         }
 
-        private long lastId = 0;
         private MessageFile lastDataFile;
         private List<long> fileStartIds; // sorted
 
@@ -241,22 +330,24 @@ namespace Zeze.Util
         private void LoadFileStartIdsAndInit()
         {
             this.fileStartIds = GetStartIds(this.SessionHome);
-            this.lastId = 0;
+            this.FirstId = 0;
+            this.LastId = 0;
             foreach (long startId in this.fileStartIds)
             {
+                this.FirstId = startId;
                 string path = System.IO.Path.Combine(this.SessionHome, startId + ".idx");
                 using (System.IO.FileStream indexFile = System.IO.File.Open(path, System.IO.FileMode.OpenOrCreate))
                 {
                     if (indexFile.Length % 8 != 0)
                         throw new Exception("wrong index file size.");
-                    this.lastId = startId + indexFile.Length / 8;
+                    this.LastId = startId + indexFile.Length / 8;
                 }
             }
 
-            OpenLastDataFile(this.fileStartIds.Count > 0 ? this.fileStartIds[^1] : 0);
+            OpenOrCreateLastDataFile(this.fileStartIds.Count > 0 ? this.fileStartIds[^1] : 0);
         }
 
-        private void OpenLastDataFile(long startId)
+        private void OpenOrCreateLastDataFile(long startId)
         {
             lastDataFile?.Dispose();
             lastDataFile = new MessageFile(this, startId);
@@ -281,6 +372,17 @@ namespace Zeze.Util
             }
             startIds.Sort();
             return startIds;
+        }
+
+        public static void DeleteFileBefore(string dir, long time)
+        {
+            System.IO.DirectoryInfo dirInfo = new System.IO.DirectoryInfo(dir);
+            System.IO.FileInfo[] files = dirInfo.GetFiles("*");
+            foreach (System.IO.FileInfo file in files)
+            {
+                if (file.LastWriteTime.Ticks < time)
+                    file.Delete();
+            }
         }
     }
 }
