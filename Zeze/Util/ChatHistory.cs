@@ -6,9 +6,11 @@ using System.Threading;
 using Microsoft.VisualBasic.CompilerServices;
 
 /// <summary>
-/// TODO AddMessage 
-/// 1 检查文件是否损坏（offset 不正确）
-/// 2 写两个文件，部分失败，数据和索引不一致。
+/// 每条消息顺序存储，严重依赖写文件不能出错。
+/// *写文件部分失败，导致不能工作。
+/// *写两个文件，数据和索引不一致会导致不能工作。
+/// 其中索引损坏可以从数据文件重建，
+/// 数据文件顺坏，就涉及消息记录定位问题，目前定位能力比较弱。
 /// </summary>
 namespace Zeze.Util
 {
@@ -78,15 +80,15 @@ namespace Zeze.Util
                     msg.Content = Array.Empty<byte>(); // 对于图片视频，这里可以考虑放一个缩小的提示性图片。
                 }
 
+                if (this.MaxSingleDataFileLength > 0 && lastDataFile.DataFileLength > this.MaxSingleDataFileLength)
+                    OpenOrCreateLastDataFile(LastId);
+
                 Zeze.Serialize.ByteBuffer bb = new Zeze.Serialize.ByteBuffer(msg.SizeHint());
                 int savedWriteIndex = bb.WriteIndex;
                 bb.Append(new byte[4]); // prepare for size bytes
                 msg.Encode(bb);
                 bb.Replace(savedWriteIndex, BitConverter.GetBytes(bb.Size - 4));
                 lastDataFile.WriteToTail(bb.Bytes, bb.ReadIndex, bb.Size);
-
-                if (this.MaxSingleDataFileLength > 0 && lastDataFile.DataFileLength > this.MaxSingleDataFileLength)
-                    OpenOrCreateLastDataFile(LastId + 1);
 
                 return LastId++; // 最后才真的增加，避免上面异常导致LastId已被增加。 
             }
