@@ -13,14 +13,12 @@ namespace UnitTest.Zeze.Util
         [TestMethod]
         public void TestAdd()
         {
-            using (ChatHistory ch = new ChatHistory(".", 0, -1, -1))
+            using ChatHistory ch = new ChatHistory(".", 0, -1, -1);
+            long msgId = ch.AddMessage("sender", "content");
+            List<ChatHistoryMessage> msgs = ch.ReadMessage(0, -1);
+            foreach (ChatHistoryMessage msg in msgs)
             {
-                long msgId = ch.AddMessage("sender", "content");
-                List<ChatHistoryMessage> msgs = ch.ReadMessage(msgId, 1);
-                foreach (ChatHistoryMessage msg in msgs)
-                {
-                    Console.WriteLine(msg.Sender + " " + msg.Content);
-                }
+                Console.WriteLine(msg.Sender + " " + msg.ContentStr);
             }
         }
     }

@@ -60,7 +60,7 @@ namespace Zeze.Util
                 ChatHistoryMessage msg = new ChatHistoryMessage
                 {
                     Tag = 0,
-                    Id = lastId + 1,
+                    Id = lastId,
                     Time = DateTime.Now.Ticks,
                     Sender = sender,
                     Type = type,
@@ -71,7 +71,7 @@ namespace Zeze.Util
                 int savedWriteIndex = bb.WriteIndex;
                 bb.Append(new byte[4]); // prepare for size bytes
                 msg.Encode(bb);
-                bb.Replace(savedWriteIndex, BitConverter.GetBytes(bb.Size));
+                bb.Replace(savedWriteIndex, BitConverter.GetBytes(bb.Size - 4));
                 lastDataFile.Write(lastId, bb.Bytes, bb.ReadIndex, bb.Size);
 
                 return lastId++; // 最后才真的增加，避免上面异常导致lastId已被增加。
@@ -150,8 +150,8 @@ namespace Zeze.Util
                 this.StartId = startId;
                 this.ChatHistory = chatHistory;
 
-                data = System.IO.File.Create(System.IO.Path.Combine(chatHistory.SessionHome, startId + ".dat"));
-                index = System.IO.File.Create(System.IO.Path.Combine(chatHistory.SessionHome, startId + ".idx"));
+                data = System.IO.File.Open(System.IO.Path.Combine(chatHistory.SessionHome, startId + ".dat"), System.IO.FileMode.OpenOrCreate);
+                index = System.IO.File.Open(System.IO.Path.Combine(chatHistory.SessionHome, startId + ".idx"), System.IO.FileMode.OpenOrCreate);
             }
 
             public void Write(long lastId, byte[] src, int offset, int length)
@@ -230,9 +230,9 @@ namespace Zeze.Util
         private int FindStartIdIndex(long curId)
         {
             int prev = -1;
-            for (int i = 0; i < fileStartIds.Count; ++i)
+            for (int i = 0; i < this.fileStartIds.Count; ++i)
             {
-                if (curId < fileStartIds[i])
+                if (curId < this.fileStartIds[i])
                     return prev;
                 prev = i;
             }
@@ -245,15 +245,24 @@ namespace Zeze.Util
             foreach (long startId in this.fileStartIds)
             {
                 string path = System.IO.Path.Combine(this.SessionHome, startId + ".idx");
-                using (System.IO.FileStream indexFile = System.IO.File.Create(path))
+                using (System.IO.FileStream indexFile = System.IO.File.Open(path, System.IO.FileMode.OpenOrCreate))
                 {
                     if (indexFile.Length % 8 != 0)
                         throw new Exception("wrong index file size.");
                     this.lastId = startId + indexFile.Length / 8;
                 }
             }
-            long lastStartId = fileStartIds.Count > 0 ? fileStartIds[^1] : 0;
-            lastDataFile = new MessageFile(this, lastStartId);
+
+            OpenLastDataFile(this.fileStartIds.Count > 0 ? this.fileStartIds[^1] : 0);
+        }
+
+        private void OpenLastDataFile(long startId)
+        {
+            lastDataFile?.Dispose();
+            lastDataFile = new MessageFile(this, startId);
+            if (this.fileStartIds.Contains(startId))
+                return;
+            this.fileStartIds.Add(startId);
         }
 
         public static List<long> GetStartIds(string dir)

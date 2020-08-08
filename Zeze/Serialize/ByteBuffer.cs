@@ -557,8 +557,9 @@ namespace Zeze.Serialize
         {
             int n = ReadInt();
             EnsureRead(n);
+            string x = Encoding.UTF8.GetString(Bytes, ReadIndex, n);
             ReadIndex += n;
-            return Encoding.UTF8.GetString(Bytes, ReadIndex, n);
+            return x;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
