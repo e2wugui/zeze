@@ -8,6 +8,11 @@ namespace Zeze.Net
     {
         private Dictionary<long, ASocket> _asocketMap = new Dictionary<long, ASocket>();
 
+        /// <summary>
+        /// 只包含成功建立的连接：服务器Accept和客户端Connected的连接。
+        /// </summary>
+        /// <param name="serialNo"></param>
+        /// <returns></returns>
         public virtual ASocket GetASocket(long serialNo)
         {
             lock (_asocketMap)

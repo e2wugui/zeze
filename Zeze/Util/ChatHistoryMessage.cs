@@ -13,7 +13,7 @@ namespace Zeze.Util
 
         public int Tag { get; set; }
         public long Id { get; set; }
-        public long Time { get; set; }
+        public long TimeTicks { get; set; }
         public String Sender { get; set; }
         public int Type { get; set; }
         public byte[] Content { get; set; }
@@ -44,7 +44,7 @@ namespace Zeze.Util
         {
             this.Tag = bb.ReadInt4();
             this.Id = bb.ReadLong();
-            this.Time = bb.ReadLong();
+            this.TimeTicks = bb.ReadLong();
             this.Sender = bb.ReadString();
             this.Type = bb.ReadInt();
             this.Content = bb.ReadBytes();
@@ -62,7 +62,7 @@ namespace Zeze.Util
         {
             bb.WriteInt4(this.Tag);
             bb.WriteLong(this.Id);
-            bb.WriteLong(this.Time);
+            bb.WriteLong(this.TimeTicks);
             bb.WriteString(this.Sender);
             bb.WriteInt(this.Type);
             bb.WriteBytes(this.Content);

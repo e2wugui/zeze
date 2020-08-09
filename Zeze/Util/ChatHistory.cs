@@ -68,7 +68,7 @@ namespace Zeze.Util
                 {
                     Tag = 0,
                     Id = LastId,
-                    Time = DateTime.Now.Ticks,
+                    TimeTicks = DateTime.Now.Ticks,
                     Sender = sender,
                     Type = type,
                     Content = content
@@ -165,7 +165,12 @@ namespace Zeze.Util
             return ChatHistoryMessage.LoadContentFromFile(System.IO.Path.Combine(this.ContentHome, id.ToString()));
         }
 
-        public void DeleteFileBefore(long time)
+        /// <summary>
+        /// 删除最后写文件的时间在time以前的数据和索引文件。
+        /// 最后一个（当前）文件不会被删除: 因为要记住当前的msgId。全部清除会导致msgId重新从0开始。
+        /// </summary>
+        /// <param name="timeTicks"></param>
+        public void DeleteFileBefore(long timeTicks)
         {
             lock(this)
             {
@@ -175,7 +180,7 @@ namespace Zeze.Util
                     long startId = this._fileStartIds[index];
                     string pathDat = System.IO.Path.Combine(this.SessionHome, startId + ".dat");
                     string pathIdx = System.IO.Path.Combine(this.SessionHome, startId + ".idx");
-                    if (System.IO.File.GetLastWriteTime(pathDat).Ticks >= time)
+                    if (System.IO.File.GetLastWriteTime(pathDat).Ticks >= timeTicks)
                         break;
 
                     System.IO.File.Delete(pathDat);
@@ -377,13 +382,13 @@ namespace Zeze.Util
             return startIds;
         }
 
-        public static void DeleteFileBefore(string dir, long time)
+        public static void DeleteFileBefore(string dir, long timeTicks)
         {
             System.IO.DirectoryInfo dirInfo = new System.IO.DirectoryInfo(dir);
             System.IO.FileInfo[] files = dirInfo.GetFiles("*");
             foreach (System.IO.FileInfo file in files)
             {
-                if (file.LastWriteTime.Ticks < time)
+                if (file.LastWriteTime.Ticks < timeTicks)
                     file.Delete();
             }
         }

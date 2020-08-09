@@ -20,12 +20,8 @@ namespace Zeze.Net
         public long SerialNo { get; private set; }
         public System.Net.Sockets.Socket Socket {  get { return _socket; } }
 
-        private static long SerialNoGen = 0;
+        private static Zeze.Util.AtomicLong SerialNoGen = new Zeze.Util.AtomicLong();
 
-        private static long NextSerialNo()
-        {
-            return System.Threading.Interlocked.Increment(ref SerialNoGen);
-        }
         /// <summary>
         /// for server socket
         /// </summary>
@@ -36,7 +32,7 @@ namespace Zeze.Net
             _socket.Bind(localEP);
             _socket.Listen(backlog);
             _socket.BeginAccept(InitInputBufferCapacity, OnAsyncAccept, this);
-            this.SerialNo = NextSerialNo();
+            this.SerialNo = SerialNoGen.IncrementAndGet();
         }
 
         /// <summary>
@@ -49,7 +45,7 @@ namespace Zeze.Net
             _socket = accepted;
             _inputBuffer = Zeze.Serialize.ByteBuffer.Wrap(bytes, 0, bytesTransferred);
             // BeginReceive called in OnAsyncAccept
-            this.SerialNo = NextSerialNo();
+            this.SerialNo = SerialNoGen.IncrementAndGet();
         }
 
         /// <summary>
@@ -62,7 +58,7 @@ namespace Zeze.Net
             this.Manager = manager;
             _socket = new System.Net.Sockets.Socket(System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
             System.Net.Dns.BeginGetHostAddresses(host, OnAsyncGetHostAddresses, port);
-            this.SerialNo = NextSerialNo();
+            this.SerialNo = SerialNoGen.IncrementAndGet();
         }
 
         public void Send(Zeze.Serialize.ByteBuffer bb)
