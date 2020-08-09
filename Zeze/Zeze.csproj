@@ -6,7 +6,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Gen\" />
+    <Compile Remove="Gen\**" />
+    <EmbeddedResource Remove="Gen\**" />
+    <None Remove="Gen\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Net\" />
   </ItemGroup>
 
 </Project>

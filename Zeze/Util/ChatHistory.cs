@@ -6,6 +6,7 @@ using System.Threading;
 using Microsoft.VisualBasic.CompilerServices;
 
 /// <summary>
+/// *性能性能性能性能
 /// 每条消息顺序存储，严重依赖写文件不能出错。
 /// *写文件部分失败，导致不能工作。
 /// *写两个文件，数据和索引不一致会导致不能工作。
@@ -97,7 +98,7 @@ namespace Zeze.Util
         /// <summary>
         /// 从 指定fromId 开始顺序读取一定数量的消息。
         /// </summary>
-        /// <param name="fromId"> 开始的Id，包含 </param>
+        /// <param name="fromId"> 开始的Id，包含。如果fromId所在的数据已经被删除，返回空List。外面根据需要可以判断FirstId修正，内部不自动修正。 </param>
         /// <param name="count"> 读取数量，-1 一直读到结尾。</param>
         /// <returns></returns>
         public List<ChatHistoryMessage> ReadMessage(long fromId, int count)
@@ -109,7 +110,7 @@ namespace Zeze.Util
 
             lock (this)
             {
-                if (count < 0)
+                if (count < 0) // for debug only
                     count = (int)(LastId - fromId);
 
                 int startIdIndex = FindStartIdIndex(fromId);

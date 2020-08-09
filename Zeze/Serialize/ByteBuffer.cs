@@ -8,9 +8,7 @@ namespace Zeze.Serialize
 {
     public class ByteBuffer
     {
-#pragma warning disable CA1819 // 属性不应返回数组
         public byte[] Bytes { get; private set; }
-#pragma warning restore CA1819
         public int ReadIndex { get; set; }
         public int WriteIndex { get; set; }
         public int Capacity { get { return Bytes.Length; } }
