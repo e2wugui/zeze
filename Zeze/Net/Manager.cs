@@ -6,6 +6,8 @@ namespace Zeze.Net
 {
     public class Manager
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         private Dictionary<long, ASocket> _asocketMap = new Dictionary<long, ASocket>();
 
         /// <summary>
@@ -34,7 +36,7 @@ namespace Zeze.Net
             {
                 _asocketMap.Remove(so.SerialNo);
             }
-            Console.WriteLine("OnSocketClose: " + so.SerialNo + e);
+            logger.Debug(e, "OnSocketClose");
         }
 
         /// <summary>
@@ -56,7 +58,7 @@ namespace Zeze.Net
         /// <param name="e"></param>
         public virtual void OnSocketConnectError(ASocket so, Exception e)
         {
-            Console.WriteLine("OnSocketConnectError" + so.SerialNo + e.ToString());
+            logger.Debug(e, "OnSocketConnectError");
         }
 
         /// <summary>

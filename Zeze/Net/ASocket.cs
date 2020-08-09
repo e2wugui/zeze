@@ -161,7 +161,8 @@ namespace Zeze.Net
                 _inputBuffer.Campact();
             }
 
-            _inputBuffer.EnsureWrite(InitInputBufferCapacity);
+            if (_inputBuffer.Capacity - _inputBuffer.WriteIndex < InitInputBufferCapacity)
+                _inputBuffer.EnsureWrite(InitInputBufferCapacity);
 
             byte[] buffer = _inputBuffer.Bytes;
             int offset = _inputBuffer.WriteIndex;

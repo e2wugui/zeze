@@ -69,7 +69,7 @@ namespace Zeze.Util
             {
                 List<SchedulerTask> willRun = new List<SchedulerTask>(scheduled.Count);
                 long nextTime = -1;
-                long now = Time.NowMillis;
+                long now = Time.NowUnixMillis;
 
                 lock (this)
                 {
@@ -121,7 +121,7 @@ namespace Zeze.Util
         {
             this.Scheduler = scheduler;
             this.action = action;
-            this.Time = Zeze.Util.Time.NowMillis + initialDelay;
+            this.Time = Zeze.Util.Time.NowUnixMillis + initialDelay;
             this.Period = period;
             this.SequenceNumber = sequencer.IncrementAndGet();
             this.canceled = false;
@@ -138,6 +138,7 @@ namespace Zeze.Util
                 return;
 
             Task.Run(action);
+
             if (this.Period > 0)
             {
                 this.Time += this.Period;
