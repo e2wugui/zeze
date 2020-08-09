@@ -11,8 +11,4 @@
     <None Remove="Gen\**" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Net\" />
-  </ItemGroup>
-
 </Project>

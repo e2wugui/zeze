@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection.PortableExecutable;
 
 namespace Zeze.Serialize
 {
@@ -84,6 +85,25 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Campact()
+        {
+            int size = this.Size;
+            if (size > 0)
+            {
+                if (ReadIndex > 0)
+                {
+                    Buffer.BlockCopy(Bytes, ReadIndex, Bytes, 0, size);
+                    ReadIndex = 0;
+                    WriteIndex = size;
+                }
+            }
+            else
+            {
+                Reset();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Reset()
         {
             ReadIndex = WriteIndex = 0;
@@ -101,7 +121,7 @@ namespace Zeze.Serialize
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EnsureWrite(int size)
+        public void EnsureWrite(int size)
         {
             int newSize = WriteIndex + size;
             if (newSize > Capacity)

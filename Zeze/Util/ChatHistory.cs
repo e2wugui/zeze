@@ -81,7 +81,7 @@ namespace Zeze.Util
                     msg.Content = Array.Empty<byte>(); // 对于图片视频，这里可以考虑放一个缩小的提示性图片。
                 }
 
-                if (this.MaxSingleDataFileLength > 0 && lastDataFile.DataFileLength > this.MaxSingleDataFileLength)
+                if (this.MaxSingleDataFileLength > 0 && _lastDataFile.DataFileLength > this.MaxSingleDataFileLength)
                     OpenOrCreateLastDataFile(LastId);
 
                 Zeze.Serialize.ByteBuffer bb = new Zeze.Serialize.ByteBuffer(msg.SizeHint());
@@ -89,7 +89,7 @@ namespace Zeze.Util
                 bb.Append(new byte[4]); // prepare for size bytes
                 msg.Encode(bb);
                 bb.Replace(savedWriteIndex, BitConverter.GetBytes(bb.Size - 4));
-                lastDataFile.WriteToTail(bb.Bytes, bb.ReadIndex, bb.Size);
+                _lastDataFile.WriteToTail(bb.Bytes, bb.ReadIndex, bb.Size);
 
                 return LastId++; // 最后才真的增加，避免上面异常导致LastId已被增加。 
             }
@@ -117,13 +117,13 @@ namespace Zeze.Util
                 if (startIdIndex < 0)
                     return result;
 
-                for (; count > 0 && startIdIndex < fileStartIds.Count; ++startIdIndex)
+                for (; count > 0 && startIdIndex < _fileStartIds.Count; ++startIdIndex)
                 {
-                    long startId = fileStartIds[startIdIndex];
-                    if (lastDataFile.StartId == startId)
+                    long startId = _fileStartIds[startIdIndex];
+                    if (_lastDataFile.StartId == startId)
                     {
                         //int realReadCount = 
-                        lastDataFile.Read(fromId, count, result);
+                        _lastDataFile.Read(fromId, count, result);
                         return result; // 最后一个文件，读多少算多少，直接返回。
                     }
 
@@ -147,10 +147,10 @@ namespace Zeze.Util
             if (startIdIndex < 0)
                 return;
 
-            long startId = fileStartIds[startIdIndex];
-            if (lastDataFile.StartId == startId)
+            long startId = _fileStartIds[startIdIndex];
+            if (_lastDataFile.StartId == startId)
             {
-                lastDataFile.Delete(id);
+                _lastDataFile.Delete(id);
                 return;
             }
 
@@ -170,9 +170,9 @@ namespace Zeze.Util
             lock(this)
             {
                 int index = 0;
-                for (; index < this.fileStartIds.Count - 1; ++index) // never delete last file.
+                for (; index < this._fileStartIds.Count - 1; ++index) // never delete last file.
                 {
-                    long startId = this.fileStartIds[index];
+                    long startId = this._fileStartIds[index];
                     string pathDat = System.IO.Path.Combine(this.SessionHome, startId + ".dat");
                     string pathIdx = System.IO.Path.Combine(this.SessionHome, startId + ".idx");
                     if (System.IO.File.GetLastWriteTime(pathDat).Ticks >= time)
@@ -181,8 +181,8 @@ namespace Zeze.Util
                     System.IO.File.Delete(pathDat);
                     System.IO.File.Delete(pathIdx);
                 }
-                this.fileStartIds.RemoveRange(0, index);
-                this.FirstId = this.fileStartIds.Count > 0 ? this.fileStartIds[0] : 0;
+                this._fileStartIds.RemoveRange(0, index);
+                this.FirstId = this._fileStartIds.Count > 0 ? this._fileStartIds[0] : 0;
             }
         }
 
@@ -193,7 +193,7 @@ namespace Zeze.Util
 
         public void Dispose()
         {
-            lastDataFile?.Dispose();
+            _lastDataFile?.Dispose();
         }
 
         private class MessageFile : IDisposable
@@ -315,16 +315,16 @@ namespace Zeze.Util
             }
         }
 
-        private MessageFile lastDataFile;
-        private List<long> fileStartIds; // sorted
+        private MessageFile _lastDataFile;
+        private List<long> _fileStartIds; // sorted
 
         // -1 not found
         private int FindStartIdIndex(long curId)
         {
             int prev = -1;
-            for (int i = 0; i < this.fileStartIds.Count; ++i)
+            for (int i = 0; i < this._fileStartIds.Count; ++i)
             {
-                if (curId < this.fileStartIds[i])
+                if (curId < this._fileStartIds[i])
                     return prev;
                 prev = i;
             }
@@ -332,10 +332,10 @@ namespace Zeze.Util
         }
         private void LoadFileStartIdsAndInit()
         {
-            this.fileStartIds = GetStartIds(this.SessionHome);
+            this._fileStartIds = GetStartIds(this.SessionHome);
             this.FirstId = 0;
             this.LastId = 0;
-            foreach (long startId in this.fileStartIds)
+            foreach (long startId in this._fileStartIds)
             {
                 this.FirstId = startId;
                 string path = System.IO.Path.Combine(this.SessionHome, startId + ".idx");
@@ -347,16 +347,16 @@ namespace Zeze.Util
                 }
             }
 
-            OpenOrCreateLastDataFile(this.fileStartIds.Count > 0 ? this.fileStartIds[^1] : 0);
+            OpenOrCreateLastDataFile(this._fileStartIds.Count > 0 ? this._fileStartIds[^1] : 0);
         }
 
         private void OpenOrCreateLastDataFile(long startId)
         {
-            lastDataFile?.Dispose();
-            lastDataFile = new MessageFile(this, startId);
-            if (this.fileStartIds.Contains(startId))
+            _lastDataFile?.Dispose();
+            _lastDataFile = new MessageFile(this, startId);
+            if (this._fileStartIds.Contains(startId))
                 return;
-            this.fileStartIds.Add(startId);
+            this._fileStartIds.Add(startId);
         }
 
         public static List<long> GetStartIds(string dir)
