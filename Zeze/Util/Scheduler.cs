@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Zeze.Util
 {
     /// <summary>
-    /// 定时延期执行任务
+    /// 定时延期执行任务。有 System.Threading.Timer，这个没必要了。
     /// </summary>
     public class Scheduler
     {
@@ -42,7 +42,7 @@ namespace Zeze.Util
         }
 
         /// <summary>
-        /// 设置停止标志，并等待调度线程结束。
+        /// 设置停止标志，并等待调度线程结束。不是必须调用。
         /// </summary>
         public void StopAndJoin()
         {
@@ -137,7 +137,7 @@ namespace Zeze.Util
             if (this.canceled)
                 return;
 
-            Task.Run(action);
+            Task.Run(action); // 派发出去运行，让系统管理大量任务的线程问题。
 
             if (this.Period > 0)
             {

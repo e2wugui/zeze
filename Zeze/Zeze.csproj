@@ -11,4 +11,8 @@
     <None Remove="Gen\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="NLog" Version="4.7.3" />
+  </ItemGroup>
+
 </Project>
