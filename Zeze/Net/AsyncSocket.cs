@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Zeze.Net
 {
-    public class ASocket : IDisposable
+    public class AsyncSocket : IDisposable
     {
         public const int InitInputBufferCapacity = 1024; // 输入buffer初始化大小和自增长大小
         public const int ThresholdInputBufferCapacity = 16 * 1024; // 输入buffer的容量超过这个数值后，如果可能重置buffer。
@@ -26,7 +26,7 @@ namespace Zeze.Net
         /// <summary>
         /// for server socket
         /// </summary>
-        public ASocket(Manager manager, System.Net.EndPoint localEP, int backlog)
+        public AsyncSocket(Manager manager, System.Net.EndPoint localEP, int backlog)
         {
             this.Manager = manager;
 
@@ -40,7 +40,7 @@ namespace Zeze.Net
         /// use inner. create when accept;
         /// </summary>
         /// <param name="accepted"></param>
-        ASocket(Manager manager, System.Net.Sockets.Socket accepted, byte[] bytes, int bytesTransferred)
+        AsyncSocket(Manager manager, System.Net.Sockets.Socket accepted, byte[] bytes, int bytesTransferred)
         {
             this.Manager = manager;
             _socket = accepted;
@@ -54,7 +54,7 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="host"></param>
         /// <param name="port"></param>
-        public ASocket(Manager manager, string host, int port)
+        public AsyncSocket(Manager manager, string host, int port)
         {
             this.Manager = manager;
             _socket = new System.Net.Sockets.Socket(System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
@@ -101,7 +101,7 @@ namespace Zeze.Net
                 byte[] buffer;
                 int bytesTransferred;
                 System.Net.Sockets.Socket so = _socket.EndAccept(out buffer, out bytesTransferred, ar);
-                ASocket aso = new ASocket(this.Manager, so, buffer, bytesTransferred);
+                AsyncSocket aso = new AsyncSocket(this.Manager, so, buffer, bytesTransferred);
                 try
                 {
                     this.Manager.OnSocketAccept(aso);

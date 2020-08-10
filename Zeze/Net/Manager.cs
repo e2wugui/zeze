@@ -8,18 +8,18 @@ namespace Zeze.Net
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private Dictionary<long, ASocket> _asocketMap = new Dictionary<long, ASocket>();
+        private Dictionary<long, AsyncSocket> _asocketMap = new Dictionary<long, AsyncSocket>();
 
         /// <summary>
         /// 只包含成功建立的连接：服务器Accept和客户端Connected的连接。
         /// </summary>
         /// <param name="serialNo"></param>
         /// <returns></returns>
-        public virtual ASocket GetASocket(long serialNo)
+        public virtual AsyncSocket GetASocket(long serialNo)
         {
             lock (_asocketMap)
             {
-                ASocket value = null;
+                AsyncSocket value = null;
                 if (_asocketMap.TryGetValue(serialNo, out value))
                     return value;
                 return null;
@@ -30,7 +30,7 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="so"></param>
         /// <param name="e"></param>
-        public virtual void OnSocketClose(ASocket so, Exception e)
+        public virtual void OnSocketClose(AsyncSocket so, Exception e)
         {
             lock (_asocketMap)
             {
@@ -43,7 +43,7 @@ namespace Zeze.Net
         /// 服务器接受到新连接回调。
         /// </summary>
         /// <param name="so"></param>
-        public virtual void OnSocketAccept(ASocket so)
+        public virtual void OnSocketAccept(AsyncSocket so)
         {
             lock(_asocketMap)
             {
@@ -56,7 +56,7 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="so"></param>
         /// <param name="e"></param>
-        public virtual void OnSocketConnectError(ASocket so, Exception e)
+        public virtual void OnSocketConnectError(AsyncSocket so, Exception e)
         {
             logger.Debug(e, "OnSocketConnectError");
         }
@@ -65,7 +65,7 @@ namespace Zeze.Net
         /// 连接成功回调。
         /// </summary>
         /// <param name="so"></param>
-        public virtual void OnSocketConnected(ASocket so)
+        public virtual void OnSocketConnected(AsyncSocket so)
         {
             lock (_asocketMap)
             {
@@ -82,7 +82,7 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="so"></param>
         /// <param name="input"></param>
-        public virtual void OnSocketProcessInputBuffer(ASocket so, Zeze.Serialize.ByteBuffer input)
+        public virtual void OnSocketProcessInputBuffer(AsyncSocket so, Zeze.Serialize.ByteBuffer input)
         {
             Console.WriteLine("OnSocketProcessInputBuffer: " + so.SerialNo);
             Console.WriteLine(Encoding.UTF8.GetString(input.Bytes, input.ReadIndex, input.Size));
