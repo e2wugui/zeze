@@ -94,7 +94,23 @@ namespace Zeze.Util
                 return LastId++; // 最后才真的增加，避免上面异常导致LastId已被增加。 
             }
         }
- 
+
+        /// <summary>
+        /// 读取最近的几条消息。
+        /// </summary>
+        /// <param name="count">消息个数，-1 表示读取全部</param>
+        /// <returns></returns>
+        public List<ChatHistoryMessage> ReadMessageRecent(int count)
+        {
+            if (count < 0) // read all
+                return ReadMessage(FirstId, -1);
+
+            long fromId = LastId - count;
+            if (fromId < FirstId)
+                fromId = FirstId;
+
+            return ReadMessage(fromId, count);
+        }
         /// <summary>
         /// 从 指定fromId 开始顺序读取一定数量的消息。
         /// </summary>
@@ -108,31 +124,34 @@ namespace Zeze.Util
 
             List<ChatHistoryMessage> result = new List<ChatHistoryMessage>();
 
+            long countReal = count; // 内部使用long类型
+            if (countReal < 0)
+                countReal = LastId - fromId;
+            if (countReal < 0)
+                return result;
+
             lock (this)
             {
-                if (count < 0) // for debug only
-                    count = (int)(LastId - fromId);
-
                 int startIdIndex = FindStartIdIndex(fromId);
                 if (startIdIndex < 0)
                     return result;
 
-                for (; count > 0 && startIdIndex < _fileStartIds.Count; ++startIdIndex)
+                for (; countReal > 0 && startIdIndex < _fileStartIds.Count; ++startIdIndex)
                 {
                     long startId = _fileStartIds[startIdIndex];
                     if (_lastDataFile.StartId == startId)
                     {
                         //int realReadCount = 
-                        _lastDataFile.Read(fromId, count, result);
+                        _lastDataFile.Read(fromId, countReal, result);
                         return result; // 最后一个文件，读多少算多少，直接返回。
                     }
 
                     using (MessageFile mf = new MessageFile(this, startId))
                     {
-                        int r = mf.Read(fromId, count, result);
+                        long r = mf.Read(fromId, count, result);
                         if (r > 0)
                         {
-                            count -= r;
+                            countReal -= r;
                             fromId = result[^1].Id + 1;
                         }
                     }
@@ -251,7 +270,7 @@ namespace Zeze.Util
                 return data.Seek(dataOffset, System.IO.SeekOrigin.Begin);
             }
 
-            public int Read(long fromId, int count, List<ChatHistoryMessage> result)
+            public long Read(long fromId, long count, List<ChatHistoryMessage> result)
             {
                 if (count <= 0)
                     return 0;
@@ -259,7 +278,7 @@ namespace Zeze.Util
                 if (SeekDataOffset(fromId) < 0)
                     return 0;
 
-                int i = 0;
+                long i = 0;
                 for (; i < count; ++i)
                 {
                     byte[] msgSizeBytes = new byte[4];
@@ -315,8 +334,8 @@ namespace Zeze.Util
 
             public void Dispose()
             {
-                data.Close();
-                index.Close();
+                data.Dispose();
+                index.Dispose();
             }
         }
 
