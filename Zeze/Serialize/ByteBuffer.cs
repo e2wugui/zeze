@@ -35,6 +35,7 @@ namespace Zeze.Serialize
             // add pool?
             // 缓存 ByteBuffer 还是 byte[] 呢？
             // 最大的问题是怎么归还？而且 Bytes 是公开的，可能会被其他地方引用，很难确定什么时候回收。
+            // buffer 使用2的幂，数量有限，使用简单策略即可。
             // Dictionary<capacity, List<byte[]>> pool;
             return new ByteBuffer(capacity);
         }

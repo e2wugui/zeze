@@ -2,18 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Net.Sockets;
 
 namespace Zeze.Net
 {
     /// <summary>
     /// 使用Socket的BeginXXX,EndXXX方法的异步包装类。
+    /// 目前只支持Tcp。
     /// </summary>
     public class AsyncSocket : IDisposable
     {
-        public const int InitInputBufferCapacity = 1024; // 输入buffer初始化大小和自增长大小
-        public const int ThresholdInputBufferCapacity = 16 * 1024; // 输入buffer的容量超过这个数值后，如果可能重置buffer。
-
-        private System.Net.Sockets.Socket _socket;
+        private Socket _socket;
         private Zeze.Serialize.ByteBuffer _inputBuffer;
         private List<System.ArraySegment<byte>> _outputBufferList = null;
         private List<System.ArraySegment<byte>> _outputBufferListSending = null; // 正在发送的 buffers.
@@ -21,22 +20,37 @@ namespace Zeze.Net
         public Manager Manager { get; private set; }
         public Exception LastException { get; private set; }
         public long SerialNo { get; private set; }
-        public System.Net.Sockets.Socket Socket {  get { return _socket; } } // 这个给出去真的好吗？
-        public Object State { get; set; } // 保存需要存储在Socket中的状态，比如加解密的功能。简单变量，没有考虑线程安全问题。内部不使用。
+        public Socket Socket {  get { return _socket; } } // 这个给出去真的好吗？
+
+        /// <summary>
+        /// 保存需要存储在Socket中的状态，比如加解密的功能。
+        /// 简单变量，没有考虑线程安全问题。
+        /// 内部不使用。
+        /// </summary>
+        public Object UserState { get; set; } // 
 
         private static Zeze.Util.AtomicLong SerialNoGen = new Zeze.Util.AtomicLong();
 
         /// <summary>
         /// for server socket
         /// </summary>
-        public AsyncSocket(Manager manager, System.Net.EndPoint localEP, int backlog)
+        public AsyncSocket(Manager manager, System.Net.EndPoint localEP)
         {
             this.Manager = manager;
 
-            _socket = new System.Net.Sockets.Socket(System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+            _socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            _socket.Blocking = false;
+            _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+ 
+            // xxx 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
+            // 不知道 c# 会不会也这样，先这样写。
+            if (null != manager.SocketOptions.ReceiveBuffer)
+                _socket.ReceiveBufferSize = manager.SocketOptions.ReceiveBuffer.Value;
+
             _socket.Bind(localEP);
-            _socket.Listen(backlog);
-            _socket.BeginAccept(InitInputBufferCapacity, OnAsyncAccept, this);
+            _socket.Listen(manager.SocketOptions.Backlog);
+            _socket.BeginAccept(manager.SocketOptions.InputBufferInitCapacity, OnAsyncAccept, this);
+
             this.SerialNo = SerialNoGen.IncrementAndGet();
         }
 
@@ -44,12 +58,24 @@ namespace Zeze.Net
         /// use inner. create when accept;
         /// </summary>
         /// <param name="accepted"></param>
-        AsyncSocket(Manager manager, System.Net.Sockets.Socket accepted, byte[] bytes, int bytesTransferred)
+        AsyncSocket(Manager manager, Socket accepted, byte[] bytes, int bytesTransferred)
         {
             this.Manager = manager;
+
             _socket = accepted;
+            _socket.Blocking = false;
+
+            // 据说连接接受以后设置无效，应该从 ServerSocket 继承
+            if (null != manager.SocketOptions.ReceiveBuffer)
+                _socket.ReceiveBufferSize = manager.SocketOptions.ReceiveBuffer.Value;
+            if (null != manager.SocketOptions.SendBuffer)
+                _socket.SendBufferSize = manager.SocketOptions.SendBuffer.Value;
+            if (null != manager.SocketOptions.NoDelay)
+                _socket.NoDelay = manager.SocketOptions.NoDelay.Value;
+
             _inputBuffer = Zeze.Serialize.ByteBuffer.Wrap(bytes, 0, bytesTransferred);
             // BeginReceive called in OnAsyncAccept
+
             this.SerialNo = SerialNoGen.IncrementAndGet();
         }
 
@@ -61,8 +87,19 @@ namespace Zeze.Net
         public AsyncSocket(Manager manager, string host, int port)
         {
             this.Manager = manager;
-            _socket = new System.Net.Sockets.Socket(System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+
+            _socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            _socket.Blocking = false;
+            
+            if (null != manager.SocketOptions.ReceiveBuffer)
+                _socket.ReceiveBufferSize = manager.SocketOptions.ReceiveBuffer.Value;
+            if (null != manager.SocketOptions.SendBuffer)
+                _socket.SendBufferSize = manager.SocketOptions.SendBuffer.Value;
+            if (null != manager.SocketOptions.NoDelay)
+                _socket.NoDelay = manager.SocketOptions.NoDelay.Value;
+
             System.Net.Dns.BeginGetHostAddresses(host, OnAsyncGetHostAddresses, port);
+ 
             this.SerialNo = SerialNoGen.IncrementAndGet();
         }
 
@@ -157,17 +194,17 @@ namespace Zeze.Net
         {
             if (null == _inputBuffer)
             {
-                _inputBuffer = Serialize.ByteBuffer.Allocate(InitInputBufferCapacity);
+                _inputBuffer = Serialize.ByteBuffer.Allocate(Manager.SocketOptions.InputBufferInitCapacity);
             }
             else
             {
-                if (_inputBuffer.Size == 0 && _inputBuffer.Capacity > ThresholdInputBufferCapacity)
-                    _inputBuffer = Serialize.ByteBuffer.Allocate(InitInputBufferCapacity);
+                if (_inputBuffer.Size == 0 && _inputBuffer.Capacity > Manager.SocketOptions.InputBufferResetThreshold)
+                    _inputBuffer = Serialize.ByteBuffer.Allocate(Manager.SocketOptions.InputBufferInitCapacity);
                 _inputBuffer.Campact();
             }
 
-            if (_inputBuffer.Capacity - _inputBuffer.WriteIndex < InitInputBufferCapacity)
-                _inputBuffer.EnsureWrite(InitInputBufferCapacity);
+            if (_inputBuffer.Capacity - _inputBuffer.WriteIndex < Manager.SocketOptions.InputBufferInitCapacity)
+                _inputBuffer.EnsureWrite(Manager.SocketOptions.InputBufferInitCapacity);
 
             byte[] buffer = _inputBuffer.Bytes;
             int offset = _inputBuffer.WriteIndex;

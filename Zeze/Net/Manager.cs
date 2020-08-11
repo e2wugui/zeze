@@ -8,7 +8,17 @@ namespace Zeze.Net
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
+        /// <summary>
+        /// 同一个 Manager 下的所有连接都是用相同配置。
+        /// </summary>
+        public SocketOptions SocketOptions { get; set; }
+
         private Dictionary<long, AsyncSocket> _asocketMap = new Dictionary<long, AsyncSocket>();
+
+        public Manager()
+        {
+            this.SocketOptions = new SocketOptions();
+        }
 
         /// <summary>
         /// 只包含成功建立的连接：服务器Accept和客户端Connected的连接。
