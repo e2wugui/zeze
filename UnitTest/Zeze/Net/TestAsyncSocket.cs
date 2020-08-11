@@ -17,7 +17,7 @@ namespace UnitTest.Zeze.Net
         public void TestConnect()
         {
             Manager manager = new Manager();
-            using AsyncSocket so = new AsyncSocket(manager, "www.163.com", 80);
+            using AsyncSocket so = new AsyncSocket(manager, "www.sina.com.cn", 80);
             Thread.Sleep(2000);
         }
         /*
