@@ -47,7 +47,18 @@ namespace Zeze.Serialize
         {
             return (tagid >> TAG_SHIFT) & ID_MASK;
         }
-  
+
+        public static void VerifyParameter(byte[] bytes, int offset, int length)
+        {
+            if (offset < 0 || offset >= bytes.Length)
+                throw new Exception();
+            int endindex = offset + length;
+            if (endindex < 0 || endindex > bytes.Length)
+                throw new Exception();
+            if (offset > endindex)
+                throw new Exception();
+        }
+
         public static ByteBuffer Encode(Serializable sa)
         {
             ByteBuffer bb = ByteBuffer.Allocate();

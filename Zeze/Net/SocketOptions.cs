@@ -25,7 +25,7 @@ namespace Zeze.Net
             // 其他系统的选项不指定的话由系统提供默认值。
             InputBufferInitCapacity = 1024; // 对于绝大多数请求协议都够用了。对于大流量应用，应该加大。
             InputBufferResetThreshold = 16 * InputBufferInitCapacity;
-            Backlog = 32;
+            Backlog = 128;
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Text;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection.PortableExecutable;
+using System.Security.Cryptography;
 
 namespace Zeze.Serialize
 {
@@ -22,6 +23,7 @@ namespace Zeze.Serialize
 
         public static ByteBuffer Wrap(byte[] bytes, int offset, int length)
         {
+            Helper.VerifyParameter(bytes, offset, length);
             return new ByteBuffer(bytes, offset, offset + length);
         }
 
@@ -37,6 +39,7 @@ namespace Zeze.Serialize
             // 最大的问题是怎么归还？而且 Bytes 是公开的，可能会被其他地方引用，很难确定什么时候回收。
             // buffer 使用2的幂，数量有限，使用简单策略即可。
             // Dictionary<capacity, List<byte[]>> pool;
+            // socket的内存可以归还。
             return new ByteBuffer(capacity);
         }
 
@@ -49,15 +52,6 @@ namespace Zeze.Serialize
 
         private ByteBuffer(byte[] bytes, int readIndex, int writeIndex)
         {
-            /*
-            if (readIndex < 0 || readIndex >= bytes.Length)
-                throw new Exception();
-            if (writeIndex < 0 || writeIndex > bytes.Length)
-                throw new Exception();
-            if (readIndex > writeIndex)
-                throw new Exception();
-            */
-
             this.Bytes = bytes;
             this.ReadIndex = readIndex;
             this.WriteIndex = writeIndex;
