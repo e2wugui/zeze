@@ -84,7 +84,7 @@ namespace Zeze.Util
                 if (this.MaxSingleDataFileLength > 0 && _lastDataFile.DataFileLength > this.MaxSingleDataFileLength)
                     OpenOrCreateLastDataFile(LastId);
 
-                Zeze.Serialize.ByteBuffer bb = new Zeze.Serialize.ByteBuffer(msg.SizeHint());
+                Zeze.Serialize.ByteBuffer bb = Zeze.Serialize.ByteBuffer.Allocate(msg.SizeHint());
                 int savedWriteIndex = bb.WriteIndex;
                 bb.Append(new byte[4]); // prepare for size bytes
                 msg.Encode(bb);

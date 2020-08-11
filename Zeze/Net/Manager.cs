@@ -36,7 +36,8 @@ namespace Zeze.Net
             {
                 _asocketMap.Remove(so.SerialNo);
             }
-            logger.Debug(e, "OnSocketClose");
+            if (null != e)
+                logger.Debug(e, "OnSocketClose");
         }
 
         /// <summary>

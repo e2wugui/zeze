@@ -14,23 +14,39 @@ namespace Zeze.Serialize
         public int WriteIndex { get; set; }
         public int Capacity { get { return Bytes.Length; } }
         public int Size { get { return WriteIndex - ReadIndex; } }
- 
-        public ByteBuffer() : this(1024)
+
+        public static ByteBuffer Wrap(byte[] bytes)
         {
+            return new ByteBuffer(bytes, 0, bytes.Length);
         }
 
-        public ByteBuffer(int capacity)
+        public static ByteBuffer Wrap(byte[] bytes, int offset, int length)
         {
-            this.Bytes = new byte[PropSize(capacity)];
+            return new ByteBuffer(bytes, offset, offset + length);
+        }
+
+        public static ByteBuffer Allocate()
+        {
+            return Allocate(1024);
+        }
+
+        public static ByteBuffer Allocate(int capacity)
+        {
+            // add pool?
+            // 缓存 ByteBuffer 还是 byte[] 呢？
+            // 最大的问题是怎么归还？而且 Bytes 是公开的，可能会被其他地方引用，很难确定什么时候回收。
+            // Dictionary<capacity, List<byte[]>> pool;
+            return new ByteBuffer(capacity);
+        }
+
+        private ByteBuffer(int capacity)
+        {
+            this.Bytes = new byte[ToPower2(capacity)];
             this.ReadIndex = 0;
             this.WriteIndex = 0;
         }
 
-        ByteBuffer(byte[] bytes) : this(bytes, 0, bytes.Length)
-        {
-        }
-
-        ByteBuffer(byte[] bytes, int readIndex, int writeIndex)
+        private ByteBuffer(byte[] bytes, int readIndex, int writeIndex)
         {
             /*
             if (readIndex < 0 || readIndex >= bytes.Length)
@@ -44,16 +60,6 @@ namespace Zeze.Serialize
             this.Bytes = bytes;
             this.ReadIndex = readIndex;
             this.WriteIndex = writeIndex;
-        }
-
-        public static ByteBuffer Wrap(byte[] bytes)
-        {
-            return new ByteBuffer(bytes, 0, bytes.Length);
-        }
-
-        public static ByteBuffer Wrap(byte[] bytes, int offset, int length)
-        {
-            return new ByteBuffer(bytes, offset, offset + length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -110,12 +116,11 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int PropSize(int needSize)
+        private static int ToPower2(int needSize)
         {
             int size = 1024;
-            for (; size < needSize; size <<= 1)
-            {
-            }
+            while (size < needSize)
+                size <<= 1;
             return size;
         }
 
@@ -126,7 +131,7 @@ namespace Zeze.Serialize
             int newSize = WriteIndex + size;
             if (newSize > Capacity)
             {
-                byte[] newBytes = new byte[PropSize(newSize)];
+                byte[] newBytes = new byte[ToPower2(newSize)];
                 WriteIndex -= ReadIndex;
                 Buffer.BlockCopy(Bytes, ReadIndex, newBytes, 0, WriteIndex);
                 ReadIndex = 0;

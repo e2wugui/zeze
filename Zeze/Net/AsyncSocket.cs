@@ -5,6 +5,9 @@ using System.Text;
 
 namespace Zeze.Net
 {
+    /// <summary>
+    /// 使用Socket的BeginXXX,EndXXX方法的异步包装类。
+    /// </summary>
     public class AsyncSocket : IDisposable
     {
         public const int InitInputBufferCapacity = 1024; // 输入buffer初始化大小和自增长大小
@@ -16,9 +19,9 @@ namespace Zeze.Net
         private List<System.ArraySegment<byte>> _outputBufferListSending = null; // 正在发送的 buffers.
 
         public Manager Manager { get; private set; }
-        public Exception? LastException { get; private set; }
+        public Exception LastException { get; private set; }
         public long SerialNo { get; private set; }
-        public System.Net.Sockets.Socket? Socket {  get { return _socket; } } // 这个给出去真的好吗？
+        public System.Net.Sockets.Socket Socket {  get { return _socket; } } // 这个给出去真的好吗？
         public Object State { get; set; } // 保存需要存储在Socket中的状态，比如加解密的功能。简单变量，没有考虑线程安全问题。内部不使用。
 
         private static Zeze.Util.AtomicLong SerialNoGen = new Zeze.Util.AtomicLong();
@@ -30,6 +33,7 @@ namespace Zeze.Net
         {
             this.Manager = manager;
 
+            _socket = new System.Net.Sockets.Socket(System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
             _socket.Bind(localEP);
             _socket.Listen(backlog);
             _socket.BeginAccept(InitInputBufferCapacity, OnAsyncAccept, this);
@@ -153,12 +157,12 @@ namespace Zeze.Net
         {
             if (null == _inputBuffer)
             {
-                _inputBuffer = new Serialize.ByteBuffer(InitInputBufferCapacity);
+                _inputBuffer = Serialize.ByteBuffer.Allocate(InitInputBufferCapacity);
             }
             else
             {
                 if (_inputBuffer.Size == 0 && _inputBuffer.Capacity > ThresholdInputBufferCapacity)
-                    _inputBuffer = new Serialize.ByteBuffer(InitInputBufferCapacity);
+                    _inputBuffer = Serialize.ByteBuffer.Allocate(InitInputBufferCapacity);
                 _inputBuffer.Campact();
             }
 

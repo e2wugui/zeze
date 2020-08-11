@@ -20,7 +20,7 @@ namespace UnitTest.Zeze.Net
             using AsyncSocket so = new AsyncSocket(manager, "www.163.com", 80);
             Thread.Sleep(2000);
         }
-
+        /*
         [TestMethod]
         public void TestAsync()
         {
@@ -53,5 +53,6 @@ namespace UnitTest.Zeze.Net
             }
             Console.WriteLine("Job end " + System.Threading.Thread.CurrentThread.ManagedThreadId);
         }
+        */
     }
 }

@@ -15,7 +15,7 @@ managed
 数据变更?
 Net.Manager 怎么重新定义？现在这个不够灵活。
 
-<solution name="demo" ModuleIdAllowRange="1-3,5">
+<application name="demo" ModuleIdAllowRange="1-3,5">
 	
 	<bean name="b1">
 		<enum name="Enum" value="4"/>
@@ -46,4 +46,4 @@ Net.Manager 怎么重新定义？现在这个不够灵活。
 			<module ref="m1"/>
 		</manager>
 	</project>
-</solution>
+</application>

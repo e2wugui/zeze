@@ -11,7 +11,7 @@ namespace UnitTest.Zeze.Serialize
         [TestMethod]
         public void TestBytes()
         {
-            ByteBuffer bb = new ByteBuffer();
+            ByteBuffer bb = ByteBuffer.Allocate();
 
             byte[] v = new byte[0];
             bb.WriteBytes(v);
@@ -32,7 +32,7 @@ namespace UnitTest.Zeze.Serialize
         [TestMethod]
         public void TestBasic()
         {
-            ByteBuffer bb = new ByteBuffer();
+            ByteBuffer bb = ByteBuffer.Allocate();
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
             {
@@ -74,7 +74,7 @@ namespace UnitTest.Zeze.Serialize
         [TestMethod]
         public void TestShort()
         {
-            ByteBuffer bb = new ByteBuffer();
+            ByteBuffer bb = ByteBuffer.Allocate();
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
             short v = 1;
@@ -113,7 +113,7 @@ namespace UnitTest.Zeze.Serialize
         [TestMethod]
         public void TestInt()
         {
-            ByteBuffer bb = new ByteBuffer();
+            ByteBuffer bb = ByteBuffer.Allocate();
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
             int v = 1;
@@ -160,7 +160,7 @@ namespace UnitTest.Zeze.Serialize
         [TestMethod]
         public void TestLong()
         {
-            ByteBuffer bb = new ByteBuffer();
+            ByteBuffer bb = ByteBuffer.Allocate();
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
             long v = 1;

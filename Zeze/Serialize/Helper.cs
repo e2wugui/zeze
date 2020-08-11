@@ -50,7 +50,7 @@ namespace Zeze.Serialize
   
         public static ByteBuffer Encode(Serializable sa)
         {
-            ByteBuffer bb = new ByteBuffer();
+            ByteBuffer bb = ByteBuffer.Allocate();
             sa.Encode(bb);
             return bb;
         }
