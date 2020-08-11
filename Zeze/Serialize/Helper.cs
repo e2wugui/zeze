@@ -50,7 +50,7 @@ namespace Zeze.Serialize
 
         public static void VerifyParameter(byte[] bytes, int offset, int length)
         {
-            if (offset < 0 || offset >= bytes.Length)
+            if (offset < 0 || offset > bytes.Length)
                 throw new Exception();
             int endindex = offset + length;
             if (endindex < 0 || endindex > bytes.Length)
