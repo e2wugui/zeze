@@ -48,7 +48,7 @@ namespace Zeze.Serialize
             return (tagid >> TAG_SHIFT) & ID_MASK;
         }
 
-        public static void VerifyParameter(byte[] bytes, int offset, int length)
+        public static void VerifyArrayIndex(byte[] bytes, int offset, int length)
         {
             if (offset < 0 || offset > bytes.Length)
                 throw new Exception();

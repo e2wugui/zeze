@@ -23,7 +23,7 @@ namespace Zeze.Serialize
 
         public static ByteBuffer Wrap(byte[] bytes, int offset, int length)
         {
-            Helper.VerifyParameter(bytes, offset, length);
+            Helper.VerifyArrayIndex(bytes, offset, length);
             return new ByteBuffer(bytes, offset, offset + length);
         }
 

@@ -130,7 +130,7 @@ namespace Zeze.Net
         /// <param name="length"></param>
         public void Send(byte[] bytes, int offset, int length)
         {
-            Zeze.Serialize.Helper.VerifyParameter(bytes, offset, length);
+            Zeze.Serialize.Helper.VerifyArrayIndex(bytes, offset, length);
 
             lock (this)
             {
