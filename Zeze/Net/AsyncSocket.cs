@@ -83,9 +83,9 @@ namespace Zeze.Net
             if (null != manager.SocketOptions.NoDelay)
                 Socket.NoDelay = manager.SocketOptions.NoDelay.Value;
 
-            BeginReceiveAsync();
-
             this.SerialNo = SerialNoGen.IncrementAndGet();
+
+            BeginReceiveAsync();
         }
 
         /// <summary>
@@ -131,8 +131,6 @@ namespace Zeze.Net
         public void Send(byte[] bytes, int offset, int length)
         {
             Zeze.Serialize.Helper.VerifyParameter(bytes, offset, length);
-            if (length <= 0)
-                return; // 不允许发送空缓存
 
             lock (this)
             {
@@ -140,8 +138,24 @@ namespace Zeze.Net
                     _outputBufferList = new List<ArraySegment<byte>>();
                 _outputBufferList.Add(new ArraySegment<byte>(bytes, offset, length));
                 _outputBufferListCountSum += _outputBufferList[^1].Count;
+
+                if (null == _outputBufferListSending) // 没有在发送中，马上请求发送，否则等回调处理。
+                {
+                    _outputBufferListSending = _outputBufferList;
+                    _outputBufferList = null;
+                    _outputBufferListSendingCountSum = _outputBufferListCountSum;
+                    _outputBufferListCountSum = 0;
+
+                    if (null == eventArgsSend)
+                    {
+                        eventArgsSend = new SocketAsyncEventArgs();
+                        eventArgsSend.Completed += OnAsyncIOCompleted;
+                    }
+                    eventArgsSend.BufferList = _outputBufferListSending;
+                    if (false == Socket.SendAsync(eventArgsSend))
+                        ProcessSend(eventArgsSend);
+                }
             }
-            BeginSendAsync(0); // must be zero.
         }
 
         public void Send(string str)
@@ -271,9 +285,9 @@ namespace Zeze.Net
 
         private void ProcessSend(SocketAsyncEventArgs e)
         {
-            if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
+            if (e.BytesTransferred >= 0 && e.SocketError == SocketError.Success)
             {
-                BeginSendAsync(e.BytesTransferred); // 必须大于0
+                BeginSendAsync(e.BytesTransferred);
             }
             else
             {
@@ -281,84 +295,71 @@ namespace Zeze.Net
             }
         }
 
-        private void BeginSendAsync(int hasSend)
+        private void BeginSendAsync(int _bytesTransferred)
         {
             lock(this)
             {
-                if (null == eventArgsSend)
+                // 听说 BeginSend 成功回调的时候，所有数据都会被发送，这样的话就可以直接清除_outputBufferSending，而不用这么麻烦。
+                // MUST 下面的条件必须满足，不做判断。
+                // _outputBufferSending != null
+                // _outputBufferSending.Count > 0
+                // sum(_outputBufferSending[i].Count) <= bytesTransferred
+                int bytesTransferred = _bytesTransferred; // 后面还要用已经发送的原始值，本来下面计算也可以得到，但这样更容易理解。
+                if (bytesTransferred == _outputBufferListSendingCountSum) // 全部发送完，优化。
                 {
-                    eventArgsSend = new SocketAsyncEventArgs();
-                    eventArgsSend.Completed += OnAsyncIOCompleted;
+                    _outputBufferListSending.Clear();
                 }
-
-                if (hasSend > 0)
+                else if (bytesTransferred > _outputBufferListSendingCountSum)
                 {
-                    // 听说 BeginSend 成功回调的时候，所有数据都会被发送，这样的话就可以直接清除_outputBufferSending，而不用这么麻烦。
-                    // MUST 下面的条件必须满足，不做判断。
-                    // _outputBufferSending != null
-                    // _outputBufferSending.Count > 0
-                    // sum(_outputBufferSending[i].Count) <= hasSend
-                    if (hasSend == _outputBufferListSendingCountSum) // 全部发送完
+                    throw new Exception("hasSend too big.");
+                }
+                else
+                {
+                    // 部分发送
+                    for (int i = 0; i < _outputBufferListSending.Count; ++i)
                     {
-                        _outputBufferListSending.Clear();
-                    }
-                    else if (hasSend > _outputBufferListSendingCountSum)
-                    {
-                        throw new Exception("hasSend too big.");
-                    }
-                    else
-                    {
-                        for (int i = 0; i < _outputBufferListSending.Count; ++i)
+                        int bytesCount = _outputBufferListSending[i].Count;
+                        if (bytesTransferred >= bytesCount)
                         {
-                            int bytesCount = _outputBufferListSending[i].Count;
-                            if (hasSend >= bytesCount)
-                            {
-                                hasSend -= bytesCount;
-                                if (hasSend > 0)
-                                    continue;
+                            bytesTransferred -= bytesCount;
+                            if (bytesTransferred > 0)
+                                continue;
 
-                                _outputBufferListSending.RemoveRange(0, i + 1);
-                                break;
-                            }
-                            // 已经发送的数据比数组中的少。
-                            ArraySegment<byte> segment = _outputBufferListSending[i];
-                            _outputBufferListSending[i] = segment.Slice(hasSend, segment.Count - hasSend);
-                            _outputBufferListSending.RemoveRange(0, i);
+                            _outputBufferListSending.RemoveRange(0, i + 1);
                             break;
                         }
+                        // 已经发送的数据比数组中的少。
+                        ArraySegment<byte> segment = _outputBufferListSending[i];
+                        _outputBufferListSending[i] = segment.Slice(bytesTransferred, segment.Count - bytesTransferred);
+                        _outputBufferListSending.RemoveRange(0, i);
+                        break;
                     }
-
-                    if (_outputBufferListSending.Count == 0)
-                    {
-                        _outputBufferListSending = _outputBufferList;
-                        _outputBufferList = null;
-                        _outputBufferListSendingCountSum = _outputBufferListCountSum;
-                        _outputBufferListCountSum = 0;
-                    }
-                    else if (null != _outputBufferList)
-                    {
-                        _outputBufferListSending.AddRange(_outputBufferList);
-                        _outputBufferList = null;
-                        _outputBufferListSendingCountSum = _outputBufferListCountSum;
-                        _outputBufferListCountSum = 0;
-                    }
-
-                    if (null != _outputBufferListSending)
-                    {
-                        eventArgsSend.BufferList = _outputBufferListSending;
-                        if (false == Socket.SendAsync(eventArgsSend))
-                            ProcessSend(eventArgsSend);
-                    }
-                    return;
                 }
-                
-                if (null == _outputBufferListSending && null != _outputBufferList)
+
+                if (_outputBufferListSending.Count == 0)
                 {
-                    _outputBufferListSending = _outputBufferList;
+                    // 全部发送完
+                    _outputBufferListSending = _outputBufferList; // maybe null
                     _outputBufferList = null;
                     _outputBufferListSendingCountSum = _outputBufferListCountSum;
                     _outputBufferListCountSum = 0;
+                }
+                else if (null != _outputBufferList)
+                {
+                    // 没有发送完，并且有要发送的
+                    _outputBufferListSending.AddRange(_outputBufferList);
+                    _outputBufferList = null;
+                    _outputBufferListSendingCountSum = _outputBufferListCountSum + (_outputBufferListSendingCountSum - _bytesTransferred);
+                    _outputBufferListCountSum = 0;
+                }
+                else
+                {
+                    // 没有发送完，也没有要发送的
+                    _outputBufferListSendingCountSum = _outputBufferListSendingCountSum - _bytesTransferred;
+                }
 
+                if (null != _outputBufferListSending) // 全部发送完，并且 _outputBufferList == null 时，可能为 null
+                {
                     eventArgsSend.BufferList = _outputBufferListSending;
                     if (false == Socket.SendAsync(eventArgsSend))
                         ProcessSend(eventArgsSend);

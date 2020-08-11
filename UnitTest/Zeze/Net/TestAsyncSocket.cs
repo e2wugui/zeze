@@ -18,7 +18,7 @@ namespace UnitTest.Zeze.Net
         {
             Manager manager = new Manager();
             using AsyncSocket so = new AsyncSocket(manager, "www.sina.com.cn", 80);
-            Thread.Sleep(2000);
+            Thread.Sleep(2000); // 异步的，等待结果
         }
         /*
         [TestMethod]
