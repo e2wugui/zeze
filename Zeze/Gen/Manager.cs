@@ -22,7 +22,7 @@ namespace Zeze.Gen
             this.self = self;
 
             Project = project;
-            Name = self.GetAttribute("name");
+            Name = self.GetAttribute("name").Trim();
             Handle = self.GetAttribute("handle");
             Class = self.GetAttribute("class");
 

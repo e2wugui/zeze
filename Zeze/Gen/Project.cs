@@ -20,10 +20,14 @@ namespace Zeze.Gen
         public Project(Solution solution, XmlElement self)
         {
             Solution = solution;
-            Name = self.GetAttribute("name");
+            Name = self.GetAttribute("name").Trim();
             Language = self.GetAttribute("language");
 
             this.self = self; // 保存，在编译的时候使用。
+
+            if (Solution.Projects.ContainsKey(Name))
+                throw new Exception("duplicate project name: " + Name);
+            Solution.Projects.Add(Name, this);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

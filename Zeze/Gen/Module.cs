@@ -31,16 +31,18 @@ namespace Zeze.Gen
                 switch (e.Name)
                 {
                     case "bean":
-                        Console.WriteLine("bean " + e.GetAttribute("name"));
+                        new Types.Bean(this, e);
                         break;
                     case "module":
                         new Module(this, e);
                         break;
                     case "protocol":
+                        new Protocol(this, e);
                         break;
                     case "rpc":
                         break;
                     case "table":
+                        new Table(this, e);
                         break;
                 }
             }
