@@ -88,6 +88,7 @@ namespace Zeze.Gen
         public List<Protocol> AllProtocols { get; private set; }
         public List<Table> AllTables { get; private set; }
         public List<Types.Bean> AllBeans { get; private set; }
+        public List<Types.BeanKey> AllBeanKeys { get; private set; }
 
         public void Make()
         {
@@ -116,10 +117,23 @@ namespace Zeze.Gen
                 {
                     table.Depends(depends);
                 }
+                foreach (string n in Program.Refs(self, "bean"))
+                {
+                    depends.Add(Program.GetNamedObject<Types.Bean>(n));
+                }
+                foreach (string n in Program.Refs(self, "beankey"))
+                {
+                    depends.Add(Program.GetNamedObject<Types.BeanKey>(n));
+                }
                 foreach (Types.Type type in depends)
                 {
                     if (type.IsBean)
-                        AllBeans.Add(type as Types.Bean);
+                    {
+                        if (type.IsKeyable)
+                            AllBeanKeys.Add(type as Types.BeanKey);
+                        else
+                            AllBeans.Add(type as Types.Bean);
+                    }
                 }
             }
             switch (Platform)

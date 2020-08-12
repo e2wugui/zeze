@@ -1,4 +1,4 @@
-
+﻿
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -6,7 +6,7 @@ using System.Xml;
 
 namespace Zeze.Gen.Types
 {
-	public class Bean : Type
+	public class BeanKey : Type
 	{
 		public override void Accept(Visitor visitor)
 		{
@@ -28,41 +28,14 @@ namespace Zeze.Gen.Types
 		public override void Depends(HashSet<Type> includes)
 		{
 			if (includes.Add(this))
+            {
 				foreach (Variable var in Variables)
 				{
 					var.VariableType.Depends(includes);
-
-					// 常量初始化引用到的Bean也加入depends中。 BeanName.ConstStaticVarName
-					// 
-					String[] initial = var.Initial.Split(".");
-					String beanNameMabe = "";
-					for (int i = 0; i < initial.Length - 1; ++i)
-					{
-						if (i > 0)
-							beanNameMabe += '.';
-						beanNameMabe += initial[i];
-					}
-					if (beanNameMabe.Length == 0)
-						continue;
-					try
-					{
-						Type type = Type.Compile(Space, beanNameMabe);
-						if (null != type)
-							includes.Add(type); // type.depends(type); 肯定是 Bean，不需要递归包含。 
-					}
-					catch (Exception)
-					{
-						// skip depends error
-					}
 				}
+			}
 		}
 
-		// ///////////////////////////////////////////
-		//	// dynamic create
-		//	Bean(ModuleSpace space, String name) {
-		//		Type.Add(space, this);
-		//	}
-		//
 		public void Add(Variable var)
 		{
 			Variables.Add(var); // check duplicate
@@ -74,16 +47,17 @@ namespace Zeze.Gen.Types
 
 		public ModuleSpace Space { get; private set; }
 
-		public override bool IsImmutable => false;
-		public override string Name => _name;
-        private string _name;
+		public override bool IsImmutable => true;
+		public override bool IsKeyable => true;
+        public override string Name => _name;
+		private string _name;
 
 		public List<Variable> Variables { get; private set; } = new List<Variable>();
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
 		public String Comment { get; private set; }
 
 		// ///////////////////////////////////////////
-		public Bean(ModuleSpace space, XmlElement self)
+		public BeanKey(ModuleSpace space, XmlElement self)
 		{
 			Space = space;
 			_name = self.GetAttribute("name").Trim();
@@ -137,7 +111,14 @@ namespace Zeze.Gen.Types
 		public void Compile()
 		{
 			foreach (Variable var in Variables)
+            {
 				var.Compile(Space);
+			}
+			foreach (Variable var in Variables)
+			{
+				if (false == var.VariableType.IsKeyable)
+					throw new Exception("BeanKey need isKeyable variable. " + Space.Path(".", Name) + "." + var.Name);
+			}
 			// this.comparable = _isComparable();
 		}
 	}

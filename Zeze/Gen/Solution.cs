@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Transactions;
 using System.Xml;
+using System.Threading.Tasks;
 
 namespace Zeze.Gen
 {
@@ -39,6 +40,9 @@ namespace Zeze.Gen
                     case "project":
                         new Project(this, e);
                         break;
+                    case "beankey":
+                        new Types.BeanKey(this, e);
+                        break;
                     case "import":
                         Program.ImportSolution(e.GetAttribute("file"));
                         break;
@@ -59,11 +63,13 @@ namespace Zeze.Gen
 
         public void Make()
         {
+            List<Task> tasks = new List<Task>();
             foreach (Project project in Projects.Values)
             {
-                project.Make();
+                tasks.Add(Task.Run(project.Make));
             }
+            Task[] wait = tasks.ToArray();
+            Task.WaitAll(wait);
         }
-
     }
 }

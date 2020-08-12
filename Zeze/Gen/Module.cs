@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen
 {
@@ -37,8 +38,8 @@ namespace Zeze.Gen
                     case "table":
                         new Table(this, e);
                         break;
-                    case "cbean":
-                        Console.WriteLine("TODO cbean");
+                    case "beankey":
+                        new BeanKey(this, e);
                         break;
                     default:
                         throw new Exception("unknown nodename=" + e.Name + " in module=" + Path("."));

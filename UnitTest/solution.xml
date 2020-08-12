@@ -13,10 +13,10 @@
 		<bean name="Value">
 			<variable id="1" default="1" name="s" type="int"/> com aa
 		</bean>
-		<cbean name="Key">
+		<beankey name="Key">
 			<variable id="1" default="1" name="s" type="short"/> com 2
 			com 2
-		</cbean>
+		</beankey>
 
 		<protocol name="Protocol1" id="1" argument="Value" handle="server,client"/>
 		<rpc name="Rpc1" id="2" argument="Value" result="Value" handle="server"/>

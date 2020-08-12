@@ -5,6 +5,7 @@ namespace Zeze.Gen.Types
 	public interface Visitor
 	{
 		public void Visit(Bean type);
+		public void Visit(BeanKey type);
 		public void Visit(TypeByte type);
 		public void Visit(TypeDouble type);
 		public void Visit(TypeInt type);

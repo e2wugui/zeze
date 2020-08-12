@@ -39,6 +39,7 @@ namespace Zeze.Gen
 
         public Dictionary<string, Module> Modules { get; private set; } = new Dictionary<string, Module>();
         public SortedDictionary<string, Types.Bean> Beans { get; private set; } = new SortedDictionary<string, Types.Bean>();
+        public SortedDictionary<string, Types.BeanKey> BeanKeys { get; private set; } = new SortedDictionary<string, Types.BeanKey>();
         public SortedDictionary<string, Protocol> Protocols { get; private set; } = new SortedDictionary<string, Protocol>();
         public SortedDictionary<string, Table> Tables { get; private set; } = new SortedDictionary<string, Table>();
 
@@ -46,6 +47,11 @@ namespace Zeze.Gen
         {
             Program.AddNamedObject(Path(".", bean.Name), bean);
             Beans.Add(bean.Name, bean);
+        }
+        public void Add(Types.BeanKey bean)
+        {
+            Program.AddNamedObject(Path(".", bean.Name), bean);
+            BeanKeys.Add(bean.Name, bean);
         }
 
         public void Add(Protocol protocol)

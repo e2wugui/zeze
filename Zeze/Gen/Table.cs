@@ -29,8 +29,8 @@ namespace Zeze.Gen
         public void Compile()
         {
             KeyType = Types.Type.Compile(Space, Key);
-            if (false == KeyType.IsImmutable)
-                throw new Exception("table.key need a immutable type: " + Space.Path(".", Name));
+            if (false == KeyType.IsKeyable)
+                throw new Exception("table.key need a isKeyable type: " + Space.Path(".", Name));
 
             ValueType = Types.Type.Compile(Space, Value);
             if (!ValueType.IsBean && !ValueType.IsImmutable)
