@@ -33,7 +33,7 @@ namespace Zeze.Gen.Types
 
 		public override String Name => "long";
 
-        public override bool IsConstType => true;
+        public override bool IsImmutable => true;
 
         internal TypeLong(SortedDictionary<String, Type> types)
 		{

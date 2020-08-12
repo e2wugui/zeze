@@ -9,6 +9,12 @@ namespace Zeze.Gen
     {
         public ModuleSpace Space { get; private set; }
         public string Name { get; private set; }
+        public short Id { get; private set; }
+        public string Argument { get; private set; }
+        public string Handle { get; private set; }
+
+        // setup in compile
+        public Types.Type ArgumentType { get; private set; }
 
         public Protocol(ModuleSpace space, XmlElement self)
         {
@@ -16,6 +22,21 @@ namespace Zeze.Gen
             Name = self.GetAttribute("name").Trim();
             space.Add(this);
 
+            Id = short.Parse(self.GetAttribute("id"));
+            space.ProtocolIdRanges.CheckAdd(Id);
+
+            Argument = self.GetAttribute("argument");
+            Handle = self.GetAttribute("handle");
+        }
+
+        public virtual void Compile()
+        {
+            ArgumentType = Types.Type.Compile(Space, Argument);
+        }
+
+        public virtual void Depends(HashSet<Types.Type> depends)
+        {
+            ArgumentType.Depends(depends);
         }
     }
 }

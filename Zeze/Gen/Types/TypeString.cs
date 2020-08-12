@@ -29,7 +29,7 @@ namespace Zeze.Gen.Types
 		}
 
 		public override String Name => "string";
-        public override bool IsConstType => true; // xxx language depends
+        public override bool IsImmutable => true; // xxx language depends
 
         internal TypeString(SortedDictionary<String, Type> types)
 		{

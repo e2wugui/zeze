@@ -36,6 +36,6 @@ namespace Zeze.Gen.Types
 			types.Add(Name, this);
 		}
 
-        public override bool IsConstType => true;
+        public override bool IsImmutable => true;
 	}
 }

@@ -31,7 +31,7 @@ namespace Zeze.Gen.Types
 
 
 		public override string Name => "int";
-        public override bool IsConstType => true;
+        public override bool IsImmutable => true;
 
         internal TypeInt(SortedDictionary<String, Type> types)
 		{

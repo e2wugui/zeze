@@ -14,20 +14,24 @@ namespace Zeze.Gen
 
         private XmlElement self;
 
+        public string FullName => Project.Solution.Name + "." + Project.Name + "." + Name;
+
         // setup when compile
-        public SortedDictionary<string, Module> Modules { get; private set; } = new SortedDictionary<string, Module>();
+        public List<Module> Modules { get; private set; }
 
         public Manager(Project project, XmlElement self)
         {
             this.self = self;
-
             Project = project;
             Name = self.GetAttribute("name").Trim();
             Handle = self.GetAttribute("handle");
             Class = self.GetAttribute("class");
 
+            Program.AddNamedObject(FullName, this);
+
             if (project.Managers.ContainsKey(Name))
                 throw new Exception("duplicate manager " + Name + " in project " + project.Name);
+            project.Managers.Add(Name, this);
 
             /*
             XmlNodeList childNodes = self.ChildNodes;
@@ -45,6 +49,13 @@ namespace Zeze.Gen
                 }
             }
             */
+        }
+
+        public void Compile()
+        {
+            ICollection<string> refs = Program.Refs(self, "module");
+            List<string> refFulNames = Program.ToFullNameIfNot(Project.Solution.Name, refs);
+            Modules = Program.CompileModuleRef(refFulNames);
         }
     }
 }

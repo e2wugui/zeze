@@ -1,40 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <solution name="demo" ModuleIdAllowRanges="1-3,5">
-	<bean name="b1">
-		<enum name="Enum" value="4"/>
-		<variable id="1" name="s" type="int" default="1"/>
-		<variable id="2" name="m" type="map" key="int" value="int"/>
+	<bean name="Bean1">
+		<enum name="Enum1" value="4"/>
+		<variable id="1" name="V1" type="int" default="1"/> bean1comm
+		bean1line2
+		<variable id="2" name="V2" type="map" key="int" value="int"/> bean1v2
+		bean1v2line2
 	</bean>
 
-	<module name="m1" id="1">
+	<module name="Module1" id="1">
 		<bean name="Value">
-			<variable id="1" default="1" name="s" type="int"/>
+			<variable id="1" default="1" name="s" type="int"/> com aa
 		</bean>
 		<cbean name="Key">
-			<variable id="1" default="1" name="s" type="short"/>
+			<variable id="1" default="1" name="s" type="short"/> com 2
+			com 2
 		</cbean>
 
-		<protocol name="p1" id="1" argument="Value" handle="server,client"/>
-		<rpc name="r1" id="2" argument="Value" result="Value" handle="server"/>
-		<table name="table1" key="Key" value="Value"/>
+		<protocol name="Protocol1" id="1" argument="Value" handle="server,client"/>
+		<rpc name="Rpc1" id="2" argument="Value" result="Value" handle="server"/>
+		<protocol name="Protocol3" id="3" argument="demo.Module2.Value" handle="server,client"/>
 
-		<module name="m11" id="3">
+		<!-- 配置移到其他地方 cache="1024" persistence="MEMORY" -->
+		<table name="Table1" key="long" value="Value"/>
+
+		<module name="Module11" id="3">
 		</module>
 	</module>
 
-	<module name="m2" id="2">
+	<module name="Module2" id="2">
+		<bean name="Value">
+			<variable id="1" default="1" name="s" type="int"/> com aa
+		</bean>
 	</module>
 
-	<project name="gsd" language="cs">
+	<project name="gsd" platform="cs">
 		<!--
 		mudule 可以被多个 manager 引用，但只会生成一份.
 		这样的话，协议处理代码需要根据当前manager做不同实现。
 		生成的时候警告处理。
 		-->
-		<module ref="m2"/>
+		<module ref="Module2"/>
 		<manager name="Server" handle="server|client" class="gsd.Provider">
-			<module ref="m1"/>
+			<module ref="Module2"/>
 		</manager>
 	</project>
 </solution>

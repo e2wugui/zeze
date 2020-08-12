@@ -12,7 +12,7 @@ namespace Zeze.Gen.Types
 		{
 			HashSet<Bean> beans = new HashSet<Bean>();
 			foreach (String p in ps)
-				beans.Add(space.Solution.GetNamedObject<Bean>(space.Path(".", p)));
+				beans.Add(Program.GetNamedObject<Bean>(space.Path(".", p)));
 			return beans;
 		}
 
@@ -31,6 +31,8 @@ namespace Zeze.Gen.Types
 			return this;
 		}
 
+		public override bool IsBean => true;
+
 		public override void Depends(HashSet<Type> includes)
 		{
 			if (includes.Add(this))
@@ -40,7 +42,7 @@ namespace Zeze.Gen.Types
 
 					// 常量初始化引用到的Bean也加入depends中。 BeanName.ConstStaticVarName
 					// 
-					String[] initial = var.Initial.Split("\\.");
+					String[] initial = var.Initial.Split(".");
 					String beanNameMabe = "";
 					for (int i = 0; i < initial.Length - 1; ++i)
 					{
@@ -80,7 +82,7 @@ namespace Zeze.Gen.Types
 
 		public ModuleSpace Space { get; private set; }
 
-		public override bool IsConstType => false;
+		public override bool IsImmutable => false;
 		public override string Name => _name;
         private string _name;
 

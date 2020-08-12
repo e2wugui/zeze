@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 
 namespace Zeze.Gen.Types
@@ -48,7 +49,9 @@ namespace Zeze.Gen.Types
 				XmlNode c = self.NextSibling;
 				if (c != null && XmlNodeType.Text == c.NodeType)
 				{
-					Comment = c.InnerText.Trim().Replace("[\r\n]", "");
+					Comment = c.InnerText.Trim();
+					Regex regex = new Regex("[\r\n]");
+					Comment = regex.Replace(Comment, "");
 				}
 			}
 			if (Comment.Length > 0)

@@ -7,19 +7,12 @@ namespace Zeze.Gen
 {
     public class Module : ModuleSpace
     {
-        public string Id { get; private set; }
-
-
-        public Module(ModuleSpace space, XmlElement self) : base(space, self)
+        public Module(ModuleSpace space, XmlElement self) : base(space, self, true)
         {
             if (space.Modules.ContainsKey(Name))
                 throw new Exception("duplicate module name" + Name);
             space.Modules.Add(Name, this);
-
-            Id = self.GetAttribute("id");
-            short id = short.Parse(Id);
-            Solution.ModuleIdAllowRanges.AssertInclude(id);
-            Solution.ModuleIdCurrentRanges.CheckAdd(id);
+            Program.AddNamedObject(space.Path(".", Name), this);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
@@ -44,7 +37,32 @@ namespace Zeze.Gen
                     case "table":
                         new Table(this, e);
                         break;
+                    case "cbean":
+                        Console.WriteLine("TODO cbean");
+                        break;
+                    default:
+                        throw new Exception("unknown nodename=" + e.Name + " in module=" + Path("."));
                 }
+            }
+        }
+
+        public void Depends(List<Protocol> depends)
+        {
+            depends.AddRange(Protocols.Values);
+
+            foreach (Module module in Modules.Values)
+            {
+                module.Depends(depends);
+            }
+        }
+
+        public void Depends(List<Table> depends)
+        {
+            depends.AddRange(Tables.Values);
+
+            foreach (Module module in Modules.Values)
+            {
+                module.Depends(depends);
             }
         }
     }

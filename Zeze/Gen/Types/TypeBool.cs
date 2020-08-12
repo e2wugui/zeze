@@ -35,6 +35,6 @@ namespace Zeze.Gen.Types
 
 		public override string Name => "bool";
 
-        public override bool IsConstType => true;
+        public override bool IsImmutable => true;
 	}
 }

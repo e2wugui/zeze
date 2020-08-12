@@ -30,7 +30,7 @@ namespace Zeze.Gen.Types
 		}
 
 		public override String Name => "short";
-        public override bool IsConstType => true;
+        public override bool IsImmutable => true;
 
         internal TypeShort(SortedDictionary<String, Type> types)
 		{

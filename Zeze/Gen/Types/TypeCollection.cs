@@ -23,6 +23,6 @@ namespace Zeze.Gen.Types
 			ValueType = Type.Compile(space, value, null, null);
 		}
 
-        public override bool IsConstType => false;
+        public override bool IsImmutable => false;
     }
 }

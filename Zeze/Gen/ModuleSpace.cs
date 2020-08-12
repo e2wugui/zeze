@@ -9,6 +9,8 @@ namespace Zeze.Gen
     {
         public string Name { get; private set; }
         public ModuleSpace Parent { get; private set; }
+        public Zeze.Util.Ranges ProtocolIdRanges { get; } = new Zeze.Util.Ranges();
+        public short Id { get; }
 
         public ModuleSpace GetRootModuleSpace()
         {
@@ -42,26 +44,53 @@ namespace Zeze.Gen
 
         public void Add(Types.Bean bean)
         {
-            Solution.AddNamedObject(Path(".", bean.Name), bean);
+            Program.AddNamedObject(Path(".", bean.Name), bean);
             Beans.Add(bean.Name, bean);
         }
 
         public void Add(Protocol protocol)
         {
-            Solution.AddNamedObject(Path(".", protocol.Name), protocol);
+            Program.AddNamedObject(Path(".", protocol.Name), protocol);
             Protocols.Add(protocol.Name, protocol);
         }
 
         public void Add(Table table)
         {
-            Solution.AddNamedObject(Path(".", table.Name), table);
+            Program.AddNamedObject(Path(".", table.Name), table);
             Tables.Add(table.Name, table);
         }
 
-        public ModuleSpace(ModuleSpace parent, XmlElement self)
+        public ModuleSpace(ModuleSpace parent, XmlElement self, bool hasId = false)
         {
             Parent = parent;
             Name = self.GetAttribute("name").Trim();
+
+            if (hasId)
+            {
+                short id = short.Parse(self.GetAttribute("id"));
+                Solution.ModuleIdAllowRanges.AssertInclude(id);
+                Solution.ModuleIdCurrentRanges.CheckAdd(id);
+            }
+        }
+
+        public virtual void Compile()
+        {
+            foreach (Types.Bean bean in Beans.Values)
+            {
+                bean.Compile();
+            }
+            foreach (Protocol protocol in Protocols.Values)
+            {
+                protocol.Compile();
+            }
+            foreach (Table table in Tables.Values)
+            {
+                table.Compile();
+            }
+            foreach (Module module in Modules.Values)
+            {
+                module.Compile();
+            }
         }
     }
 }

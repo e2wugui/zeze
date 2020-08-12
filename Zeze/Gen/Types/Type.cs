@@ -12,7 +12,8 @@ namespace Zeze.Gen.Types
 
 		public abstract string Name { get; }
 
-		public abstract bool IsConstType { get; } // for deep copy ...
+		public abstract bool IsImmutable { get; } // most for table.key. deep copy.
+		public virtual bool IsBean => false;
 
 		public override String ToString()
 		{
@@ -40,18 +41,22 @@ namespace Zeze.Gen.Types
 		public static Type Compile(ModuleSpace space, String name, String key, String value)
 		{
 			Type type = null;
+
 			if (Types.TryGetValue(name, out type))
 			{
 				return type.Compile(space, key, value);
 			}
 
-			String fullName = space.Path(".", name);
-			if (Types.TryGetValue(fullName, out type))
+			if (false == Program.IsFullName(name))
 			{
-				return type.Compile(space, key, value);
+				name = space.Path(".", name);
+				if (Types.TryGetValue(name, out type))
+				{
+					return type.Compile(space, key, value);
+				}
 			}
 
-			throw new Exception("type NOT FOUND! '" + fullName + "'" + key + "." + value);
+			throw new Exception("type NOT FOUND! '" + name + "'" + key + "." + value);
 		}
 
 		static Type()

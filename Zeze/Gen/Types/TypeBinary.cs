@@ -29,7 +29,7 @@ namespace Zeze.Gen.Types
 		}
 
 		public override string Name => "binary";
-        public override bool IsConstType => false;
+        public override bool IsImmutable => false;
 
         internal TypeBinary(SortedDictionary<String, Type> types)
 		{
