@@ -8,7 +8,7 @@ using System.Diagnostics;
 namespace Zeze.Net
 {
     /// <summary>
-    /// 使用Socket的BeginXXX,EndXXX方法的异步包装类。
+    /// 使用Socket的BeginXXX,EndXXX XXXAsync方法的异步包装类。
     /// 目前只支持Tcp。
     /// </summary>
     public class AsyncSocket : IDisposable

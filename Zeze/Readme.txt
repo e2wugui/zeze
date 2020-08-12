@@ -1,3 +1,4 @@
+<!--
 Module 包含 Table 默认私有，可以通过增加方法返回并暴露出去
 Module 使用 partical 把生成部分放到gen下
 Module 生成 IModule 和 Module，这样IModule接口方法发生增删，方法参数变更等，代码编译可以报错。
@@ -15,8 +16,8 @@ managed
 数据变更?
 Net.Manager 怎么重新定义？现在这个不够灵活。
 
-<application name="demo" ModuleIdAllowRange="1-3,5">
-	
+-->
+<solution name="demo" ModuleIdAllowRanges="1-3,5">
 	<bean name="b1">
 		<enum name="Enum" value="4"/>
 		<var id="1" name="s" type="int" default="1"/>
@@ -42,8 +43,8 @@ Net.Manager 怎么重新定义？现在这个不够灵活。
 		这样的话，协议处理代码需要根据当前manager做不同实现。
 		生成的时候警告处理。
 		-->
-		<manager name="Server" handletype="server|client" class="gsd.Provider">
+		<manager name="Server" handle="server|client" class="gsd.Provider">
 			<module ref="m1"/>
 		</manager>
 	</project>
-</application>
+</solution>

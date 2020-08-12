@@ -6,12 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Gen\**" />
-    <EmbeddedResource Remove="Gen\**" />
-    <None Remove="Gen\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="NLog" Version="4.7.3" />
   </ItemGroup>
 
