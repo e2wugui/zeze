@@ -33,8 +33,8 @@ namespace Zeze.Gen
                 throw new Exception("table.key need a isKeyable type: " + Space.Path(".", Name));
 
             ValueType = Types.Type.Compile(Space, Value);
-            if (!ValueType.IsBean && !ValueType.IsImmutable)
-                throw new Exception("table.value need a bean or immutable type : " + Space.Path(".", Name));
+            if (!ValueType.IsNormalBean) // is normal bean, exclude beankey
+                throw new Exception("table.value need a normal bean : " + Space.Path(".", Name));
         }
 
         public void Depends(HashSet<Types.Type> depends)

@@ -11,6 +11,7 @@ namespace Zeze.Gen
         public string Name { get; private set; }
         public Solution Solution { get; private set; }
         public string Platform { get; private set; }
+        public bool GenerateTable { get; private set; }
         public SortedDictionary<string, Manager> Managers { get; private set; } = new SortedDictionary<string, Manager>();
 
         // setup when compile
@@ -42,8 +43,12 @@ namespace Zeze.Gen
         public Project(Solution solution, XmlElement self)
         {
             Solution = solution;
+
             Name = self.GetAttribute("name").Trim();
             Platform = self.GetAttribute("platform");
+            string x = self.GetAttribute("GenerateTable");
+            GenerateTable = x.Length > 0 ? bool.Parse(x) : false;
+
             Program.AddNamedObject(FullName, this);
 
             this.self = self; // 保存，在编译的时候使用。

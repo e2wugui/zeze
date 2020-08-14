@@ -20,6 +20,8 @@ namespace Zeze.Gen.Types
 		private TypeSet(ModuleSpace space, String key, String value)
 		{
 			_compile(space, key, value);
+			if (!ValueType.IsKeyable)
+				throw new Exception("set value need a keyable type.");
 		}
 
 		internal TypeSet(SortedDictionary<String, Type> types)

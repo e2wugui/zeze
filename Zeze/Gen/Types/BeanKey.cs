@@ -23,8 +23,6 @@ namespace Zeze.Gen.Types
 			return this;
 		}
 
-		public override bool IsBean => true;
-
 		public override void Depends(HashSet<Type> includes)
 		{
 			if (includes.Add(this))
@@ -49,7 +47,8 @@ namespace Zeze.Gen.Types
 
 		public override bool IsImmutable => true;
 		public override bool IsKeyable => true;
-        public override string Name => _name;
+		public override bool IsBean => true;
+		public override string Name => _name;
 		private string _name;
 
 		public List<Variable> Variables { get; private set; } = new List<Variable>();

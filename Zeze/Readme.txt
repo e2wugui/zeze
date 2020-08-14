@@ -17,3 +17,4 @@ managed
 Net.Manager 怎么重新定义？现在这个不够灵活。
 
 -->
+ConcurrentDictionary

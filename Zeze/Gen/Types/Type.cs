@@ -15,7 +15,7 @@ namespace Zeze.Gen.Types
 		public abstract bool IsImmutable { get; } // most for deep copy.
 		public virtual bool IsBean => false;
 		public virtual bool IsKeyable => IsImmutable; // most for table.key, cbean.
-
+		public bool IsNormalBean => IsBean && !IsKeyable; // 普通的bean，不是beankey
 		public override String ToString()
 		{
 			return Name;

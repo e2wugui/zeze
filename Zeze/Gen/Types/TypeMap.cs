@@ -34,11 +34,13 @@ namespace Zeze.Gen.Types
 		private TypeMap(Zeze.Gen.ModuleSpace space, String key, String value)
 		{
 			if (key.Length == 0)
-				throw new Exception("map type need key");
+				throw new Exception("map type need a key");
 			if (value.Length == 0)
-				throw new Exception("map type need value");
+				throw new Exception("map type need a value");
 
 			KeyType = Type.Compile(space, key, null, null);
+			if (!KeyType.IsKeyable)
+				throw new Exception("map key need a keyable type");
 			ValueType = Type.Compile(space, value, null, null);
 		}
 

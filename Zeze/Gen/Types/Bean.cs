@@ -23,8 +23,6 @@ namespace Zeze.Gen.Types
 			return this;
 		}
 
-		public override bool IsBean => true;
-
 		public override void Depends(HashSet<Type> includes)
 		{
 			if (includes.Add(this))
@@ -75,6 +73,7 @@ namespace Zeze.Gen.Types
 		public ModuleSpace Space { get; private set; }
 
 		public override bool IsImmutable => false;
+		public override bool IsBean => true;
 		public override string Name => _name;
         private string _name;
 

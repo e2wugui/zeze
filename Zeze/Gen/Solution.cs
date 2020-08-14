@@ -63,13 +63,13 @@ namespace Zeze.Gen
 
         public void Make()
         {
+            // 生成主要是写文件，没有太大必要并发。姑且弄一个。
             List<Task> tasks = new List<Task>();
             foreach (Project project in Projects.Values)
             {
                 tasks.Add(Task.Run(project.Make));
             }
-            Task[] wait = tasks.ToArray();
-            Task.WaitAll(wait);
+            Task.WaitAll(tasks.ToArray());
         }
     }
 }
