@@ -54,12 +54,6 @@ namespace Zeze.Gen
         }
         public static void Main(string[] args)
         {
-            // UnitTest test. fixme.
-            string path = "C:\\Users\\86139\\Desktop\\code\\zeze\\UnitTest\\solution.xml";
-            string pathcur = System.IO.Path.Combine(System.Environment.CurrentDirectory, "solution.xml");
-            System.IO.File.Delete(pathcur);
-            System.IO.File.Copy(path, pathcur);
-
             List<string> xmlFileList = new List<string>();
             for (int i = 0; i < args.Length; ++i)
             {
@@ -98,6 +92,11 @@ namespace Zeze.Gen
                 solutions.TryGetValue(file, out sol);
                 sol.Make();
             }
+        }
+
+        public static void Print(object obj)
+        {
+            Console.WriteLine(obj);
         }
 
         public static List<Module> CompileModuleRef(List<string> fullNames)

@@ -24,8 +24,8 @@ namespace Zeze.Serialize
         TAG_MAX = 31;
 
         public const int TAG_SHIFT = 5;
-        /*
         public const int TAG_MASK = (1 << TAG_SHIFT) - 1;
+        /*
         public const int ID_MASK = (1 << (31 - TAG_SHIFT)) - 1;
 
         // 在生成代码的时候使用这个方法检查。生成后的代码不使用这个方法。

@@ -37,6 +37,30 @@ namespace Zeze.Gen
             return path + sep + ObjectName;
         }
 
+        public string CreateDirectory(string baseDir)
+        {
+            string fullName = Path(Convert.ToString(System.IO.Path.DirectorySeparatorChar));
+            string fullDir = System.IO.Path.Combine(baseDir, fullName);
+            Program.Print("CreateDirectory:" + fullDir);
+            System.IO.Directory.CreateDirectory(fullDir);
+            return fullDir;
+        }
+
+        public System.IO.StreamWriter OpenWriter(string baseDir, string fileName, bool overwrite = true)
+        {
+            string fullDir = CreateDirectory(baseDir);
+            string fullFileName = System.IO.Path.Combine(fullDir, fileName);
+            bool exists = System.IO.File.Exists(fullFileName);
+            if (!exists || overwrite)
+            {
+                Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
+                System.IO.StreamWriter sw = new System.IO.StreamWriter(fullFileName, false, Encoding.UTF8);
+                return sw;
+            }
+            Program.Print("file skip '" + fullFileName + "'");
+            return null;
+        }
+
         public Dictionary<string, Module> Modules { get; private set; } = new Dictionary<string, Module>();
         public SortedDictionary<string, Types.Bean> Beans { get; private set; } = new SortedDictionary<string, Types.Bean>();
         public SortedDictionary<string, Types.BeanKey> BeanKeys { get; private set; } = new SortedDictionary<string, Types.BeanKey>();

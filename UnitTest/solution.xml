@@ -10,10 +10,28 @@
 	</bean>
 
 	<module name="Module1" id="1">
+		<bean name="Simple">
+			<variable id="1" name="int1" type="int"/> com aa
+		</bean>
 		<bean name="Value">
-			<variable id="1" default="1" name="s" type="int"/> com aa
+			<enum name="Enum1" value="4"/>
+
+			<variable id="1" name="int1" type="int"/> com aa
+			<variable id="2" name="long2" type="long"/> com aa
+			<variable id="3" name="string3" type="string"/> com aa
+			<variable id="4" name="bool4" type="bool"/> com aa
+			<variable id="5" name="short5" type="short"/> com aa
+			<variable id="6" name="float6" type="float"/> com aa
+			<variable id="7" name="double7" type="double"/> com aa
+			<variable id="8" name="bytes8" type="binary"/> com aa
+			<variable id="9" name="list9" type="list" value="demo.Bean1"/> com aa
+			<variable id="10" name="set10" type="set" value="int"/> com aa
+			<variable id="11" name="map11" type="map" key="long" value="demo.Module2.Value"/> com aa
+			<variable id="12" name="bean12" type="Simple"/> simple
+			<variable id="13" name="byte13" type="byte"/> com aa
 		</bean>
 		<beankey name="Key">
+			<enum name="Enum1" value="4"/>
 			<variable id="1" default="1" name="s" type="short"/> com 2
 			com 2
 		</beankey>
@@ -47,15 +65,12 @@
 		</manager>
 	</project>
 
+	<!--
 	<project name="client" platform="cs" generates="">
-		<!--
-		mudule 可以被多个 manager 引用，但只会生成一份.
-		这样的话，协议处理代码需要根据当前manager做不同实现。
-		生成的时候警告处理。
-		-->
 		<module ref="Module1"/>
 		<manager name="Client" handle="client" class="demo.ClientManager">
 			<module ref="Module2"/>
 		</manager>
 	</project>
+	-->
 </solution>

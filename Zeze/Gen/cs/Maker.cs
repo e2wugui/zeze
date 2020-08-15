@@ -15,7 +15,15 @@ namespace Zeze.Gen.cs
 
         public void make()
         {
-            Console.WriteLine("TODO cs make");
+            string projectDir = Project.Name;
+            string genDir = System.IO.Path.Combine(projectDir, "Gen");
+            if (System.IO.Directory.Exists(genDir))
+                System.IO.Directory.Delete(genDir, true);
+
+            foreach (Types.Bean bean in Project.AllBeans)
+            {
+                new BeanFormatter(bean).make(genDir);
+            }
         }
     }
 }

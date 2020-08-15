@@ -50,5 +50,6 @@ namespace Zeze.Gen.Types
 		}
 
         public override bool IsImmutable => false;
-    }
+		public override bool IsCollection => true;
+	}
 }

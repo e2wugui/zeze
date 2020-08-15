@@ -8,7 +8,10 @@ namespace Zeze.Gen.Types
 {
 	public class Variable
 	{
+		public Type Bean{ get; private set; } // Bean or BeanKey
 		public String Name { get; private set; }
+		public String NamePrivate => "_" + Name + "_";
+		public int Id { get; private set; }
 		public String Type { get; private set; }
 		public String Key { get; private set; }
 		public String Value { get; private set; }
@@ -24,6 +27,7 @@ namespace Zeze.Gen.Types
 
 		////////////////////////////////////
 		// FOR dynamic create
+		/*
 		public Variable(String name, String type, String key, String value)
 		{
 			this.Name = name;
@@ -32,11 +36,27 @@ namespace Zeze.Gen.Types
 			this.Value = value;
 			this.Initial = "";
 		}
+		*/
 
-		public Variable(XmlElement self)
+		public string GetBeanFullName()
 		{
+			if (Bean is Bean)
+				return ((Bean)Bean).FullName;
+
+			if (Bean is BeanKey)
+				return ((BeanKey)Bean).FullName;
+
+			throw new Exception("Variable holder is not a bean");
+		}
+
+		public Variable(Type bean, XmlElement self)
+		{
+			Bean = bean;
 			Name = self.GetAttribute("name").Trim();
 			verfiyReserveVariableName(Name);
+			Id = int.Parse(self.GetAttribute("id"));
+			if (Id < 0 || Id > Zeze.Transaction.Bean.MaxVariableId)
+				throw new Exception("variable id invalid. range [0, " + Zeze.Transaction.Bean.MaxVariableId + "] @" + GetBeanFullName());
 			Type = self.GetAttribute("type").Trim();
 			Key = self.GetAttribute("key").Trim();
 			Value = self.GetAttribute("value").Trim();

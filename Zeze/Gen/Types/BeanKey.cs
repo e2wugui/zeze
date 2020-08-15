@@ -54,6 +54,7 @@ namespace Zeze.Gen.Types
 		public List<Variable> Variables { get; private set; } = new List<Variable>();
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
 		public String Comment { get; private set; }
+		public String FullName => Space.Path(".", Name);
 
 		// ///////////////////////////////////////////
 		public BeanKey(ModuleSpace space, XmlElement self)
@@ -96,7 +97,7 @@ namespace Zeze.Gen.Types
 				switch (e.Name)
 				{
 					case "variable":
-						Add(new Variable(e));
+						Add(new Variable(this, e));
 						break;
 					case "enum":
 						Add(new Enum(e));

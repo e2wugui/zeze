@@ -612,10 +612,18 @@ namespace Zeze.Serialize
             ReadIndex += n;
         }
 
+        /// <summary>
+        /// 会推进ReadIndex，但是返回的ByteBuffer和原来的共享内存。
+        /// </summary>
+        /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ByteBuffer ReadByteBuffer()
         {
-            return ByteBuffer.Wrap(ReadBytes());
+            int n = ReadInt();
+            EnsureRead(n);
+            int cur = ReadIndex;
+            ReadIndex += n;
+            return ByteBuffer.Wrap(Bytes, cur, n);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -27,7 +27,7 @@ namespace Zeze.Transaction
             threadLocal.Value = null;
         }
 
-        private readonly List<Lock> holdLocks = new List<Lock>();
+        private readonly List<Record> holdLocks = new List<Record>();
         private readonly SortedDictionary<TableKey, Record> cacheRecords = new SortedDictionary<TableKey, Record>();
         private readonly Dictionary<long, Log> logs = new Dictionary<long, Log>();
         private readonly Dictionary<PCollection, Log> collectionLogs = new Dictionary<PCollection, Log>();
@@ -103,9 +103,9 @@ namespace Zeze.Transaction
                     // needlocks a  b  ...
                     if (c == 0)
                     {
+                        /*
                         if (writeLock && !curLock.WriteLock)
                         {
-                            /*
                             // 如果需要持有写锁，但当前仅持有读锁
                             (long newTimestamp, var newLocker) = await storageRecord.GetTimestampAndLockAsync(true, curLock.Locker);
 
@@ -117,13 +117,13 @@ namespace Zeze.Transaction
                             conflict |= e.Value.Timestamp != newTimestamp;
                             logger.Trace("[upgrade] add lock. table:{table} key:{key} oldtimestamp:{old} newtimestamp:{new} conflict:{conflict}",
                                 TxnTable.GetTable(tkey.TableId).Name, tkey.ObjectKey, e.Value.Timestamp, newTimestamp, conflict);
-                            */
                         }
                         else
                         {
                             logger.Trace("[nochange] add lock. table:{table} key:{key} oldtimestamp:{old} conflict:{conflict}",
                                 Table.GetTable(tkey.TableId).Name, tkey.Key, e.Value.Timestamp, conflict);
                         }
+                        */
                         // 已经锁定了，跳过
                         ++index;
                         continue;
@@ -135,7 +135,7 @@ namespace Zeze.Transaction
                         // TODO 理论上有优化空间，可以先 TryLock 尝试加锁，失败后再放锁。但概率不高，意义不大？
                         // 释放掉 比当前锁序小的锁，因为当前事务中不再需要这些锁
                         int unlockEndIndex = index;
-                        for (; unlockEndIndex < n && holdLocks[unlockEndIndex].Key.CompareTo(tkey) < 0; ++unlockEndIndex)
+                        //for (; unlockEndIndex < n && holdLocks[unlockEndIndex].Key.CompareTo(tkey) < 0; ++unlockEndIndex)
                         {
                             var toUnlockLocker = holdLocks[unlockEndIndex];
                             /*
@@ -399,23 +399,25 @@ namespace Zeze.Transaction
             return false;
         }
 
+        /*
         internal void PutOrigin(TableKey key, Bean value, long latestSnapshotTimestamp, long timestamp, AbstractRecord storageRecord)
         {
             //cacheRecords.Add(key, new RecordInfo(key, value, latestSnapshotTimestamp, timestamp, storageRecord));
         }
-
         internal void PutRecord(TKey key, ReplaceRecordLogger data)
         {
             var rec = cacheRecords[key];
             rec.ChangeLogger = data;
             rec.Dirty = true;
         }
+        */
 
-        internal bool GetCacheRecord(TKey key, out Bean value)
+        internal bool GetCacheRecord(TableKey key, out Bean value)
         {
-            if (_cacheRecords.TryGetValue(key, out var record))
+            if (cacheRecords.TryGetValue(key, out var record))
             {
-                value = record.ChangeLogger != null ? record.ChangeLogger.Value.Data : record.Data;
+                value = null;
+                //value = record.ChangeLogger != null ? record.ChangeLogger.Value.Data : record.Data;
                 return true;
             }
             else
