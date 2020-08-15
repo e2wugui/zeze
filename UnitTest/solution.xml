@@ -35,14 +35,26 @@
 		</bean>
 	</module>
 
-	<project name="gsd" platform="cs">
+	<project name="gsd" platform="cs" generates="table">
 		<!--
 		mudule 可以被多个 manager 引用，但只会生成一份.
 		这样的话，协议处理代码需要根据当前manager做不同实现。
 		生成的时候警告处理。
 		-->
-		<module ref="Module2"/>
-		<manager name="Server" handle="server|client" class="gsd.Provider">
+		<module ref="Module1"/>
+		<manager name="Server" handle="server" class="demo.Provider">
+			<module ref="Module2"/>
+		</manager>
+	</project>
+
+	<project name="client" platform="cs" generates="">
+		<!--
+		mudule 可以被多个 manager 引用，但只会生成一份.
+		这样的话，协议处理代码需要根据当前manager做不同实现。
+		生成的时候警告处理。
+		-->
+		<module ref="Module1"/>
+		<manager name="Client" handle="client" class="demo.ClientManager">
 			<module ref="Module2"/>
 		</manager>
 	</project>

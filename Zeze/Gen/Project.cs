@@ -11,7 +11,7 @@ namespace Zeze.Gen
         public string Name { get; private set; }
         public Solution Solution { get; private set; }
         public string Platform { get; private set; }
-        public bool GenerateTable { get; private set; }
+        public string Generates { get; private set; }
         public SortedDictionary<string, Manager> Managers { get; private set; } = new SortedDictionary<string, Manager>();
 
         // setup when compile
@@ -45,9 +45,8 @@ namespace Zeze.Gen
             Solution = solution;
 
             Name = self.GetAttribute("name").Trim();
-            Platform = self.GetAttribute("platform");
-            string x = self.GetAttribute("GenerateTable");
-            GenerateTable = x.Length > 0 ? bool.Parse(x) : false;
+            Platform = self.GetAttribute("platform").Trim();
+            Generates = self.GetAttribute("generates").Trim();
 
             Program.AddNamedObject(FullName, this);
 
@@ -141,13 +140,17 @@ namespace Zeze.Gen
                     }
                 }
             }
+
+            if (Platform.Length == 0)
+                Platform = "cs";
+
             switch (Platform)
             {
                 case "cs":
                     new Zeze.Gen.cs.Maker(this).make();
                     break;
                 default:
-                    throw new Exception("unknown support platform: " + Platform);
+                    throw new Exception("unsupport platform: " + Platform);
             }
         }
     }

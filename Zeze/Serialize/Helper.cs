@@ -24,10 +24,12 @@ namespace Zeze.Serialize
         TAG_MAX = 31;
 
         public const int TAG_SHIFT = 5;
+        /*
         public const int TAG_MASK = (1 << TAG_SHIFT) - 1;
         public const int ID_MASK = (1 << (31 - TAG_SHIFT)) - 1;
 
         // 在生成代码的时候使用这个方法检查。生成后的代码不使用这个方法。
+        // 可以定义的最大 Variable.Id 为 Zeze.Transaction.Bean.MaxVariableId
         public static int MakeTagId(int tag, int id)
         {
             if (tag < 0 || tag > TAG_MAX)
@@ -47,6 +49,7 @@ namespace Zeze.Serialize
         {
             return (tagid >> TAG_SHIFT) & ID_MASK;
         }
+        */
 
         public static void VerifyArrayIndex(byte[] bytes, int offset, int length)
         {
@@ -65,6 +68,7 @@ namespace Zeze.Serialize
             sa.Encode(bb);
             return bb;
         }
+
         public static void SkipUnknownField(int tagid, ByteBuffer bb)
         {
             int tagType = tagid & TAG_MASK;
