@@ -17,5 +17,10 @@ namespace Zeze.Util
         {
             return System.Threading.Interlocked.Increment(ref _value);
         }
+
+        public long AddAndGet(long delta)
+        {
+            return System.Threading.Interlocked.Add(ref _value, delta);
+        }
     }
 }
