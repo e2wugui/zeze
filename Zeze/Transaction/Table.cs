@@ -6,7 +6,7 @@ namespace Zeze.Transaction
 {
     public abstract class Table
     {
-        private static List<Table> Tables { get; } = new List<Table>();
+        private static List<Table> Tables { get; } = new List<Table>(); // TODO 线程安全，静态变量
         public static Table GetTable(int id) => Tables[id];
 
         public Table(string name)

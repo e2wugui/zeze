@@ -27,8 +27,8 @@ namespace Zeze.Transaction
             threadLocal.Value = null;
         }
 
-        private readonly List<HoldLockInfo> holdLocks = new List<HoldLockInfo>();
-        private readonly SortedDictionary<TableKey, RecordInfo> cacheRecords = new SortedDictionary<TableKey, RecordInfo>();
+        private readonly List<Lock> holdLocks = new List<Lock>();
+        private readonly SortedDictionary<TableKey, Record> cacheRecords = new SortedDictionary<TableKey, Record>();
         private readonly Dictionary<long, Log> logs = new Dictionary<long, Log>();
         private readonly Dictionary<PCollection, Log> collectionLogs = new Dictionary<PCollection, Log>();
 
@@ -37,20 +37,20 @@ namespace Zeze.Transaction
 
         }
 
-        internal ValueTask<bool> LockAndCheck()
+        internal bool LockAndCheck()
         {
             // 将modified fields 的 root 标记为 dirty
             foreach (var log in logs.Values)
             {
                 TableKey tkey = log.Bean.TableKey;
                 var record = cacheRecords[tkey];
-                record.Dirty = true;
+                //record.Dirty = true;
             }
             foreach (var log in collectionLogs.Values)
             {
                 TableKey tkey = log.Bean.TableKey;
                 var record = cacheRecords[tkey];
-                record.Dirty = true;
+                //record.Dirty = true;
             }
 
             bool conflict = false;
@@ -60,6 +60,7 @@ namespace Zeze.Transaction
                 foreach (var e in cacheRecords)
                 {
                     var tkey = e.Key;
+                    /*
                     bool writeLock = e.Value.Dirty;
                     var storageRecord = e.Value.StorageRecord;
                     (long newTimestamp, var releaser) = await storageRecord.GetTimestampAndLockAsync(writeLock, null);
@@ -67,6 +68,7 @@ namespace Zeze.Transaction
                     conflict |= e.Value.Timestamp != newTimestamp;
                     logger.Trace("[new] add lock. table:{table} key:{key} oldtimestamp:{old} newtimestamp:{new} conflict:{conflict}",
                         TxnTable.GetTable(tkey.TableId).Name, tkey.ObjectKey, e.Value.Timestamp, newTimestamp, conflict);
+                    */
                 }
             }
             else
@@ -77,23 +79,25 @@ namespace Zeze.Transaction
                 {
                     TableKey tkey = e.Key;
                     object objKey = tkey.Key;
-                    bool writeLock = e.Value.Dirty;
-                    var storageRecord = e.Value.StorageRecord;
+                    //bool writeLock = e.Value.Dirty;
+                    //var storageRecord = e.Value.StorageRecord;
 
                     // 如果 holdLocks 全部被对比完毕，直接锁定它
                     if (index >= n)
                     {
                         // lock it!
+                        /*
                         (long newTimestamp, var locker) = await storageRecord.GetTimestampAndLockAsync(writeLock, null);
                         _holdLocks.Add(new HoldLockInfo(tkey, storageRecord, writeLock, locker));
                         conflict |= e.Value.Timestamp != newTimestamp;
                         logger.Trace("[new] add lock. table:{table} key:{key} oldtimestamp:{old} newtimestamp:{new} conflict:{conflict}",
                             TxnTable.GetTable(tkey.TableId).Name, tkey.ObjectKey, e.Value.Timestamp, newTimestamp, conflict);
+                        */
                         continue;
                     }
 
-                    HoldLockInfo curLock = _holdLocks[index];
-                    int c = curLock.Key.CompareTo(tkey);
+                    //HoldLockInfo curLock = _holdLocks[index];
+                    int c = 0;// curLock.Key.CompareTo(tkey);
 
                     // holdlocks a  b  ...
                     // needlocks a  b  ...
@@ -101,6 +105,7 @@ namespace Zeze.Transaction
                     {
                         if (writeLock && !curLock.WriteLock)
                         {
+                            /*
                             // 如果需要持有写锁，但当前仅持有读锁
                             (long newTimestamp, var newLocker) = await storageRecord.GetTimestampAndLockAsync(true, curLock.Locker);
 
@@ -112,11 +117,12 @@ namespace Zeze.Transaction
                             conflict |= e.Value.Timestamp != newTimestamp;
                             logger.Trace("[upgrade] add lock. table:{table} key:{key} oldtimestamp:{old} newtimestamp:{new} conflict:{conflict}",
                                 TxnTable.GetTable(tkey.TableId).Name, tkey.ObjectKey, e.Value.Timestamp, newTimestamp, conflict);
+                            */
                         }
                         else
                         {
                             logger.Trace("[nochange] add lock. table:{table} key:{key} oldtimestamp:{old} conflict:{conflict}",
-                                TxnTable.GetTable(tkey.TableId).Name, tkey.ObjectKey, e.Value.Timestamp, conflict);
+                                Table.GetTable(tkey.TableId).Name, tkey.Key, e.Value.Timestamp, conflict);
                         }
                         // 已经锁定了，跳过
                         ++index;
@@ -129,16 +135,18 @@ namespace Zeze.Transaction
                         // TODO 理论上有优化空间，可以先 TryLock 尝试加锁，失败后再放锁。但概率不高，意义不大？
                         // 释放掉 比当前锁序小的锁，因为当前事务中不再需要这些锁
                         int unlockEndIndex = index;
-                        for (; unlockEndIndex < n && _holdLocks[unlockEndIndex].Key.CompareTo(tkey) < 0; ++unlockEndIndex)
+                        for (; unlockEndIndex < n && holdLocks[unlockEndIndex].Key.CompareTo(tkey) < 0; ++unlockEndIndex)
                         {
-                            var toUnlockLocker = _holdLocks[unlockEndIndex];
+                            var toUnlockLocker = holdLocks[unlockEndIndex];
+                            /*
                             toUnlockLocker.StorageRecord.ReleaseLock(toUnlockLocker.Locker);
                             logger.Trace("[remove] unlock not need lock. table:{table} key:{key} ",
                                 TxnTable.GetTable(toUnlockLocker.Key.TableId).Name, toUnlockLocker.Key.ObjectKey);
+                            */
                         }
 
-                        _holdLocks.RemoveRange(index, unlockEndIndex - index);
-                        n = _holdLocks.Count;
+                        holdLocks.RemoveRange(index, unlockEndIndex - index);
+                        n = holdLocks.Count;
                     }
                     else
                     {
@@ -147,13 +155,15 @@ namespace Zeze.Transaction
                         // 为了不违背锁序，释放从当前锁开始的所有锁
                         for (int i = index; i < n; ++i)
                         {
-                            var toUnlockLocker = _holdLocks[i];
+                            var toUnlockLocker = holdLocks[i];
+                            /*
                             toUnlockLocker.StorageRecord.ReleaseLock(toUnlockLocker.Locker);
                             logger.Trace("[remove] unlock for not violate lock order. table:{table} key:{key} ",
                                 TxnTable.GetTable(toUnlockLocker.Key.TableId).Name, toUnlockLocker.Key.ObjectKey);
+                            */
                         }
-                        _holdLocks.RemoveRange(index, n - index);
-                        n = _holdLocks.Count;
+                        holdLocks.RemoveRange(index, n - index);
+                        n = holdLocks.Count;
                     }
                 }
             }
@@ -161,14 +171,14 @@ namespace Zeze.Transaction
             return !conflict;
         }
 
-        private void ProcessLog(FieldLogger log)
+        private void ProcessLog(Log log)
         {
             log.Commit();
-            TKey tkey = log.GetRoot();
-            Debug.Assert(tkey != null);
-            var record = _cacheRecords[tkey];
+
+            TableKey tkey = log.Bean.TableKey;
+            var record = cacheRecords[tkey];
             // CHANGE by WALON
-            record.FieldLoggers.Add(log);
+            //record.FieldLoggers.Add(log);
             //if (record.NewData == log.Host)
             //{
             //    record.FieldLoggers.Add(log);
@@ -180,20 +190,18 @@ namespace Zeze.Transaction
             //}
         }
 
-        internal async Task CommitAsync()
+        internal void Commit()
         {
-            logger.Trace("commit begin");
-
-            foreach (var log in _fieldLoggers.Values)
+            foreach (var log in logs.Values)
             {
                 ProcessLog(log);
             }
 
-            foreach (var log in _collectionLoggers.Values)
+            foreach (var log in collectionLogs.Values)
             {
                 ProcessLog(log);
             }
-            logger.Trace("holdlocks count:{count}", _holdLocks.Count);
+            logger.Trace("holdlocks count:{count}", holdLocks.Count);
 
             // TODO 
             // 需要限制等待commit的事务数量
@@ -203,7 +211,8 @@ namespace Zeze.Transaction
             // if any changes
             // 有可能出现fieldLoggers.count == 0 而 beanRootLogger.count > 0 的情况
             // 还有可能 put 新记录，这时 fieldLogger和beanRootLogger都为空
-            if (_cacheRecords.Values.Any(r => r.Dirty))
+            /*
+            if (cacheRecords.Values.Any(r => r.Dirty))
             {
                 // TODO 可以把 持久化 blog 的时机推迟，减少持锁时间
                 var makeLogPromise = new TaskCompletionSource<BlobLog>();
@@ -299,13 +308,14 @@ namespace Zeze.Transaction
                     logger.Error(e, "commit txn task");
                 }
             }
+            */
         }
-
 
         internal void Rollback()
         {
             try
             {
+                /*
                 foreach (var task in _txnTasks)
                 {
                     try
@@ -331,20 +341,22 @@ namespace Zeze.Transaction
                         logger.Error(e, "commit txn task");
                     }
                 }
+                */
             }
             finally
             {
-                _cacheRecords.Clear();
-                _collectionLoggers.Clear();
-                _fieldLoggers.Clear();
-                _txnTasks.Clear();
-                _txnCommitTasks.Clear();
-                _txnRollbackTasks.Clear();
+                cacheRecords.Clear();
+                collectionLogs.Clear();
+                logs.Clear();
+                //_txnTasks.Clear();
+                //_txnCommitTasks.Clear();
+                //_txnRollbackTasks.Clear();
             }
         }
 
         internal void End()
         {
+            /*
             _cacheRecords.Clear();
             _collectionLoggers.Clear();
             _fieldLoggers.Clear();
@@ -362,40 +374,39 @@ namespace Zeze.Transaction
                 }
                 _holdLocks.Clear();
             }
+            */
         }
 
         public void AddCommitTask(Action action)
         {
-            _txnCommitTasks.Add(action);
+            //_txnCommitTasks.Add(action);
         }
 
         public void AddRollbackTask(Action action)
         {
-            _txnRollbackTasks.Add(action);
+            //_txnRollbackTasks.Add(action);
         }
 
-        internal bool GetOrigin(TKey key, out Bean data)
+        internal bool GetOrigin(TableKey key, out Bean data)
         {
-            if (_cacheRecords.TryGetValue(key, out var value))
+            if (cacheRecords.TryGetValue(key, out var value))
             {
-                data = value.Data;
+                data = null;// value.Data;
                 return true;
             }
-            else
-            {
-                data = null;
-                return false;
-            }
+
+            data = null;
+            return false;
         }
 
-        internal void PutOrigin(TKey key, Bean value, long latestSnapshotTimestamp, long timestamp, AbstractRecord storageRecord)
+        internal void PutOrigin(TableKey key, Bean value, long latestSnapshotTimestamp, long timestamp, AbstractRecord storageRecord)
         {
-            _cacheRecords.Add(key, new RecordInfo(key, value, latestSnapshotTimestamp, timestamp, storageRecord));
+            //cacheRecords.Add(key, new RecordInfo(key, value, latestSnapshotTimestamp, timestamp, storageRecord));
         }
 
         internal void PutRecord(TKey key, ReplaceRecordLogger data)
         {
-            var rec = _cacheRecords[key];
+            var rec = cacheRecords[key];
             rec.ChangeLogger = data;
             rec.Dirty = true;
         }
