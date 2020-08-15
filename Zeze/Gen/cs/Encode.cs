@@ -42,9 +42,12 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine(prefix + bufname + ".WriteInt(Helper.BEAN | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + bufname + ".WriteByteBuffer(Helper.Encode(" + varname + "));");
             }
-
-            sw.WriteLine(prefix + bufname + ".WriteByteBuffer(Helper.Encode(" + varname + "));");
+            else
+            {
+                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+            }
         }
 
         public void Visit(BeanKey type)
@@ -52,8 +55,12 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine(prefix + bufname + ".WriteInt(Helper.BEAN | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + bufname + ".WriteByteBuffer(Helper.Encode(" + varname + "));");
             }
-            sw.WriteLine(prefix + bufname + ".WriteByteBuffer(Helper.Encode(" + varname + "));");
+            else
+            {
+                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+            }
         }
 
         public void Visit(TypeByte type)
@@ -119,7 +126,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + bufname + ".WriteString(" + varname + ");");
         }
 
-        private void writeCollection(TypeCollection type)
+        private void EncodeCollection(TypeCollection type)
         {
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "{");
@@ -138,7 +145,7 @@ namespace Zeze.Gen.cs
             if (id < 0)
                 throw new Exception("invalie Variable.Id");
             sw.WriteLine(prefix + bufname + ".WriteInt(Helper.LIST | " + id + " << Helper.TAG_SHIFT);");
-            writeCollection(type);
+            EncodeCollection(type);
         }
 
         public void Visit(TypeSet type)
@@ -146,16 +153,17 @@ namespace Zeze.Gen.cs
             if (id < 0)
                 throw new Exception("invalie Variable.Id");
             sw.WriteLine(prefix + bufname + ".WriteInt(Helper.SET | " + id + " << Helper.TAG_SHIFT);");
-            writeCollection(type);
+            EncodeCollection(type);
         }
 
         public void Visit(TypeMap type)
         {
+            if (id < 0)
+                throw new Exception("invalie Variable.Id");
+
             Types.Type keytype = type.KeyType;
             Types.Type valuetype = type.ValueType;
 
-            if (id < 0)
-                throw new Exception("invalie Variable.Id");
             sw.WriteLine(prefix + bufname + ".WriteInt(Helper.MAP | " + id + " << Helper.TAG_SHIFT);");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    ByteBuffer _temp_ = ByteBuffer.Allocate();");

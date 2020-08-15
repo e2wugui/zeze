@@ -10,7 +10,7 @@ namespace Zeze.Gen.Types
 	{
 		public Type Bean{ get; private set; } // Bean or BeanKey
 		public String Name { get; private set; }
-		public String NamePrivate => "_" + Name + "_";
+		public String NamePrivate => "_" + Name;
 		public int Id { get; private set; }
 		public String Type { get; private set; }
 		public String Key { get; private set; }
