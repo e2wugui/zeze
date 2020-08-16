@@ -6,32 +6,34 @@ namespace Zeze.Gen.cs
 {
     public class ProtocolFormatter
     {
-        Zeze.Gen.Protocol protocol;
+        Zeze.Gen.Protocol p;
         public ProtocolFormatter(Zeze.Gen.Protocol p)
         {
-            this.protocol = p;
+            this.p = p;
         }
 
         public void Make(string baseDir)
         {
-            using System.IO.StreamWriter sw = protocol.Space.OpenWriter(baseDir, protocol.Name + ".cs");
+            using System.IO.StreamWriter sw = p.Space.OpenWriter(baseDir, p.Name + ".cs");
 
             sw.WriteLine("");
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine("");
-            sw.WriteLine("namespace " + protocol.Space.Path("."));
+            sw.WriteLine("namespace " + p.Space.Path("."));
             sw.WriteLine("{");
 
-            string argument = TypeName.GetName(protocol.ArgumentType);
-            sw.WriteLine("    public sealed class " + protocol.Name + " : Zeze.Net.Protocol<" + argument + ">");
+            string argument = TypeName.GetName(p.ArgumentType);
+            sw.WriteLine("    public sealed class " + p.Name + " : Zeze.Net.Protocol<" + argument + ">");
             sw.WriteLine("    {");
-            sw.WriteLine("        public override int ModuleId => " + protocol.Space.Id + ";");
-            sw.WriteLine("        public override int ProtocolId => " + protocol.Id + ";");
+            sw.WriteLine("        public override int ModuleId => " + p.Space.Id + ";");
+            sw.WriteLine("        public override int ProtocolId => " + p.Id + ";");
             sw.WriteLine("");
             sw.WriteLine("        public override void Run()");
             sw.WriteLine("        {");
-            sw.WriteLine("            // TODO ");
+            sw.WriteLine("            // TODO 启动 Procedure");
+            Module m = (Module)p.Space;
+            sw.WriteLine("            " + p.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".On" + p.Name + "(this);");
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("}");

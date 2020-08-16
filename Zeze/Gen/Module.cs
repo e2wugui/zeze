@@ -8,6 +8,20 @@ namespace Zeze.Gen
 {
     public class Module : ModuleSpace
     {
+        public Manager ReferenceManager => _ReferenceManager;
+        private Manager _ReferenceManager;
+        public void SetReferenceManager(Manager manager)
+        {
+            if (manager != null && _ReferenceManager != null)
+                throw new Exception("ReferenceManager not null. mudule=" + Path(".") + " from=" + manager.FullName);
+            _ReferenceManager = manager;
+
+            foreach (Module m in Modules.Values)
+            {
+                m.SetReferenceManager(manager);
+            }
+        }
+
         public Module(ModuleSpace space, XmlElement self) : base(space, self, true)
         {
             if (space.Modules.ContainsKey(Name))
@@ -50,16 +64,12 @@ namespace Zeze.Gen
 
         public void Depends(HashSet<Module> modules)
         {
-            if (modules.Add(this))
+            if (false == modules.Add(this))
+                throw new Exception("Module ref duplicate: " + Path("."));
+
+            foreach (Module module in this.Modules.Values)
             {
-                foreach (Module module in this.Modules.Values)
-                {
-                    module.Depends(modules);
-                }
-            }
-            else
-            {
-                Console.WriteLine("WARN Module ref duplicate: " + Path("."));
+                module.Depends(modules);
             }
         }
 

@@ -152,5 +152,21 @@ namespace Zeze.Gen
         {
             return Refs(self, nodename, "ref");
         }
+
+        public static int ToHandleFlags(string handle)
+        {
+            int f = 0;
+            string hs = handle.Trim().ToLower();
+            foreach (string h in hs.Split(","))
+            {
+                switch (h)
+                {
+                    case "server": f |= 1; break;
+                    case "client": f |= 2; break;
+                    default: throw new Exception("unknown handle: " + handle);
+                }
+            }
+            return f;
+        }
     }
 }

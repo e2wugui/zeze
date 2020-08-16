@@ -12,6 +12,7 @@ namespace Zeze.Gen
         public short Id { get; private set; }
         public string Argument { get; private set; }
         public string Handle { get; private set; }
+        public int HandleFlags { get; }
 
         // setup in compile
         public Types.Type ArgumentType { get; private set; }
@@ -29,6 +30,7 @@ namespace Zeze.Gen
 
             Argument = self.GetAttribute("argument");
             Handle = self.GetAttribute("handle");
+            HandleFlags = Program.ToHandleFlags(Handle);
         }
 
         public virtual void Compile()

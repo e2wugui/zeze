@@ -10,6 +10,7 @@ namespace Zeze.Gen
         public Project Project { get; private set; }
         public string Name { get; private set; }
         public string Handle { get; private set; }
+        public int HandleFlags { get; }
         public string Class { get; private set; }
 
         private XmlElement self;
@@ -40,6 +41,7 @@ namespace Zeze.Gen
             Project = project;
             Name = self.GetAttribute("name").Trim();
             Handle = self.GetAttribute("handle");
+            HandleFlags = Program.ToHandleFlags(Handle);
             Class = self.GetAttribute("class");
 
             Program.AddNamedObject(FullName, this);
@@ -71,12 +73,11 @@ namespace Zeze.Gen
             ICollection<string> refs = Program.Refs(self, "module");
             List<string> refFulNames = Program.ToFullNameIfNot(Project.Solution.Name, refs);
             Modules = Program.CompileModuleRef(refFulNames);
-            /*
+
             foreach (Module m in Modules)
             {
-                m.Depends(AllModules);
+                m.SetReferenceManager(this);
             }
-            */
         }
     }
 }

@@ -39,7 +39,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             foreach (Protocol p in manager.GetAllProtocols())
             {
-                sw.WriteLine("            this.Factorys.Add(" + p.Id + ", () => new " + p.Space.Path(".", p.Name) + ");");
+                sw.WriteLine("            this.Factorys.Add(" + p.Id + ", () => new " + p.Space.Path(".", p.Name) + "());");
             }
             sw.WriteLine("        }");
             sw.WriteLine("    }");

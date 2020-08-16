@@ -55,13 +55,11 @@
 
 	<project name="gsd" platform="cs" generates="table">
 		<!--
-		mudule 可以被多个 manager 引用，但只会生成一份.
-		这样的话，协议处理代码需要根据当前manager做不同实现。
-		生成的时候警告处理。
+		这里引用的模块不该定义协议，一般为纯逻辑或者数据库模块。
 		-->
-		<module ref="Module1"/>
+		<module ref="Module2"/>
 		<manager name="Server" handle="server" class="demo.Provider">
-			<module ref="Module2"/>
+			<module ref="Module1"/>
 		</manager>
 	</project>
 

@@ -24,7 +24,7 @@ namespace Zeze.Gen
 
         public Solution Solution => (Solution)GetRootModuleSpace();
 
-        public string Path(string sep, string ObjectName = null)
+        public string Path(string sep = ".", string ObjectName = null)
         {
             string path = Name;
             for (ModuleSpace p = Parent; null != p; p = p.Parent)

@@ -32,11 +32,21 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class App");
             sw.WriteLine("    {");
-            sw.WriteLine("        public App Instance { get; } = new App();");
+            sw.WriteLine("        public static App Instance { get; } = new App();");
+            sw.WriteLine("");
+
+            foreach (Module m in project.AllModules)
+            {
+                sw.WriteLine("        public " + m.Path(".", m.Name) + " " + m.Path("_", m.Name) + " { get; } = new " + m.Path(".", m.Name) + "();");
+                sw.WriteLine("");
+            }
+
             foreach (Manager m in project.Managers.Values)
             {
-                sw.WriteLine("        public " + m.FullName + " Manager { get; } = new " + m.FullName + "();");
+                sw.WriteLine("        public " + m.FullName + " " + m.Name + " { get; } = new " + m.FullName + "();");
+                sw.WriteLine("");
             }
+
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }

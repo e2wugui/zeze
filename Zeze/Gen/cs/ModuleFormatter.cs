@@ -28,7 +28,7 @@ namespace Zeze.Gen.cs
 
         public void MakePartialImplementInGen()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(genDir, module.Name + ".cs"); // 正式版不覆盖
+            using System.IO.StreamWriter sw = module.OpenWriter(genDir, module.Name + ".cs");
 
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path("."));
@@ -52,8 +52,23 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class " + module.Name + " : I" + module.Name);
             sw.WriteLine("    {");
-            foreach (Protocol p in module.Protocols.Values)
-            { 
+            if (module.ReferenceManager != null)
+            {
+                int managerHandleFlags = module.ReferenceManager.HandleFlags;
+                foreach (Protocol p in module.Protocols.Values)
+                {
+                    if (p is Rpc rpc)
+                    {
+                        continue; // 暂时忽略rpc
+                    }
+                    if (0 != (p.HandleFlags & managerHandleFlags))
+                    {
+                        sw.WriteLine("        public void On" + p.Name + "(" + p.Name + " protocol)");
+                        sw.WriteLine("        {");
+                        sw.WriteLine("        }");
+                        sw.WriteLine("");
+                    }
+                }
             }
             sw.WriteLine("    }");
             sw.WriteLine("}");
@@ -68,9 +83,24 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public interface I" + module.Name);
             sw.WriteLine("    {");
-            foreach (Protocol p in module.Protocols.Values)
+ 
+            if (module.ReferenceManager != null)
             {
+                int managerHandleFlags = module.ReferenceManager.HandleFlags;
+                foreach (Protocol p in module.Protocols.Values)
+                {
+                    if (p is Rpc rpc)
+                    {
+                        continue; // 暂时忽略rpc
+                    }
+                    if (0 != (p.HandleFlags & managerHandleFlags))
+                    {
+                        sw.WriteLine("        public void On" + p.Name + "(" + p.Name + " protocol);");
+                        sw.WriteLine("");
+                    }
+                }
             }
+ 
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }
