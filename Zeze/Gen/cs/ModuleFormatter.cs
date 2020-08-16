@@ -61,18 +61,18 @@ namespace Zeze.Gen.cs
                     {
                         if ((rpc.HandleFlags & Program.HandleServerFlag) != 0)
                         {
-                            sw.WriteLine("        public void On" + rpc.Name + "Server(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        public override void On" + rpc.Name + "Server(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
                             sw.WriteLine("        }");
                             sw.WriteLine("");
                         }
                         if ((rpc.HandleFlags & Program.HandleClientFlag) != 0)
                         {
-                            sw.WriteLine("        public void On" + rpc.Name + "Client(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        public override void On" + rpc.Name + "Client(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
                             sw.WriteLine("        }");
                             sw.WriteLine("");
-                            sw.WriteLine("        public void On" + rpc.Name + "Timeout(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        public override void On" + rpc.Name + "Timeout(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
                             sw.WriteLine("        }");
                             sw.WriteLine("");
@@ -81,7 +81,7 @@ namespace Zeze.Gen.cs
                     }
                     if (0 != (p.HandleFlags & managerHandleFlags))
                     {
-                        sw.WriteLine("        public void On" + p.Name + "(" + p.Name + " protocol)");
+                        sw.WriteLine("        public override void On" + p.Name + "(" + p.Name + " protocol)");
                         sw.WriteLine("        {");
                         sw.WriteLine("        }");
                         sw.WriteLine("");

@@ -17,8 +17,4 @@
     <ProjectReference Include="..\Zeze\Zeze.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="gsd\" />
-  </ItemGroup>
-
 </Project>
