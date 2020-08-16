@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
+using Zeze.Serialize;
 
 namespace Zeze.Net
 {
@@ -25,7 +28,7 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="serialNo"></param>
         /// <returns></returns>
-        public virtual AsyncSocket GetASocket(long serialNo)
+        public virtual AsyncSocket GetSocket(long serialNo)
         {
             lock (_asocketMap)
             {
@@ -35,6 +38,19 @@ namespace Zeze.Net
                 return null;
             }
         }
+
+        public virtual AsyncSocket GetSocket()
+        {
+            lock (_asocketMap)
+            {
+                foreach (var e in _asocketMap)
+                {
+                    return e.Value;
+                }
+                throw new Exception("no socket found.");
+            }
+        }
+
         /// <summary>
         /// ASocket 关闭的时候总是回调。
         /// </summary>
@@ -93,11 +109,52 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="so"></param>
         /// <param name="input"></param>
-        public virtual void OnSocketProcessInputBuffer(AsyncSocket so, Zeze.Serialize.ByteBuffer input)
+        public virtual void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
-            Console.WriteLine("OnSocketProcessInputBuffer: " + so.SerialNo);
-            Console.WriteLine(Encoding.UTF8.GetString(input.Bytes, input.ReadIndex, input.Size));
-            input.Reset(); // skip all data
+            Protocol.Decode(this, so, input);
+        }
+
+        public virtual void DispatchProtocol(Protocol p)
+        {
+            Task.Run(p.Run);
+        }
+
+        public virtual void DispatchUnknownProtocol(AsyncSocket so, int type, ByteBuffer data)
+        {
+            throw new Exception("Unknown Protocol (" + (type >> 16 & 0xffff) + ", " + (type & 0xffff) + ") size=" + data.Size);
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////
+        /// Rpc Context. 模板不好放进去，使用基类 Protocol
+        private long serialId = 0;
+        private Dictionary<long, Protocol> contexts = new Dictionary<long, Protocol>;
+
+        internal long AddRpcContext(Protocol p)
+        {
+            lock (contexts)
+            {
+                while (true)
+                {
+                    ++serialId;
+                    if (serialId <= 0) // 高位保留给rpc，用来区分是否请求. 另外保留 0。
+                        serialId = 1;
+
+                    if (contexts.TryAdd(serialId, p))
+                    {
+                        return serialId;
+                    }
+                }
+            }
+        }
+
+        internal T RemoveRpcContext<T>(long sid) where T : Protocol
+        {
+            lock (contexts)
+            {
+                Protocol p;
+                contexts.Remove(sid, out p);
+                return (T)p;
+            }
         }
     }
 }

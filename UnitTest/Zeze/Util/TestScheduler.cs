@@ -18,11 +18,11 @@ namespace UnitTest.Zeze.Util
         {
             Scheduler s = new Scheduler();
             System.Threading.Thread.Sleep(100);
-            s.schedule(SchedulerRun1, 100, 100);
+            s.Schedule(SchedulerRun1, 100, 100);
             System.Threading.Thread.Sleep(100);
-            s.schedule(SchedulerRun2, 100, -1);
+            s.Schedule(SchedulerRun2, 100, -1);
             System.Threading.Thread.Sleep(100);
-            s.schedule(SchedulerRun3, 100, 100);
+            s.Schedule(SchedulerRun3, 100, 100);
             System.Threading.Thread.Sleep(300);
             s.StopAndJoin();
             Assert.IsTrue(SchedulerRun1Count > 3);

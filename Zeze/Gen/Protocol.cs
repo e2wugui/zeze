@@ -23,6 +23,8 @@ namespace Zeze.Gen
             space.Add(this);
 
             Id = short.Parse(self.GetAttribute("id"));
+            if (Id < 0)
+                throw new Exception("protocol id < 0 is reserved. @" + space.Path(".", Name));
             space.ProtocolIdRanges.CheckAdd(Id);
 
             Argument = self.GetAttribute("argument");

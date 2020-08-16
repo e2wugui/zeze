@@ -86,5 +86,7 @@ namespace Zeze.Serialize
                     throw new Exception("SkipUnknownField");
             }
         }
+
+        public static byte[] Bytes4 = new byte[4]; // 不用每次都new
     }
 }

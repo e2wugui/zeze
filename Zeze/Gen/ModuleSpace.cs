@@ -41,7 +41,7 @@ namespace Zeze.Gen
         {
             string fullName = Path(Convert.ToString(System.IO.Path.DirectorySeparatorChar));
             string fullDir = System.IO.Path.Combine(baseDir, fullName);
-            Program.Print("CreateDirectory:" + fullDir);
+            //Program.Print("CreateDirectory:" + fullDir);
             System.IO.Directory.CreateDirectory(fullDir);
             return fullDir;
         }
@@ -97,9 +97,12 @@ namespace Zeze.Gen
 
             if (hasId)
             {
-                short id = short.Parse(self.GetAttribute("id"));
-                Solution.ModuleIdAllowRanges.AssertInclude(id);
-                Solution.ModuleIdCurrentRanges.CheckAdd(id);
+                Id = short.Parse(self.GetAttribute("id"));
+                if (Id < 0)
+                    throw new Exception("module id < 0 is reserved. @" + this.Path("."));
+
+                Solution.ModuleIdAllowRanges.AssertInclude(Id);
+                Solution.ModuleIdCurrentRanges.CheckAdd(Id);
             }
         }
 

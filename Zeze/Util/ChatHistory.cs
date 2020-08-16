@@ -86,7 +86,7 @@ namespace Zeze.Util
 
                 Zeze.Serialize.ByteBuffer bb = Zeze.Serialize.ByteBuffer.Allocate(msg.SizeHint());
                 int savedWriteIndex = bb.WriteIndex;
-                bb.Append(new byte[4]); // prepare for size bytes
+                bb.Append(Zeze.Serialize.Helper.Bytes4); // prepare for size bytes
                 msg.Encode(bb);
                 bb.Replace(savedWriteIndex, BitConverter.GetBytes(bb.Size - 4));
                 _lastDataFile.WriteToTail(bb.Bytes, bb.ReadIndex, bb.Size);

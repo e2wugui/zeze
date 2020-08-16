@@ -165,19 +165,26 @@ namespace Zeze.Net
 
         private void OnAsyncIOCompleted(object sender, SocketAsyncEventArgs e)
         {
-            switch (e.LastOperation)
+            try
             {
-                case SocketAsyncOperation.Accept:
-                    ProcessAccept(e);
-                    break;
-                case SocketAsyncOperation.Send:
-                    ProcessSend(e);
-                    break;
-                case SocketAsyncOperation.Receive:
-                    ProcessReceive(e);
-                    break;
-                default:
-                    throw new ArgumentException();
+                switch (e.LastOperation)
+                {
+                    case SocketAsyncOperation.Accept:
+                        ProcessAccept(e);
+                        break;
+                    case SocketAsyncOperation.Send:
+                        ProcessSend(e);
+                        break;
+                    case SocketAsyncOperation.Receive:
+                        ProcessReceive(e);
+                        break;
+                    default:
+                        throw new ArgumentException();
+                }
+            }
+            catch (Exception ex)
+            {
+                Close(ex);
             }
         }
 
@@ -252,7 +259,12 @@ namespace Zeze.Net
                 _inputBuffer.Campact(); // 上次接收还有剩余数据.
             }
 
-            if (_inputBuffer.Capacity - _inputBuffer.WriteIndex < Manager.SocketOptions.InputBufferInitCapacity)
+            if (_inputBuffer.Capacity >= Manager.SocketOptions.InputBufferMaxCapacity) // 缓存容量达到最大配置
+            {
+                if (_inputBuffer.WriteIndex >= _inputBuffer.Capacity) // 检查是否满了
+                    throw new Exception("input buffer overflow.");
+            }
+            else if (_inputBuffer.Capacity - _inputBuffer.WriteIndex < Manager.SocketOptions.InputBufferInitCapacity)
                 _inputBuffer.EnsureWrite(Manager.SocketOptions.InputBufferInitCapacity);
 
             byte[] buffer = _inputBuffer.Bytes;

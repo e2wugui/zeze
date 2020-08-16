@@ -15,6 +15,8 @@ namespace Zeze.Util
         private System.Threading.Thread thread;
         private volatile bool isRunning;
 
+        public static Scheduler Instance => new Scheduler();
+
         public Scheduler()
         {
             isRunning = true;
@@ -30,7 +32,7 @@ namespace Zeze.Util
         /// <param name="initialDelay">the time to delay first execution. Milliseconds</param>
         /// <param name="period">the period between successive executions. Milliseconds</param>
         /// <returns></returns>
-        public SchedulerTask schedule(Action action, long initialDelay, long period)
+        public SchedulerTask Schedule(Action action, long initialDelay, long period = -1)
         {
             lock (this)
             {
