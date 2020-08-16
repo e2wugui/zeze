@@ -42,6 +42,8 @@ namespace Zeze.Gen
             Name = self.GetAttribute("name").Trim();
             Handle = self.GetAttribute("handle");
             HandleFlags = Program.ToHandleFlags(Handle);
+            if (HandleFlags == 0)
+                throw new Exception("handle miss. " + Name + " in project " + project.Name);
             Class = self.GetAttribute("class");
 
             Program.AddNamedObject(FullName, this);

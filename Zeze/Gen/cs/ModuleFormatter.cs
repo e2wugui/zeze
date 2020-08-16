@@ -59,7 +59,25 @@ namespace Zeze.Gen.cs
                 {
                     if (p is Rpc rpc)
                     {
-                        continue; // 暂时忽略rpc
+                        if ((rpc.HandleFlags & Program.HandleServerFlag) != 0)
+                        {
+                            sw.WriteLine("        public void On" + rpc.Name + "Server(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        {");
+                            sw.WriteLine("        }");
+                            sw.WriteLine("");
+                        }
+                        if ((rpc.HandleFlags & Program.HandleClientFlag) != 0)
+                        {
+                            sw.WriteLine("        public void On" + rpc.Name + "Client(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        {");
+                            sw.WriteLine("        }");
+                            sw.WriteLine("");
+                            sw.WriteLine("        public void On" + rpc.Name + "Timeout(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        {");
+                            sw.WriteLine("        }");
+                            sw.WriteLine("");
+                        }
+                        continue;
                     }
                     if (0 != (p.HandleFlags & managerHandleFlags))
                     {
@@ -91,7 +109,19 @@ namespace Zeze.Gen.cs
                 {
                     if (p is Rpc rpc)
                     {
-                        continue; // 暂时忽略rpc
+                        if ((rpc.HandleFlags & Program.HandleServerFlag) != 0)
+                        {
+                            sw.WriteLine("        public void On" + rpc.Name + "Server(" + rpc.Name + " rpc);");
+                            sw.WriteLine("");
+                        }
+                        if ((rpc.HandleFlags & Program.HandleClientFlag) != 0)
+                        {
+                            sw.WriteLine("        public void On" + rpc.Name + "Client(" + rpc.Name + " rpc);");
+                            sw.WriteLine("");
+                            sw.WriteLine("        public void On" + rpc.Name + "Timeout(" + rpc.Name + " rpc);");
+                            sw.WriteLine("");
+                        }
+                        continue;
                     }
                     if (0 != (p.HandleFlags & managerHandleFlags))
                     {

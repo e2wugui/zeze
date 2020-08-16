@@ -153,16 +153,19 @@ namespace Zeze.Gen
             return Refs(self, nodename, "ref");
         }
 
+        public static int HandleServerFlag = 1;
+        public static int HandleClientFlag = 2;
+
         public static int ToHandleFlags(string handle)
         {
             int f = 0;
             string hs = handle.Trim().ToLower();
             foreach (string h in hs.Split(","))
             {
-                switch (h)
+                switch (h.Trim())
                 {
-                    case "server": f |= 1; break;
-                    case "client": f |= 2; break;
+                    case "server": f |= HandleServerFlag; break;
+                    case "client": f |= HandleClientFlag; break;
                     default: throw new Exception("unknown handle: " + handle);
                 }
             }
