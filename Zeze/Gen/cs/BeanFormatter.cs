@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.Contracts;
 using System.Net.Mime;
 using System.Text;
 using System.Threading.Tasks.Dataflow;
@@ -16,7 +17,7 @@ namespace Zeze.Gen.cs
             this.bean = bean;
         }
 
-        public void make(string baseDir)
+        public void Make(string baseDir)
         {
             using System.IO.StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".cs");
 
@@ -52,6 +53,7 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine("");
 
+            Construct.Make(bean, sw, "        ");
             Encode.Make(bean, sw, "        ");
             Decode.Make(bean, sw, "        ");
             InitChildrenTableKey.Make(bean, sw, "        ");

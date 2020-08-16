@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Zeze.Serialize;
+using System.Collections.Concurrent;
 
 namespace Zeze.Net
 {
@@ -125,9 +126,26 @@ namespace Zeze.Net
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////////
+        /// 协议工厂
+        protected Dictionary<int, Func<Protocol>> Factorys { get; } = new Dictionary<int, Func<Protocol>>();
+
+        public Protocol CreateProtocol(int type, ByteBuffer bb)
+        {
+            Func<Protocol> factory;
+            if (false == Factorys.TryGetValue(type, out factory))
+            {
+                return null;
+            }
+
+            Protocol p = factory();
+            p.Decode(bb);
+            return p;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////
         /// Rpc Context. 模板不好放进去，使用基类 Protocol
         private long serialId = 0;
-        private Dictionary<long, Protocol> contexts = new Dictionary<long, Protocol>;
+        private readonly Dictionary<long, Protocol> contexts = new Dictionary<long, Protocol>();
 
         internal long AddRpcContext(Protocol p)
         {

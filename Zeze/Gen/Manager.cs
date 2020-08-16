@@ -14,10 +14,25 @@ namespace Zeze.Gen
 
         private XmlElement self;
 
-        public string FullName => Project.Solution.Name + "." + Project.Name + "." + Name;
+        public string FullName => Project.Solution.Path(".", Name);
 
         // setup when compile
         public List<Module> Modules { get; private set; }
+
+        private HashSet<Protocol> AllProtocols;
+        public HashSet<Protocol> GetAllProtocols()
+        {
+            if (AllProtocols != null)
+                return AllProtocols;
+            AllProtocols = new HashSet<Protocol>();
+            foreach (Module module in Modules)
+            {
+                module.Depends(AllProtocols);
+            }
+            return AllProtocols;
+        }
+
+        //public HashSet<Module> AllModules { get; private set; } = new HashSet<Module>();
 
         public Manager(Project project, XmlElement self)
         {
@@ -56,6 +71,12 @@ namespace Zeze.Gen
             ICollection<string> refs = Program.Refs(self, "module");
             List<string> refFulNames = Program.ToFullNameIfNot(Project.Solution.Name, refs);
             Modules = Program.CompileModuleRef(refFulNames);
+            /*
+            foreach (Module m in Modules)
+            {
+                m.Depends(AllModules);
+            }
+            */
         }
     }
 }

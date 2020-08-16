@@ -16,7 +16,7 @@ namespace UnitTest.Zeze.Util
         [TestMethod]
         public void Test1()
         {
-            Scheduler s = new Scheduler();
+            Scheduler s = Scheduler.Instance;
             System.Threading.Thread.Sleep(100);
             s.Schedule(SchedulerRun1, 100, 100);
             System.Threading.Thread.Sleep(100);

@@ -24,15 +24,13 @@ namespace Zeze.Gen
             HashSet<Module> all = new HashSet<Module>();
             foreach (Module m in Modules)
             {
-                if (false == all.Add(m))
-                    Console.WriteLine("WARN Module ref duplicate: " + m.Path("."));
+                m.Depends(all);
             }
             foreach (Manager manager in Managers.Values)
             {
                 foreach (Module m in manager.Modules)
                 {
-                    if (false == all.Add(m))
-                        Console.WriteLine("WARN Module ref duplicate: " + m.Path("."));
+                    m.Depends(all);
                 }
             }
             return all;
@@ -89,28 +87,28 @@ namespace Zeze.Gen
 
         /// setup in make
         public HashSet<Module> AllModules { get; private set; }
-        public List<Protocol> AllProtocols { get; private set; }
-        public List<Table> AllTables { get; private set; }
-        public List<Types.Bean> AllBeans { get; private set; }
-        public List<Types.BeanKey> AllBeanKeys { get; private set; }
+        public HashSet<Protocol> AllProtocols { get; private set; }
+        public HashSet<Table> AllTables { get; private set; }
+        public HashSet<Types.Bean> AllBeans { get; private set; }
+        public HashSet<Types.BeanKey> AllBeanKeys { get; private set; }
 
         public void Make()
         {
             AllModules = GetAllModules();
 
-            AllProtocols = new List<Protocol>();
-            foreach (Module mod in AllModules)
+            AllProtocols = new HashSet<Protocol>();
+            foreach (Module mod in AllModules) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
             {
                 mod.Depends(AllProtocols);
             }
 
-            AllTables = new List<Table>();
-            foreach (Module mod in AllModules)
+            AllTables = new HashSet<Table>();
+            foreach (Module mod in AllModules) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
             {
                 mod.Depends(AllTables);
             }
 
-            AllBeans = new List<Types.Bean>();
+            AllBeans = new HashSet<Types.Bean>();
             {
                 HashSet<Types.Type> depends = new HashSet<Types.Type>();
                 foreach (Protocol protocol in AllProtocols)
@@ -147,7 +145,7 @@ namespace Zeze.Gen
             switch (Platform)
             {
                 case "cs":
-                    new Zeze.Gen.cs.Maker(this).make();
+                    new Zeze.Gen.cs.Maker(this).Make();
                     break;
                 default:
                     throw new Exception("unsupport platform: " + Platform);

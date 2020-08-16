@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using Zeze.Gen.Types;
 using Zeze.Serialize;
-using System.Collections.Concurrent;
 
 namespace Zeze.Net
 {
@@ -14,21 +13,6 @@ namespace Zeze.Net
         public int Id => ModuleId << 16 | ProtocolId;
 
 		public AsyncSocket Sender { get; private set; }
-
-		public static ConcurrentDictionary<int, Func<Protocol>> Factorys { get; } = new ConcurrentDictionary<int, Func<Protocol>>();
-
-		public static Protocol Create(int type, ByteBuffer bb)
-		{
-			Func<Protocol> factory;
-			if (false == Factorys.TryGetValue(type, out factory))
-			{
-				return null;
-			}
-
-			Protocol p = factory();
-			p.Decode(bb);
-			return p;
-		}
 
 		internal virtual void Dispatch(Manager manager)
 		{
@@ -94,7 +78,7 @@ namespace Zeze.Net
 					return;
 				}
 
-				Protocol p = Create(type, os);
+				Protocol p = manager.CreateProtocol(type, os);
 				if (null == p)
 				{
 					manager.DispatchUnknownProtocol(so, type, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));

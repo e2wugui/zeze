@@ -34,6 +34,7 @@ namespace Zeze.Gen
                         new Protocol(this, e);
                         break;
                     case "rpc":
+                        new Rpc(this, e);
                         break;
                     case "table":
                         new Table(this, e);
@@ -47,9 +48,27 @@ namespace Zeze.Gen
             }
         }
 
-        public void Depends(List<Protocol> depends)
+        public void Depends(HashSet<Module> modules)
         {
-            depends.AddRange(Protocols.Values);
+            if (modules.Add(this))
+            {
+                foreach (Module module in this.Modules.Values)
+                {
+                    module.Depends(modules);
+                }
+            }
+            else
+            {
+                Console.WriteLine("WARN Module ref duplicate: " + Path("."));
+            }
+        }
+
+        public void Depends(HashSet<Protocol> depends)
+        {
+            foreach (Protocol p in Protocols.Values)
+            {
+                depends.Add(p);
+            }
 
             foreach (Module module in Modules.Values)
             {
@@ -57,9 +76,12 @@ namespace Zeze.Gen
             }
         }
 
-        public void Depends(List<Table> depends)
+        public void Depends(HashSet<Table> depends)
         {
-            depends.AddRange(Tables.Values);
+            foreach (Table table in Tables.Values)
+            {
+                depends.Add(table);
+            }
 
             foreach (Module module in Modules.Values)
             {
