@@ -60,14 +60,14 @@ namespace Zeze.Gen.cs
                 {
                     if (p is Rpc rpc)
                     {
-                        if ((rpc.HandleFlags & Program.HandleServerFlag) != 0)
+                        if ((managerHandleFlags & Program.HandleServerFlag) != 0)
                         {
                             sw.WriteLine("        public override void On" + rpc.Name + "Server(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
                             sw.WriteLine("        }");
                             sw.WriteLine("");
                         }
-                        if ((rpc.HandleFlags & Program.HandleClientFlag) != 0)
+                        if ((managerHandleFlags & Program.HandleClientFlag) != 0)
                         {
                             sw.WriteLine("        public override void On" + rpc.Name + "Client(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
@@ -111,12 +111,12 @@ namespace Zeze.Gen.cs
                 {
                     if (p is Rpc rpc)
                     {
-                        if ((rpc.HandleFlags & Program.HandleServerFlag) != 0)
+                        if ((managerHandleFlags & Program.HandleServerFlag) != 0)
                         {
                             sw.WriteLine("        public abstract void On" + rpc.Name + "Server(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
                         }
-                        if ((rpc.HandleFlags & Program.HandleClientFlag) != 0)
+                        if ((managerHandleFlags & Program.HandleClientFlag) != 0)
                         {
                             sw.WriteLine("        public abstract void On" + rpc.Name + "Client(" + rpc.Name + " rpc);");
                             sw.WriteLine("");

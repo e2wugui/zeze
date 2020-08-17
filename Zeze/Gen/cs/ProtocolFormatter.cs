@@ -34,7 +34,10 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            // TODO 启动 Procedure");
             Module m = (Module)p.Space;
-            sw.WriteLine("            " + p.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".On" + p.Name + "(this);");
+            if ((m.ReferenceManager.HandleFlags & p.HandleFlags) != 0)
+            {
+                sw.WriteLine("            " + p.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".On" + p.Name + "(this);");
+            }
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("}");

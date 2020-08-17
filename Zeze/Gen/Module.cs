@@ -12,10 +12,7 @@ namespace Zeze.Gen
         private Manager _ReferenceManager;
         public void SetReferenceManager(Manager manager)
         {
-            if (manager != null && _ReferenceManager != null)
-                throw new Exception("ReferenceManager not null. mudule=" + Path() + " from=" + manager.FullName);
             _ReferenceManager = manager;
-
             foreach (Module m in Modules.Values)
             {
                 m.SetReferenceManager(manager);

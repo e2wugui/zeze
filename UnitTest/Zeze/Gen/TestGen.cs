@@ -20,7 +20,7 @@ namespace UnitTest.Zeze.Gen
             System.IO.File.Delete(pathcur);
             System.IO.File.Copy(path, pathcur);
             */
-            Program.Main(new string[]{ "solution.xml" });
+            //Program.Main(new string[]{ "solution.xml" });
         }
     }
 }

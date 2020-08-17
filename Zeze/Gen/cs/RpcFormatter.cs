@@ -35,7 +35,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public override void OnServer()");
             sw.WriteLine("        {");
             Module m = (Module)rpc.Space;
-            if ((rpc.HandleFlags & Program.HandleServerFlag) != 0)
+            if ((m.ReferenceManager.HandleFlags & Program.HandleServerFlag) != 0)
             {
                 sw.WriteLine("            " + rpc.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".On" + rpc.Name + "Server(this);");
             }
@@ -43,7 +43,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("        public override void OnClient()");
             sw.WriteLine("        {");
-            if ((rpc.HandleFlags & Program.HandleClientFlag) != 0)
+            if ((m.ReferenceManager.HandleFlags & Program.HandleClientFlag) != 0)
             {
                 sw.WriteLine("            " + rpc.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".On" + rpc.Name + "Client(this);");
             }

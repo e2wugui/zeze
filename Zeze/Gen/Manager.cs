@@ -75,7 +75,10 @@ namespace Zeze.Gen
             ICollection<string> refs = Program.Refs(self, "module");
             List<string> refFulNames = Program.ToFullNameIfNot(Project.Solution.Name, refs);
             Modules = Program.CompileModuleRef(refFulNames);
+        }
 
+        public void SetModuleReference()
+        {
             foreach (Module m in Modules)
             {
                 m.SetReferenceManager(this);

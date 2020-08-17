@@ -143,6 +143,12 @@ namespace Zeze.Gen
             if (Platform.Length == 0)
                 Platform = "cs";
 
+            // 设置Module被哪个Manager引用。必须在Make前设置。换 Project 会覆盖调引用。
+            foreach (Manager manager in Managers.Values)
+            {
+                manager.SetModuleReference();
+            }
+
             switch (Platform)
             {
                 case "cs":
