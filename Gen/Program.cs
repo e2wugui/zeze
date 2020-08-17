@@ -2,9 +2,9 @@
 
 namespace Gen
 {
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             Zeze.Gen.Program.Main(args);
         }
