@@ -11,7 +11,7 @@ namespace Zeze.Transaction.Collections
 
         protected ImmutableHashSet<E> set;
 
-        protected PSet(Func<ImmutableHashSet<E>, Log> logFactory)
+        protected PSet(long logKey, Func<ImmutableHashSet<E>, Log> logFactory) : base(logKey)
         {
             this._logFactory = logFactory;
             set = ImmutableHashSet<E>.Empty;
@@ -49,7 +49,7 @@ namespace Zeze.Transaction.Collections
                         return set;
                     }
 
-                    return txn.GetLog(this) is LogV log ? log.Value : set;
+                    return txn.GetLog(LogKey) is LogV log ? log.Value : set;
                 }
                 else
                 {

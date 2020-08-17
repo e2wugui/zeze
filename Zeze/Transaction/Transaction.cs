@@ -30,7 +30,6 @@ namespace Zeze.Transaction
         private readonly List<Record> holdLocks = new List<Record>();
         private readonly SortedDictionary<TableKey, Record> cacheRecords = new SortedDictionary<TableKey, Record>();
         private readonly Dictionary<long, Log> logs = new Dictionary<long, Log>();
-        private readonly Dictionary<PCollection, Log> collectionLogs = new Dictionary<PCollection, Log>();
 
         internal void Begin()
         {
@@ -41,12 +40,6 @@ namespace Zeze.Transaction
         {
             // 将modified fields 的 root 标记为 dirty
             foreach (var log in logs.Values)
-            {
-                TableKey tkey = log.Bean.TableKey;
-                var record = cacheRecords[tkey];
-                //record.Dirty = true;
-            }
-            foreach (var log in collectionLogs.Values)
             {
                 TableKey tkey = log.Bean.TableKey;
                 var record = cacheRecords[tkey];
@@ -197,10 +190,6 @@ namespace Zeze.Transaction
                 ProcessLog(log);
             }
 
-            foreach (var log in collectionLogs.Values)
-            {
-                ProcessLog(log);
-            }
             logger.Trace("holdlocks count:{count}", holdLocks.Count);
 
             // TODO 
@@ -346,7 +335,6 @@ namespace Zeze.Transaction
             finally
             {
                 cacheRecords.Clear();
-                collectionLogs.Clear();
                 logs.Clear();
                 //_txnTasks.Clear();
                 //_txnCommitTasks.Clear();
@@ -432,19 +420,9 @@ namespace Zeze.Transaction
             return logs.TryGetValue(key, out var log) ? log : null;
         }
 
-        public Log GetLog(PCollection key)
-        {
-            return collectionLogs.TryGetValue(key, out var log) ? log: null;
-        }
-
         public void PutLog(Log log)
         {
             logs[log.LogKey] = log;
-        }
-
-        public void PutLog(PCollection key, Log log)
-        {
-            collectionLogs[key] = log;
         }
     }
 }

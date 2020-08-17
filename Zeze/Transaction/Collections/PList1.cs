@@ -5,7 +5,7 @@ namespace Zeze.Transaction.Collections
 {
     public sealed class PList1<E> : PList<E>
     {
-        public PList1(Func<ImmutableList<E>, Log> logFactory) : base(logFactory)
+        public PList1(long logKey, Func<ImmutableList<E>, Log> logFactory) : base(logKey, logFactory)
         {
         }
 
@@ -22,8 +22,8 @@ namespace Zeze.Transaction.Collections
                 if (this.IsManaged)
                 {
                     var txn = Transaction.Current;
-                    var oldv = txn.GetLog(this) is LogV log ? log.Value : list;
-                    txn.PutLog(this, NewLog(oldv.SetItem(index, value)));
+                    var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
+                    txn.PutLog(NewLog(oldv.SetItem(index, value)));
                 }
                 else
                 {
@@ -42,8 +42,8 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : list;
-                txn.PutLog(this, NewLog(oldv.Add(item)));
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
+                txn.PutLog(NewLog(oldv.Add(item)));
             }
             else
             {
@@ -56,10 +56,10 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : list;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
                 if (!oldv.IsEmpty)
                 {
-                    txn.PutLog(this, NewLog(ImmutableList<E>.Empty));
+                    txn.PutLog(NewLog(ImmutableList<E>.Empty));
                 }
             }
             else
@@ -79,8 +79,8 @@ namespace Zeze.Transaction.Collections
                 }
 
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : list;
-                txn.PutLog(this, NewLog(oldv.Insert(index, item)));
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
+                txn.PutLog(NewLog(oldv.Insert(index, item)));
             }
             else
             {
@@ -93,11 +93,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : list;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
                 var newv = oldv.Remove(item);
                 if (oldv != newv)
                 {
-                    txn.PutLog(this, NewLog(newv));
+                    txn.PutLog(NewLog(newv));
                     return true;
                 }
                 else
@@ -125,8 +125,8 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : list;
-                txn.PutLog(this, NewLog(oldv.RemoveAt(index)));
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
+                txn.PutLog(NewLog(oldv.RemoveAt(index)));
             }
             else
             {
@@ -139,8 +139,8 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : list;
-                txn.PutLog(this, NewLog(oldv.RemoveRange(index, count)));
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
+                txn.PutLog(NewLog(oldv.RemoveRange(index, count)));
             }
             else
             {

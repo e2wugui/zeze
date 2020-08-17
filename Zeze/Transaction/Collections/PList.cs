@@ -11,7 +11,7 @@ namespace Zeze.Transaction.Collections
 
         protected ImmutableList<E> list;
 
-        protected PList(Func<ImmutableList<E>, Log> logFactory)
+        protected PList(long logKey, Func<ImmutableList<E>, Log> logFactory) : base(logKey)
         {
             this._logFactory = logFactory;
             list = ImmutableList<E>.Empty;
@@ -48,7 +48,7 @@ namespace Zeze.Transaction.Collections
                     {
                         return list;
                     }
-                    return txn.GetLog(this) is LogV log ? log.Value : list;
+                    return txn.GetLog(LogKey) is LogV log ? log.Value : list;
                 }
                 return list;
             }

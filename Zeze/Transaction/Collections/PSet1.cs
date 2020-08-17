@@ -6,7 +6,7 @@ namespace Zeze.Transaction.Collections
 {
     public sealed class PSet1<E> : PSet<E>
     {
-        public PSet1(Func<ImmutableHashSet<E>, Log> logFactory) : base(logFactory)
+        public PSet1(long logKey, Func<ImmutableHashSet<E>, Log> logFactory) : base(logKey, logFactory)
         {
         }
 
@@ -20,11 +20,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : set;
                 var newv = oldv.Add(item);
                 if (newv != oldv)
                 {
-                    txn.PutLog(this, NewLog(newv));
+                    txn.PutLog(NewLog(newv));
                     return true;
                 }
                 else
@@ -44,10 +44,10 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : set;
                 if (!oldv.IsEmpty)
                 {
-                    txn.PutLog(this, NewLog(ImmutableHashSet<E>.Empty));
+                    txn.PutLog(NewLog(ImmutableHashSet<E>.Empty));
                 }
             }
             else
@@ -63,11 +63,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : set;
                 var newv = oldv.Except(other);
                 if (newv != oldv)
                 {
-                    txn.PutLog(this, NewLog(newv));
+                    txn.PutLog(NewLog(newv));
                 }
             }
             else
@@ -82,11 +82,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : set;
                 var newv = oldv.Intersect(other);
                 if (newv != oldv)
                 {
-                    txn.PutLog(this, NewLog(newv));
+                    txn.PutLog(NewLog(newv));
                 }
             }
             else
@@ -100,11 +100,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : set;
                 var newv = oldv.Remove(item);
                 if (newv != oldv)
                 {
-                    txn.PutLog(this, NewLog(newv));
+                    txn.PutLog(NewLog(newv));
                     return true;
                 }
                 else
@@ -125,11 +125,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : set;
                 var newv = oldv.SymmetricExcept(other);
                 if (newv != oldv)
                 {
-                    txn.PutLog(this, NewLog(newv));
+                    txn.PutLog(NewLog(newv));
                 }
             }
             else
@@ -143,11 +143,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : set;
                 var newv = oldv.Union(other);
                 if (newv != oldv)
                 {
-                    txn.PutLog(this, NewLog(newv));
+                    txn.PutLog(NewLog(newv));
                 }
             }
             else

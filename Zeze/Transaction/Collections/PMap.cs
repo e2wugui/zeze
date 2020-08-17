@@ -10,7 +10,7 @@ namespace Zeze.Transaction.Collections
         private readonly Func<ImmutableDictionary<K, V>, Log> _logFactory;
         protected ImmutableDictionary<K, V> map;
 
-        public PMap(Func<ImmutableDictionary<K, V>, Log> logFactory)
+        public PMap(long logKey, Func<ImmutableDictionary<K, V>, Log> logFactory) : base(logKey)
         {
             this._logFactory = logFactory;
             map = ImmutableDictionary<K, V>.Empty;
@@ -47,7 +47,7 @@ namespace Zeze.Transaction.Collections
                         return map;
                     }
 
-                    return txn.GetLog(this) is LogV log ? log.Value : map;
+                    return txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 }
                 else
                 {

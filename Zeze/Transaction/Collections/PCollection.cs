@@ -5,6 +5,12 @@ namespace Zeze.Transaction.Collections
     {
         public TableKey TableKey { get; private set; }
         public bool IsManaged => TableKey != null;
+        public long LogKey { get; }
+
+        protected PCollection(long logKey)
+        {
+            LogKey = logKey;
+        }
 
         /// <summary>
         /// 初始化 tableKey.
