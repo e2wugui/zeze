@@ -55,7 +55,17 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
 
             Property.Make(bean, sw, "        ");
+            sw.WriteLine();
             Construct.Make(bean, sw, "        ");
+            Assign.Make(bean, sw, "        ");
+            // Copy
+            sw.WriteLine("        public " + bean.Name + " Copy()");
+            sw.WriteLine("        {");
+            sw.WriteLine("            var copy = new " + bean.Name + "();");
+            sw.WriteLine("            copy.Assign(this);");
+            sw.WriteLine("            return copy;");
+            sw.WriteLine("        }");
+            sw.WriteLine();
             Log.Make(bean, sw, "        ");
             Encode.Make(bean, sw, "        ");
             Decode.Make(bean, sw, "        ");

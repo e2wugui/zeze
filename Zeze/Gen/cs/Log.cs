@@ -42,7 +42,6 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    public override long LogKey => this.Bean.ObjectId + " + var.Id + ";");
             sw.WriteLine(prefix + "    public override void Commit() { this.BeanTyped." + var.NamePrivate + " = this.Value; }");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
         }
 
         public void Visit(BeanKey type)
@@ -97,7 +96,6 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    public " + bean.Name + " BeanTyped => (" + bean.Name + ")Bean;");
             sw.WriteLine(prefix + "    public override void Commit() { Commit(BeanTyped." + var.NamePrivate + "); }");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
         }
 
         public void Visit(TypeList type)
