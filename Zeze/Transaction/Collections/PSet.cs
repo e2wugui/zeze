@@ -49,7 +49,7 @@ namespace Zeze.Transaction.Collections
                         return set;
                     }
 
-                    return txn.GetField(this) is LogV log ? log.Value : set;
+                    return txn.GetLog(this) is LogV log ? log.Value : set;
                 }
                 else
                 {

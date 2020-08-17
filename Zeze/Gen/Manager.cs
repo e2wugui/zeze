@@ -11,7 +11,7 @@ namespace Zeze.Gen
         public string Name { get; private set; }
         public string Handle { get; private set; }
         public int HandleFlags { get; }
-        public string Class { get; private set; }
+        public string Base { get; private set; }
 
         private XmlElement self;
 
@@ -44,7 +44,7 @@ namespace Zeze.Gen
             HandleFlags = Program.ToHandleFlags(Handle);
             if (HandleFlags == 0)
                 throw new Exception("handle miss. " + Name + " in project " + project.Name);
-            Class = self.GetAttribute("class");
+            Base = self.GetAttribute("base").Trim();
 
             Program.AddNamedObject(FullName, this);
 

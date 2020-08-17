@@ -20,11 +20,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetField(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
                 var newv = oldv.Add(item);
                 if (newv != oldv)
                 {
-                    txn.PutField(this, NewLog(newv));
+                    txn.PutLog(this, NewLog(newv));
                     return true;
                 }
                 else
@@ -44,10 +44,10 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetField(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
                 if (!oldv.IsEmpty)
                 {
-                    txn.PutField(this, NewLog(ImmutableHashSet<E>.Empty));
+                    txn.PutLog(this, NewLog(ImmutableHashSet<E>.Empty));
                 }
             }
             else
@@ -63,11 +63,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetField(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
                 var newv = oldv.Except(other);
                 if (newv != oldv)
                 {
-                    txn.PutField(this, NewLog(newv));
+                    txn.PutLog(this, NewLog(newv));
                 }
             }
             else
@@ -82,11 +82,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetField(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
                 var newv = oldv.Intersect(other);
                 if (newv != oldv)
                 {
-                    txn.PutField(this, NewLog(newv));
+                    txn.PutLog(this, NewLog(newv));
                 }
             }
             else
@@ -100,11 +100,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetField(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
                 var newv = oldv.Remove(item);
                 if (newv != oldv)
                 {
-                    txn.PutField(this, NewLog(newv));
+                    txn.PutLog(this, NewLog(newv));
                     return true;
                 }
                 else
@@ -125,11 +125,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetField(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
                 var newv = oldv.SymmetricExcept(other);
                 if (newv != oldv)
                 {
-                    txn.PutField(this, NewLog(newv));
+                    txn.PutLog(this, NewLog(newv));
                 }
             }
             else
@@ -143,11 +143,11 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
-                var oldv = txn.GetField(this) is LogV log ? log.Value : set;
+                var oldv = txn.GetLog(this) is LogV log ? log.Value : set;
                 var newv = oldv.Union(other);
                 if (newv != oldv)
                 {
-                    txn.PutField(this, NewLog(newv));
+                    txn.PutLog(this, NewLog(newv));
                 }
             }
             else

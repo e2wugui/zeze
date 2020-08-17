@@ -23,6 +23,11 @@ namespace Zeze.Gen.cs
             MakePartialInSrc();
         }
 
+        public string BaseClass()
+        {
+            return manager.Base.Length > 0 ? manager.Base : "Zeze.Net.Manager";
+        }
+
         public void MakePartialInGen()
         {
             using System.IO.StreamWriter sw = manager.Project.Solution.OpenWriter(genDir, manager.Name + ".cs");
@@ -31,9 +36,9 @@ namespace Zeze.Gen.cs
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine("");
-            sw.WriteLine("namespace " + manager.Project.Solution.Path("."));
+            sw.WriteLine("namespace " + manager.Project.Solution.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed partial class " + manager.Name + " : Zeze.Net.Manager");
+            sw.WriteLine("    public sealed partial class " + manager.Name + " : " + BaseClass());
             sw.WriteLine("    {");
             sw.WriteLine("        public " + manager.Name + "()");
             sw.WriteLine("        {");
@@ -56,9 +61,9 @@ namespace Zeze.Gen.cs
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine("");
-            sw.WriteLine("namespace " + manager.Project.Solution.Path("."));
+            sw.WriteLine("namespace " + manager.Project.Solution.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed partial class " + manager.Name + " : Zeze.Net.Manager");
+            sw.WriteLine("    public sealed partial class " + manager.Name + " : " + BaseClass());
             sw.WriteLine("    {");
             sw.WriteLine("        // 重载需要的方法。");
             sw.WriteLine("    }");

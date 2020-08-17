@@ -7,7 +7,8 @@ namespace Zeze.Gen.cs
 {
     public class TypeName : Types.Visitor
     {
-        protected string name;
+        public string name;
+        public string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
 
         public static string GetName(Types.Type type)
         {
@@ -65,12 +66,14 @@ namespace Zeze.Gen.cs
         {
             string valueName = TypeName.GetName(type.ValueType);
             name = "Zeze.Transaction.Collections.PList" + (type.ValueType.IsNormalBean ? "2<" : "1<")  + valueName + ">";
+            nameCollectionImplement = "System.Collections.Immutable.ImmutableList<" + valueName + ">";
         }
 
         public void Visit(TypeSet type)
         {
             string valueName = TypeName.GetName(type.ValueType);
             name = "Zeze.Transaction.Collections.PSet1<" + valueName + ">";
+            nameCollectionImplement = "System.Collections.Immutable.ImmutableHashSet<" + valueName + ">";
         }
 
         public void Visit(TypeMap type)
@@ -78,6 +81,7 @@ namespace Zeze.Gen.cs
             string key = TypeName.GetName(type.KeyType);
             string value = TypeName.GetName(type.ValueType);
             name = "Zeze.Transaction.Collections.PMap" + (type.ValueType.IsNormalBean ? "2<" : "1<") + key + ", " + value + ">";
+            nameCollectionImplement = "System.Collections.Immutable.ImmutableDictionary<" + key + ", " + value + ">";
         }
 
         public void Visit(TypeFloat type)

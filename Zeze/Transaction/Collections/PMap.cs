@@ -47,7 +47,7 @@ namespace Zeze.Transaction.Collections
                         return map;
                     }
 
-                    return txn.GetField(this) is LogV log ? log.Value : map;
+                    return txn.GetLog(this) is LogV log ? log.Value : map;
                 }
                 else
                 {

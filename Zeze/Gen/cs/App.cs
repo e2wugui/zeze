@@ -28,7 +28,7 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = project.Solution.OpenWriter(genDir, "App.cs");
 
             sw.WriteLine("");
-            sw.WriteLine("namespace " + project.Solution.Path("."));
+            sw.WriteLine("namespace " + project.Solution.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class App");
             sw.WriteLine("    {");
@@ -58,7 +58,7 @@ namespace Zeze.Gen.cs
                 return;
 
             sw.WriteLine("");
-            sw.WriteLine("namespace " + project.Solution.Path("."));
+            sw.WriteLine("namespace " + project.Solution.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class App");
             sw.WriteLine("    {");

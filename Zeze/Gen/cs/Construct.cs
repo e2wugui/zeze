@@ -93,19 +93,19 @@ namespace Zeze.Gen.cs
         public void Visit(TypeList type)
         {
             String typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(null); // TODO ");
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(_v => new Log_" + variable.NamePrivate + "(this, _v));");
         }
 
         public void Visit(TypeSet type)
         {
             String typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(null); // TODO ");
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(_v => new Log_" + variable.NamePrivate + "(this, _v));");
         }
 
         public void Visit(TypeMap type)
         {
             String typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(null); // TODO ");
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(_v => new Log_" + variable.NamePrivate + "(this, _v));");
         }
 
         public void Visit(TypeFloat type)

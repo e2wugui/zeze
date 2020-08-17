@@ -427,22 +427,22 @@ namespace Zeze.Transaction
             }
         }
 
-        public Log GetField(long key)
+        public Log GetLog(long key)
         {
             return logs.TryGetValue(key, out var log) ? log : null;
         }
 
-        public Log GetField(PCollection key)
+        public Log GetLog(PCollection key)
         {
             return collectionLogs.TryGetValue(key, out var log) ? log: null;
         }
 
-        public void PutField(long key, Log log)
+        public void PutLog(Log log)
         {
-            logs[key] = log;
+            logs[log.LogKey] = log;
         }
 
-        public void PutField(PCollection key, Log log)
+        public void PutLog(PCollection key, Log log)
         {
             collectionLogs[key] = log;
         }

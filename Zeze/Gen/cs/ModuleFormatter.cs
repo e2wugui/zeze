@@ -31,7 +31,7 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = module.OpenWriter(genDir, module.Name + ".cs");
 
             sw.WriteLine("");
-            sw.WriteLine("namespace " + module.Path("."));
+            sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed  partial class " + module.Name + " : I" + module.Name);
             sw.WriteLine("    {");
@@ -48,7 +48,7 @@ namespace Zeze.Gen.cs
                 return;
 
             sw.WriteLine("");
-            sw.WriteLine("namespace " + module.Path("."));
+            sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class " + module.Name + " : I" + module.Name);
             sw.WriteLine("    {");
@@ -97,7 +97,7 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = module.OpenWriter(genDir, "I" + module.Name + ".cs");
 
             sw.WriteLine("");
-            sw.WriteLine("namespace " + module.Path("."));
+            sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public interface I" + module.Name);
             sw.WriteLine("    {");

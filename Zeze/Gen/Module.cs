@@ -13,7 +13,7 @@ namespace Zeze.Gen
         public void SetReferenceManager(Manager manager)
         {
             if (manager != null && _ReferenceManager != null)
-                throw new Exception("ReferenceManager not null. mudule=" + Path(".") + " from=" + manager.FullName);
+                throw new Exception("ReferenceManager not null. mudule=" + Path() + " from=" + manager.FullName);
             _ReferenceManager = manager;
 
             foreach (Module m in Modules.Values)
@@ -57,7 +57,7 @@ namespace Zeze.Gen
                         new BeanKey(this, e);
                         break;
                     default:
-                        throw new Exception("unknown nodename=" + e.Name + " in module=" + Path("."));
+                        throw new Exception("unknown nodename=" + e.Name + " in module=" + Path());
                 }
             }
         }
@@ -65,7 +65,7 @@ namespace Zeze.Gen
         public void Depends(HashSet<Module> modules)
         {
             if (false == modules.Add(this))
-                throw new Exception("Module ref duplicate: " + Path("."));
+                throw new Exception("Module ref duplicate: " + Path());
 
             foreach (Module module in this.Modules.Values)
             {

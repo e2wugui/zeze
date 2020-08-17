@@ -25,7 +25,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine("");
-            sw.WriteLine("namespace " + bean.Space.Path("."));
+            sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed class " + bean.Name + " : Zeze.Transaction.Bean");
             sw.WriteLine("    {");
@@ -53,7 +53,9 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine("");
 
+            Property.Make(bean, sw, "        ");
             Construct.Make(bean, sw, "        ");
+            Log.Make(bean, sw, "        ");
             Encode.Make(bean, sw, "        ");
             Decode.Make(bean, sw, "        ");
             InitChildrenTableKey.Make(bean, sw, "        ");
