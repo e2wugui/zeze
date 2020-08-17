@@ -138,7 +138,7 @@ namespace Zeze.Serialize
         private void EnsureRead(int size)
         {
             if (ReadIndex + size > WriteIndex)
-                 throw new Exception();
+                 throw new Exception("EnsureRead " + size);
         }
 
         public void WriteBool(bool b)

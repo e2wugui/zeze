@@ -54,7 +54,7 @@
 		</bean>
 	</module>
 
-	<project name="gsd" platform="cs" generates="table">
+	<project name="gsd" platform="cs" targets="table">
 		<!--
 		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
 		-->

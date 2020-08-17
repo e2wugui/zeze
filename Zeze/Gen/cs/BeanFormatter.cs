@@ -67,6 +67,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        }");
             sw.WriteLine();
             Log.Make(bean, sw, "        ");
+            Tostring.Make(bean, sw, "        ");
             Encode.Make(bean, sw, "        ");
             Decode.Make(bean, sw, "        ");
             InitChildrenTableKey.Make(bean, sw, "        ");

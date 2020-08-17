@@ -68,6 +68,7 @@ namespace Zeze.Gen.cs
             }
             PropertyBeanKey.Make(beanKey, sw, "        ");
             sw.WriteLine("");
+            Tostring.Make(beanKey, sw, "        ");
             Encode.Make(beanKey, sw, "        ");
             Decode.Make(beanKey, sw, "        ");
             sw.WriteLine("    }");

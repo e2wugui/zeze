@@ -34,7 +34,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed  partial class " + module.Name + " : I" + module.Name);
+            sw.WriteLine("    public sealed  partial class " + module.Name + " : Abstract" + module.Name);
             sw.WriteLine("    {");
             sw.WriteLine("        // TODO define table here.");
             sw.WriteLine("    }");
@@ -51,7 +51,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed partial class " + module.Name + " : I" + module.Name);
+            sw.WriteLine("    public sealed partial class " + module.Name + " : Abstract" + module.Name);
             sw.WriteLine("    {");
             if (module.ReferenceManager != null)
             {
@@ -95,13 +95,13 @@ namespace Zeze.Gen.cs
 
         public void MakeInterface()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(genDir, "I" + module.Name + ".cs");
+            using System.IO.StreamWriter sw = module.OpenWriter(genDir, "Abstract" + module.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public interface I" + module.Name);
+            sw.WriteLine("    public abstract class Abstract" + module.Name);
             sw.WriteLine("    {");
  
             if (module.ReferenceManager != null)
@@ -113,21 +113,21 @@ namespace Zeze.Gen.cs
                     {
                         if ((rpc.HandleFlags & Program.HandleServerFlag) != 0)
                         {
-                            sw.WriteLine("        public void On" + rpc.Name + "Server(" + rpc.Name + " rpc);");
+                            sw.WriteLine("        public abstract void On" + rpc.Name + "Server(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
                         }
                         if ((rpc.HandleFlags & Program.HandleClientFlag) != 0)
                         {
-                            sw.WriteLine("        public void On" + rpc.Name + "Client(" + rpc.Name + " rpc);");
+                            sw.WriteLine("        public abstract void On" + rpc.Name + "Client(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
-                            sw.WriteLine("        public void On" + rpc.Name + "Timeout(" + rpc.Name + " rpc);");
+                            sw.WriteLine("        public abstract void On" + rpc.Name + "Timeout(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
                         }
                         continue;
                     }
                     if (0 != (p.HandleFlags & managerHandleFlags))
                     {
-                        sw.WriteLine("        public void On" + p.Name + "(" + p.Name + " protocol);");
+                        sw.WriteLine("        public abstract void On" + p.Name + "(" + p.Name + " protocol);");
                         sw.WriteLine("");
                     }
                 }

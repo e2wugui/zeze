@@ -88,5 +88,27 @@ namespace Zeze.Serialize
         }
 
         public static byte[] Bytes4 = new byte[4]; // 不用每次都new
+
+        public static void BuildString<T>(StringBuilder sb, IEnumerable<T> c)
+        {
+            sb.Append("[");
+            foreach (var e in c)
+            {
+                sb.Append(e);
+            }
+            sb.Append("]");
+        }
+
+
+        public static void BuildString<TK, TV>(StringBuilder sb, IDictionary<TK, TV> dic)
+        {
+            sb.Append("{");
+            foreach (var e in dic)
+            {
+                sb.Append(e.Key).Append(':');
+                sb.Append(e.Value).Append(',');
+            }
+            sb.Append('}');
+        }
     }
 }
