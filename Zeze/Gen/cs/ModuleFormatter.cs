@@ -30,6 +30,7 @@ namespace Zeze.Gen.cs
         {
             using System.IO.StreamWriter sw = module.OpenWriter(genDir, module.Name + ".cs");
 
+            sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
@@ -96,6 +97,7 @@ namespace Zeze.Gen.cs
         {
             using System.IO.StreamWriter sw = module.OpenWriter(genDir, "I" + module.Name + ".cs");
 
+            sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");

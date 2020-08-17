@@ -16,6 +16,7 @@ namespace Zeze.Gen.cs
         {
             using System.IO.StreamWriter sw = p.Space.OpenWriter(baseDir, p.Name + ".cs");
 
+            sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");

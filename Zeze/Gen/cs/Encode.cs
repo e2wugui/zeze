@@ -28,6 +28,21 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
         }
 
+        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
+        {
+            sw.WriteLine(prefix + "public void Encode(ByteBuffer _os_)");
+            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "    _os_.WriteInt(" + bean.Variables.Count + "); // Variables.Count");
+
+            foreach (Types.Variable v in bean.Variables)
+            {
+                v.VariableType.Accept(new Encode(v.NamePrivate, v.Id, "_os_", sw, prefix + "    "));
+            }
+
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine("");
+        }
+
         public Encode(string varname, int id, string bufname, System.IO.StreamWriter sw, string prefix)
         {
             this.varname = varname;

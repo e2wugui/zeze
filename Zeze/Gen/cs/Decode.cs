@@ -37,6 +37,30 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
         }
 
+        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
+        {
+            sw.WriteLine(prefix + "public void Decode(ByteBuffer _os_)");
+            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "    for (int _varnum_ = _os_.ReadInt(); _varnum_ > 0; --_varnum_) // Variables.Count");
+            sw.WriteLine(prefix + "    {");
+            sw.WriteLine(prefix + "        int _tagid_ = _os_.ReadInt();");
+            sw.WriteLine(prefix + "        switch (_tagid_)");
+            sw.WriteLine(prefix + "        {");
+
+            foreach (Types.Variable v in bean.Variables)
+            {
+                v.VariableType.Accept(new Decode(v.NamePrivate, v.Id, "_os_", sw, prefix + "            "));
+            }
+
+            sw.WriteLine(prefix + "            default:");
+            sw.WriteLine(prefix + "                Helper.SkipUnknownField(_tagid_, _os_);");
+            sw.WriteLine(prefix + "                break;");
+            sw.WriteLine(prefix + "        }");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine("");
+        }
+
         public Decode(string varname, int id, string bufname, System.IO.StreamWriter sw, string prefix)
         {
             this.varname = varname;

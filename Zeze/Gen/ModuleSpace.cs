@@ -112,6 +112,10 @@ namespace Zeze.Gen
             {
                 bean.Compile();
             }
+            foreach (Types.BeanKey beanKey in BeanKeys.Values)
+            {
+                beanKey.Compile();
+            }
             foreach (Protocol protocol in Protocols.Values)
             {
                 protocol.Compile();

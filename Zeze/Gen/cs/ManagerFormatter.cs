@@ -32,6 +32,7 @@ namespace Zeze.Gen.cs
         {
             using System.IO.StreamWriter sw = manager.Project.Solution.OpenWriter(genDir, manager.Name + ".cs");
 
+            sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");

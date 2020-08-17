@@ -27,6 +27,7 @@ namespace Zeze.Gen.cs
         {
             using System.IO.StreamWriter sw = project.Solution.OpenWriter(genDir, "App.cs");
 
+            sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             sw.WriteLine("namespace " + project.Solution.Path());
             sw.WriteLine("{");

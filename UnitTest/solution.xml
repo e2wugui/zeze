@@ -42,6 +42,7 @@
 
 		<!-- 配置移到其他地方 cache="1024" persistence="MEMORY" -->
 		<table name="Table1" key="long" value="Value"/>
+		<table name="Table2" key="Key" value="Value"/>
 
 		<module name="Module11" id="3">
 		</module>

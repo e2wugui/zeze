@@ -109,6 +109,7 @@ namespace Zeze.Gen
             }
 
             AllBeans = new HashSet<Types.Bean>();
+            AllBeanKeys = new HashSet<Types.BeanKey>();
             {
                 HashSet<Types.Type> depends = new HashSet<Types.Type>();
                 foreach (Protocol protocol in AllProtocols)

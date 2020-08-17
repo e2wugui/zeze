@@ -27,6 +27,10 @@ namespace Zeze.Gen.cs
             {
                 new BeanFormatter(bean).Make(genDir);
             }
+            foreach (Types.BeanKey beanKey in Project.AllBeanKeys)
+            {
+                new BeanKeyFormatter(beanKey).Make(genDir);
+            }
             foreach (Protocol protocol in Project.AllProtocols)
             {
                 if (protocol is Rpc rpc)
