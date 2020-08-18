@@ -15,36 +15,77 @@ namespace Zeze.Transaction
         private static System.Threading.ThreadLocal<Transaction> threadLocal = new System.Threading.ThreadLocal<Transaction>();
 
         public static Transaction Current => threadLocal.Value;
+
         public static Transaction Create()
         {
-            if (threadLocal.IsValueCreated)
-                throw new Exception("Transaction has created");
-            threadLocal.Value = new Transaction();
+            if (null == threadLocal.Value)
+               threadLocal.Value = new Transaction();
             return threadLocal.Value;
         }
+
         public static void Destroy()
         {
             threadLocal.Value = null;
         }
 
+        public void Begin()
+        {
+            Savepoint sp = savepoints.Count > 0 ? savepoints[^1].Duplicate() : new Savepoint();
+            savepoints.Add(sp);
+        }
+
+        public void Commit()
+        {
+            int lastIndex = savepoints.Count - 1;
+            Savepoint last = savepoints[lastIndex];
+            savepoints.RemoveAt(lastIndex);
+ 
+            if (savepoints.Count > 0)
+            {
+                // 嵌套事务，把日志合并到上一层。
+                savepoints[^1].Merge(last);
+            }
+            else
+            {
+                // 最后一层。提交。// TODO 最后的提交可能需要特别处理。
+                last.Commit();
+            }
+        }
+
+        public void Rollback()
+        {
+            int lastIndex = savepoints.Count - 1;
+            Savepoint last = savepoints[lastIndex];
+            savepoints.RemoveAt(lastIndex);
+            last.Rollback();
+        }
+
+        public Log GetLog(long key)
+        {
+            // 允许没有 savepoint 时返回 null.
+            return savepoints.Count > 0 ? savepoints[^1].GetLog(key) : null;
+        }
+
+        public void PutLog(Log log)
+        {
+            savepoints[^1].PutLog(log);
+        }
+
         private readonly List<Record> holdLocks = new List<Record>();
         private readonly SortedDictionary<TableKey, Record> cacheRecords = new SortedDictionary<TableKey, Record>();
-        private readonly Dictionary<long, Log> logs = new Dictionary<long, Log>();
-
-        internal void Begin()
-        {
-
-        }
+        private readonly List<Savepoint> savepoints = new List<Savepoint>();
 
         internal bool LockAndCheck()
         {
             // 将modified fields 的 root 标记为 dirty
+            /*
             foreach (var log in logs.Values)
             {
                 TableKey tkey = log.Bean.TableKey;
                 var record = cacheRecords[tkey];
                 //record.Dirty = true;
             }
+            */
 
             bool conflict = false;
 
@@ -183,12 +224,14 @@ namespace Zeze.Transaction
             //}
         }
 
-        internal void Commit()
+        internal void Commit2()
         {
+            /*
             foreach (var log in logs.Values)
             {
                 ProcessLog(log);
             }
+            */
 
             logger.Trace("holdlocks count:{count}", holdLocks.Count);
 
@@ -300,59 +343,9 @@ namespace Zeze.Transaction
             */
         }
 
-        internal void Rollback()
-        {
-            try
-            {
-                /*
-                foreach (var task in _txnTasks)
-                {
-                    try
-                    {
-                        task.Rollback();
-                        logger.Trace("txn task:{task} rollback", task);
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Error(e, "rollback");
-                    }
-                }
-
-                foreach (var task in _txnRollbackTasks)
-                {
-                    try
-                    {
-                        task();
-                        logger.Trace("txn task:{task} rollback", task);
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Error(e, "commit txn task");
-                    }
-                }
-                */
-            }
-            finally
-            {
-                cacheRecords.Clear();
-                logs.Clear();
-                //_txnTasks.Clear();
-                //_txnCommitTasks.Clear();
-                //_txnRollbackTasks.Clear();
-            }
-        }
-
         internal void End()
         {
             /*
-            _cacheRecords.Clear();
-            _collectionLoggers.Clear();
-            _fieldLoggers.Clear();
-            _txnTasks.Clear();
-            _txnCommitTasks.Clear();
-            _txnRollbackTasks.Clear();
-
-
             if (_holdLocks.Count > 0)
             {
                 foreach (var holdLock in _holdLocks)
@@ -413,16 +406,6 @@ namespace Zeze.Transaction
                 value = null;
                 return false;
             }
-        }
-
-        public Log GetLog(long key)
-        {
-            return logs.TryGetValue(key, out var log) ? log : null;
-        }
-
-        public void PutLog(Log log)
-        {
-            logs[log.LogKey] = log;
         }
     }
 }

@@ -6,10 +6,13 @@ namespace Zeze.Transaction
     public abstract class Bean : Zeze.Serialize.Serializable
     {
         private static Zeze.Util.AtomicLong _objectIdGen = new Zeze.Util.AtomicLong();
+
         public const int ObjectIdStep = 4096; // 自增长步长。低位保留给Variable.Id。也就是，Variable.Id 最大只能是4095.
         public const int MaxVariableId = ObjectIdStep - 1;
 
-        public long ObjectId { get; } = _objectIdGen.AddAndGet(ObjectIdStep);
+        public static long NextObjectId => _objectIdGen.AddAndGet(ObjectIdStep);
+
+        public long ObjectId { get; } = NextObjectId;
         public TableKey TableKey { get; private set; }
         public bool IsManaged => TableKey != null;
 
