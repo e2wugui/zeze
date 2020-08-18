@@ -24,7 +24,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + beanKey.Space.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed class " + beanKey.Name + " : Serializable");
+            sw.WriteLine("    public sealed class " + beanKey.Name + " : Serializable, System.IComparable<" + beanKey.Name + ">");
             sw.WriteLine("    {");
             // declare enums
             foreach (Types.Enum e in beanKey.Enums)
@@ -71,6 +71,9 @@ namespace Zeze.Gen.cs
             Tostring.Make(beanKey, sw, "        ");
             Encode.Make(beanKey, sw, "        ");
             Decode.Make(beanKey, sw, "        ");
+            Equal.Make(beanKey, sw, "        ");
+            HashCode.Make(beanKey, sw, "        ");
+            Compare.Make(beanKey, sw, "        ");
             sw.WriteLine("    }");
             sw.WriteLine("}");
 

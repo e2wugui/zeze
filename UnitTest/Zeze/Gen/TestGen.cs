@@ -13,7 +13,7 @@ namespace UnitTest.Zeze.Gen
         public void TestMain()
         {
             // UnitTest test. fixme.
-            System.Environment.CurrentDirectory = "C:\\Users\\86139\\Desktop\\code\\zeze\\UnitTest\\";
+            //System.Environment.CurrentDirectory = "C:\\Users\\86139\\Desktop\\code\\zeze\\UnitTest\\";
             /*
             string path = "C:\\Users\\86139\\Desktop\\code\\zeze\\UnitTest\\solution.xml";
             string pathcur = System.IO.Path.Combine(System.Environment.CurrentDirectory, "solution.xml");

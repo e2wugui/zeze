@@ -83,7 +83,6 @@ namespace Zeze.Transaction
                 {
                     try
                     {
-                        ++tryCount;
                         bool procedureResult = procedure.Call();
                         if (_lock_and_check_())
                         {

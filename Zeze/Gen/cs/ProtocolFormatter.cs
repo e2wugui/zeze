@@ -32,7 +32,6 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("        public override void Run()");
             sw.WriteLine("        {");
-            sw.WriteLine("            // TODO 启动 Procedure");
             Module m = (Module)p.Space;
             if ((m.ReferenceManager.HandleFlags & p.HandleFlags) != 0)
             {

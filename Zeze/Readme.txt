@@ -18,3 +18,11 @@ Net.Manager 怎么重新定义？现在这个不够灵活。
 
 -->
 ConcurrentDictionary
+DataInDB DataInTrans                                                                 实际操作
+   null           null                 事务中删除，数据库中没有，  cache.remove      delete
+  !null           null                 事务中删除，数据库中有，    db.delete
+   null           !null                事务中put,数据库中没有，    db.replace        replace
+  !null           !null                事务中put,数据库中有，      db.replace
+
+关于 cache，只要访问 table 的记录，在 cache 中不存在时总是新增一个 record。
+包括删除不存在的记录（这点需要琢磨一下，也就是说删除也加入 lockandchecknoconflit）。

@@ -1,0 +1,109 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using Zeze.Gen.Types;
+
+namespace Zeze.Gen.cs
+{
+    public class Compare : Visitor
+	{
+		public static void Make(BeanKey bean, System.IO.StreamWriter sw, String prefix)
+		{
+			sw.WriteLine(prefix + "public int CompareTo(" + bean.Name + " _o_)");
+			sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "    if (_o_ == this) return 0;");
+            sw.WriteLine(prefix + "    int _c_" + (bean.Variables.Count > 0 ? ";" : " = 0;"));
+            foreach (Variable var in bean.Variables)
+			{
+                Compare e = new Compare(var, "_o_");
+				var.VariableType.Accept(e);
+				sw.WriteLine(prefix + "    _c_ = " + e.text + ";");
+                sw.WriteLine(prefix + "    if (0 != _c_) return _c_;");
+                sw.WriteLine(prefix + "    ");
+			}
+			sw.WriteLine(prefix + "    return _c_;");
+			sw.WriteLine(prefix + "}");
+			sw.WriteLine("");
+		}
+
+        private Variable variable;
+        private String another;
+        private String text;
+        
+        public Compare(Variable var, string another)
+        {
+            this.variable = var;
+            this.another = another;
+        }
+
+        public void Visit(Bean type)
+        {
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
+        }
+
+        public void Visit(BeanKey type)
+        {
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
+        }
+
+        public void Visit(TypeByte type)
+        {
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
+        }
+
+        public void Visit(TypeDouble type)
+        {
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
+        }
+
+        public void Visit(TypeInt type)
+        {
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
+        }
+
+        public void Visit(TypeLong type)
+        {
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
+        }
+
+        public void Visit(TypeBool type)
+        {
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
+        }
+
+        public void Visit(TypeBinary type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(TypeString type)
+        {
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
+        }
+
+        public void Visit(TypeList type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(TypeSet type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(TypeMap type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(TypeFloat type)
+        {
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
+        }
+
+        public void Visit(TypeShort type)
+        {
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
+        }
+    }
+}
