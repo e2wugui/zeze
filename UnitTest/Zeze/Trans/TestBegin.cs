@@ -10,7 +10,7 @@ namespace UnitTest.Zeze.Trans
     [TestClass]
     public class TestBegin
     {
-        class MyBean : Bean
+        public class MyBean : Bean
         {
             public override void Decode(ByteBuffer bb)
             {
@@ -27,7 +27,7 @@ namespace UnitTest.Zeze.Trans
                 throw new NotImplementedException();
             }
 
-            private int _i;
+            public int _i;
 
             class MyLog : Log<MyBean, int>
             {

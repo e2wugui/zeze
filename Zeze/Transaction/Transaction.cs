@@ -36,20 +36,20 @@ namespace Zeze.Transaction
 
         public void Commit()
         {
-            int lastIndex = savepoints.Count - 1;
-            Savepoint last = savepoints[lastIndex];
-            savepoints.RemoveAt(lastIndex);
- 
-            if (savepoints.Count > 0)
+            if (savepoints.Count > 1)
             {
                 // 嵌套事务，把日志合并到上一层。
+                int lastIndex = savepoints.Count - 1;
+                Savepoint last = savepoints[lastIndex];
+                savepoints.RemoveAt(lastIndex);
                 savepoints[^1].Merge(last);
             }
+            /*
             else
             {
-                // 最后一层。提交。// TODO 最后的提交可能需要特别处理。
-                last.Commit();
+                // 最外层存储过程提交在 Perform 中处理
             }
+            */
         }
 
         public void Rollback()
@@ -71,11 +71,99 @@ namespace Zeze.Transaction
             savepoints[^1].PutLog(log);
         }
 
+        /// <summary>
+        /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
+        /// </summary>
+        /// <param name="procedure"></param>
+        public bool Perform(Procedure procedure)
+        {
+            try
+            {
+                for (int tryCount = 0; tryCount < 256; ++tryCount) // 最多尝试次数
+                {
+                    try
+                    {
+                        ++tryCount;
+                        bool procedureResult = procedure.Call();
+                        if (_lock_and_check_())
+                        {
+                            if (procedureResult)
+                            {
+                                _final_commit_(procedure);
+                                return true;
+                            }
+                            _final_rollback_();
+                            return false;
+                        }
+                        _final_rollback_();
+                        // retry
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error(e, "Transaction.Perform:{0} exception. run count:{1}", procedure, tryCount);
+                        _final_rollback_();
+
+                        // 如果异常是因为 数据不一致引入，需要回滚重做
+                        // 否则事务失败
+                        if (_lock_and_check_())
+                        {
+                            return false;
+                        }
+                        // retry
+                    }
+                    finally
+                    {
+                        // retry 保持已有的锁，清除记录和保存点。
+                        cacheRecords.Clear();
+                        savepoints.Clear();
+                    }
+                }
+                _final_rollback_();
+                return false;
+            }
+            finally
+            {
+                // 执行最终退出，释放锁。
+                /*
+                    foreach (var holdLock in _holdLocks)
+                    {
+                        var storageRecord = holdLock.StorageRecord;
+                        storageRecord.ReleaseLock(holdLock.Locker);
+                    }
+                    _holdLocks.Clear();
+                */
+            }
+        }
+
+        private void _final_commit_(Procedure procedure)
+        {
+            if (savepoints.Count != 1)
+                throw new Exception("savepoints.Count != 1");
+
+            // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
+            // 在最终提交里可以实现每事务checkpoint。
+            try
+            {
+                Savepoint last = savepoints[^1];
+                last.Commit();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Transaction._final_commit_ {0}", procedure);
+                Environment.Exit(54321);
+            }
+        }
+
+        private void _final_rollback_()
+        {
+            // 现在没有实现 Log.Rollback。不需要再做什么，保留接口，以后实现Rollback时再处理。
+        }
+
         private readonly List<Record> holdLocks = new List<Record>();
         private readonly SortedDictionary<TableKey, Record> cacheRecords = new SortedDictionary<TableKey, Record>();
         private readonly List<Savepoint> savepoints = new List<Savepoint>();
 
-        internal bool LockAndCheck()
+        internal bool _lock_and_check_()
         {
             // 将modified fields 的 root 标记为 dirty
             /*
@@ -339,21 +427,6 @@ namespace Zeze.Transaction
                 {
                     logger.Error(e, "commit txn task");
                 }
-            }
-            */
-        }
-
-        internal void End()
-        {
-            /*
-            if (_holdLocks.Count > 0)
-            {
-                foreach (var holdLock in _holdLocks)
-                {
-                    var storageRecord = holdLock.StorageRecord;
-                    storageRecord.ReleaseLock(holdLock.Locker);
-                }
-                _holdLocks.Clear();
             }
             */
         }

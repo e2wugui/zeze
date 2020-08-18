@@ -9,7 +9,7 @@ namespace Zeze.Transaction
     public abstract class Log
     {
         public abstract void Commit();
-        //public void Rollback() { } // 一般的操作日志不需要实现，特殊日志可能需要。先不实现，参见Savepoing.
+        //public void Rollback() { } // 一般的操作日志不需要实现，特殊日志可能需要。先不实现，参见Savepoint.
         public abstract long LogKey { get; } // 日志key，由 Bean.ObjectId + Variable.Id 构成
         public Bean Bean { get; set; }
         public Log(Bean bean)
