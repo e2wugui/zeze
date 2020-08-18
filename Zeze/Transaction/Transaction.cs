@@ -289,7 +289,6 @@ namespace Zeze.Transaction
                     }
                 }
             }
-            logger.Trace("LockAndCheckConflict. conflict:{conflict}", conflict);
             return !conflict;
         }
 
