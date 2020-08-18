@@ -24,7 +24,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + beanKey.Space.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed class " + beanKey.Name + " : Serializable, System.IComparable<" + beanKey.Name + ">");
+            sw.WriteLine("    public sealed class " + beanKey.Name + " : Serializable, System.IComparable");
             sw.WriteLine("    {");
             // declare enums
             foreach (Types.Enum e in beanKey.Enums)

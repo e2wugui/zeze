@@ -9,20 +9,23 @@ namespace Zeze.Gen.cs
 	{
 		public static void Make(BeanKey bean, System.IO.StreamWriter sw, String prefix)
 		{
-			sw.WriteLine(prefix + "public int CompareTo(" + bean.Name + " _o_)");
+			sw.WriteLine(prefix + "public int CompareTo(object _o1_)");
 			sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    if (_o_ == this) return 0;");
-            sw.WriteLine(prefix + "    int _c_" + (bean.Variables.Count > 0 ? ";" : " = 0;"));
+            sw.WriteLine(prefix + "    if (_o1_ == this) return 0;");
+            sw.WriteLine(prefix + "    if (_o1_ is " + bean.Name + " _o_)");
+            sw.WriteLine(prefix + "    {");
+            sw.WriteLine(prefix + "        int _c_" + (bean.Variables.Count > 0 ? ";" : " = 0;"));
             foreach (Variable var in bean.Variables)
 			{
                 Compare e = new Compare(var, "_o_");
 				var.VariableType.Accept(e);
-				sw.WriteLine(prefix + "    _c_ = " + e.text + ";");
-                sw.WriteLine(prefix + "    if (0 != _c_) return _c_;");
-                sw.WriteLine(prefix + "    ");
+				sw.WriteLine(prefix + "        _c_ = " + e.text + ";");
+                sw.WriteLine(prefix + "        if (0 != _c_) return _c_;");
 			}
-			sw.WriteLine(prefix + "    return _c_;");
-			sw.WriteLine(prefix + "}");
+			sw.WriteLine(prefix + "        return _c_;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    throw new System.Exception(\"CompareTo: another object is not " + bean.FullName + "\");");
+            sw.WriteLine(prefix + "}");
 			sw.WriteLine("");
 		}
 

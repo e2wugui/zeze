@@ -144,6 +144,7 @@ namespace Zeze.Transaction
             {
                 Savepoint last = savepoints[^1];
                 last.Commit();
+                savepoints.Clear();
             }
             catch (Exception e)
             {
@@ -160,6 +161,46 @@ namespace Zeze.Transaction
         private readonly List<Record> holdLocks = new List<Record>();
         private readonly SortedDictionary<TableKey, Record> cacheRecords = new SortedDictionary<TableKey, Record>();
         private readonly List<Savepoint> savepoints = new List<Savepoint>();
+
+        internal bool GetOrigin(TableKey key, out Bean data)
+        {
+            if (cacheRecords.TryGetValue(key, out var value))
+            {
+                data = null;// value.Data;
+                return true;
+            }
+
+            data = null;
+            return false;
+        }
+
+        /*
+        internal void PutOrigin(TableKey key, Bean value, long latestSnapshotTimestamp, long timestamp, AbstractRecord storageRecord)
+        {
+            //cacheRecords.Add(key, new RecordInfo(key, value, latestSnapshotTimestamp, timestamp, storageRecord));
+        }
+        internal void PutRecord(TKey key, ReplaceRecordLogger data)
+        {
+            var rec = cacheRecords[key];
+            rec.ChangeLogger = data;
+            rec.Dirty = true;
+        }
+        */
+
+        internal bool GetCacheRecord(TableKey key, out Bean value)
+        {
+            if (cacheRecords.TryGetValue(key, out var record))
+            {
+                value = null;
+                //value = record.ChangeLogger != null ? record.ChangeLogger.Value.Data : record.Data;
+                return true;
+            }
+            else
+            {
+                value = null;
+                return false;
+            }
+        }
 
         internal bool _lock_and_check_()
         {
@@ -436,46 +477,6 @@ namespace Zeze.Transaction
         public void AddRollbackTask(Action action)
         {
             //_txnRollbackTasks.Add(action);
-        }
-
-        internal bool GetOrigin(TableKey key, out Bean data)
-        {
-            if (cacheRecords.TryGetValue(key, out var value))
-            {
-                data = null;// value.Data;
-                return true;
-            }
-
-            data = null;
-            return false;
-        }
-
-        /*
-        internal void PutOrigin(TableKey key, Bean value, long latestSnapshotTimestamp, long timestamp, AbstractRecord storageRecord)
-        {
-            //cacheRecords.Add(key, new RecordInfo(key, value, latestSnapshotTimestamp, timestamp, storageRecord));
-        }
-        internal void PutRecord(TKey key, ReplaceRecordLogger data)
-        {
-            var rec = cacheRecords[key];
-            rec.ChangeLogger = data;
-            rec.Dirty = true;
-        }
-        */
-
-        internal bool GetCacheRecord(TableKey key, out Bean value)
-        {
-            if (cacheRecords.TryGetValue(key, out var record))
-            {
-                value = null;
-                //value = record.ChangeLogger != null ? record.ChangeLogger.Value.Data : record.Data;
-                return true;
-            }
-            else
-            {
-                value = null;
-                return false;
-            }
         }
     }
 }

@@ -22,10 +22,17 @@ namespace Zeze.Transaction
         internal abstract void Initialize(IStorage storage);
     }
 
-    public abstract class Table<TKey, TValue> : Table where TValue : Bean, new()
+    public abstract class Table<K, V> : Table where V : Bean, new()
     {
         public Table(string name) : base(name)
         { 
+        }
+
+        public V Get(K key)
+        {
+            Transaction current = Transaction.Current;
+
+            return null;
         }
 
         internal override void Initialize(IStorage storage)
@@ -34,15 +41,15 @@ namespace Zeze.Transaction
 
 
         // Key 都是简单变量，系列化方法都不一样，需要生成。
-        public abstract Zeze.Serialize.ByteBuffer EncodeKey(TKey key);
-        public abstract TKey DecodeKey(Zeze.Serialize.ByteBuffer bb);
+        public abstract Zeze.Serialize.ByteBuffer EncodeKey(K key);
+        public abstract K DecodeKey(Zeze.Serialize.ByteBuffer bb);
 
-        public TValue NewValue()
+        public V NewValue()
         {
-            return new TValue();
+            return new V();
         }
 
-        public Zeze.Serialize.ByteBuffer EncodeValue(TValue value)
+        public Zeze.Serialize.ByteBuffer EncodeValue(V value)
         {
             Zeze.Serialize.ByteBuffer bb = Zeze.Serialize.ByteBuffer.Allocate(value.CapacityHintOfByteBuffer);
             value.Encode(bb);
@@ -54,9 +61,9 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="bb">bean encoded data</param>
         /// <returns></returns>
-        public TValue DecodeValue(Zeze.Serialize.ByteBuffer bb)
+        public V DecodeValue(Zeze.Serialize.ByteBuffer bb)
         {
-            TValue value = NewValue();
+            V value = NewValue();
             value.Decode(bb);
             return value;
         }

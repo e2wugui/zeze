@@ -64,7 +64,7 @@ namespace Zeze.Net
                 _asocketMap.Remove(so.SerialNo);
             }
             if (null != e)
-                logger.Debug(e, "OnSocketClose");
+                logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketClose");
         }
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace Zeze.Net
         /// <param name="e"></param>
         public virtual void OnSocketConnectError(AsyncSocket so, Exception e)
         {
-            logger.Debug(e, "OnSocketConnectError");
+            logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketConnectError");
         }
 
         /// <summary>

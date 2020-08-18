@@ -5,7 +5,7 @@ using Microsoft.VisualBasic.CompilerServices;
 
 namespace Zeze.Transaction
 {
-    public abstract class TableKey : IComparable<TableKey>
+    public class TableKey : IComparable<TableKey>
     {
         public int TableId { get; }
         public object Key { get; }

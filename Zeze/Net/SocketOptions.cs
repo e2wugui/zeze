@@ -20,6 +20,9 @@ namespace Zeze.Net
         // 系统选项，但没有默认，只有 ServerSocket 使用。
         public int Backlog { get; set; }
 
+        // 其他杂项
+        public NLog.LogLevel SocketLogLevel { get; set; }
+
         public SocketOptions()
         {
             // 这几个是应用层的选项，提供默认值。
@@ -28,6 +31,8 @@ namespace Zeze.Net
             InputBufferResetThreshold = 16 * InputBufferInitCapacity;
             InputBufferMaxCapacity = 2 * 1024 * 1024; // 2M
             Backlog = 128;
+
+            SocketLogLevel = NLog.LogLevel.Trace; // 可以使用 NLog.LogLevel.FromString 从配置中读取
         }
     }
 }
