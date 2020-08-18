@@ -95,18 +95,16 @@ namespace Zeze.Transaction
                             _final_rollback_();
                             return false;
                         }
-                        _final_rollback_();
                         // retry
                     }
                     catch (Exception e)
                     {
                         logger.Error(e, "Transaction.Perform:{0} exception. run count:{1}", procedure, tryCount);
-                        _final_rollback_();
-
                         // 如果异常是因为 数据不一致引入，需要回滚重做
                         // 否则事务失败
                         if (_lock_and_check_())
                         {
+                            _final_rollback_();
                             return false;
                         }
                         // retry
@@ -118,6 +116,7 @@ namespace Zeze.Transaction
                         savepoints.Clear();
                     }
                 }
+                logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 _final_rollback_();
                 return false;
             }

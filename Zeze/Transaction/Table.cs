@@ -50,7 +50,7 @@ namespace Zeze.Transaction
         }
  
         /// <summary>
-        /// 解码系列化的数据到对象。buffer 必须只包含这个 Bean 所需的数据。
+        /// 解码系列化的数据到对象。
         /// </summary>
         /// <param name="bb">bean encoded data</param>
         /// <returns></returns>
