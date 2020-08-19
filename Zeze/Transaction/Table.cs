@@ -25,19 +25,174 @@ namespace Zeze.Transaction
     public abstract class Table<K, V> : Table where V : Bean, new()
     {
         public Table(string name) : base(name)
-        { 
+        {
+            cache = new TableCache<K, V>(Id);
         }
 
         public V Get(K key)
         {
-            Transaction current = Transaction.Current;
+            Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Id, key);
-            Transaction.CachedRecord cr = current.GetCachedRecord(tkey);
-            return null;
+
+            Transaction.CachedRecord cr = currentT.GetCachedRecord(tkey);
+            if (null != cr)
+            {
+                return (V)cr.NewValue;
+            }
+
+            Lockey lockey = tkey.Lockey;
+            lockey.Enter();
+            try
+            {
+                Record<K, V> r = cache.Get(key);
+                if (null == r)
+                {
+                    /*
+                    if (null != storage)
+                        storage.find();
+                    */
+                    r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
+                    cache.Add(key, r);
+                }
+
+                currentT.AddCachedRecord(tkey, new Transaction.CachedRecord(r));
+                return r.ValueTyped;
+            }
+            finally
+            {
+                lockey.Exit();
+            }
         }
 
+        public V GetOrAdd(K key)
+        {
+            Transaction currentT = Transaction.Current;
+            TableKey tkey = new TableKey(Id, key);
+
+            Transaction.CachedRecord cr = currentT.GetCachedRecord(tkey);
+            if (null != cr)
+            {
+                V crv = (V)cr.NewValue;
+                if (null != crv)
+                {
+                    return crv;
+                }
+                // add
+            }
+            else
+            {
+                Lockey lockey = tkey.Lockey;
+                lockey.Enter();
+                try
+                {
+                    Record<K, V> r = cache.Get(key);
+                    if (null == r)
+                    {
+                        /*
+                        if (null != storage)
+                            storage.find();
+                        */
+                        r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
+                        cache.Add(key, r);
+                    }
+
+                    cr = new Transaction.CachedRecord(r);
+                    currentT.AddCachedRecord(tkey, cr);
+
+                    if (null != r.Value)
+                        return r.ValueTyped;
+                    // add
+                }
+                finally
+                {
+                    lockey.Exit();
+                }
+            }
+
+            V add = NewValue();
+            add.InitTableKey(tkey);
+            cr.Put(add);
+            return add;
+        }
+
+        public void Put(K key, V value)
+        {
+            Transaction currentT = Transaction.Current;
+            TableKey tkey = new TableKey(Id, key);
+
+            Transaction.CachedRecord cr = currentT.GetCachedRecord(tkey);
+            if (null != cr)
+            {
+                value.InitTableKey(tkey);
+                cr.Put(value);
+                return;
+            }
+
+            Lockey lockey = tkey.Lockey;
+            lockey.Enter();
+            try
+            {
+                Record<K, V> r = cache.Get(key);
+                if (null == r)
+                {
+                    /*
+                    if (null != storage)
+                        storage.find();
+                    */
+                    r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
+                    cache.Add(key, r);
+                }
+                cr = new Transaction.CachedRecord(r);
+                cr.Put(value);
+                currentT.AddCachedRecord(tkey, cr);
+            }
+            finally
+            {
+                lockey.Exit();
+            }
+        }
+
+        public void Remove(K key)
+        {
+            Transaction currentT = Transaction.Current;
+            TableKey tkey = new TableKey(Id, key);
+
+            Transaction.CachedRecord cr = currentT.GetCachedRecord(tkey);
+            if (null != cr)
+            {
+                cr.Put(null);
+                return;
+            }
+
+            Lockey lockey = tkey.Lockey;
+            lockey.Enter();
+            try
+            {
+                Record<K, V> r = cache.Get(key);
+                if (null == r)
+                {
+                    /*
+                    if (null != storage)
+                        storage.find();
+                    */
+                    r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
+                    cache.Add(key, r);
+                }
+                cr = new Transaction.CachedRecord(r);
+                cr.Put(null);
+                currentT.AddCachedRecord(tkey, cr);
+            }
+            finally
+            {
+                lockey.Exit();
+            }
+        }
+
+        private TableCache<K, V> cache;
+        private IStorage storage;
+
         internal override void Initialize(IStorage storage)
-        { 
+        {
         }
 
 

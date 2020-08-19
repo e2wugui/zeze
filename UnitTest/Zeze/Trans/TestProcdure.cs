@@ -49,6 +49,8 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void Test1()
         {
+            TableKey root = new TableKey(1, 1);
+            bean.InitTableKey(root);
             bool r = new Procedure(ProcNest).Call();
             Assert.AreEqual(r, true);
             // 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。

@@ -6,7 +6,7 @@ using System.Text;
 namespace Zeze.Transaction
 {
 
-    public class Lock : System.IComparable<Lock>
+    public class Lockey : System.IComparable<Lockey>
     {
 		public TableKey TableKey { get; }
 
@@ -14,7 +14,7 @@ namespace Zeze.Transaction
 		/// 相同值的 TableKey 要得到同一个 Lock 引用，必须使用 Locks 查询。
 		/// </summary>
 		/// <param name="key"></param>
-		internal Lock(TableKey key)
+		internal Lockey(TableKey key)
 		{
 			TableKey = key;
 		}
@@ -23,7 +23,7 @@ namespace Zeze.Transaction
 		/// 创建真正的锁对象。暂时使用this，不需要。
 		/// </summary>
 		/// <returns></returns>
-		internal Lock Alloc()
+		internal Lockey Alloc()
 		{
 			return this;
 		}
@@ -39,7 +39,7 @@ namespace Zeze.Transaction
 			System.Threading.Monitor.Exit(this);
         }
 
-		public int CompareTo([AllowNull] Lock other)
+		public int CompareTo([AllowNull] Lockey other)
         {
 			if (other == null)
 				return 1; // null always small
@@ -57,7 +57,7 @@ namespace Zeze.Transaction
 			if (this == obj)
 				return true;
 
-			if (obj is Lock another)
+			if (obj is Lockey another)
 	            return TableKey.Equals(another.TableKey);
 
 			return false;
@@ -90,7 +90,7 @@ namespace Zeze.Transaction
 		 * @param lockey the Lockey
 		 * @return the segment
 		 */
-		private Segment segmentFor(Lock lockey)
+		private Segment segmentFor(Lockey lockey)
 		{
 			/**
 			 * Applies a supplemental hash function to a given hashCode, which defends
@@ -146,13 +146,13 @@ namespace Zeze.Transaction
 		/* ------------- 实现 --------------- */
 		class Segment
 		{
-			private HashSet<Lock> locks = new HashSet<Lock>();
+			private HashSet<Lockey> locks = new HashSet<Lockey>();
 
 			public Segment()
 			{
 			}
 
-			public bool Contains(Lock key)
+			public bool Contains(Lockey key)
 			{
 				// 需要sync，get不是线程安全的
 				lock (this)
@@ -161,11 +161,11 @@ namespace Zeze.Transaction
 				}
 			}
 
-			public Lock Get(Lock key)
+			public Lockey Get(Lockey key)
 			{
 				lock (this)
 				{
-					Lock exist;
+					Lockey exist;
 					if (locks.TryGetValue(key, out exist))
 						return exist;
 
@@ -185,12 +185,12 @@ namespace Zeze.Transaction
 			}
 		}
 
-		public bool Contains(Lock lockey)
+		public bool Contains(Lockey lockey)
 		{
 			return this.segmentFor(lockey).Contains(lockey);
 		}
 
-		public Lock Get(Lock lockey)
+		public Lockey Get(Lockey lockey)
 		{
 			return this.segmentFor(lockey).Get(lockey);
 		}

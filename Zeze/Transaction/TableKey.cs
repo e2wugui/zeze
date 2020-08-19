@@ -12,7 +12,7 @@ namespace Zeze.Transaction
         /// <summary>
         /// 返回这个记录key对应的锁，相同值的TableKey返回同一个引用。
         /// </summary>
-        public Lock Lock => Locks.Instance.Get(new Lock(this));
+        public Lockey Lockey => Locks.Instance.Get(new Lockey(this));
 
         public TableKey(int tableId, object key)
         {

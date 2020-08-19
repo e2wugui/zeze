@@ -24,7 +24,6 @@ namespace UnitTest.Zeze.Trans
 
             protected override void InitChildrenTableKey(TableKey root)
             {
-                throw new NotImplementedException();
             }
 
             public int _i;

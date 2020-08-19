@@ -20,7 +20,7 @@ namespace Zeze.Transaction
         public static Transaction Create()
         {
             if (null == threadLocal.Value)
-               threadLocal.Value = new Transaction();
+                threadLocal.Value = new Transaction();
             return threadLocal.Value;
         }
 
@@ -86,7 +86,11 @@ namespace Zeze.Transaction
                     {
                         bool procedureResult = procedure.Call();
                         if (savepoints.Count != 1)
-                            throw new Exception("savepoints.Count != 1"); // TODO 这个错误不应该重做，需要调整一下代码。
+                        {
+                            // 这个错误不应该重做
+                            logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
+                            break;
+                        }
 
                         if (_lock_and_check_())
                         {
@@ -125,20 +129,21 @@ namespace Zeze.Transaction
             }
             finally
             {
-                // 执行最终退出，释放锁。
-                /*
-                    foreach (var holdLock in _holdLocks)
-                    {
-                        var storageRecord = holdLock.StorageRecord;
-                        storageRecord.ReleaseLock(holdLock.Locker);
-                    }
-                    _holdLocks.Clear();
-                */
+                foreach (var holdLock in holdLocks)
+                {
+                    holdLock.Exit();
+                }
+                holdLocks.Clear();
             }
         }
 
         private void _final_commit_(Procedure procedure)
         {
+            // if any changes
+            // 有可能出现fieldLoggers.count == 0 而 beanRootLogger.count > 0 的情况
+            // 还有可能 put 新记录，这时 fieldLogger和beanRootLogger都为空
+            //if (cacheRecords.Values.Any(r => r.Dirty))
+
             // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
             // 在最终提交里可以实现每事务checkpoint。
             try
@@ -159,14 +164,38 @@ namespace Zeze.Transaction
             // 现在没有实现 Log.Rollback。不需要再做什么，保留接口，以后实现Rollback时再处理。
         }
 
-        private readonly List<Lock> holdLocks = new List<Lock>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
+        private readonly List<Lockey> holdLocks = new List<Lockey>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
 
         public class CachedRecord
         {
-            public Record OriginRecord { get; set; }
-            public long Timestamp { get; set; }
-            public Bean NewValue { get; set; }
+            public Record OriginRecord { get; }
+            public long Timestamp { get; }
+            public Bean PutValue { get; private set; }
+            public bool PutValueChannged { get; private set; } // 使用 bool 变量表示是否改过，减少 new 对象。
             public bool Dirty { get; set; }
+
+            public Bean NewValue => PutValueChannged ? PutValue : OriginRecord.Value;
+
+            public void Put(Bean putValue)
+            {
+                PutValueChannged = true;
+                PutValue = putValue;
+                Dirty = true;
+            }
+
+            public void Remove()
+            {
+                Put(null);
+            }
+
+            public CachedRecord(Record originRecord)
+            {
+                OriginRecord = originRecord;
+                Timestamp = originRecord.Timestamp;
+                // PutValue = null;
+                // PutValueChannged = false;
+                // Dirty = false;
+            }
         }
 
         private readonly SortedDictionary<TableKey, CachedRecord> cachedRecords = new SortedDictionary<TableKey, CachedRecord>();
@@ -194,7 +223,7 @@ namespace Zeze.Transaction
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool _lock_and_check_timestamp_(KeyValuePair<TableKey, CachedRecord> e)
         {
-            Lock lck = e.Key.Lock;
+            Lockey lck = e.Key.Lockey;
             //bool writeLock = e.Value.Dirty;
             lck.Enter();
             holdLocks.Add(lck);
@@ -210,17 +239,15 @@ namespace Zeze.Transaction
                 if (cachedRecords.TryGetValue(tkey, out var record))
                     record.Dirty = true;
                 else
-                    logger.Fatal("impossible! record not found." + tkey);
+                    logger.Fatal("impossible! record not found."); // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
             }
 
-
-            bool conflict = false;
+            bool conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
             if (holdLocks.Count == 0)
             {
                 foreach (var e in cachedRecords)
                 {
                     conflict |= _lock_and_check_timestamp_(e);
-                    // 冲突了，也继续加锁，为重做做准备！！！
                 }
                 return !conflict;
             }
@@ -229,11 +256,6 @@ namespace Zeze.Transaction
             int n = holdLocks.Count;
             foreach (var e in cachedRecords)
             {
-                TableKey tkey = e.Key;
-                object objKey = tkey.Key;
-                //bool writeLock = e.Value.Dirty;
-                //var storageRecord = e.Value.StorageRecord;
-
                 // 如果 holdLocks 全部被对比完毕，直接锁定它
                 if (index >= n)
                 {
@@ -241,8 +263,8 @@ namespace Zeze.Transaction
                     continue;
                 }
 
-                Lock curLock = holdLocks[index];
-                int c = curLock.TableKey.CompareTo(tkey);
+                Lockey curLock = holdLocks[index];
+                int c = curLock.TableKey.CompareTo(e.Key);
 
                 // holdlocks a  b  ...
                 // needlocks a  b  ...
@@ -251,13 +273,9 @@ namespace Zeze.Transaction
                     /*
                     if (writeLock && !curLock.WriteLock) // 如果需要持有写锁，但当前仅持有读锁
                     {
-                        (long newTimestamp, var newLocker) = await storageRecord.GetTimestampAndLockAsync(true, curLock.Locker);
-                        curLock.WriteLock = true;
-                        _holdLocks[index] = new HoldLockInfo(tkey, storageRecord, true, newLocker);
                         // 理论上，读锁提升为写锁，不应该发生timestamp改变的。
-                        // 不过实现上有可能是先放了读锁，再重新加写锁，因此有一定机会timestamp发生
-                        // 变化
-                        conflict |= e.Value.Timestamp != newTimestamp;
+                        // 不过实现上有可能是先放了读锁，再重新加写锁，因此有一定机会timestamp发生变化
+                        conflict |= _lock_and_check_timestamp_(e);
                     }
                     */
                     // 已经锁定了，跳过
@@ -271,7 +289,7 @@ namespace Zeze.Transaction
                     // TODO 理论上有优化空间，可以先 TryLock 尝试加锁，失败后再放锁。但概率不高，意义不大？
                     // 释放掉 比当前锁序小的锁，因为当前事务中不再需要这些锁
                     int unlockEndIndex = index;
-                    for (; unlockEndIndex < n && holdLocks[unlockEndIndex].TableKey.CompareTo(tkey) < 0; ++unlockEndIndex)
+                    for (; unlockEndIndex < n && holdLocks[unlockEndIndex].TableKey.CompareTo(e.Key) < 0; ++unlockEndIndex)
                     {
                         var toUnlockLocker = holdLocks[unlockEndIndex];
                         toUnlockLocker.Exit();
@@ -293,154 +311,6 @@ namespace Zeze.Transaction
                 n = holdLocks.Count;
             }
             return !conflict;
-        }
-
-        private void ProcessLog(Log log)
-        {
-            log.Commit();
-
-            TableKey tkey = log.Bean.TableKey;
-            var record = cachedRecords[tkey];
-            // CHANGE by WALON
-            //record.FieldLoggers.Add(log);
-            //if (record.NewData == log.Host)
-            //{
-            //    record.FieldLoggers.Add(log);
-            //    s_logger.Trace("FieldLogger add. key:{key} log fielid:{id} value:{log}", tkey, log.FieldId, log);
-            //}
-            //else
-            //{
-            //    s_logger.Trace("FieldLogger drop. key:{key} log fielid:{id} value:{log}", tkey, log.FieldId, log);
-            //}
-        }
-
-        internal void Commit2()
-        {
-            /*
-            foreach (var log in logs.Values)
-            {
-                ProcessLog(log);
-            }
-            */
-
-            logger.Trace("holdlocks count:{count}", holdLocks.Count);
-
-            // TODO 
-            // 需要限制等待commit的事务数量
-            // 避免Storage发生故障时，造成大量事务积压
-            // 
-
-            // if any changes
-            // 有可能出现fieldLoggers.count == 0 而 beanRootLogger.count > 0 的情况
-            // 还有可能 put 新记录，这时 fieldLogger和beanRootLogger都为空
-            /*
-            if (cacheRecords.Values.Any(r => r.Dirty))
-            {
-                // TODO 可以把 持久化 blog 的时机推迟，减少持锁时间
-                var makeLogPromise = new TaskCompletionSource<BlobLog>();
-                Task commitTask = StorageManager.Ins.CommitLogAsync(makeLogPromise.Task);
-                var blog = new BlobLog();
-
-                _writeRecords.Clear();
-                foreach (var holdLock in _holdLocks)
-                {
-                    TKey tkey = holdLock.Key;
-                    var objKey = tkey.ObjectKey;
-                    var storageRecord = holdLock.StorageRecord;
-                    if (holdLock.WriteLock)
-                    {
-                        var record = _cacheRecords[tkey];
-                        if (record.Dirty)
-                        {
-                            _writeRecords.Add(record);
-                            record.WriteToBlobLog(blog);
-                            var newTimestamp = record.NewTimestamp;
-                            var newData = record.NewData;
-                            storageRecord.UpdateAndReleaseLock(newData, newTimestamp, record.SnapshotTimestamp == newTimestamp, holdLock.Locker);
-                            logger.Trace("commit.UpdateAndReleaseWriteLock. key:{key} value:{value} log:{log} ", tkey, newData, newTimestamp);
-                        }
-                        else
-                        {
-                            storageRecord.ReleaseLock(holdLock.Locker);
-                            logger.Trace("commit.ReleaseReadLock. key:{key} ", tkey);
-                        }
-                    }
-                    else
-                    {
-                        Debug.Assert(!_cacheRecords[tkey].Dirty);
-                        storageRecord.ReleaseLock(holdLock.Locker);
-                        logger.Trace("commit.ReleaseReadLock. key:{key} ", tkey);
-                    }
-                }
-                makeLogPromise.SetResult(blog);
-                _holdLocks.Clear();
-                try
-                {
-                    await commitTask;
-                }
-                catch (Exception e)
-                {
-                    // 理论上 CommitLog是不允许失败的，必须持续提交，直到成功为止
-                    logger.Error(e, "fatal error. commit log fail!");
-                }
-                // 潜在非常容易被忽略并发错误
-                // 释放锁后，有可能以下记录已经被其他进程改过了
-                foreach (var record in _writeRecords)
-                {
-                    record.StorageRecord.Commit(record.NewTimestamp);
-                    logger.Trace("commit.Commit. key:{key} timestamp:{timestamp} ", record.Key, record.NewTimestamp);
-                }
-            }
-            else
-            {
-                foreach (var holdLock in _holdLocks)
-                {
-                    TKey tkey = holdLock.Key;
-                    var storageRecord = holdLock.StorageRecord;
-                    storageRecord.ReleaseLock(holdLock.Locker);
-                    logger.Trace("commit.ReleaseReadLock. key:{key} ", tkey);
-                }
-                _holdLocks.Clear();
-            }
-
-
-
-            foreach (var task in _txnTasks)
-            {
-                try
-                {
-                    task.Commit();
-                    logger.Trace("txn task:{task} commit", task);
-                }
-                catch (Exception e)
-                {
-                    logger.Error(e, "commit txn task");
-                }
-            }
-
-            foreach (var task in _txnCommitTasks)
-            {
-                try
-                {
-                    task();
-                    logger.Trace("txn task:{task} commit", task);
-                }
-                catch (Exception e)
-                {
-                    logger.Error(e, "commit txn task");
-                }
-            }
-            */
-        }
-
-        public void AddCommitTask(Action action)
-        {
-            //_txnCommitTasks.Add(action);
-        }
-
-        public void AddRollbackTask(Action action)
-        {
-            //_txnRollbackTasks.Add(action);
         }
     }
 }
