@@ -85,7 +85,8 @@ namespace Zeze.Transaction
                     try
                     {
                         bool procedureResult = procedure.Call();
-                        if (procedureResult && savepoints.Count != 1)
+                        if ((procedureResult && savepoints.Count != 1)
+                            || (!procedureResult && savepoints.Count != 0))
                         {
                             // 这个错误不应该重做
                             logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
@@ -107,6 +108,19 @@ namespace Zeze.Transaction
                         logger.Error(e, "Transaction.Perform:{0} exception. run count:{1}", procedure, tryCount);
                         // 如果异常是因为 数据不一致引入，需要回滚重做
                         // 否则事务失败
+                        if (savepoints.Count != 0)
+                        {
+                            // 这个错误不应该重做
+                            logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 1.", procedure);
+                            break;
+                        }
+#if DEBUG
+                        // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
+                        if (e.GetType().Name == "AssertFailedException")
+                        {
+                            throw;
+                        }
+#endif
                         if (_lock_and_check_())
                         {
                             return false;
@@ -233,7 +247,7 @@ namespace Zeze.Transaction
         private bool _lock_and_check_()
         {
             // 将modified fields 的 root 标记为 dirty
-            if (savepoints.Count > 0) // 全部 Rollback 时 Count 为 0，最后提交时 Count 必须为 1，外面检查。
+            if (savepoints.Count > 0) // 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；其他情况属于Begin,Commit,Rollback不匹配。外面检查。 
             {
                 foreach (var log in savepoints[^1].Logs.Values)
                 {

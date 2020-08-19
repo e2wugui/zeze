@@ -71,7 +71,7 @@ namespace Zeze.Transaction
 	 * <p>
 	 * Locks原来使用 单个容器管理锁，效率太低：
 	 * <p>
-	 * 1. 每次查询都会试图去回收; 以前java版实现一个懒惰的WeakHashSet。现在c#先用ConditionalWeakTable。
+	 * 1. 每次查询都会试图去回收; 以前java版实现一个懒惰的WeakHashSet。c# ConditionalWeakTable 使用 this==another 吧，没有调用 Equals，不能使用。
 	 * 2. 并发访问效率低. 通过增加segment解决。
 	 */
 	public class Locks
@@ -145,7 +145,7 @@ namespace Zeze.Transaction
 		/* ------------- 实现 --------------- */
 		class Segment
 		{
-			private readonly HashSet<Lockey> locks = new HashSet<Lockey>();
+			private readonly Zeze.Util.WeakHashSet<Lockey> locks = new Zeze.Util.WeakHashSet<Lockey>();
 
 			public Segment()
 			{
@@ -156,7 +156,7 @@ namespace Zeze.Transaction
 				// 需要sync，get不是线程安全的
 				lock (this)
                 {
-					return locks.TryGetValue(key, out var notused);
+					return locks.get(key) != null;
 				}
 			}
 
@@ -164,11 +164,11 @@ namespace Zeze.Transaction
 			{
 				lock (this)
 				{
-					Lockey exist;
-					if (locks.TryGetValue(key, out exist))
+					Lockey exist = locks.get(key);
+					if (null != exist)
 						return exist;
 
-					locks.Add(key);
+					locks.add(key);
 					return key.Alloc();
 				}
 			}
