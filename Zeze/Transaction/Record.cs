@@ -4,7 +4,13 @@ using System.Text;
 
 namespace Zeze.Transaction
 {
-    public class Record
+    public abstract class Record
     {
+        public long Timestamp { get; set; }
+    }
+
+    public class Record<K, V> : Record
+    {
+        public V Value { get; }
     }
 }

@@ -56,5 +56,7 @@ namespace Zeze.Transaction
             }
             */
         }
+
+        internal Dictionary<long, Log> Logs => logs;
     }
 }

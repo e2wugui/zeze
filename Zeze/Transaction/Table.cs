@@ -31,7 +31,8 @@ namespace Zeze.Transaction
         public V Get(K key)
         {
             Transaction current = Transaction.Current;
-
+            TableKey tkey = new TableKey(Id, key);
+            Transaction.CachedRecord cr = current.GetCachedRecord(tkey);
             return null;
         }
 

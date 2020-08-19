@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
 using Zeze.Transaction.Collections;
+using System.Runtime.CompilerServices;
 
 namespace Zeze.Transaction
 {
@@ -84,6 +85,9 @@ namespace Zeze.Transaction
                     try
                     {
                         bool procedureResult = procedure.Call();
+                        if (savepoints.Count != 1)
+                            throw new Exception("savepoints.Count != 1"); // TODO 这个错误不应该重做，需要调整一下代码。
+
                         if (_lock_and_check_())
                         {
                             if (procedureResult)
@@ -111,7 +115,7 @@ namespace Zeze.Transaction
                     finally
                     {
                         // retry 保持已有的锁，清除记录和保存点。
-                        cacheRecords.Clear();
+                        cachedRecords.Clear();
                         savepoints.Clear();
                     }
                 }
@@ -135,9 +139,6 @@ namespace Zeze.Transaction
 
         private void _final_commit_(Procedure procedure)
         {
-            if (savepoints.Count != 1)
-                throw new Exception("savepoints.Count != 1");
-
             // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
             // 在最终提交里可以实现每事务checkpoint。
             try
@@ -158,175 +159,138 @@ namespace Zeze.Transaction
             // 现在没有实现 Log.Rollback。不需要再做什么，保留接口，以后实现Rollback时再处理。
         }
 
-        private readonly List<Record> holdLocks = new List<Record>();
-        private readonly SortedDictionary<TableKey, Record> cacheRecords = new SortedDictionary<TableKey, Record>();
+        private readonly List<Lock> holdLocks = new List<Lock>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
+
+        public class CachedRecord
+        {
+            public Record OriginRecord { get; set; }
+            public long Timestamp { get; set; }
+            public Bean NewValue { get; set; }
+            public bool Dirty { get; set; }
+        }
+
+        private readonly SortedDictionary<TableKey, CachedRecord> cachedRecords = new SortedDictionary<TableKey, CachedRecord>();
         private readonly List<Savepoint> savepoints = new List<Savepoint>();
 
-        internal bool GetOrigin(TableKey key, out Bean data)
+        /// <summary>
+        /// 只能添加一次。
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="cr"></param>
+        internal void AddCachedRecord(TableKey key, CachedRecord cr)
         {
-            if (cacheRecords.TryGetValue(key, out var value))
+            cachedRecords.Add(key, cr);
+        }
+
+        internal CachedRecord GetCachedRecord(TableKey key)
+        {
+            if (cachedRecords.TryGetValue(key, out var record))
             {
-                data = null;// value.Data;
-                return true;
+                return record;
             }
-
-            data = null;
-            return false;
+            return null;
         }
 
-        /*
-        internal void PutOrigin(TableKey key, Bean value, long latestSnapshotTimestamp, long timestamp, AbstractRecord storageRecord)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool _lock_and_check_timestamp_(KeyValuePair<TableKey, CachedRecord> e)
         {
-            //cacheRecords.Add(key, new RecordInfo(key, value, latestSnapshotTimestamp, timestamp, storageRecord));
-        }
-        internal void PutRecord(TKey key, ReplaceRecordLogger data)
-        {
-            var rec = cacheRecords[key];
-            rec.ChangeLogger = data;
-            rec.Dirty = true;
-        }
-        */
-
-        internal bool GetCacheRecord(TableKey key, out Bean value)
-        {
-            if (cacheRecords.TryGetValue(key, out var record))
-            {
-                value = null;
-                //value = record.ChangeLogger != null ? record.ChangeLogger.Value.Data : record.Data;
-                return true;
-            }
-            else
-            {
-                value = null;
-                return false;
-            }
+            Lock lck = e.Key.Lock;
+            //bool writeLock = e.Value.Dirty;
+            lck.Enter();
+            holdLocks.Add(lck);
+            return e.Value.Timestamp != e.Value.OriginRecord.Timestamp;
         }
 
-        internal bool _lock_and_check_()
+        private bool _lock_and_check_()
         {
             // 将modified fields 的 root 标记为 dirty
-            /*
-            foreach (var log in logs.Values)
+            foreach (var log in savepoints[^1].Logs.Values)
             {
                 TableKey tkey = log.Bean.TableKey;
-                var record = cacheRecords[tkey];
-                //record.Dirty = true;
+                if (cachedRecords.TryGetValue(tkey, out var record))
+                    record.Dirty = true;
+                else
+                    logger.Fatal("impossible! record not found." + tkey);
             }
-            */
+
 
             bool conflict = false;
-
             if (holdLocks.Count == 0)
             {
-                foreach (var e in cacheRecords)
+                foreach (var e in cachedRecords)
                 {
-                    var tkey = e.Key;
-                    /*
-                    bool writeLock = e.Value.Dirty;
-                    var storageRecord = e.Value.StorageRecord;
-                    (long newTimestamp, var releaser) = await storageRecord.GetTimestampAndLockAsync(writeLock, null);
-                    _holdLocks.Add(new HoldLockInfo(tkey, storageRecord, writeLock, releaser));
-                    conflict |= e.Value.Timestamp != newTimestamp;
-                    logger.Trace("[new] add lock. table:{table} key:{key} oldtimestamp:{old} newtimestamp:{new} conflict:{conflict}",
-                        TxnTable.GetTable(tkey.TableId).Name, tkey.ObjectKey, e.Value.Timestamp, newTimestamp, conflict);
-                    */
+                    conflict |= _lock_and_check_timestamp_(e);
+                    // 冲突了，也继续加锁，为重做做准备！！！
                 }
+                return !conflict;
             }
-            else
+
+            int index = 0;
+            int n = holdLocks.Count;
+            foreach (var e in cachedRecords)
             {
-                int index = 0;
-                int n = holdLocks.Count;
-                foreach (var e in cacheRecords)
+                TableKey tkey = e.Key;
+                object objKey = tkey.Key;
+                //bool writeLock = e.Value.Dirty;
+                //var storageRecord = e.Value.StorageRecord;
+
+                // 如果 holdLocks 全部被对比完毕，直接锁定它
+                if (index >= n)
                 {
-                    TableKey tkey = e.Key;
-                    object objKey = tkey.Key;
-                    //bool writeLock = e.Value.Dirty;
-                    //var storageRecord = e.Value.StorageRecord;
-
-                    // 如果 holdLocks 全部被对比完毕，直接锁定它
-                    if (index >= n)
-                    {
-                        // lock it!
-                        /*
-                        (long newTimestamp, var locker) = await storageRecord.GetTimestampAndLockAsync(writeLock, null);
-                        _holdLocks.Add(new HoldLockInfo(tkey, storageRecord, writeLock, locker));
-                        conflict |= e.Value.Timestamp != newTimestamp;
-                        logger.Trace("[new] add lock. table:{table} key:{key} oldtimestamp:{old} newtimestamp:{new} conflict:{conflict}",
-                            TxnTable.GetTable(tkey.TableId).Name, tkey.ObjectKey, e.Value.Timestamp, newTimestamp, conflict);
-                        */
-                        continue;
-                    }
-
-                    //HoldLockInfo curLock = _holdLocks[index];
-                    int c = 0;// curLock.Key.CompareTo(tkey);
-
-                    // holdlocks a  b  ...
-                    // needlocks a  b  ...
-                    if (c == 0)
-                    {
-                        /*
-                        if (writeLock && !curLock.WriteLock)
-                        {
-                            // 如果需要持有写锁，但当前仅持有读锁
-                            (long newTimestamp, var newLocker) = await storageRecord.GetTimestampAndLockAsync(true, curLock.Locker);
-
-                            curLock.WriteLock = true;
-                            _holdLocks[index] = new HoldLockInfo(tkey, storageRecord, true, newLocker);
-                            // 理论上，读锁提升为写锁，不应该发生timestamp改变的。
-                            // 不过实现上有可能是先放了读锁，再重新加写锁，因此有一定机会timestamp发生
-                            // 变化
-                            conflict |= e.Value.Timestamp != newTimestamp;
-                            logger.Trace("[upgrade] add lock. table:{table} key:{key} oldtimestamp:{old} newtimestamp:{new} conflict:{conflict}",
-                                TxnTable.GetTable(tkey.TableId).Name, tkey.ObjectKey, e.Value.Timestamp, newTimestamp, conflict);
-                        }
-                        else
-                        {
-                            logger.Trace("[nochange] add lock. table:{table} key:{key} oldtimestamp:{old} conflict:{conflict}",
-                                Table.GetTable(tkey.TableId).Name, tkey.Key, e.Value.Timestamp, conflict);
-                        }
-                        */
-                        // 已经锁定了，跳过
-                        ++index;
-                        continue;
-                    }
-                    // holdlocks a  b  ...
-                    // needlocks a  c  ...
-                    if (c < 0)
-                    {
-                        // TODO 理论上有优化空间，可以先 TryLock 尝试加锁，失败后再放锁。但概率不高，意义不大？
-                        // 释放掉 比当前锁序小的锁，因为当前事务中不再需要这些锁
-                        int unlockEndIndex = index;
-                        //for (; unlockEndIndex < n && holdLocks[unlockEndIndex].Key.CompareTo(tkey) < 0; ++unlockEndIndex)
-                        {
-                            var toUnlockLocker = holdLocks[unlockEndIndex];
-                            /*
-                            toUnlockLocker.StorageRecord.ReleaseLock(toUnlockLocker.Locker);
-                            logger.Trace("[remove] unlock not need lock. table:{table} key:{key} ",
-                                TxnTable.GetTable(toUnlockLocker.Key.TableId).Name, toUnlockLocker.Key.ObjectKey);
-                            */
-                        }
-
-                        holdLocks.RemoveRange(index, unlockEndIndex - index);
-                        n = holdLocks.Count;
-                    }
-                    else
-                    {
-                        // holdlocks a  c  ...
-                        // needlocks a  b  ...
-                        // 为了不违背锁序，释放从当前锁开始的所有锁
-                        for (int i = index; i < n; ++i)
-                        {
-                            var toUnlockLocker = holdLocks[i];
-                            /*
-                            toUnlockLocker.StorageRecord.ReleaseLock(toUnlockLocker.Locker);
-                            logger.Trace("[remove] unlock for not violate lock order. table:{table} key:{key} ",
-                                TxnTable.GetTable(toUnlockLocker.Key.TableId).Name, toUnlockLocker.Key.ObjectKey);
-                            */
-                        }
-                        holdLocks.RemoveRange(index, n - index);
-                        n = holdLocks.Count;
-                    }
+                    conflict |= _lock_and_check_timestamp_(e);
+                    continue;
                 }
+
+                Lock curLock = holdLocks[index];
+                int c = curLock.TableKey.CompareTo(tkey);
+
+                // holdlocks a  b  ...
+                // needlocks a  b  ...
+                if (c == 0)
+                {
+                    /*
+                    if (writeLock && !curLock.WriteLock) // 如果需要持有写锁，但当前仅持有读锁
+                    {
+                        (long newTimestamp, var newLocker) = await storageRecord.GetTimestampAndLockAsync(true, curLock.Locker);
+                        curLock.WriteLock = true;
+                        _holdLocks[index] = new HoldLockInfo(tkey, storageRecord, true, newLocker);
+                        // 理论上，读锁提升为写锁，不应该发生timestamp改变的。
+                        // 不过实现上有可能是先放了读锁，再重新加写锁，因此有一定机会timestamp发生
+                        // 变化
+                        conflict |= e.Value.Timestamp != newTimestamp;
+                    }
+                    */
+                    // 已经锁定了，跳过
+                    ++index;
+                    continue;
+                }
+                // holdlocks a  b  ...
+                // needlocks a  c  ...
+                if (c < 0)
+                {
+                    // TODO 理论上有优化空间，可以先 TryLock 尝试加锁，失败后再放锁。但概率不高，意义不大？
+                    // 释放掉 比当前锁序小的锁，因为当前事务中不再需要这些锁
+                    int unlockEndIndex = index;
+                    for (; unlockEndIndex < n && holdLocks[unlockEndIndex].TableKey.CompareTo(tkey) < 0; ++unlockEndIndex)
+                    {
+                        var toUnlockLocker = holdLocks[unlockEndIndex];
+                        toUnlockLocker.Exit();
+                    }
+                    holdLocks.RemoveRange(index, unlockEndIndex - index);
+                    n = holdLocks.Count;
+                    continue;
+                }
+
+                // holdlocks a  c  ...
+                // needlocks a  b  ...
+                // 为了不违背锁序，释放从当前锁开始的所有锁
+                for (int i = index; i < n; ++i)
+                {
+                    var toUnlockLocker = holdLocks[i];
+                    toUnlockLocker.Exit();
+                }
+                holdLocks.RemoveRange(index, n - index);
+                n = holdLocks.Count;
             }
             return !conflict;
         }
@@ -336,7 +300,7 @@ namespace Zeze.Transaction
             log.Commit();
 
             TableKey tkey = log.Bean.TableKey;
-            var record = cacheRecords[tkey];
+            var record = cachedRecords[tkey];
             // CHANGE by WALON
             //record.FieldLoggers.Add(log);
             //if (record.NewData == log.Host)
