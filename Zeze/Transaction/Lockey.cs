@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace Zeze.Transaction
 {
@@ -68,7 +69,7 @@ namespace Zeze.Transaction
 	 * <p>
 	 * Locks原来使用 单个容器管理锁，效率太低：
 	 * <p>
-	 * 1. 每次查询都会试图去回收; 实现一个懒惰的WeakHashSet。TODO 以前java版有，现在c#还要确认，先用系统提供的 HaseSet。
+	 * 1. 每次查询都会试图去回收; 以前java版实现一个懒惰的WeakHashSet。现在c#先用ConditionalWeakTable。
 	 * 2. 并发访问效率低. 通过增加segment解决。
 	 */
 	public class Locks
@@ -146,7 +147,7 @@ namespace Zeze.Transaction
 		/* ------------- 实现 --------------- */
 		class Segment
 		{
-			private HashSet<Lockey> locks = new HashSet<Lockey>();
+			private ConditionalWeakTable<Lockey, Lockey> locks = new ConditionalWeakTable<Lockey, Lockey>();
 
 			public Segment()
 			{
@@ -157,7 +158,7 @@ namespace Zeze.Transaction
 				// 需要sync，get不是线程安全的
 				lock (this)
                 {
-					return locks.Contains(key);
+					return locks.TryGetValue(key, out var notused);
 				}
 			}
 
@@ -169,18 +170,8 @@ namespace Zeze.Transaction
 					if (locks.TryGetValue(key, out exist))
 						return exist;
 
-					if (locks.Add(key))
-						return key.Alloc();
-
-					throw new Exception("Locks.Get impossible!.");
-				}
-			}
-
-			public int Size()
-			{
-				lock(this)
-                {
-					return locks.Count;
+					locks.Add(key, key);
+					return key.Alloc();
 				}
 			}
 		}
@@ -194,20 +185,6 @@ namespace Zeze.Transaction
 		{
 			return this.segmentFor(lockey).Get(lockey);
 		}
-
-		/**
-		 * 返回锁的数量，可能包括已经被gc回收的。由于并发执行，这个值只能用于观察。
-		 * 
-		 * @return
-		 */
-		public int Size()
-		{
-			int ssize = 0;
-			foreach (Segment segment in this.segments)
-				ssize += segment.Size();
-			return ssize;
-		}
-
 	}
 
 }
