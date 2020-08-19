@@ -85,13 +85,12 @@ namespace Zeze.Transaction
                     try
                     {
                         bool procedureResult = procedure.Call();
-                        if (savepoints.Count != 1)
+                        if (procedureResult && savepoints.Count != 1)
                         {
                             // 这个错误不应该重做
                             logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
                             break;
                         }
-
                         if (_lock_and_check_())
                         {
                             if (procedureResult)
