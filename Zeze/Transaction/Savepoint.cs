@@ -49,6 +49,7 @@ namespace Zeze.Transaction
 
         public void Rollback()
         {
+            // 现在没有实现 Log.Rollback。不需要再做什么，保留接口，以后实现Rollback时再处理。
             /*
             foreach (var e in newly)
             {

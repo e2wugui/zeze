@@ -99,7 +99,6 @@ namespace Zeze.Transaction
                                 _final_commit_(procedure);
                                 return true;
                             }
-                            _final_rollback_();
                             return false;
                         }
                         // retry
@@ -111,7 +110,6 @@ namespace Zeze.Transaction
                         // 否则事务失败
                         if (_lock_and_check_())
                         {
-                            _final_rollback_();
                             return false;
                         }
                         // retry
@@ -124,7 +122,6 @@ namespace Zeze.Transaction
                     }
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
-                _final_rollback_();
                 return false;
             }
             finally
@@ -150,18 +147,22 @@ namespace Zeze.Transaction
             {
                 Savepoint last = savepoints[^1];
                 last.Commit();
-                savepoints.Clear();
+                //savepoints.Clear();
+
+                foreach (var e in cachedRecords)
+                {
+                    if (e.Value.Dirty)
+                    {
+                        e.Value.OriginRecord.Commit(e.Value);
+                    }
+                }
+                //cachedRecords.Clear();
             }
             catch (Exception e)
             {
                 logger.Error(e, "Transaction._final_commit_ {0}", procedure);
                 Environment.Exit(54321);
             }
-        }
-
-        private void _final_rollback_()
-        {
-            // 现在没有实现 Log.Rollback。不需要再做什么，保留接口，以后实现Rollback时再处理。
         }
 
         private readonly List<Lockey> holdLocks = new List<Lockey>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
@@ -233,13 +234,16 @@ namespace Zeze.Transaction
         private bool _lock_and_check_()
         {
             // 将modified fields 的 root 标记为 dirty
-            foreach (var log in savepoints[^1].Logs.Values)
+            if (savepoints.Count > 0) // 全部 Rollback 时 Count 为 0，最后提交时 Count 必须为 1，外面检查。
             {
-                TableKey tkey = log.Bean.TableKey;
-                if (cachedRecords.TryGetValue(tkey, out var record))
-                    record.Dirty = true;
-                else
-                    logger.Fatal("impossible! record not found."); // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
+                foreach (var log in savepoints[^1].Logs.Values)
+                {
+                    TableKey tkey = log.Bean.TableKey;
+                    if (cachedRecords.TryGetValue(tkey, out var record))
+                        record.Dirty = true;
+                    else
+                        logger.Fatal("impossible! record not found."); // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
+                }
             }
 
             bool conflict = false; // 冲突了，也继续加锁，为重做做准备！！！

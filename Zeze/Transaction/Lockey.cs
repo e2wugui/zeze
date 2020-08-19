@@ -13,9 +13,11 @@ namespace Zeze.Transaction
 
 		/// <summary>
 		/// 相同值的 TableKey 要得到同一个 Lock 引用，必须使用 Locks 查询。
+		/// 不要自己构造这个对象。开放出去仅仅为了测试。
 		/// </summary>
 		/// <param name="key"></param>
-		internal Lockey(TableKey key)
+		[Obsolete]
+		public Lockey(TableKey key)
 		{
 			TableKey = key;
 		}
@@ -138,16 +140,12 @@ namespace Zeze.Transaction
 			this.segments = new Segment[ssize];
 			for (int i = 0; i < this.segments.Length; ++i)
 				this.segments[i] = new Segment();
-
-			Console.WriteLine("segmentShift=" + segmentShift);
-			Console.WriteLine("segmentMask=" + segmentMask);
-			Console.WriteLine("segmentMask=" + BitConverter.ToString(BitConverter.GetBytes(segmentMask)));
 		}
 
 		/* ------------- 实现 --------------- */
 		class Segment
 		{
-			private ConditionalWeakTable<Lockey, Lockey> locks = new ConditionalWeakTable<Lockey, Lockey>();
+			private readonly HashSet<Lockey> locks = new HashSet<Lockey>();
 
 			public Segment()
 			{
@@ -170,7 +168,7 @@ namespace Zeze.Transaction
 					if (locks.TryGetValue(key, out exist))
 						return exist;
 
-					locks.Add(key, key);
+					locks.Add(key);
 					return key.Alloc();
 				}
 			}

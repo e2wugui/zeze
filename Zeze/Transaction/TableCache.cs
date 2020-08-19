@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Collections.Concurrent;
 
+// MESI
 namespace Zeze.Transaction
 {
     public class TableCache<K, V> where V : Bean

@@ -39,23 +39,31 @@ namespace Zeze.Transaction
                 }
             }
 
-            Transaction currentTransaction = Transaction.Current;
-            currentTransaction.Begin();
+            Transaction currentT = Transaction.Current;
+            currentT.Begin();
 
             try
             {
                 if (Process())
                 {
-                    currentTransaction.Commit();
+                    currentT.Commit();
                     return true;
                 }
+                currentT.Rollback();
+                return false;
             }
             catch (Exception e)
             {
+                currentT.Rollback();
                 logger.Error(e, "Procedure.Process");
+#if DEBUG
+                // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
+                if (e.GetType().Name == "AssertFailedException")
+                {
+                    throw;
+                }
+#endif
             }
-
-            currentTransaction.Rollback();
             return false;
         }
 

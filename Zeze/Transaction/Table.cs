@@ -152,6 +152,7 @@ namespace Zeze.Transaction
             }
         }
 
+        // 几乎和Put一样，还是独立开吧。
         public void Remove(K key)
         {
             Transaction currentT = Transaction.Current;
