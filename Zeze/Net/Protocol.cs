@@ -19,7 +19,7 @@ namespace Zeze.Net
 			manager.DispatchProtocol(this);
 		}
 
-		public abstract void Run();
+		public abstract int Process();
 
 		public abstract void Decode(ByteBuffer bb);
 

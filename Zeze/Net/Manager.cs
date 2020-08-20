@@ -117,7 +117,7 @@ namespace Zeze.Net
 
         public virtual void DispatchProtocol(Protocol p)
         {
-            Task.Run(p.Run);
+            Task.Run(p.Process);
         }
 
         public virtual void DispatchUnknownProtocol(AsyncSocket so, int type, ByteBuffer data)

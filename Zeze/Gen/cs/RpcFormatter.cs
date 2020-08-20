@@ -32,28 +32,40 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public override int ModuleId => " + rpc.Space.Id + ";");
             sw.WriteLine("        public override int ProtocolId => " + rpc.Id + ";");
             sw.WriteLine("");
-            sw.WriteLine("        public override void OnServer()");
+            sw.WriteLine("        public override int ProcessServer()");
             sw.WriteLine("        {");
             Module m = (Module)rpc.Space;
             if ((m.ReferenceManager.HandleFlags & Program.HandleServerFlag) != 0)
             {
-                sw.WriteLine("            " + rpc.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".On" + rpc.Name + "Server(this);");
+                sw.WriteLine("            return " + rpc.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".Process" + rpc.Name + "Server(this);");
+            }
+            else
+            {
+                sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
             }
             sw.WriteLine("        }");
             sw.WriteLine("");
-            sw.WriteLine("        public override void OnClient()");
+            sw.WriteLine("        public override int ProcessClient()");
             sw.WriteLine("        {");
             if ((m.ReferenceManager.HandleFlags & Program.HandleClientFlag) != 0)
             {
-                sw.WriteLine("            " + rpc.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".On" + rpc.Name + "Client(this);");
+                sw.WriteLine("            return " + rpc.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".Process" + rpc.Name + "Client(this);");
+            }
+            else
+            {
+                sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
             }
             sw.WriteLine("        }");
             sw.WriteLine("");
-            sw.WriteLine("        public override void OnTimeout()");
+            sw.WriteLine("        public override int ProcessTimeout()");
             sw.WriteLine("        {");
             if ((rpc.HandleFlags & Program.HandleClientFlag) != 0)
             {
-                sw.WriteLine("            " + rpc.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".On" + rpc.Name + "Timeout(this);");
+                sw.WriteLine("            return " + rpc.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".Process" + rpc.Name + "Timeout(this);");
+            }
+            else
+            {
+                sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
             }
             sw.WriteLine("        }");
             sw.WriteLine("    }");

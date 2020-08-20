@@ -30,12 +30,16 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public override int ModuleId => " + p.Space.Id + ";");
             sw.WriteLine("        public override int ProtocolId => " + p.Id + ";");
             sw.WriteLine("");
-            sw.WriteLine("        public override void Run()");
+            sw.WriteLine("        public override int Process()");
             sw.WriteLine("        {");
             Module m = (Module)p.Space;
             if ((m.ReferenceManager.HandleFlags & p.HandleFlags) != 0)
             {
-                sw.WriteLine("            " + p.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".On" + p.Name + "(this);");
+                sw.WriteLine("            return " + p.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".Process" + p.Name + "(this);");
+            }
+            else
+            {
+                sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
             }
             sw.WriteLine("        }");
             sw.WriteLine("    }");

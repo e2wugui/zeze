@@ -6,11 +6,11 @@ namespace Zeze.Transaction
 {
     public class Procedure
     {
-        public const int ResultSuccess = 0;
-        public const int ResultException = -1;
-        public const int ResultTooManyTry = -2;
-        public const int ResultNotImplement = -3;
-        public const int ResultUnknown = -4;
+        public const int Success = 0;
+        public const int Excption = -1;
+        public const int TooManyTry = -2;
+        public const int NotImplement = -3;
+        public const int Unknown = -4;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -38,6 +38,7 @@ namespace Zeze.Transaction
             {
                 try
                 {
+                    // 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
                     return Transaction.Create().Perform(this);
                 }
                 finally
@@ -52,10 +53,10 @@ namespace Zeze.Transaction
             try
             {
                 int result = Process();
-                if (ResultSuccess == result)
+                if (Success == result)
                 {
                     currentT.Commit();
-                    return ResultSuccess;
+                    return Success;
                 }
                 currentT.Rollback();
                 return result;
@@ -71,7 +72,7 @@ namespace Zeze.Transaction
                     throw;
                 }
 #endif
-                return ResultException;
+                return Excption;
             }
         }
 
@@ -79,7 +80,7 @@ namespace Zeze.Transaction
         {
             if (null != Action)
                 return Action();
-            return ResultNotImplement;
+            return NotImplement;
         }
 
         public override string ToString()

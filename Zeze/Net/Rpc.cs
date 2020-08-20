@@ -26,46 +26,52 @@ namespace Zeze.Net
             Zeze.Util.Scheduler.Instance.Schedule(_OnTimeout, 2000);
         }
 
-        public virtual void OnServer()
+        public virtual int ProcessServer()
         {
             throw new NotImplementedException();
         }
 
-        public virtual void OnClient()
+        public virtual int ProcessClient()
         {
             throw new NotImplementedException();
         }
 
-        public virtual void OnTimeout()
+        public virtual int ProcessTimeout()
         {
             logger.Info("Rpc.OnTimeout not implement. {0}", this.ToString());
+            return 0;
         }
 
         private void _OnTimeout()
         {
             Rpc<TArgument, TResult> context = Sender.Manager.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
             if (null != context)
-                context.OnTimeout();
+                context.ProcessTimeout();
         }
 
-        public override void Run()
+        public override int Process()
         {
             try
             {
                 if (IsRequest)
                 {
-                    OnServer();
-                    IsRequest = false;
-                    base.Send(Sender); // TODO 如果客户端不是直接连接，而是通过代理包装转发，不能这样直接发送结果。
+                    int r = ProcessServer();
+                    if (0 == r)
+                    {
+                        IsRequest = false;
+                        base.Send(Sender); // TODO 如果客户端不是直接连接，而是通过代理包装转发，不能这样直接发送结果。
+                    }
+                    return r;
                 }
                 else
                 {
-                    OnClient();
+                    return ProcessClient();
                 }
             }
             catch (Exception e)
             {
                 logger.Error(e, "Rpc.Run {0}", this.ToString());
+                return Transaction.Procedure.Excption;
             }
         }
 

@@ -62,19 +62,22 @@ namespace Zeze.Gen.cs
                     {
                         if ((managerHandleFlags & Program.HandleServerFlag) != 0)
                         {
-                            sw.WriteLine("        public override void On" + rpc.Name + "Server(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        public override int Process" + rpc.Name + "Server(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
+                            sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("        }");
                             sw.WriteLine("");
                         }
                         if ((managerHandleFlags & Program.HandleClientFlag) != 0)
                         {
-                            sw.WriteLine("        public override void On" + rpc.Name + "Client(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        public override int Process" + rpc.Name + "Client(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
+                            sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("        }");
                             sw.WriteLine("");
-                            sw.WriteLine("        public override void On" + rpc.Name + "Timeout(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        public override int Process" + rpc.Name + "Timeout(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
+                            sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("        }");
                             sw.WriteLine("");
                         }
@@ -82,8 +85,9 @@ namespace Zeze.Gen.cs
                     }
                     if (0 != (p.HandleFlags & managerHandleFlags))
                     {
-                        sw.WriteLine("        public override void On" + p.Name + "(" + p.Name + " protocol)");
+                        sw.WriteLine("        public override int Process" + p.Name + "(" + p.Name + " protocol)");
                         sw.WriteLine("        {");
+                        sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                         sw.WriteLine("        }");
                         sw.WriteLine("");
                     }
@@ -113,21 +117,21 @@ namespace Zeze.Gen.cs
                     {
                         if ((managerHandleFlags & Program.HandleServerFlag) != 0)
                         {
-                            sw.WriteLine("        public abstract void On" + rpc.Name + "Server(" + rpc.Name + " rpc);");
+                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Server(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
                         }
                         if ((managerHandleFlags & Program.HandleClientFlag) != 0)
                         {
-                            sw.WriteLine("        public abstract void On" + rpc.Name + "Client(" + rpc.Name + " rpc);");
+                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Client(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
-                            sw.WriteLine("        public abstract void On" + rpc.Name + "Timeout(" + rpc.Name + " rpc);");
+                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Timeout(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
                         }
                         continue;
                     }
                     if (0 != (p.HandleFlags & managerHandleFlags))
                     {
-                        sw.WriteLine("        public abstract void On" + p.Name + "(" + p.Name + " protocol);");
+                        sw.WriteLine("        public abstract int Process" + p.Name + "(" + p.Name + " protocol);");
                         sw.WriteLine("");
                     }
                 }

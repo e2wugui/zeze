@@ -16,14 +16,14 @@ namespace UnitTest.Zeze.Trans
         {
             bean.I = 123;
             Assert.AreEqual(bean.I, 123);
-            return Procedure.ResultSuccess;
+            return Procedure.Success;
         }
 
         public int ProcFalse()
         {
             bean.I = 456;
             Assert.AreEqual(bean.I, 456);
-            return Procedure.ResultUnknown;
+            return Procedure.Unknown;
         }
 
         public int ProcNest()
@@ -33,17 +33,17 @@ namespace UnitTest.Zeze.Trans
             Assert.AreEqual(bean.I, 1);
             {
                 int r = new Procedure(ProcFalse).Call();
-                Assert.IsTrue(r != Procedure.ResultSuccess);
+                Assert.IsTrue(r != Procedure.Success);
                 Assert.AreEqual(bean.I, 1);
             }
 
             {
                 int r = new Procedure(ProcTrue).Call();
-                Assert.IsTrue(r == Procedure.ResultSuccess);
+                Assert.IsTrue(r == Procedure.Success);
                 Assert.AreEqual(bean.I, 123);
             }
 
-            return Procedure.ResultSuccess;
+            return Procedure.Success;
         }
 
         [TestMethod]
@@ -52,7 +52,7 @@ namespace UnitTest.Zeze.Trans
             TableKey root = new TableKey(1, 1);
             bean.InitTableKey(root);
             int r = new Procedure(ProcNest).Call();
-            Assert.IsTrue(r == Procedure.ResultSuccess);
+            Assert.IsTrue(r == Procedure.Success);
             // 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。
             Assert.AreEqual(bean._i, 123);
         }

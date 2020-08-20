@@ -19,9 +19,9 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestUpdate()
         {
-            Assert.IsTrue(Procedure.ResultSuccess == new Procedure(ProcGetOrAdd).Call());
-            Assert.IsTrue(Procedure.ResultSuccess == new Procedure(ProcGetUpdate).Call());
-            Assert.IsTrue(Procedure.ResultSuccess == new Procedure(ProcGetUpdateCheckRemove).Call());
+            Assert.IsTrue(Procedure.Success == new Procedure(ProcGetOrAdd).Call());
+            Assert.IsTrue(Procedure.Success == new Procedure(ProcGetUpdate).Call());
+            Assert.IsTrue(Procedure.Success == new Procedure(ProcGetUpdateCheckRemove).Call());
         }
 
         int ProcGetUpdate()
@@ -40,7 +40,7 @@ namespace UnitTest.Zeze.Trans
             v.Map11.Add(2, new demo.Module2.Value());
             v.Bean12.Int1 = 1212;
             v.Byte13 = 131;
-            return Procedure.ResultSuccess;
+            return Procedure.Success;
         }
 
         int ProcGetUpdateCheckRemove()
@@ -62,14 +62,14 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Bean12.Int1 == 1212);
             Assert.IsTrue(v.Byte13 == 131);
 
-            return Procedure.ResultSuccess;
+            return Procedure.Success;
         }
 
         [TestMethod]
         public void TestGetOrAdd()
         {
-            Assert.IsTrue(Procedure.ResultSuccess == new Procedure(ProcGetOrAdd).Call());
-            Assert.IsTrue(Procedure.ResultSuccess == new Procedure(ProcGetOrAddCheckAndRemove).Call());
+            Assert.IsTrue(Procedure.Success == new Procedure(ProcGetOrAdd).Call());
+            Assert.IsTrue(Procedure.Success == new Procedure(ProcGetOrAddCheckAndRemove).Call());
         }
 
         int ProcGetOrAdd()
@@ -89,7 +89,7 @@ namespace UnitTest.Zeze.Trans
             v.Bean12.Int1 = 12;
             v.Byte13 = 13;
 
-            return Procedure.ResultSuccess;
+            return Procedure.Success;
         }
 
         int ProcGetOrAddCheckAndRemove()
@@ -113,21 +113,21 @@ namespace UnitTest.Zeze.Trans
 
             table1.Remove(1);
             Assert.IsNull(table1.Get(1));
-            return Procedure.ResultSuccess;
+            return Procedure.Success;
         }
 
         [TestMethod]
         public void Test1TableGetPut()
         {
-            Assert.IsTrue(Procedure.ResultSuccess == new Procedure(ProcGet11).Call());
-            Assert.IsTrue(Procedure.ResultSuccess == new Procedure(ProcGet12).Call());
+            Assert.IsTrue(Procedure.Success == new Procedure(ProcGet11).Call());
+            Assert.IsTrue(Procedure.Success == new Procedure(ProcGet12).Call());
         }
 
         [TestMethod]
         public void Test2TableGetPut()
         {
-            Assert.IsTrue(Procedure.ResultSuccess == new Procedure(ProcGet21).Call());
-            Assert.IsTrue(Procedure.ResultSuccess == new Procedure(ProcGet22).Call());
+            Assert.IsTrue(Procedure.Success == new Procedure(ProcGet21).Call());
+            Assert.IsTrue(Procedure.Success == new Procedure(ProcGet22).Call());
         }
 
         int ProcGet21()
@@ -152,7 +152,7 @@ namespace UnitTest.Zeze.Trans
 
             table2.Put(1, v);
             Assert.IsTrue(v == table2.Get(1));
-            return Procedure.ResultSuccess;
+            return Procedure.Success;
         }
 
         int ProcGet22()
@@ -178,7 +178,7 @@ namespace UnitTest.Zeze.Trans
 
             table2.Remove(1);
             Assert.IsNull(table2.Get(1));
-            return Procedure.ResultSuccess;
+            return Procedure.Success;
         }
 
         int ProcGet11()
@@ -201,7 +201,7 @@ namespace UnitTest.Zeze.Trans
 
             table1.Put(1, v);
             Assert.IsTrue(v == table1.Get(1));
-            return Procedure.ResultSuccess;
+            return Procedure.Success;
         }
 
         int ProcGet12()
@@ -225,7 +225,7 @@ namespace UnitTest.Zeze.Trans
 
             table1.Remove(1);
             Assert.IsNull(table1.Get(1));
-            return Procedure.ResultSuccess;
+            return Procedure.Success;
         }
     }
 

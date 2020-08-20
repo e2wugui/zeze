@@ -26,7 +26,7 @@ namespace Zeze.Util
 		/**
 		 * The table, resized as necessary. Length MUST Always be a power of two.
 		 */
-		private Entry<K>[] table;
+		private Entry[] table;
 
 		/**
 		 * The number of key-value mappings contained in this weak hash map.
@@ -64,7 +64,7 @@ namespace Zeze.Util
 			int capacity = 1;
 			while (capacity < initialCapacity)
 				capacity <<= 1;
-			table = new Entry<K>[capacity];
+			table = new Entry[capacity];
 			this.loadFactor = loadFactor;
 			threshold = (int)(capacity * loadFactor);
 		}
@@ -88,7 +88,7 @@ namespace Zeze.Util
 		{
 			this.loadFactor = DEFAULT_LOAD_FACTOR;
 			threshold = (int)(DEFAULT_INITIAL_CAPACITY);
-			table = new Entry<K>[DEFAULT_INITIAL_CAPACITY];
+			table = new Entry[DEFAULT_INITIAL_CAPACITY];
 		}
 
 		/**
@@ -124,15 +124,15 @@ namespace Zeze.Util
 			int n = table.Length;
 			for (int i = 0; i < n; ++i)
 			{
-				Entry<K> e = table[i];
+				Entry e = table[i];
 				if (e == null)
 					continue;
-				Entry<K> prev = null;
+				Entry prev = null;
 				while (e != null)
 				{
 					K k;
 					e.weakRef.TryGetTarget(out k);
-					Entry<K> next = e.next;
+					Entry next = e.next;
 					if (k == null)
 					{
 						if (prev == null)
@@ -172,14 +172,14 @@ namespace Zeze.Util
 				throw new Exception();
 			int h = hash(k.GetHashCode());
 			int i = indexFor(h, table.Length);
-			Entry<K> prev = null;
-			Entry<K> e = table[i];
+			Entry prev = null;
+			Entry e = table[i];
 			while (e != null)
 			{
 				K _k;
 				bool r = e.weakRef.TryGetTarget(out _k);
 				Console.WriteLine("r=" + r);
-				Entry<K> next = e.next;
+				Entry next = e.next;
 				if (_k == null)
 				{
 					--size;
@@ -218,13 +218,13 @@ namespace Zeze.Util
 				throw new Exception();
 			int h = hash(k.GetHashCode());
 			int i = indexFor(h, table.Length);
-			Entry<K> prev = null;
-			Entry<K> e = table[i];
+			Entry prev = null;
+			Entry e = table[i];
 			while (e != null)
 			{
 				K _k;
 				e.weakRef.TryGetTarget(out _k);
-				Entry<K> next = e.next;
+				Entry next = e.next;
 				if (_k == null)
 				{
 					--size;
@@ -244,7 +244,7 @@ namespace Zeze.Util
 				e = next;
 			}
 
-			table[i] = new Entry<K>(k, h, table[i]);
+			table[i] = new Entry(k, h, table[i]);
 			if (++size >= threshold)
 			{
 				expungeStaleEntries();
@@ -276,14 +276,14 @@ namespace Zeze.Util
 				return;
 			}
 			int n2 = n + n;
-			Entry<K>[] dest = new Entry<K>[n2];
+			Entry[] dest = new Entry[n2];
 			/** Transfers all entries from table to dest tables */
 			for (int j = 0; j < n; ++j)
 			{
-				Entry<K> e = table[j];
+				Entry e = table[j];
 				while (e != null)
 				{
-					Entry<K> next = e.next;
+					Entry next = e.next;
 					K key;
 					e.weakRef.TryGetTarget(out key);
 					if (key == null)
@@ -308,16 +308,16 @@ namespace Zeze.Util
 		 * The entries in this hash set extend WeakReference using its main ref field as
 		 * the key
 		 */
-		public class Entry<K> where K : class
+		public class Entry
 		{
 			public readonly System.WeakReference<K> weakRef;
 			public readonly int hash;
-			public Entry<K> next;
+			public Entry next;
 
 			/**
 			 * Creates new entry.
 			 */
-			public Entry(K key, int hash, Entry<K> next)
+			public Entry(K key, int hash, Entry next)
 			{
 				this.weakRef = new WeakReference<K>(key);
 				this.hash = hash;

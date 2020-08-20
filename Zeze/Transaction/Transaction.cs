@@ -85,8 +85,8 @@ namespace Zeze.Transaction
                     try
                     {
                         int procedureResult = procedure.Call();
-                        if ((procedureResult == Procedure.ResultSuccess && savepoints.Count != 1)
-                            || (procedureResult != Procedure.ResultSuccess && savepoints.Count != 0))
+                        if ((procedureResult == Procedure.Success && savepoints.Count != 1)
+                            || (procedureResult != Procedure.Success && savepoints.Count != 0))
                         {
                             // 这个错误不应该重做
                             logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
@@ -94,10 +94,10 @@ namespace Zeze.Transaction
                         }
                         if (_lock_and_check_())
                         {
-                            if (procedureResult == Procedure.ResultSuccess)
+                            if (procedureResult == Procedure.Success)
                             {
                                 _final_commit_(procedure);
-                                return Procedure.ResultSuccess;
+                                return Procedure.Success;
                             }
                             return procedureResult;
                         }
@@ -123,7 +123,7 @@ namespace Zeze.Transaction
 #endif
                         if (_lock_and_check_())
                         {
-                            return Procedure.ResultException;
+                            return Procedure.Excption;
                         }
                         // retry
                     }
@@ -135,7 +135,7 @@ namespace Zeze.Transaction
                     }
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
-                return Procedure.ResultTooManyTry;
+                return Procedure.TooManyTry;
             }
             finally
             {
