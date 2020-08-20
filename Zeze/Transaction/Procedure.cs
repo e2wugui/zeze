@@ -6,16 +6,23 @@ namespace Zeze.Transaction
 {
     public class Procedure
     {
+        public const int ResultSuccess = 0;
+        public const int ResultException = -1;
+        public const int ResultTooManyTry = -2;
+        public const int ResultNotImplement = -3;
+        public const int ResultUnknown = -4;
+        // >0 用户自定义。
+
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public Func<bool> Action{ get; set; }
+        public Func<int> Action{ get; set; }
 
         public Procedure()
         {
 
         }
 
-        public Procedure(Func<bool> action)
+        public Procedure(Func<int> action)
         {
             Action = action;
         }
@@ -25,7 +32,7 @@ namespace Zeze.Transaction
         /// 嵌套 Procedure 实现，
         /// </summary>
         /// <returns></returns>
-        public bool Call()
+        public int Call()
         {
             if (null == Transaction.Current)
             {
@@ -44,13 +51,14 @@ namespace Zeze.Transaction
 
             try
             {
-                if (Process())
+                int result = Process();
+                if (ResultSuccess == result)
                 {
                     currentT.Commit();
-                    return true;
+                    return ResultSuccess;
                 }
                 currentT.Rollback();
-                return false;
+                return result;
             }
             catch (Exception e)
             {
@@ -63,15 +71,15 @@ namespace Zeze.Transaction
                     throw;
                 }
 #endif
+                return ResultException;
             }
-            return false;
         }
 
-        protected virtual bool Process()
+        protected virtual int Process()
         {
             if (null != Action)
                 return Action();
-            return false;
+            return ResultNotImplement;
         }
 
         public override string ToString()

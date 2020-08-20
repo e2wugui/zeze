@@ -76,7 +76,7 @@ namespace Zeze.Transaction
         /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
         /// </summary>
         /// <param name="procedure"></param>
-        public bool Perform(Procedure procedure)
+        public int Perform(Procedure procedure)
         {
             try
             {
@@ -84,9 +84,9 @@ namespace Zeze.Transaction
                 {
                     try
                     {
-                        bool procedureResult = procedure.Call();
-                        if ((procedureResult && savepoints.Count != 1)
-                            || (!procedureResult && savepoints.Count != 0))
+                        int procedureResult = procedure.Call();
+                        if ((procedureResult == Procedure.ResultSuccess && savepoints.Count != 1)
+                            || (procedureResult != Procedure.ResultSuccess && savepoints.Count != 0))
                         {
                             // 这个错误不应该重做
                             logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
@@ -94,12 +94,12 @@ namespace Zeze.Transaction
                         }
                         if (_lock_and_check_())
                         {
-                            if (procedureResult)
+                            if (procedureResult == Procedure.ResultSuccess)
                             {
                                 _final_commit_(procedure);
-                                return true;
+                                return Procedure.ResultSuccess;
                             }
-                            return false;
+                            return procedureResult;
                         }
                         // retry
                     }
@@ -123,7 +123,7 @@ namespace Zeze.Transaction
 #endif
                         if (_lock_and_check_())
                         {
-                            return false;
+                            return Procedure.ResultException;
                         }
                         // retry
                     }
@@ -135,7 +135,7 @@ namespace Zeze.Transaction
                     }
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
-                return false;
+                return Procedure.ResultTooManyTry;
             }
             finally
             {

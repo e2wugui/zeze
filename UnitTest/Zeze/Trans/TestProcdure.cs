@@ -12,38 +12,38 @@ namespace UnitTest.Zeze.Trans
     {
         TestBegin.MyBean bean = new TestBegin.MyBean();
 
-        public bool ProcTrue()
+        public int ProcTrue()
         {
             bean.I = 123;
             Assert.AreEqual(bean.I, 123);
-            return true;
+            return Procedure.ResultSuccess;
         }
 
-        public bool ProcFalse()
+        public int ProcFalse()
         {
             bean.I = 456;
             Assert.AreEqual(bean.I, 456);
-            return false;
+            return Procedure.ResultUnknown;
         }
 
-        public bool ProcNest()
+        public int ProcNest()
         {
             Assert.AreEqual(bean.I, 0);
             bean.I = 1;
             Assert.AreEqual(bean.I, 1);
             {
-                bool r = new Procedure(ProcFalse).Call();
-                Assert.AreEqual(r, false);
+                int r = new Procedure(ProcFalse).Call();
+                Assert.IsTrue(r != Procedure.ResultSuccess);
                 Assert.AreEqual(bean.I, 1);
             }
 
             {
-                bool r = new Procedure(ProcTrue).Call();
-                Assert.AreEqual(r, true);
+                int r = new Procedure(ProcTrue).Call();
+                Assert.IsTrue(r == Procedure.ResultSuccess);
                 Assert.AreEqual(bean.I, 123);
             }
 
-            return true;
+            return Procedure.ResultSuccess;
         }
 
         [TestMethod]
@@ -51,8 +51,8 @@ namespace UnitTest.Zeze.Trans
         {
             TableKey root = new TableKey(1, 1);
             bean.InitTableKey(root);
-            bool r = new Procedure(ProcNest).Call();
-            Assert.AreEqual(r, true);
+            int r = new Procedure(ProcNest).Call();
+            Assert.IsTrue(r == Procedure.ResultSuccess);
             // 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。
             Assert.AreEqual(bean._i, 123);
         }
