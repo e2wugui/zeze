@@ -177,8 +177,7 @@ namespace Zeze.Util
 			while (e != null)
 			{
 				K _k;
-				bool r = e.weakRef.TryGetTarget(out _k);
-				Console.WriteLine("r=" + r);
+				e.weakRef.TryGetTarget(out _k);
 				Entry next = e.next;
 				if (_k == null)
 				{

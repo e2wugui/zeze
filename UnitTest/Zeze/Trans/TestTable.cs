@@ -13,8 +13,8 @@ namespace UnitTest.Zeze.Trans
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        Table1 table1 = new Table1("table1");
-        Table1 table2 = new Table1("table2");
+        Table1 table1 = new Table1("table1notexist");
+        Table1 table2 = new Table1("table2notexist");
 
         [TestMethod]
         public void TestUpdate()
@@ -238,12 +238,14 @@ namespace UnitTest.Zeze.Trans
 
         public override long DecodeKey(ByteBuffer bb)
         {
-            throw new NotImplementedException();
+            return bb.ReadLong();
         }
 
         public override ByteBuffer EncodeKey(long key)
         {
-            throw new NotImplementedException();
+            ByteBuffer bb = ByteBuffer.Allocate();
+            bb.WriteLong(key);
+            return bb;
         }
     }
 }

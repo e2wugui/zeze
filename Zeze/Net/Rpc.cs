@@ -26,27 +26,23 @@ namespace Zeze.Net
             Zeze.Util.Scheduler.Instance.Schedule(_OnTimeout, 2000);
         }
 
-        public virtual int ProcessServer()
-        {
-            throw new NotImplementedException();
-        }
+        public abstract int ProcessServer();
 
-        public virtual int ProcessClient()
-        {
-            throw new NotImplementedException();
-        }
+        public abstract int ProcessClient();
 
-        public virtual int ProcessTimeout()
-        {
-            logger.Info("Rpc.OnTimeout not implement. {0}", this.ToString());
-            return 0;
-        }
+        public abstract int ProcessTimeout();
 
         private void _OnTimeout()
         {
             Rpc<TArgument, TResult> context = Sender.Manager.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
             if (null != context)
-                context.ProcessTimeout();
+            {
+                int r = context.ProcessTimeout();
+                if (0 != r)
+                {
+                    logger.Error("Rpc.ProcessTimeout result=" + r);
+                }
+            }
         }
 
         public override int Process()
