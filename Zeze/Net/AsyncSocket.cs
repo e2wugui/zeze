@@ -19,7 +19,7 @@ namespace Zeze.Net
         private List<System.ArraySegment<byte>> _outputBufferListSending = null; // 正在发送的 buffers.
         private int _outputBufferListSendingCountSum = 0;
 
-        public Service Manager { get; private set; }
+        public Service Service { get; private set; }
         public Exception LastException { get; private set; }
         public long SerialNo { get; private set; }
         public Socket Socket { get; private set; } // 这个给出去真的好吗？
@@ -40,9 +40,9 @@ namespace Zeze.Net
         /// <summary>
         /// for server socket
         /// </summary>
-        public AsyncSocket(Service manager, System.Net.EndPoint localEP)
+        public AsyncSocket(Service service, System.Net.EndPoint localEP)
         {
-            this.Manager = manager;
+            this.Service = service;
 
             Socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             Socket.Blocking = false;
@@ -50,11 +50,11 @@ namespace Zeze.Net
 
             // xxx 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
             // 不知道 c# 会不会也这样，先这样写。
-            if (null != manager.SocketOptions.ReceiveBuffer)
-                Socket.ReceiveBufferSize = manager.SocketOptions.ReceiveBuffer.Value;
+            if (null != service.SocketOptions.ReceiveBuffer)
+                Socket.ReceiveBufferSize = service.SocketOptions.ReceiveBuffer.Value;
 
             Socket.Bind(localEP);
-            Socket.Listen(manager.SocketOptions.Backlog);
+            Socket.Listen(service.SocketOptions.Backlog);
 
             this.SerialNo = SerialNoGen.IncrementAndGet();
 
@@ -68,20 +68,20 @@ namespace Zeze.Net
         /// use inner. create when accept;
         /// </summary>
         /// <param name="accepted"></param>
-        AsyncSocket(Service manager, Socket accepted)
+        AsyncSocket(Service service, Socket accepted)
         {
-            this.Manager = manager;
+            this.Service = service;
 
             Socket = accepted;
             Socket.Blocking = false;
 
             // 据说连接接受以后设置无效，应该从 ServerSocket 继承
-            if (null != manager.SocketOptions.ReceiveBuffer)
-                Socket.ReceiveBufferSize = manager.SocketOptions.ReceiveBuffer.Value;
-            if (null != manager.SocketOptions.SendBuffer)
-                Socket.SendBufferSize = manager.SocketOptions.SendBuffer.Value;
-            if (null != manager.SocketOptions.NoDelay)
-                Socket.NoDelay = manager.SocketOptions.NoDelay.Value;
+            if (null != service.SocketOptions.ReceiveBuffer)
+                Socket.ReceiveBufferSize = service.SocketOptions.ReceiveBuffer.Value;
+            if (null != service.SocketOptions.SendBuffer)
+                Socket.SendBufferSize = service.SocketOptions.SendBuffer.Value;
+            if (null != service.SocketOptions.NoDelay)
+                Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
             this.SerialNo = SerialNoGen.IncrementAndGet();
 
@@ -93,19 +93,19 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="host"></param>
         /// <param name="port"></param>
-        public AsyncSocket(Service manager, string host, int port)
+        public AsyncSocket(Service service, string host, int port)
         {
-            this.Manager = manager;
+            this.Service = service;
 
             Socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             Socket.Blocking = false;
 
-            if (null != manager.SocketOptions.ReceiveBuffer)
-                Socket.ReceiveBufferSize = manager.SocketOptions.ReceiveBuffer.Value;
-            if (null != manager.SocketOptions.SendBuffer)
-                Socket.SendBufferSize = manager.SocketOptions.SendBuffer.Value;
-            if (null != manager.SocketOptions.NoDelay)
-                Socket.NoDelay = manager.SocketOptions.NoDelay.Value;
+            if (null != service.SocketOptions.ReceiveBuffer)
+                Socket.ReceiveBufferSize = service.SocketOptions.ReceiveBuffer.Value;
+            if (null != service.SocketOptions.SendBuffer)
+                Socket.SendBufferSize = service.SocketOptions.SendBuffer.Value;
+            if (null != service.SocketOptions.NoDelay)
+                Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
             System.Net.Dns.BeginGetHostAddresses(host, OnAsyncGetHostAddresses, port);
 
@@ -200,8 +200,8 @@ namespace Zeze.Net
             AsyncSocket accepted = null;
             try
             {
-                accepted = new AsyncSocket(this.Manager, e.AcceptSocket);
-                this.Manager.OnSocketAccept(accepted);
+                accepted = new AsyncSocket(this.Service, e.AcceptSocket);
+                this.Service.OnSocketAccept(accepted);
             }
             catch (Exception ce)
             {
@@ -220,7 +220,7 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-                this.Manager.OnSocketConnectError(this, e);
+                this.Service.OnSocketConnectError(this, e);
                 Close(e);
             }
         }
@@ -230,12 +230,12 @@ namespace Zeze.Net
             try
             {
                 this.Socket.EndConnect(ar);
-                this.Manager.OnSocketConnected(this);
+                this.Service.OnSocketConnected(this);
                 BeginReceiveAsync();
             }
             catch (Exception e)
             {
-                this.Manager.OnSocketConnectError(this, e);
+                this.Service.OnSocketConnectError(this, e);
                 Close(e);
             }
         }
@@ -250,22 +250,22 @@ namespace Zeze.Net
 
             if (null == _inputBuffer)
             {
-                _inputBuffer = Serialize.ByteBuffer.Allocate(Manager.SocketOptions.InputBufferInitCapacity);
+                _inputBuffer = Serialize.ByteBuffer.Allocate(Service.SocketOptions.InputBufferInitCapacity);
             }
             else
             {
-                if (_inputBuffer.Size == 0 && _inputBuffer.Capacity > Manager.SocketOptions.InputBufferResetThreshold)
-                    _inputBuffer = Serialize.ByteBuffer.Allocate(Manager.SocketOptions.InputBufferInitCapacity);
+                if (_inputBuffer.Size == 0 && _inputBuffer.Capacity > Service.SocketOptions.InputBufferResetThreshold)
+                    _inputBuffer = Serialize.ByteBuffer.Allocate(Service.SocketOptions.InputBufferInitCapacity);
                 _inputBuffer.Campact(); // 上次接收还有剩余数据.
             }
 
-            if (_inputBuffer.Capacity >= Manager.SocketOptions.InputBufferMaxCapacity) // 缓存容量达到最大配置
+            if (_inputBuffer.Capacity >= Service.SocketOptions.InputBufferMaxCapacity) // 缓存容量达到最大配置
             {
                 if (_inputBuffer.WriteIndex >= _inputBuffer.Capacity) // 检查是否满了
                     throw new Exception("input buffer overflow.");
             }
-            else if (_inputBuffer.Capacity - _inputBuffer.WriteIndex < Manager.SocketOptions.InputBufferInitCapacity)
-                _inputBuffer.EnsureWrite(Manager.SocketOptions.InputBufferInitCapacity);
+            else if (_inputBuffer.Capacity - _inputBuffer.WriteIndex < Service.SocketOptions.InputBufferInitCapacity)
+                _inputBuffer.EnsureWrite(Service.SocketOptions.InputBufferInitCapacity);
 
             byte[] buffer = _inputBuffer.Bytes;
             int offset = _inputBuffer.WriteIndex;
@@ -286,7 +286,7 @@ namespace Zeze.Net
                     Close(new Exception("input buffer overflow."));
                     return;
                 }
-                this.Manager.OnSocketProcessInputBuffer(this, _inputBuffer);
+                this.Service.OnSocketProcessInputBuffer(this, _inputBuffer);
                 BeginReceiveAsync();
             }
             else
@@ -393,8 +393,8 @@ namespace Zeze.Net
                 {
                     Socket?.Dispose();
                     Socket = null;
-                    Manager?.OnSocketClose(this, this.LastException);
-                    Manager = null;
+                    Service?.OnSocketClose(this, this.LastException);
+                    Service = null;
                 }
                 catch (Exception)
                 {

@@ -5,7 +5,7 @@ using System.Xml;
 
 namespace Zeze.Gen
 {
-    public class Service // Zeze.Net.Manager
+    public class Service // Zeze.Net.Service
     {
         public Project Project { get; private set; }
         public string Name { get; private set; }
@@ -48,9 +48,9 @@ namespace Zeze.Gen
 
             Program.AddNamedObject(FullName, this);
 
-            if (project.Managers.ContainsKey(Name))
-                throw new Exception("duplicate manager " + Name + " in project " + project.Name);
-            project.Managers.Add(Name, this);
+            if (project.Services.ContainsKey(Name))
+                throw new Exception("duplicate service " + Name + " in project " + project.Name);
+            project.Services.Add(Name, this);
 
             /*
             XmlNodeList childNodes = self.ChildNodes;
@@ -81,7 +81,7 @@ namespace Zeze.Gen
         {
             foreach (Module m in Modules)
             {
-                m.SetReferenceManager(this);
+                m.SetReferenceService(this);
             }
         }
     }

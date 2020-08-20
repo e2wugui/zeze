@@ -14,9 +14,9 @@ namespace Zeze.Net
 
 		public AsyncSocket Sender { get; private set; }
 
-		internal virtual void Dispatch(Service manager)
+		internal virtual void Dispatch(Service service)
 		{
-			manager.DispatchProtocol(this);
+			service.DispatchProtocol(this);
 		}
 
 		public abstract int Process();
@@ -36,9 +36,9 @@ namespace Zeze.Net
 			so.Send(bb);
 		}
 
-		public void Send(Service manager)
+		public void Send(Service service)
 		{
-			Send(manager.GetSocket());
+			Send(service.GetSocket());
 		}
 
 		/// <summary>
@@ -46,7 +46,7 @@ namespace Zeze.Net
 		/// </summary>
 		/// <param name="bb"></param>
 		/// <returns></returns>
-		internal static void Decode(Service manager, AsyncSocket so, ByteBuffer bb)
+		internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb)
         {
 			ByteBuffer os = ByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.Size); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 			while (os.Size > 0)
@@ -78,16 +78,16 @@ namespace Zeze.Net
 					return;
 				}
 
-				Protocol p = manager.CreateProtocol(type, os);
+				Protocol p = service.CreateProtocol(type, os);
 				if (null == p)
 				{
-					manager.DispatchUnknownProtocol(so, type, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));
+					service.DispatchUnknownProtocol(so, type, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));
 					os.ReadIndex += size;
 				}
 				else
                 {
 					p.Sender = so;
-					p.Dispatch(manager);
+					p.Dispatch(service);
 				}
 			}
 			bb.ReadIndex = os.ReadIndex;

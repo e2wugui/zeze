@@ -12,7 +12,7 @@ namespace Zeze.Gen
         public Solution Solution { get; private set; }
         public string Platform { get; private set; }
         public string Generates { get; private set; }
-        public SortedDictionary<string, Service> Managers { get; private set; } = new SortedDictionary<string, Service>();
+        public SortedDictionary<string, Service> Services { get; private set; } = new SortedDictionary<string, Service>();
 
         // setup when compile
         public List<Module> Modules { get; private set; }
@@ -26,9 +26,9 @@ namespace Zeze.Gen
             {
                 m.Depends(all);
             }
-            foreach (Service manager in Managers.Values)
+            foreach (Service service in Services.Values)
             {
-                foreach (Module m in manager.Modules)
+                foreach (Module m in service.Modules)
                 {
                     m.Depends(all);
                 }
@@ -79,9 +79,9 @@ namespace Zeze.Gen
             List<string> refFulNames = Program.ToFullNameIfNot(Solution.Name, refs);
             Modules = Program.CompileModuleRef(refFulNames);
 
-            foreach (Service manager in Managers.Values)
+            foreach (Service service in Services.Values)
             {
-                manager.Compile();
+                service.Compile();
             }
         }
 
@@ -143,10 +143,10 @@ namespace Zeze.Gen
             if (Platform.Length == 0)
                 Platform = "cs";
 
-            // 设置Module被哪个Manager引用。必须在Make前设置。换 Project 会覆盖调引用。
-            foreach (Service manager in Managers.Values)
+            // 设置Module被哪个Service引用。必须在Make前设置。换 Project 会覆盖调引用。
+            foreach (Service service in Services.Values)
             {
-                manager.SetModuleReference();
+                service.SetModuleReference();
             }
 
             switch (Platform)

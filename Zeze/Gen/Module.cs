@@ -8,14 +8,14 @@ namespace Zeze.Gen
 {
     public class Module : ModuleSpace
     {
-        public Service ReferenceManager => _ReferenceManager;
-        private Service _ReferenceManager;
-        public void SetReferenceManager(Service manager)
+        public Service ReferenceService => _ReferenceService;
+        private Service _ReferenceService;
+        public void SetReferenceService(Service service)
         {
-            _ReferenceManager = manager;
+            _ReferenceService = service;
             foreach (Module m in Modules.Values)
             {
-                m.SetReferenceManager(manager);
+                m.SetReferenceService(service);
             }
         }
 

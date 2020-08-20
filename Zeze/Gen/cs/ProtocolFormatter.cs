@@ -33,7 +33,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public override int Process()");
             sw.WriteLine("        {");
             Module m = (Module)p.Space;
-            if ((m.ReferenceManager.HandleFlags & p.HandleFlags) != 0)
+            if ((m.ReferenceService.HandleFlags & p.HandleFlags) != 0)
             {
                 sw.WriteLine("            return " + p.Space.Solution.Path(".", "App.Instance.") + m.Path("_", m.Name) + ".Process" + p.Name + "(this);");
             }

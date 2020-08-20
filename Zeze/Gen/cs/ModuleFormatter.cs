@@ -53,14 +53,14 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class " + module.Name + " : Abstract" + module.Name);
             sw.WriteLine("    {");
-            if (module.ReferenceManager != null)
+            if (module.ReferenceService != null)
             {
-                int managerHandleFlags = module.ReferenceManager.HandleFlags;
+                int serviceHandleFlags = module.ReferenceService.HandleFlags;
                 foreach (Protocol p in module.Protocols.Values)
                 {
                     if (p is Rpc rpc)
                     {
-                        if ((managerHandleFlags & Program.HandleServerFlag) != 0)
+                        if ((serviceHandleFlags & Program.HandleServerFlag) != 0)
                         {
                             sw.WriteLine("        public override int Process" + rpc.Name + "Server(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
@@ -68,7 +68,7 @@ namespace Zeze.Gen.cs
                             sw.WriteLine("        }");
                             sw.WriteLine("");
                         }
-                        if ((managerHandleFlags & Program.HandleClientFlag) != 0)
+                        if ((serviceHandleFlags & Program.HandleClientFlag) != 0)
                         {
                             sw.WriteLine("        public override int Process" + rpc.Name + "Client(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
@@ -83,7 +83,7 @@ namespace Zeze.Gen.cs
                         }
                         continue;
                     }
-                    if (0 != (p.HandleFlags & managerHandleFlags))
+                    if (0 != (p.HandleFlags & serviceHandleFlags))
                     {
                         sw.WriteLine("        public override int Process" + p.Name + "(" + p.Name + " protocol)");
                         sw.WriteLine("        {");
@@ -108,19 +108,19 @@ namespace Zeze.Gen.cs
             sw.WriteLine("    public abstract class Abstract" + module.Name);
             sw.WriteLine("    {");
  
-            if (module.ReferenceManager != null)
+            if (module.ReferenceService != null)
             {
-                int managerHandleFlags = module.ReferenceManager.HandleFlags;
+                int serviceHandleFlags = module.ReferenceService.HandleFlags;
                 foreach (Protocol p in module.Protocols.Values)
                 {
                     if (p is Rpc rpc)
                     {
-                        if ((managerHandleFlags & Program.HandleServerFlag) != 0)
+                        if ((serviceHandleFlags & Program.HandleServerFlag) != 0)
                         {
                             sw.WriteLine("        public abstract int Process" + rpc.Name + "Server(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
                         }
-                        if ((managerHandleFlags & Program.HandleClientFlag) != 0)
+                        if ((serviceHandleFlags & Program.HandleClientFlag) != 0)
                         {
                             sw.WriteLine("        public abstract int Process" + rpc.Name + "Client(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
@@ -129,7 +129,7 @@ namespace Zeze.Gen.cs
                         }
                         continue;
                     }
-                    if (0 != (p.HandleFlags & managerHandleFlags))
+                    if (0 != (p.HandleFlags & serviceHandleFlags))
                     {
                         sw.WriteLine("        public abstract int Process" + p.Name + "(" + p.Name + " protocol);");
                         sw.WriteLine("");

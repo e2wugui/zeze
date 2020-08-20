@@ -42,7 +42,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("");
             }
 
-            foreach (Service m in project.Managers.Values)
+            foreach (Service m in project.Services.Values)
             {
                 sw.WriteLine("        public " + m.FullName + " " + m.Name + " { get; } = new " + m.FullName + "();");
                 sw.WriteLine("");

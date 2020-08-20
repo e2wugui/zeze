@@ -21,7 +21,7 @@ namespace Zeze.Net
         public override void Send(AsyncSocket so)
         {
             IsRequest = true;
-            sid = so.Manager.AddRpcContext(this);
+            sid = so.Service.AddRpcContext(this);
             base.Send(so);
             Zeze.Util.Scheduler.Instance.Schedule(_OnTimeout, 2000);
         }
@@ -34,7 +34,7 @@ namespace Zeze.Net
 
         private void _OnTimeout()
         {
-            Rpc<TArgument, TResult> context = Sender.Manager.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
+            Rpc<TArgument, TResult> context = Sender.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
             if (null != context)
             {
                 int r = context.ProcessTimeout();
@@ -71,16 +71,16 @@ namespace Zeze.Net
             }
         }
 
-        internal override void Dispatch(Service manager)
+        internal override void Dispatch(Service service)
         {
             if (IsRequest)
             {
-                manager.DispatchProtocol(this);
+                service.DispatchProtocol(this);
                 return;
             }
 
             // response, 从上下文中查找原来发送的rpc对象，并派发该对象。
-            Rpc<TArgument, TResult> context = manager.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
+            Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
             if (null == context)
             {
                 logger.Info("rpc response: lost context, maybe timeout. {0}", this.ToString());
@@ -88,7 +88,7 @@ namespace Zeze.Net
             else
             {
                 context.IsRequest = false;
-                manager.DispatchProtocol(context);
+                service.DispatchProtocol(context);
             }
         }
 
