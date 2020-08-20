@@ -42,7 +42,7 @@ namespace Zeze.Gen.cs
             {
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
             }
-            foreach (Manager ma in Project.Managers.Values)
+            foreach (Service ma in Project.Managers.Values)
             {
                 new ManagerFormatter(ma, genDir, srcDir).Make();
             }

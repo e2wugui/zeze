@@ -59,10 +59,10 @@
 		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
 		-->
 		<module ref="Module2"/>
-		<!-- manager 生成到 solution 名字空间下 -->
-		<manager name="Server" handle="server" base=""> demo.Provider
+		<!-- service 生成到 solution 名字空间下 -->
+		<service name="Server" handle="server" base=""> demo.Provider
 			<module ref="Module1"/>
-		</manager>
+		</service>
 	</project>
 
 	<!--

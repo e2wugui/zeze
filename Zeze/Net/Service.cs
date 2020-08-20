@@ -8,18 +8,18 @@ using System.Collections.Concurrent;
 
 namespace Zeze.Net
 {
-    public class Manager
+    public class Service
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         /// <summary>
-        /// 同一个 Manager 下的所有连接都是用相同配置。
+        /// 同一个 Service 下的所有连接都是用相同配置。
         /// </summary>
         public SocketOptions SocketOptions { get; set; }
 
         private Dictionary<long, AsyncSocket> _asocketMap = new Dictionary<long, AsyncSocket>();
 
-        public Manager()
+        public Service()
         {
             this.SocketOptions = new SocketOptions();
         }

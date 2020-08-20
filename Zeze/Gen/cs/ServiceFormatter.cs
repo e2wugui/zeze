@@ -6,11 +6,11 @@ namespace Zeze.Gen.cs
 {
     public class ManagerFormatter
     {
-        Manager manager;
+        Service manager;
         string genDir;
         string srcDir;
 
-        public ManagerFormatter(Manager manager, string genDir, string srcDir)
+        public ManagerFormatter(Service manager, string genDir, string srcDir)
         {
             this.manager = manager;
             this.genDir = genDir;
@@ -25,7 +25,7 @@ namespace Zeze.Gen.cs
 
         public string BaseClass()
         {
-            return manager.Base.Length > 0 ? manager.Base : "Zeze.Net.Manager";
+            return manager.Base.Length > 0 ? manager.Base : "Zeze.Net.Service";
         }
 
         public void MakePartialInGen()

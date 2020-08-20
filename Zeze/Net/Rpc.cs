@@ -71,7 +71,7 @@ namespace Zeze.Net
             }
         }
 
-        internal override void Dispatch(Manager manager)
+        internal override void Dispatch(Service manager)
         {
             if (IsRequest)
             {

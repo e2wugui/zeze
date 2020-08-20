@@ -19,7 +19,7 @@ namespace Zeze.Net
         private List<System.ArraySegment<byte>> _outputBufferListSending = null; // 正在发送的 buffers.
         private int _outputBufferListSendingCountSum = 0;
 
-        public Manager Manager { get; private set; }
+        public Service Manager { get; private set; }
         public Exception LastException { get; private set; }
         public long SerialNo { get; private set; }
         public Socket Socket { get; private set; } // 这个给出去真的好吗？
@@ -40,7 +40,7 @@ namespace Zeze.Net
         /// <summary>
         /// for server socket
         /// </summary>
-        public AsyncSocket(Manager manager, System.Net.EndPoint localEP)
+        public AsyncSocket(Service manager, System.Net.EndPoint localEP)
         {
             this.Manager = manager;
 
@@ -68,7 +68,7 @@ namespace Zeze.Net
         /// use inner. create when accept;
         /// </summary>
         /// <param name="accepted"></param>
-        AsyncSocket(Manager manager, Socket accepted)
+        AsyncSocket(Service manager, Socket accepted)
         {
             this.Manager = manager;
 
@@ -93,7 +93,7 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="host"></param>
         /// <param name="port"></param>
-        public AsyncSocket(Manager manager, string host, int port)
+        public AsyncSocket(Service manager, string host, int port)
         {
             this.Manager = manager;
 

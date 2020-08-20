@@ -5,7 +5,7 @@ using System.Xml;
 
 namespace Zeze.Gen
 {
-    public class Manager // Zeze.Net.Manager
+    public class Service // Zeze.Net.Manager
     {
         public Project Project { get; private set; }
         public string Name { get; private set; }
@@ -35,7 +35,7 @@ namespace Zeze.Gen
 
         //public HashSet<Module> AllModules { get; private set; } = new HashSet<Module>();
 
-        public Manager(Project project, XmlElement self)
+        public Service(Project project, XmlElement self)
         {
             this.self = self;
             Project = project;

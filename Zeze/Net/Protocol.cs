@@ -14,7 +14,7 @@ namespace Zeze.Net
 
 		public AsyncSocket Sender { get; private set; }
 
-		internal virtual void Dispatch(Manager manager)
+		internal virtual void Dispatch(Service manager)
 		{
 			manager.DispatchProtocol(this);
 		}
@@ -36,7 +36,7 @@ namespace Zeze.Net
 			so.Send(bb);
 		}
 
-		public void Send(Manager manager)
+		public void Send(Service manager)
 		{
 			Send(manager.GetSocket());
 		}
@@ -46,7 +46,7 @@ namespace Zeze.Net
 		/// </summary>
 		/// <param name="bb"></param>
 		/// <returns></returns>
-		internal static void Decode(Manager manager, AsyncSocket so, ByteBuffer bb)
+		internal static void Decode(Service manager, AsyncSocket so, ByteBuffer bb)
         {
 			ByteBuffer os = ByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.Size); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 			while (os.Size > 0)

@@ -8,9 +8,9 @@ namespace Zeze.Gen
 {
     public class Module : ModuleSpace
     {
-        public Manager ReferenceManager => _ReferenceManager;
-        private Manager _ReferenceManager;
-        public void SetReferenceManager(Manager manager)
+        public Service ReferenceManager => _ReferenceManager;
+        private Service _ReferenceManager;
+        public void SetReferenceManager(Service manager)
         {
             _ReferenceManager = manager;
             foreach (Module m in Modules.Values)

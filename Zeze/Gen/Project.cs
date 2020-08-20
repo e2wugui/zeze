@@ -12,7 +12,7 @@ namespace Zeze.Gen
         public Solution Solution { get; private set; }
         public string Platform { get; private set; }
         public string Generates { get; private set; }
-        public SortedDictionary<string, Manager> Managers { get; private set; } = new SortedDictionary<string, Manager>();
+        public SortedDictionary<string, Service> Managers { get; private set; } = new SortedDictionary<string, Service>();
 
         // setup when compile
         public List<Module> Modules { get; private set; }
@@ -26,7 +26,7 @@ namespace Zeze.Gen
             {
                 m.Depends(all);
             }
-            foreach (Manager manager in Managers.Values)
+            foreach (Service manager in Managers.Values)
             {
                 foreach (Module m in manager.Modules)
                 {
@@ -66,8 +66,8 @@ namespace Zeze.Gen
                     case "module":
                         // ref 对象在编译的时候查找和设置。将保存在 Modules 中。
                         break;
-                    case "manager":
-                        new Manager(this, e);
+                    case "service":
+                        new Service(this, e);
                         break;
                 }
             }
@@ -79,7 +79,7 @@ namespace Zeze.Gen
             List<string> refFulNames = Program.ToFullNameIfNot(Solution.Name, refs);
             Modules = Program.CompileModuleRef(refFulNames);
 
-            foreach (Manager manager in Managers.Values)
+            foreach (Service manager in Managers.Values)
             {
                 manager.Compile();
             }
@@ -144,7 +144,7 @@ namespace Zeze.Gen
                 Platform = "cs";
 
             // 设置Module被哪个Manager引用。必须在Make前设置。换 Project 会覆盖调引用。
-            foreach (Manager manager in Managers.Values)
+            foreach (Service manager in Managers.Values)
             {
                 manager.SetModuleReference();
             }
