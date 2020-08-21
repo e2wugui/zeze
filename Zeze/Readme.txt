@@ -24,8 +24,5 @@ DataInDB DataInTrans                                                            
    null           !null                事务中put,数据库中没有，    db.replace        replace
   !null           !null                事务中put,数据库中有，      db.replace
 
-关于 cache，只要访问 table 的记录，在 cache 中不存在时总是新增一个 record。
-包括删除不存在的记录（这点需要琢磨一下，也就是说删除也加入 lockandchecknoconflit）。
-
 读写锁
 Record.Commit

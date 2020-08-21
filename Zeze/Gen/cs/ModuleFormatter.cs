@@ -36,7 +36,10 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed  partial class " + module.Name + " : Abstract" + module.Name);
             sw.WriteLine("    {");
-            sw.WriteLine("        // TODO define table here.");
+            foreach (Table table in module.Tables.Values)
+            {
+                sw.WriteLine("        private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
+            }
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }

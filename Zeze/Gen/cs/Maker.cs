@@ -46,6 +46,10 @@ namespace Zeze.Gen.cs
             {
                 new ServiceFormatter(ma, genDir, srcDir).Make();
             }
+            foreach (Table table in Project.AllTables)
+            {
+                new TableFormatter(table, genDir).Make();
+            }
 
             new App(Project, genDir, srcDir).Make();
         }
