@@ -209,8 +209,7 @@ namespace Zeze.Transaction
                 public override void Commit()
                 {
                     RecordAccessed host = (RecordAccessed)Bean;
-                    host.CommittedPutLog = this;
-                    host.Dirty = true;
+                    host.CommittedPutLog = this; // 一个肯定最多只有一个 PutLog。
                 }
             }
 
