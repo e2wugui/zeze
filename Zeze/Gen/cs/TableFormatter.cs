@@ -35,6 +35,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("        }");
             sw.WriteLine();
+            sw.WriteLine("        public override bool IsMemory => " + (table.IsMemory ? "true;" : "false;"));
+            sw.WriteLine();
             sw.WriteLine("        public override " + TypeName.GetName(table.KeyType) + " DecodeKey(ByteBuffer _os_)");
             sw.WriteLine("        {");
             table.KeyType.Accept(new Define("_v_", sw, "            "));

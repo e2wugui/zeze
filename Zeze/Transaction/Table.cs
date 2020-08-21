@@ -18,6 +18,7 @@ namespace Zeze.Transaction
 
         public string Name { get; }
         public int Id { get; }
+        public virtual bool IsMemory => true;
 
         internal abstract void Initialize(IStorage storage);
     }

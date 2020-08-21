@@ -13,8 +13,8 @@ namespace UnitTest.Zeze.Trans
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        Table1 table1 = new Table1("table1notexist");
-        Table1 table2 = new Table1("table2notexist");
+        demo.Module1.Table1 table1 = demo.App.Instance.demo_Module1_Module1.Table1;
+        demo.Module1.Table2 table2 = demo.App.Instance.demo_Module1_Module1.Table2;
 
         [TestMethod]
         public void TestUpdate()
@@ -133,8 +133,8 @@ namespace UnitTest.Zeze.Trans
         int ProcGet21()
         {
             ProcGet11();
-
-            Assert.IsNull(table2.Get(1));
+            demo.Module1.Key key = new demo.Module1.Key(1);
+            Assert.IsNull(table2.Get(key));
             demo.Module1.Value v = new demo.Module1.Value();
 
             v.Int1 = 1;
@@ -150,16 +150,16 @@ namespace UnitTest.Zeze.Trans
             v.Bean12.Int1 = 12;
             v.Byte13 = 13;
 
-            table2.Put(1, v);
-            Assert.IsTrue(v == table2.Get(1));
+            table2.Put(key, v);
+            Assert.IsTrue(v == table2.Get(key));
             return Procedure.Success;
         }
 
         int ProcGet22()
         {
             ProcGet12();
-
-            var v = table2.Get(1);
+            demo.Module1.Key key = new demo.Module1.Key(1);
+            var v = table2.Get(key);
             Assert.IsNotNull(v);
 
             Assert.IsTrue(v.Int1 == 1);
@@ -176,8 +176,8 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Bean12.Int1 == 12);
             Assert.IsTrue(v.Byte13 == 13);
 
-            table2.Remove(1);
-            Assert.IsNull(table2.Get(1));
+            table2.Remove(key);
+            Assert.IsNull(table2.Get(key));
             return Procedure.Success;
         }
 
@@ -226,26 +226,6 @@ namespace UnitTest.Zeze.Trans
             table1.Remove(1);
             Assert.IsNull(table1.Get(1));
             return Procedure.Success;
-        }
-    }
-
-    class Table1 : Table<long, demo.Module1.Value>
-    {
-        public Table1(string tablename) : base(tablename)
-        {
-
-        }
-
-        public override long DecodeKey(ByteBuffer bb)
-        {
-            return bb.ReadLong();
-        }
-
-        public override ByteBuffer EncodeKey(long key)
-        {
-            ByteBuffer bb = ByteBuffer.Allocate();
-            bb.WriteLong(key);
-            return bb;
         }
     }
 }

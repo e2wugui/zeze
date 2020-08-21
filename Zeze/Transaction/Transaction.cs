@@ -209,7 +209,7 @@ namespace Zeze.Transaction
                 public override void Commit()
                 {
                     RecordAccessed host = (RecordAccessed)Bean;
-                    host.CommittedPutLog = this; // 一个肯定最多只有一个 PutLog。
+                    host.CommittedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
                 }
             }
 
@@ -278,16 +278,20 @@ namespace Zeze.Transaction
 
         private bool _lock_and_check_()
         {
-            if (savepoints.Count > 0) 
+            if (savepoints.Count > 0)
             {
                 // 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；其他情况属于Begin,Commit,Rollback不匹配。外面检查。
                 foreach (var log in savepoints[^1].Logs.Values)
                 {
                     TableKey tkey = log.Bean.TableKey;
                     if (accessedRecords.TryGetValue(tkey, out var record))
+                    {
                         record.Dirty = true;
+                    }
                     else
+                    { 
                         logger.Fatal("impossible! record not found."); // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
+                    }
                 }
             }
 
