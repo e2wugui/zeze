@@ -43,6 +43,12 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine("");
 
+            sw.WriteLine("        // for decode only");
+            sw.WriteLine("        public " + beanKey.Name + "()");
+            sw.WriteLine("        {");
+            sw.WriteLine("        }");
+            sw.WriteLine("");
+
             // params construct
             {
                 StringBuilder sb = new StringBuilder();

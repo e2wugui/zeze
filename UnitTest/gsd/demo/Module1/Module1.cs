@@ -18,5 +18,7 @@ namespace demo.Module1
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
+        public Table1 Table1 => _Table1;
+        public Table2 Table2 => _Table2;
     }
 }

@@ -35,14 +35,14 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("        }");
             sw.WriteLine();
-            sw.WriteLine("        public override long DecodeKey(ByteBuffer _os_)");
+            sw.WriteLine("        public override " + TypeName.GetName(table.KeyType) + " DecodeKey(ByteBuffer _os_)");
             sw.WriteLine("        {");
             table.KeyType.Accept(new Define("_v_", sw, "            "));
             table.KeyType.Accept(new Decode("_v_", -1, "_os_", sw, "            "));
             sw.WriteLine("            return _v_;");
             sw.WriteLine("        }");
             sw.WriteLine();
-            sw.WriteLine("        public override ByteBuffer EncodeKey(long _v_)");
+            sw.WriteLine("        public override ByteBuffer EncodeKey(" + TypeName.GetName(table.KeyType) + " _v_)");
             sw.WriteLine("        {");
             sw.WriteLine("            ByteBuffer _os_ = ByteBuffer.Allocate();");            
             table.KeyType.Accept(new Encode("_v_", -1, "_os_", sw, "            "));

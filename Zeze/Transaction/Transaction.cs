@@ -84,9 +84,8 @@ namespace Zeze.Transaction
                 {
                     try
                     {
-                        int procedureResult = procedure.Call();
-                        if ((procedureResult == Procedure.Success && savepoints.Count != 1)
-                            || (procedureResult != Procedure.Success && savepoints.Count != 0))
+                        int result = procedure.Call();
+                        if ((result == Procedure.Success && savepoints.Count != 1) || (result != Procedure.Success && savepoints.Count != 0))
                         {
                             // 这个错误不应该重做
                             logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
@@ -94,20 +93,20 @@ namespace Zeze.Transaction
                         }
                         if (_lock_and_check_())
                         {
-                            if (procedureResult == Procedure.Success)
+                            if (result == Procedure.Success)
                             {
                                 _final_commit_(procedure);
                                 return Procedure.Success;
                             }
-                            return procedureResult;
+                            return result;
                         }
                         // retry
+                        logger.Trace("Transaction.Perform:{0} retry {1}", procedure, tryCount);
                     }
                     catch (Exception e)
                     {
                         logger.Error(e, "Transaction.Perform:{0} exception. run count:{1}", procedure, tryCount);
-                        // 如果异常是因为 数据不一致引入，需要回滚重做
-                        // 否则事务失败
+                        // 如果异常是因为 数据不一致引入，需要回滚重做，否则事务失败
                         if (savepoints.Count != 0)
                         {
                             // 这个错误不应该重做
