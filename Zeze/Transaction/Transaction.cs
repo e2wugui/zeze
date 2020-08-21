@@ -76,7 +76,7 @@ namespace Zeze.Transaction
         /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
         /// </summary>
         /// <param name="procedure"></param>
-        public int Perform(Procedure procedure)
+        internal int Perform(Procedure procedure)
         {
             try
             {

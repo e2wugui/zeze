@@ -85,6 +85,7 @@ namespace Zeze.Transaction
 
         public override string ToString()
         {
+            // 如果方法是成员函数，怎么得到所在class的名字。
             return null != Action ? Action.Method.Name : this.GetType().FullName;
         }
     }
