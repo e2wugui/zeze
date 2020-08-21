@@ -6,6 +6,7 @@ using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
 using Zeze.Transaction.Collections;
 using System.Runtime.CompilerServices;
+using Zeze.Serialize;
 
 namespace Zeze.Transaction
 {
@@ -129,7 +130,7 @@ namespace Zeze.Transaction
                     finally
                     {
                         // retry 保持已有的锁，清除记录和保存点。
-                        cachedRecords.Clear();
+                        accessedRecords.Clear();
                         savepoints.Clear();
                     }
                 }
@@ -160,14 +161,15 @@ namespace Zeze.Transaction
                 Savepoint last = savepoints[^1];
                 last.Commit();
                 //savepoints.Clear();
-
-                foreach (var e in cachedRecords)
+                // 不再需要了，记录修改也用了日志，已经再 last.Commit 里面处理了。
+                foreach (var e in accessedRecords)
                 {
                     if (e.Value.Dirty)
                     {
                         e.Value.OriginRecord.Commit(e.Value);
                     }
                 }
+
                 //cachedRecords.Clear();
             }
             catch (Exception e)
@@ -179,39 +181,69 @@ namespace Zeze.Transaction
 
         private readonly List<Lockey> holdLocks = new List<Lockey>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
 
-        public class CachedRecord
+        public class RecordAccessed : Bean
         {
             public Record OriginRecord { get; }
             public long Timestamp { get; }
-            public Bean PutValue { get; private set; }
-            public bool PutValueChannged { get; private set; } // 使用 bool 变量表示是否改过，减少 new 对象。
             public bool Dirty { get; set; }
 
-            public Bean NewValue => PutValueChannged ? PutValue : OriginRecord.Value;
-
-            public void Put(Bean putValue)
+            public Bean NewValue()
             {
-                PutValueChannged = true;
-                PutValue = putValue;
-                Dirty = true;
+                PutLog log = (PutLog)Current.GetLog(ObjectId);
+                if (null != log)
+                    return log.Value;
+                return OriginRecord.Value;
             }
 
-            public void Remove()
+            // Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
+            public PutLog CommittedPutLog { get; private set; }
+
+            public class PutLog : Log<RecordAccessed, Bean>
             {
-                Put(null);
+                public PutLog(RecordAccessed bean, Bean putValue) : base(bean, putValue)
+                {
+                }
+
+                public override long LogKey => Bean.ObjectId;
+
+                public override void Commit()
+                {
+                    RecordAccessed host = (RecordAccessed)Bean;
+                    host.CommittedPutLog = this;
+                    host.Dirty = true;
+                }
             }
 
-            public CachedRecord(Record originRecord)
+            public RecordAccessed(Record originRecord)
             {
                 OriginRecord = originRecord;
                 Timestamp = originRecord.Timestamp;
-                // PutValue = null;
-                // PutValueChannged = false;
-                // Dirty = false;
+            }
+
+            public void Put(Transaction current, Bean putValue)
+            {
+                current.PutLog(new PutLog(this, putValue));
+            }
+
+            public void Remove(Transaction current)
+            {
+                Put(current, null);
+            }
+
+            protected override void InitChildrenTableKey(TableKey root)
+            {
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
             }
         }
 
-        private readonly SortedDictionary<TableKey, CachedRecord> cachedRecords = new SortedDictionary<TableKey, CachedRecord>();
+        private readonly SortedDictionary<TableKey, RecordAccessed> accessedRecords = new SortedDictionary<TableKey, RecordAccessed>();
         private readonly List<Savepoint> savepoints = new List<Savepoint>();
 
         /// <summary>
@@ -219,14 +251,15 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="key"></param>
         /// <param name="cr"></param>
-        internal void AddCachedRecord(TableKey key, CachedRecord cr)
+        internal void AddRecordAccessed(TableKey key, RecordAccessed cr)
         {
-            cachedRecords.Add(key, cr);
+            accessedRecords.Add(key, cr);
+            cr.InitTableKey(key);
         }
 
-        internal CachedRecord GetCachedRecord(TableKey key)
+        internal RecordAccessed GetRecordAccessed(TableKey key)
         {
-            if (cachedRecords.TryGetValue(key, out var record))
+            if (accessedRecords.TryGetValue(key, out var record))
             {
                 return record;
             }
@@ -234,24 +267,25 @@ namespace Zeze.Transaction
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool _lock_and_check_timestamp_(KeyValuePair<TableKey, CachedRecord> e)
+        private bool _lock_and_check_timestamp_(KeyValuePair<TableKey, RecordAccessed> e)
         {
-            Lockey lck = e.Key.Lockey;
+            Lockey lockey = e.Key.Lockey;
             //bool writeLock = e.Value.Dirty;
-            lck.Enter();
-            holdLocks.Add(lck);
+            lockey.Enter();
+            holdLocks.Add(lockey);
+            // TODO TableCache 加上清理以后，要判断 OriginRecord 是否已经失效。失效的话，也返回冲突。
             return e.Value.Timestamp != e.Value.OriginRecord.Timestamp;
         }
 
         private bool _lock_and_check_()
         {
-            // 将modified fields 的 root 标记为 dirty
-            if (savepoints.Count > 0) // 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；其他情况属于Begin,Commit,Rollback不匹配。外面检查。 
+            if (savepoints.Count > 0) 
             {
+                // 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；其他情况属于Begin,Commit,Rollback不匹配。外面检查。
                 foreach (var log in savepoints[^1].Logs.Values)
                 {
                     TableKey tkey = log.Bean.TableKey;
-                    if (cachedRecords.TryGetValue(tkey, out var record))
+                    if (accessedRecords.TryGetValue(tkey, out var record))
                         record.Dirty = true;
                     else
                         logger.Fatal("impossible! record not found."); // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
@@ -261,7 +295,7 @@ namespace Zeze.Transaction
             bool conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
             if (holdLocks.Count == 0)
             {
-                foreach (var e in cachedRecords)
+                foreach (var e in accessedRecords)
                 {
                     conflict |= _lock_and_check_timestamp_(e);
                 }
@@ -270,7 +304,7 @@ namespace Zeze.Transaction
 
             int index = 0;
             int n = holdLocks.Count;
-            foreach (var e in cachedRecords)
+            foreach (var e in accessedRecords)
             {
                 // 如果 holdLocks 全部被对比完毕，直接锁定它
                 if (index >= n)
@@ -302,7 +336,6 @@ namespace Zeze.Transaction
                 // needlocks a  c  ...
                 if (c < 0)
                 {
-                    // TODO 理论上有优化空间，可以先 TryLock 尝试加锁，失败后再放锁。但概率不高，意义不大？
                     // 释放掉 比当前锁序小的锁，因为当前事务中不再需要这些锁
                     int unlockEndIndex = index;
                     for (; unlockEndIndex < n && holdLocks[unlockEndIndex].TableKey.CompareTo(e.Key) < 0; ++unlockEndIndex)

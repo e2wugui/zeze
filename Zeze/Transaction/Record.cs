@@ -21,11 +21,11 @@ namespace Zeze.Transaction
         private static long NextTimestamp => _TimestampGen.IncrementAndGet();
 
         // XXX 临时写个实现，以后调整。
-        internal void Commit(Transaction.CachedRecord cr)
+        internal void Commit(Transaction.RecordAccessed accessed)
         {
-            if (cr.PutValueChannged)
+            if (null != accessed.CommittedPutLog)
             {
-                Value = cr.PutValue;
+                Value = accessed.CommittedPutLog.Value;
             }
             Timestamp = NextTimestamp;
         }

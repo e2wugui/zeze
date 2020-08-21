@@ -26,3 +26,5 @@ DataInDB DataInTrans                                                            
 
 读写锁
 Record.Commit
+
+// TODO TableCache 加上清理以后，_lock_and_check_ 要判断 OriginRecord 是否已经失效。失效的话

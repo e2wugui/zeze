@@ -34,10 +34,10 @@ namespace Zeze.Transaction
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Id, key);
 
-            Transaction.CachedRecord cr = currentT.GetCachedRecord(tkey);
+            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
-                return (V)cr.NewValue;
+                return (V)cr.NewValue();
             }
 
             Lockey lockey = tkey.Lockey;
@@ -55,7 +55,7 @@ namespace Zeze.Transaction
                     cache.Add(key, r);
                 }
 
-                currentT.AddCachedRecord(tkey, new Transaction.CachedRecord(r));
+                currentT.AddRecordAccessed(tkey, new Transaction.RecordAccessed(r));
                 return r.ValueTyped;
             }
             finally
@@ -69,10 +69,10 @@ namespace Zeze.Transaction
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Id, key);
 
-            Transaction.CachedRecord cr = currentT.GetCachedRecord(tkey);
+            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
-                V crv = (V)cr.NewValue;
+                V crv = (V)cr.NewValue();
                 if (null != crv)
                 {
                     return crv;
@@ -96,8 +96,8 @@ namespace Zeze.Transaction
                         cache.Add(key, r);
                     }
 
-                    cr = new Transaction.CachedRecord(r);
-                    currentT.AddCachedRecord(tkey, cr);
+                    cr = new Transaction.RecordAccessed(r);
+                    currentT.AddRecordAccessed(tkey, cr);
 
                     if (null != r.Value)
                         return r.ValueTyped;
@@ -111,7 +111,7 @@ namespace Zeze.Transaction
 
             V add = NewValue();
             add.InitTableKey(tkey);
-            cr.Put(add);
+            cr.Put(currentT, add);
             return add;
         }
 
@@ -120,11 +120,11 @@ namespace Zeze.Transaction
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Id, key);
 
-            Transaction.CachedRecord cr = currentT.GetCachedRecord(tkey);
+            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
                 value.InitTableKey(tkey);
-                cr.Put(value);
+                cr.Put(currentT, value);
                 return;
             }
 
@@ -142,9 +142,9 @@ namespace Zeze.Transaction
                     r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
                     cache.Add(key, r);
                 }
-                cr = new Transaction.CachedRecord(r);
-                cr.Put(value);
-                currentT.AddCachedRecord(tkey, cr);
+                cr = new Transaction.RecordAccessed(r);
+                currentT.AddRecordAccessed(tkey, cr);
+                cr.Put(currentT, value);
             }
             finally
             {
@@ -158,10 +158,10 @@ namespace Zeze.Transaction
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Id, key);
 
-            Transaction.CachedRecord cr = currentT.GetCachedRecord(tkey);
+            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
-                cr.Put(null);
+                cr.Put(currentT, null);
                 return;
             }
 
@@ -179,9 +179,9 @@ namespace Zeze.Transaction
                     r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
                     cache.Add(key, r);
                 }
-                cr = new Transaction.CachedRecord(r);
-                cr.Put(null);
-                currentT.AddCachedRecord(tkey, cr);
+                cr = new Transaction.RecordAccessed(r);
+                currentT.AddRecordAccessed(tkey, cr);
+                cr.Put(currentT, null);
             }
             finally
             {
