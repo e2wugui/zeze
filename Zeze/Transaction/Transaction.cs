@@ -101,7 +101,7 @@ namespace Zeze.Transaction
                             return result;
                         }
                         // retry
-                        logger.Trace("Transaction.Perform:{0} retry {1}", procedure, tryCount);
+                        //logger.Trace("Transaction.Perform:{0} retry {1}", procedure, tryCount);
                     }
                     catch (Exception e)
                     {

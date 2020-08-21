@@ -85,7 +85,7 @@ namespace Zeze.Transaction
 
         public override string ToString()
         {
-            return null != Action ? Action.ToString() : this.GetType().FullName;
+            return null != Action ? Action.Method.Name : this.GetType().FullName;
         }
     }
 }
