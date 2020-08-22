@@ -10,38 +10,94 @@ namespace Zeze.Transaction
     public class Lockey : System.IComparable<Lockey>
     {
 		public TableKey TableKey { get; }
+		private System.Threading.ReaderWriterLockSlim rwLock;
 
 		/// <summary>
 		/// 相同值的 TableKey 要得到同一个 Lock 引用，必须使用 Locks 查询。
 		/// 不要自己构造这个对象。开放出去仅仅为了测试。
 		/// </summary>
 		/// <param name="key"></param>
-		[Obsolete]
 		public Lockey(TableKey key)
 		{
 			TableKey = key;
 		}
 
 		/// <summary>
-		/// 创建真正的锁对象。暂时使用this，不需要。
+		/// 创建真正的锁对象。
 		/// </summary>
 		/// <returns></returns>
 		internal Lockey Alloc()
 		{
+			rwLock = new System.Threading.ReaderWriterLockSlim(System.Threading.LockRecursionPolicy.SupportsRecursion);
 			return this;
 		}
 
-		// TODO 读写锁
-		public void Enter()
+		public void EnterReadLock()
         {
-			System.Threading.Monitor.Enter(this);
+			rwLock.EnterReadLock();
         }
 
-		public void Exit()
+		public void ExitReadLock()
         {
-			System.Threading.Monitor.Exit(this);
+			rwLock.ExitReadLock();
         }
 
+		public void EnterWriteLock()
+		{
+			rwLock.EnterWriteLock();
+		}
+
+		public void ExitWriteLock()
+        {
+			rwLock.ExitWriteLock();
+        }
+
+		public void TryEnterReadLock(int millisecondsTimeout)
+        {
+			rwLock.TryEnterUpgradeableReadLock(millisecondsTimeout);
+        }
+
+		public void TryEnterWriteLock(int millisecondsTimeout)
+        {
+			rwLock.TryEnterWriteLock(millisecondsTimeout);
+        }
+
+		/// <summary>
+		/// 根据参数进入读或写锁。
+		/// 进入写锁时如果已经获得读锁，会先释放，使用时注意竞争条件。
+		/// EnterUpgradeableReadLock 看起来不好用，慢慢研究。
+		/// </summary>
+		/// <param name="isWrite"></param>
+		public void EnterLock(bool isWrite)
+        {
+			if (isWrite)
+			{
+				if (rwLock.IsReadLockHeld)
+					rwLock.ExitReadLock();
+				rwLock.EnterWriteLock();
+			}
+			else
+            {
+				rwLock.EnterReadLock();
+			} 
+		}
+
+		public void ExitLock()
+        {
+			if (rwLock.IsReadLockHeld)
+            {
+				rwLock.ExitReadLock();
+            }
+			else if (rwLock.IsWriteLockHeld)
+            {
+				rwLock.ExitWriteLock();
+            }
+			else
+            {
+				throw new Exception("no lock hold.");
+            }
+
+        }
 		public int CompareTo([AllowNull] Lockey other)
         {
 			if (other == null)
@@ -183,6 +239,16 @@ namespace Zeze.Transaction
 		{
 			return this.segmentFor(lockey).Get(lockey);
 		}
+
+		public Lockey Get(TableKey tkey)
+        {
+			return Get(new Lockey(tkey));
+        }
+
+		public bool Contains(TableKey tkey)
+        {
+			return Contains(new Lockey(tkey));
+        }
 	}
 
 }

@@ -65,10 +65,6 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void Test1()
         {
-            // 因为 TableKey 包装了 Lock 引用的查询。
-            // 下面的测试没有必要了。
-            // 下面的测试需要 Lock 开放构造来验证。
-            // 已经验证过。
             Locks locks = Locks.Instance;
 
             TableKey tk1 = new TableKey(1, 1);

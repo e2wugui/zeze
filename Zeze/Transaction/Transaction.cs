@@ -141,7 +141,7 @@ namespace Zeze.Transaction
             {
                 foreach (var holdLock in holdLocks)
                 {
-                    holdLock.Exit();
+                    holdLock.ExitLock();
                 }
                 holdLocks.Clear();
             }
@@ -268,9 +268,9 @@ namespace Zeze.Transaction
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool _lock_and_check_timestamp_(KeyValuePair<TableKey, RecordAccessed> e)
         {
-            Lockey lockey = e.Key.Lockey;
-            //bool writeLock = e.Value.Dirty;
-            lockey.Enter();
+            Lockey lockey = Locks.Instance.Get(e.Key);
+            bool writeLock = e.Value.Dirty;
+            lockey.EnterLock(writeLock);
             holdLocks.Add(lockey);
             // TODO TableCache 加上清理以后，要判断 OriginRecord 是否已经失效。失效的话，也返回冲突。
             return e.Value.Timestamp != e.Value.OriginRecord.Timestamp;
@@ -344,7 +344,7 @@ namespace Zeze.Transaction
                     for (; unlockEndIndex < n && holdLocks[unlockEndIndex].TableKey.CompareTo(e.Key) < 0; ++unlockEndIndex)
                     {
                         var toUnlockLocker = holdLocks[unlockEndIndex];
-                        toUnlockLocker.Exit();
+                        toUnlockLocker.ExitLock();
                     }
                     holdLocks.RemoveRange(index, unlockEndIndex - index);
                     n = holdLocks.Count;
@@ -357,7 +357,7 @@ namespace Zeze.Transaction
                 for (int i = index; i < n; ++i)
                 {
                     var toUnlockLocker = holdLocks[i];
-                    toUnlockLocker.Exit();
+                    toUnlockLocker.ExitLock();
                 }
                 holdLocks.RemoveRange(index, n - index);
                 n = holdLocks.Count;

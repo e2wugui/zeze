@@ -9,10 +9,6 @@ namespace Zeze.Transaction
     {
         public int TableId { get; }
         public object Key { get; } // 只能是简单变量(bool,byte,short,int,long)和BeanKey
-        /// <summary>
-        /// 返回这个记录key对应的锁，相同值的TableKey返回同一个引用。
-        /// </summary>
-        public Lockey Lockey => Locks.Instance.Get(new Lockey(this));
 
         public TableKey(int tableId, object key)
         {

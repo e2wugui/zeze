@@ -41,8 +41,8 @@ namespace Zeze.Transaction
                 return (V)cr.NewValue();
             }
 
-            Lockey lockey = tkey.Lockey;
-            lockey.Enter();
+            Lockey lockey = Locks.Instance.Get(tkey);
+            lockey.EnterWriteLock();
             try
             {
                 Record<K, V> r = cache.Get(key);
@@ -61,7 +61,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                lockey.Exit();
+                lockey.ExitWriteLock();
             }
         }
 
@@ -82,8 +82,8 @@ namespace Zeze.Transaction
             }
             else
             {
-                Lockey lockey = tkey.Lockey;
-                lockey.Enter();
+                Lockey lockey = Locks.Instance.Get(tkey);
+                lockey.EnterWriteLock();
                 try
                 {
                     Record<K, V> r = cache.Get(key);
@@ -106,7 +106,7 @@ namespace Zeze.Transaction
                 }
                 finally
                 {
-                    lockey.Exit();
+                    lockey.ExitWriteLock();
                 }
             }
 
@@ -129,8 +129,8 @@ namespace Zeze.Transaction
                 return;
             }
 
-            Lockey lockey = tkey.Lockey;
-            lockey.Enter();
+            Lockey lockey = Locks.Instance.Get(tkey);
+            lockey.EnterWriteLock();
             try
             {
                 Record<K, V> r = cache.Get(key);
@@ -149,7 +149,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                lockey.Exit();
+                lockey.ExitWriteLock();
             }
         }
 
@@ -166,8 +166,8 @@ namespace Zeze.Transaction
                 return;
             }
 
-            Lockey lockey = tkey.Lockey;
-            lockey.Enter();
+            Lockey lockey = Locks.Instance.Get(tkey);
+            lockey.EnterWriteLock();
             try
             {
                 Record<K, V> r = cache.Get(key);
@@ -186,7 +186,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                lockey.Exit();
+                lockey.ExitWriteLock();
             }
         }
 
