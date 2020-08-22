@@ -8,6 +8,8 @@ namespace Zeze.Transaction
     {
         public long Timestamp { get; private set; }
         public Bean Value { get; private set; }
+        public long AccessTimeTicks { get; set; } // see TableCache 没有加锁。volatile
+        public bool IsInCache { get; set; } // see TableCache. 改为false是在写锁保护下,改成true,必须时第一次加入cache,没有保护.
 
         public Record(long timestamp, Bean value)
         {

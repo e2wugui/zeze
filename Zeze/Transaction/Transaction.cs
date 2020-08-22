@@ -272,8 +272,8 @@ namespace Zeze.Transaction
             bool writeLock = e.Value.Dirty;
             lockey.EnterLock(writeLock);
             holdLocks.Add(lockey);
-            // TODO TableCache 加上清理以后，要判断 OriginRecord 是否已经失效。失效的话，也返回冲突。
-            return e.Value.Timestamp != e.Value.OriginRecord.Timestamp;
+            // TableCache 加上清理以后，要判断 OriginRecord 是否已经失效。失效的话，也返回冲突。
+            return (false == e.Value.OriginRecord.IsInCache) || (e.Value.Timestamp != e.Value.OriginRecord.Timestamp);
         }
 
         private bool _lock_and_check_()

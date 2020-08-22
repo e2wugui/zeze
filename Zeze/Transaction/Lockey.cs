@@ -52,14 +52,14 @@ namespace Zeze.Transaction
 			rwLock.ExitWriteLock();
         }
 
-		public void TryEnterReadLock(int millisecondsTimeout)
+		public bool TryEnterReadLock(int millisecondsTimeout)
         {
-			rwLock.TryEnterUpgradeableReadLock(millisecondsTimeout);
+			return rwLock.TryEnterUpgradeableReadLock(millisecondsTimeout);
         }
 
-		public void TryEnterWriteLock(int millisecondsTimeout)
+		public bool TryEnterWriteLock(int millisecondsTimeout)
         {
-			rwLock.TryEnterWriteLock(millisecondsTimeout);
+			return rwLock.TryEnterWriteLock(millisecondsTimeout);
         }
 
 		/// <summary>

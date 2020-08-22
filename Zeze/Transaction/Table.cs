@@ -27,7 +27,7 @@ namespace Zeze.Transaction
     {
         public Table(string name) : base(name)
         {
-            cache = new TableCache<K, V>(Id);
+            cache = new TableCache<K, V>(this);
         }
 
         public V Get(K key)
