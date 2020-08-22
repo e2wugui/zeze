@@ -87,5 +87,29 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(lock3ref == lock3);
             Assert.IsFalse(lock3ref == lock1);
         }
+
+        [TestMethod]
+        public void TestRecursion1()
+        {
+            TableKey tkey = new TableKey(1, 1);
+            Lockey lockey = Locks.Instance.Get(tkey);
+            lockey.EnterWriteLock();
+            lockey.EnterReadLock();
+            lockey.ExitReadLock();
+            lockey.ExitWriteLock();
+        }
+
+        [TestMethod]
+        public void TestRecursion2()
+        {
+            /*
+            TableKey tkey = new TableKey(1, 1);
+            Lockey lockey = Locks.Instance.Get(tkey);
+            lockey.EnterReadLock();
+            lockey.EnterWriteLock();
+            lockey.ExitWriteLock();
+            lockey.ExitReadLock();
+            */
+        }
     }
 }

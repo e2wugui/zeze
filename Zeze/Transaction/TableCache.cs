@@ -27,12 +27,9 @@ namespace Zeze.Transaction
             return null;
         }
 
-        public void Add(K key, Record<K, V> r)
+        public Record<K, V> GetOrAdd(K key, Record<K, V> r)
         {
-            if (false == map.TryAdd(key, r))
-            {
-                throw new Exception("cache.add duplicate record");
-            }
+            return map.GetOrAdd(key, r);
         }
 
         // TODO 考虑不再提供单个删除，由 Cleaner 集中清理。

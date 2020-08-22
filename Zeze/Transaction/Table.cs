@@ -40,29 +40,20 @@ namespace Zeze.Transaction
             {
                 return (V)cr.NewValue();
             }
-
-            Lockey lockey = Locks.Instance.Get(tkey);
-            lockey.EnterWriteLock();
-            try
+            Record<K, V> r = cache.Get(key);
+            if (null == r)
             {
-                Record<K, V> r = cache.Get(key);
-                if (null == r)
-                {
-                    /*
-                    if (null != storage)
-                        storage.find();
-                    */
-                    r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
-                    cache.Add(key, r);
-                }
+                // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
+                /*
+                if (null != storage)
+                    storage.find();
+                */
+                r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
+                r = cache.GetOrAdd(key, r);
+            }
 
-                currentT.AddRecordAccessed(tkey, new Transaction.RecordAccessed(r));
-                return r.ValueTyped;
-            }
-            finally
-            {
-                lockey.ExitWriteLock();
-            }
+            currentT.AddRecordAccessed(tkey, new Transaction.RecordAccessed(r));
+            return r.ValueTyped;
         }
 
         public V GetOrAdd(K key)
@@ -82,32 +73,24 @@ namespace Zeze.Transaction
             }
             else
             {
-                Lockey lockey = Locks.Instance.Get(tkey);
-                lockey.EnterWriteLock();
-                try
+                Record<K, V> r = cache.Get(key);
+                if (null == r)
                 {
-                    Record<K, V> r = cache.Get(key);
-                    if (null == r)
-                    {
-                        /*
-                        if (null != storage)
-                            storage.find();
-                        */
-                        r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
-                        cache.Add(key, r);
-                    }
-
-                    cr = new Transaction.RecordAccessed(r);
-                    currentT.AddRecordAccessed(tkey, cr);
-
-                    if (null != r.Value)
-                        return r.ValueTyped;
-                    // add
+                    // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
+                    /*
+                    if (null != storage)
+                        storage.find();
+                    */
+                    r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
+                    r = cache.GetOrAdd(key, r);
                 }
-                finally
-                {
-                    lockey.ExitWriteLock();
-                }
+
+                cr = new Transaction.RecordAccessed(r);
+                currentT.AddRecordAccessed(tkey, cr);
+
+                if (null != r.Value)
+                    return r.ValueTyped;
+                // add
             }
 
             V add = NewValue();
@@ -129,28 +112,20 @@ namespace Zeze.Transaction
                 return;
             }
 
-            Lockey lockey = Locks.Instance.Get(tkey);
-            lockey.EnterWriteLock();
-            try
+            Record<K, V> r = cache.Get(key);
+            if (null == r)
             {
-                Record<K, V> r = cache.Get(key);
-                if (null == r)
-                {
-                    /*
-                    if (null != storage)
-                        storage.find();
-                    */
-                    r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
-                    cache.Add(key, r);
-                }
-                cr = new Transaction.RecordAccessed(r);
-                currentT.AddRecordAccessed(tkey, cr);
-                cr.Put(currentT, value);
+                // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
+                /*
+                if (null != storage)
+                    storage.find();
+                */
+                r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
+                r = cache.GetOrAdd(key, r);
             }
-            finally
-            {
-                lockey.ExitWriteLock();
-            }
+            cr = new Transaction.RecordAccessed(r);
+            currentT.AddRecordAccessed(tkey, cr);
+            cr.Put(currentT, value);
         }
 
         // 几乎和Put一样，还是独立开吧。
@@ -166,28 +141,20 @@ namespace Zeze.Transaction
                 return;
             }
 
-            Lockey lockey = Locks.Instance.Get(tkey);
-            lockey.EnterWriteLock();
-            try
+            Record<K, V> r = cache.Get(key);
+            if (null == r)
             {
-                Record<K, V> r = cache.Get(key);
-                if (null == r)
-                {
-                    /*
-                    if (null != storage)
-                        storage.find();
-                    */
-                    r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
-                    cache.Add(key, r);
-                }
-                cr = new Transaction.RecordAccessed(r);
-                currentT.AddRecordAccessed(tkey, cr);
-                cr.Put(currentT, null);
+                // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
+                /*
+                if (null != storage)
+                    storage.find();
+                */
+                r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
+                r = cache.GetOrAdd(key, r);
             }
-            finally
-            {
-                lockey.ExitWriteLock();
-            }
+            cr = new Transaction.RecordAccessed(r);
+            currentT.AddRecordAccessed(tkey, cr);
+            cr.Put(currentT, null);
         }
 
         private TableCache<K, V> cache;
