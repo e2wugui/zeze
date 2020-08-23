@@ -28,7 +28,8 @@ namespace Zeze.Transaction
 		/// <returns></returns>
 		internal Lockey Alloc()
 		{
-			rwLock = new System.Threading.ReaderWriterLockSlim(System.Threading.LockRecursionPolicy.SupportsRecursion);
+			rwLock = new System.Threading.ReaderWriterLockSlim();
+			//System.Threading.LockRecursionPolicy.SupportsRecursion
 			return this;
 		}
 
@@ -62,18 +63,24 @@ namespace Zeze.Transaction
 			return rwLock.TryEnterWriteLock(millisecondsTimeout);
         }
 
+		internal bool isWriteLockHeld()
+        {
+			return rwLock.IsWriteLockHeld;
+        }
+
 		/// <summary>
 		/// 根据参数进入读或写锁。
 		/// 进入写锁时如果已经获得读锁，会先释放，使用时注意竞争条件。
 		/// EnterUpgradeableReadLock 看起来不好用，慢慢研究。
 		/// </summary>
 		/// <param name="isWrite"></param>
-		public void EnterLock(bool isWrite)
+		internal void EnterLock(bool isWrite)
         {
 			if (isWrite)
 			{
 				if (rwLock.IsReadLockHeld)
 					rwLock.ExitReadLock();
+
 				rwLock.EnterWriteLock();
 			}
 			else
@@ -82,7 +89,7 @@ namespace Zeze.Transaction
 			} 
 		}
 
-		public void ExitLock()
+		internal void ExitLock()
         {
 			if (rwLock.IsReadLockHeld)
             {
@@ -94,7 +101,7 @@ namespace Zeze.Transaction
             }
 			else
             {
-				throw new Exception("no lock hold.");
+				throw new Exception("no lock held.");
             }
 
         }

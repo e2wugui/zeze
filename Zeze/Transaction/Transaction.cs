@@ -323,14 +323,12 @@ namespace Zeze.Transaction
                 // needlocks a  b  ...
                 if (c == 0)
                 {
-                    /*
-                    if (writeLock && !curLock.WriteLock) // 如果需要持有写锁，但当前仅持有读锁
+                    // 这里可能发生读写锁提升
+                    if (e.Value.Dirty && false == curLock.isWriteLockHeld())
                     {
-                        // 理论上，读锁提升为写锁，不应该发生timestamp改变的。
-                        // 不过实现上有可能是先放了读锁，再重新加写锁，因此有一定机会timestamp发生变化
-                        conflict |= _lock_and_check_timestamp_(e);
+                        curLock.EnterLock(true);
+                        conflict |= (false == e.Value.OriginRecord.IsInCache) || (e.Value.Timestamp != e.Value.OriginRecord.Timestamp);
                     }
-                    */
                     // 已经锁定了，跳过
                     ++index;
                     continue;
