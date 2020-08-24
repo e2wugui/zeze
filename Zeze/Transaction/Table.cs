@@ -20,7 +20,7 @@ namespace Zeze.Transaction
         public int Id { get; }
         public virtual bool IsMemory => true;
 
-        internal abstract void Initialize(IStorage storage);
+        internal abstract void Initialize(Storage storage);
     }
 
     public abstract class Table<K, V> : Table where V : Bean, new()
@@ -158,9 +158,9 @@ namespace Zeze.Transaction
         }
 
         private TableCache<K, V> cache;
-        private IStorage storage;
+        private Storage storage;
 
-        internal override void Initialize(IStorage storage)
+        internal override void Initialize(Storage storage)
         {
         }
 

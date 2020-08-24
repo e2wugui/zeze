@@ -17,14 +17,8 @@ managed
 Net.Manager 怎么重新定义？现在这个不够灵活。
 
 -->
-ConcurrentDictionary
 DataInDB DataInTrans                                                                 实际操作
    null           null                 事务中删除，数据库中没有，  cache.remove      delete
   !null           null                 事务中删除，数据库中有，    db.delete
    null           !null                事务中put,数据库中没有，    db.replace        replace
   !null           !null                事务中put,数据库中有，      db.replace
-
-读写锁
-Record.Commit
-
-// TODO TableCache 加上清理以后，_lock_and_check_ 要判断 OriginRecord 是否已经失效。失效的话
