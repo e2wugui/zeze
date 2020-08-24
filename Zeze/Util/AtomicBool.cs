@@ -23,6 +23,11 @@ namespace Zeze.Util
             return _value != 0;
         }
 
+        /// <summary>
+        /// ??? 对于 bool 来说，和 CompareAndExchange 差不多 ???
+        /// </summary>
+        /// <param name="newValue"></param>
+        /// <returns></returns>
         public bool GetAndSet(bool newValue)
         {
             return System.Threading.Interlocked.Exchange(ref _value, newValue ? 1 : 0) != 0;

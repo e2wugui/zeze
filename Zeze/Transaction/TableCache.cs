@@ -92,7 +92,7 @@ namespace Zeze.Transaction
         {
             TableKey tkey = new TableKey(this.Table.Id, p.Key);
             Lockey lockey = Locks.Instance.Get(tkey);
-            if (false == lockey.TryEnterWriteLock(1))
+            if (false == lockey.TryEnterWriteLock(0))
             {
                 return false;
             }

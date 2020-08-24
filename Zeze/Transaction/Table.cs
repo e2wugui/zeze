@@ -30,6 +30,17 @@ namespace Zeze.Transaction
             cache = new TableCache<K, V>(this);
         }
 
+        private Record<K, V> FindInCacheOrStorage(K key)
+        {
+            Record<K, V> r = cache.Get(key);
+            if (null != r)
+                return r;
+
+            // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
+            V value = (null != storage) ? storage.Find(key, this) : null;
+            return cache.GetOrAdd(key, new Record<K, V>(this, key, value));
+        }
+
         public V Get(K key)
         {
             Transaction currentT = Transaction.Current;
@@ -40,18 +51,8 @@ namespace Zeze.Transaction
             {
                 return (V)cr.NewValue();
             }
-            Record<K, V> r = cache.Get(key);
-            if (null == r)
-            {
-                // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
-                /*
-                if (null != storage)
-                    storage.find();
-                */
-                r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
-                r = cache.GetOrAdd(key, r);
-            }
 
+            Record<K, V> r = FindInCacheOrStorage(key);
             currentT.AddRecordAccessed(tkey, new Transaction.RecordAccessed(r));
             return r.ValueTyped;
         }
@@ -73,18 +74,7 @@ namespace Zeze.Transaction
             }
             else
             {
-                Record<K, V> r = cache.Get(key);
-                if (null == r)
-                {
-                    // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
-                    /*
-                    if (null != storage)
-                        storage.find();
-                    */
-                    r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
-                    r = cache.GetOrAdd(key, r);
-                }
-
+                Record<K, V> r = FindInCacheOrStorage(key);
                 cr = new Transaction.RecordAccessed(r);
                 currentT.AddRecordAccessed(tkey, cr);
 
@@ -97,6 +87,19 @@ namespace Zeze.Transaction
             add.InitTableKey(tkey);
             cr.Put(currentT, add);
             return add;
+        }
+
+        public void Inser(K key, V value)
+        {
+            if (null != Get(key))
+            {
+                throw new ArgumentException($"table:{GetType().FullName} insert key:{key} exists");
+            }
+            Transaction currentT = Transaction.Current;
+            TableKey tkey = new TableKey(Id, key);
+            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            value.InitTableKey(tkey);
+            cr.Put(currentT, value);
         }
 
         public void Put(K key, V value)
@@ -112,20 +115,10 @@ namespace Zeze.Transaction
                 return;
             }
 
-            Record<K, V> r = cache.Get(key);
-            if (null == r)
-            {
-                // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
-                /*
-                if (null != storage)
-                    storage.find();
-                */
-                r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
-                r = cache.GetOrAdd(key, r);
-            }
+            Record<K, V> r = FindInCacheOrStorage(key);
             cr = new Transaction.RecordAccessed(r);
-            currentT.AddRecordAccessed(tkey, cr);
             cr.Put(currentT, value);
+            currentT.AddRecordAccessed(tkey, cr);
         }
 
         // 几乎和Put一样，还是独立开吧。
@@ -141,24 +134,14 @@ namespace Zeze.Transaction
                 return;
             }
 
-            Record<K, V> r = cache.Get(key);
-            if (null == r)
-            {
-                // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
-                /*
-                if (null != storage)
-                    storage.find();
-                */
-                r = new Record<K, V>(0, null); // 记录不存在也创建一个cache。使用value==null表示。看看是不是需要加状态。
-                r = cache.GetOrAdd(key, r);
-            }
+            Record<K, V> r = FindInCacheOrStorage(key);
             cr = new Transaction.RecordAccessed(r);
-            currentT.AddRecordAccessed(tkey, cr);
             cr.Put(currentT, null);
+            currentT.AddRecordAccessed(tkey, cr);
         }
 
         private TableCache<K, V> cache;
-        private Storage storage;
+        private Storage<K, V> storage;
 
         internal override void Initialize(Storage storage)
         {

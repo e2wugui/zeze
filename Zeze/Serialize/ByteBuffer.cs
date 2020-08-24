@@ -105,6 +105,14 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public byte[] Copy()
+        {
+            byte[] copy = new byte[Size];
+            Buffer.BlockCopy(Bytes, ReadIndex, copy, 0, Size);
+            return copy;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Reset()
         {
             ReadIndex = WriteIndex = 0;
@@ -660,7 +668,12 @@ namespace Zeze.Serialize
         }
         public override int GetHashCode()
         {
-            throw new NotImplementedException();
+            int sum = 0;
+            for (int i = ReadIndex; i < WriteIndex; ++i)
+            {
+                sum += Bytes[i];
+            }
+            return sum;
         }
     }
 }
