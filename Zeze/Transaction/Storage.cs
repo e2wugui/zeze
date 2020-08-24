@@ -43,6 +43,7 @@ namespace Zeze.Transaction
         public int EncodeN()
         {
             HashSet<K> removed = new HashSet<K>();
+            // TODO TryEncodeN 里面锁定时：执行 remove,和 encoded.put。
             foreach (var e in changed)
             {
                 if (e.Value.TryEncodeN())

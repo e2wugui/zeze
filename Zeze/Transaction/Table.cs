@@ -38,6 +38,7 @@ namespace Zeze.Transaction
 
             // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
             V value = (null != storage) ? storage.Find(key, this) : null;
+            // cache 加入时也可能存在，此时返回已经存在的。
             return cache.GetOrAdd(key, new Record<K, V>(this, key, value));
         }
 
