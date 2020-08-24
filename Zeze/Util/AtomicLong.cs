@@ -22,5 +22,20 @@ namespace Zeze.Util
         {
             return System.Threading.Interlocked.Add(ref _value, delta);
         }
+
+        public long CompareAndExchange(long expectedValue, long newValue)
+        {
+            return System.Threading.Interlocked.CompareExchange(ref _value, newValue, expectedValue);
+        }
+
+        public long Get()
+        {
+            return System.Threading.Interlocked.Read(ref _value);
+        }
+
+        public long GetAndSet(long newValue)
+        {
+            return System.Threading.Interlocked.Exchange(ref _value, newValue);
+        }
     }
 }
