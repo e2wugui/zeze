@@ -15,10 +15,15 @@ namespace Zeze.Transaction
 
         private readonly ConcurrentDictionary<K, Record<K, V>> map = new ConcurrentDictionary<K, Record<K, V>>();
 
-        public TableCache(Table<K, V> table)
+        public TableCache(Zeze zeze, Table<K, V> table)
         {
             this.Table = table;
-            int delay = 3600 * 1000; // 毫秒，一小时。
+            Config.TableConf tableConf = zeze.Config.GetTableConf(table.Name);
+            this.Capacity = tableConf.CacheCapaicty;
+            if (Capacity < 0)
+                throw new ArgumentException();
+
+            int delay = tableConf.CacheCleanPeriod;
             // 为了使清除任务不会集中在某个时间点执行，简单处理一下：随机初始化延迟时间。（不算什么好方法）
             int initialDelay = Util.Random.Instance.Next(delay);
             Util.Scheduler.Instance.Schedule(CleanNow, initialDelay, delay);

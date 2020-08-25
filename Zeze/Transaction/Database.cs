@@ -10,6 +10,7 @@ namespace Zeze.Transaction
     {
         public void Close();
         public void Checkpoint();
+        public Database.Table OpenTable(string name);
 
         public interface Table
         {
@@ -37,6 +38,10 @@ namespace Zeze.Transaction
 
         public void Close()
         {
+        }
+        public Database.Table OpenTable(string name)
+        {
+            return new TableMemory();
         }
 
         public class TableMemory : Database.Table

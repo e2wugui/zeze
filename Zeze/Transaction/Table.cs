@@ -32,7 +32,6 @@ namespace Zeze.Transaction
     {
         public Table(string name) : base(name)
         {
-            Cache = new TableCache<K, V>(this);
         }
 
         private Record<K, V> FindInCacheOrStorage(K key)
@@ -154,6 +153,8 @@ namespace Zeze.Transaction
         {
             if (null != Storage)
                 throw new Exception("table has opened." + Name);
+
+            Cache = new TableCache<K, V>(zeze, this);
 
             Storage = IsMemory ? null : new Storage<K, V>(this, database, Name);
             return Storage;

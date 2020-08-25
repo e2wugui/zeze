@@ -26,15 +26,13 @@ namespace Zeze.Transaction
 
     public class Storage<K, V> : Storage where V : Bean, new()
     {
-        private Database.Table databaseTable;
         public Table Table { get; }
-        public Database.Table DatabaseTable => databaseTable;
-
+        public Database.Table DatabaseTable { get; }
 
         public Storage(Table<K, V> table, Database database, string tableName)
         {
             Table = table;
-            databaseTable = new DatabaseMemory.TableMemory();
+            DatabaseTable = database.OpenTable(tableName);
         }
 
         private ConcurrentDictionary<K, Record<K, V>> changed = new ConcurrentDictionary<K, Record<K, V>>();
@@ -178,7 +176,7 @@ namespace Zeze.Transaction
 
         public void Close()
         {
-            databaseTable.Close();
+            DatabaseTable.Close();
         }
     }
 }

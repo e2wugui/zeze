@@ -13,6 +13,7 @@ namespace Zeze
 
         public Transaction.Database Database { get; private set; }
         private List<Transaction.Storage> storages = new List<Transaction.Storage>();
+        public Config Config { get; set; }
 
         public void AddTable(Transaction.Table table)
         {
@@ -35,7 +36,21 @@ namespace Zeze
                 if (null != Database)
                     return;
 
-                Database = new Transaction.DatabaseMemory(); // TODO 根据配置选择不同的实现。
+                if (null == Config)
+                    Config = Config.Load();
+
+                switch (Config.DatabaseType)
+                {
+                    case Config.DbType.Memory:
+                        Database = new Transaction.DatabaseMemory();
+                        break;
+                    case Config.DbType.MySql:
+                        // TODO add mysql
+                        break;
+                    default:
+                        throw new Exception("unknown database type.");
+                }
+
                 foreach (Transaction.Table table in tables.Values)
                 {
                     Transaction.Storage storage = table.Open(this, Database);
