@@ -84,9 +84,9 @@ namespace Zeze.Util
                 if (this.MaxSingleDataFileLength > 0 && _lastDataFile.DataFileLength > this.MaxSingleDataFileLength)
                     OpenOrCreateLastDataFile(LastId);
 
-                Zeze.Serialize.ByteBuffer bb = Zeze.Serialize.ByteBuffer.Allocate(msg.SizeHint());
+                global::Zeze.Serialize.ByteBuffer bb = global::Zeze.Serialize.ByteBuffer.Allocate(msg.SizeHint());
                 int savedWriteIndex = bb.WriteIndex;
-                bb.Append(Zeze.Serialize.Helper.Bytes4); // prepare for size bytes
+                bb.Append(global::Zeze.Serialize.Helper.Bytes4); // prepare for size bytes
                 msg.Encode(bb);
                 bb.Replace(savedWriteIndex, BitConverter.GetBytes(bb.Size - 4));
                 _lastDataFile.WriteToTail(bb.Bytes, bb.ReadIndex, bb.Size);
@@ -293,7 +293,7 @@ namespace Zeze.Util
                     if (msgDataBytes.Length != data.Read(msgDataBytes, 0, msgDataBytes.Length))
                         throw new Exception("read data error");
 
-                    Zeze.Serialize.ByteBuffer bb = Zeze.Serialize.ByteBuffer.Wrap(msgDataBytes);
+                    global::Zeze.Serialize.ByteBuffer bb = global::Zeze.Serialize.ByteBuffer.Wrap(msgDataBytes);
                     ChatHistoryMessage msg = new ChatHistoryMessage();
                     msg.Decode(bb);
                     if (msg.Id != fromId + i)
@@ -316,7 +316,7 @@ namespace Zeze.Util
                 if (headLen == 0) // eof
                     return;
 
-                Zeze.Serialize.ByteBuffer bb = Zeze.Serialize.ByteBuffer.Wrap(head, 0, headLen);
+                global::Zeze.Serialize.ByteBuffer bb = global::Zeze.Serialize.ByteBuffer.Wrap(head, 0, headLen);
                 int msgsize = bb.ReadInt4();
                 int tag = bb.ReadInt4();
                 long existid = bb.ReadLong();

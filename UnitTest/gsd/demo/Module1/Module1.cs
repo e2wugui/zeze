@@ -3,6 +3,14 @@ namespace demo.Module1
 {
     public sealed partial class Module1 : AbstractModule1
     {
+        public void Start(demo.App app)
+        {
+        }
+
+        public void Stop(demo.App app)
+        {
+        }
+
         public override int ProcessProtocol1(Protocol1 protocol)
         {
             return Zeze.Transaction.Procedure.NotImplement;

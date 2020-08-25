@@ -102,7 +102,7 @@ namespace Zeze.Net
         }
     }
 
-    public abstract class Protocol<TArgument> : Protocol where TArgument : Zeze.Transaction.Bean, new()
+    public abstract class Protocol<TArgument> : Protocol where TArgument : global::Zeze.Transaction.Bean, new()
     {
         public TArgument Argument { get; set; } = new TArgument();
 

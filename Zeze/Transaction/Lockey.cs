@@ -208,7 +208,7 @@ namespace Zeze.Transaction
 		/* ------------- 实现 --------------- */
 		class Segment
 		{
-			private readonly Zeze.Util.WeakHashSet<Lockey> locks = new Zeze.Util.WeakHashSet<Lockey>();
+			private readonly global::Zeze.Util.WeakHashSet<Lockey> locks = new global::Zeze.Util.WeakHashSet<Lockey>();
 
 			public Segment()
 			{

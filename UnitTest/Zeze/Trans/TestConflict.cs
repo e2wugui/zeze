@@ -12,6 +12,12 @@ namespace UnitTest.Zeze.Trans
     {
         int sum;
 
+        [TestInitialize]
+        public void TestInit()
+        {
+            demo.App.Instance.Start();
+        }
+
         [TestMethod]
         public void TestConflictAdd()
         {

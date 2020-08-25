@@ -10,7 +10,7 @@ namespace Zeze.Gen
     {
         private static Dictionary<string, Solution> solutions = new Dictionary<string, Solution>();
 
-        public static Zeze.Util.Ranges GlobalModuleIdChecker { get; private set; } = new Zeze.Util.Ranges();
+        public static global::Zeze.Util.Ranges GlobalModuleIdChecker { get; private set; } = new global::Zeze.Util.Ranges();
 
         public static bool Debug { get; private set; } = false;
 

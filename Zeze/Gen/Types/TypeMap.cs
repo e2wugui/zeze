@@ -31,7 +31,7 @@ namespace Zeze.Gen.Types
 			}
 		}
 
-		private TypeMap(Zeze.Gen.ModuleSpace space, String key, String value)
+		private TypeMap(global::Zeze.Gen.ModuleSpace space, String key, String value)
 		{
 			if (key.Length == 0)
 				throw new Exception("map type need a key");

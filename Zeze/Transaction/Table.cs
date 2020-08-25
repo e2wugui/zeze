@@ -6,21 +6,26 @@ namespace Zeze.Transaction
 {
     public abstract class Table
     {
-        private static List<Table> Tables { get; } = new List<Table>(); // TODO 线程安全，静态变量
+        private static List<Table> Tables { get; } = new List<Table>(); // 全局。这样允许多个Zeze实例。线程安全：仅在初始化时保护一下。
         public static Table GetTable(int id) => Tables[id];
 
         public Table(string name)
         {
             this.Name = name;
-            this.Id = Tables.Count;
-            Tables.Add(this);
+
+            lock (Tables)
+            {
+                this.Id = Tables.Count;
+                Tables.Add(this);
+            }
         }
 
         public string Name { get; }
         public int Id { get; }
         public virtual bool IsMemory => true;
 
-        internal abstract void Initialize(Storage storage);
+        internal abstract Storage Open(Zeze zeze, Database database);
+        internal abstract void Close();
     }
 
     public abstract class Table<K, V> : Table where V : Bean, new()
@@ -144,23 +149,36 @@ namespace Zeze.Transaction
         private TableCache<K, V> cache;
         private Storage<K, V> storage;
 
-        internal override void Initialize(Storage storage)
+        internal override Storage Open(Zeze zeze, Database database)
         {
+            if (null != storage)
+                throw new Exception("table has opened." + Name);
+
+            storage = IsMemory ? null : new Storage<K, V>(this, database, Name);
+            return storage;
         }
 
+        internal override void Close()
+        {
+            if (null != storage)
+            {
+                storage.Close();
+                storage = null;
+            }
+        }
 
         // Key 都是简单变量，系列化方法都不一样，需要生成。
-        public abstract Zeze.Serialize.ByteBuffer EncodeKey(K key);
-        public abstract K DecodeKey(Zeze.Serialize.ByteBuffer bb);
+        public abstract global::Zeze.Serialize.ByteBuffer EncodeKey(K key);
+        public abstract K DecodeKey(global::Zeze.Serialize.ByteBuffer bb);
 
         public V NewValue()
         {
             return new V();
         }
 
-        public Zeze.Serialize.ByteBuffer EncodeValue(V value)
+        public global::Zeze.Serialize.ByteBuffer EncodeValue(V value)
         {
-            Zeze.Serialize.ByteBuffer bb = Zeze.Serialize.ByteBuffer.Allocate(value.CapacityHintOfByteBuffer);
+            global::Zeze.Serialize.ByteBuffer bb = global::Zeze.Serialize.ByteBuffer.Allocate(value.CapacityHintOfByteBuffer);
             value.Encode(bb);
             return bb;
         }
@@ -170,7 +188,7 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="bb">bean encoded data</param>
         /// <returns></returns>
-        public V DecodeValue(Zeze.Serialize.ByteBuffer bb)
+        public V DecodeValue(global::Zeze.Serialize.ByteBuffer bb)
         {
             V value = NewValue();
             value.Decode(bb);

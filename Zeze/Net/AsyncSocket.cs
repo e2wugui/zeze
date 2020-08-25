@@ -13,7 +13,7 @@ namespace Zeze.Net
     /// </summary>
     public class AsyncSocket : IDisposable
     {
-        private Zeze.Serialize.ByteBuffer _inputBuffer;
+        private global::Zeze.Serialize.ByteBuffer _inputBuffer;
         private List<System.ArraySegment<byte>> _outputBufferList = null;
         private int _outputBufferListCountSum = 0;
         private List<System.ArraySegment<byte>> _outputBufferListSending = null; // 正在发送的 buffers.
@@ -31,7 +31,7 @@ namespace Zeze.Net
         /// </summary>
         public Object UserState { get; set; } // 
 
-        private static Zeze.Util.AtomicLong SerialNoGen = new Zeze.Util.AtomicLong();
+        private static global::Zeze.Util.AtomicLong SerialNoGen = new global::Zeze.Util.AtomicLong();
 
         private SocketAsyncEventArgs eventArgsAccept;
         private SocketAsyncEventArgs eventArgsReceive;
@@ -112,7 +112,7 @@ namespace Zeze.Net
             this.SerialNo = SerialNoGen.IncrementAndGet();
         }
 
-        public void Send(Zeze.Serialize.ByteBuffer bb)
+        public void Send(global::Zeze.Serialize.ByteBuffer bb)
         {
             Send(bb.Bytes, bb.ReadIndex, bb.Size);
         }
@@ -130,7 +130,7 @@ namespace Zeze.Net
         /// <param name="length"></param>
         public void Send(byte[] bytes, int offset, int length)
         {
-            Zeze.Serialize.Helper.VerifyArrayIndex(bytes, offset, length);
+            global::Zeze.Serialize.Helper.VerifyArrayIndex(bytes, offset, length);
 
             lock (this)
             {

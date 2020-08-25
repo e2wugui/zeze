@@ -152,7 +152,7 @@ namespace Zeze.Gen
             switch (Platform)
             {
                 case "cs":
-                    new Zeze.Gen.cs.Maker(this).Make();
+                    new global::Zeze.Gen.cs.Maker(this).Make();
                     break;
                 default:
                     throw new Exception("unsupport platform: " + Platform);

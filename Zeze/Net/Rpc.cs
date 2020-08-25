@@ -7,8 +7,8 @@ using Zeze.Serialize;
 namespace Zeze.Net
 {
     public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>
-        where TArgument: Zeze.Transaction.Bean, new()
-        where TResult: Zeze.Transaction.Bean, new()
+        where TArgument: global::Zeze.Transaction.Bean, new()
+        where TResult: global::Zeze.Transaction.Bean, new()
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
@@ -23,7 +23,7 @@ namespace Zeze.Net
             IsRequest = true;
             sid = so.Service.AddRpcContext(this);
             base.Send(so);
-            Zeze.Util.Scheduler.Instance.Schedule(_OnTimeout, 2000);
+            global::Zeze.Util.Scheduler.Instance.Schedule(this._OnTimeout, 2000);
         }
 
         public abstract int ProcessServer();

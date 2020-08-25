@@ -20,6 +20,8 @@ namespace Zeze.Transaction
 		public int Flush();
 
 		public void Cleanup();
+
+        public void Close();
 	}
 
     public class Storage<K, V> : Storage where V : Bean, new()
@@ -40,6 +42,11 @@ namespace Zeze.Transaction
         private ConcurrentDictionary<K, Record<K, V>> snapshot = new ConcurrentDictionary<K, Record<K, V>>();
         private System.Threading.ReaderWriterLockSlim snapshotLock = new System.Threading.ReaderWriterLockSlim();
 
+        /// <summary>
+        /// 仅在 Checkpoint 中调用，同时只有一个线程执行。
+        /// 没有得到任何锁。
+        /// </summary>
+        /// <returns></returns>
         public int EncodeN()
         {
             HashSet<K> removed = new HashSet<K>();
@@ -59,6 +66,10 @@ namespace Zeze.Transaction
             return removed.Count;
         }
 
+        /// <summary>
+        /// 仅在 Checkpoint 中调用，在 flushWriteLock 下执行。
+        /// </summary>
+        /// <returns></returns>
         public int Encode0()
         {
             foreach (var e in changed)
@@ -71,6 +82,10 @@ namespace Zeze.Transaction
             return cc;
         }
 
+        /// <summary>
+        /// 仅在 Checkpoint 中调用，在 flushWriteLock 下执行。
+        /// </summary>
+        /// <returns></returns>
         public int Snapshot()
         {
             var tmp = snapshot;
@@ -85,6 +100,12 @@ namespace Zeze.Transaction
             */
             return cc;
         }
+
+        /// <summary>
+        /// 仅在 Checkpoint 中调用。
+        /// 没有拥有任何锁。
+        /// </summary>
+        /// <returns></returns>
         public int Flush()
         {
             int count = 0;
@@ -98,6 +119,10 @@ namespace Zeze.Transaction
             return count;
         }
 
+        /// <summary>
+        /// 仅在 Checkpoint 中调用。
+        /// 没有拥有任何锁。
+        /// </summary>
         public void Cleanup()
         {
             ConcurrentDictionary<K, Record<K, V>> tmp = null;
@@ -143,6 +168,11 @@ namespace Zeze.Transaction
 
             value = DatabaseTable.Find(table.EncodeKey(key));
             return null != value ? table.DecodeValue(value) : null;
+        }
+
+        public void Close()
+        {
+            databaseTable.Close();
         }
     }
 }

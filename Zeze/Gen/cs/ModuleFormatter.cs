@@ -40,6 +40,14 @@ namespace Zeze.Gen.cs
             {
                 sw.WriteLine("        private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
             }
+            sw.WriteLine("");
+            sw.WriteLine("        public " + module.Name + "(" + module.Solution.Name + ".App app)");
+            sw.WriteLine("        {");
+            foreach (Table table in module.Tables.Values)
+            {
+                sw.WriteLine("            app.Zeze.AddTable(_" + table.Name + ");");
+            }
+            sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }
@@ -56,6 +64,14 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class " + module.Name + " : Abstract" + module.Name);
             sw.WriteLine("    {");
+            sw.WriteLine("        public void Start(" + module.Solution.Name + ".App app)");
+            sw.WriteLine("        {");
+            sw.WriteLine("        }");
+            sw.WriteLine("");
+            sw.WriteLine("        public void Stop(" + module.Solution.Name + ".App app)");
+            sw.WriteLine("        {");
+            sw.WriteLine("        }");
+            sw.WriteLine("");
             if (module.ReferenceService != null)
             {
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;

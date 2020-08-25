@@ -9,8 +9,8 @@ namespace Zeze.Gen
 {
     public class Solution : ModuleSpace
     {
-        public Zeze.Util.Ranges ModuleIdAllowRanges { get; private set; }
-        public Zeze.Util.Ranges ModuleIdCurrentRanges { get; private set; } = new Zeze.Util.Ranges();
+        public global::Zeze.Util.Ranges ModuleIdAllowRanges { get; private set; }
+        public global::Zeze.Util.Ranges ModuleIdCurrentRanges { get; private set; } = new global::Zeze.Util.Ranges();
 
         public SortedDictionary<string, Project> Projects { get; private set; } = new SortedDictionary<string, Project>();
 
@@ -19,7 +19,7 @@ namespace Zeze.Gen
             if (false == self.Name.Equals("solution"))
                 throw new Exception("node name is not solution");
 
-            ModuleIdAllowRanges = new Zeze.Util.Ranges(self.GetAttribute("ModuleIdAllowRanges"));
+            ModuleIdAllowRanges = new global::Zeze.Util.Ranges(self.GetAttribute("ModuleIdAllowRanges"));
             Program.GlobalModuleIdChecker.CheckAdd(ModuleIdAllowRanges);
 
             XmlNodeList childNodes = self.ChildNodes;

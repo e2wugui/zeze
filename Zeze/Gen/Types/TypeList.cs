@@ -17,7 +17,7 @@ namespace Zeze.Gen.Types
 			return new TypeList(space, key, value);
 		}
 
-		private TypeList(Zeze.Gen.ModuleSpace space, String key, String value)
+		private TypeList(global::Zeze.Gen.ModuleSpace space, String key, String value)
 		{
 			_compile(space, key, value);
 		}

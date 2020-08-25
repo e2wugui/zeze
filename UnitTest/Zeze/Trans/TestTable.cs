@@ -13,6 +13,12 @@ namespace UnitTest.Zeze.Trans
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
+        [TestInitialize]
+        public void TestInit()
+        {
+            demo.App.Instance.Start();
+        }
+
         demo.Module1.Table1 table1 = demo.App.Instance.demo_Module1_Module1.Table1;
         demo.Module1.Table2 table2 = demo.App.Instance.demo_Module1_Module1.Table2;
 

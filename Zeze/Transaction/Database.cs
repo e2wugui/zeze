@@ -17,6 +17,7 @@ namespace Zeze.Transaction
             public void Replace(ByteBuffer key, ByteBuffer value);
             public void Remove(ByteBuffer key);
             public void Walk(IWalk iw);
+            public void Close();
 
             public interface IWalk
             {
@@ -103,6 +104,10 @@ namespace Zeze.Transaction
                             break;
                     }
                 }
+            }
+
+            public void Close()
+            {
             }
         }
     }

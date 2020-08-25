@@ -6,8 +6,8 @@ namespace Zeze.Gen.cs
 {
     public class RpcFormatter
     {
-        Zeze.Gen.Rpc rpc;
-        public RpcFormatter(Zeze.Gen.Rpc p)
+        global::Zeze.Gen.Rpc rpc;
+        public RpcFormatter(global::Zeze.Gen.Rpc p)
         {
             this.rpc = p;
         }

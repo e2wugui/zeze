@@ -123,7 +123,7 @@ namespace Zeze.Util
         {
             this.Scheduler = scheduler;
             this.action = action;
-            this.Time = Zeze.Util.Time.NowUnixMillis + initialDelay;
+            this.Time = global::Zeze.Util.Time.NowUnixMillis + initialDelay;
             this.Period = period;
             this.SequenceNumber = sequencer.IncrementAndGet();
             this.canceled = false;

@@ -25,7 +25,7 @@ namespace Zeze.Gen.Types
 		/////////////////////////////////////////////////////////////////////////////
 		public static SortedDictionary<String, Type> Types { get; private set; } = new SortedDictionary<String, Type>();
 
-		public static void Add(Zeze.Gen.ModuleSpace space, Type type)
+		public static void Add(global::Zeze.Gen.ModuleSpace space, Type type)
 		{
 			String fullName = space.Path(".", type.Name);
 
@@ -35,7 +35,7 @@ namespace Zeze.Gen.Types
 			Types.Add(fullName, type);
 		}
 
-		public static Type Compile(Zeze.Gen.ModuleSpace space, String name)
+		public static Type Compile(global::Zeze.Gen.ModuleSpace space, String name)
 		{
 			return Compile(space, name, null, null);
 		}

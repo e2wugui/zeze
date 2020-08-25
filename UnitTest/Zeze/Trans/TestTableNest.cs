@@ -9,6 +9,11 @@ namespace UnitTest.Zeze.Trans
     [TestClass]
     public class TestTableNest
     {
+        [TestInitialize]
+        public void TestInit()
+        {
+            demo.App.Instance.Start();
+        }
         [TestMethod]
         public void TestNest()
         {

@@ -56,8 +56,8 @@ namespace Zeze.Gen.Types
 			Name = self.GetAttribute("name").Trim();
 			verfiyReserveVariableName(Name);
 			Id = int.Parse(self.GetAttribute("id"));
-			if (Id < 0 || Id > Zeze.Transaction.Bean.MaxVariableId)
-				throw new Exception("variable id invalid. range [0, " + Zeze.Transaction.Bean.MaxVariableId + "] @" + GetBeanFullName());
+			if (Id < 0 || Id > global::Zeze.Transaction.Bean.MaxVariableId)
+				throw new Exception("variable id invalid. range [0, " + global::Zeze.Transaction.Bean.MaxVariableId + "] @" + GetBeanFullName());
 			Type = self.GetAttribute("type").Trim();
 			Key = self.GetAttribute("key").Trim();
 			Value = self.GetAttribute("value").Trim();

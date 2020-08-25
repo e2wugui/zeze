@@ -15,6 +15,7 @@ namespace Zeze.Transaction
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         private static System.Threading.ThreadLocal<Transaction> threadLocal = new System.Threading.ThreadLocal<Transaction>();
+        public static System.Threading.ReaderWriterLockSlim FlushReadWriteLock { get; } = new System.Threading.ReaderWriterLockSlim();
 
         public static Transaction Current => threadLocal.Value;
 
@@ -83,6 +84,7 @@ namespace Zeze.Transaction
             {
                 for (int tryCount = 0; tryCount < 256; ++tryCount) // 最多尝试次数
                 {
+                    FlushReadWriteLock.EnterReadLock();
                     try
                     {
                         int result = procedure.Call();
@@ -130,6 +132,7 @@ namespace Zeze.Transaction
                     finally
                     {
                         // retry 保持已有的锁，清除记录和保存点。
+                        FlushReadWriteLock.ExitReadLock();
                         accessedRecords.Clear();
                         savepoints.Clear();
                     }
@@ -161,7 +164,7 @@ namespace Zeze.Transaction
                 Savepoint last = savepoints[^1];
                 last.Commit();
                 //savepoints.Clear();
-                // 不再需要了，记录修改也用了日志，已经再 last.Commit 里面处理了。
+
                 foreach (var e in accessedRecords)
                 {
                     if (e.Value.Dirty)

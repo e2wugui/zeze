@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Zeze.Util
 {
     // binary: msgsize4bytes + tag4bytes + others
-    public class ChatHistoryMessage : Zeze.Serialize.Serializable
+    public class ChatHistoryMessage : global::Zeze.Serialize.Serializable
     {
         public const int TagDeleted = 1;
         public const int TagSeparate = 2;
@@ -40,7 +40,7 @@ namespace Zeze.Util
             return bytes;
         }
 
-        public void Decode(Zeze.Serialize.ByteBuffer bb)
+        public void Decode(global::Zeze.Serialize.ByteBuffer bb)
         {
             this.Tag = bb.ReadInt4();
             this.Id = bb.ReadLong();
@@ -58,7 +58,7 @@ namespace Zeze.Util
             }
         }
 
-        public void Encode(Zeze.Serialize.ByteBuffer bb)
+        public void Encode(global::Zeze.Serialize.ByteBuffer bb)
         {
             bb.WriteInt4(this.Tag);
             bb.WriteLong(this.Id);

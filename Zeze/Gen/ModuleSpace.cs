@@ -9,7 +9,7 @@ namespace Zeze.Gen
     {
         public string Name { get; private set; }
         public ModuleSpace Parent { get; private set; }
-        public Zeze.Util.Ranges ProtocolIdRanges { get; } = new Zeze.Util.Ranges();
+        public global::Zeze.Util.Ranges ProtocolIdRanges { get; } = new global::Zeze.Util.Ranges();
         public short Id { get; }
 
         public ModuleSpace GetRootModuleSpace()

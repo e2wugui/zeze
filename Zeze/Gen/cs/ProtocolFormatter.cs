@@ -6,8 +6,8 @@ namespace Zeze.Gen.cs
 {
     public class ProtocolFormatter
     {
-        Zeze.Gen.Protocol p;
-        public ProtocolFormatter(Zeze.Gen.Protocol p)
+        global::Zeze.Gen.Protocol p;
+        public ProtocolFormatter(global::Zeze.Gen.Protocol p)
         {
             this.p = p;
         }
