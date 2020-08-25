@@ -12,6 +12,7 @@ namespace Zeze.Gen
         public string Key { get; }
         public string Value { get; }
         public bool IsMemory { get; }
+        public bool IsAutoKey { get; }
 
         // setup in compile
         public Types.Type KeyType { get; private set; }
@@ -25,8 +26,10 @@ namespace Zeze.Gen
 
             Key = self.GetAttribute("key");
             Value = self.GetAttribute("value");
-            string memory = self.GetAttribute("memory");
-            IsMemory = memory.Length > 0 ? bool.Parse(memory) : false;
+            string attr = self.GetAttribute("memory");
+            IsMemory = attr.Length > 0 ? bool.Parse(attr) : false;
+            attr = self.GetAttribute("autokey");
+            IsAutoKey = attr.Length > 0 ? bool.Parse(attr) : false;
         }
 
         public void Compile()
@@ -34,6 +37,8 @@ namespace Zeze.Gen
             KeyType = Types.Type.Compile(Space, Key);
             if (false == KeyType.IsKeyable)
                 throw new Exception("table.key need a isKeyable type: " + Space.Path(".", Name));
+            if (this.IsAutoKey && !(KeyType is Types.TypeLong))
+                throw new Exception("autokey only support key type of long");
 
             ValueType = Types.Type.Compile(Space, Value);
             if (!ValueType.IsNormalBean) // is normal bean, exclude beankey

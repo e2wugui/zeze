@@ -95,10 +95,7 @@ namespace Zeze.Net
 
 		public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
-            sb.Append(this.GetType().FullName);
-            sb.Append("(").Append(ModuleId).Append(",").Append(ProtocolId).Append(")");
-            return sb.ToString();
+			return $"{GetType().FullName}({ModuleId},{ProtocolId})";
         }
     }
 

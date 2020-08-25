@@ -24,7 +24,6 @@ namespace Zeze.Transaction
         private static global::Zeze.Util.AtomicLong _TimestampGen = new global::Zeze.Util.AtomicLong();
         internal static long NextTimestamp => _TimestampGen.IncrementAndGet();
 
-        // XXX 临时写个实现，以后调整。
         internal abstract void Commit(Transaction.RecordAccessed accessed);
     }
 
@@ -40,6 +39,7 @@ namespace Zeze.Transaction
             this.Key = key;
         }
 
+        // XXX 临时写个实现，以后调整。
         internal override void Commit(Transaction.RecordAccessed accessed)
         {
             if (null != accessed.CommittedPutLog)

@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<zeze DatabaseType="Memory" DatabaseUrl="" CheckpointPeriod="60000">
+<zeze DatabaseType="Memory" DatabaseUrl=""
+	CheckpointPeriod="60000"
+	AutoKeyLocalId="0" AutoKeyLocalStep="4096"
+	>
 	<TableConf CacheCapaicty="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
 	<TableConf Name="demo_Module1_Table1" CacheCapaicty="20000"/>
 </zeze>

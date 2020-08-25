@@ -36,7 +36,18 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        }");
             sw.WriteLine();
             sw.WriteLine("        public override bool IsMemory => " + (table.IsMemory ? "true;" : "false;"));
+            sw.WriteLine("        public override bool IsAutoKey => " + (table.IsAutoKey ? "true;" : "false;"));
             sw.WriteLine();
+            if (table.IsAutoKey)
+            {
+                sw.WriteLine("        public long Insert(" + value + " value)");
+                sw.WriteLine("        {");
+                sw.WriteLine("            long key = AutoKey.Next();");
+                sw.WriteLine("            Insert(key, value);");
+                sw.WriteLine("            return key;");
+                sw.WriteLine("        }");
+                sw.WriteLine();
+            }
             sw.WriteLine("        public override " + TypeName.GetName(table.KeyType) + " DecodeKey(ByteBuffer _os_)");
             sw.WriteLine("        {");
             table.KeyType.Accept(new Define("_v_", sw, "            "));

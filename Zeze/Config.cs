@@ -18,6 +18,8 @@ namespace Zeze
         public DbType DatabaseType { get; set; } = DbType.Memory;
         public string DatabaseUrl { get; set; } = "";
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
+        public int AutoKeyLocalId { get; } = 0;
+        public int AutoKeyLocalStep { get; } = 4096;
 
         public Dictionary<string, TableConf> TableConfMap { get; } = new Dictionary<string, TableConf>();
         public TableConf DefaultTableConf { get; set; } = new TableConf();
@@ -61,6 +63,8 @@ namespace Zeze
 
             DatabaseUrl = self.GetAttribute("DatabaseUrl");
             CheckpointPeriod = int.Parse(self.GetAttribute("CheckpointPeriod"));
+            AutoKeyLocalId = int.Parse(self.GetAttribute("AutoKeyLocalId"));
+            AutoKeyLocalStep = int.Parse(self.GetAttribute("AutoKeyLocalStep"));
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

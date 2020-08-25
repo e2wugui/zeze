@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Transactions;
+using Zeze.Transaction;
 
 namespace Zeze
 {
@@ -15,6 +16,8 @@ namespace Zeze
         private List<Transaction.Storage> storages = new List<Transaction.Storage>();
         public Config Config { get; set; }
         public bool IsStart { get; private set; }
+
+        internal TableSys TableSys { get; private set; }
 
         public void AddTable(Transaction.Table table)
         {
@@ -53,15 +56,20 @@ namespace Zeze
                     default:
                         throw new Exception("unknown database type.");
                 }
-
+                // 由于 AutoKey，TableSys需要先打开。
+                TableSys = new TableSys();
+                storages.Add(TableSys.Open(this, Database));
                 foreach (Transaction.Table table in tables.Values)
                 {
                     Transaction.Storage storage = table.Open(this, Database);
                     if (null != storage)
                         storages.Add(storage);
                 }
-
-                Util.Scheduler.Instance.Schedule(Checkpoint, Config.CheckpointPeriod, Config.CheckpointPeriod);
+                AddTable(TableSys);
+                if (Config.CheckpointPeriod > 0)
+                {
+                    Util.Scheduler.Instance.Schedule(Checkpoint, Config.CheckpointPeriod, Config.CheckpointPeriod);
+                }
             }
         }
 
@@ -73,14 +81,18 @@ namespace Zeze
 
             lock (this)
             {
+                if (false == IsStart)
+                    return;
+
                 IsStart = false;
                 foreach (Transaction.Table table in tables.Values)
                 {
                     table.Close();
                 }
-                // tables.Clear(); // restart?
+                tables.Clear();
                 storages.Clear();
                 Database.Close();
+                TableSys = null;
                 Database = null;
             }
         }

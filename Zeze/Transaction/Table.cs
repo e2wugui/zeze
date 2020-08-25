@@ -23,6 +23,7 @@ namespace Zeze.Transaction
         public string Name { get; }
         public int Id { get; }
         public virtual bool IsMemory => true;
+        public virtual bool IsAutoKey => false;
 
         internal abstract Storage Open(Zeze zeze, Database database);
         internal abstract void Close();
@@ -32,6 +33,13 @@ namespace Zeze.Transaction
     {
         public Table(string name) : base(name)
         {
+        }
+
+        public AutoKey AutoKey { get; private set;  }
+
+        public long NextKey()
+        {
+            return AutoKey.Next();
         }
 
         private Record<K, V> FindInCacheOrStorage(K key)
@@ -94,7 +102,7 @@ namespace Zeze.Transaction
             return add;
         }
 
-        public void Inser(K key, V value)
+        public void Insert(K key, V value)
         {
             if (null != Get(key))
             {
@@ -154,6 +162,8 @@ namespace Zeze.Transaction
             if (null != Storage)
                 throw new Exception("table has opened." + Name);
 
+            if (this.IsAutoKey)
+                AutoKey = zeze.TableSys.AutoKeys.GetAutoKey(Name);
             Cache = new TableCache<K, V>(zeze, this);
 
             Storage = IsMemory ? null : new Storage<K, V>(this, database, Name);

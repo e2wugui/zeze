@@ -86,7 +86,7 @@ namespace Zeze.Gen
 
         public void Add(Table table)
         {
-            Program.AddNamedObject(Path(".", table.Name), table);
+            Program.AddNamedObject(Path(".", table.Name).ToLower(), table); // Table 不会被其他地方引用，这里转成小写来判断名字是否重复。
             Tables.Add(table.Name, table);
         }
 
