@@ -19,8 +19,11 @@ namespace UnitTest.Zeze.Trans
             demo.App.Instance.Start();
         }
 
-        demo.Module1.Table1 table1 = demo.App.Instance.demo_Module1_Module1.Table1;
-        demo.Module1.Table2 table2 = demo.App.Instance.demo_Module1_Module1.Table2;
+        [TestCleanup]
+        public void TestCleanup()
+        {
+            demo.App.Instance.Stop();
+        }
 
         [TestMethod]
         public void TestUpdate()
@@ -32,7 +35,7 @@ namespace UnitTest.Zeze.Trans
 
         int ProcGetUpdate()
         {
-            demo.Module1.Value v = table1.Get(1);
+            demo.Module1.Value v = demo.App.Instance.demo_Module1_Module1.Table1.Get(1);
 
             v.Int1 = 11;
             v.Long2 = 22;
@@ -51,7 +54,7 @@ namespace UnitTest.Zeze.Trans
 
         int ProcGetUpdateCheckRemove()
         {
-            demo.Module1.Value v = table1.Get(1);
+            demo.Module1.Value v = demo.App.Instance.demo_Module1_Module1.Table1.Get(1);
 
             Assert.IsTrue(v.Int1 == 11);
             Assert.IsTrue(v.Long2 == 22);
@@ -80,7 +83,7 @@ namespace UnitTest.Zeze.Trans
 
         int ProcGetOrAdd()
         {
-            demo.Module1.Value v = table1.GetOrAdd(1);
+            demo.Module1.Value v = demo.App.Instance.demo_Module1_Module1.Table1.GetOrAdd(1);
 
             v.Int1 = 1;
             v.Long2 = 2;
@@ -100,7 +103,7 @@ namespace UnitTest.Zeze.Trans
 
         int ProcGetOrAddCheckAndRemove()
         {
-            var v = table1.Get(1);
+            var v = demo.App.Instance.demo_Module1_Module1.Table1.Get(1);
             Assert.IsNotNull(v);
 
             Assert.IsTrue(v.Int1 == 1);
@@ -117,8 +120,8 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Bean12.Int1 == 12);
             Assert.IsTrue(v.Byte13 == 13);
 
-            table1.Remove(1);
-            Assert.IsNull(table1.Get(1));
+            demo.App.Instance.demo_Module1_Module1.Table1.Remove(1);
+            Assert.IsNull(demo.App.Instance.demo_Module1_Module1.Table1.Get(1));
             return Procedure.Success;
         }
 
@@ -140,7 +143,7 @@ namespace UnitTest.Zeze.Trans
         {
             ProcGet11();
             demo.Module1.Key key = new demo.Module1.Key(1);
-            Assert.IsNull(table2.Get(key));
+            Assert.IsNull(demo.App.Instance.demo_Module1_Module1.Table2.Get(key));
             demo.Module1.Value v = new demo.Module1.Value();
 
             v.Int1 = 1;
@@ -156,8 +159,8 @@ namespace UnitTest.Zeze.Trans
             v.Bean12.Int1 = 12;
             v.Byte13 = 13;
 
-            table2.Put(key, v);
-            Assert.IsTrue(v == table2.Get(key));
+            demo.App.Instance.demo_Module1_Module1.Table2.Put(key, v);
+            Assert.IsTrue(v == demo.App.Instance.demo_Module1_Module1.Table2.Get(key));
             return Procedure.Success;
         }
 
@@ -165,7 +168,7 @@ namespace UnitTest.Zeze.Trans
         {
             ProcGet12();
             demo.Module1.Key key = new demo.Module1.Key(1);
-            var v = table2.Get(key);
+            var v = demo.App.Instance.demo_Module1_Module1.Table2.Get(key);
             Assert.IsNotNull(v);
 
             Assert.IsTrue(v.Int1 == 1);
@@ -182,14 +185,14 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Bean12.Int1 == 12);
             Assert.IsTrue(v.Byte13 == 13);
 
-            table2.Remove(key);
-            Assert.IsNull(table2.Get(key));
+            demo.App.Instance.demo_Module1_Module1.Table2.Remove(key);
+            Assert.IsNull(demo.App.Instance.demo_Module1_Module1.Table2.Get(key));
             return Procedure.Success;
         }
 
         int ProcGet11()
         {
-            Assert.IsNull(table1.Get(1));
+            Assert.IsNull(demo.App.Instance.demo_Module1_Module1.Table1.Get(1));
             demo.Module1.Value v = new demo.Module1.Value();
 
             v.Int1 = 1;
@@ -205,14 +208,14 @@ namespace UnitTest.Zeze.Trans
             v.Bean12.Int1 = 12;
             v.Byte13 = 13;
 
-            table1.Put(1, v);
-            Assert.IsTrue(v == table1.Get(1));
+            demo.App.Instance.demo_Module1_Module1.Table1.Put(1, v);
+            Assert.IsTrue(v == demo.App.Instance.demo_Module1_Module1.Table1.Get(1));
             return Procedure.Success;
         }
 
         int ProcGet12()
         {
-            var v = table1.Get(1);
+            var v = demo.App.Instance.demo_Module1_Module1.Table1.Get(1);
             Assert.IsNotNull(v);
 
             Assert.IsTrue(v.Int1 == 1);
@@ -229,8 +232,8 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Bean12.Int1 == 12);
             Assert.IsTrue(v.Byte13 == 13);
 
-            table1.Remove(1);
-            Assert.IsNull(table1.Get(1));
+            demo.App.Instance.demo_Module1_Module1.Table1.Remove(1);
+            Assert.IsNull(demo.App.Instance.demo_Module1_Module1.Table1.Get(1));
             return Procedure.Success;
         }
     }

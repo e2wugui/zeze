@@ -55,7 +55,7 @@ namespace Zeze.Transaction
 
 		public bool TryEnterReadLock(int millisecondsTimeout)
         {
-			return rwLock.TryEnterUpgradeableReadLock(millisecondsTimeout);
+			return rwLock.TryEnterReadLock(millisecondsTimeout);
         }
 
 		public bool TryEnterWriteLock(int millisecondsTimeout)

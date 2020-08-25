@@ -161,11 +161,8 @@ namespace Zeze.Transaction
 
         internal override void Close()
         {
-            if (null != Storage)
-            {
-                Storage.Close();
-                Storage = null;
-            }
+            Storage?.Close();
+            Storage = null;
         }
 
         // Key 都是简单变量，系列化方法都不一样，需要生成。

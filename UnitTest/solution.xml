@@ -41,8 +41,8 @@
 		<protocol name="Protocol3" id="3" argument="demo.Module2.Value" handle="server,client"/>
 
 		<!-- 配置移到其他地方 cache="1024" persistence="MEMORY" -->
-		<table name="Table1" key="long" value="Value" memory="true"/>
-		<table name="Table2" key="Key" value="Value" memory="true"/>
+		<table name="Table1" key="long" value="Value" memory="false"/>
+		<table name="Table2" key="Key" value="Value" memory="false"/>
 
 		<module name="Module11" id="3">
 		</module>

@@ -18,6 +18,12 @@ namespace UnitTest.Zeze.Trans
             demo.App.Instance.Start();
         }
 
+        [TestCleanup]
+        public void TestCleanup()
+        {
+            demo.App.Instance.Stop();
+        }
+
         [TestMethod]
         public void TestConflictAdd()
         {
