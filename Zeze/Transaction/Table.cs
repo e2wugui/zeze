@@ -35,12 +35,7 @@ namespace Zeze.Transaction
         {
         }
 
-        public AutoKey AutoKey { get; private set;  }
-
-        public long NextKey()
-        {
-            return AutoKey.Next();
-        }
+        protected AutoKey AutoKey { get; private set;  }
 
         private Record<K, V> FindInCacheOrStorage(K key)
         {

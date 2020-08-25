@@ -10,14 +10,13 @@ namespace Zeze
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private Dictionary<string, Transaction.Table> tables = new Dictionary<string, Transaction.Table>();
-
         public Transaction.Database Database { get; private set; }
-        private List<Transaction.Storage> storages = new List<Transaction.Storage>();
         public Config Config { get; set; }
         public bool IsStart { get; private set; }
-
         internal TableSys TableSys { get; private set; }
+
+        private Dictionary<string, Transaction.Table> tables = new Dictionary<string, Transaction.Table>();
+        private List<Transaction.Storage> storages = new List<Transaction.Storage>();
 
         public void AddTable(Transaction.Table table)
         {

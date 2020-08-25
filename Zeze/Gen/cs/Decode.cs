@@ -25,7 +25,7 @@ namespace Zeze.Gen.cs
 
             foreach (Types.Variable v in bean.Variables)
             {
-                v.VariableType.Accept(new Decode(v.NamePrivate, v.Id, "_os_", sw, prefix + "            "));
+                v.VariableType.Accept(new Decode(v.NameUpper1, v.Id, "_os_", sw, prefix + "            "));
             }
 
             sw.WriteLine(prefix + "            default:");
@@ -199,7 +199,9 @@ namespace Zeze.Gen.cs
         private void DecodeCollection(TypeCollection type)
         {
             Types.Type valuetype = type.ValueType;
+
             sw.WriteLine(prefix + "    _os_.ReadInt(); // skip collection bytes.size");
+            sw.WriteLine(prefix + "    " + varname + ".Clear();");
             sw.WriteLine(prefix + "    for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)");
             sw.WriteLine(prefix + "    {");
             valuetype.Accept(new Define("_v_", sw, prefix + "        "));
@@ -238,6 +240,7 @@ namespace Zeze.Gen.cs
 
             sw.WriteLine(prefix + "case (Helper.MAP | " + id + " << Helper.TAG_SHIFT):");
             sw.WriteLine(prefix + "    _os_.ReadInt(); // skip map bytes.size");
+            sw.WriteLine(prefix + "    " + varname + ".Clear();");
             sw.WriteLine(prefix + "    for (int size = _os_.ReadInt(); size > 0; --size)");
             sw.WriteLine(prefix + "    {");
             keytype.Accept(new Define("_k_", sw, prefix + "        "));

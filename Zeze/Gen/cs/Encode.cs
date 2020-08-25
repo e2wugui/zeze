@@ -21,7 +21,7 @@ namespace Zeze.Gen.cs
 
             foreach (Types.Variable v in bean.Variables)
             {
-                v.VariableType.Accept(new Encode(v.NamePrivate, v.Id, "_os_", sw, prefix + "    "));
+                v.VariableType.Accept(new Encode(v.NameUpper1, v.Id, "_os_", sw, prefix + "    "));
             }
 
             sw.WriteLine(prefix + "}");
