@@ -150,7 +150,10 @@ namespace Zeze.Transaction
 
         internal TableCache<K, V> Cache { get; private set; }
 
-        internal Storage<K, V> Storage { get; private set; }
+        /// <summary>
+        /// 开放出去仅仅为了测试。
+        /// </summary>
+        public Storage<K, V> Storage { get; private set; }
 
         internal override Storage Open(Zeze zeze, Database database)
         {
