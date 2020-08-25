@@ -42,6 +42,20 @@ namespace Zeze.Transaction
         private ConcurrentDictionary<K, Record<K, V>> snapshot = new ConcurrentDictionary<K, Record<K, V>>();
         private System.Threading.ReaderWriterLockSlim snapshotLock = new System.Threading.ReaderWriterLockSlim();
 
+        internal void OnRecordChanged(Record<K, V> r)
+        {
+            changed[r.Key] = r;
+        }
+
+        internal bool IsRecordChanged(K key)
+        {
+            if (changed.TryGetValue(key, out var _))
+                return true;
+            if (encoded.TryGetValue(key, out var _))
+                return true;
+            return false;
+        }
+
         /// <summary>
         /// 仅在 Checkpoint 中调用，同时只有一个线程执行。
         /// 没有得到任何锁。
@@ -49,21 +63,13 @@ namespace Zeze.Transaction
         /// <returns></returns>
         public int EncodeN()
         {
-            HashSet<K> removed = new HashSet<K>();
-            // TODO TryEncodeN 里面锁定时：执行 remove,和 encoded.put。
+            int c = 0;
             foreach (var e in changed)
             {
-                if (e.Value.TryEncodeN())
-                {
-                    encoded[e.Key] = e.Value;
-                    removed.Add(e.Key);
-                }
+                if (e.Value.TryEncodeN(changed, encoded))
+                    ++c;
             }
-            foreach (var e in removed)
-            {
-                changed.TryRemove(e, out var notused);
-            }
-            return removed.Count;
+            return c;
         }
 
         /// <summary>

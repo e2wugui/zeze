@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
+using System.Collections.Concurrent;
 
 namespace Zeze.Transaction
 {
@@ -46,12 +47,13 @@ namespace Zeze.Transaction
                 Value = accessed.CommittedPutLog.Value;
             }
             Timestamp = NextTimestamp;
+            Table.Storage?.OnRecordChanged(this);
         }
 
         private ByteBuffer snapshotKey;
         private ByteBuffer snapshotValue;
 
-        internal bool TryEncodeN()
+        internal bool TryEncodeN(ConcurrentDictionary<K, Record<K, V>> changed, ConcurrentDictionary<K, Record<K, V>> encoded)
         {
             Lockey lockey = Locks.Instance.Get(new TableKey(Table.Id, Key));
             if (false == lockey.TryEnterReadLock(0))
@@ -59,12 +61,14 @@ namespace Zeze.Transaction
             try
             {
                 Encode0();
+                encoded[Key] = this;
+                changed.TryRemove(Key, out var _);
+                return true;
             }
             finally
             {
                 lockey.ExitReadLock();
             }
-            return true;
         }
 
         internal void Encode0()

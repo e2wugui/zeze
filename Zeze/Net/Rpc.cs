@@ -55,7 +55,7 @@ namespace Zeze.Net
                     if (0 == r)
                     {
                         IsRequest = false;
-                        base.Send(Sender); // TODO 如果客户端不是直接连接，而是通过代理包装转发，不能这样直接发送结果。
+                        base.Send(Sender); // TODO 如果不是直接连接，而是通过代理包装转发，不能这样直接发送结果。
                     }
                     return r;
                 }

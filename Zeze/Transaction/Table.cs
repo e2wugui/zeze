@@ -32,19 +32,19 @@ namespace Zeze.Transaction
     {
         public Table(string name) : base(name)
         {
-            cache = new TableCache<K, V>(this);
+            Cache = new TableCache<K, V>(this);
         }
 
         private Record<K, V> FindInCacheOrStorage(K key)
         {
-            Record<K, V> r = cache.Get(key);
+            Record<K, V> r = Cache.Get(key);
             if (null != r)
                 return r;
 
             // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
-            V value = (null != storage) ? storage.Find(key, this) : null;
+            V value = (null != Storage) ? Storage.Find(key, this) : null;
             // cache 加入时也可能存在，此时返回已经存在的。
-            return cache.GetOrAdd(key, new Record<K, V>(this, key, value));
+            return Cache.GetOrAdd(key, new Record<K, V>(this, key, value));
         }
 
         public V Get(K key)
@@ -146,24 +146,25 @@ namespace Zeze.Transaction
             currentT.AddRecordAccessed(tkey, cr);
         }
 
-        private TableCache<K, V> cache;
-        private Storage<K, V> storage;
+        internal TableCache<K, V> Cache { get; private set; }
+
+        internal Storage<K, V> Storage { get; private set; }
 
         internal override Storage Open(Zeze zeze, Database database)
         {
-            if (null != storage)
+            if (null != Storage)
                 throw new Exception("table has opened." + Name);
 
-            storage = IsMemory ? null : new Storage<K, V>(this, database, Name);
-            return storage;
+            Storage = IsMemory ? null : new Storage<K, V>(this, database, Name);
+            return Storage;
         }
 
         internal override void Close()
         {
-            if (null != storage)
+            if (null != Storage)
             {
-                storage.Close();
-                storage = null;
+                Storage.Close();
+                Storage = null;
             }
         }
 

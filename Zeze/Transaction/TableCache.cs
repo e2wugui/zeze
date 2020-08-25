@@ -43,7 +43,7 @@ namespace Zeze.Transaction
             return exist;
         }
 
-        // TODO 考虑不再提供单个删除，由 Cleaner 集中清理。
+        // 考虑不再提供单个删除，由 Cleaner 集中清理。
         /*
         public void Remove(K key)
         {
@@ -88,6 +88,17 @@ namespace Zeze.Transaction
             }
         }
 
+        // under lock
+        private bool Remove(KeyValuePair<K, Record<K, V>> p)
+        {
+            if (map.TryRemove(p.Key, out var _))
+            {
+                p.Value.IsInCache = false;
+                return true;
+            }
+            return false;
+        }
+
         private bool TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)
         {
             TableKey tkey = new TableKey(this.Table.Id, p.Key);
@@ -98,13 +109,14 @@ namespace Zeze.Transaction
             }
             try
             {
-                // TODO 判断 storage 中是否脏数据
+                var storage = Table.Storage;
+                if (null == storage)
+                    return Remove(p);
 
-                if (map.TryRemove(p.Key, out var notused))
-                {
-                    p.Value.IsInCache = false;
-                }
-                // else ????
+                if (storage.IsRecordChanged(p.Key)) // 在记录里面维持一个 Dirty 标志是可行的，但是由于 Cache.CleanNow 执行的不频繁，无所谓了。
+                    return false;
+
+                return Remove(p);
             }
             finally
             {

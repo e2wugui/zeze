@@ -117,7 +117,7 @@ namespace Zeze.Transaction.Collections
             {
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
-                // TODO equals 处有box，能否优化掉？
+                // equals 处有box，能否优化掉？
                 if (oldv.TryGetValue(item.Key, out var olde) && olde.Equals(item.Value))
                 {
                     var newv = oldv.Remove(item.Key);
@@ -131,7 +131,7 @@ namespace Zeze.Transaction.Collections
             }
             else
             {
-                // TODO equals处有box
+                // equals处有box
                 if (map.TryGetValue(item.Key, out var oldv) && oldv.Equals(item.Value))
                 {
                     map = map.Remove(item.Key);
