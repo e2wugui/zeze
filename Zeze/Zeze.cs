@@ -14,6 +14,7 @@ namespace Zeze
         public Transaction.Database Database { get; private set; }
         private List<Transaction.Storage> storages = new List<Transaction.Storage>();
         public Config Config { get; set; }
+        public bool IsStart { get; private set; }
 
         public void AddTable(Transaction.Table table)
         {
@@ -33,8 +34,10 @@ namespace Zeze
         {
             lock (this)
             {
-                if (null != Database)
+                if (IsStart)
                     return;
+
+                IsStart = true;
 
                 if (null == Config)
                     Config = Config.Load();
@@ -57,6 +60,8 @@ namespace Zeze
                     if (null != storage)
                         storages.Add(storage);
                 }
+
+                Util.Scheduler.Instance.Schedule(Checkpoint, Config.CheckpointPeriod, Config.CheckpointPeriod);
             }
         }
 
@@ -68,7 +73,7 @@ namespace Zeze
 
             lock (this)
             {
-
+                IsStart = false;
                 foreach (Transaction.Table table in tables.Values)
                 {
                     table.Close();
@@ -84,6 +89,9 @@ namespace Zeze
         {
             lock (this)
             {
+                if (false == IsStart)
+                    return;
+
                 // try Encode. 可以多趟。
                 for (int i = 1; i <= 1; ++i)
                 {
