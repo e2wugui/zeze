@@ -21,6 +21,14 @@ namespace Zeze.Transaction
     /// </summary>
     public abstract class Database
     {
+        private Dictionary<string, Zeze.Transaction.Table> tables = new Dictionary<string, Transaction.Table>();
+        private List<Transaction.Storage> storages = new List<Transaction.Storage>();
+
+        public void AddTable(Zeze.Transaction.Table table)
+        {
+            tables.Add(table.Name, table);
+        }
+
         // 下面的代码是多数据库一起提交的大概实现。
         // 目前Storage没有交给Database管理，所以下面代码还不能工作。
         // see Zeze.cs。实现这个还需要考虑 Close Database 。

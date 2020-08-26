@@ -10,26 +10,19 @@ namespace Zeze
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public Transaction.Database Database { get; private set; }
+        public Dictionary<string, Transaction.Database> Databases { get; private set; } = new Dictionary<string, Transaction.Database>();
         public Config Config { get; set; }
         public bool IsStart { get; private set; }
         internal TableSys TableSys { get; private set; }
 
-        private Dictionary<string, Transaction.Table> tables = new Dictionary<string, Transaction.Table>();
-        private List<Transaction.Storage> storages = new List<Transaction.Storage>();
-
-        public void AddTable(Transaction.Table table)
+        public void AddTable(string dbName, Transaction.Table table)
         {
-            tables.Add(table.Name, table);
-        }
-
-        public Transaction.Table GetTable(string name)
-        {
-            if (tables.TryGetValue(name, out var table))
+            if (Databases.TryGetValue(dbName, out var db))
             {
-                return table;
+                db.AddTable(table);
+                return;
             }
-            return null;
+            throw new Exception($"database not found dbName={dbName}");
         }
 
         public void Start()
@@ -47,23 +40,23 @@ namespace Zeze
                 switch (Config.DatabaseType)
                 {
                     case Config.DbType.Memory:
-                        Database = new DatabaseMemory();
+                        Databases = new DatabaseMemory();
                         break;
                     case Config.DbType.MySql:
-                        Database = new DatabaseMySql(Config.DatabaseUrl);
+                        Databases = new DatabaseMySql(Config.DatabaseUrl);
                         break;
                     case Config.DbType.SqlServer:
-                        Database = new DatabaseSqlServer(Config.DatabaseUrl);
+                        Databases = new DatabaseSqlServer(Config.DatabaseUrl);
                         break;
                     default:
                         throw new Exception("unknown database type.");
                 }
                 // 由于 AutoKey，TableSys需要先打开。
                 TableSys = new TableSys();
-                storages.Add(TableSys.Open(this, Database));
+                storages.Add(TableSys.Open(this, Databases));
                 foreach (Transaction.Table table in tables.Values)
                 {
-                    Transaction.Storage storage = table.Open(this, Database);
+                    Transaction.Storage storage = table.Open(this, Databases);
                     if (null != storage)
                         storages.Add(storage);
                 }
@@ -93,9 +86,9 @@ namespace Zeze
                 }
                 tables.Clear();
                 storages.Clear();
-                Database.Close();
+                Databases.Close();
                 TableSys = null;
-                Database = null;
+                Databases = null;
             }
         }
 
@@ -141,7 +134,7 @@ namespace Zeze
                 }
 
                 // flush checkpoint
-                Database.Checkpoint(() =>
+                Databases.Checkpoint(() =>
                 {
                     int countFlush = 0;
                     foreach (Transaction.Storage storage in storages)
