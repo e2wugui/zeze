@@ -47,7 +47,7 @@ namespace Zeze.Transaction
         {
             try
             {
-                while (true)
+                for (int i = 0; i < 50; ++i)
                 {
                     using MySqlConnection connection = new MySqlConnection(ConnectionString);
                     CheckpointSqlConnection = connection;
@@ -65,6 +65,8 @@ namespace Zeze.Transaction
                         logger.Warn(ex, "Checkpoint error.");
                     }
                 }
+                logger.Fatal("Checkpoint too many try.");
+                Environment.Exit(54321);
             }
             finally
             {
@@ -94,7 +96,8 @@ namespace Zeze.Transaction
 
                 using MySqlConnection connection = new MySqlConnection();
                 connection.Open();
-                string sql = "CREATE TABLE IF NOT EXISTS " + Name + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value MEDIUMBLOB NOT NULL)ENGINE=INNODB";
+                string sql = "CREATE TABLE IF NOT EXISTS " + Name
+                    + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value MEDIUMBLOB NOT NULL)ENGINE=INNODB";
                 MySqlCommand cmd = new MySqlCommand(sql, connection);
                 cmd.ExecuteNonQuery();
             }
@@ -111,8 +114,7 @@ namespace Zeze.Transaction
                 string sql = "SELECT value FROM " + Name + " WHERE id = @ID";
                 // 是否可以重用 SqlCommand
                 MySqlCommand cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767);
-                cmd.Parameters["@ID"].Value = key.Copy();
+                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Prepare();
 
                 using (MySqlDataReader reader = cmd.ExecuteReader())
@@ -130,8 +132,7 @@ namespace Zeze.Transaction
             {
                 string sql = "DELETE FROM " + Name + " WHERE id=@ID";
                 MySqlCommand cmd = new MySqlCommand(sql, Database.CheckpointSqlConnection, Database.Transaction);
-                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767);
-                cmd.Parameters["@ID"].Value = key.Copy();
+                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
             }
@@ -140,10 +141,8 @@ namespace Zeze.Transaction
             {
                 string sql = "REPLACE INTO " + Name + " values(@ID,@VALUE)";
                 MySqlCommand cmd = new MySqlCommand(sql, Database.CheckpointSqlConnection, Database.Transaction);
-                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767);
-                cmd.Parameters["@ID"].Value = key.Copy();
-                cmd.Parameters.Add("@VALUE", MySqlDbType.VarBinary, int.MaxValue);
-                cmd.Parameters["@VALUE"].Value = value.Copy();
+                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@VALUE", MySqlDbType.VarBinary, int.MaxValue).Value = value.Copy();
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
             }
@@ -188,7 +187,7 @@ namespace Zeze.Transaction
         {
             try
             {
-                while (true)
+                for (int i = 0; i < 50; ++i)
                 {
                     using SqlConnection connection = new SqlConnection(ConnectionString);
                     CheckpointSqlConnection = connection;
@@ -206,6 +205,8 @@ namespace Zeze.Transaction
                         logger.Warn(ex, "Checkpoint error.");
                     }
                 }
+                logger.Fatal("Checkpoint too many try.");
+                Environment.Exit(54321);
             }
             finally
             {
@@ -256,8 +257,7 @@ namespace Zeze.Transaction
 
                 // 是否可以重用 SqlCommand
                 SqlCommand cmd = new SqlCommand(sql, connection);
-                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767);
-                cmd.Parameters["@ID"].Value = key.Copy();
+                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Prepare();
 
                 using (SqlDataReader reader = cmd.ExecuteReader())
@@ -275,8 +275,7 @@ namespace Zeze.Transaction
             {
                 string sql = "DELETE FROM " + Name + " WHERE id=@ID";
                 SqlCommand cmd = new SqlCommand(sql, Database.CheckpointSqlConnection, Database.Transaction);
-                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767);
-                cmd.Parameters["@ID"].Value = key.Copy();
+                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
             }
@@ -287,10 +286,8 @@ namespace Zeze.Transaction
                     + " if @@rowcount = 0 and @@error = 0 insert into " + Name + " values(@ID,@VALUE)";
 
                 SqlCommand cmd = new SqlCommand(sql, Database.CheckpointSqlConnection, Database.Transaction);
-                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767);
-                cmd.Parameters["@ID"].Value = key.Copy();
-                cmd.Parameters.Add("@VALUE", System.Data.SqlDbType.VarBinary, int.MaxValue);
-                cmd.Parameters["@VALUE"].Value = value.Copy();
+                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@VALUE", System.Data.SqlDbType.VarBinary, int.MaxValue).Value = value.Copy();
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
             }
