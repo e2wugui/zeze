@@ -36,7 +36,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public static App Instance { get; } = new App();");
             sw.WriteLine("");
 
-            sw.WriteLine("        public Zeze.Zeze Zeze { get; private set; }");
+            sw.WriteLine("        public Zeze.Application Zeze { get; private set; }");
             sw.WriteLine("");
 
             foreach (Module m in project.AllModules)
@@ -51,14 +51,14 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("");
             }
 
-            sw.WriteLine("        public void StartModules()");
+            sw.WriteLine("        public void StartModules(Zeze.Config config = null)");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
             sw.WriteLine("                if (null != Zeze)");
             sw.WriteLine("                    return;");
             sw.WriteLine("");
-            sw.WriteLine("                Zeze = new Zeze.Zeze();");
+            sw.WriteLine("                Zeze = new Zeze.Application(config);");
             foreach (Module m in project.AllModules)
             {
                 sw.WriteLine("                " + m.Path("_", m.Name) + " = new " + m.Path(".", m.Name) + "(this);");

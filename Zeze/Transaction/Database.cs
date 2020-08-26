@@ -25,6 +25,12 @@ namespace Zeze.Transaction
 
         private Dictionary<string, Zeze.Transaction.Table> tables = new Dictionary<string, Zeze.Transaction.Table>();
         internal List<Storage> storages = new List<Storage>();
+        public string DatabaseUrl { get; }
+
+        public Database(string url)
+        {
+            DatabaseUrl = url;
+        }
 
         public void AddTable(Zeze.Transaction.Table table)
         {
@@ -51,7 +57,7 @@ namespace Zeze.Transaction
             storages.Clear();
         }
 
-        public void Checkpoint()
+        internal void Checkpoint(Checkpoint sync)
         {
             // try Encode. 可以多趟。
             for (int i = 1; i <= 1; ++i)
@@ -88,7 +94,7 @@ namespace Zeze.Transaction
             }
 
             // flush checkpoint
-            Checkpoint(() =>
+            Checkpoint(sync, () =>
             {
                 int countFlush = 0;
                 foreach (Storage storage in storages)
@@ -106,49 +112,9 @@ namespace Zeze.Transaction
             }
         }
 
-    // 下面的代码是多数据库一起提交的大概实现。
-    // 目前Storage没有交给Database管理，所以下面代码还不能工作。
-    // see Zeze.cs。实现这个还需要考虑 Close Database 。
-    // 这个伪码存在应用接口不明确的问题。
-    // 另一个实现方案是，提供Checkpoint类，把所有Database加入。一起Checkpoint。
-    // 需要重构代码，把 Storage 管理交给 Database，暴露 Database 出去。让应用决定一起提交哪几个Database。
-    /*
-    private static HashSet<Database> Databases = new HashSet<Database>();
-    private ManualResetEvent _readyToCommit = new ManualResetEvent(false);
-    public Database()
-    {
-        lock (Databases)
-        {
-            Databases.Add(this);
-        }
-    }
+        internal ManualResetEvent Ready { get; } = new ManualResetEvent(false);
 
-    private static void WaitAllCommitReady()
-    {
-        ManualResetEvent[] handles = new ManualResetEvent[Databases.Count];
-
-        int i = 0;
-        foreach (var v in Databases)
-        {
-            handles[i++] = v._readyToCommit;
-        }
-
-        WaitHandle.WaitAll(handles);
-        // howto safe reset events.
-        foreach (var v in handles)
-        {
-            v.Reset();
-        }
-    }
-
-    protected void SetCommitReadyAndWaitAll()
-    {
-        _readyToCommit.Set();
-        WaitAllCommitReady();
-    }
-    */
-
-        public abstract void Checkpoint(Action flushAction);
+        public abstract void Checkpoint(Checkpoint sync, Action flushAction);
         public abstract Database.Table OpenTable(string name);
 
         public interface Table
@@ -170,28 +136,31 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public string ConnectionString { get; }
         internal MySqlConnection CheckpointSqlConnection { get; private set; }
         internal MySqlTransaction Transaction { get; private set; }
 
-        public DatabaseMySql(string connectionString)
+        public DatabaseMySql(string url) : base(url)
         {
-            ConnectionString = connectionString;
         }
 
-        public override void Checkpoint(Action flushAction)
+        public override void Checkpoint(Checkpoint sync, Action flushAction)
         {
             try
             {
                 for (int i = 0; i < 50; ++i)
                 {
-                    using MySqlConnection connection = new MySqlConnection(ConnectionString);
+                    using MySqlConnection connection = new MySqlConnection(DatabaseUrl);
                     CheckpointSqlConnection = connection;
                     connection.Open();
                     Transaction = connection.BeginTransaction();
                     try
                     {
                         flushAction();
+                        if (null != sync) // null for test
+                        {
+                            Ready.Set();
+                            sync.WaitAll();
+                        }
                         Transaction.Commit();
                         return;
                     }
@@ -240,7 +209,7 @@ namespace Zeze.Transaction
 
             public ByteBuffer Find(ByteBuffer key)
             {
-                using MySqlConnection connection = new MySqlConnection(Database.ConnectionString);
+                using MySqlConnection connection = new MySqlConnection(Database.DatabaseUrl);
                 connection.Open();
 
                 string sql = "SELECT value FROM " + Name + " WHERE id = @ID";
@@ -281,7 +250,7 @@ namespace Zeze.Transaction
 
             public void Walk(Database.Table.IWalk iw)
             {
-                using MySqlConnection connection = new MySqlConnection(Database.ConnectionString);
+                using MySqlConnection connection = new MySqlConnection(Database.DatabaseUrl);
                 connection.Open();
 
                 string sql = "SELECT id,value FROM " + Name;
@@ -306,28 +275,31 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public string ConnectionString { get; }
         internal SqlConnection CheckpointSqlConnection { get; private set; }
         internal SqlTransaction Transaction { get; private set; }
 
-        public DatabaseSqlServer(string connectionString)
+        public DatabaseSqlServer(string url) : base(url)
         {
-            ConnectionString = connectionString;
         }
 
-        public override void Checkpoint(Action flushAction)
+        public override void Checkpoint(Checkpoint sync, Action flushAction)
         {
             try
             {
                 for (int i = 0; i < 50; ++i)
                 {
-                    using SqlConnection connection = new SqlConnection(ConnectionString);
+                    using SqlConnection connection = new SqlConnection(DatabaseUrl);
                     CheckpointSqlConnection = connection;
                     connection.Open();
                     Transaction = connection.BeginTransaction();
                     try
                     {
                         flushAction();
+                        if (null != sync) // null for test
+                        {
+                            Ready.Set();
+                            sync.WaitAll();
+                        }
                         Transaction.Commit();
                         return;
                     }
@@ -362,7 +334,7 @@ namespace Zeze.Transaction
                 Database = database;
                 Name = name;
 
-                using SqlConnection connection = new SqlConnection(Database.ConnectionString);
+                using SqlConnection connection = new SqlConnection(Database.DatabaseUrl);
                 connection.Open();
 
                 string sql = "if not exists (select * from sysobjects where name='" + Name
@@ -378,7 +350,7 @@ namespace Zeze.Transaction
 
             public ByteBuffer Find(ByteBuffer key)
             {
-                using SqlConnection connection = new SqlConnection(Database.ConnectionString);
+                using SqlConnection connection = new SqlConnection(Database.DatabaseUrl);
                 connection.Open();
 
                 string sql = "SELECT value FROM " + Name + " WHERE id = @ID";
@@ -422,7 +394,7 @@ namespace Zeze.Transaction
 
             public void Walk(Database.Table.IWalk iw)
             {
-                using SqlConnection connection = new SqlConnection(Database.ConnectionString);
+                using SqlConnection connection = new SqlConnection(Database.DatabaseUrl);
                 connection.Open();
 
                 string sql = "SELECT id,value FROM " + Name;
@@ -448,9 +420,19 @@ namespace Zeze.Transaction
     /// </summary>
     public class DatabaseMemory : Database
     {
-        public override void Checkpoint(Action flushAction)
+        public DatabaseMemory() : base("")
+        {
+
+        }
+
+        public override void Checkpoint(Checkpoint sync, Action flushAction)
         {
             flushAction();
+            if (null != sync) // null for test
+            {
+                Ready.Set();
+                sync.WaitAll();
+            }
         }
 
         public override Database.Table OpenTable(string name)

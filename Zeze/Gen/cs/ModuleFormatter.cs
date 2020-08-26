@@ -45,7 +45,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             foreach (Table table in module.Tables.Values)
             {
-                sw.WriteLine("            app.Zeze.AddTable(_" + table.Name + ");");
+                sw.WriteLine($"            app.Zeze.AddTable(\"{table.DatabaseName}\", _{table.Name});");
             }
             sw.WriteLine("        }");
             sw.WriteLine("    }");

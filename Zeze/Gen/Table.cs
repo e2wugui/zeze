@@ -13,6 +13,7 @@ namespace Zeze.Gen
         public string Value { get; }
         public bool IsMemory { get; }
         public bool IsAutoKey { get; }
+        public string DatabaseName { get; }
 
         // setup in compile
         public Types.Type KeyType { get; private set; }
@@ -30,6 +31,7 @@ namespace Zeze.Gen
             IsMemory = attr.Length > 0 ? bool.Parse(attr) : false;
             attr = self.GetAttribute("autokey");
             IsAutoKey = attr.Length > 0 ? bool.Parse(attr) : false;
+            DatabaseName = self.GetAttribute("DatabaseName");
         }
 
         public void Compile()

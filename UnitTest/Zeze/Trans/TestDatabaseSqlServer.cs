@@ -16,7 +16,7 @@ namespace UnitTest.Zeze.Trans
             string url = "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true";
             DatabaseSqlServer sqlserver = new DatabaseSqlServer(url);
             Database.Table table = sqlserver.OpenTable("test1");
-            sqlserver.Checkpoint(() =>
+            sqlserver.Checkpoint(null, () =>
             {
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
@@ -33,7 +33,7 @@ namespace UnitTest.Zeze.Trans
             Walker walker = new Walker();
             table.Walk(walker);
             Assert.AreEqual(0, walker.count);
-            sqlserver.Checkpoint(() =>
+            sqlserver.Checkpoint(null, () =>
             {
                 {
                     ByteBuffer key = ByteBuffer.Allocate();

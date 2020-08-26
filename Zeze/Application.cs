@@ -11,10 +11,18 @@ namespace Zeze
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public Dictionary<string, Transaction.Database> Databases { get; private set; } = new Dictionary<string, Transaction.Database>();
-        public Config Config { get; set; }
+        public Config Config { get; }
         public bool IsStart { get; private set; }
         internal TableSys TableSys { get; private set; }
         private Util.SchedulerTask checkpointTask;
+
+        public Application(Config config = null)
+        {
+            Config = config;
+            if (null == Config)
+                Config = Config.Load();
+            Config.CreateDatabase(Databases);
+        }
 
         public void AddTable(string dbName, Transaction.Table table)
         {
@@ -24,16 +32,6 @@ namespace Zeze
                 return;
             }
             throw new Exception($"database not found dbName={dbName}");
-        }
-
-        public void CreateDatabase()
-        {
-            lock (this)
-            {
-                if (null == Config)
-                    Config = Config.Load();
-                Config.CreateDatabase(Databases);
-            }
         }
 
         public Database GetDatabase(string name)
@@ -96,10 +94,7 @@ namespace Zeze
 
         public void Checkpoint()
         {
-            lock (this)
-            {
-                // TODO
-            }
+            Transaction.Checkpoint.Instance.Reset().Add(Databases.Values).Run();
         }
 
         public Application()

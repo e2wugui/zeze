@@ -127,7 +127,6 @@ namespace Zeze.Transaction
             {
                 lockey.ExitWriteLock();
             }
-            return false;
         }
 
         class AccessTimeRecord : System.IComparable<AccessTimeRecord>
