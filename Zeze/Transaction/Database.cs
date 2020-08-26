@@ -13,11 +13,6 @@ namespace Zeze.Transaction
     /// <summary>
     /// 数据访问的效率主要来自TableCache的命中。根据以往的经验，命中率是很高的。
     /// 所以数据库层就不要求很高的效率。马马虎虎就可以了。
-    /// 考虑：
-    /// 1 单个Zeze实例多数据库支持，一张表只能在一个数据库，但是不同的表可以在不同的数据库。
-    /// 2 多Zeze实例支持，每个实例的表都是一样的，但是连接不同的数据库。
-    /// 3 Checkpoint 时每个数据库一个Event，Commit前设置自己Event.Ready。
-    ///   然后等待所有Event.Ready。最后一起Commit。
     /// </summary>
     public abstract class Database
     {
@@ -147,7 +142,7 @@ namespace Zeze.Transaction
         {
             try
             {
-                for (int i = 0; i < 50; ++i)
+                for (int i = 0; i < 60; ++i)
                 {
                     using MySqlConnection connection = new MySqlConnection(DatabaseUrl);
                     CheckpointSqlConnection = connection;
@@ -166,9 +161,11 @@ namespace Zeze.Transaction
                     }
                     catch (Exception ex)
                     {
+                        Ready.Reset();
                         Transaction.Rollback();
                         logger.Warn(ex, "Checkpoint error.");
                     }
+                    Thread.Sleep(1000);
                 }
                 logger.Fatal("Checkpoint too many try.");
                 Environment.Exit(54321);
@@ -286,7 +283,7 @@ namespace Zeze.Transaction
         {
             try
             {
-                for (int i = 0; i < 50; ++i)
+                for (int i = 0; i < 60; ++i)
                 {
                     using SqlConnection connection = new SqlConnection(DatabaseUrl);
                     CheckpointSqlConnection = connection;
@@ -305,9 +302,11 @@ namespace Zeze.Transaction
                     }
                     catch (Exception ex)
                     {
+                        Ready.Reset();
                         Transaction.Rollback();
                         logger.Warn(ex, "Checkpoint error.");
                     }
+                    Thread.Sleep(1000);
                 }
                 logger.Fatal("Checkpoint too many try.");
                 Environment.Exit(54321);

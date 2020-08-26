@@ -94,7 +94,7 @@ namespace Zeze
 
         public void Checkpoint()
         {
-            Transaction.Checkpoint.Instance.Reset().Add(Databases.Values).Run();
+            new Checkpoint(Databases.Values).Run();
         }
 
         public Application()
