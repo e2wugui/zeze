@@ -47,13 +47,13 @@ namespace Zeze
                 switch (Config.DatabaseType)
                 {
                     case Config.DbType.Memory:
-                        Database = new Transaction.DatabaseMemory();
+                        Database = new DatabaseMemory();
                         break;
                     case Config.DbType.MySql:
                         Database = new DatabaseMySql(Config.DatabaseUrl);
                         break;
                     case Config.DbType.SqlServer:
-                        Database = new Transaction.DatabaseSqlServer(Config.DatabaseUrl);
+                        Database = new DatabaseSqlServer(Config.DatabaseUrl);
                         break;
                     default:
                         throw new Exception("unknown database type.");

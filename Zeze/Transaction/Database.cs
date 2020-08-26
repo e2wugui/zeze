@@ -6,14 +6,63 @@ using System.Collections.Concurrent;
 using System.Data.SqlClient;
 using MySql.Data.MySqlClient;
 using NLog;
+using System.Threading;
 
 namespace Zeze.Transaction
 {
-    public interface Database
+    /// <summary>
+    /// 数据访问的效率主要来自TableCache的命中。根据以往的经验，命中率是很高的。
+    /// 所以数据库层就不要求很高的效率。马马虎虎就可以了。
+    /// 考虑：
+    /// 1 单个Zeze实例多数据库支持，一张表只能在一个数据库，但是不同的表可以在不同的数据库。
+    /// 2 多Zeze实例支持，每个实例的表都是一样的，但是连接不同的数据库。
+    /// 3 Checkpoint 时每个数据库一个Event，Commit前设置自己Event.Ready。
+    ///   然后等待所有Event.Ready。最后一起Commit。
+    /// </summary>
+    public abstract class Database
     {
-        public void Close();
-        public void Checkpoint(Action flushAction);
-        public Database.Table OpenTable(string name);
+        // 下面的代码是多数据库一起提交的大概实现。
+        // 目前Storage没有交给Database管理，所以下面代码还不能工作。
+        // see Zeze.Checkpoint。
+        // 实现这个还需要考虑 Close Database 。
+        /*
+        private static HashSet<Database> Databases = new HashSet<Database>();
+        private ManualResetEvent _readyToCommit = new ManualResetEvent(false);
+        public Database()
+        {
+            lock (Databases)
+            {
+                Databases.Add(this);
+            }
+        }
+
+        private static void WaitAllCommitReady()
+        {
+            ManualResetEvent[] handles = new ManualResetEvent[Databases.Count];
+
+            int i = 0;
+            foreach (var v in Databases)
+            {
+                handles[i++] = v._readyToCommit;
+            }
+
+            WaitHandle.WaitAll(handles);
+            foreach (var v in handles)
+            {
+                v.Reset();
+            }
+        }
+
+        protected void SetCommitReadyAndWaitAll()
+        {
+            _readyToCommit.Set();
+            WaitAllCommitReady();
+        }
+        */
+
+        public abstract void Close();
+        public abstract void Checkpoint(Action flushAction);
+        public abstract Database.Table OpenTable(string name);
 
         public interface Table
         {
@@ -43,7 +92,7 @@ namespace Zeze.Transaction
             ConnectionString = connectionString;
         }
 
-        public void Checkpoint(Action flushAction)
+        public override void Checkpoint(Action flushAction)
         {
             try
             {
@@ -75,11 +124,11 @@ namespace Zeze.Transaction
             }
         }
 
-        public void Close()
+        public override void Close()
         {
         }
 
-        public Database.Table OpenTable(string name)
+        public override Database.Table OpenTable(string name)
         {
             return new TableMysql(this, name);
         }
@@ -183,7 +232,7 @@ namespace Zeze.Transaction
             ConnectionString = connectionString;
         }
 
-        public void Checkpoint(Action flushAction)
+        public override void Checkpoint(Action flushAction)
         {
             try
             {
@@ -215,11 +264,11 @@ namespace Zeze.Transaction
             }
         }
 
-        public void Close()
+        public override void Close()
         {
         }
 
-        public Database.Table OpenTable(string name)
+        public override Database.Table OpenTable(string name)
         {
             return new TableSqlServer(this, name);
         }
@@ -320,15 +369,15 @@ namespace Zeze.Transaction
     /// </summary>
     public class DatabaseMemory : Database
     {
-        public void Checkpoint(Action flushAction)
+        public override void Checkpoint(Action flushAction)
         {
             flushAction();
         }
 
-        public void Close()
+        public override void Close()
         {
         }
-        public Database.Table OpenTable(string name)
+        public override Database.Table OpenTable(string name)
         {
             return new TableMemory();
         }
