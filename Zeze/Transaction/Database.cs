@@ -23,8 +23,10 @@ namespace Zeze.Transaction
     {
         // 下面的代码是多数据库一起提交的大概实现。
         // 目前Storage没有交给Database管理，所以下面代码还不能工作。
-        // see Zeze.Checkpoint。
-        // 实现这个还需要考虑 Close Database 。
+        // see Zeze.cs。实现这个还需要考虑 Close Database 。
+        // 这个伪码存在应用接口不明确的问题。
+        // 另一个实现方案是，提供Checkpoint类，把所有Database加入。一起Checkpoint。
+        // 需要重构代码，把 Storage 管理交给 Database，暴露 Database 出去。让应用决定一起提交哪几个Database。
         /*
         private static HashSet<Database> Databases = new HashSet<Database>();
         private ManualResetEvent _readyToCommit = new ManualResetEvent(false);
@@ -47,6 +49,7 @@ namespace Zeze.Transaction
             }
 
             WaitHandle.WaitAll(handles);
+            // howto safe reset events.
             foreach (var v in handles)
             {
                 v.Reset();
