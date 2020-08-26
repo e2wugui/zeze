@@ -13,6 +13,7 @@ namespace Zeze
         {
             Memory,
             MySql,
+            SqlServer,
         }
 
         public DbType DatabaseType { get; set; } = DbType.Memory;
@@ -58,6 +59,7 @@ namespace Zeze
             {
                 case "Memory": DatabaseType = DbType.Memory; break;
                 case "MySql": DatabaseType = DbType.MySql; break;
+                case "SqlServer": DatabaseType = DbType.SqlServer; break;
                 default: throw new Exception("unknown database type.");
             }
 

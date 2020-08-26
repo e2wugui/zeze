@@ -103,6 +103,8 @@ namespace Zeze.Transaction
             {
                 throw new ArgumentException($"table:{GetType().FullName} insert key:{key} exists");
             }
+            if (key is long longkey)
+                AutoKey?.Accept(longkey);
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Id, key);
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
@@ -122,7 +124,8 @@ namespace Zeze.Transaction
                 cr.Put(currentT, value);
                 return;
             }
-
+            if (key is long longkey)
+                AutoKey?.Accept(longkey);
             Record<K, V> r = FindInCacheOrStorage(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, value);

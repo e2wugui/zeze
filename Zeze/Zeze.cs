@@ -50,7 +50,10 @@ namespace Zeze
                         Database = new Transaction.DatabaseMemory();
                         break;
                     case Config.DbType.MySql:
-                        // TODO add mysql
+                        Database = new DatabaseMySql(Config.DatabaseUrl);
+                        break;
+                    case Config.DbType.SqlServer:
+                        Database = new Transaction.DatabaseSqlServer(Config.DatabaseUrl);
                         break;
                     default:
                         throw new Exception("unknown database type.");
@@ -136,16 +139,24 @@ namespace Zeze
 
                     logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
                 }
-                // flush
-                // TODO 如果和真正的数据库连接断开，这里应该重做。
-                int countFlush = 0;
+
+                // flush checkpoint
+                Database.Checkpoint(() =>
+                {
+                    int countFlush = 0;
+                    foreach (Transaction.Storage storage in storages)
+                    {
+                        countFlush += storage.Flush();
+                    }
+                    logger.Info("Checkpoint Flush count={0}", countFlush);
+                }
+                );
+
+                // cleanup
                 foreach (Transaction.Storage storage in storages)
                 {
-                    countFlush += storage.Flush();
+                    storage.Cleanup();
                 }
-                logger.Info("Checkpoint Flush count={0}", countFlush);
-                // checkpoint
-                Database.Checkpoint();
             }
         }
 
