@@ -25,7 +25,7 @@ namespace Zeze.Transaction
         public virtual bool IsMemory => true;
         public virtual bool IsAutoKey => false;
 
-        internal abstract Storage Open(Zeze zeze, Database database);
+        internal abstract Storage Open(Application zeze, Database database);
         internal abstract void Close();
     }
 
@@ -158,7 +158,7 @@ namespace Zeze.Transaction
         /// </summary>
         public Storage<K, V> Storage { get; private set; }
 
-        internal override Storage Open(Zeze zeze, Database database)
+        internal override Storage Open(Application zeze, Database database)
         {
             if (null != Storage)
                 throw new Exception("table has opened." + Name);

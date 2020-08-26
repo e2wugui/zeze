@@ -21,57 +21,133 @@ namespace Zeze.Transaction
     /// </summary>
     public abstract class Database
     {
-        private Dictionary<string, Zeze.Transaction.Table> tables = new Dictionary<string, Transaction.Table>();
-        private List<Transaction.Storage> storages = new List<Transaction.Storage>();
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+        private Dictionary<string, Zeze.Transaction.Table> tables = new Dictionary<string, Zeze.Transaction.Table>();
+        internal List<Storage> storages = new List<Storage>();
 
         public void AddTable(Zeze.Transaction.Table table)
         {
             tables.Add(table.Name, table);
         }
 
-        // 下面的代码是多数据库一起提交的大概实现。
-        // 目前Storage没有交给Database管理，所以下面代码还不能工作。
-        // see Zeze.cs。实现这个还需要考虑 Close Database 。
-        // 这个伪码存在应用接口不明确的问题。
-        // 另一个实现方案是，提供Checkpoint类，把所有Database加入。一起Checkpoint。
-        // 需要重构代码，把 Storage 管理交给 Database，暴露 Database 出去。让应用决定一起提交哪几个Database。
-        /*
-        private static HashSet<Database> Databases = new HashSet<Database>();
-        private ManualResetEvent _readyToCommit = new ManualResetEvent(false);
-        public Database()
+        public void Open(Zeze.Application app)
         {
-            lock (Databases)
+            foreach (Zeze.Transaction.Table table in tables.Values)
             {
-                Databases.Add(this);
+                Storage storage = table.Open(app, this);
+                if (null != storage)
+                    storages.Add(storage);
             }
         }
 
-        private static void WaitAllCommitReady()
+        public /*virtual*/ void Close()
         {
-            ManualResetEvent[] handles = new ManualResetEvent[Databases.Count];
-
-            int i = 0;
-            foreach (var v in Databases)
+            foreach (Zeze.Transaction.Table table in tables.Values)
             {
-                handles[i++] = v._readyToCommit;
+                table.Close();
+            }
+            tables.Clear();
+            storages.Clear();
+        }
+
+        public void Checkpoint()
+        {
+            // try Encode. 可以多趟。
+            for (int i = 1; i <= 1; ++i)
+            {
+                int countEncodeN = 0;
+                foreach (Storage storage in storages)
+                {
+                    countEncodeN += storage.EncodeN();
+                }
+                logger.Info("Checkpoint EncodeN {0}/{1}", i, countEncodeN);
+            }
+            // snapshot
+            {
+                int countEncode0 = 0;
+                int countSnapshot = 0;
+                Transaction.FlushReadWriteLock.EnterWriteLock();
+                try
+                {
+                    foreach (Storage storage in storages)
+                    {
+                        countEncode0 += storage.Encode0();
+                    }
+                    foreach (Storage storage in storages)
+                    {
+                        countSnapshot += storage.Snapshot();
+                    }
+                }
+                finally
+                {
+                    Transaction.FlushReadWriteLock.ExitWriteLock();
+                }
+
+                logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
             }
 
-            WaitHandle.WaitAll(handles);
-            // howto safe reset events.
-            foreach (var v in handles)
+            // flush checkpoint
+            Checkpoint(() =>
             {
-                v.Reset();
+                int countFlush = 0;
+                foreach (Storage storage in storages)
+                {
+                    countFlush += storage.Flush();
+                }
+                logger.Info("Checkpoint Flush count={0}", countFlush);
+            }
+            );
+
+            // cleanup
+            foreach (Storage storage in storages)
+            {
+                storage.Cleanup();
             }
         }
 
-        protected void SetCommitReadyAndWaitAll()
+    // 下面的代码是多数据库一起提交的大概实现。
+    // 目前Storage没有交给Database管理，所以下面代码还不能工作。
+    // see Zeze.cs。实现这个还需要考虑 Close Database 。
+    // 这个伪码存在应用接口不明确的问题。
+    // 另一个实现方案是，提供Checkpoint类，把所有Database加入。一起Checkpoint。
+    // 需要重构代码，把 Storage 管理交给 Database，暴露 Database 出去。让应用决定一起提交哪几个Database。
+    /*
+    private static HashSet<Database> Databases = new HashSet<Database>();
+    private ManualResetEvent _readyToCommit = new ManualResetEvent(false);
+    public Database()
+    {
+        lock (Databases)
         {
-            _readyToCommit.Set();
-            WaitAllCommitReady();
+            Databases.Add(this);
         }
-        */
+    }
 
-        public abstract void Close();
+    private static void WaitAllCommitReady()
+    {
+        ManualResetEvent[] handles = new ManualResetEvent[Databases.Count];
+
+        int i = 0;
+        foreach (var v in Databases)
+        {
+            handles[i++] = v._readyToCommit;
+        }
+
+        WaitHandle.WaitAll(handles);
+        // howto safe reset events.
+        foreach (var v in handles)
+        {
+            v.Reset();
+        }
+    }
+
+    protected void SetCommitReadyAndWaitAll()
+    {
+        _readyToCommit.Set();
+        WaitAllCommitReady();
+    }
+    */
+
         public abstract void Checkpoint(Action flushAction);
         public abstract Database.Table OpenTable(string name);
 
@@ -133,10 +209,6 @@ namespace Zeze.Transaction
                 CheckpointSqlConnection = null;
                 Transaction = null;
             }
-        }
-
-        public override void Close()
-        {
         }
 
         public override Database.Table OpenTable(string name)
@@ -275,10 +347,6 @@ namespace Zeze.Transaction
             }
         }
 
-        public override void Close()
-        {
-        }
-
         public override Database.Table OpenTable(string name)
         {
             return new TableSqlServer(this, name);
@@ -385,9 +453,6 @@ namespace Zeze.Transaction
             flushAction();
         }
 
-        public override void Close()
-        {
-        }
         public override Database.Table OpenTable(string name)
         {
             return new TableMemory();

@@ -23,7 +23,7 @@ namespace Zeze.Transaction
 
         public AutoKeys AutoKeys => storage.AutoKeys;
 
-        internal override Storage Open(Zeze zeze, Database database)
+        internal override Storage Open(Application zeze, Database database)
         {
             if (null != storage)
                 throw new Exception("tablesys has opened");
@@ -38,7 +38,7 @@ namespace Zeze.Transaction
             private readonly ByteBuffer keyOfAutoKeys;
 		    private ByteBuffer snapshotValue = null;
 
-            internal StorageSys(Zeze zeze, Database database)
+            internal StorageSys(Application zeze, Database database)
             {
                 DatabaseTable = database.OpenTable("_sys_");
 

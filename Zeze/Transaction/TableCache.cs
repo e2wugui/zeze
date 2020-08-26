@@ -15,7 +15,7 @@ namespace Zeze.Transaction
 
         private readonly ConcurrentDictionary<K, Record<K, V>> map = new ConcurrentDictionary<K, Record<K, V>>();
 
-        public TableCache(Zeze zeze, Table<K, V> table)
+        public TableCache(Application zeze, Table<K, V> table)
         {
             this.Table = table;
             Config.TableConf tableConf = zeze.Config.GetTableConf(table.Name);

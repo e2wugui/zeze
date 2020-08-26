@@ -33,6 +33,28 @@ namespace Zeze
             return DefaultTableConf;
         }
 
+        private Transaction.Database CreateDatabase(DbType dbType)
+        {
+            switch (dbType)
+            {
+                case DbType.Memory:
+                    return new Transaction.DatabaseMemory();
+                case DbType.MySql:
+                    return new Transaction.DatabaseMySql(DatabaseUrl);
+                case DbType.SqlServer:
+                    return new Transaction.DatabaseSqlServer(DatabaseUrl);
+                default:
+                    throw new Exception("unknown database type.");
+            }
+        }
+
+        public void CreateDatabase(Dictionary<string, Transaction.Database> map)
+        {
+            // add default database
+            map.Add("", CreateDatabase(DatabaseType));
+            // 多数据库在后面初始化。
+        }
+
         public static Config Load(string xmlfile = null)
         {
             if (null == xmlfile)
