@@ -11,7 +11,7 @@ namespace Zeze.Transaction
     {
         private HashSet<Database> dbs = new HashSet<Database>();
 
-        private static object checkpointLock = new object(); // Checkpoint 仅有一份在运行。先这样吧。
+        private static object checkpointLock = new object(); // 限制 Checkpoint 仅有一份在运行。先这样吧。
 
         public Checkpoint()
         {

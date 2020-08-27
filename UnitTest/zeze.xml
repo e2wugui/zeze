@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<zeze DatabaseType="Memory" DatabaseUrl=""
+<zeze DatabaseType="SqlServer" DatabaseUrl="Server=(localdb)\MSSQLLocalDB;Integrated Security=true"
 	CheckpointPeriod="60000"
 	AutoKeyLocalId="0" AutoKeyLocalStep="4096"
 	>
-	<TableConf CacheCapaicty="20000"/> <!-- ²»Ö¸¶¨Ãû×Ö£¬±íÊ¾Ä¬ÈÏµÄ TableConf -->
+	<TableConf CacheCapaicty="20000"/> <!-- ä¸æŒ‡å®šåå­—ï¼Œè¡¨ç¤ºé»˜è®¤çš„ TableConf -->
 	<TableConf Name="demo_Module1_Table1" CacheCapaicty="20000"/>
 </zeze>

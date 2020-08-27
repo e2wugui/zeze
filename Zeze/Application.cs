@@ -10,7 +10,7 @@ namespace Zeze
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public Dictionary<string, Transaction.Database> Databases { get; private set; } = new Dictionary<string, Transaction.Database>();
+        public Dictionary<string, Database> Databases { get; private set; } = new Dictionary<string, Database>();
         public Config Config { get; }
         public bool IsStart { get; private set; }
         internal TableSys TableSys { get; private set; }
@@ -87,8 +87,8 @@ namespace Zeze
                 {
                     db.Close();
                 }
-                Databases.Clear();
                 TableSys = null;
+                Databases.Clear();
             }
         }
 
