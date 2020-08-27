@@ -150,6 +150,8 @@ Global.AcquireModify(sender, tableKey)
 
 	foreach (var share in shareOccupant)
 	{
+		if (share == sender)
+			continue;
 		share.RecureToI();
 	}
 	shareOccupant.Clear();
@@ -199,3 +201,4 @@ Checkpoint.AsyncStartWithPendingAction(r -> S or I)
 1 lockey读写锁 和 lock(record) 的关系要理一下。
 2 现在的流程都是同步的，如果是异步，将增加很多状态，会变得很复杂。
   考虑先实现同步版本。
+3 Cache.Remove 也要同步状态。
