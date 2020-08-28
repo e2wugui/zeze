@@ -91,9 +91,9 @@ namespace Zeze.Net
         /// <summary>
         /// for client socket. connect
         /// </summary>
-        /// <param name="host"></param>
+        /// <param name="hostNameOrAddress"></param>
         /// <param name="port"></param>
-        public AsyncSocket(Service service, string host, int port)
+        public AsyncSocket(Service service, string hostNameOrAddress, int port)
         {
             this.Service = service;
 
@@ -107,7 +107,7 @@ namespace Zeze.Net
             if (null != service.SocketOptions.NoDelay)
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
-            System.Net.Dns.BeginGetHostAddresses(host, OnAsyncGetHostAddresses, port);
+            System.Net.Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
 
             this.SerialNo = SerialNoGen.IncrementAndGet();
         }

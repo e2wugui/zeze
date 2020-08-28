@@ -218,6 +218,7 @@ namespace Zeze.Transaction
 
             public RecordAccessed(Record originRecord)
             {
+                // TODO 这里应该加个读锁。
                 OriginRecord = originRecord;
                 Timestamp = originRecord.Timestamp;
             }

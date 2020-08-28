@@ -14,6 +14,7 @@ namespace Zeze.Net
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public TResult Result { get; set; } = new TResult();
+        public int ResultCode { get; set; }
 
         public bool IsRequest { get; private set; }
         public override int TypeId => typeId;
@@ -67,6 +68,12 @@ namespace Zeze.Net
             base.Send(Sender);
         }
 
+        public void SendResultCode(int code)
+        {
+            ResultCode = code;
+            SendResult();
+        }
+
         internal override void Dispatch(Service service)
         {
             if (IsRequest)
@@ -106,6 +113,7 @@ namespace Zeze.Net
             }
             else
             {
+                ResultCode = bb.ReadInt();
                 Result.Decode(bb);
             }
         }
@@ -120,6 +128,7 @@ namespace Zeze.Net
             else
             {
                 bb.WriteLong(sid);
+                bb.WriteInt(ResultCode);
                 Result.Encode(bb);
             }
         }

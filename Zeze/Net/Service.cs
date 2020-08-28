@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
+using Zeze.Transaction;
 
 namespace Zeze.Net
 {
@@ -61,6 +62,16 @@ namespace Zeze.Net
                     e.Value.Dispose();
                 }
             }
+        }
+
+        public virtual AsyncSocket NewServerSocket(System.Net.EndPoint localEP)
+        {
+            return new AsyncSocket(this, localEP);
+        }
+
+        public virtual AsyncSocket NewConnect(string hostNameOrAddress, int port)
+        {
+            return new AsyncSocket(this, hostNameOrAddress, port);
         }
 
         /// <summary>
@@ -130,14 +141,7 @@ namespace Zeze.Net
         {
             if (Handles.TryGetValue(p.TypeId, out var handle))
             {
-                Task.Run(() =>
-                {
-                    int result = handle(p);
-                    if (0 != result)
-                    {
-                        logger.Warn("Protocol Process Error result={0} {1}", result, p);
-                    }
-                });
+                Task.Run(new Procedure(() => handle(p)).Call);
             }
             else
             {
