@@ -52,6 +52,17 @@ namespace Zeze.Net
             }
         }
 
+        public virtual void Close()
+        {
+            lock (_asocketMap)
+            {
+                foreach (var e in _asocketMap)
+                {
+                    e.Value.Dispose();
+                }
+            }
+        }
+
         /// <summary>
         /// ASocket 关闭的时候总是回调。
         /// </summary>
@@ -117,7 +128,21 @@ namespace Zeze.Net
 
         public virtual void DispatchProtocol(Protocol p)
         {
-            Task.Run(p.Process);
+            if (Handles.TryGetValue(p.TypeId, out var handle))
+            {
+                Task.Run(() =>
+                {
+                    int result = handle(p);
+                    if (0 != result)
+                    {
+                        logger.Warn("Protocol Process Error result={0} {1}", result, p);
+                    }
+                });
+            }
+            else
+            {
+                logger.Warn("Protocol Handle Not Found. {0}", p);
+            }
         }
 
         public virtual void DispatchUnknownProtocol(AsyncSocket so, int type, ByteBuffer data)
@@ -127,7 +152,29 @@ namespace Zeze.Net
 
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// 协议工厂
-        protected Dictionary<int, Func<Protocol>> Factorys { get; } = new Dictionary<int, Func<Protocol>>();
+        public ConcurrentDictionary<int, Func<Protocol>> Factorys { get; } = new ConcurrentDictionary<int, Func<Protocol>>();
+        public ConcurrentDictionary<int, Func<Protocol, int>> Handles { get; } = new ConcurrentDictionary<int, Func<Protocol, int>>();
+
+        public void AddHandle(int type, Func<Protocol, int> handle)
+        {
+            if (false == Handles.TryAdd(type, handle))
+                throw new Exception($"duplicate handle type={type} moduleid={(type >> 16) & 0x7fff} id={type & 0x7fff}");
+        }
+
+        public void AddFactory(int type, Func<Protocol> factory)
+        {
+            if (false == Factorys.TryAdd(type, factory))
+                throw new Exception($"duplicate factory type={type} moduleid={(type >> 16) & 0x7fff} id={type & 0x7fff}");
+        }
+
+        public static Func<Protocol, int> MakeHandle<T>(MethodInfo method) where T : Protocol
+        {
+            return (Protocol p) =>
+            {
+                var handler = Delegate.CreateDelegate(typeof(Func<T, int>), method);
+                return ((Func<T, int>)handler)((T)p);
+            };
+        }
 
         public Protocol CreateProtocol(int type, ByteBuffer bb)
         {

@@ -10,6 +10,11 @@ namespace Zeze.Gen
         public ModuleSpace Space { get; private set; }
         public string Name { get; private set; }
         public short Id { get; private set; }
+        public int TypeId => ((int)Space.Id << 16) | (int)Id;
+        public int TypeRpcRequestId => TypeId; // 用来注册 handle
+        public int TypeRpcResponseId => (int)((uint)TypeId | 0x80000000); // 用来注册 handle
+        public int TypeRpcTimeoutId => (TypeId | 0x8000); // 用来注册 handle
+
         public string Argument { get; private set; }
         public string Handle { get; private set; }
         public int HandleFlags { get; }

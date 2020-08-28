@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
+using System.Threading.Tasks;
 using Zeze.Serialize;
 
 namespace Zeze.Net
@@ -15,60 +16,55 @@ namespace Zeze.Net
         public TResult Result { get; set; } = new TResult();
 
         public bool IsRequest { get; private set; }
+        public override int TypeId => typeId;
 
         private long sid;
+        private int typeId;
+        private TaskCompletionSource<TResult> future;
+
+        public Rpc()
+        {
+            typeId = base.TypeId;
+        }
 
         public override void Send(AsyncSocket so)
         {
             IsRequest = true;
             sid = so.Service.AddRpcContext(this);
             base.Send(so);
-            global::Zeze.Util.Scheduler.Instance.Schedule(this._OnTimeout, 2000);
+
+            global::Zeze.Util.Scheduler.Instance.Schedule(()=>
+            {
+                Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
+                if (null == context)
+                {
+                    // 一般来说，此时结果已经返回。
+                    return;
+                }
+
+                if (null != context.future)
+                {
+                    context.future.SetException(new Exception("Rpc.Timeout " + context.ToString()));
+                    return;
+                }
+
+                context.Sender = null; // timeout 没有网络。
+                context.typeId = TypeRpcTimeoutId;
+                so.Service.DispatchProtocol(context);
+            }, 5000);
         }
 
-        public abstract int ProcessServer();
-
-        public abstract int ProcessClient();
-
-        public abstract int ProcessTimeout();
-
-        private void _OnTimeout()
+        public TaskCompletionSource<TResult> SendForWait(AsyncSocket so)
         {
-            Rpc<TArgument, TResult> context = Sender.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
-            if (null != context)
-            {
-                int r = context.ProcessTimeout();
-                if (0 != r)
-                {
-                    logger.Error("Rpc.ProcessTimeout result=" + r);
-                }
-            }
+            future = new TaskCompletionSource<TResult>();
+            Send(so);
+            return future;
         }
 
-        public override int Process()
+        public void SendResult()
         {
-            try
-            {
-                if (IsRequest)
-                {
-                    int r = ProcessServer();
-                    if (0 == r)
-                    {
-                        IsRequest = false;
-                        base.Send(Sender); // TODO 如果不是直接连接，而是通过代理包装转发，不能这样直接发送结果。
-                    }
-                    return r;
-                }
-                else
-                {
-                    return ProcessClient();
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Rpc.Run {0}", this.ToString());
-                return Transaction.Procedure.Excption;
-            }
+            IsRequest = false;
+            base.Send(Sender);
         }
 
         internal override void Dispatch(Service service)
@@ -83,13 +79,20 @@ namespace Zeze.Net
             Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
             if (null == context)
             {
-                logger.Info("rpc response: lost context, maybe timeout. {0}", this.ToString());
+                logger.Info("rpc response: lost context, maybe timeout. {0}", this);
+                return;
             }
-            else
+
+            if (context.future != null)
             {
-                context.IsRequest = false;
-                service.DispatchProtocol(context);
+                future.SetResult(Result);
+                return; // SendForWait，设置结果唤醒等待者。
             }
+
+            context.typeId = TypeRpcResponseId;
+            context.IsRequest = false;
+            context.Sender = Sender;
+            service.DispatchProtocol(context);
         }
 
         public override void Decode(ByteBuffer bb)

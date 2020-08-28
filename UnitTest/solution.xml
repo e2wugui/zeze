@@ -37,7 +37,7 @@
 		</beankey>
 
 		<protocol name="Protocol1" id="1" argument="Value" handle="server,client"/>
-		<rpc name="Rpc1" id="2" argument="Value" result="Value" handle="server"/>
+		<rpc name="Rpc1" id="2" argument="Value" result="Value" handle="server,twoway"/>
 		<protocol name="Protocol3" id="3" argument="demo.Module2.Value" handle="server,client"/>
 
 		<!-- 配置移到其他地方 cache="1024" persistence="MEMORY" -->

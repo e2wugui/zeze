@@ -10,16 +10,17 @@ namespace Zeze.Net
     {
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
-        public int Id => ModuleId << 16 | ProtocolId;
+        public virtual int TypeId => ModuleId << 16 | ProtocolId;
+		public int TypeRpcRequestId => TypeId; // handle
+		public int TypeRpcResponseId => (int)((uint)TypeId | 0x80000000); // 用来注册 handle
+		public int TypeRpcTimeoutId => (TypeId | 0x8000); // 用来注册 handle
 
-		public AsyncSocket Sender { get; private set; }
+		public AsyncSocket Sender { get; protected set; }
 
 		internal virtual void Dispatch(Service service)
 		{
 			service.DispatchProtocol(this);
 		}
-
-		public abstract int Process();
 
 		public abstract void Decode(ByteBuffer bb);
 
@@ -28,7 +29,7 @@ namespace Zeze.Net
 		public virtual void Send(AsyncSocket so)
 		{
 			ByteBuffer bb = ByteBuffer.Allocate();
-			bb.WriteInt4(Id);
+			bb.WriteInt4(TypeId & 0x7fff7fff); // rpc的id会有多个用来注册handle，实际id应该去掉占位。
 			int savedWriteIndex = bb.WriteIndex;
 			bb.Append(Helper.Bytes4);
 			this.Encode(bb);

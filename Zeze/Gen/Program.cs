@@ -155,6 +155,7 @@ namespace Zeze.Gen
 
         public static int HandleServerFlag = 1;
         public static int HandleClientFlag = 2;
+        public static int HandleRpcTwoway = 4;
 
         public static int ToHandleFlags(string handle)
         {
@@ -166,6 +167,7 @@ namespace Zeze.Gen
                 {
                     case "server": f |= HandleServerFlag; break;
                     case "client": f |= HandleClientFlag; break;
+                    case "twoway": f |= HandleServerFlag | HandleClientFlag | HandleRpcTwoway; break;
                     default: throw new Exception("unknown handle: " + handle);
                 }
             }

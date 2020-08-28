@@ -21,7 +21,17 @@ namespace demo.Module1
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
-        public override int ProcessRpc1Server(Rpc1 rpc)
+        public override int ProcessRpc1Request(Rpc1 rpc)
+        {
+            return Zeze.Transaction.Procedure.NotImplement;
+        }
+
+        public override int ProcessRpc1Response(Rpc1 rpc)
+        {
+            return Zeze.Transaction.Procedure.NotImplement;
+        }
+
+        public override int ProcessRpc1Timeout(Rpc1 rpc)
         {
             return Zeze.Transaction.Procedure.NotImplement;
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using NLog.Layouts;
 
 namespace Zeze.Gen.cs
 {
@@ -43,6 +44,33 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("        public " + module.Name + "(" + module.Solution.Name + ".App app)");
             sw.WriteLine("        {");
+            sw.WriteLine("            // register protocol handles");
+            Service serv = module.ReferenceService;
+            if (serv != null)
+            {
+                int serviceHandleFlags = module.ReferenceService.HandleFlags;
+                foreach (Protocol p in module.Protocols.Values)
+                {
+                    if (p is Rpc rpc)
+                    {
+                        if ((rpc.HandleFlags & serviceHandleFlags) != 0)
+                        {
+                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcRequestId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(GetType().GetMethod(nameof(Process{rpc.Name}Request))));");
+                        }
+                        if ((rpc.HandleFlags & serviceHandleFlags) == 0 || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0)
+                        {
+                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcResponseId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(GetType().GetMethod(nameof(Process{rpc.Name}Response))));");
+                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcTimeoutId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(GetType().GetMethod(nameof(Process{rpc.Name}Timeout))));");
+                        }
+                        continue;
+                    }
+                    if (0 != (p.HandleFlags & serviceHandleFlags))
+                    {
+                        sw.WriteLine($"            app.{serv.Name}.AddHandle({p.TypeId}, Zeze.Net.Service.MakeHandle<{p.Name}>(GetType().GetMethod(nameof(Process{p.Name}))));");
+                    }
+                }
+            }
+            sw.WriteLine("            // register table");
             foreach (Table table in module.Tables.Values)
             {
                 sw.WriteLine($"            app.Zeze.AddTable(\"{table.DatabaseName}\", _{table.Name});");
@@ -79,23 +107,25 @@ namespace Zeze.Gen.cs
                 {
                     if (p is Rpc rpc)
                     {
-                        if ((serviceHandleFlags & Program.HandleServerFlag) != 0)
+                        if ((rpc.HandleFlags & serviceHandleFlags) != 0)
                         {
-                            sw.WriteLine("        public override int Process" + rpc.Name + "Server(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        public override int Process" + rpc.Name + "Request(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
                             sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("        }");
                             sw.WriteLine("");
                         }
-                        if ((serviceHandleFlags & Program.HandleClientFlag) != 0)
+                        if ((rpc.HandleFlags & serviceHandleFlags) == 0 || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0)
                         {
-                            sw.WriteLine("        public override int Process" + rpc.Name + "Client(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        public override int Process" + rpc.Name + "Response(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
+                            sw.WriteLine("            // 如果使用同步发送rpc请求，结果通过wait得到，不会触发这个异步回调");
                             sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("        }");
                             sw.WriteLine("");
                             sw.WriteLine("        public override int Process" + rpc.Name + "Timeout(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
+                            sw.WriteLine("            // 如果使用同步发送rpc请求，结果通过wait得到，不会触发这个异步回调");
                             sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("        }");
                             sw.WriteLine("");
@@ -134,14 +164,14 @@ namespace Zeze.Gen.cs
                 {
                     if (p is Rpc rpc)
                     {
-                        if ((serviceHandleFlags & Program.HandleServerFlag) != 0)
+                        if ((rpc.HandleFlags & serviceHandleFlags) != 0)
                         {
-                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Server(" + rpc.Name + " rpc);");
+                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Request(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
                         }
-                        if ((serviceHandleFlags & Program.HandleClientFlag) != 0)
+                        if ((rpc.HandleFlags & serviceHandleFlags) == 0 || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0)
                         {
-                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Client(" + rpc.Name + " rpc);");
+                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Response(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
                             sw.WriteLine("        public abstract int Process" + rpc.Name + "Timeout(" + rpc.Name + " rpc);");
                             sw.WriteLine("");

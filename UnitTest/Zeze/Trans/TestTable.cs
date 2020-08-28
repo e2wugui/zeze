@@ -17,6 +17,12 @@ namespace UnitTest.Zeze.Trans
         public void TestInit()
         {
             demo.App.Instance.Start();
+            new Procedure(() =>
+            {
+                demo.App.Instance.demo_Module1_Module1.Table1.Remove(1);
+                demo.App.Instance.demo_Module1_Module1.Table2.Remove(new demo.Module1.Key(1));
+                return Procedure.Success;
+            }).Call();
         }
 
         [TestCleanup]
