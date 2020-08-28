@@ -32,11 +32,11 @@ namespace Zeze.Util
         /// <param name="initialDelay">the time to delay first execution. Milliseconds</param>
         /// <param name="period">the period between successive executions. Milliseconds</param>
         /// <returns></returns>
-        public SchedulerTask Schedule(Action action, long initialDelay, long period = -1)
+        public SchedulerTask Schedule(Action action, long initialDelay, long period = -1, bool runInTask = true)
         {
             lock (this)
             {
-                SchedulerTask t = new SchedulerTask(this, action, initialDelay, period);
+                SchedulerTask t = new SchedulerTask(this, action, initialDelay, period, runInTask);
                 scheduled.Add(t, t);
                 System.Threading.Monitor.Pulse(this);
                 return t;
@@ -113,13 +113,14 @@ namespace Zeze.Util
         public long Time { get; private set; }
         public long Period { get; private set; }
         public long SequenceNumber { get; private set; }
+        public bool RunInTask { get; }
 
         private volatile bool canceled;
         private Action action;
 
         private static AtomicLong sequencer = new AtomicLong();
 
-        internal SchedulerTask(Scheduler scheduler, Action action, long initialDelay, long period)
+        internal SchedulerTask(Scheduler scheduler, Action action, long initialDelay, long period, bool runInTask)
         {
             this.Scheduler = scheduler;
             this.action = action;
@@ -127,6 +128,7 @@ namespace Zeze.Util
             this.Period = period;
             this.SequenceNumber = sequencer.IncrementAndGet();
             this.canceled = false;
+            RunInTask = runInTask;
         }
 
         public void Cancel()
@@ -139,7 +141,10 @@ namespace Zeze.Util
             if (this.canceled)
                 return;
 
-            Task.Run(action); // 派发出去运行，让系统管理大量任务的线程问题。
+            if (RunInTask)
+                Task.Run(action); // 派发出去运行，让系统管理大量任务的线程问题。
+            else
+                action();
 
             if (this.Period > 0)
             {
