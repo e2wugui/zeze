@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Net;
+using Zeze.Serialize;
 using Zeze.Util;
 
 namespace UnitTest.Zeze.Net
@@ -13,11 +14,29 @@ namespace UnitTest.Zeze.Net
     [TestClass]
     public class TestAsyncSocket
     {
+        public class ServiceClient : Service
+        {
+            public override void OnSocketConnected(AsyncSocket so)
+            {
+                base.OnSocketConnected(so);
+                Console.WriteLine("OnSocketConnected: " + so.SerialNo);
+                string head = "GET http://www.163.com/\r\nHost: www.163.com\r\nAccept:*/*\r\n\r\n";
+                so.Send(head);
+            }
+
+            public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
+            {
+                Console.WriteLine("input size=" + input.Size);
+                Console.WriteLine(Encoding.UTF8.GetString(input.Bytes, input.ReadIndex, input.Size));
+                input.ReadIndex = input.WriteIndex;
+            }
+        }
+
         [TestMethod]
         public void TestConnect()
         {
-            Service manager = new Service();
-            using AsyncSocket so = new AsyncSocket(manager, "www.sina.com.cn", 80);
+            ServiceClient client = new ServiceClient();
+            using AsyncSocket so = client.NewClientSocket("www.163.com", 80);
             Thread.Sleep(2000); // 异步的，等待结果
         }
         /*

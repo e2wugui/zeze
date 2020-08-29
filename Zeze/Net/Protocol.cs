@@ -28,12 +28,14 @@ namespace Zeze.Net
 
 		public virtual void Send(AsyncSocket so)
 		{
+			Sender = so;
+
 			ByteBuffer bb = ByteBuffer.Allocate();
 			bb.WriteInt4(TypeId & 0x7fff7fff); // rpc的id会有多个用来注册handle，实际id应该去掉占位。
 			int savedWriteIndex = bb.WriteIndex;
 			bb.Append(Helper.Bytes4);
 			this.Encode(bb);
-			bb.Replace(savedWriteIndex, BitConverter.GetBytes(bb.Size - 4));
+			bb.Replace(savedWriteIndex, BitConverter.GetBytes(bb.Size - 8));
 			so.Send(bb);
 		}
 

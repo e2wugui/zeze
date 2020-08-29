@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
 using Zeze.Transaction;
+using System.Net;
 
 namespace Zeze.Net
 {
@@ -64,12 +65,22 @@ namespace Zeze.Net
             }
         }
 
-        public virtual AsyncSocket NewServerSocket(System.Net.EndPoint localEP)
+        public AsyncSocket NewServerSocket(string ipaddress, int port)
+        {
+            return NewServerSocket(IPAddress.Parse(ipaddress), port);
+        }
+
+        public AsyncSocket NewServerSocket(IPAddress ipaddress, int port)
+        {
+            return NewServerSocket(new IPEndPoint(ipaddress, port));
+        }
+
+        public AsyncSocket NewServerSocket(EndPoint localEP)
         {
             return new AsyncSocket(this, localEP);
         }
 
-        public virtual AsyncSocket NewConnect(string hostNameOrAddress, int port)
+        public AsyncSocket NewClientSocket(string hostNameOrAddress, int port)
         {
             return new AsyncSocket(this, hostNameOrAddress, port);
         }
@@ -121,9 +132,6 @@ namespace Zeze.Net
             {
                 _asocketMap.Add(so.SerialNo, so);
             }
-            Console.WriteLine("OnSocketConnected: " + so.SerialNo);
-            string head = "HEAD http://www.163.com/\r\nHost: www.163.com\r\nAccept:*/*\r\n\r\n";
-            so.Send(head);
         }
 
         /// <summary>
@@ -134,7 +142,14 @@ namespace Zeze.Net
         /// <param name="input"></param>
         public virtual void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
-            Protocol.Decode(this, so, input);
+            try
+            {
+                Protocol.Decode(this, so, input);
+            }
+            catch (Exception ex)
+            {
+                so.Close(ex);
+            }
         }
 
         public virtual void DispatchProtocol(Protocol p)
@@ -145,7 +160,7 @@ namespace Zeze.Net
             }
             else
             {
-                logger.Warn("Protocol Handle Not Found. {0}", p);
+                logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}", p);
             }
         }
 
@@ -171,12 +186,20 @@ namespace Zeze.Net
                 throw new Exception($"duplicate factory type={type} moduleid={(type >> 16) & 0x7fff} id={type & 0x7fff}");
         }
 
-        public static Func<Protocol, int> MakeHandle<T>(MethodInfo method) where T : Protocol
+        public static Func<Protocol, int> MakeHandle<T>(object target /*静态方法可以传null*/, MethodInfo method) where T : Protocol
         {
             return (Protocol p) =>
             {
-                var handler = Delegate.CreateDelegate(typeof(Func<T, int>), method);
-                return ((Func<T, int>)handler)((T)p);
+                if (method.IsStatic)
+                {
+                    var handler = Delegate.CreateDelegate(typeof(Func<T, int>), method);
+                    return ((Func<T, int>)handler)((T)p);
+                }
+                else 
+                {
+                    var handler = Delegate.CreateDelegate(typeof(Func<T, int>), target, method);
+                    return ((Func<T, int>)handler)((T)p);
+                }
             };
         }
 

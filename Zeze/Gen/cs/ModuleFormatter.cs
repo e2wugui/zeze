@@ -55,18 +55,18 @@ namespace Zeze.Gen.cs
                     {
                         if ((rpc.HandleFlags & serviceHandleFlags) != 0)
                         {
-                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcRequestId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(GetType().GetMethod(nameof(Process{rpc.Name}Request))));");
+                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcRequestId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Request))));");
                         }
                         if ((rpc.HandleFlags & serviceHandleFlags) == 0 || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0)
                         {
-                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcResponseId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(GetType().GetMethod(nameof(Process{rpc.Name}Response))));");
-                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcTimeoutId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(GetType().GetMethod(nameof(Process{rpc.Name}Timeout))));");
+                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcResponseId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Response))));");
+                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcTimeoutId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Timeout))));");
                         }
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags))
                     {
-                        sw.WriteLine($"            app.{serv.Name}.AddHandle({p.TypeId}, Zeze.Net.Service.MakeHandle<{p.Name}>(GetType().GetMethod(nameof(Process{p.Name}))));");
+                        sw.WriteLine($"            app.{serv.Name}.AddHandle({p.TypeId}, Zeze.Net.Service.MakeHandle<{p.Name}>(this, GetType().GetMethod(nameof(Process{p.Name}))));");
                     }
                 }
             }

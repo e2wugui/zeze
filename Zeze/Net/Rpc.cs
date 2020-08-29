@@ -45,11 +45,11 @@ namespace Zeze.Net
 
                 if (null != context.future)
                 {
-                    context.future.SetException(new Exception("Rpc.Timeout " + context.ToString()));
+                    context.future.SetException(new Exception("Rpc.Timeout " + context));
                     return;
                 }
 
-                context.Sender = null; // timeout 没有网络。
+                //context.Sender = null; // timeout 没有网络。
                 context.typeId = TypeRpcTimeoutId;
                 so.Service.DispatchProtocol(context);
             }, 5000, -1, false);
@@ -90,15 +90,17 @@ namespace Zeze.Net
                 return;
             }
 
+            context.IsRequest = false;
+            context.Result = Result;
+            context.Sender = Sender;
+
             if (context.future != null)
             {
-                future.SetResult(Result);
+                context.future.SetResult(Result);
                 return; // SendForWait，设置结果唤醒等待者。
             }
 
             context.typeId = TypeRpcResponseId;
-            context.IsRequest = false;
-            context.Sender = Sender;
             service.DispatchProtocol(context);
         }
 

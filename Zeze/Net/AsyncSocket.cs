@@ -379,7 +379,7 @@ namespace Zeze.Net
             }
         }
 
-        private void Close(Exception e)
+        public void Close(Exception e)
         {
             this.LastException = e;
             Dispose();

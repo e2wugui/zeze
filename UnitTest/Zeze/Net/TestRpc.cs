@@ -1,0 +1,68 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Zeze.Net;
+using System.Net;
+using Zeze.Transaction;
+using System.Threading;
+
+namespace UnitTest.Zeze.Net
+{
+    [TestClass]
+    public class TestRpc
+    {
+        [TestMethod]
+        public void TestRpcSimple()
+        {
+            Service server = new Service();
+
+            FirstRpc forid = new FirstRpc();
+            server.AddFactory(forid.TypeId, () => new FirstRpc());
+            server.AddHandle(forid.TypeRpcRequestId, Service.MakeHandle<FirstRpc>(this, GetType().GetMethod(nameof(ProcessFirstRpcRequest))));
+
+            AsyncSocket servetrSocket = server.NewServerSocket(IPAddress.Any, 5000);
+            Client client = new Client(this);
+            client.AddFactory(forid.TypeId, () => new FirstRpc());
+            AsyncSocket clientSocket = client.NewClientSocket("127.0.0.1", 5000);
+            connected.WaitOne();
+
+            FirstRpc first = new FirstRpc();
+            first.Argument.Int1 = 1234;
+            //Console.WriteLine("SendFirstRpcRequest");
+            first.SendForWait(clientSocket).Task.Wait();
+            //Console.WriteLine("FirstRpc Wait End");
+            Assert.AreEqual(first.Argument.Int1, first.Result.Int1);
+        }
+
+        ManualResetEvent connected = new ManualResetEvent(false);
+
+        public int ProcessFirstRpcRequest(FirstRpc rpc)
+        {
+            rpc.Result.Assign(rpc.Argument);
+            rpc.SendResult();
+            Console.WriteLine("ProcessFirstRpcRequest result.Int1=" +  rpc.Result.Int1);
+            return Procedure.Success;
+        }
+
+        public class FirstRpc : Rpc<demo.Module1.Value, demo.Module1.Value>
+        {
+            public override int ModuleId => 1;
+
+            public override int ProtocolId => 1;
+        }
+        public class Client : Service
+        {
+            TestRpc test;
+            public Client(TestRpc test)
+            {
+                this.test = test;
+            }
+            public override void OnSocketConnected(AsyncSocket so)
+            {
+                base.OnSocketConnected(so);
+                test.connected.Set();
+            }
+        }
+    }
+}
