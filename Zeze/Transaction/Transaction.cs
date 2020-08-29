@@ -86,6 +86,7 @@ namespace Zeze.Transaction
                 for (int tryCount = 0; tryCount < 256; ++tryCount) // 最多尝试次数
                 {
                     FlushReadWriteLock.EnterReadLock();
+                    CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
                     try
                     {
                         int result = procedure.Call();
@@ -95,7 +96,8 @@ namespace Zeze.Transaction
                             logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
                             break;
                         }
-                        if (_lock_and_check_())
+                        checkResult = _lock_and_check_();
+                        if (checkResult == CheckResult.Success)
                         {
                             if (result == Procedure.Success)
                             {
@@ -124,7 +126,8 @@ namespace Zeze.Transaction
                             throw;
                         }
 #endif
-                        if (_lock_and_check_())
+                        checkResult = _lock_and_check_();
+                        if (checkResult == CheckResult.Success)
                         {
                             return Procedure.Excption;
                         }
@@ -136,6 +139,14 @@ namespace Zeze.Transaction
                         FlushReadWriteLock.ExitReadLock();
                         accessedRecords.Clear();
                         savepoints.Clear();
+                        if (checkResult == CheckResult.RedoAndReleaseLock)
+                        {
+                            foreach (var holdLock in holdLocks)
+                            {
+                                holdLock.ExitLock();
+                            }
+                            holdLocks.Clear();
+                        }
                     }
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
@@ -269,38 +280,45 @@ namespace Zeze.Transaction
             return null;
         }
 
+        enum CheckResult
+        {
+            Success,
+            Redo,
+            RedoAndReleaseLock
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool _check_(bool writeLock, RecordAccessed e)
+        private CheckResult _check_(bool writeLock, RecordAccessed e)
         {
             if (writeLock)
             {
                 switch (e.OriginRecord.State)
                 {
                     case GlobalCacheManager.StateInvalid:
-                        return false;
+                        return CheckResult.Redo;
 
                     case GlobalCacheManager.StateModify:
-                        return e.Timestamp != e.OriginRecord.Timestamp;
+                        return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
 
                     case GlobalCacheManager.StateShare:
-                        // TODO 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
-                        e.OriginRecord.Acquire(GlobalCacheManager.StateModify);
-                        if (e.OriginRecord.State == GlobalCacheManager.StateInvalid)
-                            return false;
-                        return e.Timestamp != e.OriginRecord.Timestamp;
+                        // 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
+                        // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
+                        if (e.OriginRecord.Acquire(GlobalCacheManager.StateModify) != GlobalCacheManager.StateModify)
+                            return CheckResult.RedoAndReleaseLock;
+                        e.OriginRecord.State = GlobalCacheManager.StateModify;
+                        return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
                 }
-                return e.Timestamp != e.OriginRecord.Timestamp; // imposible
+                return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success; // imposible
             }
             else
             {
                 if (e.OriginRecord.State == GlobalCacheManager.StateInvalid)
-                    return false;
-                return e.Timestamp != e.OriginRecord.Timestamp;
+                    return CheckResult.Redo;
+                return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool _lock_and_check_(KeyValuePair<TableKey, RecordAccessed> e)
+        private CheckResult _lock_and_check_(KeyValuePair<TableKey, RecordAccessed> e)
         {
             Lockey lockey = Locks.Instance.Get(e.Key);
             bool writeLock = e.Value.Dirty;
@@ -309,7 +327,7 @@ namespace Zeze.Transaction
             return _check_(writeLock, e.Value);
         }
 
-        private bool _lock_and_check_()
+        private CheckResult _lock_and_check_()
         {
             if (savepoints.Count > 0)
             {
@@ -333,9 +351,14 @@ namespace Zeze.Transaction
             {
                 foreach (var e in accessedRecords)
                 {
-                    conflict |= _lock_and_check_(e);
+                    switch (_lock_and_check_(e))
+                    {
+                        case CheckResult.Success: break;
+                        case CheckResult.Redo: conflict = true; break; // continue lock
+                        case CheckResult.RedoAndReleaseLock: return CheckResult.RedoAndReleaseLock;
+                    }
                 }
-                return !conflict;
+                return conflict ? CheckResult.Redo : CheckResult.Success;
             }
 
             int index = 0;
@@ -345,7 +368,12 @@ namespace Zeze.Transaction
                 // 如果 holdLocks 全部被对比完毕，直接锁定它
                 if (index >= n)
                 {
-                    conflict |= _lock_and_check_(e);
+                    switch (_lock_and_check_(e))
+                    {
+                        case CheckResult.Success: break;
+                        case CheckResult.Redo: conflict = true; break; // continue lock
+                        case CheckResult.RedoAndReleaseLock: return CheckResult.RedoAndReleaseLock;
+                    }
                     continue;
                 }
 
@@ -360,7 +388,12 @@ namespace Zeze.Transaction
                     if (e.Value.Dirty && false == curLock.isWriteLockHeld())
                     {
                         curLock.EnterLock(true);
-                        conflict |= _check_(true, e.Value);
+                        switch (_check_(true, e.Value))
+                        {
+                            case CheckResult.Success: break;
+                            case CheckResult.Redo: conflict = true; break; // continue lock
+                            case CheckResult.RedoAndReleaseLock: return CheckResult.RedoAndReleaseLock;
+                        }
                     }
                     // 已经锁定了，跳过
                     ++index;
@@ -393,7 +426,7 @@ namespace Zeze.Transaction
                 holdLocks.RemoveRange(index, n - index);
                 n = holdLocks.Count;
             }
-            return !conflict;
+            return conflict ? CheckResult.Redo : CheckResult.Success;
         }
     }
 }

@@ -46,12 +46,11 @@ namespace Zeze.Transaction
         }
 
         // 考虑不再提供单个删除，由 Cleaner 集中清理。
-        /*
+        // under lockey.writelock
         internal void Remove(K key)
         {
             map.Remove(key, out var _);
         }
-        */
 
         public void CleanNow()
         {
@@ -91,7 +90,7 @@ namespace Zeze.Transaction
             }
         }
 
-        // under lock
+        // under lockey.writelock
         private bool Remove(KeyValuePair<K, Record<K, V>> p)
         {
             if (map.TryRemove(p.Key, out var _))
