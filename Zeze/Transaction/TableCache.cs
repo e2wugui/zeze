@@ -4,6 +4,7 @@ using System.Text;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Zeze.Services;
 
 // MESI？
 namespace Zeze.Transaction
@@ -29,21 +30,9 @@ namespace Zeze.Transaction
             Util.Scheduler.Instance.Schedule(CleanNow, initialDelay, delay);
         }
 
-        public Record<K, V> Get(K key)
+        public Record<K, V> GetOrAdd(K key, Func<K, Record<K, V>> valueFactory)
         {
-            if (map.TryGetValue(key, out var r))
-            {
-                r.AccessTimeTicks = DateTime.Now.Ticks;
-                return r;
-            }
-            return null;
-        }
-
-        public Record<K, V> GetOrAdd(K key, Record<K, V> r)
-        {
-            Record<K, V> exist = map.GetOrAdd(key, r);
-            if (exist == r)
-                exist.IsInCache = true;
+            Record<K, V> exist = map.GetOrAdd(key, valueFactory);
             exist.AccessTimeTicks = DateTime.Now.Ticks;
             return exist;
         }
@@ -98,7 +87,7 @@ namespace Zeze.Transaction
         {
             if (map.TryRemove(p.Key, out var _))
             {
-                p.Value.IsInCache = false;
+                p.Value.State = GlobalCacheManager.StateInvalid;
                 return true;
             }
             return false;

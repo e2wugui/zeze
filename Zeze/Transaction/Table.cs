@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Zeze.Services;
 
 namespace Zeze.Transaction
 {
@@ -39,14 +40,17 @@ namespace Zeze.Transaction
 
         private Record<K, V> FindInCacheOrStorage(K key)
         {
-            Record<K, V> r = Cache.Get(key);
-            if (null != r)
-                return r;
+            Record<K, V> r = Cache.GetOrAdd(key, (key) => new Record<K, V>(this, key, null));
+            lock (r)
+            {
+                if (r.State == GlobalCacheManager.StateShare || r.State == GlobalCacheManager.StateModify)
+                    return r;
 
-            // 同一个记录可能会从storage装载两次，看storage内部实现有没有保护。
-            V value = (null != Storage) ? Storage.Find(key, this) : null;
-            // cache 加入时也可能存在，此时返回已经存在的。
-            return Cache.GetOrAdd(key, new Record<K, V>(this, key, value));
+                r.Acquire(GlobalCacheManager.StateShare);
+                if (null != Storage)
+                    r.Value = Storage.Find(key, this); // r.Value still maybe null
+                return r;
+            }
         }
 
         public V Get(K key)

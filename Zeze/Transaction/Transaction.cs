@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Zeze.Transaction.Collections;
 using System.Runtime.CompilerServices;
 using Zeze.Serialize;
+using Zeze.Services;
 
 namespace Zeze.Transaction
 {
@@ -270,14 +271,43 @@ namespace Zeze.Transaction
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool _lock_and_check_timestamp_(KeyValuePair<TableKey, RecordAccessed> e)
+        public bool _check_(bool writeLock, RecordAccessed e)
+        {
+            lock (e.OriginRecord)
+            {
+                if (writeLock)
+                {
+                    switch (e.OriginRecord.State)
+                    {
+                        case GlobalCacheManager.StateInvalid:
+                            return false;
+
+                        case GlobalCacheManager.StateModify:
+                            return e.Timestamp != e.OriginRecord.Timestamp;
+
+                        case GlobalCacheManager.StateShare:
+                            e.OriginRecord.Acquire(GlobalCacheManager.StateModify);
+                            return e.Timestamp != e.OriginRecord.Timestamp;
+                    }
+                    return e.Timestamp != e.OriginRecord.Timestamp; // imposible
+                }
+                else
+                {
+                    if (e.OriginRecord.State == GlobalCacheManager.StateInvalid)
+                        return false;
+                    return e.Timestamp != e.OriginRecord.Timestamp;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool _lock_and_check_(KeyValuePair<TableKey, RecordAccessed> e)
         {
             Lockey lockey = Locks.Instance.Get(e.Key);
             bool writeLock = e.Value.Dirty;
             lockey.EnterLock(writeLock);
             holdLocks.Add(lockey);
-            // TableCache 加上清理以后，要判断 OriginRecord 是否已经失效。失效的话，也返回冲突。
-            return (false == e.Value.OriginRecord.IsInCache) || (e.Value.Timestamp != e.Value.OriginRecord.Timestamp);
+            return _check_(writeLock, e.Value);
         }
 
         private bool _lock_and_check_()
@@ -304,7 +334,7 @@ namespace Zeze.Transaction
             {
                 foreach (var e in accessedRecords)
                 {
-                    conflict |= _lock_and_check_timestamp_(e);
+                    conflict |= _lock_and_check_(e);
                 }
                 return !conflict;
             }
@@ -316,7 +346,7 @@ namespace Zeze.Transaction
                 // 如果 holdLocks 全部被对比完毕，直接锁定它
                 if (index >= n)
                 {
-                    conflict |= _lock_and_check_timestamp_(e);
+                    conflict |= _lock_and_check_(e);
                     continue;
                 }
 
@@ -331,7 +361,7 @@ namespace Zeze.Transaction
                     if (e.Value.Dirty && false == curLock.isWriteLockHeld())
                     {
                         curLock.EnterLock(true);
-                        conflict |= (false == e.Value.OriginRecord.IsInCache) || (e.Value.Timestamp != e.Value.OriginRecord.Timestamp);
+                        conflict |= _check_(true, e.Value);
                     }
                     // 已经锁定了，跳过
                     ++index;

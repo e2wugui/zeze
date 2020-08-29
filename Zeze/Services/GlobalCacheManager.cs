@@ -21,10 +21,10 @@ namespace Zeze.Services
         public const int StateModify = 1;
         public const int StateShare = 2;
 
-        public const int ResultCodeAlreadyIsModifyButAcquireShare = 1;
-        public const int ResultCodeAcquireInvalid = 2;
-        public const int ResultCodeAcquireErrorState = 3;
-        public const int ResultCodeAlreadyIsModify = 4;
+        public const int AcquireShareAlreadyIsModify = 1;
+        //public const int AcquireAcquireInvalid = 2;
+        public const int AcquireErrorState = 3;
+        public const int AcquireModifyAlreadyIsModify = 4;
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public static GlobalCacheManager Instance { get; } = new GlobalCacheManager();
@@ -50,10 +50,8 @@ namespace Zeze.Services
         {
             switch (rpc.Argument.State)
             {
-                case StateInvalid:
-                    rpc.Result = rpc.Argument;
-                    rpc.SendResultCode(ResultCodeAcquireInvalid);
-                    return 0;
+                case StateInvalid: // realease
+                    return Release(rpc);
 
                 case StateShare:
                     return AcquireShare(rpc);
@@ -63,8 +61,27 @@ namespace Zeze.Services
 
                 default:
                     rpc.Result = rpc.Argument;
-                    rpc.SendResultCode(ResultCodeAcquireErrorState);
+                    rpc.SendResultCode(AcquireErrorState);
                     return 0;
+            }
+        }
+        private int Release(Acquire rpc)
+        {
+            CacheHolder holder = (CacheHolder)rpc.Sender.UserState;
+            CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
+            lock (cs)
+            {
+                if (cs.Modify == holder)
+                    cs.Modify = null;
+                cs.Share.Remove(holder); // always try remove
+
+                rpc.Result = rpc.Argument;
+                rpc.SendResult();
+                if (cs.Modify == null && cs.Share.Count == 0)
+                {
+                    // TODO 怎么安全的从global中删除，没有并发问题。
+                }
+                return 0;
             }
         }
 
@@ -81,11 +98,11 @@ namespace Zeze.Services
                         logger.Warn("AcquireShare AlreadyIsModify");
 
                         rpc.Result = rpc.Argument;
-                        rpc.SendResultCode(ResultCodeAlreadyIsModifyButAcquireShare);
+                        rpc.SendResultCode(AcquireShareAlreadyIsModify);
                         return 0;
                     }
 
-                    holder.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
+                    holder.Reduce(rpc.Argument.GlobalTableKey, StateShare);
                     cs.Modify = null;
                     cs.Share.Add(holder);
 
@@ -115,7 +132,7 @@ namespace Zeze.Services
                         logger.Warn("AcquireModify AlreadyIsModify");
 
                         rpc.Result = rpc.Argument;
-                        rpc.SendResultCode(ResultCodeAlreadyIsModify);
+                        rpc.SendResultCode(AcquireModifyAlreadyIsModify);
                         return 0;
                     }
 
@@ -205,6 +222,11 @@ namespace Zeze.Services
         protected override void InitChildrenTableKey(Transaction.TableKey root)
         {
             throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            return GlobalTableKey.ToString() + ":" + State;
         }
     }
     public class Acquire : Zeze.Net.Rpc<Param, Param>

@@ -3,20 +3,22 @@ using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
+using Zeze.Services;
 
 namespace Zeze.Transaction
 {
     public abstract class Record
     {
-        public long Timestamp { get; protected set; }
-        public Bean Value { get; protected set; }
-        public long AccessTimeTicks { get; set; } // see TableCache 没有加锁。volatile
-        public bool IsInCache { get; set; } // see TableCache. 改为false是在写锁保护下,改成true,必须时第一次加入cache,没有保护.
+        internal long Timestamp { get; set; }
+        internal Bean Value { get; set; }
+        internal int State { get; set; }
+        internal long AccessTimeTicks { get; set; } // see TableCache 没有加锁。volatile
 
         public Record(Bean value)
         {
-            this.Value = value;
-            this.Timestamp = (null == value) ? 0 : NextTimestamp;
+            State = GlobalCacheManager.StateInvalid;
+            Value = value;
+            Timestamp = NextTimestamp;
         }
 
         // 时戳生成器，运行时状态，需要持久化时，再考虑保存到数据库。
@@ -25,6 +27,8 @@ namespace Zeze.Transaction
         internal static long NextTimestamp => _TimestampGen.IncrementAndGet();
 
         internal abstract void Commit(Transaction.RecordAccessed accessed);
+
+        internal abstract void Acquire(int state);
     }
 
     public class Record<K, V> : Record where V : Bean, new()
@@ -37,6 +41,13 @@ namespace Zeze.Transaction
         {
             this.Table = table;
             this.Key = key;
+        }
+
+        internal override void Acquire(int state)
+        {
+            GlobalTableKey gkey = new GlobalTableKey(Table.Name, Table.EncodeKey(Key));
+            GlobalAgent.Instance.Acquire(gkey, state);
+            State = state;
         }
 
         // XXX 临时写个实现，以后调整。
