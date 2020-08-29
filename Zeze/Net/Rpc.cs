@@ -21,7 +21,7 @@ namespace Zeze.Net
 
         private long sid;
         private int typeId;
-        private TaskCompletionSource<TResult> future;
+        public TaskCompletionSource<TResult> Future { get; private set; }
 
         public Rpc()
         {
@@ -43,9 +43,9 @@ namespace Zeze.Net
                     return;
                 }
 
-                if (null != context.future)
+                if (null != context.Future)
                 {
-                    context.future.SetException(new Exception("Rpc.Timeout " + context));
+                    context.Future.SetException(new Exception("Rpc.Timeout " + context));
                     return;
                 }
 
@@ -57,9 +57,9 @@ namespace Zeze.Net
 
         public TaskCompletionSource<TResult> SendForWait(AsyncSocket so)
         {
-            future = new TaskCompletionSource<TResult>();
+            Future = new TaskCompletionSource<TResult>();
             Send(so);
-            return future;
+            return Future;
         }
 
         public void SendResult()
@@ -94,9 +94,9 @@ namespace Zeze.Net
             context.Result = Result;
             context.Sender = Sender;
 
-            if (context.future != null)
+            if (context.Future != null)
             {
-                context.future.SetResult(Result);
+                context.Future.SetResult(Result);
                 return; // SendForWait，设置结果唤醒等待者。
             }
 

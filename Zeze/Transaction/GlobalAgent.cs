@@ -12,18 +12,21 @@ namespace Zeze.Transaction
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         private GlobalClient Client { get; set; }
 
-        internal void Acquire(GlobalTableKey gkey, int state)
+        internal int Acquire(GlobalTableKey gkey, int state)
         {
             AsyncSocket client = GetClientSocket();
             if (null != client)
             {
+                // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了）。
                 Acquire rpc = new Acquire(gkey, state);
                 rpc.SendForWait(client).Task.Wait();
                 if (rpc.ResultCode != 0)
                 {
                     logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
                 }
+                return rpc.Result.State;
             }
+            return state;
         }
 
         private AsyncSocket GetClientSocket()
@@ -33,7 +36,26 @@ namespace Zeze.Transaction
 
         int ProcessReduceRequest(Reduce rpc)
         {
-            return 0;
+            switch (rpc.Argument.State)
+            {
+                case GlobalCacheManager.StateInvalid:
+                    return Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceInvalid(rpc);
+
+                case GlobalCacheManager.StateShare:
+                    return Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceShare(rpc);
+
+                default:
+                    rpc.Result = rpc.Argument;
+                    rpc.SendResultCode(GlobalCacheManager.ReduceErrorState);
+                    return 0;
+            }
+        }
+
+        public Zeze.Application Zeze { get;  }
+
+        public GlobalAgent(Zeze.Application zeze)
+        {
+            Zeze = zeze;
         }
 
         public void Start(string hostNameOrAddress, int port)
@@ -45,6 +67,7 @@ namespace Zeze.Transaction
                 Client = new GlobalClient();
                 Client.AddFactory(new Reduce().TypeId, () => new Reduce());
                 Client.AddHandle(new Reduce().TypeRpcRequestId, Service.MakeHandle<Reduce>(this, GetType().GetMethod(nameof(ProcessReduceRequest))));
+                // TODO 创建连接，并等待成功。
             }
         }
 
@@ -70,6 +93,13 @@ namespace Zeze.Transaction
         public override void OnSocketConnectError(AsyncSocket so, Exception e)
         {
             base.OnSocketConnectError(so, e);
+        }
+
+        public override void OnSocketClose(AsyncSocket so, Exception e)
+        {
+            base.OnSocketClose(so, e);
+            // XXX 和 GlobalCacheManager 失去连接，意味着 Cache 同步无法正常工作。必须停止程序。
+            System.Environment.Exit(5678);
         }
 
         public override void DispatchProtocol(Protocol p)

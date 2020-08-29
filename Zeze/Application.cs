@@ -15,7 +15,7 @@ namespace Zeze
         public bool IsStart { get; private set; }
         internal TableSys TableSys { get; private set; }
         private Util.SchedulerTask checkpointTask;
-        internal GlobalAgent GlobalAgent { get; } = new GlobalAgent();
+        internal GlobalAgent GlobalAgent { get; }
 
         public Application(Config config = null)
         {
@@ -23,6 +23,7 @@ namespace Zeze
             if (null == Config)
                 Config = Config.Load();
             Config.CreateDatabase(Databases);
+            GlobalAgent = new GlobalAgent(this);
         }
 
         public void AddTable(string dbName, Transaction.Table table)
@@ -33,6 +34,17 @@ namespace Zeze
                 return;
             }
             throw new Exception($"database not found dbName={dbName}");
+        }
+
+        public Table GetTable(string name)
+        {
+            foreach (Database db in Databases.Values)
+            {
+                Table t = db.GetTable(name);
+                if (null != t)
+                    return t;
+            }
+            return null;
         }
 
         public Database GetDatabase(string name)
@@ -94,7 +106,7 @@ namespace Zeze
                 Databases.Clear();
             }
         }
-
+ 
         public void Checkpoint()
         {
             new Checkpoint(Databases.Values).Run();

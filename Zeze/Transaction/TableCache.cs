@@ -37,11 +37,19 @@ namespace Zeze.Transaction
             return exist;
         }
 
+        internal Record<K, V> Get(K key)
+        {
+            if (map.TryGetValue(key, out var r))
+                return r;
+            return null;
+
+        }
+
         // 考虑不再提供单个删除，由 Cleaner 集中清理。
         /*
-        public void Remove(K key)
+        internal void Remove(K key)
         {
-            map.Remove(key, out var notused);
+            map.Remove(key, out var _);
         }
         */
 
@@ -76,6 +84,7 @@ namespace Zeze.Transaction
                     if (TryRemoveRecord(r.p))
                     {
                         --nclean;
+                        r.p.Value.Acquire(GlobalCacheManager.StateInvalid);
                     }
                     // 运行的不频繁：不管删除是否成功，都继续循环。
                 }

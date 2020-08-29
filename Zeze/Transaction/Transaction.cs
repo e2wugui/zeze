@@ -219,7 +219,6 @@ namespace Zeze.Transaction
 
             public RecordAccessed(Record originRecord)
             {
-                // TODO 这里应该加个读锁。
                 OriginRecord = originRecord;
                 Timestamp = originRecord.Timestamp;
             }
@@ -273,30 +272,30 @@ namespace Zeze.Transaction
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool _check_(bool writeLock, RecordAccessed e)
         {
-            lock (e.OriginRecord)
+            if (writeLock)
             {
-                if (writeLock)
+                switch (e.OriginRecord.State)
                 {
-                    switch (e.OriginRecord.State)
-                    {
-                        case GlobalCacheManager.StateInvalid:
-                            return false;
-
-                        case GlobalCacheManager.StateModify:
-                            return e.Timestamp != e.OriginRecord.Timestamp;
-
-                        case GlobalCacheManager.StateShare:
-                            e.OriginRecord.Acquire(GlobalCacheManager.StateModify);
-                            return e.Timestamp != e.OriginRecord.Timestamp;
-                    }
-                    return e.Timestamp != e.OriginRecord.Timestamp; // imposible
-                }
-                else
-                {
-                    if (e.OriginRecord.State == GlobalCacheManager.StateInvalid)
+                    case GlobalCacheManager.StateInvalid:
                         return false;
-                    return e.Timestamp != e.OriginRecord.Timestamp;
+
+                    case GlobalCacheManager.StateModify:
+                        return e.Timestamp != e.OriginRecord.Timestamp;
+
+                    case GlobalCacheManager.StateShare:
+                        // TODO 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
+                        e.OriginRecord.Acquire(GlobalCacheManager.StateModify);
+                        if (e.OriginRecord.State == GlobalCacheManager.StateInvalid)
+                            return false;
+                        return e.Timestamp != e.OriginRecord.Timestamp;
                 }
+                return e.Timestamp != e.OriginRecord.Timestamp; // imposible
+            }
+            else
+            {
+                if (e.OriginRecord.State == GlobalCacheManager.StateInvalid)
+                    return false;
+                return e.Timestamp != e.OriginRecord.Timestamp;
             }
         }
 

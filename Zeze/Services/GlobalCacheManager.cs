@@ -12,6 +12,7 @@ using Org.BouncyCastle.Asn1.Pkcs;
 using Zeze.Net;
 using System.Threading.Tasks;
 using System.Net;
+using NLog;
 
 namespace Zeze.Services
 {
@@ -22,9 +23,14 @@ namespace Zeze.Services
         public const int StateShare = 2;
 
         public const int AcquireShareAlreadyIsModify = 1;
-        //public const int AcquireAcquireInvalid = 2;
+        //public const int AcquireInvalid = 2;
         public const int AcquireErrorState = 3;
         public const int AcquireModifyAlreadyIsModify = 4;
+
+        public const int ReduceErrorState = 5;
+        public const int ReduceShareAlreadyIsInvalid = 6;
+        public const int ReduceShareAlreadyIsShare = 7;
+        public const int ReduceInvalidAlreadyIsInvalid = 8;
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public static GlobalCacheManager Instance { get; } = new GlobalCacheManager();
@@ -107,14 +113,15 @@ namespace Zeze.Services
                 {
                     if (cs.Modify == holder)
                     {
-                        logger.Warn("AcquireShare AlreadyIsModify");
-
                         rpc.Result = rpc.Argument;
+                        rpc.Result.State = StateModify;
                         rpc.SendResultCode(AcquireShareAlreadyIsModify);
                         return 0;
                     }
 
-                    holder.Reduce(rpc.Argument.GlobalTableKey, StateShare);
+                    if (StateShare == cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare))
+                        cs.Share.Add(cs.Modify); // 降级成功，有可能降到 Invalid，此时就不需要加入 Share 了。
+
                     cs.Modify = null;
                     cs.Share.Add(holder);
 
@@ -137,18 +144,19 @@ namespace Zeze.Services
             CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
             lock (cs)
             {
+                // TODO 检查死锁。
                 if (cs.Modify != null)
                 {
                     if (cs.Modify == holder)
                     {
-                        logger.Warn("AcquireModify AlreadyIsModify");
+                        logger.Warn("AcquireModifyAlreadyIsModify");
 
                         rpc.Result = rpc.Argument;
                         rpc.SendResultCode(AcquireModifyAlreadyIsModify);
                         return 0;
                     }
 
-                    holder.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
+                    cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
                     cs.Modify = holder;
 
                     rpc.Result = rpc.Argument;
@@ -156,16 +164,29 @@ namespace Zeze.Services
                     return 0;
                 }
 
-                List<Task> reduces = new List<Task>();
+                List<Reduce> reduces = new List<Reduce>();
+                // 先把降级请求全部发送给出去。
                 foreach (CacheHolder c in cs.Share)
                 {
                     if (c == holder)
                         continue;
-                    Task task = c.ReduceNoWait(rpc.Argument.GlobalTableKey, StateInvalid);
-                    if (null != task)
-                        reduces.Add(task);
+                    Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid);
+                    if (null != reduce)
+                        reduces.Add(reduce);
                 }
-                Task.WaitAll(reduces.ToArray());
+                // 一个个等待是否成功。WaitAll 碰到错误很难处理。
+                foreach (Reduce reduce in reduces)
+                {
+                    try
+                    {
+                        reduce.Future.Task.Wait();
+                    }
+                    catch (Exception ex)
+                    {
+                        // 等待失败看作降级成功，对方可能已经不存在。
+                        logger.Error(ex, "AcquireModify Reduce {0}", rpc.Argument.GlobalTableKey);
+                    }
+                }
 
                 cs.Share.Clear();
                 cs.Modify = holder;
@@ -185,6 +206,8 @@ namespace Zeze.Services
 
     public class CacheHolder
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public long SessionId { get; }
 
         public CacheHolder(long sessionId)
@@ -192,21 +215,40 @@ namespace Zeze.Services
             SessionId = sessionId;
         }
 
-        public void Reduce(GlobalTableKey gkey, int state)
+        public int Reduce(GlobalTableKey gkey, int state)
         {
-            Task task = ReduceNoWait(gkey, state);
-            if (null != task)
-                task.Wait();
+            try
+            {
+                Reduce reduce = ReduceWaitLater(gkey, state);
+                if (null != reduce)
+                {
+                    reduce.Future.Task.Wait();
+                    return reduce.Result.State;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Reduce Error {0}", gkey);
+            }
+            return state;
         }
 
-        public Task ReduceNoWait(GlobalTableKey gkey, int state)
+        public Reduce ReduceWaitLater(GlobalTableKey gkey, int state)
         {
-            AsyncSocket peer = GlobalCacheManager.Instance.Server.GetSocket(SessionId);
-            // 逻辑服务器网络连接关闭，表示自动释放所有锁。所有Reduce都看作成功。
-            if (null != peer)
+            try
             {
-                Reduce reduce = new Reduce(gkey, state);
-                return reduce.SendForWait(peer).Task;
+                AsyncSocket peer = GlobalCacheManager.Instance.Server.GetSocket(SessionId);
+                // 逻辑服务器网络连接关闭，表示自动释放所有锁。所有Reduce都看作成功。
+                if (null != peer)
+                {
+                    Reduce reduce = new Reduce(gkey, state);
+                    reduce.SendForWait(peer);
+                    return reduce;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "ReduceWaitLater Error {0}", gkey);
             }
             return null;
         }

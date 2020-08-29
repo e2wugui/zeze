@@ -26,6 +26,15 @@ namespace Zeze.Transaction
             DatabaseUrl = url;
         }
 
+        public Zeze.Transaction.Table GetTable(string name)
+        {
+            if (tables.TryGetValue(name, out var table))
+            {
+                return table;
+            }
+            return null;
+        }
+
         public void AddTable(Zeze.Transaction.Table table)
         {
             tables.Add(table.Name, table);
@@ -51,7 +60,7 @@ namespace Zeze.Transaction
             storages.Clear();
         }
 
-        internal void Checkpoint(Checkpoint sync)
+        internal void EncodeN()
         {
             // try Encode. 可以多趟。
             for (int i = 1; i <= 1; ++i)
@@ -63,31 +72,26 @@ namespace Zeze.Transaction
                 }
                 logger.Info("Checkpoint EncodeN {0}/{1}", i, countEncodeN);
             }
-            // snapshot
-            {
-                int countEncode0 = 0;
-                int countSnapshot = 0;
-                Transaction.FlushReadWriteLock.EnterWriteLock();
-                try
-                {
-                    foreach (Storage storage in storages)
-                    {
-                        countEncode0 += storage.Encode0();
-                    }
-                    foreach (Storage storage in storages)
-                    {
-                        countSnapshot += storage.Snapshot();
-                    }
-                }
-                finally
-                {
-                    Transaction.FlushReadWriteLock.ExitWriteLock();
-                }
+        }
 
-                logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
+        internal void Snapshot()
+        {
+            int countEncode0 = 0;
+            int countSnapshot = 0;
+            foreach (Storage storage in storages)
+            {
+                countEncode0 += storage.Encode0();
+            }
+            foreach (Storage storage in storages)
+            {
+                countSnapshot += storage.Snapshot();
             }
 
-            // flush checkpoint
+            logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
+        }
+
+        internal void Flush(Checkpoint sync)
+        {
             Checkpoint(sync, () =>
             {
                 int countFlush = 0;
@@ -98,15 +102,17 @@ namespace Zeze.Transaction
                 logger.Info("Checkpoint Flush count={0}", countFlush);
             }
             );
+        }
 
-            // cleanup
+        internal void Cleanup()
+        {
             foreach (Storage storage in storages)
             {
                 storage.Cleanup();
             }
         }
 
-        internal ManualResetEvent Ready { get; } = new ManualResetEvent(false);
+        internal ManualResetEvent CommitReady { get; } = new ManualResetEvent(false);
 
         public abstract void Checkpoint(Checkpoint sync, Action flushAction);
         public abstract Database.Table OpenTable(string name);
@@ -152,7 +158,7 @@ namespace Zeze.Transaction
                         flushAction();
                         if (null != sync) // null for test
                         {
-                            Ready.Set();
+                            CommitReady.Set();
                             sync.WaitAll();
                         }
                         Transaction.Commit();
@@ -160,7 +166,7 @@ namespace Zeze.Transaction
                     }
                     catch (Exception ex)
                     {
-                        Ready.Reset();
+                        CommitReady.Reset();
                         Transaction.Rollback();
                         logger.Warn(ex, "Checkpoint error.");
                     }
@@ -293,7 +299,7 @@ namespace Zeze.Transaction
                         flushAction();
                         if (null != sync) // null for test
                         {
-                            Ready.Set();
+                            CommitReady.Set();
                             sync.WaitAll();
                         }
                         Transaction.Commit();
@@ -301,7 +307,7 @@ namespace Zeze.Transaction
                     }
                     catch (Exception ex)
                     {
-                        Ready.Reset();
+                        CommitReady.Reset();
                         Transaction.Rollback();
                         logger.Warn(ex, "Checkpoint error.");
                     }
@@ -428,7 +434,7 @@ namespace Zeze.Transaction
             flushAction();
             if (null != sync) // null for test
             {
-                Ready.Set();
+                CommitReady.Set();
                 sync.WaitAll();
             }
         }

@@ -44,29 +44,111 @@ namespace Zeze.Transaction
             return this;
         }
 
+        public Checkpoint Duplicate()
+        {
+            return new Checkpoint(dbs);
+        }
+
         private ManualResetEvent[] readys;
+
+        private void EncodeN()
+        {
+            int i = 0;
+            Task[] tasks = new Task[dbs.Count];
+            foreach (var db in dbs)
+            {
+                tasks[i++] = Task.Run(db.EncodeN);
+            }
+            Task.WaitAll(tasks);
+        }
+
+        private void Snapshot()
+        {
+            Transaction.FlushReadWriteLock.EnterWriteLock();
+            actionDeny = true;
+            try
+            {
+                int i = 0;
+                Task[] tasks = new Task[dbs.Count];
+                foreach (var db in dbs)
+                {
+                    tasks[i++] = Task.Run(db.Snapshot);
+                }
+                Task.WaitAll(tasks);
+            }
+            finally
+            {
+                Transaction.FlushReadWriteLock.ExitWriteLock();
+            }
+        }
+
+        private void Flush()
+        {
+            readys = new ManualResetEvent[dbs.Count];
+
+            int i = 0;
+            foreach (var v in dbs)
+            {
+                v.CommitReady.Reset();
+                readys[i++] = v.CommitReady;
+            }
+
+            i = 0;
+            Task[] tasks = new Task[dbs.Count];
+            foreach (var db in dbs)
+            {
+                tasks[i++] = Task.Run(() => db.Flush(this));
+            }
+            Task.WaitAll(tasks);
+            readys = null;
+        }
+
+        private void Cleanup()
+        {
+            int i = 0;
+            Task[] tasks = new Task[dbs.Count];
+            foreach (var db in dbs)
+            {
+                tasks[i++] = Task.Run(db.Cleanup);
+            }
+            Task.WaitAll(tasks);
+        }
 
         public void Run()
         {
             lock (checkpointLock)
             {
-                readys = new ManualResetEvent[dbs.Count];
-
-                int i = 0;
-                foreach (var v in dbs)
+                EncodeN();
+                Snapshot();
+                Flush();
+                foreach (Action act in actions)
                 {
-                    v.Ready.Reset();
-                    readys[i++] = v.Ready;
+                    act();
                 }
+                Cleanup();
+            }
+        }
 
-                i = 0;
-                Task[] tasks = new Task[dbs.Count];
-                foreach (var db in dbs)
+        private bool actionDeny = false;
+        private List<Action> actions = new List<Action>();
+
+        internal bool TryAddActionAfterCommit(Action act)
+        {
+            Transaction.FlushReadWriteLock.EnterReadLock();
+            try
+            {
+                if (actionDeny)
+                    return false;
+
+                lock (actions)
                 {
-                    tasks[i++] = Task.Run(() => db.Checkpoint(this));
+                    actions.Add(act);
+                    return true;
                 }
-                Task.WaitAll(tasks);
-                readys = null;
+            }
+            finally
+            {
+                Transaction.FlushReadWriteLock.ExitReadLock();
             }
         }
 

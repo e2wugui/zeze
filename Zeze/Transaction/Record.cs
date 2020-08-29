@@ -28,7 +28,7 @@ namespace Zeze.Transaction
 
         internal abstract void Commit(Transaction.RecordAccessed accessed);
 
-        internal abstract void Acquire(int state);
+        internal abstract int Acquire(int state);
     }
 
     public class Record<K, V> : Record where V : Bean, new()
@@ -43,11 +43,10 @@ namespace Zeze.Transaction
             this.Key = key;
         }
 
-        internal override void Acquire(int state)
+        internal override int Acquire(int state)
         {
             GlobalTableKey gkey = new GlobalTableKey(Table.Name, Table.EncodeKey(Key));
-            Table.Zeze.GlobalAgent.Acquire(gkey, state);
-            State = state;
+            return Table.Zeze.GlobalAgent.Acquire(gkey, state);
         }
 
         // XXX 临时写个实现，以后调整。
@@ -57,7 +56,7 @@ namespace Zeze.Transaction
             {
                 Value = accessed.CommittedPutLog.Value;
             }
-            Timestamp = NextTimestamp;
+            Timestamp = NextTimestamp; // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
             Table.Storage?.OnRecordChanged(this);
         }
 
