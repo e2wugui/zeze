@@ -15,6 +15,7 @@ namespace Zeze
         public bool IsStart { get; private set; }
         internal TableSys TableSys { get; private set; }
         private Util.SchedulerTask checkpointTask;
+        internal GlobalAgent GlobalAgent { get; } = new GlobalAgent();
 
         public Application(Config config = null)
         {
@@ -50,6 +51,8 @@ namespace Zeze
                 if (IsStart)
                     return;
                 IsStart = true;
+
+                // TODO 根据配置启动GlobalAgent。
 
                 // 由于 AutoKey，TableSys需要先打开。TableSys肯定在defaultDb中。并且要在其他database都初始化table后再加入。
                 TableSys = new TableSys();

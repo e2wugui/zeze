@@ -46,7 +46,7 @@ namespace Zeze.Transaction
         internal override void Acquire(int state)
         {
             GlobalTableKey gkey = new GlobalTableKey(Table.Name, Table.EncodeKey(Key));
-            GlobalAgent.Instance.Acquire(gkey, state);
+            Table.Zeze.GlobalAgent.Acquire(gkey, state);
             State = state;
         }
 

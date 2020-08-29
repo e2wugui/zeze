@@ -28,22 +28,34 @@ namespace Zeze.Services
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public static GlobalCacheManager Instance { get; } = new GlobalCacheManager();
-        public ServerService Server { get; } = new ServerService();
+        public ServerService Server { get; private set; }
         private AsyncSocket serverSocket;
 
         private ConcurrentDictionary<GlobalTableKey, CacheState> global = new ConcurrentDictionary<GlobalTableKey, CacheState>();
 
         public void Start(IPAddress ipaddress, int port)
         {
-            Server.AddFactory(new Acquire().TypeId, () => new Acquire());
-            Server.AddHandle(new Acquire().TypeRpcRequestId, Service.MakeHandle<Acquire>(this, GetType().GetMethod(nameof(ProcessAcquireRequest))));
-            serverSocket = Server.NewServerSocket(ipaddress, port);
+            lock (this)
+            {
+                if (Server != null)
+                    return;
+                Server = new ServerService();
+                Server.AddFactory(new Acquire().TypeId, () => new Acquire());
+                Server.AddHandle(new Acquire().TypeRpcRequestId, Service.MakeHandle<Acquire>(this, GetType().GetMethod(nameof(ProcessAcquireRequest))));
+                serverSocket = Server.NewServerSocket(ipaddress, port);
+            }
         }
 
         public void Stop()
         {
-            serverSocket.Dispose();
-            Server.Close();
+            lock (this)
+            {
+                if (null == Server)
+                    return;
+                serverSocket.Dispose();
+                Server.Close();
+                Server = null;
+            }
         }
 
         public int ProcessAcquireRequest(Acquire rpc)

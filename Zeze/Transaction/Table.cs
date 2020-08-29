@@ -35,6 +35,7 @@ namespace Zeze.Transaction
         public Table(string name) : base(name)
         {
         }
+        public Application Zeze { get; private set; }
 
         protected AutoKey AutoKey { get; private set;  }
 
@@ -166,7 +167,7 @@ namespace Zeze.Transaction
         {
             if (null != Storage)
                 throw new Exception("table has opened." + Name);
-
+            Zeze = zeze;
             if (this.IsAutoKey)
                 AutoKey = zeze.TableSys.AutoKeys.GetAutoKey(Name);
             Cache = new TableCache<K, V>(zeze, this);
