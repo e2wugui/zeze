@@ -444,23 +444,9 @@ namespace Zeze.Transaction
             {
                 public bool Equals(byte[] left, byte[] right)
                 {
-                    if (left == null || right == null)
-                    {
-                        return left == right;
-                    }
-                    if (left.Length != right.Length)
-                    {
-                        return false;
-                    }
-                    for (int i = 0; i < left.Length; i++)
-                    {
-                        if (left[i] != right[i])
-                        {
-                            return false;
-                        }
-                    }
-                    return true;
+                    return Helper.Equals(left, right);
                 }
+
                 public int GetHashCode(byte[] key)
                 {
                     int sum = 0;

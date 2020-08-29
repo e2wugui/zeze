@@ -110,5 +110,57 @@ namespace Zeze.Serialize
             }
             sb.Append('}');
         }
+
+        public static int GetHashCode(byte[] bytes)
+        {
+            int hash = 0;
+            foreach (byte b in bytes)
+                hash += b;
+            return hash;
+        }
+
+        public static bool Equals(byte[] left, byte[] right)
+        {
+            if (left == null || right == null)
+            {
+                return left == right;
+            }
+            if (left.Length != right.Length)
+            {
+                return false;
+            }
+            for (int i = 0; i < left.Length; i++)
+            {
+                if (left[i] != right[i])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public static int Compare(byte[] left, byte[] right)
+        {
+            if (left == null || right == null)
+            {
+                if (left == right) // both null
+                    return 0;
+                if (left == null) // null is small
+                    return -1;
+                return 1;
+            }
+            if (left.Length != right.Length)
+            {
+                return left.Length.CompareTo(right.Length); // shorter is small
+            }
+
+            for (int i = 0; i < left.Length; i++)
+            {
+                int c = left[i].CompareTo(right[i]);
+                if (0 != c)
+                    return c;
+            }
+            return 0;
+        }
     }
 }

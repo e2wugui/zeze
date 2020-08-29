@@ -21,7 +21,7 @@ namespace Zeze.Net
 
         public Service Service { get; private set; }
         public Exception LastException { get; private set; }
-        public long SerialNo { get; private set; }
+        public long SessionId { get; private set; }
         public Socket Socket { get; private set; } // 这个给出去真的好吗？
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace Zeze.Net
         /// </summary>
         public Object UserState { get; set; } // 
 
-        private static global::Zeze.Util.AtomicLong SerialNoGen = new global::Zeze.Util.AtomicLong();
+        private static global::Zeze.Util.AtomicLong SessionIdGen = new global::Zeze.Util.AtomicLong();
 
         private SocketAsyncEventArgs eventArgsAccept;
         private SocketAsyncEventArgs eventArgsReceive;
@@ -56,7 +56,7 @@ namespace Zeze.Net
             Socket.Bind(localEP);
             Socket.Listen(service.SocketOptions.Backlog);
 
-            this.SerialNo = SerialNoGen.IncrementAndGet();
+            this.SessionId = SessionIdGen.IncrementAndGet();
 
             eventArgsAccept = new SocketAsyncEventArgs();
             eventArgsAccept.Completed += OnAsyncIOCompleted;
@@ -83,7 +83,7 @@ namespace Zeze.Net
             if (null != service.SocketOptions.NoDelay)
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
-            this.SerialNo = SerialNoGen.IncrementAndGet();
+            this.SessionId = SessionIdGen.IncrementAndGet();
 
             BeginReceiveAsync();
         }
@@ -109,7 +109,7 @@ namespace Zeze.Net
 
             System.Net.Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
 
-            this.SerialNo = SerialNoGen.IncrementAndGet();
+            this.SessionId = SessionIdGen.IncrementAndGet();
         }
 
         public void Send(global::Zeze.Serialize.ByteBuffer bb)

@@ -94,7 +94,7 @@ namespace Zeze.Net
         {
             lock (_asocketMap)
             {
-                _asocketMap.Remove(so.SerialNo);
+                _asocketMap.Remove(so.SessionId);
             }
             if (null != e)
                 logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketClose");
@@ -108,7 +108,7 @@ namespace Zeze.Net
         {
             lock(_asocketMap)
             {
-                _asocketMap.Add(so.SerialNo, so);
+                _asocketMap.Add(so.SessionId, so);
             }
         }
 
@@ -130,7 +130,7 @@ namespace Zeze.Net
         {
             lock (_asocketMap)
             {
-                _asocketMap.Add(so.SerialNo, so);
+                _asocketMap.Add(so.SessionId, so);
             }
         }
 

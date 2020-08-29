@@ -98,8 +98,8 @@ namespace Zeze.Gen
             if (hasId)
             {
                 Id = short.Parse(self.GetAttribute("id"));
-                if (Id < 0)
-                    throw new Exception("module id < 0 is reserved. @" + this.Path());
+                if (Id <= 0)
+                    throw new Exception("module id <= 0 is reserved. @" + this.Path());
 
                 Solution.ModuleIdAllowRanges.AssertInclude(Id);
                 Solution.ModuleIdCurrentRanges.CheckAdd(Id);
