@@ -100,7 +100,7 @@ namespace Zeze
                 if (false == IsStart)
                     return;
                 IsStart = false;
-
+                GlobalAgent.Stop();
                 foreach (var db in Databases.Values)
                 {
                     db.Close();

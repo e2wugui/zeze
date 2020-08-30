@@ -5,6 +5,8 @@ namespace GlobalCacheManager
 {
     public class Program
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public static void Main(string[] args)
         {
             string ip = null;
@@ -19,7 +21,8 @@ namespace GlobalCacheManager
             }
             System.Net.IPAddress address = ip != null ? System.Net.IPAddress.Parse(ip) : System.Net.IPAddress.Any;
             Zeze.Services.GlobalCacheManager.Instance.Start(address, port);
-            Console.WriteLine("Ok.");
+            //Console.WriteLine("Ok.");
+            logger.Info("Started.");
             while (true)
             {
                 Thread.Sleep(10000);
