@@ -33,6 +33,10 @@ namespace Zeze.Services
 
         private ConcurrentDictionary<GlobalTableKey, CacheState> global = new ConcurrentDictionary<GlobalTableKey, CacheState>();
 
+        private GlobalCacheManager()
+        { 
+        }
+
         public void Start(IPAddress ipaddress, int port)
         {
             lock (this)

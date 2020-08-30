@@ -17,9 +17,8 @@ namespace GlobalCacheManager
                     case "-port": port = int.Parse(args[++i]); break;
                 }
             }
-            
-            Zeze.Services.GlobalCacheManager global = new Zeze.Services.GlobalCacheManager();
-            global.Start(ip != null ? System.Net.IPAddress.Parse(ip) : System.Net.IPAddress.Any, port);
+            System.Net.IPAddress address = ip != null ? System.Net.IPAddress.Parse(ip) : System.Net.IPAddress.Any;
+            Zeze.Services.GlobalCacheManager.Instance.Start(address, port);
             while (true)
             {
                 Thread.Sleep(10000);
