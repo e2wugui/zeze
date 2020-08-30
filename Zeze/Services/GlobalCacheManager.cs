@@ -45,6 +45,7 @@ namespace Zeze.Services
                     return;
                 Server = new ServerService();
                 Server.AddFactory(new Acquire().TypeId, () => new Acquire());
+                Server.AddFactory(new Reduce().TypeId, () => new Reduce());
                 Server.AddHandle(new Acquire().TypeRpcRequestId, Service.MakeHandle<Acquire>(this, GetType().GetMethod(nameof(ProcessAcquireRequest))));
                 serverSocket = Server.NewServerSocket(ipaddress, port);
             }
@@ -57,6 +58,7 @@ namespace Zeze.Services
                 if (null == Server)
                     return;
                 serverSocket.Dispose();
+                serverSocket = null;
                 Server.Close();
                 Server = null;
             }
@@ -187,20 +189,23 @@ namespace Zeze.Services
                 }
                 Task.Run(() =>
                 {
-                    // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
-                    foreach (Reduce reduce in reduces)
+                    lock (cs)
                     {
-                        try
+                        // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
+                        foreach (Reduce reduce in reduces)
                         {
-                            reduce.Future.Task.Wait();
+                            try
+                            {
+                                reduce.Future.Task.Wait();
+                            }
+                            catch (Exception ex)
+                            {
+                                // 等待失败看作降级成功，对方可能已经不存在。
+                                logger.Error(ex, "AcquireModify Reduce {0}", rpc.Argument.GlobalTableKey);
+                            }
                         }
-                        catch (Exception ex)
-                        {
-                            // 等待失败看作降级成功，对方可能已经不存在。
-                            logger.Error(ex, "AcquireModify Reduce {0}", rpc.Argument.GlobalTableKey);
-                        }
+                        Monitor.PulseAll(cs); // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
                     }
-                    Monitor.PulseAll(cs); // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
                 });
                 Monitor.Wait(cs);
 

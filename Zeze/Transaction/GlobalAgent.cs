@@ -11,17 +11,16 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         private GlobalClient Client { get; set; }
-        private AsyncSocket ClientSocket;
+        internal AsyncSocket ClientSocket;
         internal TaskCompletionSource<AsyncSocket> Connected;
 
         internal int Acquire(GlobalTableKey gkey, int state)
         {
-            AsyncSocket clientSocket = GetClientSocket();
-            if (null != clientSocket)
+            if (null != ClientSocket)
             {
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了）。
                 Acquire rpc = new Acquire(gkey, state);
-                rpc.SendForWait(clientSocket).Task.Wait();
+                rpc.SendForWait(ClientSocket).Task.Wait();
                 if (rpc.ResultCode != 0)
                 {
                     logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
@@ -29,11 +28,6 @@ namespace Zeze.Transaction
                 return rpc.Result.State;
             }
             return state;
-        }
-
-        private AsyncSocket GetClientSocket()
-        {
-            return null;
         }
 
         int ProcessReduceRequest(Reduce rpc)
@@ -68,6 +62,7 @@ namespace Zeze.Transaction
                     return;
                 Client = new GlobalClient(this);
                 Client.AddFactory(new Reduce().TypeId, () => new Reduce());
+                Client.AddFactory(new Acquire().TypeId, () => new Acquire());
                 Client.AddHandle(new Reduce().TypeRpcRequestId, Service.MakeHandle<Reduce>(this, GetType().GetMethod(nameof(ProcessReduceRequest))));
                 Connected = new TaskCompletionSource<AsyncSocket>();
                 ClientSocket = Client.NewClientSocket(hostNameOrAddress, port);
@@ -110,8 +105,10 @@ namespace Zeze.Transaction
         public override void OnSocketClose(AsyncSocket so, Exception e)
         {
             base.OnSocketClose(so, e);
+            agent.ClientSocket = null;
+            Console.WriteLine("OnSocketClose " + e);
             // XXX 和 GlobalCacheManager 失去连接，意味着 Cache 同步无法正常工作。必须停止程序。
-            System.Environment.Exit(5678);
+            // System.Environment.Exit(5678);
         }
 
         public override void DispatchProtocol(Protocol p)
