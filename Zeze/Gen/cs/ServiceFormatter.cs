@@ -41,7 +41,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class " + service.Name + " : " + BaseClass());
             sw.WriteLine("    {");
-            sw.WriteLine("        public " + service.Name + "()");
+            sw.WriteLine("        public " + service.Name + "(Zeze.Application zeze) : base(zeze)");
             sw.WriteLine("        {");
             foreach (Protocol p in service.GetAllProtocols())
             {

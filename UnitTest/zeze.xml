@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<zeze DatabaseType="SqlServer" DatabaseUrl="Server=(localdb)\MSSQLLocalDB;Integrated Security=true"
+<zeze
+	DatabaseType="SqlServer" DatabaseUrl="Server=(localdb)\MSSQLLocalDB;Integrated Security=true"
+	<!-- DatabaseType="Mysql" DatabaseUrl="server=localhost;database=devtest;uid=dev;pwd=devtest12345" -->
 	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5555"
 	CheckpointPeriod="60000"
 	AutoKeyLocalId="0" AutoKeyLocalStep="4096"

@@ -16,15 +16,16 @@ namespace Zeze.Services
         public const int StateModify = 1;
         public const int StateShare = 2;
 
-        public const int AcquireShareAlreadyIsModify = 1;
-        public const int AcquireModifyDeadLockFound = 2;
-        public const int AcquireErrorState = 3;
-        public const int AcquireModifyAlreadyIsModify = 4;
+        public const int AcquireShareDeadLockFound = 1;
+        public const int AcquireShareAlreadyIsModify = 2;
+        public const int AcquireModifyDeadLockFound = 3;
+        public const int AcquireErrorState = 4;
+        public const int AcquireModifyAlreadyIsModify = 5;
 
-        public const int ReduceErrorState = 5;
-        public const int ReduceShareAlreadyIsInvalid = 6;
-        public const int ReduceShareAlreadyIsShare = 7;
-        public const int ReduceInvalidAlreadyIsInvalid = 8;
+        public const int ReduceErrorState = 11;
+        public const int ReduceShareAlreadyIsInvalid = 12;
+        public const int ReduceShareAlreadyIsShare = 13;
+        public const int ReduceInvalidAlreadyIsInvalid = 14;
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public static GlobalCacheManager Instance { get; } = new GlobalCacheManager();
@@ -97,7 +98,9 @@ namespace Zeze.Services
                 rpc.SendResult();
                 if (cs.Modify == null && cs.Share.Count == 0)
                 {
-                    // TODO 怎么安全的从global中删除，没有并发问题。
+                    // 安全的从global中删除，没有并发问题。
+                    cs.IsRemoved = true;
+                    global.TryRemove(rpc.Argument.GlobalTableKey, out var _);
                 }
                 return 0;
             }
@@ -107,118 +110,171 @@ namespace Zeze.Services
         {
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
             rpc.Result = rpc.Argument;
-            CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
-            lock (cs)
+            while (true)
             {
-                if (cs.Modify != null)
+                CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
+                logger.Debug("AcquireShare 1 {0}", rpc.Argument.GlobalTableKey);
+                lock (cs)
                 {
-                    if (cs.Modify == sender)
+                    if (cs.IsRemoved)
+                        continue;
+
+                    while (cs.IsReducePending)
                     {
-                        rpc.Result.State = StateModify;
-                        rpc.SendResultCode(AcquireShareAlreadyIsModify);
+                        if (cs.Modify == sender)
+                        {
+                            rpc.Result.State = StateInvalid;
+                            rpc.SendResultCode(AcquireShareDeadLockFound);
+                            return 0;
+                        }
+
+                        logger.Debug("AcquireShare 2 {0}", rpc.Argument.GlobalTableKey);
+                        Monitor.Wait(cs);
+                    }
+                    cs.IsReducePending = true;
+
+                    if (cs.Modify != null)
+                    {
+                        if (cs.Modify == sender)
+                        {
+                            rpc.Result.State = StateModify;
+                            rpc.SendResultCode(AcquireShareAlreadyIsModify);
+                            cs.IsReducePending = false;
+                            logger.Debug("AcquireShare 3 {0}", rpc.Argument.GlobalTableKey);
+                            return 0;
+                        }
+
+                        Task.Run(() =>
+                        {
+                            lock (cs)
+                            {
+                                if (StateShare == cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare))
+                                    cs.Share.Add(cs.Modify); // 降级成功，有可能降到 Invalid，此时就不需要加入 Share 了。
+                                Monitor.PulseAll(cs);
+                            }
+                        });
+                        logger.Debug("AcquireShare 4 {0}", rpc.Argument.GlobalTableKey);
+                        Monitor.Wait(cs);
+
+                        cs.Modify = null;
+                        cs.Share.Add(sender);
+                        rpc.SendResult();
+                        cs.IsReducePending = false;
+                        Monitor.Pulse(cs);
+                        logger.Debug("AcquireShare 5 {0}", rpc.Argument.GlobalTableKey);
                         return 0;
                     }
 
-                    if (StateShare == cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare))
-                        cs.Share.Add(cs.Modify); // 降级成功，有可能降到 Invalid，此时就不需要加入 Share 了。
-
-                    cs.Modify = null;
                     cs.Share.Add(sender);
-
                     rpc.SendResult();
+                    cs.IsReducePending = false;
+                    Monitor.Pulse(cs);
+                    logger.Debug("AcquireShare 6 {0}", rpc.Argument.GlobalTableKey);
                     return 0;
                 }
-
-                cs.Share.Add(sender);
-
-                rpc.SendResult();
-                return 0;
             }
         }
 
         private int AcquireModify(Acquire rpc)
         {
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
-            CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
-
             rpc.Result = rpc.Argument;
 
-            Monitor.Enter(cs);
-            try
+            while (true)
             {
-                while (cs.IsModifyPending)
+                CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
+                logger.Debug("AcquireModify 1 {0}", rpc.Argument.GlobalTableKey);
+                lock (cs)
                 {
-                    if (cs.Share.Contains(sender))
+                    if (cs.IsRemoved)
+                        continue;
+
+                    while (cs.IsReducePending)
                     {
-                        rpc.Result.State = StateInvalid;
-                        rpc.SendResultCode(AcquireModifyDeadLockFound);
+                        if (cs.Modify == sender || cs.Share.Contains(sender))
+                        {
+                            rpc.Result.State = StateInvalid;
+                            rpc.SendResultCode(AcquireModifyDeadLockFound);
+                            logger.Debug("AcquireModify 2 {0}", rpc.Argument.GlobalTableKey);
+                            return 0;
+                        }
+                        logger.Debug("AcquireModify 3 {0}", rpc.Argument.GlobalTableKey);
+                        Monitor.Wait(cs);
+                    }
+                    cs.IsReducePending = true;
+
+                    if (cs.Modify != null)
+                    {
+                        if (cs.Modify == sender)
+                        {
+                            logger.Warn("AcquireModifyAlreadyIsModify");
+
+                            rpc.SendResultCode(AcquireModifyAlreadyIsModify);
+                            cs.IsReducePending = false;
+                            logger.Debug("AcquireModify 4 {0}", rpc.Argument.GlobalTableKey);
+                            return 0;
+                        }
+
+                        Task.Run(() =>
+                        {
+                            lock (cs)
+                            {
+                                cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
+                                Monitor.PulseAll(cs);
+                            }
+                        });
+                        logger.Debug("AcquireModify 4.1 {0}", rpc.Argument.GlobalTableKey);
+                        Monitor.Wait(cs);
+                        cs.Modify = sender;
+
+                        rpc.SendResult();
+                        cs.IsReducePending = false;
+                        logger.Debug("AcquireModify 5 {0}", rpc.Argument.GlobalTableKey);
                         return 0;
                     }
+
+                    List<Reduce> reduces = new List<Reduce>();
+                    // 先把降级请求全部发送给出去。
+                    foreach (CacheHolder c in cs.Share)
+                    {
+                        if (c == sender)
+                            continue;
+                        Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid);
+                        if (null != reduce)
+                            reduces.Add(reduce);
+                    }
+                    Task.Run(() =>
+                    {
+                        lock (cs)
+                        {
+                            // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
+                            foreach (Reduce reduce in reduces)
+                            {
+                                try
+                                {
+                                    reduce.Future.Task.Wait();
+                                }
+                                catch (Exception ex)
+                                {
+                                    // 等待失败看作降级成功，对方可能已经不存在。
+                                    logger.Error(ex, "AcquireModify Reduce {0}", rpc.Argument.GlobalTableKey);
+                                }
+                            }
+                            Monitor.PulseAll(cs); // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
+                        }
+                    });
+                    logger.Debug("AcquireModify 6 {0}", rpc.Argument.GlobalTableKey);
                     Monitor.Wait(cs);
-                }
-                cs.IsModifyPending = true;
+                    logger.Debug("AcquireModify 7 {0}", rpc.Argument.GlobalTableKey);
 
-                if (cs.Modify != null)
-                {
-                    if (cs.Modify == sender)
-                    {
-                        logger.Warn("AcquireModifyAlreadyIsModify");
-
-                        rpc.SendResultCode(AcquireModifyAlreadyIsModify);
-                        cs.IsModifyPending = false;
-                        return 0;
-                    }
-
-                    cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
+                    cs.Share.Clear();
                     cs.Modify = sender;
-
                     rpc.SendResult();
-                    cs.IsModifyPending = false;
+                    cs.IsReducePending = false;
+                    Monitor.PulseAll(cs); // IsModifyPending 结束，唤醒一个进来就可以了。
+                    logger.Debug("AcquireModify 8 {0}", rpc.Argument.GlobalTableKey);
                     return 0;
                 }
-
-                List<Reduce> reduces = new List<Reduce>();
-                // 先把降级请求全部发送给出去。
-                foreach (CacheHolder c in cs.Share)
-                {
-                    if (c == sender)
-                        continue;
-                    Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid);
-                    if (null != reduce)
-                        reduces.Add(reduce);
-                }
-                Task.Run(() =>
-                {
-                    lock (cs)
-                    {
-                        // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
-                        foreach (Reduce reduce in reduces)
-                        {
-                            try
-                            {
-                                reduce.Future.Task.Wait();
-                            }
-                            catch (Exception ex)
-                            {
-                                // 等待失败看作降级成功，对方可能已经不存在。
-                                logger.Error(ex, "AcquireModify Reduce {0}", rpc.Argument.GlobalTableKey);
-                            }
-                        }
-                        Monitor.PulseAll(cs); // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
-                    }
-                });
-                Monitor.Wait(cs);
-
-                cs.Share.Clear();
-                cs.Modify = sender;
-                rpc.SendResult();
-                cs.IsModifyPending = false;
-                Monitor.Pulse(cs); // IsModifyPending 结束，唤醒一个进来就可以了。
-                return 0;
-            }
-            finally
-            {
-                Monitor.Exit(cs);
             }
         }
     }
@@ -226,7 +282,8 @@ namespace Zeze.Services
     public class CacheState
     {
         internal CacheHolder Modify { get; set; }
-        internal bool IsModifyPending { get; set; }
+        internal bool IsReducePending { get; set; }
+        internal bool IsRemoved { get; set; }
         internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
     }
 
@@ -254,7 +311,7 @@ namespace Zeze.Services
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Reduce Error {0}", gkey);
+                logger.Error(ex, "Reduce Error {0} to {1}", gkey, state);
             }
             return GlobalCacheManager.StateInvalid; // 访问失败，统统返回Invalid
         }
@@ -268,7 +325,7 @@ namespace Zeze.Services
                 if (null != peer)
                 {
                     Reduce reduce = new Reduce(gkey, state);
-                    reduce.SendForWait(peer);
+                    reduce.SendForWait(peer, 10000);
                     return reduce;
                 }
             }
@@ -343,18 +400,6 @@ namespace Zeze.Services
 
     public class ServerService : Zeze.Net.Service
     {
-        public override void DispatchProtocol(Protocol p)
-        {
-            if (Handles.TryGetValue(p.TypeId, out var handle))
-            {
-                Task.Run(() => handle(p));
-            }
-            else
-            {
-                throw new Exception("Protocol Handle Not Found. " + p);
-            }
-        }
-
         public override void OnSocketAccept(AsyncSocket so)
         {
             so.UserState = new CacheHolder(so.SessionId);

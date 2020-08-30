@@ -18,12 +18,19 @@ namespace Zeze.Net
         /// 同一个 Service 下的所有连接都是用相同配置。
         /// </summary>
         public SocketOptions SocketOptions { get; set; }
+        public Application Zeze { get; }
 
         private Dictionary<long, AsyncSocket> _asocketMap = new Dictionary<long, AsyncSocket>();
 
+        public Service(Application zeze)
+        {
+            Zeze = zeze;
+            SocketOptions = new SocketOptions();
+        }
+
         public Service()
         {
-            this.SocketOptions = new SocketOptions();
+            SocketOptions = new SocketOptions();
         }
 
         /// <summary>
@@ -156,7 +163,14 @@ namespace Zeze.Net
         {
             if (Handles.TryGetValue(p.TypeId, out var handle))
             {
-                Task.Run(new Procedure(() => handle(p)).Call);
+                if (null != Zeze)
+                {
+                    Task.Run(Zeze.NewProcedure(() => handle(p)).Call);
+                }
+                else
+                {
+                    Task.Run(() => handle(p));
+                }
             }
             else
             {

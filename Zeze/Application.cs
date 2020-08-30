@@ -16,6 +16,7 @@ namespace Zeze
         internal TableSys TableSys { get; private set; }
         private Util.SchedulerTask checkpointTask;
         internal GlobalAgent GlobalAgent { get; }
+        public Checkpoint Checkpoint { get; set; }
 
         public Application(Config config = null)
         {
@@ -24,6 +25,7 @@ namespace Zeze
                 Config = Config.Load();
             Config.CreateDatabase(Databases);
             GlobalAgent = new GlobalAgent(this);
+            Checkpoint = new Checkpoint(Databases.Values);
         }
 
         public void AddTable(string dbName, Transaction.Table table)
@@ -56,6 +58,11 @@ namespace Zeze
             throw new Exception($"database not exist name={name}");
         }
 
+        public Procedure NewProcedure(Func<int> func)
+        {
+            return new Procedure(Checkpoint, func);
+        }
+
         public void Start()
         {
             lock (this)
@@ -81,7 +88,7 @@ namespace Zeze
 
                 if (Config.CheckpointPeriod > 0)
                 {
-                    checkpointTask = Util.Scheduler.Instance.Schedule(Checkpoint, Config.CheckpointPeriod, Config.CheckpointPeriod);
+                    checkpointTask = Util.Scheduler.Instance.Schedule(CheckpointRun, Config.CheckpointPeriod, Config.CheckpointPeriod);
                 }
             }
         }
@@ -92,7 +99,7 @@ namespace Zeze
             checkpointTask = null;
 
             logger.Fatal("final checkpoint start.");
-            Checkpoint();
+            CheckpointRun();
             logger.Fatal("final checkpoint end.");
 
             lock (this)
@@ -110,9 +117,9 @@ namespace Zeze
             }
         }
  
-        public void Checkpoint()
+        public void CheckpointRun()
         {
-            new Checkpoint(Databases.Values).Run();
+            Checkpoint?.Run();
         }
 
         public Application()

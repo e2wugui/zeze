@@ -11,6 +11,8 @@ namespace Zeze.Transaction
     {
         private HashSet<Database> dbs = new HashSet<Database>();
 
+        public ReaderWriterLockSlim FlushReadWriteLock { get; } = new ReaderWriterLockSlim();
+
         private static object checkpointLock = new object(); // 限制 Checkpoint 仅有一份在运行。先这样吧。
 
         public Checkpoint()
@@ -64,7 +66,7 @@ namespace Zeze.Transaction
 
         private void Snapshot()
         {
-            Transaction.FlushReadWriteLock.EnterWriteLock();
+            FlushReadWriteLock.EnterWriteLock();
             actionDeny = true;
             try
             {
@@ -78,7 +80,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                Transaction.FlushReadWriteLock.ExitWriteLock();
+                FlushReadWriteLock.ExitWriteLock();
             }
         }
 
@@ -114,7 +116,7 @@ namespace Zeze.Transaction
             Task.WaitAll(tasks);
         }
 
-        public void Run()
+        internal void Run()
         {
             lock (checkpointLock)
             {
@@ -134,7 +136,7 @@ namespace Zeze.Transaction
 
         internal bool TryAddActionAfterCommit(Action act)
         {
-            Transaction.FlushReadWriteLock.EnterReadLock();
+            FlushReadWriteLock.EnterReadLock();
             try
             {
                 if (actionDeny)
@@ -148,7 +150,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                Transaction.FlushReadWriteLock.ExitReadLock();
+                FlushReadWriteLock.ExitReadLock();
             }
         }
 

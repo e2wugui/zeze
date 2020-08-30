@@ -10,10 +10,10 @@ namespace UnitTest.Zeze.Trans
     [TestClass]
     public class TestDatabaseMySql
     {
-        //[TestMethod]
+        [TestMethod]
         public void Test1()
         {
-            string url = "Server=localhost;Database=myDataBase;Uid=myUsername;Pwd=myPassword;";
+            string url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
             DatabaseMySql sqlserver = new DatabaseMySql(url);
             Database.Table table = sqlserver.OpenTable("test_1");
             sqlserver.Checkpoint(null, () =>

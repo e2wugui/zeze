@@ -27,16 +27,16 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestConflictAdd()
         {
-            Assert.IsTrue(Procedure.Success == new Procedure(ProcRemove).Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove).Call());
             Task[] tasks = new Task[1000];
             for (int i = 0; i < tasks.Length; ++i)
             {
-                tasks[i] = Task.Run(new Procedure(ProcAdd).Call);
+                tasks[i] = Task.Run(demo.App.Instance.Zeze.NewProcedure(ProcAdd).Call);
             }
             Task.WaitAll(tasks);
             sum = tasks.Length;
-            Assert.IsTrue(Procedure.Success == new Procedure(ProcVerify).Call());
-            Assert.IsTrue(Procedure.Success == new Procedure(ProcRemove).Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcVerify).Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove).Call());
         }
 
         int ProcRemove()

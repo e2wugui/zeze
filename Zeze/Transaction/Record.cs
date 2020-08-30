@@ -45,7 +45,11 @@ namespace Zeze.Transaction
 
         internal override int Acquire(int state)
         {
+            if (null == Table.Storage)
+                return state; // 不支持内存表cache同步。
+
             GlobalTableKey gkey = new GlobalTableKey(Table.Name, Table.EncodeKey(Key));
+            Console.WriteLine("Acquire Id=" + Table.Id + " " + gkey + " " + state);
             return Table.Zeze.GlobalAgent.Acquire(gkey, state);
         }
 

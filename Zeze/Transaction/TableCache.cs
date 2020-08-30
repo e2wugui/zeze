@@ -47,10 +47,13 @@ namespace Zeze.Transaction
 
         // 考虑不再提供单个删除，由 Cleaner 集中清理。
         // under lockey.writelock
+        /*
         internal void Remove(K key)
         {
             map.Remove(key, out var _);
         }
+        */
+
 
         public void CleanNow()
         {
@@ -99,6 +102,19 @@ namespace Zeze.Transaction
                 return true;
             }
             return false;
+        }
+
+        // under lockey.writelock
+        internal bool RemoeIfNotDirty(K key)
+        {
+            var storage = Table.Storage;
+            if (null == storage)
+                return false; // 内存表不该发生Reduce.
+
+            if (storage.IsRecordChanged(key)) // 在记录里面维持一个 Dirty 标志是可行的，但是由于 Cache.CleanNow 执行的不频繁，无所谓了。
+                return false;
+
+            return map.TryRemove(key, out var _);
         }
 
         private bool TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)

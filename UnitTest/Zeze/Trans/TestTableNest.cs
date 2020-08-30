@@ -24,8 +24,8 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestNest()
         {
-            Assert.IsTrue(Procedure.Success == new Procedure(ProcTableRemove).Call());
-            Assert.IsTrue(Procedure.Success == new Procedure(ProcTableAdd).Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcTableRemove).Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcTableAdd).Call());
         }
 
         int ProcTableRemove()
@@ -38,7 +38,7 @@ namespace UnitTest.Zeze.Trans
         {
             demo.Module1.Value v1 = demo.App.Instance.demo_Module1_Module1.Table1.GetOrAdd(4321);
             Assert.IsNotNull(v1);
-            Assert.IsTrue(Procedure.Success != new Procedure(ProcTablePutNestAndRollback).Call());
+            Assert.IsTrue(Procedure.Success != demo.App.Instance.Zeze.NewProcedure(ProcTablePutNestAndRollback).Call());
             demo.Module1.Value v2 = demo.App.Instance.demo_Module1_Module1.Table1.Get(4321);
             Assert.IsNotNull(v1);
             Assert.IsTrue(v1 == v2);

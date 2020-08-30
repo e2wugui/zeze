@@ -197,7 +197,7 @@ namespace Zeze.Transaction
                 Database = database;
                 Name = name;
 
-                using MySqlConnection connection = new MySqlConnection();
+                using MySqlConnection connection = new MySqlConnection(database.DatabaseUrl);
                 connection.Open();
                 string sql = "CREATE TABLE IF NOT EXISTS " + Name
                     + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value MEDIUMBLOB NOT NULL)ENGINE=INNODB";

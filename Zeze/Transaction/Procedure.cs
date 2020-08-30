@@ -14,16 +14,18 @@ namespace Zeze.Transaction
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        public Checkpoint Checkpoint { get; }
 
         public Func<int> Action{ get; set; }
 
-        public Procedure()
+        public Procedure(Checkpoint checkpoint)
         {
-
+            Checkpoint = checkpoint;
         }
 
-        public Procedure(Func<int> action)
+        public Procedure(Checkpoint checkpoint, Func<int> action)
         {
+            Checkpoint = checkpoint;
             Action = action;
         }
 
@@ -60,6 +62,11 @@ namespace Zeze.Transaction
                 }
                 currentT.Rollback();
                 return result;
+            }
+            catch (IndexOutOfRangeException redo)
+            {
+                currentT.Rollback();
+                throw redo;
             }
             catch (Exception e)
             {

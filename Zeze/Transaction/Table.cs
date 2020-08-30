@@ -44,6 +44,7 @@ namespace Zeze.Transaction
 
     public abstract class Table<K, V> : Table where V : Bean, new()
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public Table(string name) : base(name)
         {
         }
@@ -60,6 +61,8 @@ namespace Zeze.Transaction
                     return r;
                 // Invalid 状态，不可能发生 Reduce 操作，可以在锁内执行。
                 r.State = r.Acquire(GlobalCacheManager.StateShare);
+                if (r.State == GlobalCacheManager.StateInvalid)
+                    throw new IndexOutOfRangeException(); // TODO 
                 if (null != Storage)
                     r.Value = Storage.Find(key, this); // r.Value still maybe null
                 return r;
@@ -72,7 +75,8 @@ namespace Zeze.Transaction
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
             bool reduceModifyToShare = false;
-            Lockey lockey = Locks.Instance.Get(new TableKey(Id, key));
+            TableKey tkey = new TableKey(Id, key);
+            Lockey lockey = Locks.Instance.Get(tkey);
             lockey.EnterWriteLock();
             try
             {
@@ -83,19 +87,16 @@ namespace Zeze.Transaction
                     rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsInvalid);
                     return 0;
                 }
-                lock (r)
+                switch (r.State)
                 {
-                    switch (r.State)
-                    {
-                        case GlobalCacheManager.StateShare:
-                            rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsShare);
-                            break;
+                    case GlobalCacheManager.StateShare:
+                        rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsShare);
+                        break;
 
-                        case GlobalCacheManager.StateModify:
-                            r.State = GlobalCacheManager.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
-                            reduceModifyToShare = true;
-                            break;
-                    }
+                    case GlobalCacheManager.StateModify:
+                        r.State = GlobalCacheManager.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
+                        reduceModifyToShare = true;
+                        break;
                 }
             }
             finally
@@ -104,15 +105,12 @@ namespace Zeze.Transaction
             }
             if (reduceModifyToShare)
             {
-                // TODO 保存变量用来收集 commit action。
-                Checkpoint cp = new Checkpoint(Zeze.Databases.Values);
-                cp.TryAddActionAfterCommit(() =>
-                {
-                    rpc.Result.State = GlobalCacheManager.StateShare;
-                    rpc.SendResult();
-                }
-                );
-                cp.Run();
+                // TODO 收集。
+                logger.Warn("ReduceShare checkpoint begin. id={0} {1}", Id, tkey);
+                Zeze.CheckpointRun();
+                logger.Warn("ReduceShare checkpoint end. id={0} {1}", Id, tkey);
+                rpc.Result.State = GlobalCacheManager.StateShare;
+                rpc.SendResult();
             }
             return 0;
         }
@@ -124,7 +122,8 @@ namespace Zeze.Transaction
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
             bool reduceModifyToInvalid = false;
 
-            Lockey lockey = Locks.Instance.Get(new TableKey(Id, key));
+            TableKey tkey = new TableKey(Id, key);
+            Lockey lockey = Locks.Instance.Get(tkey);
             lockey.EnterWriteLock();
             try
             {
@@ -138,13 +137,13 @@ namespace Zeze.Transaction
                 {
                     case GlobalCacheManager.StateShare:
                         r.State = GlobalCacheManager.StateInvalid;
-                        Cache.Remove(key);
+                        Cache.RemoeIfNotDirty(key);
                         rpc.SendResult();
                         break;
 
                     case GlobalCacheManager.StateModify:
                         r.State = GlobalCacheManager.StateInvalid;
-                        Cache.Remove(key);
+                        //Cache.RemoeIfNotDirty(key); // Modify 一般来说是脏的，这里不调用删除了，让CleanNow以后处理。
                         reduceModifyToInvalid = true;
                         break;
                 }
@@ -155,14 +154,11 @@ namespace Zeze.Transaction
             }
             if (reduceModifyToInvalid)
             {
-                // TODO 保存变量用来收集 commit action。
-                Checkpoint cp = new Checkpoint(Zeze.Databases.Values);
-                cp.TryAddActionAfterCommit(() =>
-                {
-                    rpc.SendResult();
-                }
-                );
-                cp.Run();
+                // TODO 收集。
+                logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", Id, tkey);
+                Zeze.CheckpointRun();
+                logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", Id, tkey);
+                rpc.SendResult();
             }
             return 0;
         }

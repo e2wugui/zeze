@@ -62,7 +62,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             foreach (Service m in project.Services.Values)
             {
-                sw.WriteLine("                " + m.Name + " = new " + m.FullName + "();");
+                sw.WriteLine("                " + m.Name + " = new " + m.FullName + "(Zeze);");
             }
             foreach (Module m in project.AllModules)
             {

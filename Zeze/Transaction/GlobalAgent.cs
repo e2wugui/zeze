@@ -4,6 +4,7 @@ using System.Text;
 using Zeze.Net;
 using Zeze.Services;
 using System.Threading.Tasks;
+using NLog;
 
 namespace Zeze.Transaction
 {
@@ -20,7 +21,7 @@ namespace Zeze.Transaction
             {
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了）。
                 Acquire rpc = new Acquire(gkey, state);
-                rpc.SendForWait(ClientSocket).Task.Wait();
+                rpc.SendForWait(ClientSocket, 12000).Task.Wait();
                 if (rpc.ResultCode != 0)
                 {
                     logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
@@ -30,7 +31,7 @@ namespace Zeze.Transaction
             return state;
         }
 
-        int ProcessReduceRequest(Reduce rpc)
+        public int ProcessReduceRequest(Reduce rpc)
         {
             switch (rpc.Argument.State)
             {
@@ -105,22 +106,12 @@ namespace Zeze.Transaction
         public override void OnSocketClose(AsyncSocket so, Exception e)
         {
             base.OnSocketClose(so, e);
+            if (so == agent.ClientSocket)
+                Console.WriteLine("Real Socket Close");
             agent.ClientSocket = null;
             Console.WriteLine("OnSocketClose " + e);
             // XXX 和 GlobalCacheManager 失去连接，意味着 Cache 同步无法正常工作。必须停止程序。
             // System.Environment.Exit(5678);
-        }
-
-        public override void DispatchProtocol(Protocol p)
-        {
-            if (Handles.TryGetValue(p.TypeId, out var handle))
-            {
-                Task.Run(() => handle(p));
-            }
-            else
-            {
-                throw new Exception("Protocol Handle Not Found. " + p);
-            }
         }
     }
 }

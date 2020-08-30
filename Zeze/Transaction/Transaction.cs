@@ -8,6 +8,7 @@ using Zeze.Transaction.Collections;
 using System.Runtime.CompilerServices;
 using Zeze.Serialize;
 using Zeze.Services;
+using System.Threading;
 
 namespace Zeze.Transaction
 {
@@ -16,7 +17,6 @@ namespace Zeze.Transaction
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         private static System.Threading.ThreadLocal<Transaction> threadLocal = new System.Threading.ThreadLocal<Transaction>();
-        public static System.Threading.ReaderWriterLockSlim FlushReadWriteLock { get; } = new System.Threading.ReaderWriterLockSlim();
 
         public static Transaction Current => threadLocal.Value;
 
@@ -85,7 +85,7 @@ namespace Zeze.Transaction
             {
                 for (int tryCount = 0; tryCount < 256; ++tryCount) // 最多尝试次数
                 {
-                    FlushReadWriteLock.EnterReadLock();
+                    procedure.Checkpoint.FlushReadWriteLock.EnterReadLock();
                     CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
                     try
                     {
@@ -108,6 +108,10 @@ namespace Zeze.Transaction
                         }
                         // retry
                         //logger.Trace("Transaction.Perform:{0} retry {1}", procedure, tryCount);
+                    }
+                    catch (IndexOutOfRangeException e)
+                    {
+                        checkResult = CheckResult.RedoAndReleaseLock;
                     }
                     catch (Exception e)
                     {
@@ -136,7 +140,7 @@ namespace Zeze.Transaction
                     finally
                     {
                         // retry 保持已有的锁，清除记录和保存点。
-                        FlushReadWriteLock.ExitReadLock();
+                        procedure.Checkpoint.FlushReadWriteLock.ExitReadLock();
                         accessedRecords.Clear();
                         savepoints.Clear();
                         if (checkResult == CheckResult.RedoAndReleaseLock)
@@ -148,6 +152,7 @@ namespace Zeze.Transaction
                             holdLocks.Clear();
                         }
                     }
+                    Thread.Sleep(10); // XXX
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 return Procedure.TooManyTry;
@@ -294,7 +299,7 @@ namespace Zeze.Transaction
                 switch (e.OriginRecord.State)
                 {
                     case GlobalCacheManager.StateInvalid:
-                        return CheckResult.Redo;
+                        return CheckResult.Redo; // AndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
                     case GlobalCacheManager.StateModify:
                         return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
@@ -303,7 +308,10 @@ namespace Zeze.Transaction
                         // 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                         // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
                         if (e.OriginRecord.Acquire(GlobalCacheManager.StateModify) != GlobalCacheManager.StateModify)
+                        {
+                            logger.Warn("Acquire Faild. Maybe DeadLock Found");
                             return CheckResult.RedoAndReleaseLock;
+                        }
                         e.OriginRecord.State = GlobalCacheManager.StateModify;
                         return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
                 }

@@ -30,18 +30,23 @@ namespace Zeze.Net
 
         public override void Send(AsyncSocket so)
         {
+            Send(so, 5000);
+        }
+
+        public void Send(AsyncSocket so, int millisecondsTimeout)
+        {
             IsRequest = true;
             sid = so.Service.AddRpcContext(this);
             base.Send(so);
 
             global::Zeze.Util.Scheduler.Instance.Schedule(()=>
             {
+                if (null == so.Service)
+                    return; // Socket closed.
+
                 Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
-                if (null == context)
-                {
-                    // 一般来说，此时结果已经返回。
+                if (null == context) // 一般来说，此时结果已经返回。
                     return;
-                }
 
                 if (null != context.Future)
                 {
@@ -52,13 +57,13 @@ namespace Zeze.Net
                 //context.Sender = null; // timeout 没有网络。
                 context.typeId = TypeRpcTimeoutId;
                 so.Service.DispatchProtocol(context);
-            }, 5000, -1, false);
+            }, millisecondsTimeout, -1, false);
         }
 
-        public TaskCompletionSource<TResult> SendForWait(AsyncSocket so)
+        public TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout = 5000)
         {
             Future = new TaskCompletionSource<TResult>();
-            Send(so);
+            Send(so, millisecondsTimeout);
             return Future;
         }
 
