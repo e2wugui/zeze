@@ -7,3 +7,5 @@ TestResults
 /UnitTest/gsd/Gen
 /Gen/bin
 /Gen/obj
+/GlobalCacheManager/bin
+/GlobalCacheManager/obj

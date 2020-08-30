@@ -64,7 +64,10 @@ namespace Zeze
                     return;
                 IsStart = true;
 
-                // TODO 根据配置启动GlobalAgent。
+                if (Config.GlobalCacheManagerHostNameOrAddress.Length > 0)
+                {
+                    GlobalAgent.Start(Config.GlobalCacheManagerHostNameOrAddress, Config.GlobalCacheManagerPort);
+                }
 
                 // 由于 AutoKey，TableSys需要先打开。TableSys肯定在defaultDb中。并且要在其他database都初始化table后再加入。
                 TableSys = new TableSys();

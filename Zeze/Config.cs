@@ -21,7 +21,8 @@ namespace Zeze
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
         public int AutoKeyLocalId { get; } = 0;
         public int AutoKeyLocalStep { get; } = 4096;
-
+        public string GlobalCacheManagerHostNameOrAddress { get; }
+        public int GlobalCacheManagerPort { get; }
         public Dictionary<string, TableConf> TableConfMap { get; } = new Dictionary<string, TableConf>();
         public TableConf DefaultTableConf { get; set; } = new TableConf();
         public TableConf GetTableConf(string name)
@@ -89,6 +90,9 @@ namespace Zeze
             CheckpointPeriod = int.Parse(self.GetAttribute("CheckpointPeriod"));
             AutoKeyLocalId = int.Parse(self.GetAttribute("AutoKeyLocalId"));
             AutoKeyLocalStep = int.Parse(self.GetAttribute("AutoKeyLocalStep"));
+            GlobalCacheManagerHostNameOrAddress = self.GetAttribute("GlobalCacheManagerHostNameOrAddress");
+            string attr = self.GetAttribute("GlobalCacheManagerPort");
+            GlobalCacheManagerPort = attr.Length > 0 ? int.Parse(attr) : 0;
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

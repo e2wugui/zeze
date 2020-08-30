@@ -11,15 +11,17 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         private GlobalClient Client { get; set; }
+        private AsyncSocket ClientSocket;
+        internal TaskCompletionSource<AsyncSocket> Connected;
 
         internal int Acquire(GlobalTableKey gkey, int state)
         {
-            AsyncSocket client = GetClientSocket();
-            if (null != client)
+            AsyncSocket clientSocket = GetClientSocket();
+            if (null != clientSocket)
             {
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了）。
                 Acquire rpc = new Acquire(gkey, state);
-                rpc.SendForWait(client).Task.Wait();
+                rpc.SendForWait(clientSocket).Task.Wait();
                 if (rpc.ResultCode != 0)
                 {
                     logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
@@ -64,10 +66,12 @@ namespace Zeze.Transaction
             {
                 if (null != Client)
                     return;
-                Client = new GlobalClient();
+                Client = new GlobalClient(this);
                 Client.AddFactory(new Reduce().TypeId, () => new Reduce());
                 Client.AddHandle(new Reduce().TypeRpcRequestId, Service.MakeHandle<Reduce>(this, GetType().GetMethod(nameof(ProcessReduceRequest))));
-                // TODO 创建连接，并等待成功。
+                Connected = new TaskCompletionSource<AsyncSocket>();
+                ClientSocket = Client.NewClientSocket(hostNameOrAddress, port);
+                Connected.Task.Wait();
             }
         }
 
@@ -85,14 +89,22 @@ namespace Zeze.Transaction
 
     public class GlobalClient : Zeze.Net.Service
     {
+        GlobalAgent agent;
+        public GlobalClient(GlobalAgent agent)
+        {
+            this.agent = agent;
+        }
+
         public override void OnSocketConnected(AsyncSocket so)
         {
             base.OnSocketConnected(so);
+            agent.Connected.SetResult(so);
         }
 
         public override void OnSocketConnectError(AsyncSocket so, Exception e)
         {
             base.OnSocketConnectError(so, e);
+            agent.Connected.SetException(e);
         }
 
         public override void OnSocketClose(AsyncSocket so, Exception e)
