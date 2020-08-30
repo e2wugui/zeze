@@ -185,9 +185,9 @@ namespace Zeze.Services
                     if (null != reduce)
                         reduces.Add(reduce);
                 }
-                // 一个个等待是否成功。WaitAll 碰到错误很难处理。
                 Task.Run(() =>
                 {
+                    // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
                     foreach (Reduce reduce in reduces)
                     {
                         try
@@ -251,7 +251,7 @@ namespace Zeze.Services
             {
                 logger.Error(ex, "Reduce Error {0}", gkey);
             }
-            return state;
+            return GlobalCacheManager.StateInvalid; // 访问失败，统统返回Invalid
         }
 
         public Reduce ReduceWaitLater(GlobalTableKey gkey, int state)
