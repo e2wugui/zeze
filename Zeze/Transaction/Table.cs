@@ -27,11 +27,12 @@ namespace Zeze.Transaction
         public int Id { get; }
         public virtual bool IsMemory => true;
         public virtual bool IsAutoKey => false;
-        /* // TODO 自动倒库，当新库(DatabaseName)没有找到记录时，从旧库(DatabaseOldName)中读取，Open 的时候找到旧库并打开Database.Table用来读取。
+        // 自动倒库，当新库(DatabaseName)没有找到记录时，从旧库(DatabaseOldName)中读取，
+        // Open 的时候找到旧库并打开Database.Table用来读取。
+        // 内存表不支持倒库。
         public virtual string DatabaseName { get; } = "";
         public virtual string DatabaseOldName { get; } = "";
-        public virtual int DatabaseOldFind { get; } = 0; // 0 none; 1 try Find in DatabaseOld if not found;
-        */
+        public virtual int DatabaseOldMode { get; } = 0; // 0 none; 1 如果新库没有找到记录，尝试从旧库读取;
 
         internal abstract Storage Open(Application zeze, Database database);
         internal abstract void Close();
@@ -71,13 +72,25 @@ namespace Zeze.Transaction
                 {
                     if (r.State == GlobalCacheManager.StateShare || r.State == GlobalCacheManager.StateModify)
                         return r;
+
                     // Invalid 状态，不可能发生 Reduce 操作。
                     r.State = r.Acquire(GlobalCacheManager.StateShare);
-                    r.Timestamp = Record.NextTimestamp;
                     if (r.State == GlobalCacheManager.StateInvalid)
                         throw new RedoAndReleaseLockException();
+                    r.Timestamp = Record.NextTimestamp;
                     if (null != Storage)
+                    {
                         r.Value = Storage.Find(key, this); // r.Value still maybe null
+                        if (null == r.Value && null != OldTable)
+                        {
+                            ByteBuffer old = OldTable.Find(EncodeKey(key));
+                            if (null != old)
+                            {
+                                r.Value = DecodeValue(old);
+                                Storage.OnRecordChanged(r); // XXX 倒过来以后，准备提交到新库中。这里调用OnRecordChanged安全吗？
+                            }
+                        }
+                    }
                 }
                 /*
                 finally
@@ -291,6 +304,7 @@ namespace Zeze.Transaction
         /// 开放出去仅仅为了测试。
         /// </summary>
         public Storage<K, V> Storage { get; private set; }
+        private Database.Table OldTable;
 
         internal override Storage Open(Application zeze, Database database)
         {
@@ -302,6 +316,7 @@ namespace Zeze.Transaction
             Cache = new TableCache<K, V>(zeze, this);
 
             Storage = IsMemory ? null : new Storage<K, V>(this, database, Name);
+            OldTable = DatabaseOldMode == 1 ? zeze.GetDatabase(DatabaseOldName).OpenTable(Name) : null;
             return Storage;
         }
 

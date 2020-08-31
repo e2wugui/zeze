@@ -37,6 +37,9 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             sw.WriteLine("        public override bool IsMemory => " + (table.IsMemory ? "true;" : "false;"));
             sw.WriteLine("        public override bool IsAutoKey => " + (table.IsAutoKey ? "true;" : "false;"));
+            sw.WriteLine("        public override string DatabaseName => \"" + table.DatabaseName + "\";");
+            sw.WriteLine("        public override string DatabaseOldName => \"" + table.DatabaseOldName + "\";");
+            sw.WriteLine("        public override int DatabaseOldMode => " + table.DatabaseOldMode + ";");
             sw.WriteLine();
             if (table.IsAutoKey)
             {

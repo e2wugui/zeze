@@ -18,7 +18,7 @@ namespace Zeze.Transaction
         {
             State = GlobalCacheManager.StateInvalid;
             Value = value;
-            Timestamp = NextTimestamp;
+            //Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 初始化
         }
 
         // 时戳生成器，运行时状态，需要持久化时，再考虑保存到数据库。

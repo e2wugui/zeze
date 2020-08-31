@@ -73,7 +73,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            // register table");
             foreach (Table table in module.Tables.Values)
             {
-                sw.WriteLine($"            app.Zeze.AddTable(\"{table.DatabaseName}\", _{table.Name});");
+                sw.WriteLine($"            app.Zeze.AddTable(_{table.Name}.DatabaseName, _{table.Name});");
             }
             sw.WriteLine("        }");
             sw.WriteLine("    }");
