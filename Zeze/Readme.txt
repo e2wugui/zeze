@@ -9,7 +9,6 @@ TODO
 3 Cache.Remove 也要同步状态。
 4 Checkpoing收集多个Reduce的能力：使用flushReadLock，在flushWriteLock之后不能再加入新的请求。
 
-5 Transaction.FlushReadWriteLock 引起死锁，移到 Checkponit 中。影响 Procedure 的创建。
 
 6 表格属于一个Database，支持从老库自动迁移到新库。
 

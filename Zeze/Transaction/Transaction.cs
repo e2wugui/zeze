@@ -153,7 +153,8 @@ namespace Zeze.Transaction
                             holdLocks.Clear();
                         }
                     }
-                    procedure.Checkpoint.WaitRun();
+                    if (checkResult == CheckResult.RedoAndReleaseLock)
+                        procedure.Checkpoint.WaitRun(); // XXX
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 return Procedure.TooManyTry;
@@ -308,12 +309,12 @@ namespace Zeze.Transaction
                     case GlobalCacheManager.StateShare:
                         // 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                         // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                        e.OriginRecord.State = e.OriginRecord.Acquire(GlobalCacheManager.StateModify);
-                        if (e.OriginRecord.State != GlobalCacheManager.StateModify)
+                        if (e.OriginRecord.Acquire(GlobalCacheManager.StateModify) != GlobalCacheManager.StateModify)
                         {
                             logger.Warn("Acquire Faild. Maybe DeadLock Found");
                             return CheckResult.RedoAndReleaseLock;
                         }
+                        e.OriginRecord.State = GlobalCacheManager.StateModify;
                         return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
                 }
                 return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success; // imposible

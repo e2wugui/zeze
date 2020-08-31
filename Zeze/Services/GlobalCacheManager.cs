@@ -119,21 +119,33 @@ namespace Zeze.Services
                     if (cs.IsRemoved)
                         continue;
 
-                    while (cs.IsReducePending)
+                    while (cs.AcquireStatePending != StateInvalid)
                     {
-                        if (cs.Modify == sender || cs.Share.Contains(sender))
+                        switch (cs.AcquireStatePending)
                         {
-                            rpc.Result.State = StateInvalid;
-                            rpc.SendResultCode(AcquireShareDeadLockFound);
-                            logger.Debug("AcquireShare 1.1 {0}", sender.SessionId);
-                            //Monitor.PulseAll(cs);
-                            return 0;
+                            case StateShare:
+                                if (cs.Modify == sender)
+                                {
+                                    rpc.Result.State = StateInvalid;
+                                    rpc.SendResultCode(AcquireShareDeadLockFound);
+                                    logger.Debug("AcquireShare 1.1 {0}", sender.SessionId);
+                                    return 0;
+                                }
+                                break;
+                            case StateModify:
+                                if (cs.Modify == sender || cs.Share.Contains(sender))
+                                {
+                                    rpc.Result.State = StateInvalid;
+                                    rpc.SendResultCode(AcquireShareDeadLockFound);
+                                    logger.Debug("AcquireShare 1.2 {0}", sender.SessionId);
+                                    return 0;
+                                }
+                                break;
                         }
-
                         logger.Debug("AcquireShare 2 {0}", sender.SessionId);
                         Monitor.Wait(cs);
                     }
-                    cs.IsReducePending = true;
+                    cs.AcquireStatePending = StateShare;
 
                     if (cs.Modify != null)
                     {
@@ -141,10 +153,8 @@ namespace Zeze.Services
                         {
                             rpc.Result.State = StateModify;
                             rpc.SendResultCode(AcquireShareAlreadyIsModify);
-                            cs.IsReducePending = false;
+                            cs.AcquireStatePending = StateInvalid;
                             logger.Debug("AcquireShare 3 {0}", sender.SessionId);
-                            //Monitor.PulseAll(cs);
-                            cs.IsReducePending = false;
                             return 0;
                         }
 
@@ -164,7 +174,7 @@ namespace Zeze.Services
                         cs.Modify = null;
                         cs.Share.Add(sender);
                         rpc.SendResult();
-                        cs.IsReducePending = false;
+                        cs.AcquireStatePending = StateInvalid;
                         Monitor.Pulse(cs);
                         logger.Debug("AcquireShare 5 {0}", sender.SessionId);
                         return 0;
@@ -172,8 +182,7 @@ namespace Zeze.Services
 
                     cs.Share.Add(sender);
                     rpc.SendResult();
-                    cs.IsReducePending = false;
-                    //Monitor.Pulse(cs);
+                    cs.AcquireStatePending = StateInvalid;
                     logger.Debug("AcquireShare 6 {0}", sender.SessionId);
                     return 0;
                 }
@@ -194,20 +203,33 @@ namespace Zeze.Services
                     if (cs.IsRemoved)
                         continue;
 
-                    while (cs.IsReducePending)
+                    while (cs.AcquireStatePending != StateInvalid)
                     {
-                        if (cs.Modify == sender || cs.Share.Contains(sender))
+                        switch (cs.AcquireStatePending)
                         {
-                            rpc.Result.State = StateInvalid;
-                            rpc.SendResultCode(AcquireModifyDeadLockFound);
-                            logger.Debug("AcquireModify 2 {0}", sender.SessionId);
-                            //Monitor.PulseAll(cs);
-                            return 0;
+                            case StateShare:
+                                if (cs.Modify == sender)
+                                {
+                                    rpc.Result.State = StateInvalid;
+                                    rpc.SendResultCode(AcquireModifyDeadLockFound);
+                                    logger.Debug("AcquireModify 2 {0}", sender.SessionId);
+                                    return 0;
+                                }
+                                break;
+                            case StateModify:
+                                if (cs.Modify == sender || cs.Share.Contains(sender))
+                                {
+                                    rpc.Result.State = StateInvalid;
+                                    rpc.SendResultCode(AcquireModifyDeadLockFound);
+                                    logger.Debug("AcquireModify 2.1 {0}", sender.SessionId);
+                                    return 0;
+                                }
+                                break;
                         }
                         logger.Debug("AcquireModify 3 {0}", sender.SessionId);
                         Monitor.Wait(cs);
                     }
-                    cs.IsReducePending = true;
+                    cs.AcquireStatePending = StateModify;
 
                     if (cs.Modify != null)
                     {
@@ -216,9 +238,8 @@ namespace Zeze.Services
                             logger.Warn("AcquireModifyAlreadyIsModify");
 
                             rpc.SendResultCode(AcquireModifyAlreadyIsModify);
-                            cs.IsReducePending = false;
+                            cs.AcquireStatePending = StateInvalid;
                             logger.Debug("AcquireModify 4 {0}", sender.SessionId);
-                            //Monitor.PulseAll(cs);
                             return 0;
                         }
 
@@ -235,7 +256,7 @@ namespace Zeze.Services
                         cs.Modify = sender;
 
                         rpc.SendResult();
-                        cs.IsReducePending = false;
+                        cs.AcquireStatePending = StateInvalid;
                         Monitor.Pulse(cs);
                         logger.Debug("AcquireModify 5 {0}", sender.SessionId);
                         return 0;
@@ -278,9 +299,8 @@ namespace Zeze.Services
                     cs.Share.Clear();
                     cs.Modify = sender;
                     rpc.SendResult();
-                    cs.IsReducePending = false;
+                    cs.AcquireStatePending = StateInvalid;
                     Monitor.Pulse(cs); // Pending 结束，唤醒一个进来就可以了。
-                    logger.Debug("AcquireModify 8 {0}", sender.SessionId);
                     return 0;
                 }
             }
@@ -290,7 +310,7 @@ namespace Zeze.Services
     public class CacheState
     {
         internal CacheHolder Modify { get; set; }
-        internal bool IsReducePending { get; set; }
+        internal int AcquireStatePending { get; set; } = GlobalCacheManager.StateInvalid;
         internal bool IsRemoved { get; set; }
         internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
     }
@@ -319,7 +339,7 @@ namespace Zeze.Services
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Reduce Error {0} {1}", state, SessionId);
+                logger.Error(ex, "Reduce Error {0} target={1}", state, SessionId);
             }
             return GlobalCacheManager.StateInvalid; // 访问失败，统统返回Invalid
         }

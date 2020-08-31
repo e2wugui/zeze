@@ -16,7 +16,7 @@ namespace UnitTest.Zeze.Trans
             string url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
             DatabaseMySql sqlserver = new DatabaseMySql(url);
             Database.Table table = sqlserver.OpenTable("test_1");
-            sqlserver.Checkpoint(null, () =>
+            sqlserver.Flush(null, () =>
             {
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
@@ -33,7 +33,7 @@ namespace UnitTest.Zeze.Trans
             Walker walker = new Walker();
             table.Walk(walker);
             Assert.AreEqual(0, walker.count);
-            sqlserver.Checkpoint(null, () =>
+            sqlserver.Flush(null, () =>
             {
                 {
                     ByteBuffer key = ByteBuffer.Allocate();

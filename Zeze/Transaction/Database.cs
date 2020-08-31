@@ -92,7 +92,7 @@ namespace Zeze.Transaction
 
         internal void Flush(Checkpoint sync)
         {
-            Checkpoint(sync, () =>
+            Flush(sync, () =>
             {
                 int countFlush = 0;
                 foreach (Storage storage in storages)
@@ -114,7 +114,7 @@ namespace Zeze.Transaction
 
         internal ManualResetEvent CommitReady { get; } = new ManualResetEvent(false);
 
-        public abstract void Checkpoint(Checkpoint sync, Action flushAction);
+        public abstract void Flush(Checkpoint sync, Action flushAction);
         public abstract Database.Table OpenTable(string name);
 
         public interface Table
@@ -143,7 +143,7 @@ namespace Zeze.Transaction
         {
         }
 
-        public override void Checkpoint(Checkpoint sync, Action flushAction)
+        public override void Flush(Checkpoint sync, Action flushAction)
         {
             try
             {
@@ -284,7 +284,7 @@ namespace Zeze.Transaction
         {
         }
 
-        public override void Checkpoint(Checkpoint sync, Action flushAction)
+        public override void Flush(Checkpoint sync, Action flushAction)
         {
             try
             {
@@ -429,7 +429,7 @@ namespace Zeze.Transaction
 
         }
 
-        public override void Checkpoint(Checkpoint sync, Action flushAction)
+        public override void Flush(Checkpoint sync, Action flushAction)
         {
             flushAction();
             if (null != sync) // null for test

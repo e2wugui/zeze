@@ -33,17 +33,18 @@ namespace Zeze
             }
             return DefaultTableConf;
         }
+        public Dictionary<string, DatabaseConf> DatabaseConfMap { get; } = new Dictionary<string, DatabaseConf>();
 
-        private Transaction.Database CreateDatabase(DbType dbType)
+        private Transaction.Database CreateDatabase(DbType dbType, string url)
         {
             switch (dbType)
             {
                 case DbType.Memory:
                     return new Transaction.DatabaseMemory();
                 case DbType.MySql:
-                    return new Transaction.DatabaseMySql(DatabaseUrl);
+                    return new Transaction.DatabaseMySql(url);
                 case DbType.SqlServer:
-                    return new Transaction.DatabaseSqlServer(DatabaseUrl);
+                    return new Transaction.DatabaseSqlServer(url);
                 default:
                     throw new Exception("unknown database type.");
             }
@@ -52,8 +53,12 @@ namespace Zeze
         public void CreateDatabase(Dictionary<string, Transaction.Database> map)
         {
             // add default database
-            map.Add("", CreateDatabase(DatabaseType));
-            // 多数据库在后面初始化。
+            map.Add("", CreateDatabase(DatabaseType, DatabaseUrl));
+            // add other database
+            foreach (var db in DatabaseConfMap.Values)
+            {
+                map.Add(db.Name, CreateDatabase(db.DatabaseType, db.DatabaseUrl));
+            }
         }
 
         public static Config Load(string xmlfile = null)
@@ -104,7 +109,30 @@ namespace Zeze
                 switch (e.Name)
                 {
                     case "TableConf": new TableConf(this, e); break;
+                    case "DatabaseConf": new DatabaseConf(this, e); break;
+                    default: throw new Exception("unknown node name: " + e.Name);
                 }
+            }
+        }
+
+        public class DatabaseConf
+        { 
+            public string Name { get; set; }
+            public DbType DatabaseType { get; set; }
+            public string DatabaseUrl { get; set; }
+
+            public DatabaseConf(Config conf, XmlElement self)
+            {
+                Name = self.GetAttribute("Name");
+                switch (self.GetAttribute("DatabaseType"))
+                {
+                    case "Memory": DatabaseType = DbType.Memory; break;
+                    case "MySql": DatabaseType = DbType.MySql; break;
+                    case "SqlServer": DatabaseType = DbType.SqlServer; break;
+                    default: throw new Exception("unknown database type.");
+                }
+                DatabaseUrl = self.GetAttribute("DatabaseUrl");
+                conf.DatabaseConfMap.Add(Name, this);
             }
         }
 

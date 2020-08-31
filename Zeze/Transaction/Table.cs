@@ -27,6 +27,11 @@ namespace Zeze.Transaction
         public int Id { get; }
         public virtual bool IsMemory => true;
         public virtual bool IsAutoKey => false;
+        /* // TODO 自动倒库，当新库(DatabaseName)没有找到记录时，从旧库(DatabaseOldName)中读取，Open 的时候找到旧库并打开Database.Table用来读取。
+        public virtual string DatabaseName { get; } = "";
+        public virtual string DatabaseOldName { get; } = "";
+        public virtual int DatabaseOldFind { get; } = 0; // 0 none; 1 try Find in DatabaseOld if not found;
+        */
 
         internal abstract Storage Open(Application zeze, Database database);
         internal abstract void Close();
@@ -66,7 +71,7 @@ namespace Zeze.Transaction
                 {
                     if (r.State == GlobalCacheManager.StateShare || r.State == GlobalCacheManager.StateModify)
                         return r;
-                    // Invalid 状态，不可能发生 Reduce 操作，可以在锁内执行。
+                    // Invalid 状态，不可能发生 Reduce 操作。
                     r.State = r.Acquire(GlobalCacheManager.StateShare);
                     r.Timestamp = Record.NextTimestamp;
                     if (r.State == GlobalCacheManager.StateInvalid)
