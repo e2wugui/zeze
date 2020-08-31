@@ -113,7 +113,7 @@ namespace Zeze.Services
             while (true)
             {
                 CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
-                logger.Debug("AcquireShare 1 {0}", rpc.Argument.GlobalTableKey);
+                logger.Debug("AcquireShare 1 {0}", sender.SessionId);
                 lock (cs)
                 {
                     if (cs.IsRemoved)
@@ -121,14 +121,16 @@ namespace Zeze.Services
 
                     while (cs.IsReducePending)
                     {
-                        if (cs.Modify == sender)
+                        if (cs.Modify == sender || cs.Share.Contains(sender))
                         {
                             rpc.Result.State = StateInvalid;
                             rpc.SendResultCode(AcquireShareDeadLockFound);
+                            logger.Debug("AcquireShare 1.1 {0}", sender.SessionId);
+                            //Monitor.PulseAll(cs);
                             return 0;
                         }
 
-                        logger.Debug("AcquireShare 2 {0}", rpc.Argument.GlobalTableKey);
+                        logger.Debug("AcquireShare 2 {0}", sender.SessionId);
                         Monitor.Wait(cs);
                     }
                     cs.IsReducePending = true;
@@ -140,20 +142,23 @@ namespace Zeze.Services
                             rpc.Result.State = StateModify;
                             rpc.SendResultCode(AcquireShareAlreadyIsModify);
                             cs.IsReducePending = false;
-                            logger.Debug("AcquireShare 3 {0}", rpc.Argument.GlobalTableKey);
+                            logger.Debug("AcquireShare 3 {0}", sender.SessionId);
+                            //Monitor.PulseAll(cs);
+                            cs.IsReducePending = false;
                             return 0;
                         }
 
                         Task.Run(() =>
                         {
+                            if (StateShare == cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare))
+                                cs.Share.Add(cs.Modify); // 降级成功，有可能降到 Invalid，此时就不需要加入 Share 了。
+
                             lock (cs)
                             {
-                                if (StateShare == cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare))
-                                    cs.Share.Add(cs.Modify); // 降级成功，有可能降到 Invalid，此时就不需要加入 Share 了。
                                 Monitor.PulseAll(cs);
                             }
                         });
-                        logger.Debug("AcquireShare 4 {0}", rpc.Argument.GlobalTableKey);
+                        logger.Debug("AcquireShare 4 {0}", sender.SessionId);
                         Monitor.Wait(cs);
 
                         cs.Modify = null;
@@ -161,15 +166,15 @@ namespace Zeze.Services
                         rpc.SendResult();
                         cs.IsReducePending = false;
                         Monitor.Pulse(cs);
-                        logger.Debug("AcquireShare 5 {0}", rpc.Argument.GlobalTableKey);
+                        logger.Debug("AcquireShare 5 {0}", sender.SessionId);
                         return 0;
                     }
 
                     cs.Share.Add(sender);
                     rpc.SendResult();
                     cs.IsReducePending = false;
-                    Monitor.Pulse(cs);
-                    logger.Debug("AcquireShare 6 {0}", rpc.Argument.GlobalTableKey);
+                    //Monitor.Pulse(cs);
+                    logger.Debug("AcquireShare 6 {0}", sender.SessionId);
                     return 0;
                 }
             }
@@ -183,7 +188,7 @@ namespace Zeze.Services
             while (true)
             {
                 CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
-                logger.Debug("AcquireModify 1 {0}", rpc.Argument.GlobalTableKey);
+                logger.Debug("AcquireModify 1 {0}", sender.SessionId);
                 lock (cs)
                 {
                     if (cs.IsRemoved)
@@ -195,10 +200,11 @@ namespace Zeze.Services
                         {
                             rpc.Result.State = StateInvalid;
                             rpc.SendResultCode(AcquireModifyDeadLockFound);
-                            logger.Debug("AcquireModify 2 {0}", rpc.Argument.GlobalTableKey);
+                            logger.Debug("AcquireModify 2 {0}", sender.SessionId);
+                            //Monitor.PulseAll(cs);
                             return 0;
                         }
-                        logger.Debug("AcquireModify 3 {0}", rpc.Argument.GlobalTableKey);
+                        logger.Debug("AcquireModify 3 {0}", sender.SessionId);
                         Monitor.Wait(cs);
                     }
                     cs.IsReducePending = true;
@@ -211,25 +217,27 @@ namespace Zeze.Services
 
                             rpc.SendResultCode(AcquireModifyAlreadyIsModify);
                             cs.IsReducePending = false;
-                            logger.Debug("AcquireModify 4 {0}", rpc.Argument.GlobalTableKey);
+                            logger.Debug("AcquireModify 4 {0}", sender.SessionId);
+                            //Monitor.PulseAll(cs);
                             return 0;
                         }
 
                         Task.Run(() =>
                         {
+                            cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
                             lock (cs)
                             {
-                                cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
                                 Monitor.PulseAll(cs);
                             }
                         });
-                        logger.Debug("AcquireModify 4.1 {0}", rpc.Argument.GlobalTableKey);
+                        logger.Debug("AcquireModify 4.1 {0}", sender.SessionId);
                         Monitor.Wait(cs);
                         cs.Modify = sender;
 
                         rpc.SendResult();
                         cs.IsReducePending = false;
-                        logger.Debug("AcquireModify 5 {0}", rpc.Argument.GlobalTableKey);
+                        Monitor.Pulse(cs);
+                        logger.Debug("AcquireModify 5 {0}", sender.SessionId);
                         return 0;
                     }
 
@@ -245,34 +253,34 @@ namespace Zeze.Services
                     }
                     Task.Run(() =>
                     {
+                        // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
+                        foreach (Reduce reduce in reduces)
+                        {
+                            try
+                            {
+                                reduce.Future.Task.Wait();
+                            }
+                            catch (Exception ex)
+                            {
+                                // 等待失败看作降级成功，对方可能已经不存在。
+                                logger.Error(ex, "AcquireModify Reduce {0}", rpc.Argument.GlobalTableKey);
+                            }
+                        }
                         lock (cs)
                         {
-                            // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
-                            foreach (Reduce reduce in reduces)
-                            {
-                                try
-                                {
-                                    reduce.Future.Task.Wait();
-                                }
-                                catch (Exception ex)
-                                {
-                                    // 等待失败看作降级成功，对方可能已经不存在。
-                                    logger.Error(ex, "AcquireModify Reduce {0}", rpc.Argument.GlobalTableKey);
-                                }
-                            }
                             Monitor.PulseAll(cs); // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
                         }
                     });
-                    logger.Debug("AcquireModify 6 {0}", rpc.Argument.GlobalTableKey);
+                    logger.Debug("AcquireModify 6 {0}", sender.SessionId);
                     Monitor.Wait(cs);
-                    logger.Debug("AcquireModify 7 {0}", rpc.Argument.GlobalTableKey);
+                    logger.Debug("AcquireModify 7 {0}", sender.SessionId);
 
                     cs.Share.Clear();
                     cs.Modify = sender;
                     rpc.SendResult();
                     cs.IsReducePending = false;
-                    Monitor.PulseAll(cs); // IsModifyPending 结束，唤醒一个进来就可以了。
-                    logger.Debug("AcquireModify 8 {0}", rpc.Argument.GlobalTableKey);
+                    Monitor.Pulse(cs); // Pending 结束，唤醒一个进来就可以了。
+                    logger.Debug("AcquireModify 8 {0}", sender.SessionId);
                     return 0;
                 }
             }
@@ -311,7 +319,7 @@ namespace Zeze.Services
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Reduce Error {0} to {1}", gkey, state);
+                logger.Error(ex, "Reduce Error {0} {1}", state, SessionId);
             }
             return GlobalCacheManager.StateInvalid; // 访问失败，统统返回Invalid
         }

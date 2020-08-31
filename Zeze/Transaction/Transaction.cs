@@ -94,7 +94,7 @@ namespace Zeze.Transaction
                         {
                             // 这个错误不应该重做
                             logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
-                            break;
+                            return Procedure.ErrorSavepoint;
                         }
                         checkResult = _lock_and_check_();
                         if (checkResult == CheckResult.Success)
@@ -109,9 +109,10 @@ namespace Zeze.Transaction
                         // retry
                         //logger.Trace("Transaction.Perform:{0} retry {1}", procedure, tryCount);
                     }
-                    catch (IndexOutOfRangeException e)
+                    catch (RedoAndReleaseLockException)
                     {
                         checkResult = CheckResult.RedoAndReleaseLock;
+                        logger.Debug("RedoAndReleaseLockException");
                     }
                     catch (Exception e)
                     {
@@ -121,7 +122,7 @@ namespace Zeze.Transaction
                         {
                             // 这个错误不应该重做
                             logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 1.", procedure);
-                            break;
+                            return Procedure.ErrorSavepoint;
                         }
 #if DEBUG
                         // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
@@ -152,7 +153,7 @@ namespace Zeze.Transaction
                             holdLocks.Clear();
                         }
                     }
-                    Thread.Sleep(10); // XXX
+                    procedure.Checkpoint.WaitRun();
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 return Procedure.TooManyTry;
@@ -307,12 +308,12 @@ namespace Zeze.Transaction
                     case GlobalCacheManager.StateShare:
                         // 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                         // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                        if (e.OriginRecord.Acquire(GlobalCacheManager.StateModify) != GlobalCacheManager.StateModify)
+                        e.OriginRecord.State = e.OriginRecord.Acquire(GlobalCacheManager.StateModify);
+                        if (e.OriginRecord.State != GlobalCacheManager.StateModify)
                         {
                             logger.Warn("Acquire Faild. Maybe DeadLock Found");
                             return CheckResult.RedoAndReleaseLock;
                         }
-                        e.OriginRecord.State = GlobalCacheManager.StateModify;
                         return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
                 }
                 return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success; // imposible

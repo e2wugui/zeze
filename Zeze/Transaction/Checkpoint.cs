@@ -11,18 +11,30 @@ namespace Zeze.Transaction
     {
         private HashSet<Database> dbs = new HashSet<Database>();
 
-        public ReaderWriterLockSlim FlushReadWriteLock { get; } = new ReaderWriterLockSlim();
+        public ReaderWriterLockSlim FlushReadWriteLock { get; }
 
         private static object checkpointLock = new object(); // 限制 Checkpoint 仅有一份在运行。先这样吧。
 
         public Checkpoint()
         {
-
+            FlushReadWriteLock = new ReaderWriterLockSlim();
         }
 
         public Checkpoint(IEnumerable<Database> dbs)
         {
+            FlushReadWriteLock = new ReaderWriterLockSlim();
             Add(dbs);
+        }
+
+        private Checkpoint(Checkpoint other)
+        {
+            FlushReadWriteLock = other.FlushReadWriteLock;
+            Add(other.dbs);
+        }
+
+        public Checkpoint Duplicate()
+        {
+            return new Checkpoint(this);
         }
 
         public Checkpoint Clear()
@@ -44,11 +56,6 @@ namespace Zeze.Transaction
                 this.dbs.Add(db);
             }
             return this;
-        }
-
-        public Checkpoint Duplicate()
-        {
-            return new Checkpoint(dbs);
         }
 
         private ManualResetEvent[] readys;
@@ -114,6 +121,14 @@ namespace Zeze.Transaction
                 tasks[i++] = Task.Run(db.Cleanup);
             }
             Task.WaitAll(tasks);
+        }
+
+        internal void WaitRun()
+        {
+            //Thread.Sleep(10);
+            lock (checkpointLock)
+            {                
+            }
         }
 
         internal void Run()

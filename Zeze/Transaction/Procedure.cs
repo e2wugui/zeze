@@ -11,6 +11,7 @@ namespace Zeze.Transaction
         public const int TooManyTry = -2;
         public const int NotImplement = -3;
         public const int Unknown = -4;
+        public const int ErrorSavepoint = -5;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -63,7 +64,7 @@ namespace Zeze.Transaction
                 currentT.Rollback();
                 return result;
             }
-            catch (IndexOutOfRangeException redo)
+            catch (RedoAndReleaseLockException redo)
             {
                 currentT.Rollback();
                 throw redo;
