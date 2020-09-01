@@ -98,10 +98,11 @@ namespace Zeze.Net
             context.IsRequest = false;
             context.Result = Result;
             context.Sender = Sender;
+            context.ResultCode = ResultCode;
 
             if (context.Future != null)
             {
-                context.Future.SetResult(Result);
+                context.Future.SetResult(context.Result);
                 return; // SendForWait，设置结果唤醒等待者。
             }
 

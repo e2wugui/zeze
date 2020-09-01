@@ -209,7 +209,7 @@ namespace Zeze.Transaction
             public long Timestamp { get; }
             public bool Dirty { get; set; }
 
-            public Bean NewValue()
+            public Bean NewestValue()
             {
                 PutLog log = (PutLog)Current.GetLog(ObjectId);
                 if (null != log)
@@ -271,11 +271,11 @@ namespace Zeze.Transaction
         /// 只能添加一次。
         /// </summary>
         /// <param name="key"></param>
-        /// <param name="cr"></param>
-        internal void AddRecordAccessed(TableKey key, RecordAccessed cr)
+        /// <param name="r"></param>
+        internal void AddRecordAccessed(TableKey key, RecordAccessed r)
         {
-            accessedRecords.Add(key, cr);
-            cr.InitTableKey(key);
+            accessedRecords.Add(key, r);
+            r.InitTableKey(key);
         }
 
         internal RecordAccessed GetRecordAccessed(TableKey key)

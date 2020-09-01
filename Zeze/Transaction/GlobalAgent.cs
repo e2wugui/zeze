@@ -22,12 +22,15 @@ namespace Zeze.Transaction
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了）。
                 Acquire rpc = new Acquire(gkey, state);
                 rpc.SendForWait(ClientSocket, 12000).Task.Wait();
+                /*
                 if (rpc.ResultCode != 0)
                 {
                     logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
                 }
+                */
                 return rpc.Result.State;
             }
+            logger.Debug("Acquire local ++++++");
             return state;
         }
 

@@ -8,12 +8,4 @@ TODO
   考虑先实现同步版本。
 3 Cache.Remove 也要同步状态。
 4 Checkpoing收集多个Reduce的能力：使用flushReadLock，在flushWriteLock之后不能再加入新的请求。
-
-
-6 表格属于一个Database，支持从老库自动迁移到新库。
-
 7 同时在一个进程内建立多个App是可行的，在多个App中仍然支持事务，但是这两个App不能同时属于一个GlobalCacheManager.
-
-a 1
-b.load acquireShare
-	global.reduceshare(a)

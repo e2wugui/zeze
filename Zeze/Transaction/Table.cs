@@ -77,6 +77,7 @@ namespace Zeze.Transaction
                     r.State = r.Acquire(GlobalCacheManager.StateShare);
                     if (r.State == GlobalCacheManager.StateInvalid)
                         throw new RedoAndReleaseLockException();
+
                     r.Timestamp = Record.NextTimestamp;
                     if (null != Storage)
                     {
@@ -123,6 +124,7 @@ namespace Zeze.Transaction
                 switch (r.State)
                 {
                     case GlobalCacheManager.StateInvalid:
+                        rpc.Result.State = GlobalCacheManager.StateInvalid;
                         rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsInvalid);
                         return 0;
 
@@ -132,6 +134,7 @@ namespace Zeze.Transaction
 
                     case GlobalCacheManager.StateModify:
                         r.State = GlobalCacheManager.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
+                        r.Timestamp = Record.NextTimestamp;
                         break;
                 }
             }
@@ -174,12 +177,17 @@ namespace Zeze.Transaction
 
                     case GlobalCacheManager.StateShare:
                         r.State = GlobalCacheManager.StateInvalid;
-                        Cache.RemoeIfNotDirty(key);
-                        rpc.SendResult();
-                        return 0;
+                        r.Timestamp = Record.NextTimestamp;
+                        if (Cache.RemoeIfNotDirty(key))
+                        {
+                            rpc.SendResult();
+                            return 0;
+                        }
+                        break;
 
                     case GlobalCacheManager.StateModify:
                         r.State = GlobalCacheManager.StateInvalid;
+                        r.Timestamp = Record.NextTimestamp;
                         //Cache.RemoeIfNotDirty(key); // Modify 一般来说是脏的，这里不调用删除了，让CleanNow以后处理。
                         break;
                 }
@@ -204,7 +212,7 @@ namespace Zeze.Transaction
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
-                return (V)cr.NewValue();
+                return (V)cr.NewestValue();
             }
 
             Record<K, V> r = FindInCacheOrStorage(key);
@@ -220,7 +228,7 @@ namespace Zeze.Transaction
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
-                V crv = (V)cr.NewValue();
+                V crv = (V)cr.NewestValue();
                 if (null != crv)
                 {
                     return crv;

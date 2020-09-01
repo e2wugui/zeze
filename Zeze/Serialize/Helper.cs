@@ -95,6 +95,7 @@ namespace Zeze.Serialize
             foreach (var e in c)
             {
                 sb.Append(e);
+                sb.Append(",");
             }
             sb.Append("]");
         }

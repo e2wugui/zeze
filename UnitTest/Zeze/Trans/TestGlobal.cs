@@ -32,16 +32,16 @@ namespace UnitTest.Zeze.Trans
                 task2[0] = Task.Run(() => ConcurrentAdd(app1));
                 task2[1] = Task.Run(() => ConcurrentAdd(app2));
                 Task.WaitAll(task2);
-                Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(() =>
-                {
-                    int last1 = app1.demo_Module1_Module1.Table1.Get(6785).Int1;
-                    Console.WriteLine("Assert Failed. app1 " + last1);
-                    return Procedure.Success;
-                }).Call());
                 Assert.IsTrue(Procedure.Success == app2.Zeze.NewProcedure(() =>
                 {
                     int last2 = app2.demo_Module1_Module1.Table1.Get(6785).Int1;
                     Console.WriteLine("Assert Failed. app2 " + last2);
+                    return Procedure.Success;
+                }).Call());
+                Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(() =>
+                {
+                    int last1 = app1.demo_Module1_Module1.Table1.Get(6785).Int1;
+                    Console.WriteLine("Assert Failed. app1 " + last1);
                     return Procedure.Success;
                 }).Call());
                 //Thread.Sleep(100000);
