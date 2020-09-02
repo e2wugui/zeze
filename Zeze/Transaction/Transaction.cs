@@ -322,7 +322,7 @@ namespace Zeze.Transaction
             else
             {
                 if (e.OriginRecord.State == GlobalCacheManager.StateInvalid)
-                    return CheckResult.Redo;
+                    return CheckResult.RedoAndReleaseLock; // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
                 return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
             }
         }

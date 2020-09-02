@@ -79,24 +79,6 @@ namespace Zeze.Transaction
                         throw new RedoAndReleaseLockException();
 
                     r.Timestamp = Record.NextTimestamp;
-                    if (null != Storage)
-                    {
-                        r.Value = Storage.Find(key, this); // r.Value still maybe null
-                        if (null == r.Value && null != OldTable)
-                        {
-                            ByteBuffer old = OldTable.Find(EncodeKey(key));
-                            if (null != old)
-                            {
-                                r.Value = DecodeValue(old);
-                                Storage.OnRecordChanged(r); // XXX 倒过来以后，准备提交到新库中。这里调用OnRecordChanged安全吗？
-                            }
-                        }
-                        if (null != r.Value)
-                        {
-                            r.Value.InitTableKey(new TableKey(Id, key));
-                        }
-                    }
-                    //Console.WriteLine($"FindInCacheOrStorage {r}");
                 }
                 /*
                 finally
@@ -104,6 +86,24 @@ namespace Zeze.Transaction
                     lockey.ExitReadLock();
                 }
                 */
+                if (null != Storage)
+                {
+                    r.Value = Storage.Find(key, this); // r.Value still maybe null
+                    if (null == r.Value && null != OldTable)
+                    {
+                        ByteBuffer old = OldTable.Find(EncodeKey(key));
+                        if (null != old)
+                        {
+                            r.Value = DecodeValue(old);
+                            Storage.OnRecordChanged(r); // XXX 倒过来以后，准备提交到新库中。这里调用OnRecordChanged安全吗？
+                        }
+                    }
+                    if (null != r.Value)
+                    {
+                        r.Value.InitTableKey(new TableKey(Id, key));
+                    }
+                }
+                //Console.WriteLine($"FindInCacheOrStorage {r}");
                 return r;
             }
         }
@@ -190,6 +190,7 @@ namespace Zeze.Transaction
                     case GlobalCacheManager.StateShare:
                         r.State = GlobalCacheManager.StateInvalid;
                         r.Timestamp = Record.NextTimestamp;
+                        // StateShare 应该是干净的，肯定能删除成功。
                         if (Cache.RemoeIfNotDirty(key))
                         {
                             rpc.SendResult();
