@@ -16,7 +16,24 @@ namespace Zeze
         internal TableSys TableSys { get; private set; }
         private Util.SchedulerTask checkpointTask;
         internal GlobalAgent GlobalAgent { get; }
-        public Checkpoint Checkpoint { get; set; }
+
+        private Checkpoint _checkpoint;
+        public Checkpoint Checkpoint
+        {
+            get
+            {
+                return _checkpoint;
+            }
+            set
+            {
+                lock (this)
+                {
+                    if (IsStart)
+                        throw new Exception("Checkpoint only can setup before start.");
+                    _checkpoint = value;
+                }
+            }
+        }
 
         public Application(Config config = null)
         {
@@ -25,7 +42,7 @@ namespace Zeze
                 Config = Config.Load();
             Config.CreateDatabase(Databases);
             GlobalAgent = new GlobalAgent(this);
-            Checkpoint = new Checkpoint(Databases.Values);
+            _checkpoint = new Checkpoint(Databases.Values);
         }
 
         public void AddTable(string dbName, Transaction.Table table)
@@ -60,7 +77,7 @@ namespace Zeze
 
         public Procedure NewProcedure(Func<int> func)
         {
-            return new Procedure(Checkpoint, func);
+            return new Procedure(_checkpoint, func);
         }
 
         public void Start()
@@ -119,7 +136,7 @@ namespace Zeze
  
         public void CheckpointRun()
         {
-            Checkpoint?.Run();
+            _checkpoint?.Run();
         }
 
         public Application()

@@ -91,7 +91,12 @@ namespace Zeze.Transaction
                                 Storage.OnRecordChanged(r); // XXX 倒过来以后，准备提交到新库中。这里调用OnRecordChanged安全吗？
                             }
                         }
+                        if (null != r.Value)
+                        {
+                            r.Value.InitTableKey(new TableKey(Id, key));
+                        }
                     }
+                    //Console.WriteLine($"FindInCacheOrStorage {r}");
                 }
                 /*
                 finally

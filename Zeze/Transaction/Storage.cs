@@ -158,7 +158,9 @@ namespace Zeze.Transaction
                 Record<K, V> r;
                 foundInSnapshot = snapshot.TryGetValue(key, out r);
                 if (foundInSnapshot)
+                {
                     value = r.FindSnapshot();
+                }
             }
             finally
             {

@@ -27,7 +27,7 @@ namespace UnitTest.Zeze.Trans
                     app1.demo_Module1_Module1.Table1.Remove(6785);
                     return Procedure.Success;
                 }).Call());
-
+                
                 Task[] task2 = new Task[2];
                 task2[0] = Task.Run(() => ConcurrentAdd(app1));
                 task2[1] = Task.Run(() => ConcurrentAdd(app2));

@@ -439,7 +439,7 @@ namespace Zeze.Transaction
             }
         }
 
-        private ConcurrentDictionary<string, ConcurrentDictionary<string, TableMemory>> databaseTables
+        private static ConcurrentDictionary<string, ConcurrentDictionary<string, TableMemory>> databaseTables
             = new ConcurrentDictionary<string, ConcurrentDictionary<string, TableMemory>>();
   
         public override Database.Table OpenTable(string name)
@@ -451,6 +451,7 @@ namespace Zeze.Transaction
         public class TableMemory : Database.Table
         {
             public string Name { get; }
+
             public TableMemory(string name)
             {
                 Name = name;

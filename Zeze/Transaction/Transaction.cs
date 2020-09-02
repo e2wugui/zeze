@@ -192,7 +192,7 @@ namespace Zeze.Transaction
                     }
                 }
 
-                //cachedRecords.Clear();
+                //accessedRecords.Clear();
             }
             catch (Exception e)
             {
@@ -301,7 +301,7 @@ namespace Zeze.Transaction
                 switch (e.OriginRecord.State)
                 {
                     case GlobalCacheManager.StateInvalid:
-                        return CheckResult.Redo; // AndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
+                        return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
                     case GlobalCacheManager.StateModify:
                         return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
@@ -311,7 +311,7 @@ namespace Zeze.Transaction
                         // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
                         if (e.OriginRecord.Acquire(GlobalCacheManager.StateModify) != GlobalCacheManager.StateModify)
                         {
-                            logger.Warn("Acquire Faild. Maybe DeadLock Found");
+                            logger.Warn("Acquire Faild. Maybe DeadLock Found {0}", e.OriginRecord);
                             return CheckResult.RedoAndReleaseLock;
                         }
                         e.OriginRecord.State = GlobalCacheManager.StateModify;

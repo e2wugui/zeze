@@ -314,7 +314,7 @@ namespace Zeze.Services
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            Helper.BuildString<CacheHolder>(sb, Share);
+            Helper.BuildString(sb, Share);
             return $"P{AcquireStatePending} M{Modify} S{sb}";
         }
     }
