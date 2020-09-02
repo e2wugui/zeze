@@ -140,10 +140,6 @@ namespace Zeze.Transaction
                     }
                     finally
                     {
-                        // retry 保持已有的锁，清除记录和保存点。
-                        procedure.Checkpoint.FlushReadWriteLock.ExitReadLock();
-                        accessedRecords.Clear();
-                        savepoints.Clear();
                         if (checkResult == CheckResult.RedoAndReleaseLock)
                         {
                             foreach (var holdLock in holdLocks)
@@ -152,6 +148,10 @@ namespace Zeze.Transaction
                             }
                             holdLocks.Clear();
                         }
+                        // retry 可能保持已有的锁，清除记录和保存点。
+                        procedure.Checkpoint.FlushReadWriteLock.ExitReadLock();
+                        accessedRecords.Clear();
+                        savepoints.Clear();
                     }
                     if (checkResult == CheckResult.RedoAndReleaseLock)
                         procedure.Checkpoint.WaitRun(); // XXX

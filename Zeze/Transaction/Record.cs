@@ -43,13 +43,18 @@ namespace Zeze.Transaction
             this.Key = key;
         }
 
+        public override string ToString()
+        {
+            return $"T {Table.Id}:{Table.Name} K {Key} S {State} T {Timestamp} V {Value}";
+        }
+
         internal override int Acquire(int state)
         {
             if (null == Table.Storage)
                 return state; // 不支持内存表cache同步。
 
             GlobalTableKey gkey = new GlobalTableKey(Table.Name, Table.EncodeKey(Key));
-            Console.WriteLine("Acquire Id=" + Table.Id + " " + gkey + " " + state);
+            Console.WriteLine($"Acquire NewState={state} {this}");
             return Table.Zeze.GlobalAgent.Acquire(gkey, state);
         }
 

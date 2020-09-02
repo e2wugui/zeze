@@ -40,7 +40,7 @@ namespace Zeze
             switch (dbType)
             {
                 case DbType.Memory:
-                    return new Transaction.DatabaseMemory();
+                    return new Transaction.DatabaseMemory(url);
                 case DbType.MySql:
                     return new Transaction.DatabaseMySql(url);
                 case DbType.SqlServer:

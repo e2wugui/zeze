@@ -424,7 +424,7 @@ namespace Zeze.Transaction
     /// </summary>
     public class DatabaseMemory : Database
     {
-        public DatabaseMemory() : base("")
+        public DatabaseMemory(string url) : base(url)
         {
 
         }
@@ -439,13 +439,23 @@ namespace Zeze.Transaction
             }
         }
 
+        private ConcurrentDictionary<string, ConcurrentDictionary<string, TableMemory>> databaseTables
+            = new ConcurrentDictionary<string, ConcurrentDictionary<string, TableMemory>>();
+  
         public override Database.Table OpenTable(string name)
         {
-            return new TableMemory();
+            var tables = databaseTables.GetOrAdd(DatabaseUrl, (urlnotused) => new ConcurrentDictionary<string, TableMemory>());
+            return tables.GetOrAdd(name, (tablenamenotused) => new TableMemory(name));
         }
 
         public class TableMemory : Database.Table
         {
+            public string Name { get; }
+            public TableMemory(string name)
+            {
+                Name = name;
+            }
+
             public class ByteArrayComparer : IEqualityComparer<byte[]>
             {
                 public bool Equals(byte[] left, byte[] right)
@@ -455,12 +465,7 @@ namespace Zeze.Transaction
 
                 public int GetHashCode(byte[] key)
                 {
-                    int sum = 0;
-                    foreach (byte cur in key)
-                    {
-                        sum += cur;
-                    }
-                    return sum;
+                    return Helper.GetHashCode(key);
                 }
             }
             public ConcurrentDictionary<byte[], byte[]> Map { get; } = new ConcurrentDictionary<byte[], byte[]>(new ByteArrayComparer());

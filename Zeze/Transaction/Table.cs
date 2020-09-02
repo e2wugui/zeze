@@ -111,10 +111,12 @@ namespace Zeze.Transaction
             TableKey tkey = new TableKey(Id, key);
             Lockey lockey = Locks.Instance.Get(tkey);
             lockey.EnterWriteLock();
+            Record<K, V> r = null;
             try
             {
                 // TODO 这个要放锁内吗？
-                Record<K, V> r = Cache.Get(key);
+                r = Cache.Get(key);
+                Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
                 if (null == r)
                 {
                     rpc.Result.State = GlobalCacheManager.StateInvalid;
@@ -129,6 +131,7 @@ namespace Zeze.Transaction
                         return 0;
 
                     case GlobalCacheManager.StateShare:
+                        rpc.Result.State = GlobalCacheManager.StateShare;
                         rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsShare);
                         return 0;
 
@@ -143,10 +146,11 @@ namespace Zeze.Transaction
                 lockey.ExitWriteLock();
             }
             // TODO 收集。
-            logger.Warn("ReduceShare checkpoint begin. id={0} {1}", Id, tkey);
+            logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
             Zeze.CheckpointRun();
-            logger.Warn("ReduceShare checkpoint end. id={0} {1}", Id, tkey);
+            logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateShare;
+            //Thread.Sleep(10);
             rpc.SendResult();
             return 0;
         }
@@ -154,24 +158,27 @@ namespace Zeze.Transaction
         internal override int ReduceInvalid(Reduce rpc)
         {
             rpc.Result = rpc.Argument;
-            rpc.Result.State = GlobalCacheManager.StateInvalid;
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
             TableKey tkey = new TableKey(Id, key);
             Lockey lockey = Locks.Instance.Get(tkey);
             lockey.EnterWriteLock();
+            Record<K, V> r = null;
             try
             {
                 // TODO 这个要放锁内吗？
-                Record<K, V> r = Cache.Get(key);
+                r = Cache.Get(key);
+                Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
                 if (null == r)
                 {
+                    rpc.Result.State = GlobalCacheManager.StateInvalid;
                     rpc.SendResultCode(GlobalCacheManager.ReduceInvalidAlreadyIsInvalid);
                     return 0;
                 }
                 switch (r.State)
                 {
                     case GlobalCacheManager.StateInvalid:
+                        rpc.Result.State = GlobalCacheManager.StateInvalid;
                         rpc.SendResultCode(GlobalCacheManager.ReduceInvalidAlreadyIsInvalid);
                         return 0;
 
@@ -197,9 +204,11 @@ namespace Zeze.Transaction
                 lockey.ExitWriteLock();
             }
             // TODO 收集。
-            logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", Id, tkey);
+            logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
             Zeze.CheckpointRun();
-            logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", Id, tkey);
+            logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
+            rpc.Result.State = GlobalCacheManager.StateInvalid;
+            //Thread.Sleep(10);
             rpc.SendResult();
             return 0;
         }

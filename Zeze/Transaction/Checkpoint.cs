@@ -125,7 +125,7 @@ namespace Zeze.Transaction
 
         internal void WaitRun()
         {
-            //Thread.Sleep(10);
+            Thread.Sleep(10);
             lock (checkpointLock)
             {                
             }
