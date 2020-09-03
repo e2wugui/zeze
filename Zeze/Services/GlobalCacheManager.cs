@@ -16,6 +16,7 @@ namespace Zeze.Services
         public const int StateInvalid = 0;
         public const int StateShare = 1;
         public const int StateModify = 2;
+        public const int StateRemoved = -1; // 从容器(Cache或Global)中删除后设置的状态，最后一个状态。
 
         public const int AcquireShareDeadLockFound = 1;
         public const int AcquireShareAlreadyIsModify = 2;
@@ -95,14 +96,14 @@ namespace Zeze.Services
                     cs.Modify = null;
                 cs.Share.Remove(holder); // always try remove
 
-                rpc.Result = rpc.Argument;
-                rpc.SendResult();
                 if (cs.Modify == null && cs.Share.Count == 0)
                 {
                     // 安全的从global中删除，没有并发问题。
-                    cs.IsRemoved = true;
+                    cs.AcquireStatePending = StateRemoved;
                     global.TryRemove(rpc.Argument.GlobalTableKey, out var _);
                 }
+                rpc.Result = rpc.Argument;
+                rpc.SendResult();
                 return 0;
             }
         }
@@ -116,7 +117,7 @@ namespace Zeze.Services
                 CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
                 lock (cs)
                 {
-                    if (cs.IsRemoved)
+                    if (cs.AcquireStatePending == StateRemoved)
                         continue;
 
                     while (cs.AcquireStatePending != StateInvalid)
@@ -199,7 +200,7 @@ namespace Zeze.Services
                 CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
                 lock (cs)
                 {
-                    if (cs.IsRemoved)
+                    if (cs.AcquireStatePending == StateRemoved)
                         continue;
 
                     while (cs.AcquireStatePending != StateInvalid)
@@ -309,7 +310,6 @@ namespace Zeze.Services
     {
         internal CacheHolder Modify { get; set; }
         internal int AcquireStatePending { get; set; } = GlobalCacheManager.StateInvalid;
-        internal bool IsRemoved { get; set; }
         internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
         public override string ToString()
         {

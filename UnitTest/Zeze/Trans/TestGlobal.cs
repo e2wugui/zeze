@@ -55,7 +55,7 @@ namespace UnitTest.Zeze.Trans
 
         void ConcurrentAdd(demo.App app)
         {
-            Task[] tasks = new Task[1000];
+            Task[] tasks = new Task[2000];
             for (int i = 0; i < tasks.Length; ++i)
             {
                 tasks[i] = Task.Run(app.Zeze.NewProcedure(()=>

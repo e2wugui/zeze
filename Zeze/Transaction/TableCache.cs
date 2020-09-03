@@ -105,6 +105,7 @@ namespace Zeze.Transaction
         }
 
         // under lockey.writelock
+        /*
         internal bool RemoeIfNotDirty(K key)
         {
             var storage = Table.Storage;
@@ -116,6 +117,7 @@ namespace Zeze.Transaction
 
             return map.TryRemove(key, out var _);
         }
+        */
 
         private bool TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)
         {

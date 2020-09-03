@@ -190,18 +190,13 @@ namespace Zeze.Transaction
                     case GlobalCacheManager.StateShare:
                         r.State = GlobalCacheManager.StateInvalid;
                         r.Timestamp = Record.NextTimestamp;
-                        // StateShare 应该是干净的，肯定能删除成功。
-                        if (Cache.RemoeIfNotDirty(key))
-                        {
-                            rpc.SendResult();
-                            return 0;
-                        }
-                        break;
+                        // 不删除记录，让CleanNow处理。 
+                        rpc.SendResult();
+                        return 0;
 
                     case GlobalCacheManager.StateModify:
                         r.State = GlobalCacheManager.StateInvalid;
                         r.Timestamp = Record.NextTimestamp;
-                        //Cache.RemoeIfNotDirty(key); // Modify 一般来说是脏的，这里不调用删除了，让CleanNow以后处理。
                         break;
                 }
             }
