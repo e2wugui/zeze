@@ -34,8 +34,9 @@ namespace Zeze.Transaction
             return state;
         }
 
-        public int ProcessReduceRequest(Reduce rpc)
+        public int ProcessReduceRequest(Zeze.Net.Protocol p)
         {
+            Reduce rpc = (Reduce)p;
             switch (rpc.Argument.State)
             {
                 case GlobalCacheManager.StateInvalid:
@@ -67,7 +68,7 @@ namespace Zeze.Transaction
                 Client = new GlobalClient(this);
                 Client.AddFactory(new Reduce().TypeId, () => new Reduce());
                 Client.AddFactory(new Acquire().TypeId, () => new Acquire());
-                Client.AddHandle(new Reduce().TypeRpcRequestId, Service.MakeHandle<Reduce>(this, GetType().GetMethod(nameof(ProcessReduceRequest))));
+                Client.AddHandle(new Reduce().TypeRpcRequestId, ProcessReduceRequest);
                 Connected = new TaskCompletionSource<AsyncSocket>();
                 ClientSocket = Client.NewClientSocket(hostNameOrAddress, port);
                 Connected.Task.Wait();

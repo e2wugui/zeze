@@ -49,7 +49,7 @@ namespace Zeze.Services
                 Server = new ServerService();
                 Server.AddFactory(new Acquire().TypeId, () => new Acquire());
                 Server.AddFactory(new Reduce().TypeId, () => new Reduce());
-                Server.AddHandle(new Acquire().TypeRpcRequestId, Service.MakeHandle<Acquire>(this, GetType().GetMethod(nameof(ProcessAcquireRequest))));
+                Server.AddHandle(new Acquire().TypeRpcRequestId, ProcessAcquireRequest);
                 serverSocket = Server.NewServerSocket(ipaddress, port);
             }
         }
@@ -67,8 +67,9 @@ namespace Zeze.Services
             }
         }
 
-        public int ProcessAcquireRequest(Acquire rpc)
+        public int ProcessAcquireRequest(Zeze.Net.Protocol p)
         {
+            Acquire rpc = (Acquire)p;
             switch (rpc.Argument.State)
             {
                 case StateInvalid: // realease
