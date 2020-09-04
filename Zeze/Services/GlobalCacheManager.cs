@@ -97,7 +97,7 @@ namespace Zeze.Services
                     cs.Modify = null;
                 cs.Share.Remove(holder); // always try remove
 
-                if (cs.Modify == null && cs.Share.Count == 0)
+                if (cs.Modify == null && cs.Share.Count == 0 && cs.AcquireStatePending == StateInvalid)
                 {
                     // 安全的从global中删除，没有并发问题。
                     cs.AcquireStatePending = StateRemoved;
