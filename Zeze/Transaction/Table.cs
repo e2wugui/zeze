@@ -155,7 +155,6 @@ namespace Zeze.Transaction
             Zeze.CheckpointRun();
             logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateShare;
-            //Thread.Sleep(10);
             rpc.SendResult();
             return 0;
         }
@@ -209,7 +208,6 @@ namespace Zeze.Transaction
             Zeze.CheckpointRun();
             logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateInvalid;
-            //Thread.Sleep(10);
             rpc.SendResult();
             return 0;
         }
