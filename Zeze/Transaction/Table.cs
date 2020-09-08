@@ -120,7 +120,7 @@ namespace Zeze.Transaction
             try
             {
                 r = Cache.Get(key);
-                //Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
+                Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
                 if (null == r)
                 {
                     rpc.Result.State = GlobalCacheManager.StateInvalid;
@@ -151,7 +151,7 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateShare;
-            Zeze.Checkpoint.AddActionAndPulse(() => rpc.SendResult());
+            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("SendResult {0}", r);  rpc.SendResult(); });
             //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
@@ -168,7 +168,7 @@ namespace Zeze.Transaction
             try
             {
                 r = Cache.Get(key);
-                //Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
+                Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
                 if (null == r)
                 {
                     rpc.Result.State = GlobalCacheManager.StateInvalid;
@@ -201,7 +201,7 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateInvalid;
-            Zeze.Checkpoint.AddActionAndPulse(() => rpc.SendResult());
+            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("SendResult {0}", r); rpc.SendResult(); });
             //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }

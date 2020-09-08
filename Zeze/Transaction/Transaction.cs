@@ -85,76 +85,86 @@ namespace Zeze.Transaction
             {
                 for (int tryCount = 0; tryCount < 256; ++tryCount) // 最多尝试次数
                 {
-                    procedure.Checkpoint.FlushReadWriteLock.EnterReadLock();
-                    CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
                     try
                     {
-                        int result = procedure.Call();
-                        if ((result == Procedure.Success && savepoints.Count != 1) || (result != Procedure.Success && savepoints.Count != 0))
+                        // 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
+                        procedure.Checkpoint.FlushReadWriteLock.EnterReadLock();
+                        for (/* out loop */; tryCount < 256; ++tryCount) // 最多尝试次数
                         {
-                            // 这个错误不应该重做
-                            logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
-                            return Procedure.ErrorSavepoint;
-                        }
-                        checkResult = _lock_and_check_();
-                        if (checkResult == CheckResult.Success)
-                        {
-                            if (result == Procedure.Success)
+                            CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
+                            try
                             {
-                                _final_commit_(procedure);
-                                return Procedure.Success;
+                                int result = procedure.Call();
+                                if ((result == Procedure.Success && savepoints.Count != 1) || (result != Procedure.Success && savepoints.Count != 0))
+                                {
+                                    // 这个错误不应该重做
+                                    logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
+                                    return Procedure.ErrorSavepoint;
+                                }
+                                checkResult = _lock_and_check_();
+                                if (checkResult == CheckResult.Success)
+                                {
+                                    if (result == Procedure.Success)
+                                    {
+                                        _final_commit_(procedure);
+                                        return Procedure.Success;
+                                    }
+                                    return result;
+                                }
+                                // retry
                             }
-                            return result;
-                        }
-                        // retry
-                        //logger.Trace("Transaction.Perform:{0} retry {1}", procedure, tryCount);
-                    }
-                    catch (RedoAndReleaseLockException)
-                    {
-                        checkResult = CheckResult.RedoAndReleaseLock;
-                        logger.Debug("RedoAndReleaseLockException");
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Error(e, "Transaction.Perform:{0} exception. run count:{1}", procedure, tryCount);
-                        // 如果异常是因为 数据不一致引入，需要回滚重做，否则事务失败
-                        if (savepoints.Count != 0)
-                        {
-                            // 这个错误不应该重做
-                            logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 1.", procedure);
-                            return Procedure.ErrorSavepoint;
-                        }
+                            catch (RedoAndReleaseLockException)
+                            {
+                                checkResult = CheckResult.RedoAndReleaseLock;
+                                //logger.Debug("RedoAndReleaseLockException");
+                            }
+                            catch (Exception e)
+                            {
+                                // 如果异常是因为 数据不一致引入，需要回滚重做，否则事务失败
+                                logger.Error(e, "Transaction.Perform:{0} exception. run count:{1}", procedure, tryCount);
+                                if (savepoints.Count != 0)
+                                {
+                                    // 这个错误不应该重做
+                                    logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 1.", procedure);
+                                    return Procedure.ErrorSavepoint;
+                                }
 #if DEBUG
-                        // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
-                        if (e.GetType().Name == "AssertFailedException")
-                        {
-                            throw;
-                        }
+                                // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
+                                if (e.GetType().Name == "AssertFailedException")
+                                {
+                                    throw;
+                                }
 #endif
-                        checkResult = _lock_and_check_();
-                        if (checkResult == CheckResult.Success)
-                        {
-                            return Procedure.Excption;
+                                checkResult = _lock_and_check_();
+                                if (checkResult == CheckResult.Success)
+                                {
+                                    return Procedure.Excption;
+                                }
+                                // retry
+                            }
+                            finally
+                            {
+                                if (checkResult == CheckResult.RedoAndReleaseLock)
+                                {
+                                    foreach (var holdLock in holdLocks)
+                                    {
+                                        holdLock.ExitLock();
+                                    }
+                                    holdLocks.Clear();
+                                }
+                                // retry 可能保持已有的锁，清除记录和保存点。
+                                accessedRecords.Clear();
+                                savepoints.Clear();
+                            }
+                            if (checkResult == CheckResult.RedoAndReleaseLock)
+                                break;
                         }
-                        // retry
                     }
                     finally
                     {
-                        if (checkResult == CheckResult.RedoAndReleaseLock)
-                        {
-                            foreach (var holdLock in holdLocks)
-                            {
-                                holdLock.ExitLock();
-                            }
-                            holdLocks.Clear();
-                        }
-                        // retry 可能保持已有的锁，清除记录和保存点。
                         procedure.Checkpoint.FlushReadWriteLock.ExitReadLock();
-                        accessedRecords.Clear();
-                        savepoints.Clear();
                     }
-                    if (checkResult == CheckResult.RedoAndReleaseLock)
-                        procedure.Checkpoint.WaitRun(); // XXX
+                    procedure.Checkpoint.WaitRun();
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 return Procedure.TooManyTry;

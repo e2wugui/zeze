@@ -70,7 +70,7 @@ namespace Zeze.Transaction
                 {
                     countEncodeN += storage.EncodeN();
                 }
-                logger.Info("Checkpoint EncodeN {0}/{1}", i, countEncodeN);
+                //logger.Info("Checkpoint EncodeN {0}/{1}", i, countEncodeN);
             }
         }
 
@@ -87,7 +87,7 @@ namespace Zeze.Transaction
                 countSnapshot += storage.Snapshot();
             }
 
-            logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
+            //logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
         }
 
         internal void Flush(Checkpoint sync)
@@ -99,7 +99,7 @@ namespace Zeze.Transaction
                 {
                     countFlush += storage.Flush();
                 }
-                logger.Info("Checkpoint Flush count={0}", countFlush);
+                //logger.Info("Checkpoint Flush count={0}", countFlush);
             }
             );
         }

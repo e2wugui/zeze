@@ -20,7 +20,7 @@ namespace Zeze.Net
         public SocketOptions SocketOptions { get; set; }
         public Application Zeze { get; }
 
-        private Dictionary<long, AsyncSocket> _asocketMap = new Dictionary<long, AsyncSocket>();
+        private ConcurrentDictionary<long, AsyncSocket> _asocketMap = new ConcurrentDictionary<long, AsyncSocket>();
 
         public Service(Application zeze)
         {
@@ -40,35 +40,25 @@ namespace Zeze.Net
         /// <returns></returns>
         public virtual AsyncSocket GetSocket(long serialNo)
         {
-            lock (_asocketMap)
-            {
-                AsyncSocket value = null;
-                if (_asocketMap.TryGetValue(serialNo, out value))
-                    return value;
-                return null;
-            }
+            if (_asocketMap.TryGetValue(serialNo, out var value))
+                return value;
+            return null;
         }
 
         public virtual AsyncSocket GetSocket()
         {
-            lock (_asocketMap)
+            foreach (var e in _asocketMap)
             {
-                foreach (var e in _asocketMap)
-                {
-                    return e.Value;
-                }
-                throw new Exception("no socket found.");
+                return e.Value;
             }
+            throw new Exception("no socket found.");
         }
 
         public virtual void Close()
         {
-            lock (_asocketMap)
+            foreach (var e in _asocketMap)
             {
-                foreach (var e in _asocketMap)
-                {
-                    e.Value.Dispose();
-                }
+                e.Value.Dispose();
             }
         }
 
@@ -99,10 +89,7 @@ namespace Zeze.Net
         /// <param name="e"></param>
         public virtual void OnSocketClose(AsyncSocket so, Exception e)
         {
-            lock (_asocketMap)
-            {
-                _asocketMap.Remove(so.SessionId);
-            }
+            _asocketMap.TryRemove(so.SessionId, out var _);
             if (null != e)
                 logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketClose");
         }
@@ -113,10 +100,7 @@ namespace Zeze.Net
         /// <param name="so"></param>
         public virtual void OnSocketAccept(AsyncSocket so)
         {
-            lock(_asocketMap)
-            {
-                _asocketMap.Add(so.SessionId, so);
-            }
+            _asocketMap.TryAdd(so.SessionId, so);
         }
 
         /// <summary>
@@ -135,10 +119,7 @@ namespace Zeze.Net
         /// <param name="so"></param>
         public virtual void OnSocketConnected(AsyncSocket so)
         {
-            lock (_asocketMap)
-            {
-                _asocketMap.Add(so.SessionId, so);
-            }
+            _asocketMap.TryAdd(so.SessionId, so);
         }
 
         /// <summary>
