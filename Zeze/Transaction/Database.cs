@@ -159,7 +159,7 @@ namespace Zeze.Transaction
                         if (null != sync) // null for test
                         {
                             CommitReady.Set();
-                            sync.WaitAll();
+                            sync.WaitAllReady();
                         }
                         Transaction.Commit();
                         return;
@@ -300,7 +300,7 @@ namespace Zeze.Transaction
                         if (null != sync) // null for test
                         {
                             CommitReady.Set();
-                            sync.WaitAll();
+                            sync.WaitAllReady();
                         }
                         Transaction.Commit();
                         return;
@@ -435,7 +435,7 @@ namespace Zeze.Transaction
             if (null != sync) // null for test
             {
                 CommitReady.Set();
-                sync.WaitAll();
+                sync.WaitAllReady();
             }
         }
 

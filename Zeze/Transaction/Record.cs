@@ -54,7 +54,7 @@ namespace Zeze.Transaction
                 return state; // 不支持内存表cache同步。
 
             GlobalTableKey gkey = new GlobalTableKey(Table.Name, Table.EncodeKey(Key));
-            Console.WriteLine($"Acquire NewState={state} {this}");
+            //Console.WriteLine($"Acquire NewState={state} {this}");
             return Table.Zeze.GlobalAgent.Acquire(gkey, state);
         }
 

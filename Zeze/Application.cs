@@ -14,7 +14,6 @@ namespace Zeze
         public Config Config { get; }
         public bool IsStart { get; private set; }
         internal TableSys TableSys { get; private set; }
-        private Util.SchedulerTask checkpointTask;
         internal GlobalAgent GlobalAgent { get; }
 
         private Checkpoint _checkpoint;
@@ -28,6 +27,8 @@ namespace Zeze
             {
                 lock (this)
                 {
+                    if (null == value)
+                        throw new ArgumentNullException();
                     if (IsStart)
                         throw new Exception("Checkpoint only can setup before start.");
                     _checkpoint = value;
@@ -103,27 +104,18 @@ namespace Zeze
                 }
                 defaultDb.AddTable(TableSys);
 
-                if (Config.CheckpointPeriod > 0)
-                {
-                    checkpointTask = Util.Scheduler.Instance.Schedule(CheckpointRun, Config.CheckpointPeriod, Config.CheckpointPeriod);
-                }
+                Checkpoint.Start(Config.CheckpointPeriod);
             }
         }
 
         public void Stop()
         {
-            checkpointTask?.Cancel();
-            checkpointTask = null;
-
-            logger.Fatal("final checkpoint start.");
-            CheckpointRun();
-            logger.Fatal("final checkpoint end.");
-
             lock (this)
             {
                 if (false == IsStart)
                     return;
                 IsStart = false;
+                Checkpoint.StopAndJoin();
                 GlobalAgent.Stop();
                 foreach (var db in Databases.Values)
                 {
@@ -136,7 +128,7 @@ namespace Zeze
  
         public void CheckpointRun()
         {
-            _checkpoint?.Run();
+            _checkpoint.RunOnce();
         }
 
         public Application()

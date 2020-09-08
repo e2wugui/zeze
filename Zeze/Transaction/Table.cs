@@ -119,9 +119,8 @@ namespace Zeze.Transaction
             Record<K, V> r = null;
             try
             {
-                // TODO 这个要放锁内吗？
                 r = Cache.Get(key);
-                Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
+                //Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
                 if (null == r)
                 {
                     rpc.Result.State = GlobalCacheManager.StateInvalid;
@@ -150,12 +149,10 @@ namespace Zeze.Transaction
             {
                 lockey.ExitWriteLock();
             }
-            // TODO 收集。
-            logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
-            Zeze.CheckpointRun();
-            logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
+            //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateShare;
-            rpc.SendResult();
+            Zeze.Checkpoint.AddActionAndPulse(() => rpc.SendResult());
+            //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
 
@@ -170,9 +167,8 @@ namespace Zeze.Transaction
             Record<K, V> r = null;
             try
             {
-                // TODO 这个要放锁内吗？
                 r = Cache.Get(key);
-                Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
+                //Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
                 if (null == r)
                 {
                     rpc.Result.State = GlobalCacheManager.StateInvalid;
@@ -203,12 +199,10 @@ namespace Zeze.Transaction
             {
                 lockey.ExitWriteLock();
             }
-            // TODO 收集。
-            logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
-            Zeze.CheckpointRun();
-            logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
+            //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateInvalid;
-            rpc.SendResult();
+            Zeze.Checkpoint.AddActionAndPulse(() => rpc.SendResult());
+            //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
 

@@ -9,11 +9,14 @@ namespace Zeze.Transaction
 {
     public class Checkpoint
     {
-        private HashSet<Database> dbs = new HashSet<Database>();
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public ReaderWriterLockSlim FlushReadWriteLock { get; }
+        private HashSet<Database> databases = new HashSet<Database>();
 
-        private static object checkpointLock = new object(); // 限制 Checkpoint 仅有一份在运行。先这样吧。
+        internal ReaderWriterLockSlim FlushReadWriteLock { get; }
+        public bool IsRunning { get; private set; }
+        public int Period { get; private set; }
+        private Task RunningTask;
 
         public Checkpoint()
         {
@@ -26,141 +29,104 @@ namespace Zeze.Transaction
             Add(dbs);
         }
 
-        private Checkpoint(Checkpoint other)
+        public Checkpoint Add(IEnumerable<Database> databases)
         {
-            FlushReadWriteLock = other.FlushReadWriteLock;
-            Add(other.dbs);
-        }
-
-        public Checkpoint Duplicate()
-        {
-            return new Checkpoint(this);
-        }
-
-        public Checkpoint Clear()
-        {
-            dbs.Clear();
-            return this;
-        }
-
-        public Checkpoint Add(Database db)
-        {
-            dbs.Add(db);
-            return this;
-        }
-
-        public Checkpoint Add(IEnumerable<Database> dbs)
-        {
-            foreach (var db in dbs)
+            foreach (var db in databases)
             {
-                this.dbs.Add(db);
+                this.databases.Add(db);
             }
             return this;
         }
 
         private ManualResetEvent[] readys;
 
-        private void EncodeN()
-        {
-            int i = 0;
-            Task[] tasks = new Task[dbs.Count];
-            foreach (var db in dbs)
-            {
-                tasks[i++] = Task.Run(db.EncodeN);
-            }
-            Task.WaitAll(tasks);
-        }
-
-        private void Snapshot()
-        {
-            FlushReadWriteLock.EnterWriteLock();
-            actionDeny = true;
-            try
-            {
-                int i = 0;
-                Task[] tasks = new Task[dbs.Count];
-                foreach (var db in dbs)
-                {
-                    tasks[i++] = Task.Run(db.Snapshot);
-                }
-                Task.WaitAll(tasks);
-            }
-            finally
-            {
-                FlushReadWriteLock.ExitWriteLock();
-            }
-        }
-
-        private void Flush()
-        {
-            readys = new ManualResetEvent[dbs.Count];
-
-            int i = 0;
-            foreach (var v in dbs)
-            {
-                v.CommitReady.Reset();
-                readys[i++] = v.CommitReady;
-            }
-
-            i = 0;
-            Task[] tasks = new Task[dbs.Count];
-            foreach (var db in dbs)
-            {
-                tasks[i++] = Task.Run(() => db.Flush(this));
-            }
-            Task.WaitAll(tasks);
-            readys = null;
-        }
-
-        private void Cleanup()
-        {
-            int i = 0;
-            Task[] tasks = new Task[dbs.Count];
-            foreach (var db in dbs)
-            {
-                tasks[i++] = Task.Run(db.Cleanup);
-            }
-            Task.WaitAll(tasks);
-        }
-
         internal void WaitRun()
         {
             Thread.Sleep(10);
-            lock (checkpointLock)
-            {                
-            }
-        }
-
-        internal void Run()
-        {
-            lock (checkpointLock)
+            lock (this)
             {
-                EncodeN();
-                Snapshot();
-                Flush();
-                foreach (Action act in actions)
-                {
-                    act();
-                }
-                Cleanup();
             }
         }
 
-        private bool actionDeny = false;
-        private List<Action> actions = new List<Action>();
+        internal void Start(int period)
+        {
+            lock (this)
+            {
+                if (IsRunning)
+                    return;
 
-        internal bool TryAddActionAfterCommit(Action act)
+                IsRunning = true;
+                Period = period;
+                RunningTask = Task.Run(Run);
+            }
+        }
+
+        internal void StopAndJoin()
+        {
+            lock (this)
+            {
+                IsRunning = false;
+                Monitor.Pulse(this);
+            }
+            RunningTask.Wait();
+        }
+
+        private object RunOnceWait = new object();
+
+        internal void RunOnce()
+        {
+            lock (RunOnceWait)
+            {
+                lock (this)
+                {
+                    Monitor.Pulse(this);
+                }
+                Monitor.Wait(RunOnceWait);
+            }
+        }
+
+        private void Run()
+        {
+            while (IsRunning)
+            {
+                DoCheckpoint();
+                foreach (Action action in actionCurrent)
+                {
+                    action();
+                }
+                lock (RunOnceWait)
+                {
+                    Monitor.PulseAll(RunOnceWait);
+                }
+                lock (this)
+                {
+                    if (actionPending.Count > 0)
+                        continue; // 如果有未决的任务，马上开始下一次 DoCheckpoint。
+                    Monitor.Wait(this, Period);
+                }
+            }
+            logger.Fatal("final checkpoint start.");
+            DoCheckpoint();
+            logger.Fatal("final checkpoint end.");
+        }
+
+        private List<Action> actionCurrent;
+        private List<Action> actionPending = new List<Action>();
+
+        /// <summary>
+        /// 增加 checkpoint 完成一次以后执行的动作，每次 FlushReadWriteLock.EnterWriteLock()
+        /// 之前的动作在本次checkpoint完成时执行，之后的动作在下一次DoCheckpoint后执行。
+        /// </summary>
+        /// <param name="act"></param>
+        internal void AddActionAndPulse(Action act)
         {
             FlushReadWriteLock.EnterReadLock();
             try
             {
-                if (actionDeny)
-                    return false;
-
-                lock (actions)
+                lock (this)
                 {
-                    actions.Add(act);
-                    return true;
+                    actionPending.Add(act);
+                    Monitor.Pulse(this);
                 }
             }
             finally
@@ -169,9 +135,55 @@ namespace Zeze.Transaction
             }
         }
 
-        internal void WaitAll()
+        internal void WaitAllReady()
         {
             WaitHandle.WaitAll(readys);
+        }
+
+        private void DoCheckpoint()
+        {
+            foreach (var db in databases)
+            {
+                db.EncodeN();
+            }
+            {
+                FlushReadWriteLock.EnterWriteLock();
+                actionCurrent = actionPending;
+                actionPending = new List<Action>();
+                try
+                {
+                    foreach (var db in databases)
+                    {
+                        db.Snapshot();
+                    }
+                }
+                finally
+                {
+                    FlushReadWriteLock.ExitWriteLock();
+                }
+            }
+            {
+                readys = new ManualResetEvent[databases.Count];
+                int i = 0;
+                foreach (var v in databases)
+                {
+                    v.CommitReady.Reset();
+                    readys[i++] = v.CommitReady;
+                }
+                i = 0;
+                // 必须放在线程中执行，因为要支持多个数据库一起提交。db.Flush内部需要回调this.WaitAll。
+                Task[] flushTasks = new Task[databases.Count];
+                foreach (var db in databases)
+                {
+                    flushTasks[i++] = Task.Run(() => db.Flush(this));
+                }
+                Task.WaitAll(flushTasks);
+                readys = null;
+            }
+            foreach (var db in databases)
+            {
+                db.Cleanup();
+            }
         }
     }
 }

@@ -10,3 +10,5 @@ TODO
 4 Checkpoint收集多个Reduce的能力：使用flushReadLock，在flushWriteLock之后不能再加入新的请求。
 * Checkpoint发现Reduce，等待的问题。
 7 同时在一个进程内建立多个App是可行的，在多个App中仍然支持事务，但是这两个App不能同时属于一个GlobalCacheManager.
+
+（010）82818652 博瑞祥宏4s点保养。

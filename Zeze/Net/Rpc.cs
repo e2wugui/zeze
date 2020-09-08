@@ -57,7 +57,7 @@ namespace Zeze.Net
                 //context.Sender = null; // timeout 没有网络。
                 context.typeId = TypeRpcTimeoutId;
                 so.Service.DispatchProtocol(context);
-            }, millisecondsTimeout, -1, false);
+            }, millisecondsTimeout, -1);
         }
 
         public TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout = 5000)

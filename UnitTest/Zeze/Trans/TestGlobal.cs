@@ -29,22 +29,23 @@ namespace UnitTest.Zeze.Trans
                 }).Call());
                 
                 Task[] task2 = new Task[2];
-                task2[0] = Task.Run(() => ConcurrentAdd(app1));
-                task2[1] = Task.Run(() => ConcurrentAdd(app2));
+                int count = 2000;
+                task2[0] = Task.Run(() => ConcurrentAdd(app1, count));
+                task2[1] = Task.Run(() => ConcurrentAdd(app2, count));
                 Task.WaitAll(task2);
-                Assert.IsTrue(Procedure.Success == app2.Zeze.NewProcedure(() =>
-                {
-                    int last2 = app2.demo_Module1_Module1.Table1.Get(6785).Int1;
-                    Console.WriteLine("Assert Failed. app2 " + last2);
-                    return Procedure.Success;
-                }).Call());
+                int countall = count * 2;
                 Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(() =>
                 {
                     int last1 = app1.demo_Module1_Module1.Table1.Get(6785).Int1;
-                    Console.WriteLine("Assert Failed. app1 " + last1);
+                    Assert.AreEqual(last1, countall);
                     return Procedure.Success;
                 }).Call());
-                //Thread.Sleep(100000);
+                Assert.IsTrue(Procedure.Success == app2.Zeze.NewProcedure(() =>
+                {
+                    int last2 = app2.demo_Module1_Module1.Table1.Get(6785).Int1;
+                    Assert.AreEqual(last2, countall);
+                    return Procedure.Success;
+                }).Call());
             }
             finally
             {
@@ -53,9 +54,9 @@ namespace UnitTest.Zeze.Trans
             }
         }
 
-        void ConcurrentAdd(demo.App app)
+        void ConcurrentAdd(demo.App app, int count)
         {
-            Task[] tasks = new Task[2000];
+            Task[] tasks = new Task[count];
             for (int i = 0; i < tasks.Length; ++i)
             {
                 tasks[i] = Task.Run(app.Zeze.NewProcedure(()=>
