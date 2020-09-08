@@ -142,16 +142,18 @@ namespace Zeze.Transaction
 
         private void DoCheckpoint()
         {
+            // encodeN
             foreach (var db in databases)
             {
                 db.EncodeN();
             }
+            // snapshot
             {
                 FlushReadWriteLock.EnterWriteLock();
-                actionCurrent = actionPending;
-                actionPending = new List<Action>();
                 try
                 {
+                    actionCurrent = actionPending;
+                    actionPending = new List<Action>();
                     foreach (var db in databases)
                     {
                         db.Snapshot();
@@ -162,6 +164,7 @@ namespace Zeze.Transaction
                     FlushReadWriteLock.ExitWriteLock();
                 }
             }
+            // flush
             {
                 readys = new ManualResetEvent[databases.Count];
                 int i = 0;
@@ -180,6 +183,7 @@ namespace Zeze.Transaction
                 Task.WaitAll(flushTasks);
                 readys = null;
             }
+            // cleanup
             foreach (var db in databases)
             {
                 db.Cleanup();

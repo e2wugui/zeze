@@ -31,7 +31,7 @@ namespace UnitTest.Zeze.Trans
             Task[] tasks = new Task[1000];
             for (int i = 0; i < tasks.Length; ++i)
             {
-                tasks[i] = Task.Run(demo.App.Instance.Zeze.NewProcedure(ProcAdd).Call);
+               tasks[i] = Task.Run(demo.App.Instance.Zeze.NewProcedure(ProcAdd).Call);
             }
             Task.WaitAll(tasks);
             sum = tasks.Length;
