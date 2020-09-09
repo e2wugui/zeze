@@ -412,14 +412,14 @@ namespace Zeze.Transaction
                     if (e.Value.Dirty && false == curLock.isWriteLockHeld())
                     {
                         curLock.EnterLock(true);
+                        switch (_check_(true, e.Value))
+                        {
+                            case CheckResult.Success: break;
+                            case CheckResult.Redo: conflict = true; break; // continue lock
+                            case CheckResult.RedoAndReleaseLock: return CheckResult.RedoAndReleaseLock;
+                        }
                     }
-                    // XXX 已经锁定也要检查状态：包括是否冲突。按理说应该不需要，但为了防止ReleaseLock没有释放，再次检查一次。
-                    switch (_check_(e.Value.Dirty, e.Value))
-                    {
-                        case CheckResult.Success: break;
-                        case CheckResult.Redo: conflict = true; break; // continue lock
-                        case CheckResult.RedoAndReleaseLock: return CheckResult.RedoAndReleaseLock;
-                    }
+                    // else 已经持有读锁，其他地方都没法修改，不用检测状态了吧。
                     // 已经锁定了，跳过
                     ++index;
                     continue;
