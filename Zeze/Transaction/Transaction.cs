@@ -157,13 +157,17 @@ namespace Zeze.Transaction
                                 savepoints.Clear();
                             }
                             if (checkResult == CheckResult.RedoAndReleaseLock)
+                            {
+                                //logger.Debug("CheckResult.RedoAndReleaseLock break {0}", procedure);
                                 break;
+                            }
                         }
                     }
                     finally
                     {
                         procedure.Checkpoint.FlushReadWriteLock.ExitReadLock();
                     }
+                    //logger.Debug("Checkpoint.WaitRun {0}", procedure);
                     procedure.Checkpoint.WaitRun();
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
@@ -408,12 +412,13 @@ namespace Zeze.Transaction
                     if (e.Value.Dirty && false == curLock.isWriteLockHeld())
                     {
                         curLock.EnterLock(true);
-                        switch (_check_(true, e.Value))
-                        {
-                            case CheckResult.Success: break;
-                            case CheckResult.Redo: conflict = true; break; // continue lock
-                            case CheckResult.RedoAndReleaseLock: return CheckResult.RedoAndReleaseLock;
-                        }
+                    }
+                    // XXX 已经锁定也要检查状态：包括是否冲突。按理说应该不需要，但为了防止ReleaseLock没有释放，再次检查一次。
+                    switch (_check_(e.Value.Dirty, e.Value))
+                    {
+                        case CheckResult.Success: break;
+                        case CheckResult.Redo: conflict = true; break; // continue lock
+                        case CheckResult.RedoAndReleaseLock: return CheckResult.RedoAndReleaseLock;
                     }
                     // 已经锁定了，跳过
                     ++index;

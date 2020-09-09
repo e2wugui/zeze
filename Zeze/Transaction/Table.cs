@@ -120,7 +120,7 @@ namespace Zeze.Transaction
             try
             {
                 r = Cache.Get(key);
-                Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
+                logger.Debug($"Reduce NewState={rpc.Argument.State} {r}");
                 if (null == r)
                 {
                     rpc.Result.State = GlobalCacheManager.StateInvalid;
@@ -168,7 +168,7 @@ namespace Zeze.Transaction
             try
             {
                 r = Cache.Get(key);
-                Console.WriteLine($"Reduce NewState={rpc.Argument.State} {r}");
+                logger.Debug($"Reduce NewState={rpc.Argument.State} {r}");
                 if (null == r)
                 {
                     rpc.Result.State = GlobalCacheManager.StateInvalid;

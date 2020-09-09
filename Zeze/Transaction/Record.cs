@@ -33,6 +33,7 @@ namespace Zeze.Transaction
 
     public class Record<K, V> : Record where V : Bean, new()
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public K Key { get; }
         public Table<K, V> Table { get;  }
         public V ValueTyped => (V)Value;
@@ -54,7 +55,7 @@ namespace Zeze.Transaction
                 return state; // 不支持内存表cache同步。
 
             GlobalTableKey gkey = new GlobalTableKey(Table.Name, Table.EncodeKey(Key));
-            //Console.WriteLine($"Acquire NewState={state} {this}");
+            logger.Debug($"Acquire NewState={state} {this}");
             return Table.Zeze.GlobalAgent.Acquire(gkey, state);
         }
 

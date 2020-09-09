@@ -42,7 +42,7 @@ namespace Zeze.Transaction
 
         internal void WaitRun()
         {
-            Thread.Sleep(10);
+            Thread.Sleep(100);
             lock (this)
             {
             }
