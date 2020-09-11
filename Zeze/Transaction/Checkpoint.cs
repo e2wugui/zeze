@@ -71,18 +71,11 @@ namespace Zeze.Transaction
             RunningTask.Wait();
         }
 
-        private object RunOnceWait = new object();
-
         internal void RunOnce()
         {
-            lock (RunOnceWait)
-            {
-                lock (this)
-                {
-                    Monitor.Pulse(this);
-                }
-                Monitor.Wait(RunOnceWait);
-            }
+            TaskCompletionSource<int> source = new TaskCompletionSource<int>();
+            AddActionAndPulse(() => source.SetResult(0));
+            source.Task.Wait();
         }
 
         private void Run()
@@ -93,10 +86,6 @@ namespace Zeze.Transaction
                 foreach (Action action in actionCurrent)
                 {
                     action();
-                }
-                lock (RunOnceWait)
-                {
-                    Monitor.PulseAll(RunOnceWait);
                 }
                 lock (this)
                 {

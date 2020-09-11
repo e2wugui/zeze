@@ -81,6 +81,7 @@ namespace Zeze.Transaction
             {
                 if (null == Client)
                     return;
+                ClientSocket = null;
                 Client.Close();
                 Client = null;
             }
@@ -111,11 +112,10 @@ namespace Zeze.Transaction
         {
             base.OnSocketClose(so, e);
             if (so == agent.ClientSocket)
-                Console.WriteLine("Real Socket Close");
-            agent.ClientSocket = null;
-            Console.WriteLine("OnSocketClose " + e);
-            // XXX 和 GlobalCacheManager 失去连接，意味着 Cache 同步无法正常工作。必须停止程序。
-            // System.Environment.Exit(5678);
+            {
+                // XXX 被动关闭。和 GlobalCacheManager 失去连接，意味着 Cache 同步无法正常工作。必须停止程序。
+                System.Environment.Exit(5678);
+            }
         }
     }
 }
