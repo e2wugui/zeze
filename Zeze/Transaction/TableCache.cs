@@ -86,7 +86,6 @@ namespace Zeze.Transaction
                     if (TryRemoveRecord(r.p))
                     {
                         --nclean;
-                        r.p.Value.Acquire(GlobalCacheManager.StateInvalid);
                     }
                     // 运行的不频繁：不管删除是否成功，都继续循环。
                 }
@@ -98,7 +97,7 @@ namespace Zeze.Transaction
         {
             if (map.TryRemove(p.Key, out var _))
             {
-                p.Value.State = GlobalCacheManager.StateInvalid;
+                p.Value.State = GlobalCacheManager.StateRemoved;
                 return true;
             }
             return false;
@@ -131,11 +130,17 @@ namespace Zeze.Transaction
             {
                 var storage = Table.Storage;
                 if (null == storage)
+                {
+                    if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
+                        return false;
                     return Remove(p);
+                }
 
                 if (storage.IsRecordChanged(p.Key)) // 在记录里面维持一个 Dirty 标志是可行的，但是由于 Cache.CleanNow 执行的不频繁，无所谓了。
                     return false;
 
+                if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
+                    return false;
                 return Remove(p);
             }
             finally

@@ -28,8 +28,8 @@ namespace Zeze.Transaction
 		/// <returns></returns>
 		internal Lockey Alloc()
 		{
-			rwLock = new System.Threading.ReaderWriterLockSlim();
-			//rwLock = new System.Threading.ReaderWriterLockSlim(System.Threading.LockRecursionPolicy.SupportsRecursion);
+			//rwLock = new System.Threading.ReaderWriterLockSlim();
+			rwLock = new System.Threading.ReaderWriterLockSlim(System.Threading.LockRecursionPolicy.SupportsRecursion);
 			return this;
 		}
 

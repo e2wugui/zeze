@@ -314,6 +314,8 @@ namespace Zeze.Transaction
             {
                 switch (e.OriginRecord.State)
                 {
+                    case GlobalCacheManager.StateRemoved:
+                        // fall down
                     case GlobalCacheManager.StateInvalid:
                         return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
@@ -326,6 +328,7 @@ namespace Zeze.Transaction
                         if (e.OriginRecord.Acquire(GlobalCacheManager.StateModify) != GlobalCacheManager.StateModify)
                         {
                             logger.Warn("Acquire Faild. Maybe DeadLock Found {0}", e.OriginRecord);
+                            e.OriginRecord.State = GlobalCacheManager.StateInvalid;
                             return CheckResult.RedoAndReleaseLock;
                         }
                         e.OriginRecord.State = GlobalCacheManager.StateModify;
@@ -335,7 +338,8 @@ namespace Zeze.Transaction
             }
             else
             {
-                if (e.OriginRecord.State == GlobalCacheManager.StateInvalid)
+                if (e.OriginRecord.State == GlobalCacheManager.StateInvalid
+                    || e.OriginRecord.State == GlobalCacheManager.StateRemoved)
                     return CheckResult.RedoAndReleaseLock; // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
                 return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
             }
