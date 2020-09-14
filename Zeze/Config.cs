@@ -166,6 +166,10 @@ namespace Zeze
                 attr = self.GetAttribute("CacheCleanPeriod");
                 if (attr.Length > 0)
                     CacheCleanPeriod = int.Parse(attr);
+                DatabaseName = self.GetAttribute("DatabaseName");
+                DatabaseOldName = self.GetAttribute("DatabaseOldName");
+                attr = self.GetAttribute("DatabaseOldMode");
+                DatabaseOldMode = attr.Length > 0 ? int.Parse(attr) : 0;
 
                 if (Name.Length > 0)
                 {
