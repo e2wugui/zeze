@@ -27,12 +27,6 @@ namespace Zeze.Transaction
         public int Id { get; }
         public virtual bool IsMemory => true;
         public virtual bool IsAutoKey => false;
-        // 自动倒库，当新库(DatabaseName)没有找到记录时，从旧库(DatabaseOldName)中读取，
-        // Open 的时候找到旧库并打开Database.Table用来读取。
-        // 内存表不支持倒库。
-        public virtual string DatabaseName { get; } = "";
-        public virtual string DatabaseOldName { get; } = "";
-        public virtual int DatabaseOldMode { get; } = 0; // 0 none; 1 如果新库没有找到记录，尝试从旧库读取;
 
         internal abstract Storage Open(Application zeze, Database database);
         internal abstract void Close();
@@ -331,7 +325,8 @@ namespace Zeze.Transaction
             Cache = new TableCache<K, V>(zeze, this);
 
             Storage = IsMemory ? null : new Storage<K, V>(this, database, Name);
-            OldTable = DatabaseOldMode == 1 ? zeze.GetDatabase(DatabaseOldName).OpenTable(Name) : null;
+            Config.TableConf tableConf = zeze.Config.GetTableConf(Name);
+            OldTable = tableConf.DatabaseOldMode == 1 ? zeze.GetDatabase(tableConf.DatabaseOldName).OpenTable(Name) : null;
             return Storage;
         }
 

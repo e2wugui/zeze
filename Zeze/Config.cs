@@ -142,6 +142,14 @@ namespace Zeze
             public int CacheCapaicty { get; set; } = 20000;
             public int CacheCleanPeriod { get; set; } = 3600 * 1000; // 毫秒，一小时
 
+            // 自动倒库，当新库(DatabaseName)没有找到记录时，从旧库(DatabaseOldName)中读取，
+            // Open 的时候找到旧库并打开Database.Table用来读取。
+            // 内存表不支持倒库。
+            public string DatabaseName { get; } = "";
+            public string DatabaseOldName { get; } = "";
+            public int DatabaseOldMode { get; } = 0; // 0 none; 1 如果新库没有找到记录，尝试从旧库读取;
+
+
             public TableConf()
             {
 

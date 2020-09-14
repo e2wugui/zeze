@@ -13,19 +13,17 @@ namespace Zeze.Transaction
 
         private HashSet<Database> databases = new HashSet<Database>();
 
-        internal ReaderWriterLockSlim FlushReadWriteLock { get; }
+        internal ReaderWriterLockSlim FlushReadWriteLock { get; } = new ReaderWriterLockSlim();
         public bool IsRunning { get; private set; }
         public int Period { get; private set; }
         private Task RunningTask;
 
         public Checkpoint()
         {
-            FlushReadWriteLock = new ReaderWriterLockSlim();
         }
 
         public Checkpoint(IEnumerable<Database> dbs)
         {
-            FlushReadWriteLock = new ReaderWriterLockSlim();
             Add(dbs);
         }
 
