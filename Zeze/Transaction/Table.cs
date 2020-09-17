@@ -62,6 +62,9 @@ namespace Zeze.Transaction
                     TableKey tkey = new TableKey(Id, key);
                     Lockey lockey = Locks.Instance.Get(tkey);
                     lockey.EnterReadLock();
+                    // 严格来说，这里应该是WriteLock,但是这会涉及Transaction持有的锁的升级问题，而且这里只是临时锁一下也会和持有冲突。
+                    // 由于装载仅在StateInvalid或者第一次载入的时候发生，外面还有lock(r)限制线程的重入，所以这里仅加个读锁限制一下state的修改，
+                    // 防止和Reduce冲突（由于StateInvalid才会申请权限和从storage装载，应该是不会发生Reduce的，加这个锁为了保险起见）。
                     try
                     {
                         if (r.State == GlobalCacheManager.StateRemoved)
@@ -89,7 +92,7 @@ namespace Zeze.Transaction
                             if (null != old)
                             {
                                 r.Value = DecodeValue(old);
-                                Storage.OnRecordChanged(r); // XXX 倒过来以后，准备提交到新库中。这里调用OnRecordChanged安全吗？
+                                Storage.OnRecordChanged(r);
                             }
                         }
                         if (null != r.Value)
@@ -182,7 +185,7 @@ namespace Zeze.Transaction
                     case GlobalCacheManager.StateShare:
                         r.State = GlobalCacheManager.StateInvalid;
                         r.Timestamp = Record.NextTimestamp;
-                        // 不删除记录，让CleanNow处理。 
+                        // 不删除记录，让TableCache.CleanNow处理。 
                         rpc.SendResult();
                         return 0;
 

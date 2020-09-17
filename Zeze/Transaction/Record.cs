@@ -12,7 +12,7 @@ namespace Zeze.Transaction
         internal long Timestamp { get; set; }
         internal Bean Value { get; set; }
         internal int State { get; set; }
-        internal long AccessTimeTicks { get; set; } // see TableCache 没有加锁。volatile
+        internal Zeze.Util.AtomicLong AccessTimeTicks = new Zeze.Util.AtomicLong();
 
         public Record(Bean value)
         {

@@ -33,7 +33,7 @@ namespace Zeze.Transaction
         public Record<K, V> GetOrAdd(K key, Func<K, Record<K, V>> valueFactory)
         {
             Record<K, V> exist = map.GetOrAdd(key, valueFactory);
-            exist.AccessTimeTicks = DateTime.Now.Ticks;
+            exist.AccessTimeTicks.GetAndSet(DateTime.Now.Ticks);
             return exist;
         }
 
@@ -80,7 +80,7 @@ namespace Zeze.Transaction
                     if (nclean <= 0)
                         break;
 
-                    if (r.accessTimeTicks != r.p.Value.AccessTimeTicks)
+                    if (r.p.Value.AccessTimeTicks.Get() != r.accessTimeTicks)
                         continue; // 排序后，记录时戳发生了更新，直接跳过。
 
                     if (TryRemoveRecord(r.p))
@@ -156,7 +156,7 @@ namespace Zeze.Transaction
 
             internal AccessTimeRecord(KeyValuePair<K, Record<K, V>> p)
             {
-                this.accessTimeTicks = p.Value.AccessTimeTicks; // 易变的，拷贝一份.
+                this.accessTimeTicks = p.Value.AccessTimeTicks.Get(); // 易变的，拷贝一份.
                 this.p = p;
             }
 
