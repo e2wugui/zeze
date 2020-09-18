@@ -113,10 +113,10 @@ namespace Zeze.Transaction
                                 }
                                 // retry
                             }
-                            catch (RedoAndReleaseLockException)
+                            catch (RedoAndReleaseLockException redorelease)
                             {
                                 checkResult = CheckResult.RedoAndReleaseLock;
-                                //logger.Debug("RedoAndReleaseLockException");
+                                logger.Debug(redorelease, "RedoAndReleaseLockException");
                             }
                             catch (Exception e)
                             {
