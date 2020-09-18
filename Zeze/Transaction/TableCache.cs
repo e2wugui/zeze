@@ -131,8 +131,10 @@ namespace Zeze.Transaction
                 var storage = Table.Storage;
                 if (null == storage)
                 {
+                    /* 不支持内存表cache同步。
                     if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
                         return false;
+                    */
                     return Remove(p);
                 }
 

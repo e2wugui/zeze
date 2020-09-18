@@ -9,3 +9,5 @@ TestResults
 /Gen/obj
 /GlobalCacheManager/bin
 /GlobalCacheManager/obj
+/TestGlobal/bin
+/TestGlobal/obj

@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnitTest", "UnitTest\UnitTe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gen", "Gen\Gen.csproj", "{B4F6AA2D-57FD-4E7D-A959-42BB61627C75}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GlobalCacheManager", "GlobalCacheManager\GlobalCacheManager.csproj", "{07181D66-3C2F-4598-9EA7-E1428AFB028E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlobalCacheManager", "GlobalCacheManager\GlobalCacheManager.csproj", "{07181D66-3C2F-4598-9EA7-E1428AFB028E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestGlobal", "TestGlobal\TestGlobal.csproj", "{D135E42E-2936-4A76-8BAB-6173FDD02D9D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{07181D66-3C2F-4598-9EA7-E1428AFB028E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{07181D66-3C2F-4598-9EA7-E1428AFB028E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{07181D66-3C2F-4598-9EA7-E1428AFB028E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D135E42E-2936-4A76-8BAB-6173FDD02D9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D135E42E-2936-4A76-8BAB-6173FDD02D9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D135E42E-2936-4A76-8BAB-6173FDD02D9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D135E42E-2936-4A76-8BAB-6173FDD02D9D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -28,7 +28,7 @@ namespace Zeze.Transaction
 
         public override string ToString()
         {
-            return $"tkey{{{Table.GetTable(TableId).Name},{Key}}}";
+            return $"tkey{{{TableId}:{Table.GetTable(TableId).Name},{Key}}}";
         }
 
         public override int GetHashCode()

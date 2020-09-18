@@ -9,6 +9,7 @@ namespace Zeze.Transaction
 
     public class Lockey : System.IComparable<Lockey>
     {
+		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 		public TableKey TableKey { get; }
 		private System.Threading.ReaderWriterLockSlim rwLock;
 
@@ -35,21 +36,25 @@ namespace Zeze.Transaction
 
 		public void EnterReadLock()
         {
+			//logger.Debug("EnterReadLock {0}", TableKey);
 			rwLock.EnterReadLock();
         }
 
 		public void ExitReadLock()
         {
+			//logger.Debug("ExitReadLock {0}", TableKey);
 			rwLock.ExitReadLock();
         }
 
 		public void EnterWriteLock()
 		{
+			//logger.Debug("EnterWriteLock {0}", TableKey);
 			rwLock.EnterWriteLock();
 		}
 
 		public void ExitWriteLock()
         {
+			//logger.Debug("ExitWriteLock {0}", TableKey);
 			rwLock.ExitWriteLock();
         }
 
@@ -81,10 +86,12 @@ namespace Zeze.Transaction
 				if (rwLock.IsReadLockHeld)
 					rwLock.ExitReadLock();
 
+				//logger.Debug("EnterLock::EnterWriteLock {0}", TableKey);
 				rwLock.EnterWriteLock();
 			}
 			else
             {
+				//logger.Debug("EnterLock::EnterReadLock {0}", TableKey);
 				rwLock.EnterReadLock();
 			} 
 		}
@@ -93,10 +100,12 @@ namespace Zeze.Transaction
         {
 			if (rwLock.IsReadLockHeld)
             {
+				//logger.Debug("ExitLock::ExitReadLock {0}", TableKey);
 				rwLock.ExitReadLock();
             }
 			else if (rwLock.IsWriteLockHeld)
             {
+				//logger.Debug("ExitLock::ExitWriteLock {0}", TableKey);
 				rwLock.ExitWriteLock();
             }
 			else
