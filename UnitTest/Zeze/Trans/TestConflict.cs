@@ -28,7 +28,7 @@ namespace UnitTest.Zeze.Trans
         public void TestConflictAdd()
         {
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove).Call());
-            Task[] tasks = new Task[1000];
+            Task[] tasks = new Task[2000];
             for (int i = 0; i < tasks.Length; ++i)
             {
                tasks[i] = Task.Run(demo.App.Instance.Zeze.NewProcedure(ProcAdd).Call);
