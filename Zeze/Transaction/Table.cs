@@ -114,7 +114,7 @@ namespace Zeze.Transaction
             rpc.Result = rpc.Argument;
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
-            logger.Debug($"Reduce NewState={rpc.Argument.State}");
+            //logger.Debug($"Reduce NewState={rpc.Argument.State}");
 
             TableKey tkey = new TableKey(Id, key);
             Lockey lockey = Locks.Instance.Get(tkey);
@@ -157,9 +157,7 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateShare;
-            System.Threading.Tasks.TaskCompletionSource<int> source = new System.Threading.Tasks.TaskCompletionSource<int>();
-            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r);  rpc.SendResult(); source.SetResult(1);  });
-            source.Task.Wait();
+            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r);  rpc.SendResult(); });
             //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
@@ -169,7 +167,7 @@ namespace Zeze.Transaction
             rpc.Result = rpc.Argument;
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
-            logger.Debug($"Reduce NewState={rpc.Argument.State}");
+            //logger.Debug($"Reduce NewState={rpc.Argument.State}");
 
             TableKey tkey = new TableKey(Id, key);
             Lockey lockey = Locks.Instance.Get(tkey);
@@ -214,9 +212,7 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateInvalid;
-            System.Threading.Tasks.TaskCompletionSource<int> source = new System.Threading.Tasks.TaskCompletionSource<int>();
-            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r); rpc.SendResult(); source.SetResult(1); });
-            source.Task.Wait();
+            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r); rpc.SendResult(); });
             //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
