@@ -14,7 +14,7 @@ namespace UnitTest.Zeze.Trans
         public void Test1()
         {
             string url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
-            DatabaseMySql sqlserver = new DatabaseMySql(null, url);
+            DatabaseMySql sqlserver = new DatabaseMySql(url);
             Database.Table table = sqlserver.OpenTable("test_1");
             sqlserver.Flush(null, () =>
             {

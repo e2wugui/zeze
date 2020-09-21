@@ -36,29 +36,29 @@ namespace Zeze
         }
         public Dictionary<string, DatabaseConf> DatabaseConfMap { get; } = new Dictionary<string, DatabaseConf>();
 
-        private Transaction.Database CreateDatabase(Zeze.Application zeze, DbType dbType, string url)
+        private Transaction.Database CreateDatabase(DbType dbType, string url)
         {
             switch (dbType)
             {
                 case DbType.Memory:
-                    return new Transaction.DatabaseMemory(zeze, url);
+                    return new Transaction.DatabaseMemory(url);
                 case DbType.MySql:
-                    return new Transaction.DatabaseMySql(zeze, url);
+                    return new Transaction.DatabaseMySql(url);
                 case DbType.SqlServer:
-                    return new Transaction.DatabaseSqlServer(zeze, url);
+                    return new Transaction.DatabaseSqlServer(url);
                 default:
                     throw new Exception("unknown database type.");
             }
         }
 
-        public void CreateDatabase(Zeze.Application zeze, Dictionary<string, Transaction.Database> map)
+        public void CreateDatabase(Dictionary<string, Transaction.Database> map)
         {
             // add default database
-            map.Add("", CreateDatabase(zeze, DatabaseType, DatabaseUrl));
+            map.Add("", CreateDatabase(DatabaseType, DatabaseUrl));
             // add other database
             foreach (var db in DatabaseConfMap.Values)
             {
-                map.Add(db.Name, CreateDatabase(zeze, db.DatabaseType, db.DatabaseUrl));
+                map.Add(db.Name, CreateDatabase(db.DatabaseType, db.DatabaseUrl));
             }
         }
 

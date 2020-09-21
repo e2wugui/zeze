@@ -21,11 +21,9 @@ namespace Zeze.Transaction
         private Dictionary<string, Zeze.Transaction.Table> tables = new Dictionary<string, Zeze.Transaction.Table>();
         internal List<Storage> storages = new List<Storage>();
         public string DatabaseUrl { get; }
-        public Zeze.Application Zeze { get; }
 
-        public Database(Zeze.Application zeze, string url)
+        public Database(string url)
         {
-            this.Zeze = zeze;
             this.DatabaseUrl = url;
         }
 
@@ -93,26 +91,17 @@ namespace Zeze.Transaction
             //logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
         }
 
-        internal Task Flush(Checkpoint sync)
+        internal void Flush(Checkpoint sync)
         {
-            // flush 必须得到执行，不能使用Task,防止饥饿。
-            TaskCompletionSource<bool> future = new TaskCompletionSource<bool>();
-
-            Zeze.InternalThreadPool.QueueUserWorkItem(() =>
+            Flush(sync, () =>
             {
-                Flush(sync, () =>
+                int countFlush = 0;
+                foreach (Storage storage in storages)
                 {
-                    int countFlush = 0;
-                    foreach (Storage storage in storages)
-                    {
-                        countFlush += storage.Flush();
-                    }
-                    //logger.Info("Checkpoint Flush count={0}", countFlush);
+                    countFlush += storage.Flush();
                 }
-                );
-                future.SetResult(true);
+                //logger.Info("Checkpoint Flush count={0}", countFlush);
             });
-            return future.Task;
         }
 
         internal void Cleanup()
@@ -150,7 +139,7 @@ namespace Zeze.Transaction
         internal MySqlConnection CheckpointSqlConnection { get; private set; }
         internal MySqlTransaction Transaction { get; private set; }
 
-        public DatabaseMySql(Zeze.Application zeze, string url) : base(zeze, url)
+        public DatabaseMySql(string url) : base(url)
         {
         }
 
@@ -291,7 +280,7 @@ namespace Zeze.Transaction
         internal SqlConnection CheckpointSqlConnection { get; private set; }
         internal SqlTransaction Transaction { get; private set; }
 
-        public DatabaseSqlServer(Zeze.Application zeze, string url) : base(zeze, url)
+        public DatabaseSqlServer(string url) : base(url)
         {
         }
 
@@ -435,7 +424,7 @@ namespace Zeze.Transaction
     /// </summary>
     public class DatabaseMemory : Database
     {
-        public DatabaseMemory(Zeze.Application zeze, string url) : base(zeze, url)
+        public DatabaseMemory(string url) : base(url)
         {
 
         }
