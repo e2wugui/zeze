@@ -14,7 +14,7 @@ namespace UnitTest.Zeze.Trans
         public void Test1()
         {
             string url = "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true";
-            DatabaseSqlServer sqlserver = new DatabaseSqlServer(url);
+            DatabaseSqlServer sqlserver = new DatabaseSqlServer(null, url);
             Database.Table table = sqlserver.OpenTable("test1");
             sqlserver.Flush(null, () =>
             {

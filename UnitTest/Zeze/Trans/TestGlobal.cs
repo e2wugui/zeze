@@ -37,13 +37,13 @@ namespace UnitTest.Zeze.Trans
                 Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(() =>
                 {
                     int last1 = app1.demo_Module1_Module1.Table1.Get(6785).Int1;
-                    Assert.AreEqual(last1, countall);
+                    Assert.AreEqual(countall, last1);
                     return Procedure.Success;
                 }).Call());
                 Assert.IsTrue(Procedure.Success == app2.Zeze.NewProcedure(() =>
                 {
                     int last2 = app2.demo_Module1_Module1.Table1.Get(6785).Int1;
-                    Assert.AreEqual(last2, countall);
+                    Assert.AreEqual(countall, last2);
                     return Procedure.Success;
                 }).Call());
             }

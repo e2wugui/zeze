@@ -125,7 +125,7 @@ namespace Zeze.Transaction
                                 if (savepoints.Count != 0)
                                 {
                                     // 这个错误不应该重做
-                                    logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 1.", procedure);
+                                    logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 0.", procedure);
                                     return Procedure.ErrorSavepoint;
                                 }
 #if DEBUG

@@ -108,6 +108,14 @@ namespace Zeze.Transaction
             agent.Connected.SetException(e);
         }
 
+        public override void DispatchProtocol(Protocol p)
+        {
+            if (Handles.TryGetValue(p.TypeId, out var handle))
+            {
+                agent.Zeze.InternalThreadPool.QueueUserWorkItem(() => handle(p));
+            }
+        }
+
         public override void OnSocketClose(AsyncSocket so, Exception e)
         {
             base.OnSocketClose(so, e);

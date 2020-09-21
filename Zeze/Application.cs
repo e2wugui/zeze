@@ -16,6 +16,9 @@ namespace Zeze
         internal TableSys TableSys { get; private set; }
         internal GlobalAgent GlobalAgent { get; }
 
+        // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
+        internal Util.SimpleThreadPool InternalThreadPool = new Util.SimpleThreadPool(10);
+
         private Checkpoint _checkpoint;
         public Checkpoint Checkpoint
         {
@@ -41,7 +44,7 @@ namespace Zeze
             Config = config;
             if (null == Config)
                 Config = Config.Load();
-            Config.CreateDatabase(Databases);
+            Config.CreateDatabase(this, Databases);
             GlobalAgent = new GlobalAgent(this);
             _checkpoint = new Checkpoint(Databases.Values);
         }

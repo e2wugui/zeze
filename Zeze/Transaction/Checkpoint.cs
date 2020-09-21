@@ -165,7 +165,7 @@ namespace Zeze.Transaction
                 Task[] flushTasks = new Task[databases.Count];
                 foreach (var db in databases)
                 {
-                    flushTasks[i++] = Task.Run(() => db.Flush(this));
+                    flushTasks[i++] = db.Flush(this);
                 }
                 Task.WaitAll(flushTasks);
                 readys = null;
