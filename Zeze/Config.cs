@@ -19,6 +19,7 @@ namespace Zeze
         public DbType DatabaseType { get; set; } = DbType.Memory;
         public string DatabaseUrl { get; set; } = "";
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
+        public int InternalThreadPoolWorkerCount { get; set; } = 10;
         public int AutoKeyLocalId { get; } = 0;
         public int AutoKeyLocalStep { get; } = 4096;
         public string GlobalCacheManagerHostNameOrAddress { get; }
@@ -96,8 +97,13 @@ namespace Zeze
             AutoKeyLocalId = int.Parse(self.GetAttribute("AutoKeyLocalId"));
             AutoKeyLocalStep = int.Parse(self.GetAttribute("AutoKeyLocalStep"));
             GlobalCacheManagerHostNameOrAddress = self.GetAttribute("GlobalCacheManagerHostNameOrAddress");
+
             string attr = self.GetAttribute("GlobalCacheManagerPort");
             GlobalCacheManagerPort = attr.Length > 0 ? int.Parse(attr) : 0;
+
+            attr = self.GetAttribute("InternalThreadPoolWorkerCount");
+            if (attr.Length > 0)
+                InternalThreadPoolWorkerCount = int.Parse(attr);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
