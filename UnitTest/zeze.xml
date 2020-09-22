@@ -2,11 +2,8 @@
 
 <zeze
 	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5555"
-	CheckpointPeriod="0"
-	AutoKeyLocalId="0" AutoKeyLocalStep="4096"
+	CheckpointPeriod="0" AutoKeyLocalId="0" AutoKeyLocalStep="4096"
 	>
-	<TableConf CacheCapaicty="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
-	<TableConf Name="demo_Module1_Table1" CacheCapaicty="20000"/>
 
 	<!--
 	数据库配置。默认数据库的名字为空。
@@ -14,4 +11,9 @@
 	<DatabaseConf Name="" DatabaseType="SqlServer" DatabaseUrl="Server=(localdb)\MSSQLLocalDB;Integrated Security=true"/>
 	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="server=localhost;database=devtest;uid=dev;pwd=devtest12345"/>
 	-->
+	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="server=localhost;database=devtest;uid=dev;pwd=devtest12345"/>
+
+	<TableConf CacheCapaicty="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
+	<TableConf Name="demo_Module1_Table1" CacheCapaicty="20000"/>
+
 </zeze>
