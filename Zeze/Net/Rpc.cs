@@ -50,7 +50,7 @@ namespace Zeze.Net
 
                 if (null != context.Future)
                 {
-                    context.Future.SetException(new Exception("Rpc.Timeout " + context));
+                    context.Future.SetException(new RpcTimeoutException());
                     return;
                 }
 

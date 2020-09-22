@@ -17,12 +17,16 @@ namespace Zeze.Services
         public const int StateShare = 1;
         public const int StateModify = 2;
         public const int StateRemoved = -1; // 从容器(Cache或Global)中删除后设置的状态，最后一个状态。
+        public const int StateReduceRpcTimeout = -2; // 用来表示 reduce 超时失败。不是状态。
+        public const int StateReduceException = -3; // 用来表示 reduce 异常失败。不是状态。
 
         public const int AcquireShareDeadLockFound = 1;
         public const int AcquireShareAlreadyIsModify = 2;
         public const int AcquireModifyDeadLockFound = 3;
         public const int AcquireErrorState = 4;
         public const int AcquireModifyAlreadyIsModify = 5;
+        public const int AcquireShareFaild = 6;
+        public const int AcquireModifyFaild = 7;
 
         public const int ReduceErrorState = 11;
         public const int ReduceShareAlreadyIsInvalid = 12;
@@ -160,10 +164,10 @@ namespace Zeze.Services
                             return 0;
                         }
 
+                        int stateReduceResult = StateReduceException;
                         Task.Run(() =>
                         {
-                            if (StateShare == cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare))
-                                cs.Share.Add(cs.Modify); // 降级成功，有可能降到 Invalid，此时就不需要加入 Share 了。
+                            stateReduceResult = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare);
 
                             lock (cs)
                             {
@@ -172,6 +176,23 @@ namespace Zeze.Services
                         });
                         logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
+
+                        switch (stateReduceResult)
+                        {
+                            case StateShare:
+                                cs.Share.Add(cs.Modify); // 降级成功，有可能降到 Invalid，此时就不需要加入 Share 了。
+                                break;
+
+                            case StateReduceRpcTimeout:
+                            case StateReduceException:
+                                cs.AcquireStatePending = StateInvalid;
+                                Monitor.Pulse(cs);
+
+                                logger.Error("XXX 8 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                                rpc.Result.State = StateInvalid;
+                                rpc.SendResultCode(AcquireShareFaild);
+                                return 0;
+                        }
 
                         cs.Modify = null;
                         cs.Share.Add(sender);
@@ -242,9 +263,10 @@ namespace Zeze.Services
                             return 0;
                         }
 
+                        int stateReduceResult = StateReduceException;
                         Task.Run(() =>
                         {
-                            cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
+                            stateReduceResult = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
                             lock (cs)
                             {
                                 Monitor.PulseAll(cs);
@@ -253,38 +275,68 @@ namespace Zeze.Services
                         logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
 
-                        cs.Modify = sender;
+                        switch (stateReduceResult)
+                        {
+                            case StateInvalid:
+                                break; // reduce success
 
+                            default:
+                                //case StateReduceRpcTimeout:
+                                //case StateReduceException:
+                                cs.AcquireStatePending = StateInvalid;
+                                Monitor.Pulse(cs);
+
+                                logger.Error("XXX 9 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                                rpc.Result.State = StateInvalid;
+                                rpc.SendResultCode(AcquireModifyFaild);
+                                return 0;
+                        }
+
+                        cs.Modify = sender;
                         cs.AcquireStatePending = StateInvalid;
                         Monitor.Pulse(cs);
+
                         logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         rpc.SendResult();
                         return 0;
                     }
 
-                    List<Reduce> reduces = new List<Reduce>();
+                    List<KeyValuePair<CacheHolder, Reduce >> reducePending = new List<KeyValuePair<CacheHolder, Reduce>>();
+                    HashSet<CacheHolder> reduceSuccessed = new HashSet<CacheHolder>();
                     // 先把降级请求全部发送给出去。
                     foreach (CacheHolder c in cs.Share)
                     {
                         if (c == sender)
+                        {
+                            reduceSuccessed.Add(sender);
                             continue;
+                        }
                         Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid);
                         if (null != reduce)
-                            reduces.Add(reduce);
+                        {
+                            reducePending.Add(KeyValuePair.Create(c, reduce));
+                        }
+                        else
+                        {
+                            // 当作 reduce 成功，参见 ReduceWaitLater。
+                            reduceSuccessed.Add(c);
+                        }
                     }
+
                     Task.Run(() =>
                     {
                         // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
-                        foreach (Reduce reduce in reduces)
+                        foreach (var reduce in reducePending)
                         {
                             try
                             {
-                                reduce.Future.Task.Wait();
+                                reduce.Value.Future.Task.Wait();
+                                reduceSuccessed.Add(reduce.Key);
                             }
                             catch (Exception ex)
                             {
                                 // 等待失败看作降级成功，对方可能已经不存在。
-                                logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Argument);
+                                logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Value.Argument);
                             }
                         }
                         lock (cs)
@@ -295,12 +347,26 @@ namespace Zeze.Services
                     logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     Monitor.Wait(cs);
 
-                    cs.Share.Clear();
-                    cs.Modify = sender;
-                    cs.AcquireStatePending = StateInvalid;
-                    Monitor.Pulse(cs); // Pending 结束，唤醒一个进来就可以了。
-                    logger.Debug("8 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                    rpc.SendResult();
+                    if (cs.Share.IsSubsetOf(reduceSuccessed))
+                    {
+                        cs.Share.Clear();
+                        cs.Modify = sender;
+                        cs.AcquireStatePending = StateInvalid;
+                        Monitor.Pulse(cs); // Pending 结束，唤醒一个进来就可以了。
+
+                        logger.Debug("8 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                        rpc.SendResult();
+                    }
+                    else
+                    {
+                        cs.AcquireStatePending = StateInvalid;
+                        Monitor.Pulse(cs); // Pending 结束，唤醒一个进来就可以了。
+
+                        logger.Error("XXX 10 {0} {1} {2}", sender, rpc.Argument.State, cs);
+
+                        rpc.Result.State = StateInvalid;
+                        rpc.SendResult();
+                    }
                     return 0;
                 }
             }
@@ -346,14 +412,27 @@ namespace Zeze.Services
                     reduce.Future.Task.Wait();
                     return reduce.Result.State;
                 }
+                return state; // 网络错误，认为reduce成功。
+            }
+            catch (RpcTimeoutException timeoutex)
+            {
+                // 等待超时，应该报告错误。
+                logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1}", state, SessionId);
+                return GlobalCacheManager.StateReduceRpcTimeout;
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Reduce Error {0} target={1}", state, SessionId);
+                logger.Error(ex, "Reduce Exception {0} target={1}", state, SessionId);
+                return GlobalCacheManager.StateReduceException;
             }
-            return GlobalCacheManager.StateInvalid; // 访问失败，统统返回Invalid
         }
 
+        /// <summary>
+        /// 返回null表示发生了网络错误，或者应用服务器已经关闭。此时看作reduce成功。
+        /// </summary>
+        /// <param name="gkey"></param>
+        /// <param name="state"></param>
+        /// <returns></returns>
         public Reduce ReduceWaitLater(GlobalTableKey gkey, int state)
         {
             try
@@ -369,7 +448,8 @@ namespace Zeze.Services
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "ReduceWaitLater Error {0}", gkey);
+                // 这里的异常只应该是网络发送异常。也认为成功。
+                logger.Error(ex, "ReduceWaitLater Exception {0}", gkey);
             }
             return null;
         }

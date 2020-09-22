@@ -11,12 +11,18 @@ namespace GlobalCacheManager
         {
             string ip = null;
             int port = 5555;
+
+            int workerThreads, completionPortThreads;
+            ThreadPool.GetMinThreads(out workerThreads, out completionPortThreads);
+
             for (int i = 0; i < args.Length; ++i)
             {
                 switch (args[i])
                 {
                     case "-ip": ip = args[++i]; break;
                     case "-port": port = int.Parse(args[++i]); break;
+                    case "-threads": ThreadPool.SetMinThreads(int.Parse(args[++i]), completionPortThreads); break;
+
                 }
             }
             System.Net.IPAddress address = ip != null ? System.Net.IPAddress.Parse(ip) : System.Net.IPAddress.Any;
