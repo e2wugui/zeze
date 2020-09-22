@@ -303,11 +303,13 @@ namespace Zeze.Services
 
                     List<KeyValuePair<CacheHolder, Reduce >> reducePending = new List<KeyValuePair<CacheHolder, Reduce>>();
                     HashSet<CacheHolder> reduceSuccessed = new HashSet<CacheHolder>();
+                    bool senderIsShare = false;
                     // 先把降级请求全部发送给出去。
                     foreach (CacheHolder c in cs.Share)
                     {
                         if (c == sender)
                         {
+                            senderIsShare = true;
                             reduceSuccessed.Add(sender);
                             continue;
                         }
@@ -347,9 +349,14 @@ namespace Zeze.Services
                     logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     Monitor.Wait(cs);
 
-                    if (cs.Share.IsSubsetOf(reduceSuccessed))
+                    // 移除成功的。
+                    foreach (CacheHolder successed in reduceSuccessed)
                     {
-                        cs.Share.Clear();
+                        cs.Share.Remove(successed);
+                    }
+
+                    if (cs.Share.Count == 0)
+                    {
                         cs.Modify = sender;
                         cs.AcquireStatePending = StateInvalid;
                         Monitor.Pulse(cs); // Pending 结束，唤醒一个进来就可以了。
@@ -359,6 +366,9 @@ namespace Zeze.Services
                     }
                     else
                     {
+                        if (senderIsShare)
+                            cs.Share.Add(sender); // 失败了，要把原来是share的sender恢复。先这样吧。
+
                         cs.AcquireStatePending = StateInvalid;
                         Monitor.Pulse(cs); // Pending 结束，唤醒一个进来就可以了。
 
