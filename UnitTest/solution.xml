@@ -44,7 +44,7 @@
 		<table name="Table2" key="Key" value="Value" memory="false"/>
 		<table name="Table3" key="long" value="Value" memory="false"/>
 
-		<table name="Table4" key="long" value="Value" memory="false" gen="client" autokey="true"/>
+		<table name="Table4" key="long" value="Value" memory="true" gen="client" autokey="true"/>
 
 		<module name="Module11" id="3">
 		</module>
