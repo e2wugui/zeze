@@ -11,8 +11,6 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public Zeze.Application Zeze { get; }
-
         private HashSet<Database> databases = new HashSet<Database>();
 
         internal ReaderWriterLockSlim FlushReadWriteLock { get; } = new ReaderWriterLockSlim();
@@ -20,14 +18,12 @@ namespace Zeze.Transaction
         public int Period { get; private set; }
         private Task RunningTask;
 
-        public Checkpoint(Zeze.Application zeze)
+        public Checkpoint()
         {
-            this.Zeze = zeze;
         }
 
-        public Checkpoint(Zeze.Application zeze, IEnumerable<Database> dbs)
+        public Checkpoint(IEnumerable<Database> dbs)
         {
-            this.Zeze = zeze;
             Add(dbs);
         }
 
@@ -169,17 +165,18 @@ namespace Zeze.Transaction
                     i = 0;
                     Task[] flushTasks = new Task[databases.Count];
                     // 必须放在线程中执行，因为要支持多个数据库一起提交。db.Flush内部需要回调this.WaitAll。
-                    // flush 必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-                    // 这里先使用和GlobalAgent相同的线程池，保险起见的话最好使用独立的线程，先这样吧。
+                    // flush 必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。先创建线程执行吧，看看怎么把线程缓存下来。
                     foreach (var db in databases)
                     {
                         TaskCompletionSource<bool> future = new TaskCompletionSource<bool>();
-                        Zeze.InternalThreadPool.QueueUserWorkItem(() =>
+                        Thread flushThread = new Thread(() =>
                         {
                             db.Flush(this);
                             future.SetResult(true);
                         });
+                        flushThread.IsBackground = true;
                         flushTasks[i++] = future.Task;
+                        flushThread.Start();
                     }
                     Task.WaitAll(flushTasks);
                 }

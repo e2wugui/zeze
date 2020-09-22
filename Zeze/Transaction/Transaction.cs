@@ -205,7 +205,6 @@ namespace Zeze.Transaction
                         e.Value.OriginRecord.Commit(e.Value);
                     }
                 }
-
                 //accessedRecords.Clear();
             }
             catch (Exception e)

@@ -16,8 +16,6 @@ namespace Zeze
             SqlServer,
         }
 
-        public DbType DatabaseType { get; set; } = DbType.Memory;
-        public string DatabaseUrl { get; set; } = "";
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
         public int InternalThreadPoolWorkerCount { get; set; } = 10;
         public int AutoKeyLocalId { get; } = 0;
@@ -53,8 +51,6 @@ namespace Zeze
 
         public void CreateDatabase(Dictionary<string, Transaction.Database> map)
         {
-            // add default database
-            map.Add("", CreateDatabase(DatabaseType, DatabaseUrl));
             // add other database
             foreach (var db in DatabaseConfMap.Values)
             {
@@ -84,15 +80,6 @@ namespace Zeze
             if (false == self.Name.Equals("zeze"))
                 throw new Exception("is it a zeze config.");
 
-            switch (self.GetAttribute("DatabaseType"))
-            {
-                case "Memory": DatabaseType = DbType.Memory; break;
-                case "MySql": DatabaseType = DbType.MySql; break;
-                case "SqlServer": DatabaseType = DbType.SqlServer; break;
-                default: throw new Exception("unknown database type.");
-            }
-
-            DatabaseUrl = self.GetAttribute("DatabaseUrl");
             CheckpointPeriod = int.Parse(self.GetAttribute("CheckpointPeriod"));
             AutoKeyLocalId = int.Parse(self.GetAttribute("AutoKeyLocalId"));
             AutoKeyLocalStep = int.Parse(self.GetAttribute("AutoKeyLocalStep"));
@@ -119,13 +106,19 @@ namespace Zeze
                     default: throw new Exception("unknown node name: " + e.Name);
                 }
             }
+            if (DatabaseConfMap.Count == 0) // add default databaseconf.
+                DatabaseConfMap.Add("", new DatabaseConf());
         }
 
         public class DatabaseConf
-        { 
-            public string Name { get; set; }
-            public DbType DatabaseType { get; set; }
-            public string DatabaseUrl { get; set; }
+        {
+            public string Name { get; set; } = "";
+            public DbType DatabaseType { get; set; } = DbType.Memory;
+            public string DatabaseUrl { get; set; } = "";
+
+            public DatabaseConf()
+            { 
+            }
 
             public DatabaseConf(Config conf, XmlElement self)
             {

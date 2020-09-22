@@ -47,7 +47,7 @@ namespace Zeze
             InternalThreadPool = new Util.SimpleThreadPool(Config.InternalThreadPoolWorkerCount);
             Config.CreateDatabase(Databases);
             GlobalAgent = new GlobalAgent(this);
-            _checkpoint = new Checkpoint(this, Databases.Values);
+            _checkpoint = new Checkpoint(Databases.Values);
         }
 
         public void AddTable(string dbName, Transaction.Table table)
