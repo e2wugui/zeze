@@ -37,7 +37,7 @@ namespace UnitTest.Zeze.Trans
                 }
                 else
                 {
-                    logger.Debug("xxx " + oldInt + " " + appId);
+                    //logger.Debug("xxx " + oldInt + " " + appId);
                 }
 
                 lastInt = oldInt;
@@ -70,15 +70,15 @@ namespace UnitTest.Zeze.Trans
                 Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(() =>
                 {
                     int last1 = app1.demo_Module1_Module1.Table1.Get(6785).Int1;
-                    //Assert.AreEqual(countall, last1);
-                    Console.WriteLine("app1 " + last1);
+                    Assert.AreEqual(countall, last1);
+                    //Console.WriteLine("app1 " + last1);
                     return Procedure.Success;
                 }).Call());
                 Assert.IsTrue(Procedure.Success == app2.Zeze.NewProcedure(() =>
                 {
                     int last2 = app2.demo_Module1_Module1.Table1.Get(6785).Int1;
-                    //Assert.AreEqual(countall, last2);
-                    Console.WriteLine("app1 " + last2);
+                    Assert.AreEqual(countall, last2);
+                    //Console.WriteLine("app1 " + last2);
                     return Procedure.Success;
                 }).Call());
             }

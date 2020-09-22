@@ -81,25 +81,26 @@ namespace Zeze.Transaction
                         }
 
                         r.Timestamp = Record.NextTimestamp;
-                    }
-                    if (null != Storage)
-                    {
-                        r.Value = Storage.Find(key, this); // r.Value still maybe null
-                        if (null == r.Value && null != OldTable)
+
+                        if (null != Storage)
                         {
-                            ByteBuffer old = OldTable.Find(EncodeKey(key));
-                            if (null != old)
+                            r.Value = Storage.Find(key, this); // r.Value still maybe null
+                            if (null == r.Value && null != OldTable)
                             {
-                                r.Value = DecodeValue(old);
-                                Storage.OnRecordChanged(r);
+                                ByteBuffer old = OldTable.Find(EncodeKey(key));
+                                if (null != old)
+                                {
+                                    r.Value = DecodeValue(old);
+                                    Storage.OnRecordChanged(r);
+                                }
+                            }
+                            if (null != r.Value)
+                            {
+                                r.Value.InitTableKey(tkey);
                             }
                         }
-                        if (null != r.Value)
-                        {
-                            r.Value.InitTableKey(tkey);
-                        }
+                        logger.Debug($"FindInCacheOrStorage {r}");
                     }
-                    logger.Debug($"FindInCacheOrStorage {r}");
                     return r;
                 }
             }
