@@ -11,7 +11,7 @@
 	<DatabaseConf Name="" DatabaseType="SqlServer" DatabaseUrl="Server=(localdb)\MSSQLLocalDB;Integrated Security=true"/>
 	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="server=localhost;database=devtest;uid=dev;pwd=devtest12345"/>
 	-->
-	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="server=localhost;database=devtest;uid=dev;pwd=devtest12345"/>
+	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 
 	<TableConf CacheCapaicty="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
 	<TableConf Name="demo_Module1_Table1" CacheCapaicty="20000"/>

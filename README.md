@@ -22,6 +22,14 @@ GlobalCacheManager 是一个控制台程序。编译好运行即可。
 
 #### 特殊模式
 
+0. AutoKey：自增长key，仅支持 long 类型。
+   游戏经常需要分区，分成不同的服务器，然后又需要把人数降低以后的服务器合并。如果对表格的key没有一定规划，合并的时候就很复杂。
+   提供一个自增长key，一开始就对规划范围内的服务器分配唯一的key，合并表格就不会冲突。
+   配置参考：UnitTest\zeze.xml
+   属性 AutoKeyLocalId="0" 本地服务器的Id，所有服务器内唯一，用过的也不能再次使用。
+   属性 AutoKeyLocalStep="4096" 自增长key每次增加步长，也是可以创建的服务器最大数量。
+   规划好上面两个参数，自增长key就会提供区内所有的id唯一。
+
 1. 多数据库支持
    提供多个 DatabaseConf 配置。多个数据库需要用不同 Name 区分。
    然后在 TableConf 中使用属性 DatabaseName 把表格分配到某个数据库中。
