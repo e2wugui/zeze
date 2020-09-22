@@ -17,6 +17,7 @@ namespace Zeze.Transaction
         public bool IsRunning { get; private set; }
         public int Period { get; private set; }
         private Task RunningTask;
+        private Util.SimpleThreadPool flushThreads;
 
         public Checkpoint()
         {
@@ -55,6 +56,7 @@ namespace Zeze.Transaction
 
                 IsRunning = true;
                 Period = period;
+                flushThreads = new Util.SimpleThreadPool(databases.Count);
                 RunningTask = Task.Run(Run);
             }
         }
@@ -164,19 +166,17 @@ namespace Zeze.Transaction
                 {
                     i = 0;
                     Task[] flushTasks = new Task[databases.Count];
-                    // 必须放在线程中执行，因为要支持多个数据库一起提交。db.Flush内部需要回调this.WaitAll。
-                    // flush 必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。先创建线程执行吧，看看怎么把线程缓存下来。
+                    // 多数据库时，必须把flush放在线程中执行，db.Flush内部需要回调this.WaitAll。
+                    // flush 必须都能得到执行，flushThreads的数量必须足够。
                     foreach (var db in databases)
                     {
                         TaskCompletionSource<bool> future = new TaskCompletionSource<bool>();
-                        Thread flushThread = new Thread(() =>
+                        flushThreads.QueueUserWorkItem(() =>
                         {
                             db.Flush(this);
                             future.SetResult(true);
                         });
-                        flushThread.IsBackground = true;
                         flushTasks[i++] = future.Task;
-                        flushThread.Start();
                     }
                     Task.WaitAll(flushTasks);
                 }
