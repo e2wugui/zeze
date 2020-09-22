@@ -39,7 +39,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine("    {");
             foreach (Table table in module.Tables.Values)
             {
-                sw.WriteLine("        private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
+                if (project.GenTables.Contains(table.Gen))
+                    sw.WriteLine("        private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
             }
             sw.WriteLine("");
             sw.WriteLine("        public " + module.Name + "(" + module.Solution.Name + ".App app)");
@@ -73,7 +74,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            // register table");
             foreach (Table table in module.Tables.Values)
             {
-                sw.WriteLine($"            app.Zeze.AddTable(app.Zeze.Config.GetTableConf(_{table.Name}.Name).DatabaseName, _{table.Name});");
+                if (project.GenTables.Contains(table.Gen))
+                    sw.WriteLine($"            app.Zeze.AddTable(app.Zeze.Config.GetTableConf(_{table.Name}.Name).DatabaseName, _{table.Name});");
             }
             sw.WriteLine("        }");
             sw.WriteLine("    }");

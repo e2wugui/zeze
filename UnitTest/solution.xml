@@ -40,10 +40,11 @@
 		<rpc name="Rpc1" id="2" argument="Value" result="Value" handle="server,twoway"/>
 		<protocol name="Protocol3" id="3" argument="demo.Module2.Value" handle="server,client"/>
 
-		<!-- 配置移到其他地方 cache="1024" persistence="MEMORY" -->
 		<table name="Table1" key="long" value="Value" memory="false" autokey="true"/>
 		<table name="Table2" key="Key" value="Value" memory="false"/>
 		<table name="Table3" key="long" value="Value" memory="false"/>
+
+		<table name="Table4" key="long" value="Value" memory="false" gen="client" autokey="true"/>
 
 		<module name="Module11" id="3">
 		</module>
@@ -55,7 +56,12 @@
 		</bean>
 	</module>
 
-	<project name="gsd" platform="cs" targets="table">
+	<!--
+	name 项目名字
+	gendir 代码生成输出目录，默认是当前目录
+	GenTables 选择生成哪些表格（Table），如果为空，那就生成那些没有配置gen属性的table，可以用','分开指定多个名字
+	-->
+	<project name="gsd" gendir="." platform="cs" GenTables="">
 		<!--
 		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
 		-->
@@ -66,12 +72,11 @@
 		</service>
 	</project>
 
-	<!--
-	<project name="client" platform="cs" generates="">
-		<module ref="Module1"/>
-		<manager name="Client" handle="client" class="demo.ClientManager">
-			<module ref="Module2"/>
-		</manager>
+	<project name="client" gendir=".." platform="cs" GenTables="client">
+		<module ref="Module2"/>
+		<service name="Client" handle="client">
+			<module ref="Module1"/>
+		</service>
 	</project>
-	-->
+
 </solution>

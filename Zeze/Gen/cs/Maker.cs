@@ -16,7 +16,8 @@ namespace Zeze.Gen.cs
 
         public void Make()
         {
-            string projectDir = Project.Name;
+            string projectBasedir = Project.Gendir;
+            string projectDir = System.IO.Path.Combine(projectBasedir, Project.Name);
             string genDir = System.IO.Path.Combine(projectDir, "Gen");
             string srcDir = projectDir;
 
@@ -48,7 +49,8 @@ namespace Zeze.Gen.cs
             }
             foreach (Table table in Project.AllTables)
             {
-                new TableFormatter(table, genDir).Make();
+                if (Project.GenTables.Contains(table.Gen))
+                    new TableFormatter(table, genDir).Make();
             }
 
             new App(Project, genDir, srcDir).Make();

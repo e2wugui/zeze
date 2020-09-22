@@ -11,6 +11,7 @@ namespace Zeze.Gen
         public string Name { get; private set; }
         public string Key { get; }
         public string Value { get; }
+        public string Gen { get; }
         public bool IsMemory { get; }
         public bool IsAutoKey { get; }
 
@@ -26,6 +27,7 @@ namespace Zeze.Gen
 
             Key = self.GetAttribute("key");
             Value = self.GetAttribute("value");
+            Gen = self.GetAttribute("gen");
             string attr = self.GetAttribute("memory");
             IsMemory = attr.Length > 0 ? bool.Parse(attr) : false;
             attr = self.GetAttribute("autokey");

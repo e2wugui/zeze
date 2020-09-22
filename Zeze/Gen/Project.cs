@@ -11,7 +11,8 @@ namespace Zeze.Gen
         public string Name { get; private set; }
         public Solution Solution { get; private set; }
         public string Platform { get; private set; }
-        public string Generates { get; private set; }
+        public string Gendir { get; private set; }
+        public HashSet<String> GenTables { get; } = new HashSet<string>();
         public SortedDictionary<string, Service> Services { get; private set; } = new SortedDictionary<string, Service>();
 
         // setup when compile
@@ -44,7 +45,12 @@ namespace Zeze.Gen
 
             Name = self.GetAttribute("name").Trim();
             Platform = self.GetAttribute("platform").Trim();
-            Generates = self.GetAttribute("generates").Trim();
+            Gendir = self.GetAttribute("gendir").Trim();
+            if (Gendir.Length == 0)
+                Gendir = ".";
+
+            foreach (string target in self.GetAttribute("GenTables").Split(','))
+                GenTables.Add(target);
 
             Program.AddNamedObject(FullName, this);
 
@@ -69,6 +75,8 @@ namespace Zeze.Gen
                     case "service":
                         new Service(this, e);
                         break;
+                    default:
+                        throw new Exception("unkown element name: " + e.Name);
                 }
             }
         }
