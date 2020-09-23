@@ -66,6 +66,7 @@ GlobalCacheManager 是一个控制台程序。当多个Application共享数据库时，用来管理Cach
       配置参考：UnitTest\zeze.xml
    *) 注意，不支持多个使用同一个 GlobalCacheManager 同步的Cache的 Zeze.Application 之间的事务。参见上面的第3点。
       因为 Cache 同步需要同步记录的持有状态，如果此时 Application 使用同一个 Checkpoint，记录同步就需要等待自己，会死锁。
+   *) 注意，需要确保Cache同步的所有App都访问相同的Database。
 
 #### 历史
 
