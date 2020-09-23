@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Util;
+using System.Threading.Tasks;
 
 namespace UnitTest.Zeze.Net
 {
@@ -16,6 +17,8 @@ namespace UnitTest.Zeze.Net
     {
         public class ServiceClient : Service
         {
+            internal TaskCompletionSource<bool> Future = new TaskCompletionSource<bool>();
+
             public override void OnSocketConnected(AsyncSocket so)
             {
                 base.OnSocketConnected(so);
@@ -29,6 +32,7 @@ namespace UnitTest.Zeze.Net
                 Console.WriteLine("input size=" + input.Size);
                 Console.WriteLine(Encoding.UTF8.GetString(input.Bytes, input.ReadIndex, input.Size));
                 input.ReadIndex = input.WriteIndex;
+                Future.SetResult(true);
             }
         }
 
@@ -37,7 +41,7 @@ namespace UnitTest.Zeze.Net
         {
             ServiceClient client = new ServiceClient();
             using AsyncSocket so = client.NewClientSocket("www.163.com", 80);
-            Thread.Sleep(2000); // 异步的，等待结果
+            client.Future.Task.Wait();
         }
         /*
         [TestMethod]
