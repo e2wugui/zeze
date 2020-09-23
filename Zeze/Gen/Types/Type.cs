@@ -17,6 +17,7 @@ namespace Zeze.Gen.Types
 		public virtual bool IsKeyable => IsImmutable; // most for table.key, cbean.
 		public virtual bool IsNormalBean => IsBean && !IsKeyable; // 普通的bean，不是beankey
 		public virtual bool IsCollection => false;
+		public abstract bool IsNeedNegativeCheck { get; }
 		public override String ToString()
 		{
 			return Name;

@@ -32,8 +32,9 @@ namespace Zeze.Gen.Types
 
 		public override string Name => "int";
         public override bool IsImmutable => true;
+		public override bool IsNeedNegativeCheck => true;
 
-        internal TypeInt(SortedDictionary<String, Type> types)
+		internal TypeInt(SortedDictionary<String, Type> types)
 		{
 			types.Add(Name, this);
 		}

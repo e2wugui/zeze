@@ -30,6 +30,7 @@ namespace Zeze.Gen.Types
 
 		public override string Name => "byte";
 
+		public override bool IsNeedNegativeCheck => false;
 
 		internal TypeByte(SortedDictionary<String, Type> types)
 		{

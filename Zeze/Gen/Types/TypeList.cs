@@ -28,5 +28,7 @@ namespace Zeze.Gen.Types
 		}
 
 		public override String Name => "list";
+		public override bool IsNeedNegativeCheck => ValueType.IsNeedNegativeCheck;
+
 	}
 }

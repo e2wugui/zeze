@@ -30,5 +30,7 @@ namespace Zeze.Gen.Types
 		}
 
 		public override string Name => "set";
-    }
+		public override bool IsNeedNegativeCheck => ValueType.IsNeedNegativeCheck;
+
+	}
 }

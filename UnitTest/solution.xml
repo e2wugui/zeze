@@ -16,7 +16,7 @@
 		<bean name="Value">
 			<enum name="Enum1" value="4"/>
 
-			<variable id="1" name="int1" type="int"/> com aa
+			<variable id="1" name="int1" type="int" AllowNegative="true"/> com aa
 			<variable id="2" name="long2" type="long"/> com aa
 			<variable id="3" name="string3" type="string"/> com aa
 			<variable id="4" name="bool4" type="bool"/> com aa

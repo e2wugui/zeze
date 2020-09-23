@@ -71,6 +71,7 @@ namespace Zeze.Gen.cs
             Encode.Make(bean, sw, "        ");
             Decode.Make(bean, sw, "        ");
             InitChildrenTableKey.Make(bean, sw, "        ");
+            NegativeCheck.Make(bean, sw, "        ");
         }
     }
 }

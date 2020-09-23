@@ -38,5 +38,7 @@ namespace Zeze.Gen.Types
 
 		public override bool IsImmutable => true;
 		public override bool IsKeyable => false;
-    }
+		public override bool IsNeedNegativeCheck => false;
+
+	}
 }

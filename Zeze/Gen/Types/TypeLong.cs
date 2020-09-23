@@ -34,8 +34,9 @@ namespace Zeze.Gen.Types
 		public override String Name => "long";
 
         public override bool IsImmutable => true;
+		public override bool IsNeedNegativeCheck => true;
 
-        internal TypeLong(SortedDictionary<String, Type> types)
+		internal TypeLong(SortedDictionary<String, Type> types)
 		{
 			types.Add(Name, this);
 		}

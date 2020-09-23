@@ -76,8 +76,19 @@ namespace Zeze.Gen.Types
 		public override bool IsBean => true;
 		public override string Name => _name;
         private string _name;
-
-		public List<Variable> Variables { get; private set; } = new List<Variable>();
+        public override bool IsNeedNegativeCheck
+		{
+			get
+			{
+				foreach (var v in Variables)
+				{
+					if (v.VariableType.IsNeedNegativeCheck)
+						return true;
+				}
+				return false;
+			}
+		}
+        public List<Variable> Variables { get; private set; } = new List<Variable>();
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
 		public String Comment { get; private set; }
 		public String FullName => Space.Path(".", Name);

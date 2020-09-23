@@ -80,6 +80,7 @@ namespace Zeze.Gen.cs
             Equal.Make(beanKey, sw, "        ");
             HashCode.Make(beanKey, sw, "        ");
             Compare.Make(beanKey, sw, "        ");
+            NegativeCheck.Make(beanKey, sw, "        ");
             sw.WriteLine("    }");
             sw.WriteLine("}");
 

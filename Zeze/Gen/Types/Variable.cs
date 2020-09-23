@@ -19,6 +19,7 @@ namespace Zeze.Gen.Types
 		public String Initial { get; private set; }
 		public String Comment { get; private set; }
 		public String Validator { get; private set; }
+		public bool AllowNegative { get; private set; } = false;
 
 		public static void verfiyReserveVariableName(String name)
 		{
@@ -63,6 +64,9 @@ namespace Zeze.Gen.Types
 			Value = self.GetAttribute("value").Trim();
 			Initial = self.GetAttribute("default").Trim();
 			Validator = self.GetAttribute("validator").Trim();
+			string attr = self.GetAttribute("AllowNegative");
+			if (attr.Length > 0)
+				AllowNegative = bool.Parse(attr);
 
 			Comment = self.GetAttribute("comment");
 			if (Comment.Length == 0)

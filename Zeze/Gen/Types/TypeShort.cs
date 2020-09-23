@@ -31,8 +31,9 @@ namespace Zeze.Gen.Types
 
 		public override String Name => "short";
         public override bool IsImmutable => true;
+		public override bool IsNeedNegativeCheck => true;
 
-        internal TypeShort(SortedDictionary<String, Type> types)
+		internal TypeShort(SortedDictionary<String, Type> types)
 		{
 			types.Add(Name, this);
 		}

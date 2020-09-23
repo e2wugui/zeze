@@ -30,8 +30,9 @@ namespace Zeze.Gen.Types
 
 		public override String Name => "string";
         public override bool IsImmutable => true; // xxx language depends
+		public override bool IsNeedNegativeCheck => false;
 
-        internal TypeString(SortedDictionary<String, Type> types)
+		internal TypeString(SortedDictionary<String, Type> types)
 		{
 			types.Add(Name, this);
 		}
