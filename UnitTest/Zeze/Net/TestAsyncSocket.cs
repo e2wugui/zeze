@@ -8,7 +8,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Util;
-using System.Threading.Tasks;
 
 namespace UnitTest.Zeze.Net
 {

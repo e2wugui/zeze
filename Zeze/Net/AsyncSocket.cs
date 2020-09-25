@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Net.Sockets;
 using System.Diagnostics;
+using Zeze.Serialize;
 
 namespace Zeze.Net
 {
@@ -13,7 +14,7 @@ namespace Zeze.Net
     /// </summary>
     public class AsyncSocket : IDisposable
     {
-        private global::Zeze.Serialize.ByteBuffer _inputBuffer;
+        private byte[] _inputBuffer;
         private List<System.ArraySegment<byte>> _outputBufferList = null;
         private int _outputBufferListCountSum = 0;
         private List<System.ArraySegment<byte>> _outputBufferListSending = null; // 正在发送的 buffers.
@@ -25,7 +26,7 @@ namespace Zeze.Net
         public Socket Socket { get; private set; } // 这个给出去真的好吗？
 
         /// <summary>
-        /// 保存需要存储在Socket中的状态，比如加解密的功能。
+        /// 保存需要存储在Socket中的状态。
         /// 简单变量，没有考虑线程安全问题。
         /// 内部不使用。
         /// </summary>
@@ -36,6 +37,12 @@ namespace Zeze.Net
         private SocketAsyncEventArgs eventArgsAccept;
         private SocketAsyncEventArgs eventArgsReceive;
         private SocketAsyncEventArgs eventArgsSend;
+
+        private BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
+        private BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
+
+        private Codec inputCodecChain;
+        private Codec outputCodecChain;
 
         /// <summary>
         /// for server socket
@@ -85,6 +92,7 @@ namespace Zeze.Net
 
             this.SessionId = SessionIdGen.IncrementAndGet();
 
+            this._inputBuffer = new byte[service.SocketOptions.InputBufferSize];
             BeginReceiveAsync();
         }
 
@@ -112,6 +120,34 @@ namespace Zeze.Net
             this.SessionId = SessionIdGen.IncrementAndGet();
         }
 
+        public void SetOutputSecurityCodec(byte[] key, bool compress)
+        {
+            lock (this)
+            {
+                Codec chain = outputCodecBuffer;
+                if (null != key)
+                    chain = new Encrypt(chain, key);
+                if (compress)
+                    chain = new Compress(chain); 
+                outputCodecChain?.Dispose();
+                outputCodecChain = chain;
+            }
+        }
+
+        public void SetInputSecurityCodec(byte[] key, bool compress)
+        {
+            lock (this)
+            {
+                Codec chain = inputCodecBuffer;
+                if (compress)
+                    chain = new Decompress(chain);
+                if (null != key)
+                    chain = new Decrypt(chain, key);
+                inputCodecChain?.Dispose();
+                inputCodecChain = chain;
+            }
+        }
+
         public void Send(global::Zeze.Serialize.ByteBuffer bb)
         {
             Send(bb.Bytes, bb.ReadIndex, bb.Size);
@@ -123,7 +159,7 @@ namespace Zeze.Net
         }
 
         /// <summary>
-        /// 加到发送缓冲区，直接引用bytes数组。不能再修改了。
+        /// 可能直接加到发送缓冲区，不能再修改bytes了。
         /// </summary>
         /// <param name="bytes"></param>
         /// <param name="offset"></param>
@@ -134,6 +170,22 @@ namespace Zeze.Net
 
             lock (this)
             {
+                if (null != outputCodecChain)
+                {
+                    // 压缩加密等 codec 链操作。
+                    outputCodecBuffer.Buffer.EnsureWrite(length); // reserve
+                    outputCodecChain.update(bytes, offset, length);
+                    outputCodecChain.flush();
+
+                    // 修改参数，后面继续使用处理过的数据继续发送。
+                    bytes = outputCodecBuffer.Buffer.Bytes;
+                    offset = outputCodecBuffer.Buffer.ReadIndex;
+                    length = outputCodecBuffer.Buffer.Size;
+
+                    // outputBufferCodec 释放对byte[]的引用。
+                    outputCodecBuffer.Buffer.FreeInternalBuffer();
+                }
+
                 if (null == _outputBufferList)
                     _outputBufferList = new List<ArraySegment<byte>>();
                 _outputBufferList.Add(new ArraySegment<byte>(bytes, offset, length));
@@ -231,6 +283,8 @@ namespace Zeze.Net
             {
                 this.Socket.EndConnect(ar);
                 this.Service.OnSocketConnected(this);
+
+                this._inputBuffer = new byte[Service.SocketOptions.InputBufferSize];
                 BeginReceiveAsync();
             }
             catch (Exception e)
@@ -248,30 +302,7 @@ namespace Zeze.Net
                 eventArgsReceive.Completed += OnAsyncIOCompleted;
             }
 
-            if (null == _inputBuffer)
-            {
-                _inputBuffer = Serialize.ByteBuffer.Allocate(Service.SocketOptions.InputBufferInitCapacity);
-            }
-            else
-            {
-                if (_inputBuffer.Size == 0 && _inputBuffer.Capacity > Service.SocketOptions.InputBufferResetThreshold)
-                    _inputBuffer = Serialize.ByteBuffer.Allocate(Service.SocketOptions.InputBufferInitCapacity);
-                _inputBuffer.Campact(); // 上次接收还有剩余数据.
-            }
-
-            if (_inputBuffer.Capacity >= Service.SocketOptions.InputBufferMaxCapacity) // 缓存容量达到最大配置
-            {
-                if (_inputBuffer.WriteIndex >= _inputBuffer.Capacity) // 检查是否满了
-                    throw new Exception("input buffer overflow.");
-            }
-            else if (_inputBuffer.Capacity - _inputBuffer.WriteIndex < Service.SocketOptions.InputBufferInitCapacity)
-                _inputBuffer.EnsureWrite(Service.SocketOptions.InputBufferInitCapacity);
-
-            byte[] buffer = _inputBuffer.Bytes;
-            int offset = _inputBuffer.WriteIndex;
-            int size = _inputBuffer.Capacity - _inputBuffer.WriteIndex;
-            eventArgsReceive.SetBuffer(buffer, offset, size);
-
+            eventArgsReceive.SetBuffer(_inputBuffer, 0, _inputBuffer.Length);
             if (false == this.Socket.ReceiveAsync(eventArgsReceive))
                 ProcessReceive(eventArgsReceive);
         }
@@ -280,13 +311,46 @@ namespace Zeze.Net
         {
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
-                _inputBuffer.WriteIndex += e.BytesTransferred;
-                if (_inputBuffer.WriteIndex > _inputBuffer.Capacity) // 这个应该不会发生。
+                if (null != inputCodecChain)
                 {
-                    Close(new Exception("input buffer overflow."));
-                    return;
+                    // 解密解压处理，处理结果直接加入 inputCodecBuffer。
+                    inputCodecBuffer.Buffer.EnsureWrite(e.BytesTransferred);
+                    inputCodecChain.update(_inputBuffer, 0, e.BytesTransferred);
+                    inputCodecChain.flush();
+
+                    this.Service.OnSocketProcessInputBuffer(this, inputCodecBuffer.Buffer);
                 }
-                this.Service.OnSocketProcessInputBuffer(this, _inputBuffer);
+                else if (inputCodecBuffer.Buffer.Size > 0)
+                {
+                    // 上次解析有剩余数据（不完整的协议），把新数据加入。
+                    inputCodecBuffer.Buffer.Append(_inputBuffer, 0, e.BytesTransferred);
+
+                    this.Service.OnSocketProcessInputBuffer(this, inputCodecBuffer.Buffer);
+                }
+                else
+                {
+                    ByteBuffer avoidCopy = ByteBuffer.Wrap(_inputBuffer, 0, e.BytesTransferred);
+
+                    this.Service.OnSocketProcessInputBuffer(this, avoidCopy);
+
+                    if (avoidCopy.Size > 0) // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
+                        inputCodecBuffer.Buffer.Append(avoidCopy.Bytes, avoidCopy.ReadIndex, avoidCopy.Size);
+                }
+
+                // 1 检测 buffer 是否满，2 剩余数据 Campact，3 需要的话，释放buffer内存。
+                int remain = inputCodecBuffer.Buffer.Size;
+                if (remain > 0)
+                {
+                    if (remain >= Service.SocketOptions.InputBufferMaxProtocolSize)
+                        throw new Exception("InputBufferMaxProtocolSize" + Service.SocketOptions.InputBufferMaxProtocolSize);
+
+                    inputCodecBuffer.Buffer.Campact();
+                }
+                else
+                {
+                    inputCodecBuffer.Buffer.FreeInternalBuffer(); // 解析缓冲如果为空，马上释放内部bytes[]。
+                }
+
                 BeginReceiveAsync();
             }
             else

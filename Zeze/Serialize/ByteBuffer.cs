@@ -58,6 +58,21 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void FreeInternalBuffer()
+        {
+            Bytes = Array.Empty<byte>();
+            Reset();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Append(byte b)
+        {
+            EnsureWrite(1);
+            Bytes[WriteIndex] = b;
+            WriteIndex += 1;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Append(byte[] bs)
         {
             Append(bs, 0, bs.Length);
