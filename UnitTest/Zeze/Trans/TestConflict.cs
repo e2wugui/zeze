@@ -41,20 +41,20 @@ namespace UnitTest.Zeze.Trans
 
         int ProcRemove()
         {
-            demo.App.Instance.demo_Module1_Module1.Table1.Remove(123123);
+            demo.App.Instance.demo_Module1_Module.Table1.Remove(123123);
             return Procedure.Success;
         }
 
         int ProcAdd()
         {
-            demo.Module1.Value v = demo.App.Instance.demo_Module1_Module1.Table1.GetOrAdd(123123);
+            demo.Module1.Value v = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(123123);
             v.Int1 += 1;
             return Procedure.Success;
         }
 
         int ProcVerify()
         {
-            demo.Module1.Value v = demo.App.Instance.demo_Module1_Module1.Table1.GetOrAdd(123123);
+            demo.Module1.Value v = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(123123);
             Assert.IsTrue(v.Int1 == sum);
             return Procedure.Success;
         }

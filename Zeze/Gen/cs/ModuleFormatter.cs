@@ -29,13 +29,13 @@ namespace Zeze.Gen.cs
 
         public void MakePartialImplementInGen()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(genDir, module.Name + ".cs");
+            using System.IO.StreamWriter sw = module.OpenWriter(genDir, "Module.cs");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed  partial class " + module.Name + " : Abstract" + module.Name);
+            sw.WriteLine("    public sealed  partial class Module : AbstractModule");
             sw.WriteLine("    {");
             foreach (Table table in module.Tables.Values)
             {
@@ -43,7 +43,7 @@ namespace Zeze.Gen.cs
                     sw.WriteLine("        private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
             }
             sw.WriteLine("");
-            sw.WriteLine("        public " + module.Name + "(" + module.Solution.Name + ".App app)");
+            sw.WriteLine("        public Module(" + module.Solution.Name + ".App app)");
             sw.WriteLine("        {");
             sw.WriteLine("            // register protocol handles");
             Service serv = module.ReferenceService;
@@ -84,7 +84,7 @@ namespace Zeze.Gen.cs
 
         public void MakePartialImplement()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(srcDir, module.Name + ".cs", false);
+            using System.IO.StreamWriter sw = module.OpenWriter(srcDir, "Module.cs", false);
 
             if (null == sw)
                 return;
@@ -92,7 +92,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed partial class " + module.Name + " : Abstract" + module.Name);
+            sw.WriteLine("    public sealed partial class Module : AbstractModule");
             sw.WriteLine("    {");
             sw.WriteLine("        public void Start(" + module.Solution.Name + ".App app)");
             sw.WriteLine("        {");
@@ -150,13 +150,13 @@ namespace Zeze.Gen.cs
 
         public void MakeInterface()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(genDir, "Abstract" + module.Name + ".cs");
+            using System.IO.StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.cs");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public abstract class Abstract" + module.Name);
+            sw.WriteLine("    public abstract class AbstractModule");
             sw.WriteLine("    {");
  
             if (module.ReferenceService != null)

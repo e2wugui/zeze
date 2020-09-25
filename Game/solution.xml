@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="Game" ModuleIdAllowRanges="1-100,101">
+	<module name="Bag" id="1">
+		<bean name="Item">
+			<variable id="1" name="int1" type="int"/> com aa
+		</bean>
+
+		<table name="tbag" key="long" value="Item"/>
+	</module>
+
+	<module name="Item" id="2">
+	</module>
+
+	<module name="Fight" id="3">
+	</module>
+
+	<module name="Buf" id="4">
+	</module>
+
+	<module name="Equip" id="5">
+		<table name="tequip" key="long" value="Game.Bag.Item"/>
+	</module>
+
+	<!--
+	name 项目名字
+	gendir 代码生成输出目录，默认是当前目录
+	GenTables 选择生成哪些表格（Table），如果为空，那就生成那些没有配置gen属性的table，可以用','分开指定多个名字
+	-->
+	<project name="gsd" gendir="." platform="cs" GenTables="">
+		<!--
+		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
+		<module ref="CommonModule"/>
+		-->
+		<!-- service 生成到 solution 名字空间下 -->
+		<service name="Server" handle="server" base="">
+			<module ref="Bag"/>
+		</service>
+	</project>
+
+	<project name="client" gendir="." platform="cs" GenTables="client">
+		<service name="Client" handle="client">
+			<module ref="Bag"/>
+		</service>
+	</project>
+
+</solution>

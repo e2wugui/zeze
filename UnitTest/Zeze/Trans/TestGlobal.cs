@@ -57,7 +57,7 @@ namespace UnitTest.Zeze.Trans
                 // 只删除一个app里面的记录就够了。
                 Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(() =>
                 {
-                    app1.demo_Module1_Module1.Table1.Remove(6785);
+                    app1.demo_Module1_Module.Table1.Remove(6785);
                     return Procedure.Success;
                 }).Call());
                 
@@ -69,14 +69,14 @@ namespace UnitTest.Zeze.Trans
                 int countall = count * 2;
                 Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(() =>
                 {
-                    int last1 = app1.demo_Module1_Module1.Table1.Get(6785).Int1;
+                    int last1 = app1.demo_Module1_Module.Table1.Get(6785).Int1;
                     Assert.AreEqual(countall, last1);
                     //Console.WriteLine("app1 " + last1);
                     return Procedure.Success;
                 }).Call());
                 Assert.IsTrue(Procedure.Success == app2.Zeze.NewProcedure(() =>
                 {
-                    int last2 = app2.demo_Module1_Module1.Table1.Get(6785).Int1;
+                    int last2 = app2.demo_Module1_Module.Table1.Get(6785).Int1;
                     Assert.AreEqual(countall, last2);
                     //Console.WriteLine("app1 " + last2);
                     return Procedure.Success;
@@ -96,7 +96,7 @@ namespace UnitTest.Zeze.Trans
             {
                 tasks[i] = Task.Run(app.Zeze.NewProcedure(()=>
                 {
-                    demo.Module1.Value b = app.demo_Module1_Module1.Table1.GetOrAdd(6785);
+                    demo.Module1.Value b = app.demo_Module1_Module.Table1.GetOrAdd(6785);
                     b.Int1 += 1;
                     PrintLog log = new PrintLog(b, b, appId);
                     Transaction.Current.PutLog(log); return Procedure.Success;

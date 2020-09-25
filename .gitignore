@@ -12,3 +12,10 @@ TestResults
 /TestGlobal/bin
 /TestGlobal/obj
 /client
+/Game/gsd/bin
+/Game/gsd/obj
+/Game/gsd/Gen
+/Game/client/Gen
+/Game/client/obj
+/Game/client/bin
+/Game/.vs

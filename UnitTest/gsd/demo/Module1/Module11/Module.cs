@@ -1,7 +1,7 @@
 ﻿
-namespace demo.Module2
+namespace demo.Module1.Module11
 {
-    public sealed partial class Module2 : AbstractModule2
+    public sealed partial class Module : AbstractModule
     {
         public void Start(demo.App app)
         {

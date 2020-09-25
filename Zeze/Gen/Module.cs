@@ -22,9 +22,10 @@ namespace Zeze.Gen
         public Module(ModuleSpace space, XmlElement self) : base(space, self, true)
         {
             if (space.Modules.ContainsKey(Name))
-                throw new Exception("duplicate module name" + Name);
+                throw new Exception("duplicate module name：" + Name);
             space.Modules.Add(Name, this);
-            Program.AddNamedObject(space.Path(".", Name), this);
+            Program.AddNamedObject(Path(".", "Module"), this);
+            Program.AddNamedObject(Path(".", "AbstractModule"), this);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

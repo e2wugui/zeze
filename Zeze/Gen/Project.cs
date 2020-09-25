@@ -37,8 +37,6 @@ namespace Zeze.Gen
             return all;
         }
 
-        public String FullName => Solution.Name + "." + Name;
-
         public Project(Solution solution, XmlElement self)
         {
             Solution = solution;
@@ -52,7 +50,7 @@ namespace Zeze.Gen
             foreach (string target in self.GetAttribute("GenTables").Split(','))
                 GenTables.Add(target);
 
-            Program.AddNamedObject(FullName, this);
+            //Program.AddNamedObject(FullName, this);
 
             this.self = self; // 保存，在编译的时候使用。
 
@@ -85,6 +83,8 @@ namespace Zeze.Gen
         {
             ICollection<string> refs = Program.Refs(self, "module");
             List<string> refFulNames = Program.ToFullNameIfNot(Solution.Name, refs);
+            for (int i = 0; i < refFulNames.Count; ++i)
+                refFulNames[i] = refFulNames[i] + ".Module";
             Modules = Program.CompileModuleRef(refFulNames);
 
             foreach (Service service in Services.Values)

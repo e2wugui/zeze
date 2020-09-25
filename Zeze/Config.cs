@@ -22,7 +22,7 @@ namespace Zeze
         public int InternalThreadPoolWorkerCount { get; set; }
         public int AutoKeyLocalId { get; } = 0;
         public int AutoKeyLocalStep { get; } = 4096;
-        public string GlobalCacheManagerHostNameOrAddress { get; }
+        public string GlobalCacheManagerHostNameOrAddress { get; set; }
         public int GlobalCacheManagerPort { get; }
         public Dictionary<string, TableConf> TableConfMap { get; } = new Dictionary<string, TableConf>();
         public TableConf DefaultTableConf { get; set; } = new TableConf();

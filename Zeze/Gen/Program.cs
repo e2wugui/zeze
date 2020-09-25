@@ -20,21 +20,27 @@ namespace Zeze.Gen
 
         public static void AddNamedObject(string fullName, object obj)
         {
-            if (NamedObjects.ContainsKey(fullName))
-                throw new Exception("duplicate name: " + fullName);
-            NamedObjects.Add(fullName, obj);
+            //Console.WriteLine("AddNamedObject " + fullName);
+            // 由于创建文件在 windows 下大小写不敏感，所以名字需要大小写不敏感。
+            string lower = fullName.ToLower();
+            if (NamedObjects.ContainsKey(lower))
+                throw new Exception("duplicate name(Not Case Sensitive): " + fullName);
+
+            NamedObjects.Add(lower, obj);
         }
 
         public static T GetNamedObject<T>(string fullName)
         {
+            string lower = fullName.ToLower();
+
             object value = null;
-            if (NamedObjects.TryGetValue(fullName, out value))
+            if (NamedObjects.TryGetValue(lower, out value))
             {
                 if (value is T)
                     return (T)value;
                 throw new Exception("NamedObject is not " + fullName); // 怎么得到模板参数类型？
             }
-            throw new Exception("NamedObject not found: " + fullName);
+            throw new Exception("NamedObject not found(Not Case Sensitive): " + fullName);
         }
 
         public static void ImportSolution(string xmlfile)

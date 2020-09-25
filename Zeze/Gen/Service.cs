@@ -74,6 +74,8 @@ namespace Zeze.Gen
         {
             ICollection<string> refs = Program.Refs(self, "module");
             List<string> refFulNames = Program.ToFullNameIfNot(Project.Solution.Name, refs);
+            for (int i = 0; i < refFulNames.Count; ++i)
+                refFulNames[i] = refFulNames[i] + ".Module";
             Modules = Program.CompileModuleRef(refFulNames);
         }
 
