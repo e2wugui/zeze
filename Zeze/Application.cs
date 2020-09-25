@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Transactions;
 using Zeze.Transaction;
 
@@ -44,7 +45,17 @@ namespace Zeze
             Config = config;
             if (null == Config)
                 Config = Config.Load();
+
             InternalThreadPool = new Util.SimpleThreadPool(Config.InternalThreadPoolWorkerCount);
+
+            int workerThreads, completionPortThreads;
+            ThreadPool.GetMinThreads(out workerThreads, out completionPortThreads);
+            if (Config.WorkerThreads > 0)
+                workerThreads = Config.WorkerThreads;
+            if (Config.CompletionPortThreads > 0)
+                completionPortThreads = Config.CompletionPortThreads;
+            ThreadPool.SetMinThreads(workerThreads, completionPortThreads);
+
             Config.CreateDatabase(Databases);
             GlobalAgent = new GlobalAgent(this);
             _checkpoint = new Checkpoint(Databases.Values);

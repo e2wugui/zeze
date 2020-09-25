@@ -16,8 +16,10 @@ namespace Zeze
             SqlServer,
         }
 
+        public int WorkerThreads { get; set; }
+        public int CompletionPortThreads { get; set; }
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
-        public int InternalThreadPoolWorkerCount { get; set; } = 10;
+        public int InternalThreadPoolWorkerCount { get; set; }
         public int AutoKeyLocalId { get; } = 0;
         public int AutoKeyLocalStep { get; } = 4096;
         public string GlobalCacheManagerHostNameOrAddress { get; }
@@ -89,8 +91,13 @@ namespace Zeze
             GlobalCacheManagerPort = attr.Length > 0 ? int.Parse(attr) : 0;
 
             attr = self.GetAttribute("InternalThreadPoolWorkerCount");
-            if (attr.Length > 0)
-                InternalThreadPoolWorkerCount = int.Parse(attr);
+            InternalThreadPoolWorkerCount = attr.Length > 0 ? int.Parse(attr) : 10;
+
+            attr = self.GetAttribute("WorkerThreads");
+            WorkerThreads = attr.Length > 0 ? int.Parse(attr) : -1;
+
+            attr = self.GetAttribute("CompletionPortThreads");
+            CompletionPortThreads = attr.Length > 0 ? int.Parse(attr) : -1;
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
