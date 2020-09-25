@@ -71,8 +71,6 @@ GlobalCacheManager 是一个控制台程序。当多个Application共享数据库时，用来管理Cach
 #### TODO
 
 每事务提交
-网络：压缩、加密、解密
-
 
 #### 历史
 

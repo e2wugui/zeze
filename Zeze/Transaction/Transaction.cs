@@ -75,6 +75,19 @@ namespace Zeze.Transaction
             savepoints[^1].PutLog(log);
         }
 
+        private readonly List<Action> CommitActions = new List<Action>();
+        private readonly List<Action> RollbackActions = new List<Action>();
+
+        public void RunWhileCommit(Action action)
+        {
+            CommitActions.Add(action);
+        }
+
+        public void RunWhileRollback(Action action)
+        {
+            RollbackActions.Add(action);
+        }
+
         /// <summary>
         /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
         /// </summary>
@@ -99,6 +112,7 @@ namespace Zeze.Transaction
                                 {
                                     // 这个错误不应该重做
                                     logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
+                                    _final_rollback_(procedure);
                                     return Procedure.ErrorSavepoint;
                                 }
                                 checkResult = _lock_and_check_();
@@ -109,6 +123,7 @@ namespace Zeze.Transaction
                                         _final_commit_(procedure);
                                         return Procedure.Success;
                                     }
+                                    _final_rollback_(procedure);
                                     return result;
                                 }
                                 // retry
@@ -126,18 +141,21 @@ namespace Zeze.Transaction
                                 {
                                     // 这个错误不应该重做
                                     logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 0.", procedure);
+                                    _final_rollback_(procedure);
                                     return Procedure.ErrorSavepoint;
                                 }
 #if DEBUG
                                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                                 if (e.GetType().Name == "AssertFailedException")
                                 {
+                                    _final_rollback_(procedure);
                                     throw;
                                 }
 #endif
                                 checkResult = _lock_and_check_();
                                 if (checkResult == CheckResult.Success)
                                 {
+                                    _final_rollback_(procedure);
                                     return Procedure.Excption;
                                 }
                                 // retry
@@ -171,6 +189,7 @@ namespace Zeze.Transaction
                     procedure.Checkpoint.WaitRun();
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
+                _final_rollback_(procedure);
                 return Procedure.TooManyTry;
             }
             finally
@@ -211,6 +230,33 @@ namespace Zeze.Transaction
             {
                 logger.Error(e, "Transaction._final_commit_ {0}", procedure);
                 Environment.Exit(54321);
+            }
+
+            foreach (Action action in CommitActions)
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e, "Commit Procedure {0} Action {1}", procedure, action.Method.Name);
+                }
+            }
+        }
+
+        private void _final_rollback_(Procedure procedure)
+        {
+            foreach (Action action in RollbackActions)
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e, "Rollback Procedure {0} Action {1}", procedure, action.Method.Name);
+                }
             }
         }
 
