@@ -6,18 +6,18 @@ zeze 是一个支持事务的应用框架。
 
 #### 安装教程
 
-Zeze 是一个类库，所有的核心功能都在这里。我还不知道c#的类库怎么加入应用。
+Zeze 是一个类库，所有的核心功能都在这里。
 Gen 是一个控制台程序。编译好以后，用来生成代码。
 GlobalCacheManager 是一个控制台程序。当多个Application共享数据库时，用来管理Cache同步，参见后面"特殊模式"的第4点。
 
 #### 使用说明
 
 1. 定义自己解决方案相关内容，包含数据类型、协议、数据库表格等。
-   参考：UnitTest\solution.xml
+   参考：Game\solution.xml; UnitTest\solution.xml
 2. 使用 Gen 生成代码。
 3. 在生成的Module类中，实现应用协议，使用数据库表格访问数据等。
 4. 配置。
-   参考：UnitTest\zeze.xml
+   参考：Game\zeze.xml; UnitTest\zeze.xml
    一般来说，开始的话，需要提供一个数据库配置。不提供配置的话，数据库是内存的。
 
 #### 特殊模式
