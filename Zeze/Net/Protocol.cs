@@ -72,10 +72,14 @@ namespace Zeze.Net
 				}
 
 				// 以前写过的实现在数据不够之前会根据type检查size是否太大。
-				// 现在去掉协议的最大大小的配置了.由总的参数 InputBufferMaxCapacity 限制。
+				// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
 				// 参考 AsyncSocket
 				if (size > os.Size)
                 {
+					// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
+					if (size > service.SocketOptions.InputBufferMaxProtocolSize)
+						throw new Exception("Decode InputBufferMaxProtocolSize" + service.SocketOptions.InputBufferMaxProtocolSize);
+
 					// not enough data. try next time.
 					bb.ReadIndex = readIndexSaved;
 					return;

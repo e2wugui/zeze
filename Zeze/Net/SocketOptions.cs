@@ -15,7 +15,7 @@ namespace Zeze.Net
 
         // 网络层接收数据 buffer 大小，大流量网络应用需要加大。
         public int InputBufferSize { get; set; }
-        // 最大协议包的大小。协议需要完整收到才解析和处理，所以需要缓存。这是个安全选项。防止出现攻击。
+        // 最大协议包的大小。协议需要完整收到才解析和处理，所以需要缓存。这是个安全选项。防止出现攻击占用大量内存。
         public int InputBufferMaxProtocolSize { get; set; }
         public int OutputBufferMaxSize { get; set; } // 暂时不使用，先保留这个选项
 

@@ -342,7 +342,7 @@ namespace Zeze.Net
                 if (remain > 0)
                 {
                     if (remain >= Service.SocketOptions.InputBufferMaxProtocolSize)
-                        throw new Exception("InputBufferMaxProtocolSize" + Service.SocketOptions.InputBufferMaxProtocolSize);
+                        throw new Exception("InputBufferMaxProtocolSize " + Service.SocketOptions.InputBufferMaxProtocolSize);
 
                     inputCodecBuffer.Buffer.Campact();
                 }
