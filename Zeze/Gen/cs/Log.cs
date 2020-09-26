@@ -76,7 +76,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeBinary type)
         {
-            throw new NotImplementedException();
+            WriteLogValue(type);
         }
 
         public void Visit(TypeString type)

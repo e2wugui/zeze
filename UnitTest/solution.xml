@@ -23,7 +23,7 @@
 			<variable id="5" name="short5" type="short"/> com aa
 			<variable id="6" name="float6" type="float"/> com aa
 			<variable id="7" name="double7" type="double"/> com aa
-			<!--<variable id="8" name="bytes8" type="binary"/> com aa-->
+			<variable id="8" name="bytes8" type="binary"/> com aa
 			<variable id="9" name="list9" type="list" value="demo.Bean1"/> com aa
 			<variable id="10" name="set10" type="set" value="int"/> com aa
 			<variable id="11" name="map11" type="map" key="long" value="demo.Module2.Value"/> com aa

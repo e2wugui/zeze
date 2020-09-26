@@ -20,6 +20,14 @@ GlobalCacheManager 是一个控制台程序。当多个Application共享数据库时，用来管理Cach
    参考：Game\zeze.xml; UnitTest\zeze.xml
    一般来说，开始的话，需要提供一个数据库配置。不提供配置的话，数据库是内存的。
 
+Bean
+   纯粹的数据对象
+   nullable 减少使用时需要判断null
+   setter for bean type 对于数据对象来说，使用Assign赋值。
+   Managed
+   binary
+   PSet1 没有完全检查参数是否为空
+
 #### 特殊模式
 
 0. AutoKey：自增长key，仅支持 long 类型。

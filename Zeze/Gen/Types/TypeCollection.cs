@@ -21,6 +21,8 @@ namespace Zeze.Gen.Types
 				throw new Exception(Name + " type does not need a key. " + key);
 
 			ValueType = Type.Compile(space, value, null, null);
+			if (ValueType is TypeBinary)
+				throw new Exception(Name + " Error : value type is binary.");
 		}
 
         public override bool IsImmutable => false;

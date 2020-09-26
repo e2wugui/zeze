@@ -15,6 +15,9 @@ namespace Zeze.Transaction.Collections
             get => Data[key];
             set
             {
+                if (value == null)
+                    throw new ArgumentNullException();
+
                 if (this.IsManaged)
                 {
                     var txn = Transaction.Current;
@@ -35,6 +38,11 @@ namespace Zeze.Transaction.Collections
 
         public override void Add(K key, V value)
         {
+            if (key == null)
+                throw new ArgumentNullException();
+            if (value == null)
+                throw new ArgumentNullException();
+
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
@@ -53,6 +61,11 @@ namespace Zeze.Transaction.Collections
 
         public override void Add(KeyValuePair<K, V> item)
         {
+            if (item.Key == null)
+                throw new ArgumentNullException();
+            if (item.Value == null)
+                throw new ArgumentNullException();
+
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;

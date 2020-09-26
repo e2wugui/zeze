@@ -42,6 +42,8 @@ namespace Zeze.Gen.Types
 			if (!KeyType.IsKeyable)
 				throw new Exception("map key need a keyable type");
 			ValueType = Type.Compile(space, value, null, null);
+			if (ValueType is TypeBinary)
+				throw new Exception(Name + " Error : value type is binary.");
 		}
 
 		internal TypeMap(SortedDictionary<String, Type> types)

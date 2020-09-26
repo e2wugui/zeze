@@ -65,7 +65,7 @@ namespace Zeze.Gen.Types
 		static Type()
 		{
 			new TypeDouble(Types);
-			//new TypeBinary(Types); // 事务没法保护，先去掉。
+			new TypeBinary(Types);
 			new TypeBool(Types);
 			new TypeByte(Types);
 			new TypeInt(Types);

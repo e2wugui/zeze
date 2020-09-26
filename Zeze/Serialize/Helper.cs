@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace Zeze.Serialize
 {
@@ -162,6 +163,14 @@ namespace Zeze.Serialize
                     return c;
             }
             return 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte[] Copy(byte[] src)
+        {
+            byte[] result = new byte[src.Length];
+            Array.Copy(src, result, src.Length);
+            return result;
         }
     }
 }

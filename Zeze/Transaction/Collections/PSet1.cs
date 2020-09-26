@@ -13,9 +13,7 @@ namespace Zeze.Transaction.Collections
         public override bool Add(E item)
         {
             if (item == null)
-            {
-                throw new ArgumentException("cant add null element");
-            }
+                throw new ArgumentNullException();
 
             if (this.IsManaged)
             {
@@ -140,6 +138,12 @@ namespace Zeze.Transaction.Collections
 
         public override void UnionWith(IEnumerable<E> other)
         {
+            foreach (E v in other)
+            {
+                if (null == v)
+                    throw new ArgumentNullException();
+            }
+
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;

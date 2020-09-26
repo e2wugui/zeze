@@ -67,7 +67,7 @@ namespace Zeze.Gen.cs
 
         void Visitor.Visit(TypeBinary type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + var.NameUpper1 + " = other." + var.NameUpper1 + ";");
         }
 
         void Visitor.Visit(TypeString type)

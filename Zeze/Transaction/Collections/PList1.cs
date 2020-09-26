@@ -15,9 +15,7 @@ namespace Zeze.Transaction.Collections
             set
             {
                 if (value == null)
-                {
-                    throw new ArgumentNullException("cant add null element");
-                }
+                    throw new ArgumentNullException();
 
                 if (this.IsManaged)
                 {
@@ -35,9 +33,7 @@ namespace Zeze.Transaction.Collections
         public override void Add(E item)
         {
             if (item == null)
-            {
-                throw new ArgumentException("cant add null element");
-            }
+                throw new ArgumentNullException();
 
             if (this.IsManaged)
             {
@@ -71,13 +67,11 @@ namespace Zeze.Transaction.Collections
 
         public override void Insert(int index, E item)
         {
+            if (item == null)
+                throw new ArgumentNullException();
+
             if (this.IsManaged)
             {
-                if (item == null)
-                {
-                    throw new ArgumentException("cant add null element");
-                }
-
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
                 txn.PutLog(NewLog(oldv.Insert(index, item)));

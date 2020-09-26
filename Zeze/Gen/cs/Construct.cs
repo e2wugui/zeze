@@ -79,8 +79,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeBinary type)
         {
-            throw new NotImplementedException(variable.GetBeanFullName() + "." + variable.Name + " with type " + variable.VariableType.Name);
-            // sw.WriteLine(prefix + variable.NamePrivate + " = System.Array.Empty<byte>();");
+            sw.WriteLine(prefix + variable.NamePrivate + " = System.Array.Empty<byte>();");
         }
 
         public void Visit(TypeString type)
