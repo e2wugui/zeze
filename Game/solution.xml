@@ -1,7 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <solution name="Game" ModuleIdAllowRanges="1-100,101">
-	<module name="Bag" id="1">
+	<module name="Login" id="1">
+		<bean name="BRole">
+			<variable id="1" name="Id" type="long"/>
+			<variable id="2" name="Name" type="string"/>
+		</bean>
+
+		<bean name="BRoles">
+			<variable id="1" name="List" type="list" value="BRole"/>
+			<variable id="2" name="LastLoginRoleId" type="long"/>
+		</bean>
+
+		<bean name="BLogin">
+			<variable id="1" name="RoleId" type="long"/>
+		</bean>
+
+		<bean name="BAuth">
+		</bean>
+
+		<protocol name="CCreateRole" id="1" argument="BRole" handle="server"/>
+		<protocol name="SCreateRole" id="2" argument="BRoles" handle="client"/>
+		<protocol name="CGetRoleList" id="3" handle="server"/>
+		<protocol name="SGetRoleList" id="4" argument="BRoles" handle="client"/>
+		<protocol name="CLogin" id="5" argument="BLogin" handle="server"/>
+		<protocol name="SLogin" id="6" argument="BLogin" handle="server"/>
+
+		<protocol name="CAuth" id="7" argument="BAuth" handle="server"/>
+		<protocol name="SAuth" id="8" argument="BAuth" handle="client"/>
+
+	</module>
+
+	<module name="Bag" id="2">
 		<bean name="BItem">
 			<variable id="1" name="Id" type="int"/>
 			<variable id="2" name="Type" type="int"/>
@@ -34,16 +64,16 @@
 		<protocol name="SChanged" id="4" argument="BResult" handle="client"/>
 	</module>
 
-	<module name="Item" id="2">
+	<module name="Item" id="3">
 	</module>
 
-	<module name="Fight" id="3">
+	<module name="Fight" id="4">
 	</module>
 
-	<module name="Buf" id="4">
+	<module name="Buf" id="5">
 	</module>
 
-	<module name="Equip" id="5">
+	<module name="Equip" id="6">
 		<table name="tequip" key="long" value="Game.Bag.BItem"/>
 	</module>
 

@@ -333,7 +333,8 @@ namespace Zeze.Services
                             try
                             {
                                 reduce.Value.Future.Task.Wait();
-                                reduceSuccessed.Add(reduce.Key);
+                                if (reduce.Value.Result.State == StateInvalid)
+                                    reduceSuccessed.Add(reduce.Key);
                             }
                             catch (Exception ex)
                             {
@@ -381,219 +382,219 @@ namespace Zeze.Services
                 }
             }
         }
-    }
 
-    public class CacheState
-    {
-        internal CacheHolder Modify { get; set; }
-        internal int AcquireStatePending { get; set; } = GlobalCacheManager.StateInvalid;
-        internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
-        public override string ToString()
+        public class CacheState
         {
-            StringBuilder sb = new StringBuilder();
-            Helper.BuildString(sb, Share);
-            return $"P{AcquireStatePending} M{Modify} S{sb}";
-        }
-    }
-
-    public class CacheHolder
-    {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
-        public long SessionId { get; }
-
-        public CacheHolder(long sessionId)
-        {
-            SessionId = sessionId;
-        }
-
-        public override string ToString()
-        {
-            return "" + SessionId;
-        }
-
-        public int Reduce(GlobalTableKey gkey, int state)
-        {
-            try
+            internal CacheHolder Modify { get; set; }
+            internal int AcquireStatePending { get; set; } = GlobalCacheManager.StateInvalid;
+            internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
+            public override string ToString()
             {
-                Reduce reduce = ReduceWaitLater(gkey, state);
-                if (null != reduce)
+                StringBuilder sb = new StringBuilder();
+                Helper.BuildString(sb, Share);
+                return $"P{AcquireStatePending} M{Modify} S{sb}";
+            }
+        }
+
+        public class CacheHolder
+        {
+            private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+            public long SessionId { get; }
+
+            public CacheHolder(long sessionId)
+            {
+                SessionId = sessionId;
+            }
+
+            public override string ToString()
+            {
+                return "" + SessionId;
+            }
+
+            public int Reduce(GlobalTableKey gkey, int state)
+            {
+                try
                 {
-                    reduce.Future.Task.Wait();
-                    return reduce.Result.State;
+                    Reduce reduce = ReduceWaitLater(gkey, state);
+                    if (null != reduce)
+                    {
+                        reduce.Future.Task.Wait();
+                        return reduce.Result.State;
+                    }
+                    return state; // 网络错误，认为reduce成功。
                 }
-                return state; // 网络错误，认为reduce成功。
-            }
-            catch (RpcTimeoutException timeoutex)
-            {
-                // 等待超时，应该报告错误。
-                logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1}", state, SessionId);
-                return GlobalCacheManager.StateReduceRpcTimeout;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Reduce Exception {0} target={1}", state, SessionId);
-                return GlobalCacheManager.StateReduceException;
-            }
-        }
-
-        /// <summary>
-        /// 返回null表示发生了网络错误，或者应用服务器已经关闭。此时看作reduce成功。
-        /// </summary>
-        /// <param name="gkey"></param>
-        /// <param name="state"></param>
-        /// <returns></returns>
-        public Reduce ReduceWaitLater(GlobalTableKey gkey, int state)
-        {
-            try
-            {
-                AsyncSocket peer = GlobalCacheManager.Instance.Server.GetSocket(SessionId);
-                // 逻辑服务器网络连接关闭，表示自动释放所有锁。所有Reduce都看作成功。
-                if (null != peer)
+                catch (RpcTimeoutException timeoutex)
                 {
-                    Reduce reduce = new Reduce(gkey, state);
-                    reduce.SendForWait(peer, 10000);
-                    return reduce;
+                    // 等待超时，应该报告错误。
+                    logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1}", state, SessionId);
+                    return GlobalCacheManager.StateReduceRpcTimeout;
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Reduce Exception {0} target={1}", state, SessionId);
+                    return GlobalCacheManager.StateReduceException;
                 }
             }
-            catch (Exception ex)
+
+            /// <summary>
+            /// 返回null表示发生了网络错误，或者应用服务器已经关闭。此时看作reduce成功。
+            /// </summary>
+            /// <param name="gkey"></param>
+            /// <param name="state"></param>
+            /// <returns></returns>
+            public Reduce ReduceWaitLater(GlobalTableKey gkey, int state)
             {
-                // 这里的异常只应该是网络发送异常。也认为成功。
-                logger.Error(ex, "ReduceWaitLater Exception {0}", gkey);
+                try
+                {
+                    AsyncSocket peer = GlobalCacheManager.Instance.Server.GetSocket(SessionId);
+                    // 逻辑服务器网络连接关闭，表示自动释放所有锁。所有Reduce都看作成功。
+                    if (null != peer)
+                    {
+                        Reduce reduce = new Reduce(gkey, state);
+                        reduce.SendForWait(peer, 10000);
+                        return reduce;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 这里的异常只应该是网络发送异常。也认为成功。
+                    logger.Error(ex, "ReduceWaitLater Exception {0}", gkey);
+                }
+                return null;
             }
-            return null;
         }
-    }
 
-    public class Param : Zeze.Transaction.Bean
-    {
-        public GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
-        public int State { get; set; }
-
-        public override void Decode(ByteBuffer bb)
+        public class Param : Zeze.Transaction.Bean
         {
-            if (null == GlobalTableKey)
-               GlobalTableKey = new GlobalTableKey();
-            GlobalTableKey.Decode(bb);
-            State = bb.ReadInt();
-        }
+            public GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
+            public int State { get; set; }
 
-        public override void Encode(ByteBuffer bb)
+            public override void Decode(ByteBuffer bb)
+            {
+                if (null == GlobalTableKey)
+                    GlobalTableKey = new GlobalTableKey();
+                GlobalTableKey.Decode(bb);
+                State = bb.ReadInt();
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                GlobalTableKey.Encode(bb);
+                bb.WriteInt(State);
+            }
+
+            protected override void InitChildrenTableKey(Transaction.TableKey root)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override string ToString()
+            {
+                return GlobalTableKey.ToString() + ":" + State;
+            }
+        }
+        public class Acquire : Zeze.Net.Rpc<Param, Param>
         {
-            GlobalTableKey.Encode(bb);
-            bb.WriteInt(State);
+            public override int ModuleId => 0;
+            public override int ProtocolId => 1;
+
+            public Acquire()
+            {
+            }
+
+            public Acquire(GlobalTableKey gkey, int state)
+            {
+                Argument.GlobalTableKey = gkey;
+                Argument.State = state;
+            }
         }
 
-        protected override void InitChildrenTableKey(Transaction.TableKey root)
+        public class Reduce : Zeze.Net.Rpc<Param, Param>
         {
-            throw new NotImplementedException();
+            public override int ModuleId => 0;
+            public override int ProtocolId => 2;
+
+            public Reduce()
+            {
+            }
+
+            public Reduce(GlobalTableKey gkey, int state)
+            {
+                Argument.GlobalTableKey = gkey;
+                Argument.State = state;
+            }
         }
 
-        public override string ToString()
+        public class ServerService : Zeze.Net.Service
         {
-            return GlobalTableKey.ToString() + ":" + State;
+            public override void OnSocketAccept(AsyncSocket so)
+            {
+                so.UserState = new CacheHolder(so.SessionId);
+                base.OnSocketAccept(so);
+            }
         }
-    }
-    public class Acquire : Zeze.Net.Rpc<Param, Param>
-    {
-        public override int ModuleId => 0;
-        public override int ProtocolId => 1;
 
-        public Acquire()
+        public class GlobalTableKey : IComparable<GlobalTableKey>, Serializable
         {
-        }
+            public string TableName { get; private set; }
+            public byte[] Key { get; private set; }
 
-        public Acquire(GlobalTableKey gkey, int state)
-        {
-            Argument.GlobalTableKey = gkey;
-            Argument.State = state;
-        }
-    }
+            public GlobalTableKey()
+            {
+            }
 
-    public class Reduce : Zeze.Net.Rpc<Param, Param>
-    {
-        public override int ModuleId => 0;
-        public override int ProtocolId => 2;
+            public GlobalTableKey(string tableName, ByteBuffer key) : this(tableName, key.Copy())
+            {
+            }
 
-        public Reduce()
-        { 
-        }
+            public GlobalTableKey(string tableName, byte[] key)
+            {
+                TableName = tableName;
+                Key = key;
+            }
 
-        public Reduce(GlobalTableKey gkey, int state)
-        {
-            Argument.GlobalTableKey = gkey;
-            Argument.State = state;
-        }
-    }
+            public int CompareTo([AllowNull] GlobalTableKey other)
+            {
+                int c = this.TableName.CompareTo(other.TableName);
+                if (c != 0)
+                    return c;
 
-    public class ServerService : Zeze.Net.Service
-    {
-        public override void OnSocketAccept(AsyncSocket so)
-        {
-            so.UserState = new CacheHolder(so.SessionId);
-            base.OnSocketAccept(so);
-        }
-    }
+                return Helper.Compare(Key, other.Key);
+            }
 
-    public class GlobalTableKey : IComparable<GlobalTableKey>, Serializable
-    {
-        public string TableName { get; private set; }
-        public byte[] Key { get; private set; }
+            public override bool Equals(object obj)
+            {
+                if (this == obj)
+                    return true;
 
-        public GlobalTableKey()
-        { 
-        }
+                if (obj is GlobalTableKey another)
+                    return TableName.Equals(another.TableName) && Helper.Equals(Key, another.Key);
 
-        public GlobalTableKey(string tableName, ByteBuffer key) : this(tableName, key.Copy())
-        {
-        }
+                return false;
+            }
 
-        public GlobalTableKey(string tableName, byte[] key)
-        {
-            TableName = tableName;
-            Key = key;
-        }
+            public override int GetHashCode()
+            {
+                return TableName.GetHashCode() + Helper.GetHashCode(Key);
+            }
 
-        public int CompareTo([AllowNull] GlobalTableKey other)
-        {
-            int c = this.TableName.CompareTo(other.TableName);
-            if (c != 0)
-                return c;
+            public override string ToString()
+            {
+                return $"({TableName},{BitConverter.ToString(Key)})";
+            }
 
-            return Helper.Compare(Key, other.Key);
-        }
+            public void Decode(ByteBuffer bb)
+            {
+                TableName = bb.ReadString();
+                Key = bb.ReadBytes();
+            }
 
-        public override bool Equals(object obj)
-        {
-            if (this == obj)
-                return true;
-
-            if (obj is GlobalTableKey another)
-                return TableName.Equals(another.TableName) && Helper.Equals(Key, another.Key);
-
-            return false;
-        }
-
-        public override int GetHashCode()
-        {
-            return TableName.GetHashCode() + Helper.GetHashCode(Key);
-        }
-
-        public override string ToString()
-        {
-            return $"({TableName},{BitConverter.ToString(Key)})";
-        }
-
-        public void Decode(ByteBuffer bb)
-        {
-            TableName = bb.ReadString();
-            Key = bb.ReadBytes();
-        }
-
-        public void Encode(ByteBuffer bb)
-        {
-            bb.WriteString(TableName);
-            bb.WriteBytes(Key);
+            public void Encode(ByteBuffer bb)
+            {
+                bb.WriteString(TableName);
+                bb.WriteBytes(Key);
+            }
         }
     }
 }

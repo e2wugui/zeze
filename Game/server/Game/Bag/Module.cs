@@ -11,6 +11,7 @@ namespace Game.Bag
         {
         }
 
+        // protocol handles
         public override int ProcessCMove(CMove protocol)
         {
             throw new System.NotImplementedException();
@@ -24,6 +25,11 @@ namespace Game.Bag
         public override int ProcessCSort(CSort protocol)
         {
             throw new System.NotImplementedException();
+        }
+
+        public Bag GetBag(long roleid)
+        {
+            return new Bag(roleid, _tbag);
         }
     }
 }

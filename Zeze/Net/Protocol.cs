@@ -16,6 +16,7 @@ namespace Zeze.Net
 		public int TypeRpcTimeoutId => (TypeId | 0x8000); // 用来注册 handle
 
 		public AsyncSocket Sender { get; protected set; }
+		public object Context { get; set; }
 
 		internal virtual void Dispatch(Service service)
 		{

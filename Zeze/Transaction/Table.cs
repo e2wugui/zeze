@@ -31,12 +31,12 @@ namespace Zeze.Transaction
         internal abstract Storage Open(Application zeze, Database database);
         internal abstract void Close();
 
-        internal virtual int ReduceShare(Reduce rpc)
+        internal virtual int ReduceShare(GlobalCacheManager.Reduce rpc)
         {
             throw new NotImplementedException();
         }
 
-        internal virtual int ReduceInvalid(Reduce rpc)
+        internal virtual int ReduceInvalid(GlobalCacheManager.Reduce rpc)
         {
             throw new NotImplementedException();
         }
@@ -110,7 +110,7 @@ namespace Zeze.Transaction
             }
         }
 
-        internal override int ReduceShare(Reduce rpc)
+        internal override int ReduceShare(GlobalCacheManager.Reduce rpc)
         {
             rpc.Result = rpc.Argument;
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
@@ -163,7 +163,7 @@ namespace Zeze.Transaction
             return 0;
         }
 
-        internal override int ReduceInvalid(Reduce rpc)
+        internal override int ReduceInvalid(GlobalCacheManager.Reduce rpc)
         {
             rpc.Result = rpc.Argument;
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));

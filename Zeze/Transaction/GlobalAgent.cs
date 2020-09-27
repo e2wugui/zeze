@@ -15,12 +15,12 @@ namespace Zeze.Transaction
         internal AsyncSocket ClientSocket;
         internal TaskCompletionSource<AsyncSocket> Connected;
 
-        internal int Acquire(GlobalTableKey gkey, int state)
+        internal int Acquire(GlobalCacheManager.GlobalTableKey gkey, int state)
         {
             if (null != ClientSocket)
             {
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了）。
-                Acquire rpc = new Acquire(gkey, state);
+                GlobalCacheManager.Acquire rpc = new GlobalCacheManager.Acquire(gkey, state);
                 rpc.SendForWait(ClientSocket, 12000).Task.Wait();
                 /*
                 if (rpc.ResultCode != 0)
@@ -36,7 +36,7 @@ namespace Zeze.Transaction
 
         public int ProcessReduceRequest(Zeze.Net.Protocol p)
         {
-            Reduce rpc = (Reduce)p;
+            GlobalCacheManager.Reduce rpc = (GlobalCacheManager.Reduce)p;
             switch (rpc.Argument.State)
             {
                 case GlobalCacheManager.StateInvalid:
@@ -66,9 +66,9 @@ namespace Zeze.Transaction
                 if (null != Client)
                     return;
                 Client = new GlobalClient(this);
-                Client.AddFactory(new Reduce().TypeId, () => new Reduce());
-                Client.AddFactory(new Acquire().TypeId, () => new Acquire());
-                Client.AddHandle(new Reduce().TypeRpcRequestId, ProcessReduceRequest);
+                Client.AddFactory(new GlobalCacheManager.Reduce().TypeId, () => new GlobalCacheManager.Reduce());
+                Client.AddFactory(new GlobalCacheManager.Acquire().TypeId, () => new GlobalCacheManager.Acquire());
+                Client.AddHandle(new GlobalCacheManager.Reduce().TypeRpcRequestId, ProcessReduceRequest);
                 Connected = new TaskCompletionSource<AsyncSocket>();
                 ClientSocket = Client.NewClientSocket(hostNameOrAddress, port);
                 Connected.Task.Wait();
