@@ -59,7 +59,7 @@ namespace UnitTest.Zeze.Trans
                 {
                     app1.demo_Module1_Module.Table1.Remove(6785);
                     return Procedure.Success;
-                }).Call());
+                }, "RemoveClean").Call());
                 
                 Task[] task2 = new Task[2];
                 int count = 2000;
@@ -73,14 +73,14 @@ namespace UnitTest.Zeze.Trans
                     Assert.AreEqual(countall, last1);
                     //Console.WriteLine("app1 " + last1);
                     return Procedure.Success;
-                }).Call());
+                }, "CheckResult1").Call());
                 Assert.IsTrue(Procedure.Success == app2.Zeze.NewProcedure(() =>
                 {
                     int last2 = app2.demo_Module1_Module.Table1.Get(6785).Int1;
                     Assert.AreEqual(countall, last2);
                     //Console.WriteLine("app1 " + last2);
                     return Procedure.Success;
-                }).Call());
+                }, "CheckResult2").Call());
             }
             finally
             {
@@ -100,7 +100,7 @@ namespace UnitTest.Zeze.Trans
                     b.Int1 += 1;
                     PrintLog log = new PrintLog(b, b, appId);
                     Transaction.Current.PutLog(log); return Procedure.Success;
-                }).Call);
+                }, "ConcurrentAdd" + appId).Call);
             }
             Task.WaitAll(tasks);
         }

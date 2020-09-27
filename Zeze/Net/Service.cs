@@ -146,7 +146,7 @@ namespace Zeze.Net
             {
                 if (null != Zeze)
                 {
-                    Task.Run(Zeze.NewProcedure(() => handle(p)).Call);
+                    Task.Run(Zeze.NewProcedure(() => handle(p), p.GetType().FullName).Call);
                 }
                 else
                 {

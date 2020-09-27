@@ -17,17 +17,21 @@ namespace Zeze.Transaction
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public Checkpoint Checkpoint { get; }
 
-        public Func<int> Action{ get; set; }
+        public Func<int> Action { get; set; }
 
+        public string ActionName { get; } // 用来统计或者调试
+
+        // 用于继承方式实现 Procedure。
         public Procedure(Checkpoint checkpoint)
         {
             Checkpoint = checkpoint;
         }
 
-        public Procedure(Checkpoint checkpoint, Func<int> action)
+        public Procedure(Checkpoint checkpoint, Func<int> action, string actionName)
         {
             Checkpoint = checkpoint;
             Action = action;
+            ActionName = actionName;
         }
 
         /// <summary>
@@ -93,8 +97,8 @@ namespace Zeze.Transaction
 
         public override string ToString()
         {
-            // 如果方法是成员函数，怎么得到所在class的名字。
-            return null != Action ? Action.Method.Name : this.GetType().FullName;
+            // GetType().FullName 仅在用继承的方式实现 Procedure 才有意义。
+            return $"{ActionName} {(null != Action ? Action.Method.Name : this.GetType().FullName)}";
         }
     }
 }

@@ -91,9 +91,9 @@ namespace Zeze
             throw new Exception($"database not exist name={name}");
         }
 
-        public Procedure NewProcedure(Func<int> func)
+        public Procedure NewProcedure(Func<int> action, string actionName)
         {
-            return new Procedure(_checkpoint, func);
+            return new Procedure(_checkpoint, action, actionName);
         }
 
         public void Start()

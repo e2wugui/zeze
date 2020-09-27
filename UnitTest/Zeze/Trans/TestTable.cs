@@ -22,7 +22,7 @@ namespace UnitTest.Zeze.Trans
                 demo.App.Instance.demo_Module1_Module.Table1.Remove(1);
                 demo.App.Instance.demo_Module1_Module.Table2.Remove(new demo.Module1.Key(1));
                 return Procedure.Success;
-            }).Call();
+            }, "RemoveDataFirst").Call();
         }
 
         [TestCleanup]
@@ -34,9 +34,9 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestUpdate()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAdd).Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetUpdate).Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetUpdateCheckRemove).Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAdd, "ProcGetOrAdd").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetUpdate, "ProcGetUpdate").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").Call());
         }
 
         int ProcGetUpdate()
@@ -83,8 +83,8 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestGetOrAdd()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAdd).Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAddCheckAndRemove).Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAdd, "ProcGetOrAdd").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").Call());
         }
 
         int ProcGetOrAdd()
@@ -134,15 +134,15 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void Test1TableGetPut()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet11).Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet12).Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet11, "ProcGet11").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet12, "ProcGet12").Call());
         }
 
         [TestMethod]
         public void Test2TableGetPut()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet21).Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet22).Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet21, "ProcGet21").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet22, "ProcGet22").Call());
         }
 
         int ProcGet21()
