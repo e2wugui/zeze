@@ -23,13 +23,11 @@ namespace Zeze.Transaction.Collections
                 {
                     var txn = Transaction.Current;
                     var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
-
-
                     var newv = oldv.SetItem(key, value);
                     if (newv != oldv)
                     {
-                        txn.PutLog(NewLog(newv));
                         value.InitTableKey(TableKey);
+                        txn.PutLog(NewLog(newv));
                     }
                 }
                 else
@@ -61,6 +59,34 @@ namespace Zeze.Transaction.Collections
             else
             {
                 map = map.Add(key, value);
+            }
+        }
+
+        public override void AddRange(IEnumerable<KeyValuePair<K, V>> pairs)
+        {
+            foreach (KeyValuePair<K, V> p in pairs)
+            {
+                if (p.Key == null)
+                    throw new ArgumentNullException();
+                if (p.Value == null)
+                    throw new ArgumentNullException();
+            }
+
+            if (this.IsManaged)
+            {
+                var txn = Transaction.Current;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var newv = oldv.AddRange(pairs);
+                if (newv != oldv)
+                {
+                    foreach (var p in pairs)
+                        p.Value.InitTableKey(TableKey);
+                    txn.PutLog(NewLog(newv));
+                }
+            }
+            else
+            {
+                map = map.AddRange(pairs);
             }
         }
 

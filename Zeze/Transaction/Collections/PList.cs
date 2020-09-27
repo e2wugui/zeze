@@ -66,6 +66,7 @@ namespace Zeze.Transaction.Collections
         public bool IsReadOnly => false;
 
         public abstract void Add(E item);
+        public abstract void AddRange(IEnumerable<E> items);
         public abstract void Clear();
         public abstract void Insert(int index, E item);
         public abstract bool Remove(E item);

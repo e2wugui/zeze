@@ -59,6 +59,32 @@ namespace Zeze.Transaction.Collections
             }
         }
 
+        public override void AddRange(IEnumerable<KeyValuePair<K, V>> pairs)
+        {
+            foreach (var p in pairs)
+            {
+                if (p.Key == null)
+                    throw new ArgumentNullException();
+                if (p.Value == null)
+                    throw new ArgumentNullException();
+            }
+
+            if (this.IsManaged)
+            {
+                var txn = Transaction.Current;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var newv = oldv.AddRange(pairs);
+                if (newv != oldv)
+                {
+                    txn.PutLog(NewLog(newv));
+                }
+            }
+            else
+            {
+                map = map.AddRange(pairs);
+            }
+        }
+
         public override void Add(KeyValuePair<K, V> item)
         {
             if (item.Key == null)

@@ -85,6 +85,9 @@ namespace Zeze.Net
 					return;
 				}
 
+				// 直接使用os，可以少创建对象，否则 Wrap 一个更安全：
+				// ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size)
+				// 使用Wrap的话，记得手动增加: os.ReadIndex += size;
 				Protocol p = service.CreateProtocol(type, os);
 				if (null == p)
 				{

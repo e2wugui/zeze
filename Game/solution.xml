@@ -3,10 +3,33 @@
 <solution name="Game" ModuleIdAllowRanges="1-100,101">
 	<module name="Bag" id="1">
 		<bean name="Item">
-			<variable id="1" name="int1" type="int"/> com aa
+			<variable id="1" name="Id" type="int"/>
+			<variable id="2" name="Type" type="int"/>
+			<variable id="3" name="Number" type="int"/>
+			<variable id="4" name="Extrakey" type="long"/>
+		</bean>
+		<bean name="Bag">
+			<variable id="1" name="Money" type="long"/>
+			<variable id="2" name="Capacity" type="int"/>
+			<variable id="3" name="Items" type="map" key="int", value="Item"/> key is position
+		</bean>
+		<table name="tbag" key="long" value="Bag"/>
+
+		<bean name="ArgMove">
+			<variable id="1" name="PositionFrom" type="int"/>
+			<variable id="2" name="PositionTo" type="int"/>
+			<variable id="3" name="number" type="int"/> -1 表示全部
+		</bean>
+		<bean name="ArgBagChanged">
+			<variable id="1" name="ItemsReplace" type="map" key="int", value="Item"/> key is position
+			<variable id="2" name="ItemsRemove" type="set" key="int"/> key is position
+		</bean>
+		<bean name="ArgDestroy">
+			<variable id="1" name="Position" type="int"/>
 		</bean>
 
-		<table name="tbag" key="long" value="Item"/>
+		<protocol name="Move" id="1" argument="ArgMove" handle="server"/>
+		<protocol name="Destroy" id="2" argument="ArgMove" handle="server"/>
 	</module>
 
 	<module name="Item" id="2">

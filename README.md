@@ -12,21 +12,44 @@ GlobalCacheManager 是一个控制台程序。当多个Application共享数据库时，用来管理Cach
 
 #### 使用说明
 
-1. 定义自己解决方案相关内容，包含数据类型、协议、数据库表格等。
-   参考：Game\solution.xml; UnitTest\solution.xml
-2. 使用 Gen 生成代码。
-3. 在生成的Module类中，实现应用协议，使用数据库表格访问数据等。
-4. 配置。
-   参考：Game\zeze.xml; UnitTest\zeze.xml
-   一般来说，开始的话，需要提供一个数据库配置。不提供配置的话，数据库是内存的。
+. 定义自己解决方案相关内容，包含数据类型(bean)、协议(protocol)、数据库表格(table)等。
+  参考：Game\solution.xml; UnitTest\solution.xml
 
-Bean
-   纯粹的数据对象
-   nullable 减少使用时需要判断null
-   setter for bean type 对于数据对象来说，使用Assign赋值。
-   Managed
-   binary
-   PSet1 没有完全检查参数是否为空
+. 使用 Gen.exe 生成代码。
+
+. 在生成的Module类中，实现应用协议，访问数据库表完成逻辑操作。
+
+. 配置（zeze.xml）
+  参考：Game\zeze.xml; UnitTest\zeze.xml
+  一般来说，开始需要提供一个数据库配置，其他都可以用默认的。
+  不提供配置的话，数据库是内存的。
+
+. 什么时候创建存储过程（Zeze.NewProcedure）
+  现在框架默认为每个协议创建存储过程，一般来说不再需要自己创建。
+  如果你想要事务部分失败的时候不回滚整个事务，那就需要嵌套事务，此时需要创建自己的存储过程并判断执行结果。
+  int nestProcedureResult = Zeze.NewProcedure(myaction, "myactionname").Call();
+  // check nestProcedureResult
+
+. Bean（纯粹的数据对象，里面可以包含Bean，容器。容器里面又可以包含Bean）
+  reference：所有的 bean 引用不允许重复，不允许有环（TODO Gen的时候检测环）。
+  null：所有的 bean 引用不会为 null，使用的时候不需要判断，可以简化代码。
+  Assign：Bean 中包含的Bean和容器的引用没有 setter。如果需要整个对象赋值，使用 Bean.Assign 方法。
+  Managed：Bean被加入Table或者被加入一个已经Managed状态的Bean的容器中之前是非Managed状态，
+    此时修改Bean不会被记录日志。Managed状态一旦设置，就不会恢复，即使你从Table中或者容器中删除它。
+    Managed状态只能被设置一次，参考上面的reference说明。如果你想加入重复的对象，使用 Bean.Copy 方法复制一份。
+  binary：这个类型的内部实现是byte[]，由于直接引用数组没法进行修改保护，所以目前限制binary不能直接被容器包含，
+    只能定义在Bean中，并且提供特殊的属性和方法进行访问。
+
+. Bean.InitTableKey
+  当需要批量处理容器里面的bean（比如重新排序某些不直接支持排序容器）时，为了避免Copy所有Bean，需要使用这个方法重置Managed状态。
+    伪码如下
+    var beans = Bean.Dictionary.ToArray();
+    Bean.Dictionary.Clear();
+    Array.Sort(beans);
+    Bean.Dictionary.AddRange(beans);
+
+. Sample
+  Game\game.sln
 
 #### 特殊模式
 

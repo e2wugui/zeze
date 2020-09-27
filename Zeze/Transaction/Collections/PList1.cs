@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Collections.Generic;
 
 namespace Zeze.Transaction.Collections
 {
@@ -44,6 +45,27 @@ namespace Zeze.Transaction.Collections
             else
             {
                 list = list.Add(item);
+            }
+        }
+
+        public override void AddRange(IEnumerable<E> items)
+        {
+            // XXX
+            foreach (var v in items)
+            {
+                if (null == v)
+                    throw new ArgumentNullException();
+            }
+
+            if (this.IsManaged)
+            {
+                var txn = Transaction.Current;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
+                txn.PutLog(NewLog(oldv.AddRange(items)));
+            }
+            else
+            {
+                list = list.AddRange(items);
             }
         }
 
