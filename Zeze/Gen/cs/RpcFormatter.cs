@@ -24,8 +24,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine("namespace " + rpc.Space.Path());
             sw.WriteLine("{");
 
-            string argument = TypeName.GetName(rpc.ArgumentType);
-            string result = TypeName.GetName(rpc.ResultType);
+            string argument = rpc.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ArgumentType);
+            string result = rpc.ResultType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ResultType);
 
             sw.WriteLine("    public sealed class " + rpc.Name + " : Zeze.Net.Rpc<" + argument + ", " + result + ">");
             sw.WriteLine("    {");

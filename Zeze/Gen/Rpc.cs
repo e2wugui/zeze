@@ -20,13 +20,13 @@ namespace Zeze.Gen
         public override void Compile()
         {
             base.Compile();
-            ResultType = Types.Type.Compile(Space, Result);
+            ResultType = Result.Length > 0 ? Types.Type.Compile(Space, Result) : null;
         }
 
         public override void Depends(HashSet<Types.Type> depends)
         {
-            ArgumentType.Depends(depends);
-            ResultType.Depends(depends);
+            ArgumentType?.Depends(depends);
+            ResultType?.Depends(depends);
         }
     }
 }

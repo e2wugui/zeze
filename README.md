@@ -36,17 +36,13 @@ GlobalCacheManager 是一个控制台程序。当多个Application共享数据库时，用来管理Cach
   Assign：Bean 中包含的Bean和容器的引用没有 setter。如果需要整个对象赋值，使用 Bean.Assign 方法。
   Managed：Bean被加入Table或者被加入一个已经Managed状态的Bean的容器中之前是非Managed状态，
     此时修改Bean不会被记录日志。Managed状态一旦设置，就不会恢复，即使你从Table中或者容器中删除它。
+    当你从Table或者容器中删除后要再次加入进去，需要Copy一次。
     Managed状态只能被设置一次，参考上面的reference说明。如果你想加入重复的对象，使用 Bean.Copy 方法复制一份。
   binary：这个类型的内部实现是byte[]，由于直接引用数组没法进行修改保护，所以目前限制binary不能直接被容器包含，
     只能定义在Bean中，并且提供特殊的属性和方法进行访问。
 
-. Bean.InitTableKey
-  当需要批量处理容器里面的bean（比如重新排序某些不直接支持排序容器）时，为了避免Copy所有Bean，需要使用这个方法重置Managed状态。
-    伪码如下
-    var beans = Bean.Dictionary.ToArray();
-    Bean.Dictionary.Clear();
-    Array.Sort(beans);
-    Bean.Dictionary.AddRange(beans);
+XXX Do Not Catch Exception
+  原则上不要捕捉异常。如果你实在需要，捕捉处理以后，请再次抛出。
 
 . Sample
   Game\game.sln

@@ -11,5 +11,9 @@ namespace Game.Bag
         {
         }
 
+        public override int ProcessSChanged(SChanged protocol)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

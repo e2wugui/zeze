@@ -40,12 +40,12 @@ namespace Zeze.Gen
 
         public virtual void Compile()
         {
-            ArgumentType = Types.Type.Compile(Space, Argument);
+            ArgumentType = Argument.Length > 0 ? Types.Type.Compile(Space, Argument) : null;
         }
 
         public virtual void Depends(HashSet<Types.Type> depends)
         {
-            ArgumentType.Depends(depends);
+            ArgumentType?.Depends(depends);
         }
     }
 }

@@ -24,7 +24,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("namespace " + p.Space.Path());
             sw.WriteLine("{");
 
-            string argument = TypeName.GetName(p.ArgumentType);
+            string argument = p.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(p.ArgumentType);
             sw.WriteLine("    public sealed class " + p.Name + " : Zeze.Net.Protocol<" + argument + ">");
             sw.WriteLine("    {");
             sw.WriteLine("        public override int ModuleId => " + p.Space.Id + ";");

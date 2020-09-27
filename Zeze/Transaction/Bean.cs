@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.Serialization;
+using Zeze.Serialize;
 
 namespace Zeze.Transaction
 {
@@ -32,5 +33,20 @@ namespace Zeze.Transaction
         public abstract void Decode(global::Zeze.Serialize.ByteBuffer bb);
         public abstract void Encode(global::Zeze.Serialize.ByteBuffer bb);
         public virtual int CapacityHintOfByteBuffer => 1024; // 生成工具分析数据结构，生成容量提示，减少内存拷贝。
+    }
+
+    public class EmptyBean : Bean
+    {
+        public override void Decode(ByteBuffer bb)
+        {
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+        }
+
+        protected override void InitChildrenTableKey(TableKey root)
+        {
+        }
     }
 }
