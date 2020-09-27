@@ -2,36 +2,36 @@
 
 <solution name="Game" ModuleIdAllowRanges="1-100,101">
 	<module name="Bag" id="1">
-		<bean name="Item">
+		<bean name="BItem">
 			<variable id="1" name="Id" type="int"/>
 			<variable id="2" name="Type" type="int"/>
 			<variable id="3" name="Number" type="int"/>
 			<variable id="4" name="Extrakey" type="long"/>
 		</bean>
-		<bean name="Bag">
+		<bean name="BBag">
 			<variable id="1" name="Money" type="long"/>
 			<variable id="2" name="Capacity" type="int"/>
-			<variable id="3" name="Items" type="map" key="int" value="Item"/> key is position
+			<variable id="3" name="Items" type="map" key="int" value="BItem"/> key is position
 		</bean>
-		<table name="tbag" key="long" value="Bag"/>
+		<table name="tbag" key="long" value="BBag"/>
 
-		<bean name="Move">
+		<bean name="BMove">
 			<variable id="1" name="PositionFrom" type="int"/>
 			<variable id="2" name="PositionTo" type="int"/>
 			<variable id="3" name="number" type="int"/> -1 表示全部
 		</bean>
-		<bean name="Destroy">
+		<bean name="BDestroy">
 			<variable id="1" name="Position" type="int"/>
 		</bean>
-		<bean name="Result">
-			<variable id="1" name="ItemsReplace" type="map" key="int" value="Item"/> key is position
+		<bean name="BResult">
+			<variable id="1" name="ItemsReplace" type="map" key="int" value="BItem"/> key is position
 			<variable id="2" name="ItemsRemove" type="set" value="int"/> key is position
 		</bean>
 
-		<protocol name="CMove" id="1" argument="Move" handle="server"/>
-		<protocol name="CDestroy" id="2" argument="Destroy" handle="server"/>
+		<protocol name="CMove" id="1" argument="BMove" handle="server"/>
+		<protocol name="CDestroy" id="2" argument="BDestroy" handle="server"/>
 		<protocol name="CSort" id="3" handle="server"/>
-		<protocol name="SChanged" id="4" argument="Result" handle="client"/>
+		<protocol name="SChanged" id="4" argument="BResult" handle="client"/>
 	</module>
 
 	<module name="Item" id="2">
@@ -44,7 +44,7 @@
 	</module>
 
 	<module name="Equip" id="5">
-		<table name="tequip" key="long" value="Game.Bag.Item"/>
+		<table name="tequip" key="long" value="Game.Bag.BItem"/>
 	</module>
 
 	<!--
