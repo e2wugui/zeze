@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30517.126
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "gsd", "gsd\gsd.csproj", "{03632306-04F2-4EBA-8BD6-A46412D26F42}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "server", "gsd\server.csproj", "{03632306-04F2-4EBA-8BD6-A46412D26F42}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zeze", "..\Zeze\Zeze.csproj", "{31957A9B-FC6B-4536-872F-B32E2E1AB275}"
 EndProject
