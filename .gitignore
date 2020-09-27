@@ -19,3 +19,6 @@ TestResults
 /Game/client/obj
 /Game/client/bin
 /Game/.vs
+/Game/server/Gen
+/Game/server/obj
+/Game/server/bin

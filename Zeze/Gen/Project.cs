@@ -128,6 +128,15 @@ namespace Zeze.Gen
                 {
                     table.Depends(depends);
                 }
+                // 加入模块中定义的所有bean和beankey。
+                foreach (Module mod in AllModules)
+                {
+                    foreach (var b in mod.BeanKeys.Values)
+                        depends.Add(b);
+                    foreach (var b in mod.Beans.Values)
+                        depends.Add(b);
+                }
+                // 加入额外引用的bean,beankey，一般引入定义在不是本项目模块中的。
                 foreach (string n in Program.Refs(self, "bean"))
                 {
                     depends.Add(Program.GetNamedObject<Types.Bean>(n));
