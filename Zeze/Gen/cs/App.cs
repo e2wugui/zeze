@@ -64,6 +64,7 @@ namespace Zeze.Gen.cs
             {
                 sw.WriteLine("                " + m.Name + " = new " + m.FullName + "(Zeze);");
             }
+            sw.WriteLine("");
             foreach (Module m in project.AllModules)
             {
                 sw.WriteLine("                " + m.Path("_", "Module") + " = new " + m.Path(".", "Module") + "(this);");
@@ -72,6 +73,11 @@ namespace Zeze.Gen.cs
             foreach (Module m in project.AllModules)
             {
                 sw.WriteLine("                " + m.Path("_", "Module") + ".Start(this);");
+            }
+            sw.WriteLine("");
+            foreach (Service m in project.Services.Values)
+            {
+                sw.WriteLine("                " + m.Name + ".Start();");
             }
             sw.WriteLine("            }");
             sw.WriteLine("        }");

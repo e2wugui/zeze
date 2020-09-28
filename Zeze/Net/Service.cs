@@ -17,20 +17,21 @@ namespace Zeze.Net
         /// <summary>
         /// 同一个 Service 下的所有连接都是用相同配置。
         /// </summary>
-        public SocketOptions SocketOptions { get; set; }
+        public SocketOptions SocketOptions { get; set; } = new SocketOptions();
         public Application Zeze { get; }
+        public string Name { get; }
 
         private ConcurrentDictionary<long, AsyncSocket> _asocketMap = new ConcurrentDictionary<long, AsyncSocket>();
 
-        public Service(Application zeze)
+        public Service(string name, Application zeze)
         {
+            Name = name;
             Zeze = zeze;
-            SocketOptions = new SocketOptions();
         }
 
-        public Service()
+        public Service(string name)
         {
-            SocketOptions = new SocketOptions();
+            Name = name;
         }
 
         /// <summary>
@@ -54,11 +55,15 @@ namespace Zeze.Net
             throw new Exception("no socket found.");
         }
 
+        public virtual void Start()
+        { 
+        }
+
         public virtual void Close()
         {
             foreach (var e in _asocketMap)
             {
-                e.Value.Dispose();
+                e.Value.Dispose(); // remove in callback OnSocketClose
             }
         }
 

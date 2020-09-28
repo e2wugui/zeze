@@ -17,6 +17,10 @@ namespace UnitTest.Zeze.Net
         public class ServiceClient : Service
         {
             internal TaskCompletionSource<bool> Future = new TaskCompletionSource<bool>();
+            public ServiceClient() : base("TestAsyncSocket.ServiceClient")
+            {
+
+            }
 
             public override void OnSocketConnected(AsyncSocket so)
             {

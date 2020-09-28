@@ -60,6 +60,16 @@ namespace Zeze
             }
         }
 
+        public Dictionary<string, ServiceConf> ServiceConfMap { get; } = new Dictionary<string, ServiceConf>();
+        public ServiceConf DefaultServiceConf { get; set; } = new ServiceConf();
+
+        public ServiceConf GetServiceConf(string name)
+        {
+            if (ServiceConfMap.TryGetValue(name, out var serviceConf))
+                return serviceConf;
+            return DefaultServiceConf;
+        }
+
         public static Config Load(string xmlfile = null)
         {
             if (null == xmlfile)
@@ -185,6 +195,71 @@ namespace Zeze
                 {
                     conf.DefaultTableConf = this;
                 }
+            }
+        }
+
+        public class ServiceConf
+        {
+            public string Name { get; }
+            public Net.SocketOptions SocketOptions { get; set; } = new Net.SocketOptions();
+            public Services.HandshakeOptions HandshakeOptions { get; set; } = new Services.HandshakeOptions();
+
+            public int Port { get; set; } = 0;
+            public string HostNameOrAddress { get; set; } = ""; // 用于server时只能是ipaddress
+            public bool IsAutoReconnect { get; set; } = true; // 仅用于客户端
+
+            public ServiceConf()
+            {
+                Name = "";
+            }
+
+            public ServiceConf(Config conf, XmlElement self)
+            {
+                Name = self.GetAttribute("Name");
+
+                string attr;
+
+                // SocketOptions
+                attr = self.GetAttribute("NoDelay");
+                if (attr.Length > 0) SocketOptions.NoDelay = bool.Parse(attr);
+                attr = self.GetAttribute("SendBuffer");
+                if (attr.Length > 0) SocketOptions.SendBuffer= int.Parse(attr);
+                attr = self.GetAttribute("ReceiveBuffer");
+                if (attr.Length > 0) SocketOptions.ReceiveBuffer = int.Parse(attr);
+                attr = self.GetAttribute("InputBufferSize");
+                if (attr.Length > 0) SocketOptions.InputBufferSize = int.Parse(attr);
+                attr = self.GetAttribute("InputBufferMaxProtocolSize");
+                if (attr.Length > 0) SocketOptions.InputBufferMaxProtocolSize = int.Parse(attr);
+                attr = self.GetAttribute("OutputBufferMaxSize");
+                if (attr.Length > 0) SocketOptions.OutputBufferMaxSize = int.Parse(attr);
+                attr = self.GetAttribute("Backlog");
+                if (attr.Length > 0) SocketOptions.Backlog = int.Parse(attr);
+                attr = self.GetAttribute("SocketLogLevel");
+                if (attr.Length > 0) SocketOptions.SocketLogLevel = NLog.LogLevel.FromString(attr);
+
+                // HandshakeOptions
+                foreach (string dg in self.GetAttribute("DhGroups").Split(','))
+                    HandshakeOptions.AddDhGroup(int.Parse(dg));
+                attr = self.GetAttribute("SecureIp");
+                if (attr.Length > 0) HandshakeOptions.SecureIp = System.Net.IPAddress.Parse(attr).GetAddressBytes();
+                attr = self.GetAttribute("S2cNeedCompress");
+                if (attr.Length > 0) HandshakeOptions.S2cNeedCompress = bool.Parse(attr);
+                attr = self.GetAttribute("C2sNeedCompress");
+                if (attr.Length > 0) HandshakeOptions.C2sNeedCompress = bool.Parse(attr);
+                attr = self.GetAttribute("DhGroup");
+                if (attr.Length > 0) HandshakeOptions.DhGroup = byte.Parse(attr);
+
+                if (Name.Length > 0)
+                    conf.ServiceConfMap.Add(Name, this);
+                else
+                    conf.DefaultServiceConf = this;
+
+                // connection options
+                attr = self.GetAttribute("Port");
+                if (attr.Length > 0) Port = int.Parse(attr);
+                HostNameOrAddress = self.GetAttribute("HostNameOrAddress");
+                attr = self.GetAttribute("IsAutoReconnect");
+                if (attr.Length > 0) IsAutoReconnect = bool.Parse(attr);
             }
         }
 

@@ -15,7 +15,7 @@ namespace UnitTest.Zeze.Net
         [TestMethod]
         public void TestRpcSimple()
         {
-            Service server = new Service();
+            Service server = new Service("TestRpc.Server");
 
             FirstRpc forid = new FirstRpc();
             server.AddFactoryHandle(forid.TypeId, new Service.ProtocolFactoryHandle()
@@ -61,7 +61,7 @@ namespace UnitTest.Zeze.Net
         public class Client : Service
         {
             TestRpc test;
-            public Client(TestRpc test)
+            public Client(TestRpc test) : base("TestRpc.Client")
             {
                 this.test = test;
             }

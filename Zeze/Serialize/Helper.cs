@@ -169,7 +169,15 @@ namespace Zeze.Serialize
         public static byte[] Copy(byte[] src)
         {
             byte[] result = new byte[src.Length];
-            Array.Copy(src, result, src.Length);
+            Buffer.BlockCopy(src, 0, result, 0, src.Length);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte[] Copy(byte[] src, int offset, int length)
+        {
+            byte[] result = new byte[length];
+            Buffer.BlockCopy(src, offset, result, 0, length);
             return result;
         }
     }

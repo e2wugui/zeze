@@ -99,7 +99,7 @@ namespace Zeze.Transaction
     public class GlobalClient : Zeze.Net.Service
     {
         GlobalAgent agent;
-        public GlobalClient(GlobalAgent agent)
+        public GlobalClient(GlobalAgent agent) : base("GlobalClient")
         {
             this.agent = agent;
         }

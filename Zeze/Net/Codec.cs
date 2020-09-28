@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Security.Cryptography;
+using Zeze.Serialize;
 
 namespace Zeze.Net
 {
@@ -50,10 +51,17 @@ namespace Zeze.Net
 
     public static class Digest
     {
-        public static byte[] MD5(byte[] message)
+        public static byte[] Md5(byte[] message)
         {
-            using (var md = System.Security.Cryptography.MD5.Create())
-                return md.ComputeHash(message);
+            using var md = MD5.Create();
+            return md.ComputeHash(message);
+        }
+
+        public static byte[] HmacMd5(byte[] key, byte[] data, int offset, int length)
+        {
+            using HashAlgorithm hash = new HMACMD5(key);
+            hash.TransformFinalBlock(data, offset, length);
+            return hash.Hash;
         }
     }
 
@@ -69,7 +77,7 @@ namespace Zeze.Net
         public Encrypt(Codec sink, byte[] key)
         {
             this.sink = sink;
-            _iv = Digest.MD5(key);
+            _iv = Digest.Md5(key);
             AesManaged aes = new AesManaged
             {
                 Mode = CipherMode.ECB
@@ -163,7 +171,7 @@ namespace Zeze.Net
         public Decrypt(Codec sink, byte[] key)
         {
             this.sink = sink;
-            _iv = Digest.MD5(key);
+            _iv = Digest.Md5(key);
             AesManaged aes = new AesManaged
             {
                 Mode = CipherMode.ECB

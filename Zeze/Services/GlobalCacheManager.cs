@@ -535,6 +535,10 @@ namespace Zeze.Services
 
         public class ServerService : Zeze.Net.Service
         {
+            public ServerService() : base("GlobalCacheManager")
+            { 
+            }
+
             public override void OnSocketAccept(AsyncSocket so)
             {
                 so.UserState = new CacheHolder(so.SessionId);
