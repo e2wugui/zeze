@@ -43,10 +43,6 @@ namespace Zeze.Gen.cs
             sw.WriteLine("    {");
             sw.WriteLine("        public " + service.Name + "(Zeze.Application zeze) : base(zeze)");
             sw.WriteLine("        {");
-            foreach (Protocol p in service.GetAllProtocols())
-            {
-                sw.WriteLine("            this.AddFactory(" + p.TypeId + ", () => new " + p.Space.Path(".", p.Name) + "());");
-            }
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("}");

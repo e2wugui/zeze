@@ -11,16 +11,13 @@ namespace Zeze.Net
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
         public virtual int TypeId => ModuleId << 16 | ProtocolId;
-		public int TypeRpcRequestId => TypeId; // handle
-		public int TypeRpcResponseId => (int)((uint)TypeId | 0x80000000); // 用来注册 handle
-		public int TypeRpcTimeoutId => (TypeId | 0x8000); // 用来注册 handle
 
 		public AsyncSocket Sender { get; protected set; }
 		public object Context { get; set; }
 
 		internal virtual void Dispatch(Service service)
 		{
-			service.DispatchProtocol(this);
+			service.DispatchProtocol(this, Service.DispatchType.Request);
 		}
 
 		public abstract void Decode(ByteBuffer bb);

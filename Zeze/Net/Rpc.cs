@@ -54,9 +54,7 @@ namespace Zeze.Net
                     return;
                 }
 
-                //context.Sender = null; // timeout 没有网络。
-                context.typeId = TypeRpcTimeoutId;
-                so.Service.DispatchProtocol(context);
+                so.Service.DispatchProtocol(context, Service.DispatchType.Timeout);
             }, millisecondsTimeout, -1);
         }
 
@@ -83,7 +81,7 @@ namespace Zeze.Net
         {
             if (IsRequest)
             {
-                service.DispatchProtocol(this);
+                service.DispatchProtocol(this, Service.DispatchType.Request);
                 return;
             }
 
@@ -106,8 +104,7 @@ namespace Zeze.Net
                 return; // SendForWait，设置结果唤醒等待者。
             }
 
-            context.typeId = TypeRpcResponseId;
-            service.DispatchProtocol(context);
+            service.DispatchProtocol(context, Service.DispatchType.Response);
         }
 
         public override void Decode(ByteBuffer bb)

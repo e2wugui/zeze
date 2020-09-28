@@ -140,9 +140,31 @@ namespace Zeze.Net
             }
         }
 
-        public virtual void DispatchProtocol(Protocol p)
+        public enum DispatchType
         {
-            if (Handles.TryGetValue(p.TypeId, out var handle))
+            Request = 0,
+            Response = 1,
+            Timeout = 2,
+        }
+
+        public Func<Protocol, int> GetProtocolHandle(int typeid, DispatchType dispatchType)
+        {
+            if (Factorys.TryGetValue(typeid, out var protocolFactoryHandle))
+            {
+                switch (dispatchType)
+                {
+                    case DispatchType.Request: return protocolFactoryHandle.HandleRequest;
+                    case DispatchType.Response: return protocolFactoryHandle.HandleResponse;
+                    case DispatchType.Timeout: return protocolFactoryHandle.HandleTimeout;
+                }
+            }
+            return null;
+        }
+
+        public virtual void DispatchProtocol(Protocol p, DispatchType dispatchType)
+        {
+            Func<Protocol, int> handle = GetProtocolHandle(p.TypeId, dispatchType);
+            if (null != handle)
             {
                 if (null != Zeze)
                 {
@@ -155,7 +177,7 @@ namespace Zeze.Net
             }
             else
             {
-                logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}", p);
+                logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}@{1}", p, dispatchType);
             }
         }
 
@@ -166,16 +188,17 @@ namespace Zeze.Net
 
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// 协议工厂
-        public ConcurrentDictionary<int, Func<Protocol>> Factorys { get; } = new ConcurrentDictionary<int, Func<Protocol>>();
-        public ConcurrentDictionary<int, Func<Protocol, int>> Handles { get; } = new ConcurrentDictionary<int, Func<Protocol, int>>();
-
-        public void AddHandle(int type, Func<Protocol, int> handle)
-        {
-            if (false == Handles.TryAdd(type, handle))
-                throw new Exception($"duplicate handle type={type} moduleid={(type >> 16) & 0x7fff} id={type & 0x7fff}");
+        public class ProtocolFactoryHandle
+        { 
+            public Func<Protocol> Factory { get; set; }
+            public Func<Protocol, int> HandleRequest { get; set; }
+            public Func<Protocol, int> HandleResponse { get; set; }
+            public Func<Protocol, int> HandleTimeout { get; set; }
         }
 
-        public void AddFactory(int type, Func<Protocol> factory)
+        private ConcurrentDictionary<int, ProtocolFactoryHandle> Factorys { get; } = new ConcurrentDictionary<int, ProtocolFactoryHandle>();
+
+        public void AddFactoryHandle(int type, ProtocolFactoryHandle factory)
         {
             if (false == Factorys.TryAdd(type, factory))
                 throw new Exception($"duplicate factory type={type} moduleid={(type >> 16) & 0x7fff} id={type & 0x7fff}");
@@ -200,13 +223,13 @@ namespace Zeze.Net
 
         public Protocol CreateProtocol(int type, ByteBuffer bb)
         {
-            Func<Protocol> factory;
+            ProtocolFactoryHandle factory;
             if (false == Factorys.TryGetValue(type, out factory))
             {
                 return null;
             }
 
-            Protocol p = factory();
+            Protocol p = factory.Factory();
             p.Decode(bb);
             return p;
         }

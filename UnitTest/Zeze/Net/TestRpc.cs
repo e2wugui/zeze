@@ -18,12 +18,19 @@ namespace UnitTest.Zeze.Net
             Service server = new Service();
 
             FirstRpc forid = new FirstRpc();
-            server.AddFactory(forid.TypeId, () => new FirstRpc());
-            server.AddHandle(forid.TypeRpcRequestId, Service.MakeHandle<FirstRpc>(this, GetType().GetMethod(nameof(ProcessFirstRpcRequest))));
+            server.AddFactoryHandle(forid.TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new FirstRpc(),
+                HandleRequest = Service.MakeHandle<FirstRpc>(this, GetType().GetMethod(nameof(ProcessFirstRpcRequest))),
+            });
 
             AsyncSocket servetrSocket = server.NewServerSocket(IPAddress.Any, 5000);
             Client client = new Client(this);
-            client.AddFactory(forid.TypeId, () => new FirstRpc());
+            client.AddFactoryHandle(forid.TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new FirstRpc(),
+            });
+
             AsyncSocket clientSocket = client.NewClientSocket("127.0.0.1", 5000);
             connected.WaitOne();
 

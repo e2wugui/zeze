@@ -45,7 +45,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("        public Module(" + module.Solution.Name + ".App app)");
             sw.WriteLine("        {");
-            sw.WriteLine("            // register protocol handles");
+            sw.WriteLine("            // register protocol factory and handles");
             Service serv = module.ReferenceService;
             if (serv != null)
             {
@@ -54,20 +54,30 @@ namespace Zeze.Gen.cs
                 {
                     if (p is Rpc rpc)
                     {
-                        if ((rpc.HandleFlags & serviceHandleFlags) != 0)
+                        if (((rpc.HandleFlags & serviceHandleFlags) != 0)
+                            || ((rpc.HandleFlags & serviceHandleFlags) == 0 || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0))
                         {
-                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcRequestId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Request))));");
-                        }
-                        if ((rpc.HandleFlags & serviceHandleFlags) == 0 || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0)
-                        {
-                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcResponseId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Response))));");
-                            sw.WriteLine($"            app.{serv.Name}.AddHandle({rpc.TypeRpcTimeoutId}, Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Timeout))));");
+                            sw.WriteLine($"            app.{serv.Name}.AddFactoryHandle({rpc.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
+                            sw.WriteLine("            {");
+                            sw.WriteLine($"                Factory = () => new {rpc.Space.Path(".", rpc.Name)}(),");
+                            if ((rpc.HandleFlags & serviceHandleFlags) != 0)
+                                sw.WriteLine($"                HandleRequest = Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Request))),");
+                            if ((rpc.HandleFlags & serviceHandleFlags) == 0 || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0)
+                            {
+                                sw.WriteLine($"                HandleResponse = Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Response))),");
+                                sw.WriteLine($"                HandleTimeout = Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Timeout))),");
+                            }
+                            sw.WriteLine("            });");
                         }
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags))
                     {
-                        sw.WriteLine($"            app.{serv.Name}.AddHandle({p.TypeId}, Zeze.Net.Service.MakeHandle<{p.Name}>(this, GetType().GetMethod(nameof(Process{p.Name}))));");
+                        sw.WriteLine($"            app.{serv.Name}.AddFactoryHandle({p.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
+                        sw.WriteLine( "            {");
+                        sw.WriteLine($"                Factory = () => new {p.Space.Path(".", p.Name)}(),");
+                        sw.WriteLine($"                HandleRequest = Zeze.Net.Service.MakeHandle<{p.Name}>(this, GetType().GetMethod(nameof(Process{p.Name}))),");
+                        sw.WriteLine( "            });");
                     }
                 }
             }

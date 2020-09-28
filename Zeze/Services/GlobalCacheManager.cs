@@ -51,9 +51,16 @@ namespace Zeze.Services
                 if (Server != null)
                     return;
                 Server = new ServerService();
-                Server.AddFactory(new Acquire().TypeId, () => new Acquire());
-                Server.AddFactory(new Reduce().TypeId, () => new Reduce());
-                Server.AddHandle(new Acquire().TypeRpcRequestId, ProcessAcquireRequest);
+                Server.AddFactoryHandle(new Acquire().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new Acquire(),
+                    HandleRequest = ProcessAcquireRequest,
+                });
+                Server.AddFactoryHandle(new Reduce().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new Reduce(),
+                });
+
                 serverSocket = Server.NewServerSocket(ipaddress, port);
             }
         }

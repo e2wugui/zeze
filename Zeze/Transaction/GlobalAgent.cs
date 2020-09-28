@@ -66,9 +66,17 @@ namespace Zeze.Transaction
                 if (null != Client)
                     return;
                 Client = new GlobalClient(this);
-                Client.AddFactory(new GlobalCacheManager.Reduce().TypeId, () => new GlobalCacheManager.Reduce());
-                Client.AddFactory(new GlobalCacheManager.Acquire().TypeId, () => new GlobalCacheManager.Acquire());
-                Client.AddHandle(new GlobalCacheManager.Reduce().TypeRpcRequestId, ProcessReduceRequest);
+                Client.AddFactoryHandle(new GlobalCacheManager.Reduce().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new GlobalCacheManager.Reduce(),
+                    HandleRequest = ProcessReduceRequest
+                });
+                Client.AddFactoryHandle(new GlobalCacheManager.Acquire().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new GlobalCacheManager.Acquire(),
+                    // 同步方式调用，不需要设置Handle: Response Timeout 
+                });
+
                 Connected = new TaskCompletionSource<AsyncSocket>();
                 ClientSocket = Client.NewClientSocket(hostNameOrAddress, port);
                 Connected.Task.Wait();
@@ -108,10 +116,11 @@ namespace Zeze.Transaction
             agent.Connected.SetException(e);
         }
 
-        public override void DispatchProtocol(Protocol p)
+        public override void DispatchProtocol(Protocol p, Service.DispatchType dispatchType)
         {
             // Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-            if (Handles.TryGetValue(p.TypeId, out var handle))
+            Func<Protocol, int> handle = GetProtocolHandle(p.TypeId, dispatchType);
+            if (null != handle)
             {
                 agent.Zeze.InternalThreadPool.QueueUserWorkItem(() => handle(p));
             }
