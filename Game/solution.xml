@@ -13,18 +13,6 @@
 		<bean name="BLogin">
 			<variable id="1" name="RoleId" type="long"/>
 		</bean>
-		<bean name="BEnterWorldNow">
-			<variable id="1" name="MapInstanceId" type="int"/>
-			<!-- role postion -->
-			<variable id="2" name="x" type="float"/>
-			<variable id="3" name="y" type="float"/>
-			<variable id="4" name="z" type="float"/>
-			<!-- parameter for client resource -->
-			<variable id="5" name="ResouceId" type="int"/>
-		</bean>
-		<bean name="BEnterWorldDone">
-			<variable id="1" name="MapInstanceId" type="int"/>
-		</bean>
 		<bean name="BAuth">
 			<variable id="1" name="Account" type="string"/>
 			<variable id="2" name="Token" type="string"/> security. maybe password
@@ -42,9 +30,6 @@
 		<protocol name="SGetRoleList" id="4" argument="BRoles" handle="client"/>
 		<protocol name="CLogin" id="5" argument="BLogin" handle="server"/>
 		<protocol name="SLogin" id="6" argument="BLogin" handle="client"/>
-		<protocol name="CEnterWorld" id="7" handle="server"/> no argument. all in server
-		<protocol name="SEnterWorldNow" id="8" argument="BEnterWorldNow" handle="client"/>
-		<protocol name="CEnterWorldDone" id="9" argument="BEnterWorldDone" handle="server"/> client load resource done
 		<protocol name="CLogout" id="10" argument="BLogin" handle="server"/>
 		<protocol name="SLogout" id="11" argument="BLogin" handle="client"/>
 
@@ -125,6 +110,25 @@
 		<table name="tequip" key="long" value="Game.Bag.BItem"/>
 	</module>
 
+	<module name="Map" id="7">
+		<bean name="BEnterWorldNow">
+			<variable id="1" name="MapInstanceId" type="int"/>
+			<!-- role postion -->
+			<variable id="2" name="x" type="float"/>
+			<variable id="3" name="y" type="float"/>
+			<variable id="4" name="z" type="float"/>
+			<!-- parameter for client resource -->
+			<variable id="5" name="ResouceId" type="int"/>
+		</bean>
+		<bean name="BEnterWorldDone">
+			<variable id="1" name="MapInstanceId" type="int"/>
+		</bean>
+
+		<protocol name="CEnterWorld" id="1" handle="server"/> no argument. all in server
+		<protocol name="SEnterWorldNow" id="2" argument="BEnterWorldNow" handle="client"/>
+		<protocol name="CEnterWorldDone" id="3" argument="BEnterWorldDone" handle="server"/> client load resource done
+	</module>
+
 	<!--
 	name 项目名字
 	gendir 代码生成输出目录，默认是当前目录
@@ -143,17 +147,12 @@
 			<module ref="Fight"/>
 			<module ref="Buf"/>
 			<module ref="Equip"/>
+			<module ref="Map"/>
 		</service>
 	</project>
 
 	<project name="client" gendir="." platform="cs" GenTables="client">
 		<service name="Client" handle="client" base="Zeze.Services.HandshakeClient">
-			<module ref="Login"/>
-			<module ref="Bag"/>
-			<module ref="Item"/>
-			<module ref="Fight"/>
-			<module ref="Buf"/>
-			<module ref="Equip"/>
 		</service>
 	</project>
 

@@ -65,24 +65,6 @@ namespace Game.Login
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessCEnterWorld(CEnterWorld protocol)
-        {
-            Session session = Session.Get(protocol);
-            if (null == session.LoginRoleId)
-            {
-                return Zeze.Transaction.Procedure.LogicError;
-            }
-
-            // TODO map
-            return Zeze.Transaction.Procedure.NotImplement;
-        }
-
-        public override int ProcessCEnterWorldDone(CEnterWorldDone protocol)
-        {
-            // TODO map
-            return Zeze.Transaction.Procedure.NotImplement;
-        }
-
         public override int ProcessCGetRoleList(CGetRoleList protocol)
         {
             Session session = Session.Get(protocol);
