@@ -67,7 +67,7 @@
 		-->
 		<module ref="Module2"/>
 		<!-- service 生成到 solution 名字空间下 -->
-		<service name="Server" handle="server" base=""> demo.Provider
+		<service name="Server" handle="server">
 			<module ref="Module1"/>
 		</service>
 	</project>

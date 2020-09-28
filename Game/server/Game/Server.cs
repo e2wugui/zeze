@@ -2,7 +2,7 @@
 
 namespace Game
 {
-    public sealed partial class Server : Zeze.Net.Service
+    public sealed partial class Server
     {
         // 重载需要的方法。
     }

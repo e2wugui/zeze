@@ -88,13 +88,13 @@
 		<module ref="CommonModule"/>
 		-->
 		<!-- service 生成到 solution 名字空间下 -->
-		<service name="Server" handle="server" base="">
+		<service name="Server" handle="server" base="Zeze.Services.HandshakeServer">
 			<module ref="Bag"/>
 		</service>
 	</project>
 
 	<project name="client" gendir="." platform="cs" GenTables="client">
-		<service name="Client" handle="client">
+		<service name="Client" handle="client" base="Zeze.Services.HandshakeClient">
 			<module ref="Bag"/>
 		</service>
 	</project>

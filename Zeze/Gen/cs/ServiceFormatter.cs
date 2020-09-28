@@ -60,7 +60,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + service.Project.Solution.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed partial class " + service.Name + " : " + BaseClass());
+            sw.WriteLine("    public sealed partial class " + service.Name);
             sw.WriteLine("    {");
             sw.WriteLine("        // 重载需要的方法。");
             sw.WriteLine("    }");
