@@ -31,6 +31,15 @@ namespace Zeze.Gen.cs
             sw.WriteLine("    {");
             sw.WriteLine("        public override int ModuleId => " + rpc.Space.Id + ";");
             sw.WriteLine("        public override int ProtocolId => " + rpc.Id + ";");
+            // declare enums
+            foreach (Types.Enum e in rpc.Enums)
+            {
+                sw.WriteLine("        public const int " + e.Name + " = " + e.Value + ";" + e.Comment);
+            }
+            if (rpc.Enums.Count > 0)
+            {
+                sw.WriteLine("");
+            }
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }

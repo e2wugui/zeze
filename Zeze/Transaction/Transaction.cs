@@ -204,19 +204,12 @@ namespace Zeze.Transaction
 
         private void _final_commit_(Procedure procedure)
         {
-            // if any changes
-            // 有可能出现fieldLoggers.count == 0 而 beanRootLogger.count > 0 的情况
-            // 还有可能 put 新记录，这时 fieldLogger和beanRootLogger都为空
-            //if (cacheRecords.Values.Any(r => r.Dirty))
-
             // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
             // 在最终提交里可以实现每事务checkpoint。
             try
             {
                 Savepoint last = savepoints[^1];
                 last.Commit();
-                //savepoints.Clear();
-
                 foreach (var e in accessedRecords)
                 {
                     if (e.Value.Dirty)
@@ -224,7 +217,8 @@ namespace Zeze.Transaction
                         e.Value.OriginRecord.Commit(e.Value);
                     }
                 }
-                //accessedRecords.Clear();
+                savepoints.Clear(); // not need
+                accessedRecords.Clear(); // not need
             }
             catch (Exception e)
             {
@@ -243,6 +237,7 @@ namespace Zeze.Transaction
                     logger.Error(e, "Commit Procedure {0} Action {1}", procedure, action.Method.Name);
                 }
             }
+            CommitActions.Clear();
         }
 
         private void _final_rollback_(Procedure procedure)
@@ -258,6 +253,7 @@ namespace Zeze.Transaction
                     logger.Error(e, "Rollback Procedure {0} Action {1}", procedure, action.Method.Name);
                 }
             }
+            RollbackActions.Clear();
         }
 
         private readonly List<Lockey> holdLocks = new List<Lockey>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。

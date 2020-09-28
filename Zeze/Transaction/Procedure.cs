@@ -12,6 +12,7 @@ namespace Zeze.Transaction
         public const int NotImplement = -3;
         public const int Unknown = -4;
         public const int ErrorSavepoint = -5;
+        public const int LogicError = -6;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();

@@ -13,7 +13,7 @@ namespace Zeze.Net
         public virtual int TypeId => ModuleId << 16 | ProtocolId;
 
 		public AsyncSocket Sender { get; protected set; }
-		public object Context { get; set; }
+		public object UserState { get; set; }
 
 		internal virtual void Dispatch(Service service)
 		{
@@ -95,6 +95,7 @@ namespace Zeze.Net
 				else
                 {
 					p.Sender = so;
+					p.UserState = so.UserState;
 					p.Dispatch(service);
 				}
 			}
@@ -110,14 +111,17 @@ namespace Zeze.Net
     public abstract class Protocol<TArgument> : Protocol where TArgument : global::Zeze.Transaction.Bean, new()
     {
         public TArgument Argument { get; set; } = new TArgument();
+		public int ResultCode { get; set; }
 
-        public override void Decode(ByteBuffer bb)
+		public override void Decode(ByteBuffer bb)
         {
+			ResultCode = bb.ReadInt();
 			Argument.Decode(bb);
 		}
 
 		public override void Encode(ByteBuffer bb)
         {
+			bb.WriteInt(ResultCode);
 			Argument.Encode(bb);
 		}
     }

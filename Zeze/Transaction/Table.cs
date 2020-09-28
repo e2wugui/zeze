@@ -266,19 +266,26 @@ namespace Zeze.Transaction
             return add;
         }
 
-        public void Insert(K key, V value)
+        public bool Add(K key, V value)
         {
             if (null != Get(key))
-            {
-                throw new ArgumentException($"table:{GetType().FullName} insert key:{key} exists");
-            }
+                return false;
+
             if (key is long longkey)
                 AutoKey?.Accept(longkey);
+
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Id, key);
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             value.InitTableKey(tkey);
             cr.Put(currentT, value);
+            return true;
+        }
+
+        public void Insert(K key, V value)
+        {
+            if (false == Add(key, value))
+                throw new ArgumentException($"table:{GetType().FullName} insert key:{key} exists");
         }
 
         public void Put(K key, V value)

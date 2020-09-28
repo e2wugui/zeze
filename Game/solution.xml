@@ -6,45 +6,80 @@
 			<variable id="1" name="Id" type="long"/>
 			<variable id="2" name="Name" type="string"/>
 		</bean>
-
 		<bean name="BRoles">
-			<variable id="1" name="List" type="list" value="BRole"/>
+			<variable id="1" name="RoleList" type="list" value="BRole"/>
 			<variable id="2" name="LastLoginRoleId" type="long"/>
 		</bean>
-
 		<bean name="BLogin">
 			<variable id="1" name="RoleId" type="long"/>
 		</bean>
-
+		<bean name="BEnterWorldNow">
+			<variable id="1" name="MapInstanceId" type="int"/>
+			<!-- role postion -->
+			<variable id="2" name="x" type="float"/>
+			<variable id="3" name="y" type="float"/>
+			<variable id="4" name="z" type="float"/>
+			<!-- parameter for client resource -->
+			<variable id="5" name="ResouceId" type="int"/>
+		</bean>
+		<bean name="BEnterWorldDone">
+			<variable id="1" name="MapInstanceId" type="int"/>
+		</bean>
 		<bean name="BAuth">
+			<variable id="1" name="Account" type="string"/>
+			<variable id="2" name="Token" type="string"/> security. maybe password
+		</bean>
+		<bean name="BAuthResult">
+			<variable id="1" name="Account" type="string"/>
 		</bean>
 
 		<protocol name="CCreateRole" id="1" argument="BRole" handle="server"/>
-		<protocol name="SCreateRole" id="2" argument="BRoles" handle="client"/>
+		<protocol name="SCreateRole" id="2" argument="BRole" handle="client">
+			<enum name="ResultSuccess" value="0"/>
+			<enum name="ResultFaild" value="1"/>
+		</protocol>
 		<protocol name="CGetRoleList" id="3" handle="server"/>
 		<protocol name="SGetRoleList" id="4" argument="BRoles" handle="client"/>
 		<protocol name="CLogin" id="5" argument="BLogin" handle="server"/>
-		<protocol name="SLogin" id="6" argument="BLogin" handle="server"/>
+		<protocol name="SLogin" id="6" argument="BLogin" handle="client"/>
+		<protocol name="CEnterWorld" id="7" handle="server"/> no argument. all in server
+		<protocol name="SEnterWorldNow" id="8" argument="BEnterWorldNow" handle="client"/>
+		<protocol name="CEnterWorldDone" id="9" argument="BEnterWorldDone" handle="server"/> client load resource done
+		<protocol name="CLogout" id="10" argument="BLogin" handle="server"/>
+		<protocol name="SLogout" id="11" argument="BLogin" handle="client"/>
 
-		<protocol name="CAuth" id="7" argument="BAuth" handle="server"/>
-		<protocol name="SAuth" id="8" argument="BAuth" handle="client"/>
+		<!-- 只有账号验证，不包含注册功能 -->
+		<protocol name="CAuth" id="100" argument="BAuth" handle="server"/>
+		<protocol name="SAuth" id="101" argument="BAuthResult" handle="client">
+			<enum name="ResultSuccess" value="0"/>
+			<enum name="ResultFaild" value="1"/>
+		</protocol>
 
+		<bean name="BAccount">
+			<variable id="1" name="Name" type="string"/>
+			<variable id="2" name="Token" type="string"/>
+			<variable id="3" name="Roles" type="list" value="long"/> roleid list
+			<variable id="4" name="SocketSessionId" type="long"/> for kick
+			<variable id="5" name="LastLoginRoleId" type="long"/>
+		</bean>
+		<bean name="BRoleData">
+			<variable id="1" name="Name" type="string"/>
+		</bean>
+		<bean name="BRoleId">
+			<variable id="1" name="Id" type="long"/>
+		</bean>
+		<bean name="BOnline">
+			<variable id="1" name="SessionId" type="long"/>
+			<variable id="2" name="RoleId" type="long"/>
+		</bean>
+
+		<table name="taccount" key="string" value="BAccount"/>
+		<table name="trole" key="long" value="BRoleData" autokey="true"/>
+		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
+		<table name="tonline" key="long" value="BOnline" memory="true" autokey="true"/>
 	</module>
 
 	<module name="Bag" id="2">
-		<bean name="BItem">
-			<variable id="1" name="Id" type="int"/>
-			<variable id="2" name="Type" type="int"/>
-			<variable id="3" name="Number" type="int"/>
-			<variable id="4" name="Extrakey" type="long"/>
-		</bean>
-		<bean name="BBag">
-			<variable id="1" name="Money" type="long"/>
-			<variable id="2" name="Capacity" type="int"/>
-			<variable id="3" name="Items" type="map" key="int" value="BItem"/> key is position
-		</bean>
-		<table name="tbag" key="long" value="BBag"/>
-
 		<bean name="BMove">
 			<variable id="1" name="PositionFrom" type="int"/>
 			<variable id="2" name="PositionTo" type="int"/>
@@ -62,6 +97,19 @@
 		<protocol name="CDestroy" id="2" argument="BDestroy" handle="server"/>
 		<protocol name="CSort" id="3" handle="server"/>
 		<protocol name="SChanged" id="4" argument="BResult" handle="client"/>
+
+		<bean name="BItem">
+			<variable id="1" name="Id" type="int"/>
+			<variable id="2" name="Type" type="int"/>
+			<variable id="3" name="Number" type="int"/>
+			<variable id="4" name="Extrakey" type="long"/>
+		</bean>
+		<bean name="BBag">
+			<variable id="1" name="Money" type="long"/>
+			<variable id="2" name="Capacity" type="int"/>
+			<variable id="3" name="Items" type="map" key="int" value="BItem"/> key is position
+		</bean>
+		<table name="tbag" key="long" value="BBag"/>
 	</module>
 
 	<module name="Item" id="3">
@@ -89,13 +137,23 @@
 		-->
 		<!-- service 生成到 solution 名字空间下 -->
 		<service name="Server" handle="server" base="Zeze.Services.HandshakeServer">
+			<module ref="Login"/>
 			<module ref="Bag"/>
+			<module ref="Item"/>
+			<module ref="Fight"/>
+			<module ref="Buf"/>
+			<module ref="Equip"/>
 		</service>
 	</project>
 
 	<project name="client" gendir="." platform="cs" GenTables="client">
 		<service name="Client" handle="client" base="Zeze.Services.HandshakeClient">
+			<module ref="Login"/>
 			<module ref="Bag"/>
+			<module ref="Item"/>
+			<module ref="Fight"/>
+			<module ref="Buf"/>
+			<module ref="Equip"/>
 		</service>
 	</project>
 

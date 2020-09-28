@@ -19,6 +19,8 @@ namespace Zeze.Gen
         public string Handle { get; private set; }
         public int HandleFlags { get; }
 
+        public List<Types.Enum> Enums { get; private set; } = new List<Types.Enum>();
+
         // setup in compile
         public Types.Type ArgumentType { get; private set; }
 
@@ -36,6 +38,30 @@ namespace Zeze.Gen
             Argument = self.GetAttribute("argument");
             Handle = self.GetAttribute("handle");
             HandleFlags = Program.ToHandleFlags(Handle);
+
+            XmlNodeList childNodes = self.ChildNodes;
+            foreach (XmlNode node in childNodes)
+            {
+                if (XmlNodeType.Element != node.NodeType)
+                    continue;
+
+                XmlElement e = (XmlElement)node;
+
+                String nodename = e.Name;
+                switch (e.Name)
+                {
+                    case "enum":
+                        Add(new Types.Enum(e));
+                        break;
+                    default:
+                        throw new Exception("node=" + nodename);
+                }
+            }
+        }
+
+        public void Add(Types.Enum e)
+        {
+            Enums.Add(e); // check duplicate
         }
 
         public virtual void Compile()
