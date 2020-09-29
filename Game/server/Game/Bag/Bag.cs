@@ -16,19 +16,14 @@ namespace Game.Bag
             bag = table.GetOrAdd(roleid);
         }
 
-        public class Change
-        { 
-
-        }
-
         /// <summary>
         /// 加入简单物品，只有id和number
         /// </summary>
         /// <param name="id"></param>
         /// <param name="number"></param>
-        public void Add(int id, int number)
+        public bool Add(int id, int number)
         {
-            Add(id, number, -1, 0);
+            return Add(new BItem() { Id = id, Number = number });
         }
 
         /// <summary>
@@ -38,18 +33,68 @@ namespace Game.Bag
         /// <param name="number"></param>
         /// <param name="type"></param>
         /// <param name="extrakey"></param>
-        public void Add(int id, int number, int type, long extrakey)
+        public bool Add(int id, int number, int type, long extrakey)
         {
-            Add(new BItem() { Id = id, Number = number, Type = type, Extrakey = extrakey });
+            return Add(new BItem() { Id = id, Number = number, Type = type, Extrakey = extrakey });
         }
 
         /// <summary>
-        /// 加入物品
+        /// 加入物品：优先堆叠到已有的格子里面；然后如果很多，自动拆分。
         /// </summary>
         /// <param name="item"></param>
-        public void Add(BItem item)
+        public bool Add(BItem itemAdd)
         {
-            
+            int pileMax = GetItemPileMax(itemAdd.Id);
+
+            foreach (var item in bag.Items)
+            {
+                if (item.Value.Id == itemAdd.Id)
+                {
+                    int numberNew = item.Value.Number + itemAdd.Number;
+                    if (numberNew > pileMax)
+                    {
+                        item.Value.Number = pileMax;
+                        itemAdd.Number = numberNew - pileMax;
+                        continue;
+                    }
+                    item.Value.Number = numberNew;
+                    return true; // all pile done
+                }
+            }
+            while (itemAdd.Number > pileMax)
+            {
+                int pos = GetEmptyPosition();
+                if (pos == -1)
+                    return false;
+
+                BItem itemNew = itemAdd.Copy();
+                itemNew.Number = pileMax;
+                itemAdd.Number -= pileMax;
+                bag.Items.Add(pos, itemNew);
+            }
+            if (itemAdd.Number > 0)
+            {
+                int pos = GetEmptyPosition();
+                if (pos == -1)
+                    return false;
+                bag.Items.Add(pos, itemAdd);
+            }
+            return true;
+        }
+
+        private int GetEmptyPosition()
+        {
+            for (int pos = 0; pos < bag.Capacity; ++pos)
+            {
+                if (false == bag.Items.TryGetValue(pos, out var _))
+                    return pos;
+            }
+            return -1;
+        }
+
+        public int GetItemPileMax(int itemId)
+        {
+            return 99; // TODO load from config
         }
 
         /// <summary>
@@ -74,7 +119,7 @@ namespace Game.Bag
             if (number < 0 || number > itemFrom.Number)
                 number = itemFrom.Number; // move all
 
-            int pileMax = 99; // TODO GetItemPileMax(itemFrom.Id)
+            int pileMax = GetItemPileMax(itemFrom.Id);
             if (bag.Items.TryGetValue(to, out var itemTo))
             { 
                 if (itemFrom.Id != itemTo.Id)
