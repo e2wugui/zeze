@@ -87,7 +87,7 @@ XXX Do Not Catch Exception
    demo1.App.Start();
    demo2.App.Start();
 
-4. Cache同步：多个 Zeze.Application 访问同一个后端数据库
+4. Cache同步：多个 Zeze.Application 实例访问同一个后端数据库
    一般的模式是后端数据库仅被一个 Zeze.Application 访问。如果需要多个App访问一个数据库，需要开启Cache同步功能。
    1) 启动 GlobalCacheManager
    2) 配置 zeze.xml 的属性：GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5555"

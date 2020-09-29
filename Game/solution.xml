@@ -73,7 +73,7 @@
 		<bean name="BDestroy">
 			<variable id="1" name="Position" type="int"/>
 		</bean>
-		<bean name="BResult">
+		<bean name="BChangedResult">
 			<variable id="1" name="ItemsReplace" type="map" key="int" value="BItem"/> key is position
 			<variable id="2" name="ItemsRemove" type="set" value="int"/> key is position
 		</bean>
@@ -81,12 +81,12 @@
 		<protocol name="CMove" id="1" argument="BMove" handle="server"/>
 		<protocol name="CDestroy" id="2" argument="BDestroy" handle="server"/>
 		<protocol name="CSort" id="3" handle="server"/>
-		<protocol name="SChanged" id="4" argument="BResult" handle="client"/>
+		<protocol name="SChanged" id="4" argument="BChangedResult" handle="client"/> 所有的包裹改变都通过这个协议发送。
 
 		<bean name="BItem">
 			<variable id="1" name="Id" type="int"/>
-			<variable id="2" name="Type" type="int"/>
-			<variable id="3" name="Number" type="int"/>
+			<variable id="2" name="Number" type="int"/>
+			<variable id="3" name="Type" type="int"/>
 			<variable id="4" name="Extrakey" type="long"/>
 		</bean>
 		<bean name="BBag">

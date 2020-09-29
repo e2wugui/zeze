@@ -71,18 +71,15 @@ namespace Zeze.Transaction.Collections
         {
             return $"PMap{Data}";
         }
-
-        public abstract V this[K key] { get; set; }
-
         public bool IsReadOnly => false;
 
+        public abstract V this[K key] { get; set; }
         public abstract void Add(K key, V value);
         public abstract void Add(KeyValuePair<K, V> item);
         public abstract void AddRange(IEnumerable<KeyValuePair<K, V>> pairs);
         public abstract void Clear();
         public abstract bool Remove(K key);
         public abstract bool Remove(KeyValuePair<K, V> item);
-
 
         public void CopyTo(KeyValuePair<K, V>[] array, int arrayIndex)
         {

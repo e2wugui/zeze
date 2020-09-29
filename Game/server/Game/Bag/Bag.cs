@@ -6,11 +6,21 @@ namespace Game.Bag
 {
     public class Bag
     {
-        private BBag data;
+        private BBag bag;
 
         public Bag(long roleid, tbag table)
         {
-            data = table.GetOrAdd(roleid);
+            bag = table.GetOrAdd(roleid);
+        }
+
+        public class Change
+        { 
+
+        }
+
+        public void Move(int from, int to, int number)
+        {
+
         }
     }
 }

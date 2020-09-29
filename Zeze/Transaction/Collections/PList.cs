@@ -62,7 +62,6 @@ namespace Zeze.Transaction.Collections
 
         public abstract E this[int index] { get; set; }
 
-
         public bool IsReadOnly => false;
 
         public abstract void Add(E item);
@@ -72,7 +71,6 @@ namespace Zeze.Transaction.Collections
         public abstract bool Remove(E item);
         public abstract void RemoveAt(int index);
         public abstract void RemoveRange(int index, int count);
-
 
         public bool Contains(E item)
         {

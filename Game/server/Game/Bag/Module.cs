@@ -14,7 +14,12 @@ namespace Game.Bag
         // protocol handles
         public override int ProcessCMove(CMove protocol)
         {
-            throw new System.NotImplementedException();
+            Login.Session session = Login.Session.Get(protocol);
+
+            // throw if not login
+            GetBag(session.LoginRoleId.Value).Move(protocol.Argument.PositionFrom, protocol.Argument.PositionTo, protocol.Argument.Number);
+
+            return Zeze.Transaction.Procedure.Success;
         }
 
         public override int ProcessCDestroy(CDestroy protocol)

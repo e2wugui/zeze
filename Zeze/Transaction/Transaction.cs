@@ -403,6 +403,9 @@ namespace Zeze.Transaction
                 // 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；其他情况属于Begin,Commit,Rollback不匹配。外面检查。
                 foreach (var log in savepoints[^1].Logs.Values)
                 {
+                    if (log.Bean == null)
+                        continue; // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。现在不会有这种情况，保留给未来扩展需要。
+
                     TableKey tkey = log.Bean.TableKey;
                     if (accessedRecords.TryGetValue(tkey, out var record))
                     {

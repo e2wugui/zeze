@@ -64,9 +64,7 @@ namespace Zeze.Transaction.Collections
         }
 
         public int Count => Data.Count;
-
         public bool IsReadOnly => false;
-
 
         public abstract bool Add(E item);
         public abstract void Clear();
@@ -115,7 +113,6 @@ namespace Zeze.Transaction.Collections
             return Data.IsSupersetOf(other);
         }
 
-
         public bool SetEquals(IEnumerable<E> other)
         {
             return Data.SetEquals(other);
@@ -130,7 +127,6 @@ namespace Zeze.Transaction.Collections
         {
             return Data.GetEnumerator();
         }
-
         IEnumerator<E> IEnumerable<E>.GetEnumerator()
         {
             return Data.GetEnumerator();
@@ -140,6 +136,5 @@ namespace Zeze.Transaction.Collections
         {
             return Data.GetEnumerator();
         }
-
     }
 }

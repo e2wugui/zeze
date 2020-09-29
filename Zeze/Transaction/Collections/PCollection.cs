@@ -6,6 +6,7 @@ namespace Zeze.Transaction.Collections
         public TableKey TableKey { get; private set; }
         public bool IsManaged => TableKey != null;
         public long LogKey { get; }
+        //public long ObjectId { get; } = Bean.NextObjectId;
 
         protected PCollection(long logKey)
         {
@@ -24,7 +25,6 @@ namespace Zeze.Transaction.Collections
             this.TableKey = tableKey;
             InitChildrenTableKey(tableKey);
         }
-
 
         protected abstract void InitChildrenTableKey(TableKey root);
     }
