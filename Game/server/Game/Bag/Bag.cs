@@ -16,12 +16,60 @@ namespace Game.Bag
             bag = table.GetOrAdd(roleid);
         }
 
+        public void SetCapacity(int capacity)
+        {
+            bag.Capacity = capacity;
+        }
+
+        public void SetMoney(long money)
+        {
+            bag.Money = money;
+        }
+
+        public long GetMoney()
+        {
+            return bag.Money;
+        }
+
+        public void AddOrDecMoney(long addOrDec)
+        {
+            bag.Money += addOrDec;
+        }
+
+        /// <summary>
+        /// 删除number数量的指定id物品。
+        /// warning: 如果返回false，表示物品不够。此时应该回滚事务，否则会部分删除。
+        /// 由于逻辑调用删除物品都是为了使用，如果不够，使用失败，回滚事务是比较合理的。
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="number"></param>
+        /// <returns></returns>
+        public bool Remove(int id, int number)
+        {
+            foreach (var item in bag.Items)
+            {
+                if (item.Value.Id == id)
+                {
+                    if (item.Value.Number > number)
+                    {
+                        item.Value.Number -= number;
+                        return true;
+                    }
+                    number -= item.Value.Number;
+                    bag.Items.Remove(item.Key);
+                    if (number <= 0)
+                        return true;
+                }
+            }
+            return false;
+        }
+
         /// <summary>
         /// 加入简单物品，只有id和number
         /// </summary>
         /// <param name="id"></param>
         /// <param name="number"></param>
-        public bool Add(int id, int number)
+        public int Add(int id, int number)
         {
             return Add(new BItem() { Id = id, Number = number });
         }
@@ -33,16 +81,20 @@ namespace Game.Bag
         /// <param name="number"></param>
         /// <param name="type"></param>
         /// <param name="extrakey"></param>
-        public bool Add(int id, int number, int type, long extrakey)
+        public int Add(int id, int number, int type, long extrakey)
         {
             return Add(new BItem() { Id = id, Number = number, Type = type, Extrakey = extrakey });
         }
 
         /// <summary>
         /// 加入物品：优先堆叠到已有的格子里面；然后如果很多，自动拆分。
+        /// 失败处理：如果外面调用者在失败时回滚事务，那么所有的添加都会被回滚。
+        ///           如果没有回滚，那么就会完成部分添加。此时返回剩余number，逻辑可能需要把剩余数量的物品转到其他系统（比如邮件中）。
+        ///           另外如果想回滚全部添加，但是又不回滚整个事务，应该使用嵌套事务。
+        ///           在嵌套事务中尝试添加，失败的话回滚嵌套事务，然后继续把所有物品转到其他系统。
         /// </summary>
         /// <param name="item"></param>
-        public bool Add(BItem itemAdd)
+        public int Add(BItem itemAdd)
         {
             int pileMax = GetItemPileMax(itemAdd.Id);
 
@@ -58,14 +110,14 @@ namespace Game.Bag
                         continue;
                     }
                     item.Value.Number = numberNew;
-                    return true; // all pile done
+                    return 0; // all pile done
                 }
             }
             while (itemAdd.Number > pileMax)
             {
                 int pos = GetEmptyPosition();
                 if (pos == -1)
-                    return false;
+                    return itemAdd.Number;
 
                 BItem itemNew = itemAdd.Copy();
                 itemNew.Number = pileMax;
@@ -76,10 +128,10 @@ namespace Game.Bag
             {
                 int pos = GetEmptyPosition();
                 if (pos == -1)
-                    return false;
+                    return itemAdd.Number;
                 bag.Items.Add(pos, itemAdd);
             }
-            return true;
+            return 0;
         }
 
         private int GetEmptyPosition()
@@ -92,7 +144,7 @@ namespace Game.Bag
             return -1;
         }
 
-        public int GetItemPileMax(int itemId)
+        private int GetItemPileMax(int itemId)
         {
             return 99; // TODO load from config
         }

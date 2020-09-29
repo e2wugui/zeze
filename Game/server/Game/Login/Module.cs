@@ -59,6 +59,9 @@ namespace Game.Login
                 return Zeze.Transaction.Procedure.LogicError;
             }
 
+            // initialize role data
+            Game.App.Instance.Game_Bag_Module.GetBag(roleid).SetCapacity(50);
+
             result.Argument.Id = roleid;
             result.ResultCode = SCreateRole.ResultSuccess;
             session.SendResponse(result);
