@@ -66,6 +66,14 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            return copy;");
             sw.WriteLine("        }");
             sw.WriteLine();
+            sw.WriteLine($"        public static void Swap({bean.Name} a, {bean.Name} b)");
+            sw.WriteLine("        {");
+            sw.WriteLine($"            {bean.Name} save = a.Copy();");
+            sw.WriteLine("            a.Assign(b);");
+            sw.WriteLine("            b.Assign(save);");
+            sw.WriteLine("        }");
+
+            sw.WriteLine();
             Log.Make(bean, sw, "        ");
             Tostring.Make(bean, sw, "        ");
             Encode.Make(bean, sw, "        ");

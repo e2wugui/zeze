@@ -31,6 +31,16 @@ namespace Game.Login
             }
         }
 
+        public void SendResponseWhileCommit(Protocol p)
+        {
+            Zeze.Transaction.Transaction.Current.RunWhileCommit(() => SendResponse(p));
+        }
+
+        public void SendResponseWhileRollback(Protocol p)
+        {
+            Zeze.Transaction.Transaction.Current.RunWhileRollback(() => SendResponse(p));
+        }
+
         public static Session Get(Protocol context)
         {
             if (null == context.UserState)
