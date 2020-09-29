@@ -44,12 +44,8 @@ GlobalCacheManager 是一个控制台程序。当多个Application共享数据库时，用来管理Cach
 XXX Do Not Catch Exception
   原则上不要捕捉异常。如果你实在需要，捕捉处理以后，请再次抛出。
 
-. 建议命名规范
-  Bean用'B'开头。
-  客户端发送的协议用'C'开头。
-  服务器发送的协议用'S'开头。
-
 . Sample
+  see Game\Readme.txt
   Game\game.sln
 
 #### 特殊模式
@@ -98,7 +94,6 @@ XXX Do Not Catch Exception
       配置参考：UnitTest\zeze.xml
    *) 注意，不支持多个使用同一个 GlobalCacheManager 同步的Cache的 Zeze.Application 之间的事务。参见上面的第3点。
       因为 Cache 同步需要同步记录的持有状态，如果此时 Application 使用同一个 Checkpoint，记录同步就需要等待自己，会死锁。
-   *) 注意，需要确保Cache同步的所有App都访问相同的Database。
 
 #### TODO
 
