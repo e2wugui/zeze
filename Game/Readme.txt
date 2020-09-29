@@ -31,3 +31,8 @@
   Table 成员变量名前加 '_' 字符，代码中可以比较容易识别出来哪些在访问表格。
   * 不能创建自己的 Table 实例，并注册到 Zeze.Application 中。这会导致不可预料的结果。
   * 多个 Zeze.Application 实例访问同一个数据库，需要开启 Cache 同步。see ..\README.md:特殊模式:.4
+
+. 怎么给客户端发送协议
+  Game.Login.Session 一般发送给自己
+  Game.Login.Onlines 发送给其他玩家
+  SendWhileCommit SendWhileRollback 用来在事务成功或者回滚的时候发送

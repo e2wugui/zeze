@@ -82,6 +82,7 @@
 		<protocol name="CDestroy" id="2" argument="BDestroy" handle="server"/>
 		<protocol name="CSort" id="3" handle="server"/>
 		<protocol name="SChanged" id="4" argument="BChangedResult" handle="client"/> 所有的包裹改变都通过这个协议发送。
+		<protocol name="CGetBag" id="5" handle="server"/>
 
 		<bean name="BItem">
 			<variable id="1" name="Id" type="int"/>

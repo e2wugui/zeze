@@ -40,11 +40,22 @@ namespace Game.Bag
 
             Bag bag = GetBag(session.LoginRoleId.Value);
             bag.Sort();
+
             SChanged result = new SChanged();
             // 这里直接引用表格中的bean。协议发送完就释放，作为临时变量可以这样用。一般情况下不能保存表格中的bean。
             result.Argument.ItemsReplace.AddRange(bag.Items);
             session.SendResponse(result);
 
+            return Zeze.Transaction.Procedure.Success;
+        }
+
+        public override int ProcessCGetBag(CGetBag protocol)
+        {
+            Login.Session session = Login.Session.Get(protocol);
+
+            SChanged result = new SChanged();
+            result.Argument.ItemsReplace.AddRange(GetBag(session.LoginRoleId.Value).Items);
+            session.SendResponse(result);
             return Zeze.Transaction.Procedure.Success;
         }
 
