@@ -55,12 +55,6 @@ namespace Zeze.Gen.Types
 				}
 		}
 
-		// ///////////////////////////////////////////
-		//	// dynamic create
-		//	Bean(ModuleSpace space, String name) {
-		//		Type.Add(space, this);
-		//	}
-		//
 		public void Add(Variable var)
 		{
 			Variables.Add(var); // check duplicate

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
@@ -15,6 +16,10 @@ namespace Zeze.Gen.cs
                 if (v.VariableType.IsNormalBean || v.VariableType.IsCollection)
                 {
                     sw.WriteLine(prefix + "    " + v.NamePrivate + ".InitTableKey(root);");
+                }
+                else if (v.VariableType is TypeDynamic)
+                {
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + "?.InitTableKey(root);");
                 }
             }
             sw.WriteLine(prefix + "}");

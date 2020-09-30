@@ -93,5 +93,10 @@ namespace Zeze.Gen.cs
         {
             name = "short";
         }
+
+        public void Visit(TypeDynamic type)
+        {
+            name = "Zeze.Transaction.Bean";
+        }
     }
 }

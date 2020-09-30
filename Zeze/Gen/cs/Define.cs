@@ -99,5 +99,10 @@ namespace Zeze.Gen.cs
         {
             DefineStack(type);
         }
+
+        public void Visit(TypeDynamic type)
+        {
+            DefineStack(type);
+        }
     }
 }

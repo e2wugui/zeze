@@ -108,5 +108,10 @@ namespace Zeze.Gen.cs
         {
             text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
         }
+
+        public void Visit(TypeDynamic type)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

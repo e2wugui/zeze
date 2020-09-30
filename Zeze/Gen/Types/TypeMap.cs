@@ -44,6 +44,8 @@ namespace Zeze.Gen.Types
 			ValueType = Type.Compile(space, value, null, null);
 			if (ValueType is TypeBinary)
 				throw new Exception(Name + " Error : value type is binary.");
+			if (ValueType is TypeDynamic)
+				throw new Exception(Name + " Error : value type is dynamic.");
 		}
 
 		internal TypeMap(SortedDictionary<String, Type> types)

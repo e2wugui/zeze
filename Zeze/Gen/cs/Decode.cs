@@ -279,5 +279,35 @@ namespace Zeze.Gen.cs
                 sw.WriteLine(prefix + varname + " = " + bufname + ".ReadShort();");
             }
         }
+
+        void Visitor.Visit(TypeDynamic type)
+        {
+            if (id >= 0)
+            {
+                sw.WriteLine(prefix + "case (Helper.DYNAMIC | " + id + " << Helper.TAG_SHIFT): ");
+                sw.WriteLine(prefix + "    switch (" + bufname + ".ReadString())");
+                sw.WriteLine(prefix + "    {");
+                foreach (Bean real in type.RealBeans)
+                {
+                    string realName = TypeName.GetName(real);
+                    sw.WriteLine(prefix + "        case \"" + realName + "\":");
+                    sw.WriteLine(prefix + "            " + varname + " = new " + realName + "();");
+                    sw.WriteLine(prefix + "            " + varname + ".Decode(" + bufname + ".ReadByteBuffer());");
+                    sw.WriteLine(prefix + "            break;");
+                }
+                sw.WriteLine(prefix + "        case \"\":");
+                sw.WriteLine(prefix + "            " + varname + " = null;");
+                sw.WriteLine(prefix + "             break;");
+                sw.WriteLine(prefix + "        default:");
+                sw.WriteLine(prefix + "             " + bufname + ".SkipBytes();");
+                sw.WriteLine(prefix + "              break;");
+                sw.WriteLine(prefix + "    }");
+                sw.WriteLine(prefix + "    break;");
+            }
+            else
+            {
+                throw new Exception("invalie Variable.Id");
+            }
+        }
     }
 }

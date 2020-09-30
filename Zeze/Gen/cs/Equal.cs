@@ -114,5 +114,10 @@ namespace Zeze.Gen.cs
         {
             text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
         }
+
+        void Visitor.Visit(TypeDynamic type)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

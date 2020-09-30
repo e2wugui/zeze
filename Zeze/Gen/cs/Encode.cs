@@ -209,5 +209,27 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine(prefix + "_os_.WriteShort(" + varname + ");");
         }
+
+        public void Visit(TypeDynamic type)
+        {
+            if (id >= 0)
+            {
+                sw.WriteLine($"{prefix}{bufname}.WriteInt(Helper.DYNAMIC | {id} << Helper.TAG_SHIFT);");
+                sw.WriteLine($"{prefix}if (null == {varname})");
+                sw.WriteLine($"{prefix}{{");
+                sw.WriteLine($"{prefix}    {bufname}.WriteString(\"\");");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine($"{prefix}else");
+                sw.WriteLine($"{prefix}{{");
+                sw.WriteLine($"{prefix}    {bufname}.WriteString({varname}.GetType().FullName);");
+                sw.WriteLine($"{prefix}    {bufname}.WriteByteBuffer(Helper.Encode({varname}));");
+                sw.WriteLine($"{prefix}}}");
+            }
+            else
+            {
+                throw new Exception("invalie Variable.Id");
+            }
+
+        }
     }
 }

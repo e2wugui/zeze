@@ -32,7 +32,17 @@ namespace Zeze.Transaction
 
         public abstract void Decode(global::Zeze.Serialize.ByteBuffer bb);
         public abstract void Encode(global::Zeze.Serialize.ByteBuffer bb);
+
+        // helper
         public virtual int CapacityHintOfByteBuffer => 1024; // 生成工具分析数据结构，生成容量提示，减少内存拷贝。
+        public virtual bool NegativeCheck()
+        {
+            return false;
+        }
+        public virtual Bean CopyBean()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public class EmptyBean : Bean

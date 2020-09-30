@@ -135,5 +135,10 @@ namespace Zeze.Gen.cs
         {
             WriteAppend();
         }
+
+        void Visitor.Visit(TypeDynamic type)
+        {
+            WriteAppend();
+        }
     }
 }

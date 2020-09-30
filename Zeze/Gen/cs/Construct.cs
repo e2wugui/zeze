@@ -116,5 +116,10 @@ namespace Zeze.Gen.cs
         {
             Initial();
         }
+
+        public void Visit(TypeDynamic type)
+        {
+            sw.WriteLine(prefix + variable.NamePrivate + " = null;");
+        }
     }
 }

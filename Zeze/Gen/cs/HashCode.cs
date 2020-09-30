@@ -102,5 +102,10 @@ namespace Zeze.Gen.cs
         {
             text = varname;
         }
+
+        public void Visit(TypeDynamic type)
+        {
+            throw new NotImplementedException();
+        }
 	}
 }

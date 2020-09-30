@@ -76,6 +76,7 @@ namespace Zeze.Gen.Types
 			new TypeString(Types);
 			new TypeFloat(Types);
 			new TypeShort(Types);
+			new TypeDynamic(Types);
 		}
 	}
 }

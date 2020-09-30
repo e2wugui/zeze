@@ -171,5 +171,43 @@ namespace Zeze.Gen.cs
         {
             WriteProperty(type);
         }
+
+        public void Visit(TypeDynamic type)
+        {
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
+            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "    get");
+            sw.WriteLine(prefix + "    {");
+            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
+            sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
+            sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    set");
+            sw.WriteLine(prefix + "    {");
+            sw.WriteLine(prefix + "        if (null != value)");
+            sw.WriteLine(prefix + "        {");
+            sw.WriteLine(prefix + "            switch (value.GetType().FullName)");
+            sw.WriteLine(prefix + "            {");
+            foreach (Bean bean in type.RealBeans)
+            {
+                sw.WriteLine($"{prefix}                case \"{TypeName.GetName(bean)}\": break;");
+            }
+            sw.WriteLine(prefix + "                default: throw new System.Exception(\"Is Not Supported Dynamic Bean\");");
+            sw.WriteLine(prefix + "            }");
+            sw.WriteLine(prefix + "        }");
+            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        {");
+            sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
+            sw.WriteLine(prefix + "            return;");
+            sw.WriteLine(prefix + "        }");
+            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
+            sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+        }
     }
 }

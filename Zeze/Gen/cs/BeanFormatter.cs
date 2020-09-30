@@ -72,8 +72,13 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            a.Assign(b);");
             sw.WriteLine("            b.Assign(save);");
             sw.WriteLine("        }");
-
             sw.WriteLine();
+            sw.WriteLine("        public override Zeze.Transaction.Bean CopyBean()");
+            sw.WriteLine("        {");
+            sw.WriteLine("            return Copy();");
+            sw.WriteLine("        }");
+            sw.WriteLine();
+
             Log.Make(bean, sw, "        ");
             Tostring.Make(bean, sw, "        ");
             Encode.Make(bean, sw, "        ");

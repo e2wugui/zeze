@@ -75,18 +75,6 @@ namespace Game.Bag
         }
 
         /// <summary>
-        /// 加入物品
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="number"></param>
-        /// <param name="type"></param>
-        /// <param name="extrakey"></param>
-        public int Add(int id, int number, int type, long extrakey)
-        {
-            return Add(new BItem() { Id = id, Number = number, Type = type, Extrakey = extrakey });
-        }
-
-        /// <summary>
         /// 加入物品：优先堆叠到已有的格子里面；然后如果很多，自动拆分。
         /// 失败处理：如果外面调用者在失败时回滚事务，那么所有的添加都会被回滚。
         ///           如果没有回滚，那么就会完成部分添加。此时返回剩余number，逻辑可能需要把剩余数量的物品转到其他系统（比如邮件中）。

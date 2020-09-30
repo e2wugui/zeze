@@ -22,6 +22,7 @@ namespace Zeze.Serialize
         SET = 10,
         MAP = 11,
         BEAN = 12,
+        DYNAMIC = 13,
         TAG_MAX = 31;
 
         public const int TAG_SHIFT = 5;
@@ -82,7 +83,7 @@ namespace Zeze.Serialize
                 case LONG: bb.ReadLong(); break;
                 case FLOAT: bb.ReadFloat(); break;
                 case DOUBLE: bb.ReadDouble(); break;
-                case STRING: case BYTES: case LIST: case SET: case MAP: case BEAN: bb.SkipBytes(); break;
+                case STRING: case BYTES: case LIST: case SET: case MAP: case BEAN: case DYNAMIC: bb.SkipBytes(); break;
                 default:
                     throw new Exception("SkipUnknownField");
             }

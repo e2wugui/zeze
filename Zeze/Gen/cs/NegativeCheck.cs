@@ -13,7 +13,7 @@ namespace Zeze.Gen.cs
 
         public static void Make(Types.Bean bean, System.IO.StreamWriter sw, String prefix)
         {
-            sw.WriteLine(prefix + "public bool NegativeCheck()");
+            sw.WriteLine(prefix + "public override bool NegativeCheck()");
             sw.WriteLine(prefix + "{");
             foreach (Types.Variable var in bean.Variables)
             {
@@ -130,6 +130,12 @@ namespace Zeze.Gen.cs
         void Visitor.Visit(TypeShort type)
         {
             sw.WriteLine(prefix + "if (" + varname + " < 0) return true;");
+        }
+
+        void Visitor.Visit(TypeDynamic type)
+        {
+            if (type.IsNeedNegativeCheck)
+                sw.WriteLine($"{prefix}{{ Zeze.Transaction.Bean b = {varname}; if (null != b && b.NegativeCheck()) return true; }}");
         }
     }
 }

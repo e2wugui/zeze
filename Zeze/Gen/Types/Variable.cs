@@ -21,25 +21,6 @@ namespace Zeze.Gen.Types
 		public String Validator { get; private set; }
 		public bool AllowNegative { get; private set; } = false;
 
-		public static void verfiyReserveVariableName(String name)
-		{
-			if (name.Equals("type"))
-				throw new Exception("name of 'type' is reserved");
-		}
-
-		////////////////////////////////////
-		// FOR dynamic create
-		/*
-		public Variable(String name, String type, String key, String value)
-		{
-			this.Name = name;
-			this.Type = type;
-			this.Key = key;
-			this.Value = value;
-			this.Initial = "";
-		}
-		*/
-
 		public string GetBeanFullName()
 		{
 			if (Bean is Bean)
@@ -55,7 +36,6 @@ namespace Zeze.Gen.Types
 		{
 			Bean = bean;
 			Name = self.GetAttribute("name").Trim();
-			verfiyReserveVariableName(Name);
 			Id = int.Parse(self.GetAttribute("id"));
 			if (Id < 0 || Id > global::Zeze.Transaction.Bean.MaxVariableId)
 				throw new Exception("variable id invalid. range [0, " + global::Zeze.Transaction.Bean.MaxVariableId + "] @" + GetBeanFullName());
@@ -81,6 +61,41 @@ namespace Zeze.Gen.Types
 			}
 			if (Comment.Length > 0)
 				Comment = " // " + Comment;
+
+			HashSet<string> dynamicValue = new HashSet<string>();
+			XmlNodeList childNodes = self.ChildNodes;
+			foreach (XmlNode node in childNodes)
+			{
+				if (XmlNodeType.Element != node.NodeType)
+					continue;
+
+				XmlElement e = (XmlElement)node;
+
+				String nodename = e.Name;
+				switch (e.Name)
+				{
+					case "value":
+						dynamicValue.Add(e.GetAttribute("bean"));
+						break;
+					default:
+						throw new Exception("node=" + nodename);
+				}
+			}
+			foreach (string b in Value.Split(','))
+				dynamicValue.Add(b.Trim());
+			StringBuilder valueBuilder = new StringBuilder();
+			bool first = true;
+			foreach (string b in dynamicValue)
+            {
+				if (b.Length == 0)
+					continue;
+				if (first)
+					first = false;
+				else
+					valueBuilder.Append(',');
+				valueBuilder.Append(b);
+			}
+			Value = valueBuilder.ToString();
 		}
 
 		public Type VariableType { get; private set; }

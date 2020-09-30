@@ -122,5 +122,10 @@ namespace Zeze.Gen.cs
         {
             WriteLogValue(type);
         }
+
+        public void Visit(TypeDynamic type)
+        {
+            WriteLogValue(type);
+        }
     }
 }

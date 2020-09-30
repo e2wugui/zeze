@@ -23,9 +23,11 @@ namespace Zeze.Gen.Types
 			ValueType = Type.Compile(space, value, null, null);
 			if (ValueType is TypeBinary)
 				throw new Exception(Name + " Error : value type is binary.");
+			if (ValueType is TypeDynamic)
+				throw new Exception(Name + " Error : value type is dynamic.");
 		}
 
-        public override bool IsImmutable => false;
+		public override bool IsImmutable => false;
 		public override bool IsCollection => true;
 	}
 }
