@@ -78,8 +78,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            return Copy();");
             sw.WriteLine("        }");
             sw.WriteLine();
-            sw.WriteLine("        public const int TYPEID = " + bean.TypeId + ";");
-            sw.WriteLine("        public override int TypeId => TYPEID;");
+            sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
+            sw.WriteLine("        public override long TypeId => TYPEID;");
             sw.WriteLine();
             Log.Make(bean, sw, "        ");
             Tostring.Make(bean, sw, "        ");

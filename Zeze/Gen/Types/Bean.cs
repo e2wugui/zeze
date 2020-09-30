@@ -86,7 +86,7 @@ namespace Zeze.Gen.Types
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
 		public String Comment { get; private set; }
 		public String FullName => Space.Path(".", Name);
-		public int TypeId { get; private set; }
+		public long TypeId { get; private set; }
 		// ///////////////////////////////////////////
 		public Bean(ModuleSpace space, XmlElement self)
 		{

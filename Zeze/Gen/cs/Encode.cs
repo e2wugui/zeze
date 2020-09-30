@@ -215,7 +215,7 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine($"{prefix}{bufname}.WriteInt(Helper.DYNAMIC | {id} << Helper.TAG_SHIFT);");
-                sw.WriteLine($"{prefix}{bufname}.WriteInt({varname}.TypeId);");
+                sw.WriteLine($"{prefix}{bufname}.WriteLong({varname}.TypeId);");
                 sw.WriteLine($"{prefix}{bufname}.WriteByteBuffer(Helper.Encode({varname}));");
             }
             else

@@ -49,13 +49,20 @@ namespace Zeze.Transaction
         // 默认实现是 ClassName.HashCode()，也可以手动指定一个值。
         // Gen的时候会全局判断是否出现重复冲突。如果出现冲突，则手动指定一个。
         // 这个方法在Gen的时候总是覆盖(override)，提供默认实现是为了方便内部Bean的实现。
-        public virtual int TypeId => Hash(GetType().FullName);
+        public virtual long TypeId => Hash(GetType().FullName);
 
         // 使用自己的hash算法，因为 TypeId 会持久化，不能因为算法改变导致值变化。
         // XXX: 这个算法定好之后，就不能变了。
-        public static int Hash(string name)
+        public static long Hash(string name)
         {
-            return name.GetHashCode();
+            // This is a Knuth hash
+            UInt64 hashedValue = 3074457345618258791ul;
+            for (int i = 0; i < name.Length; i++)
+            {
+                hashedValue += name[i];
+                hashedValue *= 3074457345618258799ul;
+            }
+            return (long)hashedValue;
         }
     }
 
@@ -78,8 +85,8 @@ namespace Zeze.Transaction
             return new EmptyBean();
         }
 
-        public const int TYPEID = 0; // Bean.Hash("");
+        public const long TYPEID = 0; // 用0，而不是Bean.Hash("")，可能0更好吧。
 
-        public override int TypeId => TYPEID;
+        public override long TypeId => TYPEID;
     }
 }

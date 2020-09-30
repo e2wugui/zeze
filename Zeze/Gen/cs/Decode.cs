@@ -285,7 +285,7 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (Helper.DYNAMIC | " + id + " << Helper.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    switch (" + bufname + ".ReadInt())");
+                sw.WriteLine(prefix + "    switch (" + bufname + ".ReadLong())");
                 sw.WriteLine(prefix + "    {");
                 foreach (Bean real in type.RealBeans)
                 {
