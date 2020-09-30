@@ -65,6 +65,32 @@ namespace Game.Bag
         }
 
         /// <summary>
+        /// 优先删除 positionHint 指定的格子的物品。
+        /// 游戏在某个格子上右键使用物品时，如果没有指定格子的信息，就会优先删除前面格子的物品，操作有一点点不大友好。
+        /// </summary>
+        /// <param name="positionHint"></param>
+        /// <param name="id"></param>
+        /// <param name="number"></param>
+        /// <returns></returns>
+        public bool Remove(int positionHint, int id, int number)
+        {
+            if (bag.Items.TryGetValue(positionHint, out var bItem))
+            {
+                if (id != bItem.Id)
+                    return Remove(id, number);
+
+                if (bItem.Number > number)
+                {
+                    bItem.Number -= number;
+                    return true;
+                }
+                number -= bItem.Number;
+                bag.Items.Remove(positionHint);
+            }
+            return Remove(id, number);
+        }
+
+        /// <summary>
         /// 加入简单物品，只有id和number
         /// </summary>
         /// <param name="id"></param>
@@ -231,5 +257,12 @@ namespace Game.Bag
 
         // warning. 暴露了内部数据。
         public Zeze.Transaction.Collections.PMap2<int, Game.Bag.BItem> Items => bag.Items;
+
+        public ContainerOne GetContainerOne(int position)
+        {
+            if (bag.Items.TryGetValue(position, out var bItem))
+                return new ContainerOne(this, position, bItem);
+            throw new NullReferenceException(); // XXX 找不到物品返回null?
+        }
     }
 }

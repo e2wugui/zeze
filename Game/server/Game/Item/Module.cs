@@ -10,6 +10,5 @@ namespace Game.Item
         public void Stop(Game.App app)
         {
         }
-
     }
 }

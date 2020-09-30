@@ -87,8 +87,8 @@
 		<bean name="BItem">
 			<variable id="1" name="Id" type="int"/>
 			<variable id="2" name="Number" type="int"/>
-			<variable id="3" name="Extra" type="dynamic" value="Game.Item.BItem,Game.Equip.BEquip">
-				<value bean="Game.Item.BFood"/> 少量的动态bean可以声明在 Attribute.value 中，更多的可以声明在这里。
+			<variable id="3" name="Extra" type="dynamic" value="Game.Item.BHorseExtra,Game.Item.BFoodExtra">
+				<value bean="Game.Equip.BEquipExtra"/> 少量的动态bean可以声明在 Attribute.value 中，更多的可以声明在这里。
 			</variable>
 		</bean>
 		<bean name="BBag">
@@ -100,13 +100,13 @@
 	</module>
 
 	<module name="Item" id="3">
-		<bean name="BItem">
-			<variable id="1" name="Id" type="int"/>
+		<bean name="BFoodExtra">
+			<variable id="1" name="Ammount" type="int"/>
 		</bean>
-		<bean name="BFood">
-			<variable id="1" name="Base" type="Game.Item.BItem"/>
-			<variable id="2" name="More" type="int"/>
+		<bean name="BHorseExtra">
+			<variable id="1" name="Speed" type="int"/>
 		</bean>
+		<!-- 不需要定义自己的 table，一般物品都存储在 Bag 中 -->
 	</module>
 
 	<module name="Fight" id="4">
@@ -116,10 +116,10 @@
 	</module>
 
 	<module name="Equip" id="6">
-		<bean name="BEquip">
-			<variable id="1" name="Base" type="Game.Item.BItem"/>
+		<bean name="BEquipExtra">
+			<variable id="1" name="Attack" type="int"/>
+			<variable id="2" name="Defence" type="int"/>
 		</bean>
-		<table name="tequip" key="long" value="BEquip"/>
 	</module>
 
 	<module name="Map" id="7">

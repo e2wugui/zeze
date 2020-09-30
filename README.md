@@ -43,6 +43,14 @@ GlobalCacheManager 是一个控制台程序。当多个Application共享数据库时，用来管理Cach
   dynamic: Bean的变量可以是动态的，可以在里面保存不同的bean。这个变量属性可读，有专门的写(setter)方法，名字为variablenameSet，
     see Game\solutions.xml：Game.Bag.BItem的定义。
 
+.Bean.TypeId
+  默认使用Zeze.Transaction.Bean.Hash64(Bean.FullName)生成。
+  冲突时，需要指定一个。或者改变Bean.FullName，而又想解析旧的数据时，设置成旧的hash值。
+
+.Protocol.id Rpc.id
+  默认使用Zeze.Transaction.Bean.Hash16(Protocol.FullName)生成。
+  冲突时，需要指定一个。
+
 XXX Do Not Catch Exception
   原则上不要捕捉异常。如果你实在需要，捕捉处理以后，请再次抛出。
 
