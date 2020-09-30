@@ -33,12 +33,11 @@ namespace Game.Equip
                     equips.Items.Remove(equipPos);
                     bag.Remove(protocol.Argument.BagPos, bItem.Id, 1);
 
-                    Bag.BItem bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1 };
-                    bItemAdd.ExtraSet((BEquipExtra)eItem.Extra.CopyBean()); // 方法1
-                    bag.Add(protocol.Argument.BagPos, bItemAdd, result.Argument.BagChanged);
+                    bag.Add(protocol.Argument.BagPos, new Bag.BItem() {
+                        Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() },
+                        result.Argument.BagChanged);
 
-                    bEquipAdd = new BEquip() { Id = bItem.Id };
-                    bEquipAdd.ExtraSet(((BEquipExtra)bItem.Extra).Copy()); // 方法2
+                    bEquipAdd = new BEquip() { Id = bItem.Id, Extra_Game_Equip_BEquipExtra = (BEquipExtra)bItem.Extra.CopyBean() };
                     equips.Items.Add(equipPos, bEquipAdd);
                     result.Argument.EquipReplaced.Add(equipPos, bEquipAdd);
                 }
@@ -46,8 +45,7 @@ namespace Game.Equip
                 {
                     // 装备目标位置为空
                     bag.Remove(protocol.Argument.BagPos, bItem.Id, 1);
-                    bEquipAdd = new BEquip() { Id = bItem.Id };
-                    bEquipAdd.ExtraSet((BEquipExtra)bItem.Extra.CopyBean());
+                    bEquipAdd = new BEquip() { Id = bItem.Id, Extra_Game_Equip_BEquipExtra = (BEquipExtra)bItem.Extra.CopyBean() };
                     equips.Items.Add(equipPos, bEquipAdd);
                     result.Argument.EquipReplaced.Add(equipPos, bEquipAdd);
                 }
@@ -67,8 +65,7 @@ namespace Game.Equip
             {
                 equips.Items.Remove(protocol.Argument.EquipPos);
                 Bag.Bag bag = App.Instance.Game_Bag_Module.GetBag(session.LoginRoleId.Value);
-                Bag.BItem bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1 };
-                bItemAdd.ExtraSet((BEquipExtra)eItem.Extra.CopyBean());
+                Bag.BItem bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() };
                 if (0 != bag.Add(-1, bItemAdd, result.Argument.BagChanged))
                     return Zeze.Transaction.Procedure.LogicError; // bag is full
                 result.Argument.EquipRemoved = protocol.Argument.EquipPos;
