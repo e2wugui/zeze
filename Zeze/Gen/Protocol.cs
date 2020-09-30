@@ -9,12 +9,8 @@ namespace Zeze.Gen
     {
         public ModuleSpace Space { get; private set; }
         public string Name { get; private set; }
-        public short Id { get; private set; }
-        public int TypeId => ((int)Space.Id << 16) | (int)Id;
-        public int TypeRpcRequestId => TypeId; // 用来注册 handle
-        public int TypeRpcResponseId => (int)((uint)TypeId | 0x80000000); // 用来注册 handle
-        public int TypeRpcTimeoutId => (TypeId | 0x8000); // 用来注册 handle
-
+        public ushort Id { get; private set; }
+        public int TypeId => ((int)Space.Id << 16) | ((int)Id & 0xffff);
         public string Argument { get; private set; }
         public string Handle { get; private set; }
         public int HandleFlags { get; }
@@ -30,9 +26,8 @@ namespace Zeze.Gen
             Name = self.GetAttribute("name").Trim();
             space.Add(this);
 
-            Id = short.Parse(self.GetAttribute("id"));
-            if (Id <= 0)
-                throw new Exception("protocol id <= 0 is reserved. @" + space.Path(".", Name));
+            string attr = self.GetAttribute("id");
+            Id = attr.Length > 0 ? ushort.Parse(attr) : Zeze.Transaction.Bean.HashProtocolId(space.Path(".", Name));
             space.ProtocolIdRanges.CheckAdd(Id);
 
             Argument = self.GetAttribute("argument");

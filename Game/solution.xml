@@ -21,21 +21,21 @@
 			<variable id="1" name="Account" type="string"/>
 		</bean>
 
-		<protocol name="CCreateRole" id="1" argument="BRole" handle="server"/>
-		<protocol name="SCreateRole" id="2" argument="BRole" handle="client">
+		<protocol name="CCreateRole" argument="BRole" handle="server"/>
+		<protocol name="SCreateRole" argument="BRole" handle="client">
 			<enum name="ResultSuccess" value="0"/>
 			<enum name="ResultFaild" value="1"/>
 		</protocol>
-		<protocol name="CGetRoleList" id="3" handle="server"/>
-		<protocol name="SGetRoleList" id="4" argument="BRoles" handle="client"/>
-		<protocol name="CLogin" id="5" argument="BLogin" handle="server"/>
-		<protocol name="SLogin" id="6" argument="BLogin" handle="client"/>
-		<protocol name="CLogout" id="10" argument="BLogin" handle="server"/>
-		<protocol name="SLogout" id="11" argument="BLogin" handle="client"/>
+		<protocol name="CGetRoleList" handle="server"/>
+		<protocol name="SGetRoleList" argument="BRoles" handle="client"/>
+		<protocol name="CLogin" argument="BLogin" handle="server"/>
+		<protocol name="SLogin" argument="BLogin" handle="client"/>
+		<protocol name="CLogout" argument="BLogin" handle="server"/>
+		<protocol name="SLogout" argument="BLogin" handle="client"/>
 
 		<!-- 只有账号验证，不包含注册功能 -->
-		<protocol name="CAuth" id="100" argument="BAuth" handle="server"/>
-		<protocol name="SAuth" id="101" argument="BAuthResult" handle="client">
+		<protocol name="CAuth" argument="BAuth" handle="server"/>
+		<protocol name="SAuth" argument="BAuthResult" handle="client">
 			<enum name="ResultSuccess" value="0"/>
 			<enum name="ResultFaild" value="1"/>
 		</protocol>
@@ -78,11 +78,11 @@
 			<variable id="2" name="ItemsRemove" type="set" value="int"/> key is position
 		</bean>
 
-		<protocol name="CMove" id="1" argument="BMove" handle="server"/>
-		<protocol name="CDestroy" id="2" argument="BDestroy" handle="server"/>
-		<protocol name="CSort" id="3" handle="server"/>
-		<protocol name="SChanged" id="4" argument="BChangedResult" handle="client"/> 所有的包裹改变都通过这个协议发送。
-		<protocol name="CGetBag" id="5" handle="server"/>
+		<protocol name="CMove" argument="BMove" handle="server"/>
+		<protocol name="CDestroy" argument="BDestroy" handle="server"/>
+		<protocol name="CSort" handle="server"/>
+		<protocol name="SChanged" argument="BChangedResult" handle="client"/> 所有的包裹改变都通过这个协议发送。
+		<protocol name="CGetBag" handle="server"/>
 
 		<bean name="BItem">
 			<variable id="1" name="Id" type="int"/>
@@ -136,9 +136,9 @@
 			<variable id="1" name="MapInstanceId" type="int"/>
 		</bean>
 
-		<protocol name="CEnterWorld" id="1" handle="server"/> no argument. all in server
-		<protocol name="SEnterWorldNow" id="2" argument="BEnterWorldNow" handle="client"/>
-		<protocol name="CEnterWorldDone" id="3" argument="BEnterWorldDone" handle="server"/> client load resource done
+		<protocol name="CEnterWorld" handle="server"/> no argument. all in server
+		<protocol name="SEnterWorldNow" argument="BEnterWorldNow" handle="client"/>
+		<protocol name="CEnterWorldDone" argument="BEnterWorldDone" handle="server"/> client load resource done
 	</module>
 
 	<!--

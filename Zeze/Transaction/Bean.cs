@@ -64,6 +64,14 @@ namespace Zeze.Transaction
             }
             return (long)hashedValue;
         }
+
+        public static ushort HashProtocolId(string protocolName)
+        {
+            ulong hash64 = (ulong)Hash(protocolName);
+            uint hash32 = (uint)(hash64 & 0xffffffff) ^ (uint)(hash64 >> 32);
+            ushort hash16 = (ushort)((hash32 & 0xffff) ^ (hash32 >> 16));
+            return hash16;
+        }
     }
 
     public class EmptyBean : Bean
