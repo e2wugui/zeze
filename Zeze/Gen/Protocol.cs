@@ -27,7 +27,7 @@ namespace Zeze.Gen
             space.Add(this);
 
             string attr = self.GetAttribute("id");
-            Id = attr.Length > 0 ? ushort.Parse(attr) : Zeze.Transaction.Bean.HashProtocolId(space.Path(".", Name));
+            Id = attr.Length > 0 ? ushort.Parse(attr) : Zeze.Transaction.Bean.Hash16(space.Path(".", Name));
             space.ProtocolIdRanges.CheckAdd(Id);
 
             Argument = self.GetAttribute("argument");

@@ -49,11 +49,11 @@ namespace Zeze.Transaction
         // 默认实现是 ClassName.HashCode()，也可以手动指定一个值。
         // Gen的时候会全局判断是否出现重复冲突。如果出现冲突，则手动指定一个。
         // 这个方法在Gen的时候总是覆盖(override)，提供默认实现是为了方便内部Bean的实现。
-        public virtual long TypeId => Hash(GetType().FullName);
+        public virtual long TypeId => Hash64(GetType().FullName);
 
         // 使用自己的hash算法，因为 TypeId 会持久化，不能因为算法改变导致值变化。
         // XXX: 这个算法定好之后，就不能变了。
-        public static long Hash(string name)
+        public static long Hash64(string name)
         {
             // This is a Knuth hash
             UInt64 hashedValue = 3074457345618258791ul;
@@ -65,9 +65,9 @@ namespace Zeze.Transaction
             return (long)hashedValue;
         }
 
-        public static ushort HashProtocolId(string protocolName)
+        public static ushort Hash16(string protocolName)
         {
-            ulong hash64 = (ulong)Hash(protocolName);
+            ulong hash64 = (ulong)Hash64(protocolName);
             uint hash32 = (uint)(hash64 & 0xffffffff) ^ (uint)(hash64 >> 32);
             ushort hash16 = (ushort)((hash32 & 0xffff) ^ (hash32 >> 16));
             return hash16;

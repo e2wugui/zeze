@@ -98,7 +98,7 @@ namespace Zeze.Gen.Types
 			// previous sibling comment
 			Comment = self.GetAttribute("comment");
 			string attr = self.GetAttribute("TypeId");
-			TypeId = attr.Length > 0 ? int.Parse(attr) : Zeze.Transaction.Bean.Hash(space.Path(".", _name));
+			TypeId = attr.Length > 0 ? int.Parse(attr) : Zeze.Transaction.Bean.Hash64(space.Path(".", _name));
 			if (false == Program.BeanTypeIdDuplicateChecker.Add(TypeId))
 				throw new Exception("duplicate Bean.TypeId, please choice one.");
 
