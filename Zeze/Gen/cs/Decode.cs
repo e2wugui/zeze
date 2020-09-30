@@ -285,18 +285,19 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (Helper.DYNAMIC | " + id + " << Helper.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    switch (" + bufname + ".ReadString())");
+                sw.WriteLine(prefix + "    switch (" + bufname + ".ReadInt())");
                 sw.WriteLine(prefix + "    {");
                 foreach (Bean real in type.RealBeans)
                 {
                     string realName = TypeName.GetName(real);
-                    sw.WriteLine(prefix + "        case \"" + realName + "\":");
+                    sw.WriteLine(prefix + "        case " + realName + ".TYPEID:");
                     sw.WriteLine(prefix + "            " + varname + " = new " + realName + "();");
                     sw.WriteLine(prefix + "            " + varname + ".Decode(" + bufname + ".ReadByteBuffer());");
                     sw.WriteLine(prefix + "            break;");
                 }
-                sw.WriteLine(prefix + "        case \"\":");
-                sw.WriteLine(prefix + "            " + varname + " = null;");
+                sw.WriteLine(prefix + "        case Zeze.Transaction.EmptyBean.TYPEID:");
+                sw.WriteLine(prefix + "            " + varname + " = new Zeze.Transaction.EmptyBean();");
+                sw.WriteLine(prefix + "             " + bufname + ".SkipBytes();");
                 sw.WriteLine(prefix + "             break;");
                 sw.WriteLine(prefix + "        default:");
                 sw.WriteLine(prefix + "             " + bufname + ".SkipBytes();");

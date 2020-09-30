@@ -86,7 +86,7 @@ namespace Zeze.Gen.Types
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
 		public String Comment { get; private set; }
 		public String FullName => Space.Path(".", Name);
-
+		public int TypeId { get; private set; }
 		// ///////////////////////////////////////////
 		public Bean(ModuleSpace space, XmlElement self)
 		{
@@ -95,13 +95,13 @@ namespace Zeze.Gen.Types
 			Type.Add(space, this);
 			space.Add(this);
 
-			parse(self);
-		}
-
-		private void parse(XmlElement self)
-		{
 			// previous sibling comment
 			Comment = self.GetAttribute("comment");
+			string attr = self.GetAttribute("TypeId");
+			TypeId = attr.Length > 0 ? int.Parse(attr) : Zeze.Transaction.Bean.Hash(space.Path(".", _name));
+			if (false == Program.BeanTypeIdDuplicateChecker.Add(TypeId))
+				throw new Exception("duplicate Bean.TypeId, please choice one.");
+
 			if (Comment.Length == 0)
 			{
 				for (XmlNode c = self.PreviousSibling; null != c; c = c.PreviousSibling)

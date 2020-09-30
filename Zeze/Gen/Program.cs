@@ -17,6 +17,7 @@ namespace Zeze.Gen
         // 用来保存可命名对象（bean,protocol,rpc,table,Project,Service,Module...)，用来 1 检查命名是否重复，2 查找对象。
         // key 为全名：包含完整的名字空间。
         public static SortedDictionary<string, object> NamedObjects { get; private set; } = new SortedDictionary<string, object>();
+        public static HashSet<int> BeanTypeIdDuplicateChecker { get; } = new HashSet<int>();
 
         public static void AddNamedObject(string fullName, object obj)
         {

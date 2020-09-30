@@ -19,7 +19,7 @@ namespace Zeze.Gen.cs
                 }
                 else if (v.VariableType is TypeDynamic)
                 {
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + "?.InitTableKey(root);");
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".InitTableKey(root);");
                 }
             }
             sw.WriteLine(prefix + "}");

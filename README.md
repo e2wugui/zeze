@@ -40,6 +40,8 @@ GlobalCacheManager 是一个控制台程序。当多个Application共享数据库时，用来管理Cach
     Managed状态只能被设置一次，参考上面的reference说明。如果你想加入重复的对象，使用 Bean.Copy 方法复制一份。
   binary：这个类型的内部实现是byte[]，由于直接引用数组没法进行修改保护，所以目前限制binary不能直接被容器包含，
     只能定义在Bean中，并且提供特殊的属性和方法进行访问。
+  dynamic: Bean的变量可以是动态的，可以在里面保存不同的bean。这个变量属性可读，有专门的写(setter)方法，名字为variablenameSet，
+    see Game\solutions.xml：Game.Bag.BItem的定义。
 
 XXX Do Not Catch Exception
   原则上不要捕捉异常。如果你实在需要，捕捉处理以后，请再次抛出。

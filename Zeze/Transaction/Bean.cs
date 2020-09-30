@@ -43,6 +43,20 @@ namespace Zeze.Transaction
         {
             throw new NotImplementedException();
         }
+
+        // Bean的类型Id，替换 ClassName，提高效率和存储空间
+        // 用来支持 dynamic 类型，或者以后的扩展。
+        // 默认实现是 ClassName.HashCode()，也可以手动指定一个值。
+        // Gen的时候会全局判断是否出现重复冲突。如果出现冲突，则手动指定一个。
+        // 这个方法在Gen的时候总是覆盖(override)，提供默认实现是为了方便内部Bean的实现。
+        public virtual int TypeId => Hash(GetType().FullName);
+
+        // 使用自己的hash算法，因为 TypeId 会持久化，不能因为算法改变导致值变化。
+        // XXX: 这个算法定好之后，就不能变了。
+        public static int Hash(string name)
+        {
+            return name.GetHashCode();
+        }
     }
 
     public class EmptyBean : Bean
@@ -58,5 +72,14 @@ namespace Zeze.Transaction
         protected override void InitChildrenTableKey(TableKey root)
         {
         }
+
+        public override Bean CopyBean()
+        {
+            return new EmptyBean();
+        }
+
+        public const int TYPEID = 0; // Bean.Hash("");
+
+        public override int TypeId => TYPEID;
     }
 }

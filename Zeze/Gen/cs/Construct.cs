@@ -119,7 +119,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = null;");
+            sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.EmptyBean();");
         }
     }
 }

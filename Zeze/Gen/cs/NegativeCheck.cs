@@ -135,7 +135,7 @@ namespace Zeze.Gen.cs
         void Visitor.Visit(TypeDynamic type)
         {
             if (type.IsNeedNegativeCheck)
-                sw.WriteLine($"{prefix}{{ Zeze.Transaction.Bean b = {varname}; if (null != b && b.NegativeCheck()) return true; }}");
+                sw.WriteLine(prefix + "if (" + varname + ".NegativeCheck()) return true;");
         }
     }
 }

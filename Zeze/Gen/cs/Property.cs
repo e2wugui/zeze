@@ -185,30 +185,27 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
             sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    set");
+            sw.WriteLine(prefix + "    private set");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (null != value)");
-            sw.WriteLine(prefix + "        {");
-            sw.WriteLine(prefix + "            switch (value.GetType().FullName)");
-            sw.WriteLine(prefix + "            {");
-            foreach (Bean bean in type.RealBeans)
-            {
-                sw.WriteLine($"{prefix}                case \"{TypeName.GetName(bean)}\": break;");
-            }
-            sw.WriteLine(prefix + "                default: throw new System.Exception(\"Is Not Supported Dynamic Bean\");");
-            sw.WriteLine(prefix + "            }");
-            sw.WriteLine(prefix + "        }");
             sw.WriteLine(prefix + "        if (false == this.IsManaged)");
             sw.WriteLine(prefix + "        {");
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "            return;");
             sw.WriteLine(prefix + "        }");
-            sw.WriteLine(prefix + "        value?.InitTableKey(TableKey);");
+            sw.WriteLine(prefix + "        value.InitTableKey(TableKey);");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
             sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
+            foreach (Bean real in type.RealBeans)
+            {
+                sw.WriteLine(prefix + "public void " + var.NameUpper1 + "Set(" + TypeName.GetName(real) + " _value_)");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine(prefix + "    " + var.NameUpper1 + " = _value_;");
+                sw.WriteLine(prefix + "}");
+                sw.WriteLine();
+            }
         }
     }
 }
