@@ -46,6 +46,9 @@ namespace Game.Bag
         /// <returns></returns>
         public bool Remove(int id, int number)
         {
+            if (number < 0)
+                throw new ArgumentException();
+
             foreach (var item in bag.Items)
             {
                 if (item.Value.Id == id)
@@ -74,6 +77,9 @@ namespace Game.Bag
         /// <returns></returns>
         public bool Remove(int positionHint, int id, int number)
         {
+            if (number < 0)
+                throw new ArgumentException();
+
             if (bag.Items.TryGetValue(positionHint, out var bItem))
             {
                 if (id != bItem.Id)
@@ -95,9 +101,9 @@ namespace Game.Bag
         /// </summary>
         /// <param name="id"></param>
         /// <param name="number"></param>
-        public int Add(int id, int number)
+        public int Add(int id, int number, BChangedResult changed)
         {
-            return Add(new BItem() { Id = id, Number = number });
+            return Add(-1, new BItem() { Id = id, Number = number }, changed);
         }
 
         /// <summary>
@@ -108,9 +114,51 @@ namespace Game.Bag
         ///           在嵌套事务中尝试添加，失败的话回滚嵌套事务，然后继续把所有物品转到其他系统。
         /// </summary>
         /// <param name="item"></param>
-        public int Add(BItem itemAdd)
+        public int Add(int positionHint, BItem itemAdd, BChangedResult changed)
         {
+            if (itemAdd.Number <= 0)
+                throw new ArgumentException();
+
             int pileMax = GetItemPileMax(itemAdd.Id);
+
+            // 优先加到提示格子
+            if (positionHint >= 0 && positionHint < bag.Capacity)
+            {
+                if (bag.Items.TryGetValue(positionHint, out var bItemHint))
+                {
+                    if (bItemHint.Id == itemAdd.Id)
+                    {
+                        int numberNew = bItemHint.Number + itemAdd.Number;
+                        if (numberNew <= pileMax)
+                        {
+                            bItemHint.Number = numberNew;
+                            changed.ItemsReplace.Add(positionHint, bItemHint);
+                            return 0; // all pile done
+                        }
+                        bItemHint.Number = pileMax;
+                        itemAdd.Number = numberNew - pileMax;
+                        changed.ItemsReplace.Add(positionHint, bItemHint);
+                        // continue to add
+                    }
+                    // continue to add
+                }
+                else
+                {
+                    bag.Items.Add(positionHint, itemAdd); // in managed
+                    if (itemAdd.Number <= pileMax)
+                    {
+                        changed.ItemsReplace.Add(positionHint, itemAdd);
+                        return 0;
+                    }
+                    changed.ItemsReplace.Add(positionHint, itemAdd);
+
+                    int remain = itemAdd.Number - pileMax;
+                    itemAdd.Number = pileMax;
+                    itemAdd = itemAdd.Copy(); // current itemAdd has in mananged.
+                    itemAdd.Number = remain;
+                    // ready to continue add
+                }
+            }
 
             foreach (var item in bag.Items)
             {
@@ -120,10 +168,12 @@ namespace Game.Bag
                     if (numberNew > pileMax)
                     {
                         item.Value.Number = pileMax;
+                        changed.ItemsReplace.Add(positionHint, item.Value);
                         itemAdd.Number = numberNew - pileMax;
                         continue;
                     }
                     item.Value.Number = numberNew;
+                    changed.ItemsReplace.Add(positionHint, item.Value);
                     return 0; // all pile done
                 }
             }
@@ -137,6 +187,7 @@ namespace Game.Bag
                 itemNew.Number = pileMax;
                 itemAdd.Number -= pileMax;
                 bag.Items.Add(pos, itemNew);
+                changed.ItemsReplace.Add(positionHint, itemNew);
             }
             if (itemAdd.Number > 0)
             {
@@ -144,6 +195,7 @@ namespace Game.Bag
                 if (pos == -1)
                     return itemAdd.Number;
                 bag.Items.Add(pos, itemAdd);
+                changed.ItemsReplace.Add(positionHint, itemAdd);
             }
             return 0;
         }
@@ -255,7 +307,7 @@ namespace Game.Bag
             bag.Items.AddRange(sort); // use AddRange for performence
         }
 
-        // warning. 暴露了内部数据。
+        // warning. 暴露了内部数据。可以用来实现一些不是通用的方法。
         public Zeze.Transaction.Collections.PMap2<int, Game.Bag.BItem> Items => bag.Items;
 
         public ContainerOne GetContainerOne(int position)

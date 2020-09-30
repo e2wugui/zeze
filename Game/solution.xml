@@ -94,7 +94,7 @@
 		<bean name="BBag">
 			<variable id="1" name="Money" type="long"/>
 			<variable id="2" name="Capacity" type="int"/>
-			<variable id="3" name="Items" type="map" key="int" value="BItem"/> key is position
+			<variable id="3" name="Items" type="map" key="int" value="BItem"/> key is bag position
 		</bean>
 		<table name="tbag" key="long" value="BBag"/>
 	</module>
@@ -116,10 +116,35 @@
 	</module>
 
 	<module name="Equip" id="6">
+		<bean name="BEquipement"> 穿上装备
+			<variable id="1" name="BagPos" type="int"/>
+		</bean>
+		<bean name="BUnequipement"> 取下装备
+			<variable id="1" name="EquipPos" type="int"/>
+		</bean>
+		<bean name="BChangedResult">
+			<variable id="1" name="BagChanged" type="Game.Bag.BChangedResult"/>
+			<variable id="2" name="EquipReplaced" type="map" key="int" value="BEquip"/> size 最多为 1
+			<variable id="3" name="EquipRemoved" type="int"/> -1 表示不需要删除，不用判断，直接从容器中删除，不存在也没事。
+		</bean>
+
+		<protocol name="CEquipement" argument="BEquipement" handle="server"/>
+		<protocol name="CUnequipement" argument="BUnequipement" handle="server"/>
+		<protocol name="SEquipement" argument="BChangedResult" handle="client"/>
+
 		<bean name="BEquipExtra">
 			<variable id="1" name="Attack" type="int"/>
 			<variable id="2" name="Defence" type="int"/>
 		</bean>
+
+		<bean name="BEquip">
+			<variable id="1" name="Id" type="int"/>
+			<variable id="3" name="Extra" type="dynamic" value="Game.Equip.BEquipExtra"/>
+		</bean>
+		<bean name="BEquips">
+			<variable id="1" name="Items" type="map" key="int" value="BEquip"/> key is equip position
+		</bean>
+		<table name="tequip" key="long" value="BEquips"/>
 	</module>
 
 	<module name="Map" id="7">
