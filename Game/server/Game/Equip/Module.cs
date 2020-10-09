@@ -12,6 +12,14 @@ namespace Game.Equip
         {
         }
 
+        public int GetEquipPosition(int itemId)
+        {
+            return 0;
+            // 如果装备可以穿到多个位置，则需要选择其中的一个位置返回。
+            // 比如戒指，优先返回空的位置，都不为空（可能的规则）返回等级低的位置。
+            // 如果物品不能装备到身上的话，返回错误(-1).
+            return -1;
+        }
         // 装备只有装上取下两个操作，没有公开的需求，先不提供包装类了。
 
         public override int ProcessCEquipement(CEquipement protocol)
@@ -23,9 +31,12 @@ namespace Game.Equip
             Bag.Bag bag = App.Instance.Game_Bag_Module.GetBag(session.LoginRoleId.Value);
             if (bag.Items.TryGetValue(protocol.Argument.BagPos, out var bItem))
             {
-                int equipPos = 0; // TODO GetEquipPosition(bItem.Id); // 不是装备的化，应该返回错误的position.
+                int equipPos = GetEquipPosition(bItem.Id);
+                if (equipPos < 0)
+                    return Zeze.Transaction.Procedure.LogicError;
+
                 BEquips equips = _tequip.GetOrAdd(session.LoginRoleId.Value);
-                BEquip bEquipAdd;
+                Game.Bag.BItem bEquipAdd;
                 if (equips.Items.TryGetValue(equipPos, out var eItem))
                 {
                     // 装备目标位置已经存在装备，交换。
@@ -34,10 +45,10 @@ namespace Game.Equip
                     bag.Remove(protocol.Argument.BagPos, bItem.Id, 1);
 
                     bag.Add(protocol.Argument.BagPos, new Bag.BItem() {
-                        Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() },
+                        Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = eItem.Extra_Game_Equip_BEquipExtra.Copy() },
                         result.Argument.BagChanged);
 
-                    bEquipAdd = new BEquip() { Id = bItem.Id, Extra_Game_Equip_BEquipExtra = (BEquipExtra)bItem.Extra.CopyBean() };
+                    bEquipAdd = new Game.Bag.BItem() { Id = bItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = bItem.Extra_Game_Equip_BEquipExtra.Copy() };
                     equips.Items.Add(equipPos, bEquipAdd);
                     result.Argument.EquipReplaced.Add(equipPos, bEquipAdd);
                 }
@@ -45,7 +56,7 @@ namespace Game.Equip
                 {
                     // 装备目标位置为空
                     bag.Remove(protocol.Argument.BagPos, bItem.Id, 1);
-                    bEquipAdd = new BEquip() { Id = bItem.Id, Extra_Game_Equip_BEquipExtra = (BEquipExtra)bItem.Extra.CopyBean() };
+                    bEquipAdd = new Game.Bag.BItem() { Id = bItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = bItem.Extra_Game_Equip_BEquipExtra.Copy() };
                     equips.Items.Add(equipPos, bEquipAdd);
                     result.Argument.EquipReplaced.Add(equipPos, bEquipAdd);
                 }
@@ -76,11 +87,20 @@ namespace Game.Equip
             return Zeze.Transaction.Procedure.LogicError;
         }
 
-        public ContainerOne GetContainerOne(long roleId, int position)
+        public Game.Item.Item GetEquipItem(long roleId, int position)
         {
             BEquips equips = _tequip.GetOrAdd(roleId);
             if (equips.Items.TryGetValue(position, out var equip))
-                return new ContainerOne(equip);
+            {
+                Zeze.Transaction.Bean dynamicBean = equip.Extra;
+                switch (dynamicBean.TypeId)
+                {
+                    case BEquipExtra.TYPEID: return new Equip(position, equip, (BEquipExtra)dynamicBean);
+                    default:
+                        throw new System.Exception("unknown extra");
+                }
+
+            }
             throw new System.NullReferenceException(); // XXX 找不到物品返回null?
         }
     }

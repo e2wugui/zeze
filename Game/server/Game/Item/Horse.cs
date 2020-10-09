@@ -8,16 +8,16 @@ namespace Game.Item
     {
         private BHorseExtra extra;
 
-        public Horse(ContainerWithOne container, BHorseExtra extra) : base(container)
+        public Horse(int position, Game.Bag.BItem bItem, BHorseExtra extra) : base(position, bItem)
         {
             this.extra = extra;
         }
 
         public int Speed => extra.Speed;
 
-        public override void Use()
+        public override bool Use()
         {
-            
+            return false;
         }
     }
 }

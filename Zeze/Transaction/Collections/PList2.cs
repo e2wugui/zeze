@@ -21,10 +21,10 @@ namespace Zeze.Transaction.Collections
 
                 if (this.IsManaged)
                 {
+                    value.InitTableKey(TableKey);
                     var txn = Transaction.Current;
                     var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
                     txn.PutLog(NewLog(oldv.SetItem(index, value)));
-                    value.InitTableKey(TableKey);
                 }
                 else
                 {
@@ -40,10 +40,10 @@ namespace Zeze.Transaction.Collections
 
             if (this.IsManaged)
             {
+                item.InitTableKey(TableKey);
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
                 txn.PutLog(NewLog(oldv.Add(item)));
-                item.InitTableKey(TableKey);
             }
             else
             {
@@ -62,11 +62,11 @@ namespace Zeze.Transaction.Collections
 
             if (this.IsManaged)
             {
+                foreach (var v in items)
+                    v.InitTableKey(TableKey);
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
                 txn.PutLog(NewLog(oldv.AddRange(items)));
-                foreach (var v in items)
-                    v.InitTableKey(TableKey);
             }
             else
             {
@@ -98,10 +98,10 @@ namespace Zeze.Transaction.Collections
 
             if (this.IsManaged)
             {
+                item.InitTableKey(TableKey);
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
                 txn.PutLog(NewLog(oldv.Insert(index, item)));
-                item.InitTableKey(TableKey);
             }
             else
             {

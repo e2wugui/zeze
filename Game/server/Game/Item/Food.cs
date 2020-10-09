@@ -8,14 +8,14 @@ namespace Game.Item
     {
         private BFoodExtra extra;
 
-        public Food(ContainerWithOne container, BFoodExtra extra) : base(container)
+        public Food(int position, Game.Bag.BItem bItem, BFoodExtra extra) : base(position, bItem)
         {
             this.extra = extra;
         }
 
         public int Account => extra.Ammount;
 
-        public override void Use()
+        public override bool Use()
         {
             throw new NotImplementedException();
         }

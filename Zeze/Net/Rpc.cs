@@ -16,15 +16,12 @@ namespace Zeze.Net
         public TResult Result { get; set; } = new TResult();
 
         public bool IsRequest { get; private set; }
-        public override int TypeId => typeId;
-
         private long sid;
-        private int typeId;
+
         public TaskCompletionSource<TResult> Future { get; private set; }
 
         public Rpc()
         {
-            typeId = base.TypeId;
         }
 
         public override void Send(AsyncSocket so)

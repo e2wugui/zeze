@@ -7,14 +7,14 @@ namespace Game.Equip
     public class Equip : Game.Item.Item
     {
 
-        public Equip(Item.ContainerWithOne container, BEquipExtra extra) : base(container)
+        public Equip(int position, Game.Bag.BItem bItem, BEquipExtra extra) : base(position, bItem)
         {
 
         }
 
-        public override void Use()
+        public override bool Use()
         {
-            
+            return false;
         }
     }
 }

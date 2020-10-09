@@ -124,7 +124,7 @@
 		</bean>
 		<bean name="BChangedResult">
 			<variable id="1" name="BagChanged" type="Game.Bag.BChangedResult"/>
-			<variable id="2" name="EquipReplaced" type="map" key="int" value="BEquip"/> size 最多为 1
+			<variable id="2" name="EquipReplaced" type="map" key="int" value="Game.Bag.BItem"/> size 最多为 1
 			<variable id="3" name="EquipRemoved" type="int"/> -1 表示不需要删除，不用判断，直接从容器中删除，不存在也没事。
 		</bean>
 
@@ -137,12 +137,8 @@
 			<variable id="2" name="Defence" type="int"/>
 		</bean>
 
-		<bean name="BEquip">
-			<variable id="1" name="Id" type="int"/>
-			<variable id="3" name="Extra" type="dynamic" value="Game.Equip.BEquipExtra"/>
-		</bean>
 		<bean name="BEquips">
-			<variable id="1" name="Items" type="map" key="int" value="BEquip"/> key is equip position
+			<variable id="1" name="Items" type="map" key="int" value="Game.Bag.BItem"/> key is equip position
 		</bean>
 		<table name="tequip" key="long" value="BEquips"/>
 	</module>

@@ -266,7 +266,7 @@ namespace Zeze.Transaction
             return add;
         }
 
-        public bool Add(K key, V value)
+        public bool TryAdd(K key, V value)
         {
             if (null != Get(key))
                 return false;
@@ -284,7 +284,7 @@ namespace Zeze.Transaction
 
         public void Insert(K key, V value)
         {
-            if (false == Add(key, value))
+            if (false == TryAdd(key, value))
                 throw new ArgumentException($"table:{GetType().FullName} insert key:{key} exists");
         }
 

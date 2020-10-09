@@ -21,12 +21,12 @@ namespace Zeze.Transaction.Collections
 
                 if (this.IsManaged)
                 {
+                    value.InitTableKey(TableKey);
                     var txn = Transaction.Current;
                     var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                     var newv = oldv.SetItem(key, value);
                     if (newv != oldv)
                     {
-                        value.InitTableKey(TableKey);
                         txn.PutLog(NewLog(newv));
                     }
                 }
@@ -47,12 +47,12 @@ namespace Zeze.Transaction.Collections
 
             if (this.IsManaged)
             {
+                value.InitTableKey(TableKey);
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 var newv = oldv.Add(key, value);
                 if (newv != oldv)
                 {
-                    value.InitTableKey(TableKey);
                     txn.PutLog(NewLog(newv));
                 }
             }
@@ -74,13 +74,13 @@ namespace Zeze.Transaction.Collections
 
             if (this.IsManaged)
             {
+                foreach (var p in pairs)
+                    p.Value.InitTableKey(TableKey);
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 var newv = oldv.AddRange(pairs);
                 if (newv != oldv)
                 {
-                    foreach (var p in pairs)
-                        p.Value.InitTableKey(TableKey);
                     txn.PutLog(NewLog(newv));
                 }
             }
@@ -99,12 +99,12 @@ namespace Zeze.Transaction.Collections
 
             if (this.IsManaged)
             {
+                item.Value.InitTableKey(TableKey);
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 var newv = oldv.Add(item.Key, item.Value);
                 if (newv != oldv)
                 {
-                    item.Value.InitTableKey(TableKey);
                     txn.PutLog(NewLog(newv));
                 }
             }

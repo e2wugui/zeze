@@ -310,10 +310,20 @@ namespace Game.Bag
         // warning. 暴露了内部数据。可以用来实现一些不是通用的方法。
         public Zeze.Transaction.Collections.PMap2<int, Game.Bag.BItem> Items => bag.Items;
 
-        public ContainerOne GetContainerOne(int position)
+        public Game.Item.Item GetItem(int position)
         {
             if (bag.Items.TryGetValue(position, out var bItem))
-                return new ContainerOne(this, position, bItem);
+            {
+                Zeze.Transaction.Bean dynamicBean = bItem.Extra;
+                switch (dynamicBean.TypeId)
+                {
+                    case Item.BFoodExtra.TYPEID: return new Item.Food(position, bItem, (Item.BFoodExtra)dynamicBean);
+                    case Item.BHorseExtra.TYPEID: return new Item.Horse(position, bItem, (Item.BHorseExtra)dynamicBean);
+                    case Equip.BEquipExtra.TYPEID: return new Equip.Equip(position, bItem, (Equip.BEquipExtra)dynamicBean);
+                    default:
+                        throw new System.Exception("unknown extra");
+                }
+            }
             throw new NullReferenceException(); // XXX 找不到物品返回null?
         }
     }

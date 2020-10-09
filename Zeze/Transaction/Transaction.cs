@@ -329,8 +329,8 @@ namespace Zeze.Transaction
         /// <param name="r"></param>
         internal void AddRecordAccessed(TableKey key, RecordAccessed r)
         {
-            accessedRecords.Add(key, r);
             r.InitTableKey(key);
+            accessedRecords.Add(key, r);
         }
 
         internal RecordAccessed GetRecordAccessed(TableKey key)

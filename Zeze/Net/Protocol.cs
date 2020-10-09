@@ -10,7 +10,7 @@ namespace Zeze.Net
     {
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
-        public virtual int TypeId => ModuleId << 16 | ProtocolId;
+        public int TypeId => ModuleId << 16 | ProtocolId;
 
 		public AsyncSocket Sender { get; protected set; }
 		public object UserState { get; set; }
@@ -29,7 +29,7 @@ namespace Zeze.Net
 			Sender = so;
 
 			ByteBuffer bb = ByteBuffer.Allocate();
-			bb.WriteInt4(TypeId & 0x7fff7fff); // rpc的id会有多个用来注册handle，实际id应该去掉占位。
+			bb.WriteInt4(TypeId);
 			int savedWriteIndex = bb.WriteIndex;
 			bb.Append(Helper.Bytes4);
 			this.Encode(bb);

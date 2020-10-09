@@ -52,7 +52,7 @@ namespace Game.Login
             });
 
             // duplicate name check
-            if (false == _trolename.Add(protocol.Argument.Name, new BRoleId() { Id = roleid }))
+            if (false == _trolename.TryAdd(protocol.Argument.Name, new BRoleId() { Id = roleid }))
             {
                 result.ResultCode = SCreateRole.ResultFaild;
                 session.SendResponse(result);
