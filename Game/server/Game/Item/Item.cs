@@ -6,12 +6,10 @@ namespace Game.Item
 {
     public abstract class Item
     {
-        protected int position; // 根据所在容器不同，含义可能不一样：比如在包裹中是格子号，在装备中就是装备位置。
-        protected Game.Bag.BItem bItem;
+        protected Game.Bag.BItem bItem; // bItem.Position: 根据所在容器不同，含义可能不一样：比如在包裹中是格子号，在装备中就是装备位置。
 
-        public Item(int position, Game.Bag.BItem bItem)
+        public Item(Game.Bag.BItem bItem)
         {
-            this.position = position;
             this.bItem = bItem;
         }
 

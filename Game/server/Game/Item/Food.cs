@@ -8,7 +8,7 @@ namespace Game.Item
     {
         private BFoodExtra extra;
 
-        public Food(int position, Game.Bag.BItem bItem, BFoodExtra extra) : base(position, bItem)
+        public Food(Game.Bag.BItem bItem, BFoodExtra extra) : base(bItem)
         {
             this.extra = extra;
         }

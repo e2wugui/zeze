@@ -50,6 +50,7 @@ namespace Game.Equip
 
                     bEquipAdd = new Game.Bag.BItem() { Id = bItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = bItem.Extra_Game_Equip_BEquipExtra.Copy() };
                     equips.Items.Add(equipPos, bEquipAdd);
+                    bEquipAdd.Position = equipPos;
                     result.Argument.EquipReplaced.Add(equipPos, bEquipAdd);
                 }
                 else
@@ -58,6 +59,7 @@ namespace Game.Equip
                     bag.Remove(protocol.Argument.BagPos, bItem.Id, 1);
                     bEquipAdd = new Game.Bag.BItem() { Id = bItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = bItem.Extra_Game_Equip_BEquipExtra.Copy() };
                     equips.Items.Add(equipPos, bEquipAdd);
+                    bEquipAdd.Position = equipPos;
                     result.Argument.EquipReplaced.Add(equipPos, bEquipAdd);
                 }
                 session.SendResponse(result);
@@ -95,7 +97,7 @@ namespace Game.Equip
                 Zeze.Transaction.Bean dynamicBean = equip.Extra;
                 switch (dynamicBean.TypeId)
                 {
-                    case BEquipExtra.TYPEID: return new Equip(position, equip, (BEquipExtra)dynamicBean);
+                    case BEquipExtra.TYPEID: return new Equip(equip, (BEquipExtra)dynamicBean);
                     default:
                         throw new System.Exception("unknown extra");
                 }

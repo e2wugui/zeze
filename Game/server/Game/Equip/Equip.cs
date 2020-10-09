@@ -7,7 +7,7 @@ namespace Game.Equip
     public class Equip : Game.Item.Item
     {
 
-        public Equip(int position, Game.Bag.BItem bItem, BEquipExtra extra) : base(position, bItem)
+        public Equip(Game.Bag.BItem bItem, BEquipExtra extra) : base(bItem)
         {
 
         }

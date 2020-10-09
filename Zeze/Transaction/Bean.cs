@@ -15,6 +15,7 @@ namespace Zeze.Transaction
 
         public long ObjectId { get; } = NextObjectId;
         public TableKey TableKey { get; private set; }
+        public Bean Parent { get; private set; }
         public bool IsManaged => TableKey != null;
 
         public void InitTableKey(TableKey tableKey)

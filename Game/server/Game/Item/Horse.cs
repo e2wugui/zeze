@@ -8,7 +8,7 @@ namespace Game.Item
     {
         private BHorseExtra extra;
 
-        public Horse(int position, Game.Bag.BItem bItem, BHorseExtra extra) : base(position, bItem)
+        public Horse(Game.Bag.BItem bItem, BHorseExtra extra) : base(bItem)
         {
             this.extra = extra;
         }

@@ -145,6 +145,7 @@ namespace Game.Bag
                 else
                 {
                     bag.Items.Add(positionHint, itemAdd); // in managed
+                    itemAdd.Position = positionHint;
                     if (itemAdd.Number <= pileMax)
                     {
                         changed.ItemsReplace.Add(positionHint, itemAdd);
@@ -187,6 +188,7 @@ namespace Game.Bag
                 itemNew.Number = pileMax;
                 itemAdd.Number -= pileMax;
                 bag.Items.Add(pos, itemNew);
+                itemNew.Position = pos;
                 changed.ItemsReplace.Add(positionHint, itemNew);
             }
             if (itemAdd.Number > 0)
@@ -195,6 +197,7 @@ namespace Game.Bag
                 if (pos == -1)
                     return itemAdd.Number;
                 bag.Items.Add(pos, itemAdd);
+                itemAdd.Position = pos;
                 changed.ItemsReplace.Add(positionHint, itemAdd);
             }
             return 0;
@@ -276,6 +279,7 @@ namespace Game.Bag
                 // 移动
                 bag.Items.Remove(from);
                 bag.Items.Add(to, itemNew);
+                itemNew.Position = to;
                 changed.ItemsRemove.Add(from);
                 changed.ItemsReplace.Add(to, itemNew);
                 return;
@@ -283,6 +287,7 @@ namespace Game.Bag
             // 拆分
             itemFrom.Number -= number;
             bag.Items.Add(to, itemNew);
+            itemNew.Position = to;
             changed.ItemsReplace.Add(from, itemFrom);
             changed.ItemsReplace.Add(to, itemNew);
         }
@@ -302,7 +307,11 @@ namespace Game.Bag
             KeyValuePair<int, BItem> [] sort = bag.Items.ToArray();
             Array.Sort(sort, comparison);
             for (int i = 0; i < sort.Length; ++i)
-                sort[i] = KeyValuePair.Create(i, sort[i].Value.Copy()); // old item IsManaged. need Copy a new one.
+            {
+                BItem copy = sort[i].Value.Copy();
+                copy.Position = i;
+                sort[i] = KeyValuePair.Create(i, copy); // old item IsManaged. need Copy a new one.
+            }
             bag.Items.Clear();
             bag.Items.AddRange(sort); // use AddRange for performence
         }
@@ -317,9 +326,9 @@ namespace Game.Bag
                 Zeze.Transaction.Bean dynamicBean = bItem.Extra;
                 switch (dynamicBean.TypeId)
                 {
-                    case Item.BFoodExtra.TYPEID: return new Item.Food(position, bItem, (Item.BFoodExtra)dynamicBean);
-                    case Item.BHorseExtra.TYPEID: return new Item.Horse(position, bItem, (Item.BHorseExtra)dynamicBean);
-                    case Equip.BEquipExtra.TYPEID: return new Equip.Equip(position, bItem, (Equip.BEquipExtra)dynamicBean);
+                    case Item.BFoodExtra.TYPEID: return new Item.Food(bItem, (Item.BFoodExtra)dynamicBean);
+                    case Item.BHorseExtra.TYPEID: return new Item.Horse(bItem, (Item.BHorseExtra)dynamicBean);
+                    case Equip.BEquipExtra.TYPEID: return new Equip.Equip(bItem, (Equip.BEquipExtra)dynamicBean);
                     default:
                         throw new System.Exception("unknown extra");
                 }
