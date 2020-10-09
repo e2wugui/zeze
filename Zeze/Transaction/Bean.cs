@@ -21,7 +21,7 @@ namespace Zeze.Transaction
         {
             if (this.TableKey != null)
             {
-                throw new Exception("Has In Managed");
+                throw new HasManagedException();
             }
             this.TableKey = tableKey;
             InitChildrenTableKey(tableKey);
