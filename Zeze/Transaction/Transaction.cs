@@ -78,7 +78,7 @@ namespace Zeze.Transaction
         public ChangeNote GetOrAddChangeNote(long key, Func<ChangeNote> factory)
         {
             // 必须存在 Savepoint. 可能是为了修改。
-            return savepoints[~1].GetOrAddChangeNote(key, factory);
+            return savepoints[^1].GetOrAddChangeNote(key, factory);
         }
 
         /*
