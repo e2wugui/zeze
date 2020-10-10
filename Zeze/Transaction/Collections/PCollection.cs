@@ -1,31 +1,23 @@
 ﻿
 namespace Zeze.Transaction.Collections
 {
-    public abstract class PCollection
+    public abstract class PCollection : Bean // 简单起见就继承了，实际上容器可以不是Bean，只不过用到了一些Bean的属性。
     {
-        public TableKey TableKey { get; private set; }
-        public bool IsManaged => TableKey != null;
         public long LogKey { get; }
-        //public long ObjectId { get; } = Bean.NextObjectId;
 
-        protected PCollection(long logKey)
+        protected PCollection(long logKey) : base((int)(logKey & Bean.MaxVariableId))
         {
             LogKey = logKey;
         }
 
-        /// <summary>
-        /// 初始化 tableKey.
-        /// 当容器所在的 bean 第一次加入管理时，被调用初始化。
-        /// </summary>
-        /// <param name="root"></param>
-        public void InitTableKey(TableKey tableKey)
+        public override void Decode(global::Zeze.Serialize.ByteBuffer bb)
         {
-            if (this.TableKey != null)
-                throw new System.Exception("Has In Managed");
-            this.TableKey = tableKey;
-            InitChildrenTableKey(tableKey);
+            throw new System.NotImplementedException();
         }
 
-        protected abstract void InitChildrenTableKey(TableKey root);
+        public override void Encode(global::Zeze.Serialize.ByteBuffer bb)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

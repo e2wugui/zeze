@@ -90,7 +90,7 @@
 			<variable id="3" name="Extra" type="dynamic" value="Game.Item.BHorseExtra,Game.Item.BFoodExtra">
 				<value bean="Game.Equip.BEquipExtra"/> 少量的动态bean可以声明在 Attribute.value 中，更多的可以声明在这里。
 			</variable>
-			<variable id="4" name="Position" type="int"/> 用来实现ChangeListener：保存容器中的key，当容器中的value改变时，需要通过这个得到key。
+			<variable id="4" name="Position" type="int"/> 用来优化实现ChangeListener：保存容器中的key，当容器中的value改变时，需要通过这个得到key。否则需要遍历容器得到key。
 		</bean>
 		<bean name="BBag">
 			<variable id="1" name="Money" type="long"/>

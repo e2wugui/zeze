@@ -37,8 +37,8 @@ namespace Zeze.Gen.Types
 			Bean = bean;
 			Name = self.GetAttribute("name").Trim();
 			Id = int.Parse(self.GetAttribute("id"));
-			if (Id < 0 || Id > global::Zeze.Transaction.Bean.MaxVariableId)
-				throw new Exception("variable id invalid. range [0, " + global::Zeze.Transaction.Bean.MaxVariableId + "] @" + GetBeanFullName());
+			if (Id <= 0 || Id > global::Zeze.Transaction.Bean.MaxVariableId)
+				throw new Exception("variable id invalid. range [1, " + global::Zeze.Transaction.Bean.MaxVariableId + "] @" + GetBeanFullName());
 			Type = self.GetAttribute("type").Trim();
 			Key = self.GetAttribute("key").Trim();
 			Value = self.GetAttribute("value").Trim();

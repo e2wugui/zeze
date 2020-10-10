@@ -96,7 +96,7 @@ namespace Zeze.Transaction
                             }
                             if (null != r.Value)
                             {
-                                r.Value.InitTableKey(tkey);
+                                r.Value.InitTableKey(tkey, null);
                             }
                         }
                         logger.Debug($"FindInCacheOrStorage {r}");
@@ -261,7 +261,7 @@ namespace Zeze.Transaction
             }
 
             V add = NewValue();
-            add.InitTableKey(tkey);
+            add.InitTableKey(tkey, null);
             cr.Put(currentT, add);
             return add;
         }
@@ -277,7 +277,7 @@ namespace Zeze.Transaction
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Id, key);
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-            value.InitTableKey(tkey);
+            value.InitTableKey(tkey, null);
             cr.Put(currentT, value);
             return true;
         }
@@ -296,7 +296,7 @@ namespace Zeze.Transaction
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
-                value.InitTableKey(tkey);
+                value.InitTableKey(tkey, null);
                 cr.Put(currentT, value);
                 return;
             }

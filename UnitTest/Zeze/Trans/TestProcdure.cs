@@ -62,7 +62,7 @@ namespace UnitTest.Zeze.Trans
         public void Test1()
         {
             TableKey root = new TableKey(1, 1);
-            bean.InitTableKey(root);
+            bean.InitTableKey(root, null);
             int r = demo.App.Instance.Zeze.NewProcedure(ProcNest, "ProcNest").Call();
             Assert.IsTrue(r == Procedure.Success);
             // 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。

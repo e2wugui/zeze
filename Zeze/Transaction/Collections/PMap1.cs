@@ -26,6 +26,7 @@ namespace Zeze.Transaction.Collections
                     if (newv != oldv)
                     {
                         txn.PutLog(NewLog(newv));
+                        ((ChangeNoteMap<K, V>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteMap<K, V>(this))).LogPut(key, value);
                     }
                 }
                 else
@@ -51,6 +52,7 @@ namespace Zeze.Transaction.Collections
                 if (newv != oldv)
                 {
                     txn.PutLog(NewLog(newv));
+                    ((ChangeNoteMap<K, V>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteMap<K, V>(this))).LogPut(key, value);
                 }
             }
             else
@@ -77,6 +79,11 @@ namespace Zeze.Transaction.Collections
                 if (newv != oldv)
                 {
                     txn.PutLog(NewLog(newv));
+                    ChangeNoteMap<K, V> note = (ChangeNoteMap<K, V>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteMap<K, V>(this));
+                    foreach (var p in pairs)
+                    {
+                        note.LogPut(p.Key, p.Value);
+                    }
                 }
             }
             else
@@ -100,6 +107,7 @@ namespace Zeze.Transaction.Collections
                 if (newv != oldv)
                 {
                     txn.PutLog(NewLog(newv));
+                    ((ChangeNoteMap<K, V>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteMap<K, V>(this))).LogPut(item.Key, item.Value);
                 }
             }
             else
@@ -116,6 +124,11 @@ namespace Zeze.Transaction.Collections
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 if (!oldv.IsEmpty)
                 {
+                    ChangeNoteMap<K, V> note = (ChangeNoteMap<K, V>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteMap<K, V>(this));
+                    foreach (var e in oldv)
+                    {
+                        note.LogRemove(e.Key);
+                    }
                     txn.PutLog(NewLog(ImmutableDictionary<K, V>.Empty));
                 }
             }
@@ -135,6 +148,7 @@ namespace Zeze.Transaction.Collections
                 if (newv != oldv)
                 {
                     txn.PutLog(NewLog(newv));
+                    ((ChangeNoteMap<K, V>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteMap<K, V>(this))).LogRemove(key);
                     return true;
                 }
                 else
@@ -161,6 +175,7 @@ namespace Zeze.Transaction.Collections
                 {
                     var newv = oldv.Remove(item.Key);
                     txn.PutLog(NewLog(newv));
+                    ((ChangeNoteMap<K, V>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteMap<K, V>(this))).LogRemove(item.Key);
                     return true;
                 }
                 else

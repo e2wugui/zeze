@@ -2,6 +2,7 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace Zeze.Transaction.Collections
 {
@@ -21,7 +22,8 @@ namespace Zeze.Transaction.Collections
 
                 if (this.IsManaged)
                 {
-                    value.InitTableKey(TableKey);
+                    value.InitTableKey(TableKey, Parent);
+                    value.VariableId = this.VariableId;
                     var txn = Transaction.Current;
                     var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
                     txn.PutLog(NewLog(oldv.SetItem(index, value)));
@@ -40,7 +42,8 @@ namespace Zeze.Transaction.Collections
 
             if (this.IsManaged)
             {
-                item.InitTableKey(TableKey);
+                item.InitTableKey(TableKey, Parent);
+                item.VariableId = this.VariableId;
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
                 txn.PutLog(NewLog(oldv.Add(item)));
@@ -63,7 +66,10 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 foreach (var v in items)
-                    v.InitTableKey(TableKey);
+                {
+                    v.InitTableKey(TableKey, Parent);
+                    v.VariableId = this.VariableId;
+                }
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
                 txn.PutLog(NewLog(oldv.AddRange(items)));
@@ -98,7 +104,8 @@ namespace Zeze.Transaction.Collections
 
             if (this.IsManaged)
             {
-                item.InitTableKey(TableKey);
+                item.InitTableKey(TableKey, Parent);
+                item.VariableId = this.VariableId;
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : list;
                 txn.PutLog(NewLog(oldv.Insert(index, item)));
@@ -166,7 +173,7 @@ namespace Zeze.Transaction.Collections
         {
             foreach (var e in list)
             {
-                e.InitTableKey(tableKey);
+                e.InitTableKey(tableKey, Parent);
             }
         }
     }

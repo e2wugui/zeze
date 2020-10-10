@@ -13,17 +13,21 @@ namespace Zeze.Gen.cs
 
 		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, String prefix)
 		{
-			sw.WriteLine(prefix + "public " + bean.Name + "()");
+			sw.WriteLine(prefix + "public " + bean.Name + "() : this(0)");
 			sw.WriteLine(prefix + "{");
-			foreach (Types.Variable var in bean.Variables)
-            {
-				var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
-			}
 			sw.WriteLine(prefix + "}");
 			sw.WriteLine("");
-		}
+            sw.WriteLine(prefix + "public " + bean.Name + "(int _varId_) : base(_varId_)");
+            sw.WriteLine(prefix + "{");
+            foreach (Types.Variable var in bean.Variables)
+            {
+                var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
+            }
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine("");
+        }
 
-		public Construct(System.IO.StreamWriter sw, Types.Variable variable, String prefix)
+        public Construct(System.IO.StreamWriter sw, Types.Variable variable, String prefix)
 		{
 			this.sw = sw;
 			this.variable = variable;
@@ -43,7 +47,7 @@ namespace Zeze.Gen.cs
         public void Visit(Bean type)
         {
             String typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(" + variable.Id + ");");
         }
 
         public void Visit(BeanKey type)

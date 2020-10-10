@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Zeze.Serialize;
 
@@ -15,16 +16,44 @@ namespace Zeze.Transaction
 
         public long ObjectId { get; } = NextObjectId;
         public TableKey TableKey { get; private set; }
+        // Parent VariableId 是 ChangeListener 需要的属性。
+        // Parent 和 TableKey 一起初始化，仅在被Table管理以后才设置。
         public Bean Parent { get; private set; }
+        // VariableId 初始化分两部分：
+        // 1. Bean 包含的 Bean 在构造的时候初始化，同时初始化容器的LogKey（包含 VariableId）
+        // 2. Bean 加入容器时，由容器初始化。使用容器所在Bean的LogKey中的VariableId初始化。
+        public int VariableId { get; internal set; }
+
+        public Bean()
+        { 
+        }
+
+        public Bean(int variableId)
+        {
+            this.VariableId = variableId;
+        }
+
+        internal List<int> ChangeListenerPath()
+        {
+            List<int> path = new List<int>();
+            path.Add(VariableId);
+            for (Bean p = Parent; p != null; p = p.Parent)
+            {
+                path.Add(p.VariableId);
+            }
+            return path;
+        }
+
         public bool IsManaged => TableKey != null;
 
-        public void InitTableKey(TableKey tableKey)
+        public void InitTableKey(TableKey tableKey, Bean parent)
         {
             if (this.TableKey != null)
             {
                 throw new HasManagedException();
             }
             this.TableKey = tableKey;
+            this.Parent = parent;
             InitChildrenTableKey(tableKey);
         }
 

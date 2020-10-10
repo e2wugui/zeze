@@ -66,7 +66,7 @@ namespace Zeze.Transaction
 
         public Log GetLog(long key)
         {
-            // 允许没有 savepoint 时返回 null.
+            // 允许没有 savepoint 时返回 null. 就是说允许在保存点不存在时进行读取操作。
             return savepoints.Count > 0 ? savepoints[^1].GetLog(key) : null;
         }
 
@@ -74,6 +74,19 @@ namespace Zeze.Transaction
         {
             savepoints[^1].PutLog(log);
         }
+
+        public ChangeNote GetOrAddChangeNote(long key, Func<ChangeNote> factory)
+        {
+            // 必须存在 Savepoint. 可能是为了修改。
+            return savepoints[~1].GetOrAddChangeNote(key, factory);
+        }
+
+        /*
+        public void PutChangeNote(long key, ChangeNote note)
+        {
+            savepoints[~1].PutChangeNote(key, note);
+        }
+        */
 
         private readonly List<Action> CommitActions = new List<Action>();
         private readonly List<Action> RollbackActions = new List<Action>();
@@ -329,7 +342,7 @@ namespace Zeze.Transaction
         /// <param name="r"></param>
         internal void AddRecordAccessed(TableKey key, RecordAccessed r)
         {
-            r.InitTableKey(key);
+            r.InitTableKey(key, null);
             accessedRecords.Add(key, r);
         }
 
