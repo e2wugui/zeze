@@ -34,6 +34,7 @@ namespace Zeze.Net
 			bb.Append(Helper.Bytes4);
 			this.Encode(bb);
 			bb.Replace(savedWriteIndex, BitConverter.GetBytes(bb.Size - 8));
+
 			so.Send(bb);
 		}
 
