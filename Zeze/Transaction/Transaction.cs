@@ -282,7 +282,7 @@ namespace Zeze.Transaction
 
             savepoints.Clear(); // not need
             accessedRecords.Clear(); // not need
-            
+            cc.Notify();
 
             foreach (Action action in CommitActions)
             {
