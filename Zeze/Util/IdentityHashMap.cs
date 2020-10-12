@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Zeze.Util
 {
-    public class IdentityHashMap<K, V> : Dictionary<K, V>
+    public sealed class IdentityHashMap<K, V> : Dictionary<K, V>
     {
         private class IdentityEqualityComparer : IEqualityComparer<K>
         {

@@ -15,7 +15,7 @@ using Microsoft.VisualBasic.CompilerServices;
 /// </summary>
 namespace Zeze.Util
 {
-    public class ChatHistory : IDisposable
+    public sealed class ChatHistory : IDisposable
     {
         public string HistoryHome { get; }
         public string SessionHome { get; }

@@ -5,7 +5,7 @@ using Microsoft.VisualBasic.CompilerServices;
 
 namespace Zeze.Transaction
 {
-    public class TableKey : IComparable<TableKey>
+    public sealed class TableKey : IComparable<TableKey>
     {
         public int TableId { get; }
         public object Key { get; } // 只能是简单变量(bool,byte,short,int,long)和BeanKey

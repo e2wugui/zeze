@@ -12,7 +12,7 @@ namespace Zeze.Net
     /// 使用Socket的BeginXXX,EndXXX XXXAsync方法的异步包装类。
     /// 目前只支持Tcp。
     /// </summary>
-    public class AsyncSocket : IDisposable
+    public sealed class AsyncSocket : IDisposable
     {
         private byte[] _inputBuffer;
         private List<System.ArraySegment<byte>> _outputBufferList = null;

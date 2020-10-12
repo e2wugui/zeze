@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 
 namespace Zeze.Serialize
 {
-    public class ByteBuffer
+    public sealed class ByteBuffer
     {
         public byte[] Bytes { get; private set; }
         public int ReadIndex { get; set; }

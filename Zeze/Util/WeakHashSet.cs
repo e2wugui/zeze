@@ -5,7 +5,7 @@ using NLog.Filters;
 
 namespace Zeze.Util
 {
-    public class WeakHashSet<K> where K : class
+    public sealed class WeakHashSet<K> where K : class
     {
 		/**
 		 * The default initial capacity -- MUST be a power of two.

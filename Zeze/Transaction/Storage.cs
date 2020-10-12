@@ -24,7 +24,7 @@ namespace Zeze.Transaction
         public void Close();
 	}
 
-    public class Storage<K, V> : Storage where V : Bean, new()
+    public sealed class Storage<K, V> : Storage where V : Bean, new()
     {
         public Table Table { get; }
         public Database.Table DatabaseTable { get; }

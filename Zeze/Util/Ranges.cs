@@ -4,9 +4,9 @@ using System.Text;
 
 namespace Zeze.Util
 {
-	public class Ranges
+	public sealed class Ranges
 	{
-		public class Range
+		public sealed class Range
 		{
 			private int first; // [first, last)
 			private int last;

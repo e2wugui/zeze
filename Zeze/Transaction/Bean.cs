@@ -33,15 +33,17 @@ namespace Zeze.Transaction
             this.VariableId = variableId;
         }
 
-        internal List<int> ChangeListenerPath()
+        /// <summary>
+        /// 构建 ChangeListener 链。其中第一个KeyValuePair在调用前加入，这个由Log或者ChangeNote提供。
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        internal void BuildChangeListenerPath(List<KeyValuePair<Bean, int>> path)
         {
-            List<int> path = new List<int>();
-            path.Add(VariableId);
-            for (Bean p = Parent; p != null; p = p.Parent)
+            for (Bean parent = Parent; parent != null; parent = parent.Parent)
             {
-                path.Add(p.VariableId);
+                path.Add(KeyValuePair.Create(parent, VariableId));
             }
-            return path;
         }
 
         public bool IsManaged => TableKey != null;

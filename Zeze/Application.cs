@@ -7,7 +7,7 @@ using Zeze.Transaction;
 
 namespace Zeze
 {
-    public class Application
+    public sealed class Application
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 

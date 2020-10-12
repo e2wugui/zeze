@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace Zeze.Transaction
 {
 
-    public class Lockey : System.IComparable<Lockey>
+    public sealed class Lockey : System.IComparable<Lockey>
     {
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 		public TableKey TableKey { get; }
@@ -146,7 +146,7 @@ namespace Zeze.Transaction
 	 * 1. 每次查询都会试图去回收; 以前java版实现一个懒惰的WeakHashSet。c# ConditionalWeakTable 使用 this==another 吧，没有调用 Equals，不能使用。
 	 * 2. 并发访问效率低. 通过增加segment解决。
 	 */
-	public class Locks
+	public sealed class Locks
 	{
 		public static Locks Instance { get; } = new Locks();
 
@@ -215,7 +215,7 @@ namespace Zeze.Transaction
 		}
 
 		/* ------------- 实现 --------------- */
-		class Segment
+		sealed class Segment
 		{
 			private readonly global::Zeze.Util.WeakHashSet<Lockey> locks = new global::Zeze.Util.WeakHashSet<Lockey>();
 

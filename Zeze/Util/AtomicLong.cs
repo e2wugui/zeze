@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Zeze.Util
 {
-    public class AtomicLong
+    public sealed class AtomicLong
     {
         private long _value;
 

@@ -5,7 +5,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Transaction
 {
-    public class AutoKeys
+    public sealed class AutoKeys
     {
 		public int LocalId { get; }
 		public int LocalStep { get; }
@@ -70,7 +70,7 @@ namespace Zeze.Transaction
         }
 	}
 
-	public class AutoKey
+	public sealed class AutoKey
 	{
 		public AutoKeys AutoKeys { get; }
 		public string Name { get; }

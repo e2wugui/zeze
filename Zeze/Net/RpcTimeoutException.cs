@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Zeze.Net
 {
-    public class RpcTimeoutException : Exception
+    public sealed class RpcTimeoutException : Exception
     {
     }
 }

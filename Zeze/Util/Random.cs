@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Zeze.Util
 {
-    public class Random
+    public sealed class Random
     {
         public static System.Random Instance { get; } = new System.Random();
     }

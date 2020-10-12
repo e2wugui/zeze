@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 
 namespace Zeze.Util
 {
-    public class SimpleThreadPool
+    public sealed class SimpleThreadPool
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 

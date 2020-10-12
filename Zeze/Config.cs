@@ -7,7 +7,7 @@ using Zeze.Gen;
 
 namespace Zeze
 {
-    public class Config
+    public sealed class Config
     {
         public enum DbType
         {
@@ -127,7 +127,7 @@ namespace Zeze
                 DatabaseConfMap.Add("", new DatabaseConf());
         }
 
-        public class DatabaseConf
+        public sealed class DatabaseConf
         {
             public string Name { get; set; } = "";
             public DbType DatabaseType { get; set; } = DbType.Memory;
@@ -152,7 +152,7 @@ namespace Zeze
             }
         }
 
-        public class TableConf
+        public sealed class TableConf
         {
             public string Name { get; set; }
             public int CacheCapaicty { get; set; } = 20000;
@@ -198,7 +198,7 @@ namespace Zeze
             }
         }
 
-        public class ServiceConf
+        public sealed class ServiceConf
         {
             public string Name { get; }
             public Net.SocketOptions SocketOptions { get; set; } = new Net.SocketOptions();

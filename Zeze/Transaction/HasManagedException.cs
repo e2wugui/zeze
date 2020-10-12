@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Zeze.Transaction
 {
-    public class HasManagedException : Exception
+    public sealed class HasManagedException : Exception
     {
     }
 }

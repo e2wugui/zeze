@@ -10,13 +10,16 @@ namespace Zeze.Transaction
     public abstract class Record
     {
         internal long Timestamp { get; set; }
+        internal object KeyObject { get; set; }
+
         internal Bean Value { get; set; }
         internal int State { get; set; }
         internal Zeze.Util.AtomicLong AccessTimeTicks = new Zeze.Util.AtomicLong();
 
-        public Record(Bean value)
+        public Record(object keyObject, Bean value)
         {
             State = GlobalCacheManager.StateInvalid;
+            KeyObject = keyObject;
             Value = value;
             //Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 初始化
         }
@@ -34,14 +37,13 @@ namespace Zeze.Transaction
     public class Record<K, V> : Record where V : Bean, new()
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        public K Key { get; }
+        public K Key => (K)KeyObject;
         public Table<K, V> Table { get;  }
         public V ValueTyped => (V)Value;
    
-        public Record(Table<K, V> table, K key, V value) : base(value)
+        public Record(Table<K, V> table, K key, V value) : base(key, value)
         {
             this.Table = table;
-            this.Key = key;
         }
 
         public override string ToString()

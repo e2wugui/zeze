@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Zeze.Transaction
 {
-    class RedoAndReleaseLockException : Exception
+    public sealed class RedoAndReleaseLockException : Exception
     {
         internal RedoAndReleaseLockException()
         { 

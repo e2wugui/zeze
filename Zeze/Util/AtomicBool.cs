@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Zeze.Util
 {
-    public class AtomicBool
+    public sealed class AtomicBool
     {
         private int _value;
 

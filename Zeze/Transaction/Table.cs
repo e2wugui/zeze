@@ -40,6 +40,24 @@ namespace Zeze.Transaction
         {
             throw new NotImplementedException();
         }
+
+        public ChangeListenerMap ChangeListenerMap { get; } = new ChangeListenerMap();
+
+        public void AddChangeListener(string varname, ChangeListener listener)
+        {
+            ChangeListenerMap.AddListener(VariableNameToId(varname), listener);
+        }
+
+        public void RemoveChangeListener(string varname, ChangeListener listener)
+        {
+            ChangeListenerMap.RemoveListener(VariableNameToId(varname), listener);
+        }
+
+        public abstract ChangeVariableCollector CreateChangeVariableCollector(int variableId);
+        public virtual int VariableNameToId(string name)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public abstract class Table<K, V> : Table where V : Bean, new()

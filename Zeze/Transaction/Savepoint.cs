@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Zeze.Transaction
 {
-    class Savepoint
+    sealed class Savepoint
     {
         private readonly Dictionary<long, Log> logs = new Dictionary<long, Log>(); // 保存所有的log
         //private readonly Dictionary<long, Log> newly = new Dictionary<long, Log>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。

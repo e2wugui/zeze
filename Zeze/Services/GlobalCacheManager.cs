@@ -11,7 +11,7 @@ using System.Text;
 
 namespace Zeze.Services
 {
-    public class GlobalCacheManager
+    public sealed class GlobalCacheManager
     {
         public const int StateInvalid = 0;
         public const int StateShare = 1;
@@ -390,7 +390,7 @@ namespace Zeze.Services
             }
         }
 
-        public class CacheState
+        public sealed class CacheState
         {
             internal CacheHolder Modify { get; set; }
             internal int AcquireStatePending { get; set; } = GlobalCacheManager.StateInvalid;
@@ -403,7 +403,7 @@ namespace Zeze.Services
             }
         }
 
-        public class CacheHolder
+        public sealed class CacheHolder
         {
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
@@ -472,7 +472,7 @@ namespace Zeze.Services
             }
         }
 
-        public class Param : Zeze.Transaction.Bean
+        public sealed class Param : Zeze.Transaction.Bean
         {
             public GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
             public int State { get; set; }
@@ -501,7 +501,7 @@ namespace Zeze.Services
                 return GlobalTableKey.ToString() + ":" + State;
             }
         }
-        public class Acquire : Zeze.Net.Rpc<Param, Param>
+        public sealed class Acquire : Zeze.Net.Rpc<Param, Param>
         {
             public override int ModuleId => 0;
             public override int ProtocolId => 1;
@@ -517,7 +517,7 @@ namespace Zeze.Services
             }
         }
 
-        public class Reduce : Zeze.Net.Rpc<Param, Param>
+        public sealed class Reduce : Zeze.Net.Rpc<Param, Param>
         {
             public override int ModuleId => 0;
             public override int ProtocolId => 2;
@@ -533,7 +533,7 @@ namespace Zeze.Services
             }
         }
 
-        public class ServerService : Zeze.Net.Service
+        public sealed class ServerService : Zeze.Net.Service
         {
             public ServerService() : base("GlobalCacheManager")
             { 
@@ -546,7 +546,7 @@ namespace Zeze.Services
             }
         }
 
-        public class GlobalTableKey : IComparable<GlobalTableKey>, Serializable
+        public sealed class GlobalTableKey : IComparable<GlobalTableKey>, Serializable
         {
             public string TableName { get; private set; }
             public byte[] Key { get; private set; }

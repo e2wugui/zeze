@@ -8,7 +8,7 @@ using NLog;
 
 namespace Zeze.Transaction
 {
-    public class GlobalAgent
+    public sealed class GlobalAgent
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         private GlobalClient Client { get; set; }
@@ -96,7 +96,7 @@ namespace Zeze.Transaction
         }
     }
 
-    public class GlobalClient : Zeze.Net.Service
+    public sealed class GlobalClient : Zeze.Net.Service
     {
         GlobalAgent agent;
         public GlobalClient(GlobalAgent agent) : base("GlobalClient")

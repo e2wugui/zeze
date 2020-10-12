@@ -132,7 +132,7 @@ namespace Zeze.Transaction
         }
     }
 
-    public class DatabaseMySql : Database
+    public sealed class DatabaseMySql : Database
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
@@ -187,7 +187,7 @@ namespace Zeze.Transaction
             return new TableMysql(this, name);
         }
 
-        public class TableMysql : Database.Table
+        public sealed class TableMysql : Database.Table
         {
             public DatabaseMySql Database { get; }
             public string Name { get; }
@@ -273,7 +273,7 @@ namespace Zeze.Transaction
         }
     }
 
-    public class DatabaseSqlServer : Database
+    public sealed class DatabaseSqlServer : Database
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
@@ -328,7 +328,7 @@ namespace Zeze.Transaction
             return new TableSqlServer(this, name);
         }
 
-        public class TableSqlServer : Database.Table
+        public sealed class TableSqlServer : Database.Table
         {
             public DatabaseSqlServer Database { get; }
             public string Name { get; }
@@ -422,7 +422,7 @@ namespace Zeze.Transaction
     /// <summary>
     /// Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
     /// </summary>
-    public class DatabaseMemory : Database
+    public sealed class DatabaseMemory : Database
     {
         public DatabaseMemory(string url) : base(url)
         {
@@ -448,7 +448,7 @@ namespace Zeze.Transaction
             return tables.GetOrAdd(name, (tablenamenotused) => new TableMemory(name));
         }
 
-        public class TableMemory : Database.Table
+        public sealed class TableMemory : Database.Table
         {
             public string Name { get; }
 

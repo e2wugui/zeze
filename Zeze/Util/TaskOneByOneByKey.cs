@@ -16,7 +16,7 @@ namespace Zeze.Util
 	/// 固定总的队列数，不回收队列。
 	/// 构造的时候，可以通过参数控制总的队列数量。
 	/// </summary>
-	public class TaskOneByOneByKey
+	public sealed class TaskOneByOneByKey
     {
 		private TaskOneByOne[] concurrency;
 

@@ -9,7 +9,7 @@ namespace Zeze.Util
     /// <summary>
     /// 定时延期执行任务。有 System.Threading.Timer，这个没必要了。
     /// </summary>
-    public class Scheduler
+    public sealed class Scheduler
     {
         private SortedDictionary<SchedulerTask, SchedulerTask> scheduled = new SortedDictionary<SchedulerTask, SchedulerTask>();
         private System.Threading.Thread thread;

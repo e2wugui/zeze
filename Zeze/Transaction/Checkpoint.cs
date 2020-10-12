@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Zeze.Transaction
 {
-    public class Checkpoint
+    public sealed class Checkpoint
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 

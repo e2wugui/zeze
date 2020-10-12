@@ -9,7 +9,7 @@ using Zeze.Services;
 // MESI？
 namespace Zeze.Transaction
 {
-    public class TableCache<K, V> where V : Bean, new()
+    public sealed class TableCache<K, V> where V : Bean, new()
     {
         public Table<K, V> Table { get; }
         public int Capacity { get; set; } // 不加锁了

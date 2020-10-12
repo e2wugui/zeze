@@ -61,6 +61,21 @@ namespace Zeze.Gen.cs
             table.KeyType.Accept(new Encode("_v_", -1, "_os_", sw, "            "));
             sw.WriteLine("            return _os_;");
             sw.WriteLine("        }");
+            sw.WriteLine();
+            Types.Bean valueBean = (Types.Bean)table.ValueType;
+            CreateChangeVariableCollector.Make(sw, "        ", valueBean);
+            sw.WriteLine("        public override int VariableNameToId(string _name_)");
+            sw.WriteLine("        {");
+            sw.WriteLine("            switch (_name_)");
+            sw.WriteLine("            {");
+            foreach (var v in valueBean.Variables)
+            {
+                sw.WriteLine("                case \"" + v.Name + "\": return " + v.Id + ";");
+            }
+            sw.WriteLine("            }");
+            sw.WriteLine("            throw new System.Exception(\"unkown variable name : \" + _name_);");
+            sw.WriteLine("        }");
+            sw.WriteLine();
             sw.WriteLine("    }");
             sw.WriteLine("}");
 

@@ -5,18 +5,32 @@ using System.Collections.Immutable;
 
 namespace Zeze.Transaction
 {
-    public interface ChangeNote
+    public abstract class ChangeNote
     {
-        public void Merge(ChangeNote other);
+        internal abstract Bean Bean { get; }
+
+        internal abstract void Merge(ChangeNote other);
+
+        internal virtual void SetChangedValue(Util.IdentityHashMap<Bean, Bean> values) // only ChangeNoteMap2 need
+        {
+        }
     }
 
+    /// <summary>
+    /// 不精确的 Map 改变细节通告。改变分成两个部分访问：Replaced（add or put）Removed。
+    /// 直接改变 Map.Value 的数据细节保存在内部变量 ChangedValue 中，需要调用 MergeChangedToReplaced 合并到 Replaced 中。
+    /// 1. 由于添加以后再删除，Removed 这里可能存在一开始不存在的项。
+    /// </summary>
+    /// <typeparam name="K"></typeparam>
+    /// <typeparam name="V"></typeparam>
     public class ChangeNoteMap<K, V> : ChangeNote
     {
         public Dictionary<K, V> Replaced { get; } = new Dictionary<K, V>();
         public HashSet<K> Removed { get; } = new HashSet<K>(); // 由于添加以后再删除，这里可能存在一开始不存在的项。
 
-        internal List<V> ChangedValue { get; set; } // 记录 map 中的 value 发生了改变。需要查找原 Map 才能映射到 Replaced 中。
-        private Collections.PMap<K, V> Map { get; set; }
+        protected Collections.PMap<K, V> Map { get; set; }
+
+        internal override Bean Bean => Map;
 
         internal ChangeNoteMap(Collections.PMap<K, V> map)
         {
@@ -37,7 +51,7 @@ namespace Zeze.Transaction
             Replaced.Remove(key);
         }
 
-        public void Merge(ChangeNote note)
+        internal override void Merge(ChangeNote note)
         {
             ChangeNoteMap<K, V> another = (ChangeNoteMap<K, V>)note;
             // TODO Put,Remove 需要确认有没有顺序问题
@@ -46,33 +60,47 @@ namespace Zeze.Transaction
             foreach (var e in another.Removed) LogRemove(e); // replace 2,3 remove 1,4
         }
 
+        public virtual void MergeChangedToReplaced() // 定义来看看能不能简化使用
+        { 
+        }
+    }
+
+    public sealed class ChangeNoteMap2<K, V> : ChangeNoteMap<K, V> where V : Bean
+    {
+        // 记录 map 中的 value 发生了改变。需要查找原 Map 才能映射到 Replaced 中。
+        // Notify 的时候由 Collector 设置。
+        private Util.IdentityHashMap<Bean, Bean> ChangedValue;
+
+        public ChangeNoteMap2(Collections.PMap<K, V> map) : base(map)
+        {
+        }
+
         /// <summary>
         /// 使用 Replaced 之前调用这个方法把 Map 中不是增删，而是直接改变 value 的数据合并到 Replaced 之中。
         /// </summary>
-        public void MergeChangedToReplaced()
+        public override void MergeChangedToReplaced()
         {
             if (null == ChangedValue || ChangedValue.Count == 0)
                 return;
 
-            Util.IdentityHashMap<V, V> changedMap = new Util.IdentityHashMap<V, V>();
-            foreach (var change in ChangedValue)
-            {
-                changedMap.TryAdd(change, change);
-            }
-
             foreach (var e in Map)
             {
-                if (changedMap.ContainsKey(e.Value))
+                if (ChangedValue.ContainsKey(e.Value))
                     Replaced.TryAdd(e.Key, e.Value);
             }
 
             ChangedValue.Clear();
         }
+
+        internal override void SetChangedValue(Util.IdentityHashMap<Bean, Bean> values)
+        {
+            ChangedValue = values;
+        }
     }
 
     // TODO 
     /*
-    public class ChangeNoteSet<K> : ChangeNote
+    public sealed class ChangeNoteSet<K> : ChangeNote
     {
     }
     */

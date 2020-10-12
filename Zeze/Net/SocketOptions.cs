@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Zeze.Net
 {
-    public class SocketOptions
+    public sealed class SocketOptions
     {
         // 系统选项
         public bool? NoDelay { get; set; }

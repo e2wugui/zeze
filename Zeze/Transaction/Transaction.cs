@@ -12,7 +12,7 @@ using System.Threading;
 
 namespace Zeze.Transaction
 {
-    public class Transaction
+    public sealed class Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
@@ -218,11 +218,10 @@ namespace Zeze.Transaction
         private void _final_commit_(Procedure procedure)
         {
             // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
-            // 在最终提交里可以实现每事务checkpoint。
+            // 可以在最终提交里可以实现每事务checkpoint。
             try
             {
-                Savepoint last = savepoints[^1];
-                last.Commit();
+                savepoints[^1].Commit();
                 foreach (var e in accessedRecords)
                 {
                     if (e.Value.Dirty)

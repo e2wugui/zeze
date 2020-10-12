@@ -5,7 +5,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Transaction
 {
-    public class TableSys : Table
+    public sealed class TableSys : Table
     {
         private StorageSys storage;
 
@@ -21,6 +21,11 @@ namespace Zeze.Transaction
 
         }
 
+        public override ChangeVariableCollector CreateChangeVariableCollector(int variableId)
+        {
+            throw new NotImplementedException();
+        }
+
         public AutoKeys AutoKeys => storage.AutoKeys;
 
         internal override Storage Open(Application zeze, Database database)
@@ -31,7 +36,7 @@ namespace Zeze.Transaction
             return storage;
         }
 
-        class StorageSys : Storage
+        sealed class StorageSys : Storage
         {
             public AutoKeys AutoKeys { get; }
 
