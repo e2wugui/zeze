@@ -32,7 +32,7 @@ namespace Zeze.Transaction
 
         internal override Bean Bean => Map;
 
-        internal ChangeNoteMap(Collections.PMap<K, V> map)
+        public ChangeNoteMap(Collections.PMap<K, V> map)
         {
             Map = map;
         }
@@ -59,10 +59,6 @@ namespace Zeze.Transaction
             foreach (var e in another.Replaced) LogPut(e.Key, e.Value); // replace 1,2,3 remove 4
             foreach (var e in another.Removed) LogRemove(e); // replace 2,3 remove 1,4
         }
-
-        public virtual void MergeChangedToReplaced() // 定义来看看能不能简化使用
-        { 
-        }
     }
 
     public sealed class ChangeNoteMap2<K, V> : ChangeNoteMap<K, V> where V : Bean
@@ -78,12 +74,12 @@ namespace Zeze.Transaction
         /// <summary>
         /// 使用 Replaced 之前调用这个方法把 Map 中不是增删，而是直接改变 value 的数据合并到 Replaced 之中。
         /// </summary>
-        public override void MergeChangedToReplaced()
+        public void MergeChangedToReplaced(Collections.PMap2<K, V> map)
         {
             if (null == ChangedValue || ChangedValue.Count == 0)
                 return;
 
-            foreach (var e in Map)
+            foreach (var e in map)
             {
                 if (ChangedValue.ContainsKey(e.Value))
                     Replaced.TryAdd(e.Key, e.Value);

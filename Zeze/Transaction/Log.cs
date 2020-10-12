@@ -16,6 +16,7 @@ namespace Zeze.Transaction
         {
             Bean = bean;
         }
+        public int VariableId => (int)(LogKey & Bean.MaxVariableId);
     }
 
     public abstract class Log<TBean, TValue> : Log where TBean : Bean

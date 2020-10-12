@@ -7,10 +7,10 @@ namespace Zeze.Transaction
 {
     sealed class Savepoint
     {
-        private readonly Dictionary<long, Log> logs = new Dictionary<long, Log>(); // 保存所有的log
-        //private readonly Dictionary<long, Log> newly = new Dictionary<long, Log>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
+        internal Dictionary<long, Log> Logs { get; } = new Dictionary<long, Log>(); // 保存所有的log
+        //private readonly Dictionary<long, Log> Newly = new Dictionary<long, Log>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
 
-        private readonly Dictionary<long, ChangeNote> notes = new Dictionary<long, ChangeNote>(); // 所有Collection的ChangeNote。
+        internal Dictionary<long, ChangeNote> ChangeNotes { get; } = new Dictionary<long, ChangeNote>(); // 所有Collection的ChangeNote。
 
         /*
         public void PutChangeNote(long key, ChangeNote note)
@@ -21,53 +21,53 @@ namespace Zeze.Transaction
 
         public ChangeNote GetOrAddChangeNote(long key, Func<ChangeNote> factory)
         {
-            if (notes.TryGetValue(key, out var exist))
+            if (ChangeNotes.TryGetValue(key, out var exist))
                 return exist;
             ChangeNote newNote = factory();
-            notes.Add(key, newNote);
+            ChangeNotes.Add(key, newNote);
             return newNote;
         }
 
         public void PutLog(Log log)
         {
-            logs[log.LogKey] = log;
+            Logs[log.LogKey] = log;
             //newly[log.LogKey] = log;
         }
 
         public Log GetLog(long logKey)
         {
-            return logs.TryGetValue(logKey, out var log) ? log : null;
+            return Logs.TryGetValue(logKey, out var log) ? log : null;
         }
 
         public Savepoint Duplicate()
         {
             Savepoint sp = new Savepoint();
-            foreach (var e in logs)
+            foreach (var e in Logs)
             {
-                sp.logs[e.Key] = e.Value;
+                sp.Logs[e.Key] = e.Value;
             }
             return sp;
         }
 
         public void Merge(Savepoint other)
         {
-            foreach (var e in other.logs)
+            foreach (var e in other.Logs)
             {
-                logs[e.Key] = e.Value;
+                Logs[e.Key] = e.Value;
             }
 
-            foreach (var e in other.notes)
+            foreach (var e in other.ChangeNotes)
             {
-                if (this.notes.TryGetValue(e.Key, out var cur))
+                if (this.ChangeNotes.TryGetValue(e.Key, out var cur))
                     cur.Merge(e.Value);
                 else
-                    this.notes.Add(e.Key, e.Value);
+                    this.ChangeNotes.Add(e.Key, e.Value);
             }
         }
 
         public void Commit()
         {
-            foreach (var e in logs)
+            foreach (var e in Logs)
             {
                 e.Value.Commit();
             }
@@ -83,7 +83,5 @@ namespace Zeze.Transaction
             }
             */
         }
-
-        internal Dictionary<long, Log> Logs => logs;
     }
 }

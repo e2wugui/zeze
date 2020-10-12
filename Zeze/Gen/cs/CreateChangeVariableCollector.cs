@@ -20,7 +20,7 @@ namespace Zeze.Gen.cs
             {
                 CreateChangeVariableCollector vistor = new CreateChangeVariableCollector(v);
                 v.VariableType.Accept(vistor);
-                sw.WriteLine(prefix + "    case " + v.Id + ": return new " + vistor .ChangeVariableCollectorName + "();");
+                sw.WriteLine(prefix + "    case " + v.Id + ": return new " + vistor .ChangeVariableCollectorName + ";");
             }
             sw.WriteLine("            }");
             sw.WriteLine("            return null;");
@@ -35,77 +35,81 @@ namespace Zeze.Gen.cs
 
         void Visitor.Visit(Bean type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(BeanKey type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(TypeByte type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(TypeShort type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(TypeInt type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(TypeLong type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(TypeBool type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(TypeBinary type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(TypeString type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(TypeFloat type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(TypeDouble type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(TypeList type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         void Visitor.Visit(TypeSet type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorSet";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorSet()";
         }
 
         void Visitor.Visit(TypeMap type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorMap";
+            string kv = TypeName.GetName(type.KeyType) + ", " + TypeName.GetName(type.ValueType);
+            string factory = type.ValueType.IsNormalBean
+                ? "() => new Zeze.Transaction.ChangeNoteMap2<" + kv + ">(null)"
+                : "() => new Zeze.Transaction.ChangeNoteMap<" + kv + ">(null)";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorMap(" + factory + ")";
         }
 
         void Visitor.Visit(TypeDynamic type)
         {
-            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged";
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
     }
 }

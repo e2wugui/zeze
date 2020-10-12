@@ -219,6 +219,7 @@ namespace Zeze.Transaction
         {
             // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
             // 可以在最终提交里可以实现每事务checkpoint。
+            ChangeCollector cc = new ChangeCollector();
             try
             {
                 savepoints[^1].Commit();
@@ -227,16 +228,61 @@ namespace Zeze.Transaction
                     if (e.Value.Dirty)
                     {
                         e.Value.OriginRecord.Commit(e.Value);
+                        cc.CollectChanged(e.Key, e.Value, null); // 首先对脏记录创建Table,Record相关Collector。
                     }
                 }
-                savepoints.Clear(); // not need
-                accessedRecords.Clear(); // not need
             }
             catch (Exception e)
             {
                 logger.Error(e, "Transaction._final_commit_ {0}", procedure);
                 Environment.Exit(54321);
             }
+
+            Savepoint sp = savepoints[^1];
+            foreach (Log log in sp.Logs.Values)
+            {
+                if (log.Bean == null)
+                    continue; // 特殊日志没有Bean。
+
+                if (false == accessedRecords.TryGetValue(log.Bean.TableKey, out var ar))
+                    continue; // 应该不会出现找不到的情况，先判断一下，慢慢考虑。
+
+                if (false == ar.Dirty)
+                    continue; // 应该不会出现有log但是又不是dirty的，先判断一下，慢慢考虑。
+
+                // 写成回调是为了优化，仅在需要的时候才创建path。
+                cc.CollectChanged(log.Bean.TableKey, ar, (out List<KeyValuePair<Bean, int>>  path, out ChangeNote note) =>
+                {
+                    path = new List<KeyValuePair<Bean, int>>();
+                    note = null;
+                    path.Add(KeyValuePair.Create(log.Bean, log.VariableId));
+                    log.Bean.BuildChangeListenerPath(path);
+                });
+            }
+            foreach (ChangeNote cn in sp.ChangeNotes.Values)
+            {
+                if (cn.Bean == null)
+                    continue;
+
+                if (false == accessedRecords.TryGetValue(cn.Bean.TableKey, out var ar))
+                    continue; // 应该不会出现找不到的情况，先判断一下，慢慢考虑。
+
+                if (false == ar.Dirty)
+                    continue; // 应该不会出现有log但是又不是dirty的，先判断一下，慢慢考虑。
+
+                // 写成回调是为了优化，仅在需要的时候才创建path。
+                cc.CollectChanged(cn.Bean.TableKey, ar, (out List<KeyValuePair<Bean, int>> path, out ChangeNote note) =>
+                {
+                    path = new List<KeyValuePair<Bean, int>>();
+                    note = cn;
+                    path.Add(KeyValuePair.Create(cn.Bean.Parent, cn.Bean.VariableId));
+                    cn.Bean.Parent.BuildChangeListenerPath(path);
+                });
+            }
+
+            savepoints.Clear(); // not need
+            accessedRecords.Clear(); // not need
+            
 
             foreach (Action action in CommitActions)
             {
