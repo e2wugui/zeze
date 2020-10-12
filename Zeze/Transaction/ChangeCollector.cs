@@ -260,14 +260,31 @@ namespace Zeze.Transaction
 
 	public sealed class ChangeVariableCollectorSet : ChangeVariableCollector
 	{
+		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+		private ChangeNote note;
+
 		public override void CollectChanged(List<KeyValuePair<Bean, int>> path, ChangeNote note)
 		{
-			// TODO
+			// 忽略错误检查
+			this.note = note;
 		}
 
 		public override void NotifyVariableChanged(object key, Bean value)
         {
-			// TODO 
-        }
+			if (null == note)
+				return;
+
+			foreach (var l in listeners)
+			{
+				try
+				{
+					l.OnChanged(key, value, note);
+				}
+				catch (Exception ex)
+				{
+					logger.Error(ex, "NotifyVariableChanged");
+				}
+			}
+		}
 	}
 }

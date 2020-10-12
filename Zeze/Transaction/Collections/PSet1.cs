@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace Zeze.Transaction.Collections
 {
@@ -23,6 +24,7 @@ namespace Zeze.Transaction.Collections
                 if (newv != oldv)
                 {
                     txn.PutLog(NewLog(newv));
+                    ((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteSet<E>(this))).LogAdd(item);
                     return true;
                 }
                 else
@@ -46,6 +48,9 @@ namespace Zeze.Transaction.Collections
                 if (!oldv.IsEmpty)
                 {
                     txn.PutLog(NewLog(ImmutableHashSet<E>.Empty));
+                    ChangeNoteSet<E> note = (ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteSet<E>(this));
+                    foreach (var item in oldv)
+                        note.LogRemove(item);
                 }
             }
             else
@@ -66,6 +71,9 @@ namespace Zeze.Transaction.Collections
                 if (newv != oldv)
                 {
                     txn.PutLog(NewLog(newv));
+                    ChangeNoteSet<E> note = (ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteSet<E>(this));
+                    foreach (var item in other)
+                        note.LogRemove(item);
                 }
             }
             else
@@ -85,6 +93,12 @@ namespace Zeze.Transaction.Collections
                 if (newv != oldv)
                 {
                     txn.PutLog(NewLog(newv));
+                    ChangeNoteSet<E> note = (ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteSet<E>(this));
+                    foreach (var old in oldv)
+                    {
+                        if (false == other.Contains(old))
+                            note.LogRemove(old);
+                    }
                 }
             }
             else
@@ -103,6 +117,7 @@ namespace Zeze.Transaction.Collections
                 if (newv != oldv)
                 {
                     txn.PutLog(NewLog(newv));
+                    ((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteSet<E>(this))).LogRemove(item);
                     return true;
                 }
                 else
@@ -128,6 +143,19 @@ namespace Zeze.Transaction.Collections
                 if (newv != oldv)
                 {
                     txn.PutLog(NewLog(newv));
+                    ChangeNoteSet<E> note = (ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteSet<E>(this));
+                    // this: 1,2 other: 2,3 result: 1,3
+                    foreach (var item in other)
+                    {
+                        if (oldv.Contains(item))
+                        {
+                            note.LogRemove(item);
+                        }
+                        else
+                        {
+                            note.LogAdd(item);
+                        }
+                    }
                 }
             }
             else
@@ -152,6 +180,9 @@ namespace Zeze.Transaction.Collections
                 if (newv != oldv)
                 {
                     txn.PutLog(NewLog(newv));
+                    ChangeNoteSet<E> note = (ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteSet<E>(this));
+                    foreach (var item in other)
+                        note.LogAdd(item);
                 }
             }
             else

@@ -94,10 +94,38 @@ namespace Zeze.Transaction
         }
     }
 
-    // TODO 
-    /*
     public sealed class ChangeNoteSet<K> : ChangeNote
     {
+        public HashSet<K> Added { get; } = new HashSet<K>();
+        public HashSet<K> Removed { get; } = new HashSet<K>(); // 由于添加以后再删除，这里可能存在一开始不存在的项。
+
+        private Collections.PSet<K> Set;
+        internal override Bean Bean => Set;
+
+        public ChangeNoteSet(Collections.PSet<K> set)
+        {
+            Set = set;
+        }
+
+        internal void LogAdd(K key)
+        {
+            Added.Add(key);
+            Removed.Remove(key);
+        }
+
+        internal void LogRemove(K key)
+        {
+            Removed.Add(key);
+            Added.Remove(key);
+        }
+
+        internal override void Merge(ChangeNote other)
+        {
+            ChangeNoteSet<K> another = (ChangeNoteSet<K>)other;
+            // TODO Put,Remove 需要确认有没有顺序问题
+            // this: add 1,3 remove 2,4 nest: add 2 remove 1
+            foreach (var e in another.Added) LogAdd(e); // replace 1,2,3 remove 4
+            foreach (var e in another.Removed) LogRemove(e); // replace 2,3 remove 1,4
+        }
     }
-    */
 }
