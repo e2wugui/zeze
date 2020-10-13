@@ -82,12 +82,16 @@
 			<variable id="2" name="ItemsRemove" type="set" value="int"/> key is position
 			<variable id="3" name="ChangeTag" type="int"/>
 		</bean>
+		<bean name="BUse">
+			<variable id="1" name="Position" type="int"/>
+		</bean>
 
 		<protocol name="CMove" argument="BMove" handle="server"/>
 		<protocol name="CDestroy" argument="BDestroy" handle="server"/>
 		<protocol name="CSort" handle="server"/>
 		<protocol name="SChanged" argument="BChangedResult" handle="client"/> 所有的包裹改变都通过这个协议发送。
 		<protocol name="CGetBag" handle="server"/>
+		<protocol name="CUse" argument="BUse" handle="server"/> 没有结果，bag变更自动发送，使用效果在具体的物品使用时设置和发送结果（如果需要）
 
 		<bean name="BItem">
 			<variable id="1" name="Id" type="int"/>
@@ -111,6 +115,7 @@
 		<bean name="BHorseExtra">
 			<variable id="1" name="Speed" type="int"/>
 		</bean>
+
 		<!-- 不需要定义自己的 table，一般物品都存储在 Bag 中 -->
 	</module>
 

@@ -46,7 +46,7 @@ namespace Game.Bag
         /// <returns></returns>
         public bool Remove(int id, int number)
         {
-            if (number < 0)
+            if (number <= 0)
                 throw new ArgumentException();
 
             foreach (var item in bag.Items)
@@ -77,7 +77,7 @@ namespace Game.Bag
         /// <returns></returns>
         public bool Remove(int positionHint, int id, int number)
         {
-            if (number < 0)
+            if (number <= 0)
                 throw new ArgumentException();
 
             if (bag.Items.TryGetValue(positionHint, out var bItem))
@@ -92,6 +92,8 @@ namespace Game.Bag
                 }
                 number -= bItem.Number;
                 bag.Items.Remove(positionHint);
+                if (number <= 0)
+                    return true;
             }
             return Remove(id, number);
         }
@@ -309,7 +311,7 @@ namespace Game.Bag
                         throw new System.Exception("unknown extra");
                 }
             }
-            throw new NullReferenceException(); // XXX 找不到物品返回null?
+            return null;
         }
     }
 }

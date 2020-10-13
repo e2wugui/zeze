@@ -91,5 +91,19 @@ namespace Game.Bag
         {
             return new Bag(roleid, _tbag);
         }
+
+        public override int ProcessCUse(CUse protocol)
+        {
+            Login.Session session = Login.Session.Get(protocol);
+            Bag bag = GetBag(session.LoginRoleId.Value);
+            Item.Item item = bag.GetItem(protocol.Argument.Position);
+            if (null != item && item.Use())
+            {
+                if (bag.Remove(protocol.Argument.Position, item.Id, 1))
+                    return Procedure.Success;
+            }
+            return Procedure.LogicError;
+
+        }
     }
 }
