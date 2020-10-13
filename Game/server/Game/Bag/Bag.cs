@@ -101,9 +101,9 @@ namespace Game.Bag
         /// </summary>
         /// <param name="id"></param>
         /// <param name="number"></param>
-        public int Add(int id, int number, BChangedResult changed)
+        public int Add(int id, int number)
         {
-            return Add(-1, new BItem() { Id = id, Number = number }, changed);
+            return Add(-1, new BItem() { Id = id, Number = number });
         }
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace Game.Bag
         ///           在嵌套事务中尝试添加，失败的话回滚嵌套事务，然后继续把所有物品转到其他系统。
         /// </summary>
         /// <param name="item"></param>
-        public int Add(int positionHint, BItem itemAdd, BChangedResult changed)
+        public int Add(int positionHint, BItem itemAdd)
         {
             if (itemAdd.Number <= 0)
                 throw new ArgumentException();
@@ -132,12 +132,10 @@ namespace Game.Bag
                         if (numberNew <= pileMax)
                         {
                             bItemHint.Number = numberNew;
-                            changed.ItemsReplace.Add(positionHint, bItemHint);
                             return 0; // all pile done
                         }
                         bItemHint.Number = pileMax;
                         itemAdd.Number = numberNew - pileMax;
-                        changed.ItemsReplace.Add(positionHint, bItemHint);
                         // continue to add
                     }
                     // continue to add
@@ -145,13 +143,10 @@ namespace Game.Bag
                 else
                 {
                     bag.Items.Add(positionHint, itemAdd); // in managed
-                    itemAdd.Position = positionHint;
                     if (itemAdd.Number <= pileMax)
                     {
-                        changed.ItemsReplace.Add(positionHint, itemAdd);
                         return 0;
                     }
-                    changed.ItemsReplace.Add(positionHint, itemAdd);
 
                     int remain = itemAdd.Number - pileMax;
                     itemAdd.Number = pileMax;
@@ -169,12 +164,10 @@ namespace Game.Bag
                     if (numberNew > pileMax)
                     {
                         item.Value.Number = pileMax;
-                        changed.ItemsReplace.Add(positionHint, item.Value);
                         itemAdd.Number = numberNew - pileMax;
                         continue;
                     }
                     item.Value.Number = numberNew;
-                    changed.ItemsReplace.Add(positionHint, item.Value);
                     return 0; // all pile done
                 }
             }
@@ -188,8 +181,6 @@ namespace Game.Bag
                 itemNew.Number = pileMax;
                 itemAdd.Number -= pileMax;
                 bag.Items.Add(pos, itemNew);
-                itemNew.Position = pos;
-                changed.ItemsReplace.Add(positionHint, itemNew);
             }
             if (itemAdd.Number > 0)
             {
@@ -197,8 +188,6 @@ namespace Game.Bag
                 if (pos == -1)
                     return itemAdd.Number;
                 bag.Items.Add(pos, itemAdd);
-                itemAdd.Position = pos;
-                changed.ItemsReplace.Add(positionHint, itemAdd);
             }
             return 0;
         }
@@ -224,7 +213,7 @@ namespace Game.Bag
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <param name="number">-1 表示尽量移动所有的</param>
-        public void Move(int from, int to, int number, BChangedResult changed)
+        public void Move(int from, int to, int number)
         {
             BItem itemFrom;
             if (false == bag.Items.TryGetValue(from, out itemFrom))
@@ -249,8 +238,6 @@ namespace Game.Bag
                         return; // 试图拆分，但是目标已经存在不同物品
                     // 交换
                     BItem.Swap(itemFrom, itemTo);
-                    changed.ItemsReplace.Add(from, itemFrom);
-                    changed.ItemsReplace.Add(to, itemTo);
                     return;
                 }
                 // 叠加（或拆分）
@@ -259,15 +246,11 @@ namespace Game.Bag
                 {
                     itemTo.Number = pileMax;
                     itemFrom.Number = numberToWill - pileMax;
-                    changed.ItemsReplace.Add(from, itemFrom);
-                    changed.ItemsReplace.Add(to, itemTo);
                 }
                 else
                 {
                     itemTo.Number = numberToWill;
                     bag.Items.Remove(from);
-                    changed.ItemsRemove.Add(from);
-                    changed.ItemsReplace.Add(to, itemTo);
                 }
                 return;
             }
@@ -279,17 +262,11 @@ namespace Game.Bag
                 // 移动
                 bag.Items.Remove(from);
                 bag.Items.Add(to, itemNew);
-                itemNew.Position = to;
-                changed.ItemsRemove.Add(from);
-                changed.ItemsReplace.Add(to, itemNew);
                 return;
             }
             // 拆分
             itemFrom.Number -= number;
             bag.Items.Add(to, itemNew);
-            itemNew.Position = to;
-            changed.ItemsReplace.Add(from, itemFrom);
-            changed.ItemsReplace.Add(to, itemNew);
         }
 
         public void Destory(int from)
@@ -309,7 +286,6 @@ namespace Game.Bag
             for (int i = 0; i < sort.Length; ++i)
             {
                 BItem copy = sort[i].Value.Copy();
-                copy.Position = i;
                 sort[i] = KeyValuePair.Create(i, copy); // old item IsManaged. need Copy a new one.
             }
             bag.Items.Clear();

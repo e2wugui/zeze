@@ -74,8 +74,13 @@
 			<variable id="1" name="Position" type="int"/>
 		</bean>
 		<bean name="BChangedResult">
+			<enum name="ChangeTagNormalChanged" value="0"/> 普通增量修改
+			<enum name="ChangeTagRecordIsRemoved" value="1"/> 整个记录删除了。
+			<enum name="ChangeTagRecordChanged" value="2"/> 整个记录发生了变更，需要先清除本地数据，再替换进去。
+
 			<variable id="1" name="ItemsReplace" type="map" key="int" value="BItem"/> key is position
 			<variable id="2" name="ItemsRemove" type="set" value="int"/> key is position
+			<variable id="3" name="ChangeTag" type="int"/>
 		</bean>
 
 		<protocol name="CMove" argument="BMove" handle="server"/>
@@ -90,7 +95,6 @@
 			<variable id="3" name="Extra" type="dynamic" value="Game.Item.BHorseExtra,Game.Item.BFoodExtra">
 				<value bean="Game.Equip.BEquipExtra"/> 少量的动态bean可以声明在 Attribute.value 中，更多的可以声明在这里。
 			</variable>
-			<variable id="4" name="Position" type="int"/> 用来优化实现ChangeListener：保存容器中的key，当容器中的value改变时，需要通过这个得到key。否则需要遍历容器得到key。
 		</bean>
 		<bean name="BBag">
 			<variable id="1" name="Money" type="long"/>
@@ -123,15 +127,10 @@
 		<bean name="BUnequipement"> 取下装备
 			<variable id="1" name="EquipPos" type="int"/>
 		</bean>
-		<bean name="BChangedResult">
-			<variable id="1" name="BagChanged" type="Game.Bag.BChangedResult"/>
-			<variable id="2" name="EquipReplaced" type="map" key="int" value="Game.Bag.BItem"/> size 最多为 1
-			<variable id="3" name="EquipRemoved" type="int"/> -1 表示不需要删除，不用判断，直接从容器中删除，不存在也没事。
-		</bean>
 
 		<protocol name="CEquipement" argument="BEquipement" handle="server"/>
 		<protocol name="CUnequipement" argument="BUnequipement" handle="server"/>
-		<protocol name="SEquipement" argument="BChangedResult" handle="client"/>
+		<protocol name="SEquipement" argument="Game.Bag.BChangedResult" handle="client"/>
 
 		<bean name="BEquipExtra">
 			<variable id="1" name="Attack" type="int"/>

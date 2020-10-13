@@ -1,4 +1,5 @@
 ﻿
+using Zeze.Transaction;
 
 namespace Game.Equip
 {
@@ -6,10 +7,50 @@ namespace Game.Equip
     {
         public void Start(Game.App app)
         {
+            _tequip.AddChangeListener("Items", new ItemsChangeListener());
         }
 
         public void Stop(Game.App app)
         {
+        }
+
+        class ItemsChangeListener : Zeze.Transaction.ChangeListener
+        {
+            void ChangeListener.OnChanged(object key, Bean value)
+            {
+                // 记录改变，通知全部。
+                BEquips bequips = (BEquips)value;
+
+                SEquipement changed = new SEquipement();
+                changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordChanged;
+                changed.Argument.ItemsReplace.AddRange(bequips.Items);
+
+                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+            }
+
+            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
+            {
+                // 增量变化，通知变更。
+                ChangeNoteMap2<int, Game.Bag.BItem> notemap2 = (ChangeNoteMap2<int, Game.Bag.BItem>)note;
+                BEquips bequips = (BEquips)value;
+                notemap2.MergeChangedToReplaced(bequips.Items);
+
+                SEquipement changed = new SEquipement();
+                changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagNormalChanged;
+
+                changed.Argument.ItemsReplace.AddRange(notemap2.Replaced);
+                foreach (var p in notemap2.Removed)
+                    changed.Argument.ItemsRemove.Add(p);
+
+                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+            }
+
+            void ChangeListener.OnRemoved(object key)
+            {
+                SEquipement changed = new SEquipement();
+                changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordIsRemoved;
+                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+            }
         }
 
         public int GetEquipPosition(int itemId)
@@ -25,8 +66,6 @@ namespace Game.Equip
         public override int ProcessCEquipement(CEquipement protocol)
         {
             Login.Session session = Login.Session.Get(protocol);
-
-            SEquipement result = new SEquipement();
 
             Bag.Bag bag = App.Instance.Game_Bag_Module.GetBag(session.LoginRoleId.Value);
             if (bag.Items.TryGetValue(protocol.Argument.BagPos, out var bItem))
@@ -45,13 +84,11 @@ namespace Game.Equip
                     bag.Remove(protocol.Argument.BagPos, bItem.Id, 1);
 
                     bag.Add(protocol.Argument.BagPos, new Bag.BItem() {
-                        Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = eItem.Extra_Game_Equip_BEquipExtra.Copy() },
-                        result.Argument.BagChanged);
+                        Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = eItem.Extra_Game_Equip_BEquipExtra.Copy() }
+                        );
 
                     bEquipAdd = new Game.Bag.BItem() { Id = bItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = bItem.Extra_Game_Equip_BEquipExtra.Copy() };
                     equips.Items.Add(equipPos, bEquipAdd);
-                    bEquipAdd.Position = equipPos;
-                    result.Argument.EquipReplaced.Add(equipPos, bEquipAdd);
                 }
                 else
                 {
@@ -59,10 +96,7 @@ namespace Game.Equip
                     bag.Remove(protocol.Argument.BagPos, bItem.Id, 1);
                     bEquipAdd = new Game.Bag.BItem() { Id = bItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = bItem.Extra_Game_Equip_BEquipExtra.Copy() };
                     equips.Items.Add(equipPos, bEquipAdd);
-                    bEquipAdd.Position = equipPos;
-                    result.Argument.EquipReplaced.Add(equipPos, bEquipAdd);
                 }
-                session.SendResponse(result);
                 return Zeze.Transaction.Procedure.Success;
             }
             return Zeze.Transaction.Procedure.LogicError;
@@ -72,17 +106,14 @@ namespace Game.Equip
         {
             Login.Session session = Login.Session.Get(protocol);
 
-            SEquipement result = new SEquipement();
             BEquips equips = _tequip.GetOrAdd(session.LoginRoleId.Value);
             if (equips.Items.TryGetValue(protocol.Argument.EquipPos, out var eItem))
             {
                 equips.Items.Remove(protocol.Argument.EquipPos);
                 Bag.Bag bag = App.Instance.Game_Bag_Module.GetBag(session.LoginRoleId.Value);
                 Bag.BItem bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() };
-                if (0 != bag.Add(-1, bItemAdd, result.Argument.BagChanged))
+                if (0 != bag.Add(-1, bItemAdd))
                     return Zeze.Transaction.Procedure.LogicError; // bag is full
-                result.Argument.EquipRemoved = protocol.Argument.EquipPos;
-                session.SendResponse(result);
                 return Zeze.Transaction.Procedure.Success;
             }
 
