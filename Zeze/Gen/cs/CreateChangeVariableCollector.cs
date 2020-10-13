@@ -16,11 +16,12 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    switch (variableId)");
             sw.WriteLine(prefix + "    {");
+            sw.WriteLine(prefix + "        case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();");
             foreach (var v in bean.Variables)
             {
                 CreateChangeVariableCollector vistor = new CreateChangeVariableCollector(v);
                 v.VariableType.Accept(vistor);
-                sw.WriteLine(prefix + "    case " + v.Id + ": return new " + vistor .ChangeVariableCollectorName + ";");
+                sw.WriteLine(prefix + "        case " + v.Id + ": return new " + vistor .ChangeVariableCollectorName + ";");
             }
             sw.WriteLine("            }");
             sw.WriteLine("            return null;");

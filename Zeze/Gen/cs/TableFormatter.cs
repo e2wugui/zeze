@@ -68,6 +68,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            switch (_name_)");
             sw.WriteLine("            {");
+            sw.WriteLine("                case \"\": return 0;");
             foreach (var v in valueBean.Variables)
             {
                 sw.WriteLine("                case \"" + v.Name + "\": return " + v.Id + ";");

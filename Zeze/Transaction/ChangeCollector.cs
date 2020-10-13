@@ -94,7 +94,7 @@ namespace Zeze.Transaction
 			Dictionary<int, HashSet<ChangeListener>> tmp = table.ChangeListenerMap.mapCopy;
 			foreach (var e in tmp)
 			{
-				ChangeVariableCollector cvc = (e.Key == 0) ? new ChangeVariableCollectorChanged() : table.CreateChangeVariableCollector(e.Key);
+				ChangeVariableCollector cvc = table.CreateChangeVariableCollector(e.Key);
 				if (null != cvc) // 忽略掉不正确的 variableId，也许注册的时候加个检查更好，先这样了。
 				{
 					variables.Add(e.Key, cvc);
