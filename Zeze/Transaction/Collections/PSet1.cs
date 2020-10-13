@@ -182,7 +182,10 @@ namespace Zeze.Transaction.Collections
                     txn.PutLog(NewLog(newv));
                     ChangeNoteSet<E> note = (ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteSet<E>(this));
                     foreach (var item in other)
-                        note.LogAdd(item);
+                    {
+                        if (false == oldv.Contains(item))
+                            note.LogAdd(item);
+                    }
                 }
             }
             else

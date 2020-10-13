@@ -23,7 +23,7 @@ namespace Zeze.Transaction
     /// </summary>
     /// <typeparam name="K"></typeparam>
     /// <typeparam name="V"></typeparam>
-    public class ChangeNoteMap<K, V> : ChangeNote
+    public class ChangeNoteMap1<K, V> : ChangeNote
     {
         public Dictionary<K, V> Replaced { get; } = new Dictionary<K, V>();
         public HashSet<K> Removed { get; } = new HashSet<K>(); // 由于添加以后再删除，这里可能存在一开始不存在的项。
@@ -32,7 +32,7 @@ namespace Zeze.Transaction
 
         internal override Bean Bean => Map;
 
-        public ChangeNoteMap(Collections.PMap<K, V> map)
+        public ChangeNoteMap1(Collections.PMap<K, V> map)
         {
             Map = map;
         }
@@ -53,7 +53,7 @@ namespace Zeze.Transaction
 
         internal override void Merge(ChangeNote note)
         {
-            ChangeNoteMap<K, V> another = (ChangeNoteMap<K, V>)note;
+            ChangeNoteMap1<K, V> another = (ChangeNoteMap1<K, V>)note;
             // TODO Put,Remove 需要确认有没有顺序问题
             // this: replace 1,3 remove 2,4 nest: repalce 2 remove 1
             foreach (var e in another.Replaced) LogPut(e.Key, e.Value); // replace 1,2,3 remove 4
@@ -61,7 +61,7 @@ namespace Zeze.Transaction
         }
     }
 
-    public sealed class ChangeNoteMap2<K, V> : ChangeNoteMap<K, V> where V : Bean
+    public sealed class ChangeNoteMap2<K, V> : ChangeNoteMap1<K, V> where V : Bean
     {
         // 记录 map 中的 value 发生了改变。需要查找原 Map 才能映射到 Replaced 中。
         // Notify 的时候由 Collector 设置。

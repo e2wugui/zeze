@@ -10,17 +10,23 @@ namespace Zeze.Transaction
 
 		public delegate void Collect(out List<KeyValuePair<Bean, int>> path, out ChangeNote note);
 
-		public void CollectChanged(TableKey tableKey, Transaction.RecordAccessed recordAccessed, Collect collect)
+		public void BuildCollect(TableKey tableKey, Transaction.RecordAccessed recordAccessed)
+        {
+			if (false == tables.TryGetValue(tableKey.TableId, out var tableCollector))
+            {
+				tableCollector = new ChangeTableCollector(tableKey);
+				tables.Add(tableKey.TableId, tableCollector);
+			}
+			tableCollector.BuildCollect(tableKey, recordAccessed);
+		}
+
+		public void CollectChanged(TableKey tableKey, Collect collect)
         {
 			if (tables.TryGetValue(tableKey.TableId, out var ctc))
 			{
-				ctc.CollectChanged(recordAccessed, collect);
-				return;
+				ctc.CollectChanged(tableKey, collect);
 			}
-			Table table = Table.GetTable(tableKey.TableId);
-			ChangeTableCollector ctcNew = new ChangeTableCollector(table);
-			tables.Add(tableKey.TableId, ctcNew);
-			ctcNew.CollectChanged(recordAccessed, collect);
+			// else skip error 只有测试代码可能会走到这个分支。
 		}
 
 		public void Notify()
@@ -36,24 +42,31 @@ namespace Zeze.Transaction
 		private Table table;
 		private bool tableHasListener;
 
-		public ChangeTableCollector(Table table)
+		public ChangeTableCollector(TableKey tableKey)
 		{
-			this.table = table;
-			this.tableHasListener = table.ChangeListenerMap.HasListener();
+			table = Table.GetTable(tableKey.TableId);
+			tableHasListener = table.ChangeListenerMap.HasListener();
 		}
 
-		public void CollectChanged(Transaction.RecordAccessed recordAccessed, ChangeCollector.Collect collect)
+		public void BuildCollect(TableKey tableKey, Transaction.RecordAccessed recordAccessed)
+        {
+			if (tableHasListener)
+			{
+				ChangeRecordCollector recordCollector = new ChangeRecordCollector(tableKey, table, recordAccessed);
+				records.Add(tableKey.Key, recordCollector);
+			}
+		}
+
+		public void CollectChanged(TableKey tableKey, ChangeCollector.Collect collect)
 		{
 			if (false == this.tableHasListener)
 				return; // 优化，表格没有监听者时，不收集改变。
 
-			ChangeRecordCollector crc;
-			if (false == records.TryGetValue(recordAccessed.OriginRecord.KeyObject, out crc))
+			if (records.TryGetValue(tableKey.Key, out var crc))
             {
-				crc = new ChangeRecordCollector(table, recordAccessed);
-				records.Add(recordAccessed.OriginRecord.KeyObject, crc);
-            }
-			crc.CollectChanged(collect);
+				crc.CollectChanged(collect);
+			}
+			// else skip error . 只有测试代码可能会走到这个分支。
 		}
 
 		public void Notify()
@@ -70,20 +83,24 @@ namespace Zeze.Transaction
 	{
 		private Dictionary<int, ChangeVariableCollector> variables = new Dictionary<int, ChangeVariableCollector>(); // key is VariableId
 		private Transaction.RecordAccessed recordAccessed;
+		private object key;
 
-		public ChangeRecordCollector(Table table, Transaction.RecordAccessed recordAccessed)
+		public ChangeRecordCollector(TableKey tableKey, Table table, Transaction.RecordAccessed recordAccessed)
 		{
 			this.recordAccessed = recordAccessed;
+			key = tableKey.Key;
+
+			// 记录发生了覆盖或者删除，也需要把listener建立好，以便后面Notify。但是就不需要收集log和note了。参见下面的 CollectChanged.
 			Dictionary<int, HashSet<ChangeListener>> tmp = table.ChangeListenerMap.mapCopy;
 			foreach (var e in tmp)
-            {
+			{
 				ChangeVariableCollector cvc = (e.Key == 0) ? new ChangeVariableCollectorChanged() : table.CreateChangeVariableCollector(e.Key);
 				if (null != cvc) // 忽略掉不正确的 variableId，也许注册的时候加个检查更好，先这样了。
 				{
 					variables.Add(e.Key, cvc);
 					cvc.listeners = e.Value;
 				}
-            }
+			}
 		}
 
 		public void CollectChanged(ChangeCollector.Collect collect)
@@ -91,19 +108,18 @@ namespace Zeze.Transaction
 			if (recordAccessed.CommittedPutLog != null)
 				return; // 记录发生了覆盖或者删除，此时整个记录都变了，不再收集变量的详细变化。
 
-			if (null == collect)
-				return; // 第一次遍历脏记录时，不需要收集。see Transaction._final_commit_
-
-			List<KeyValuePair<Bean, int>> path;
-			ChangeNote note;
-			collect(out path, out note);
-
 			// 如果监听了整个记录的变化
 			if (variables.TryGetValue(0, out var beanCC))
 			{
-				beanCC.CollectChanged(path, note); // bean 发生了变化仅仅记录trur|false，不需要更新path。
+				beanCC.CollectChanged(null, null); // bean 发生了变化仅仅记录trur|false，不需要 path and note。
+				if (variables.Count == 1)
+					return; // 只有记录级别的监听者，已经完成收集，不再需要继续处理。
 			}
-			// 收集具体变量变化
+
+			// 收集具体变量变化，需要建立路径用来判断是否该变量的变化。
+			List<KeyValuePair<Bean, int>> path;
+			ChangeNote note;
+			collect(out path, out note);
 			if (variables.TryGetValue(path[^1].Value, out var varCC))
             {
 				path.RemoveAt(path.Count - 1); // 最后一个肯定是 Root-Bean 的变量。
@@ -118,18 +134,18 @@ namespace Zeze.Transaction
 				if (recordAccessed.CommittedPutLog.Value == null)
                 {
 					foreach (var cvc in variables.Values)
-						cvc.NotifyRecordRemoved(recordAccessed.OriginRecord.KeyObject);
+						cvc.NotifyRecordRemoved(key);
 				}
 				else
                 {
 					foreach (var cvc in variables.Values)
-						cvc.NotifyRecordChanged(recordAccessed.OriginRecord.KeyObject, recordAccessed.OriginRecord.Value);
+						cvc.NotifyRecordChanged(key, recordAccessed.OriginRecord.Value);
 				}
 			}
 			else
             {
 				foreach (var cvc in variables.Values)
-					cvc.NotifyVariableChanged(recordAccessed.OriginRecord.KeyObject, recordAccessed.OriginRecord.Value);
+					cvc.NotifyVariableChanged(key, recordAccessed.OriginRecord.Value);
 			}
 		}
 	}

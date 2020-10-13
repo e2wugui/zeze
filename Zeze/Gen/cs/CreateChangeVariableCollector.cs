@@ -103,7 +103,7 @@ namespace Zeze.Gen.cs
             string kv = TypeName.GetName(type.KeyType) + ", " + TypeName.GetName(type.ValueType);
             string factory = type.ValueType.IsNormalBean
                 ? "() => new Zeze.Transaction.ChangeNoteMap2<" + kv + ">(null)"
-                : "() => new Zeze.Transaction.ChangeNoteMap<" + kv + ">(null)";
+                : "() => new Zeze.Transaction.ChangeNoteMap1<" + kv + ">(null)";
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorMap(" + factory + ")";
         }
 

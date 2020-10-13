@@ -228,7 +228,7 @@ namespace Zeze.Transaction
                     if (e.Value.Dirty)
                     {
                         e.Value.OriginRecord.Commit(e.Value);
-                        cc.CollectChanged(e.Key, e.Value, null); // 首先对脏记录创建Table,Record相关Collector。
+                        cc.BuildCollect(e.Key, e.Value); // 首先对脏记录创建Table,Record相关Collector。
                     }
                 }
             }
@@ -238,51 +238,50 @@ namespace Zeze.Transaction
                 Environment.Exit(54321);
             }
 
-            Savepoint sp = savepoints[^1];
-            foreach (Log log in sp.Logs.Values)
+            try
             {
-                if (log.Bean == null)
-                    continue; // 特殊日志没有Bean。
-
-                if (false == accessedRecords.TryGetValue(log.Bean.TableKey, out var ar))
-                    continue; // 应该不会出现找不到的情况，先判断一下，慢慢考虑。
-
-                if (false == ar.Dirty)
-                    continue; // 应该不会出现有log但是又不是dirty的，先判断一下，慢慢考虑。
-
-                // 写成回调是为了优化，仅在需要的时候才创建path。
-                cc.CollectChanged(log.Bean.TableKey, ar, (out List<KeyValuePair<Bean, int>>  path, out ChangeNote note) =>
+                Savepoint sp = savepoints[^1];
+                foreach (Log log in sp.Logs.Values)
                 {
-                    path = new List<KeyValuePair<Bean, int>>();
-                    note = null;
-                    path.Add(KeyValuePair.Create(log.Bean, log.VariableId));
-                    log.Bean.BuildChangeListenerPath(path);
-                });
+                    if (log.Bean == null)
+                        continue; // 特殊日志没有Bean。
+
+                    // 写成回调是为了优化，仅在需要的时候才创建path。
+                    cc.CollectChanged(log.Bean.TableKey, (out List<KeyValuePair<Bean, int>> path, out ChangeNote note) =>
+                    {
+                        path = new List<KeyValuePair<Bean, int>>();
+                        note = null;
+                        path.Add(KeyValuePair.Create(log.Bean, log.VariableId));
+                        log.Bean.BuildChangeListenerPath(path);
+                    });
+                }
+                foreach (ChangeNote cn in sp.ChangeNotes.Values)
+                {
+                    if (cn.Bean == null)
+                        continue;
+
+                    // 写成回调是为了优化，仅在需要的时候才创建path。
+                    cc.CollectChanged(cn.Bean.TableKey, (out List<KeyValuePair<Bean, int>> path, out ChangeNote note) =>
+                    {
+                        path = new List<KeyValuePair<Bean, int>>();
+                        note = cn;
+                        path.Add(KeyValuePair.Create(cn.Bean.Parent, cn.Bean.VariableId));
+                        cn.Bean.Parent.BuildChangeListenerPath(path);
+                    });
+                }
+
+                savepoints.Clear(); // not need
+                accessedRecords.Clear(); // not need
+
+                // 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
+                // 不再支持在回调中再次执行事务。
+                IsCompleted = true;
+                cc.Notify();
             }
-            foreach (ChangeNote cn in sp.ChangeNotes.Values)
+            catch (Exception ex)
             {
-                if (cn.Bean == null)
-                    continue;
-
-                if (false == accessedRecords.TryGetValue(cn.Bean.TableKey, out var ar))
-                    continue; // 应该不会出现找不到的情况，先判断一下，慢慢考虑。
-
-                if (false == ar.Dirty)
-                    continue; // 应该不会出现有log但是又不是dirty的，先判断一下，慢慢考虑。
-
-                // 写成回调是为了优化，仅在需要的时候才创建path。
-                cc.CollectChanged(cn.Bean.TableKey, ar, (out List<KeyValuePair<Bean, int>> path, out ChangeNote note) =>
-                {
-                    path = new List<KeyValuePair<Bean, int>>();
-                    note = cn;
-                    path.Add(KeyValuePair.Create(cn.Bean.Parent, cn.Bean.VariableId));
-                    cn.Bean.Parent.BuildChangeListenerPath(path);
-                });
+                logger.Error(ex, "ChangeListener Collect And Notify");
             }
-
-            savepoints.Clear(); // not need
-            accessedRecords.Clear(); // not need
-            cc.Notify();
 
             foreach (Action action in CommitActions)
             {
@@ -379,6 +378,7 @@ namespace Zeze.Transaction
 
         private readonly SortedDictionary<TableKey, RecordAccessed> accessedRecords = new SortedDictionary<TableKey, RecordAccessed>();
         private readonly List<Savepoint> savepoints = new List<Savepoint>();
+        private bool IsCompleted = false;
 
         /// <summary>
         /// 只能添加一次。
@@ -387,12 +387,18 @@ namespace Zeze.Transaction
         /// <param name="r"></param>
         internal void AddRecordAccessed(TableKey key, RecordAccessed r)
         {
+            if (IsCompleted)
+                throw new Exception("Transaction Is Completed");
+
             r.InitTableKey(key, null);
             accessedRecords.Add(key, r);
         }
 
         internal RecordAccessed GetRecordAccessed(TableKey key)
         {
+            if (IsCompleted)
+                throw new Exception("Transaction Is Completed");
+
             if (accessedRecords.TryGetValue(key, out var record))
             {
                 return record;
