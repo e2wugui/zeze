@@ -23,6 +23,10 @@ namespace Game.Item
             return "";
         }
 
+        public virtual void CalculateFighter(Game.Fight.Fighter fighter)
+        { 
+        }
+
         // 其他更多操作？
     }
 }

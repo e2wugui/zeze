@@ -1,4 +1,5 @@
 ﻿
+using Game.Fight;
 using Zeze.Transaction;
 
 namespace Game.Equip
@@ -59,7 +60,7 @@ namespace Game.Equip
             // 如果装备可以穿到多个位置，则需要选择其中的一个位置返回。
             // 比如戒指，优先返回空的位置，都不为空（可能的规则）返回等级低的位置。
             // 如果物品不能装备到身上的话，返回错误(-1).
-            return -1;
+            //return -1;
         }
         // 装备只有装上取下两个操作，没有公开的需求，先不提供包装类了。
 
@@ -123,6 +124,11 @@ namespace Game.Equip
         public Game.Item.Item GetEquipItem(long roleId, int position)
         {
             BEquips equips = _tequip.GetOrAdd(roleId);
+            return GetEquipItem(equips, position);
+        }
+
+        public Game.Item.Item GetEquipItem(BEquips equips, int position)
+        {
             if (equips.Items.TryGetValue(position, out var equip))
             {
                 Zeze.Transaction.Bean dynamicBean = equip.Extra;
@@ -134,7 +140,19 @@ namespace Game.Equip
                 }
 
             }
-            throw new System.NullReferenceException(); // XXX 找不到物品返回null?
+            return null;
+        }
+
+        public void CalculateFighter(Game.Fight.Fighter fighter)
+        {
+            if (fighter.Id.Type != BFighterId.TypeRole)
+                return;
+
+            BEquips equips = _tequip.GetOrAdd(fighter.Id.InstanceId);
+            foreach (var pos in equips.Items.Keys2)
+            {
+                GetEquipItem(equips, pos).CalculateFighter(fighter);
+            }
         }
     }
 }

@@ -12,6 +12,12 @@ namespace Game.Equip
 
         }
 
+        public override void CalculateFighter(Game.Fight.Fighter fighter)
+        {
+            fighter.Bean.Attack += 20.0f;
+            fighter.Bean.Defence += 20.0f;
+        }
+
         public override bool Use()
         {
             return false;

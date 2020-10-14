@@ -89,7 +89,7 @@ namespace Game.Bag
         // for other module
         public Bag GetBag(long roleid)
         {
-            return new Bag(roleid, _tbag);
+            return new Bag(roleid, _tbag.GetOrAdd(roleid));
         }
 
         public override int ProcessCUse(CUse protocol)

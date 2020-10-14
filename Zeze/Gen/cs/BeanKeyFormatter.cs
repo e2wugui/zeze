@@ -51,23 +51,11 @@ namespace Zeze.Gen.cs
 
             // params construct
             {
-                StringBuilder sb = new StringBuilder();
-                bool first = true;
-                foreach (Types.Variable v in beanKey.Variables)
-                {
-                    if (first)
-                        first = true;
-                    else
-                        sb.Append(", ");
-                    sb.Append(TypeName.GetName(v.VariableType));
-                    sb.Append(" ");
-                    sb.Append(v.NamePrivate);
-                }
-                sw.WriteLine("        public " + beanKey.Name + "(" + sb.ToString() + ")");
+                sw.WriteLine("        public " + beanKey.Name + "(" + ParamName.GetParamList(beanKey.Variables) + ")");
                 sw.WriteLine("        {");
                 foreach (Types.Variable v in beanKey.Variables)
                 {
-                    sw.WriteLine("            this." + v.NamePrivate + " = " + v.NamePrivate + ";");
+                    sw.WriteLine("            this." + v.NamePrivate + " = " + v.NamePrivate + "_;");
                 }
                 sw.WriteLine("        }");
                 sw.WriteLine("");

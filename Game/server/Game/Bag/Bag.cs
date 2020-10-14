@@ -9,11 +9,13 @@ namespace Game.Bag
 {
     public class Bag
     {
+        public long RoleId { get; }
         private BBag bag;
 
-        public Bag(long roleid, tbag table)
+        public Bag(long roleId, BBag bag)
         {
-            bag = table.GetOrAdd(roleid);
+            this.RoleId = roleId;
+            this.bag = bag;
         }
 
         public void SetCapacity(int capacity)

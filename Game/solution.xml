@@ -74,7 +74,7 @@
 			<variable id="1" name="Position" type="int"/>
 		</bean>
 		<bean name="BChangedResult">
-			<enum name="ChangeTagNormalChanged" value="0"/> 普通增量修改
+			<enum name="ChangeTagNormalChanged" value="0"/> 普通增量修改。
 			<enum name="ChangeTagRecordIsRemoved" value="1"/> 整个记录删除了。
 			<enum name="ChangeTagRecordChanged" value="2"/> 整个记录发生了变更，需要先清除本地数据，再替换进去。
 
@@ -116,16 +116,75 @@
 			<variable id="1" name="Speed" type="int"/>
 		</bean>
 
-		<!-- 不需要定义自己的 table，一般物品都存储在 Bag 中 -->
+		<!-- 不需要定义自己的 table，一般物品都存储在 Bag 中。 -->
 	</module>
 
 	<module name="Fight" id="4">
+		<bean name="BFighter"> 战斗相关属性，用于技能等。
+			<variable id="1" name="Attack" type="float"/>
+			<variable id="2" name="Defence" type="float"/>
+		</bean>
+		<beankey name="BFighterId">
+			<enum name="TypeRole" value="1"/>
+			<enum name="TypeMonster" value="2"/>
+			<enum name="TypePet" value="2"/>
+			...
+
+			<variable id="1" name="Type" type="int"/> 战斗对象类型
+			<variable id="2" name="InstanceId" type="long"/> 战斗对象实例id，根据type含义不一样。
+		</beankey>
+		<table name="tfighters" key="BFighterId" value="BFighter" memory="true"/> key is fighter id. 战斗属性是计算值，每次登录或改变时重新计算。
+
 	</module>
 
-	<module name="Buf" id="5">
+	<module name="Skill" id="5">
+		<bean name="BSkill">
+			<variable id="1" name="Id" type="int"/>
+			<variable id="2" name="Extra" type="dynamic">
+				<value bean="BSkillAttackExtra"/>
+			</variable>
+		</bean>
+		<bean name="BSkills">
+			<variable id="1" name="Skills" type="map" key="int" value="BSkill"/>
+		</bean>
+		<bean name="BSkillAttackExtra">
+		</bean>
+
+		<table name="tskills" key="long" value="BSkills"/>
 	</module>
 
-	<module name="Equip" id="6">
+	<module name="Buf" id="6">
+		<!-- buf 应该尽量通过配置控制：冲突，覆盖，增加属性，生命期等 -->
+		<bean name="BBuf">
+			<variable id="1" name="Id" type="int"/>
+			<variable id="2" name="AttachTime" type="long"/> 加入时间
+			<variable id="3" name="ContinueTime" type="long"/> 持续时间
+			<variable id="4" name="Extra" type="dynamic"> 保存具体buf的不同属性
+				<value bean="BBufExtra"/>
+			</variable>
+		</bean>
+		<bean name="BBufs">
+			<variable id="1" name="Bufs" type="map" key="int" value="BBuf"/>
+		</bean>
+		<table name="tbufs" key="long" value="BBufs"/>
+
+		<bean name="BBufExtra">
+			<!-- 随便定义一个bean，不知道填什么扩展属性 -->
+		</bean>
+
+		<bean name="BBufChanged">
+			<enum name="ChangeTagNormalChanged" value="0"/> 普通增量修改。
+			<enum name="ChangeTagRecordIsRemoved" value="1"/> 整个记录删除了。
+			<enum name="ChangeTagRecordChanged" value="2"/> 整个记录发生了变更，需要先清除本地数据，再替换进去。
+
+			<variable id="1" name="Replace" type="map" key="int" value="BBuf"/> key is bufId
+			<variable id="2" name="Remove" type="set" value="int"/> key is bufId
+			<variable id="3" name="ChangeTag" type="int"/>
+		</bean>
+		<protocol name="SChanged" argument="BBufChanged" handle="client"/> 所有的buf改变都通过这个协议发送，通过ChangeListener订阅。
+	</module>
+
+	<module name="Equip" id="7">
 		<bean name="BEquipement"> 穿上装备
 			<variable id="1" name="BagPos" type="int"/>
 		</bean>
@@ -148,7 +207,7 @@
 		<table name="tequip" key="long" value="BEquips"/>
 	</module>
 
-	<module name="Map" id="7">
+	<module name="Map" id="8">
 		<bean name="BEnterWorldNow">
 			<variable id="1" name="MapInstanceId" type="int"/>
 			<!-- role postion -->
@@ -183,6 +242,7 @@
 			<module ref="Bag"/>
 			<module ref="Item"/>
 			<module ref="Fight"/>
+			<module ref="Skill"/>
 			<module ref="Buf"/>
 			<module ref="Equip"/>
 			<module ref="Map"/>
