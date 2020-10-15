@@ -8,7 +8,7 @@ namespace Zeze.Gen.cs
     public class CreateChangeVariableCollector : Types.Visitor
     {
         public string ChangeVariableCollectorName { get; private set; }
-        private Types.Variable var;
+        //private Types.Variable var;
 
         public static void Make(System.IO.StreamWriter sw, string prefix, Types.Bean bean)
         {
@@ -19,7 +19,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        0 => new Zeze.Transaction.ChangeVariableCollectorChanged(),");
             foreach (var v in bean.Variables)
             {
-                CreateChangeVariableCollector vistor = new CreateChangeVariableCollector(v);
+                CreateChangeVariableCollector vistor = new CreateChangeVariableCollector();
                 v.VariableType.Accept(vistor);
                 sw.WriteLine(prefix + "        " + v.Id + " => new " + vistor .ChangeVariableCollectorName + ",");
             }
@@ -29,9 +29,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
         }
 
-        CreateChangeVariableCollector(Types.Variable var)
+        CreateChangeVariableCollector()
         {
-            this.var = var;
         }
 
         void Visitor.Visit(Bean type)

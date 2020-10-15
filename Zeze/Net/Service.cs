@@ -21,7 +21,7 @@ namespace Zeze.Net
         public Application Zeze { get; }
         public string Name { get; }
 
-        private ConcurrentDictionary<long, AsyncSocket> _asocketMap = new ConcurrentDictionary<long, AsyncSocket>();
+        private readonly ConcurrentDictionary<long, AsyncSocket> _asocketMap = new ConcurrentDictionary<long, AsyncSocket>();
 
         public Service(string name, Application zeze)
         {
@@ -228,8 +228,7 @@ namespace Zeze.Net
 
         public Protocol CreateProtocol(int type, ByteBuffer bb)
         {
-            ProtocolFactoryHandle factory;
-            if (false == Factorys.TryGetValue(type, out factory))
+            if (false == Factorys.TryGetValue(type, out ProtocolFactoryHandle factory))
             {
                 return null;
             }
@@ -266,8 +265,7 @@ namespace Zeze.Net
         {
             lock (contexts)
             {
-                Protocol p;
-                contexts.Remove(sid, out p);
+                contexts.Remove(sid, out Protocol p);
                 return (T)p;
             }
         }
