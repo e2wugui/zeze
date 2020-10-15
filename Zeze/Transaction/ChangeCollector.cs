@@ -6,7 +6,7 @@ namespace Zeze.Transaction
 {
 	public sealed class ChangeCollector
 	{
-		private Dictionary<int, ChangeTableCollector> tables = new Dictionary<int, ChangeTableCollector>(); // key is Table.Id
+		private readonly Dictionary<int, ChangeTableCollector> tables = new Dictionary<int, ChangeTableCollector>(); // key is Table.Id
 
 		public delegate void Collect(out List<KeyValuePair<Bean, int>> path, out ChangeNote note);
 
@@ -38,9 +38,9 @@ namespace Zeze.Transaction
 
 	public sealed class ChangeTableCollector
 	{
-		private Dictionary<object, ChangeRecordCollector> records = new Dictionary<object, ChangeRecordCollector>(); // key is Record.Key
-		private Table table;
-		private bool tableHasListener;
+		private readonly Dictionary<object, ChangeRecordCollector> records = new Dictionary<object, ChangeRecordCollector>(); // key is Record.Key
+		private readonly Table table;
+		private readonly bool tableHasListener;
 
 		public ChangeTableCollector(TableKey tableKey)
 		{
@@ -81,9 +81,9 @@ namespace Zeze.Transaction
 
 	public sealed class ChangeRecordCollector
 	{
-		private Dictionary<int, ChangeVariableCollector> variables = new Dictionary<int, ChangeVariableCollector>(); // key is VariableId
-		private Transaction.RecordAccessed recordAccessed;
-		private object key;
+		private readonly Dictionary<int, ChangeVariableCollector> variables = new Dictionary<int, ChangeVariableCollector>(); // key is VariableId
+		private readonly Transaction.RecordAccessed recordAccessed;
+		private readonly object key;
 
 		public ChangeRecordCollector(TableKey tableKey, Table table, Transaction.RecordAccessed recordAccessed)
 		{
@@ -116,11 +116,9 @@ namespace Zeze.Transaction
 					return; // 只有记录级别的监听者，已经完成收集，不再需要继续处理。
 			}
 
-			// 收集具体变量变化，需要建立路径用来判断是否该变量的变化。
-			List<KeyValuePair<Bean, int>> path;
-			ChangeNote note;
-			collect(out path, out note);
-			if (variables.TryGetValue(path[^1].Value, out var varCC))
+            // 收集具体变量变化，需要建立路径用来判断是否该变量的变化。
+            collect(out List<KeyValuePair<Bean, int>> path, out ChangeNote note);
+            if (variables.TryGetValue(path[^1].Value, out var varCC))
             {
 				path.RemoveAt(path.Count - 1); // 最后一个肯定是 Root-Bean 的变量。
 				varCC.CollectChanged(path, note);
@@ -228,7 +226,7 @@ namespace Zeze.Transaction
 		private ChangeNote note;
 		private Util.IdentityHashMap<Bean, Bean> changedValue;
 
-		private Func<ChangeNote> NoteFactory;
+		private readonly Func<ChangeNote> NoteFactory;
 
 		public ChangeVariableCollectorMap(Func<ChangeNote> noteFactory)
         {

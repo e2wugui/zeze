@@ -14,17 +14,17 @@ namespace Zeze.Gen.cs
         {
             sw.WriteLine(prefix + "public override Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId)");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    switch (variableId)");
+            sw.WriteLine(prefix + "    return variableId switch");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();");
+            sw.WriteLine(prefix + "        0 => new Zeze.Transaction.ChangeVariableCollectorChanged(),");
             foreach (var v in bean.Variables)
             {
                 CreateChangeVariableCollector vistor = new CreateChangeVariableCollector(v);
                 v.VariableType.Accept(vistor);
-                sw.WriteLine(prefix + "        case " + v.Id + ": return new " + vistor .ChangeVariableCollectorName + ";");
+                sw.WriteLine(prefix + "        " + v.Id + " => new " + vistor .ChangeVariableCollectorName + ",");
             }
-            sw.WriteLine("            }");
-            sw.WriteLine("            return null;");
+            sw.WriteLine("                _ => null,");
+            sw.WriteLine("            };");
             sw.WriteLine("        }");
             sw.WriteLine();
         }

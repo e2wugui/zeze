@@ -7,8 +7,8 @@ namespace Zeze.Gen.cs
 {
     public class TableFormatter
     {
-        Table table;
-        string genDir;
+        readonly Table table;
+        readonly string genDir;
 
         public TableFormatter(Table table, string genDir)
         {
@@ -66,15 +66,15 @@ namespace Zeze.Gen.cs
             CreateChangeVariableCollector.Make(sw, "        ", valueBean);
             sw.WriteLine("        public override int VariableNameToId(string _name_)");
             sw.WriteLine("        {");
-            sw.WriteLine("            switch (_name_)");
+            sw.WriteLine("            return _name_ switch");
             sw.WriteLine("            {");
-            sw.WriteLine("                case \"\": return 0;");
+            sw.WriteLine("                \"\" => 0,");
             foreach (var v in valueBean.Variables)
             {
-                sw.WriteLine("                case \"" + v.Name + "\": return " + v.Id + ";");
+                sw.WriteLine("                \"" + v.Name + "\" => " + v.Id + ",");
             }
-            sw.WriteLine("            }");
-            sw.WriteLine("            throw new System.Exception(\"unkown variable name : \" + _name_);");
+            sw.WriteLine("                _ => throw new System.Exception(\"unkown variable name : \" + _name_),");
+            sw.WriteLine("            };");
             sw.WriteLine("        }");
             sw.WriteLine();
             sw.WriteLine("    }");

@@ -1,3 +1,10 @@
+
+serpent
+	https://github.com/pkulchenko/serpent
+	格式化 lua.table
+
+lua-protobuf
+	
 # zeze
 
 zeze 是一个支持事务的应用框架。

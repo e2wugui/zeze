@@ -23,7 +23,7 @@ namespace UnitTest.Zeze.Trans
             demo.App.Instance.Stop();
         }
 
-        private void prepare()
+        private void Prepare()
         {
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
@@ -56,7 +56,7 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestAllType()
         {
-            prepare();
+            Prepare();
             AddListener();
 
             Init();
@@ -99,8 +99,11 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
                 demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(1);
-                List<int> except = new List<int>();
-                except.Add(1); except.Add(2);
+                List<int> except = new List<int>
+                {
+                    1,
+                    2
+                };
                 value.Set10.ExceptWith(except);
                 return Procedure.Success;
             }, "TestChangeListener.ModifySetExcept").Call());
@@ -110,8 +113,11 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
                 demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(1);
-                List<int> intersect = new List<int>();
-                intersect.Add(123); intersect.Add(126);
+                List<int> intersect = new List<int>
+                {
+                    123,
+                    126
+                };
                 value.Set10.IntersectWith(intersect);
                 return Procedure.Success;
             }, "TestChangeListener.ModifySetIntersect").Call());
@@ -121,8 +127,11 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
                 demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(1);
-                List<int> SymmetricExcept = new List<int>();
-                SymmetricExcept.Add(123); SymmetricExcept.Add(140);
+                List<int> SymmetricExcept = new List<int>
+                {
+                    123,
+                    140
+                };
                 value.Set10.SymmetricExceptWith(SymmetricExcept);
                 return Procedure.Success;
             }, "TestChangeListener.ModifySetSymmetricExcept").Call());
@@ -132,8 +141,11 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
                 demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(1);
-                List<int> Union = new List<int>();
-                Union.Add(123); Union.Add(140);
+                List<int> Union = new List<int>
+                {
+                    123,
+                    140
+                };
                 value.Set10.UnionWith(Union);
                 return Procedure.Success;
             }, "TestChangeListener.ModifySetUnion").Call());
@@ -230,21 +242,21 @@ namespace UnitTest.Zeze.Trans
             demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("map15", _CLMap15);
         }
 
-        private CLInt1 _CLInt1 = new CLInt1();
-        private ClLong2 _ClLong2 = new ClLong2();
-        private CLString3 _CLString3 = new CLString3();
-        private CLBool4 _CLBool4 = new CLBool4();
-        private CLShort5 _CLShort5 = new CLShort5();
-        private CLFloat6 _CLFloat6 = new CLFloat6();
-        private CLDouble7 _CLDouble7 = new CLDouble7();
-        private CLBytes8 _CLBytes8 = new CLBytes8();
-        private CLList9 _CLList9 = new CLList9();
-        private CLSet10 _CLSet10 = new CLSet10();
-        private CLMap11 _CLMap11 = new CLMap11();
-        private CLBean12 _CLBean12 = new CLBean12();
-        private CLByte13 _CLByte13 = new CLByte13();
-        private ClDynamic14 _ClDynamic14 = new ClDynamic14();
-        private CLMap15 _CLMap15 = new CLMap15();
+        private readonly CLInt1 _CLInt1 = new CLInt1();
+        private readonly ClLong2 _ClLong2 = new ClLong2();
+        private readonly CLString3 _CLString3 = new CLString3();
+        private readonly CLBool4 _CLBool4 = new CLBool4();
+        private readonly CLShort5 _CLShort5 = new CLShort5();
+        private readonly CLFloat6 _CLFloat6 = new CLFloat6();
+        private readonly CLDouble7 _CLDouble7 = new CLDouble7();
+        private readonly CLBytes8 _CLBytes8 = new CLBytes8();
+        private readonly CLList9 _CLList9 = new CLList9();
+        private readonly CLSet10 _CLSet10 = new CLSet10();
+        private readonly CLMap11 _CLMap11 = new CLMap11();
+        private readonly CLBean12 _CLBean12 = new CLBean12();
+        private readonly CLByte13 _CLByte13 = new CLByte13();
+        private readonly ClDynamic14 _ClDynamic14 = new ClDynamic14();
+        private readonly CLMap15 _CLMap15 = new CLMap15();
 
         class CLMap15 : ChangeListener
         {
@@ -309,7 +321,7 @@ namespace UnitTest.Zeze.Trans
 
             public void Init(demo.Module1.Value current)
             {
-                newValue = (null != current) ? current.Dynamic14.CopyBean() : null;
+                newValue = current?.Dynamic14.CopyBean();
             }
 
             public void Verify(demo.Module1.Value current)
@@ -589,7 +601,7 @@ namespace UnitTest.Zeze.Trans
 
             public void Init(demo.Module1.Value current)
             {
-                newValue = (null != current) ? current.Bytes8Copy : null;
+                newValue = current?.Bytes8Copy;
             }
 
             public void Verify(demo.Module1.Value current)
@@ -729,7 +741,7 @@ namespace UnitTest.Zeze.Trans
 
             public void Init(demo.Module1.Value current)
             {
-                newValue = (null != current) ? current.Bool4 : false;
+                newValue = (null != current) && current.Bool4;
             }
 
             public void Verify(demo.Module1.Value current)
@@ -765,7 +777,7 @@ namespace UnitTest.Zeze.Trans
 
             public void Init(demo.Module1.Value current)
             {
-                newValue = (null != current) ? current.String3: null;
+                newValue = current?.String3;
             }
 
             public void Verify(demo.Module1.Value current)
