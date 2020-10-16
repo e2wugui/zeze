@@ -75,8 +75,11 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (Helper.BEAN | " + id + " << Helper.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + bufname + ".ReadInt4(); // skip bean size");
-                sw.WriteLine(prefix + "    " + varname + ".Decode(" + bufname + ");");
+                sw.WriteLine(prefix + "    {");
+                sw.WriteLine(prefix + "        " + bufname + ".BeginReadSegment(out var _state_);");
+                sw.WriteLine(prefix + "        " + varname + ".Decode(" + bufname + ");");
+                sw.WriteLine(prefix + "        " + bufname + ".EndReadSegment(_state_);");
+                sw.WriteLine(prefix + "    }");
                 sw.WriteLine(prefix + "    break;");
             }
             else
@@ -90,8 +93,11 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (Helper.BEAN | " + id + " << Helper.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + bufname + ".ReadInt4(); // skip beankey size");
-                sw.WriteLine(prefix + "    " + varname + ".Decode(" + bufname + ");");
+                sw.WriteLine(prefix + "    {");
+                sw.WriteLine(prefix + "        " + bufname + ".BeginReadSegment(out var _state_);");
+                sw.WriteLine(prefix + "        " + varname + ".Decode(" + bufname + ");");
+                sw.WriteLine(prefix + "        " + bufname + ".EndReadSegment(_state_);");
+                sw.WriteLine(prefix + "    }");
                 sw.WriteLine(prefix + "    break;");
             }
             else
@@ -202,14 +208,17 @@ namespace Zeze.Gen.cs
         {
             Types.Type valuetype = type.ValueType;
 
-            sw.WriteLine(prefix + "    _os_.ReadInt4(); // skip collection size");
-            sw.WriteLine(prefix + "    _os_.ReadInt(); // skip collection.value typetag");
-            sw.WriteLine(prefix + "    " + varname + ".Clear();");
-            sw.WriteLine(prefix + "    for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)");
             sw.WriteLine(prefix + "    {");
-            valuetype.Accept(new Define("_v_", sw, prefix + "        "));
-            valuetype.Accept(new Decode("_v_", -1, "_os_", sw, prefix + "        "));
-            sw.WriteLine(prefix + "        " + varname + ".Add(_v_);");
+            sw.WriteLine(prefix + "        _os_.BeginReadSegment(out var _state_);");
+            sw.WriteLine(prefix + "        _os_.ReadInt(); // skip collection.value typetag");
+            sw.WriteLine(prefix + "        " + varname + ".Clear();");
+            sw.WriteLine(prefix + "        for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)");
+            sw.WriteLine(prefix + "        {");
+            valuetype.Accept(new Define("_v_", sw, prefix + "            "));
+            valuetype.Accept(new Decode("_v_", -1, "_os_", sw, prefix + "            "));
+            sw.WriteLine(prefix + "            " + varname + ".Add(_v_);");
+            sw.WriteLine(prefix + "        }");
+            sw.WriteLine(prefix + "        _os_.EndReadSegment(_state_);");
             sw.WriteLine(prefix + "    }");
         }
 
@@ -242,17 +251,20 @@ namespace Zeze.Gen.cs
             Types.Type valuetype = type.ValueType;
 
             sw.WriteLine(prefix + "case (Helper.MAP | " + id + " << Helper.TAG_SHIFT):");
-            sw.WriteLine(prefix + "    _os_.ReadInt4(); // skip map bytes.size");
-            sw.WriteLine(prefix + "    _os_.ReadInt(); // skip key typetag");
-            sw.WriteLine(prefix + "    _os_.ReadInt(); // skip value typetag");
-            sw.WriteLine(prefix + "    " + varname + ".Clear();");
-            sw.WriteLine(prefix + "    for (int size = _os_.ReadInt(); size > 0; --size)");
             sw.WriteLine(prefix + "    {");
-            keytype.Accept(new Define("_k_", sw, prefix + "        "));
-            keytype.Accept(new Decode("_k_", -1, "_os_", sw, prefix + "        "));
+            sw.WriteLine(prefix + "        _os_.BeginReadSegment(out var _state_);");
+            sw.WriteLine(prefix + "        _os_.ReadInt(); // skip key typetag");
+            sw.WriteLine(prefix + "        _os_.ReadInt(); // skip value typetag");
+            sw.WriteLine(prefix + "        " + varname + ".Clear();");
+            sw.WriteLine(prefix + "        for (int size = _os_.ReadInt(); size > 0; --size)");
+            sw.WriteLine(prefix + "        {");
+            keytype.Accept(new Define("_k_", sw, prefix + "            "));
+            keytype.Accept(new Decode("_k_", -1, "_os_", sw, prefix + "            "));
             valuetype.Accept(new Define("_v_", sw, prefix + "        "));
-            valuetype.Accept(new Decode("_v_", -1, "_os_", sw, prefix + "        "));
-            sw.WriteLine(prefix + "        " + varname + ".Add(_k_, _v_);");
+            valuetype.Accept(new Decode("_v_", -1, "_os_", sw, prefix + "            "));
+            sw.WriteLine(prefix + "            " + varname + ".Add(_k_, _v_);");
+            sw.WriteLine(prefix + "        }");
+            sw.WriteLine(prefix + "        _os_.EndReadSegment(_state_);");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    break;");
         }
@@ -296,18 +308,21 @@ namespace Zeze.Gen.cs
                 {
                     string realName = TypeName.GetName(real);
                     sw.WriteLine(prefix + "        case " + realName + ".TYPEID:");
-                    sw.WriteLine(prefix + "            " + bufname + ".ReadInt4(); // skip dynamic bean size");
-                    sw.WriteLine(prefix + "            " + varname + " = new " + realName + "();");
-                    sw.WriteLine(prefix + "            " + varname + ".Decode(" + bufname + ");");
+                    sw.WriteLine(prefix + "            {");
+                    sw.WriteLine(prefix + "                " + bufname + ".BeginReadSegment(out var _state_);");
+                    sw.WriteLine(prefix + "                " + varname + " = new " + realName + "();");
+                    sw.WriteLine(prefix + "                " + varname + ".Decode(" + bufname + ");");
+                    sw.WriteLine(prefix + "                " + bufname + ".EndReadSegment(_state_);");
+                    sw.WriteLine(prefix + "            }");
                     sw.WriteLine(prefix + "            break;");
                 }
                 sw.WriteLine(prefix + "        case Zeze.Transaction.EmptyBean.TYPEID:");
                 sw.WriteLine(prefix + "            " + varname + " = new Zeze.Transaction.EmptyBean();");
-                sw.WriteLine(prefix + "             " + bufname + ".SkipBytes4();");
-                sw.WriteLine(prefix + "             break;");
+                sw.WriteLine(prefix + "            " + bufname + ".SkipBytes();");
+                sw.WriteLine(prefix + "            break;");
                 sw.WriteLine(prefix + "        default:");
-                sw.WriteLine(prefix + "             " + bufname + ".SkipBytes4();");
-                sw.WriteLine(prefix + "              break;");
+                sw.WriteLine(prefix + "            " + bufname + ".SkipBytes();");
+                sw.WriteLine(prefix + "            break;");
                 sw.WriteLine(prefix + "    }");
                 sw.WriteLine(prefix + "    break;");
             }

@@ -101,7 +101,7 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void BeginEncodeWithSize4(out int state)
+        public void BeginWriteWithSize4(out int state)
         {
             state = WriteIndex;
             EnsureWrite(4);
@@ -109,9 +109,150 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void EndEncodeWithSize4(int state)
+        public void EndWriteWithSize4(int state)
         {
-            Replace(state, BitConverter.GetBytes(WriteIndex - state - 4)); // int4
+            Replace(state, BitConverter.GetBytes(WriteIndex - state - 4));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void BeginWriteSegment(out int oldSize)
+        {
+            oldSize = Size;
+            EnsureWrite(1);
+            WriteIndex += 1;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EndWriteSegment(int oldSize)
+        {
+            int startPos = ReadIndex + oldSize;
+            int segmentSize = WriteIndex - startPos - 1;
+
+            // 0 111 1111
+            if (segmentSize < 0x80)
+            {
+                Bytes[startPos] = (byte)segmentSize;
+            }
+            else if (segmentSize < 0x4000) // 10 11 1111, -
+            {
+                EnsureWrite(1);
+                Bytes[WriteIndex] = Bytes[startPos + 1];
+                Bytes[startPos + 1] = (byte)segmentSize;
+
+                Bytes[startPos] = (byte)((segmentSize >> 8) | 0x80);
+                WriteIndex += 1;
+            }
+            else if (segmentSize < 0x200000) // 110 1 1111, -,-
+            {
+                EnsureWrite(2);
+                Bytes[WriteIndex + 1] = Bytes[startPos + 2];
+                Bytes[startPos + 2] = (byte)segmentSize;
+
+                Bytes[WriteIndex] = Bytes[startPos + 1];
+                Bytes[startPos + 1] = (byte)(segmentSize >> 8);
+
+                Bytes[startPos] = (byte)((segmentSize >> 16) | 0xc0);
+                WriteIndex += 2;
+            }
+            else if (segmentSize < 0x10000000) // 1110 1111,-,-,-
+            {
+                EnsureWrite(3);
+                Bytes[WriteIndex + 2] = Bytes[startPos + 3];
+                Bytes[startPos + 3] = (byte)segmentSize;
+
+                Bytes[WriteIndex + 1] = Bytes[startPos + 2];
+                Bytes[startPos + 2] = (byte)(segmentSize >> 8);
+
+                Bytes[WriteIndex] = Bytes[startPos + 1];
+                Bytes[startPos + 1] = (byte)(segmentSize >> 16);
+
+                Bytes[startPos] = (byte)((segmentSize >> 24) | 0xe0);
+                WriteIndex += 3;
+            }
+            else
+            {
+                throw new Exception("exceed max segment size");
+            }
+        }
+
+        public readonly struct SegmentSaveState
+        {
+            public SegmentSaveState(int readerIndex, int writerIndex)
+            {
+                ReadIndex = readerIndex;
+                WriteIndex = writerIndex;
+            }
+
+            public int ReadIndex { get; }
+
+            public int WriteIndex { get; }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ReadSegment(out int startIndex, out int segmentSize)
+        {
+            EnsureRead(1);
+            int h = Bytes[ReadIndex++];
+
+            startIndex = ReadIndex;
+
+            if (h < 0x80)
+            {
+                segmentSize = h;
+                ReadIndex += segmentSize;
+            }
+            else if (h < 0xc0)
+            {
+                EnsureRead(1);
+                segmentSize = ((h & 0x3f) << 8) | Bytes[ReadIndex];
+                int endPos = ReadIndex + segmentSize;
+                Bytes[ReadIndex] = Bytes[endPos];
+                ReadIndex += segmentSize + 1;
+            }
+            else if (h < 0xe0)
+            {
+                EnsureRead(2);
+                segmentSize = ((h & 0x1f) << 16) | ((int)Bytes[ReadIndex] << 8) | Bytes[ReadIndex + 1];
+                int endPos = ReadIndex + segmentSize;
+                Bytes[ReadIndex] = Bytes[endPos];
+                Bytes[ReadIndex + 1] = Bytes[endPos + 1];
+                ReadIndex += segmentSize + 2;
+            }
+            else if (h < 0xf0)
+            {
+                EnsureRead(3);
+                segmentSize = ((h & 0x0f) << 24) | ((int)Bytes[ReadIndex] << 16) | ((int)Bytes[ReadIndex + 1] << 8) | Bytes[ReadIndex + 2];
+                int endPos = ReadIndex + segmentSize;
+                Bytes[ReadIndex] = Bytes[endPos];
+                Bytes[ReadIndex + 1] = Bytes[endPos + 1];
+                Bytes[ReadIndex + 2] = Bytes[endPos + 2];
+                ReadIndex += segmentSize + 3;
+            }
+            else
+            {
+                throw new Exception("exceed max size");
+            }
+            if (ReadIndex > WriteIndex)
+            {
+                throw new Exception("segment data not enough");
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void BeginReadSegment(out SegmentSaveState saveState)
+        {
+            ReadSegment(out int startPos, out int size);
+
+            saveState = new SegmentSaveState(ReadIndex, WriteIndex);
+            ReadIndex = startPos;
+            WriteIndex = startPos + size;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EndReadSegment(SegmentSaveState saveState)
+        {
+            ReadIndex = saveState.ReadIndex;
+            WriteIndex = saveState.WriteIndex;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

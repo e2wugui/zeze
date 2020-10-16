@@ -85,9 +85,9 @@ namespace Zeze.Util
                     OpenOrCreateLastDataFile(LastId);
 
                 global::Zeze.Serialize.ByteBuffer bb = global::Zeze.Serialize.ByteBuffer.Allocate(msg.SizeHint());
-                bb.BeginEncodeWithSize4(out var state);
+                bb.BeginWriteWithSize4(out var state);
                 msg.Encode(bb);
-                bb.EndEncodeWithSize4(state);
+                bb.EndWriteWithSize4(state);
                 _lastDataFile.WriteToTail(bb.Bytes, bb.ReadIndex, bb.Size);
 
                 return LastId++; // 最后才真的增加，避免上面异常导致LastId已被增加。 

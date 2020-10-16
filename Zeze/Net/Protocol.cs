@@ -30,9 +30,9 @@ namespace Zeze.Net
 
 			ByteBuffer bb = ByteBuffer.Allocate();
 			bb.WriteInt4(TypeId);
-			bb.BeginEncodeWithSize4(out var state);
+			bb.BeginWriteWithSize4(out var state);
 			this.Encode(bb);
-			bb.EndEncodeWithSize4(state);
+			bb.EndWriteWithSize4(state);
 
 			so.Send(bb);
 		}
