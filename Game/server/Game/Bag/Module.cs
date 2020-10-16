@@ -7,7 +7,7 @@ namespace Game.Bag
     {
         public void Start(Game.App app)
         {
-            _tbag.AddChangeListener("Items", new ItemsChangeListener());
+            _tbag.ChangeListenerMap.AddListener(tbag.VAR_Items, new ItemsChangeListener());
         }
 
         public void Stop(Game.App app)

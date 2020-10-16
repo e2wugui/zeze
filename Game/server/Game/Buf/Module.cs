@@ -7,7 +7,7 @@ namespace Game.Buf
     {
         public void Start(Game.App app)
         {
-            _tbufs.AddChangeListener("Bufs", new BufChangeListener());
+            _tbufs.ChangeListenerMap.AddListener(tbufs.VAR_Bufs, new BufChangeListener());
         }
 
         public void Stop(Game.App app)

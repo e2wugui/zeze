@@ -38,6 +38,12 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public override bool IsMemory => " + (table.IsMemory ? "true;" : "false;"));
             sw.WriteLine("        public override bool IsAutoKey => " + (table.IsAutoKey ? "true;" : "false;"));
             sw.WriteLine();
+            sw.WriteLine("        public const int VAR_All = 0;");
+            foreach (var v in ((Types.Bean)table.ValueType).Variables)
+            {
+                sw.WriteLine("        public const int VAR_" + v.Name + " = " + v.Id + ";");
+            }
+            sw.WriteLine();
             if (table.IsAutoKey)
             {
                 sw.WriteLine("        public long Insert(" + value + " value)");
@@ -62,20 +68,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            return _os_;");
             sw.WriteLine("        }");
             sw.WriteLine();
-            Types.Bean valueBean = (Types.Bean)table.ValueType;
-            CreateChangeVariableCollector.Make(sw, "        ", valueBean);
-            sw.WriteLine("        public override int VariableNameToId(string _name_)");
-            sw.WriteLine("        {");
-            sw.WriteLine("            return _name_ switch");
-            sw.WriteLine("            {");
-            sw.WriteLine("                \"\" => 0,");
-            foreach (var v in valueBean.Variables)
-            {
-                sw.WriteLine("                \"" + v.Name + "\" => " + v.Id + ",");
-            }
-            sw.WriteLine("                _ => throw new System.Exception(\"unkown variable name : \" + _name_),");
-            sw.WriteLine("            };");
-            sw.WriteLine("        }");
+            CreateChangeVariableCollector.Make(sw, "        ", (Types.Bean)table.ValueType);
             sw.WriteLine();
             sw.WriteLine("    }");
             sw.WriteLine("}");

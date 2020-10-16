@@ -8,7 +8,7 @@ namespace Game.Equip
     {
         public void Start(Game.App app)
         {
-            _tequip.AddChangeListener("Items", new ItemsChangeListener());
+            _tequip.ChangeListenerMap.AddListener(tequip.VAR_Items, new ItemsChangeListener());
         }
 
         public void Stop(Game.App app)

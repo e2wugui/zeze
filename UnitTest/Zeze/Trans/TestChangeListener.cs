@@ -225,21 +225,21 @@ namespace UnitTest.Zeze.Trans
 
         private void AddListener()
         {
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("int1", _CLInt1);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("long2", _ClLong2);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("string3", _CLString3);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("bool4", _CLBool4);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("short5", _CLShort5);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("float6", _CLFloat6);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("double7", _CLDouble7);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("bytes8", _CLBytes8);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("list9", _CLList9);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("set10", _CLSet10);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("map11", _CLMap11);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("bean12", _CLBean12);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("byte13", _CLByte13);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("dynamic14", _ClDynamic14);
-            demo.App.Instance.demo_Module1_Module.Table1.AddChangeListener("map15", _CLMap15);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_int1, _CLInt1);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_long2, _ClLong2);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_string3, _CLString3);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bool4, _CLBool4);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_short5, _CLShort5);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_float6, _CLFloat6);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_double7, _CLDouble7);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bytes8, _CLBytes8);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_list9, _CLList9);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_set10, _CLSet10);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_map11, _CLMap11);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bean12, _CLBean12);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_byte13, _CLByte13);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_dynamic14, _ClDynamic14);
+            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_map15, _CLMap15);
         }
 
         private readonly CLInt1 _CLInt1 = new CLInt1();
