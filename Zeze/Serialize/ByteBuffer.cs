@@ -104,7 +104,8 @@ namespace Zeze.Serialize
         public void BeginEncodeWithSize4(out int state)
         {
             state = WriteIndex;
-            Append(Helper.Bytes4);
+            EnsureWrite(4);
+            WriteIndex += 4;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

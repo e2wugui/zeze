@@ -94,8 +94,6 @@ namespace Zeze.Serialize
             }
         }
 
-        public static byte[] Bytes4 = new byte[4]; // 不用每次都new
-
         public static void BuildString<T>(StringBuilder sb, IEnumerable<T> c)
         {
             sb.Append("[");
