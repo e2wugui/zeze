@@ -175,21 +175,8 @@ namespace Zeze.Serialize
             }
         }
 
-        public readonly struct SegmentSaveState
-        {
-            public SegmentSaveState(int readerIndex, int writerIndex)
-            {
-                ReadIndex = readerIndex;
-                WriteIndex = writerIndex;
-            }
-
-            public int ReadIndex { get; }
-
-            public int WriteIndex { get; }
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ReadSegment(out int startIndex, out int segmentSize)
+        private void ReadSegment(out int startIndex, out int segmentSize)
         {
             EnsureRead(1);
             int h = Bytes[ReadIndex++];
@@ -239,20 +226,18 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void BeginReadSegment(out SegmentSaveState saveState)
+        public void BeginReadSegment(out int saveState)
         {
-            ReadSegment(out int startPos, out int size);
+            ReadSegment(out int startPos, out int _);
 
-            saveState = new SegmentSaveState(ReadIndex, WriteIndex);
+            saveState = ReadIndex;
             ReadIndex = startPos;
-            WriteIndex = startPos + size;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void EndReadSegment(SegmentSaveState saveState)
+        public void EndReadSegment(int saveState)
         {
-            ReadIndex = saveState.ReadIndex;
-            WriteIndex = saveState.WriteIndex;
+            ReadIndex = saveState;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
