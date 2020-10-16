@@ -83,7 +83,12 @@ namespace Zeze.Serialize
                 case LONG: bb.ReadLong(); break;
                 case FLOAT: bb.ReadFloat(); break;
                 case DOUBLE: bb.ReadDouble(); break;
-                case STRING: case BYTES: case LIST: case SET: case MAP: case BEAN: case DYNAMIC: bb.SkipBytes(); break;
+                case STRING: case BYTES:
+                    bb.SkipBytes();
+                    break;
+                case LIST: case SET: case MAP: case BEAN: case DYNAMIC:
+                    bb.SkipBytes4();
+                    break;
                 default:
                     throw new Exception("SkipUnknownField");
             }

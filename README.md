@@ -1,3 +1,42 @@
+lua_createtable(L, 0, 4);
+
+lua_pushstring(L, "name");
+lua_pushstring(L, row->name);
+lua_settable(L, -3);  /* 3rd element from the stack top */
+
+lua_pushstring(L, "date");
+lua_pushstring(L, row->date);
+lua_settable(L, -3);
+
+lua_pushstring(L, "ip");
+lua_pushstring(L, row->ip);
+lua_settable(L, -3);
+
+lua_pushstring(L, "custom");
+lua_pushstring(L, row->custom);
+lua_settable(L, -3);
+
+/* We still have table left on top of the Lua stack. */
+int 
+l_row_push(lua_State *l)
+{
+    lua_createtable(L, 0, 4); /* creates and pushes new table on top of Lua stack */
+
+    lua_pushstring(L, row->name); /* Pushes table value on top of Lua stack */
+    lua_setfield(L, -2, "name");  /* table["name"] = row->name. Pops key value */
+
+    lua_pushstring(L, row->date);
+    lua_setfield(L, -2, "date");
+
+    lua_pushstring(L, row->ip);
+    lua_setfield(L, -2, "ip");
+
+    lua_pushstring(L, row->custom);
+    lua_setfield(L, -2, "custom");
+
+    /* Returning one table which is already on top of Lua stack. */
+    return 1;
+}
 
 serpent
 	https://github.com/pkulchenko/serpent

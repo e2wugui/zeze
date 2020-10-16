@@ -75,7 +75,8 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (Helper.BEAN | " + id + " << Helper.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + ".Decode(" + bufname + ".ReadByteBuffer());");
+                sw.WriteLine(prefix + "    " + bufname + ".ReadInt4(); // skip bean size");
+                sw.WriteLine(prefix + "    " + varname + ".Decode(" + bufname + ");");
                 sw.WriteLine(prefix + "    break;");
             }
             else
@@ -89,7 +90,8 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (Helper.BEAN | " + id + " << Helper.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + ".Decode(" + bufname + ".ReadByteBuffer());");
+                sw.WriteLine(prefix + "    " + bufname + ".ReadInt4(); // skip beankey size");
+                sw.WriteLine(prefix + "    " + varname + ".Decode(" + bufname + ");");
                 sw.WriteLine(prefix + "    break;");
             }
             else
@@ -200,7 +202,8 @@ namespace Zeze.Gen.cs
         {
             Types.Type valuetype = type.ValueType;
 
-            sw.WriteLine(prefix + "    _os_.ReadInt(); // skip collection bytes.size");
+            sw.WriteLine(prefix + "    _os_.ReadInt4(); // skip collection size");
+            sw.WriteLine(prefix + "    _os_.ReadInt(); // skip collection.value typetag");
             sw.WriteLine(prefix + "    " + varname + ".Clear();");
             sw.WriteLine(prefix + "    for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)");
             sw.WriteLine(prefix + "    {");
@@ -239,7 +242,9 @@ namespace Zeze.Gen.cs
             Types.Type valuetype = type.ValueType;
 
             sw.WriteLine(prefix + "case (Helper.MAP | " + id + " << Helper.TAG_SHIFT):");
-            sw.WriteLine(prefix + "    _os_.ReadInt(); // skip map bytes.size");
+            sw.WriteLine(prefix + "    _os_.ReadInt4(); // skip map bytes.size");
+            sw.WriteLine(prefix + "    _os_.ReadInt(); // skip key typetag");
+            sw.WriteLine(prefix + "    _os_.ReadInt(); // skip value typetag");
             sw.WriteLine(prefix + "    " + varname + ".Clear();");
             sw.WriteLine(prefix + "    for (int size = _os_.ReadInt(); size > 0; --size)");
             sw.WriteLine(prefix + "    {");
@@ -291,16 +296,17 @@ namespace Zeze.Gen.cs
                 {
                     string realName = TypeName.GetName(real);
                     sw.WriteLine(prefix + "        case " + realName + ".TYPEID:");
+                    sw.WriteLine(prefix + "            " + bufname + ".ReadInt4(); // skip dynamic bean size");
                     sw.WriteLine(prefix + "            " + varname + " = new " + realName + "();");
-                    sw.WriteLine(prefix + "            " + varname + ".Decode(" + bufname + ".ReadByteBuffer());");
+                    sw.WriteLine(prefix + "            " + varname + ".Decode(" + bufname + ");");
                     sw.WriteLine(prefix + "            break;");
                 }
                 sw.WriteLine(prefix + "        case Zeze.Transaction.EmptyBean.TYPEID:");
                 sw.WriteLine(prefix + "            " + varname + " = new Zeze.Transaction.EmptyBean();");
-                sw.WriteLine(prefix + "             " + bufname + ".SkipBytes();");
+                sw.WriteLine(prefix + "             " + bufname + ".SkipBytes4();");
                 sw.WriteLine(prefix + "             break;");
                 sw.WriteLine(prefix + "        default:");
-                sw.WriteLine(prefix + "             " + bufname + ".SkipBytes();");
+                sw.WriteLine(prefix + "             " + bufname + ".SkipBytes4();");
                 sw.WriteLine(prefix + "              break;");
                 sw.WriteLine(prefix + "    }");
                 sw.WriteLine(prefix + "    break;");

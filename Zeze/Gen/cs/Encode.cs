@@ -57,7 +57,11 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine(prefix + bufname + ".WriteInt(Helper.BEAN | " + id + " << Helper.TAG_SHIFT);");
-                sw.WriteLine(prefix + bufname + ".WriteByteBuffer(Helper.Encode(" + varname + "));");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine(prefix + "    " + bufname + ".BeginEncodeWithSize4(out var _state_);");
+                sw.WriteLine(prefix + "    " + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + "    " + bufname + ".EndEncodeWithSize4(_state_);");
+                sw.WriteLine(prefix + "}");
             }
             else
             {
@@ -70,7 +74,11 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine(prefix + bufname + ".WriteInt(Helper.BEAN | " + id + " << Helper.TAG_SHIFT);");
-                sw.WriteLine(prefix + bufname + ".WriteByteBuffer(Helper.Encode(" + varname + "));");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine(prefix + "    " + bufname + ".BeginEncodeWithSize4(out var _state_);");
+                sw.WriteLine(prefix + "    " + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + "    " + bufname + ".EndEncodeWithSize4(_state_);");
+                sw.WriteLine(prefix + "}");
             }
             else
             {
@@ -145,13 +153,14 @@ namespace Zeze.Gen.cs
         {
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    ByteBuffer _temp_ = ByteBuffer.Allocate();");
-            sw.WriteLine(prefix + "    _temp_.WriteInt(" + varname + ".Count);");
+            sw.WriteLine(prefix + "    _os_.BeginEncodeWithSize4(out var _state_);");
+            sw.WriteLine(prefix + "    _os_.WriteInt(" + TypeTagName.GetName(vt) + ");");
+            sw.WriteLine(prefix + "    _os_.WriteInt(" + varname + ".Count);");
             sw.WriteLine(prefix + "    foreach (var _v_ in " + varname + ")");
             sw.WriteLine(prefix + "    {");
-            vt.Accept(new Encode("_v_", -1, "_temp_", sw, prefix + "        "));
+            vt.Accept(new Encode("_v_", -1, "_os_", sw, prefix + "        "));
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    _os_.WriteByteBuffer(_temp_);"); // 如果嵌套更深的化，这里就不能直接用 _os_了，现在先这样。
+            sw.WriteLine(prefix + "    _os_.EndEncodeWithSize4(_state_); ");
             sw.WriteLine(prefix + "}");
         }
 
@@ -181,14 +190,16 @@ namespace Zeze.Gen.cs
 
             sw.WriteLine(prefix + bufname + ".WriteInt(Helper.MAP | " + id + " << Helper.TAG_SHIFT);");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    ByteBuffer _temp_ = ByteBuffer.Allocate();");
-            sw.WriteLine(prefix + "    _temp_.WriteInt(" + varname + ".Count);");
+            sw.WriteLine(prefix + "    _os_.BeginEncodeWithSize4(out var _state_);");
+            sw.WriteLine(prefix + "    _os_.WriteInt(" + TypeTagName.GetName(keytype) + ");");
+            sw.WriteLine(prefix + "    _os_.WriteInt(" + TypeTagName.GetName(valuetype) + ");");
+            sw.WriteLine(prefix + "    _os_.WriteInt(" + varname + ".Count);");
             sw.WriteLine(prefix + "    foreach (var _e_ in " + varname + ")");
             sw.WriteLine(prefix + "    {");
-            keytype.Accept(new Encode("_e_.Key", -1, "_temp_", sw, prefix + "        "));
-            valuetype.Accept(new Encode("_e_.Value", -1, "_temp_", sw, prefix + "        "));
+            keytype.Accept(new Encode("_e_.Key", -1, "_os_", sw, prefix + "        "));
+            valuetype.Accept(new Encode("_e_.Value", -1, "_os_", sw, prefix + "        "));
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    _os_.WriteByteBuffer(_temp_);"); // 如果嵌套更深的化，这里就不能直接用 _os_了，现在先这样。
+            sw.WriteLine(prefix + "    _os_.EndEncodeWithSize4(_state_); ");
             sw.WriteLine(prefix + "}");
         }
 
@@ -216,7 +227,11 @@ namespace Zeze.Gen.cs
             {
                 sw.WriteLine($"{prefix}{bufname}.WriteInt(Helper.DYNAMIC | {id} << Helper.TAG_SHIFT);");
                 sw.WriteLine($"{prefix}{bufname}.WriteLong({varname}.TypeId);");
-                sw.WriteLine($"{prefix}{bufname}.WriteByteBuffer(Helper.Encode({varname}));");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine(prefix + "    " + bufname + ".BeginEncodeWithSize4(out var _state_);");
+                sw.WriteLine(prefix + "    " + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + "    " + bufname + ".EndEncodeWithSize4(_state_);");
+                sw.WriteLine(prefix + "}");
             }
             else
             {

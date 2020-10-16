@@ -101,6 +101,19 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void BeginEncodeWithSize4(out int state)
+        {
+            state = WriteIndex;
+            Append(Helper.Bytes4);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EndEncodeWithSize4(int state)
+        {
+            Replace(state, BitConverter.GetBytes(WriteIndex - state - 4)); // int4
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Campact()
         {
             int size = this.Size;
@@ -631,6 +644,14 @@ namespace Zeze.Serialize
         public void SkipBytes()
         {
             int n = ReadInt();
+            EnsureRead(n);
+            ReadIndex += n;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SkipBytes4()
+        {
+            int n = ReadInt4();
             EnsureRead(n);
             ReadIndex += n;
         }
