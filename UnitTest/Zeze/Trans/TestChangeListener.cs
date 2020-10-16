@@ -70,7 +70,7 @@ namespace UnitTest.Zeze.Trans
                 value.Short5 = 124;
                 value.Float6 = 124.0f;
                 value.Double7 = 124.0;
-                value.Bytes8Copy = Helper.Bytes4;
+                value.Bytes8Copy = new byte[4];
                 value.List9.Add(new demo.Bean1() { V1 = 2 }); value.List9.Add(new demo.Bean1() { V1 = 3 });
                 value.Set10.Add(125); value.Set10.Add(126);
                 value.Map11.Add(3, new demo.Module2.Value()); value.Map11.Add(4, new demo.Module2.Value());

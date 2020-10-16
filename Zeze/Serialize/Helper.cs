@@ -86,7 +86,11 @@ namespace Zeze.Serialize
                 case STRING: case BYTES:
                     bb.SkipBytes();
                     break;
-                case LIST: case SET: case MAP: case BEAN: case DYNAMIC:
+                case LIST: case SET: case MAP: case BEAN:
+                    bb.SkipBytes4();
+                    break;
+                case DYNAMIC:
+                    bb.ReadLong8();
                     bb.SkipBytes4();
                     break;
                 default:
