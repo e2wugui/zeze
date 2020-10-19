@@ -88,7 +88,7 @@ namespace Zeze.Net
 					ProtocolToLua ptolua = service.Zeze.ProtocolToLua;
 					if (null != ptolua)
 					{
-						ptolua.DecodeAndDispatch(os);
+						ptolua.DecodeAndDispatch(type, os);
 						continue;
 					}
                 }

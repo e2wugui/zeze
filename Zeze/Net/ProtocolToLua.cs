@@ -18,10 +18,22 @@ namespace Zeze.Net
             this.Lua = lua;
         }
 
-        public void DecodeAndDispatch(ByteBuffer _os_)
+        public void DecodeAndDispatch(int typeId, ByteBuffer _os_)
         {
             // 现在不支持 Rpc.
             Lua.CreateTable(0, 2);
+
+            Lua.PushString("ModuleId");
+            Lua.PushInteger((typeId >> 16) & 0xffff);
+            Lua.SetTable(-3);
+
+            Lua.PushString("ProtcolId");
+            Lua.PushInteger(typeId & 0xffff);
+            Lua.SetTable(-3);
+
+            Lua.PushString("TypeId");
+            Lua.PushInteger(typeId);
+            Lua.SetTable(-3);
 
             Lua.PushString("ResultCode");
             Lua.PushInteger(_os_.ReadInt());
