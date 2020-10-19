@@ -68,22 +68,18 @@ namespace Zeze.Net
             {
                 case Helper.BOOL:
                     Lua.PushBoolean(_os_.ReadBool());
-                    Lua.SetTable(-3);
                     break;
                 case Helper.BYTE:
                     Lua.PushInteger(_os_.ReadByte());
-                    Lua.SetTable(-3);
                     break;
                 case Helper.SHORT:
                     Lua.PushInteger(_os_.ReadShort());
-                    Lua.SetTable(-3);
                     break;
                 case Helper.INT:
                     Lua.PushInteger(_os_.ReadInt());
                     break;
                 case Helper.LONG:
                     Lua.PushInteger(_os_.ReadLong());
-                    Lua.SetTable(-3);
                     break;
                 case Helper.FLOAT:
                     Lua.PushNumber(_os_.ReadFloat());
