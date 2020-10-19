@@ -101,7 +101,7 @@ namespace Zeze.Net
                     {
                         _os_.BeginReadSegment(out var _state_);
                         int _valueTagType_ = _os_.ReadInt();
-                        Lua.CreateTable(128, 0);
+                        Lua.CreateTable(128, 128); // 不知道用哪个参数。
                         int i = 1; // 从1开始？
                         for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)
                         {
@@ -117,7 +117,7 @@ namespace Zeze.Net
                     {
                         _os_.BeginReadSegment(out var _state_);
                         int _valueTagType_ = _os_.ReadInt();
-                        Lua.CreateTable(128, 0);
+                        Lua.CreateTable(128, 128); // 不知道用哪个参数。
                         int i = 1;
                         for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)
                         {
