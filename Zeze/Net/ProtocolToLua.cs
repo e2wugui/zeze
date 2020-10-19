@@ -20,7 +20,17 @@ namespace Zeze.Net
 
         public void DecodeAndDispatch(ByteBuffer _os_)
         {
+            // 现在不支持 Rpc.
+            Lua.CreateTable(0, 2);
+
+            Lua.PushString("ResultCode");
+            Lua.PushInteger(_os_.ReadInt());
+            Lua.SetTable(-3);
+
+            Lua.PushString("Argument");
             DecodeBean(_os_);
+            Lua.SetTable(-3);
+
             // 解析出来的 table 放在堆栈中，怎么调用lua代码，传递过去
             // TODO dispatch
         }
