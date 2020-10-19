@@ -1,25 +1,30 @@
 ﻿
-#define KERA_LUA
+#define USE_KERA_LUA
 
 using System;
 using System.Collections.Generic;
 using System.Text;
+using KeraLua;
 using Zeze.Serialize;
 
 namespace Zeze.Net
 {
     public class ProtocolToLua
     {
-#if KERA_LUA
+#if USE_KERA_LUA
         public KeraLua.Lua Lua { get; }
 
         public ProtocolToLua(KeraLua.Lua lua)
         {
             this.Lua = lua;
+            if (false == this.Lua.DoString("require  'ProtocolDispatcher'"))
+                throw new Exception("require  'ProtocolDispatcher' Error.");
         }
 
         public void DecodeAndDispatch(int typeId, ByteBuffer _os_)
         {
+            this.Lua.GetGlobal("DispatchProtocol"); // push func onto stack
+
             // 现在不支持 Rpc.但是代码没有检查。
             // 生成的时候报错。
             Lua.CreateTable(0, 8);
@@ -44,8 +49,7 @@ namespace Zeze.Net
             DecodeBean(_os_);
             Lua.SetTable(-3);
 
-            // 解析出来的 table 放在堆栈中，怎么调用lua代码，传递过去
-            // TODO dispatch
+            Lua.Call(1, 0);
         }
 
         public void DecodeBean(ByteBuffer _os_)
@@ -173,6 +177,6 @@ namespace Zeze.Net
                     throw new Exception("Unkown Tag Type");
             }
         }
-#endif // end KERA_LUA
+#endif // end USE_KERA_LUA
     }
 }
