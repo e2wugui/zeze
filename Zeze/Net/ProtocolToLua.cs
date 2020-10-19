@@ -20,8 +20,9 @@ namespace Zeze.Net
 
         public void DecodeAndDispatch(int typeId, ByteBuffer _os_)
         {
-            // 现在不支持 Rpc.
-            Lua.CreateTable(0, 2);
+            // 现在不支持 Rpc.但是代码没有检查。
+            // 生成的时候报错。
+            Lua.CreateTable(0, 8);
 
             Lua.PushString("ModuleId");
             Lua.PushInteger((typeId >> 16) & 0xffff);
