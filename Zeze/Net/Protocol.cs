@@ -83,8 +83,15 @@ namespace Zeze.Net
 					return;
 				}
 
-				KeraLua.Lua lua = new KeraLua.Lua();
-				lua.CreateTable(0, 32);
+				if (null != service.Zeze)
+                {
+					ProtocolToLua ptolua = service.Zeze.ProtocolToLua;
+					if (null != ptolua)
+					{
+						ptolua.DecodeAndDispatch(os);
+						continue;
+					}
+                }
 				// 直接使用os，可以少创建对象，否则 Wrap 一个更安全：
 				// ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size)
 				// 使用Wrap的话，记得手动增加: os.ReadIndex += size;

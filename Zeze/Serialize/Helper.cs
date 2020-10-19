@@ -27,9 +27,9 @@ namespace Zeze.Serialize
 
         public const int TAG_SHIFT = 5;
         public const int TAG_MASK = (1 << TAG_SHIFT) - 1;
-        /*
         public const int ID_MASK = (1 << (31 - TAG_SHIFT)) - 1;
 
+        /*
         // 在生成代码的时候使用这个方法检查。生成后的代码不使用这个方法。
         // 可以定义的最大 Variable.Id 为 Zeze.Transaction.Bean.MaxVariableId
         public static int MakeTagId(int tag, int id)
@@ -49,7 +49,6 @@ namespace Zeze.Serialize
 
         public static int GetId(int tagid)
         {
-            return (tagid >> TAG_SHIFT) & ID_MASK;
         }
         */
 
@@ -76,15 +75,33 @@ namespace Zeze.Serialize
             int tagType = tagid & TAG_MASK;
             switch (tagType)
             {
-                case BOOL: bb.ReadBool(); break;
-                case BYTE: bb.ReadByte(); break;
-                case SHORT: bb.ReadShort(); break;
-                case INT: bb.ReadInt(); break;
-                case LONG: bb.ReadLong(); break;
-                case FLOAT: bb.ReadFloat(); break;
-                case DOUBLE: bb.ReadDouble(); break;
-                case STRING: case BYTES:
-                case LIST: case SET: case MAP: case BEAN:
+                case BOOL:
+                    bb.ReadBool();
+                    break;
+                case BYTE:
+                    bb.ReadByte();
+                    break;
+                case SHORT:
+                    bb.ReadShort();
+                    break;
+                case INT:
+                    bb.ReadInt();
+                    break;
+                case LONG:
+                    bb.ReadLong();
+                    break;
+                case FLOAT:
+                    bb.ReadFloat();
+                    break;
+                case DOUBLE:
+                    bb.ReadDouble();
+                    break;
+                case STRING:
+                case BYTES:
+                case LIST:
+                case SET:
+                case MAP:
+                case BEAN:
                     bb.SkipBytes();
                     break;
                 case DYNAMIC:

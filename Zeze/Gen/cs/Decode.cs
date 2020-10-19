@@ -260,7 +260,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        {");
             keytype.Accept(new Define("_k_", sw, prefix + "            "));
             keytype.Accept(new Decode("_k_", -1, "_os_", sw, prefix + "            "));
-            valuetype.Accept(new Define("_v_", sw, prefix + "        "));
+            valuetype.Accept(new Define("_v_", sw, prefix + "            "));
             valuetype.Accept(new Decode("_v_", -1, "_os_", sw, prefix + "            "));
             sw.WriteLine(prefix + "            " + varname + ".Add(_k_, _v_);");
             sw.WriteLine(prefix + "        }");
