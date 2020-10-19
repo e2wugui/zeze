@@ -15,7 +15,7 @@ namespace Zeze.Net
 
         public ProtocolToLua(KeraLua.Lua lua)
         {
-            this.Lua = new KeraLua.Lua();
+            this.Lua = lua;
         }
 
         public void DecodeAndDispatch(ByteBuffer _os_)
