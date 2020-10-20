@@ -149,6 +149,7 @@ namespace Zeze.Services
         public AsyncSocket Connection { get; private set; }
         private Config.ServiceConf conf;
         private BigInteger dhRandom;
+        private int ConnectDelay = 0;
 
         public override void Start()
         {
@@ -157,7 +158,23 @@ namespace Zeze.Services
                 if (null != Connection)
                     return;
 
-                Connection = this.NewClientSocket(conf.HostNameOrAddress, conf.Port);
+                if (conf.HostNameOrAddress.Length > 0)
+                    Connection = this.NewClientSocket(conf.HostNameOrAddress, conf.Port);
+            }
+        }
+
+        public void Connect(string hostNameOrAddress, int port)
+        {
+            lock (this)
+            {
+                conf.HostNameOrAddress = hostNameOrAddress;
+                conf.Port = port;
+
+                if (null != Connection)
+                    return;
+
+                if (conf.HostNameOrAddress.Length > 0)
+                    Connection = this.NewClientSocket(conf.HostNameOrAddress, conf.Port);
             }
         }
 
@@ -165,6 +182,9 @@ namespace Zeze.Services
         {
             Connection = null;
             base.Close();
+
+            if (conf.IsAutoReconnect)
+                Util.Scheduler.Instance.Schedule(Start, ConnectDelay);
         }
 
         public override void OnSocketAccept(AsyncSocket so)
@@ -173,10 +193,27 @@ namespace Zeze.Services
             _asocketMap.TryAdd(so.SessionId, so);
         }
 
+        public override void OnSocketConnectError(AsyncSocket so, Exception e)
+        {
+            base.OnSocketConnectError(so, e);
+
+            if (ConnectDelay == 0)
+            {
+                ConnectDelay = 1000;
+            }
+            else
+            {
+                ConnectDelay *= 2;
+                if (ConnectDelay > 60000)
+                    ConnectDelay = 60000;
+            }
+        }
+
         public override void OnSocketConnected(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
             _asocketMap.TryAdd(so.SessionId, so);
+            ConnectDelay = 0;
 
             dhRandom = Handshake.Helper.makeDHRandom();
             new Handshake.CHandshake(conf.HandshakeOptions.DhGroup,

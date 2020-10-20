@@ -9,15 +9,26 @@ using Zeze.Net;
 using Zeze.Serialize;
 
 namespace Zeze.Services
-{    
-    public class ToLuaServiceClient : HandshakeClient
+{
+    interface FromLua
+    {
+        public string Name { get; } // Service Name
+        public Net.Service Service { get; }
+
+        public ToLuaService.ToLua ToLua { get; }
+        public ToLuaService.Helper Helper { get; }
+    }
+
+    public class ToLuaServiceClient : HandshakeClient, FromLua
     {
         public ToLuaService.ToLua ToLua { get; private set; }
-        private readonly ToLuaService.Helper Helper = new ToLuaService.Helper();
+        public ToLuaService.Helper Helper { get; } = new ToLuaService.Helper();
 
         public ToLuaServiceClient(string name, Zeze.Application zeze) : base(name, zeze)
         {
         }
+
+        public Net.Service Service => this;
 
         /// <summary>
         /// 在lua线程中调用，一般实现：
@@ -30,29 +41,7 @@ namespace Zeze.Services
         public void InitializeLua(ToLuaService.ToLua toLua)
         {
             ToLua = toLua;
-
-            // void NetServiceUpdate()
-            ToLua.RegisterFunction("NetServiceUpdate", NetServiceUpdate);
-
-            // 由 Protocol 的 lua 生成代码调用，其中 sesionId 从全局变量 NetServiceCurrentSessionId 中读取，
-            // 对于客户端，连接 HandshakeDone 以后保存 sessionId 到 NetServiceCurrentSessionId 中，以后不用重新设置。
-            // 对于服务器，连接 HandshakeDone 以后保存 sessionId 自己的结构中，发送前需要把当前连接设置到 NetServiceCurrentSessionId 中。 
-            // void NetServiceSendProtocol(sessionId, protocol) 
-            ToLua.RegisterFunction("NetServiceSendProtocol", NetServiceSendProtocol);
-
-            // TODO 在 lua 中创建连接？
-        }
-
-        private int NetServiceSendProtocol(IntPtr luaState)
-        {
-            ToLua.SendProtocol(this, luaState);
-            return 0;
-        }
-
-        private int NetServiceUpdate(IntPtr luaState)
-        {
-            Helper.Update(this, ToLua);
-            return 0;
+            toLua.RegisterGlobalAndCallback(this);
         }
 
         public override void OnHandshakeDone(AsyncSocket sender)
@@ -68,10 +57,11 @@ namespace Zeze.Services
     }
 
     // 完全 ToLuaServiceClient，由于 c# 无法写 class S<T> : T where T : Net.Service，复制一份.
-    public class ToLuaServiceServer : HandshakeServer
+    public class ToLuaServiceServer : HandshakeServer, FromLua
     {
         public ToLuaService.ToLua ToLua { get; private set; }
-        private readonly ToLuaService.Helper Helper = new ToLuaService.Helper();
+        public ToLuaService.Helper Helper { get; } = new ToLuaService.Helper();
+        public Net.Service Service => this;
 
         public ToLuaServiceServer(string name, Zeze.Application zeze) : base(name, zeze)
         {
@@ -80,20 +70,7 @@ namespace Zeze.Services
         public void InitializeLua(ToLuaService.ToLua toLua)
         {
             ToLua = toLua;
-            ToLua.RegisterFunction("NetServiceUpdate", NetServiceUpdate);
-            ToLua.RegisterFunction("NetServiceSendProtocol", NetServiceSendProtocol);
-        }
-
-        private int NetServiceSendProtocol(IntPtr luaState)
-        {
-            ToLua.SendProtocol(this, luaState);
-            return 0;
-        }
-
-        private int NetServiceUpdate(IntPtr luaState)
-        {
-            Helper.Update(this, ToLua);
-            return 0;
+            toLua.RegisterGlobalAndCallback(this);
         }
 
         public override void OnHandshakeDone(AsyncSocket sender)
@@ -119,8 +96,8 @@ namespace Zeze.Services.ToLuaService
         public ToLua(KeraLua.Lua lua)
         {
             this.Lua = lua;
-            if (false == this.Lua.DoString("require  'ProtocolDispatcher'"))
-                throw new Exception("require  'ProtocolDispatcher' Error.");
+            if (false == this.Lua.DoString("require  'ZezeProtocolDispatcher'"))
+                throw new Exception("require  'ZezeProtocolDispatcher' Error.");
         }
 
         public void RegisterFunction(string name, KeraLua.LuaFunction func)
@@ -131,31 +108,59 @@ namespace Zeze.Services.ToLuaService
         public void CallHandshakeDone(long socketSessionId)
         {
             // void OnHandshakeDone(long sessionId)
-            this.Lua.GetGlobal("OnHandshakeDone"); // push func onto stack
+            this.Lua.GetGlobal("ZezeNetServiceHandshakeDone"); // push func onto stack
             Lua.PushInteger(socketSessionId);
             Lua.Call(1, 0);
         }
 
-        public void SendProtocol(Net.Service service, IntPtr luaState)
+        private static int ZezeNetServiceSendProtocol(IntPtr luaState)
         {
             KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
-
+            FromLua callback = lua.ToObject<FromLua>(-3);
             long sessionId = lua.ToInteger(-2);
-            AsyncSocket socket = service.GetSocket(sessionId);
+            AsyncSocket socket = callback.Service.GetSocket(sessionId);
             if (null == socket)
+                return 0;
+            callback.ToLua.SendProtocol(socket);
+            return 0;
+        }
+
+        private static int ZezeNetServiceUpdate(IntPtr luaState)
+        {
+            KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
+            FromLua callback = lua.ToObject<FromLua>(-1);
+            callback.Helper.Update(callback.Service, callback.ToLua);
+            return 0;
+        }
+
+        internal void RegisterGlobalAndCallback(FromLua callback)
+        {
+            Lua.PushObject(callback);
+            Lua.SetGlobal("ZezeNetService_" + callback.Name);
+
+            // 第一个参数是Service的全局变量。在上面一行注册进去的。
+            // void ZezeNetServiceUpdate(ZezeNetService_##Name)
+            RegisterFunction("ZezeNetServiceUpdate", ZezeNetServiceUpdate);
+            // 由 Protocol 的 lua 生成代码调用，其中 sesionId 从全局变量 NetServiceCurrentSessionId 中读取，
+            // 对于客户端，连接 HandshakeDone 以后保存 sessionId 到 NetServiceCurrentSessionId 中，以后不用重新设置。
+            // 对于服务器，连接 HandshakeDone 以后保存 sessionId 自己的结构中，发送前需要把当前连接设置到 NetServiceCurrentSessionId 中。 
+            // void NetServiceSendProtocol(ZezeNetService_##Name, sessionId, protocol)
+            RegisterFunction("ZezeNetServiceSendProtocol", ZezeNetServiceSendProtocol);
+        }
+
+        public void SendProtocol(AsyncSocket socket)
+        {
+            if (false == Lua.IsTable(-1))
                 return;
 
-            if (false == lua.IsTable(-1))
-                return;
-
-            lua.GetField(-1, "");
+            Lua.GetField(-1, "");
 
             // socket.Send();            
         }
 
         public bool DecodeAndDispatch(long sessionId, int typeId, ByteBuffer _os_)
         {
-            this.Lua.GetGlobal("OnDispatchProtocol"); // push func onto stack
+            this.Lua.GetGlobal("ZezeNetServiceDispatchProtocol"); // push func onto stack
             if (false == Lua.IsFunction(-1))
             {
                 Lua.Pop(1);
@@ -332,7 +337,7 @@ namespace Zeze.Services.ToLuaService
 #endif // end USE_KERA_LUA
     }
 
-    class Helper
+    public class Helper
     {
 
         private Dictionary<long, ByteBuffer> ToLuaBuffer = new Dictionary<long, ByteBuffer>();
