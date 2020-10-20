@@ -21,7 +21,7 @@ namespace Zeze.Net
         public Application Zeze { get; }
         public string Name { get; }
 
-        private readonly ConcurrentDictionary<long, AsyncSocket> _asocketMap = new ConcurrentDictionary<long, AsyncSocket>();
+        protected readonly ConcurrentDictionary<long, AsyncSocket> _asocketMap = new ConcurrentDictionary<long, AsyncSocket>();
 
         public Service(string name, Application zeze)
         {
@@ -106,6 +106,17 @@ namespace Zeze.Net
         public virtual void OnSocketAccept(AsyncSocket so)
         {
             _asocketMap.TryAdd(so.SessionId, so);
+            OnHandshakeDone(so);
+        }
+
+        /// <summary>
+        /// 连接完成建立调用。
+        /// 未加密压缩的连接在 OnSocketAccept OnSocketConnected 里面调用这个方法。
+        /// 加密压缩的连接在相应的方法中调用（see Services\Handshake.cs）。
+        /// 注意：修改OnHandshakeDone的时机，需要重载OnSocketAccept OnSocketConnected，并且不再调用Service的默认实现。
+        /// </summary>
+        public virtual void OnHandshakeDone(AsyncSocket sender)
+        {
         }
 
         /// <summary>
@@ -125,6 +136,7 @@ namespace Zeze.Net
         public virtual void OnSocketConnected(AsyncSocket so)
         {
             _asocketMap.TryAdd(so.SessionId, so);
+            OnHandshakeDone(so);
         }
 
         /// <summary>

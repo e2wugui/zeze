@@ -39,7 +39,6 @@ namespace Zeze
                 }
             }
         }
-        public Net.ProtocolToLua ProtocolToLua { get; set; } // not thread safe.
 
         public Application(Config config = null)
         {

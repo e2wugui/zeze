@@ -91,6 +91,18 @@ namespace Zeze.Services
             base.Close();
         }
 
+        public override void OnSocketAccept(AsyncSocket so)
+        {
+            // 重载这个方法，推迟OnHandshakeDone调用
+            _asocketMap.TryAdd(so.SessionId, so);
+        }
+
+        public override void OnSocketConnected(AsyncSocket so)
+        {
+            // 重载这个方法，推迟OnHandshakeDone调用
+            _asocketMap.TryAdd(so.SessionId, so);
+        }
+
         private int ProcessCHandshake(Protocol _p)
         {
             Handshake.CHandshake p = (Handshake.CHandshake)_p;
@@ -113,6 +125,8 @@ namespace Zeze.Services
                 conf.HandshakeOptions.S2cNeedCompress, conf.HandshakeOptions.C2sNeedCompress).Send(p.Sender);
             hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
             p.Sender.SetOutputSecurityCodec(hmacMd5, conf.HandshakeOptions.S2cNeedCompress);
+
+            OnHandshakeDone(p.Sender);
 
             return 0;
         }
@@ -153,9 +167,17 @@ namespace Zeze.Services
             base.Close();
         }
 
+        public override void OnSocketAccept(AsyncSocket so)
+        {
+            // 重载这个方法，推迟OnHandshakeDone调用
+            _asocketMap.TryAdd(so.SessionId, so);
+        }
+
         public override void OnSocketConnected(AsyncSocket so)
         {
-            base.OnSocketConnected(so);
+            // 重载这个方法，推迟OnHandshakeDone调用
+            _asocketMap.TryAdd(so.SessionId, so);
+
             dhRandom = Handshake.Helper.makeDHRandom();
             new Handshake.CHandshake(conf.HandshakeOptions.DhGroup,
                 Handshake.Helper.generateDHResponse(conf.HandshakeOptions.DhGroup, dhRandom).ToByteArray()).Send(so);
@@ -174,12 +196,8 @@ namespace Zeze.Services
             p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
 
             dhRandom = BigInteger.Zero;
-            OnHandshakeDone();
+            OnHandshakeDone(p.Sender);
             return 0;
-        }
-
-        public virtual void OnHandshakeDone()
-        {
         }
     }
 }

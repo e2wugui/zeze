@@ -27,9 +27,40 @@ namespace TestGlobal
             }
         }
 
+        private int funcInCSharp(IntPtr luaState)
+        {
+            KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
+            long param = lua.ToInteger(-1);
+            lua.PushInteger(++param);
+            Console.WriteLine("funcInCSharp with " + param);
+            return 1;
+        }
+
+        public void Testlua()
+        {
+            KeraLua.Lua lua = new KeraLua.Lua();
+
+            lua.Register("funcInCSharp", funcInCSharp);
+
+            lua.DoString("require 'funcInLua'");
+            lua.GetGlobal("funcInLua");
+            lua.PushInteger(1);
+            lua.Call(1, 1);
+            long result = lua.ToInteger(-1);
+            Console.WriteLine("result of funcInLua: " + result);
+            lua.Pop(1);
+
+            //Console.WriteLine("result of dostring " + lua.DoString("funcInCSharp(2)"));
+
+            bool dofile = lua.DoFile("funcInLuaMain.lua");
+            Console.WriteLine("dofile " + dofile);
+        }
+
         static void Main(string[] args)
         {
+            new Program().Testlua();
             /*
+            // Stat 
             System.IO.StreamReader sr = new System.IO.StreamReader("TransactionCnt.log", System.Text.Encoding.UTF8);
             string line;
             int lineNo = 0;
@@ -93,10 +124,12 @@ namespace TestGlobal
                 string p = string.Format("{0:0%}", percent);
                 Console.WriteLine($"{p} {stat}");
             }
-            /*/
+            
+
+            // test global
             UnitTest.Zeze.Trans.TestGlobal g = new UnitTest.Zeze.Trans.TestGlobal();
             g.Test2App();
-            // */
+            */
         }
     }
 }

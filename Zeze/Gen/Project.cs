@@ -171,6 +171,9 @@ namespace Zeze.Gen
                 case "cs":
                     new global::Zeze.Gen.cs.Maker(this).Make();
                     break;
+                case "lua":
+                    new Zeze.Gen.lua.Maker(this).Make();
+                    break;
                 default:
                     throw new Exception("unsupport platform: " + Platform);
             }

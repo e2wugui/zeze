@@ -24,17 +24,20 @@ namespace Zeze.Net
 
 		public abstract void Encode(ByteBuffer bb);
 
-		public virtual void Send(AsyncSocket so)
-		{
-			Sender = so;
-
+		public ByteBuffer Encode()
+        {
 			ByteBuffer bb = ByteBuffer.Allocate();
 			bb.WriteInt4(TypeId);
 			bb.BeginWriteWithSize4(out var state);
 			this.Encode(bb);
 			bb.EndWriteWithSize4(state);
+			return bb;
+		}
 
-			so.Send(bb);
+		public virtual void Send(AsyncSocket so)
+		{
+			Sender = so;
+			so.Send(Encode());
 		}
 
 		public void Send(Service service)
@@ -47,7 +50,7 @@ namespace Zeze.Net
 		/// </summary>
 		/// <param name="bb"></param>
 		/// <returns></returns>
-		internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb)
+		internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb, Zeze.Services.ToLuaService.ToLua toLua = null)
         {
 			ByteBuffer os = ByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.Size); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 			while (os.Size > 0)
@@ -83,15 +86,12 @@ namespace Zeze.Net
 					return;
 				}
 
-				if (null != service.Zeze)
-                {
-					ProtocolToLua ptolua = service.Zeze.ProtocolToLua;
-					if (null != ptolua)
-					{
-						ptolua.DecodeAndDispatch(type, os);
-						continue;
-					}
-                }
+				if (null != toLua)
+				{
+					if (toLua.DecodeAndDispatch(so.SessionId, type, os))
+						continue; // 派发失败继续尝试c#的实现。
+				}
+
 				// 直接使用os，可以少创建对象，否则 Wrap 一个更安全：
 				// ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size)
 				// 使用Wrap的话，记得手动增加: os.ReadIndex += size;
