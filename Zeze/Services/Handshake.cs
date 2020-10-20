@@ -148,6 +148,8 @@ namespace Zeze.Services
 
         public AsyncSocket Connection { get; private set; }
         private Config.ServiceConf conf;
+        private string host;
+        private int port;
         private BigInteger dhRandom;
         private int ConnectDelay = 0;
 
@@ -158,8 +160,16 @@ namespace Zeze.Services
                 if (null != Connection)
                     return;
 
-                if (conf.HostNameOrAddress.Length > 0)
-                    Connection = this.NewClientSocket(conf.HostNameOrAddress, conf.Port);
+                if (null == host)
+                {
+                    // 不修改配置。只有第一次时从配置中拷贝。
+                    if (conf.HostNameOrAddress.Length == 0)
+                        return;
+ 
+                    host = conf.HostNameOrAddress;
+                    port = conf.Port;
+                }
+                Connection = this.NewClientSocket(host, port);
             }
         }
 
@@ -167,14 +177,12 @@ namespace Zeze.Services
         {
             lock (this)
             {
-                conf.HostNameOrAddress = hostNameOrAddress;
-                conf.Port = port;
-
                 if (null != Connection)
                     return;
 
-                if (conf.HostNameOrAddress.Length > 0)
-                    Connection = this.NewClientSocket(conf.HostNameOrAddress, conf.Port);
+                this.host = hostNameOrAddress;
+                this.port = port;
+                Connection = this.NewClientSocket(host, port);
             }
         }
 

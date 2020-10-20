@@ -30,9 +30,18 @@ namespace TestGlobal
         private int funcInCSharp(IntPtr luaState)
         {
             KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
-            long param = lua.ToInteger(-1);
-            lua.PushInteger(++param);
-            Console.WriteLine("funcInCSharp with " + param);
+            Console.WriteLine("funcInCSharp with table 1 " + lua.IsTable(-1));
+            lua.GetField(-1, ""); // meta
+            Console.WriteLine("funcInCSharp with table 2 " + lua.IsTable(-1));
+            lua.PushInteger(1);
+            lua.GetTable(-2); // var type
+            Console.WriteLine("funcInCSharp with table 3 " + lua.IsTable(-1));
+            lua.PushInteger(1);
+            lua.GetTable(-2); // type
+            Console.WriteLine("funcInCSharp with IsInteger 4 " + lua.IsInteger(-1));
+            Console.WriteLine("type = " + lua.ToInteger(-1));
+            lua.Pop(3);
+            lua.PushInteger(123);
             return 1;
         }
 
@@ -43,12 +52,14 @@ namespace TestGlobal
             lua.Register("funcInCSharp", funcInCSharp);
 
             lua.DoString("require 'funcInLua'");
-            lua.GetGlobal("funcInLua");
-            lua.PushInteger(1);
+            lua.GetGlobal("funcInLua1");
+            Console.WriteLine("is funcInLua1 " + lua.IsFunction(-1));
+            lua.PushInteger(456);
             lua.Call(1, 1);
             long result = lua.ToInteger(-1);
             Console.WriteLine("result of funcInLua: " + result);
             lua.Pop(1);
+            // */
 
             //Console.WriteLine("result of dostring " + lua.DoString("funcInCSharp(2)"));
 
