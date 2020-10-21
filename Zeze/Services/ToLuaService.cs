@@ -47,7 +47,7 @@ namespace Zeze.Services
 
         public override void OnHandshakeDone(AsyncSocket sender)
         {
-            Helper.SetHandshakeDone(sender.SessionId);
+            Helper.SetHandshakeDone(sender.SessionId, this);
         }
 
         public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
@@ -76,7 +76,7 @@ namespace Zeze.Services
 
         public override void OnHandshakeDone(AsyncSocket sender)
         {
-            Helper.SetHandshakeDone(sender.SessionId);
+            Helper.SetHandshakeDone(sender.SessionId, this);
         }
 
         public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
@@ -97,8 +97,8 @@ namespace Zeze.Services.ToLuaService
         public ToLua(KeraLua.Lua lua)
         {
             this.Lua = lua;
-            if (false == this.Lua.DoString("require  'ZezeNetServiceDispatcher'"))
-                throw new Exception("require  'ZezeNetServiceDispatcher' Error.");
+            if (false == this.Lua.DoString("require  'ZezeNetService'"))
+                throw new Exception("require  'ZezeNetService' Error.");
             LoadMeta();
         }
 
@@ -178,12 +178,13 @@ namespace Zeze.Services.ToLuaService
             Lua.Register(name, func);
         }
 
-        public void CallHandshakeDone(long socketSessionId)
+        internal void CallHandshakeDone(FromLua service, long socketSessionId)
         {
             // void OnHandshakeDone(long sessionId)
             this.Lua.GetGlobal("ZezeNetServiceHandshakeDone"); // push func onto stack
+            Lua.PushObject(service);
             Lua.PushInteger(socketSessionId);
-            Lua.Call(1, 0);
+            Lua.Call(2, 0);
         }
 
         private static int ZezeNetServiceSendProtocol(IntPtr luaState)
@@ -570,13 +571,13 @@ namespace Zeze.Services.ToLuaService
     {
 
         private Dictionary<long, ByteBuffer> ToLuaBuffer = new Dictionary<long, ByteBuffer>();
-        private Dictionary<long, bool> ToLuaHandshakeDone = new Dictionary<long, bool>();
+        private Dictionary<long, FromLua> ToLuaHandshakeDone = new Dictionary<long, FromLua>();
 
-        public void SetHandshakeDone(long socketSessionId)
+        internal void SetHandshakeDone(long socketSessionId, FromLua service)
         {
             lock (this)
             {
-                ToLuaHandshakeDone[socketSessionId] = true;
+                ToLuaHandshakeDone[socketSessionId] = service;
             }
         }
 
@@ -597,19 +598,19 @@ namespace Zeze.Services.ToLuaService
 
         public void Update(Net.Service service, ToLua toLua)
         {
-            Dictionary<long, bool> handshakeTmp;
+            Dictionary<long, FromLua> handshakeTmp;
             Dictionary<long, Serialize.ByteBuffer> inputTmp;
             lock (this)
             {
                 handshakeTmp = ToLuaHandshakeDone;
                 inputTmp = ToLuaBuffer;
                 ToLuaBuffer = new Dictionary<long, ByteBuffer>();
-                ToLuaHandshakeDone = new Dictionary<long, bool>();
+                ToLuaHandshakeDone = new Dictionary<long, FromLua>();
             }
 
             foreach (var e in handshakeTmp)
             {
-                toLua.CallHandshakeDone(e.Key);
+                toLua.CallHandshakeDone(e.Value, e.Key);
             }
 
             foreach (var e in inputTmp)
