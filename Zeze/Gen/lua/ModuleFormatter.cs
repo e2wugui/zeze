@@ -61,7 +61,7 @@ namespace Zeze.Gen.lua
             if (null == module.Parent)
                 return; // must be solution
 
-            using System.IO.StreamWriter sw = module.Parent.OpenWriter(srcDir, module.Name + ".lua", false);
+            using System.IO.StreamWriter sw = module.Parent.OpenWriter(srcDir, module.Name + "Impl.lua", false);
             if (null == sw)
                 return;
 
