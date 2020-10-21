@@ -80,7 +80,7 @@ namespace Zeze.Gen.lua
 
                     if (0 != (p.HandleFlags & serviceHandleFlags))
                     {
-                        sw.WriteLine($"    -- TODO register protocol handle for '{p.Name}'");
+                        sw.WriteLine($"    ZezeNetServiceProtocolHandles[{p.TypeId}] = {module.Name}.Process{p.Name}");
                     }
                 }
             }

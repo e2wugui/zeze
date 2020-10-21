@@ -84,7 +84,7 @@ namespace Zeze.Gen.lua
                 swDispatcher.WriteLine("    local handle = ZezeNetServiceProtocolHandles[p.TypeId]");
                 swDispatcher.WriteLine("    if nil == handle then");
                 swDispatcher.WriteLine("        return 0");
-                swDispatcher.WriteLine("    handle()");
+                swDispatcher.WriteLine("    handle(p)");
                 swDispatcher.WriteLine("    return 1 -- 1 if found. not result of handle ");
                 swDispatcher.WriteLine("end");
                 swDispatcher.WriteLine("");
