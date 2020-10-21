@@ -68,6 +68,7 @@ namespace Zeze.Gen.Types
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
 		public String Comment { get; private set; }
 		public String FullName => Space.Path(".", Name);
+		public long TypeId { get; private set; }
 
 		// ///////////////////////////////////////////
 		public BeanKey(ModuleSpace space, XmlElement self)
@@ -76,6 +77,11 @@ namespace Zeze.Gen.Types
 			_name = self.GetAttribute("name").Trim();
 			Type.Add(space, this);
 			space.Add(this);
+
+			string attr = self.GetAttribute("TypeId");
+			TypeId = attr.Length > 0 ? int.Parse(attr) : Zeze.Transaction.Bean.Hash64(space.Path(".", _name));
+			if (false == Program.BeanTypeIdDuplicateChecker.Add(TypeId))
+				throw new Exception("duplicate Bean.TypeId, please choice one.");
 
 			parse(self);
 		}

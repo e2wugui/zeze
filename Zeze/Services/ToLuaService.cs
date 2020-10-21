@@ -97,8 +97,8 @@ namespace Zeze.Services.ToLuaService
         public ToLua(KeraLua.Lua lua)
         {
             this.Lua = lua;
-            if (false == this.Lua.DoString("require  'ZezeProtocolDispatcher'"))
-                throw new Exception("require  'ZezeProtocolDispatcher' Error.");
+            if (false == this.Lua.DoString("require  'ZezeNetServiceDispatcher'"))
+                throw new Exception("require  'ZezeNetServiceDispatcher' Error.");
             LoadMeta();
         }
 
@@ -210,6 +210,8 @@ namespace Zeze.Services.ToLuaService
         {
             Lua.PushObject(callback);
             Lua.SetGlobal("ZezeNetService_" + callback.Name);
+            Lua.PushObject(callback);
+            Lua.SetGlobal("ZezeNetServiceCurrentService"); // 当存在多个service时，这里保存最后一个。
 
             // 第一个参数是Service的全局变量。在上面一行注册进去的。
             // void ZezeNetServiceUpdate(ZezeNetService_##Name)

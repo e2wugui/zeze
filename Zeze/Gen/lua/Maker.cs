@@ -28,20 +28,39 @@ namespace Zeze.Gen.lua
             foreach (Module mod in Project.AllModules)
                 allRefModules.Add(mod);
 
-            foreach (Types.Bean bean in Project.AllBeans)
-            {
-                allRefModules.Add(bean.Space);
-            }
+            System.IO.Directory.CreateDirectory(genDir);
+
+            string metaFileName = System.IO.Path.Combine(genDir, "ZezeNetServiceMeta.lua");
+            using System.IO.StreamWriter swMeta = new System.IO.StreamWriter(metaFileName, false, Encoding.UTF8);
+            swMeta.WriteLine("-- auto-generated");
+            swMeta.WriteLine("local meta = {}");
+            swMeta.WriteLine("meta.beans = {}");
             foreach (Types.BeanKey beanKey in Project.AllBeanKeys)
             {
                 allRefModules.Add(beanKey.Space);
+                BeanFormatter.MakeMeta(beanKey.TypeId, beanKey.Variables, swMeta);
             }
+            foreach (Types.Bean bean in Project.AllBeans)
+            {
+                allRefModules.Add(bean.Space);
+                BeanFormatter.MakeMeta(bean.TypeId, bean.Variables, swMeta);
+            }
+            swMeta.WriteLine();
+            swMeta.WriteLine("meta.protocols = {}");
             foreach (Protocol protocol in Project.AllProtocols)
             {
-                if (protocol is Rpc rpc)
-                    throw new Exception("lua. unsupport rpc.");
+                if (protocol is Rpc)
+                    continue;
+
                 allRefModules.Add(protocol.Space);
+                if (false == protocol.ArgumentType.IsNormalBean)
+                    throw new Exception("protocol argument must be a normal bean");
+                Types.Bean b = (Types.Bean)protocol.ArgumentType;
+                swMeta.WriteLine($"meta.protocols[{protocol.TypeId}] = {b.TypeId}");
             }
+            swMeta.WriteLine();
+            swMeta.WriteLine("return meta");
+            swMeta.Close();
             /*
             foreach (Service ma in Project.Services.Values)
             {
@@ -53,10 +72,19 @@ namespace Zeze.Gen.lua
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
             }
 
-            System.IO.Directory.CreateDirectory(genDir);
-            string fullFileName = System.IO.Path.Combine(genDir, "ProtocolDispatcher.lua");
-            using System.IO.StreamWriter sw = new System.IO.StreamWriter(fullFileName, false, Encoding.UTF8);
-            sw.WriteLine("-- auto-generated");
+            string dispatcherFileName = System.IO.Path.Combine(genDir, "ZezeNetServiceDispatcher.lua");
+            using System.IO.StreamWriter swDispatcher = new System.IO.StreamWriter(dispatcherFileName, false, Encoding.UTF8);
+            swDispatcher.WriteLine("-- auto-generated");
+            swDispatcher.WriteLine("");
+            swDispatcher.WriteLine("ZezeNetServiceProtocolHandles = {}");
+            swDispatcher.WriteLine("");
+            swDispatcher.WriteLine("function ZezeNetServiceDispatchProtocol(p)");
+            swDispatcher.WriteLine("    local handle = ZezeNetServiceProtocolHandles[p.TypeId]");
+            swDispatcher.WriteLine("    if nil == handle then");
+            swDispatcher.WriteLine("        return 0");
+            swDispatcher.WriteLine("    handle()");
+            swDispatcher.WriteLine("    return 1 -- not handle() result");
+            swDispatcher.WriteLine("end");
         }
     }
 }
