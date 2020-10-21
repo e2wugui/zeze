@@ -8,6 +8,15 @@ using System.Text;
 using Zeze.Net;
 using Zeze.Serialize;
 
+/// <summary>
+/// 在lua线程中调用，一般实现：
+/// 0 创建lua线程，
+/// 1 创建 ToLua 实例。
+/// 2 调用具体 Service.InitializeLua 初始化
+/// 3 调用lua.main进入lua代码
+/// 4 在lua.main中回调每个 Service.InitializeLua 中注册的方法回调
+/// * lua 热更的话需要建议重新创建 ToLua ，并且重新初始化（InitializeLua）。重用 ToLua 的话，需要调用一次 ToLua.LoadMeta();
+/// </summary>
 namespace Zeze.Services
 {
     interface FromLua
@@ -30,14 +39,6 @@ namespace Zeze.Services
 
         public Net.Service Service => this;
 
-        /// <summary>
-        /// 在lua线程中调用，一般实现：
-        /// 1 创建lua线程，
-        /// 2 调用BindInLuaThread初始化
-        /// 3 调用lua.main进入lua代码
-        /// 4 在lua.main中回调Bind中注册的方法回调（创建连接，检测连接状态，收发协议）
-        /// </summary>
-        /// <param name="toLua"></param>
         public void InitializeLua(ToLuaService.ToLua toLua)
         {
             ToLua = toLua;
@@ -98,6 +99,78 @@ namespace Zeze.Services.ToLuaService
             this.Lua = lua;
             if (false == this.Lua.DoString("require  'ZezeProtocolDispatcher'"))
                 throw new Exception("require  'ZezeProtocolDispatcher' Error.");
+            LoadMeta();
+        }
+
+        class VariableMeta
+        {
+            public int Id { get; set; }
+
+            public int Type { get; set; }
+            public long TypeBeanTypeId { get; set; }
+            public int Key { get; set; }
+            public long KeyBeanTypeId { get; set; }
+            public int Value { get; set; }
+            public long ValueBeanTypeId { get; set; }
+
+            public override string ToString()
+            {
+                return $"{{[{Id}]={{{Type},{TypeBeanTypeId},{Key},{KeyBeanTypeId},{Value},{ValueBeanTypeId}}}}}";
+            }
+        }
+
+        private readonly Dictionary<long, List<VariableMeta>> BeanMetas = new Dictionary<long, List<VariableMeta>>(); // Bean.TypeId -> vars
+        private readonly Dictionary<int, long> ProtocolMetas = new Dictionary<int, long>(); // protocol.TypeId -> Bean.TypeId
+
+        public void LoadMeta()
+        {
+            BeanMetas.Clear();
+            ProtocolMetas.Clear();
+
+            Lua.DoFile("ZezeNetServiceMeta.lua");
+
+            Lua.GetField(-1, "beans");
+            Lua.PushNil();
+            while (Lua.Next(-2)) // -1 value of vars(table) -2 key of bean.TypeId
+            {
+                long beanTypeId = Lua.ToInteger(-2);
+                List<VariableMeta> vars = new List<VariableMeta>();
+                Lua.PushNil();
+                while (Lua.Next(-2)) // -1 value of varmeta(table) -2 key of varid
+                {
+                    VariableMeta var = new VariableMeta();
+                    var.Id = (int)Lua.ToInteger(-2);
+                    Lua.PushNil();
+                    while (Lua.Next(-2)) // -1 value of typetag -2 key of index
+                    {
+                        switch (Lua.ToInteger(-2))
+                        {
+                            case 1: var.Type = (int)Lua.ToInteger(-1); break;
+                            case 2: var.TypeBeanTypeId = Lua.ToInteger(-1); break;
+                            case 3: var.Key = (int)Lua.ToInteger(-1); break;
+                            case 4: var.KeyBeanTypeId = Lua.ToInteger(-1); break;
+                            case 5: var.Value = (int)Lua.ToInteger(-1); break;
+                            case 6: var.ValueBeanTypeId = Lua.ToInteger(-1); break;
+                            default: throw new Exception("error index for typetag");
+                        }
+                        Lua.Pop(1); // pop value
+                    }
+                    Lua.Pop(1); // pop value
+                    vars.Add(var);
+                }
+                BeanMetas.Add(beanTypeId, vars);
+                Lua.Pop(1); // pop value
+            }
+            Lua.Pop(1);
+
+            Lua.GetField(-1, "protocols");
+            Lua.PushNil();
+            while (Lua.Next(-2)) // -1 value of Protocol.Argument.BeanTypeId -2 Protocol.TypeId
+            {
+                ProtocolMetas.Add((int)Lua.ToInteger(-2), Lua.ToInteger(-1));
+                Lua.Pop(1); // pop value
+            }
+            Lua.Pop(1);
         }
 
         public void RegisterFunction(string name, KeraLua.LuaFunction func)
@@ -151,11 +224,161 @@ namespace Zeze.Services.ToLuaService
         public void SendProtocol(AsyncSocket socket)
         {
             if (false == Lua.IsTable(-1))
-                return;
+                throw new Exception("SendProtocol param is not a table.");
 
-            Lua.GetField(-1, "");
+            Lua.GetField(-1, "TypeId");
+            int typeId = (int)Lua.ToInteger(-1);
+            Lua.Pop(1);
+            Lua.GetField(-1, "ResultCode");
+            int resultCode = (int)Lua.ToInteger(-1);
+            Lua.Pop(1);
 
-            // socket.Send();            
+            if (false == ProtocolMetas.TryGetValue(typeId, out var argumentBeanTypeId))
+                throw new Exception("protocol not found in meta for typeid=" + typeId);
+
+            // see Protocol.Encode
+            ByteBuffer bb = ByteBuffer.Allocate();
+            bb.WriteInt(typeId);
+            bb.BeginWriteWithSize4(out var state);
+            bb.WriteInt(resultCode);
+            Lua.GetField(-1, "Argument");
+            EncodeBean(bb, argumentBeanTypeId);
+            Lua.Pop(1);
+            bb.EndWriteWithSize4(state);
+            socket.Send(bb);            
+        }
+
+        private void EncodeBean(ByteBuffer bb, long beanTypeId)
+        {
+            if (false == BeanMetas.TryGetValue(beanTypeId, out var vars))
+                throw new Exception("bean not found in meta for beanTypeId=" + beanTypeId);
+
+            bb.WriteInt(vars.Count);
+            foreach (var v in vars)
+            {
+                Lua.PushInteger(v.Id);
+                Lua.GetTable(-2);
+                EncodeVariable(bb, v);
+                Lua.Pop(1);
+            }
+        }
+
+        private int EncodeGetTableLength()
+        {
+            if (false == Lua.IsTable(-1))
+                throw new Exception("EncodeGetTableLength: not a table");
+            int len = 0;
+            Lua.PushNil();
+            while (Lua.Next(-2))
+            {
+                ++len;
+                Lua.Pop(1);
+            }
+            return len;
+        }
+
+        private void EncodeVariable(ByteBuffer _os_, VariableMeta v, int index = -1)
+        {
+            if (v.Id > 0) // 编码容器中项时，Id为0，此时不需要编码 tagid.
+                _os_.WriteInt(v.Type | v.Id << Zeze.Serialize.Helper.TAG_SHIFT);
+
+            switch (v.Type)
+            {
+                case Zeze.Serialize.Helper.BOOL:
+                    _os_.WriteBool(Lua.ToBoolean(index));
+                    Lua.Pop(1);
+                    break;
+                case Zeze.Serialize.Helper.BYTE:
+                    _os_.WriteByte((byte)Lua.ToInteger(index));
+                    break;
+                case Zeze.Serialize.Helper.SHORT:
+                    _os_.WriteShort((short)Lua.ToInteger(index));
+                    break;
+                case Zeze.Serialize.Helper.INT:
+                    _os_.WriteInt((int)Lua.ToInteger(index));
+                    break;
+                case Zeze.Serialize.Helper.LONG:
+                    _os_.WriteLong(Lua.ToInteger(index));
+                    break;
+                case Zeze.Serialize.Helper.FLOAT:
+                    _os_.WriteFloat((float)Lua.ToNumber(index));
+                    break;
+                case Zeze.Serialize.Helper.DOUBLE:
+                    _os_.WriteDouble(Lua.ToNumber(index));
+                    break;
+                case Zeze.Serialize.Helper.STRING:
+                    _os_.WriteString(Lua.ToString(index));
+                    break;
+                case Zeze.Serialize.Helper.BYTES:
+                    _os_.WriteBytes(Lua.ToBuffer(index));
+                    break;
+                case Zeze.Serialize.Helper.LIST:
+                    {
+                        _os_.BeginWriteSegment(out var _state_);
+                        _os_.WriteInt(v.Value);
+                        _os_.WriteInt(EncodeGetTableLength());
+                        Lua.PushNil();
+                        while (Lua.Next(-2))
+                        { 
+                            EncodeVariable(_os_, new VariableMeta() { Id = 0, Type = v.Value, TypeBeanTypeId = v.ValueBeanTypeId });
+                            Lua.Pop(1);
+                        }
+                        _os_.EndWriteSegment(_state_);
+                    }
+                    break;
+                case Zeze.Serialize.Helper.SET:
+                    {
+                        _os_.BeginWriteSegment(out var _state_);
+                        _os_.WriteInt(v.Value);
+                        _os_.WriteInt(EncodeGetTableLength());
+                        Lua.PushNil();
+                        while (Lua.Next(-2))
+                        {
+                            Lua.Pop(1); // set：encode key
+                            EncodeVariable(_os_, new VariableMeta() { Id = 0, Type = v.Value, TypeBeanTypeId = v.ValueBeanTypeId });
+                        }
+                        _os_.EndWriteSegment(_state_);
+                    }
+                    break;
+                case Zeze.Serialize.Helper.MAP:
+                    {
+                        _os_.BeginWriteSegment(out var _state_);
+                        _os_.WriteInt(v.Key);
+                        _os_.WriteInt(v.Value);
+                        _os_.WriteInt(EncodeGetTableLength());
+                        Lua.PushNil();
+                        while (Lua.Next(-2))
+                        {
+                            EncodeVariable(_os_, new VariableMeta() { Id = 0, Type = v.Key, TypeBeanTypeId = v.KeyBeanTypeId }, -2);
+                            EncodeVariable(_os_, new VariableMeta() { Id = 0, Type = v.Value, TypeBeanTypeId = v.ValueBeanTypeId });
+                            Lua.Pop(1);
+                        }
+                        _os_.EndWriteSegment(_state_);
+                    }
+                    break;
+                case Zeze.Serialize.Helper.BEAN:
+                    {
+                        _os_.BeginWriteSegment(out var _state_);
+                        EncodeBean(_os_, v.TypeBeanTypeId);
+                        _os_.EndWriteSegment(_state_);
+                    }
+                    break;
+                case Zeze.Serialize.Helper.DYNAMIC:
+                    {
+                        Lua.GetField(-1, "_TypeId_");
+                        if (Lua.IsNil(-1))
+                            throw new Exception("'_TypeId_' not found. dynamic bean needed.");
+                        long beanTypeId = Lua.ToInteger(-1);
+                        Lua.Pop(1);
+                        _os_.WriteLong8(beanTypeId);
+                        _os_.BeginWriteSegment(out var _state_);
+                        EncodeBean(_os_, beanTypeId);
+                        _os_.EndWriteSegment(_state_);
+                    }
+                    break;
+                default:
+                    throw new Exception("Unkown Tag Type");
+            }
         }
 
         public bool DecodeAndDispatch(long sessionId, int typeId, ByteBuffer _os_)
@@ -202,7 +425,7 @@ namespace Zeze.Services.ToLuaService
             return result;
         }
 
-        public void DecodeBean(ByteBuffer _os_)
+        private void DecodeBean(ByteBuffer _os_)
         {
             Lua.CreateTable(0, 32);
             for (int _varnum_ = _os_.ReadInt(); _varnum_ > 0; --_varnum_)
@@ -216,7 +439,7 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
-        public void DecodeVariable(ByteBuffer _os_, int _tagType_)
+        private void DecodeVariable(ByteBuffer _os_, int _tagType_)
         {
             switch (_tagType_)
             {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 
 namespace TestGlobal
 {
@@ -31,17 +32,22 @@ namespace TestGlobal
         {
             KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
             Console.WriteLine("funcInCSharp with table 1 " + lua.IsTable(-1));
+            Console.WriteLine("funcInCSharp with table len 1 " + lua.Length(-1));
             lua.GetField(-1, ""); // meta
             Console.WriteLine("funcInCSharp with table 2 " + lua.IsTable(-1));
+            Console.WriteLine("funcInCSharp with table len 2 " + lua.Length(-1));
             lua.PushInteger(1);
             lua.GetTable(-2); // var type
             Console.WriteLine("funcInCSharp with table 3 " + lua.IsTable(-1));
+            Console.WriteLine("funcInCSharp with table len 3 " + lua.Length(-1));
             lua.PushInteger(1);
             lua.GetTable(-2); // type
             Console.WriteLine("funcInCSharp with IsInteger 4 " + lua.IsInteger(-1));
+            //Console.WriteLine("funcInCSharp with integer len 4 " + lua.Length(-1));
             Console.WriteLine("type = " + lua.ToInteger(-1));
             lua.Pop(3);
             lua.PushInteger(123);
+            //throw new Exception("exception test");
             return 1;
         }
 
@@ -59,12 +65,16 @@ namespace TestGlobal
             long result = lua.ToInteger(-1);
             Console.WriteLine("result of funcInLua: " + result);
             lua.Pop(1);
-            // */
 
-            //Console.WriteLine("result of dostring " + lua.DoString("funcInCSharp(2)"));
-
-            bool dofile = lua.DoFile("funcInLuaMain.lua");
-            Console.WriteLine("dofile " + dofile);
+            try
+            {
+                bool dofile = lua.DoFile("funcInLuaMain.lua");
+                Console.WriteLine("dofile " + dofile);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
 
         static void Main(string[] args)
