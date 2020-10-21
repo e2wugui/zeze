@@ -291,7 +291,6 @@ namespace Zeze.Services.ToLuaService
             {
                 case Zeze.Serialize.Helper.BOOL:
                     _os_.WriteBool(Lua.ToBoolean(index));
-                    Lua.Pop(1);
                     break;
                 case Zeze.Serialize.Helper.BYTE:
                     _os_.WriteByte((byte)Lua.ToInteger(index));
