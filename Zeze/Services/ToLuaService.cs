@@ -258,6 +258,11 @@ namespace Zeze.Services.ToLuaService
             {
                 Lua.PushInteger(v.Id);
                 Lua.GetTable(-2);
+                if (Lua.IsNil(-1)) // allow var not set
+                {
+                    Lua.Pop(1);
+                    continue;
+                }
                 EncodeVariable(bb, v);
                 Lua.Pop(1);
             }
