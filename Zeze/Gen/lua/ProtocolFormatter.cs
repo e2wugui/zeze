@@ -10,12 +10,11 @@ namespace Zeze.Gen.lua
         {
             sw.WriteLine($"{moduleName}.{p.Name} = {{");
             sw.WriteLine($"    TypeId = {p.TypeId},");
+            sw.WriteLine($"    ModuleId = {p.Space.Id},");
+            sw.WriteLine($"    ProtocolId = {p.Id},");
             sw.WriteLine($"    ResultCode = 0,");
             sw.WriteLine($"    Argument = {{}},");
             sw.WriteLine("}");
-            sw.WriteLine($"{moduleName}.{p.Name}.Send = function (p)");
-            sw.WriteLine("    ZezeNetServiceSendProtocol(ZezeNetServiceCurrentService, ZezeNetServiceCurrentSessionId, p)");
-            sw.WriteLine("end");
         }
     }
 }
