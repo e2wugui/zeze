@@ -67,9 +67,32 @@ namespace Zeze.Gen.lua
                 new ServiceFormatter(ma, genDir, srcDir).Make();
             }
             */
+            SortedDictionary<int, List<ModuleSpace>> sortDepth = new SortedDictionary<int, List<ModuleSpace>>();
             foreach (ModuleSpace mod in allRefModules)
             {
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
+                int depth = mod.PathDepth();
+                if (false == sortDepth.TryGetValue(depth, out var mods))
+                    sortDepth.Add(depth, mods = new List<ModuleSpace>());
+                mods.Add(mod);
+            }
+            {
+                string fileName = System.IO.Path.Combine(genDir, "ZezeNetServiceAll.lua");
+                using System.IO.StreamWriter sw = new System.IO.StreamWriter(fileName, false, Encoding.UTF8);
+
+                sw.WriteLine("-- auto-generated");
+                sw.WriteLine("");
+                sw.WriteLine("local AllBeansAndProtocols = {}");
+                sw.WriteLine("");
+                foreach (var es in sortDepth)
+                {
+                    foreach (var e in es.Value)
+                    {
+                        sw.WriteLine($"AllBeansAndProtocols.{e.Path(".", null)} = require '{e.Path(".", null)}'");
+                    }
+                }
+                sw.WriteLine("");
+                sw.WriteLine("return AllBeansAndProtocols");
             }
 
             string dispatcherFileName = System.IO.Path.Combine(srcDir, "ZezeNetService.lua");

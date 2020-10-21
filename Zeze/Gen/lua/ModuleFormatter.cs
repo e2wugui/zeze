@@ -27,10 +27,9 @@ namespace Zeze.Gen.lua
 
         public void MakeGen()
         {
-            if (null == module.Parent)
-                return; // must be solution
-
-            using System.IO.StreamWriter sw = module.Parent.OpenWriter(genDir, module.Name + ".lua");
+            using System.IO.StreamWriter sw = (null == module.Parent)
+                ? new System.IO.StreamWriter(System.IO.Path.Combine(genDir, module.Name + ".lua"), false, Encoding.UTF8)
+                : module.Parent.OpenWriter(genDir, module.Name + ".lua");
             sw.WriteLine("-- auto-generated");
             sw.WriteLine();
             sw.WriteLine("local " + module.Name + " = {}");

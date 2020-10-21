@@ -24,6 +24,14 @@ namespace Zeze.Gen
 
         public Solution Solution => (Solution)GetRootModuleSpace();
 
+        public int PathDepth()
+        {
+            int depth = 0;
+            for (ModuleSpace p = Parent; null != p; p = p.Parent)
+                ++depth;
+            return depth;
+        }
+
         public string Path(string sep = ".", string ObjectName = null)
         {
             string path = Name;
