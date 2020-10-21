@@ -30,6 +30,13 @@ namespace Zeze.Gen.lua
             using System.IO.StreamWriter sw = (null == module.Parent)
                 ? new System.IO.StreamWriter(System.IO.Path.Combine(genDir, module.Name + ".lua"), false, Encoding.UTF8)
                 : module.Parent.OpenWriter(genDir, module.Name + ".lua");
+            MakeGen(sw);
+            sw.WriteLine();
+            sw.WriteLine("return " + module.Name + "");
+        }
+
+        public void MakeGen(System.IO.StreamWriter sw)
+        {
             sw.WriteLine("-- auto-generated");
             sw.WriteLine();
             sw.WriteLine("local " + module.Name + " = {}");
@@ -51,8 +58,6 @@ namespace Zeze.Gen.lua
                     continue;
                 ProtocolFormatter.Make(module.Name, p, sw);
             }
-            sw.WriteLine();
-            sw.WriteLine("return " + module.Name + "");
         }
 
         public void MakeSrc()

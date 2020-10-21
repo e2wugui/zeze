@@ -68,31 +68,50 @@ namespace Zeze.Gen.lua
             }
             */
             SortedDictionary<int, List<ModuleSpace>> sortDepth = new SortedDictionary<int, List<ModuleSpace>>();
+            ModuleSpace depth0 = null;
             foreach (ModuleSpace mod in allRefModules)
             {
-                new ModuleFormatter(Project, mod, genDir, srcDir).Make();
                 int depth = mod.PathDepth();
                 if (false == sortDepth.TryGetValue(depth, out var mods))
                     sortDepth.Add(depth, mods = new List<ModuleSpace>());
                 mods.Add(mod);
+
+                if (depth == 0)
+                {
+                    depth0 = mod; // 记住 solution 最后生成。
+                    continue;
+                }
+                new ModuleFormatter(Project, mod, genDir, srcDir).Make();
             }
             {
-                string fileName = System.IO.Path.Combine(genDir, "ZezeNetServiceAll.lua");
-                using System.IO.StreamWriter sw = new System.IO.StreamWriter(fileName, false, Encoding.UTF8);
+                ModuleSpace solution = Project.Solution;
 
-                sw.WriteLine("-- auto-generated");
-                sw.WriteLine("");
-                sw.WriteLine("local AllBeansAndProtocols = {}");
+                using System.IO.StreamWriter sw = new System.IO.StreamWriter(System.IO.Path.Combine(genDir, solution.Name + ".lua"), false, Encoding.UTF8);
+                if (null != depth0) // 引用了solution内定义的bean，先调用ModuleFormatter生成
+                {
+                    new ModuleFormatter(Project, solution, genDir, srcDir).MakeGen(sw);
+                }
+                else
+                {
+                    sw.WriteLine("-- auto-generated");
+                    sw.WriteLine();
+                    sw.WriteLine("local " + solution.Name + " = {}");
+                    //sw.WriteLine("" + module.Name + ".ModuleId = " + module.Id);
+                    sw.WriteLine();
+                }
                 sw.WriteLine("");
                 foreach (var es in sortDepth)
                 {
+                    if (es.Key == 0)
+                        continue; // solution 已经生成了。
+
                     foreach (var e in es.Value)
                     {
-                        sw.WriteLine($"AllBeansAndProtocols.{e.Path(".", null)} = require '{e.Path(".", null)}'");
+                        sw.WriteLine($"{e.Path(".", null)} = require '{e.Path(".", null)}'");
                     }
                 }
                 sw.WriteLine("");
-                sw.WriteLine("return AllBeansAndProtocols");
+                sw.WriteLine($"return {solution.Name}");
             }
 
             string dispatcherFileName = System.IO.Path.Combine(srcDir, "ZezeNetService.lua");
