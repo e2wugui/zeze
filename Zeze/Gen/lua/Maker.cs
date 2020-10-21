@@ -111,6 +111,10 @@ namespace Zeze.Gen.lua
                     }
                 }
                 sw.WriteLine("");
+                sw.WriteLine("function SendProtocolCurrent(p)");
+                sw.WriteLine("    ZezeNetServiceSendProtocol(ZezeNetServiceCurrentService, ZezeNetServiceCurrentSessionId, p)");
+                sw.WriteLine("end");
+                sw.WriteLine("");
                 sw.WriteLine($"return {solution.Name}");
             }
 

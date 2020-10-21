@@ -97,7 +97,7 @@ namespace Zeze.Services.ToLuaService
         public ToLua(KeraLua.Lua lua)
         {
             this.Lua = lua;
-            if (false == this.Lua.DoString("require  'ZezeNetService'"))
+            if (this.Lua.DoString("require  'ZezeNetService'"))
                 throw new Exception("require  'ZezeNetService' Error.");
             LoadMeta();
         }
