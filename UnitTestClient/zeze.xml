@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<zeze
+	CheckpointPeriod="0" AutoKeyLocalId="0" AutoKeyLocalStep="4096"
+	>
+	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
+</zeze>

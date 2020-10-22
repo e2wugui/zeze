@@ -71,13 +71,13 @@
 		<module ref="Module2"/>
 		-->
 		<!-- service 生成到 solution 名字空间下 -->
-		<service name="Server" handle="server">
+		<service name="Server" handle="server" base="Zeze.Services.HandshakeServer">
 			<module ref="Module1"/>
 		</service>
 	</project>
 
 	<project name="UnitTestClient" gendir=".." platform="cs+lua" GenTables="client">
-		<service name="Client" handle="client">
+		<service name="Client" handle="client" base="Zeze.Services.ToLuaServiceClient">
 			<module ref="Module1"/>
 		</service>
 	</project>

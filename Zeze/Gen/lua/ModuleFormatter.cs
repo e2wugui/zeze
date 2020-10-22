@@ -44,12 +44,12 @@ namespace Zeze.Gen.lua
             sw.WriteLine();
             foreach (var b in module.BeanKeys.Values)
             {
-                BeanFormatter.Make(module.Name, b.Name, b.Variables, sw);
+                BeanFormatter.Make(module.Name, b.Name, b.TypeId, b.Variables, sw);
             }
             sw.WriteLine();
             foreach (var b in module.Beans.Values)
             {
-                BeanFormatter.Make(module.Name, b.Name, b.Variables, sw);
+                BeanFormatter.Make(module.Name, b.Name, b.TypeId, b.Variables, sw);
             }
             sw.WriteLine();
             foreach (var p in module.Protocols.Values)

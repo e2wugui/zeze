@@ -41,7 +41,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class " + service.Name + " : " + BaseClass());
             sw.WriteLine("    {");
-            sw.WriteLine("        public " + service.Name + "(Zeze.Application zeze) : base(\"" + service.Project.Solution.Path(".", service.Name) + "\", zeze)");
+            sw.WriteLine("        public " + service.Name + "(Zeze.Application zeze) : base(\"" + service.Name + "\", zeze)");
             sw.WriteLine("        {");
             sw.WriteLine("        }");
             sw.WriteLine("    }");

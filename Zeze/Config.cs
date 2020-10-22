@@ -120,6 +120,7 @@ namespace Zeze
                 {
                     case "TableConf": new TableConf(this, e); break;
                     case "DatabaseConf": new DatabaseConf(this, e); break;
+                    case "ServiceConf": new ServiceConf(this, e); break;
                     default: throw new Exception("unknown node name: " + e.Name);
                 }
             }
@@ -239,7 +240,12 @@ namespace Zeze
 
                 // HandshakeOptions
                 foreach (string dg in self.GetAttribute("DhGroups").Split(','))
-                    HandshakeOptions.AddDhGroup(int.Parse(dg));
+                {
+                    string dgtmp = dg.Trim();
+                    if (dgtmp.Length == 0)
+                        continue;
+                    HandshakeOptions.AddDhGroup(int.Parse(dgtmp));
+                }
                 attr = self.GetAttribute("SecureIp");
                 if (attr.Length > 0) HandshakeOptions.SecureIp = System.Net.IPAddress.Parse(attr).GetAddressBytes();
                 attr = self.GetAttribute("S2cNeedCompress");

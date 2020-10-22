@@ -32,12 +32,11 @@ namespace Zeze.Services
     {
         public ToLuaService.ToLua ToLua { get; private set; }
         public ToLuaService.Helper Helper { get; } = new ToLuaService.Helper();
+        public Net.Service Service => this;
 
         public ToLuaServiceClient(string name, Zeze.Application zeze) : base(name, zeze)
         {
         }
-
-        public Net.Service Service => this;
 
         public void InitializeLua(ToLuaService.ToLua toLua)
         {
@@ -97,7 +96,7 @@ namespace Zeze.Services.ToLuaService
         public ToLua(KeraLua.Lua lua)
         {
             this.Lua = lua;
-            if (this.Lua.DoString("require  'Zeze'"))
+            if (this.Lua.DoFile("Zeze.lua"))
                 throw new Exception("require  'Zeze' Error.");
             LoadMeta();
         }
@@ -127,7 +126,8 @@ namespace Zeze.Services.ToLuaService
             BeanMetas.Clear();
             ProtocolMetas.Clear();
 
-            Lua.DoFile("ZezeMeta.lua");
+            if (Lua.DoFile("ZezeMeta.lua"))
+                throw new Exception("DoFile(\"ZezeMeta.lua\")");
 
             Lua.GetField(-1, "beans");
             Lua.PushNil();
@@ -256,7 +256,18 @@ namespace Zeze.Services.ToLuaService
             if (false == BeanMetas.TryGetValue(beanTypeId, out var vars))
                 throw new Exception("bean not found in meta for beanTypeId=" + beanTypeId);
 
-            bb.WriteInt(vars.Count);
+            // 先遍历一遍，得到填写了的var的数量
+            int varsCount = 0;
+            foreach (var v in vars)
+            {
+                Lua.PushInteger(v.Id);
+                Lua.GetTable(-2);
+                if (false == Lua.IsNil(-1))
+                    ++varsCount;
+                Lua.Pop(1);
+            }
+            bb.WriteInt(varsCount);
+
             foreach (var v in vars)
             {
                 Lua.PushInteger(v.Id);

@@ -13,7 +13,8 @@ namespace demo.Module1
 
         public override int ProcessProtocol1(Protocol1 protocol)
         {
-            return Zeze.Transaction.Procedure.NotImplement;
+            protocol.Send(protocol.Sender);
+            return Zeze.Transaction.Procedure.Success;
         }
 
         public override int ProcessProtocol3(Protocol3 protocol)
