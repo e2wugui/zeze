@@ -22,3 +22,7 @@ TestResults
 /Game/server/Gen
 /Game/server/obj
 /Game/server/bin
+/UnitTestClient/Gen
+/UnitTestClient/LuaGen
+/UnitTestClient/obj
+/UnitTestClient/bin
