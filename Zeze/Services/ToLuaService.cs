@@ -97,8 +97,8 @@ namespace Zeze.Services.ToLuaService
         public ToLua(KeraLua.Lua lua)
         {
             this.Lua = lua;
-            if (this.Lua.DoString("require  'ZezeNetService'"))
-                throw new Exception("require  'ZezeNetService' Error.");
+            if (this.Lua.DoString("require  'Zeze'"))
+                throw new Exception("require  'Zeze' Error.");
             LoadMeta();
         }
 
@@ -127,7 +127,7 @@ namespace Zeze.Services.ToLuaService
             BeanMetas.Clear();
             ProtocolMetas.Clear();
 
-            Lua.DoFile("ZezeNetServiceMeta.lua");
+            Lua.DoFile("ZezeMeta.lua");
 
             Lua.GetField(-1, "beans");
             Lua.PushNil();
@@ -181,13 +181,13 @@ namespace Zeze.Services.ToLuaService
         internal void CallHandshakeDone(FromLua service, long socketSessionId)
         {
             // void OnHandshakeDone(long sessionId)
-            this.Lua.GetGlobal("ZezeNetServiceHandshakeDone"); // push func onto stack
+            this.Lua.GetGlobal("ZezeHandshakeDone"); // push func onto stack
             Lua.PushObject(service);
             Lua.PushInteger(socketSessionId);
             Lua.Call(2, 0);
         }
 
-        private static int ZezeNetServiceSendProtocol(IntPtr luaState)
+        private static int ZezeSendProtocol(IntPtr luaState)
         {
             KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
             FromLua callback = lua.ToObject<FromLua>(-3);
@@ -199,7 +199,7 @@ namespace Zeze.Services.ToLuaService
             return 0;
         }
 
-        private static int ZezeNetServiceUpdate(IntPtr luaState)
+        private static int ZezeUpdate(IntPtr luaState)
         {
             KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
             FromLua callback = lua.ToObject<FromLua>(-1);
@@ -210,18 +210,18 @@ namespace Zeze.Services.ToLuaService
         internal void RegisterGlobalAndCallback(FromLua callback)
         {
             Lua.PushObject(callback);
-            Lua.SetGlobal("ZezeNetService_" + callback.Name);
+            Lua.SetGlobal("ZezeService" + callback.Name);
             Lua.PushObject(callback);
-            Lua.SetGlobal("ZezeNetServiceCurrentService"); // 当存在多个service时，这里保存最后一个。
+            Lua.SetGlobal("ZezeCurrentService"); // 当存在多个service时，这里保存最后一个。
 
             // 第一个参数是Service的全局变量。在上面一行注册进去的。
-            // void ZezeNetServiceUpdate(ZezeNetService_##Name)
-            RegisterFunction("ZezeNetServiceUpdate", ZezeNetServiceUpdate);
-            // 由 Protocol 的 lua 生成代码调用，其中 sesionId 从全局变量 NetServiceCurrentSessionId 中读取，
-            // 对于客户端，连接 HandshakeDone 以后保存 sessionId 到 NetServiceCurrentSessionId 中，以后不用重新设置。
-            // 对于服务器，连接 HandshakeDone 以后保存 sessionId 自己的结构中，发送前需要把当前连接设置到 NetServiceCurrentSessionId 中。 
-            // void NetServiceSendProtocol(ZezeNetService_##Name, sessionId, protocol)
-            RegisterFunction("ZezeNetServiceSendProtocol", ZezeNetServiceSendProtocol);
+            // void ZezeUpdate(ZezeService##Name)
+            RegisterFunction("ZezeUpdate", ZezeUpdate);
+            // 由 Protocol 的 lua 生成代码调用，其中 sesionId 从全局变量 ZezeCurrentSessionId 中读取，
+            // 对于客户端，连接 HandshakeDone 以后保存 sessionId 到 ZezeCurrentSessionId 中，以后不用重新设置。
+            // 对于服务器，连接 HandshakeDone 以后保存 sessionId 自己的结构中，发送前需要把当前连接设置到 ZezeCurrentSessionId 中。 
+            // void ZezeSendProtocol(ZezeService##Name, sessionId, protocol)
+            RegisterFunction("ZezeSendProtocol", ZezeSendProtocol);
         }
 
         public void SendProtocol(AsyncSocket socket)
@@ -390,7 +390,7 @@ namespace Zeze.Services.ToLuaService
 
         public bool DecodeAndDispatch(long sessionId, int typeId, ByteBuffer _os_)
         {
-            this.Lua.GetGlobal("ZezeNetServiceDispatchProtocol"); // push func onto stack
+            this.Lua.GetGlobal("ZezeDispatchProtocol"); // push func onto stack
             if (false == Lua.IsFunction(-1))
             {
                 Lua.Pop(1);

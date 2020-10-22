@@ -30,7 +30,7 @@ namespace Zeze.Gen.lua
 
             System.IO.Directory.CreateDirectory(genDir);
 
-            string metaFileName = System.IO.Path.Combine(genDir, "ZezeNetServiceMeta.lua");
+            string metaFileName = System.IO.Path.Combine(genDir, "ZezeMeta.lua");
             using System.IO.StreamWriter swMeta = new System.IO.StreamWriter(metaFileName, false, Encoding.UTF8);
             swMeta.WriteLine("-- auto-generated");
             swMeta.WriteLine("local meta = {}");
@@ -112,31 +112,31 @@ namespace Zeze.Gen.lua
                 }
                 sw.WriteLine("");
                 sw.WriteLine("function SendProtocolCurrent(p)");
-                sw.WriteLine("    ZezeNetServiceSendProtocol(ZezeNetServiceCurrentService, ZezeNetServiceCurrentSessionId, p)");
+                sw.WriteLine("    ZezeSendProtocol(ZezeCurrentService, ZezeCurrentSessionId, p)");
                 sw.WriteLine("end");
                 sw.WriteLine("");
                 sw.WriteLine($"return {solution.Name}");
             }
 
-            string dispatcherFileName = System.IO.Path.Combine(srcDir, "ZezeNetService.lua");
+            string dispatcherFileName = System.IO.Path.Combine(srcDir, "Zeze.lua");
             if (false == System.IO.File.Exists(dispatcherFileName))
             {
                 using System.IO.StreamWriter swDispatcher = new System.IO.StreamWriter(dispatcherFileName, false, Encoding.UTF8);
 
                 swDispatcher.WriteLine("");
-                swDispatcher.WriteLine("ZezeNetServiceProtocolHandles = {}");
+                swDispatcher.WriteLine("ZezeProtocolHandles = {}");
                 swDispatcher.WriteLine("");
-                swDispatcher.WriteLine("function ZezeNetServiceDispatchProtocol(p)");
-                swDispatcher.WriteLine("    local handle = ZezeNetServiceProtocolHandles[p.TypeId]");
+                swDispatcher.WriteLine("function ZezeDispatchProtocol(p)");
+                swDispatcher.WriteLine("    local handle = ZezeProtocolHandles[p.TypeId]");
                 swDispatcher.WriteLine("    if nil == handle then");
                 swDispatcher.WriteLine("        return 0");
                 swDispatcher.WriteLine("    handle(p)");
                 swDispatcher.WriteLine("    return 1 -- 1 if found. not result of handle ");
                 swDispatcher.WriteLine("end");
                 swDispatcher.WriteLine("");
-                swDispatcher.WriteLine("function ZezeNetServiceHandshakeDone(service, sessionId)");
-                swDispatcher.WriteLine("    ZezeNetServiceCurrentService = service");
-                swDispatcher.WriteLine("    ZezeNetServiceCurrentSessionId = sessionId");
+                swDispatcher.WriteLine("function ZezeHandshakeDone(service, sessionId)");
+                swDispatcher.WriteLine("    ZezeCurrentService = service");
+                swDispatcher.WriteLine("    ZezeCurrentSessionId = sessionId");
                 swDispatcher.WriteLine("    -- connection ready. write you code here.");
                 swDispatcher.WriteLine("end");
                 swDispatcher.WriteLine("");

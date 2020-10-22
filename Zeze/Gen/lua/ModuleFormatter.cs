@@ -84,7 +84,7 @@ namespace Zeze.Gen.lua
 
                     if (0 != (p.HandleFlags & serviceHandleFlags))
                     {
-                        sw.WriteLine($"    ZezeNetServiceProtocolHandles[{p.TypeId}] = {module.Name}.Process{p.Name}");
+                        sw.WriteLine($"    ZezeProtocolHandles[{p.TypeId}] = {module.Name}.Process{p.Name}");
                     }
                 }
             }
