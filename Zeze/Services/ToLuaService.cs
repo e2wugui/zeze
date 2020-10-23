@@ -399,7 +399,7 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
-        public bool DecodeAndDispatch(long sessionId, int typeId, ByteBuffer _os_)
+        public bool DecodeAndDispatch(Net.Service service, long sessionId, int typeId, ByteBuffer _os_)
         {
             this.Lua.GetGlobal("ZezeDispatchProtocol"); // push func onto stack
             if (false == Lua.IsFunction(-1))
@@ -410,6 +410,13 @@ namespace Zeze.Services.ToLuaService
             // 现在不支持 Rpc.但是代码没有检查。
             // 生成的时候报错。
             Lua.CreateTable(0, 8);
+
+            if (service is FromLua fromLua) // 必须是，不报错了。
+            {
+                Lua.PushString("Service");
+                Lua.PushObject(fromLua);
+                Lua.SetTable(-3);
+            }
 
             Lua.PushString("SessionId");
             Lua.PushInteger(sessionId);
@@ -570,7 +577,7 @@ namespace Zeze.Services.ToLuaService
         }
 #else
         // 不使用 lua 也需要定义这个函数，Protocol.Decode 编译需要。其他函数核心代码都不调用，先不定义。
-        public bool DecodeAndDispatch(long sessionId, int typeId, ByteBuffer _os_)
+        public bool DecodeAndDispatch(Net.Service service, long sessionId, int typeId, ByteBuffer _os_)
         {
             return false;
         }

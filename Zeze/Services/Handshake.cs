@@ -24,7 +24,7 @@ namespace Zeze.Services
     public class HandshakeOptions
     {
         // for HandshakeServer
-        public HashSet<int> DhGroups { get; } = new HashSet<int>();
+        public HashSet<int> DhGroups { get; set; } = new HashSet<int>();
         public byte[] SecureIp { get; set; } = null;
         public bool S2cNeedCompress { get; set; } = true;
         public bool C2sNeedCompress { get; set; } = true;

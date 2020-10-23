@@ -88,7 +88,7 @@ namespace Zeze.Net
 
 				if (null != toLua)
 				{
-					if (toLua.DecodeAndDispatch(so.SessionId, type, os))
+					if (toLua.DecodeAndDispatch(service, so.SessionId, type, os))
 						continue; // 派发失败继续尝试c#的实现。
 				}
 

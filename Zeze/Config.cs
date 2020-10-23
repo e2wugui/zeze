@@ -239,12 +239,17 @@ namespace Zeze
                 if (attr.Length > 0) SocketOptions.SocketLogLevel = NLog.LogLevel.FromString(attr);
 
                 // HandshakeOptions
-                foreach (string dg in self.GetAttribute("DhGroups").Split(','))
+                attr = self.GetAttribute("DhGroups");
+                if (attr.Length > 0)
                 {
-                    string dgtmp = dg.Trim();
-                    if (dgtmp.Length == 0)
-                        continue;
-                    HandshakeOptions.AddDhGroup(int.Parse(dgtmp));
+                    HandshakeOptions.DhGroups = new HashSet<int>();
+                    foreach (string dg in attr.Split(','))
+                    {
+                        string dgtmp = dg.Trim();
+                        if (dgtmp.Length == 0)
+                            continue;
+                        HandshakeOptions.AddDhGroup(int.Parse(dgtmp));
+                    }
                 }
                 attr = self.GetAttribute("SecureIp");
                 if (attr.Length > 0) HandshakeOptions.SecureIp = System.Net.IPAddress.Parse(attr).GetAddressBytes();
