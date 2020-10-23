@@ -1,10 +1,9 @@
 ﻿
-ZezeProtocolHandles = {}
-
-local demo = require 'demo'
+local Zeze = {}
+Zeze.ProtocolHandles = {}
 
 function ZezeDispatchProtocol(p)
-    local handle = ZezeProtocolHandles[p.TypeId]
+    local handle = Zeze.ProtocolHandles[p.TypeId]
     if (nil == handle) then
         return 0
     end
@@ -13,11 +12,9 @@ function ZezeDispatchProtocol(p)
 end
 
 function ZezeHandshakeDone(service, sessionId)
-    ZezeCurrentService = service
-    ZezeCurrentSessionId = sessionId
+    Zeze.CurrentService = service
+    Zeze.CurrentSessionId = sessionId
     -- connection ready. write you code here.
-
-    local p = demo.Module1.Protocol1
 
     p.Argument={} -- reset
 
@@ -52,6 +49,7 @@ function ZezeHandshakeDone(service, sessionId)
     print('------------- send protocol ------------------')
     print(serpert.block(p))
 
-    SendProtocolCurrent(p)
+    ZezeSendProtocol(Zeze.CurrentService, Zeze.CurrentSessionId, p)
 end
 
+return Zeze

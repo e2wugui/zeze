@@ -71,6 +71,8 @@ namespace Zeze.Gen.lua
 
             sw.WriteLine($"local {module.Name} = {{}}");
             sw.WriteLine();
+            sw.WriteLine("local Zeze = require 'Zeze'");
+            sw.WriteLine();
             sw.WriteLine($"function {module.Name}:Init()");
             Module realmod = (Module)module;
             Service serv = realmod.ReferenceService;
@@ -84,7 +86,7 @@ namespace Zeze.Gen.lua
 
                     if (0 != (p.HandleFlags & serviceHandleFlags))
                     {
-                        sw.WriteLine($"    ZezeProtocolHandles[{p.TypeId}] = {module.Name}.Process{p.Name}");
+                        sw.WriteLine($"    Zeze.ProtocolHandles[{p.TypeId}] = {module.Name}.Process{p.Name}");
                     }
                 }
             }

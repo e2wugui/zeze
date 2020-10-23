@@ -111,10 +111,6 @@ namespace Zeze.Gen.lua
                     }
                 }
                 sw.WriteLine("");
-                sw.WriteLine("function SendProtocolCurrent(p)");
-                sw.WriteLine("    ZezeSendProtocol(ZezeCurrentService, ZezeCurrentSessionId, p)");
-                sw.WriteLine("end");
-                sw.WriteLine("");
                 sw.WriteLine($"return {solution.Name}");
             }
 
@@ -124,10 +120,11 @@ namespace Zeze.Gen.lua
                 using System.IO.StreamWriter swDispatcher = new System.IO.StreamWriter(dispatcherFileName, false, Encoding.UTF8);
 
                 swDispatcher.WriteLine("");
-                swDispatcher.WriteLine("ZezeProtocolHandles = {}");
+                swDispatcher.WriteLine("local Zeze = {}");
+                swDispatcher.WriteLine("Zeze.ProtocolHandles = {}");
                 swDispatcher.WriteLine("");
                 swDispatcher.WriteLine("function ZezeDispatchProtocol(p)");
-                swDispatcher.WriteLine("    local handle = ZezeProtocolHandles[p.TypeId]");
+                swDispatcher.WriteLine("    local handle = Zeze.ProtocolHandles[p.TypeId]");
                 swDispatcher.WriteLine("    if (nil == handle) then");
                 swDispatcher.WriteLine("        return 0");
                 swDispatcher.WriteLine("    end");
@@ -136,13 +133,12 @@ namespace Zeze.Gen.lua
                 swDispatcher.WriteLine("end");
                 swDispatcher.WriteLine("");
                 swDispatcher.WriteLine("function ZezeHandshakeDone(service, sessionId)");
-                swDispatcher.WriteLine("    ZezeCurrentService = service");
-                swDispatcher.WriteLine("    ZezeCurrentSessionId = sessionId");
+                swDispatcher.WriteLine("    Zeze.CurrentService = service");
+                swDispatcher.WriteLine("    Zeze.CurrentSessionId = sessionId");
                 swDispatcher.WriteLine("    -- connection ready. write you code here.");
                 swDispatcher.WriteLine("end");
                 swDispatcher.WriteLine("");
-
-
+                swDispatcher.WriteLine("return Zeze");
             }
         }
     }
