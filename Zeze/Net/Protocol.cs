@@ -31,6 +31,7 @@ namespace Zeze.Net
 			bb.BeginWriteWithSize4(out var state);
 			this.Encode(bb);
 			bb.EndWriteWithSize4(state);
+			//Console.WriteLine("Protocol.Encode size=" + bb.Size);
 			return bb;
 		}
 

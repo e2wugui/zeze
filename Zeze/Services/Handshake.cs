@@ -235,7 +235,7 @@ namespace Zeze.Services
             Handshake.SHandshake p = (Handshake.SHandshake)_p;
 
             byte[] material = Handshake.Helper.computeDHKey(conf.HandshakeOptions.DhGroup, new BigInteger(p.Argument.dh_data), dhRandom).ToByteArray();
-            Console.WriteLine(p.Sender.Socket.RemoteEndPoint);
+            //Console.WriteLine(p.Sender.Socket.RemoteEndPoint);
             byte[] key = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address.GetAddressBytes();
             int half = material.Length / 2;
             byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);

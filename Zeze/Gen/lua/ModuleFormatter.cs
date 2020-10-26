@@ -69,7 +69,7 @@ namespace Zeze.Gen.lua
             if (null == sw)
                 return;
 
-            sw.WriteLine($"local {module.Name} = {{}}");
+            sw.WriteLine($"local {module.Name}Impl = {{}}");
             sw.WriteLine();
             sw.WriteLine("local Zeze = require 'Zeze'");
             sw.WriteLine();
@@ -86,7 +86,7 @@ namespace Zeze.Gen.lua
 
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleLuaFlags))
                     {
-                        sw.WriteLine($"    Zeze.ProtocolHandles[{p.TypeId}] = {module.Name}.Process{p.Name}");
+                        sw.WriteLine($"    Zeze.ProtocolHandles[{p.TypeId}] = {module.Name}Impl.Process{p.Name}");
                     }
                 }
             }
@@ -103,13 +103,15 @@ namespace Zeze.Gen.lua
 
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleLuaFlags))
                     {
-                        sw.WriteLine($"function {module.Name}:Process{p.Name}(p)");
+                        sw.WriteLine($"function {module.Name}Impl:Process{p.Name}(p)");
                         sw.WriteLine($"    -- write handle here");
                         sw.WriteLine($"end");
                         sw.WriteLine($"");
                     }
                 }
             }
+            sw.WriteLine();
+            sw.WriteLine($"return {module.Name}Impl");
         }
     }
 }
