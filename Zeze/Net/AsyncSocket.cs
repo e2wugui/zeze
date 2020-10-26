@@ -204,7 +204,7 @@ namespace Zeze.Net
                         eventArgsSend.Completed += OnAsyncIOCompleted;
                     }
                     eventArgsSend.BufferList = _outputBufferListSending;
-                    if (false == Socket.SendAsync(eventArgsSend))
+                    if (false == Socket?.SendAsync(eventArgsSend))
                         ProcessSend(eventArgsSend);
                 }
             }

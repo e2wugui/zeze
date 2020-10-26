@@ -11,6 +11,7 @@ namespace demo.Module1
         {
         }
 
+        /*
         public override int ProcessProtocol1(Protocol1 protocol)
         {
             return Zeze.Transaction.Procedure.NotImplement;
@@ -20,6 +21,7 @@ namespace demo.Module1
         {
             return Zeze.Transaction.Procedure.NotImplement;
         }
+        */
 
         public override int ProcessRpc1Request(Rpc1 rpc)
         {

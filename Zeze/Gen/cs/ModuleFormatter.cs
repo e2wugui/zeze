@@ -71,7 +71,7 @@ namespace Zeze.Gen.cs
                         }
                         continue;
                     }
-                    if (0 != (p.HandleFlags & serviceHandleFlags))
+                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
                         sw.WriteLine($"            app.{serv.Name}.AddFactoryHandle({p.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
                         sw.WriteLine( "            {");
@@ -144,7 +144,7 @@ namespace Zeze.Gen.cs
                         }
                         continue;
                     }
-                    if (0 != (p.HandleFlags & serviceHandleFlags))
+                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
                         sw.WriteLine("        public override int Process" + p.Name + "(" + p.Name + " protocol)");
                         sw.WriteLine("        {");
@@ -190,7 +190,7 @@ namespace Zeze.Gen.cs
                         }
                         continue;
                     }
-                    if (0 != (p.HandleFlags & serviceHandleFlags))
+                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
                         sw.WriteLine("        public abstract int Process" + p.Name + "(" + p.Name + " protocol);");
                         sw.WriteLine("");

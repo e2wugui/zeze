@@ -9,13 +9,13 @@ end
 
 function Module1:ProcessProtocol1(p)
     -- write handle here
-end
-
-function Module1:ProcessProtocol3(p)
-    -- write handle here
     local serpent = require 'serpent'
     print('------------- recv protocol ------------------')
     print(serpert.block(p))
     IsMainRunning = false
+end
+
+function Module1:ProcessProtocol3(p)
+    -- write handle here
 end
 

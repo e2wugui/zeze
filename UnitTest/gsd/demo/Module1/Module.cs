@@ -1,4 +1,6 @@
 ﻿
+using System;
+
 namespace demo.Module1
 {
     public sealed partial class Module : AbstractModule
@@ -14,6 +16,7 @@ namespace demo.Module1
         public override int ProcessProtocol1(Protocol1 protocol)
         {
             protocol.Send(protocol.Sender);
+            Console.WriteLine(protocol.Argument);
             return Zeze.Transaction.Procedure.Success;
         }
 

@@ -79,8 +79,10 @@ namespace TestGlobal
 
         static void Main(string[] args)
         {
-            new Program().Testlua();
+            Console.WriteLine("enter main loop.");
+            new UnitTest.Zeze.Lua.Main().MainLoop();
             /*
+            new Program().Testlua();
             // Stat 
             System.IO.StreamReader sr = new System.IO.StreamReader("TransactionCnt.log", System.Text.Encoding.UTF8);
             string line;

@@ -40,9 +40,9 @@
 			com 2
 		</beankey>
 
-		<protocol name="Protocol1" argument="Value" handle="server,client"/>
+		<protocol name="Protocol1" argument="Value" handle="server,clientlua"/>
 		<rpc name="Rpc1" argument="Value" result="Value" handle="server,twoway"/>
-		<protocol name="Protocol3" argument="demo.Module2.Value" handle="server,client"/>
+		<protocol name="Protocol3" argument="demo.Module2.Value" handle="server,clientlua"/>
 
 		<table name="Table1" key="long" value="Value" memory="false" autokey="true"/>
 		<table name="Table2" key="Key" value="Value" memory="false"/>
@@ -77,7 +77,7 @@
 	</project>
 
 	<project name="UnitTestClient" gendir=".." platform="cs+lua" GenTables="client">
-		<service name="Client" handle="client" base="Zeze.Services.ToLuaServiceClient">
+		<service name="Client" handle="clientlua" base="Zeze.Services.ToLuaServiceClient">
 			<module ref="Module1"/>
 		</service>
 	</project>

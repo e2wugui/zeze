@@ -96,8 +96,8 @@ namespace Zeze.Services.ToLuaService
         public ToLua(KeraLua.Lua lua)
         {
             this.Lua = lua;
-            if (this.Lua.DoFile("Zeze.lua"))
-                throw new Exception("require  'Zeze' Error.");
+            if (this.Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
+                throw new Exception("load  'Zeze.lua' Error.");
             LoadMeta();
         }
 
@@ -126,9 +126,10 @@ namespace Zeze.Services.ToLuaService
             BeanMetas.Clear();
             ProtocolMetas.Clear();
 
-            if (Lua.DoFile("ZezeMeta.lua"))
-                throw new Exception("DoFile(\"ZezeMeta.lua\")");
-
+            if (Lua.DoString("local meta = require 'ZezeMeta'\nreturn meta"))
+                throw new Exception("load ZezeMeta.lua error");
+            if (false == Lua.IsTable(-1))
+                throw new Exception("ZezeMeta not return a table");
             Lua.GetField(-1, "beans");
             Lua.PushNil();
             while (Lua.Next(-2)) // -1 value of vars(table) -2 key of bean.TypeId
@@ -204,7 +205,7 @@ namespace Zeze.Services.ToLuaService
 
         internal void RegisterGlobalAndCallback(FromLua callback)
         {
-            if (Lua.DoFile("Zeze.lua"))
+            if (Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
                 throw new Exception("load Zeze.lua faild");
             if (false == Lua.IsTable(-1))
                 throw new Exception("Zeze.lua not return a table");
