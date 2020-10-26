@@ -30,7 +30,8 @@ namespace Zeze.Net
         /// 简单变量，没有考虑线程安全问题。
         /// 内部不使用。
         /// </summary>
-        public Object UserState { get; set; } // 
+        public Object UserState { get; set; } 
+        public bool IsHandshakeDone { get; set; }
 
         private static global::Zeze.Util.AtomicLong SessionIdGen = new global::Zeze.Util.AtomicLong();
 

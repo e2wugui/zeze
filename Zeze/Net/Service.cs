@@ -117,6 +117,7 @@ namespace Zeze.Net
         /// </summary>
         public virtual void OnHandshakeDone(AsyncSocket sender)
         {
+            sender.IsHandshakeDone = true;
         }
 
         /// <summary>
@@ -164,10 +165,11 @@ namespace Zeze.Net
             Timeout = 2,
         }
 
-        public Func<Protocol, int> GetProtocolHandle(int typeid, DispatchType dispatchType)
+        public Func<Protocol, int> GetProtocolHandle(int typeid, DispatchType dispatchType, out bool noProcedure)
         {
             if (Factorys.TryGetValue(typeid, out var protocolFactoryHandle))
             {
+                noProcedure = protocolFactoryHandle.NoProcedure;
                 switch (dispatchType)
                 {
                     case DispatchType.Request: return protocolFactoryHandle.HandleRequest;
@@ -175,15 +177,16 @@ namespace Zeze.Net
                     case DispatchType.Timeout: return protocolFactoryHandle.HandleTimeout;
                 }
             }
+            noProcedure = true;
             return null;
         }
 
         public virtual void DispatchProtocol(Protocol p, DispatchType dispatchType)
         {
-            Func<Protocol, int> handle = GetProtocolHandle(p.TypeId, dispatchType);
+            Func<Protocol, int> handle = GetProtocolHandle(p.TypeId, dispatchType, out var noProcedure);
             if (null != handle)
             {
-                if (null != Zeze)
+                if (null != Zeze && false == noProcedure)
                 {
                     Task.Run(Zeze.NewProcedure(() => handle(p), p.GetType().FullName).Call);
                 }
@@ -211,6 +214,7 @@ namespace Zeze.Net
             public Func<Protocol, int> HandleRequest { get; set; }
             public Func<Protocol, int> HandleResponse { get; set; }
             public Func<Protocol, int> HandleTimeout { get; set; }
+            public bool NoProcedure { get; set; } = false;
         }
 
         private ConcurrentDictionary<int, ProtocolFactoryHandle> Factorys { get; } = new ConcurrentDictionary<int, ProtocolFactoryHandle>();

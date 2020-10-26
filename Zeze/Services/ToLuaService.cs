@@ -46,13 +46,21 @@ namespace Zeze.Services
 
         public override void OnHandshakeDone(AsyncSocket sender)
         {
+            sender.IsHandshakeDone = true;
             Helper.SetHandshakeDone(sender.SessionId, this);
         }
 
         public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
-            Helper.AppendInputBuffer(so.SessionId, input);
-            input.ReadIndex = input.WriteIndex;
+            if (so.IsHandshakeDone)
+            {
+                Helper.AppendInputBuffer(so.SessionId, input);
+                input.ReadIndex = input.WriteIndex;
+            }
+            else
+            {
+                base.OnSocketProcessInputBuffer(so, input);
+            }
         }
     }
 
@@ -75,13 +83,21 @@ namespace Zeze.Services
 
         public override void OnHandshakeDone(AsyncSocket sender)
         {
+            sender.IsHandshakeDone = true;
             Helper.SetHandshakeDone(sender.SessionId, this);
         }
 
         public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
-            Helper.AppendInputBuffer(so.SessionId, input);
-            input.ReadIndex = input.WriteIndex;
+            if (so.IsHandshakeDone)
+            {
+                Helper.AppendInputBuffer(so.SessionId, input);
+                input.ReadIndex = input.WriteIndex;
+            }
+            else
+            {
+                base.OnSocketProcessInputBuffer(so, input);
+            }
         }
     }
 }
