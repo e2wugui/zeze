@@ -357,6 +357,8 @@ namespace Zeze.Services.ToLuaService
                     break;
                 case Zeze.Serialize.Helper.LIST:
                     {
+                        if (false == Lua.IsTable(-1))
+                            throw new Exception("list must be a table");
                         if (v.Id <= 0)
                             throw new Exception("list cannot define in collection");
                         _os_.BeginWriteSegment(out var _state_);
@@ -373,6 +375,8 @@ namespace Zeze.Services.ToLuaService
                     break;
                 case Zeze.Serialize.Helper.SET:
                     {
+                        if (false == Lua.IsTable(-1))
+                            throw new Exception("set must be a table");
                         if (v.Id <= 0)
                             throw new Exception("set cannot define in collection");
                         _os_.BeginWriteSegment(out var _state_);
@@ -389,6 +393,8 @@ namespace Zeze.Services.ToLuaService
                     break;
                 case Zeze.Serialize.Helper.MAP:
                     {
+                        if (false == Lua.IsTable(-1))
+                            throw new Exception("map must be a table");
                         if (v.Id <= 0)
                             throw new Exception("map cannot define in collection");
                         _os_.BeginWriteSegment(out var _state_);
