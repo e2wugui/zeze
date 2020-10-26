@@ -192,7 +192,7 @@ namespace Zeze.Services.ToLuaService
 
         internal void CallHandshakeDone(FromLua service, long socketSessionId)
         {
-            // void OnHandshakeDone(long sessionId)
+            // void OnHandshakeDone(service, long sessionId)
             this.Lua.GetGlobal("ZezeHandshakeDone"); // push func onto stack
             Lua.PushObject(service);
             Lua.PushInteger(socketSessionId);
@@ -219,6 +219,9 @@ namespace Zeze.Services.ToLuaService
             return 0;
         }
 
+        private static KeraLua.LuaFunction ZezeUpdateFunction = ZezeUpdate;
+        private static KeraLua.LuaFunction ZezeSendProtocolFunction = ZezeSendProtocol;
+
         internal void RegisterGlobalAndCallback(FromLua callback)
         {
             if (Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
@@ -235,12 +238,12 @@ namespace Zeze.Services.ToLuaService
 
             // 第一个参数是Service的全局变量。在上面一行注册进去的。
             // void ZezeUpdate(ZezeService##Name)
-            Lua.Register("ZezeUpdate", ZezeUpdate);
+            Lua.Register("ZezeUpdate", ZezeUpdateFunction);
             // 由 Protocol 的 lua 生成代码调用，其中 sesionId 从全局变量 ZezeCurrentSessionId 中读取，
             // 对于客户端，连接 HandshakeDone 以后保存 sessionId 到 ZezeCurrentSessionId 中，以后不用重新设置。
             // 对于服务器，连接 HandshakeDone 以后保存 sessionId 自己的结构中，发送前需要把当前连接设置到 ZezeCurrentSessionId 中。 
             // void ZezeSendProtocol(ZezeService##Name, sessionId, protocol)
-            Lua.Register("ZezeSendProtocol", ZezeSendProtocol);
+            Lua.Register("ZezeSendProtocol", ZezeSendProtocolFunction);
         }
 
         public void SendProtocol(AsyncSocket socket)
@@ -260,7 +263,7 @@ namespace Zeze.Services.ToLuaService
 
             // see Protocol.Encode
             ByteBuffer bb = ByteBuffer.Allocate();
-            bb.WriteInt(typeId);
+            bb.WriteInt4(typeId);
             bb.BeginWriteWithSize4(out var state);
             bb.WriteInt(resultCode);
             Lua.GetField(-1, "Argument");
@@ -274,6 +277,9 @@ namespace Zeze.Services.ToLuaService
         {
             if (false == BeanMetas.TryGetValue(beanTypeId, out var vars))
                 throw new Exception("bean not found in meta for beanTypeId=" + beanTypeId);
+
+            if (false == Lua.IsTable(-1))
+                throw new Exception("encodebean need a table");
 
             // 先遍历一遍，得到填写了的var的数量
             int varsCount = 0;
@@ -296,6 +302,7 @@ namespace Zeze.Services.ToLuaService
                     Lua.Pop(1);
                     continue;
                 }
+                Console.WriteLine("+++++++" + varsCount + " " + v);
                 EncodeVariable(bb, v);
                 Lua.Pop(1);
             }
@@ -351,12 +358,14 @@ namespace Zeze.Services.ToLuaService
                     break;
                 case Zeze.Serialize.Helper.LIST:
                     {
+                        if (v.Id <= 0)
+                            throw new Exception("list cannot define in collection");
                         _os_.BeginWriteSegment(out var _state_);
                         _os_.WriteInt(v.Value);
                         _os_.WriteInt(EncodeGetTableLength());
                         Lua.PushNil();
                         while (Lua.Next(-2))
-                        { 
+                        {
                             EncodeVariable(_os_, new VariableMeta() { Id = 0, Type = v.Value, TypeBeanTypeId = v.ValueBeanTypeId });
                             Lua.Pop(1);
                         }
@@ -365,6 +374,8 @@ namespace Zeze.Services.ToLuaService
                     break;
                 case Zeze.Serialize.Helper.SET:
                     {
+                        if (v.Id <= 0)
+                            throw new Exception("set cannot define in collection");
                         _os_.BeginWriteSegment(out var _state_);
                         _os_.WriteInt(v.Value);
                         _os_.WriteInt(EncodeGetTableLength());
@@ -379,6 +390,8 @@ namespace Zeze.Services.ToLuaService
                     break;
                 case Zeze.Serialize.Helper.MAP:
                     {
+                        if (v.Id <= 0)
+                            throw new Exception("map cannot define in collection");
                         _os_.BeginWriteSegment(out var _state_);
                         _os_.WriteInt(v.Key);
                         _os_.WriteInt(v.Value);
@@ -395,13 +408,23 @@ namespace Zeze.Services.ToLuaService
                     break;
                 case Zeze.Serialize.Helper.BEAN:
                     {
-                        _os_.BeginWriteSegment(out var _state_);
-                        EncodeBean(_os_, v.TypeBeanTypeId);
-                        _os_.EndWriteSegment(_state_);
+                        if (v.Id > 0)
+                        {
+                            _os_.BeginWriteSegment(out var _state_);
+                            EncodeBean(_os_, v.TypeBeanTypeId);
+                            _os_.EndWriteSegment(_state_);
+                        }
+                        else
+                        {
+                            // in collection. direct encode
+                            EncodeBean(_os_, v.TypeBeanTypeId);
+                        }
                     }
                     break;
                 case Zeze.Serialize.Helper.DYNAMIC:
                     {
+                        if (v.Id <= 0)
+                            throw new Exception("dynamic cannot define in collection");
                         Lua.GetField(-1, "_TypeId_");
                         if (Lua.IsNil(-1))
                             throw new Exception("'_TypeId_' not found. dynamic bean needed.");
@@ -483,7 +506,7 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
-        private void DecodeVariable(ByteBuffer _os_, int _tagType_)
+        private void DecodeVariable(ByteBuffer _os_, int _tagType_, bool inCollection = false)
         {
             switch (_tagType_)
             {
@@ -523,7 +546,7 @@ namespace Zeze.Services.ToLuaService
                         for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)
                         {
                             Lua.PushInteger(i);
-                            DecodeVariable(_os_, _valueTagType_);
+                            DecodeVariable(_os_, _valueTagType_, true);
                             Lua.SetTable(-3);
                             ++i;
                         }
@@ -538,7 +561,7 @@ namespace Zeze.Services.ToLuaService
                         int i = 1;
                         for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)
                         {
-                            DecodeVariable(_os_, _valueTagType_);
+                            DecodeVariable(_os_, _valueTagType_, true);
                             Lua.PushInteger(0);
                             Lua.SetTable(-3);
                             ++i;
@@ -554,8 +577,8 @@ namespace Zeze.Services.ToLuaService
                         Lua.CreateTable(128, 0);
                         for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)
                         {
-                            DecodeVariable(_os_, _keyTagType_);
-                            DecodeVariable(_os_, _valueTagType_);
+                            DecodeVariable(_os_, _keyTagType_, true);
+                            DecodeVariable(_os_, _valueTagType_, true);
                             Lua.SetTable(-3);
                         }
                         _os_.EndReadSegment(_state_);
@@ -563,9 +586,16 @@ namespace Zeze.Services.ToLuaService
                     break;
                 case Zeze.Serialize.Helper.BEAN:
                     {
-                        _os_.BeginReadSegment(out var _state_);
-                        DecodeBean(_os_);
-                        _os_.EndReadSegment(_state_);
+                        if (inCollection)
+                        {
+                            DecodeBean(_os_);
+                        }
+                        else
+                        {
+                            _os_.BeginReadSegment(out var _state_);
+                            DecodeBean(_os_);
+                            _os_.EndReadSegment(_state_);
+                        }
                     }
                     break;
                 case Zeze.Serialize.Helper.DYNAMIC:

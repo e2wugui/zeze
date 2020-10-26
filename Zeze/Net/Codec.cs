@@ -427,6 +427,7 @@ namespace Zeze.Net
                 if (pos > 0)
                     putBits(0x3c0, 10);
             }
+            sink.flush();
         }
 
         public void Dispose()
@@ -648,6 +649,7 @@ namespace Zeze.Net
         {
             while (pos >= bitCompute())
                 process();
+            sink.flush();
         }
 
         public void Dispose()

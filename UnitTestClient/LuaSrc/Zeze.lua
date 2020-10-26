@@ -18,19 +18,20 @@ function ZezeHandshakeDone(service, sessionId)
     Zeze.CurrentSessionId = sessionId
     -- connection ready. write you code here.
 
+    print('ZezeHandshakeDone')
     local p = demo.Module1.Protocol1
     p.Argument={} -- reset
 
     p.Argument[demo.Module1.Value.int1] = 123
     p.Argument[demo.Module1.Value.long2] = 123
     p.Argument[demo.Module1.Value.string3] = '123'
-    p.Argument[demo.Module1.Value.bool] = true
+    p.Argument[demo.Module1.Value.bool4] = true
     p.Argument[demo.Module1.Value.short5] = 123
     p.Argument[demo.Module1.Value.float6] = 123.1
     p.Argument[demo.Module1.Value.double7] = 123.1
     p.Argument[demo.Module1.Value.bytes8] = '123'
 
-    p.Argument[demo.Module1.Value.list9] = { 123, 124, 125 }
+    p.Argument[demo.Module1.Value.list9] = { {[demo.Bean1.V1] = 123, [demo.Bean1.V2] = { [123]=123, [124]=124 }} }
 
     p.Argument[demo.Module1.Value.set10] = { [123]=0, [124]=0, [125]=0 } -- set use key
 
@@ -50,8 +51,10 @@ function ZezeHandshakeDone(service, sessionId)
 
     local serpent = require 'serpent'
     print('------------- send protocol ------------------')
-    print(serpert.block(p))
+    print(serpent.block(p))
 
+    print(Zeze.CurrentService)
+    print(Zeze.CurrentSessionId)
     ZezeSendProtocol(Zeze.CurrentService, Zeze.CurrentSessionId, p)
 end
 
