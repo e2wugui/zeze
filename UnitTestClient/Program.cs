@@ -15,9 +15,13 @@ namespace UnitTestClient
             {
                 // 网络建立好，handshake 以后的事件会保存下来，等待lua调用ZezeUpdate才会触发。所以可以先连接。
                 demo.App.Instance.Client.Connect("127.0.0.1", 9999);
-                //lua.DoString("package.path = package.path .. ';../../../LuaSrc/;../../../LuaGen/'");
+                if (lua.DoString("package.path = package.path .. ';../../../LuaSrc/?.lua;../../../LuaGen/?.lua'"))
+                    throw new Exception("package.path");
+                lua.DoString("return package.path");
+                Console.WriteLine(lua.ToString(-1));
                 demo.App.Instance.Client.InitializeLua(new Zeze.Services.ToLuaService.ToLua(lua));
-                lua.DoFile("main.lua");
+                if (lua.DoString("require 'main'"))
+                    throw new Exception("run main.lua error");
             }
             catch (Exception ex)
             {

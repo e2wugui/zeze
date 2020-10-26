@@ -302,7 +302,6 @@ namespace Zeze.Services.ToLuaService
                     Lua.Pop(1);
                     continue;
                 }
-                Console.WriteLine("+++++++" + varsCount + " " + v);
                 EncodeVariable(bb, v);
                 Lua.Pop(1);
             }
