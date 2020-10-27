@@ -4,16 +4,34 @@
 #include <string>
 #include <stdexcept>
 
-class Lua
+namespace Zeze
+{
+
+class LuaState
 {
 	lua_State* L;
+	bool refonly;
+
 public:
-	Lua()
+	LuaState(lua_State* from)
 	{
+		L = from;
+		refonly = true;
+	}
+
+	LuaState()
+	{
+		refonly = false;
 		L = luaL_newstate();
 		if (NULL == L)
 			throw std::exception("luaL_newstate return NULL");
 		luaL_openlibs(L);
+	}
+
+	~LuaState()
+	{
+		if (!refonly)
+			lua_close(L);
 	}
 
 	void PushBoolean(bool b)
@@ -41,6 +59,16 @@ public:
 		PushBuffer(s, length);
 	}
 
+	void PushString(const char* s)
+	{
+		PushString(s, strlen(s));
+	}
+
+	void PushString(const std::string& s)
+	{
+		PushString(s.data(), s.size());
+	}
+
 	void PushLightUserData(void * data)
 	{
 		lua_pushlightuserdata(L, data);
@@ -63,34 +91,27 @@ public:
 		PushLightUserData(obj);
 	}
 
-	//
-	// ժҪ:
-	//     Lua Load/Call status return
+	void * ToUserData(int index)
+	{
+		return lua_touserdata(L, index);
+	}
+
+	template <typename T>
+	T ToObject(int index)
+	{
+		if (IsNil(index) || !IsLightUserData(index))
+			return NULL;
+
+		return (T)ToUserData(index);
+	}
+
 	enum class LuaStatus
 	{
-		//
-		// ժҪ:
-		//     success
 		OK = 0,
-		//
-		// ժҪ:
-		//     Yield
 		Yield = 1,
-		//
-		// ժҪ:
-		//     a runtime error.
 		ErrRun = 2,
-		//
-		// ժҪ:
-		//     syntax error during precompilation
 		ErrSyntax = 3,
-		//
-		// ժҪ:
-		//     memory allocation error. For such errors, Lua does not call the message handler.
 		ErrMem = 4,
-		//
-		// ժҪ:
-		//     error while running the message handler.
 		ErrErr = 5
 	};
 
@@ -119,47 +140,17 @@ public:
 		lua_callk(L, arguments, results, 0, 0);
 	}
 
-	//
-	// ժҪ:
-	//     Lua types
 	enum class LuaType
 	{
 		None = -1,
-		//
-		// ժҪ:
-		//     LUA_TNIL
 		Nil = 0,
-		//
-		// ժҪ:
-		//     LUA_TBOOLEAN
 		Boolean = 1,
-		//
-		// ժҪ:
-		//     LUA_TLIGHTUSERDATA
 		LightUserData = 2,
-		//
-		// ժҪ:
-		//     LUA_TNUMBER
 		Number = 3,
-		//
-		// ժҪ:
-		//     LUA_TSTRING
 		String = 4,
-		//
-		// ժҪ:
-		//     LUA_TTABLE
 		Table = 5,
-		//
-		// ժҪ:
-		//     LUA_TFUNCTION
 		Function = 6,
-		//
-		// ժҪ:
-		//     LUA_TUSERDATA
 		UserData = 7,
-		//
-		// ժҪ:
-		//     LUA_TTHREAD
 		Thread = 8
 	};
 
@@ -178,6 +169,11 @@ public:
 		return Type(index) == LuaType::Nil;
 	}
 
+	bool IsLightUserData(int index)
+	{
+		return Type(index) == LuaType::LightUserData;
+	}
+
 	LuaType GetField(int index, const char * key)
 	{
 		return (LuaType)lua_getfield(L, index, key);
@@ -190,7 +186,7 @@ public:
 
 	bool Next(int index)
 	{
-		lua_next(L, index) != 0;
+		return lua_next(L, index) != 0;
 	}
 
 	void SetTable(int index)
@@ -240,6 +236,11 @@ public:
 		lua_settop(L, -n - 1);
 	}
 
+	LuaType GetGlobal(const char * name)
+	{
+		return (LuaType)lua_getglobal(L, name);
+	}
+
 	void SetGlobal(const char * name)
 	{
 		lua_setglobal(L, name);
@@ -255,10 +256,6 @@ public:
 		PushCClosure(function, 0);
 		SetGlobal(name);
 	}
-
-
-	~Lua()
-	{
-		lua_close(L);
-	}
 };
+
+} // namespace Zeze

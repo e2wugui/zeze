@@ -1,11 +1,11 @@
 
-#include "LuaState.h"
+#include "../cxx/LuaState.h"
 
 int main(int argc, char* argv[])
 {
 	printf("hello 1\n");
 
-	Lua lua;
+	Zeze::LuaState lua;
 
 	lua.DoString("print(\"hello world\")");
 

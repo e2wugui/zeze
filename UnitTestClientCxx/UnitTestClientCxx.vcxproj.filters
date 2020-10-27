@@ -144,6 +144,9 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\cxx\ToLua.cpp">
+      <Filter>ZezeCxx</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\cxx\BI.h">
@@ -263,14 +266,17 @@
     <ClInclude Include="lua-5.4.1\src\lzio.h">
       <Filter>LuaLib</Filter>
     </ClInclude>
-    <ClInclude Include="luaheader.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\cxx\utils.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
-    <ClInclude Include="LuaState.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="..\cxx\ToLua.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cxx\luaheader.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cxx\LuaState.h">
+      <Filter>ZezeCxx</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

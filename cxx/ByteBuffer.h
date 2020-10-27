@@ -8,11 +8,13 @@ namespace Zeze
 {
 namespace Serialize
 {
+    class ByteBuffer;
+
     class Serializable
     {
     public:
-        virtual void Decode(ByteBuffer bb) = 0;
-        virtual void Encode(ByteBuffer bb) = 0;
+        virtual void Decode(ByteBuffer & bb) = 0;
+        virtual void Encode(ByteBuffer & bb) = 0;
     };
 
     class ByteBuffer
@@ -328,7 +330,7 @@ namespace Serialize
                 }
             }
             EnsureWrite(3);
-            Bytes[WriteIndex] = 0xff;
+            Bytes[WriteIndex] = (char)0xff;
             Bytes[WriteIndex + 2] = (char)x;
             Bytes[WriteIndex + 1] = (char)(x >> 8);
             WriteIndex += 3;
@@ -382,7 +384,7 @@ namespace Serialize
             Append(bs, 0, 8);
         }
 
-        long ReadLong8()
+        long long ReadLong8()
         {
             EnsureRead(8);
             long long x = *(long long *)(Bytes + ReadIndex);
@@ -436,7 +438,7 @@ namespace Serialize
             else
             {
                 EnsureWrite(5);
-                Bytes[WriteIndex] = 0xf0;
+                Bytes[WriteIndex] = (char)0xf0;
                 Bytes[WriteIndex + 4] = (char)x;
                 Bytes[WriteIndex + 3] = (char)(x >> 8);
                 Bytes[WriteIndex + 2] = (char)(x >> 16);
@@ -571,13 +573,13 @@ namespace Serialize
                 Bytes[WriteIndex + 3] = (char)(x >> 32);
                 Bytes[WriteIndex + 2] = (char)(x >> 40);
                 Bytes[WriteIndex + 1] = (char)(x >> 48);
-                Bytes[WriteIndex] = 0xfe;
+                Bytes[WriteIndex] = (char)0xfe;
                 WriteIndex += 8;
             }
             else // 1111 1111
             {
                 EnsureWrite(9);
-                Bytes[WriteIndex] = 0xff;
+                Bytes[WriteIndex] = (char)0xff;
                 Bytes[WriteIndex + 8] = (char)x;
                 Bytes[WriteIndex + 7] = (char)(x >> 8);
                 Bytes[WriteIndex + 6] = (char)(x >> 16);
@@ -706,7 +708,7 @@ namespace Serialize
             return x;
         }
 
-        void ReadStringNoCopy(const char* outstr, int& outlength)
+        void ReadStringNoCopy(const char* & outstr, int& outlength)
         {
             int n = ReadInt();
             EnsureRead(n);

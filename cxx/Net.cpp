@@ -5,10 +5,6 @@ namespace Zeze
 {
 namespace Net
 {
-	Service::Service()
-	{
-	}
-
 	Service::~Service()
 	{
 

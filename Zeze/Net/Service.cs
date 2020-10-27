@@ -52,7 +52,7 @@ namespace Zeze.Net
             {
                 return e.Value;
             }
-            throw new Exception("no socket found.");
+            return null;
         }
 
         public virtual void Start()

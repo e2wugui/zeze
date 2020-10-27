@@ -154,6 +154,7 @@
     <ClCompile Include="..\cxx\octets.cpp" />
     <ClCompile Include="..\cxx\rfc2118.cpp" />
     <ClCompile Include="..\cxx\security.cpp" />
+    <ClCompile Include="..\cxx\ToLua.cpp" />
     <ClCompile Include="..\cxx\utils.cpp" />
     <ClCompile Include="lua-5.4.1\src\lapi.c" />
     <ClCompile Include="lua-5.4.1\src\lauxlib.c" />
@@ -196,11 +197,14 @@
     <ClInclude Include="..\cxx\codec.h" />
     <ClInclude Include="..\cxx\common.h" />
     <ClInclude Include="..\cxx\dh.h" />
+    <ClInclude Include="..\cxx\luaheader.h" />
+    <ClInclude Include="..\cxx\LuaState.h" />
     <ClInclude Include="..\cxx\Net.h" />
     <ClInclude Include="..\cxx\octets.h" />
     <ClInclude Include="..\cxx\osdefine.h" />
     <ClInclude Include="..\cxx\rfc2118.h" />
     <ClInclude Include="..\cxx\security.h" />
+    <ClInclude Include="..\cxx\ToLua.h" />
     <ClInclude Include="..\cxx\utils.h" />
     <ClInclude Include="lua-5.4.1\src\lapi.h" />
     <ClInclude Include="lua-5.4.1\src\lauxlib.h" />
@@ -230,8 +234,6 @@
     <ClInclude Include="lua-5.4.1\src\lundump.h" />
     <ClInclude Include="lua-5.4.1\src\lvm.h" />
     <ClInclude Include="lua-5.4.1\src\lzio.h" />
-    <ClInclude Include="luaheader.h" />
-    <ClInclude Include="LuaState.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

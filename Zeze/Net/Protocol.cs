@@ -43,7 +43,9 @@ namespace Zeze.Net
 
 		public void Send(Service service)
 		{
-			Send(service.GetSocket());
+			AsyncSocket so = service.GetSocket();
+			if (null != so)
+				Send(so);
 		}
 
 		/// <summary>
