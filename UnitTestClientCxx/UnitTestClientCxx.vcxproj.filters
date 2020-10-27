@@ -269,5 +269,8 @@
     <ClInclude Include="..\cxx\utils.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
+    <ClInclude Include="LuaState.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

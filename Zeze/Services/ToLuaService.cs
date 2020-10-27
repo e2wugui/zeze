@@ -193,7 +193,12 @@ namespace Zeze.Services.ToLuaService
         internal void CallHandshakeDone(FromLua service, long socketSessionId)
         {
             // void OnHandshakeDone(service, long sessionId)
-            this.Lua.GetGlobal("ZezeHandshakeDone"); // push func onto stack
+            if (KeraLua.LuaType.Function != this.Lua.GetGlobal("ZezeHandshakeDone")) // push func onto stack
+            {
+                Lua.Pop(1);
+                throw new Exception("ZezeHandshakeDone is not a function");
+            }
+
             Lua.PushObject(service);
             Lua.PushInteger(socketSessionId);
             Lua.Call(2, 0);
@@ -448,8 +453,7 @@ namespace Zeze.Services.ToLuaService
 
         public bool DecodeAndDispatch(Net.Service service, long sessionId, int typeId, ByteBuffer _os_)
         {
-            this.Lua.GetGlobal("ZezeDispatchProtocol"); // push func onto stack
-            if (false == Lua.IsFunction(-1))
+            if (KeraLua.LuaType.Function != this.Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
             {
                 Lua.Pop(1);
                 return false;

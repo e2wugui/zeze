@@ -92,7 +92,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)\lua-5.4.1\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)lua-5.4.1\src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -107,7 +107,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)\lua-5.4.1\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)lua-5.4.1\src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -231,6 +231,7 @@
     <ClInclude Include="lua-5.4.1\src\lvm.h" />
     <ClInclude Include="lua-5.4.1\src\lzio.h" />
     <ClInclude Include="luaheader.h" />
+    <ClInclude Include="LuaState.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -28,3 +28,4 @@ TestResults
 /UnitTestClient/bin
 /UnitTestClientCxx/Debug
 /UnitTestClientCxx/LuaGen
+/Debug
