@@ -46,7 +46,7 @@ namespace Zeze.Gen
                 throw new Exception("handle miss. " + Name + " in project " + project.Name);
             Base = self.GetAttribute("base");
 
-            Program.AddNamedObject(FullName, this);
+            //Program.AddNamedObject(FullName, this);
 
             if (project.Services.ContainsKey(Name))
                 throw new Exception("duplicate service " + Name + " in project " + project.Name);

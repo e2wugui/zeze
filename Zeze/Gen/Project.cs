@@ -178,7 +178,9 @@ namespace Zeze.Gen
                     new global::Zeze.Gen.cs.Maker(this).Make();
                     new Zeze.Gen.lua.Maker(this).Make();
                     break;
-
+                case "cxx+lua":
+                    new Zeze.Gen.lua.Maker(this).Make();
+                    break;
                 default:
                     throw new Exception("unsupport platform: " + Platform);
             }

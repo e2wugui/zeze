@@ -1,5 +1,6 @@
 #include "common.h"
 #include "dh.h"
+#include "BI.h"
 
 namespace limax {
 	namespace helper {

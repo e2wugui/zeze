@@ -1,5 +1,7 @@
 #pragma once
 
+#include "codec.h"
+
 namespace limax {
 
 	class RFC2118Encode: public Codec {

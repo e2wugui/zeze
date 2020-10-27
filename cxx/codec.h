@@ -1,5 +1,10 @@
 #pragma once
 
+#include <stdint.h>
+#include <memory>
+#include "osdefine.h"
+#include "octets.h"
+
 namespace limax {
 
 	class Codec {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "codec.h"
+
 namespace limax {
 
 	class MD5 : public Codec {

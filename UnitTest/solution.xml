@@ -82,4 +82,9 @@
 		</service>
 	</project>
 
+	<project name="UnitTestClientCxx" gendir=".." platform="cxx+lua">
+		<service name="Client" handle="clientlua" base="Zeze::ToLuaServiceClient">
+			<module ref="Module1"/>
+		</service>
+	</project>
 </solution>

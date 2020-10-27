@@ -26,3 +26,5 @@ TestResults
 /UnitTestClient/LuaGen
 /UnitTestClient/obj
 /UnitTestClient/bin
+/UnitTestClientCxx/Debug
+/UnitTestClientCxx/LuaGen

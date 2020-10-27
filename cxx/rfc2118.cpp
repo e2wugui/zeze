@@ -1,4 +1,5 @@
 #include "common.h"
+#include "rfc2118.h"
 
 namespace limax {
 

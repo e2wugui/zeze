@@ -58,5 +58,7 @@
 #include <iostream>
 #include <algorithm>
 
+#define LIMAX_DLL_EXPORT_API
+
 //#include "byteorder.h"
 //#include "osstr.h"
