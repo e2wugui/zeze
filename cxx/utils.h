@@ -8,6 +8,7 @@
 #include <deque>
 #include <mutex>
 #include <thread>
+#include <stdexcept>
 #include "octets.h"
 
 namespace limax {
@@ -342,7 +343,7 @@ namespace limax {
 		Resource(const Resource&&);
 		Resource& operator=(const Resource&);
 		Resource& operator=(const Resource&&);
-		class IllegalStateException {};
+		class IllegalStateException : public std::exception {};
 		void close();
 		static Resource createRoot();
 		static Resource create(Resource& parent, Runnable cleanup);

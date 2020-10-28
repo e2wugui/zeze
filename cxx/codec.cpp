@@ -314,7 +314,7 @@ namespace limax {
 		b2 = DECODE[data[off] & 0xff];
 		b3 = DECODE[data[off + 1] & 0xff];
 		if (b0 == (int8_t)0xff || b1 == (int8_t)0xff || b2 == (int8_t)0xff || b3 == (int8_t)0xff)
-			throw new CodecException();
+			throw CodecException();
 		if (b2 == 0x7f) {
 			r[0] = (int8_t)(((b0 << 2) & 0xfc) | ((b1 >> 4) & 0x3));
 			return 1;
@@ -336,7 +336,7 @@ namespace limax {
 			return 0;
 		b3 = DECODE[data[off] & 0xff];
 		if (b0 == (int8_t)0xff || b1 == (int8_t)0xff || b2 == (int8_t)0xff || b3 == (int8_t)0xff)
-			throw new CodecException();
+			throw CodecException();
 		if (b2 == 0x7f) {
 			r[0] = (int8_t)(((b0 << 2) & 0xfc) | ((b1 >> 4) & 0x3));
 			return 1;

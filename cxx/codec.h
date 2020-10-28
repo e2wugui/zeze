@@ -16,7 +16,7 @@ namespace limax {
 		static std::shared_ptr<Codec> Null();
 	};
 
-	class CodecException {
+	class CodecException : public std::exception {
 	};
 
 	class BufferedSink : public Codec {

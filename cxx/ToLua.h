@@ -16,13 +16,10 @@ namespace Net
 
 	class ToLua
     {
-        LuaState Lua;
+        LuaHelper Lua;
     public:
         ToLua()
         {
-            if (Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
-                throw std::exception("load  'Zeze.lua' Error.");
-            LoadMeta();
         }
 
         ToLua(const ToLua&) = delete;
@@ -32,14 +29,14 @@ namespace Net
         class VariableMeta
         {
         public:
-            int Id;
+            int Id = 0;
 
-            int Type;
-            long long TypeBeanTypeId;
-            int Key;
-            long long KeyBeanTypeId;
-            int Value;
-            long long ValueBeanTypeId;
+            int Type = 0;
+            long long TypeBeanTypeId = 0;
+            int Key = 0;
+            long long KeyBeanTypeId = 0;
+            int Value = 0;
+            long long ValueBeanTypeId = 0;
 
             VariableMeta()
             {
@@ -59,8 +56,14 @@ namespace Net
         BeanMetasMap BeanMetas; // Bean.TypeId -> vars
         ProtocolMetasMap ProtocolMetas; // protocol.TypeId -> Bean.TypeId
 
-        void LoadMeta()
+    public:
+        void LoadMeta(lua_State * L)
         {
+            Lua.L = L;
+
+            if (Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
+                throw std::exception("load  'Zeze.lua' Error.");
+
             BeanMetas.clear();
             ProtocolMetas.clear();
 
@@ -114,7 +117,7 @@ namespace Net
         void CallHandshakeDone(Service * service, long long socketSessionId)
         {
             // void OnHandshakeDone(service, long sessionId)
-            if (LuaState::LuaType::Function != Lua.GetGlobal("ZezeHandshakeDone")) // push func onto stack
+            if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeHandshakeDone")) // push func onto stack
             {
                 Lua.Pop(1);
                 throw std::exception("ZezeHandshakeDone is not a function");
@@ -310,9 +313,9 @@ namespace Net
             }
         }
     public:
-        bool DecodeAndDispatch(Service * service, long sessionId, int typeId, Zeze::Serialize::ByteBuffer & _os_)
+        bool DecodeAndDispatch(Service * service, long long sessionId, int typeId, Zeze::Serialize::ByteBuffer & _os_)
         {
-            if (LuaState::LuaType::Function != Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
+            if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
             {
                 Lua.Pop(1);
                 return false;
@@ -514,35 +517,19 @@ namespace Net
         typedef std::unordered_map<long long, Service*> ToLuaHandshakeDoneMap;
         ToLuaBufferMap ToLuaBuffer;
         ToLuaHandshakeDoneMap ToLuaHandshakeDone;
-        std::mutex lock;
+        std::mutex mutex;
 
     public:
         void SetHandshakeDone(long long socketSessionId, Service* service)
         {
-            lock.lock();
-            try
-            {
-                ToLuaHandshakeDone[socketSessionId] = service;
-            }
-            catch (...)
-            {
-                lock.unlock();
-                throw;
-            }
+            std::lock_guard<std::mutex> lock(mutex);
+            ToLuaHandshakeDone[socketSessionId] = service;
         }
 
         void AppendInputBuffer(long long socketSessionId, Zeze::Serialize::ByteBuffer& buffer)
         {
-            lock.lock();
-            try
-            {
-                ToLuaBuffer[socketSessionId].append(buffer.Bytes + buffer.ReadIndex, buffer.Size());
-            }
-            catch (...)
-            {
-                lock.unlock();
-                throw;
-            }
+            std::lock_guard<std::mutex> lock(mutex);
+            ToLuaBuffer[socketSessionId].append(buffer.Bytes + buffer.ReadIndex, buffer.Size());
         }
 
         void Update(Service* service, ToLua& toLua);

@@ -7,31 +7,23 @@
 namespace Zeze
 {
 
-class LuaState
+class LuaHelper
 {
-	lua_State* L;
-	bool refonly;
-
 public:
-	LuaState(lua_State* from)
+	lua_State* L;
+
+	LuaHelper(lua_State* from)
 	{
 		L = from;
-		refonly = true;
 	}
 
-	LuaState()
+	LuaHelper()
 	{
-		refonly = false;
-		L = luaL_newstate();
-		if (NULL == L)
-			throw std::exception("luaL_newstate return NULL");
-		luaL_openlibs(L);
+		L = NULL;
 	}
 
-	~LuaState()
+	~LuaHelper()
 	{
-		if (!refonly)
-			lua_close(L);
 	}
 
 	void PushBoolean(bool b)

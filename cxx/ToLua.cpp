@@ -1,6 +1,7 @@
 
 #include "ToLua.h"
 #include "Net.h"
+#include "Protocol.h"
 
 namespace Zeze
 {
@@ -8,19 +9,19 @@ namespace Zeze
 	{
 		int ToLua::ZezeSendProtocol(lua_State* luaState)
         {
-            LuaState lua(luaState);
+            LuaHelper lua(luaState);
             Service* service = lua.ToObject<Service*>(-3);
             long long sessionId = lua.ToInteger(-2);
-            Socket* socket = service->GetSocket();
-            if (NULL == socket)
+            std::shared_ptr<Socket> socket = service->GetSocket();
+            if (NULL == socket.get())
                 return 0;
-            service->ToLua.SendProtocol(socket);
+            service->ToLua.SendProtocol(socket.get());
             return 0;
         }
 
         int ToLua::ZezeUpdate(lua_State* luaState)
         {
-            LuaState lua(luaState);
+            LuaHelper lua(luaState);
             Service* service = lua.ToObject<Service*>(-1);
             service->Helper.Update(service, service->ToLua);
             return 0;
@@ -53,23 +54,17 @@ namespace Zeze
             EncodeBean(bb, argumentBeanTypeId);
             Lua.Pop(1);
             bb.EndWriteWithSize4(outstate);
-            socket.Send(bb);
+            socket->Send(bb.Bytes, bb.ReadIndex, bb.Size());
         }
 
         void Helper::Update(Service* service, ToLua& toLua)
         {
             ToLuaHandshakeDoneMap handshakeTmp;
             ToLuaBufferMap inputTmp;
-            lock.lock();
-            try
             {
+                std::lock_guard<std::mutex> lock(mutex);
                 handshakeTmp.swap(ToLuaHandshakeDone);
                 inputTmp.swap(ToLuaBuffer);
-            }
-            catch (...)
-            {
-                lock.unlock();
-                throw;
             }
 
             for (auto& e : handshakeTmp)
@@ -79,16 +74,16 @@ namespace Zeze
 
             for (auto& e : inputTmp)
             {
-                Socket* sender = service->GetSocket(e.first);
-                if (NULL == sender)
+                std::shared_ptr<Socket> sender = service->GetSocket(e.first);
+                if (NULL == sender.get())
                     continue;
-
-                Protocol.Decode(service, sender, e.second, toLua);
+                Zeze::Serialize::ByteBuffer bb((char *)e.second.data(), 0, e.second.size());
+                Protocol::DecodeProtocol(service, sender, bb, &toLua);
+                e.second.erase(0, bb.ReadIndex);
             }
 
-            lock.lock();
-            try
             {
+                std::lock_guard<std::mutex> lock(mutex);
                 for (auto & e : inputTmp)
                 {
                     if (e.second.empty())
@@ -107,11 +102,6 @@ namespace Zeze
                         ToLuaBuffer[e.first] = e.second;
                     }
                 }
-            }
-            catch(...)
-            {
-                lock.unlock();
-                throw;
             }
         }
 

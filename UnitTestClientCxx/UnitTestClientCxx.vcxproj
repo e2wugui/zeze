@@ -152,6 +152,7 @@
     <ClCompile Include="..\cxx\dh.cpp" />
     <ClCompile Include="..\cxx\Net.cpp" />
     <ClCompile Include="..\cxx\octets.cpp" />
+    <ClCompile Include="..\cxx\Protocol.cpp" />
     <ClCompile Include="..\cxx\rfc2118.cpp" />
     <ClCompile Include="..\cxx\security.cpp" />
     <ClCompile Include="..\cxx\ToLua.cpp" />
@@ -202,6 +203,7 @@
     <ClInclude Include="..\cxx\Net.h" />
     <ClInclude Include="..\cxx\octets.h" />
     <ClInclude Include="..\cxx\osdefine.h" />
+    <ClInclude Include="..\cxx\Protocol.h" />
     <ClInclude Include="..\cxx\rfc2118.h" />
     <ClInclude Include="..\cxx\security.h" />
     <ClInclude Include="..\cxx\ToLua.h" />
