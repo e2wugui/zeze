@@ -19,16 +19,16 @@ namespace Serialize
 
     class ByteBuffer
     {
+        ByteBuffer() = delete;
+        ByteBuffer(const ByteBuffer&) = delete;
+        ByteBuffer& operator=(const ByteBuffer&) = delete;
+
     public:
         char* Bytes;
         int ReadIndex;
         int WriteIndex;
         int Capacity;
         int Size() { return WriteIndex - ReadIndex; }
-
-        ByteBuffer() = delete;
-        ByteBuffer(const ByteBuffer&) = delete;
-        ByteBuffer& operator=(const ByteBuffer&) = delete;
 
         explicit ByteBuffer(int capacity)
         {

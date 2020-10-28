@@ -6,19 +6,43 @@
 #include "ToLua.h"
 #include <functional>
 #include <unordered_map>
+#include "dh.h"
+#include "codec.h"
 
 namespace Zeze
 {
 namespace Net
 {
 	class Protocol;
+	class BufferedCodec;
 
 	class Socket
 	{
+		std::mutex mutex;
+		int socket = 0;
+		int selectorFlags = 0; // used in Selector
+
+		void SetOutputSecurity(bool c2sneedcompress, const int8_t* key, int keylen);
+		void SetInputSecurity(bool s2cneedcompress, const int8_t* key, int keylen);
+
+		friend class Service;
+		friend class Selector;
+
+		std::shared_ptr<BufferedCodec> OutputBuffer;
+		std::shared_ptr<BufferedCodec> InputBuffer;
+
+		std::shared_ptr<limax::Codec> OutputCodec;
+		std::shared_ptr<limax::Codec> InputCodec;
+
+		void OnSend();
+		void OnRecv();
+
 	public:
 		bool IsHandshakeDone;
 		long long SessionId;
 		Service* service;
+		std::shared_ptr<Socket> This;
+		std::string LastAddress;
 
 		static long long NextSessionId()
 		{
@@ -28,27 +52,24 @@ namespace Net
 			std::lock_guard<std::mutex> g(mutex);
 			return ++seed;
 		}
-
-		Socket(Service* svr) : service(svr)
-		{
-			IsHandshakeDone = false;
-			SessionId = NextSessionId();
-		}
-
+		Socket(Service* svr);
 		~Socket();
 		void Close(std::exception* e);
-		void Send(char* data, int length) { Send(data, 0, length); }
-		void Send(char* data, int offset, int length);
+		void Send(const char* data, int length) { Send(data, 0, length); }
+		void Send(const char* data, int offset, int length);
+		// 成功时，返回成功连接的地址。返回 empty string 表示失败。
+		bool Connect(const std::string& host, int port, const std::string& lastSuccessAddress, int timeoutSecondsPerConnect);
 	};
 
 	class Service
 	{
 		std::string name;
 		std::shared_ptr<Socket> socket;
+		std::string lastSuccessAddress;
 		ToLua ToLua;
 		Helper Helper;
 	public:
-		Service(const std::string & _name) : name(_name), socket(NULL) { }
+		Service(const std::string& _name);
 		virtual ~Service();
 		const std::string & Name() { return name; }
 		std::shared_ptr<Socket> GetSocket() { return socket; }
@@ -59,7 +80,7 @@ namespace Net
 			return std::shared_ptr<Socket>(NULL);
 		}
 		void InitializeLua(lua_State* L);
-		Socket* Connect(const std::string& host, int port);
+		void Connect(const std::string& host, int port, int timeoutSecondsPerConnect = 5);
 		virtual void OnSocketClose(const std::shared_ptr<Socket> & sender, const std::exception* e);
 		virtual void OnHandshakeDone(const std::shared_ptr<Socket>& sender);
 		virtual void OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e);
@@ -84,6 +105,9 @@ namespace Net
 				: Factory(factory), Handle(handle)
 			{
 			}
+			ProtocolFactoryHandle()
+			{
+			}
 		};
 		void AddProtocolFactory(int typeId, const ProtocolFactoryHandle & func)
 		{
@@ -91,10 +115,19 @@ namespace Net
 			if (false == r.second)
 				throw std::exception("duplicate protocol TypeId");
 		}
+
+		void SetDhGroup(char dhGroup)
+		{
+			this->dhGroup = dhGroup;
+		}
+
 	private:
 		typedef std::unordered_map<int, ProtocolFactoryHandle> ProtocolFactoryMap;
 		ProtocolFactoryMap ProtocolFactory;
 		Protocol* CreateProtocol(int typeId, Zeze::Serialize::ByteBuffer& os);
+		std::shared_ptr<limax::DHContext> dhContext;
+		char dhGroup = 1;
+		int ProcessSHandshake(Protocol* p);
 	};
 
 } // namespace Net

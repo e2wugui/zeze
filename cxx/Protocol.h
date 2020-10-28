@@ -49,13 +49,13 @@ namespace Zeze
 		public:
 			ArgumentType Argument;
 
-			virtual void Decode(Zeze::Serialize::ByteBuffer& bb)
+			virtual void Decode(Zeze::Serialize::ByteBuffer& bb) override
 			{
 				ResultCode = bb.ReadInt();
 				Argument.Decode(bb);
 			}
 
-			virtual void Encode(Zeze::Serialize::ByteBuffer& bb)
+			virtual void Encode(Zeze::Serialize::ByteBuffer& bb) override
 			{
 				bb.WriteInt(ResultCode);
 				Argument.Encode(bb);
