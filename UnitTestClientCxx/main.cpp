@@ -2,6 +2,7 @@
 #include "LuaState.h"
 #include <iostream>
 #include "Net.h"
+#include "demo/App.h"
 
 int main(int argc, char* argv[])
 {
