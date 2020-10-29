@@ -6,7 +6,7 @@
 #include "ByteBuffer.h"
 #include "security.h"
 #include "rfc2118.h"
-#include <unordered_set>
+#include <unordered_map>
 
 namespace Zeze
 {
@@ -309,29 +309,28 @@ namespace Net
 		static const int OpWrite = 2;
 		static const int OpClose = 4;
 
+		std::mutex mutexPending;
+		std::unordered_map<std::shared_ptr<Socket>, int> pending;
+
 		void Select(const std::shared_ptr<Socket>& sock, int add, int remove)
 		{
+			std::lock_guard<std::mutex> g(mutexPending);
+			int oldFlags = sock->selectorFlags;
+			int newFlags = (oldFlags & ~remove) | add;
+			if (oldFlags != newFlags)
 			{
-				std::lock_guard<std::mutex> g(mutex);
-				sockets.insert(sock);
-			}
-			{
-				std::lock_guard<std::mutex> g(sock->mutex);
-				int oldFlags = sock->selectorFlags;
-				int newFlags = (oldFlags & ~remove) | add;
-				if (oldFlags != newFlags)
-				{
-					sock->selectorFlags = newFlags;
-					Wakeup();
-				}
+				sock->selectorFlags = newFlags;
+				auto rc = pending.insert(std::make_pair(sock, newFlags));
+				if (false == rc.second) // 已经存在，更新flags
+					rc.first->second = newFlags;
+				Wakeup();
 			}
 		}
 
 		int wakeupfds[2];
 		bool loop = true;
 		std::thread * worker;
-		std::unordered_set<std::shared_ptr<Socket>> sockets;
-		std::mutex mutex;
+		std::unordered_map<std::shared_ptr<Socket>, int> sockets;
 
 		Selector()
 		{
@@ -346,7 +345,7 @@ namespace Net
 			delete worker;
 
 			for (auto& socket : sockets)
-				socket->Close(NULL);
+				socket.first->Close(NULL);
 			sockets.clear();
 		}
 
@@ -354,33 +353,34 @@ namespace Net
 		{
 			while (loop)
 			{
+				{
+					// apply pending
+					std::lock_guard<std::mutex> g(mutexPending);
+					for (auto& p : pending)
+					{
+						if (p.second & OpClose)
+							sockets.erase(p.first);
+						else
+							sockets[p.first] = p.second;
+					}
+					pending.clear();
+				}
+
 				fd_set setwrite, setread;
 				FD_ZERO(&setwrite);
 				FD_ZERO(&setread);
 
-				std::vector<std::shared_ptr<Socket>> closing;
 				int maxfd = 0;
 				for (auto& socket : sockets)
 				{
-					if (socket->selectorFlags & OpClose)
-					{
-						closing.push_back(socket);
-						continue;
-					}
-
-					if (socket->socket > maxfd)
-						maxfd = socket->socket;
-
-					if (socket->selectorFlags & OpRead)
-						FD_SET(socket->socket, &setread);
-					if (socket->selectorFlags & OpWrite)
-						FD_SET(socket->socket, &setwrite);
+					if (socket.first->socket > maxfd)
+						maxfd = socket.first->socket;
+					if (socket.second & OpRead)
+						FD_SET(socket.first->socket, &setread);
+					if (socket.second & OpWrite)
+						FD_SET(socket.first->socket, &setwrite);
 				}
 				FD_SET(wakeupfds[0], &setread); // wakeup fd
-
-				for (auto& close : closing)
-					sockets.erase(close);
-				closing.clear();
 
 				struct timeval timeout = { 0 };
 				timeout.tv_sec = 1;
@@ -390,15 +390,19 @@ namespace Net
 				{
 					if (FD_ISSET(wakeupfds[0], &setread))
 					{
-						char buf[16];
-						::recv(wakeupfds[0], buf, sizeof(buf), 0);
+						char buf[256];
+						while (true) // 确保读完所有的wakeup消息。
+						{
+							if (::recv(wakeupfds[0], buf, sizeof(buf), 0) < sizeof(buf))
+								break;
+						}
 					}
 					for (auto& socket : sockets)
 					{
-						if (FD_ISSET(socket->socket, &setread))
-							socket->OnRecv();
-						if (FD_ISSET(socket->socket, &setwrite))
-							socket->OnSend();
+						if (FD_ISSET(socket.first->socket, &setread))
+							socket.first->OnRecv();
+						if (FD_ISSET(socket.first->socket, &setwrite))
+							socket.first->OnSend();
 					}
 				}
 			}
