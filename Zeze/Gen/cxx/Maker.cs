@@ -50,8 +50,8 @@ namespace Zeze.Gen.cxx
 
             foreach (var m in Project.Services.Values)
             {
-                using System.IO.StreamWriter sw = Project.Solution.OpenWriter(genDir, $"{m.Name}.h");
-                sw.WriteLine("// auto-generated");
+                using System.IO.StreamWriter sw = Project.Solution.OpenWriter(genDir, $"{m.Name}.h", false);
+                //sw.WriteLine("// auto-generated");
                 sw.WriteLine();
                 sw.WriteLine($"#include \"Net.h\"");
                 sw.WriteLine();
