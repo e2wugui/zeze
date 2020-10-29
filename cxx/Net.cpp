@@ -6,6 +6,7 @@
 #include "ByteBuffer.h"
 #include "security.h"
 #include "rfc2118.h"
+#include <unordered_set>
 
 namespace Zeze
 {
@@ -205,6 +206,10 @@ namespace Net
 
 	void Service::OnSocketConnected(const std::shared_ptr<Socket>& sender)
 	{
+		if (socket.get())
+		{
+			socket->Close(NULL);
+		}
 		socket = sender;
 		dhContext = limax::createDHContext(dhGroup);
 		const std::vector<unsigned char> dhResponse = dhContext->generateDHResponse();
@@ -293,45 +298,203 @@ namespace Net
 	/// <summary>
 	/// 下面使用系统socket-api实现真正的网络操作。尽量使用普通api平台相关。
 	/// </summary>
+
 	class Selector
 	{
 	public:
-		static Selector& Instance()
-		{
-			static Selector instance;
-			return instance;
-		}
+		static Selector* Instance;
+
 		static const int OpRead = 1;
 		static const int OpWrite = 2;
-		static const int OpClosed = 4;
+		static const int OpClose = 4;
 
 		void Select(const std::shared_ptr<Socket>& sock, int add, int remove)
 		{
-			std::lock_guard<std::mutex> g(sock->mutex);
-			int oldFlags = sock->selectorFlags;
-			int newFlags = (oldFlags & ~remove) | add;
-			if (oldFlags != newFlags)
 			{
-				sock->selectorFlags = newFlags;
-				Wakeup();
+				std::lock_guard<std::mutex> g(mutex);
+				sockets.insert(sock);
+			}
+			{
+				std::lock_guard<std::mutex> g(sock->mutex);
+				int oldFlags = sock->selectorFlags;
+				int newFlags = (oldFlags & ~remove) | add;
+				if (oldFlags != newFlags)
+				{
+					sock->selectorFlags = newFlags;
+					Wakeup();
+				}
+			}
+		}
+
+		int wakeupfds[2];
+		bool loop = true;
+		std::thread * worker;
+		std::unordered_set<std::shared_ptr<Socket>> sockets;
+		std::mutex mutex;
+
+		Selector()
+		{
+			pipe(wakeupfds);
+			worker = new std::thread(std::bind(&Selector::Loop, this));
+		}
+
+		~Selector()
+		{
+			loop = false;
+			worker->join();
+			delete worker;
+
+			for (auto& socket : sockets)
+				socket->Close(NULL);
+			sockets.clear();
+		}
+
+		void Loop()
+		{
+			while (loop)
+			{
+				fd_set setwrite, setread;
+				FD_ZERO(&setwrite);
+				FD_ZERO(&setread);
+
+				std::vector<std::shared_ptr<Socket>> closing;
+				int maxfd = 0;
+				for (auto& socket : sockets)
+				{
+					if (socket->selectorFlags & OpClose)
+					{
+						closing.push_back(socket);
+						continue;
+					}
+
+					if (socket->socket > maxfd)
+						maxfd = socket->socket;
+
+					if (socket->selectorFlags & OpRead)
+						FD_SET(socket->socket, &setread);
+					if (socket->selectorFlags & OpWrite)
+						FD_SET(socket->socket, &setwrite);
+				}
+				FD_SET(wakeupfds[0], &setread); // wakeup fd
+
+				for (auto& close : closing)
+					sockets.erase(close);
+				closing.clear();
+
+				struct timeval timeout = { 0 };
+				timeout.tv_sec = 1;
+				timeout.tv_usec = 0;
+
+				if (::select(maxfd + 1, &setread, &setwrite, NULL, &timeout) > 0)
+				{
+					if (FD_ISSET(wakeupfds[0], &setread))
+					{
+						char buf[16];
+						::recv(wakeupfds[0], buf, sizeof(buf), 0);
+					}
+					for (auto& socket : sockets)
+					{
+						if (FD_ISSET(socket->socket, &setread))
+							socket->OnRecv();
+						if (FD_ISSET(socket->socket, &setwrite))
+							socket->OnSend();
+					}
+				}
 			}
 		}
 
 		void Wakeup()
 		{
+			::send(wakeupfds[1], " ", 1, 0);
 		}
 
+		// 客户端不需要大量连接，先实现一个总是使用select的版本。
+		// 看需要再实现其他版本。
 #ifdef LIMAX_OS_WINDOWS
-		// use select
-#else
-		// use epoll
+		int pipe(int fildes[2])
+		{
+			int tcp1, tcp2;
+			sockaddr_in name;
+			memset(&name, 0, sizeof(name));
+			name.sin_family = AF_INET;
+			name.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+			int namelen = sizeof(name);
+			tcp1 = tcp2 = -1;
+			int tcp = socket(AF_INET, SOCK_STREAM, 0);
+			if (tcp == -1) {
+				goto clean;
+			}
+			if (bind(tcp, (sockaddr*)&name, namelen) == -1) {
+				goto clean;
+			}
+			if (listen(tcp, 5) == -1) {
+				goto clean;
+			}
+			if (getsockname(tcp, (sockaddr*)&name, &namelen) == -1) {
+				goto clean;
+			}
+			tcp1 = socket(AF_INET, SOCK_STREAM, 0);
+			if (tcp1 == -1) {
+				goto clean;
+			}
+			if (-1 == connect(tcp1, (sockaddr*)&name, namelen)) {
+				goto clean;
+			}
+			tcp2 = accept(tcp, (sockaddr*)&name, &namelen);
+			if (tcp2 == -1) {
+				goto clean;
+			}
+			if (closesocket(tcp) == -1) {
+				goto clean;
+			}
+			fildes[0] = tcp1;
+			fildes[1] = tcp2;
+			return 0;
+		clean:
+			if (tcp != -1) {
+				closesocket(tcp);
+			}
+			if (tcp2 != -1) {
+				closesocket(tcp2);
+			}
+			if (tcp1 != -1) {
+				closesocket(tcp1);
+			}
+			return -1;
+	}
 #endif
 	};
+
+	Selector* Selector::Instance = NULL;
+
+	bool Startup()
+	{
+		bool sysresult = false;
+#ifdef LIMAX_OS_WINDOWS
+		WSADATA wData;
+		sysresult = (0 == ::WSAStartup(MAKEWORD(2, 2), &wData));
+#endif
+		if (sysresult)
+		{
+			Selector::Instance = new Selector();
+		}
+		return true;
+	}
+
+	void Cleanup()
+	{
+		delete Selector::Instance;
+		Selector::Instance = NULL;
+
+#ifdef LIMAX_OS_WINDOWS
+		::WSACleanup();
+#endif
+	}
 
 	void Socket::Close(std::exception* e)
 	{
 		service->OnSocketClose(This, e);
-		Selector::Instance().Select(This, Selector::OpClosed, 0);
+		Selector::Instance->Select(This, Selector::OpClose, 0);
 		This.reset();
 	}
 
@@ -419,6 +582,8 @@ namespace Net
 
 	void Socket::OnSend()
 	{
+		std::lock_guard<std::mutex> g(mutex);
+
 		int rc = ::send(socket, OutputBuffer->buffer.data(), OutputBuffer->buffer.size(), 0);
 		if (-1 == rc)
 		{
@@ -432,7 +597,7 @@ namespace Net
 		}
 		OutputBuffer->buffer.erase(0, rc);
 		if (OutputBuffer->buffer.empty())
-			Selector::Instance().Select(This, 0, Selector::OpWrite);
+			Selector::Instance->Select(This, 0, Selector::OpWrite);
 	}
 
 	void Socket::Send(const char* data, int offset, int length)
@@ -470,7 +635,7 @@ namespace Net
 			{
 				OutputBuffer->buffer.erase(0, rc);
 				if (false == OutputBuffer->buffer.empty())
-					Selector::Instance().Select(This, Selector::OpWrite, 0);
+					Selector::Instance->Select(This, Selector::OpWrite, 0);
 				return;
 			}
 			if (rc >= length)
@@ -481,7 +646,7 @@ namespace Net
 			offset += rc;
 			length -= rc;
 			OutputBuffer->buffer.append(data + offset, length);
-			Selector::Instance().Select(This, Selector::OpWrite, 0);
+			Selector::Instance->Select(This, Selector::OpWrite, 0);
 			return;
 		}
 		// in sending
@@ -581,7 +746,7 @@ namespace Net
 			return false;
 		}
 		this->socket = so;
-		Selector::Instance().Select(This, Selector::OpRead, 0);
+		Selector::Instance->Select(This, Selector::OpRead, 0);
 		service->OnSocketConnected(This);
 		return true;
 	}

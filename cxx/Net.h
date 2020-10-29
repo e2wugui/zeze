@@ -13,6 +13,9 @@ namespace Zeze
 {
 namespace Net
 {
+	bool Startup();
+	void Cleanup();
+
 	class Protocol;
 	class BufferedCodec;
 

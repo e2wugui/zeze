@@ -1,11 +1,13 @@
 
-#include "../cxx/LuaState.h"
+#include "LuaState.h"
 #include <iostream>
+#include "Net.h"
 
 int main(int argc, char* argv[])
 {
 	printf("hello 1\n");
 
+	Zeze::Net::Startup();
 	lua_State * L = luaL_newstate();
 	luaL_openlibs(L);
 	try
@@ -18,5 +20,6 @@ int main(int argc, char* argv[])
 		std::cout << ex.what() << std::endl;
 	}
 	lua_close(L);
+	Zeze::Net::Cleanup();
 	return 0;
 }
