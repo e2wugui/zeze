@@ -18,7 +18,6 @@ function ZezeHandshakeDone(service, sessionId)
     Zeze.CurrentSessionId = sessionId
     -- connection ready. write you code here.
 
-    print('ZezeHandshakeDone')
     local p = demo.Module1.Protocol1
     p.Argument={} -- reset
 
@@ -49,9 +48,8 @@ function ZezeHandshakeDone(service, sessionId)
 
     p.Argument[demo.Module1.Value.map15] = { [123]=123, [124]=124 }
 
-    local serpent = require 'serpent'
     print('------------- send protocol ------------------')
-    print(serpent.block(p))
+    print(require ('serpent').block(p))
 
     print(Zeze.CurrentService)
     print(Zeze.CurrentSessionId)

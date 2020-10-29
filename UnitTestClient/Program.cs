@@ -17,8 +17,6 @@ namespace UnitTestClient
                 demo.App.Instance.Client.Connect("127.0.0.1", 9999);
                 if (lua.DoString("package.path = package.path .. ';../../../LuaSrc/?.lua;../../../LuaGen/?.lua'"))
                     throw new Exception("package.path");
-                lua.DoString("return package.path");
-                Console.WriteLine(lua.ToString(-1));
                 demo.App.Instance.Client.InitializeLua(new Zeze.Services.ToLuaService.ToLua(lua));
                 if (lua.DoString("require 'main'"))
                     throw new Exception("run main.lua error");

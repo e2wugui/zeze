@@ -73,7 +73,7 @@ namespace Zeze.Gen.lua
             sw.WriteLine();
             sw.WriteLine("local Zeze = require 'Zeze'");
             sw.WriteLine();
-            sw.WriteLine($"function {module.Name}:Init()");
+            sw.WriteLine($"function {module.Name}Impl:Init()");
             Module realmod = (Module)module;
             Service serv = realmod.ReferenceService;
             if (serv != null)

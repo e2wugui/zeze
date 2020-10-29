@@ -399,10 +399,18 @@ namespace Net
 					}
 					for (auto& socket : sockets)
 					{
-						if (FD_ISSET(socket.first->socket, &setread))
-							socket.first->OnRecv();
-						if (FD_ISSET(socket.first->socket, &setwrite))
-							socket.first->OnSend();
+						try
+						{
+							if (FD_ISSET(socket.first->socket, &setread))
+								socket.first->OnRecv();
+							if (FD_ISSET(socket.first->socket, &setwrite))
+								socket.first->OnSend();
+						}
+						catch (std::exception& ex)
+						{
+							std::cout << ex.what() << std::endl;
+							socket.first->Close(&ex);
+						}
 					}
 				}
 			}

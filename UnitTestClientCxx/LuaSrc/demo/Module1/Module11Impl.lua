@@ -2,7 +2,7 @@
 
 local Zeze = require 'Zeze'
 
-function Module11:Init()
+function Module11Impl:Init()
 end
 
 
