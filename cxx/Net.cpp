@@ -266,23 +266,24 @@ namespace Net
 
 	void Service::Connect(const std::string& host, int port, int timeoutSecondsPerConnect)
 	{
-		// TODO thread
-		Socket* sptr = new Socket(this);
-		std::shared_ptr<Socket> at = sptr->This;
-		try
-		{
-			if (at->Connect(host, port, lastSuccessAddress, timeoutSecondsPerConnect))
+		std::thread([this, host, port, timeoutSecondsPerConnect]
 			{
-				lastSuccessAddress = at->LastAddress;
-				return;
-			}
-			// 连接失败，内部已经调用Close释放shared_ptr。
-		}
-		catch (...)
-		{
-			at->This.reset(); // XXX 异常的时候需要手动释放Socket内部的shared_ptr。
-			throw;
-		}
+				Socket* sptr = new Socket(this);
+				std::shared_ptr<Socket> at = sptr->This;
+				try
+				{
+					if (at->Connect(host, port, lastSuccessAddress, timeoutSecondsPerConnect))
+					{
+						lastSuccessAddress = at->LastAddress;
+						return;
+					}
+					// 连接失败，内部已经调用Close释放shared_ptr。
+				}
+				catch (...)
+				{
+					at->Close(NULL); // XXX 异常的时候需要手动释放Socket内部的shared_ptr。
+				}
+			}).detach();
 	}
 
 	Socket::Socket(Service* svr)
