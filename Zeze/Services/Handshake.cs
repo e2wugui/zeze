@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using System.Text;
+using NLog;
 using Org.BouncyCastle.Asn1.Ntt;
 using Org.BouncyCastle.Utilities.Net;
 using Zeze.Net;
@@ -118,7 +119,9 @@ namespace Zeze.Services
             BigInteger rand = Handshake.Helper.makeDHRandom();
             byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
             byte[] key = conf.HandshakeOptions.SecureIp != null
-                ? conf.HandshakeOptions.SecureIp : ((System.Net.IPEndPoint)ServerSocket.Socket.LocalEndPoint).Address.GetAddressBytes();
+                ? conf.HandshakeOptions.SecureIp : ((System.Net.IPEndPoint)p.Sender.Socket.LocalEndPoint).Address.GetAddressBytes();
+            Console.WriteLine("handshake server, local = " + p.Sender.Socket.LocalEndPoint);
+            Console.WriteLine("    key=" + BitConverter.ToString(key) + " keylen=" + key.Length);
             int half = material.Length / 2;
             byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
             p.Sender.SetInputSecurityCodec(hmacMd5, conf.HandshakeOptions.C2sNeedCompress);

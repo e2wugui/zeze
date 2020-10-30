@@ -51,8 +51,8 @@ function ZezeHandshakeDone(service, sessionId)
     print('------------- send protocol ------------------')
     print(require ('serpent').block(p))
 
-    print(Zeze.CurrentService)
-    print(Zeze.CurrentSessionId)
+    --print(Zeze.CurrentService)
+    --print(Zeze.CurrentSessionId)
     ZezeSendProtocol(Zeze.CurrentService, Zeze.CurrentSessionId, p)
 end
 

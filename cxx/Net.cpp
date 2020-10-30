@@ -100,9 +100,9 @@ namespace Net
 	{
 		SHandshake* p = (SHandshake*)_p;
 
-		const std::vector<unsigned char> material = dhContext->computeDHKey((unsigned char*)p->Argument.dh_data.data(), (int32_t)p->Argument.dh_data.size());
-		socklen_t key_len = p->Sender->LastAddress.size();
-		int8_t* key = (int8_t*)p->Sender->LastAddress.data();
+		const std::vector<unsigned char> material = p->Sender->dhContext->computeDHKey((unsigned char*)p->Argument.dh_data.data(), (int32_t)p->Argument.dh_data.size());
+		socklen_t key_len = p->Sender->LastAddressBytes.size();
+		int8_t* key = (int8_t*)p->Sender->LastAddressBytes.data();
 		int32_t half = (int32_t)material.size() / 2;
 		{
 			limax::HmacMD5 hmac(key, 0, key_len);
@@ -114,7 +114,7 @@ namespace Net
 			hmac.update((int8_t*)&material[0], half, (int32_t)material.size() - half);
 			p->Sender->SetInputSecurity(p->Argument.s2cneedcompress, hmac.digest(), 16);
 		}
-		dhContext.reset();
+		p->Sender->dhContext.reset();
 		OnHandshakeDone(p->Sender);
 		return 0;
 	}
@@ -158,7 +158,7 @@ namespace Net
 
 	void Socket::SetInputSecurity(bool s2cneedcompress, const int8_t* key, int keylen)
 	{
-		std::shared_ptr<limax::Codec> codec(InputBuffer);
+		std::shared_ptr<limax::Codec> codec = InputBuffer;
 		if (s2cneedcompress)
 		{
 			codec = std::shared_ptr<limax::Codec>(new limax::RFC2118Decode(codec));
@@ -211,8 +211,8 @@ namespace Net
 			socket->Close(NULL);
 		}
 		socket = sender;
-		dhContext = limax::createDHContext(dhGroup);
-		const std::vector<unsigned char> dhResponse = dhContext->generateDHResponse();
+		sender->dhContext = limax::createDHContext(dhGroup);
+		const std::vector<unsigned char> dhResponse = sender->dhContext->generateDHResponse();
 		CHandshake hand(dhGroup, std::string((const char *)&dhResponse[0], dhResponse.size()));
 		hand.Send(sender.get());
 	}
@@ -554,6 +554,8 @@ namespace Net
 
 	void Socket::OnRecv()
 	{
+		std::lock_guard<std::mutex> g(mutex);
+
 		Buffer recvbuf;
 		int rc = ::recv(socket, recvbuf.data, recvbuf.capacity, 0);
 		if (-1 == rc)
@@ -566,6 +568,12 @@ namespace Net
 			}
 			return;
 		}
+		if (0 == rc)
+		{
+			this->Close(NULL);
+			return;
+		}
+
 		if (InputCodec.get())
 		{
 			InputCodec->update((int8_t*)recvbuf.data, 0, rc);
@@ -667,6 +675,27 @@ namespace Net
 			OutputBuffer->buffer.append(data + offset, length);
 	}
 
+	inline void AssignAddressBytes(struct addrinfo* ai, std::string& out)
+	{
+		switch (ai->ai_family)
+		{
+		case AF_INET:
+		{
+			sockaddr_in* sav4 = (sockaddr_in*)ai->ai_addr;
+			out.assign((const char*)&(sav4->sin_addr), sizeof(in_addr));
+			std::cout << "ipv4 " << sizeof(in_addr) << std::endl;
+			break;
+		}
+		case AF_INET6:
+		{
+			sockaddr_in6* sav6 = (sockaddr_in6*)ai->ai_addr;
+			out.assign((const char*)&(sav6->sin6_addr), sizeof(in6_addr));
+			std::cout << "ipv6 " << sizeof(in6_addr) << std::endl;
+			break;
+		}
+		}
+	}
+
 	bool Socket::Connect(const std::string& host, int _port, const std::string& lastSuccessAddress, int timeoutSecondsPerConnect)
 	{
 		struct addrinfo hints, * res;
@@ -711,6 +740,7 @@ namespace Net
 			int ret = ::connect(so, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
 			if (ret != -1) // 连接马上成功，异步socket，windows应该不会立即返回成功。保险写法
 			{
+				AssignAddressBytes(ai, LastAddressBytes);
 				char addrName[256];
 				if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) == 0)
 					LastAddress = addrName; // 设置成功连接的地址
@@ -741,6 +771,7 @@ namespace Net
 				{
 					if (err == 0)
 					{
+						AssignAddressBytes(ai, LastAddressBytes);
 						char addrName[256];
 						if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) == 0)
 							LastAddress = addrName; // 设置成功连接的地址

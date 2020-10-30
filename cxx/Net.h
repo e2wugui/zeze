@@ -24,6 +24,7 @@ namespace Net
 		std::mutex mutex;
 		int socket = 0;
 		int selectorFlags = 0; // used in Selector
+		std::shared_ptr<limax::DHContext> dhContext;
 
 		void SetOutputSecurity(bool c2sneedcompress, const int8_t* key, int keylen);
 		void SetInputSecurity(bool s2cneedcompress, const int8_t* key, int keylen);
@@ -46,6 +47,7 @@ namespace Net
 		Service* service;
 		std::shared_ptr<Socket> This;
 		std::string LastAddress;
+		std::string LastAddressBytes;
 
 		static long long NextSessionId()
 		{
@@ -128,7 +130,6 @@ namespace Net
 		typedef std::unordered_map<int, ProtocolFactoryHandle> ProtocolFactoryMap;
 		ProtocolFactoryMap ProtocolFactory;
 		Protocol* CreateProtocol(int typeId, Zeze::Serialize::ByteBuffer& os);
-		std::shared_ptr<limax::DHContext> dhContext;
 		char dhGroup = 1;
 		int ProcessSHandshake(Protocol* p);
 	};
