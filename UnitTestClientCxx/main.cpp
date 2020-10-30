@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 	}
 	catch (std::exception & ex)
 	{
-		std::cout << ex.what() << std::endl;
+		std::cout << "main " << ex.what() << std::endl;
 	}
 	lua_close(L);
 	Zeze::Net::Cleanup();

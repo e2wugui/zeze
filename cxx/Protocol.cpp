@@ -53,8 +53,7 @@ namespace Zeze
 				else
 				{
 					p->Sender = sender;
-					p->Dispatch(service);
-					p.release();
+					p.release()->Dispatch(service);
 				}
 			}
 			bb.ReadIndex = os.ReadIndex;

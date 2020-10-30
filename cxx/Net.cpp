@@ -152,7 +152,7 @@ namespace Net
 		{
 			codec = std::shared_ptr<limax::Codec>(new limax::RFC2118Encode(codec));
 		}
-		std::lock_guard<std::mutex> scoped(mutex);
+		std::lock_guard<std::recursive_mutex> scoped(mutex);
 		OutputCodec = codec;
 	}
 
@@ -167,7 +167,7 @@ namespace Net
 		{
 			codec = std::shared_ptr<limax::Codec>(new limax::Decrypt(codec, (int8_t*)key, (int32_t)keylen));
 		}
-		std::lock_guard<std::mutex> scoped(mutex);
+		std::lock_guard<std::recursive_mutex> scoped(mutex);
 		InputCodec = codec;
 	}
 
@@ -184,7 +184,7 @@ namespace Net
 	void Service::OnSocketClose(const std::shared_ptr<Socket>& sender, const std::exception* e)
 	{
 		if (e)
-			std::cout << e->what() << std::endl;
+			std::cout << "OnSocketClose " << e->what() << std::endl;
 
 		if (sender.get() == socket.get())
 		{
@@ -201,7 +201,7 @@ namespace Net
 	void Service::OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e)
 	{
 		if (e)
-			std::cout << e->what() << std::endl;
+			std::cout << "OnSocketConnectError " << e->what() << std::endl;
 	}
 
 	void Service::OnSocketConnected(const std::shared_ptr<Socket>& sender)
@@ -249,14 +249,7 @@ namespace Net
 		}
 		else
 		{
-			try
-			{
-				Protocol::DecodeProtocol(this, sender, input);
-			}
-			catch (std::exception& ex)
-			{
-				sender->Close(&ex);
-			}
+			Protocol::DecodeProtocol(this, sender, input);
 		}
 	}
 
@@ -408,7 +401,7 @@ namespace Net
 						}
 						catch (std::exception& ex)
 						{
-							std::cout << ex.what() << std::endl;
+							std::cout << "Selector Dispatch " << ex.what() << std::endl;
 							socket.first->Close(&ex);
 						}
 					}
@@ -554,7 +547,7 @@ namespace Net
 
 	void Socket::OnRecv()
 	{
-		std::lock_guard<std::mutex> g(mutex);
+		std::lock_guard<std::recursive_mutex> g(mutex);
 
 		Buffer recvbuf;
 		int rc = ::recv(socket, recvbuf.data, recvbuf.capacity, 0);
@@ -603,7 +596,7 @@ namespace Net
 
 	void Socket::OnSend()
 	{
-		std::lock_guard<std::mutex> g(mutex);
+		std::lock_guard<std::recursive_mutex> g(mutex);
 
 		int rc = ::send(socket, OutputBuffer->buffer.data(), OutputBuffer->buffer.size(), 0);
 		if (-1 == rc)
@@ -623,7 +616,7 @@ namespace Net
 
 	void Socket::Send(const char* data, int offset, int length)
 	{
-		std::lock_guard<std::mutex> g(mutex);
+		std::lock_guard<std::recursive_mutex> g(mutex);
 
 		bool noPendingSend = OutputBuffer->buffer.empty();
 		bool hasCodec = false;
@@ -683,14 +676,14 @@ namespace Net
 		{
 			sockaddr_in* sav4 = (sockaddr_in*)ai->ai_addr;
 			out.assign((const char*)&(sav4->sin_addr), sizeof(in_addr));
-			std::cout << "ipv4 " << sizeof(in_addr) << std::endl;
+			//std::cout << "ipv4 " << sizeof(in_addr) << std::endl;
 			break;
 		}
 		case AF_INET6:
 		{
 			sockaddr_in6* sav6 = (sockaddr_in6*)ai->ai_addr;
 			out.assign((const char*)&(sav6->sin6_addr), sizeof(in6_addr));
-			std::cout << "ipv6 " << sizeof(in6_addr) << std::endl;
+			//std::cout << "ipv6 " << sizeof(in6_addr) << std::endl;
 			break;
 		}
 		}

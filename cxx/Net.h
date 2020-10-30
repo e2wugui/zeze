@@ -21,7 +21,7 @@ namespace Net
 
 	class Socket
 	{
-		std::mutex mutex;
+		std::recursive_mutex mutex;
 		int socket = 0;
 		int selectorFlags = 0; // used in Selector
 		std::shared_ptr<limax::DHContext> dhContext;

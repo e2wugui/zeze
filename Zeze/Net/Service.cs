@@ -196,14 +196,7 @@ namespace Zeze.Net
         /// <param name="input"></param>
         public virtual void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
-            try
-            {
-                Protocol.Decode(this, so, input);
-            }
-            catch (Exception ex)
-            {
-                so.Close(ex);
-            }
+            Protocol.Decode(this, so, input);
         }
 
         public enum DispatchType
