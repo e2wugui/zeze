@@ -1108,6 +1108,7 @@ namespace limax {
 } // namespace limax {
 
 #include <wmmintrin.h>
+#include <intrin.h>
 
 namespace limax {
 

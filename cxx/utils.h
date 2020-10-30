@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.h"
 #include <functional>
 #include <vector>
 #include <list>

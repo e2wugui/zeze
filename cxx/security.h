@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.h"
 #include "codec.h"
 
 namespace limax {

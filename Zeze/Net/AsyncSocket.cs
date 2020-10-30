@@ -456,10 +456,10 @@ namespace Zeze.Net
             {
                 try
                 {
-                    Socket?.Dispose();
-                    Socket = null;
                     Service?.OnSocketClose(this, this.LastException);
                     Service = null;
+                    Socket?.Dispose();
+                    Socket = null;
                 }
                 catch (Exception)
                 {

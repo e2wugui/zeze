@@ -107,12 +107,22 @@ namespace Net
 		{
 			limax::HmacMD5 hmac(key, 0, key_len);
 			hmac.update((int8_t*)&material[0], 0, half);
-			p->Sender->SetOutputSecurity(p->Argument.c2sneedcompress, hmac.digest(), 16);
+			const int8_t* skey = hmac.digest();
+			std::cout << "output ";
+			for (int i = 0; i < 16; ++i)
+				std::cout << std::hex << (unsigned int)(unsigned char)skey[i] << " ";
+			std::cout << std::endl;
+			p->Sender->SetOutputSecurity(p->Argument.c2sneedcompress, skey, 16);
 		}
 		{
 			limax::HmacMD5 hmac(key, 0, key_len);
 			hmac.update((int8_t*)&material[0], half, (int32_t)material.size() - half);
-			p->Sender->SetInputSecurity(p->Argument.s2cneedcompress, hmac.digest(), 16);
+			const int8_t* skey = hmac.digest();
+			std::cout << "input ";
+			for (int i = 0; i < 16; ++i)
+				std::cout << std::hex << (unsigned int)(unsigned char)skey[i] << " ";
+			std::cout << std::endl;
+			p->Sender->SetInputSecurity(p->Argument.s2cneedcompress, skey, 16);
 		}
 		p->Sender->dhContext.reset();
 		OnHandshakeDone(p->Sender);
@@ -213,6 +223,10 @@ namespace Net
 		socket = sender;
 		sender->dhContext = limax::createDHContext(dhGroup);
 		const std::vector<unsigned char> dhResponse = sender->dhContext->generateDHResponse();
+		std::cout << "dhResponse ";
+		for (int i = 0; i < dhResponse.size(); ++i)
+			std::cout << (unsigned int)dhResponse[i] << " ";
+		std::cout << std::endl;
 		CHandshake hand(dhGroup, std::string((const char *)&dhResponse[0], dhResponse.size()));
 		hand.Send(sender.get());
 	}

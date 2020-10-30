@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <memory>
-#include "osdefine.h"
+#include "common.h"
 #include "octets.h"
 
 namespace limax {
