@@ -81,18 +81,20 @@ namespace Zeze.Services
                 p.Sender.Close(new Exception("dhGroup Not Supported"));
                 return 0;
             }
-
             BigInteger data = new BigInteger(p.Argument.dh_data);
             BigInteger rand = Handshake.Helper.makeDHRandom();
             byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
+            Console.WriteLine("server material:" + BitConverter.ToString(material));
             byte[] key = Config.HandshakeOptions.SecureIp != null
                 ? Config.HandshakeOptions.SecureIp : ((System.Net.IPEndPoint)p.Sender.Socket.LocalEndPoint).Address.GetAddressBytes();
             int half = material.Length / 2;
             byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
+            Console.WriteLine("input:" + BitConverter.ToString(hmacMd5));
             p.Sender.SetInputSecurityCodec(hmacMd5, Config.HandshakeOptions.C2sNeedCompress);
             new Handshake.SHandshake(Handshake.Helper.generateDHResponse(group, rand).ToByteArray(),
                 Config.HandshakeOptions.S2cNeedCompress, Config.HandshakeOptions.C2sNeedCompress).Send(p.Sender);
             hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
+            Console.WriteLine("output:" + BitConverter.ToString(hmacMd5));
             p.Sender.SetOutputSecurityCodec(hmacMd5, Config.HandshakeOptions.S2cNeedCompress);
 
             OnHandshakeDone(p.Sender);
@@ -153,14 +155,12 @@ namespace Zeze.Services
             if (DHContext.TryGetValue(p.Sender.SessionId, out var dhRandom))
             {
                 byte[] material = Handshake.Helper.computeDHKey(Config.HandshakeOptions.DhGroup, new BigInteger(p.Argument.dh_data), dhRandom).ToByteArray();
-                //Console.WriteLine(p.Sender.Socket.RemoteEndPoint);
+                Console.WriteLine("client material:" + BitConverter.ToString(material));
                 byte[] key = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address.GetAddressBytes();
                 int half = material.Length / 2;
                 byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-                Console.WriteLine("output " + BitConverter.ToString(hmacMd5));
                 p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
                 hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
-                Console.WriteLine("input " + BitConverter.ToString(hmacMd5));
                 p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
 
                 DHContext.TryRemove(p.Sender.SessionId, out var _);
