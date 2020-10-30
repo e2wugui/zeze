@@ -1,5 +1,5 @@
 
-#include "LuaState.h"
+#include "LuaHelper.h"
 #include <iostream>
 #include "Net.h"
 #include "demo/App.h"

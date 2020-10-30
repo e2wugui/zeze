@@ -9,8 +9,8 @@ end
 
 function Module1Impl.ProcessProtocol1(p)
     -- write handle here
-    print(require ('serpent').block(p))
     print('------------- recv protocol shut down ------------------')
+    print(require ('serpent').block(p))
     IsMainRunning = false
 end
 

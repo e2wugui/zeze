@@ -12,6 +12,7 @@ using Org.BouncyCastle.Utilities.Net;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
+using System.Collections.Concurrent;
 
 /// <summary>
 /// 使用dh算法交换密匙把连接加密。
@@ -57,40 +58,6 @@ namespace Zeze.Services
                 HandleRequest = ProcessCHandshake,
                 NoProcedure = true,
             });
-
-            conf = zeze.Config.GetServiceConf(name);
-            base.SocketOptions = conf.SocketOptions;
-        }
-
-        private AsyncSocket ServerSocket;
-        private Config.ServiceConf conf;
-
-        public override void Start()
-        {
-            lock (this)
-            {
-                if (null != ServerSocket)
-                    return;
-
-                ServerSocket = conf.HostNameOrAddress.Length > 0
-                    ? NewServerSocket(conf.HostNameOrAddress, conf.Port) : NewServerSocket(System.Net.IPAddress.Any, conf.Port);
-            }
-        }
-
-        // 用于控制是否接受新连接
-        public void StopListen()
-        {
-            lock (this)
-            {
-                ServerSocket?.Dispose();
-                ServerSocket = null;
-            }
-        }
-
-        public override void Close()
-        {
-            StopListen();
-            base.Close();
         }
 
         public override void OnSocketAccept(AsyncSocket so)
@@ -109,7 +76,7 @@ namespace Zeze.Services
         {
             Handshake.CHandshake p = (Handshake.CHandshake)_p;
             int group = p.Argument.dh_group;
-            if (false == conf.HandshakeOptions.DhGroups.Contains(group))
+            if (false == Config.HandshakeOptions.DhGroups.Contains(group))
             {
                 p.Sender.Close(new Exception("dhGroup Not Supported"));
                 return 0;
@@ -118,17 +85,15 @@ namespace Zeze.Services
             BigInteger data = new BigInteger(p.Argument.dh_data);
             BigInteger rand = Handshake.Helper.makeDHRandom();
             byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
-            byte[] key = conf.HandshakeOptions.SecureIp != null
-                ? conf.HandshakeOptions.SecureIp : ((System.Net.IPEndPoint)p.Sender.Socket.LocalEndPoint).Address.GetAddressBytes();
-            Console.WriteLine("handshake server, local = " + p.Sender.Socket.LocalEndPoint);
-            Console.WriteLine("    key=" + BitConverter.ToString(key) + " keylen=" + key.Length);
+            byte[] key = Config.HandshakeOptions.SecureIp != null
+                ? Config.HandshakeOptions.SecureIp : ((System.Net.IPEndPoint)p.Sender.Socket.LocalEndPoint).Address.GetAddressBytes();
             int half = material.Length / 2;
             byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-            p.Sender.SetInputSecurityCodec(hmacMd5, conf.HandshakeOptions.C2sNeedCompress);
+            p.Sender.SetInputSecurityCodec(hmacMd5, Config.HandshakeOptions.C2sNeedCompress);
             new Handshake.SHandshake(Handshake.Helper.generateDHResponse(group, rand).ToByteArray(),
-                conf.HandshakeOptions.S2cNeedCompress, conf.HandshakeOptions.C2sNeedCompress).Send(p.Sender);
+                Config.HandshakeOptions.S2cNeedCompress, Config.HandshakeOptions.C2sNeedCompress).Send(p.Sender);
             hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
-            p.Sender.SetOutputSecurityCodec(hmacMd5, conf.HandshakeOptions.S2cNeedCompress);
+            p.Sender.SetOutputSecurityCodec(hmacMd5, Config.HandshakeOptions.S2cNeedCompress);
 
             OnHandshakeDone(p.Sender);
 
@@ -146,58 +111,15 @@ namespace Zeze.Services
                 HandleRequest = ProcessSHandshake,
                 NoProcedure = true,
             });
-
-            conf = zeze.Config.GetServiceConf(name);
-            SocketOptions = conf.SocketOptions;
         }
 
-        public AsyncSocket Connection { get; private set; }
-        private Config.ServiceConf conf;
-        private string host;
-        private int port;
-        private BigInteger dhRandom;
-        private int ConnectDelay = 0;
+        private ConcurrentDictionary<long, BigInteger> DHContext = new ConcurrentDictionary<long, BigInteger>();
 
-        public override void Start()
+        public void Connect(string hostNameOrAddress, int port, bool autoReconnect = false)
         {
-            lock (this)
-            {
-                if (null != Connection)
-                    return;
-
-                if (null == host)
-                {
-                    // 不修改配置。只有第一次时从配置中拷贝。
-                    if (conf.HostNameOrAddress.Length == 0)
-                        return;
- 
-                    host = conf.HostNameOrAddress;
-                    port = conf.Port;
-                }
-                Connection = this.NewClientSocket(host, port);
-            }
-        }
-
-        public void Connect(string hostNameOrAddress, int port)
-        {
-            lock (this)
-            {
-                if (null != Connection)
-                    return;
-
-                this.host = hostNameOrAddress;
-                this.port = port;
-                Connection = this.NewClientSocket(host, port);
-            }
-        }
-
-        public override void Close()
-        {
-            Connection = null;
-            base.Close();
-
-            if (conf.IsAutoReconnect)
-                Util.Scheduler.Instance.Schedule(Start, ConnectDelay);
+            Config.ServiceConf.Connector c = Config.GetOrAddConnector(hostNameOrAddress, port, autoReconnect);
+            c.Socket?.Dispose();
+            c.Socket = this.NewClientSocket(hostNameOrAddress, port);
         }
 
         public override void OnSocketAccept(AsyncSocket so)
@@ -206,49 +128,38 @@ namespace Zeze.Services
             _asocketMap.TryAdd(so.SessionId, so);
         }
 
-        public override void OnSocketConnectError(AsyncSocket so, Exception e)
-        {
-            base.OnSocketConnectError(so, e);
-
-            if (ConnectDelay == 0)
-            {
-                ConnectDelay = 1000;
-            }
-            else
-            {
-                ConnectDelay *= 2;
-                if (ConnectDelay > 60000)
-                    ConnectDelay = 60000;
-            }
-        }
-
         public override void OnSocketConnected(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
             _asocketMap.TryAdd(so.SessionId, so);
-            ConnectDelay = 0;
+            Config.FindConnectorBySocket(so)?.OnSocketConnected(this);
 
-            dhRandom = Handshake.Helper.makeDHRandom();
-            new Handshake.CHandshake(conf.HandshakeOptions.DhGroup,
-                Handshake.Helper.generateDHResponse(conf.HandshakeOptions.DhGroup, dhRandom).ToByteArray()).Send(so);
+            BigInteger dhRandom = Handshake.Helper.makeDHRandom();
+            if (!DHContext.TryAdd(so.SessionId, dhRandom))
+                throw new Exception("handshake duplicate context for same session.");
+            new Handshake.CHandshake(Config.HandshakeOptions.DhGroup,
+                Handshake.Helper.generateDHResponse(Config.HandshakeOptions.DhGroup, dhRandom).ToByteArray()).Send(so);
         }
 
         private int ProcessSHandshake(Protocol _p)
         {
             Handshake.SHandshake p = (Handshake.SHandshake)_p;
+            if (DHContext.TryGetValue(p.Sender.SessionId, out var dhRandom))
+            {
+                byte[] material = Handshake.Helper.computeDHKey(Config.HandshakeOptions.DhGroup, new BigInteger(p.Argument.dh_data), dhRandom).ToByteArray();
+                //Console.WriteLine(p.Sender.Socket.RemoteEndPoint);
+                byte[] key = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address.GetAddressBytes();
+                int half = material.Length / 2;
+                byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
+                p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
+                hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
+                p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
 
-            byte[] material = Handshake.Helper.computeDHKey(conf.HandshakeOptions.DhGroup, new BigInteger(p.Argument.dh_data), dhRandom).ToByteArray();
-            //Console.WriteLine(p.Sender.Socket.RemoteEndPoint);
-            byte[] key = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address.GetAddressBytes();
-            int half = material.Length / 2;
-            byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-            p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
-            hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
-            p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
-
-            dhRandom = BigInteger.Zero;
-            OnHandshakeDone(p.Sender);
-            return 0;
+                DHContext.TryRemove(p.Sender.SessionId, out var _);
+                OnHandshakeDone(p.Sender);
+                return 0;
+            }
+            throw new Exception("handshake lost context.");
         }
     }
 }

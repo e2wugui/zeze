@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Xml;
 using System.Xml.Schema;
-using Zeze.Gen;
+using Zeze.Net;
 
 namespace Zeze
 {
@@ -204,10 +205,109 @@ namespace Zeze
             public string Name { get; }
             public Net.SocketOptions SocketOptions { get; set; } = new Net.SocketOptions();
             public Services.HandshakeOptions HandshakeOptions { get; set; } = new Services.HandshakeOptions();
+            public class Acceptor
+            {
+                public int Port { get; set; } = 0;
+                public string Ip { get; set; }
+                public AsyncSocket Socket { get; set; }
 
-            public int Port { get; set; } = 0;
-            public string HostNameOrAddress { get; set; } = ""; // 用于server时只能是ipaddress
-            public bool IsAutoReconnect { get; set; } = true; // 仅用于客户端
+                public Acceptor(ServiceConf conf, XmlElement self)
+                {
+                    string attr = self.GetAttribute("Port");
+                    if (attr.Length > 0)
+                        Port = int.Parse(attr);
+                    Ip = self.GetAttribute("Ip");
+                    conf.Acceptors.Add(this);
+                }
+            }
+            public List<Acceptor> Acceptors { get; } = new List<Acceptor>();
+            public  class Connector
+            {
+                public int Port { get; set; } = 0;
+                public string HostNameOrAddress { get; set; }
+                public bool IsAutoReconnect { get; set; } = true;
+                private int ConnectDelay;
+
+                public AsyncSocket Socket { get; set; }
+
+                public Connector()
+                { 
+                }
+
+                public Connector(ServiceConf conf, XmlElement self)
+                {
+                    string attr = self.GetAttribute("Port");
+                    if (attr.Length > 0)
+                        Port = int.Parse(attr);
+                    HostNameOrAddress = self.GetAttribute("HostNameOrAddress");
+                    attr = self.GetAttribute("IsAutoReconnect");
+                    if (attr.Length > 0)
+                        IsAutoReconnect = bool.Parse(attr);
+                    conf.Connectors.Add(this);
+                }
+
+                public void OnSocketClose(Service service, AsyncSocket closed)
+                {
+                    if (Socket != closed)
+                        return;
+                    Socket = null;
+
+                    if (false == IsAutoReconnect)
+                        return;
+
+                    if (ConnectDelay == 0)
+                    {
+                        ConnectDelay = 1000;
+                    }
+                    else
+                    {
+                        ConnectDelay *= 2;
+                        if (ConnectDelay > 60000)
+                            ConnectDelay = 60000;
+                    }
+                    Util.Scheduler.Instance.Schedule( () => Connect(service), ConnectDelay); ;
+                }
+
+                public void Connect(Service service)
+                {
+                    Socket?.Dispose();
+                    Socket = service.NewClientSocket(HostNameOrAddress, Port);
+                }
+
+                public void OnSocketConnected(Service service)
+                {
+                    ConnectDelay = 0;
+                }
+            }
+            public List<Connector> Connectors { get; } = new List<Connector>();
+
+            public Connector FindConnectorBySocket(AsyncSocket socket)
+            {
+                lock (this)
+                {
+                    foreach (var c in Connectors)
+                    {
+                        if (c.Socket == socket)
+                            return c;
+                    }
+                    return null;
+                }
+            }
+
+            public Connector GetOrAddConnector(string host, int port, bool autoReconnect)
+            {
+                lock (this)
+                {
+                    foreach (var c in Connectors)
+                    {
+                        if (c.HostNameOrAddress.Equals(host) && c.Port.Equals(port))
+                            return c;
+                    }
+                    Connector add = new Connector() { HostNameOrAddress = host, Port = port, IsAutoReconnect = autoReconnect };
+                    Connectors.Add(add);
+                    return add;
+                }
+            }
 
             public ServiceConf()
             {
@@ -265,12 +365,21 @@ namespace Zeze
                 else
                     conf.DefaultServiceConf = this;
 
-                // connection options
-                attr = self.GetAttribute("Port");
-                if (attr.Length > 0) Port = int.Parse(attr);
-                HostNameOrAddress = self.GetAttribute("HostNameOrAddress");
-                attr = self.GetAttribute("IsAutoReconnect");
-                if (attr.Length > 0) IsAutoReconnect = bool.Parse(attr);
+                // connection creator options
+                XmlNodeList childNodes = self.ChildNodes;
+                foreach (XmlNode node in childNodes)
+                {
+                    if (XmlNodeType.Element != node.NodeType)
+                        continue;
+
+                    XmlElement e = (XmlElement)node;
+                    switch (e.Name)
+                    {
+                        case "Acceptor": new Acceptor(this, e); break;
+                        case "Connector": new Connector(this, e); break;
+                        default: throw new Exception("unknown node name: " + e.Name);
+                    }
+                }
             }
         }
 

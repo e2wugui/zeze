@@ -17,7 +17,8 @@ namespace Zeze.Net
         /// <summary>
         /// 同一个 Service 下的所有连接都是用相同配置。
         /// </summary>
-        public SocketOptions SocketOptions { get; set; } = new SocketOptions();
+        public SocketOptions SocketOptions { get; private set; } = new SocketOptions();
+        public Config.ServiceConf Config { get; private set; }
         public Application Zeze { get; }
         public string Name { get; }
 
@@ -27,6 +28,9 @@ namespace Zeze.Net
         {
             Name = name;
             Zeze = zeze;
+
+            Config = zeze.Config.GetServiceConf(name);
+            SocketOptions = Config.SocketOptions;
         }
 
         public Service(string name)
@@ -56,14 +60,47 @@ namespace Zeze.Net
         }
 
         public virtual void Start()
-        { 
+        {
+            // 这里不判断是否重复Start了。
+            foreach (var a in Config.Acceptors)
+            {
+                a.Socket?.Dispose();
+                a.Socket = a.Ip.Length > 0 ? NewServerSocket(a.Ip, a.Port) : NewServerSocket(System.Net.IPAddress.Any, a.Port);
+            }
+            foreach (var c in Config.Connectors)
+            {
+                c.Connect(this);
+                //_asocketMap.TryAdd(c.Socket.SessionId, c.Socket); // 连接成功才加入map。
+            }
         }
 
         public virtual void Close()
         {
+            foreach (var a in Config.Acceptors)
+            {
+                a.Socket?.Dispose();
+                a.Socket = null;
+            }
+
+            foreach (var c in Config.Connectors)
+            {
+                c.Socket?.Dispose();
+                c.Socket = null;
+            }
+
             foreach (var e in _asocketMap)
             {
                 e.Value.Dispose(); // remove in callback OnSocketClose
+            }
+        }
+
+        // 用于控制是否接受新连接
+        public virtual void StopListen()
+        {
+            foreach (var a in Config.Acceptors)
+            {
+                a.Socket?.Dispose();
+                a.Socket = null;
             }
         }
 
@@ -95,6 +132,12 @@ namespace Zeze.Net
         public virtual void OnSocketClose(AsyncSocket so, Exception e)
         {
             _asocketMap.TryRemove(so.SessionId, out var _);
+
+            foreach (var c in Config.Connectors)
+            {
+                c.OnSocketClose(this, so);
+            }
+
             if (null != e)
                 logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketClose");
         }
@@ -127,6 +170,11 @@ namespace Zeze.Net
         /// <param name="e"></param>
         public virtual void OnSocketConnectError(AsyncSocket so, Exception e)
         {
+            _asocketMap.TryRemove(so.SessionId, out var _);
+            foreach (var c in Config.Connectors)
+            {
+                c.OnSocketClose(this, so);
+            }
             logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketConnectError");
         }
 

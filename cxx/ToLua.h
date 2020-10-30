@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "LuaState.h"
+#include "LuaHelper.h"
 #include "ByteBuffer.h"
 #include <unordered_map>
 #include <vector>

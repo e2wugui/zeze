@@ -201,7 +201,7 @@
     <ClInclude Include="..\cxx\common.h" />
     <ClInclude Include="..\cxx\dh.h" />
     <ClInclude Include="..\cxx\luaheader.h" />
-    <ClInclude Include="..\cxx\LuaState.h" />
+    <ClInclude Include="..\cxx\LuaHelper.h" />
     <ClInclude Include="..\cxx\Net.h" />
     <ClInclude Include="..\cxx\octets.h" />
     <ClInclude Include="..\cxx\osdefine.h" />

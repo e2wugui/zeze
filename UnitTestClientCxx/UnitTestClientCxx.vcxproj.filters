@@ -278,10 +278,10 @@
     <ClInclude Include="..\cxx\luaheader.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\LuaState.h">
+    <ClInclude Include="..\cxx\Protocol.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\Protocol.h">
+    <ClInclude Include="..\cxx\LuaHelper.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
   </ItemGroup>

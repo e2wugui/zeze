@@ -16,5 +16,7 @@
 	<TableConf CacheCapaicty="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
 	<TableConf Name="demo_Module1_Table1" CacheCapaicty="20000"/>
 
-	<ServiceConf Name="Server" Port="9999"/>
+	<ServiceConf Name="Server">
+		<Acceptor Ip="127.0.0.1" Port="9999"/>
+	</ServiceConf>
 </zeze>

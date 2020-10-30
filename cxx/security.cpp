@@ -689,6 +689,7 @@ namespace limax {
 	void HmacSHA256::reset(int8_t key[], int32_t off, int32_t len)
 	{
 		int8_t k_ipad[64];
+
 		if (len > 64) {
 			out.update(key, off, len);
 			memcpy(k_ipad, out.digest(), len = 16);
