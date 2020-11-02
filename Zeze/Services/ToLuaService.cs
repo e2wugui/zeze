@@ -30,7 +30,7 @@ namespace Zeze.Services
 
     public class ToLuaServiceClient : HandshakeClient, FromLua
     {
-        public ToLuaService.ToLua ToLua { get; private set; }
+        public ToLuaService.ToLua ToLua { get; private set; } = new ToLuaService.ToLua();
         public ToLuaService.Helper Helper { get; } = new ToLuaService.Helper();
         public Net.Service Service => this;
 
@@ -38,10 +38,10 @@ namespace Zeze.Services
         {
         }
 
-        public void InitializeLua(ToLuaService.ToLua toLua)
+        public void InitializeLua(ToLuaService.ILua iLua)
         {
-            ToLua = toLua;
-            toLua.RegisterGlobalAndCallback(this);
+            ToLua.InitializeLua(iLua);
+            ToLua.RegisterGlobalAndCallback(this);
         }
 
         public override void OnHandshakeDone(AsyncSocket sender)
@@ -67,7 +67,7 @@ namespace Zeze.Services
     // 完全 ToLuaServiceClient，由于 c# 无法写 class S<T> : T where T : Net.Service，复制一份.
     public class ToLuaServiceServer : HandshakeServer, FromLua
     {
-        public ToLuaService.ToLua ToLua { get; private set; }
+        public ToLuaService.ToLua ToLua { get; private set; } = new ToLuaService.ToLua();
         public ToLuaService.Helper Helper { get; } = new ToLuaService.Helper();
         public Net.Service Service => this;
 
@@ -75,10 +75,10 @@ namespace Zeze.Services
         {
         }
 
-        public void InitializeLua(ToLuaService.ToLua toLua)
+        public void InitializeLua(ToLuaService.ILua iLua)
         {
-            ToLua = toLua;
-            toLua.RegisterGlobalAndCallback(this);
+            ToLua.InitializeLua(iLua);
+            ToLua.RegisterGlobalAndCallback(this);
         }
 
         public override void OnHandshakeDone(AsyncSocket sender)
@@ -104,12 +104,95 @@ namespace Zeze.Services
 
 namespace Zeze.Services.ToLuaService
 {
+    public enum LuaType
+    {
+        None = -1,
+        Nil = 0,
+        Boolean = 1,
+        LightUserData = 2,
+        Number = 3,
+        String = 4,
+        Table = 5,
+        Function = 6,
+        UserData = 7,
+        Thread = 8
+    }
+    public interface ILua
+    {
+        public bool DoString(string str);
+        public void GetField(int index, string name);
+        public void PushNil();
+        public bool IsTable(int index);
+        public bool Next(int index);
+        public long ToInteger(int index);
+        public void Pop(int n);
+        public LuaType GetGlobal(string name);
+        public void PushObject(object obj);
+        public void PushInteger(long l);
+        public void Call(int arguments, int results);
+        public void PushString(string str);
+        public void SetTable(int index);
+        public void GetTable(int index);
+        public bool IsNil(int index);
+        public double ToNumber(int index);
+        public string ToString(int index);
+        public byte[] ToBuffer(int index);
+        public bool ToBoolean(int index);
+        public void CreateTable(int elements, int records);
+        public void PushBoolean(bool v);
+        public void PushNumber(double number);
+        public void PushBuffer(byte[] buffer);
+        public T ToObject<T>(int index);
+#if USE_KERA_LUA
+        public void Register(string name, KeraLua.LuaFunction func);
+#endif // end USE_KERA_LUA
+    }
+
+#if USE_KERA_LUA
+    public class Kera : ILua
+    {
+        KeraLua.Lua Lua;
+        public Kera(KeraLua.Lua Lua)
+        {
+            this.Lua = Lua;
+        }
+        void ILua.Call(int arguments, int results) { Lua.Call(arguments, results); }
+        void ILua.CreateTable(int elements, int records) { Lua.CreateTable(elements, records); }
+        bool ILua.DoString(string str) { return Lua.DoString(str); }
+        void ILua.GetField(int index, string name) { Lua.GetField(index, name); }
+        LuaType ILua.GetGlobal(string name) { return (LuaType)Lua.GetGlobal(name); }
+        void ILua.GetTable(int index) { Lua.GetTable(index); }
+        bool ILua.IsNil(int index) { return Lua.IsNil(index); }
+        bool ILua.IsTable(int index) { return Lua.IsTable(index); }
+        bool ILua.Next(int index) { return Lua.Next(index); }
+        void ILua.Pop(int n) { Lua.Pop(n); }
+        void ILua.PushBoolean(bool v) { Lua.PushBoolean(v); }
+        void ILua.PushBuffer(byte[] buffer) { Lua.PushBuffer(buffer); }
+        void ILua.PushInteger(long l) { Lua.PushInteger(l); }
+        void ILua.PushNil() { Lua.PushNil(); }
+        void ILua.PushNumber(double number) { Lua.PushNumber(number); }
+        void ILua.PushObject(object obj) { Lua.PushObject(obj); }
+        void ILua.PushString(string str) { Lua.PushString(str); }
+        void ILua.SetTable(int index) { Lua.SetTable(index); }
+        bool ILua.ToBoolean(int index) { return Lua.ToBoolean(index); }
+        byte[] ILua.ToBuffer(int index) { return Lua.ToBuffer(index); }
+        long ILua.ToInteger(int index) { return Lua.ToInteger(index); }
+        double ILua.ToNumber(int index) { return Lua.ToNumber(index); }
+        string ILua.ToString(int index) { return Lua.ToString(index); }
+        public T ToObject<T>(int index) { return Lua.ToObject<T>(index, false); }
+        public void Register(string name, KeraLua.LuaFunction func) { Lua.Register(name, func); }
+    }
+#endif // end USE_KERA_LUA
+
     public class ToLua
     {
-#if USE_KERA_LUA
-        public KeraLua.Lua Lua { get; }
+        public ILua Lua { get; private set; }
 
-        public ToLua(KeraLua.Lua lua)
+        public ToLua()
+        {
+        }
+
+        public void InitializeLua(ILua lua)
         {
             this.Lua = lua;
             if (this.Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
@@ -193,7 +276,7 @@ namespace Zeze.Services.ToLuaService
         internal void CallHandshakeDone(FromLua service, long socketSessionId)
         {
             // void OnHandshakeDone(service, long sessionId)
-            if (KeraLua.LuaType.Function != this.Lua.GetGlobal("ZezeHandshakeDone")) // push func onto stack
+            if (LuaType.Function != this.Lua.GetGlobal("ZezeHandshakeDone")) // push func onto stack
             {
                 Lua.Pop(1);
                 throw new Exception("ZezeHandshakeDone is not a function");
@@ -204,11 +287,11 @@ namespace Zeze.Services.ToLuaService
             Lua.Call(2, 0);
         }
 
-        private static int ZezeSendProtocol(IntPtr luaState)
+        private int ZezeSendProtocol(IntPtr luaState)
         {
-            KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
-            FromLua callback = lua.ToObject<FromLua>(-3, false); // do not free gchandle ?
-            long sessionId = lua.ToInteger(-2);
+            //KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
+            FromLua callback = Lua.ToObject<FromLua>(-3);
+            long sessionId = Lua.ToInteger(-2);
             AsyncSocket socket = callback.Service.GetSocket(sessionId);
             if (null == socket)
                 return 0;
@@ -216,16 +299,20 @@ namespace Zeze.Services.ToLuaService
             return 0;
         }
 
-        private static int ZezeUpdate(IntPtr luaState)
+        private int ZezeUpdate(IntPtr luaState)
         {
-            KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
-            FromLua callback = lua.ToObject<FromLua>(-1, false); // do not free gchandle ?
+            //KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
+            FromLua callback = Lua.ToObject<FromLua>(-1);
             callback.Helper.Update(callback.Service, callback.ToLua);
             return 0;
         }
 
-        private static KeraLua.LuaFunction ZezeUpdateFunction = ZezeUpdate;
-        private static KeraLua.LuaFunction ZezeSendProtocolFunction = ZezeSendProtocol;
+        // 使用静态变量，
+#if USE_KERA_LUA
+        private static KeraLua.LuaFunction ZezeUpdateFunction;
+        private static KeraLua.LuaFunction ZezeSendProtocolFunction;
+#endif // USE_KERA_LUA
+        private static object CFunctionCallbackLock = new object();
 
         internal void RegisterGlobalAndCallback(FromLua callback)
         {
@@ -241,14 +328,18 @@ namespace Zeze.Services.ToLuaService
             Lua.PushObject(callback);
             Lua.SetTable(-3); // 当存在多个service时，这里保存最后一个。
 
-            // 第一个参数是Service的全局变量。在上面一行注册进去的。
-            // void ZezeUpdate(ZezeService##Name)
-            Lua.Register("ZezeUpdate", ZezeUpdateFunction);
-            // 由 Protocol 的 lua 生成代码调用，其中 sesionId 从全局变量 ZezeCurrentSessionId 中读取，
-            // 对于客户端，连接 HandshakeDone 以后保存 sessionId 到 ZezeCurrentSessionId 中，以后不用重新设置。
-            // 对于服务器，连接 HandshakeDone 以后保存 sessionId 自己的结构中，发送前需要把当前连接设置到 ZezeCurrentSessionId 中。 
-            // void ZezeSendProtocol(ZezeService##Name, sessionId, protocol)
-            Lua.Register("ZezeSendProtocol", ZezeSendProtocolFunction);
+            lock (CFunctionCallbackLock)
+            {
+                // 所有的ToLua实例共享回调函数。
+                if (null == ZezeUpdateFunction)
+                {
+                    ZezeUpdateFunction = ZezeUpdate;
+                    ZezeSendProtocolFunction = ZezeSendProtocol;
+
+                    Lua.Register("ZezeUpdate", ZezeUpdateFunction);
+                    Lua.Register("ZezeSendProtocol", ZezeSendProtocolFunction);
+                }
+            }
         }
 
         public void SendProtocol(AsyncSocket socket)
@@ -453,7 +544,7 @@ namespace Zeze.Services.ToLuaService
 
         public bool DecodeAndDispatch(Net.Service service, long sessionId, int typeId, ByteBuffer _os_)
         {
-            if (KeraLua.LuaType.Function != this.Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
+            if (LuaType.Function != this.Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
             {
                 Lua.Pop(1);
                 return false;
@@ -633,14 +724,6 @@ namespace Zeze.Services.ToLuaService
                     throw new Exception("Unkown Tag Type");
             }
         }
-#else
-        // 不使用 lua 也需要定义这个函数，Protocol.Decode 编译需要。其他函数核心代码都不调用，先不定义。
-        public bool DecodeAndDispatch(Net.Service service, long sessionId, int typeId, ByteBuffer _os_)
-        {
-            return false;
-        }
-
-#endif // end USE_KERA_LUA
     }
 
     public class Helper
