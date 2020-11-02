@@ -86,18 +86,6 @@ namespace Net
 		}
 		void InitializeLua(lua_State* L);
 		void Connect(const std::string& host, int port, int timeoutSecondsPerConnect = 5);
-		virtual void OnSocketClose(const std::shared_ptr<Socket> & sender, const std::exception* e);
-		virtual void OnHandshakeDone(const std::shared_ptr<Socket>& sender);
-		virtual void OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e);
-		virtual void OnSocketConnected(const std::shared_ptr<Socket>& sender);
-		virtual void DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int typeId, Zeze::Serialize::ByteBuffer& data);
-		virtual void DispatchProtocol(Protocol* p);
-		virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& input);
-
-		friend class ToLua;
-		friend class Helper;
-		friend class Protocol;
-
 		class ProtocolFactoryHandle
 		{
 		public:
@@ -114,11 +102,21 @@ namespace Net
 			{
 			}
 		};
-		void AddProtocolFactory(int typeId, const ProtocolFactoryHandle & func)
+		void AddProtocolFactory(int typeId, const ProtocolFactoryHandle& func)
 		{
 			std::pair<ProtocolFactoryMap::iterator, bool> r = ProtocolFactory.insert(std::pair<int, ProtocolFactoryHandle>(typeId, func));
 			if (false == r.second)
 				throw std::exception("duplicate protocol TypeId");
+		}
+		bool FindProtocolFactoryHandle(int typeId, ProtocolFactoryHandle& outFactoryHandle)
+		{
+			ProtocolFactoryMap::iterator it = ProtocolFactory.find(typeId);
+			if (it != ProtocolFactory.end())
+			{
+				outFactoryHandle = it->second;
+				return true;
+			}
+			return false;
 		}
 
 		void SetDhGroup(char dhGroup)
@@ -126,10 +124,22 @@ namespace Net
 			this->dhGroup = dhGroup;
 		}
 
+		virtual void OnSocketClose(const std::shared_ptr<Socket> & sender, const std::exception* e);
+		virtual void OnHandshakeDone(const std::shared_ptr<Socket>& sender);
+		virtual void OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e);
+		virtual void OnSocketConnected(const std::shared_ptr<Socket>& sender);
+		virtual void DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int typeId, Zeze::Serialize::ByteBuffer& data);
+		virtual void DispatchProtocol(Protocol* p, Service::ProtocolFactoryHandle& factoryHandle);
+		virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& input);
+
+		friend class ToLua;
+		friend class Helper;
+		friend class Protocol;
+
 	private:
 		typedef std::unordered_map<int, ProtocolFactoryHandle> ProtocolFactoryMap;
 		ProtocolFactoryMap ProtocolFactory;
-		Protocol* CreateProtocol(int typeId, Zeze::Serialize::ByteBuffer& os);
+
 		char dhGroup = 1;
 		int ProcessSHandshake(Protocol* p);
 	};

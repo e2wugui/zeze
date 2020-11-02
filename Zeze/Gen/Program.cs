@@ -21,7 +21,6 @@ namespace Zeze.Gen
 
         public static void AddNamedObject(string fullName, object obj)
         {
-            //Console.WriteLine("AddNamedObject " + fullName);
             // 由于创建文件在 windows 下大小写不敏感，所以名字需要大小写不敏感。
             string lower = fullName.ToLower();
             if (NamedObjects.ContainsKey(lower))

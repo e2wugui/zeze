@@ -81,20 +81,20 @@ namespace Zeze.Services
                 p.Sender.Close(new Exception("dhGroup Not Supported"));
                 return 0;
             }
+            Array.Reverse(p.Argument.dh_data);
             BigInteger data = new BigInteger(p.Argument.dh_data);
             BigInteger rand = Handshake.Helper.makeDHRandom();
             byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
-            Console.WriteLine("server material:" + BitConverter.ToString(material));
-            byte[] key = Config.HandshakeOptions.SecureIp != null
-                ? Config.HandshakeOptions.SecureIp : ((System.Net.IPEndPoint)p.Sender.Socket.LocalEndPoint).Address.GetAddressBytes();
+            Array.Reverse(material);
+            byte[] key = Config.HandshakeOptions.SecureIp != null ? Config.HandshakeOptions.SecureIp
+                : ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address.GetAddressBytes();
             int half = material.Length / 2;
             byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-            Console.WriteLine("input:" + BitConverter.ToString(hmacMd5));
             p.Sender.SetInputSecurityCodec(hmacMd5, Config.HandshakeOptions.C2sNeedCompress);
-            new Handshake.SHandshake(Handshake.Helper.generateDHResponse(group, rand).ToByteArray(),
-                Config.HandshakeOptions.S2cNeedCompress, Config.HandshakeOptions.C2sNeedCompress).Send(p.Sender);
+            byte[] response = Handshake.Helper.generateDHResponse(group, rand).ToByteArray();
+            Array.Reverse(response);
+            new Handshake.SHandshake(response, Config.HandshakeOptions.S2cNeedCompress, Config.HandshakeOptions.C2sNeedCompress).Send(p.Sender);
             hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
-            Console.WriteLine("output:" + BitConverter.ToString(hmacMd5));
             p.Sender.SetOutputSecurityCodec(hmacMd5, Config.HandshakeOptions.S2cNeedCompress);
 
             OnHandshakeDone(p.Sender);
@@ -135,18 +135,13 @@ namespace Zeze.Services
             // 重载这个方法，推迟OnHandshakeDone调用
             _asocketMap.TryAdd(so.SessionId, so);
             Config.FindConnectorBySocket(so)?.OnSocketConnected(this);
-            /*
-            BigInteger dhRandom = new BigInteger(new byte[] { 106, 227, 141, 128, 79, 152, 247, 179, 58, 50, 89, 126, 38, 238, 245, 62,
-                20, 248, 125, 28, 39, 59, 222, 81, 148, 86, 20, 119, 113, 83, 242, 208, 159, 216, 174, 242,
-                166, 36, 53, 150, 224, 15, 92, 150, 232, 73, 212, 97, 241, 63, 226, 192, 163, 27, 93, 117, 168,
-                181, 148, 128, 221, 154, 64, 237, 254, 210, 77, 186, 229, 177, 163, 88, 142, 252, 216, 76, 35,
-                241, 19, 76, 141, 209, 100, 68, 17, 132, 224, 225, 185, 253, 114, 245, 73, 85, 47, 121 });
-            */
+
             BigInteger dhRandom = Handshake.Helper.makeDHRandom();
             if (!DHContext.TryAdd(so.SessionId, dhRandom))
                 throw new Exception("handshake duplicate context for same session.");
-            new Handshake.CHandshake(Config.HandshakeOptions.DhGroup,
-                Handshake.Helper.generateDHResponse(Config.HandshakeOptions.DhGroup, dhRandom).ToByteArray()).Send(so);
+            byte[] response = Handshake.Helper.generateDHResponse(Config.HandshakeOptions.DhGroup, dhRandom).ToByteArray();
+            Array.Reverse(response);
+            new Handshake.CHandshake(Config.HandshakeOptions.DhGroup, response).Send(so);
         }
 
         private int ProcessSHandshake(Protocol _p)
@@ -154,8 +149,9 @@ namespace Zeze.Services
             Handshake.SHandshake p = (Handshake.SHandshake)_p;
             if (DHContext.TryGetValue(p.Sender.SessionId, out var dhRandom))
             {
+                Array.Reverse(p.Argument.dh_data);
                 byte[] material = Handshake.Helper.computeDHKey(Config.HandshakeOptions.DhGroup, new BigInteger(p.Argument.dh_data), dhRandom).ToByteArray();
-                Console.WriteLine("client material:" + BitConverter.ToString(material));
+                Array.Reverse(material);
                 byte[] key = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address.GetAddressBytes();
                 int half = material.Length / 2;
                 byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);

@@ -32,12 +32,12 @@ namespace Zeze
 			{
 				Zeze::Serialize::ByteBuffer bb(1024);
 				EncodeProtcocol(bb);
-				socket->Send(bb.Bytes, bb.ReadIndex, bb.Size());
+				socket->Send((const char *)bb.Bytes, bb.ReadIndex, bb.Size());
 			}
 			
-			virtual void Dispatch(Service * service)
+			virtual void Dispatch(Service * service, Service::ProtocolFactoryHandle & factoryHandle)
 			{
-				service->DispatchProtocol(this);
+				service->DispatchProtocol(this, factoryHandle);
 			}
 
 			static void DecodeProtocol(Service * service, const std::shared_ptr<Socket> & sender, Zeze::Serialize::ByteBuffer& bb, ToLua* toLua = NULL);

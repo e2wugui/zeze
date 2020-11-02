@@ -96,36 +96,38 @@ namespace Net
 			[]() { return new SHandshake(); }, std::bind(&Service::ProcessSHandshake, this, std::placeholders::_1)));
 	}
 
+	/*
+	void print(const char * name, const void* data, int size)
+	{
+		const unsigned char* uc = (const unsigned char*)data;
+		std::cout << name << " ";
+		for (int i = 0; i < size; ++i)
+			std::cout << std::hex << (unsigned int)uc[i] << " ";
+		std::cout << std::endl;
+	}
+	*/
+
 	int Service::ProcessSHandshake(Protocol* _p)
 	{
 		SHandshake* p = (SHandshake*)_p;
 
 		const std::vector<unsigned char> material = p->Sender->dhContext->computeDHKey((unsigned char*)p->Argument.dh_data.data(), (int32_t)p->Argument.dh_data.size());
-		std::cout << "client material:";
-		for (int i = 0; i < material.size(); ++i)
-			std::cout << std::hex << (unsigned int)material[i] << " ";
-		std::cout << std::endl;
 		socklen_t key_len = p->Sender->LastAddressBytes.size();
 		int8_t* key = (int8_t*)p->Sender->LastAddressBytes.data();
+		//print("key", key, key_len);
 		int32_t half = (int32_t)material.size() / 2;
 		{
 			limax::HmacMD5 hmac(key, 0, key_len);
 			hmac.update((int8_t*)&material[0], 0, half);
 			const int8_t* skey = hmac.digest();
-			std::cout << "output ";
-			for (int i = 0; i < 16; ++i)
-				std::cout << std::hex << (unsigned int)(unsigned char)skey[i] << " ";
-			std::cout << std::endl;
+			//print("output key", skey, 16);
 			p->Sender->SetOutputSecurity(p->Argument.c2sneedcompress, skey, 16);
 		}
 		{
 			limax::HmacMD5 hmac(key, 0, key_len);
 			hmac.update((int8_t*)&material[0], half, (int32_t)material.size() - half);
 			const int8_t* skey = hmac.digest();
-			std::cout << "input ";
-			for (int i = 0; i < 16; ++i)
-				std::cout << std::hex << (unsigned int)(unsigned char)skey[i] << " ";
-			std::cout << std::endl;
+			//print("output key", skey, 16);
 			p->Sender->SetInputSecurity(p->Argument.s2cneedcompress, skey, 16);
 		}
 		p->Sender->dhContext.reset();
@@ -226,36 +228,15 @@ namespace Net
 		}
 		socket = sender;
 		sender->dhContext = limax::createDHContext(dhGroup);
-		const std::vector<unsigned char> dhResponse = sender->dhContext->generateDHResponse();
-		std::cout << "dhResponse ";
-		for (int i = 0; i < dhResponse.size(); ++i)
-			std::cout << std::hex << (unsigned int)dhResponse[i] << " ";
-		std::cout << std::endl;
+		const std::vector<unsigned char> & dhResponse = sender->dhContext->generateDHResponse();
 		CHandshake hand(dhGroup, std::string((const char *)&dhResponse[0], dhResponse.size()));
 		hand.Send(sender.get());
 	}
 
-	Protocol* Service::CreateProtocol(int typeId, Zeze::Serialize::ByteBuffer& os)
-	{
-		ProtocolFactoryMap::iterator it = ProtocolFactory.find(typeId);
-		if (it != ProtocolFactory.end())
-		{
-			std::auto_ptr<Protocol> p(it->second.Factory());
-			p->Decode(os);
-			return p.release();
-		}
-		return NULL;
-	}
-
-	void Service::DispatchProtocol(Protocol* p)
+	void Service::DispatchProtocol(Protocol* p, Service::ProtocolFactoryHandle& factoryHandle)
 	{
 		std::auto_ptr<Protocol> at(p);
-
-		ProtocolFactoryMap::iterator it = ProtocolFactory.find(p->TypeId());
-		if (it != ProtocolFactory.end())
-		{
-			it->second.Handle(p);
-		}
+		factoryHandle.Handle(p);
 	}
 
 	void Service::OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& input)
@@ -589,23 +570,23 @@ namespace Net
 		{
 			InputCodec->update((int8_t*)recvbuf.data, 0, rc);
 			InputCodec->flush();
-			Zeze::Serialize::ByteBuffer bb((char*)InputBuffer->buffer.data(), 0, InputBuffer->buffer.size());
+			Zeze::Serialize::ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, InputBuffer->buffer.size());
 			service->OnSocketProcessInputBuffer(This, bb);
 			InputBuffer->buffer.erase(0, bb.ReadIndex);
 		}
 		else if (InputBuffer->buffer.size() > 0)
 		{
 			InputBuffer->buffer.append(recvbuf.data, rc);
-			Zeze::Serialize::ByteBuffer bb((char*)InputBuffer->buffer.data(), 0, InputBuffer->buffer.size());
+			Zeze::Serialize::ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, InputBuffer->buffer.size());
 			service->OnSocketProcessInputBuffer(This, bb);
 			InputBuffer->buffer.erase(0, bb.ReadIndex);
 		}
 		else
 		{
-			Zeze::Serialize::ByteBuffer bb(recvbuf.data, 0, rc);
+			Zeze::Serialize::ByteBuffer bb((unsigned char*)recvbuf.data, 0, rc);
 			service->OnSocketProcessInputBuffer(This, bb);
 			if (bb.Size() > 0)
-				InputBuffer->buffer.append(bb.Bytes + bb.ReadIndex, bb.Size());
+				InputBuffer->buffer.append((const char *)(bb.Bytes + bb.ReadIndex), bb.Size());
 		}
 
 		if (InputBuffer->buffer.empty())

@@ -116,10 +116,10 @@ namespace Zeze.Transaction
             agent.Connected.SetException(e);
         }
 
-        public override void DispatchProtocol(Protocol p, Service.DispatchType dispatchType)
+        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle, Service.DispatchType dispatchType)
         {
             // Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-            Func<Protocol, int> handle = GetProtocolHandle(p.TypeId, dispatchType, out var _);
+            Func<Protocol, int> handle = factoryHandle.Handle(dispatchType);
             if (null != handle)
             {
                 agent.Zeze.InternalThreadPool.QueueUserWorkItem(() => handle(p));

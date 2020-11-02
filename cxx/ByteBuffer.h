@@ -24,7 +24,7 @@ namespace Serialize
         ByteBuffer& operator=(const ByteBuffer&) = delete;
 
     public:
-        char* Bytes;
+        unsigned char * Bytes;
         int ReadIndex;
         int WriteIndex;
         int Capacity;
@@ -34,13 +34,13 @@ namespace Serialize
         {
             IsEncodeMode = true;
             Capacity = ToPower2(capacity);
-            Bytes = new char[Capacity];
+            Bytes = new unsigned char[Capacity];
             ReadIndex = 0;
             WriteIndex = 0;
         }
 
         // 应该仅用于Decode。
-        ByteBuffer(char* bytes, int offset, int length)
+        ByteBuffer(unsigned char* bytes, int offset, int length)
         {
             IsEncodeMode = false;
             Bytes = bytes;
@@ -266,7 +266,7 @@ namespace Serialize
             if (newSize > Capacity)
             {
                 Capacity = ToPower2(newSize);
-                char * newBytes = new char[Capacity];
+                unsigned char * newBytes = new unsigned char[Capacity];
                 WriteIndex -= ReadIndex;
                 memcpy(newBytes, Bytes + ReadIndex, WriteIndex);
                 ReadIndex = 0;
@@ -703,7 +703,7 @@ namespace Serialize
         {
             int n = ReadInt();
             EnsureRead(n);
-            std::string x(Bytes + ReadIndex, n);
+            std::string x((const char *)(Bytes + ReadIndex), n);
             ReadIndex += n;
             return x;
         }
@@ -712,7 +712,7 @@ namespace Serialize
         {
             int n = ReadInt();
             EnsureRead(n);
-            outstr = Bytes + ReadIndex;
+            outstr = (const char *)(Bytes + ReadIndex);
             outlength = n;
             ReadIndex += n;
         }

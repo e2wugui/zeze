@@ -54,7 +54,7 @@ namespace Zeze
             EncodeBean(bb, argumentBeanTypeId);
             Lua.Pop(1);
             bb.EndWriteWithSize4(outstate);
-            socket->Send(bb.Bytes, bb.ReadIndex, bb.Size());
+            socket->Send((const char *)bb.Bytes, bb.ReadIndex, bb.Size());
         }
 
         void Helper::Update(Service* service, ToLua& toLua)
@@ -77,7 +77,7 @@ namespace Zeze
                 std::shared_ptr<Socket> sender = service->GetSocket(e.first);
                 if (NULL == sender.get())
                     continue;
-                Zeze::Serialize::ByteBuffer bb((char *)e.second.data(), 0, e.second.size());
+                Zeze::Serialize::ByteBuffer bb((unsigned char *)e.second.data(), 0, e.second.size());
                 Protocol::DecodeProtocol(service, sender, bb, &toLua);
                 e.second.erase(0, bb.ReadIndex);
             }

@@ -529,7 +529,7 @@ namespace Net
         void AppendInputBuffer(long long socketSessionId, Zeze::Serialize::ByteBuffer& buffer)
         {
             std::lock_guard<std::mutex> lock(mutex);
-            ToLuaBuffer[socketSessionId].append(buffer.Bytes + buffer.ReadIndex, buffer.Size());
+            ToLuaBuffer[socketSessionId].append((const char *)(buffer.Bytes + buffer.ReadIndex), buffer.Size());
         }
 
         void Update(Service* service, ToLua& toLua);

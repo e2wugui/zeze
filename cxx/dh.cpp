@@ -67,6 +67,7 @@ namespace limax {
 				BI_free(biresponse);
 				return response;
 			}
+
 			virtual const std::vector<unsigned char>& computeDHKey(unsigned char* response, int32_t size)
 			{
 				BI biresponse = BI_from_array(response, size);

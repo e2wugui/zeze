@@ -15,9 +15,9 @@ namespace Zeze.Net
 		public AsyncSocket Sender { get; protected set; }
 		public object UserState { get; set; }
 
-		internal virtual void Dispatch(Service service)
+		internal virtual void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
 		{
-			service.DispatchProtocol(this, Service.DispatchType.Request);
+			service.DispatchProtocol(this, factoryHandle, Service.DispatchType.Request);
 		}
 
 		public abstract void Decode(ByteBuffer bb);
@@ -31,7 +31,6 @@ namespace Zeze.Net
 			bb.BeginWriteWithSize4(out var state);
 			this.Encode(bb);
 			bb.EndWriteWithSize4(state);
-			//Console.WriteLine("Protocol.Encode size=" + bb.Size);
 			return bb;
 		}
 
@@ -92,24 +91,24 @@ namespace Zeze.Net
 				// 直接使用os，可以少创建对象，否则 Wrap 一个更安全：
 				// ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size)
 				// 使用Wrap的话，记得手动增加: os.ReadIndex += size;
-				Protocol p = service.CreateProtocol(type, os);
-				if (null == p)
+				Service.ProtocolFactoryHandle factoryHandle = service.FindProtocolFactoryHandle(type);
+				if (null != factoryHandle)
 				{
-					// 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
-					if (null != toLua)
-					{
-						if (toLua.DecodeAndDispatch(service, so.SessionId, type, os))
-							continue;
-					}
-					service.DispatchUnknownProtocol(so, type, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));
-					os.ReadIndex += size;
-				}
-				else
-                {
+					Protocol p = factoryHandle.Factory();
+					p.Decode(os);
 					p.Sender = so;
 					p.UserState = so.UserState;
-					p.Dispatch(service);
+					p.Dispatch(service, factoryHandle);
+					continue;
 				}
+				// 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
+				if (null != toLua)
+				{
+					if (toLua.DecodeAndDispatch(service, so.SessionId, type, os))
+						continue;
+				}
+				service.DispatchUnknownProtocol(so, type, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));
+				os.ReadIndex += size;
 			}
 			bb.ReadIndex = os.ReadIndex;
 		}

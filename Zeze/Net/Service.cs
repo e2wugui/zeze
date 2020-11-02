@@ -7,6 +7,7 @@ using Zeze.Serialize;
 using System.Collections.Concurrent;
 using Zeze.Transaction;
 using System.Net;
+using System.Reflection.Metadata;
 
 namespace Zeze.Net
 {
@@ -206,34 +207,39 @@ namespace Zeze.Net
             Timeout = 2,
         }
 
-        public Func<Protocol, int> GetProtocolHandle(int typeid, DispatchType dispatchType, out bool noProcedure)
+        public virtual void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle, DispatchType dispatchType)
         {
-            if (Factorys.TryGetValue(typeid, out var protocolFactoryHandle))
-            {
-                noProcedure = protocolFactoryHandle.NoProcedure;
-                switch (dispatchType)
-                {
-                    case DispatchType.Request: return protocolFactoryHandle.HandleRequest;
-                    case DispatchType.Response: return protocolFactoryHandle.HandleResponse;
-                    case DispatchType.Timeout: return protocolFactoryHandle.HandleTimeout;
-                }
-            }
-            noProcedure = true;
-            return null;
-        }
-
-        public virtual void DispatchProtocol(Protocol p, DispatchType dispatchType)
-        {
-            Func<Protocol, int> handle = GetProtocolHandle(p.TypeId, dispatchType, out var noProcedure);
+            Func<Protocol, int> handle = factoryHandle.Handle(dispatchType);
             if (null != handle)
             {
-                if (null != Zeze && false == noProcedure)
+                if (null != Zeze && false == factoryHandle.NoProcedure)
                 {
-                    Task.Run(Zeze.NewProcedure(() => handle(p), p.GetType().FullName).Call);
+                    Task.Run(Zeze.NewProcedure(() =>
+                    {
+                        try
+                        {
+                            return handle(p);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(ex, "DispatchProtocol.NewProcedure");
+                            return Procedure.Excption;
+                        }
+                    }, p.GetType().FullName).Call);
                 }
                 else
                 {
-                    Task.Run(() => handle(p));
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            handle(p);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(ex, "DispatchProtocol");
+                        }
+                    });
                 }
             }
             else
@@ -256,6 +262,17 @@ namespace Zeze.Net
             public Func<Protocol, int> HandleResponse { get; set; }
             public Func<Protocol, int> HandleTimeout { get; set; }
             public bool NoProcedure { get; set; } = false;
+
+            public Func<Protocol, int> Handle(DispatchType dispatchType)
+            {
+                switch (dispatchType)
+                {
+                    case DispatchType.Request: return HandleRequest;
+                    case DispatchType.Response: return HandleResponse;
+                    case DispatchType.Timeout: return HandleTimeout;
+                }
+                return null;
+            }
         }
 
         private ConcurrentDictionary<int, ProtocolFactoryHandle> Factorys { get; } = new ConcurrentDictionary<int, ProtocolFactoryHandle>();
@@ -283,16 +300,14 @@ namespace Zeze.Net
             };
         }
 
-        public Protocol CreateProtocol(int type, ByteBuffer bb)
+        public ProtocolFactoryHandle FindProtocolFactoryHandle(int type)
         {
-            if (false == Factorys.TryGetValue(type, out ProtocolFactoryHandle factory))
+            if (Factorys.TryGetValue(type, out ProtocolFactoryHandle factory))
             {
-                return null;
+                return factory;
             }
 
-            Protocol p = factory.Factory();
-            p.Decode(bb);
-            return p;
+            return null;
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////////

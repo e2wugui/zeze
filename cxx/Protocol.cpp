@@ -39,22 +39,19 @@ namespace Zeze
 
 				Zeze::Serialize::ByteBuffer pbb(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
-				std::auto_ptr<Protocol> p(service->CreateProtocol(type, pbb));
-				if (NULL == p.get())
+				Service::ProtocolFactoryHandle factoryHandle;
+				if (service->FindProtocolFactoryHandle(type, factoryHandle))
 				{
-					// 优先派发c++实现，然后尝试lua实现，最后UnknownProtocol。
-					if (NULL != toLua)
-					{
-						if (toLua->DecodeAndDispatch(service, sender->SessionId, type, os))
-							continue;
-					}
-					service->DispatchUnknownProtocol(sender, type, pbb);
-				}
-				else
-				{
+					std::auto_ptr<Protocol> p(factoryHandle.Factory());
+					p->Decode(pbb);
 					p->Sender = sender;
-					p.release()->Dispatch(service);
+					p.release()->Dispatch(service, factoryHandle);
+					continue;
 				}
+				// 优先派发c++实现，然后尝试lua实现，最后UnknownProtocol。
+				if (NULL != toLua && toLua->DecodeAndDispatch(service, sender->SessionId, type, pbb))
+					continue;
+				service->DispatchUnknownProtocol(sender, type, pbb);
 			}
 			bb.ReadIndex = os.ReadIndex;
 		}

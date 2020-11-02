@@ -49,8 +49,7 @@ namespace Zeze.Net
                     context.Future.SetException(new RpcTimeoutException());
                     return;
                 }
-
-                so.Service.DispatchProtocol(context, Service.DispatchType.Timeout);
+                so.Service.DispatchProtocol(context, so.Service.FindProtocolFactoryHandle(context.TypeId), Service.DispatchType.Timeout);
             }, millisecondsTimeout, -1);
         }
 
@@ -73,11 +72,11 @@ namespace Zeze.Net
             SendResult();
         }
 
-        internal override void Dispatch(Service service)
+        internal override void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
         {
             if (IsRequest)
             {
-                service.DispatchProtocol(this, Service.DispatchType.Request);
+                service.DispatchProtocol(this, factoryHandle, Service.DispatchType.Request);
                 return;
             }
 
@@ -101,7 +100,7 @@ namespace Zeze.Net
                 return; // SendForWait，设置结果唤醒等待者。
             }
 
-            service.DispatchProtocol(context, Service.DispatchType.Response);
+            service.DispatchProtocol(context, factoryHandle, Service.DispatchType.Response);
         }
 
         public override void Decode(ByteBuffer bb)
