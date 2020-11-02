@@ -307,12 +307,12 @@ namespace Zeze.Services.ToLuaService
             return 0;
         }
 
-        // 使用静态变量，
+        // 使用静态变量，防止垃圾回收。
 #if USE_KERA_LUA
         private static KeraLua.LuaFunction ZezeUpdateFunction;
         private static KeraLua.LuaFunction ZezeSendProtocolFunction;
 #endif // USE_KERA_LUA
-        private static object CFunctionCallbackLock = new object();
+        private static object RegisterCallbackLock = new object();
 
         internal void RegisterGlobalAndCallback(FromLua callback)
         {
@@ -328,7 +328,7 @@ namespace Zeze.Services.ToLuaService
             Lua.PushObject(callback);
             Lua.SetTable(-3); // 当存在多个service时，这里保存最后一个。
 
-            lock (CFunctionCallbackLock)
+            lock (RegisterCallbackLock)
             {
                 // 所有的ToLua实例共享回调函数。
                 if (null == ZezeUpdateFunction)
