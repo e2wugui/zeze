@@ -18,5 +18,6 @@
 
 	<ServiceConf Name="Server">
 		<Acceptor Ip="127.0.0.1" Port="9999"/>
+		<Acceptor Ip="::1" Port="9999"/>
 	</ServiceConf>
 </zeze>

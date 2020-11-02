@@ -696,7 +696,7 @@ namespace Net
 		hints.ai_family = AF_UNSPEC;
 		hints.ai_socktype = SOCK_STREAM;
 		hints.ai_protocol = IPPROTO_TCP;
-		hints.ai_flags = AI_V4MAPPED | AI_ALL;
+		//hints.ai_flags = AI_V4MAPPED | AI_ALL;
 
 		std::stringstream sport;
 		sport << _port;

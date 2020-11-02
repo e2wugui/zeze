@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
 		if (lua.DoString("package.path = package.path .. ';../UnitTestClientCxx/LuaSrc/?.lua;../UnitTestClientCxx/LuaGen/?.lua'"))
 			throw std::exception("package.path");
 		demo::App::Instance().Client.InitializeLua(L);
-		demo::App::Instance().Client.Connect("127.0.0.1", 9999);
+		demo::App::Instance().Client.Connect("::1", 9999);
 		if (lua.DoString("require 'main'"))
 		{
 			std::cout << "run main error: " << lua.ToString(-1) << std::endl;
