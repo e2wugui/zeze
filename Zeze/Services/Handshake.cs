@@ -50,6 +50,8 @@ namespace Zeze.Services
 
     public class HandshakeServer : Service
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public HandshakeServer(string name, Application zeze) : base(name, zeze)
         {
             AddFactoryHandle(new Handshake.CHandshake().TypeId, new Service.ProtocolFactoryHandle()
@@ -86,8 +88,11 @@ namespace Zeze.Services
             BigInteger rand = Handshake.Helper.makeDHRandom();
             byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
             Array.Reverse(material);
-            byte[] key = Config.HandshakeOptions.SecureIp != null ? Config.HandshakeOptions.SecureIp
-                : ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address.GetAddressBytes();
+            System.Net.IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
+            if (ipaddress.IsIPv4MappedToIPv6)
+                ipaddress = ipaddress.MapToIPv4();
+            byte[] key = Config.HandshakeOptions.SecureIp != null ? Config.HandshakeOptions.SecureIp : ipaddress.GetAddressBytes();
+            logger.Debug($"{p.Sender.SessionId} localip={BitConverter.ToString(key)}");
             int half = material.Length / 2;
             byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
             p.Sender.SetInputSecurityCodec(hmacMd5, Config.HandshakeOptions.C2sNeedCompress);
@@ -105,6 +110,8 @@ namespace Zeze.Services
 
     public class HandshakeClient : Service
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public HandshakeClient(string name, Application zeze) : base(name, zeze)
         {
             AddFactoryHandle(new Handshake.SHandshake().TypeId, new Service.ProtocolFactoryHandle()
@@ -152,7 +159,12 @@ namespace Zeze.Services
                 Array.Reverse(p.Argument.dh_data);
                 byte[] material = Handshake.Helper.computeDHKey(Config.HandshakeOptions.DhGroup, new BigInteger(p.Argument.dh_data), dhRandom).ToByteArray();
                 Array.Reverse(material);
-                byte[] key = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address.GetAddressBytes();
+                System.Net.IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
+                if (ipaddress.IsIPv4MappedToIPv6)
+                    ipaddress = ipaddress.MapToIPv4();
+                byte[] key = ipaddress.GetAddressBytes();
+                logger.Debug($"{p.Sender.SessionId} remoteip={BitConverter.ToString(key)}");
+
                 int half = material.Length / 2;
                 byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
                 p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
