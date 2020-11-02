@@ -89,8 +89,8 @@ namespace Zeze.Services
             byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
             Array.Reverse(material);
             System.Net.IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
-            if (ipaddress.IsIPv4MappedToIPv6)
-                ipaddress = ipaddress.MapToIPv4();
+            //logger.Debug(ipaddress);
+            if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
             byte[] key = Config.HandshakeOptions.SecureIp != null ? Config.HandshakeOptions.SecureIp : ipaddress.GetAddressBytes();
             logger.Debug($"{p.Sender.SessionId} localip={BitConverter.ToString(key)}");
             int half = material.Length / 2;
@@ -160,8 +160,7 @@ namespace Zeze.Services
                 byte[] material = Handshake.Helper.computeDHKey(Config.HandshakeOptions.DhGroup, new BigInteger(p.Argument.dh_data), dhRandom).ToByteArray();
                 Array.Reverse(material);
                 System.Net.IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
-                if (ipaddress.IsIPv4MappedToIPv6)
-                    ipaddress = ipaddress.MapToIPv4();
+                if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
                 byte[] key = ipaddress.GetAddressBytes();
                 logger.Debug($"{p.Sender.SessionId} remoteip={BitConverter.ToString(key)}");
 

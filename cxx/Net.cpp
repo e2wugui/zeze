@@ -675,14 +675,14 @@ namespace Net
 		{
 			sockaddr_in* sav4 = (sockaddr_in*)ai->ai_addr;
 			out.assign((const char*)&(sav4->sin_addr), sizeof(in_addr));
-			//std::cout << "ipv4 " << sizeof(in_addr) << std::endl;
+			std::cout << "ipv4 " << sizeof(in_addr) << std::endl;
 			break;
 		}
 		case AF_INET6:
 		{
 			sockaddr_in6* sav6 = (sockaddr_in6*)ai->ai_addr;
 			out.assign((const char*)&(sav6->sin6_addr), sizeof(in6_addr));
-			//std::cout << "ipv6 " << sizeof(in6_addr) << std::endl;
+			std::cout << "ipv6 " << sizeof(in6_addr) << std::endl;
 			break;
 		}
 		}
@@ -695,6 +695,8 @@ namespace Net
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_family = AF_UNSPEC;
 		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_protocol = IPPROTO_TCP;
+		hints.ai_flags = AI_V4MAPPED | AI_ALL;
 
 		std::stringstream sport;
 		sport << _port;
