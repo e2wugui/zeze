@@ -105,7 +105,7 @@ XXX Do Not Catch Exception
    *) 注意，不支持多个使用同一个 GlobalCacheManager 同步的Cache的 Zeze.Application 之间的事务。参见上面的第3点。
       因为 Cache 同步需要同步记录的持有状态，如果此时 Application 使用同一个 Checkpoint，记录同步就需要等待自己，会死锁。
 
-5. Lua
+5. Lua（主要是为了客户端）
    1) cs+lua
    参考应用场景：Uniti3d。
    现在使用了KeraLua包装库，可以根据需要增加其他lua库。
