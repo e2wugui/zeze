@@ -71,8 +71,11 @@ namespace Net
 		std::string name;
 		std::shared_ptr<Socket> socket;
 		std::string lastSuccessAddress;
+		int lastPort;
 		ToLua ToLua;
 		Helper Helper;
+		bool autoReconnect;
+		int autoReconnectDelay;
 	public:
 		Service(const std::string& _name);
 		virtual ~Service();
@@ -124,6 +127,11 @@ namespace Net
 			this->dhGroup = dhGroup;
 		}
 
+		void SetAutoConnect(bool bAuto)
+		{
+			this->autoReconnect = bAuto;
+		}
+
 		virtual void OnSocketClose(const std::shared_ptr<Socket> & sender, const std::exception* e);
 		virtual void OnHandshakeDone(const std::shared_ptr<Socket>& sender);
 		virtual void OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e);
@@ -139,6 +147,7 @@ namespace Net
 	private:
 		typedef std::unordered_map<int, ProtocolFactoryHandle> ProtocolFactoryMap;
 		ProtocolFactoryMap ProtocolFactory;
+		void StartConnect(const std::string& host, int port, int delay, int timeoutSecondsPerConnect);
 
 		char dhGroup = 1;
 		int ProcessSHandshake(Protocol* p);

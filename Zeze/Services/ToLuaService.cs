@@ -62,6 +62,12 @@ namespace Zeze.Services
                 base.OnSocketProcessInputBuffer(so, input);
             }
         }
+
+        public override void OnSocketClose(AsyncSocket so, Exception e)
+        {
+            Helper.SetSocketClose(so.SessionId, this);
+            base.OnSocketClose(so, e);
+        }
     }
 
     // 完全 ToLuaServiceClient，由于 c# 无法写 class S<T> : T where T : Net.Service，复制一份.
@@ -271,6 +277,19 @@ namespace Zeze.Services.ToLuaService
                 Lua.Pop(1); // pop value
             }
             Lua.Pop(1);
+        }
+
+        internal void CallSocketClose(FromLua service, long socketSessionId)
+        {
+            if (LuaType.Function != Lua.GetGlobal("ZezeSocketClose")) // push func onto stack
+            {
+                Lua.Pop(1);
+                return;
+            }
+
+            Lua.PushObject(service);
+            Lua.PushInteger(socketSessionId);
+            Lua.Call(2, 0);
         }
 
         internal void CallHandshakeDone(FromLua service, long socketSessionId)
@@ -731,12 +750,21 @@ namespace Zeze.Services.ToLuaService
 
         private Dictionary<long, ByteBuffer> ToLuaBuffer = new Dictionary<long, ByteBuffer>();
         private Dictionary<long, FromLua> ToLuaHandshakeDone = new Dictionary<long, FromLua>();
+        private Dictionary<long, FromLua> ToLuaSocketClose = new Dictionary<long, FromLua>();
 
         internal void SetHandshakeDone(long socketSessionId, FromLua service)
         {
             lock (this)
             {
                 ToLuaHandshakeDone[socketSessionId] = service;
+            }
+        }
+
+        internal void SetSocketClose(long socketSessionId, FromLua service)
+        {
+            lock (this)
+            {
+                ToLuaSocketClose[socketSessionId] = service;
             }
         }
 
@@ -758,13 +786,21 @@ namespace Zeze.Services.ToLuaService
         public void Update(Net.Service service, ToLua toLua)
         {
             Dictionary<long, FromLua> handshakeTmp;
+            Dictionary<long, FromLua> socketCloseTmp;
             Dictionary<long, Serialize.ByteBuffer> inputTmp;
             lock (this)
             {
                 handshakeTmp = ToLuaHandshakeDone;
+                socketCloseTmp = ToLuaSocketClose;
                 inputTmp = ToLuaBuffer;
                 ToLuaBuffer = new Dictionary<long, ByteBuffer>();
                 ToLuaHandshakeDone = new Dictionary<long, FromLua>();
+                ToLuaSocketClose = new Dictionary<long, FromLua>();
+            }
+
+            foreach (var e in socketCloseTmp)
+            {
+                toLua.CallSocketClose(e.Value, e.Key);
             }
 
             foreach (var e in handshakeTmp)

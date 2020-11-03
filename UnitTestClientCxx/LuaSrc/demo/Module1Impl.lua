@@ -11,7 +11,7 @@ function Module1Impl.ProcessProtocol1(p)
     -- write handle here
     print('------------- recv protocol shut down ------------------')
     print(require ('serpent').block(p))
-    IsMainRunning = false
+    --IsMainRunning = false
 end
 
 function Module1Impl.ProcessProtocol3(p)

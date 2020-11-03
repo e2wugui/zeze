@@ -60,13 +60,19 @@ namespace Zeze
         void Helper::Update(Service* service, ToLua& toLua)
         {
             ToLuaHandshakeDoneMap handshakeTmp;
+            ToLuaSocketCloseMap socketCloseTmp;;
             ToLuaBufferMap inputTmp;
             {
                 std::lock_guard<std::mutex> lock(mutex);
                 handshakeTmp.swap(ToLuaHandshakeDone);
                 inputTmp.swap(ToLuaBuffer);
+                socketCloseTmp.swap(ToLuaSocketClose);
             }
 
+            for (auto& e : socketCloseTmp)
+            {
+                toLua.CallSocketClose(e.second, e.first);
+            }
             for (auto& e : handshakeTmp)
             {
                 toLua.CallHandshakeDone(e.second, e.first);

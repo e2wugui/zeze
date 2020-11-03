@@ -172,10 +172,6 @@ namespace Zeze.Net
         public virtual void OnSocketConnectError(AsyncSocket so, Exception e)
         {
             _asocketMap.TryRemove(so.SessionId, out var _);
-            foreach (var c in Config.Connectors)
-            {
-                c.OnSocketClose(this, so);
-            }
             logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketConnectError");
         }
 

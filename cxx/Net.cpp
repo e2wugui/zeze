@@ -91,6 +91,8 @@ namespace Net
 	Service::Service(const std::string& _name)
 		: name(_name), socket(NULL)
 	{
+		autoReconnect = false;
+		autoReconnectDelay = 0;
 		SHandshake forTypeId;
 		AddProtocolFactory(forTypeId.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
 			[]() { return new SHandshake(); }, std::bind(&Service::ProcessSHandshake, this, std::placeholders::_1)));
@@ -204,7 +206,20 @@ namespace Net
 
 		if (sender.get() == socket.get())
 		{
+			Helper.SetSocketClose(sender->SessionId, this);
 			socket.reset();
+		}
+		if (this->autoReconnect)
+		{
+			if (0 == autoReconnectDelay)
+				autoReconnectDelay = 1000;
+			else
+			{
+				autoReconnectDelay *= 2;
+				if (autoReconnectDelay > 30000)
+					autoReconnectDelay = 30000;
+			}
+			StartConnect(this->lastSuccessAddress, this->lastPort, autoReconnectDelay, 5);
 		}
 	}
 
@@ -227,6 +242,7 @@ namespace Net
 			socket->Close(NULL);
 		}
 		socket = sender;
+		autoReconnectDelay = 0;
 		sender->dhContext = limax::createDHContext(dhGroup);
 		const std::vector<unsigned char> & dhResponse = sender->dhContext->generateDHResponse();
 		CHandshake hand(dhGroup, std::string((const char *)&dhResponse[0], dhResponse.size()));
@@ -256,10 +272,11 @@ namespace Net
 	{
 	}
 
-	void Service::Connect(const std::string& host, int port, int timeoutSecondsPerConnect)
+	void Service::StartConnect(const std::string& host, int port, int delay, int timeoutSecondsPerConnect)
 	{
-		std::thread([this, host, port, timeoutSecondsPerConnect]
+		std::thread([this, host, port, delay, timeoutSecondsPerConnect]
 			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(delay));
 				Socket* sptr = new Socket(this);
 				std::shared_ptr<Socket> at = sptr->This;
 				try
@@ -276,6 +293,13 @@ namespace Net
 					at->Close(NULL); // XXX 异常的时候需要手动释放Socket内部的shared_ptr。
 				}
 			}).detach();
+	}
+
+	void Service::Connect(const std::string& host, int port, int timeoutSecondsPerConnect)
+	{
+		lastSuccessAddress = host;
+		lastPort = port;
+		StartConnect(host, port, autoReconnectDelay, timeoutSecondsPerConnect);
 	}
 
 	Socket::Socket(Service* svr)

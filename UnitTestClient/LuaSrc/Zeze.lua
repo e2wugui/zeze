@@ -13,6 +13,10 @@ function ZezeDispatchProtocol(p)
     return 1 -- 1 if found. not result of handle 
 end
 
+function ZezeSocketClose(service, sessionId)
+    print('ZezeSocketClose')
+end
+
 function ZezeHandshakeDone(service, sessionId)
     Zeze.CurrentService = service
     Zeze.CurrentSessionId = sessionId

@@ -113,10 +113,22 @@ namespace Net
             }
             Lua.Pop(1);
         }
-        friend class Helper;
+
+        void CallSocketClose(Service* service, long long socketSessionId)
+        {
+            if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeSocketClose")) // push func onto stack
+            {
+                Lua.Pop(1);
+                return;
+            }
+
+            Lua.PushObject(service);
+            Lua.PushInteger(socketSessionId);
+            Lua.Call(2, 0);
+        }
+
         void CallHandshakeDone(Service * service, long long socketSessionId)
         {
-            // void OnHandshakeDone(service, long sessionId)
             if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeHandshakeDone")) // push func onto stack
             {
                 Lua.Pop(1);
@@ -515,8 +527,10 @@ namespace Net
     {
         typedef std::unordered_map<long long, std::string> ToLuaBufferMap;
         typedef std::unordered_map<long long, Service*> ToLuaHandshakeDoneMap;
+        typedef std::unordered_map<long long, Service*> ToLuaSocketCloseMap;
         ToLuaBufferMap ToLuaBuffer;
         ToLuaHandshakeDoneMap ToLuaHandshakeDone;
+        ToLuaSocketCloseMap ToLuaSocketClose;
         std::mutex mutex;
 
     public:
@@ -524,6 +538,12 @@ namespace Net
         {
             std::lock_guard<std::mutex> lock(mutex);
             ToLuaHandshakeDone[socketSessionId] = service;
+        }
+
+        void SetSocketClose(long long socketSessionId, Service* service)
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            ToLuaSocketClose[socketSessionId] = service;
         }
 
         void AppendInputBuffer(long long socketSessionId, Zeze::Serialize::ByteBuffer& buffer)
