@@ -105,6 +105,23 @@ XXX Do Not Catch Exception
    *) 注意，不支持多个使用同一个 GlobalCacheManager 同步的Cache的 Zeze.Application 之间的事务。参见上面的第3点。
       因为 Cache 同步需要同步记录的持有状态，如果此时 Application 使用同一个 Checkpoint，记录同步就需要等待自己，会死锁。
 
+5. Lua
+   1) cs+lua
+   参考应用场景：Uniti3d。
+   现在使用了KeraLua包装库，可以根据需要增加其他lua库。
+   支持部分协议在cs层处理，部分在lua层处理。
+   使用例子：zeze\UnitTestClient\Program.cs。
+
+   2) cxx+lua 
+   参考应用场景：Unreal以及其他支持cxx的平台。
+   使用标准lua-库，需要自己下载并加到项目中，设置好include-path。
+   不支持在cxx层处理协议，有需要再增加。
+   需要把zeze\cxx目录下的所有文件加到项目中。设置好include-path。
+   使用例子：zeze\UnitTestClientCxx\main.cpp
+
+   3) TODO
+   现在网络层的Connect调用在原生语言层调用，估计需要增加Lua层创建网络连接的能力。
+
 #### TODO
 
 每事务提交
