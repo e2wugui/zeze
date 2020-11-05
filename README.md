@@ -115,6 +115,7 @@ XXX Do Not Catch Exception
       配置参考：UnitTest\zeze.xml
    *) 注意，不支持多个使用同一个 GlobalCacheManager 同步的Cache的 Zeze.Application 之间的事务。参见上面的第3点。
       因为 Cache 同步需要同步记录的持有状态，如果此时 Application 使用同一个 Checkpoint，记录同步就需要等待自己，会死锁。
+   *) 由于逻辑服务器和GlobalCacheManager之间的连接非常重要，所以它们应该运行在一个可靠的网络中，一般来说就是运行在一个机房中。
 
 5. Lua（主要是为了客户端）
    1) cs+lua
