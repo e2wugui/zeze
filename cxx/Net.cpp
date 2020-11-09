@@ -313,7 +313,7 @@ namespace Net
 	}
 
 	/// <summary>
-	/// 下面使用系统socket-api实现真正的网络操作。尽量使用普通api平台相关。
+	/// 下面使用系统socket-api实现真正的网络操作。尽量使用普通api，平台相关。
 	/// </summary>
 
 	class Selector
