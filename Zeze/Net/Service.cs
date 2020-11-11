@@ -62,31 +62,37 @@ namespace Zeze.Net
 
         public virtual void Start()
         {
-            // 这里不判断是否重复Start了。
-            foreach (var a in Config.Acceptors)
+            if (null != Config)
             {
-                a.Socket?.Dispose();
-                a.Socket = a.Ip.Length > 0 ? NewServerSocket(a.Ip, a.Port) : NewServerSocket(System.Net.IPAddress.Any, a.Port);
-            }
-            foreach (var c in Config.Connectors)
-            {
-                c.Connect(this);
-                //_asocketMap.TryAdd(c.Socket.SessionId, c.Socket); // 连接成功才加入map。
+                // 这里不判断是否重复Start了。
+                foreach (var a in Config.Acceptors)
+                {
+                    a.Socket?.Dispose();
+                    a.Socket = a.Ip.Length > 0 ? NewServerSocket(a.Ip, a.Port) : NewServerSocket(System.Net.IPAddress.Any, a.Port);
+                }
+                foreach (var c in Config.Connectors)
+                {
+                    c.Connect(this);
+                    //_asocketMap.TryAdd(c.Socket.SessionId, c.Socket); // 连接成功才加入map。
+                }
             }
         }
 
         public virtual void Close()
         {
-            foreach (var a in Config.Acceptors)
+            if (null != Config)
             {
-                a.Socket?.Dispose();
-                a.Socket = null;
-            }
+                foreach (var a in Config.Acceptors)
+                {
+                    a.Socket?.Dispose();
+                    a.Socket = null;
+                }
 
-            foreach (var c in Config.Connectors)
-            {
-                c.Socket?.Dispose();
-                c.Socket = null;
+                foreach (var c in Config.Connectors)
+                {
+                    c.Socket?.Dispose();
+                    c.Socket = null;
+                }
             }
 
             foreach (var e in _asocketMap)
@@ -98,10 +104,13 @@ namespace Zeze.Net
         // 用于控制是否接受新连接
         public virtual void StopListen()
         {
-            foreach (var a in Config.Acceptors)
+            if (null != Config)
             {
-                a.Socket?.Dispose();
-                a.Socket = null;
+                foreach (var a in Config.Acceptors)
+                {
+                    a.Socket?.Dispose();
+                    a.Socket = null;
+                }
             }
         }
 
@@ -134,9 +143,12 @@ namespace Zeze.Net
         {
             _asocketMap.TryRemove(so.SessionId, out var _);
 
-            foreach (var c in Config.Connectors)
+            if (null != Config)
             {
-                c.OnSocketClose(this, so);
+                foreach (var c in Config.Connectors)
+                {
+                    c.OnSocketClose(this, so);
+                }
             }
 
             if (null != e)
