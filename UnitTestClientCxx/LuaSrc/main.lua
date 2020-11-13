@@ -6,8 +6,10 @@ require ('demo.Module1Impl'):Init()
 require ('demo.Module2Impl'):Init()
 require ('demo.Module1.Module11Impl'):Init()
 
+local Zeze = require 'Zeze'
+ZezeConnect(Zeze.ServiceClient, '::1', 9999, true)
+
 while (IsMainRunning)
 do
-	local Zeze = require 'Zeze'
 	ZezeUpdate(Zeze.ServiceClient)
 end

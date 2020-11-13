@@ -206,7 +206,7 @@ namespace Net
 
 		if (sender.get() == socket.get())
 		{
-			Helper.SetSocketClose(sender->SessionId, this);
+			ToLua.SetSocketClose(sender->SessionId, this);
 			socket.reset();
 		}
 		if (this->autoReconnect)
@@ -226,7 +226,7 @@ namespace Net
 	void Service::OnHandshakeDone(const std::shared_ptr<Socket>& sender)
 	{
 		sender->IsHandshakeDone = true;
-		Helper.SetHandshakeDone(sender->SessionId, this);
+		ToLua.SetHandshakeDone(sender->SessionId, this);
 	}
 
 	void Service::OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e)
@@ -259,7 +259,7 @@ namespace Net
 	{
 		if (sender->IsHandshakeDone)
 		{
-			Helper.AppendInputBuffer(sender->SessionId, input);
+			ToLua.AppendInputBuffer(sender->SessionId, input);
 			input.ReadIndex = input.WriteIndex;
 		}
 		else

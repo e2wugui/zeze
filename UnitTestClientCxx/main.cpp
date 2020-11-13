@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
 			throw std::exception("package.path");
 		demo::App::Instance().Client.InitializeLua(L);
 		demo::App::Instance().Client.SetAutoConnect(true);
-		demo::App::Instance().Client.Connect("::1", 9999);
+		//demo::App::Instance().Client.Connect("::1", 9999); // 改到在 main.lua 中连接。
 		if (lua.DoString("require 'main'"))
 		{
 			std::cout << "run main error: " << lua.ToString(-1) << std::endl;

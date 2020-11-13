@@ -25,13 +25,11 @@ namespace Zeze.Services
         public Net.Service Service { get; }
 
         public ToLuaService.ToLua ToLua { get; }
-        public ToLuaService.Helper Helper { get; }
     }
 
     public class ToLuaServiceClient : HandshakeClient, FromLua
     {
         public ToLuaService.ToLua ToLua { get; private set; } = new ToLuaService.ToLua();
-        public ToLuaService.Helper Helper { get; } = new ToLuaService.Helper();
         public Net.Service Service => this;
 
         public ToLuaServiceClient(string name, Zeze.Application zeze) : base(name, zeze)
@@ -47,14 +45,14 @@ namespace Zeze.Services
         public override void OnHandshakeDone(AsyncSocket sender)
         {
             sender.IsHandshakeDone = true;
-            Helper.SetHandshakeDone(sender.SessionId, this);
+            ToLua.SetHandshakeDone(sender.SessionId, this);
         }
 
         public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
             if (so.IsHandshakeDone)
             {
-                Helper.AppendInputBuffer(so.SessionId, input);
+                ToLua.AppendInputBuffer(so.SessionId, input);
                 input.ReadIndex = input.WriteIndex;
             }
             else
@@ -65,7 +63,7 @@ namespace Zeze.Services
 
         public override void OnSocketClose(AsyncSocket so, Exception e)
         {
-            Helper.SetSocketClose(so.SessionId, this);
+            ToLua.SetSocketClose(so.SessionId, this);
             base.OnSocketClose(so, e);
         }
     }
@@ -74,7 +72,6 @@ namespace Zeze.Services
     public class ToLuaServiceServer : HandshakeServer, FromLua
     {
         public ToLuaService.ToLua ToLua { get; private set; } = new ToLuaService.ToLua();
-        public ToLuaService.Helper Helper { get; } = new ToLuaService.Helper();
         public Net.Service Service => this;
 
         public ToLuaServiceServer(string name, Zeze.Application zeze) : base(name, zeze)
@@ -90,14 +87,14 @@ namespace Zeze.Services
         public override void OnHandshakeDone(AsyncSocket sender)
         {
             sender.IsHandshakeDone = true;
-            Helper.SetHandshakeDone(sender.SessionId, this);
+            ToLua.SetHandshakeDone(sender.SessionId, this);
         }
 
         public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
             if (so.IsHandshakeDone)
             {
-                Helper.AppendInputBuffer(so.SessionId, input);
+                ToLua.AppendInputBuffer(so.SessionId, input);
                 input.ReadIndex = input.WriteIndex;
             }
             else
@@ -322,7 +319,18 @@ namespace Zeze.Services.ToLuaService
         {
             //KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
             FromLua callback = Lua.ToObject<FromLua>(-1);
-            callback.Helper.Update(callback.Service, callback.ToLua);
+            callback.ToLua.Update(callback.Service);
+            return 0;
+        }
+
+        private int ZezeConnect(IntPtr luaState)
+        {
+            FromLua service = Lua.ToObject<FromLua>(-4);
+            string host = Lua.ToString(-3);
+            int port = (int)Lua.ToInteger(-2);
+            bool autoReconnect = Lua.ToBoolean(-1);
+            if (service.Service is HandshakeClient client)
+                client.Connect(host, port, autoReconnect);
             return 0;
         }
 
@@ -330,6 +338,7 @@ namespace Zeze.Services.ToLuaService
 #if USE_KERA_LUA
         private static KeraLua.LuaFunction ZezeUpdateFunction;
         private static KeraLua.LuaFunction ZezeSendProtocolFunction;
+        private static KeraLua.LuaFunction ZezeConnectFunction;
 #endif // USE_KERA_LUA
         private static object RegisterCallbackLock = new object();
 
@@ -354,9 +363,11 @@ namespace Zeze.Services.ToLuaService
                 {
                     ZezeUpdateFunction = ZezeUpdate;
                     ZezeSendProtocolFunction = ZezeSendProtocol;
+                    ZezeConnectFunction = ZezeConnect;
 
                     Lua.Register("ZezeUpdate", ZezeUpdateFunction);
                     Lua.Register("ZezeSendProtocol", ZezeSendProtocolFunction);
+                    Lua.Register("ZezeConnect", ZezeConnectFunction);
                 }
             }
         }
@@ -743,10 +754,6 @@ namespace Zeze.Services.ToLuaService
                     throw new Exception("Unkown Tag Type");
             }
         }
-    }
-
-    public class Helper
-    {
 
         private Dictionary<long, ByteBuffer> ToLuaBuffer = new Dictionary<long, ByteBuffer>();
         private Dictionary<long, FromLua> ToLuaHandshakeDone = new Dictionary<long, FromLua>();
@@ -783,7 +790,7 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
-        public void Update(Net.Service service, ToLua toLua)
+        public void Update(Net.Service service)
         {
             Dictionary<long, FromLua> handshakeTmp;
             Dictionary<long, FromLua> socketCloseTmp;
@@ -800,12 +807,12 @@ namespace Zeze.Services.ToLuaService
 
             foreach (var e in socketCloseTmp)
             {
-                toLua.CallSocketClose(e.Value, e.Key);
+                this.CallSocketClose(e.Value, e.Key);
             }
 
             foreach (var e in handshakeTmp)
             {
-                toLua.CallHandshakeDone(e.Value, e.Key);
+                this.CallHandshakeDone(e.Value, e.Key);
             }
 
             foreach (var e in inputTmp)
@@ -814,7 +821,7 @@ namespace Zeze.Services.ToLuaService
                 if (null == sender)
                     continue;
 
-                Net.Protocol.Decode(service, sender, e.Value, toLua);
+                Net.Protocol.Decode(service, sender, e.Value, this);
             }
 
             lock (this)

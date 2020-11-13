@@ -142,6 +142,7 @@ namespace Net
 
         static int ZezeSendProtocol(lua_State* luaState);
         static int ZezeUpdate(lua_State* luaState);
+        static int ZezeConnect(lua_State* luaState);
 
         void RegisterGlobalAndCallback(Service* service);
         void SendProtocol(Socket * socket);
@@ -521,10 +522,8 @@ namespace Net
                     throw std::exception("Unkown Tag Type");
             }
         }
-    };
 
-    class Helper
-    {
+    private:
         typedef std::unordered_map<long long, std::string> ToLuaBufferMap;
         typedef std::unordered_map<long long, Service*> ToLuaHandshakeDoneMap;
         typedef std::unordered_map<long long, Service*> ToLuaSocketCloseMap;
@@ -549,10 +548,10 @@ namespace Net
         void AppendInputBuffer(long long socketSessionId, Zeze::Serialize::ByteBuffer& buffer)
         {
             std::lock_guard<std::mutex> lock(mutex);
-            ToLuaBuffer[socketSessionId].append((const char *)(buffer.Bytes + buffer.ReadIndex), buffer.Size());
+            ToLuaBuffer[socketSessionId].append((const char*)(buffer.Bytes + buffer.ReadIndex), buffer.Size());
         }
 
-        void Update(Service* service, ToLua& toLua);
+        void Update(Service* service);
     };
 
 } // namespace Net

@@ -23,7 +23,20 @@ namespace Zeze
         {
             LuaHelper lua(luaState);
             Service* service = lua.ToObject<Service*>(-1);
-            service->Helper.Update(service, service->ToLua);
+            service->ToLua.Update(service);
+            return 0;
+        }
+
+        // connect(service, host, port, timeout)
+        int ToLua::ZezeConnect(lua_State* luaState)
+        {
+            LuaHelper lua(luaState);
+            Service* service = lua.ToObject<Service*>(-4);
+            std::string host = lua.ToString(-3);
+            int port = (int)lua.ToInteger(-2);
+            bool autoReconnect = lua.ToBoolean(-1);
+            service->SetAutoConnect(autoReconnect);
+            service->Connect(host, port);
             return 0;
         }
 
@@ -57,7 +70,7 @@ namespace Zeze
             socket->Send((const char *)bb.Bytes, bb.ReadIndex, bb.Size());
         }
 
-        void Helper::Update(Service* service, ToLua& toLua)
+        void ToLua::Update(Service* service)
         {
             ToLuaHandshakeDoneMap handshakeTmp;
             ToLuaSocketCloseMap socketCloseTmp;;
@@ -71,11 +84,11 @@ namespace Zeze
 
             for (auto& e : socketCloseTmp)
             {
-                toLua.CallSocketClose(e.second, e.first);
+                CallSocketClose(e.second, e.first);
             }
             for (auto& e : handshakeTmp)
             {
-                toLua.CallHandshakeDone(e.second, e.first);
+                CallHandshakeDone(e.second, e.first);
             }
 
             for (auto& e : inputTmp)
@@ -84,7 +97,7 @@ namespace Zeze
                 if (NULL == sender.get())
                     continue;
                 Zeze::Serialize::ByteBuffer bb((unsigned char *)e.second.data(), 0, e.second.size());
-                Protocol::DecodeProtocol(service, sender, bb, &toLua);
+                Protocol::DecodeProtocol(service, sender, bb, this);
                 e.second.erase(0, bb.ReadIndex);
             }
 
@@ -125,14 +138,14 @@ namespace Zeze
             Lua.PushObject(service);
             Lua.SetTable(-3); // 当存在多个service时，这里保存最后一个。
 
-            // 第一个参数是Service的全局变量。在上面一行注册进去的。
-            // void ZezeUpdate(ZezeService##Name)
-            Lua.Register("ZezeUpdate", ZezeUpdate);
-            // 由 Protocol 的 lua 生成代码调用，其中 sesionId 从全局变量 ZezeCurrentSessionId 中读取，
-            // 对于客户端，连接 HandshakeDone 以后保存 sessionId 到 ZezeCurrentSessionId 中，以后不用重新设置。
-            // 对于服务器，连接 HandshakeDone 以后保存 sessionId 自己的结构中，发送前需要把当前连接设置到 ZezeCurrentSessionId 中。 
-            // void ZezeSendProtocol(ZezeService##Name, sessionId, protocol)
-            Lua.Register("ZezeSendProtocol", ZezeSendProtocol);
+            static bool registerCallback = false; // 简单保护一下。
+            if (registerCallback == false)
+            {
+                registerCallback = true;
+                Lua.Register("ZezeUpdate", ZezeUpdate);
+                Lua.Register("ZezeSendProtocol", ZezeSendProtocol);
+                Lua.Register("ZezeConnect", ZezeConnect);
+            }
         }
     }
 }

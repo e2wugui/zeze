@@ -73,7 +73,6 @@ namespace Net
 		std::string lastSuccessAddress;
 		int lastPort;
 		ToLua ToLua;
-		Helper Helper;
 		bool autoReconnect;
 		int autoReconnectDelay;
 	public:
@@ -141,7 +140,6 @@ namespace Net
 		virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& input);
 
 		friend class ToLua;
-		friend class Helper;
 		friend class Protocol;
 
 	private:
