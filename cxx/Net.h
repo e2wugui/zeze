@@ -1,11 +1,12 @@
 
 #pragma once
 
+#include <mutex>
 #include <string>
-#include "ByteBuffer.h"
-#include "ToLua.h"
 #include <functional>
 #include <unordered_map>
+
+#include "ByteBuffer.h"
 #include "dh.h"
 #include "codec.h"
 
@@ -18,6 +19,7 @@ namespace Net
 
 	class Protocol;
 	class BufferedCodec;
+	class Service;
 
 	class Socket
 	{
@@ -69,12 +71,14 @@ namespace Net
 	class Service
 	{
 		std::string name;
-		std::shared_ptr<Socket> socket;
 		std::string lastSuccessAddress;
 		int lastPort;
-		ToLua ToLua;
 		bool autoReconnect;
 		int autoReconnectDelay;
+
+	protected:
+		std::shared_ptr<Socket> socket;
+
 	public:
 		Service(const std::string& _name);
 		virtual ~Service();
@@ -86,8 +90,19 @@ namespace Net
 				return socket;
 			return std::shared_ptr<Socket>(NULL);
 		}
-		void InitializeLua(lua_State* L);
 		void Connect(const std::string& host, int port, int timeoutSecondsPerConnect = 5);
+
+		///////////////////////////////////
+		// for ToLua interface
+		virtual void Update()
+		{
+			// ToLuaService 实现
+		}
+		virtual void SendProtocol(Socket * so)
+		{
+			// ToLuaService 实现
+		}
+
 		class ProtocolFactoryHandle
 		{
 		public:
@@ -139,7 +154,6 @@ namespace Net
 		virtual void DispatchProtocol(Protocol* p, Service::ProtocolFactoryHandle& factoryHandle);
 		virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& input);
 
-		friend class ToLua;
 		friend class Protocol;
 
 	private:

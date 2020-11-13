@@ -284,5 +284,11 @@
     <ClInclude Include="..\cxx\LuaHelper.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
+    <ClInclude Include="..\cxx\ToLuaService.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cxx\ToScriptDecodeAndDispatcher.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

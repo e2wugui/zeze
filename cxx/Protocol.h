@@ -2,6 +2,7 @@
 
 #include "ByteBuffer.h"
 #include "Net.h"
+#include "ToScriptDecodeAndDispatcher.h"
 
 namespace Zeze
 {
@@ -40,7 +41,7 @@ namespace Zeze
 				service->DispatchProtocol(this, factoryHandle);
 			}
 
-			static void DecodeProtocol(Service * service, const std::shared_ptr<Socket> & sender, Zeze::Serialize::ByteBuffer& bb, ToLua* toLua = NULL);
+			static void DecodeProtocol(Service * service, const std::shared_ptr<Socket> & sender, Zeze::Serialize::ByteBuffer& bb, ToScriptDecodeAndDispatcher* toLua = NULL);
 		};
 
 		template <typename ArgumentType>

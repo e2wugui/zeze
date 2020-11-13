@@ -211,6 +211,8 @@
     <ClInclude Include="..\cxx\rfc2118.h" />
     <ClInclude Include="..\cxx\security.h" />
     <ClInclude Include="..\cxx\ToLua.h" />
+    <ClInclude Include="..\cxx\ToLuaService.h" />
+    <ClInclude Include="..\cxx\ToScriptDecodeAndDispatcher.h" />
     <ClInclude Include="..\cxx\utils.h" />
     <ClInclude Include="lua-5.4.1\src\lapi.h" />
     <ClInclude Include="lua-5.4.1\src\lauxlib.h" />

@@ -16,7 +16,7 @@ namespace Zeze.Gen.cxx
 
         string BaseClass(Service s)
         {
-            return s.Base.Length > 0 ? s.Base : "Zeze::Net::Service";
+            return s.Base.Length > 0 ? s.Base : "Zeze::Net::ToLuaService";
         }
         public void Make()
         {
@@ -55,7 +55,7 @@ namespace Zeze.Gen.cxx
                     continue;
                 //sw.WriteLine("// auto-generated");
                 sw.WriteLine();
-                sw.WriteLine($"#include \"Net.h\"");
+                sw.WriteLine($"#include \"ToLuaService.h\"");
                 sw.WriteLine();
                 sw.WriteLine($"namespace {Project.Solution.Name}");
                 sw.WriteLine($"{{");

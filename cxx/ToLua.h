@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "ToScriptDecodeAndDispatcher.h"
 #include "LuaHelper.h"
 #include "ByteBuffer.h"
 #include <unordered_map>
@@ -14,7 +15,7 @@ namespace Net
     class Service;
     class Socket;
 
-	class ToLua
+	class ToLua : public ToScriptDecodeAndDispatcher
     {
         LuaHelper Lua;
     public:
@@ -326,7 +327,7 @@ namespace Net
             }
         }
     public:
-        bool DecodeAndDispatch(Service * service, long long sessionId, int typeId, Zeze::Serialize::ByteBuffer & _os_)
+        virtual bool DecodeAndDispatch(Service * service, long long sessionId, int typeId, Zeze::Serialize::ByteBuffer & _os_) override
         {
             if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
             {

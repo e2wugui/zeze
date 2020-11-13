@@ -193,22 +193,11 @@ namespace Net
 	{
 	}
 
-	void Service::InitializeLua(lua_State* L)
-	{
-		ToLua.LoadMeta(L);
-		ToLua.RegisterGlobalAndCallback(this);
-	}
-
 	void Service::OnSocketClose(const std::shared_ptr<Socket>& sender, const std::exception* e)
 	{
 		if (e)
 			std::cout << "OnSocketClose " << e->what() << std::endl;
 
-		if (sender.get() == socket.get())
-		{
-			ToLua.SetSocketClose(sender->SessionId, this);
-			socket.reset();
-		}
 		if (this->autoReconnect)
 		{
 			if (0 == autoReconnectDelay)
@@ -226,7 +215,6 @@ namespace Net
 	void Service::OnHandshakeDone(const std::shared_ptr<Socket>& sender)
 	{
 		sender->IsHandshakeDone = true;
-		ToLua.SetHandshakeDone(sender->SessionId, this);
 	}
 
 	void Service::OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e)
@@ -257,15 +245,7 @@ namespace Net
 
 	void Service::OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& input)
 	{
-		if (sender->IsHandshakeDone)
-		{
-			ToLua.AppendInputBuffer(sender->SessionId, input);
-			input.ReadIndex = input.WriteIndex;
-		}
-		else
-		{
-			Protocol::DecodeProtocol(this, sender, input);
-		}
+		Protocol::DecodeProtocol(this, sender, input);
 	}
 
 	void Service::DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int typeId, Zeze::Serialize::ByteBuffer& data)

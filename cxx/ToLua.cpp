@@ -15,7 +15,7 @@ namespace Zeze
             std::shared_ptr<Socket> socket = service->GetSocket();
             if (NULL == socket.get())
                 return 0;
-            service->ToLua.SendProtocol(socket.get());
+            service->SendProtocol(socket.get());
             return 0;
         }
 
@@ -23,7 +23,7 @@ namespace Zeze
         {
             LuaHelper lua(luaState);
             Service* service = lua.ToObject<Service*>(-1);
-            service->ToLua.Update(service);
+            service->Update();
             return 0;
         }
 
