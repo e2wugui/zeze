@@ -328,7 +328,6 @@ namespace Zeze.Serialize
             return Bytes[ReadIndex++];
         }
 
-
         public void WriteShort(short x)
         {
             if (x >= 0)

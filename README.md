@@ -131,9 +131,6 @@ XXX Do Not Catch Exception
    需要把zeze\cxx目录下的所有文件加到项目中。设置好include-path。
    使用例子：zeze\UnitTestClientCxx\main.cpp
 
-   3) TODO
-   现在网络层的Connect调用在原生语言层调用，估计需要增加Lua层创建网络连接的能力。
-
 #### TODO
 
 每事务提交
