@@ -1,6 +1,14 @@
-
 {
   "compilerOptions": {
-    "moduleResolution": "node"
-  }
+    "noImplicitAny": false,
+    "noEmitOnError": true,
+    "removeComments": false,
+    "sourceMap": true,
+    "target": "es5",
+    "module": "commonjs",
+    "outDir": "js"
+  },
+  "include": [
+    "./**/*"
+  ]
 }

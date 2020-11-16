@@ -1,5 +1,5 @@
 
-import Long from "./long.js"
+import Long from "long.js"
 
 export namespace Serialize
 {
