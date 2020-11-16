@@ -1,14 +1,14 @@
 
-import * as Long from "long.js"
+import Long from "./long.js"
 
-namespace Serialize
+export namespace Serialize
 {
-	interface Serializable {
-		Encode(_os_ : ByteBuffer): void;
+	export interface Serializable {
+		Encode(_os_: ByteBuffer): void;
 		Decode(_os_: ByteBuffer): void;
 	}
 
-	class ByteBuffer {
+	export class ByteBuffer {
 		public Bytes: ArrayBuffer;
 		public ReadIndex: number;
 		public WriteIndex: number;
@@ -594,7 +594,9 @@ namespace Serialize
 			return x;
 		}
 
-		public WriteBytes(x: ArrayBuffer, offset: number, length: number): void {
+		public WriteBytes(x: ArrayBuffer, offset: number = 0, length: number = -1): void {
+			if (length == -1)
+				length = x.byteLength;
 			this.WriteInt(length);
 			this.EnsureWrite(length);
 			this.BlockCopy(x, offset, this.Bytes, this.WriteIndex, length);

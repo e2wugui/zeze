@@ -31,3 +31,5 @@ TestResults
 /Debug
 /UnitTestClientCxx/x64
 /UnitTestClientCxx/lua-5.4.1
+/TypeScript/bin
+/TypeScript/obj
