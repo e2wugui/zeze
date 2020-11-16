@@ -398,7 +398,7 @@ namespace Zeze.Services
             public override string ToString()
             {
                 StringBuilder sb = new StringBuilder();
-                Helper.BuildString(sb, Share);
+                ByteBuffer.BuildString(sb, Share);
                 return $"P{AcquireStatePending} M{Modify} S{sb}";
             }
         }
@@ -571,7 +571,7 @@ namespace Zeze.Services
                 if (c != 0)
                     return c;
 
-                return Helper.Compare(Key, other.Key);
+                return ByteBuffer.Compare(Key, other.Key);
             }
 
             public override bool Equals(object obj)
@@ -580,14 +580,14 @@ namespace Zeze.Services
                     return true;
 
                 if (obj is GlobalTableKey another)
-                    return TableName.Equals(another.TableName) && Helper.Equals(Key, another.Key);
+                    return TableName.Equals(another.TableName) && ByteBuffer.Equals(Key, another.Key);
 
                 return false;
             }
 
             public override int GetHashCode()
             {
-                return TableName.GetHashCode() + Helper.GetHashCode(Key);
+                return TableName.GetHashCode() + ByteBuffer.GetHashCode(Key);
             }
 
             public override string ToString()

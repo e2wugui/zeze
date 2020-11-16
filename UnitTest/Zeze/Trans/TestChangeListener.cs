@@ -611,7 +611,7 @@ namespace UnitTest.Zeze.Trans
                     Assert.IsTrue(null == newValue);
                     return;
                 }
-                Assert.IsTrue(Helper.Equals(newValue, current.Bytes8Copy));
+                Assert.IsTrue(ByteBuffer.Equals(newValue, current.Bytes8Copy));
             }
 
             void ChangeListener.OnChanged(object key, Bean value)

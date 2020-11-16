@@ -461,12 +461,12 @@ namespace Zeze.Transaction
             {
                 public bool Equals(byte[] left, byte[] right)
                 {
-                    return Helper.Equals(left, right);
+                    return ByteBuffer.Equals(left, right);
                 }
 
                 public int GetHashCode(byte[] key)
                 {
-                    return Helper.GetHashCode(key);
+                    return ByteBuffer.GetHashCode(key);
                 }
             }
             public ConcurrentDictionary<byte[], byte[]> Map { get; } = new ConcurrentDictionary<byte[], byte[]>(new ByteArrayComparer());

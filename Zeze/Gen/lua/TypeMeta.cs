@@ -28,64 +28,64 @@ namespace Zeze.Gen.lua
 
         void Visitor.Visit(Bean type)
         {
-            Type = Zeze.Serialize.Helper.BEAN;
+            Type = Zeze.Serialize.ByteBuffer.BEAN;
             TypeBeanTypeId = type.TypeId;
         }
 
         void Visitor.Visit(BeanKey type)
         {
-            Type = Zeze.Serialize.Helper.BEAN;
+            Type = Zeze.Serialize.ByteBuffer.BEAN;
             TypeBeanTypeId = type.TypeId;
         }
 
         void Visitor.Visit(TypeByte type)
         {
-            Type = Zeze.Serialize.Helper.BYTE;
+            Type = Zeze.Serialize.ByteBuffer.BYTE;
         }
 
         void Visitor.Visit(TypeShort type)
         {
-            Type = Zeze.Serialize.Helper.SHORT;
+            Type = Zeze.Serialize.ByteBuffer.SHORT;
         }
 
         void Visitor.Visit(TypeInt type)
         {
-            Type = Zeze.Serialize.Helper.INT;
+            Type = Zeze.Serialize.ByteBuffer.INT;
         }
 
         void Visitor.Visit(TypeLong type)
         {
-            Type = Zeze.Serialize.Helper.LONG;
+            Type = Zeze.Serialize.ByteBuffer.LONG;
         }
 
         void Visitor.Visit(TypeBool type)
         {
-            Type = Zeze.Serialize.Helper.BOOL;
+            Type = Zeze.Serialize.ByteBuffer.BOOL;
         }
 
         void Visitor.Visit(TypeBinary type)
         {
-            Type = Zeze.Serialize.Helper.BYTES;
+            Type = Zeze.Serialize.ByteBuffer.BYTES;
         }
 
         void Visitor.Visit(TypeString type)
         {
-            Type = Zeze.Serialize.Helper.STRING;
+            Type = Zeze.Serialize.ByteBuffer.STRING;
         }
 
         void Visitor.Visit(TypeFloat type)
         {
-            Type = Zeze.Serialize.Helper.FLOAT;
+            Type = Zeze.Serialize.ByteBuffer.FLOAT;
         }
 
         void Visitor.Visit(TypeDouble type)
         {
-            Type = Zeze.Serialize.Helper.DOUBLE;
+            Type = Zeze.Serialize.ByteBuffer.DOUBLE;
         }
 
         void Visitor.Visit(TypeList type)
         {
-            Type = Zeze.Serialize.Helper.LIST;
+            Type = Zeze.Serialize.ByteBuffer.LIST;
             TypeMeta vm = TypeMeta.Get(type.ValueType);
             Value = vm.Type;
             ValueBeanTypeId = vm.TypeBeanTypeId;
@@ -93,7 +93,7 @@ namespace Zeze.Gen.lua
 
         void Visitor.Visit(TypeSet type)
         {
-            Type = Zeze.Serialize.Helper.SET;
+            Type = Zeze.Serialize.ByteBuffer.SET;
             TypeMeta vm = TypeMeta.Get(type.ValueType);
             Value = vm.Type;
             ValueBeanTypeId = vm.TypeBeanTypeId;
@@ -101,7 +101,7 @@ namespace Zeze.Gen.lua
 
         void Visitor.Visit(TypeMap type)
         {
-            Type = Zeze.Serialize.Helper.MAP;
+            Type = Zeze.Serialize.ByteBuffer.MAP;
 
             TypeMeta km = TypeMeta.Get(type.KeyType);
             Key = km.Type;
@@ -114,7 +114,7 @@ namespace Zeze.Gen.lua
 
         void Visitor.Visit(TypeDynamic type)
         {
-            Type = Zeze.Serialize.Helper.DYNAMIC;
+            Type = Zeze.Serialize.ByteBuffer.DYNAMIC;
             // TypeBeanTypeId = 使用的时候指定。
         }
     }

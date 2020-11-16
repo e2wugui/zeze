@@ -737,10 +737,7 @@ namespace Serialize
             EnsureRead(n);
             ReadIndex += n;
         }
-    };
 
-    class Helper
-    {
         // 只能增加新的类型定义，增加时记得同步 SkipUnknownField
     public:
         const static int

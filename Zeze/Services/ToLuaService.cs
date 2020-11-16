@@ -450,38 +450,38 @@ namespace Zeze.Services.ToLuaService
         private void EncodeVariable(ByteBuffer _os_, VariableMeta v, int index = -1)
         {
             if (v.Id > 0) // 编码容器中项时，Id为0，此时不需要编码 tagid.
-                _os_.WriteInt(v.Type | v.Id << Zeze.Serialize.Helper.TAG_SHIFT);
+                _os_.WriteInt(v.Type | v.Id << Zeze.Serialize.ByteBuffer.TAG_SHIFT);
 
             switch (v.Type)
             {
-                case Zeze.Serialize.Helper.BOOL:
+                case Zeze.Serialize.ByteBuffer.BOOL:
                     _os_.WriteBool(Lua.ToBoolean(index));
                     break;
-                case Zeze.Serialize.Helper.BYTE:
+                case Zeze.Serialize.ByteBuffer.BYTE:
                     _os_.WriteByte((byte)Lua.ToInteger(index));
                     break;
-                case Zeze.Serialize.Helper.SHORT:
+                case Zeze.Serialize.ByteBuffer.SHORT:
                     _os_.WriteShort((short)Lua.ToInteger(index));
                     break;
-                case Zeze.Serialize.Helper.INT:
+                case Zeze.Serialize.ByteBuffer.INT:
                     _os_.WriteInt((int)Lua.ToInteger(index));
                     break;
-                case Zeze.Serialize.Helper.LONG:
+                case Zeze.Serialize.ByteBuffer.LONG:
                     _os_.WriteLong(Lua.ToInteger(index));
                     break;
-                case Zeze.Serialize.Helper.FLOAT:
+                case Zeze.Serialize.ByteBuffer.FLOAT:
                     _os_.WriteFloat((float)Lua.ToNumber(index));
                     break;
-                case Zeze.Serialize.Helper.DOUBLE:
+                case Zeze.Serialize.ByteBuffer.DOUBLE:
                     _os_.WriteDouble(Lua.ToNumber(index));
                     break;
-                case Zeze.Serialize.Helper.STRING:
+                case Zeze.Serialize.ByteBuffer.STRING:
                     _os_.WriteString(Lua.ToString(index));
                     break;
-                case Zeze.Serialize.Helper.BYTES:
+                case Zeze.Serialize.ByteBuffer.BYTES:
                     _os_.WriteBytes(Lua.ToBuffer(index));
                     break;
-                case Zeze.Serialize.Helper.LIST:
+                case Zeze.Serialize.ByteBuffer.LIST:
                     {
                         if (false == Lua.IsTable(-1))
                             throw new Exception("list must be a table");
@@ -499,7 +499,7 @@ namespace Zeze.Services.ToLuaService
                         _os_.EndWriteSegment(_state_);
                     }
                     break;
-                case Zeze.Serialize.Helper.SET:
+                case Zeze.Serialize.ByteBuffer.SET:
                     {
                         if (false == Lua.IsTable(-1))
                             throw new Exception("set must be a table");
@@ -517,7 +517,7 @@ namespace Zeze.Services.ToLuaService
                         _os_.EndWriteSegment(_state_);
                     }
                     break;
-                case Zeze.Serialize.Helper.MAP:
+                case Zeze.Serialize.ByteBuffer.MAP:
                     {
                         if (false == Lua.IsTable(-1))
                             throw new Exception("map must be a table");
@@ -537,7 +537,7 @@ namespace Zeze.Services.ToLuaService
                         _os_.EndWriteSegment(_state_);
                     }
                     break;
-                case Zeze.Serialize.Helper.BEAN:
+                case Zeze.Serialize.ByteBuffer.BEAN:
                     {
                         if (v.Id > 0)
                         {
@@ -552,7 +552,7 @@ namespace Zeze.Services.ToLuaService
                         }
                     }
                     break;
-                case Zeze.Serialize.Helper.DYNAMIC:
+                case Zeze.Serialize.ByteBuffer.DYNAMIC:
                     {
                         if (v.Id <= 0)
                             throw new Exception("dynamic cannot define in collection");
@@ -628,8 +628,8 @@ namespace Zeze.Services.ToLuaService
             for (int _varnum_ = _os_.ReadInt(); _varnum_ > 0; --_varnum_)
             {
                 int _tagid_ = _os_.ReadInt();
-                int _varid_ = (_tagid_ >> Zeze.Serialize.Helper.TAG_SHIFT) & Zeze.Serialize.Helper.ID_MASK;
-                int _tagType_ = _tagid_ & Zeze.Serialize.Helper.TAG_MASK;
+                int _varid_ = (_tagid_ >> Zeze.Serialize.ByteBuffer.TAG_SHIFT) & Zeze.Serialize.ByteBuffer.ID_MASK;
+                int _tagType_ = _tagid_ & Zeze.Serialize.ByteBuffer.TAG_MASK;
                 Lua.PushInteger(_varid_);
                 DecodeVariable(_os_, _tagType_);
                 Lua.SetTable(-3);
@@ -640,34 +640,34 @@ namespace Zeze.Services.ToLuaService
         {
             switch (_tagType_)
             {
-                case Zeze.Serialize.Helper.BOOL:
+                case Zeze.Serialize.ByteBuffer.BOOL:
                     Lua.PushBoolean(_os_.ReadBool());
                     break;
-                case Zeze.Serialize.Helper.BYTE:
+                case Zeze.Serialize.ByteBuffer.BYTE:
                     Lua.PushInteger(_os_.ReadByte());
                     break;
-                case Zeze.Serialize.Helper.SHORT:
+                case Zeze.Serialize.ByteBuffer.SHORT:
                     Lua.PushInteger(_os_.ReadShort());
                     break;
-                case Zeze.Serialize.Helper.INT:
+                case Zeze.Serialize.ByteBuffer.INT:
                     Lua.PushInteger(_os_.ReadInt());
                     break;
-                case Zeze.Serialize.Helper.LONG:
+                case Zeze.Serialize.ByteBuffer.LONG:
                     Lua.PushInteger(_os_.ReadLong());
                     break;
-                case Zeze.Serialize.Helper.FLOAT:
+                case Zeze.Serialize.ByteBuffer.FLOAT:
                     Lua.PushNumber(_os_.ReadFloat());
                     break;
-                case Zeze.Serialize.Helper.DOUBLE:
+                case Zeze.Serialize.ByteBuffer.DOUBLE:
                     Lua.PushNumber(_os_.ReadDouble());
                     break;
-                case Zeze.Serialize.Helper.STRING:
+                case Zeze.Serialize.ByteBuffer.STRING:
                     Lua.PushString(_os_.ReadString());
                     break;
-                case Zeze.Serialize.Helper.BYTES:
+                case Zeze.Serialize.ByteBuffer.BYTES:
                     Lua.PushBuffer(_os_.ReadBytes());
                     break;
-                case Zeze.Serialize.Helper.LIST:
+                case Zeze.Serialize.ByteBuffer.LIST:
                     {
                         _os_.BeginReadSegment(out var _state_);
                         int _valueTagType_ = _os_.ReadInt();
@@ -683,7 +683,7 @@ namespace Zeze.Services.ToLuaService
                         _os_.EndReadSegment(_state_);
                     }
                     break;
-                case Zeze.Serialize.Helper.SET:
+                case Zeze.Serialize.ByteBuffer.SET:
                     {
                         _os_.BeginReadSegment(out var _state_);
                         int _valueTagType_ = _os_.ReadInt();
@@ -699,7 +699,7 @@ namespace Zeze.Services.ToLuaService
                         _os_.EndReadSegment(_state_);
                     }
                     break;
-                case Zeze.Serialize.Helper.MAP:
+                case Zeze.Serialize.ByteBuffer.MAP:
                     {
                         _os_.BeginReadSegment(out var _state_);
                         int _keyTagType_ = _os_.ReadInt();
@@ -714,7 +714,7 @@ namespace Zeze.Services.ToLuaService
                         _os_.EndReadSegment(_state_);
                     }
                     break;
-                case Zeze.Serialize.Helper.BEAN:
+                case Zeze.Serialize.ByteBuffer.BEAN:
                     {
                         if (inCollection)
                         {
@@ -728,7 +728,7 @@ namespace Zeze.Services.ToLuaService
                         }
                     }
                     break;
-                case Zeze.Serialize.Helper.DYNAMIC:
+                case Zeze.Serialize.ByteBuffer.DYNAMIC:
                     {
                         long beanTypeId = _os_.ReadLong8();
                         if (beanTypeId == Transaction.EmptyBean.TYPEID)

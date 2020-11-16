@@ -17,77 +17,77 @@ namespace Zeze.Gen.cs
 
         void Visitor.Visit(Bean type)
         {
-            Name = "Helper.BEAN";
+            Name = "ByteBuffer.BEAN";
         }
 
         void Visitor.Visit(BeanKey type)
         {
-            Name = "Helper.BEAN";
+            Name = "ByteBuffer.BEAN";
         }
 
         void Visitor.Visit(TypeByte type)
         {
-            Name = "Helper.BYTE";
+            Name = "ByteBuffer.BYTE";
         }
 
         void Visitor.Visit(TypeShort type)
         {
-            Name = "Helper.SHORT";
+            Name = "ByteBuffer.SHORT";
         }
 
         void Visitor.Visit(TypeInt type)
         {
-            Name = "Helper.INT";
+            Name = "ByteBuffer.INT";
         }
 
         void Visitor.Visit(TypeLong type)
         {
-            Name = "Helper.LONG";
+            Name = "ByteBuffer.LONG";
         }
 
         void Visitor.Visit(TypeBool type)
         {
-            Name = "Helper.BOOL";
+            Name = "ByteBuffer.BOOL";
         }
 
         void Visitor.Visit(TypeBinary type)
         {
-            Name = "Helper.BYTES";
+            Name = "ByteBuffer.BYTES";
         }
 
         void Visitor.Visit(TypeString type)
         {
-            Name = "Helper.STRING";
+            Name = "ByteBuffer.STRING";
         }
 
         void Visitor.Visit(TypeFloat type)
         {
-            Name = "Helper.FLOAT";
+            Name = "ByteBuffer.FLOAT";
         }
 
         void Visitor.Visit(TypeDouble type)
         {
-            Name = "Helper.DOUBLE";
+            Name = "ByteBuffer.DOUBLE";
         }
 
         void Visitor.Visit(TypeList type)
         {
-            Name = "Helper.LIST";
+            Name = "ByteBuffer.LIST";
         }
 
         void Visitor.Visit(TypeSet type)
         {
-            Name = "Helper.SET";
+            Name = "ByteBuffer.SET";
         }
 
         void Visitor.Visit(TypeMap type)
         {
-            Name = "Helper.MAP";
+            Name = "ByteBuffer.MAP";
         }
 
         void Visitor.Visit(TypeDynamic type)
         {
-            Name = "Helper.DYNAMIC";
+            Name = "ByteBuffer.DYNAMIC";
         }
     }
 }

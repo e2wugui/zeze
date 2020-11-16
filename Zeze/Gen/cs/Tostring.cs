@@ -111,19 +111,19 @@ namespace Zeze.Gen.cs
         void Visitor.Visit(TypeList type)
         {
             sw.WriteLine(prefix + "sb.Append(\"" + sep + "\").Append(\"" + var.NameUpper1 + ":\");");
-            sw.WriteLine(prefix + "Helper.BuildString(sb, " + var.NameUpper1 + ");");
+            sw.WriteLine(prefix + "ByteBuffer.BuildString(sb, " + var.NameUpper1 + ");");
         }
 
         void Visitor.Visit(TypeSet type)
         {
             sw.WriteLine(prefix + "sb.Append(\"" + sep + "\").Append(\"" + var.NameUpper1 + ":\");");
-            sw.WriteLine(prefix + "Helper.BuildString(sb, " + var.NameUpper1 + ");");
+            sw.WriteLine(prefix + "ByteBuffer.BuildString(sb, " + var.NameUpper1 + ");");
         }
 
         void Visitor.Visit(TypeMap type)
         {
             sw.WriteLine(prefix + "sb.Append(\"" + sep + "\").Append(\"" + var.NameUpper1 + ":\");");
-            sw.WriteLine(prefix + "Helper.BuildString(sb, " + var.NameUpper1 + ");");
+            sw.WriteLine(prefix + "ByteBuffer.BuildString(sb, " + var.NameUpper1 + ");");
         }
 
         void Visitor.Visit(TypeFloat type)

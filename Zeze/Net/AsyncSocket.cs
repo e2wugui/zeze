@@ -167,7 +167,7 @@ namespace Zeze.Net
         /// <param name="length"></param>
         public void Send(byte[] bytes, int offset, int length)
         {
-            global::Zeze.Serialize.Helper.VerifyArrayIndex(bytes, offset, length);
+            global::Zeze.Serialize.ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
             lock (this)
             {

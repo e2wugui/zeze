@@ -56,7 +56,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine(prefix + bufname + ".WriteInt(Helper.BEAN | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.BEAN | " + id + " << ByteBuffer.TAG_SHIFT);");
                 sw.WriteLine(prefix + "{");
                 sw.WriteLine(prefix + "    " + bufname + ".BeginWriteSegment(out var _state_);");
                 sw.WriteLine(prefix + "    " + varname + ".Encode(" + bufname + ");");
@@ -73,7 +73,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine(prefix + bufname + ".WriteInt(Helper.BEAN | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.BEAN | " + id + " << ByteBuffer.TAG_SHIFT);");
                 sw.WriteLine(prefix + "{");
                 sw.WriteLine(prefix + "    " + bufname + ".BeginWriteSegment(out var _state_);");
                 sw.WriteLine(prefix + "    " + varname + ".Encode(" + bufname + ");");
@@ -90,7 +90,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine(prefix + bufname + ".WriteInt(Helper.BYTE | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.BYTE | " + id + " << ByteBuffer.TAG_SHIFT);");
             }
             sw.WriteLine(prefix + bufname + ".WriteByte(" + varname + ");");
         }
@@ -99,7 +99,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine(prefix + bufname + ".WriteInt(Helper.DOUBLE | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.DOUBLE | " + id + " << ByteBuffer.TAG_SHIFT);");
             }
             sw.WriteLine(prefix + bufname + ".WriteDouble(" + varname + ");");
         }
@@ -108,7 +108,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine(prefix + bufname + ".WriteInt(Helper.INT | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.INT | " + id + " << ByteBuffer.TAG_SHIFT);");
             }
             sw.WriteLine(prefix + bufname + ".WriteInt(" + varname + ");");
         }
@@ -117,7 +117,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine(prefix + bufname + ".WriteInt(Helper.LONG | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.LONG | " + id + " << ByteBuffer.TAG_SHIFT);");
             }
             sw.WriteLine(prefix + bufname + ".WriteLong(" + varname + ");");
         }
@@ -126,7 +126,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine(prefix + bufname + ".WriteInt(Helper.BOOL | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.BOOL | " + id + " << ByteBuffer.TAG_SHIFT);");
             }
             sw.WriteLine(prefix + bufname + ".WriteBool(" + varname + ");");
         }
@@ -135,7 +135,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine(prefix + bufname + ".WriteInt(Helper.BYTES | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.BYTES | " + id + " << ByteBuffer.TAG_SHIFT);");
             }
             sw.WriteLine(prefix + bufname + ".WriteBytes(" + varname + ");");
         }
@@ -144,7 +144,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine(prefix + bufname + ".WriteInt(Helper.STRING | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.STRING | " + id + " << ByteBuffer.TAG_SHIFT);");
             }
             sw.WriteLine(prefix + bufname + ".WriteString(" + varname + ");");
         }
@@ -168,7 +168,7 @@ namespace Zeze.Gen.cs
         {
             if (id < 0)
                 throw new Exception("invalie Variable.Id");
-            sw.WriteLine(prefix + bufname + ".WriteInt(Helper.LIST | " + id + " << Helper.TAG_SHIFT);");
+            sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.LIST | " + id + " << ByteBuffer.TAG_SHIFT);");
             EncodeCollection(type);
         }
 
@@ -176,7 +176,7 @@ namespace Zeze.Gen.cs
         {
             if (id < 0)
                 throw new Exception("invalie Variable.Id");
-            sw.WriteLine(prefix + bufname + ".WriteInt(Helper.SET | " + id + " << Helper.TAG_SHIFT);");
+            sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.SET | " + id + " << ByteBuffer.TAG_SHIFT);");
             EncodeCollection(type);
         }
 
@@ -188,7 +188,7 @@ namespace Zeze.Gen.cs
             Types.Type keytype = type.KeyType;
             Types.Type valuetype = type.ValueType;
 
-            sw.WriteLine(prefix + bufname + ".WriteInt(Helper.MAP | " + id + " << Helper.TAG_SHIFT);");
+            sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.MAP | " + id + " << ByteBuffer.TAG_SHIFT);");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    _os_.BeginWriteSegment(out var _state_);");
             sw.WriteLine(prefix + "    _os_.WriteInt(" + TypeTagName.GetName(keytype) + ");");
@@ -207,7 +207,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine(prefix + "_os_.WriteInt(Helper.FLOAT | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + "_os_.WriteInt(ByteBuffer.FLOAT | " + id + " << ByteBuffer.TAG_SHIFT);");
             }
             sw.WriteLine(prefix + "_os_.WriteFloat(" + varname + ");");
         }
@@ -216,7 +216,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine(prefix + "_os_.WriteInt(Helper.SHORT | " + id + " << Helper.TAG_SHIFT);");
+                sw.WriteLine(prefix + "_os_.WriteInt(ByteBuffer.SHORT | " + id + " << ByteBuffer.TAG_SHIFT);");
             }
             sw.WriteLine(prefix + "_os_.WriteShort(" + varname + ");");
         }
@@ -225,7 +225,7 @@ namespace Zeze.Gen.cs
         {
             if (id >= 0)
             {
-                sw.WriteLine($"{prefix}{bufname}.WriteInt(Helper.DYNAMIC | {id} << Helper.TAG_SHIFT);");
+                sw.WriteLine($"{prefix}{bufname}.WriteInt(ByteBuffer.DYNAMIC | {id} << ByteBuffer.TAG_SHIFT);");
                 sw.WriteLine($"{prefix}{bufname}.WriteLong8({varname}.TypeId);");
                 sw.WriteLine(prefix + "{");
                 sw.WriteLine(prefix + "    " + bufname + ".BeginWriteSegment(out var _state_);");
