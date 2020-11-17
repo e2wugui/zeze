@@ -189,7 +189,7 @@ namespace UnitTest.Zeze.Serialize
 
             v = 0x200000;
             bb.WriteLong(v);
-            //Assert.AreEqual(4, bb.Size);
+            Assert.AreEqual(4, bb.Size);
             //Console.WriteLine(bb);
             Assert.AreEqual("E0-20-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());

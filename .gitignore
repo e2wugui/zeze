@@ -33,3 +33,4 @@ TestResults
 /UnitTestClientCxx/lua-5.4.1
 /TypeScript/bin
 /TypeScript/obj
+/TypeScript/webpack/node_modules

@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script type="text/javascript" src="dist/bundle.js"></script>
+<script>
+	var HEX = "0123456789ABCDEF";
+	function toHex(x) {
+		var l = x & 0x0f;
+		var h = (x >> 4) & 0x0f;
+		return this.HEX[h] + this.HEX[l];
+	}
+
+	function toString(x, from = 0, to = -1) {
+		var ss = "";
+		var bfirst = true;
+		if (to == -1)
+			to = x.byteLength;
+		for (var i = from; i < to; ++i) {
+			if (bfirst)
+				bfirst = false;
+			else
+				ss = ss.concat("-");
+			ss = ss.concat(toHex(x[i]));
+		}
+		return ss;
+	}
+
+	function flush() {
+		var r = test(document.getElementById('in').value);
+		document.getElementById('out').value = r;
+		//var int8buf = new Uint8Array(20);
+		//var view = new DataView(int8buf.buffer);
+		//view.setFloat64(0, 1.1, true);
+		//document.getElementById('out').value = toString(int8buf, 0, 8);
+		//alert(view.getFloat64(0));
+	}
+</script>
+<body onload="flush()">
+<div style="width:30em; padding:1em; background-color:#f0f0f0">
+	<textarea id="out" style="width:480px; margin-top:1em"></textarea>
+	<textarea id="in" style="width:480px; margin-top:1em"></textarea>
+</div>
+</body>
+</html>
