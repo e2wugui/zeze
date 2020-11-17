@@ -5,8 +5,11 @@
 	除了ToTypeScript相关的。
 
 使用(TypeScript)
-	直接把cxx下的所有代码加到项目中。
-	除了ToLua相关的。
+	1 直接把cxx下的所有代码加到项目中。除了ToLua相关的。
+	2 把 TypeScript/scripts/zeze.ts 或者 TypeScript/js/zeze.js 拷贝到你的项目脚本目录。
+	  TypeScript/js/long.js 来自于 https://github.com/dcodeIO/Long.js/ 
+	  好像 nodejs 也有一个 Long 实现，还没看，不知道接口是否一致。
+
 
 其他说明
 	这里的代码主要拷贝自 limax 项目。

@@ -5,6 +5,6 @@
     "outDir": "js"
   },
   "include": [
-    "scripts/**/*.ts"
+    "ts/**/*.ts"
   ]
 }
