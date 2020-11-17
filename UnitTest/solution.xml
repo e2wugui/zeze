@@ -87,4 +87,10 @@
 			<module ref="Module1"/>
 		</service>
 	</project>
+
+	<project name="TypeScript" gendir=".." platform="cxx+ts">
+		<service name="Client" handle="clientlua">
+			<module ref="Module1"/>
+		</service>
+	</project>
 </solution>

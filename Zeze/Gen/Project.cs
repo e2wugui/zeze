@@ -182,6 +182,9 @@ namespace Zeze.Gen
                     new cxx.Maker(this).Make();
                     new Zeze.Gen.lua.Maker(this).Make();
                     break;
+                case "cxx+ts":
+                    new ts.Maker(this).Make();
+                    break;
                 default:
                     throw new Exception("unsupport platform: " + Platform);
             }

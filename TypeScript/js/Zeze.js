@@ -1,6 +1,36 @@
 import Long from "./long.js";
 export var Zeze;
 (function (Zeze) {
+    class EmptyBean {
+        TypeId() {
+            return EmptyBean.TYPEID;
+        }
+        Encode(_os_) {
+            //_os_.WriteInt(0); // ����Bean��ϵ�л���ʽӦ��д��0������������ʷԭ�򣬲�дҲ���ԣ����⴦���ˡ�
+        }
+        Decode(_os_) {
+            //_os_.ReadInt();
+        }
+    }
+    EmptyBean.TYPEID = new Long(0, 0, true);
+    Zeze.EmptyBean = EmptyBean;
+    class Protocol {
+        TypeId() {
+            return this.ModuleId() << 16 | this.ProtocolId();
+        }
+        Encode(_os_) {
+            _os_.WriteInt(this.ResultCode);
+            this.Argument.Encode(_os_);
+        }
+        Decode(_os_) {
+            this.ResultCode = _os_.ReadInt();
+            this.Argument.Decode(_os_);
+        }
+        Send() {
+            // TODO access service or connection
+        }
+    }
+    Zeze.Protocol = Protocol;
     class ByteBuffer {
         constructor(buffer = null) {
             this.Bytes = (null == buffer) ? new Uint8Array(1024) : buffer;
@@ -423,7 +453,7 @@ export var Zeze;
             var h = this.Bytes[this.ReadIndex];
             if (h < 0x80) {
                 this.ReadIndex++;
-                return h;
+                return new Long(h, 0, true);
             }
             if (h < 0xc0) {
                 this.EnsureRead(2);

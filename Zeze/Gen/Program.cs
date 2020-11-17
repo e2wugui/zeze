@@ -9,6 +9,12 @@ namespace Zeze.Gen
     public class Program
     {
         private static Dictionary<string, Solution> solutions = new Dictionary<string, Solution>();
+        public static Zeze.Util.AtomicLong IdGen = new Zeze.Util.AtomicLong();
+
+        public static string GenUniqVarName()
+        {
+            return "_v_" + IdGen.IncrementAndGet() + "_";
+        }
 
         public static global::Zeze.Util.Ranges GlobalModuleIdChecker { get; private set; } = new global::Zeze.Util.Ranges();
 
@@ -187,5 +193,21 @@ namespace Zeze.Gen
             }
             return f;
         }
+
+        public static System.IO.StreamWriter OpenWriterNoPath(string baseDir, string fileName, bool overwrite = true)
+        {
+            System.IO.Directory.CreateDirectory(baseDir);
+            string fullFileName = System.IO.Path.Combine(baseDir, fileName);
+            bool exists = System.IO.File.Exists(fullFileName);
+            if (!exists || overwrite)
+            {
+                Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
+                System.IO.StreamWriter sw = new System.IO.StreamWriter(fullFileName, false, Encoding.UTF8);
+                return sw;
+            }
+            Program.Print("file skip '" + fullFileName + "'");
+            return null;
+        }
+
     }
 }

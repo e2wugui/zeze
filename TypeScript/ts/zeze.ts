@@ -7,6 +7,52 @@ export module Zeze {
 		Decode(_os_: ByteBuffer): void;
 	}
 
+	export interface Bean extends Serializable {
+		TypeId(): Long;
+    }
+
+	export class EmptyBean implements Bean {
+		public static readonly TYPEID: Long = new Long(0, 0, true);
+
+		public TypeId(): Long {
+			return EmptyBean.TYPEID;
+		}
+
+		public Encode(_os_: ByteBuffer): void {
+			//_os_.WriteInt(0); // 按照Bean的系列化格式应该写个0，但是由于历史原因，不写也可以，特殊处理了。
+		}
+
+		public Decode(_os_: ByteBuffer): void {
+			//_os_.ReadInt();
+        }
+	}
+
+	export abstract class Protocol<ArgumentType extends Bean> implements Serializable {
+		public ResultCode: number; // int
+		public Argument: ArgumentType; // need init in subclass(real protocol)
+
+		public abstract ModuleId(): number;
+		public abstract ProtocolId(): number;
+
+		public TypeId(): number {
+			return this.ModuleId() << 16 | this.ProtocolId();
+		}
+
+		public Encode(_os_: ByteBuffer): void {
+			_os_.WriteInt(this.ResultCode);
+			this.Argument.Encode(_os_);
+        }
+
+		public Decode(_os_: ByteBuffer): void {
+			this.ResultCode = _os_.ReadInt();
+			this.Argument.Decode(_os_);
+		}
+
+		public Send(): void {
+			// TODO access service or connection
+        }
+    }
+
 	export class ByteBuffer {
 		public Bytes: Uint8Array;
 		public ReadIndex: number;
@@ -476,7 +522,7 @@ export module Zeze {
 			var h = this.Bytes[this.ReadIndex];
 			if (h < 0x80) {
 				this.ReadIndex++;
-				return h;
+				return new Long(h, 0, true);
 			}
 			if (h < 0xc0) {
 				this.EnsureRead(2);

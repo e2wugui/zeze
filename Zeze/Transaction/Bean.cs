@@ -110,10 +110,12 @@ namespace Zeze.Transaction
     {
         public override void Decode(ByteBuffer bb)
         {
+            bb.ReadInt();
         }
 
         public override void Encode(ByteBuffer bb)
         {
+            bb.WriteInt(0);
         }
 
         protected override void InitChildrenTableKey(TableKey root)

@@ -2,7 +2,8 @@
   "compilerOptions": {
     "sourceMap": false,
     "target": "ES2019",
-    "outDir": "js"
+    "outDir": "js",
+    "esModuleInterop": true
   },
   "include": [
     "ts/**/*.ts"
