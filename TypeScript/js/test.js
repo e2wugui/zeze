@@ -1,5 +1,5 @@
-import { Zeze } from "./zeze.js";
-import Long from "./long.js";
+import { Zeze } from "zeze.js";
+import Long from "long.js";
 function assert(condition, msg) {
     if (!condition) {
         throw new Error(msg);

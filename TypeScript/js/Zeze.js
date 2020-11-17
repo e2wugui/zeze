@@ -1,4 +1,4 @@
-import Long from "./long.js";
+import Long from "long.js";
 export var Zeze;
 (function (Zeze) {
     class EmptyBean {

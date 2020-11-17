@@ -65,7 +65,7 @@ namespace Zeze.Gen.ts
         public void Visit(TypeList type)
         {
             string valueName = TypeName.GetName(type.ValueType);
-            name = "List<" + valueName + ">";
+            name = "Array<" + valueName + ">";
         }
 
         public void Visit(TypeSet type)
@@ -93,7 +93,7 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeDynamic type)
         {
-            name = "Zeze.Serializable";
+            name = "Zeze.Bean";
         }
     }
 }

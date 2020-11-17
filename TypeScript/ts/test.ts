@@ -1,6 +1,6 @@
 ﻿
-import { Zeze } from "./zeze.js"
-import Long from "./long.js"
+import { Zeze } from "zeze.js"
+import Long from "long.js"
 
 function assert(condition: any, msg: string): asserts condition {
     if (!condition) {

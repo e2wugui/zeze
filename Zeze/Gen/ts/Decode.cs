@@ -213,13 +213,13 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "    {");
             sw.WriteLine(prefix + "        var _state_ = _os_.BeginReadSegment();");
             sw.WriteLine(prefix + "        _os_.ReadInt(); // skip collection.value typetag");
-            sw.WriteLine(prefix + "        " + varname + ".clear();");
+            sw.WriteLine(prefix + "        " + varname + " = new " + TypeName.GetName(type) + "();");
             sw.WriteLine(prefix + "        for (var _size_ = _os_.ReadInt(); _size_ > 0; --_size_)");
             sw.WriteLine(prefix + "        {");
             string vartmpname = Program.GenUniqVarName();
             valuetype.Accept(new Define(vartmpname, sw, prefix + "            "));
             valuetype.Accept(new Decode(vartmpname, -1, "_os_", sw, prefix + "            "));
-            sw.WriteLine(prefix + "            " + varname + ".add(" + vartmpname + ");");
+            sw.WriteLine(prefix + "            " + varname + ".push(" + vartmpname + ");");
             sw.WriteLine(prefix + "        }");
             sw.WriteLine(prefix + "        _os_.EndReadSegment(_state_);");
             sw.WriteLine(prefix + "    }");

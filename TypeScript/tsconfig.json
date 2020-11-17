@@ -3,7 +3,8 @@
     "sourceMap": false,
     "target": "ES2019",
     "outDir": "js",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "baseUrl": "js"
   },
   "include": [
     "ts/**/*.ts"

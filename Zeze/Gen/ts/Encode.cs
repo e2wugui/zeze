@@ -157,10 +157,11 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    var _state_ = _os_.BeginWriteSegment();");
             sw.WriteLine(prefix + "    _os_.WriteInt(" + TypeTagName.GetName(vt) + ");");
-            sw.WriteLine(prefix + "    _os_.WriteInt(" + varname + ".Count);");
-            sw.WriteLine(prefix + "    foreach (var _v_ in " + varname + ")");
+            sw.WriteLine(prefix + "    _os_.WriteInt(" + varname + ".length);");
+            string vartmpname = Program.GenUniqVarName();
+            sw.WriteLine(prefix + "    for (var " + vartmpname + " in " + varname + ")");
             sw.WriteLine(prefix + "    {");
-            vt.Accept(new Encode("_v_", -1, "_os_", sw, prefix + "        "));
+            vt.Accept(new Encode(varname + "[" + vartmpname + "]", -1, "_os_", sw, prefix + "        "));
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    _os_.EndWriteSegment(_state_); ");
             sw.WriteLine(prefix + "}");
@@ -177,7 +178,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "    _os_.WriteInt(" + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    _os_.WriteInt(" + varname + ".size);");
             string tmpvarname = Program.GenUniqVarName();
-            sw.WriteLine(prefix + "    for (var " + tmpvarname + " in " + varname + ")");
+            sw.WriteLine(prefix + "    for (let " + tmpvarname + " of " + varname + ")");
             sw.WriteLine(prefix + "    {");
             vt.Accept(new Encode(tmpvarname, -1, "_os_", sw, prefix + "        "));
             sw.WriteLine(prefix + "    }");
