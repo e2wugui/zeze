@@ -131,11 +131,12 @@ XXX Do Not Catch Exception
    需要把zeze\cxx目录下的所有文件加到项目中。设置好include-path。
    使用例子：zeze\UnitTestClientCxx\main.cpp
 
+*. 其他"Game/游戏使用方案建议.txt"
+
 #### TODO
 
 每事务提交
 ConfigEditor
-游戏使用方案建议.txt
 
 #### 历史
 
