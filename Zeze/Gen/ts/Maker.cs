@@ -31,18 +31,20 @@ namespace Zeze.Gen.ts
             {
                 new BeanFormatter(bean).Make(sw);
             }
-            /*
             foreach (Types.BeanKey beanKey in Project.AllBeanKeys)
             {
-                new BeanKeyFormatter(beanKey).Make(genDir);
+                new BeanKeyFormatter(beanKey).Make(sw);
             }
             foreach (Protocol protocol in Project.AllProtocols)
             {
                 if (protocol is Rpc rpc)
-                    new RpcFormatter(rpc).Make(genDir);
+                {
+                   new RpcFormatter(rpc).Make(sw);
+                }
                 else
-                    new ProtocolFormatter(protocol).Make(genDir);
+                    new ProtocolFormatter(protocol).Make(sw);
             }
+            /*
             foreach (Module mod in Project.AllModules)
             {
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();

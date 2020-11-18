@@ -6,10 +6,10 @@ export var Zeze;
             return EmptyBean.TYPEID;
         }
         Encode(_os_) {
-            //_os_.WriteInt(0); // ����Bean��ϵ�л���ʽӦ��д��0������������ʷԭ�򣬲�дҲ���ԣ����⴦���ˡ�
+            _os_.WriteInt(0);
         }
         Decode(_os_) {
-            //_os_.ReadInt();
+            _os_.ReadInt();
         }
     }
     EmptyBean.TYPEID = new Long(0, 0, true);
@@ -17,6 +17,61 @@ export var Zeze;
     class Protocol {
         TypeId() {
             return this.ModuleId() << 16 | this.ProtocolId();
+        }
+        EncodeProtocol() {
+            var bb = new Zeze.ByteBuffer();
+            bb.WriteInt4(this.TypeId());
+            var state = bb.BeginWriteWithSize4();
+            this.Encode(bb);
+            bb.EndWriteWithSize4(state);
+            return bb;
+        }
+        Send(socket) {
+            var bb = this.EncodeProtocol();
+            socket.Send(bb);
+        }
+        Dispatch(service, factoryHandle) {
+            service.DispatchProtocol(this, factoryHandle);
+        }
+        static DecodeProtocols(service, socket, input) {
+            var os = new Zeze.ByteBuffer(input.Bytes, input.ReadIndex, input.Size());
+            while (os.Size() > 0) {
+                var type;
+                var size;
+                var readIndexSaved = os.ReadIndex;
+                if (os.Size() >= 8) // protocl header size.
+                 {
+                    type = os.ReadInt4();
+                    size = os.ReadInt4();
+                }
+                else {
+                    input.ReadIndex = readIndexSaved;
+                    return;
+                }
+                if (size > os.Size()) {
+                    input.ReadIndex = readIndexSaved;
+                    return;
+                }
+                var buffer = new Zeze.ByteBuffer(os.Bytes, os.ReadIndex, size);
+                os.ReadIndex += size;
+                var factoryHandle = service.FactoryHandleMap.get(type);
+                if (null != factoryHandle) {
+                    var p = factoryHandle.factory();
+                    p.Decode(buffer);
+                    p.Sender = socket;
+                    p.Dispatch(service, factoryHandle);
+                    continue;
+                }
+                service.DispatchUnknownProtocol(socket, type, buffer);
+            }
+            input.ReadIndex = os.ReadIndex;
+        }
+    }
+    Zeze.Protocol = Protocol;
+    class ProtocolWithArgument extends Protocol {
+        constructor(argument) {
+            super();
+            this.Argument = argument;
         }
         Encode(_os_) {
             _os_.WriteInt(this.ResultCode);
@@ -26,17 +81,124 @@ export var Zeze;
             this.ResultCode = _os_.ReadInt();
             this.Argument.Decode(_os_);
         }
-        Send() {
-            // TODO access service or connection
+    }
+    Zeze.ProtocolWithArgument = ProtocolWithArgument;
+    class Rpc extends Zeze.ProtocolWithArgument {
+        constructor(argument, result) {
+            super(argument);
+            this.Result = result;
+        }
+        SendWithCallback(socket, resultHandle, timeoutHandle = null, timeoutMs = 0) {
+            this.Sender = socket;
+            this.ResultHandle = resultHandle;
+            this.IsRequest = true;
+            this.sid = socket.service.AddRpcContext(this);
+            if (null != timeoutHandle && timeoutMs > 0) {
+                this.TimeoutHandle = timeoutHandle;
+                this.timeout = setTimeout(() => {
+                    var context = this.Sender.service.RemoveRpcContext(this.sid);
+                    if (null != context) {
+                        context.TimeoutHandle(context);
+                    }
+                }, timeoutMs);
+            }
+            super.Send(socket);
+        }
+        SendResult() {
+            this.IsRequest = false;
+            super.Send(this.Sender);
+        }
+        SendResultCode(code) {
+            this.ResultCode = code;
+            this.SendResult();
+        }
+        Dispatch(service, factoryHandle) {
+            if (this.IsRequest) {
+                service.DispatchProtocol(this, factoryHandle);
+                return;
+            }
+            var context = service.RemoveRpcContext(this.sid);
+            if (null == context)
+                return;
+            if (context.timeout)
+                clearTimeout(context.timeout);
+            context.IsRequest = false;
+            context.Result = this.Result;
+            context.Sender = this.Sender;
+            context.ResultCode = this.ResultCode;
+            context.ResultHandle(context);
+        }
+        Decode(bb) {
+            this.sid = bb.ReadLong();
+            this.IsRequest = (this.sid.high & 0x80000000) != 0;
+            if (this.IsRequest) {
+                this.sid.high &= 0x7fffffff;
+                this.ResultCode = bb.ReadInt();
+                this.Argument.Decode(bb);
+            }
+            else {
+                this.ResultCode = bb.ReadInt();
+                this.Result.Decode(bb);
+            }
+        }
+        Encode(bb) {
+            if (this.IsRequest) {
+                this.sid.high |= 0x80000000;
+                bb.WriteLong(this.sid);
+                bb.WriteInt(this.ResultCode);
+                this.Argument.Encode(bb);
+            }
+            else {
+                bb.WriteLong(this.sid);
+                bb.WriteInt(this.ResultCode);
+                this.Result.Encode(bb);
+            }
         }
     }
-    Zeze.Protocol = Protocol;
+    Zeze.Rpc = Rpc;
+    class ProtocolFactoryHandle {
+    }
+    Zeze.ProtocolFactoryHandle = ProtocolFactoryHandle;
+    // TODO �󶨵��ײ���·ʵ�֣�cxx or c#)
+    class Socket {
+        constructor(service) {
+            this.service = service;
+        }
+        Send(buffer) {
+        }
+    }
+    Zeze.Socket = Socket;
+    class Service {
+        constructor() {
+            this.serialId = new Long(0, 0, true);
+            this.contexts = new Map();
+        }
+        AddRpcContext(rpc) {
+            this.serialId = this.serialId.add(1);
+            this.contexts.set(this.serialId, rpc);
+            return this.serialId;
+        }
+        RemoveRpcContext(sid) {
+            var ctx = this.contexts.get(sid);
+            if (ctx) {
+                this.contexts.delete(sid);
+                return ctx;
+            }
+            return null;
+        }
+        DispatchUnknownProtocol(socket, type, buffer) {
+        }
+        DispatchProtocol(p, factoryHandle) {
+            factoryHandle.handle(p);
+        }
+    }
+    Zeze.Service = Service;
     class ByteBuffer {
-        constructor(buffer = null) {
+        constructor(buffer = null, readIndex = 0, length = 0) {
             this.Bytes = (null == buffer) ? new Uint8Array(1024) : buffer;
             this.View = new DataView(this.Bytes.buffer);
-            this.ReadIndex = 0;
-            this.WriteIndex = 0;
+            this.ReadIndex = readIndex;
+            this.WriteIndex = this.ReadIndex + length;
         }
         Capacity() {
             return this.Bytes.byteLength;

@@ -33,7 +33,6 @@ namespace Zeze.Net
         {
             IsRequest = true;
             sid = so.Service.AddRpcContext(this);
-            base.Send(so);
 
             global::Zeze.Util.Scheduler.Instance.Schedule(()=>
             {
@@ -51,6 +50,8 @@ namespace Zeze.Net
                 }
                 so.Service.DispatchProtocol(context, so.Service.FindProtocolFactoryHandle(context.TypeId), Service.DispatchType.Timeout);
             }, millisecondsTimeout, -1);
+
+            base.Send(so);
         }
 
         public TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout = 5000)

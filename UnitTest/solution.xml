@@ -33,6 +33,7 @@
 				<value bean="Simple"/>
 			</variable>
 			<variable id="15" name="map15" type="map" key="long" value="long"/> com aa
+			<variable id="16" name="map16" type="map" key="Key" value="Simple"/> com aa
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>

@@ -19,37 +19,242 @@ export module Zeze {
 		}
 
 		public Encode(_os_: ByteBuffer): void {
-			//_os_.WriteInt(0); // 按照Bean的系列化格式应该写个0，但是由于历史原因，不写也可以，特殊处理了。
+			_os_.WriteInt(0);
 		}
 
 		public Decode(_os_: ByteBuffer): void {
-			//_os_.ReadInt();
+			_os_.ReadInt();
         }
 	}
 
-	export abstract class Protocol<ArgumentType extends Bean> implements Serializable {
+	export abstract class Protocol implements Serializable {
 		public ResultCode: number; // int
-		public Argument: ArgumentType; // need init in subclass(real protocol)
+		public Sender: Socket;
 
 		public abstract ModuleId(): number;
 		public abstract ProtocolId(): number;
+		abstract Encode(_os_: ByteBuffer): void;
+		abstract Decode(_os_: ByteBuffer): void;
 
 		public TypeId(): number {
 			return this.ModuleId() << 16 | this.ProtocolId();
 		}
 
+		public EncodeProtocol(): Zeze.ByteBuffer {
+			var bb = new Zeze.ByteBuffer();
+			bb.WriteInt4(this.TypeId());
+			var state = bb.BeginWriteWithSize4();
+			this.Encode(bb);
+			bb.EndWriteWithSize4(state);
+			return bb;
+		}
+
+		public Send(socket: Socket): void {
+			var bb = this.EncodeProtocol();
+			socket.Send(bb);
+		}
+
+		public Dispatch(service: Service, factoryHandle: ProtocolFactoryHandle): void {
+			service.DispatchProtocol(this, factoryHandle);
+		}
+
+		public static DecodeProtocols(service: Service, socket: Socket, input: Zeze.ByteBuffer): void {
+			var os = new Zeze.ByteBuffer(input.Bytes, input.ReadIndex, input.Size());
+			while (os.Size() > 0) {
+				var type: number;
+				var size: number;
+				var readIndexSaved = os.ReadIndex;
+
+				if (os.Size() >= 8) // protocl header size.
+				{
+					type = os.ReadInt4();
+					size = os.ReadInt4();
+				}
+				else {
+					input.ReadIndex = readIndexSaved;
+					return;
+				}
+
+				if (size > os.Size()) {
+					input.ReadIndex = readIndexSaved;
+					return;
+				}
+
+				var buffer = new Zeze.ByteBuffer(os.Bytes, os.ReadIndex, size);
+				os.ReadIndex += size;
+				var factoryHandle = service.FactoryHandleMap.get(type);
+				if (null != factoryHandle) {
+					var p = factoryHandle.factory();
+					p.Decode(buffer);
+					p.Sender = socket;
+					p.Dispatch(service, factoryHandle);
+					continue;
+				}
+				service.DispatchUnknownProtocol(socket, type, buffer);
+			}
+			input.ReadIndex = os.ReadIndex;
+        }
+	}
+
+	export abstract class ProtocolWithArgument<ArgumentType extends Bean> extends Protocol {
+		public Argument: ArgumentType; // need init in subclass(real protocol)
+
+		public constructor(argument: ArgumentType) {
+			super();
+			this.Argument = argument;
+		}
+
 		public Encode(_os_: ByteBuffer): void {
 			_os_.WriteInt(this.ResultCode);
 			this.Argument.Encode(_os_);
-        }
+		}
 
 		public Decode(_os_: ByteBuffer): void {
 			this.ResultCode = _os_.ReadInt();
 			this.Argument.Decode(_os_);
 		}
+    }
 
-		public Send(): void {
-			// TODO access service or connection
+	export type FunctionProtocolFactory = () => Zeze.Protocol;
+	export type FunctionProtocolHandle = (p: Zeze.Protocol) => number;
+
+	export abstract class Rpc<TArgument extends Zeze.Bean, TResult extends Zeze.Bean> extends Zeze.ProtocolWithArgument<TArgument> {
+		public Result: TResult;
+		public ResultHandle: FunctionProtocolHandle;
+		public TimeoutHandle: FunctionProtocolHandle;
+
+		private IsRequest: boolean;
+		private sid: Long;
+		private timeout: any;
+
+		public constructor(argument: TArgument, result: TResult) {
+			super(argument);
+			this.Result = result;
+		}
+
+		public SendWithCallback(socket: Socket, resultHandle: FunctionProtocolHandle,
+			timeoutHandle: FunctionProtocolHandle = null, timeoutMs: number = 0): void {
+
+			this.Sender = socket;
+			this.ResultHandle = resultHandle;
+			this.IsRequest = true;
+			this.sid = socket.service.AddRpcContext(this);
+
+			if (null != timeoutHandle && timeoutMs > 0) {
+				this.TimeoutHandle = timeoutHandle;
+				this.timeout = setTimeout(() => {
+					var context = <Rpc<TArgument, TResult>>this.Sender.service.RemoveRpcContext(this.sid);
+					if (null != context) {
+						context.TimeoutHandle(context);
+                    }
+				}, timeoutMs);
+            }
+
+			super.Send(socket);
+		}
+
+		public SendResult(): void {
+			this.IsRequest = false;
+			super.Send(this.Sender);
+		}
+
+		public SendResultCode(code: number): void {
+			this.ResultCode = code;
+			this.SendResult();
+		}
+
+		public Dispatch(service: Service, factoryHandle: ProtocolFactoryHandle): void {
+			if (this.IsRequest) {
+				service.DispatchProtocol(this, factoryHandle);
+				return;
+			}
+			var context = <Rpc<TArgument, TResult>>service.RemoveRpcContext(this.sid);
+			if (null == context)
+				return;
+
+			if (context.timeout)
+				clearTimeout(context.timeout);
+
+			context.IsRequest = false;
+			context.Result = this.Result;
+			context.Sender = this.Sender;
+			context.ResultCode = this.ResultCode;
+
+			context.ResultHandle(context);
+		}
+
+		Decode(bb: Zeze.ByteBuffer): void {
+			this.sid = bb.ReadLong();
+			this.IsRequest = (this.sid.high & 0x80000000) != 0;
+			if (this.IsRequest) {
+				this.sid.high &= 0x7fffffff;
+				this.ResultCode = bb.ReadInt();
+				this.Argument.Decode(bb);
+			}
+			else {
+				this.ResultCode = bb.ReadInt();
+				this.Result.Decode(bb);
+			}
+		}
+
+		Encode(bb: Zeze.ByteBuffer): void {
+			if (this.IsRequest) {
+				this.sid.high |= 0x80000000;
+				bb.WriteLong(this.sid);
+				bb.WriteInt(this.ResultCode);
+				this.Argument.Encode(bb);
+			}
+			else {
+				bb.WriteLong(this.sid);
+				bb.WriteInt(this.ResultCode);
+				this.Result.Encode(bb);
+			}
+		}
+	}
+
+	export class ProtocolFactoryHandle {
+		public factory: FunctionProtocolFactory;
+		public handle: FunctionProtocolHandle;
+    }
+
+	// TODO 绑定到底层网路实现（cxx or c#)
+	export class Socket {
+		public service: Service;
+
+		public constructor(service: Service) {
+			this.service = service;
+		}
+
+		public Send(buffer: Zeze.ByteBuffer): void {
+		}
+	}
+
+	export class Service {
+		public FactoryHandleMap: Map<number, ProtocolFactoryHandle>;
+
+		private serialId: Long = new Long(0, 0, true);
+		private contexts: Map<Long, Zeze.Protocol> = new Map<Long, Zeze.Protocol>();
+
+		public AddRpcContext(rpc: Zeze.Protocol): Long {
+			this.serialId = this.serialId.add(1);
+			this.contexts.set(this.serialId, rpc);
+			return this.serialId;
+		}
+
+		public RemoveRpcContext(sid: Long): Zeze.Protocol {
+			var ctx= this.contexts.get(sid);
+			if (ctx) {
+				this.contexts.delete(sid);
+				return ctx;
+            }
+			return null;
+        }
+
+		public DispatchUnknownProtocol(socket: Socket, type: number, buffer: Zeze.ByteBuffer): void {
+		}
+
+		public DispatchProtocol(p: Zeze.Protocol, factoryHandle: ProtocolFactoryHandle): void {
+			factoryHandle.handle(p);
         }
     }
 
@@ -67,11 +272,11 @@ export module Zeze {
 			return this.WriteIndex - this.ReadIndex;
 		}
 
-		public constructor(buffer: Uint8Array = null) {
+		public constructor(buffer: Uint8Array = null, readIndex: number = 0, length: number = 0) {
 			this.Bytes = (null == buffer) ? new Uint8Array(1024) : buffer;
 			this.View = new DataView(this.Bytes.buffer);
-			this.ReadIndex = 0;
-			this.WriteIndex = 0;
+			this.ReadIndex = readIndex;
+			this.WriteIndex = this.ReadIndex + length;
 		}
 
 		ToPower2(needSize: number) {

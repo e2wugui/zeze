@@ -29,7 +29,6 @@ namespace Zeze.Gen.ts
             {
                 sw.WriteLine("");
             }
-
             // declare variables
             foreach (Types.Variable v in bean.Variables)
             {

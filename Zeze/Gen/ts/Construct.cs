@@ -13,7 +13,7 @@ namespace Zeze.Gen.ts
 
 		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, String prefix)
 		{
-			sw.WriteLine(prefix + "public " + bean.Name + "() {");
+			sw.WriteLine(prefix + "public constructor() {");
             foreach (Types.Variable var in bean.Variables)
             {
                 var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
