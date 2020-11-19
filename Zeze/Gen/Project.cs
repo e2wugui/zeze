@@ -12,6 +12,7 @@ namespace Zeze.Gen
         public Solution Solution { get; private set; }
         public string Platform { get; private set; }
         public string Gendir { get; private set; }
+        public string SrcDir { get; private set; }
         public HashSet<String> GenTables { get; } = new HashSet<string>();
         public SortedDictionary<string, Service> Services { get; private set; } = new SortedDictionary<string, Service>();
 
@@ -46,6 +47,7 @@ namespace Zeze.Gen
             Gendir = self.GetAttribute("gendir").Trim();
             if (Gendir.Length == 0)
                 Gendir = ".";
+            SrcDir = self.GetAttribute("srcdir").Trim();
 
             foreach (string target in self.GetAttribute("GenTables").Split(','))
                 GenTables.Add(target);

@@ -170,10 +170,11 @@ namespace Zeze.Gen
         public static int HandleServerFlag = 1;
         public static int HandleClientFlag = 2;
         public static int HandleRpcTwoway = 4;
-        public static int HandleLuaServerFlag = 8;
-        public static int HandleLuaClientFlag = 16;
-        public static int HandleCSharpFlags = HandleServerFlag | HandleClientFlag | HandleRpcTwoway;
-        public static int HandleLuaFlags = HandleLuaServerFlag | HandleLuaClientFlag;
+        public static int HandleScriptServerFlag = 8;
+        public static int HandleScriptClientFlag = 16;
+        // 这里 HandleRpcTwoway 在底层语言和脚本都定义，因为现在客户端仅生成脚本，所以没问题，如果以后要在底层语言生成rpc，那就会出现问题。先这样吧。
+        public static int HandleCSharpFlags = HandleServerFlag | HandleClientFlag | HandleRpcTwoway; // 底层语言。如果c++需要生成协议之类的，也是用这个。
+        public static int HandleScriptFlags = HandleScriptServerFlag | HandleScriptClientFlag | HandleRpcTwoway;
 
         public static int ToHandleFlags(string handle)
         {
@@ -185,9 +186,9 @@ namespace Zeze.Gen
                 {
                     case "server": f |= HandleServerFlag; break;
                     case "client": f |= HandleClientFlag; break;
-                    case "twoway": f |= HandleServerFlag | HandleClientFlag | HandleRpcTwoway | HandleLuaClientFlag | HandleLuaServerFlag; break;
-                    case "serverlua": f |= HandleLuaServerFlag; break;
-                    case "clientlua": f |= HandleLuaClientFlag; break;
+                    case "twoway": f |= HandleServerFlag | HandleClientFlag | HandleRpcTwoway | HandleScriptClientFlag | HandleScriptServerFlag; break;
+                    case "serverscript": f |= HandleScriptServerFlag; break;
+                    case "clientscript": f |= HandleScriptClientFlag; break;
                     default: throw new Exception("unknown handle: " + handle);
                 }
             }

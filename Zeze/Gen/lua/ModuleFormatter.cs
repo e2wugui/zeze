@@ -84,7 +84,7 @@ namespace Zeze.Gen.lua
                     if (p is Rpc)
                         continue;
 
-                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleLuaFlags))
+                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
                     {
                         sw.WriteLine($"    Zeze.ProtocolHandles[{p.TypeId}] = {module.Name}Impl.Process{p.Name}");
                     }
@@ -101,7 +101,7 @@ namespace Zeze.Gen.lua
                     if (p is Rpc)
                         continue;
 
-                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleLuaFlags))
+                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
                     {
                         sw.WriteLine($"function {module.Name}Impl.Process{p.Name}(p)");
                         sw.WriteLine($"    -- write handle here");

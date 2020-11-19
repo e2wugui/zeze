@@ -45,18 +45,21 @@ namespace Zeze.Gen
             return path + sep + ObjectName;
         }
 
-        public string CreateDirectory(string baseDir)
+        public string GetFullPath(string baseDir, string fileName =  null)
         {
             string fullName = Path(Convert.ToString(System.IO.Path.DirectorySeparatorChar));
             string fullDir = System.IO.Path.Combine(baseDir, fullName);
-            //Program.Print("CreateDirectory:" + fullDir);
-            System.IO.Directory.CreateDirectory(fullDir);
+            if (fileName != null)
+                fullDir = System.IO.Path.Combine(fullDir, fileName);
             return fullDir;
         }
 
+
         public System.IO.StreamWriter OpenWriter(string baseDir, string fileName, bool overwrite = true)
         {
-            string fullDir = CreateDirectory(baseDir);
+            string fullDir = GetFullPath(baseDir);
+            //Program.Print("CreateDirectory:" + fullDir);
+            System.IO.Directory.CreateDirectory(fullDir);
             string fullFileName = System.IO.Path.Combine(fullDir, fileName);
             bool exists = System.IO.File.Exists(fullFileName);
             if (!exists || overwrite)

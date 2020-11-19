@@ -157,6 +157,10 @@ export var Zeze;
     }
     Zeze.Rpc = Rpc;
     class ProtocolFactoryHandle {
+        constructor(f, h) {
+            this.factory = f;
+            this.handle = h;
+        }
     }
     Zeze.ProtocolFactoryHandle = ProtocolFactoryHandle;
     // TODO �󶨵��ײ���·ʵ�֣�cxx or c#)

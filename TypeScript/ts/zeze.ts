@@ -215,6 +215,11 @@ export module Zeze {
 	export class ProtocolFactoryHandle {
 		public factory: FunctionProtocolFactory;
 		public handle: FunctionProtocolHandle;
+
+		public constructor(f: FunctionProtocolFactory, h: FunctionProtocolHandle) {
+			this.factory = f;
+			this.handle = h;
+		}
     }
 
 	// TODO 绑定到底层网路实现（cxx or c#)
