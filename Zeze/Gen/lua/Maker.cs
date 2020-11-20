@@ -14,6 +14,15 @@ namespace Zeze.Gen.lua
             Project = project;
         }
 
+        private string GetBeanTypeId(Types.Type type)
+        {
+            if (null == type)
+                return "0";
+            if (false == type.IsNormalBean)
+                throw new Exception("is not a normal bean");
+            return ((Types.Bean)type).TypeId.ToString();
+        }
+
         public void Make()
         {
             string projectBasedir = Project.Gendir;
@@ -49,14 +58,13 @@ namespace Zeze.Gen.lua
             swMeta.WriteLine("meta.protocols = {}");
             foreach (Protocol protocol in Project.AllProtocols)
             {
-                if (protocol is Rpc)
-                    continue;
-
                 allRefModules.Add(protocol.Space);
-                if (false == protocol.ArgumentType.IsNormalBean)
-                    throw new Exception("protocol argument must be a normal bean");
-                Types.Bean b = (Types.Bean)protocol.ArgumentType;
-                swMeta.WriteLine($"meta.protocols[{protocol.TypeId}] = {b.TypeId}");
+                if (protocol is Rpc rpc)
+                {
+                    swMeta.WriteLine($"meta.protocols[{protocol.TypeId}] = {{ {GetBeanTypeId(rpc.ArgumentType)}, {GetBeanTypeId(rpc.ResultType)} }}");
+                    continue;
+                }
+                swMeta.WriteLine($"meta.protocols[{protocol.TypeId}] = {{ {GetBeanTypeId(protocol.ArgumentType)} }}");
             }
             swMeta.WriteLine();
             swMeta.WriteLine("return meta");
@@ -120,16 +128,60 @@ namespace Zeze.Gen.lua
                 using System.IO.StreamWriter swDispatcher = new System.IO.StreamWriter(dispatcherFileName, false, Encoding.UTF8);
 
                 swDispatcher.WriteLine("");
-                swDispatcher.WriteLine("local Zeze = {}");
-                swDispatcher.WriteLine("Zeze.ProtocolHandles = {}");
+                swDispatcher.WriteLine("local Zeze = { }");
+                swDispatcher.WriteLine("Zeze.ProtocolHandles = { }");
+                swDispatcher.WriteLine("Zeze.RpcContext = { }");
+                swDispatcher.WriteLine("Zeze.RpcSidSeed = 1");
                 swDispatcher.WriteLine("");
                 swDispatcher.WriteLine("function ZezeDispatchProtocol(p)");
+                swDispatcher.WriteLine("    if (p.IsRpc) then");
+                swDispatcher.WriteLine("        -- rpc");
+                swDispatcher.WriteLine("        if (p.IsRequest) then");
+                swDispatcher.WriteLine("            local handle = Zeze.ProtocolHandles[p.TypeId]");
+                swDispatcher.WriteLine("            if (nil == handle) then");
+                swDispatcher.WriteLine("                return 0");
+                swDispatcher.WriteLine("            end");
+                swDispatcher.WriteLine("            handle(p)");
+                swDispatcher.WriteLine("            return 1 -- 1 if found.not result of handle");
+                swDispatcher.WriteLine("        end");
+                swDispatcher.WriteLine("        local ctx = Zeze.RpcContext.remove(p.Sid)");
+                swDispatcher.WriteLine("        if (nil == ctx) then");
+                swDispatcher.WriteLine("            return 1 -- success");
+                swDispatcher.WriteLine("        end");
+                swDispatcher.WriteLine("        ctx.IsRequest = false");
+                swDispatcher.WriteLine("        ctx.Result = p.Result");
+                swDispatcher.WriteLine("        ctx.ResultCode = p.ResultCode");
+                swDispatcher.WriteLine("        ctx.SessionId = p.SessionId");
+                swDispatcher.WriteLine("        ctx.Service = p.Service");
+                swDispatcher.WriteLine("        ctx.HandleResult(ctx)");
+                swDispatcher.WriteLine("        return 1-- 1 if found.not result of handle");
+                swDispatcher.WriteLine("  end");
+                swDispatcher.WriteLine("    --protocol");
                 swDispatcher.WriteLine("    local handle = Zeze.ProtocolHandles[p.TypeId]");
                 swDispatcher.WriteLine("    if (nil == handle) then");
                 swDispatcher.WriteLine("        return 0");
                 swDispatcher.WriteLine("    end");
                 swDispatcher.WriteLine("    handle(p)");
-                swDispatcher.WriteLine("    return 1 -- 1 if found. not result of handle ");
+                swDispatcher.WriteLine("    return 1-- 1 if found.not result of handle");
+                swDispatcher.WriteLine("end");
+                swDispatcher.WriteLine("");
+                swDispatcher.WriteLine("function ZezeSocketClose(service, sessionId)");
+                swDispatcher.WriteLine("    print('ZezeSocketClose')");
+                swDispatcher.WriteLine("end");
+                swDispatcher.WriteLine("");
+                swDispatcher.WriteLine("function ZezeSendRpc(service, session, r, functionHandleResult)");
+                swDispatcher.WriteLine("    r.IsRequest = true");
+                swDispatcher.WriteLine("    r.HandleResult = functionHandleResult");
+                swDispatcher.WriteLine("    r.Sid = Zeze.RpcSidSeed");
+                swDispatcher.WriteLine("    Zeze.RpcSidSeed = Zeze.RpcSidSeed + 1");
+                swDispatcher.WriteLine("    Zeze.RpcContext[r.Sid] = r");
+                swDispatcher.WriteLine("    ZezeSendProtocol(service, session, r)");
+                swDispatcher.WriteLine("end");
+                swDispatcher.WriteLine("");
+                swDispatcher.WriteLine("function ZezeSendRpcResult(service, sessionId, r)");
+                swDispatcher.WriteLine("    r.IsRequest = false");
+                swDispatcher.WriteLine("    -- r.Sid same as request");
+                swDispatcher.WriteLine("    ZezeSendProtocol(service, session, r)");
                 swDispatcher.WriteLine("end");
                 swDispatcher.WriteLine("");
                 swDispatcher.WriteLine("function ZezeHandshakeDone(service, sessionId)");

@@ -51,8 +51,16 @@ namespace Net
             }
         };
 
+        class ProtocolArgument
+        {
+        public:
+            long long ArgumentBeanTypeId = 0;
+            long long ResultBeanTypeId = 0;
+            bool IsRpc = false;
+        };
+
         typedef std::unordered_map<long long, std::vector<VariableMeta>> BeanMetasMap;
-        typedef std::unordered_map<int, long long> ProtocolMetasMap;
+        typedef std::unordered_map<int, ProtocolArgument> ProtocolMetasMap;
 
         BeanMetasMap BeanMetas; // Bean.TypeId -> vars
         ProtocolMetasMap ProtocolMetas; // protocol.TypeId -> Bean.TypeId
@@ -107,9 +115,21 @@ namespace Net
 
             Lua.GetField(-1, "protocols");
             Lua.PushNil();
-            while (Lua.Next(-2)) // -1 value of Protocol.Argument.BeanTypeId -2 Protocol.TypeId
+            while (Lua.Next(-2)) // -1 value of Protocol.Argument(is table) -2 Protocol.TypeId
             {
-                ProtocolMetas[(int)Lua.ToInteger(-2)] = Lua.ToInteger(-1);
+                ProtocolArgument pa;
+                Lua.PushNil();
+                while (Lua.Next(-2)) // -1 value of beantypeid -2 key of index
+                {
+                    switch (Lua.ToInteger(-2))
+                    {
+                    case 1: pa.ArgumentBeanTypeId = Lua.ToInteger(-1); pa.IsRpc = false;  break;
+                    case 2: pa.ResultBeanTypeId = Lua.ToInteger(-1); pa.IsRpc = true; break;
+                    default: throw std::exception("error index for protocol argument bean typeid");
+                    }
+                    Lua.Pop(1);
+                }
+                ProtocolMetas[(int)Lua.ToInteger(-2)] = pa;
                 Lua.Pop(1); // pop value
             }
             Lua.Pop(1);

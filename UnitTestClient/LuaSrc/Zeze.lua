@@ -1,21 +1,61 @@
 ﻿
-local Zeze = {}
-Zeze.ProtocolHandles = {}
-
-local demo = require 'demo'
+local Zeze = { }
+Zeze.ProtocolHandles = { }
+Zeze.RpcContext = { }
+Zeze.RpcSidSeed = 1
 
 function ZezeDispatchProtocol(p)
+    if (p.IsRpc) then
+        -- rpc
+        if (p.IsRequest) then
+            local handle = Zeze.ProtocolHandles[p.TypeId]
+            if (nil == handle) then
+                return 0
+            end
+            handle(p)
+            return 1 -- 1 if found.not result of handle
+        end
+        local ctx = Zeze.RpcContext.remove(p.Sid)
+        if (nil == ctx) then
+            return 1 -- success
+        end
+        ctx.IsRequest = false
+        ctx.Result = p.Result
+        ctx.ResultCode = p.ResultCode
+        ctx.SessionId = p.SessionId
+        ctx.Service = p.Service
+        ctx.HandleResult(ctx)
+        return 1-- 1 if found.not result of handle
+  end
+    --protocol
     local handle = Zeze.ProtocolHandles[p.TypeId]
     if (nil == handle) then
         return 0
     end
     handle(p)
-    return 1 -- 1 if found. not result of handle 
+    return 1-- 1 if found.not result of handle
 end
 
 function ZezeSocketClose(service, sessionId)
     print('ZezeSocketClose')
 end
+
+function ZezeSendRpc(service, session, r, functionHandleResult)
+    r.IsRequest = true
+    r.HandleResult = functionHandleResult
+    r.Sid = Zeze.RpcSidSeed
+    Zeze.RpcSidSeed = Zeze.RpcSidSeed + 1
+    Zeze.RpcContext[r.Sid] = r
+    ZezeSendProtocol(service, session, r)
+end
+
+function ZezeSendRpcResult(service, sessionId, r)
+    r.IsRequest = false
+    -- r.Sid same as request
+    ZezeSendProtocol(service, session, r)
+end
+
+local demo = require 'demo'
 
 function ZezeHandshakeDone(service, sessionId)
     Zeze.CurrentService = service

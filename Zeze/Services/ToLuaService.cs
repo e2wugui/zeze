@@ -220,8 +220,15 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
+        class ProtocolArgument
+        {
+            public long ArgumentBeanTypeId { get; set; }
+            public long ResultBeanTypeId { get; set; }
+            public bool IsRpc { get; set; } = false;
+        };
+
         private readonly Dictionary<long, List<VariableMeta>> BeanMetas = new Dictionary<long, List<VariableMeta>>(); // Bean.TypeId -> vars
-        private readonly Dictionary<int, long> ProtocolMetas = new Dictionary<int, long>(); // protocol.TypeId -> Bean.TypeId
+        private readonly Dictionary<int, ProtocolArgument> ProtocolMetas = new Dictionary<int, ProtocolArgument>(); // protocol.TypeId -> Bean.TypeId
 
         public void LoadMeta()
         {
@@ -270,7 +277,19 @@ namespace Zeze.Services.ToLuaService
             Lua.PushNil();
             while (Lua.Next(-2)) // -1 value of Protocol.Argument.BeanTypeId -2 Protocol.TypeId
             {
-                ProtocolMetas.Add((int)Lua.ToInteger(-2), Lua.ToInteger(-1));
+                ProtocolArgument pa = new ProtocolArgument();
+                Lua.PushNil();
+                while (Lua.Next(-2)) // -1 value of beantypeid -2 key of index
+                {
+                    switch (Lua.ToInteger(-2))
+                    {
+                        case 1: pa.ArgumentBeanTypeId = Lua.ToInteger(-1); pa.IsRpc = false; break;
+                        case 2: pa.ResultBeanTypeId = Lua.ToInteger(-1); pa.IsRpc = true; break;
+                        default: throw new Exception("error index for protocol argument bean typeid");
+                    }
+                    Lua.Pop(1);
+                }
+                ProtocolMetas.Add((int)Lua.ToInteger(-2), pa);
                 Lua.Pop(1); // pop value
             }
             Lua.Pop(1);
@@ -384,19 +403,57 @@ namespace Zeze.Services.ToLuaService
             int resultCode = (int)Lua.ToInteger(-1);
             Lua.Pop(1);
 
-            if (false == ProtocolMetas.TryGetValue(typeId, out var argumentBeanTypeId))
+            if (false == ProtocolMetas.TryGetValue(typeId, out var pa))
                 throw new Exception("protocol not found in meta for typeid=" + typeId);
 
-            // see Protocol.Encode
-            ByteBuffer bb = ByteBuffer.Allocate();
-            bb.WriteInt4(typeId);
-            bb.BeginWriteWithSize4(out var state);
-            bb.WriteInt(resultCode);
-            Lua.GetField(-1, "Argument");
-            EncodeBean(bb, argumentBeanTypeId);
-            Lua.Pop(1);
-            bb.EndWriteWithSize4(state);
-            socket.Send(bb);            
+            if (pa.IsRpc)
+            {
+                Lua.GetField(-1, "IsRequest");
+                bool isRequest = Lua.ToBoolean(-1);
+                Lua.Pop(1);
+                Lua.GetField(-1, "Sid");
+                long sid = Lua.ToInteger(-1);
+                Lua.Pop(1);
+                long argumentBeanTypeId = 0;
+                string argumentName = null;
+
+                if (isRequest)
+                {
+                    sid = (long)(((ulong)sid) | 0x8000000000000000L);
+                    argumentBeanTypeId = pa.ArgumentBeanTypeId;
+                    argumentName = "Argument";
+                }
+                else
+                {
+                    argumentBeanTypeId = pa.ResultBeanTypeId;
+                    argumentName = "Result";
+                }
+
+                // see Rpc.Encode
+                ByteBuffer bb = ByteBuffer.Allocate();
+                bb.WriteInt4(typeId);
+                bb.BeginWriteWithSize4(out var outstate);
+                bb.WriteLong(sid);
+                bb.WriteInt(resultCode);
+                Lua.GetField(-1, argumentName);
+                EncodeBean(bb, argumentBeanTypeId);
+                Lua.Pop(1);
+                bb.EndWriteWithSize4(outstate);
+                socket.Send(bb);
+            }
+            else
+            {
+                // see Protocol.Encode
+                ByteBuffer bb = ByteBuffer.Allocate();
+                bb.WriteInt4(typeId);
+                bb.BeginWriteWithSize4(out var state);
+                bb.WriteInt(resultCode);
+                Lua.GetField(-1, "Argument");
+                EncodeBean(bb, pa.ArgumentBeanTypeId);
+                Lua.Pop(1);
+                bb.EndWriteWithSize4(state);
+                socket.Send(bb);
+            }
         }
 
         private void EncodeBean(ByteBuffer bb, long beanTypeId)

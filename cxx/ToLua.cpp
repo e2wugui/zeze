@@ -55,19 +55,57 @@ namespace Zeze
             ProtocolMetasMap::iterator pit = ProtocolMetas.find(typeId);
             if (pit == ProtocolMetas.end())
                 throw std::exception("protocol not found in meta for typeid=" + typeId);
-            long long argumentBeanTypeId = pit->second;
 
-            // see Protocol.Encode
-            Zeze::Serialize::ByteBuffer bb(1024);
-            bb.WriteInt4(typeId);
-            int outstate;
-            bb.BeginWriteWithSize4(outstate);
-            bb.WriteInt(resultCode);
-            Lua.GetField(-1, "Argument");
-            EncodeBean(bb, argumentBeanTypeId);
-            Lua.Pop(1);
-            bb.EndWriteWithSize4(outstate);
-            socket->Send((const char *)bb.Bytes, bb.ReadIndex, bb.Size());
+            if (pit->second.IsRpc)
+            {
+                Lua.GetField(-1, "IsRequest");
+                bool isRequest = Lua.ToBoolean(-1);
+                Lua.Pop(1);
+                Lua.GetField(-1, "Sid");
+                long long sid = Lua.ToInteger(-1);
+                Lua.Pop(1);
+                long long argumentBeanTypeId = 0;
+                const char* argumentName = NULL;
+
+                if (isRequest)
+                {
+                    sid |= 0x8000000000000000L;
+                    argumentBeanTypeId = pit->second.ArgumentBeanTypeId;
+                    argumentName = "Argument";
+                }
+                else
+                {
+                    argumentBeanTypeId = pit->second.ResultBeanTypeId;
+                    argumentName = "Result";
+                }
+
+                // see Rpc.Encode
+                Zeze::Serialize::ByteBuffer bb(1024);
+                bb.WriteInt4(typeId);
+                int outstate;
+                bb.BeginWriteWithSize4(outstate);
+                bb.WriteLong(sid);
+                bb.WriteInt(resultCode);
+                Lua.GetField(-1, argumentName);
+                EncodeBean(bb, argumentBeanTypeId);
+                Lua.Pop(1);
+                bb.EndWriteWithSize4(outstate);
+                socket->Send((const char*)bb.Bytes, bb.ReadIndex, bb.Size());
+            }
+            else
+            {
+                // see Protocol.Encode
+                Zeze::Serialize::ByteBuffer bb(1024);
+                bb.WriteInt4(typeId);
+                int outstate;
+                bb.BeginWriteWithSize4(outstate);
+                bb.WriteInt(resultCode);
+                Lua.GetField(-1, "Argument");
+                EncodeBean(bb, pit->second.ArgumentBeanTypeId);
+                Lua.Pop(1);
+                bb.EndWriteWithSize4(outstate);
+                socket->Send((const char*)bb.Bytes, bb.ReadIndex, bb.Size());
+            }
         }
 
         void ToLua::Update(Service* service)
