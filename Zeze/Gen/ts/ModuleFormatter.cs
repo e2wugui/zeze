@@ -92,14 +92,9 @@ namespace Zeze.Gen.ts
                 string factory = "() => { return new " + fullName + "(); }";
                 if (p is Rpc rpc)
                 {
-                    if (((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
-                        || ((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) == 0
-                            || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0))
-                    {
-                        string handle = ((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
-                            ? "this.Process" + rpc.Name + "Request.bind(this)" : "null";
-                        sw.WriteLine($"        app.{serv.Name}.FactoryHandleMap.set({rpc.TypeId}, new Zeze.ProtocolFactoryHandle({factory}, {handle}));");
-                    }
+                    string handle = ((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
+                        ? "this.Process" + rpc.Name + "Request.bind(this)" : "null";
+                    sw.WriteLine($"        app.{serv.Name}.FactoryHandleMap.set({rpc.TypeId}, new Zeze.ProtocolFactoryHandle({factory}, {handle}));");
                     continue;
                 }
                 if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))

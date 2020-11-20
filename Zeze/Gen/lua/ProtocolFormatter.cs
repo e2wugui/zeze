@@ -14,6 +14,9 @@ namespace Zeze.Gen.lua
             sw.WriteLine($"    ProtocolId = {p.Id},");
             sw.WriteLine($"    ResultCode = 0,");
             sw.WriteLine($"    Argument = {{}},");
+            if (p is Rpc)
+                sw.WriteLine($"    Result = {{}},");
+
             sw.WriteLine("}");
         }
     }

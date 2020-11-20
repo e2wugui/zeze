@@ -54,9 +54,47 @@ namespace Zeze.Gen.lua
             sw.WriteLine();
             foreach (var p in module.Protocols.Values)
             {
-                if (p is Rpc)
-                    continue;
                 ProtocolFormatter.Make(module.Name, p, sw);
+            }
+        }
+
+        private const string ChunkNameRegisterProtocol = "REGISTER PROTOCOL";
+
+        private void GenChunkByName(System.IO.StreamWriter writer, Zeze.Util.FileChunkGen.Chunk chunk)
+        {
+            switch (chunk.Name)
+            {
+                case ChunkNameRegisterProtocol:
+                    RegisterProtocol(writer);
+                    break;
+                default:
+                    throw new Exception("unknown Chunk.Name=" + chunk.Name);
+            }
+        }
+
+        private void RegisterProtocol(System.IO.StreamWriter sw)
+        {
+            Module realmod = (Module)module;
+            Service serv = realmod.ReferenceService;
+            if (serv != null)
+            {
+                int serviceHandleFlags = realmod.ReferenceService.HandleFlags;
+                foreach (Protocol p in realmod.Protocols.Values)
+                {
+                    if (p is Rpc rpc)
+                    {
+                        if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
+                        {
+                            sw.WriteLine($"    Zeze.ProtocolHandles[{p.TypeId}] = {module.Name}Impl.Process{p.Name}Request");
+                        }
+                        continue;
+                    }
+
+                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
+                    {
+                        sw.WriteLine($"    Zeze.ProtocolHandles[{p.TypeId}] = {module.Name}Impl.Process{p.Name}");
+                    }
+                }
             }
         }
 
@@ -65,53 +103,58 @@ namespace Zeze.Gen.lua
             if (null == module.Parent)
                 return; // must be solution
 
-            using System.IO.StreamWriter sw = module.Parent.OpenWriter(srcDir, module.Name + "Impl.lua", false);
-            if (null == sw)
-                return;
-
-            sw.WriteLine($"local {module.Name}Impl = {{}}");
-            sw.WriteLine();
-            sw.WriteLine("local Zeze = require 'Zeze'");
-            sw.WriteLine();
-            sw.WriteLine($"function {module.Name}Impl:Init()");
-            Module realmod = (Module)module;
-            Service serv = realmod.ReferenceService;
-            if (serv != null)
+            Zeze.Util.FileChunkGen fcg = new Util.FileChunkGen("-- ZEZE_FILE_CHUNK {{{", "-- ZEZE_FILE_CHUNK }}}");
+            string fullDir = module.Parent.GetFullPath(srcDir);
+            string fullFileName = System.IO.Path.Combine(fullDir, module.Name + "Impl.lua");
+            if (fcg.LoadFile(fullFileName))
             {
-                int serviceHandleFlags = realmod.ReferenceService.HandleFlags;
-                foreach (Protocol p in realmod.Protocols.Values)
-                {
-                    if (p is Rpc)
-                        continue;
+                fcg.SaveFile(fullFileName, GenChunkByName);
+            }
+            else
+            {
+                System.IO.Directory.CreateDirectory(fullDir);
+                using System.IO.StreamWriter sw = new System.IO.StreamWriter(fullFileName, false, Encoding.UTF8);
 
-                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
+                sw.WriteLine($"local {module.Name}Impl = {{}}");
+                sw.WriteLine();
+                sw.WriteLine("local Zeze = require 'Zeze'");
+                sw.WriteLine();
+                sw.WriteLine($"function {module.Name}Impl:Init()");
+                sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNameRegisterProtocol);
+                RegisterProtocol(sw);
+                sw.WriteLine("    " + fcg.ChunkEndTag + " " + ChunkNameRegisterProtocol);
+                sw.WriteLine($"end");
+                sw.WriteLine();
+                Module realmod = (Module)module;
+                Service serv = realmod.ReferenceService;
+                if (serv != null)
+                {
+                    int serviceHandleFlags = realmod.ReferenceService.HandleFlags;
+                    foreach (Protocol p in realmod.Protocols.Values)
                     {
-                        sw.WriteLine($"    Zeze.ProtocolHandles[{p.TypeId}] = {module.Name}Impl.Process{p.Name}");
+                        if (p is Rpc rpc)
+                        {
+                            if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
+                            {
+                                sw.WriteLine($"function {module.Name}Impl.Process{p.Name}Request(rpc)");
+                                sw.WriteLine($"    -- write rpc request handle here");
+                                sw.WriteLine($"end");
+                                sw.WriteLine($"");
+                            }
+                            continue;
+                        }
+                        if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
+                        {
+                            sw.WriteLine($"function {module.Name}Impl.Process{p.Name}(p)");
+                            sw.WriteLine($"    -- write handle here");
+                            sw.WriteLine($"end");
+                            sw.WriteLine($"");
+                        }
                     }
                 }
+                sw.WriteLine();
+                sw.WriteLine($"return {module.Name}Impl");
             }
-            sw.WriteLine($"end");
-            sw.WriteLine();
-
-            if (serv != null)
-            {
-                int serviceHandleFlags = realmod.ReferenceService.HandleFlags;
-                foreach (Protocol p in realmod.Protocols.Values)
-                {
-                    if (p is Rpc)
-                        continue;
-
-                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
-                    {
-                        sw.WriteLine($"function {module.Name}Impl.Process{p.Name}(p)");
-                        sw.WriteLine($"    -- write handle here");
-                        sw.WriteLine($"end");
-                        sw.WriteLine($"");
-                    }
-                }
-            }
-            sw.WriteLine();
-            sw.WriteLine($"return {module.Name}Impl");
         }
     }
 }
