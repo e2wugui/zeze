@@ -38,8 +38,45 @@ namespace Zeze.Gen.ts
         private void Import(System.IO.StreamWriter sw)
         {
             sw.WriteLine("import { Zeze } from \"zeze.js\"");
-            sw.WriteLine("import * as gen from \"gen.js\"");
+            var needp = NeedRegisterProtocold();
+            if (needp.Count > 0)
+            {
+                StringBuilder importp = new StringBuilder();
+                foreach (var p in needp)
+                {
+                    importp.Append(p.Space.Path("_", p.Name)).Append(", ");
+                }
+                sw.WriteLine("import { " + importp.ToString() + "} from \"gen.js\"");
+            }
             sw.WriteLine("import { demo_App } from \"demo/App.js\"");
+        }
+
+        private List<Protocol> NeedRegisterProtocold()
+        {
+            List<Protocol> need = new List<Protocol>();
+            Service serv = module.ReferenceService;
+            if (serv == null)
+                return need;
+
+            int serviceHandleFlags = module.ReferenceService.HandleFlags;
+            foreach (Protocol p in module.Protocols.Values)
+            {
+                if (p is Rpc rpc)
+                {
+                    if (((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
+                        || ((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) == 0
+                            || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0))
+                    {
+                        need.Add(p);
+                    }
+                    continue;
+                }
+                if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
+                {
+                    need.Add(p);
+                }
+            }
+            return need;
         }
 
         private void RegisterProtocol(System.IO.StreamWriter sw)
@@ -52,7 +89,7 @@ namespace Zeze.Gen.ts
             foreach (Protocol p in module.Protocols.Values)
             {
                 string fullName = p.Space.Path("_", p.Name);
-                string factory = "() => { return new gen." + fullName + "(); }";
+                string factory = "() => { return new " + fullName + "(); }";
                 if (p is Rpc rpc)
                 {
                     if (((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
@@ -114,7 +151,7 @@ namespace Zeze.Gen.ts
                         {
                             if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
                             {
-                                sw.WriteLine("    public Process" + rpc.Name + "Request(rpc: gen." + fullName + "): number {");
+                                sw.WriteLine("    public Process" + rpc.Name + "Request(rpc: " + fullName + "): number {");
                                 sw.WriteLine("        return 0;");
                                 sw.WriteLine("    }");
                                 sw.WriteLine("");
@@ -123,7 +160,7 @@ namespace Zeze.Gen.ts
                         }
                         if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
                         {
-                            sw.WriteLine("    public Process" + p.Name + "(protocol: gen." + fullName + "): number {");
+                            sw.WriteLine("    public Process" + p.Name + "(protocol: " + fullName + "): number {");
                             sw.WriteLine("        return 0;");
                             sw.WriteLine("    }");
                             sw.WriteLine("");
