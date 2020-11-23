@@ -409,7 +409,35 @@ namespace Net
 						}
 					}
 				}
+				{
+					long long now = time(0);
+					timeouts_t::iterator it = timeouts.begin();
+					while (it != timeouts.end())
+					{
+						if (now >= it->second)
+						{
+							try
+							{
+								it->first();
+							}
+							catch (std::exception& ex)
+							{
+								std::cout << "Selector Timeout " << ex.what() << std::endl;
+							}
+							timeouts.erase(it++);
+						}
+						else
+							++it;
+					}
+				}
 			}
+		}
+		typedef std::list<std::pair<std::function<void()>, long long>> timeouts_t;
+		timeouts_t timeouts;
+
+		void SetTimeout(const std::function<void()>& func, int timeout)
+		{
+			timeouts.push_back(std::make_pair(func, time(0) + timeout));
 		}
 
 		void Wakeup()
@@ -475,6 +503,10 @@ namespace Net
 	};
 
 	Selector* Selector::Instance = NULL;
+	void SetTimeout(const std::function<void()>& func, int timeout)
+	{
+		Selector::Instance->SetTimeout(func, timeout);
+	}
 
 	bool Startup()
 	{

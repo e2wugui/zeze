@@ -4,30 +4,7 @@ Zeze.ProtocolHandles = { }
 Zeze.RpcContext = { }
 Zeze.RpcSidSeed = 1
 
-function ZezeDispatchProtocol(p)
-    if (p.IsRpc) then
-        -- rpc
-        if (p.IsRequest) then
-            local handle = Zeze.ProtocolHandles[p.TypeId]
-            if (nil == handle) then
-                return 0
-            end
-            handle(p)
-            return 1 -- 1 if found.not result of handle
-        end
-        local ctx = Zeze.RpcContext.remove(p.Sid)
-        if (nil == ctx) then
-            return 1 -- success
-        end
-        ctx.IsRequest = false
-        ctx.Result = p.Result
-        ctx.ResultCode = p.ResultCode
-        ctx.SessionId = p.SessionId
-        ctx.Service = p.Service
-        ctx.HandleResult(ctx)
-        return 1-- 1 if found.not result of handle
-  end
-    --protocol
+function ZezeDispatchRequest(p)
     local handle = Zeze.ProtocolHandles[p.TypeId]
     if (nil == handle) then
         return 0
@@ -36,12 +13,36 @@ function ZezeDispatchProtocol(p)
     return 1-- 1 if found.not result of handle
 end
 
+function ZezeDispatchProtocol(p)
+    if (p.IsRpc) then
+        if (p.IsRequest) then
+            return ZezeDispatchRequest(p)
+        end
+        local ctx = Zeze.RpcContext.remove(p.Sid)
+        if (nil == ctx) then
+            return 1 -- success
+        end
+        ctx.IsRequest = false
+        if (p.IsTimeout ~= true) then
+            ctx.Result = p.Result
+            ctx.ResultCode = p.ResultCode
+            ctx.SessionId = p.SessionId
+            ctx.Service = p.Service
+        end
+        ctx.HandleResult(ctx)
+        return 1 -- 1 if found.not result of handle
+    end
+    return ZezeDispatchRequest(p)
+end
+
 function ZezeSocketClose(service, sessionId)
     print('ZezeSocketClose')
 end
 
 function ZezeSendRpc(service, session, r, functionHandleResult)
     r.IsRequest = true
+    r.Service = service
+    r.SessionId = session
     r.HandleResult = functionHandleResult
     r.Sid = Zeze.RpcSidSeed
     Zeze.RpcSidSeed = Zeze.RpcSidSeed + 1
@@ -49,10 +50,10 @@ function ZezeSendRpc(service, session, r, functionHandleResult)
     ZezeSendProtocol(service, session, r)
 end
 
-function ZezeSendRpcResult(service, sessionId, r)
+function ZezeSendRpcResult(r)
     r.IsRequest = false
     -- r.Sid same as request
-    ZezeSendProtocol(service, session, r)
+    ZezeSendProtocol(r.Service, r.SessionId, r)
 end
 
 local demo = require 'demo'

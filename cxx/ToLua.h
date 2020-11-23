@@ -5,6 +5,7 @@
 #include "LuaHelper.h"
 #include "ByteBuffer.h"
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <mutex>
 
@@ -170,11 +171,18 @@ namespace Net
 
         void EncodeBean(Zeze::Serialize::ByteBuffer & bb, long long beanTypeId)
         {
+            if (false == Lua.IsTable(-1))
+                throw std::exception("encodebean need a table");
+
+            if (beanTypeId == 0) // EmptyBean
+            {
+                bb.WriteInt(0);
+                return;
+            }
+
             BeanMetasMap::iterator bit = BeanMetas.find(beanTypeId);
             if (bit == BeanMetas.end())
                 throw std::exception("bean not found in meta for beanTypeId=" + beanTypeId);
-            if (false == Lua.IsTable(-1))
-                throw std::exception("encodebean need a table");
 
             std::vector<VariableMeta>& vars = bit->second;
             // 先遍历一遍，得到填写了的var的数量
@@ -347,52 +355,8 @@ namespace Net
             }
         }
     public:
-        virtual bool DecodeAndDispatch(Service * service, long long sessionId, int typeId, Zeze::Serialize::ByteBuffer & _os_) override
-        {
-            if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
-            {
-                Lua.Pop(1);
-                return false;
-            }
-            // 现在不支持 Rpc.但是代码没有检查。
-            // 生成的时候报错。
-            Lua.CreateTable(0, 8);
-
-            Lua.PushString("Service");
-            Lua.PushObject(service);
-            Lua.SetTable(-3);
-
-            Lua.PushString("SessionId");
-            Lua.PushInteger(sessionId);
-            Lua.SetTable(-3);
-
-            Lua.PushString("ModuleId");
-            Lua.PushInteger((typeId >> 16) & 0xffff);
-            Lua.SetTable(-3);
-
-            Lua.PushString("ProtcolId");
-            Lua.PushInteger(typeId & 0xffff);
-            Lua.SetTable(-3);
-
-            Lua.PushString("TypeId");
-            Lua.PushInteger(typeId);
-            Lua.SetTable(-3);
-
-            Lua.PushString("ResultCode");
-            Lua.PushInteger(_os_.ReadInt());
-            Lua.SetTable(-3);
-
-            Lua.PushString("Argument");
-            DecodeBean(_os_);
-            Lua.SetTable(-3);
-
-            Lua.Call(1, 1);
-            bool result = false;
-            if (false == Lua.IsNil(-1))
-                result = Lua.ToBoolean(-1);
-            Lua.Pop(1);
-            return result;
-        }
+        virtual bool DecodeAndDispatch(Service* service, long long sessionId, int typeId, Zeze::Serialize::ByteBuffer& _os_) override;
+        void CallRpcTimeout(long long sid);
 
     private:
         void DecodeBean(Zeze::Serialize::ByteBuffer & _os_)
@@ -551,9 +515,16 @@ namespace Net
         ToLuaBufferMap ToLuaBuffer;
         ToLuaHandshakeDoneMap ToLuaHandshakeDone;
         ToLuaSocketCloseMap ToLuaSocketClose;
+        std::unordered_set<long long> ToLuaRpcTimeout;
         std::mutex mutex;
 
     public:
+        void SetRpcTimeout(long long sid)
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            ToLuaRpcTimeout.insert(sid);
+        }
+
         void SetHandshakeDone(long long socketSessionId, Service* service)
         {
             std::lock_guard<std::mutex> lock(mutex);

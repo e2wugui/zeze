@@ -414,17 +414,22 @@ namespace Zeze.Services.ToLuaService
                 Lua.GetField(-1, "Sid");
                 long sid = Lua.ToInteger(-1);
                 Lua.Pop(1);
-                long argumentBeanTypeId = 0;
-                string argumentName = null;
+                Lua.GetField(-1, "Timeout");
+                int timeout = (int)Lua.ToInteger(-1);
+                Lua.Pop(1);
 
+                long argumentBeanTypeId;
+                string argumentName;
+                long sidsend;
                 if (isRequest)
                 {
-                    sid = (long)(((ulong)sid) | 0x8000000000000000L);
+                    sidsend = (long)(((ulong)sid) | 0x8000000000000000L);
                     argumentBeanTypeId = pa.ArgumentBeanTypeId;
                     argumentName = "Argument";
                 }
                 else
                 {
+                    sidsend = sid;
                     argumentBeanTypeId = pa.ResultBeanTypeId;
                     argumentName = "Result";
                 }
@@ -433,13 +438,16 @@ namespace Zeze.Services.ToLuaService
                 ByteBuffer bb = ByteBuffer.Allocate();
                 bb.WriteInt4(typeId);
                 bb.BeginWriteWithSize4(out var outstate);
-                bb.WriteLong(sid);
+                bb.WriteLong(sidsend);
                 bb.WriteInt(resultCode);
                 Lua.GetField(-1, argumentName);
                 EncodeBean(bb, argumentBeanTypeId);
                 Lua.Pop(1);
                 bb.EndWriteWithSize4(outstate);
                 socket.Send(bb);
+
+                if (timeout > 0)
+                    Util.Scheduler.Instance.Schedule(() => { SetRpcTimeout(sid); }, timeout);
             }
             else
             {
@@ -458,11 +466,16 @@ namespace Zeze.Services.ToLuaService
 
         private void EncodeBean(ByteBuffer bb, long beanTypeId)
         {
-            if (false == BeanMetas.TryGetValue(beanTypeId, out var vars))
-                throw new Exception("bean not found in meta for beanTypeId=" + beanTypeId);
-
             if (false == Lua.IsTable(-1))
                 throw new Exception("encodebean need a table");
+
+            if (beanTypeId == Zeze.Transaction.EmptyBean.TYPEID)
+            {
+                bb.WriteInt(0);
+                return;
+            }
+            if (false == BeanMetas.TryGetValue(beanTypeId, out var vars))
+                throw new Exception("bean not found in meta for beanTypeId=" + beanTypeId);
 
             // 先遍历一遍，得到填写了的var的数量
             int varsCount = 0;
@@ -629,6 +642,36 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
+        private void CallRpcTimeout(long sid)
+        {
+            if (LuaType.Function != this.Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
+            {
+                Lua.Pop(1);
+                return;
+            }
+            // see Zeze.lua ：ZezeDispatchProtocol。这里仅设置必要参数。
+            Lua.CreateTable(0, 16);
+
+            Lua.PushString("IsRpc");
+            Lua.PushBoolean(true);
+            Lua.SetTable(-3);
+
+            Lua.PushString("IsRequest");
+            Lua.PushBoolean(false);
+            Lua.SetTable(-3);
+
+            Lua.PushString("Sid");
+            Lua.PushInteger(sid);
+            Lua.SetTable(-3);
+
+            Lua.PushString("IsTimeout");
+            Lua.PushBoolean(true);
+            Lua.SetTable(-3);
+
+            Lua.Call(1, 1);
+            Lua.Pop(1);
+        }
+
         public bool DecodeAndDispatch(Net.Service service, long sessionId, int typeId, ByteBuffer _os_)
         {
             if (LuaType.Function != this.Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
@@ -636,9 +679,13 @@ namespace Zeze.Services.ToLuaService
                 Lua.Pop(1);
                 return false;
             }
+
+            if (false == ProtocolMetas.TryGetValue(typeId, out var pa))
+                throw new Exception("protocol not found in meta for typeid=" + typeId);
+
             // 现在不支持 Rpc.但是代码没有检查。
             // 生成的时候报错。
-            Lua.CreateTable(0, 8);
+            Lua.CreateTable(0, 16);
 
             if (service is FromLua fromLua) // 必须是，不报错了。
             {
@@ -663,13 +710,45 @@ namespace Zeze.Services.ToLuaService
             Lua.PushInteger(typeId);
             Lua.SetTable(-3);
 
-            Lua.PushString("ResultCode");
-            Lua.PushInteger(_os_.ReadInt());
-            Lua.SetTable(-3);
-
-            Lua.PushString("Argument");
-            DecodeBean(_os_);
-            Lua.SetTable(-3);
+            if (pa.IsRpc)
+            {
+                long sid = _os_.ReadLong();
+                bool IsRequest = ((ulong)sid & 0x8000000000000000) != 0;
+                string argument;
+                if (IsRequest)
+                {
+                    sid &= 0x7fffffffffffffff;
+                    argument = "Argument";
+                }
+                else
+                {
+                    argument = "Result";
+                }
+                Lua.PushString("IsRpc");
+                Lua.PushBoolean(true);
+                Lua.SetTable(-3);
+                Lua.PushString("IsRequest");
+                Lua.PushBoolean(IsRequest);
+                Lua.SetTable(-3);
+                Lua.PushString("Sid");
+                Lua.PushInteger(sid);
+                Lua.SetTable(-3);
+                Lua.PushString("ResultCode");
+                Lua.PushInteger(_os_.ReadInt());
+                Lua.SetTable(-3);
+                Lua.PushString(argument);
+                DecodeBean(_os_);
+                Lua.SetTable(-3);
+            }
+            else
+            {
+                Lua.PushString("ResultCode");
+                Lua.PushInteger(_os_.ReadInt());
+                Lua.SetTable(-3);
+                Lua.PushString("Argument");
+                DecodeBean(_os_);
+                Lua.SetTable(-3);
+            }
 
             Lua.Call(1, 1);
             bool result = false;
@@ -815,6 +894,15 @@ namespace Zeze.Services.ToLuaService
         private Dictionary<long, ByteBuffer> ToLuaBuffer = new Dictionary<long, ByteBuffer>();
         private Dictionary<long, FromLua> ToLuaHandshakeDone = new Dictionary<long, FromLua>();
         private Dictionary<long, FromLua> ToLuaSocketClose = new Dictionary<long, FromLua>();
+        private HashSet<long> ToLuaRpcTimeout = new HashSet<long>();
+
+        internal void SetRpcTimeout(long sid)
+        {
+            lock (this)
+            {
+                ToLuaRpcTimeout.Add(sid);
+            }
+        }
 
         internal void SetHandshakeDone(long socketSessionId, FromLua service)
         {
@@ -852,14 +940,17 @@ namespace Zeze.Services.ToLuaService
             Dictionary<long, FromLua> handshakeTmp;
             Dictionary<long, FromLua> socketCloseTmp;
             Dictionary<long, Serialize.ByteBuffer> inputTmp;
+            HashSet<long> rpcTimeout;
             lock (this)
             {
                 handshakeTmp = ToLuaHandshakeDone;
                 socketCloseTmp = ToLuaSocketClose;
                 inputTmp = ToLuaBuffer;
+                rpcTimeout = ToLuaRpcTimeout;
                 ToLuaBuffer = new Dictionary<long, ByteBuffer>();
                 ToLuaHandshakeDone = new Dictionary<long, FromLua>();
                 ToLuaSocketClose = new Dictionary<long, FromLua>();
+                ToLuaRpcTimeout = new HashSet<long>();
             }
 
             foreach (var e in socketCloseTmp)
@@ -870,6 +961,11 @@ namespace Zeze.Services.ToLuaService
             foreach (var e in handshakeTmp)
             {
                 this.CallHandshakeDone(e.Value, e.Key);
+            }
+
+            foreach (var sid in rpcTimeout)
+            {
+                this.CallRpcTimeout(sid);
             }
 
             foreach (var e in inputTmp)

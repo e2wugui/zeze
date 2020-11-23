@@ -64,17 +64,23 @@ namespace Zeze
                 Lua.GetField(-1, "Sid");
                 long long sid = Lua.ToInteger(-1);
                 Lua.Pop(1);
+                Lua.GetField(-1, "Timeout");
+                int timeout = (int)Lua.ToInteger(-1);
+                Lua.Pop(1);
+
                 long long argumentBeanTypeId = 0;
                 const char* argumentName = NULL;
 
+                long long sidsend;
                 if (isRequest)
                 {
-                    sid |= 0x8000000000000000L;
+                    sidsend = sid | 0x8000000000000000L;
                     argumentBeanTypeId = pit->second.ArgumentBeanTypeId;
                     argumentName = "Argument";
                 }
                 else
                 {
+                    sidsend = sid;
                     argumentBeanTypeId = pit->second.ResultBeanTypeId;
                     argumentName = "Result";
                 }
@@ -84,13 +90,18 @@ namespace Zeze
                 bb.WriteInt4(typeId);
                 int outstate;
                 bb.BeginWriteWithSize4(outstate);
-                bb.WriteLong(sid);
+                bb.WriteLong(sidsend);
                 bb.WriteInt(resultCode);
                 Lua.GetField(-1, argumentName);
                 EncodeBean(bb, argumentBeanTypeId);
                 Lua.Pop(1);
                 bb.EndWriteWithSize4(outstate);
                 socket->Send((const char*)bb.Bytes, bb.ReadIndex, bb.Size());
+
+                if (timeout > 0)
+                {
+                    Zeze::Net::SetTimeout([this, sid]() { return SetRpcTimeout(sid); }, 5);
+                }
             }
             else
             {
@@ -112,14 +123,19 @@ namespace Zeze
         {
             ToLuaHandshakeDoneMap handshakeTmp;
             ToLuaSocketCloseMap socketCloseTmp;;
+            std::unordered_set<long long> rpcTimeoutTmp;
             ToLuaBufferMap inputTmp;
             {
                 std::lock_guard<std::mutex> lock(mutex);
                 handshakeTmp.swap(ToLuaHandshakeDone);
                 inputTmp.swap(ToLuaBuffer);
                 socketCloseTmp.swap(ToLuaSocketClose);
+                rpcTimeoutTmp.swap(ToLuaRpcTimeout);
             }
-
+            for (auto& sid : rpcTimeoutTmp)
+            {
+                CallRpcTimeout(sid);
+            }
             for (auto& e : socketCloseTmp)
             {
                 CallSocketClose(e.second, e.first);
@@ -184,6 +200,120 @@ namespace Zeze
                 Lua.Register("ZezeSendProtocol", ZezeSendProtocol);
                 Lua.Register("ZezeConnect", ZezeConnect);
             }
+        }
+
+        void ToLua::CallRpcTimeout(long long sid)
+        {
+            if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
+            {
+                Lua.Pop(1);
+                return;
+            }
+            // see Zeze.lua ：ZezeDispatchProtocol。这里仅设置必要参数。
+            Lua.CreateTable(0, 16);
+
+            Lua.PushString("IsRpc");
+            Lua.PushBoolean(true);
+            Lua.SetTable(-3);
+
+            Lua.PushString("IsRequest");
+            Lua.PushBoolean(false);
+            Lua.SetTable(-3);
+
+            Lua.PushString("Sid");
+            Lua.PushInteger(sid);
+            Lua.SetTable(-3);
+
+            Lua.PushString("IsTimeout");
+            Lua.PushBoolean(true);
+            Lua.SetTable(-3);
+
+            Lua.Call(1, 1);
+            Lua.Pop(1);
+        }
+
+        bool ToLua::DecodeAndDispatch(Service* service, long long sessionId, int typeId, Zeze::Serialize::ByteBuffer& _os_)
+        {
+            if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
+            {
+                Lua.Pop(1);
+                return false;
+            }
+            // 现在不支持 Rpc.但是代码没有检查。
+            // 生成的时候报错。
+            Lua.CreateTable(0, 16);
+
+            Lua.PushString("Service");
+            Lua.PushObject(service);
+            Lua.SetTable(-3);
+
+            Lua.PushString("SessionId");
+            Lua.PushInteger(sessionId);
+            Lua.SetTable(-3);
+
+            Lua.PushString("ModuleId");
+            Lua.PushInteger((typeId >> 16) & 0xffff);
+            Lua.SetTable(-3);
+
+            Lua.PushString("ProtcolId");
+            Lua.PushInteger(typeId & 0xffff);
+            Lua.SetTable(-3);
+
+            Lua.PushString("TypeId");
+            Lua.PushInteger(typeId);
+            Lua.SetTable(-3);
+
+            ProtocolMetasMap::iterator pit = ProtocolMetas.find(typeId);
+            if (pit == ProtocolMetas.end())
+                throw std::exception("protocol not found in meta for typeid=" + typeId);
+
+            if (pit->second.IsRpc)
+            {
+                long long sid = _os_.ReadLong();
+                bool IsRequest = ((unsigned long long)sid & 0x8000000000000000) != 0;
+                const char * argument;
+                if (IsRequest)
+                {
+                    sid &= 0x7fffffffffffffff;
+                    argument = "Argument";
+                }
+                else
+                {
+                    argument = "Result";
+                }
+                Lua.PushString("IsRpc");
+                Lua.PushBoolean(true);
+                Lua.SetTable(-3);
+                Lua.PushString("IsRequest");
+                Lua.PushBoolean(IsRequest);
+                Lua.SetTable(-3);
+                Lua.PushString("Sid");
+                Lua.PushInteger(sid);
+                Lua.SetTable(-3);
+                Lua.PushString("ResultCode");
+                Lua.PushInteger(_os_.ReadInt());
+                Lua.SetTable(-3);
+                Lua.PushString(argument);
+                DecodeBean(_os_);
+                Lua.SetTable(-3);
+            }
+            else
+            {
+                Lua.PushString("ResultCode");
+                Lua.PushInteger(_os_.ReadInt());
+                Lua.SetTable(-3);
+
+                Lua.PushString("Argument");
+                DecodeBean(_os_);
+                Lua.SetTable(-3);
+            }
+
+            Lua.Call(1, 1);
+            bool result = false;
+            if (false == Lua.IsNil(-1))
+                result = Lua.ToBoolean(-1);
+            Lua.Pop(1);
+            return result;
         }
     }
 }

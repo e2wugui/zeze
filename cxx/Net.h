@@ -16,6 +16,7 @@ namespace Net
 {
 	bool Startup();
 	void Cleanup();
+	void SetTimeout(const std::function<void()> &func, int timeout);
 
 	class Protocol;
 	class BufferedCodec;
