@@ -222,17 +222,45 @@ export module Zeze {
 		}
     }
 
-	// TODO 绑定到底层网路实现（cxx or c#)
 	export class Socket {
 		public service: Service;
+		public SessionId: number;
+		public InputBuffer: Zeze.ByteBuffer;
 
-		public constructor(service: Service) {
+		public constructor(service: Service, sessionId: Long) {
 			this.service = service;
+			this.SessionId = sessionId;
 		}
 
 		public Send(buffer: Zeze.ByteBuffer): void {
+			this.service.Send(this.SessionId, buffer)
 		}
+
+		public Close(): void {
+			this.service.Close(this.SessionId);
+		}
+
+		public OnProcessInput(newInput: ArrayBuffer, offset: number, len: number) {
+			if (null != this.InputBuffer) {
+				this.InputBuffer.Append(new Uint8Array(newInput), offset, len);
+				Zeze.Protocol.DecodeProtocols(this.service, this, this.InputBuffer);
+				if (this.InputBuffer.Size() > 0)
+					this.InputBuffer.Campact();
+				else
+					this.InputBuffer = null;
+				return;
+			}
+			var bufdirect = new Zeze.ByteBuffer(new Uint8Array(newInput), offset, len);
+			Zeze.Protocol.DecodeProtocols(this.service, this, bufdirect);
+			if (bufdirect.Size() > 0) {
+				bufdirect.Campact();
+				this.InputBuffer = bufdirect;
+            }
+        }
 	}
+
+	// 根据实际使用的 puerts 的库，修改下面的 import。
+	import * as HostLang from 'csharp'; // 'ue'
 
 	export class Service {
 		public FactoryHandleMap: Map<number, ProtocolFactoryHandle>;
@@ -261,7 +289,50 @@ export module Zeze {
 		public DispatchProtocol(p: Zeze.Protocol, factoryHandle: ProtocolFactoryHandle): void {
 			factoryHandle.handle(p);
         }
-    }
+
+		public Connection: Socket;
+
+		protected CallbackOnSocketHandshakeDone(sessionId: number): void {
+			if (this.Connection)
+				this.Connection.Close();
+			this.Connection = new Socket(this, sessionId);
+        }
+
+		protected CallbackOnSocketClose(sessionId: number): void {
+			this.Connection = null;
+		}
+
+		protected CallbackOnSocketProcessInputBuffer(sessionId: number, buffer: ArrayBuffer, offset: number, len: number): void {
+			if (this.Connection.SessionId == sessionId) {
+				this.Connection.OnProcessInput(buffer, offset, len);
+            }
+        }
+
+		private Implement: HostLang.Zeze.ToTypeScriptService;
+
+		public constructor(name: string) {
+			this.Implement = new HostLang.Zeze.ToTypeScriptService(name,
+				this.CallbackOnSocketHandshakeDone.bind(this),
+				this.CallbackOnSocketClose.bind(this),
+				this.CallbackOnSocketProcessInputBuffer.bind(this));
+        }
+
+		public Connect(hostNameOrAddress: string, port: number, autoReconnect: boolean = true): void {
+			this.Implement.Connect(hostNameOrAddress, port, autoReconnect);
+        }
+
+		public Send(sessionId: number, buffer: Zeze.ByteBuffer): void {
+			this.Implement.Send(sessionId, buffer.Bytes.buffer, buffer.ReadIndex, buffer.Size());
+		}
+
+		public Close(sessionId: number): void {
+			this.Implement.Close(sessionId);
+		}
+
+		public TickUpdate(): void {
+			this.Implement.TickUpdate();
+        }
+	}
 
 	export class ByteBuffer {
 		public Bytes: Uint8Array;
@@ -291,10 +362,16 @@ export module Zeze {
 			return size;
         }
 
-		BlockCopy(src: Uint8Array, srcOffset: number, dst: Uint8Array, dstOffset: number, count: number) {
+		public static BlockCopy(src: Uint8Array, srcOffset: number, dst: Uint8Array, dstOffset: number, count: number) {
 			for (var i = 0; i < count; ++i) {
 				dst[i + dstOffset] = src[i + srcOffset];
             }
+        }
+
+		public Copy(): Uint8Array {
+			var copy = new Uint8Array(this.Size());
+			ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, copy, 0, this.Size());
+			return copy;
         }
 
 		public EnsureWrite(size: number): void {
@@ -302,7 +379,7 @@ export module Zeze {
 			if (newSize > this.Capacity()) {
 				var newBytes = new Uint8Array(this.ToPower2(newSize));
 				this.WriteIndex -= this.ReadIndex;
-				this.BlockCopy(this.Bytes, this.ReadIndex, newBytes, 0, this.WriteIndex);
+				ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, newBytes, 0, this.WriteIndex);
 				this.ReadIndex = 0;
 				this.Bytes = newBytes;
 				this.View = new DataView(this.Bytes.buffer);
@@ -311,14 +388,14 @@ export module Zeze {
 
 		public Append(bytes: Uint8Array, offset: number, len: number): void {
 			this.EnsureWrite(len);
-			this.BlockCopy(bytes, offset, this.Bytes, this.WriteIndex, len);
+			ByteBuffer.BlockCopy(bytes, offset, this.Bytes, this.WriteIndex, len);
 			this.WriteIndex += len;
 		}
 
 		public Replace(writeIndex: number, src: Uint8Array, srcOffset: number, len: number): void {
 			if (writeIndex < this.ReadIndex || writeIndex + len > this.WriteIndex)
 				throw new Error();
-			this.BlockCopy(src, srcOffset, this.Bytes, writeIndex, len);
+			ByteBuffer.BlockCopy(src, srcOffset, this.Bytes, writeIndex, len);
 		}
 
 		public BeginWriteWithSize4(): number {
@@ -451,7 +528,7 @@ export module Zeze {
 			var size = this.Size();
 			if (size > 0) {
 				if (this.ReadIndex > 0) {
-					this.BlockCopy(this.Bytes, this.ReadIndex, this.Bytes, 0, size);
+					ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, this.Bytes, 0, size);
 					this.ReadIndex = 0;
 					this.WriteIndex = size;
 				}
@@ -832,7 +909,7 @@ export module Zeze {
 				length = x.byteLength;
 			this.WriteInt(length);
 			this.EnsureWrite(length);
-			this.BlockCopy(x, offset, this.Bytes, this.WriteIndex, length);
+			ByteBuffer.BlockCopy(x, offset, this.Bytes, this.WriteIndex, length);
 			this.WriteIndex += length;
 		}
 
@@ -840,7 +917,7 @@ export module Zeze {
 			var n = this.ReadInt();
 			this.EnsureRead(n);
 			var x = new Uint8Array(n);
-			this.BlockCopy(this.Bytes, this.ReadIndex, x, 0, n);
+			ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, x, 0, n);
 			this.ReadIndex += n;
 			return x;
 		}
