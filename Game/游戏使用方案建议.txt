@@ -36,3 +36,30 @@
 	c) 另外服务器如果不直接支持碰撞和nav-mesh寻路，可以仅仅把客户端的结果拿去验证。
 	   有个思路，1 抽样验证；2 验证的时候随机选择几个客户端来执行验证，防止单个客户端作弊。
 	   服务器有寻路需求的时候也可以选择客户端帮忙做。
+
+客户端使用Unity(csharp)+TypeScript
+	a) 把 Zeze 加到你的项目。
+	b) 定义宏 USE_PUERTS
+	c) 把 TypeScript/ts/zeze.ts long.js 拷贝到你的 ts 目录。
+	d) 把 TypeScript/ts/puerts.d.ts 的 namespace Zeze 拷贝到你的puerts/types/.../index.d.ts。
+	   没用过puerts，应该是生成绑定到类 Zeze.Service.ToTypeScriptService.cs，这样就能在 ts 里面构造真正的网络服务了。
+
+客户端使用Unreal(cxx)+TypeScript
+	a) 直接把cxx下的所有代码加到项目中。除了ToLua相关的。
+	b) 把 TypeScript/ts/zeze.ts 或者 TypeScript/js/zeze.js 拷贝到你的项目脚本目录。
+	   TypeScript/js/long.js 来自于 https://github.com/dcodeIO/Long.js/ 
+	   好像 nodejs 也有一个 Long 实现，还没看，不知道接口是否一致。
+	c) 
+	c) 把 TypeScript/ts/zeze.ts long.js 拷贝到你的 ts 目录。
+	d) 把 TypeScript/ts/puerts.d.ts 的 namespace Zeze 拷贝到你的puerts/types/.../index.d.ts。
+	   没用过puerts，应该是生成绑定到类 Zeze.Net.ToTypeScriptService.h(TODO)，这样就能在 ts 里面构造真正的网络服务了。
+	e) 定义 solutions.xml 时，客户端 handle 选择 clientscript.
+
+客户端使用Unity(csharp)+lua
+	a) 需要选择你的Lua-Bind的类库，实现一个ILua实现（参考 Zeze.Service.ToLuaService.cs）。
+	b) 定义 solutions.xml 时，客户端 handle 选择 clientscript.
+
+客户端使用Unreal(cxx)+lua
+	a) 依赖lualib, 需要设置includepath
+	b) 直接把cxx下的所有代码加到项目中。除了ToTypeScript相关的。
+	c) 定义 solutions.xml 时，客户端 handle 选择 clientscript.
