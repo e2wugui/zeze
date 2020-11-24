@@ -290,5 +290,8 @@
     <ClInclude Include="..\cxx\ToLuaDecodeAndDispatcher.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
+    <ClInclude Include="..\cxx\ToTypeScriptService.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

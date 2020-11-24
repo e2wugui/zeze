@@ -7,13 +7,28 @@
 #include "Protocol.h"
 #include <mutex>
 
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "ToTypeScriptService.generated.h"
+
 namespace Zeze
 {
 	namespace Net
 	{
-		class ToTypeScriptService : public Service
-		{
-			virtual void OnSocketClose(const std::shared_ptr<Socket>& sender, const std::exception* e) override
+        DECLARE_DYNAMIC_DELEGATE_OneParam(FCallbackOnSocketHandshakeDone, int64);
+        DECLARE_DYNAMIC_DELEGATE_OneParam(FCallbackOnSocketClose, int64);
+        DECLARE_DYNAMIC_DELEGATE_3Param(FCallbackOnSocketProcessInputBuffer, FArrayBuffer&, int32, int32);
+
+        UCLASS()
+        class ToTypeScriptService : : public UObject, Service
+        {
+            GENERATED_BODY();
+
+            FCallbackOnSocketHandshakeDone CallbackSocketHandshakeDone;
+            FCallbackOnSocketClose CallbackSocketClose;
+            FCallbackOnSocketProcessInputBuffer CallbackSocketProcessInputBuffer;
+
+            virtual void OnSocketClose(const std::shared_ptr<Socket>& sender, const std::exception* e) override
 			{
 				if (sender.get() == socket.get())
 				{
@@ -72,22 +87,37 @@ namespace Zeze
             }
 
         public:
-			ToTypeScriptService(const std::string & name) : Service(name)
+            ToTypeScriptService(const std::string & name,
+                const FCallbackOnSocketHandshakeDone & cb1,
+                const FCallbackOnSocketClose & cb2,
+                const FCallbackOnSocketProcessInputBuffer & cb3)
+                : Service(name) // TODO constructor in ts?
 			{
-
+                CallbackSocketHandshakeDone = cb1;
+                CallbackSocketClose = cb2;
+                CallbackSocketProcessInputBuffer = cb3;
 			}
 
-            void Send(long long sessionId, Puerts.ArrayBuffer buffer, int offset, int len)
+            UFUNCTION(BlueprintCallable, meta = (DisplayName = "Connect", ScriptName = "Connect", Keywords = "Zeze"), Category = "Zeze")
+            void Connect(const FString & host, int port, bool autoReconnect)
+            {
+                Service::SetAutoConnect(autoReconnect);
+                Service::Connect(host, port); // TODO cast FString to std::string
+            }
+
+            UFUNCTION(BlueprintCallable, meta = (DisplayName = "Send", ScriptName = "Send", Keywords = "Zeze"), Category = "Zeze")
+            void Send(long long sessionId, const FArrayBuffer & buffer, int offset, int len)
             {
                 if (Socket* so = socket.get())
                 {
                     if (so->SessionId == sessionId)
                     {
-                        so->Send(buffer.Bytes, offset, len);
+                        so->Send((const char *)buffer.Data, offset, len);
                     }
                 }
             }
 
+            UFUNCTION(BlueprintCallable, meta = (DisplayName = "Close", ScriptName = "Close", Keywords = "Zeze"), Category = "Zeze")
             void Close(long long sessionId)
             {
                 if (Socket* so = socket.get())
@@ -99,6 +129,7 @@ namespace Zeze
                 }
             }
 
+            UFUNCTION(BlueprintCallable, meta = (DisplayName = "TickUpdate", ScriptName = "TickUpdate", Keywords = "Zeze"), Category = "Zeze")
             void TickUpdate()
             {
                 std::unordered_set<long long> handshakeTmp;
@@ -123,7 +154,7 @@ namespace Zeze
 
                 for (auto& e : inputTmp)
                 {
-                    CallbackSocketProcessInputBuffer(e.first, new Puerts.ArrayBuffer(e.second.Bytes), e.second.ReadIndex, e.second.Size());
+                    CallbackSocketProcessInputBuffer(e.first, FArrayBuffer((char*)(e.second.Bytes + e.second.ReadIndex), e.second.Size()), 0, e.second.Size());
                 }
             }
         };

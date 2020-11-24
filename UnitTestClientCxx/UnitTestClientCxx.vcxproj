@@ -213,6 +213,7 @@
     <ClInclude Include="..\cxx\ToLua.h" />
     <ClInclude Include="..\cxx\ToLuaDecodeAndDispatcher.h" />
     <ClInclude Include="..\cxx\ToLuaService.h" />
+    <ClInclude Include="..\cxx\ToTypeScriptService.h" />
     <ClInclude Include="..\cxx\utils.h" />
     <ClInclude Include="lua-5.4.1\src\lapi.h" />
     <ClInclude Include="lua-5.4.1\src\lauxlib.h" />

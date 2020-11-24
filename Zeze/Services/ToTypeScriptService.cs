@@ -75,9 +75,9 @@ namespace Zeze.Services
 
     public class ToTypeScriptService : ToTypeScriptService0
     {
-        public delegate void CallbackOnSocketHandshakeDone(ToTypeScriptService service, long sessionId);
-        public delegate void CallbackOnSocketClose(ToTypeScriptService service, long sessionId);
-        public delegate void CallbackOnSocketProcessInputBuffer(ToTypeScriptService service, Puerts.ArrayBuffer buffer);
+        public delegate void CallbackOnSocketHandshakeDone(long sessionId);
+        public delegate void CallbackOnSocketClose(long sessionId);
+        public delegate void CallbackOnSocketProcessInputBuffer(long sessionId, Puerts.ArrayBuffer buffer, int offset, int len);
 
         private CallbackOnSocketHandshakeDone CallbackSocketHandshakeDone;
         private CallbackOnSocketClose CallbackSocketClose;
@@ -137,7 +137,7 @@ namespace Zeze.Services
 
             foreach (var e in inputTmp)
             {
-                this.CallbackSocketProcessInputBuffer(e.Key, new Puerts.ArrayBuffer(e.Value.Bytes), e.Value.ReadIndex, e.Value.Size());
+                this.CallbackSocketProcessInputBuffer(e.Key, new Puerts.ArrayBuffer(e.Value.Bytes), e.Value.ReadIndex, e.Value.Size);
             }
         }
     }
