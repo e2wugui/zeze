@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "ToScriptDecodeAndDispatcher.h"
+#include "ToLuaDecodeAndDispatcher.h"
 #include "LuaHelper.h"
 #include "ByteBuffer.h"
 #include <unordered_map>

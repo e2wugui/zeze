@@ -1,45 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 
-#if USE_PUERTS
-
 namespace Zeze.Services
 {
-    public class ToTypeScriptService : HandshakeClient
+    public class ToTypeScriptService0 : HandshakeClient
     {
-        public delegate void CallbackOnSocketHandshakeDone(ToTypeScriptService service, long sessionId);
-        public delegate void CallbackOnSocketClose(ToTypeScriptService service, long sessionId);
-        public delegate void CallbackOnSocketProcessInputBuffer(ToTypeScriptService service, Puerts.ArrayBuffer buffer);
-
-        private CallbackOnSocketHandshakeDone CallbackSocketHandshakeDone;
-        private CallbackOnSocketClose CallbackSocketClose;
-        private CallbackOnSocketProcessInputBuffer CallbackSocketProcessInputBuffer;
-
-        public ToTypeScriptService(string name,
-            CallbackOnSocketHandshakeDone onSocketHandshakeDone,
-            CallbackOnSocketClose onSocketClose,
-            CallbackOnSocketProcessInputBuffer onSocketProcessInputBuffer)
-            : base(name, null)
+        public ToTypeScriptService0(string name): base(name, null)
         {
-            this.CallbackSocketHandshakeDone = onSocketHandshakeDone;
-            this.CallbackSocketClose = onSocketClose;
-            this.CallbackSocketProcessInputBuffer = onSocketProcessInputBuffer;
-        }
 
-        public void Send(long sessionId, Puerts.ArrayBuffer buffer, int offset, int len)
-        {
-            base.GetSocket(sessionId)?.Send(buffer.Bytes, offset, len);
-        }
-        
-        public void Close(long sessionId)
-        {
-            base.GetSocket(sessionId)?.Dispose();
-        }
-
-        public override void OnHandshakeDone(Zeze.Net.AsyncSocket sender)
-        {
-            sender.IsHandshakeDone = true;
-            SetHandshakeDone(sender.SessionId);
         }
 
         public override void OnSocketProcessInputBuffer(Zeze.Net.AsyncSocket so, Zeze.Serialize.ByteBuffer input)
@@ -61,9 +29,15 @@ namespace Zeze.Services
             base.OnSocketClose(so, e);
         }
 
-        private Dictionary<long, Zeze.Serialize.ByteBuffer> ToBuffer = new Dictionary<long, Zeze.Serialize.ByteBuffer>();
-        private HashSet<long> ToHandshakeDone = new HashSet<long>();
-        private HashSet<long> ToSocketClose = new HashSet<long>();
+        public override void OnHandshakeDone(Zeze.Net.AsyncSocket sender)
+        {
+            sender.IsHandshakeDone = true;
+            SetHandshakeDone(sender.SessionId);
+        }
+
+        protected Dictionary<long, Zeze.Serialize.ByteBuffer> ToBuffer = new Dictionary<long, Zeze.Serialize.ByteBuffer>();
+        protected HashSet<long> ToHandshakeDone = new HashSet<long>();
+        protected HashSet<long> ToSocketClose = new HashSet<long>();
 
         internal void SetHandshakeDone(long socketSessionId)
         {
@@ -94,6 +68,45 @@ namespace Zeze.Services
                 ToBuffer.Add(socketSessionId, newBuffer);
                 newBuffer.Append(buffer.Bytes, buffer.ReadIndex, buffer.Size);
             }
+        }
+    }
+
+#if USE_PUERTS
+
+    public class ToTypeScriptService : ToTypeScriptService0
+    {
+        public delegate void CallbackOnSocketHandshakeDone(ToTypeScriptService service, long sessionId);
+        public delegate void CallbackOnSocketClose(ToTypeScriptService service, long sessionId);
+        public delegate void CallbackOnSocketProcessInputBuffer(ToTypeScriptService service, Puerts.ArrayBuffer buffer);
+
+        private CallbackOnSocketHandshakeDone CallbackSocketHandshakeDone;
+        private CallbackOnSocketClose CallbackSocketClose;
+        private CallbackOnSocketProcessInputBuffer CallbackSocketProcessInputBuffer;
+
+        public ToTypeScriptService(string name,
+            CallbackOnSocketHandshakeDone onSocketHandshakeDone,
+            CallbackOnSocketClose onSocketClose,
+            CallbackOnSocketProcessInputBuffer onSocketProcessInputBuffer)
+            : base(name)
+        {
+            this.CallbackSocketHandshakeDone = onSocketHandshakeDone;
+            this.CallbackSocketClose = onSocketClose;
+            this.CallbackSocketProcessInputBuffer = onSocketProcessInputBuffer;
+        }
+
+        public new void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
+        {
+            base.Connect(hostNameOrAddress, port, autoReconnect);
+        }
+
+        public void Send(long sessionId, Puerts.ArrayBuffer buffer, int offset, int len)
+        {
+            base.GetSocket(sessionId)?.Send(buffer.Bytes, offset, len);
+        }
+        
+        public void Close(long sessionId)
+        {
+            base.GetSocket(sessionId)?.Dispose();
         }
 
         public void TickUpdate()
@@ -128,6 +141,7 @@ namespace Zeze.Services
             }
         }
     }
+#endif // USE_PUERTS
+
 }
 
-#endif // USE_PUERTS

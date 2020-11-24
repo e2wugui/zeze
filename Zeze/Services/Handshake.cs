@@ -124,7 +124,7 @@ namespace Zeze.Services
 
         private ConcurrentDictionary<long, BigInteger> DHContext = new ConcurrentDictionary<long, BigInteger>();
 
-        public void Connect(string hostNameOrAddress, int port, bool autoReconnect = false)
+        public void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
         {
             Config.ServiceConf.Connector c = Config.GetOrAddConnector(hostNameOrAddress, port, autoReconnect);
             c.Socket?.Dispose();
