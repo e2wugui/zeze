@@ -2,7 +2,7 @@
 
 #include "ByteBuffer.h"
 #include "Net.h"
-#include "ToLuaDecodeAndDispatcher.h"
+#include "IDecodeAndDispatcher.h"
 
 namespace Zeze
 {

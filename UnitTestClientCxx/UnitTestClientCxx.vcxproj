@@ -202,6 +202,7 @@
     <ClInclude Include="..\cxx\codec.h" />
     <ClInclude Include="..\cxx\common.h" />
     <ClInclude Include="..\cxx\dh.h" />
+    <ClInclude Include="..\cxx\IDecodeAndDispatcher.h" />
     <ClInclude Include="..\cxx\luaheader.h" />
     <ClInclude Include="..\cxx\LuaHelper.h" />
     <ClInclude Include="..\cxx\Net.h" />
@@ -211,9 +212,7 @@
     <ClInclude Include="..\cxx\rfc2118.h" />
     <ClInclude Include="..\cxx\security.h" />
     <ClInclude Include="..\cxx\ToLua.h" />
-    <ClInclude Include="..\cxx\ToLuaDecodeAndDispatcher.h" />
     <ClInclude Include="..\cxx\ToLuaService.h" />
-    <ClInclude Include="..\cxx\ToTypeScriptService.h" />
     <ClInclude Include="..\cxx\utils.h" />
     <ClInclude Include="lua-5.4.1\src\lapi.h" />
     <ClInclude Include="lua-5.4.1\src\lauxlib.h" />
