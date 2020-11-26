@@ -378,6 +378,7 @@ namespace Zeze.Services.ToLuaService
             lock (RegisterCallbackLock)
             {
                 // 所有的ToLua实例共享回调函数。
+#if USE_KERA_LUA
                 if (null == ZezeUpdateFunction)
                 {
                     ZezeUpdateFunction = ZezeUpdate;
@@ -388,6 +389,7 @@ namespace Zeze.Services.ToLuaService
                     Lua.Register("ZezeSendProtocol", ZezeSendProtocolFunction);
                     Lua.Register("ZezeConnect", ZezeConnectFunction);
                 }
+#endif // USE_KERA_LUA
             }
         }
 
