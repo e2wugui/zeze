@@ -184,7 +184,9 @@ namespace Zeze.Gen
                     new cxx.Maker(this).Make();
                     new Zeze.Gen.lua.Maker(this).Make();
                     break;
+                case "ts":
                 case "cxx+ts":
+                case "cs+ts":
                     new ts.Maker(this).Make();
                     break;
                 default:
