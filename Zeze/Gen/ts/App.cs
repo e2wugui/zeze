@@ -46,7 +46,7 @@ namespace Zeze.Gen.ts
             }
             foreach (Service m in project.Services.Values)
             {
-                sw.WriteLine("    public " + m.Name + ": Zeze.Service = new Zeze.Service(\" + m.Name + \");");
+                sw.WriteLine("    public " + m.Name + ": Zeze.Service = new Zeze.Service(\"" + m.Name + "\");");
             }
             sw.WriteLine();
         }
