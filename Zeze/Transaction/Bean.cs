@@ -38,11 +38,11 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        internal void BuildChangeListenerPath(List<KeyValuePair<Bean, int>> path)
+        internal void BuildChangeListenerPath(List<Util.KV<Bean, int>> path)
         {
             for (Bean parent = Parent; parent != null; parent = parent.Parent)
             {
-                path.Add(KeyValuePair.Create(parent, VariableId));
+                path.Add(Util.KV.Create(parent, VariableId));
             }
         }
 

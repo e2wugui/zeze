@@ -148,7 +148,7 @@ namespace Zeze.Util
             }
         }
 
-        public int CompareTo([AllowNull] SchedulerTask other)
+        public int CompareTo(SchedulerTask other)
         {
             if (other == null) // 不可能吧
                 return 1;

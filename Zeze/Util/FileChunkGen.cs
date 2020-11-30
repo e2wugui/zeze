@@ -99,7 +99,7 @@ namespace Zeze.Util
                     }
                     continue;
                 }
-                Chunk current = Chunks[^1];
+                Chunk current = Chunks[Chunks.Count - 1];
                 switch (current.State)
                 {
                     case State.Normal:
@@ -146,7 +146,7 @@ namespace Zeze.Util
                         break;
                 }
             }
-            if (Chunks.Count > 0 && Chunks[^1].State == State.ChunkStart)
+            if (Chunks.Count > 0 && Chunks[Chunks.Count - 1].State == State.ChunkStart)
                 throw new Exception("chunk is not closed");
             return true;
         }

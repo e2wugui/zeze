@@ -162,7 +162,7 @@ namespace Zeze.Transaction
                 this.p = p;
             }
 
-            public int CompareTo([AllowNull] AccessTimeRecord other)
+            public int CompareTo(AccessTimeRecord other)
             {
                 return accessTimeTicks.CompareTo(other.accessTimeTicks);
             }

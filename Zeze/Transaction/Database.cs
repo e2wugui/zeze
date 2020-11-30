@@ -482,7 +482,7 @@ namespace Zeze.Transaction
 
             public void Remove(ByteBuffer key)
             {
-                Map.Remove(key.Copy(), out var notused);
+                Map.TryRemove(key.Copy(), out var notused);
             }
 
             public void Replace(ByteBuffer key, ByteBuffer value)

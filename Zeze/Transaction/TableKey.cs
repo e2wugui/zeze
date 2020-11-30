@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace Zeze.Transaction
 {
@@ -16,7 +15,7 @@ namespace Zeze.Transaction
             Key = key;
         }
 
-        public int CompareTo([AllowNull] TableKey other)
+        public int CompareTo(TableKey other)
         {
             int c = this.TableId.CompareTo(other.TableId);
             if (c != 0)

@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection.PortableExecutable;
-using System.Security.Cryptography;
 
 namespace Zeze.Serialize
 {
@@ -812,7 +810,7 @@ namespace Zeze.Serialize
             return (obj is ByteBuffer other) && Equals(other);
         }
 
-        public bool Equals([AllowNull] ByteBuffer other)
+        public bool Equals(ByteBuffer other)
         {
             if (other == null)
                 return false;

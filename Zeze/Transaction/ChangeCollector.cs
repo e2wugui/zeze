@@ -8,7 +8,7 @@ namespace Zeze.Transaction
 	{
 		private readonly Dictionary<int, ChangeTableCollector> tables = new Dictionary<int, ChangeTableCollector>(); // key is Table.Id
 
-		public delegate void Collect(out List<KeyValuePair<Bean, int>> path, out ChangeNote note);
+		public delegate void Collect(out List<Util.KV<Bean, int>> path, out ChangeNote note);
 
 		public void BuildCollect(TableKey tableKey, Transaction.RecordAccessed recordAccessed)
         {
@@ -117,8 +117,8 @@ namespace Zeze.Transaction
 			}
 
             // 收集具体变量变化，需要建立路径用来判断是否该变量的变化。
-            collect(out List<KeyValuePair<Bean, int>> path, out ChangeNote note);
-            if (variables.TryGetValue(path[^1].Value, out var varCC))
+            collect(out List<Util.KV<Bean, int>> path, out ChangeNote note);
+            if (variables.TryGetValue(path[path.Count - 1].Value, out var varCC))
             {
 				path.RemoveAt(path.Count - 1); // 最后一个肯定是 Root-Bean 的变量。
 				varCC.CollectChanged(path, note);
@@ -154,7 +154,7 @@ namespace Zeze.Transaction
 
 		internal HashSet<ChangeListener> listeners;
 
-		public abstract void CollectChanged(List<KeyValuePair<Bean, int>> path, ChangeNote note);
+		public abstract void CollectChanged(List<Util.KV<Bean, int>> path, ChangeNote note);
 
 		public void NotifyRecordChanged(object key, Bean value)
         {
@@ -195,7 +195,7 @@ namespace Zeze.Transaction
 
 		private bool changed = false;
 
-		public override void CollectChanged(List<KeyValuePair<Bean, int>> path, ChangeNote note)
+		public override void CollectChanged(List<Util.KV<Bean, int>> path, ChangeNote note)
 		{
 			changed = true;
 		}
@@ -233,7 +233,7 @@ namespace Zeze.Transaction
 			NoteFactory = noteFactory;
 		}
 
-		public override void CollectChanged(List<KeyValuePair<Bean, int>> path, ChangeNote note)
+		public override void CollectChanged(List<Util.KV<Bean, int>> path, ChangeNote note)
 		{
 			if (path.Count == 0)
             {
@@ -244,8 +244,9 @@ namespace Zeze.Transaction
 				if (null == changedValue)
 					changedValue = new Util.IdentityHashMap<Bean, Bean>();
 				// Value 不是 Bean 的 Map 不会走到这里。
-				Bean value = path[^1].Key;
-				changedValue.TryAdd(value, value);
+				Bean value = path[path.Count - 1].Key;
+				if (!changedValue.ContainsKey(value))
+					changedValue.Add(value, value);
             }
 		}
 
@@ -277,7 +278,7 @@ namespace Zeze.Transaction
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 		private ChangeNote note;
 
-		public override void CollectChanged(List<KeyValuePair<Bean, int>> path, ChangeNote note)
+		public override void CollectChanged(List<Util.KV<Bean, int>> path, ChangeNote note)
 		{
 			// 忽略错误检查
 			this.note = note;

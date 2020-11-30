@@ -32,7 +32,7 @@ namespace Zeze.Gen.Types
 
 					// 常量初始化引用到的Bean也加入depends中。 BeanName.ConstStaticVarName
 					// 
-					String[] initial = var.Initial.Split(".");
+					String[] initial = var.Initial.Split('.');
 					String beanNameMabe = "";
 					for (int i = 0; i < initial.Length - 1; ++i)
 					{

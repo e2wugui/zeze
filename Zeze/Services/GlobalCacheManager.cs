@@ -308,7 +308,7 @@ namespace Zeze.Services
                         return 0;
                     }
 
-                    List<KeyValuePair<CacheHolder, Reduce >> reducePending = new List<KeyValuePair<CacheHolder, Reduce>>();
+                    List<Util.KV<CacheHolder, Reduce >> reducePending = new List<Util.KV<CacheHolder, Reduce>>();
                     HashSet<CacheHolder> reduceSuccessed = new HashSet<CacheHolder>();
                     bool senderIsShare = false;
                     // 先把降级请求全部发送给出去。
@@ -323,7 +323,7 @@ namespace Zeze.Services
                         Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid);
                         if (null != reduce)
                         {
-                            reducePending.Add(KeyValuePair.Create(c, reduce));
+                            reducePending.Add(Util.KV.Create(c, reduce));
                         }
                         else
                         {
@@ -565,7 +565,7 @@ namespace Zeze.Services
                 Key = key;
             }
 
-            public int CompareTo([AllowNull] GlobalTableKey other)
+            public int CompareTo(GlobalTableKey other)
             {
                 int c = this.TableName.CompareTo(other.TableName);
                 if (c != 0)

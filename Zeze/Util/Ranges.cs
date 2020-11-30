@@ -53,11 +53,11 @@ namespace Zeze.Util
 
 		public Ranges(string str)
 		{
-			foreach (string s in str.Split(","))
+			foreach (string s in str.Split(','))
 			{
 				if (s.Length == 0)
 					continue;
-				string[] pair = s.Split("-");
+				string[] pair = s.Split('-');
 				if (pair.Length == 0)
 					continue;
 				if (pair.Length > 2)

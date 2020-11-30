@@ -114,7 +114,7 @@ namespace Zeze.Transaction
             }
 
         }
-		public int CompareTo([AllowNull] Lockey other)
+		public int CompareTo(Lockey other)
         {
 			if (other == null)
 				return 1; // null always small

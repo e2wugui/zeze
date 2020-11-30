@@ -82,7 +82,10 @@ namespace Zeze.Transaction
             foreach (var e in map)
             {
                 if (ChangedValue.ContainsKey(e.Value))
-                    Replaced.TryAdd(e.Key, e.Value);
+                {
+                    if (!Replaced.ContainsKey(e.Key))
+                       Replaced.Add(e.Key, e.Value);
+                }
             }
 
             ChangedValue.Clear();

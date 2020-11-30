@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
 using Zeze.Transaction.Collections;
 using System.Runtime.CompilerServices;
@@ -34,7 +33,7 @@ namespace Zeze.Transaction
 
         public void Begin()
         {
-            Savepoint sp = savepoints.Count > 0 ? savepoints[^1].Duplicate() : new Savepoint();
+            Savepoint sp = savepoints.Count > 0 ? savepoints[savepoints.Count - 1].Duplicate() : new Savepoint();
             savepoints.Add(sp);
         }
 
@@ -46,7 +45,7 @@ namespace Zeze.Transaction
                 int lastIndex = savepoints.Count - 1;
                 Savepoint last = savepoints[lastIndex];
                 savepoints.RemoveAt(lastIndex);
-                savepoints[^1].Merge(last);
+                savepoints[savepoints.Count - 1].Merge(last);
             }
             /*
             else
@@ -67,18 +66,18 @@ namespace Zeze.Transaction
         public Log GetLog(long key)
         {
             // 允许没有 savepoint 时返回 null. 就是说允许在保存点不存在时进行读取操作。
-            return savepoints.Count > 0 ? savepoints[^1].GetLog(key) : null;
+            return savepoints.Count > 0 ? savepoints[savepoints.Count - 1].GetLog(key) : null;
         }
 
         public void PutLog(Log log)
         {
-            savepoints[^1].PutLog(log);
+            savepoints[savepoints.Count - 1].PutLog(log);
         }
 
         public ChangeNote GetOrAddChangeNote(long key, Func<ChangeNote> factory)
         {
             // 必须存在 Savepoint. 可能是为了修改。
-            return savepoints[^1].GetOrAddChangeNote(key, factory);
+            return savepoints[savepoints.Count - 1].GetOrAddChangeNote(key, factory);
         }
 
         /*
@@ -222,7 +221,7 @@ namespace Zeze.Transaction
             ChangeCollector cc = new ChangeCollector();
             try
             {
-                savepoints[^1].Commit();
+                savepoints[savepoints.Count - 1].Commit();
                 foreach (var e in accessedRecords)
                 {
                     if (e.Value.Dirty)
@@ -240,18 +239,18 @@ namespace Zeze.Transaction
 
             try
             {
-                Savepoint sp = savepoints[^1];
+                Savepoint sp = savepoints[savepoints.Count - 1];
                 foreach (Log log in sp.Logs.Values)
                 {
                     if (log.Bean == null)
                         continue; // 特殊日志没有Bean。
 
                     // 写成回调是为了优化，仅在需要的时候才创建path。
-                    cc.CollectChanged(log.Bean.TableKey, (out List<KeyValuePair<Bean, int>> path, out ChangeNote note) =>
+                    cc.CollectChanged(log.Bean.TableKey, (out List<Util.KV<Bean, int>> path, out ChangeNote note) =>
                     {
-                        path = new List<KeyValuePair<Bean, int>>();
+                        path = new List<Util.KV<Bean, int>>();
                         note = null;
-                        path.Add(KeyValuePair.Create(log.Bean, log.VariableId));
+                        path.Add(Util.KV.Create(log.Bean, log.VariableId));
                         log.Bean.BuildChangeListenerPath(path);
                     });
                 }
@@ -261,11 +260,11 @@ namespace Zeze.Transaction
                         continue;
 
                     // 写成回调是为了优化，仅在需要的时候才创建path。
-                    cc.CollectChanged(cn.Bean.TableKey, (out List<KeyValuePair<Bean, int>> path, out ChangeNote note) =>
+                    cc.CollectChanged(cn.Bean.TableKey, (out List<Util.KV<Bean, int>> path, out ChangeNote note) =>
                     {
-                        path = new List<KeyValuePair<Bean, int>>();
+                        path = new List<Util.KV<Bean, int>>();
                         note = cn;
-                        path.Add(KeyValuePair.Create(cn.Bean.Parent, cn.Bean.VariableId));
+                        path.Add(Util.KV.Create(cn.Bean.Parent, cn.Bean.VariableId));
                         cn.Bean.Parent.BuildChangeListenerPath(path);
                     });
                 }
@@ -465,7 +464,7 @@ namespace Zeze.Transaction
             if (savepoints.Count > 0)
             {
                 // 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；其他情况属于Begin,Commit,Rollback不匹配。外面检查。
-                foreach (var log in savepoints[^1].Logs.Values)
+                foreach (var log in savepoints[savepoints.Count - 1].Logs.Values)
                 {
                     if (log.Bean == null)
                         continue; // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。现在不会有这种情况，保留给未来扩展需要。

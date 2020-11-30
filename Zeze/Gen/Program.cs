@@ -180,7 +180,7 @@ namespace Zeze.Gen
         {
             int f = 0;
             string hs = handle.Trim().ToLower();
-            foreach (string h in hs.Split(","))
+            foreach (string h in hs.Split(','))
             {
                 switch (h.Trim())
                 {

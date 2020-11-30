@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.VisualBasic.CompilerServices;
 
 /// <summary>
 /// *性能性能性能性能
@@ -151,7 +150,7 @@ namespace Zeze.Util
                         if (r > 0)
                         {
                             countReal -= r;
-                            fromId = result[^1].Id + 1;
+                            fromId = result[result.Count - 1].Id + 1;
                         }
                     }
                 }
@@ -265,7 +264,7 @@ namespace Zeze.Util
                 if (rlen != offsetBytes.Length)
                     throw new Exception("read index error");
 
-                long dataOffset = BitConverter.ToInt64(offsetBytes);
+                long dataOffset = BitConverter.ToInt64(offsetBytes, 0);
                 return data.Seek(dataOffset, System.IO.SeekOrigin.Begin);
             }
 
@@ -287,7 +286,7 @@ namespace Zeze.Util
                     if (msgSizeBytes.Length != msgSizeLen)
                         throw new Exception("read size error");
 
-                    int msgSize = BitConverter.ToInt32(msgSizeBytes);
+                    int msgSize = BitConverter.ToInt32(msgSizeBytes, 0);
                     byte[] msgDataBytes = new byte[msgSize];
                     if (msgDataBytes.Length != data.Read(msgDataBytes, 0, msgDataBytes.Length))
                         throw new Exception("read data error");
@@ -370,7 +369,7 @@ namespace Zeze.Util
                 }
             }
 
-            OpenOrCreateLastDataFile(this._fileStartIds.Count > 0 ? this._fileStartIds[^1] : 0);
+            OpenOrCreateLastDataFile(this._fileStartIds.Count > 0 ? this._fileStartIds[_fileStartIds.Count - 1] : 0);
         }
 
         private void OpenOrCreateLastDataFile(long startId)

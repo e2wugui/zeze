@@ -190,7 +190,7 @@ namespace Zeze.Net
                 if (null == _outputBufferList)
                     _outputBufferList = new List<ArraySegment<byte>>();
                 _outputBufferList.Add(new ArraySegment<byte>(bytes, offset, length));
-                _outputBufferListCountSum += _outputBufferList[^1].Count;
+                _outputBufferListCountSum += _outputBufferList[_outputBufferList.Count - 1].Count;
 
                 if (null == _outputBufferListSending) // 没有在发送中，马上请求发送，否则等回调处理。
                 {
@@ -407,7 +407,8 @@ namespace Zeze.Net
                         }
                         // 已经发送的数据比数组中的少。
                         ArraySegment<byte> segment = _outputBufferListSending[i];
-                        _outputBufferListSending[i] = segment.Slice(bytesTransferred, segment.Count - bytesTransferred);
+                        // Slice .net framework 没有定义。
+                        _outputBufferListSending[i] = new ArraySegment<byte>(segment.Array, bytesTransferred, segment.Count - bytesTransferred);
                         _outputBufferListSending.RemoveRange(0, i);
                         break;
                     }

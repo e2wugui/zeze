@@ -7,7 +7,6 @@ using Zeze.Serialize;
 using System.Collections.Concurrent;
 using Zeze.Transaction;
 using System.Net;
-using System.Reflection.Metadata;
 
 namespace Zeze.Net
 {
@@ -333,8 +332,9 @@ namespace Zeze.Net
                     if (serialId <= 0) // 高位保留给rpc，用来区分是否请求. 另外保留 0。
                         serialId = 1;
 
-                    if (contexts.TryAdd(serialId, p))
+                    if (!contexts.ContainsKey(serialId))
                     {
+                        contexts.Add(serialId, p);
                         return serialId;
                     }
                 }
@@ -345,8 +345,12 @@ namespace Zeze.Net
         {
             lock (contexts)
             {
-                contexts.Remove(sid, out Protocol p);
-                return (T)p;
+                if (contexts.TryGetValue(sid, out var p))
+                {
+                    contexts.Remove(sid);
+                    return (T)p;
+                }
+                return null;
             }
         }
     }
