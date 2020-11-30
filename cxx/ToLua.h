@@ -16,7 +16,7 @@ namespace Net
     class Service;
     class Socket;
 
-	class ToLua : public ToScriptDecodeAndDispatcher
+	class ToLua : public IDecodeAndDispatcher
     {
         LuaHelper Lua;
     public:

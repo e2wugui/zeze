@@ -8,7 +8,7 @@ namespace Zeze
 {
 	namespace Net
 	{
-		class ToScriptDecodeAndDispatcher
+		class IDecodeAndDispatcher
 		{
 		public:
 			virtual bool DecodeAndDispatch(Service* service, long long sessionId, int typeId, Zeze::Serialize::ByteBuffer& _os_) = 0;

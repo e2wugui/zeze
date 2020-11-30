@@ -41,7 +41,7 @@ namespace Zeze
 				service->DispatchProtocol(this, factoryHandle);
 			}
 
-			static void DecodeProtocol(Service * service, const std::shared_ptr<Socket> & sender, Zeze::Serialize::ByteBuffer& bb, ToScriptDecodeAndDispatcher* toLua = NULL);
+			static void DecodeProtocol(Service * service, const std::shared_ptr<Socket> & sender, Zeze::Serialize::ByteBuffer& bb, IDecodeAndDispatcher* toLua = NULL);
 		};
 
 		template <typename ArgumentType>

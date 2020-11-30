@@ -163,19 +163,41 @@ export var Zeze;
         }
     }
     Zeze.ProtocolFactoryHandle = ProtocolFactoryHandle;
-    // TODO �󶨵��ײ���·ʵ�֣�cxx or c#)
     class Socket {
-        constructor(service) {
+        constructor(service, sessionId) {
             this.service = service;
+            this.SessionId = sessionId;
         }
         Send(buffer) {
+            this.service.Send(this.SessionId, buffer);
+        }
+        Close() {
+            this.service.Close(this.SessionId);
+        }
+        OnProcessInput(newInput, offset, len) {
+            if (null != this.InputBuffer) {
+                this.InputBuffer.Append(new Uint8Array(newInput), offset, len);
+                Zeze.Protocol.DecodeProtocols(this.service, this, this.InputBuffer);
+                if (this.InputBuffer.Size() > 0)
+                    this.InputBuffer.Campact();
+                else
+                    this.InputBuffer = null;
+                return;
+            }
+            var bufdirect = new Zeze.ByteBuffer(new Uint8Array(newInput), offset, len);
+            Zeze.Protocol.DecodeProtocols(this.service, this, bufdirect);
+            if (bufdirect.Size() > 0) {
+                bufdirect.Campact();
+                this.InputBuffer = bufdirect;
+            }
         }
     }
     Zeze.Socket = Socket;
     class Service {
-        constructor() {
+        constructor(name) {
             this.serialId = new Long(0, 0, true);
             this.contexts = new Map();
+            this.Implement = new HostLang.Zeze.ToTypeScriptService(name, this.CallbackOnSocketHandshakeDone.bind(this), this.CallbackOnSocketClose.bind(this), this.CallbackOnSocketProcessInputBuffer.bind(this));
         }
         AddRpcContext(rpc) {
             this.serialId = this.serialId.add(1);
@@ -194,6 +216,31 @@ export var Zeze;
         }
         DispatchProtocol(p, factoryHandle) {
             factoryHandle.handle(p);
+        }
+        CallbackOnSocketHandshakeDone(sessionId) {
+            if (this.Connection)
+                this.Connection.Close();
+            this.Connection = new Socket(this, sessionId);
+        }
+        CallbackOnSocketClose(sessionId) {
+            this.Connection = null;
+        }
+        CallbackOnSocketProcessInputBuffer(sessionId, buffer, offset, len) {
+            if (this.Connection.SessionId == sessionId) {
+                this.Connection.OnProcessInput(buffer, offset, len);
+            }
+        }
+        Connect(hostNameOrAddress, port, autoReconnect = true) {
+            this.Implement.Connect(hostNameOrAddress, port, autoReconnect);
+        }
+        Send(sessionId, buffer) {
+            this.Implement.Send(sessionId, buffer.Bytes.buffer, buffer.ReadIndex, buffer.Size());
+        }
+        Close(sessionId) {
+            this.Implement.Close(sessionId);
+        }
+        TickUpdate() {
+            this.Implement.TickUpdate();
         }
     }
     Zeze.Service = Service;
@@ -216,17 +263,22 @@ export var Zeze;
                 size <<= 1;
             return size;
         }
-        BlockCopy(src, srcOffset, dst, dstOffset, count) {
+        static BlockCopy(src, srcOffset, dst, dstOffset, count) {
             for (var i = 0; i < count; ++i) {
                 dst[i + dstOffset] = src[i + srcOffset];
             }
+        }
+        Copy() {
+            var copy = new Uint8Array(this.Size());
+            ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, copy, 0, this.Size());
+            return copy;
         }
         EnsureWrite(size) {
             var newSize = this.WriteIndex + size;
             if (newSize > this.Capacity()) {
                 var newBytes = new Uint8Array(this.ToPower2(newSize));
                 this.WriteIndex -= this.ReadIndex;
-                this.BlockCopy(this.Bytes, this.ReadIndex, newBytes, 0, this.WriteIndex);
+                ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, newBytes, 0, this.WriteIndex);
                 this.ReadIndex = 0;
                 this.Bytes = newBytes;
                 this.View = new DataView(this.Bytes.buffer);
@@ -234,13 +286,13 @@ export var Zeze;
         }
         Append(bytes, offset, len) {
             this.EnsureWrite(len);
-            this.BlockCopy(bytes, offset, this.Bytes, this.WriteIndex, len);
+            ByteBuffer.BlockCopy(bytes, offset, this.Bytes, this.WriteIndex, len);
             this.WriteIndex += len;
         }
         Replace(writeIndex, src, srcOffset, len) {
             if (writeIndex < this.ReadIndex || writeIndex + len > this.WriteIndex)
                 throw new Error();
-            this.BlockCopy(src, srcOffset, this.Bytes, writeIndex, len);
+            ByteBuffer.BlockCopy(src, srcOffset, this.Bytes, writeIndex, len);
         }
         BeginWriteWithSize4() {
             var state = this.WriteIndex;
@@ -356,7 +408,7 @@ export var Zeze;
             var size = this.Size();
             if (size > 0) {
                 if (this.ReadIndex > 0) {
-                    this.BlockCopy(this.Bytes, this.ReadIndex, this.Bytes, 0, size);
+                    ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, this.Bytes, 0, size);
                     this.ReadIndex = 0;
                     this.WriteIndex = size;
                 }
@@ -709,14 +761,14 @@ export var Zeze;
                 length = x.byteLength;
             this.WriteInt(length);
             this.EnsureWrite(length);
-            this.BlockCopy(x, offset, this.Bytes, this.WriteIndex, length);
+            ByteBuffer.BlockCopy(x, offset, this.Bytes, this.WriteIndex, length);
             this.WriteIndex += length;
         }
         ReadBytes() {
             var n = this.ReadInt();
             this.EnsureRead(n);
             var x = new Uint8Array(n);
-            this.BlockCopy(this.Bytes, this.ReadIndex, x, 0, n);
+            ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, x, 0, n);
             this.ReadIndex += n;
             return x;
         }

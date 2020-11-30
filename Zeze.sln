@@ -17,7 +17,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnitTestClient", "UnitTestC
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTestClientCxx", "UnitTestClientCxx\UnitTestClientCxx.vcxproj", "{BAE40A04-CDB1-4E1B-BD4E-EC820F843F43}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypeScript", "TypeScript\TypeScript.csproj", "{B1527823-B984-4C03-BBB8-A0732E291295}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TypeScript", "TypeScript\TypeScript.csproj", "{B1527823-B984-4C03-BBB8-A0732E291295}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

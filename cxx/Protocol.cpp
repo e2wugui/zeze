@@ -5,7 +5,7 @@ namespace Zeze
 {
 	namespace Net
 	{
-		void Protocol::DecodeProtocol(Service * service, const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& bb, ToScriptDecodeAndDispatcher* toLua /*= NULL*/)
+		void Protocol::DecodeProtocol(Service * service, const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& bb, IDecodeAndDispatcher* toLua /*= NULL*/)
 		{
 			Zeze::Serialize::ByteBuffer os(bb.Bytes, bb.ReadIndex, bb.Size()); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 			while (os.Size() > 0)
