@@ -122,7 +122,9 @@
 	   b) 定义宏 USE_PUERTS
 	   c) 把 TypeScript/ts/ 下的 zeze.ts long.js 拷贝到你的 ts 目录。
 	      long.js 来自于 https://github.com/dcodeIO/Long.js/ 好像 nodejs 也有一个 Long 实现，还没看，不知道接口是否一致。
-	   d) 把 typeof(Zeze.Services.ToTypeScriptService) 加到 puerts 的 Bindings 列表中。
+	   d) Zeze/Services/ToTypeScriptService.cs 文件中 #if USE_PUERTS 宏内的代码拷贝到你的源码目录下的
+	      ToTypeScriptService.cs 文件中。当然这里可以另起一个文件名。
+	      把 typeof(Zeze.Services.ToTypeScriptService) 加到 puerts 的 Bindings 列表中。
 	   e) 定义 solutions.xml 时，客户端要处理的协议的 handle 设置为 clientscript.
 
 	6. 客户端使用Unreal(cxx)+TypeScript
