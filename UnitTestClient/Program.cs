@@ -11,6 +11,7 @@ namespace UnitTestClient
         {
             demo.App.Instance.Start();
             KeraLua.Lua lua = new KeraLua.Lua();
+            // 需要 Zeze.Services.ToLuaService.cs 文件开头打开编译选项 USE_KERA_LUA
             Zeze.Services.ToLuaService.Kera ilua = new Zeze.Services.ToLuaService.Kera(lua);
             try
             {

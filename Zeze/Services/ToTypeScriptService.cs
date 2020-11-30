@@ -5,7 +5,7 @@ namespace Zeze.Services
 {
     public class ToTypeScriptService0 : HandshakeClient
     {
-        public ToTypeScriptService0(string name): base(name, null)
+        public ToTypeScriptService0(string name) : base(name, null)
         {
 
         }
@@ -70,9 +70,13 @@ namespace Zeze.Services
             }
         }
     }
-
+}
 #if USE_PUERTS
-
+// 下面这个类是真正开放给ts用的，使用Puerts绑定，需要Puerts支持。
+// 使用的时候拷贝下面的代码到你自己的ToTypeScriptService.cs文件。
+// 并且在Puerts.Binding里面增加 typeof 绑定到ts。
+namespace Zeze.Services
+{
     public class ToTypeScriptService : ToTypeScriptService0
     {
         public delegate void CallbackOnSocketHandshakeDone(long sessionId);
@@ -111,18 +115,18 @@ namespace Zeze.Services
 
         public void TickUpdate()
         {
-            HashSet<long> handshakeTmp;
-            HashSet<long> socketCloseTmp;
-            Dictionary<long, Serialize.ByteBuffer> inputTmp;
+            System.Collections.Generic.HashSet<long> handshakeTmp;
+            System.Collections.Generic.HashSet<long> socketCloseTmp;
+            System.Collections.Generic.Dictionary<long, Serialize.ByteBuffer> inputTmp;
             lock (this)
             {
                 handshakeTmp = ToHandshakeDone;
                 socketCloseTmp = ToSocketClose;
                 inputTmp = ToBuffer;
 
-                ToBuffer = new Dictionary<long, Zeze.Serialize.ByteBuffer>();
-                ToHandshakeDone = new HashSet<long>();
-                ToSocketClose = new HashSet<long>();
+                ToBuffer = new System.Collections.Generic.Dictionary<long, Zeze.Serialize.ByteBuffer>();
+                ToHandshakeDone = new System.Collections.Generic.HashSet<long>();
+                ToSocketClose = new System.Collections.Generic.HashSet<long>();
             }
 
             foreach (var e in socketCloseTmp)
@@ -141,7 +145,6 @@ namespace Zeze.Services
             }
         }
     }
-#endif // USE_PUERTS
-
 }
 
+#endif // USE_PUERTS
