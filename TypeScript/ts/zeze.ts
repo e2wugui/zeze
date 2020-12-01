@@ -1,5 +1,7 @@
 
-import Long from "long.js"
+import Long from "./long.js"
+// 根据实际使用的 puerts 的库，修改下面的 import。
+import * as HostLang from 'csharp' // 'ue'
 
 export module Zeze {
 	export interface Serializable {
@@ -224,7 +226,7 @@ export module Zeze {
 
 	export class Socket {
 		public service: Service;
-		public SessionId: number;
+		public SessionId: bigint;
 		public InputBuffer: Zeze.ByteBuffer;
 
 		public constructor(service: Service, sessionId: Long) {
@@ -259,9 +261,6 @@ export module Zeze {
         }
 	}
 
-	// 根据实际使用的 puerts 的库，修改下面的 import。
-	import * as HostLang from 'csharp'; // 'ue'
-
 	export class Service {
 		public FactoryHandleMap: Map<number, ProtocolFactoryHandle>;
 
@@ -292,26 +291,26 @@ export module Zeze {
 
 		public Connection: Socket;
 
-		protected CallbackOnSocketHandshakeDone(sessionId: number): void {
+		protected CallbackOnSocketHandshakeDone(sessionId: bigint): void {
 			if (this.Connection)
 				this.Connection.Close();
 			this.Connection = new Socket(this, sessionId);
         }
 
-		protected CallbackOnSocketClose(sessionId: number): void {
+		protected CallbackOnSocketClose(sessionId: bigint): void {
 			this.Connection = null;
 		}
 
-		protected CallbackOnSocketProcessInputBuffer(sessionId: number, buffer: ArrayBuffer, offset: number, len: number): void {
+		protected CallbackOnSocketProcessInputBuffer(sessionId: bigint, buffer: ArrayBuffer, offset: number, len: number): void {
 			if (this.Connection.SessionId == sessionId) {
 				this.Connection.OnProcessInput(buffer, offset, len);
             }
         }
 
-		private Implement: HostLang.Zeze.ToTypeScriptService;
+		private Implement: HostLang.Zeze.Services.ToTypeScriptService;
 
 		public constructor(name: string) {
-			this.Implement = new HostLang.Zeze.ToTypeScriptService(name,
+			this.Implement = new HostLang.Zeze.Services.ToTypeScriptService(name,
 				this.CallbackOnSocketHandshakeDone.bind(this),
 				this.CallbackOnSocketClose.bind(this),
 				this.CallbackOnSocketProcessInputBuffer.bind(this));
@@ -321,11 +320,11 @@ export module Zeze {
 			this.Implement.Connect(hostNameOrAddress, port, autoReconnect);
         }
 
-		public Send(sessionId: number, buffer: Zeze.ByteBuffer): void {
+		public Send(sessionId: bigint, buffer: Zeze.ByteBuffer): void {
 			this.Implement.Send(sessionId, buffer.Bytes.buffer, buffer.ReadIndex, buffer.Size());
 		}
 
-		public Close(sessionId: number): void {
+		public Close(sessionId: bigint): void {
 			this.Implement.Close(sessionId);
 		}
 
