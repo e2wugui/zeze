@@ -118,21 +118,25 @@
 	   *) 由于逻辑服务器和GlobalCacheManager之间的连接非常重要，所以它们应该运行在一个可靠的网络中，一般来说就是运行在一个机房中。
    
 	5. 客户端使用Unity(csharp)+TypeScript
-	   a) 把 Zeze 加到你的项目。
-	   b) 定义宏 USE_PUERTS
-	   c) 把 TypeScript/ts/ 下的 zeze.ts long.js 拷贝到你的 ts 目录。
-	      long.js 来自于 https://github.com/dcodeIO/Long.js/ 好像 nodejs 也有一个 Long 实现，还没看，不知道接口是否一致。
-	   d) Zeze/Services/ToTypeScriptService.cs 文件中 #if USE_PUERTS 宏内的代码拷贝到你的源码目录下的
+	   a) 把 zeze/Zeze 发布到你的项目，需要自己编译（最好根据自己的.net版本，生成相应的输出）。
+	   b) 把 zeze/TypeScript/ts/ 下的 zeze.ts, long.js, encoding.js, encoding-indexes.js 拷贝到你的 typescript 源码目录。
+	      long.js 来自于 https://github.com/dcodeIO/long.js.git
+	      encoding.js, encoding-indexes.js 来自 https://github.com/inexorabletash/text-encoding.git
+	   c) 把 zeze/Zeze/Services/ToTypeScriptService.cs 文件中 #if USE_PUERTS 宏内的代码拷贝到你的c#源码目录下的
 	      ToTypeScriptService.cs 文件中。当然这里可以另起一个文件名。
 	      把 typeof(Zeze.Services.ToTypeScriptService) 加到 puerts 的 Bindings 列表中。
-	   e) 定义 solutions.xml 时，客户端要处理的协议的 handle 设置为 clientscript.
+	      然后使用 puerts 的 unity 插件菜单生成代码。
+	   d) 定义 solutions.xml 时，ts客户端要处理的协议的 handle 设置为 clientscript.
+	      使用 gen 生成协议和框架代码。
 
 	6. 客户端使用Unreal(cxx)+TypeScript
 	   a) 直接把cxx下的所有代码加到项目中。除了ToLua相关的。
-	   b) 把 TypeScript/ts/ 下的 zeze.ts long.js 拷贝到你的 ts 目录。
-	      long.js 来自于 https://github.com/dcodeIO/Long.js/ 好像 nodejs 也有一个 Long 实现，还没看，不知道接口是否一致。
+	   b) 把 zeze/TypeScript/ts/ 下的 zeze.ts, long.js, encoding.js, encoding-indexes.js 拷贝到你的 typescript 源码目录。
+	      long.js 来自于 https://github.com/dcodeIO/long.js.git
+	      encoding.js, encoding-indexes.js 来自 https://github.com/inexorabletash/text-encoding.git
 	   c) cxx 怎么绑定？TODO
-	   d) 定义 solutions.xml 时，客户端要处理的协议的 handle 设置为 clientscript.
+	   d) 定义 solutions.xml 时，ts客户端要处理的协议的 handle 设置为 clientscript.
+	      使用 gen 生成协议和框架代码。
 
 	7. 客户端使用Unity(csharp)+lua
 	   a) 需要选择你的Lua-Bind的类库，实现一个ILua实现（参考 Zeze.Service.ToLuaService.cs）。
