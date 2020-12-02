@@ -23,8 +23,8 @@ namespace Zeze.Gen.ts
             using System.IO.StreamWriter sw = Program.OpenWriterNoPath(genDir, "gen.ts");
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");
-            sw.WriteLine("import { Zeze } from \"zeze.js\"");
-            sw.WriteLine("import Long from \"long.js\"");
+            sw.WriteLine("import { Zeze } from \"zeze\"");
+            sw.WriteLine("import Long from \"long\"");
             sw.WriteLine("");
             foreach (Types.Bean bean in Project.AllBeans)
             {

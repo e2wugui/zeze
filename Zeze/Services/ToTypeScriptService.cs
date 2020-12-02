@@ -77,25 +77,18 @@ namespace Zeze.Services
 // 并且在Puerts.Binding里面增加 typeof 绑定到ts。
 namespace Zeze.Services
 {
+    public delegate void CallbackOnSocketHandshakeDone(long sessionId);
+    public delegate void CallbackOnSocketClose(long sessionId);
+    public delegate void CallbackOnSocketProcessInputBuffer(long sessionId, Puerts.ArrayBuffer buffer, int offset, int len);
+
     public class ToTypeScriptService : ToTypeScriptService0
     {
-        public delegate void CallbackOnSocketHandshakeDone(long sessionId);
-        public delegate void CallbackOnSocketClose(long sessionId);
-        public delegate void CallbackOnSocketProcessInputBuffer(long sessionId, Puerts.ArrayBuffer buffer, int offset, int len);
+        public CallbackOnSocketHandshakeDone CallbackWhenSocketHandshakeDone;
+        public CallbackOnSocketClose CallbackWhenSocketClose;
+        public CallbackOnSocketProcessInputBuffer CallbackWhenSocketProcessInputBuffer;
 
-        private CallbackOnSocketHandshakeDone CallbackSocketHandshakeDone;
-        private CallbackOnSocketClose CallbackSocketClose;
-        private CallbackOnSocketProcessInputBuffer CallbackSocketProcessInputBuffer;
-
-        public ToTypeScriptService(string name,
-            CallbackOnSocketHandshakeDone onSocketHandshakeDone,
-            CallbackOnSocketClose onSocketClose,
-            CallbackOnSocketProcessInputBuffer onSocketProcessInputBuffer)
-            : base(name)
+        public ToTypeScriptService(string name) : base(name)
         {
-            this.CallbackSocketHandshakeDone = onSocketHandshakeDone;
-            this.CallbackSocketClose = onSocketClose;
-            this.CallbackSocketProcessInputBuffer = onSocketProcessInputBuffer;
         }
 
         public new void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
@@ -131,17 +124,17 @@ namespace Zeze.Services
 
             foreach (var e in socketCloseTmp)
             {
-                this.CallbackSocketClose(e);
+                this.CallbackWhenSocketClose(e);
             }
 
             foreach (var e in handshakeTmp)
             {
-                this.CallbackSocketHandshakeDone(e);
+                this.CallbackWhenSocketHandshakeDone(e);
             }
 
             foreach (var e in inputTmp)
             {
-                this.CallbackSocketProcessInputBuffer(e.Key, new Puerts.ArrayBuffer(e.Value.Bytes), e.Value.ReadIndex, e.Value.Size);
+                this.CallbackWhenSocketProcessInputBuffer(e.Key, new Puerts.ArrayBuffer(e.Value.Bytes), e.Value.ReadIndex, e.Value.Size);
             }
         }
     }

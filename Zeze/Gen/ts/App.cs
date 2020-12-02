@@ -16,6 +16,7 @@ namespace Zeze.Gen.ts
         }
 
         private const string ChunkNamePropertyGen = "PROPERTY GEN";
+        private const string ChunkNamePropertyInitGen = "PROPERTY INIT GEN";
         private const string ChunkNameImportGen = "IMPORT GEN";
         private const string ChunkNameStartGen = "START MODULE GEN";
         private const string ChunkNameStopGen = "STOP MODULE GEN";
@@ -35,6 +36,9 @@ namespace Zeze.Gen.ts
                 case ChunkNameStopGen:
                     StopGen(writer);
                     break;
+                case ChunkNamePropertyInitGen:
+                    PropertyInitInConstructorGen(writer);
+                    break;
             }
         }
 
@@ -42,21 +46,33 @@ namespace Zeze.Gen.ts
         {
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("    public " + m.Path("_", "Module") + " = new " + m.Path("_", "Module") + "(this);");
+                sw.WriteLine("    public " + m.Path("_", "Module") + ": " + m.Path("_", "Module") + ";");
             }
             foreach (Service m in project.Services.Values)
             {
-                sw.WriteLine("    public " + m.Name + ": Zeze.Service = new Zeze.Service(\"" + m.Name + "\");");
+                sw.WriteLine("    public " + m.Name + ": Zeze.Service;");
             }
             sw.WriteLine();
         }
 
-        private void ImportGen(System.IO.StreamWriter sw)
+        private void PropertyInitInConstructorGen(System.IO.StreamWriter sw)
         {
-            sw.WriteLine("import { Zeze } from \"zeze.js\"");
+            foreach (Service m in project.Services.Values)
+            {
+                sw.WriteLine("        this." + m.Name + " = new Zeze.Service(\"" + m.Name + "\");");
+            }
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("import { " + m.Path("_", "Module")  + " } from \"" + m.Path("/", "Module.js") + "\"");
+                sw.WriteLine("        this." + m.Path("_", "Module") + " = new " + m.Path("_", "Module") + "(this);");
+            }
+        }
+
+        private void ImportGen(System.IO.StreamWriter sw)
+        {
+            sw.WriteLine("import { Zeze } from \"zeze\"");
+            foreach (Module m in project.AllModules)
+            {
+                sw.WriteLine("import { " + m.Path("_", "Module")  + " } from \"" + m.Path("/", "Module") + "\"");
             }
         }
 
@@ -98,6 +114,12 @@ namespace Zeze.Gen.ts
             sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNamePropertyGen);
             PropertyGen(sw);
             sw.WriteLine("    " + fcg.ChunkEndTag + " " + ChunkNamePropertyGen);
+            sw.WriteLine("    public constructor() {");
+            sw.WriteLine("        " + fcg.ChunkStartTag + " " + ChunkNamePropertyInitGen);
+            PropertyInitInConstructorGen(sw);
+            sw.WriteLine("        " + fcg.ChunkEndTag + " " + ChunkNamePropertyInitGen);
+            sw.WriteLine("    }");
+            sw.WriteLine();
             sw.WriteLine("    public Start(): void {");
             sw.WriteLine("        " + fcg.ChunkStartTag + " " + ChunkNameStartGen);
             StartGen(sw);

@@ -29,8 +29,15 @@ namespace Zeze.Net
             Name = name;
             Zeze = zeze;
 
-            Config = zeze.Config.GetServiceConf(name);
-            SocketOptions = Config.SocketOptions;
+            if (null != zeze)
+            {
+                Config = zeze.Config.GetServiceConf(name);
+                SocketOptions = Config.SocketOptions;
+            }
+            else
+            {
+                Config = new Zeze.Config.ServiceConf();
+            }
         }
 
         public Service(string name)

@@ -1,5 +1,7 @@
 
-import Long from "./long.js"
+import Long from "long"
+import { TextEncoder, TextDecoder } from "encoding"
+
 // 根据实际使用的 puerts 的库，修改下面的 import。
 import * as HostLang from 'csharp' // 'ue'
 
@@ -261,8 +263,14 @@ export module Zeze {
         }
 	}
 
+	export interface IServiceEventHandle {
+		OnSocketConnected(service: Service, socket: Socket): void;
+		OnSocketClosed(service: Service, socket: Socket): void;
+		OnSoekctInput(service: Service, socket: Socket, buffer: ArrayBuffer, offset: number, len: number): boolean; // true 已经处理了，false 进行默认处理
+    }
+
 	export class Service {
-		public FactoryHandleMap: Map<number, ProtocolFactoryHandle>;
+		public FactoryHandleMap: Map<number, Zeze.ProtocolFactoryHandle> = new Map<number, Zeze.ProtocolFactoryHandle>();
 
 		private serialId: Long = new Long(0, 0, true);
 		private contexts: Map<Long, Zeze.Protocol> = new Map<Long, Zeze.Protocol>();
@@ -290,19 +298,30 @@ export module Zeze {
         }
 
 		public Connection: Socket;
+		public ServiceEventHandle: IServiceEventHandle;
 
 		protected CallbackOnSocketHandshakeDone(sessionId: bigint): void {
 			if (this.Connection)
 				this.Connection.Close();
 			this.Connection = new Socket(this, sessionId);
+			if (this.ServiceEventHandle)
+				this.ServiceEventHandle.OnSocketConnected(this, this.Connection);
         }
 
 		protected CallbackOnSocketClose(sessionId: bigint): void {
-			this.Connection = null;
+			if (this.Connection && this.Connection.SessionId == sessionId) {
+				if (this.ServiceEventHandle)
+					this.ServiceEventHandle.OnSocketClosed(this, this.Connection);
+				this.Connection = null;
+            }
 		}
 
 		protected CallbackOnSocketProcessInputBuffer(sessionId: bigint, buffer: ArrayBuffer, offset: number, len: number): void {
 			if (this.Connection.SessionId == sessionId) {
+				if (this.ServiceEventHandle) {
+					if (this.ServiceEventHandle.OnSoekctInput(this, this.Connection, buffer, offset, len))
+						return;
+                }
 				this.Connection.OnProcessInput(buffer, offset, len);
             }
         }
@@ -310,10 +329,11 @@ export module Zeze {
 		private Implement: HostLang.Zeze.Services.ToTypeScriptService;
 
 		public constructor(name: string) {
-			this.Implement = new HostLang.Zeze.Services.ToTypeScriptService(name,
-				this.CallbackOnSocketHandshakeDone.bind(this),
-				this.CallbackOnSocketClose.bind(this),
-				this.CallbackOnSocketProcessInputBuffer.bind(this));
+			this.Implement = new HostLang.Zeze.Services.ToTypeScriptService(name);
+
+			this.Implement.CallbackWhenSocketHandshakeDone = this.CallbackOnSocketHandshakeDone.bind(this);
+			this.Implement.CallbackWhenSocketClose = this.CallbackOnSocketClose.bind(this);
+			this.Implement.CallbackWhenSocketProcessInputBuffer = this.CallbackOnSocketProcessInputBuffer.bind(this);
         }
 
 		public Connect(hostNameOrAddress: string, port: number, autoReconnect: boolean = true): void {
