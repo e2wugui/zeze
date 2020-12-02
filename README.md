@@ -128,6 +128,7 @@
 	      然后使用 puerts 的 unity 插件菜单生成代码。
 	   d) 定义 solutions.xml 时，ts客户端要处理的协议的 handle 设置为 clientscript.
 	      使用 gen 生成协议和框架代码。
+	   e) 例子可以看看 git@gitee.com:e2wugui/zeze-unity.git
 
 	6. 客户端使用Unreal(cxx)+TypeScript
 	   a) 直接把cxx下的所有代码加到项目中。除了ToLua相关的。
