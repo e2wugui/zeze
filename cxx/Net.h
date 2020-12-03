@@ -73,7 +73,6 @@ namespace Net
 
 	class Service
 	{
-		std::string name;
 		std::string lastSuccessAddress;
 		int lastPort;
 		bool autoReconnect;
@@ -82,9 +81,8 @@ namespace Net
 	public:
 		std::shared_ptr<Socket> socket;
 
-		Service(const std::string& _name);
+		Service();
 		virtual ~Service();
-		const std::string & Name() { return name; }
 		std::shared_ptr<Socket> GetSocket() { return socket; }
 		std::shared_ptr<Socket> GetSocket(long long sessionId)
 		{

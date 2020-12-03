@@ -31,6 +31,7 @@ namespace limax {
 
 	BufferedSink::BufferedSink(std::shared_ptr<Codec> _sink) :
 		sink(_sink), pos(0) {
+		memset(buffer, 0, capacity);
 	}
 
 	void BufferedSink::flushInternal() {

@@ -87,8 +87,8 @@ namespace Net
 		}
 	};
 
-	Service::Service(const std::string& _name)
-		: name(_name), socket(NULL)
+	Service::Service()
+		: socket(NULL)
 	{
 		autoReconnect = false;
 		autoReconnectDelay = 0;
