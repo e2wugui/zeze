@@ -15,6 +15,7 @@ namespace Serialize
     public:
         virtual void Decode(ByteBuffer & bb) = 0;
         virtual void Encode(ByteBuffer & bb) = 0;
+        virtual ~Serializable() { }
     };
 
     class ByteBuffer
@@ -34,7 +35,7 @@ namespace Serialize
         {
             IsEncodeMode = true;
             Capacity = ToPower2(capacity);
-            Bytes = new unsigned char[Capacity];
+            Bytes = new unsigned char[(size_t)Capacity];
             ReadIndex = 0;
             WriteIndex = 0;
         }
@@ -61,14 +62,14 @@ namespace Serialize
         void Append(char b)
         {
             EnsureWrite(1);
-            Bytes[WriteIndex] = b;
+            Bytes[WriteIndex] = (unsigned char)b;
             WriteIndex += 1;
         }
 
         void Append(const char * src, int offset, int len)
         {
             EnsureWrite(len);
-            memcpy(Bytes + WriteIndex, src + offset, len);
+            memcpy(Bytes + WriteIndex, src + offset, (size_t)len);
             WriteIndex += len;
         }
 
@@ -76,7 +77,7 @@ namespace Serialize
         {
             if (writeIndex < ReadIndex || writeIndex + len > WriteIndex)
                 throw std::exception();
-            memcpy(Bytes + writeIndex, src, len);
+            memcpy(Bytes + writeIndex, src + offset, (size_t)len);
         }
 
         void BeginWriteWithSize4(int & state)
@@ -107,42 +108,42 @@ namespace Serialize
             // 0 111 1111
             if (segmentSize < 0x80)
             {
-                Bytes[startPos] = (char)segmentSize;
+                Bytes[startPos] = (unsigned char)segmentSize;
             }
             else if (segmentSize < 0x4000) // 10 11 1111, -
             {
                 EnsureWrite(1);
                 Bytes[WriteIndex] = Bytes[startPos + 1];
-                Bytes[startPos + 1] = (char)segmentSize;
+                Bytes[startPos + 1] = (unsigned char)segmentSize;
 
-                Bytes[startPos] = (char)((segmentSize >> 8) | 0x80);
+                Bytes[startPos] = (unsigned char)((segmentSize >> 8) | 0x80);
                 WriteIndex += 1;
             }
             else if (segmentSize < 0x200000) // 110 1 1111, -,-
             {
                 EnsureWrite(2);
                 Bytes[WriteIndex + 1] = Bytes[startPos + 2];
-                Bytes[startPos + 2] = (char)segmentSize;
+                Bytes[startPos + 2] = (unsigned char)segmentSize;
 
                 Bytes[WriteIndex] = Bytes[startPos + 1];
-                Bytes[startPos + 1] = (char)(segmentSize >> 8);
+                Bytes[startPos + 1] = (unsigned char)(segmentSize >> 8);
 
-                Bytes[startPos] = (char)((segmentSize >> 16) | 0xc0);
+                Bytes[startPos] = (unsigned char)((segmentSize >> 16) | 0xc0);
                 WriteIndex += 2;
             }
             else if (segmentSize < 0x10000000) // 1110 1111,-,-,-
             {
                 EnsureWrite(3);
                 Bytes[WriteIndex + 2] = Bytes[startPos + 3];
-                Bytes[startPos + 3] = (char)segmentSize;
+                Bytes[startPos + 3] = (unsigned char)segmentSize;
 
                 Bytes[WriteIndex + 1] = Bytes[startPos + 2];
-                Bytes[startPos + 2] = (char)(segmentSize >> 8);
+                Bytes[startPos + 2] = (unsigned char)(segmentSize >> 8);
 
                 Bytes[WriteIndex] = Bytes[startPos + 1];
-                Bytes[startPos + 1] = (char)(segmentSize >> 16);
+                Bytes[startPos + 1] = (unsigned char)(segmentSize >> 16);
 
-                Bytes[startPos] = (char)((segmentSize >> 24) | 0xe0);
+                Bytes[startPos] = (unsigned char)((segmentSize >> 24) | 0xe0);
                 WriteIndex += 3;
             }
             else
@@ -222,7 +223,7 @@ namespace Serialize
             {
                 if (ReadIndex > 0)
                 {
-                    memmove(Bytes, Bytes + ReadIndex, size);
+                    memmove(Bytes, Bytes + ReadIndex, (size_t)size);
                     ReadIndex = 0;
                     WriteIndex = size;
                 }
@@ -266,9 +267,9 @@ namespace Serialize
             if (newSize > Capacity)
             {
                 Capacity = ToPower2(newSize);
-                unsigned char * newBytes = new unsigned char[Capacity];
+                unsigned char * newBytes = new unsigned char[(size_t)Capacity];
                 WriteIndex -= ReadIndex;
-                memcpy(newBytes, Bytes + ReadIndex, WriteIndex);
+                memcpy(newBytes, Bytes + ReadIndex, (size_t)WriteIndex);
                 ReadIndex = 0;
                 delete [] Bytes;
                 Bytes = newBytes;
@@ -287,7 +288,7 @@ namespace Serialize
         void WriteBool(bool b)
         {
             EnsureWrite(1);
-            Bytes[WriteIndex++] = (char)(b ? 1 : 0);
+            Bytes[WriteIndex++] = (unsigned char)(b ? 1 : 0);
         }
 
         bool ReadBool()
@@ -299,13 +300,13 @@ namespace Serialize
         void WriteByte(char x)
         {
             EnsureWrite(1);
-            Bytes[WriteIndex++] = x;
+            Bytes[WriteIndex++] = (unsigned char)x;
         }
 
         char ReadByte()
         {
             EnsureRead(1);
-            return Bytes[ReadIndex++];
+            return (char)Bytes[ReadIndex++];
         }
 
 
@@ -316,23 +317,23 @@ namespace Serialize
                 if (x < 0x80)
                 {
                     EnsureWrite(1);
-                    Bytes[WriteIndex++] = (char)x;
+                    Bytes[WriteIndex++] = (unsigned char)x;
                     return;
                 }
 
                 if (x < 0x4000)
                 {
                     EnsureWrite(2);
-                    Bytes[WriteIndex + 1] = (char)x;
-                    Bytes[WriteIndex] = (char)((x >> 8) | 0x80);
+                    Bytes[WriteIndex + 1] = (unsigned char)x;
+                    Bytes[WriteIndex] = (unsigned char)((x >> 8) | 0x80);
                     WriteIndex += 2;
                     return;
                 }
             }
             EnsureWrite(3);
-            Bytes[WriteIndex] = (char)0xff;
-            Bytes[WriteIndex + 2] = (char)x;
-            Bytes[WriteIndex + 1] = (char)(x >> 8);
+            Bytes[WriteIndex] = (unsigned char)0xff;
+            Bytes[WriteIndex + 2] = (unsigned char)x;
+            Bytes[WriteIndex + 1] = (unsigned char)(x >> 8);
             WriteIndex += 3;
         }
 
@@ -409,40 +410,40 @@ namespace Serialize
             if (x < 0x80)
             {
                 EnsureWrite(1);
-                Bytes[WriteIndex++] = (char)x;
+                Bytes[WriteIndex++] = (unsigned char)x;
             }
             else if (x < 0x4000) // 10 11 1111, -
             {
                 EnsureWrite(2);
-                Bytes[WriteIndex + 1] = (char)x;
-                Bytes[WriteIndex] = (char)((x >> 8) | 0x80);
+                Bytes[WriteIndex + 1] = (unsigned char)x;
+                Bytes[WriteIndex] = (unsigned char)((x >> 8) | 0x80);
                 WriteIndex += 2;
             }
             else if (x < 0x200000) // 110 1 1111, -,-
             {
                 EnsureWrite(3);
-                Bytes[WriteIndex + 2] = (char)x;
-                Bytes[WriteIndex + 1] = (char)(x >> 8);
-                Bytes[WriteIndex] = (char)((x >> 16) | 0xc0);
+                Bytes[WriteIndex + 2] = (unsigned char)x;
+                Bytes[WriteIndex + 1] = (unsigned char)(x >> 8);
+                Bytes[WriteIndex] = (unsigned char)((x >> 16) | 0xc0);
                 WriteIndex += 3;
             }
             else if (x < 0x10000000) // 1110 1111,-,-,-
             {
                 EnsureWrite(4);
-                Bytes[WriteIndex + 3] = (char)x;
-                Bytes[WriteIndex + 2] = (char)(x >> 8);
-                Bytes[WriteIndex + 1] = (char)(x >> 16);
-                Bytes[WriteIndex] = (char)((x >> 24) | 0xe0);
+                Bytes[WriteIndex + 3] = (unsigned char)x;
+                Bytes[WriteIndex + 2] = (unsigned char)(x >> 8);
+                Bytes[WriteIndex + 1] = (unsigned char)(x >> 16);
+                Bytes[WriteIndex] = (unsigned char)((x >> 24) | 0xe0);
                 WriteIndex += 4;
             }
             else
             {
                 EnsureWrite(5);
-                Bytes[WriteIndex] = (char)0xf0;
-                Bytes[WriteIndex + 4] = (char)x;
-                Bytes[WriteIndex + 3] = (char)(x >> 8);
-                Bytes[WriteIndex + 2] = (char)(x >> 16);
-                Bytes[WriteIndex + 1] = (char)(x >> 24);
+                Bytes[WriteIndex] = (unsigned char)0xf0;
+                Bytes[WriteIndex + 4] = (unsigned char)x;
+                Bytes[WriteIndex + 3] = (unsigned char)(x >> 8);
+                Bytes[WriteIndex + 2] = (unsigned char)(x >> 16);
+                Bytes[WriteIndex + 1] = (unsigned char)(x >> 24);
                 WriteIndex += 5;
             }
         }
@@ -504,90 +505,90 @@ namespace Serialize
             if (x < 0x80)
             {
                 EnsureWrite(1);
-                Bytes[WriteIndex++] = (char)x;
+                Bytes[WriteIndex++] = (unsigned char)x;
             }
             else if (x < 0x4000) // 10 11 1111, -
             {
                 EnsureWrite(2);
-                Bytes[WriteIndex + 1] = (char)x;
-                Bytes[WriteIndex] = (char)((x >> 8) | 0x80);
+                Bytes[WriteIndex + 1] = (unsigned char)x;
+                Bytes[WriteIndex] = (unsigned char)((x >> 8) | 0x80);
                 WriteIndex += 2;
             }
             else if (x < 0x200000) // 110 1 1111, -,-
             {
                 EnsureWrite(3);
-                Bytes[WriteIndex + 2] = (char)x;
-                Bytes[WriteIndex + 1] = (char)(x >> 8);
-                Bytes[WriteIndex] = (char)((x >> 16) | 0xc0);
+                Bytes[WriteIndex + 2] = (unsigned char)x;
+                Bytes[WriteIndex + 1] = (unsigned char)(x >> 8);
+                Bytes[WriteIndex] = (unsigned char)((x >> 16) | 0xc0);
                 WriteIndex += 3;
             }
             else if (x < 0x10000000) // 1110 1111,-,-,-
             {
                 EnsureWrite(4);
-                Bytes[WriteIndex + 3] = (char)x;
-                Bytes[WriteIndex + 2] = (char)(x >> 8);
-                Bytes[WriteIndex + 1] = (char)(x >> 16);
-                Bytes[WriteIndex] = (char)((x >> 24) | 0xe0);
+                Bytes[WriteIndex + 3] = (unsigned char)x;
+                Bytes[WriteIndex + 2] = (unsigned char)(x >> 8);
+                Bytes[WriteIndex + 1] = (unsigned char)(x >> 16);
+                Bytes[WriteIndex] = (unsigned char)((x >> 24) | 0xe0);
                 WriteIndex += 4;
             }
             else if (x < 0x800000000L) // 1111 0xxx,-,-,-,-
             {
                 EnsureWrite(5);
-                Bytes[WriteIndex + 4] = (char)x;
-                Bytes[WriteIndex + 3] = (char)(x >> 8);
-                Bytes[WriteIndex + 2] = (char)(x >> 16);
-                Bytes[WriteIndex + 1] = (char)(x >> 24);
-                Bytes[WriteIndex] = (char)((x >> 32) | 0xf0);
+                Bytes[WriteIndex + 4] = (unsigned char)x;
+                Bytes[WriteIndex + 3] = (unsigned char)(x >> 8);
+                Bytes[WriteIndex + 2] = (unsigned char)(x >> 16);
+                Bytes[WriteIndex + 1] = (unsigned char)(x >> 24);
+                Bytes[WriteIndex] = (unsigned char)((x >> 32) | 0xf0);
                 WriteIndex += 5;
             }
             else if (x < 0x40000000000L) // 1111 10xx, 
             {
                 EnsureWrite(6);
-                Bytes[WriteIndex + 5] = (char)x;
-                Bytes[WriteIndex + 4] = (char)(x >> 8);
-                Bytes[WriteIndex + 3] = (char)(x >> 16);
-                Bytes[WriteIndex + 2] = (char)(x >> 24);
-                Bytes[WriteIndex + 1] = (char)(x >> 32);
-                Bytes[WriteIndex] = (char)((x >> 40) | 0xf8);
+                Bytes[WriteIndex + 5] = (unsigned char)x;
+                Bytes[WriteIndex + 4] = (unsigned char)(x >> 8);
+                Bytes[WriteIndex + 3] = (unsigned char)(x >> 16);
+                Bytes[WriteIndex + 2] = (unsigned char)(x >> 24);
+                Bytes[WriteIndex + 1] = (unsigned char)(x >> 32);
+                Bytes[WriteIndex] = (unsigned char)((x >> 40) | 0xf8);
                 WriteIndex += 6;
             }
             else if (x < 0x200000000000L) // 1111 110x,
             {
                 EnsureWrite(7);
-                Bytes[WriteIndex + 6] = (char)x;
-                Bytes[WriteIndex + 5] = (char)(x >> 8);
-                Bytes[WriteIndex + 4] = (char)(x >> 16);
-                Bytes[WriteIndex + 3] = (char)(x >> 24);
-                Bytes[WriteIndex + 2] = (char)(x >> 32);
-                Bytes[WriteIndex + 1] = (char)(x >> 40);
-                Bytes[WriteIndex] = (char)((x >> 48) | 0xfc);
+                Bytes[WriteIndex + 6] = (unsigned char)x;
+                Bytes[WriteIndex + 5] = (unsigned char)(x >> 8);
+                Bytes[WriteIndex + 4] = (unsigned char)(x >> 16);
+                Bytes[WriteIndex + 3] = (unsigned char)(x >> 24);
+                Bytes[WriteIndex + 2] = (unsigned char)(x >> 32);
+                Bytes[WriteIndex + 1] = (unsigned char)(x >> 40);
+                Bytes[WriteIndex] = (unsigned char)((x >> 48) | 0xfc);
                 WriteIndex += 7;
             }
             else if (x < 0x100000000000000L) // 1111 1110
             {
                 EnsureWrite(8);
-                Bytes[WriteIndex + 7] = (char)x;
-                Bytes[WriteIndex + 6] = (char)(x >> 8);
-                Bytes[WriteIndex + 5] = (char)(x >> 16);
-                Bytes[WriteIndex + 4] = (char)(x >> 24);
-                Bytes[WriteIndex + 3] = (char)(x >> 32);
-                Bytes[WriteIndex + 2] = (char)(x >> 40);
-                Bytes[WriteIndex + 1] = (char)(x >> 48);
-                Bytes[WriteIndex] = (char)0xfe;
+                Bytes[WriteIndex + 7] = (unsigned char)x;
+                Bytes[WriteIndex + 6] = (unsigned char)(x >> 8);
+                Bytes[WriteIndex + 5] = (unsigned char)(x >> 16);
+                Bytes[WriteIndex + 4] = (unsigned char)(x >> 24);
+                Bytes[WriteIndex + 3] = (unsigned char)(x >> 32);
+                Bytes[WriteIndex + 2] = (unsigned char)(x >> 40);
+                Bytes[WriteIndex + 1] = (unsigned char)(x >> 48);
+                Bytes[WriteIndex] = (unsigned char)0xfe;
                 WriteIndex += 8;
             }
             else // 1111 1111
             {
                 EnsureWrite(9);
-                Bytes[WriteIndex] = (char)0xff;
-                Bytes[WriteIndex + 8] = (char)x;
-                Bytes[WriteIndex + 7] = (char)(x >> 8);
-                Bytes[WriteIndex + 6] = (char)(x >> 16);
-                Bytes[WriteIndex + 5] = (char)(x >> 24);
-                Bytes[WriteIndex + 4] = (char)(x >> 32);
-                Bytes[WriteIndex + 3] = (char)(x >> 40);
-                Bytes[WriteIndex + 2] = (char)(x >> 48);
-                Bytes[WriteIndex + 1] = (char)(x >> 56);
+                Bytes[WriteIndex] = (unsigned char)0xff;
+                Bytes[WriteIndex + 8] = (unsigned char)x;
+                Bytes[WriteIndex + 7] = (unsigned char)(x >> 8);
+                Bytes[WriteIndex + 6] = (unsigned char)(x >> 16);
+                Bytes[WriteIndex + 5] = (unsigned char)(x >> 24);
+                Bytes[WriteIndex + 4] = (unsigned char)(x >> 32);
+                Bytes[WriteIndex + 3] = (unsigned char)(x >> 40);
+                Bytes[WriteIndex + 2] = (unsigned char)(x >> 48);
+                Bytes[WriteIndex + 1] = (unsigned char)(x >> 56);
                 WriteIndex += 9;
             }
         }
@@ -703,7 +704,7 @@ namespace Serialize
         {
             int n = ReadInt();
             EnsureRead(n);
-            std::string x((const char *)(Bytes + ReadIndex), n);
+            std::string x((const char *)(Bytes + ReadIndex), (size_t)n);
             ReadIndex += n;
             return x;
         }
@@ -719,10 +720,10 @@ namespace Serialize
 
         void WriteBytes(const std::string & x)
         {
-            int length = x.length();
+            int length = (int)x.length();
             WriteInt(length);
             EnsureWrite(length);
-            memcpy(Bytes + WriteIndex, x.data(), length);
+            memcpy(Bytes + WriteIndex, x.data(), (size_t)length);
             WriteIndex += length;
         }
 

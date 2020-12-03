@@ -6,6 +6,9 @@
 
 int main(int argc, char* argv[])
 {
+	argc;
+	argv;
+
 	printf("hello 1\n");
 
 	Zeze::Net::Startup();

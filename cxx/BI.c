@@ -1,3 +1,6 @@
+#pragma warning(push)
+#pragma warning(disable : 4706)
+
 #include "osdefine.h"
 #include "BI.h"
 #include <stdio.h>
@@ -620,9 +623,9 @@ static void _div_base(BI x, U32 *l, BI y, U32 *m, BI z, U32 *n)
 			v = x[*l - 1];
 			if (p != 0xFFFFFFFF)
 			{
-				U64 m = v;
-				m = (m << 32) | x[*l - 2];
-				v = (U32)(m / (p + 1));
+				U64 m1 = v;
+				m1 = (m1 << 32) | x[*l - 2];
+				v = (U32)(m1 / (p + 1));
 			}
 		}
 		else
@@ -1372,3 +1375,5 @@ BI BI_modexp(BI x, BI y, BI z)
 	}
 	return r;
 }
+
+#pragma warning(pop)

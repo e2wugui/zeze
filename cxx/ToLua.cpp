@@ -11,7 +11,7 @@ namespace Zeze
         {
             LuaHelper lua(luaState);
             Service* service = lua.ToObject<Service*>(-3);
-            long long sessionId = lua.ToInteger(-2);
+            //long long sessionId = lua.ToInteger(-2); // 只有一个连接，先不使用这个参数，保留。
             std::shared_ptr<Socket> socket = service->GetSocket();
             if (NULL == socket.get())
                 return 0;

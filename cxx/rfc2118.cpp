@@ -1,4 +1,3 @@
-#include "common.h"
 #include "rfc2118.h"
 
 namespace limax {
@@ -87,7 +86,7 @@ namespace limax {
 		}
 		int32_t key = ((c & 0xff) << 8) | (dict[idx - 2] & 0xff);
 		int32_t tmp = hash[key];
-		hash[key] = idx;
+		hash[key] = (int16_t)idx;
 		if (match_off > 0) {
 			if (dict[match_idx] == c) {
 				match_idx++;
@@ -146,12 +145,12 @@ namespace limax {
 		drain();
 	}
 
-	void RFC2118Decode::output(int32_t off, int32_t len) {
-		if (hpos < off)
+	void RFC2118Decode::output(int32_t _off, int32_t _len) {
+		if (hpos < _off)
 			throw UncompressException();
-		copy(hpos, hpos - off, len);
-		sink->update(hist, hpos, len);
-		hpos += len;
+		copy(hpos, hpos - _off, _len);
+		sink->update(hist, hpos, _len);
+		hpos += _len;
 		drain();
 	}
 
@@ -207,7 +206,7 @@ namespace limax {
 				pos -= 8;
 			}
 			else if (val < 0xc0000000l) {
-				output((val >> 23) | 0x80);
+				output((int8_t)((val >> 23) | 0x80));
 				pos -= 9;
 			}
 			else if (val < 0xe0000000l) {
@@ -292,9 +291,9 @@ namespace limax {
 			process();
 	}
 
-	void RFC2118Decode::update(int8_t data[], int32_t off, int32_t len) {
-		int8_t *p = data + off;
-		for (int32_t i = 0; i < len; i++)
+	void RFC2118Decode::update(int8_t data[], int32_t _off, int32_t _len) {
+		int8_t *p = data + _off;
+		for (int32_t i = 0; i < _len; i++)
 			update(p[i]);
 	}
 

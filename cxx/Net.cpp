@@ -1,5 +1,4 @@
 
-#include "common.h"
 #include "Net.h"
 #include "Protocol.h"
 #include <iostream>
@@ -195,6 +194,8 @@ namespace Net
 
 	void Service::OnSocketClose(const std::shared_ptr<Socket>& sender, const std::exception* e)
 	{
+		sender;
+
 		if (e)
 			std::cout << "OnSocketClose " << e->what() << std::endl;
 
@@ -219,6 +220,7 @@ namespace Net
 
 	void Service::OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e)
 	{
+		sender;
 		if (e)
 			std::cout << "OnSocketConnectError " << e->what() << std::endl;
 	}
@@ -250,6 +252,7 @@ namespace Net
 
 	void Service::DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int typeId, Zeze::Serialize::ByteBuffer& data)
 	{
+		sender; typeId; data;
 	}
 
 	void Service::StartConnect(const std::string& host, int port, int delay, int timeoutSecondsPerConnect)
@@ -283,8 +286,9 @@ namespace Net
 	}
 
 	Socket::Socket(Service* svr)
-		: service(svr), This(this)
+		: service(svr)
 	{
+		This.reset(this);
 		IsHandshakeDone = false;
 		SessionId = NextSessionId();
 
@@ -323,7 +327,7 @@ namespace Net
 			}
 		}
 
-		int wakeupfds[2];
+		unsigned int wakeupfds[2];
 		bool loop = true;
 		std::thread * worker;
 		std::unordered_map<std::shared_ptr<Socket>, int> sockets;
@@ -366,7 +370,7 @@ namespace Net
 				FD_ZERO(&setwrite);
 				FD_ZERO(&setread);
 
-				int maxfd = 0;
+				unsigned int maxfd = 0;
 				for (auto& socket : sockets)
 				{
 					if (socket.first->socket > maxfd)
@@ -448,7 +452,7 @@ namespace Net
 		// 客户端不需要大量连接，先实现一个总是使用select的版本。
 		// 看需要再实现其他版本。
 #ifdef LIMAX_OS_WINDOWS
-		int pipe(int fildes[2])
+		int pipe(unsigned int fildes[2])
 		{
 			int tcp1, tcp2;
 			sockaddr_in name;
@@ -539,7 +543,7 @@ namespace Net
 		This.reset();
 	}
 
-	inline void platform_close_socket(int & so)
+	inline void platform_close_socket(unsigned int & so)
 	{
 #ifdef LIMAX_OS_WINDOWS
 		::closesocket(so);
@@ -748,7 +752,7 @@ namespace Net
 			}
 		}
 
-		int so = 0;
+		unsigned int so = 0;
 		for (struct addrinfo* ai = res; ai != NULL; ai = ai->ai_next)
 		{
 			so = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);

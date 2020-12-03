@@ -1,4 +1,3 @@
-#include "common.h"
 #include "dh.h"
 #include "BI.h"
 
@@ -68,9 +67,9 @@ namespace limax {
 				return response;
 			}
 
-			virtual const std::vector<unsigned char>& computeDHKey(unsigned char* response, int32_t size)
+			virtual const std::vector<unsigned char>& computeDHKey(unsigned char* _response, int32_t size)
 			{
-				BI biresponse = BI_from_array(response, size);
+				BI biresponse = BI_from_array(_response, size);
 				BI bikey = BI_modexp(biresponse, exponent, modular);
 				U32 keysize = BI_size(bikey);
 				key.resize(keysize);

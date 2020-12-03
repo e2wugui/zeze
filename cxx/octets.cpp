@@ -1,4 +1,3 @@
-#include "common.h"
 #include "octets.h"
 #include "utils.h"
 

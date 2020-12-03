@@ -119,6 +119,7 @@
    
 	5. 客户端使用Unity(csharp)+TypeScript
 	   a) 把 zeze/Zeze 发布到你的项目，需要自己编译（最好根据自己的.net版本，生成相应的输出）。
+	      一般来说客户端不需要数据库支持。把 zeze/Zeze/Transaction/Database.cs 里面的相应代码和项目依赖（NuGet）去掉。
 	   b) 把 zeze/TypeScript/ts/ 下的 zeze.ts, long.js, encoding.js, encoding-indexes.js 拷贝到你的 typescript 源码目录。
 	      long.js 来自于 https://github.com/dcodeIO/long.js.git
 	      encoding.js, encoding-indexes.js 来自 https://github.com/inexorabletash/text-encoding.git

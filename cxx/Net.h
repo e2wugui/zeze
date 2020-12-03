@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include "common.h"
+
 #include <mutex>
 #include <string>
 #include <functional>
@@ -25,7 +27,7 @@ namespace Net
 	class Socket
 	{
 		std::recursive_mutex mutex;
-		int socket = 0;
+		unsigned int socket = 0;
 		int selectorFlags = 0; // used in Selector
 		std::shared_ptr<limax::DHContext> dhContext;
 
@@ -77,10 +79,9 @@ namespace Net
 		bool autoReconnect;
 		int autoReconnectDelay;
 
-	protected:
+	public:
 		std::shared_ptr<Socket> socket;
 
-	public:
 		Service(const std::string& _name);
 		virtual ~Service();
 		const std::string & Name() { return name; }
@@ -101,6 +102,7 @@ namespace Net
 		}
 		virtual void SendProtocol(Socket * so)
 		{
+			so;
 			// ToLuaService й╣ож
 		}
 
@@ -137,9 +139,9 @@ namespace Net
 			return false;
 		}
 
-		void SetDhGroup(char dhGroup)
+		void SetDhGroup(char _dhGroup)
 		{
-			this->dhGroup = dhGroup;
+			this->dhGroup = _dhGroup;
 		}
 
 		void SetAutoConnect(bool bAuto)

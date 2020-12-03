@@ -1,4 +1,7 @@
-#include "common.h"
+
+#pragma warning(push)
+#pragma warning(disable : 4310)
+
 #include "codec.h"
 
 namespace limax {
@@ -10,8 +13,12 @@ namespace limax {
 	class Null : public Codec {
 	public:
 		virtual void update(int8_t c) override {
+			c; // C4100
 		}
 		virtual void update(int8_t data[], int32_t off, int32_t len) override {
+			data; // C4100
+			off; // C4100
+			len; // C4100
 		}
 		virtual void flush() override {
 		}
@@ -415,3 +422,4 @@ namespace limax {
 
 } // namespace limax {
 
+#pragma warning(pop)
