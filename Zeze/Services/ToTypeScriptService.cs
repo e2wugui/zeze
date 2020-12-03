@@ -71,73 +71,72 @@ namespace Zeze.Services
         }
     }
 }
-#if USE_PUERTS
+
+#if USE_UNITY_PUERTS
 // 下面这个类是真正开放给ts用的，使用Puerts绑定，需要Puerts支持。
 // 使用的时候拷贝下面的代码到你自己的ToTypeScriptService.cs文件。
 // 并且在Puerts.Binding里面增加 typeof 绑定到ts。
-namespace Zeze.Services
+
+public delegate void CallbackOnSocketHandshakeDone(long sessionId);
+public delegate void CallbackOnSocketClose(long sessionId);
+public delegate void CallbackOnSocketProcessInputBuffer(long sessionId, Puerts.ArrayBuffer buffer, int offset, int len);
+
+public class ToTypeScriptService : Zeze.Services.ToTypeScriptService0
 {
-    public delegate void CallbackOnSocketHandshakeDone(long sessionId);
-    public delegate void CallbackOnSocketClose(long sessionId);
-    public delegate void CallbackOnSocketProcessInputBuffer(long sessionId, Puerts.ArrayBuffer buffer, int offset, int len);
+    public CallbackOnSocketHandshakeDone CallbackWhenSocketHandshakeDone;
+    public CallbackOnSocketClose CallbackWhenSocketClose;
+    public CallbackOnSocketProcessInputBuffer CallbackWhenSocketProcessInputBuffer;
 
-    public class ToTypeScriptService : ToTypeScriptService0
+    public ToTypeScriptService(string name) : base(name)
     {
-        public CallbackOnSocketHandshakeDone CallbackWhenSocketHandshakeDone;
-        public CallbackOnSocketClose CallbackWhenSocketClose;
-        public CallbackOnSocketProcessInputBuffer CallbackWhenSocketProcessInputBuffer;
+    }
 
-        public ToTypeScriptService(string name) : base(name)
-        {
-        }
+    public new void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
+    {
+        base.Connect(hostNameOrAddress, port, autoReconnect);
+    }
 
-        public new void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
-        {
-            base.Connect(hostNameOrAddress, port, autoReconnect);
-        }
-
-        public void Send(long sessionId, Puerts.ArrayBuffer buffer, int offset, int len)
-        {
-            base.GetSocket(sessionId)?.Send(buffer.Bytes, offset, len);
-        }
+    public void Send(long sessionId, Puerts.ArrayBuffer buffer, int offset, int len)
+    {
+        base.GetSocket(sessionId)?.Send(buffer.Bytes, offset, len);
+    }
         
-        public void Close(long sessionId)
+    public void Close(long sessionId)
+    {
+        base.GetSocket(sessionId)?.Dispose();
+    }
+
+    public void TickUpdate()
+    {
+        System.Collections.Generic.HashSet<long> handshakeTmp;
+        System.Collections.Generic.HashSet<long> socketCloseTmp;
+        System.Collections.Generic.Dictionary<long, Serialize.ByteBuffer> inputTmp;
+        lock (this)
         {
-            base.GetSocket(sessionId)?.Dispose();
+            handshakeTmp = ToHandshakeDone;
+            socketCloseTmp = ToSocketClose;
+            inputTmp = ToBuffer;
+
+            ToBuffer = new System.Collections.Generic.Dictionary<long, Zeze.Serialize.ByteBuffer>();
+            ToHandshakeDone = new System.Collections.Generic.HashSet<long>();
+            ToSocketClose = new System.Collections.Generic.HashSet<long>();
         }
 
-        public void TickUpdate()
+        foreach (var e in socketCloseTmp)
         {
-            System.Collections.Generic.HashSet<long> handshakeTmp;
-            System.Collections.Generic.HashSet<long> socketCloseTmp;
-            System.Collections.Generic.Dictionary<long, Serialize.ByteBuffer> inputTmp;
-            lock (this)
-            {
-                handshakeTmp = ToHandshakeDone;
-                socketCloseTmp = ToSocketClose;
-                inputTmp = ToBuffer;
+            this.CallbackWhenSocketClose(e);
+        }
 
-                ToBuffer = new System.Collections.Generic.Dictionary<long, Zeze.Serialize.ByteBuffer>();
-                ToHandshakeDone = new System.Collections.Generic.HashSet<long>();
-                ToSocketClose = new System.Collections.Generic.HashSet<long>();
-            }
+        foreach (var e in handshakeTmp)
+        {
+            this.CallbackWhenSocketHandshakeDone(e);
+        }
 
-            foreach (var e in socketCloseTmp)
-            {
-                this.CallbackWhenSocketClose(e);
-            }
-
-            foreach (var e in handshakeTmp)
-            {
-                this.CallbackWhenSocketHandshakeDone(e);
-            }
-
-            foreach (var e in inputTmp)
-            {
-                this.CallbackWhenSocketProcessInputBuffer(e.Key, new Puerts.ArrayBuffer(e.Value.Bytes), e.Value.ReadIndex, e.Value.Size);
-            }
+        foreach (var e in inputTmp)
+        {
+            this.CallbackWhenSocketProcessInputBuffer(e.Key, new Puerts.ArrayBuffer(e.Value.Bytes), e.Value.ReadIndex, e.Value.Size);
         }
     }
 }
 
-#endif // USE_PUERTS
+#endif
