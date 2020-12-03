@@ -326,10 +326,10 @@ export module Zeze {
             }
         }
 
-		private Implement: HostLang.Zeze.Services.ToTypeScriptService;
+		private Implement: HostLang.ToTypeScriptService;
 
 		public constructor(name: string) {
-			this.Implement = new HostLang.Zeze.Services.ToTypeScriptService(name);
+			this.Implement = new HostLang.ToTypeScriptService(name); // delete name parameter in unreal
 
 			this.Implement.CallbackWhenSocketHandshakeDone = this.CallbackOnSocketHandshakeDone.bind(this);
 			this.Implement.CallbackWhenSocketClose = this.CallbackOnSocketClose.bind(this);

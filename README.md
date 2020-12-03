@@ -132,13 +132,16 @@
 	   e) 例子可以看看 git@gitee.com:e2wugui/zeze-unity.git
 
 	6. 客户端使用Unreal(cxx)+TypeScript
-	   a) 直接把cxx下的所有代码加到项目中。除了ToLua相关的。
+	   a) 把zeze\cxx下的所有代码拷贝到你的源码目录并且加到项目中。除了Lua相关的几个文件。
 	   b) 把 zeze/TypeScript/ts/ 下的 zeze.ts, long.js, encoding.js, encoding-indexes.js 拷贝到你的 typescript 源码目录。
 	      long.js 来自于 https://github.com/dcodeIO/long.js.git
 	      encoding.js, encoding-indexes.js 来自 https://github.com/inexorabletash/text-encoding.git
-	   c) cxx 怎么绑定？TODO
+	   c) 安装puerts，并且生成ue.d.ts。
 	   d) 定义 solutions.xml 时，ts客户端要处理的协议的 handle 设置为 clientscript.
 	      使用 gen 生成协议和框架代码。
+	   e) zeze.ts 修改：
+	      开头的 import 需要把 "csharp" 改为 "ue";
+	      this.Implement = new HostLang.ToTypeScriptService(name); // 删除name参数。cxx 版本没有name参数。
 
 	7. 客户端使用Unity(csharp)+lua
 	   a) 需要选择你的Lua-Bind的类库，实现一个ILua实现（参考 Zeze.Service.ToLuaService.cs）。
