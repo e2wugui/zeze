@@ -110,7 +110,7 @@ public class ToTypeScriptService : Zeze.Services.ToTypeScriptService0
     {
         System.Collections.Generic.HashSet<long> handshakeTmp;
         System.Collections.Generic.HashSet<long> socketCloseTmp;
-        System.Collections.Generic.Dictionary<long, Serialize.ByteBuffer> inputTmp;
+        System.Collections.Generic.Dictionary<long, Zeze.Serialize.ByteBuffer> inputTmp;
         lock (this)
         {
             handshakeTmp = ToHandshakeDone;
