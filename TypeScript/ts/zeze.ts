@@ -1,5 +1,5 @@
 
-import Long from "long"
+import * as Long from "long"
 import { TextEncoder, TextDecoder } from "encoding"
 
 // 根据实际使用的 puerts 的库，修改下面的 import。

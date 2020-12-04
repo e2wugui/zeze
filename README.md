@@ -142,6 +142,7 @@
 	   e) zeze.ts 修改：
 	      开头的 import 需要把 "csharp" 改为 "ue";
 	      this.Implement = new HostLang.ToTypeScriptService(name); // 删除name参数。cxx 版本没有name参数。
+	   f) zeze\cxx\ToTypeScriptService.h 里面的 ZEZEUNREAL_API 改成你的项目的宏名字。
 
 	7. 客户端使用Unity(csharp)+lua
 	   a) 需要选择你的Lua-Bind的类库，实现一个ILua实现（参考 Zeze.Service.ToLuaService.cs）。
