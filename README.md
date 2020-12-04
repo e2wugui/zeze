@@ -120,12 +120,13 @@
 	5. 客户端使用Unity(csharp)+TypeScript
 	   a) 把 zeze/Zeze 发布到你的项目，需要自己编译（最好根据自己的.net版本，生成相应的输出）。
 	      一般来说客户端不需要数据库支持。把 zeze/Zeze/Transaction/Database.cs 里面的相应代码和项目依赖（NuGet）去掉。
-	   b) 把 zeze/TypeScript/ts/ 下的 zeze.ts, long.js, encoding.js, encoding-indexes.js 拷贝到你的 typescript 源码目录。
-	      long.js 来自于 https://github.com/dcodeIO/long.js.git
-	      encoding.js, encoding-indexes.js 来自 https://github.com/inexorabletash/text-encoding.git
+	   b) 把 zeze/TypeScript/ts/ 下的 zeze.ts 拷贝到你的 typescript 源码目录。
+	      依赖：
+	      npm install https://github.com/dcodeIO/long.js.git
+	      npm install https://github.com/inexorabletash/text-encoding.git
 	   c) 把 zeze/Zeze/Services/ToTypeScriptService.cs 文件中 #if USE_PUERTS 宏内的代码拷贝到你的c#源码目录下的
 	      ToTypeScriptService.cs 文件中。当然这里可以另起一个文件名。
-	      把 typeof(Zeze.Services.ToTypeScriptService) 加到 puerts 的 Bindings 列表中。
+	      把 typeof(ToTypeScriptService) 加到 puerts 的 Bindings 列表中。
 	      然后使用 puerts 的 unity 插件菜单生成代码。
 	   d) 定义 solutions.xml 时，ts客户端要处理的协议的 handle 设置为 clientscript.
 	      使用 gen 生成协议和框架代码。
@@ -133,16 +134,14 @@
 
 	6. 客户端使用Unreal(cxx)+TypeScript
 	   a) 把zeze\cxx下的所有代码拷贝到你的源码目录并且加到项目中。除了Lua相关的几个文件。
-	   b) 把 zeze/TypeScript/ts/ 下的 zeze.ts, long.js, encoding.js, encoding-indexes.js 拷贝到你的 typescript 源码目录。
-	      long.js 来自于 https://github.com/dcodeIO/long.js.git
-	      encoding.js, encoding-indexes.js 来自 https://github.com/inexorabletash/text-encoding.git
+	   b) 把 zeze/TypeScript/ts/ 下的 zeze.ts 拷贝到你的 typescript 源码目录。
+	      依赖：
+	      npm install https://github.com/dcodeIO/long.js.git
+	      npm install https://github.com/inexorabletash/text-encoding.git
 	   c) 安装puerts，并且生成ue.d.ts。
 	   d) 定义 solutions.xml 时，ts客户端要处理的协议的 handle 设置为 clientscript.
 	      使用 gen 生成协议和框架代码。
-	   e) zeze.ts 修改：
-	      开头的 import 需要把 "csharp" 改为 "ue";
-	      this.Implement = new HostLang.ToTypeScriptService(name); // 删除name参数。cxx 版本没有name参数。
-	   f) zeze\cxx\ToTypeScriptService.h 里面的 ZEZEUNREAL_API 改成你的项目的宏名字。
+	   e) zeze\cxx\ToTypeScriptService.h 里面的宏 ZEZEUNREAL_API 改成你的项目的宏名字。
 
 	7. 客户端使用Unity(csharp)+lua
 	   a) 需要选择你的Lua-Bind的类库，实现一个ILua实现（参考 Zeze.Service.ToLuaService.cs）。
