@@ -1,0 +1,21 @@
+{
+  "name": "type-script",
+  "version": "0.0.0",
+  "description": "TypeScript",
+  "main": "app.js",
+  "author": {
+    "name": ""
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean"
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.14",
+    "typescript": "^3.2.2"
+  },
+  "dependencies": {
+    "long": "git+https://github.com/dcodeIO/long.js.git",
+    "text-encoding": "git+https://github.com/inexorabletash/text-encoding.git"
+  }
+}
