@@ -1,6 +1,6 @@
 
-import * as Long from "long"
 import { TextEncoder, TextDecoder } from "text-encoding"
+import { MIN_VALUE, MAX_VALUE } from "long";
 
 var HostLang;
 var IsUe: boolean = false;
@@ -17,19 +17,134 @@ try {
 }
 
 export module Zeze {
+	export class Long {
+		public static readonly MAX_VALUE: bigint = 9223372036854775807n;
+		public static readonly MIN_VALUE: bigint = -9223372036854775808n;
+
+		public static Validate(x: bigint): void {
+			if (x < Long.MIN_VALUE || x > Long.MAX_VALUE)
+				throw new Error("is not a valid long value");
+		}
+
+		public static ToUint8Array(bn: bigint, bytesCount: number = 8): Uint8Array {
+			var hex = Long.ToHex(bn, bytesCount);
+			var len = hex.length / 2;
+			var u8 = new Uint8Array(len);
+			var i = 0;
+			var j = 0;
+			while (i < len) {
+				u8[i] = parseInt(hex.slice(j, j + 2), 16);
+				i += 1;
+				j += 2;
+			}
+			return u8;
+		}
+
+		public static ToHex(bn: bigint, bytesCount: number = 8) {
+			var pos = true;
+			if (bn < 0) {
+				pos = false;
+				bn = Long.BitNot(bn);
+			}
+			var base = 16;
+			var hex = bn.toString(base);
+			if (hex.length % 2) {
+				hex = '0' + hex;
+			}
+			// Check the high byte _after_ proper hex padding
+			var highbyte = parseInt(hex.slice(0, 2), 16);
+			var highbit = (0x80 & highbyte);
+			if (pos && highbit) {
+				hex = '00' + hex;
+			}
+			var bytes = hex.length / 2;
+			if (bytes > bytesCount)
+				throw new Error("bigint too big. bytesCount=" + bytesCount);
+			var prefixBytes = bytesCount - bytes;
+			if (prefixBytes > 0) {
+				var prefix = '';
+				var prefixString = pos ? '00' : 'ff';
+				while (prefixBytes > 0) {
+					prefix = prefix + prefixString;
+					prefixBytes = prefixBytes - 1;
+				}
+				hex = prefix + hex;
+            }
+			return hex;
+		}
+
+		public static BitNot(bn: bigint): bigint {
+			// JavaScript's bitwise not doesn't work on negative BigInts (bn = ~bn; // WRONG!)
+			// so we manually implement our own two's compliment (flip bits, add one)
+			bn = -bn;
+			var bin = (bn).toString(2)
+			var prefix = '';
+			while (bin.length % 8) {
+				bin = '0' + bin;
+			}
+			if ('1' === bin[0] && -1 !== bin.slice(1).indexOf('1')) {
+				prefix = '11111111';
+			}
+			bin = bin.split('').map(function (i) {
+				return '0' === i ? '1' : '0';
+			}).join('');
+			return BigInt('0b' + prefix + bin) + BigInt(1);
+		}
+
+		public static FromUint8ArrayBigEndian(u8: Uint8Array, offset: number, len: number): bigint {
+			var hex = [];
+			var end = offset + len;
+			var pos = true;
+			if (len > 0 && (u8[offset] & 0x80)) {
+				pos = false;
+			}
+			for (var i = offset; i < end; ++i) {
+				var h = u8[i].toString(16);
+				if (h.length % 2) { h = '0' + h; }
+				hex.push(h);
+			}
+
+			var bn = BigInt('0x' + hex.join(''));
+			if (!pos) {
+				bn = Long.BitNot(bn) + 1n;
+			}
+			return bn;
+		}
+
+		public static FromUint8ArrayLittleEndian(u8: Uint8Array, offset: number, len: number): bigint {
+			var hex = [];
+			var end = offset + len;
+			var pos = true;
+			if (len > 0 && (u8[end - 1] & 0x80)) {
+				pos = false;
+			}
+			for (var i = end - 1; i >= offset; --i) {
+				var h = u8[i].toString(16);
+				if (h.length % 2) { h = '0' + h; }
+				hex.push(h);
+            }
+
+			var bn = BigInt('0x' + hex.join(''));
+			if (!pos) {
+				bn = Long.BitNot(bn) + 1n;
+            }
+			return bn;
+		}
+    }
+
 	export interface Serializable {
 		Encode(_os_: ByteBuffer): void;
 		Decode(_os_: ByteBuffer): void;
 	}
 
 	export interface Bean extends Serializable {
-		TypeId(): Long;
+		TypeId(): bigint;
     }
 
 	export class EmptyBean implements Bean {
-		public static readonly TYPEID: Long = new Long(0, 0, true);
+		public static readonly TYPEID: bigint = 0n;
 
-		public TypeId(): Long {
+		public TypeId(): bigint {
 			return EmptyBean.TYPEID;
 		}
 
@@ -139,7 +254,7 @@ export module Zeze {
 		public TimeoutHandle: FunctionProtocolHandle;
 
 		private IsRequest: boolean;
-		private sid: Long;
+		private sid: bigint;
 		private timeout: any;
 
 		public constructor(argument: TArgument, result: TResult) {
@@ -200,7 +315,7 @@ export module Zeze {
 
 		Decode(bb: Zeze.ByteBuffer): void {
 			this.sid = bb.ReadLong();
-			this.IsRequest = (this.sid.high & 0x80000000) != 0;
+			this.IsRequest = this.sid < 0;
 			if (this.IsRequest) {
 				this.sid.high &= 0x7fffffff;
 				this.ResultCode = bb.ReadInt();
@@ -283,16 +398,16 @@ export module Zeze {
 	export class Service {
 		public FactoryHandleMap: Map<number, Zeze.ProtocolFactoryHandle> = new Map<number, Zeze.ProtocolFactoryHandle>();
 
-		private serialId: Long = new Long(0, 0, true);
-		private contexts: Map<Long, Zeze.Protocol> = new Map<Long, Zeze.Protocol>();
+		private serialId: bigint = 0n;
+		private contexts: Map<bigint, Zeze.Protocol> = new Map<bigint, Zeze.Protocol>();
 
-		public AddRpcContext(rpc: Zeze.Protocol): Long {
-			this.serialId = this.serialId.add(1);
+		public AddRpcContext(rpc: Zeze.Protocol): bigint {
+			this.serialId = this.serialId + 1n;
 			this.contexts.set(this.serialId, rpc);
 			return this.serialId;
 		}
 
-		public RemoveRpcContext(sid: Long): Zeze.Protocol {
+		public RemoveRpcContext(sid: bigint): Zeze.Protocol {
 			var ctx= this.contexts.get(sid);
 			if (ctx) {
 				this.contexts.delete(sid);
@@ -653,19 +768,20 @@ export module Zeze {
 			return x;
 		}
 
-		public WriteLong8(x: Long): void {
+		public WriteLong8(x: bigint): void {
 			this.EnsureWrite(8);
-			this.View.setUint32(this.WriteIndex, x.low, true);
-			this.View.setUint32(this.WriteIndex + 4, x.high, true);
+			var u8 = Long.ToUint8Array(x, 8);
+			for (var i = u8.length - 1, j = this.WriteIndex; i >= 0; --i, ++j) {
+				this.Bytes[j] = u8[i];
+            }
 			this.WriteIndex += 8;
 		}
 
-		public ReadLong8(): Long {
+		public ReadLong8(): bigint {
 			this.EnsureRead(8);
-			var low32 = this.View.getUint32(this.ReadIndex, true);
-			var high32 = this.View.getUint32(this.ReadIndex + 4, true);
+			var x = Long.FromUint8ArrayLittleEndian(this.Bytes, this.ReadIndex, 8);
 			this.ReadIndex += 8;
-			return new Long(low32, high32, true);
+			return x;
 		}
 
 		public WriteInt(x: number): void {
@@ -741,161 +857,147 @@ export module Zeze {
 			return x;
 		}
 
-		public WriteLong(x: Long): void {
-			this.WriteUlong(x);
-		}
-
-		public ReadLong(): Long {
-			return this.ReadUlong();
-		}
-
-		WriteUlong(x: Long): void {
+		public WriteLong(x: bigint): void {
 			// 0 111 1111
-			if (x.high == 0) {
-				if (x.low >= 0) {
-					if (x.low < 0x80) {
-						this.EnsureWrite(1);
-						this.Bytes[this.WriteIndex++] = x.low;
-						return;
-					}
-					if (x.low < 0x4000) // 10 11 1111, -
-					{
-						this.EnsureWrite(2);
-						this.Bytes[this.WriteIndex + 1] = x.low;
-						this.Bytes[this.WriteIndex] = ((x.low >> 8) | 0x80);
-						this.WriteIndex += 2;
-						return;
-					}
-					if (x.low < 0x200000) // 110 1 1111, -,-
-					{
-						this.EnsureWrite(3);
-						this.Bytes[this.WriteIndex + 2] = x.low;
-						this.Bytes[this.WriteIndex + 1] = (x.low >> 8);
-						this.Bytes[this.WriteIndex] = ((x.low >> 16) | 0xc0);
-						this.WriteIndex += 3;
-						return;
-					}
-					if (x.low < 0x10000000) // 1110 1111,-,-,-
-					{
-						this.EnsureWrite(4);
-						this.Bytes[this.WriteIndex + 3] = x.low;
-						this.Bytes[this.WriteIndex + 2] = (x.low >> 8);
-						this.Bytes[this.WriteIndex + 1] = (x.low >> 16);
-						this.Bytes[this.WriteIndex] = ((x.low >> 24) | 0xe0);
-						this.WriteIndex += 4;
-						return;
-					}
-                }
-				// fall down
-			}
-			if (x.high >= 0) {
-				if (x.high < 0x8) // 1111 0xxx,-,-,-,-
+			if (x >= 0) {
+				if (x < 0x80) {
+					this.EnsureWrite(1);
+					this.Bytes[this.WriteIndex++] = Number(x);
+					return;
+				}
+				if (x < 0x4000) // 10 11 1111, -
+				{
+					this.EnsureWrite(2);
+					var uint16 = Number(x);
+					this.Bytes[this.WriteIndex + 1] = uint16 & 0xff;
+					this.Bytes[this.WriteIndex] = ((uint16 >> 8) | 0x80);
+					this.WriteIndex += 2;
+					return;
+				}
+				if (x < 0x200000) // 110 1 1111, -,-
+				{
+					this.EnsureWrite(3);
+					var uint32 = Number(x);
+					this.Bytes[this.WriteIndex + 2] = uint32 & 0xff;
+					this.Bytes[this.WriteIndex + 1] = (uint32 >> 8 & 0xff);
+					this.Bytes[this.WriteIndex] = ((uint32 >> 16) | 0xc0);
+					this.WriteIndex += 3;
+					return;
+				}
+				if (x < 0x10000000) // 1110 1111,-,-,-
+				{
+					this.EnsureWrite(4);
+					var uint32 = Number(x);
+					this.Bytes[this.WriteIndex + 3] = uint32 & 0xff;
+					this.Bytes[this.WriteIndex + 2] = (uint32 >> 8 & 0xff);
+					this.Bytes[this.WriteIndex + 1] = (uint32 >> 16 & 0xff);
+					this.Bytes[this.WriteIndex] = ((uint32 >> 24) | 0xe0);
+					this.WriteIndex += 4;
+					return;
+				}
+				if (x < 0x800000000) // 1111 0xxx,-,-,-,-
 				{
 					this.EnsureWrite(5);
-					this.View.setUint32(this.WriteIndex + 1, x.low, false);
-					this.Bytes[this.WriteIndex] = ((x.high) | 0xf0);
+					var u8 = Long.ToUint8Array(x, 5);
+					this.Bytes[this.WriteIndex] = (u8[0] | 0xf0);
+					ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 4);
 					this.WriteIndex += 5;
 					return;
 				}
-				if (x.high < 0x400) // 1111 10xx, 
+				if (x < 0x40000000000n) // 1111 10xx, 
 				{
 					this.EnsureWrite(6);
-					this.View.setUint32(this.WriteIndex + 2, x.low, false);
-					this.Bytes[this.WriteIndex + 1] = (x.high & 0xff);
-					this.Bytes[this.WriteIndex] = ((x.high >> 8) | 0xf8);
+					var u8 = Long.ToUint8Array(x, 6);
+					this.Bytes[this.WriteIndex] = (u8[0] | 0xf8);
+					ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 5);
 					this.WriteIndex += 6;
 					return;
 				}
-				if (x.high < 0x2000) // 1111 110x,
+				if (x < 0x200000000000n) // 1111 110x,
 				{
 					this.EnsureWrite(7);
-					this.View.setUint32(this.WriteIndex + 3, x.low, false);
-					this.Bytes[this.WriteIndex + 2] = (x.high & 0xff);
-					this.Bytes[this.WriteIndex + 1] = (x.high >> 8);
-					this.Bytes[this.WriteIndex] = ((x.high >> 16) | 0xfc);
+					var u8 = Long.ToUint8Array(x, 7);
+					this.Bytes[this.WriteIndex] = (u8[0] | 0xfc);
+					ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 6);
 					this.WriteIndex += 7;
 					return;
 				}
-				if (x.high < 0x1000000) // 1111 1110
+				if (x < 0x100000000000000n) // 1111 1110
 				{
 					this.EnsureWrite(8);
-					this.View.setUint32(this.WriteIndex + 4, x.low, false);
-					this.Bytes[this.WriteIndex + 3] = (x.high & 0xff);
-					this.Bytes[this.WriteIndex + 2] = (x.high >> 8);
-					this.Bytes[this.WriteIndex + 1] = (x.high >> 16);
+					var u8 = Long.ToUint8Array(x, 8);
 					this.Bytes[this.WriteIndex] = 0xfe;
+					ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 7);
 					this.WriteIndex += 8;
 					return;
 				}
-				// fall down
-            }
+				// else fall down
+			}
 			// 1111 1111
 			this.EnsureWrite(9);
-			this.View.setUint32(this.WriteIndex + 5, x.low, false);
-			this.View.setUint32(this.WriteIndex + 1, x.high, false);
+			var u8 = Long.ToUint8Array(x, 8);
 			this.Bytes[this.WriteIndex] = 0xff;
+			ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 8);
 			this.WriteIndex += 9;
 		}
 
-        ReadUlong() : Long {
+		public ReadLong(): bigint {
 			this.EnsureRead(1);
 			var h = this.Bytes[this.ReadIndex];
 			if (h < 0x80) {
 				this.ReadIndex++;
-				return new Long(h, 0, true);
+				return BigInt(h);
 			}
 			if (h < 0xc0) {
 				this.EnsureRead(2);
 				var x = ((h & 0x3f) << 8) | this.Bytes[this.ReadIndex + 1];
 				this.ReadIndex += 2;
-				return new Long(x, 0, true);
+				return BigInt(x);
 			}
 			if (h < 0xe0) {
 				this.EnsureRead(3);
 				var x = ((h & 0x1f) << 16) | (this.Bytes[this.ReadIndex + 1] << 8) | this.Bytes[this.ReadIndex + 2];
 				this.ReadIndex += 3;
-				return new Long(x, 0, true);
+				return BigInt(x);
 			}
 			if (h < 0xf0) {
 				this.EnsureRead(4);
 				var x = ((h & 0x0f) << 24) | (this.Bytes[this.ReadIndex + 1] << 16) | (this.Bytes[this.ReadIndex + 2] << 8) | this.Bytes[this.ReadIndex + 3];
 				this.ReadIndex += 4;
-				return new Long(x, 0, true);
+				return BigInt(x);
 			}
 			if (h < 0xf8) {
 				this.EnsureRead(5);
-				var xl = this.View.getUint32(this.ReadIndex + 1, false);
-				var xh = h & 0x07;
+				this.Bytes[this.ReadIndex] = this.Bytes[this.ReadIndex] & 0x07;
+				var bn = Long.FromUint8ArrayBigEndian(this.Bytes, this.ReadIndex, 5);
 				this.ReadIndex += 5;
-				return new Long(xl, xh, true);
+				return bn;
 			}
 			if (h < 0xfc) {
 				this.EnsureRead(6);
-				var xl = this.View.getUint32(this.ReadIndex + 2, false);
-				var xh = ((h & 0x03) << 8) | this.Bytes[this.ReadIndex + 1];
+				this.Bytes[this.ReadIndex] = this.Bytes[this.ReadIndex] & 0x03;
+				var bn = Long.FromUint8ArrayBigEndian(this.Bytes, this.ReadIndex, 6);
 				this.ReadIndex += 6;
-				return new Long(xl, xh, true);
+				return bn;
 			}
 			if (h < 0xfe) {
 				this.EnsureRead(7);
-				var xl = this.View.getUint32(this.ReadIndex + 3, false);
-				var xh = ((h & 0x01) << 16) | (this.Bytes[this.ReadIndex + 1] << 8) | this.Bytes[this.ReadIndex + 2];
+				this.Bytes[this.ReadIndex] = this.Bytes[this.ReadIndex] & 0x01;
+				var bn = Long.FromUint8ArrayBigEndian(this.Bytes, this.ReadIndex, 7);
 				this.ReadIndex += 7;
-				return new Long(xl, xh, true);
+				return bn;
 			}
 			if (h < 0xff) {
 				this.EnsureRead(8);
-				var xl = this.View.getUint32(this.ReadIndex + 4, false);
-				var xh = /*((h & 0x01) << 24) |*/ (this.Bytes[this.ReadIndex + 1] << 16) | (this.Bytes[this.ReadIndex + 2] << 8) | this.Bytes[this.ReadIndex + 3];
+				var bn = Long.FromUint8ArrayBigEndian(this.Bytes, this.ReadIndex + 1, 7);
 				this.ReadIndex += 8;
-				return new Long(xl, xh, true);
+				return bn;
 			}
 			{
 				this.EnsureRead(9);
-				var xl = this.View.getUint32(this.ReadIndex + 5, false);
-				var xh = this.View.getUint32(this.ReadIndex + 1, false);
+				var bn = Long.FromUint8ArrayBigEndian(this.Bytes, this.ReadIndex + 1, 8);
 				this.ReadIndex += 9;
-				return new Long(xl, xh, true);
+				return bn;
 			}
 		}
 
