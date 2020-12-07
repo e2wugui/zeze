@@ -15,6 +15,7 @@ namespace Net
 {
     class Service;
     class Socket;
+    class ToLuaService;
 
 	class ToLua : public IDecodeAndDispatcher
     {
@@ -166,7 +167,7 @@ namespace Net
         static int ZezeUpdate(lua_State* luaState);
         static int ZezeConnect(lua_State* luaState);
 
-        void RegisterGlobalAndCallback(Service* service);
+        void RegisterGlobalAndCallback(ToLuaService* service);
         void SendProtocol(Socket * socket);
 
         void EncodeBean(Zeze::Serialize::ByteBuffer & bb, long long beanTypeId)

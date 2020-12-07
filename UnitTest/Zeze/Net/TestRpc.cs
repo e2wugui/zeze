@@ -21,7 +21,7 @@ namespace UnitTest.Zeze.Net
             server.AddFactoryHandle(forid.TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new FirstRpc(),
-                HandleRequest = Service.MakeHandle<FirstRpc>(this, GetType().GetMethod(nameof(ProcessFirstRpcRequest))),
+                Handle = Service.MakeHandle<FirstRpc>(this, GetType().GetMethod(nameof(ProcessFirstRpcRequest))),
             });
 
             AsyncSocket servetrSocket = server.NewServerSocket(IPAddress.Any, 5000);

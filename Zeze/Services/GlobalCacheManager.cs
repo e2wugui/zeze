@@ -54,7 +54,7 @@ namespace Zeze.Services
                 Server.AddFactoryHandle(new Acquire().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new Acquire(),
-                    HandleRequest = ProcessAcquireRequest,
+                    Handle = ProcessAcquireRequest,
                 });
                 Server.AddFactoryHandle(new Reduce().TypeId, new Service.ProtocolFactoryHandle()
                 {

@@ -214,17 +214,9 @@ namespace Zeze.Net
             Protocol.Decode(this, so, input);
         }
 
-        public enum DispatchType
+        public virtual void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            Request = 0,
-            Response = 1,
-            Timeout = 2,
-        }
-
-        public virtual void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle, DispatchType dispatchType)
-        {
-            Func<Protocol, int> handle = factoryHandle.Handle(dispatchType);
-            if (null != handle)
+            if (null != factoryHandle.Handle)
             {
                 if (null != Zeze && false == factoryHandle.NoProcedure)
                 {
@@ -232,7 +224,7 @@ namespace Zeze.Net
                     {
                         try
                         {
-                            return handle(p);
+                            return factoryHandle.Handle(p);
                         }
                         catch (Exception ex)
                         {
@@ -247,7 +239,7 @@ namespace Zeze.Net
                     {
                         try
                         {
-                            handle(p);
+                            factoryHandle.Handle(p);
                         }
                         catch (Exception ex)
                         {
@@ -258,7 +250,7 @@ namespace Zeze.Net
             }
             else
             {
-                logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}@{1}", p, dispatchType);
+                logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}", p);
             }
         }
 
@@ -272,21 +264,8 @@ namespace Zeze.Net
         public class ProtocolFactoryHandle
         { 
             public Func<Protocol> Factory { get; set; }
-            public Func<Protocol, int> HandleRequest { get; set; }
-            public Func<Protocol, int> HandleResponse { get; set; }
-            public Func<Protocol, int> HandleTimeout { get; set; }
+            public Func<Protocol, int> Handle { get; set; }
             public bool NoProcedure { get; set; } = false;
-
-            public Func<Protocol, int> Handle(DispatchType dispatchType)
-            {
-                switch (dispatchType)
-                {
-                    case DispatchType.Request: return HandleRequest;
-                    case DispatchType.Response: return HandleResponse;
-                    case DispatchType.Timeout: return HandleTimeout;
-                }
-                return null;
-            }
         }
 
         private ConcurrentDictionary<int, ProtocolFactoryHandle> Factorys { get; } = new ConcurrentDictionary<int, ProtocolFactoryHandle>();

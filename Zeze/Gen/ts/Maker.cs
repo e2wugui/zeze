@@ -24,7 +24,6 @@ namespace Zeze.Gen.ts
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             sw.WriteLine("import { Zeze } from \"zeze\"");
-            sw.WriteLine("import * as Long from \"long\"");
             sw.WriteLine("");
             foreach (Types.Bean bean in Project.AllBeans)
             {

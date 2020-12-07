@@ -6,7 +6,7 @@ function Module1Impl:Init()
     -- ZEZE_FILE_CHUNK {{{ REGISTER PROTOCOL
     Zeze.ProtocolHandles[74770] = Module1Impl.ProcessProtocol1
     Zeze.ProtocolHandles[82178] = Module1Impl.ProcessProtocol3
-    Zeze.ProtocolHandles[116383] = Module1Impl.ProcessRpc1Request
+    Zeze.ProtocolHandles[93307] = Module1Impl.ProcessRpc2Request
     -- ZEZE_FILE_CHUNK }}} REGISTER PROTOCOL
 end
 

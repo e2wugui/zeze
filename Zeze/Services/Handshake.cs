@@ -52,7 +52,7 @@ namespace Zeze.Services
             AddFactoryHandle(new Handshake.CHandshake().TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Handshake.CHandshake(),
-                HandleRequest = ProcessCHandshake,
+                Handle = ProcessCHandshake,
                 NoProcedure = true,
             });
         }
@@ -112,7 +112,7 @@ namespace Zeze.Services
             AddFactoryHandle(new Handshake.SHandshake().TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Handshake.SHandshake(),
-                HandleRequest = ProcessSHandshake,
+                Handle = ProcessSHandshake,
                 NoProcedure = true,
             });
         }

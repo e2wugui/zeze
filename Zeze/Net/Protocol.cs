@@ -17,7 +17,7 @@ namespace Zeze.Net
 
 		internal virtual void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
 		{
-			service.DispatchProtocol(this, factoryHandle, Service.DispatchType.Request);
+			service.DispatchProtocol(this, factoryHandle);
 		}
 
 		public abstract void Decode(ByteBuffer bb);

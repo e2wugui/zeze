@@ -51,7 +51,8 @@ namespace Zeze
 				}
 			}
 		public:
-			ToLuaService(const std::string & name) : Service(name)
+			std::string Name;
+			ToLuaService(const std::string & name) : Name(name)
 			{
 
 			}

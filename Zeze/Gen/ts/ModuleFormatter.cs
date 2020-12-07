@@ -63,12 +63,8 @@ namespace Zeze.Gen.ts
             {
                 if (p is Rpc rpc)
                 {
-                    if (((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
-                        || ((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) == 0
-                            || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0))
-                    {
+                    if (0 != (p.HandleFlags & Program.HandleScriptFlags))
                         need.Add(p);
-                    }
                     continue;
                 }
                 if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))

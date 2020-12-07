@@ -69,6 +69,42 @@ namespace UnitTest.Zeze.Serialize
                 Assert.AreEqual(v, bb.ReadFloat());
                 Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
             }
+            {
+                int int4 = 0x12345678;
+                bb.WriteInt4(int4);
+                Assert.AreEqual(4, bb.Size);
+                //Console.WriteLine(bb);
+                Assert.AreEqual("78-56-34-12", bb.ToString());
+                Assert.AreEqual(int4, bb.ReadInt4());
+                Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+            }
+            {
+                long long8 = 0x1234567801020304;
+                bb.WriteLong8(long8);
+                Assert.AreEqual(8, bb.Size);
+                //Console.WriteLine(bb);
+                Assert.AreEqual("04-03-02-01-78-56-34-12", bb.ToString());
+                Assert.AreEqual(long8, bb.ReadLong8());
+                Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+            }
+            {
+                long long8 = -12345678;
+                bb.WriteLong8(long8);
+                Assert.AreEqual(8, bb.Size);
+                //Console.WriteLine(bb);
+                Assert.AreEqual("B2-9E-43-FF-FF-FF-FF-FF", bb.ToString());
+                Assert.AreEqual(long8, bb.ReadLong8());
+                Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+            }
+            {
+                long long8 = -1;
+                bb.WriteLong8(long8);
+                Assert.AreEqual(8, bb.Size);
+                //Console.WriteLine(bb);
+                Assert.AreEqual("FF-FF-FF-FF-FF-FF-FF-FF", bb.ToString());
+                Assert.AreEqual(long8, bb.ReadLong8());
+                Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+            }
         }
 
         [TestMethod]

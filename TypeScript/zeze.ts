@@ -1,6 +1,5 @@
 
 import { TextEncoder, TextDecoder } from "text-encoding"
-import { MIN_VALUE, MAX_VALUE } from "long";
 
 var HostLang;
 var IsUe: boolean = false;
@@ -106,7 +105,7 @@ export module Zeze {
 
 			var bn = BigInt('0x' + hex.join(''));
 			if (!pos) {
-				bn = Long.BitNot(bn) + 1n;
+				bn = 1n - Long.BitNot(bn);
 			}
 			return bn;
 		}
@@ -126,7 +125,7 @@ export module Zeze {
 
 			var bn = BigInt('0x' + hex.join(''));
 			if (!pos) {
-				bn = Long.BitNot(bn) + 1n;
+				bn = 1n - Long.BitNot(bn);
             }
 			return bn;
 		}
@@ -314,29 +313,23 @@ export module Zeze {
 		}
 
 		Decode(bb: Zeze.ByteBuffer): void {
+			this.IsRequest = bb.ReadBool();
 			this.sid = bb.ReadLong();
-			this.IsRequest = this.sid < 0;
+			this.ResultCode = bb.ReadInt();
 			if (this.IsRequest) {
-				this.sid.high &= 0x7fffffff;
-				this.ResultCode = bb.ReadInt();
 				this.Argument.Decode(bb);
-			}
-			else {
-				this.ResultCode = bb.ReadInt();
+			} else {
 				this.Result.Decode(bb);
 			}
 		}
 
 		Encode(bb: Zeze.ByteBuffer): void {
+			bb.WriteBool(this.IsRequest);
+			bb.WriteLong(this.sid);
+			bb.WriteInt(this.ResultCode);
 			if (this.IsRequest) {
-				this.sid.high |= 0x80000000;
-				bb.WriteLong(this.sid);
-				bb.WriteInt(this.ResultCode);
 				this.Argument.Encode(bb);
-			}
-			else {
-				bb.WriteLong(this.sid);
-				bb.WriteInt(this.ResultCode);
+			} else {
 				this.Result.Encode(bb);
 			}
 		}

@@ -54,21 +54,13 @@ namespace Zeze.Gen.cs
                 {
                     if (p is Rpc rpc)
                     {
-                        if (((rpc.HandleFlags & serviceHandleFlags) != 0)
-                            || ((rpc.HandleFlags & serviceHandleFlags) == 0 || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0))
-                        {
-                            sw.WriteLine($"            app.{serv.Name}.AddFactoryHandle({rpc.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
-                            sw.WriteLine("            {");
-                            sw.WriteLine($"                Factory = () => new {rpc.Space.Path(".", rpc.Name)}(),");
-                            if ((rpc.HandleFlags & serviceHandleFlags) != 0)
-                                sw.WriteLine($"                HandleRequest = Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Request))),");
-                            if ((rpc.HandleFlags & serviceHandleFlags) == 0 || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0)
-                            {
-                                sw.WriteLine($"                HandleResponse = Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Response))),");
-                                sw.WriteLine($"                HandleTimeout = Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Timeout))),");
-                            }
-                            sw.WriteLine("            });");
-                        }
+                        // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
+                        sw.WriteLine($"            app.{serv.Name}.AddFactoryHandle({rpc.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
+                        sw.WriteLine("            {");
+                        sw.WriteLine($"                Factory = () => new {rpc.Space.Path(".", rpc.Name)}(),");
+                        if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                            sw.WriteLine($"                Handle = Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Request))),");
+                        sw.WriteLine("            });");
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
@@ -76,7 +68,7 @@ namespace Zeze.Gen.cs
                         sw.WriteLine($"            app.{serv.Name}.AddFactoryHandle({p.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
                         sw.WriteLine( "            {");
                         sw.WriteLine($"                Factory = () => new {p.Space.Path(".", p.Name)}(),");
-                        sw.WriteLine($"                HandleRequest = Zeze.Net.Service.MakeHandle<{p.Name}>(this, GetType().GetMethod(nameof(Process{p.Name}))),");
+                        sw.WriteLine($"                Handle = Zeze.Net.Service.MakeHandle<{p.Name}>(this, GetType().GetMethod(nameof(Process{p.Name}))),");
                         sw.WriteLine( "            });");
                     }
                 }
@@ -119,25 +111,10 @@ namespace Zeze.Gen.cs
                 {
                     if (p is Rpc rpc)
                     {
-                        if ((rpc.HandleFlags & serviceHandleFlags) != 0)
+                        if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
                             sw.WriteLine("        public override int Process" + rpc.Name + "Request(" + rpc.Name + " rpc)");
                             sw.WriteLine("        {");
-                            sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
-                            sw.WriteLine("        }");
-                            sw.WriteLine("");
-                        }
-                        if ((rpc.HandleFlags & serviceHandleFlags) == 0 || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0)
-                        {
-                            sw.WriteLine("        public override int Process" + rpc.Name + "Response(" + rpc.Name + " rpc)");
-                            sw.WriteLine("        {");
-                            sw.WriteLine("            // 如果使用同步发送rpc请求，结果通过wait得到，不会触发这个异步回调");
-                            sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
-                            sw.WriteLine("        }");
-                            sw.WriteLine("");
-                            sw.WriteLine("        public override int Process" + rpc.Name + "Timeout(" + rpc.Name + " rpc)");
-                            sw.WriteLine("        {");
-                            sw.WriteLine("            // 如果使用同步发送rpc请求，结果通过wait得到，不会触发这个异步回调");
                             sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("        }");
                             sw.WriteLine("");
@@ -176,16 +153,9 @@ namespace Zeze.Gen.cs
                 {
                     if (p is Rpc rpc)
                     {
-                        if ((rpc.HandleFlags & serviceHandleFlags) != 0)
+                        if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
                             sw.WriteLine("        public abstract int Process" + rpc.Name + "Request(" + rpc.Name + " rpc);");
-                            sw.WriteLine("");
-                        }
-                        if ((rpc.HandleFlags & serviceHandleFlags) == 0 || (rpc.HandleFlags & Program.HandleRpcTwoway) != 0)
-                        {
-                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Response(" + rpc.Name + " rpc);");
-                            sw.WriteLine("");
-                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Timeout(" + rpc.Name + " rpc);");
                             sw.WriteLine("");
                         }
                         continue;

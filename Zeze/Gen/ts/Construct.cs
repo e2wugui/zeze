@@ -69,9 +69,7 @@ namespace Zeze.Gen.ts
         public void Visit(TypeLong type)
         {
             long init = variable.Initial.Length > 0 ? long.Parse(variable.Initial) : 0;
-            uint low = (uint)((ulong)init & 0xffffffff);
-            uint high = (uint)((ulong)init >> 32 & 0xffffffff);
-            sw.WriteLine(prefix + "this." + variable.Name + " = new Long(" + low + ", " + high + ", true);");
+            sw.WriteLine(prefix + "this." + variable.Name + " = " + init + "n;");
         }
 
         public void Visit(TypeBool type)

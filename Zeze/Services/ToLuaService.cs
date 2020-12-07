@@ -422,16 +422,13 @@ namespace Zeze.Services.ToLuaService
 
                 long argumentBeanTypeId;
                 string argumentName;
-                long sidsend;
                 if (isRequest)
                 {
-                    sidsend = (long)(((ulong)sid) | 0x8000000000000000L);
                     argumentBeanTypeId = pa.ArgumentBeanTypeId;
                     argumentName = "Argument";
                 }
                 else
                 {
-                    sidsend = sid;
                     argumentBeanTypeId = pa.ResultBeanTypeId;
                     argumentName = "Result";
                 }
@@ -440,7 +437,8 @@ namespace Zeze.Services.ToLuaService
                 ByteBuffer bb = ByteBuffer.Allocate();
                 bb.WriteInt4(typeId);
                 bb.BeginWriteWithSize4(out var outstate);
-                bb.WriteLong(sidsend);
+                bb.WriteBool(isRequest);
+                bb.WriteLong(sid);
                 bb.WriteInt(resultCode);
                 Lua.GetField(-1, argumentName);
                 EncodeBean(bb, argumentBeanTypeId);
@@ -714,12 +712,12 @@ namespace Zeze.Services.ToLuaService
 
             if (pa.IsRpc)
             {
+                bool IsRequest = _os_.ReadBool();
                 long sid = _os_.ReadLong();
-                bool IsRequest = ((ulong)sid & 0x8000000000000000) != 0;
+                int resultCode = _os_.ReadInt();
                 string argument;
                 if (IsRequest)
                 {
-                    sid &= 0x7fffffffffffffff;
                     argument = "Argument";
                 }
                 else
@@ -736,7 +734,7 @@ namespace Zeze.Services.ToLuaService
                 Lua.PushInteger(sid);
                 Lua.SetTable(-3);
                 Lua.PushString("ResultCode");
-                Lua.PushInteger(_os_.ReadInt());
+                Lua.PushInteger(resultCode);
                 Lua.SetTable(-3);
                 Lua.PushString(argument);
                 DecodeBean(_os_);

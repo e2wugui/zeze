@@ -15,7 +15,6 @@
     "typescript": "^3.2.2"
   },
   "dependencies": {
-    "long": "git+https://github.com/dcodeIO/long.js.git",
     "text-encoding": "git+https://github.com/inexorabletash/text-encoding.git"
   }
 }

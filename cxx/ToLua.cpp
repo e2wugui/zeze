@@ -2,6 +2,7 @@
 #include "ToLua.h"
 #include "Net.h"
 #include "Protocol.h"
+#include "ToLuaService.h"
 
 namespace Zeze
 {
@@ -71,16 +72,13 @@ namespace Zeze
                 long long argumentBeanTypeId = 0;
                 const char* argumentName = NULL;
 
-                long long sidsend;
                 if (isRequest)
                 {
-                    sidsend = sid | 0x8000000000000000L;
                     argumentBeanTypeId = pit->second.ArgumentBeanTypeId;
                     argumentName = "Argument";
                 }
                 else
                 {
-                    sidsend = sid;
                     argumentBeanTypeId = pit->second.ResultBeanTypeId;
                     argumentName = "Result";
                 }
@@ -90,7 +88,8 @@ namespace Zeze
                 bb.WriteInt4(typeId);
                 int outstate;
                 bb.BeginWriteWithSize4(outstate);
-                bb.WriteLong(sidsend);
+                bb.WriteBool(isRequest);
+                bb.WriteLong(sid);
                 bb.WriteInt(resultCode);
                 Lua.GetField(-1, argumentName);
                 EncodeBean(bb, argumentBeanTypeId);
@@ -178,14 +177,14 @@ namespace Zeze
             }
         }
 
-        void ToLua::RegisterGlobalAndCallback(Service * service)
+        void ToLua::RegisterGlobalAndCallback(ToLuaService* service)
         {
             if (Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
                 throw std::exception("load Zeze.lua faild");
             if (false == Lua.IsTable(-1))
                 throw std::exception("Zeze.lua not return a table");
 
-            Lua.PushString(std::string("Service") + service->Name());
+            Lua.PushString(std::string("Service") + service->Name);
             Lua.PushObject(service);
             Lua.SetTable(-3);
             Lua.PushString("CurrentService");
@@ -269,12 +268,12 @@ namespace Zeze
 
             if (pit->second.IsRpc)
             {
+                bool IsRequest = _os_.ReadBool();
                 long long sid = _os_.ReadLong();
-                bool IsRequest = ((unsigned long long)sid & 0x8000000000000000) != 0;
+                int resultCode = _os_.ReadInt();
                 const char * argument;
                 if (IsRequest)
                 {
-                    sid &= 0x7fffffffffffffff;
                     argument = "Argument";
                 }
                 else
@@ -291,7 +290,7 @@ namespace Zeze
                 Lua.PushInteger(sid);
                 Lua.SetTable(-3);
                 Lua.PushString("ResultCode");
-                Lua.PushInteger(_os_.ReadInt());
+                Lua.PushInteger(resultCode);
                 Lua.SetTable(-3);
                 Lua.PushString(argument);
                 DecodeBean(_os_);

@@ -37,9 +37,8 @@ namespace Zeze.Gen.ts
             sw.WriteLine();
             Construct.Make(bean, sw, "    ");
             sw.WriteLine();
-            sw.WriteLine("    public static readonly TYPEID: Long = new Long("
-                    + (uint)(bean.TypeId & 0xffffffff) + ", " + (uint)((bean.TypeId >> 32) & 0xffffffff) + ", true);");
-            sw.WriteLine("    public TypeId(): Long { return " + bean.Space.Path("_", bean.Name) + ".TYPEID; }");
+            sw.WriteLine("    public static readonly TYPEID: bigint = " + bean.TypeId + "n;");
+            sw.WriteLine("    public TypeId(): bigint { return " + bean.Space.Path("_", bean.Name) + ".TYPEID; }");
             sw.WriteLine();
             Encode.Make(bean, sw, "    ");
             Decode.Make(bean, sw, "    ");

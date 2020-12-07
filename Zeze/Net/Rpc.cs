@@ -16,23 +16,27 @@ namespace Zeze.Net
         public TResult Result { get; set; } = new TResult();
 
         public bool IsRequest { get; private set; }
+        public Func<Protocol, int> ResponseHandle;
+        public bool IsTimeout { get; private set; }
         private long sid;
 
         public TaskCompletionSource<TResult> Future { get; private set; }
 
         public Rpc()
         {
+            this.IsTimeout = false;
         }
 
         public override void Send(AsyncSocket so)
         {
-            Send(so, 5000);
+            Send(so, null);
         }
 
-        public void Send(AsyncSocket so, int millisecondsTimeout)
+        public void Send(AsyncSocket so, Func<Protocol, int> responseHandle, int millisecondsTimeout = 5000)
         {
-            IsRequest = true;
-            sid = so.Service.AddRpcContext(this);
+            this.IsRequest = true;
+            this.ResponseHandle = responseHandle;
+            this.sid = so.Service.AddRpcContext(this);
 
             global::Zeze.Util.Scheduler.Instance.Schedule(()=>
             {
@@ -48,7 +52,8 @@ namespace Zeze.Net
                     context.Future.SetException(new RpcTimeoutException());
                     return;
                 }
-                so.Service.DispatchProtocol(context, so.Service.FindProtocolFactoryHandle(context.TypeId), Service.DispatchType.Timeout);
+                context.IsTimeout = true;
+                this.ResponseHandle?.Invoke(context);
             }, millisecondsTimeout, -1);
 
             base.Send(so);
@@ -57,7 +62,7 @@ namespace Zeze.Net
         public TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout = 5000)
         {
             Future = new TaskCompletionSource<TResult>();
-            Send(so, millisecondsTimeout);
+            Send(so, null, millisecondsTimeout);
             return Future;
         }
 
@@ -70,14 +75,15 @@ namespace Zeze.Net
         public void SendResultCode(int code)
         {
             ResultCode = code;
-            SendResult();
+            IsRequest = false;
+            base.Send(Sender);
         }
 
         internal override void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
         {
             if (IsRequest)
             {
-                service.DispatchProtocol(this, factoryHandle, Service.DispatchType.Request);
+                service.DispatchProtocol(this, factoryHandle);
                 return;
             }
 
@@ -100,39 +106,38 @@ namespace Zeze.Net
                 context.Future.SetResult(context.Result);
                 return; // SendForWait，设置结果唤醒等待者。
             }
-
-            service.DispatchProtocol(context, factoryHandle, Service.DispatchType.Response);
+            //context.IsTimeout = false; // not need
+            context.ResponseHandle?.Invoke(context);
         }
 
         public override void Decode(ByteBuffer bb)
         {
+            IsRequest = bb.ReadBool();
             sid = bb.ReadLong();
-            IsRequest = ((ulong)sid & 0x8000000000000000) != 0;
+            ResultCode = bb.ReadInt();
+
             if (IsRequest)
             {
-                sid &= 0x7fffffffffffffff;
-                ResultCode = bb.ReadInt();
                 Argument.Decode(bb);
             }
             else
             {
-                ResultCode = bb.ReadInt();
                 Result.Decode(bb);
             }
         }
 
         public override void Encode(ByteBuffer bb)
         {
+            bb.WriteBool(IsRequest);
+            bb.WriteLong(sid);
+            bb.WriteInt(ResultCode);
+
             if (IsRequest)
             {
-                bb.WriteLong((long)((ulong)sid | 0x8000000000000000));
-                bb.WriteInt(ResultCode);
                 Argument.Encode(bb);
             }
             else
             {
-                bb.WriteLong(sid);
-                bb.WriteInt(ResultCode);
                 Result.Encode(bb);
             }
         }

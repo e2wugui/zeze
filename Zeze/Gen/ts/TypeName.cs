@@ -44,7 +44,7 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeLong type)
         {
-            name = "Long";
+            name = "bigint";
         }
 
         public void Visit(TypeBool type)

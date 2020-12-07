@@ -69,7 +69,7 @@ namespace Zeze.Transaction
                 Client.AddFactoryHandle(new GlobalCacheManager.Reduce().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new GlobalCacheManager.Reduce(),
-                    HandleRequest = ProcessReduceRequest
+                    Handle = ProcessReduceRequest
                 });
                 Client.AddFactoryHandle(new GlobalCacheManager.Acquire().TypeId, new Service.ProtocolFactoryHandle()
                 {
@@ -116,13 +116,12 @@ namespace Zeze.Transaction
             agent.Connected.SetException(e);
         }
 
-        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle, Service.DispatchType dispatchType)
+        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             // Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-            Func<Protocol, int> handle = factoryHandle.Handle(dispatchType);
-            if (null != handle)
+            if (null != factoryHandle.Handle)
             {
-                agent.Zeze.InternalThreadPool.QueueUserWorkItem(() => handle(p));
+                agent.Zeze.InternalThreadPool.QueueUserWorkItem(() => factoryHandle.Handle(p));
             }
         }
 
