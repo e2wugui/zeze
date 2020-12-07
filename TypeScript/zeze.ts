@@ -267,24 +267,28 @@ export module Zeze {
         }
 
 		public SendWithCallback(socket: Socket, responseHandle: FunctionProtocolHandle, timeoutMs: number = 5000): void {
-
 			this.Sender = socket;
 			this.ResponseHandle = responseHandle;
 			this.IsRequest = true;
 			this.sid = socket.service.AddRpcContext(this);
 
-			if (timeoutMs > 0) {
-				this.timeout = setTimeout(() => {
-					var context = <Rpc<TArgument, TResult>>this.Sender.service.RemoveRpcContext(this.sid);
-					if (context && context.ResponseHandle) {
-						context.IsTimeout = true;
-						context.ResponseHandle(context);
-                    }
-				}, timeoutMs);
-            }
+			this.timeout = setTimeout(() => {
+				var context = <Rpc<TArgument, TResult>>this.Sender.service.RemoveRpcContext(this.sid);
+				if (context && context.ResponseHandle) {
+					context.IsTimeout = true;
+					context.ResponseHandle(context);
+				}
+			}, timeoutMs);
 
 			super.Send(socket);
 		}
+
+		// howto async, use SendWithCallback
+		/*
+		public SendForWait(socket: Socket, timeoutMs: number = 5000): void {
+
+		}
+		*/
 
 		public SendResult(): void {
 			this.IsRequest = false;
