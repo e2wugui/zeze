@@ -283,12 +283,18 @@ export module Zeze {
 			super.Send(socket);
 		}
 
-		// howto async, use SendWithCallback
-		/*
-		public SendForWait(socket: Socket, timeoutMs: number = 5000): void {
-
+		public async SendForWait(socket: Socket, timeoutMs: number = 5000): Promise<void> {
+			return new Promise<void>((resolve, reject) => {
+				this.SendWithCallback(socket, (response) => {
+					var res = <Rpc<TArgument, TResult>>response;
+					if (res.IsTimeout)
+						reject("Rpc.SendForWait Timeout");
+					else
+						resolve();
+					return 0;
+				}, timeoutMs);
+			});
 		}
-		*/
 
 		public SendResult(): void {
 			this.IsRequest = false;
