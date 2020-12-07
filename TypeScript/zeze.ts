@@ -43,7 +43,7 @@ export module Zeze {
 			var pos = true;
 			if (bn < 0) {
 				pos = false;
-				bn = Long.BitNot(bn);
+				bn = Long.BitNot(-bn) + 1n;
 			}
 			var base = 16;
 			var hex = bn.toString(base);
@@ -73,9 +73,6 @@ export module Zeze {
 		}
 
 		public static BitNot(bn: bigint): bigint {
-			// JavaScript's bitwise not doesn't work on negative BigInts (bn = ~bn; // WRONG!)
-			// so we manually implement our own two's compliment (flip bits, add one)
-			bn = -bn;
 			var bin = (bn).toString(2)
 			var prefix = '';
 			while (bin.length % 8) {
@@ -87,7 +84,7 @@ export module Zeze {
 			bin = bin.split('').map(function (i) {
 				return '0' === i ? '1' : '0';
 			}).join('');
-			return BigInt('0b' + prefix + bin) + BigInt(1);
+			return BigInt('0b' + prefix + bin);
 		}
 
 		public static FromUint8ArrayBigEndian(u8: Uint8Array, offset: number, len: number): bigint {
@@ -104,8 +101,11 @@ export module Zeze {
 			}
 
 			var bn = BigInt('0x' + hex.join(''));
+			//console.log(bn.toString(16));
 			if (!pos) {
-				bn = 1n - Long.BitNot(bn);
+				bn = BigInt('0b' + bn.toString(2).split('').map(function (i) { return '0' === i ? 1 : 0 }).join('')) + BigInt(1);
+				bn = -bn;
+				//console.log(bn.toString(16));
 			}
 			return bn;
 		}
@@ -125,7 +125,8 @@ export module Zeze {
 
 			var bn = BigInt('0x' + hex.join(''));
 			if (!pos) {
-				bn = 1n - Long.BitNot(bn);
+				bn = BigInt('0b' + bn.toString(2).split('').map(function (i) { return '0' === i ? 1 : 0 }).join('')) + BigInt(1);
+				bn = -bn;
             }
 			return bn;
 		}
@@ -928,9 +929,9 @@ export module Zeze {
 			}
 			// 1111 1111
 			this.EnsureWrite(9);
-			var u8 = Long.ToUint8Array(x, 8);
 			this.Bytes[this.WriteIndex] = 0xff;
-			ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 8);
+			var u8 = Long.ToUint8Array(x, 8);
+			ByteBuffer.BlockCopy(u8, 0, this.Bytes, this.WriteIndex + 1, 8);
 			this.WriteIndex += 9;
 		}
 

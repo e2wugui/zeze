@@ -270,6 +270,16 @@ namespace UnitTest.Zeze.Serialize
             Assert.AreEqual("FF-01-00-00-00-00-00-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+
+            v = 0L;
+            v = (long)((ulong)v | 0x8000000000000000L);
+            bb.WriteLong(v);
+            Console.WriteLine(v);
+            Assert.AreEqual(9, bb.Size);
+            //Console.WriteLine(bb);
+            Assert.AreEqual("FF-80-00-00-00-00-00-00-00", bb.ToString());
+            Assert.AreEqual(v, bb.ReadLong());
+            Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
         }
     }
 }

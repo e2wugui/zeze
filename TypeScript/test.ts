@@ -117,13 +117,28 @@ export class Test {
             var bb = new Zeze.ByteBuffer();
             assert(bb.ReadIndex == bb.WriteIndex, "assert 48");
 
-            var long8: bigint = 0x0000567800001234n;
+            var long8: bigint = 0x1234567801020304n;
             bb.WriteLong8(long8);
             assert(8 == bb.Size(), "assert 49");
-            assert("78-56-00-00-34-12-00-00" == bb.toString(), "assert 50");
+            assert("04-03-02-01-78-56-34-12" == bb.toString(), "assert 50");
             assert(long8 == bb.ReadLong8(), "assert 51");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 52");
         }
+
+        {
+            var bb = new Zeze.ByteBuffer();
+            assert(bb.ReadIndex == bb.WriteIndex, "assert 48_");
+
+            var long8: bigint = -12345678n;
+            bb.WriteLong8(long8);
+            assert(8 == bb.Size(), "assert 49_");
+            assert("B2-9E-43-FF-FF-FF-FF-FF" == bb.toString(), "assert 50_");
+            var readlong8 = bb.ReadLong8();
+            //console.log(readlong8);
+            assert(long8 == readlong8, "assert 51_");
+            assert(bb.ReadIndex == bb.WriteIndex, "assert 52_");
+        }
+
         {
             var bb = new Zeze.ByteBuffer();
             assert(bb.ReadIndex == bb.WriteIndex, "assert 53");
@@ -234,11 +249,13 @@ export class Test {
             longv = 0x100000000000000n; // new Long(0, 0x1000000, true);
             bb.WriteLong(longv);
             assert(9 == bb.Size(), "assert 111");
+            //console.log(bb.toString());
             assert("FF-01-00-00-00-00-00-00-00" == bb.toString(), "assert 112");
             assert(longv == bb.ReadLong(), "assert 113");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 114");
 
-            longv = 0x8000000000000000n; // new Long(0, 0x1000000, true);
+            longv = -9223372036854775808n; // 0x8000000000000000L new Long(0, 0x1000000, true);
+            //console.log("---" + longv.toString(16));
             bb.WriteLong(longv);
             assert(9 == bb.Size(), "assert 115");
             assert("FF-80-00-00-00-00-00-00-00" == bb.toString(), "assert 116");
