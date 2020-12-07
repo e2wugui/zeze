@@ -17,6 +17,7 @@ namespace demo.Module1
         {
             protocol.Send(protocol.Sender);
             Console.WriteLine(protocol.Argument);
+            new Rpc2().Send(protocol.Sender, (Protocol) => 0);
             return Zeze.Transaction.Procedure.Success;
         }
 
@@ -27,7 +28,8 @@ namespace demo.Module1
 
         public override int ProcessRpc1Request(Rpc1 rpc)
         {
-            return Zeze.Transaction.Procedure.NotImplement;
+            rpc.SendResult();
+            return Zeze.Transaction.Procedure.Success;
         }
 
         public Table1 Table1 => _Table1;

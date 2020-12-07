@@ -250,8 +250,8 @@ export module Zeze {
 
 	export abstract class Rpc<TArgument extends Zeze.Bean, TResult extends Zeze.Bean> extends Zeze.ProtocolWithArgument<TArgument> {
 		public Result: TResult;
-		public ResultHandle: FunctionProtocolHandle;
-		public TimeoutHandle: FunctionProtocolHandle;
+		public ResponseHandle: FunctionProtocolHandle;
+		public IsTimeout: boolean = false;
 
 		private IsRequest: boolean;
 		private sid: bigint;
@@ -262,20 +262,23 @@ export module Zeze {
 			this.Result = result;
 		}
 
-		public SendWithCallback(socket: Socket, resultHandle: FunctionProtocolHandle,
-			timeoutHandle: FunctionProtocolHandle = null, timeoutMs: number = 0): void {
+		public Send(socket: Socket): void {
+			throw new Error("Rpc Need Use SendWithCallback");
+        }
+
+		public SendWithCallback(socket: Socket, responseHandle: FunctionProtocolHandle, timeoutMs: number = 5000): void {
 
 			this.Sender = socket;
-			this.ResultHandle = resultHandle;
+			this.ResponseHandle = responseHandle;
 			this.IsRequest = true;
 			this.sid = socket.service.AddRpcContext(this);
 
-			if (null != timeoutHandle && timeoutMs > 0) {
-				this.TimeoutHandle = timeoutHandle;
+			if (timeoutMs > 0) {
 				this.timeout = setTimeout(() => {
 					var context = <Rpc<TArgument, TResult>>this.Sender.service.RemoveRpcContext(this.sid);
-					if (null != context) {
-						context.TimeoutHandle(context);
+					if (context && context.ResponseHandle) {
+						context.IsTimeout = true;
+						context.ResponseHandle(context);
                     }
 				}, timeoutMs);
             }
@@ -309,8 +312,8 @@ export module Zeze {
 			context.Result = this.Result;
 			context.Sender = this.Sender;
 			context.ResultCode = this.ResultCode;
-
-			context.ResultHandle(context);
+			if (context.ResponseHandle)
+				context.ResponseHandle(context);
 		}
 
 		Decode(bb: Zeze.ByteBuffer): void {
