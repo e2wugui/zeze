@@ -214,23 +214,37 @@ var Zeze;
     class Rpc extends Zeze.ProtocolWithArgument {
         constructor(argument, result) {
             super(argument);
+            this.IsTimeout = false;
             this.Result = result;
         }
-        SendWithCallback(socket, resultHandle, timeoutHandle = null, timeoutMs = 0) {
+        Send(socket) {
+            throw new Error("Rpc Need Use SendWithCallback");
+        }
+        SendWithCallback(socket, responseHandle, timeoutMs = 5000) {
             this.Sender = socket;
-            this.ResultHandle = resultHandle;
+            this.ResponseHandle = responseHandle;
             this.IsRequest = true;
             this.sid = socket.service.AddRpcContext(this);
-            if (null != timeoutHandle && timeoutMs > 0) {
-                this.TimeoutHandle = timeoutHandle;
-                this.timeout = setTimeout(() => {
-                    var context = this.Sender.service.RemoveRpcContext(this.sid);
-                    if (null != context) {
-                        context.TimeoutHandle(context);
-                    }
-                }, timeoutMs);
-            }
+            this.timeout = setTimeout(() => {
+                var context = this.Sender.service.RemoveRpcContext(this.sid);
+                if (context && context.ResponseHandle) {
+                    context.IsTimeout = true;
+                    context.ResponseHandle(context);
+                }
+            }, timeoutMs);
             super.Send(socket);
+        }
+        async SendForWait(socket, timeoutMs = 5000) {
+            return new Promise((resolve, reject) => {
+                this.SendWithCallback(socket, (response) => {
+                    var res = response;
+                    if (res.IsTimeout)
+                        reject("Rpc.SendForWait Timeout");
+                    else
+                        resolve();
+                    return 0;
+                }, timeoutMs);
+            });
         }
         SendResult() {
             this.IsRequest = false;
@@ -254,7 +268,8 @@ var Zeze;
             context.Result = this.Result;
             context.Sender = this.Sender;
             context.ResultCode = this.ResultCode;
-            context.ResultHandle(context);
+            if (context.ResponseHandle)
+                context.ResponseHandle(context);
         }
         Decode(bb) {
             this.IsRequest = bb.ReadBool();

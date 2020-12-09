@@ -19,7 +19,7 @@
 
 	Zeze 是一个类库，所有的核心功能都在这里。
 		1 服务器开发建议直接把Zeze\Zeze.csproj加到自己的sln种。直接引用源码项目。
-		2 客户端（unity），目前需要自己编译相应平台的版本，发布到 unity plugins 下。
+		2 客户端（unity），建议直接拷贝Zeze下的源代码进项目；也可以自己编译相应平台的版本，发布到 unity plugins 下。
 	Gen 是一个控制台程序。编译好以后，用来生成代码。
 	GlobalCacheManager 是一个控制台程序。当多个Application共享数据库时，用来管理Cache同步，参见后面"特殊模式"的第4点。
 

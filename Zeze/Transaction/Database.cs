@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
+#if USE_DATABASE
 using System.Data.SqlClient;
 using MySql.Data.MySqlClient;
+#endif
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -132,6 +134,7 @@ namespace Zeze.Transaction
         }
     }
 
+#if USE_DATABASE
     public sealed class DatabaseMySql : Database
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -418,7 +421,7 @@ namespace Zeze.Transaction
             }
         }
     }
-
+#endif
     /// <summary>
     /// Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
     /// </summary>

@@ -42,10 +42,12 @@ namespace Zeze
             {
                 case DbType.Memory:
                     return new Transaction.DatabaseMemory(url);
+#if USE_DATABASE
                 case DbType.MySql:
                     return new Transaction.DatabaseMySql(url);
                 case DbType.SqlServer:
                     return new Transaction.DatabaseSqlServer(url);
+#endif
                 default:
                     throw new Exception("unknown database type.");
             }
