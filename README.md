@@ -120,8 +120,7 @@
 	   *) 由于逻辑服务器和GlobalCacheManager之间的连接非常重要，所以它们应该运行在一个可靠的网络中，一般来说就是运行在一个机房中。
    
 	5. 客户端使用Unity(csharp)+TypeScript
-	   a) 把 zeze/Zeze 发布到你的项目，需要自己编译（最好根据自己的.net版本，生成相应的输出）。
-	      一般来说客户端不需要数据库支持。把 zeze/Zeze/Transaction/Database.cs 里面的相应代码和项目依赖（NuGet）去掉。
+	   a) 把 zeze/Zeze 发布到你的项目，直接拷贝代码或者需要自己编译发布二进制。
 	   b) 把 zeze/TypeScript/ts/ 下的 zeze.ts 拷贝到你的 typescript 源码目录。
 	      依赖 npm install https://github.com/inexorabletash/text-encoding.git
 	   c) 把 zeze/Zeze/Services/ToTypeScriptService.cs 文件中 #if USE_PUERTS 宏内的代码拷贝到你的c#源码目录下的
