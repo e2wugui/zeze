@@ -6,7 +6,8 @@ using System.Text;
 namespace Zeze.Util
 {
     /// <summary>
-    /// 把三维空间划分成一个个相邻的Cube。角色Id记录在所在的Cube中。用来快速找到角色周围的玩家和物体。
+    /// 把三维空间划分成一个个相邻的Cube。地图中的玩家或者物品Id记录在所在的Cube中。
+    /// 用来快速找到某个坐标周围的玩家或物体。
     /// </summary>
     public class CubeIndexMap
     {
@@ -171,7 +172,7 @@ namespace Zeze.Util
             if (iox == inx && ioy == iny && ioz == inz)
                 return;
 
-            GetOrAdd(iox, ioy, ioz).ObjectIds.Remove(objId);
+            Get(iox, ioy, ioz)?.ObjectIds.Remove(objId);
             GetOrAdd(inx, iny, inz).ObjectIds.Add(objId);
         }
 
