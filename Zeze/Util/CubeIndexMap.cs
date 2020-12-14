@@ -16,19 +16,23 @@ namespace Zeze.Util
             public static readonly int TypeRole = 0;
 
             public int Type { get; set; }
-            public long Id { get; set; }
+            public int ConfigId { get; set; }
+            public long InstanceId { get; set; }
 
             public override int Compare(ObjectId x, ObjectId y)
             {
                 int c = Type.CompareTo(x.Type);
                 if (c != 0)
                     return c;
-                return Id.CompareTo(x.Id);
+                c = ConfigId.CompareTo(x.ConfigId);
+                if (c != 0)
+                    return c;
+                return InstanceId.CompareTo(x.InstanceId);
             }
 
             public override int GetHashCode()
             {
-                return Type + Id.GetHashCode();
+                return Type + ConfigId + InstanceId.GetHashCode();
             }
 
             public override bool Equals(object obj)
@@ -41,7 +45,7 @@ namespace Zeze.Util
 
                 if (obj is ObjectId o)
                 {
-                    return Type == o.Type && Id == o.Id;
+                    return Type == o.Type && ConfigId == o.ConfigId && InstanceId == o.InstanceId;
                 }
                 return false;
             }
