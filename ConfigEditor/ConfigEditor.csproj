@@ -75,6 +75,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Bean.cs" />
+    <Compile Include="BeanDefine.cs" />
     <Compile Include="Document.cs" />
     <Compile Include="Enum.cs" />
     <Compile Include="FormMain.cs">

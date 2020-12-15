@@ -140,15 +140,14 @@ namespace ConfigEditor
                         file = file + ".xml";
 
                     doc = new Document(this, file);
-                    if (null != doc)
-                    {
-                        doc.BuildNew(grid);
-                        doc.Xml.Save(file);
-                        grid.Tag = doc;
-                        Documents.Add(doc.RelateName, doc);
-                    }
+                    Documents.Add(doc.RelateName, doc);
+                    doc.Save();
+                    doc.Xml.Save(file);
+                    grid.Tag = doc;
+                    doc.Grid = grid;
                     return;
                 }
+                doc.Save();
                 doc.Xml.Save(doc.FileName);
             }
             catch (Exception ex)
@@ -172,9 +171,6 @@ namespace ConfigEditor
                 if (DialogResult.OK != this.openFileDialog1.ShowDialog())
                     return;
                 Document doc = new Document(this, this.openFileDialog1.FileName);
-                if (null == doc)
-                    return;
-
                 if (Documents.TryGetValue(doc.RelateName, out var odoc))
                 {
                     if (odoc.Grid != null)
@@ -188,19 +184,22 @@ namespace ConfigEditor
                         // used by foreign, not opened
                         TabPage tab = NewTabPage(odoc.RelateName);
                         DataGridView grid = (DataGridView)tab.Controls[0];
-                        odoc.Open(grid);
-                        grid.Tag = doc;
+                        odoc.Open();
                         tabs.Controls.Add(tab);
+
+                        odoc.Grid = grid;
+                        grid.Tag = doc;
                     }
                 }
                 else
                 {
                     TabPage tab = NewTabPage(doc.RelateName);
                     DataGridView grid = (DataGridView)tab.Controls[0];
-                    doc.Open(grid);
-                    grid.Tag = doc;
-                    tabs.Controls.Add(tab);
+                    doc.Open();
                     Documents.Add(doc.RelateName, doc);
+                    tabs.Controls.Add(tab);
+                    grid.Tag = doc;
+                    doc.Grid = grid;
                 }
             }
             catch (Exception ex)

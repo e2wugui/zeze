@@ -11,11 +11,11 @@ namespace ConfigEditor
         public string RelateName { get; private set; } // for search
         public string Name { get; private set; } // FileNameWithoutExtension
 
-        public Dictionary<string, BeanDefine> Beans { get; } = new Dictionary<string, BeanDefine>(); // bean in this file
+        public SortedDictionary<string, BeanDefine> BeanDefines { get; } = new SortedDictionary<string, BeanDefine>(); // bean in this file
 
         public BeanDefine GetBeanDefine(string name)
         {
-            if (Beans.TryGetValue(name, out var b))
+            if (BeanDefines.TryGetValue(name, out var b))
                 return b;
             return null;
         }
@@ -24,6 +24,8 @@ namespace ConfigEditor
         {
             return GetBeanDefine(Name);
         }
+
+        public List<Bean> Beans { get; } = new List<Bean>();
 
         public Document(FormMain fm, string fileName)
         {
@@ -44,16 +46,22 @@ namespace ConfigEditor
 
         public XmlDocument Xml { get; } = new XmlDocument();
 
-        public DataGridView Grid { get; private set; }
-        public void BuildNew(DataGridView grid)
+        public DataGridView Grid { get; set; }
+
+        public void Save()
         {
-            Grid = grid;
+            foreach (var d in BeanDefines.Values)
+            {
+                d.Save();
+            }
+            foreach (var b in Beans)
+            {
+                b.Save();
+            }
         }
 
-        public void Open(DataGridView grid)
+        public void Open()
         {
-            Grid = grid;
-
             Xml.Load(FileName);
             XmlElement self = Xml.DocumentElement;
             if (false == self.Name.Equals("ZezeConfig"))
@@ -71,6 +79,7 @@ namespace ConfigEditor
                         new BeanDefine(this, e);
                         break;
                     case "bean":
+                        Beans.Add(new Bean(this, e));
                         break;
                 }
             }

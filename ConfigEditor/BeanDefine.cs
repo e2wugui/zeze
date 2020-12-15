@@ -10,8 +10,31 @@ namespace ConfigEditor
         public string Name { get; set; }
         public List<Enum> Enums { get; } = new List<Enum>();
         public List<Variable> Variables { get; } = new List<Variable>();
-        public XmlElement Self { get; }
+        public XmlElement Self { get; private set; }
         public Document Document { get; }
+
+        public BeanDefine(Document doc)
+        {
+            this.Document = doc;
+        }
+
+        public void Save()
+        {
+            if (null == Self)
+            {
+                Self = Document.Xml.CreateElement("BeanDefine");
+                Document.Xml.DocumentElement.AppendChild(Self);
+            }
+            foreach (var e in Enums)
+            {
+                e.Save(Self);
+            }
+            foreach (var v in Variables)
+            {
+                v.Save(Self);
+            }
+        }
+
         public BeanDefine(Document doc, XmlElement self)
         {
             this.Document = doc;
@@ -19,7 +42,7 @@ namespace ConfigEditor
             if (Name.Length == 0)
                 Name = doc.Name;
 
-            doc.Beans.Add(Name, this);
+            doc.BeanDefines.Add(Name, this);
             this.Self = self;
 
             XmlNodeList childNodes = self.ChildNodes;

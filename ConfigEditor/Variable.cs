@@ -17,8 +17,34 @@ namespace ConfigEditor
         public string Properties { get; set; } // unique;
         public string Comment { get; set; }
 
-        public XmlElement Self { get; }
+        public XmlElement Self { get; private set; }
         public BeanDefine Bean { get; }
+
+        public Variable(BeanDefine bean)
+        {
+            this.Bean = bean;
+        }
+
+        private void SetAttribute(string name, string value)
+        {
+            if (null != value && value.Length > 0)
+                Self.SetAttribute(name, value);
+        }
+        public void Save(XmlElement bean)
+        {
+            if (null == Self)
+            {
+                Self = Bean.Document.Xml.CreateElement("variable");
+                bean.AppendChild(Self);
+            }
+            Self.SetAttribute("name", Name);
+            SetAttribute("type", Type);
+            SetAttribute("key", Key);
+            SetAttribute("value", Value);
+            SetAttribute("foreign", Foreign);
+            SetAttribute("properties", Properties);
+        }
+
         public Variable(BeanDefine bean, XmlElement self)
         {
             this.Self = self;
