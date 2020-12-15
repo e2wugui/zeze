@@ -17,6 +17,8 @@ namespace ConfigEditor
         {
             public IList<string> RecentHomes { get; set; }
 
+            public string Home { get { return RecentHomes[0]; } }
+
             public void SetRecentHome(string home)
             {
                 RecentHomes.Insert(0, home);
@@ -67,14 +69,22 @@ namespace ConfigEditor
 
         private void FormMain_Load(object sender, EventArgs e)
         {
-            if (Config.RecentHomes.Count > 0)
-                this.folderBrowserDialog.SelectedPath = Config.RecentHomes.First();
+            while (Config.RecentHomes.Count > 0)
+            {
+                string first = Config.RecentHomes.First();
+                if (System.IO.File.Exists(first))
+                {
+                    this.folderBrowserDialog.SelectedPath = first;
+                    break;
+                }
+                Config.RecentHomes.RemoveAt(0);
+            }
             this.folderBrowserDialog.ShowDialog();
             Config.SetRecentHome(this.folderBrowserDialog.SelectedPath);
             SaveConfig();
         }
 
-        private DataGridView newGrid()
+        private DataGridView newGrid(string text)
         {
             DataGridView grid = new DataGridView();
             grid.AllowUserToAddRows = false;
@@ -91,7 +101,7 @@ namespace ConfigEditor
             grid.TabIndex = 0;
 
             TabPage tab = new TabPage();
-            tab.Text = "NewFile";
+            tab.Text = text;
             tab.Controls.Add(grid);
             tabs.Controls.Add(tab);
             return grid;
@@ -99,37 +109,89 @@ namespace ConfigEditor
 
         private void newButton_Click(object sender, EventArgs e)
         {
-            newGrid();
+            newGrid("NewFile");
+        }
+
+        enum Type
+        {
+            NotDefined = 0,
+            Int = 1,
+            Long = 2,
+            String = 3,
+            Bean = 4,
+            List = 5,
+            Map = 6,
+        }
+
+        class Variable
+        {
+            public string Name { get; set; }
+            public Type Type { get; set; }
+            public string Foreign { get; set; }
+            public string Properties { get; set; } // unique;
+        }
+
+        class Bean
+        {
+            public string Name { get; set; }
+            public List<Variable> Variables { get; } = new List<Variable>();
         }
 
         class Document
         {
-            public string FileName { get; set; }
-            public XmlDocument Xml { get; set; }
+            public string FileName { get; private set; }
+            public string RelateName { get; private set; }
 
+            private Document()
+            { 
+            }
+
+            public static Document New(FormMain fm, string fileName)
+            {
+                Document doc = new Document();
+                doc.FileName = System.IO.Path.GetFullPath(fileName);
+                if (!doc.FileName.StartsWith(fm.Config.Home))
+                {
+                    MessageBox.Show("文件必须在配置Home目录下");
+                    return null;
+                }
+                string relate = doc.FileName.Substring(fm.Config.Home.Length);
+                string []relates = relate.Split(new char[] { '/', '\\' });
+                doc.RelateName = relates[0];
+                for (int i = 1; i < relates.Length; ++i)
+                {
+                    doc.RelateName = doc.RelateName + '/' + System.IO.Path.GetFileNameWithoutExtension(relates[i]);
+                }
+                return doc;
+            }
+
+            public XmlDocument Xml { get; } = new XmlDocument();
+
+            public DataGridView Grid { get; private set; }
             public void BuildNew(DataGridView grid)
             {
-                Xml = new XmlDocument();
-
+                Grid = grid;
             }
 
             public void Open(DataGridView grid)
             {
-                Xml = new XmlDocument();
                 Xml.Load(FileName);
-
+                Grid = grid;
             }
         }
 
-        private void saveButton_Click(object sender, EventArgs e)
+        private Dictionary<string, Document> Documents = new Dictionary<string, Document>();
+
+        private void save(TabPage tab)
         {
-            if (tabs.SelectedTab == null)
+            if (tab == null)
                 return;
 
-            if (!tabs.SelectedTab.Controls.GetEnumerator().MoveNext())
+            System.Collections.IEnumerator ie = tab.Controls.GetEnumerator();
+            if (!ie.MoveNext())
                 return;
+            DataGridView grid = (DataGridView)tab.Controls.GetEnumerator().Current;
 
-            DataGridView grid = (DataGridView)tabs.SelectedTab.Controls.GetEnumerator().Current;
             Document doc = (Document)grid.Tag;
             if (null == doc)
             {
@@ -142,13 +204,22 @@ namespace ConfigEditor
                 if (!file.EndsWith(".xml"))
                     file = file + ".xml";
 
-                doc = new Document() { FileName = file };
-                doc.BuildNew(grid);
-                doc.Xml.Save(file);
-                grid.Tag = doc;
+                doc = Document.New(this, file);
+                if (null != doc)
+                {
+                    doc.BuildNew(grid);
+                    doc.Xml.Save(file);
+                    grid.Tag = doc;
+                    Documents.Add(doc.RelateName, doc);
+                }
                 return;
             }
             doc.Xml.Save(doc.FileName);
+        }
+
+        private void saveButton_Click(object sender, EventArgs e)
+        {
+            save(tabs.SelectedTab);
         }
 
         private void openButton_Click(object sender, EventArgs e)
@@ -158,10 +229,50 @@ namespace ConfigEditor
             this.openFileDialog1.Filter = "(*.xml)|*.xml";
             if (DialogResult.OK != this.openFileDialog1.ShowDialog())
                 return;
-            Document doc = new Document() { FileName = this.openFileDialog1.FileName };
-            DataGridView grid = newGrid();
-            doc.Open(grid);
-            grid.Tag = doc;
+            Document doc = Document.New(this, this.openFileDialog1.FileName);
+            if (null == doc)
+                return;
+
+            if (Documents.TryGetValue(doc.RelateName, out var odoc))
+            {
+                if (odoc.Grid != null)
+                {
+                    // has opened
+                    TabPage tab = (TabPage)odoc.Grid.Parent;
+                    tab.Select();
+                }
+                else
+                {
+                    // used by foreign, not opened
+                    DataGridView grid = newGrid(odoc.RelateName);
+                    odoc.Open(grid);
+                    grid.Tag = doc;
+                }
+            }
+            else 
+            {
+                DataGridView grid = newGrid(doc.RelateName);
+                doc.Open(grid);
+                grid.Tag = doc;
+                Documents.Add(doc.RelateName, doc);
+            }
+        }
+
+        private void saveAll()
+        {
+            System.Collections.IEnumerator ie = tabs.Controls.GetEnumerator();
+            while (ie.MoveNext())
+                save((TabPage)ie.Current);
+        }
+
+        private void saveAllButton_Click(object sender, EventArgs e)
+        {
+            saveAll();
+        }
+
+        private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            saveAll();
         }
     }
 }
