@@ -11,18 +11,18 @@ namespace ConfigEditor
         public string RelateName { get; private set; } // for search
         public string Name { get; private set; } // FileNameWithoutExtension
 
-        public Dictionary<string, Bean> Beans { get; } = new Dictionary<string, Bean>(); // bean in this file
+        public Dictionary<string, BeanDefine> Beans { get; } = new Dictionary<string, BeanDefine>(); // bean in this file
 
-        public Bean GetBean(string name)
+        public BeanDefine GetBeanDefine(string name)
         {
             if (Beans.TryGetValue(name, out var b))
                 return b;
             return null;
         }
 
-        public Bean GetDefaultBean()
+        public BeanDefine GetDefaultBeanDefine()
         {
-            return GetBean(Name);
+            return GetBeanDefine(Name);
         }
 
         public Document(FormMain fm, string fileName)
@@ -68,7 +68,7 @@ namespace ConfigEditor
                 switch (e.Name)
                 {
                     case "BeanDefine":
-                        new Bean(this, e);
+                        new BeanDefine(this, e);
                         break;
                     case "bean":
                         break;

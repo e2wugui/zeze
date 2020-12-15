@@ -5,14 +5,14 @@ using System.Xml;
 
 namespace ConfigEditor
 {
-    public class Bean
+    public class BeanDefine
     {
         public string Name { get; set; }
         public List<Enum> Enums { get; } = new List<Enum>();
         public List<Variable> Variables { get; } = new List<Variable>();
         public XmlElement Self { get; }
         public Document Document { get; }
-        public Bean(Document doc, XmlElement self)
+        public BeanDefine(Document doc, XmlElement self)
         {
             this.Document = doc;
             Name = self.GetAttribute("name");

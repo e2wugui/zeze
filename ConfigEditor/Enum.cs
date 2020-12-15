@@ -11,8 +11,8 @@ namespace ConfigEditor
         public string Value { get; set; }
         public string Comment { get; set; }
         public XmlElement Self { get; }
-        public Bean Bean { get; }
-        public Enum(Bean bean, XmlElement self)
+        public BeanDefine Bean { get; }
+        public Enum(BeanDefine bean, XmlElement self)
         {
             this.Self = self;
             this.Bean = bean;
