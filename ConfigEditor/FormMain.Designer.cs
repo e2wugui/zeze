@@ -40,6 +40,7 @@ namespace ConfigEditor
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.openButton = new System.Windows.Forms.ToolStripButton();
             this.saveAllButton = new System.Windows.Forms.ToolStripButton();
+            this.buildButton = new System.Windows.Forms.ToolStripButton();
             this.tabFile.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.Grid)).BeginInit();
             this.tabs.SuspendLayout();
@@ -95,11 +96,12 @@ namespace ConfigEditor
             this.newButton,
             this.openButton,
             this.saveButton,
-            this.saveAllButton});
+            this.saveAllButton,
+            this.buildButton});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Padding = new System.Windows.Forms.Padding(0, 0, 4, 0);
-            this.toolStrip1.Size = new System.Drawing.Size(1712, 42);
+            this.toolStrip1.Size = new System.Drawing.Size(1712, 50);
             this.toolStrip1.TabIndex = 1;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -109,7 +111,7 @@ namespace ConfigEditor
             this.newButton.Image = ((System.Drawing.Image)(resources.GetObject("newButton.Image")));
             this.newButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.newButton.Name = "newButton";
-            this.newButton.Size = new System.Drawing.Size(46, 36);
+            this.newButton.Size = new System.Drawing.Size(46, 44);
             this.newButton.Text = "New(ctrl + N)";
             this.newButton.Click += new System.EventHandler(this.newButton_Click);
             // 
@@ -147,6 +149,16 @@ namespace ConfigEditor
             this.saveAllButton.Text = "Save All(ctrl + shirt + S)";
             this.saveAllButton.Click += new System.EventHandler(this.saveAllButton_Click);
             // 
+            // buildButton
+            // 
+            this.buildButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.buildButton.Image = ((System.Drawing.Image)(resources.GetObject("buildButton.Image")));
+            this.buildButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.buildButton.Name = "buildButton";
+            this.buildButton.Size = new System.Drawing.Size(46, 44);
+            this.buildButton.Text = "Build(ctrl + B)";
+            this.buildButton.Click += new System.EventHandler(this.buildButton_Click);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 24F);
@@ -181,6 +193,7 @@ namespace ConfigEditor
         private System.Windows.Forms.OpenFileDialog openFileDialog1;
         private System.Windows.Forms.ToolStripButton openButton;
         private System.Windows.Forms.ToolStripButton saveAllButton;
+        private System.Windows.Forms.ToolStripButton buildButton;
     }
 }
 

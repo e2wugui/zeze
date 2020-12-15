@@ -5,8 +5,8 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Windows.Forms;
 using System.Text.Json;
+using System.Windows.Forms;
 using System.Xml;
 
 namespace ConfigEditor
@@ -69,6 +69,7 @@ namespace ConfigEditor
 
         private void FormMain_Load(object sender, EventArgs e)
         {
+            this.folderBrowserDialog.Description = "选择配置所在的目录(Home)";
             while (Config.RecentHomes.Count > 0)
             {
                 string first = Config.RecentHomes.First();
@@ -110,74 +111,6 @@ namespace ConfigEditor
         private void newButton_Click(object sender, EventArgs e)
         {
             newGrid("NewFile");
-        }
-
-        enum Type
-        {
-            NotDefined = 0,
-            Int = 1,
-            Long = 2,
-            String = 3,
-            Bean = 4,
-            List = 5,
-            Map = 6,
-        }
-
-        class Variable
-        {
-            public string Name { get; set; }
-            public Type Type { get; set; }
-            public string Foreign { get; set; }
-            public string Properties { get; set; } // unique;
-        }
-
-        class Bean
-        {
-            public string Name { get; set; }
-            public List<Variable> Variables { get; } = new List<Variable>();
-        }
-
-        class Document
-        {
-            public string FileName { get; private set; }
-            public string RelateName { get; private set; }
-
-            private Document()
-            { 
-            }
-
-            public static Document New(FormMain fm, string fileName)
-            {
-                Document doc = new Document();
-                doc.FileName = System.IO.Path.GetFullPath(fileName);
-                if (!doc.FileName.StartsWith(fm.Config.Home))
-                {
-                    MessageBox.Show("文件必须在配置Home目录下");
-                    return null;
-                }
-                string relate = doc.FileName.Substring(fm.Config.Home.Length);
-                string []relates = relate.Split(new char[] { '/', '\\' });
-                doc.RelateName = relates[0];
-                for (int i = 1; i < relates.Length; ++i)
-                {
-                    doc.RelateName = doc.RelateName + '/' + System.IO.Path.GetFileNameWithoutExtension(relates[i]);
-                }
-                return doc;
-            }
-
-            public XmlDocument Xml { get; } = new XmlDocument();
-
-            public DataGridView Grid { get; private set; }
-            public void BuildNew(DataGridView grid)
-            {
-                Grid = grid;
-            }
-
-            public void Open(DataGridView grid)
-            {
-                Xml.Load(FileName);
-                Grid = grid;
-            }
         }
 
         private Dictionary<string, Document> Documents = new Dictionary<string, Document>();
@@ -273,6 +206,11 @@ namespace ConfigEditor
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             saveAll();
+        }
+
+        private void buildButton_Click(object sender, EventArgs e)
+        {
+            // TODO
         }
     }
 }
