@@ -34,3 +34,5 @@ TestResults
 /TypeScript/bin
 /TypeScript/obj
 /TypeScript/webpack/node_modules
+/ConfigEditor/bin
+/ConfigEditor/obj
