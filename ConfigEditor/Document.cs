@@ -25,28 +25,21 @@ namespace ConfigEditor
             return GetBean(Name);
         }
 
-        private Document()
+        public Document(FormMain fm, string fileName)
         {
-        }
-
-        public static Document New(FormMain fm, string fileName)
-        {
-            Document doc = new Document();
-            doc.FileName = System.IO.Path.GetFullPath(fileName);
-            if (!doc.FileName.StartsWith(fm.Config.Home))
+            FileName = System.IO.Path.GetFullPath(fileName);
+            if (!FileName.StartsWith(fm.Config.Home))
             {
-                MessageBox.Show("文件必须在Home(运行时选择的目录)目录下");
-                return null;
+                throw new Exception("文件必须在Home(运行时选择的目录)目录下");
             }
-            string relate = doc.FileName.Substring(fm.Config.Home.Length);
+            string relate = FileName.Substring(fm.Config.Home.Length);
             string[] relates = relate.Split(new char[] { '/', '\\' });
-            doc.RelateName = relates[0];
+            RelateName = relates[0];
             for (int i = 1; i < relates.Length; ++i)
             {
-                doc.Name = System.IO.Path.GetFileNameWithoutExtension(relates[i]); // store last
-                doc.RelateName = doc.RelateName + '/' + doc.Name;
+                Name = System.IO.Path.GetFileNameWithoutExtension(relates[i]); // store last
+                RelateName = RelateName + '/' + Name;
             }
-            return doc;
         }
 
         public XmlDocument Xml { get; } = new XmlDocument();
