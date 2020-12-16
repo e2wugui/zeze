@@ -111,10 +111,12 @@ namespace ConfigEditor
             }
             if (e.RowIndex == grid.RowCount - 1) // is last row
             {
-                Bean newb = new Bean();
+                /*
+                Bean newb = new Bean(doc);
                 newb.SetDefine(doc.BeanDefine);
                 newb.Variables.Add(new Bean.Variable(newb) { Name = var.Name, Value = , GridColumnValueWidth = col.Width });
                 doc.Beans.Add(newb);
+                */
                 grid.Rows.Add();
             }
         }
@@ -154,7 +156,7 @@ namespace ConfigEditor
             DataGridView grid = (DataGridView)tab.Controls[0];
             grid.Tag = doc;
             doc.Grid = grid;
-            doc.BeanDefine.BuildGridColumns(grid);
+            doc.BeanDefine.BuildGridColumns(grid, true);
             tabs.SelectedTab = tab;
         }
 
@@ -214,19 +216,23 @@ namespace ConfigEditor
             Save(tabs.SelectedTab);
         }
 
-        private Document OpenDocument(string path, string[]refbeans, int offset)
+        private Document OpenDocument(string path, string[]refbeans, int offset, out BeanDefine define)
         {
             Document doc = new Document(this);
             doc.SetFileName(path);
             if (Documents.TryGetValue(doc.RelateName, out var exist))
+            {
+                define = exist.BeanDefine.Search(refbeans, offset);
                 return exist;
+            }
 
             doc.Open();
             Documents.Add(doc.RelateName, doc);
+            define = doc.BeanDefine.Search(refbeans, offset);
             return doc;
         }
 
-        public Document OpenDocument(string relatePath)
+        public Document OpenDocument(string relatePath, out BeanDefine define)
         {
             string[] relates = relatePath.Split('.');
             string path = Config.GetHome();
@@ -236,14 +242,14 @@ namespace ConfigEditor
                 path = System.IO.Path.Combine(path, relates[i]);
                 if (System.IO.Directory.Exists(path)) // is directory
                     continue;
-                return OpenDocument(path + ".xml", relates, i + 1);
+                return OpenDocument(path + ".xml", relates, i + 1, out define);
             }
             throw new Exception("Open Document Error: " + relatePath);
         }
 
         private void LoadDocumentToView(DataGridView grid, Document doc)
         {
-            doc.BeanDefine.BuildGridColumns(grid);
+            doc.BeanDefine.BuildGridColumns(grid, true);
         }
 
         private void openButton_Click(object sender, EventArgs e)

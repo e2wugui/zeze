@@ -24,20 +24,54 @@ namespace ConfigEditor
                 if (v.Name == name)
                     return v;
             }
-            throw new Exception("Variable Define Not Found for " + name);
+            return null;
         }
 
-        public void BuildGridColumns(DataGridView grid)
+        public BeanDefine GetSubBeanDefine(string name)
+        {
+            foreach (var v in BeanDefines)
+            {
+                if (v.Name == name)
+                    return v;
+            }
+            return null;
+        }
+
+        public BeanDefine Search(string [] path, int offset)
+        {
+            BeanDefine r = this;
+            for (int i = offset; i < path.Length && null != r; ++i)
+            {
+                r = r.GetSubBeanDefine(path[i]);
+            }
+            return r;
+        }
+
+        public void BuildGridColumns(DataGridView grid, bool allowAddVar)
         {
             foreach (var v in Variables)
                 v.BuildGridColumns(grid);
 
-            if (false == IsLocked)
+            if (allowAddVar && false == IsLocked)
             {
                 // 这里创建的Variable用来新增，不加入Variables。
                 grid.Columns.Add(new DataGridViewColumn(new DataGridViewTextBoxCell()) { HeaderText = ",", Width = 60, Tag = new Variable(this) });
             }
-            grid.Rows.Add();
+            DataGridViewCellCollection cells = grid.Rows[grid.Rows.Add()].Cells;
+            BeanDefine current = this;
+            Bean bean = new Bean(this.Document, this);
+            for (int i = 0; i < grid.ColumnCount; ++i)
+            {
+                Variable define = (Variable)grid.Columns[i].Tag;
+                if (define.Parent != current)
+                {
+                    bean = new Bean(this.Document, this);
+                    current = define.Parent;
+                }
+                Bean.Variable bv = new Bean.Variable(bean, define.Name) { GridColumnValueWidth = define.GridColumnValueWidth };
+                bean.Variables.Add(bv); // TODO
+                cells[i].Tag = bv;
+            }
         }
 
         public BeanDefine CreateSubBeanDefine(string name)

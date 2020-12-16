@@ -23,15 +23,21 @@ namespace ConfigEditor
             {
                 this.Parent = bean;
                 this.Name = name;
-                this.Define = bean.Define.GetVariable(Self.Name);
+                this.Define = bean.Define?.GetVariable(Self.Name);
             }
 
             public void SetDefine(BeanDefine bd)
             {
+                if (null == bd)
+                    return;
+
                 this.Define = bd.GetVariable(Self.Name);
+                if (null == this.Define)
+                    return;
+
                 foreach (var b in Beans)
                 {
-                    b.SetDefine(Define.Parent);
+                    b.SetDefine(this.Define.Reference);
                 }
             }
 
@@ -55,10 +61,6 @@ namespace ConfigEditor
                     XmlElement e = (XmlElement)node;
                     switch (e.Name)
                     {
-                        case "bean":
-                            Beans.Add(new Bean(e));
-                            ++childElementCount;
-                            break;
                         case "list":
                             foreach (XmlNode bInList in e.ChildNodes)
                             {
@@ -67,7 +69,7 @@ namespace ConfigEditor
                                 XmlElement eInList = (XmlElement)bInList;
                                 if (eInList.Name != "bean")
                                     throw new Exception("Unknown Element In List");
-                                Beans.Add(new Bean(eInList));
+                                Beans.Add(new Bean(bean.Document, eInList));
                             }
                             ++childElementCount;
                             break;
@@ -83,7 +85,7 @@ namespace ConfigEditor
                 if (null == this.Self)
                 {
                     // new
-                    Self = Parent.Define.Document.Xml.CreateElement(Name);
+                    Self = Parent.Document.Xml.CreateElement(Name);
                     bean.AppendChild(Self);
                 }
                 else
@@ -91,42 +93,53 @@ namespace ConfigEditor
                     if (this.Self.Name != Name)
                     {
                         // Name Change
-                        XmlElement e = Parent.Define.Document.Xml.CreateElement(Name);
+                        XmlElement e = Parent.Document.Xml.CreateElement(Name);
                         bean.ReplaceChild(e, Self);
                         Self = e;
                     }
                 }
                 Self.SetAttribute("GridColumnWidth", GridColumnNameWidth.ToString());
                 Self.SetAttribute("GridColumnValueWidth", GridColumnValueWidth.ToString());
-                // update value
-                switch (Define.GetEType())
-                {
-                    case ConfigEditor.Variable.EType.Bean:
-                        Beans[0].Save(Self);
-                        break;
 
-                    case ConfigEditor.Variable.EType.List:
-                        XmlElement list = Parent.Define.Document.Xml.CreateElement("list");
-                        Self.AppendChild(list);
-                        foreach (var b in Beans)
-                        {
-                            b.Save(list);
-                        }
-                        break;
-                    default:
-                        Self.InnerText = Value;
-                        break;
+                if (null == Define)
+                {
+                    Self.InnerText = Value; // TODO 需要测试如果内部包含xml是否会被正确保存。
+                }
+                else
+                {
+                    switch (Define.GetEType())
+                    {
+                        /*
+                        case ConfigEditor.Variable.EType.Bean:
+                            Beans[0].Save(Self);
+                            break;
+                            */
+
+                        case ConfigEditor.Variable.EType.List:
+                            XmlElement list = Parent.Document.Xml.CreateElement("list");
+                            Self.AppendChild(list);
+                            foreach (var b in Beans)
+                            {
+                                b.Save(list);
+                            }
+                            break;
+                        default:
+                            Self.InnerText = Value;
+                            break;
+                    }
                 }
             }
         }
 
         public List<Variable> Variables { get; } = new List<Variable>();
         public XmlElement Self { get; set; }
+        public Document Document { get; }
         public BeanDefine Define { get; private set; }
 
-        public Bean(XmlElement self)
+        public Bean(Document doc, XmlElement self)
         {
             this.Self = self;
+            this.Document = doc;
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
@@ -138,8 +151,10 @@ namespace ConfigEditor
             }
         }
 
-        public Bean()
+        public Bean(Document doc, BeanDefine define)
         {
+            this.Document = doc;
+            this.Define = define;
         }
 
         public void SetDefine(BeanDefine define)
@@ -153,11 +168,13 @@ namespace ConfigEditor
 
         public void AddVariable(Variable var)
         {
+            /*
             foreach (var e in Variables)
             {
                 if (e.Name == var.Name)
                     throw new Exception("Duplicate Variable Name of " + var.Name);
             }
+            */
             Variables.Add(var);
         }
 
@@ -165,7 +182,7 @@ namespace ConfigEditor
         {
             if (null == Self)
             {
-                Self = Define.Document.Xml.CreateElement("bean");
+                Self = Document.Xml.CreateElement("bean");
                 parent.AppendChild(Self);
             }
             foreach (var v in Variables)

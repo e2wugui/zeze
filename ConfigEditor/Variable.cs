@@ -21,6 +21,7 @@ namespace ConfigEditor
 
         public XmlElement Self { get; private set; }
         public BeanDefine Parent { get; }
+        public BeanDefine Reference { get; private set; } // type is List
 
         public enum EType
         {
@@ -29,7 +30,7 @@ namespace ConfigEditor
             Long = 2,
             Double = 3,
             String = 4,
-            Bean = 5,
+            //Bean = 5,
             List = 6,
             Float = 7,
             Enum = 8,
@@ -49,7 +50,9 @@ namespace ConfigEditor
                 case "list": return EType.List;
                 case "float": return EType.Float;
                 case "enum": return EType.Enum;
-                default: return EType.Bean;
+                default:
+                    throw new Exception("Unknown Type " + Type);
+                    //return EType.Bean;
             }
         }
 
@@ -61,15 +64,20 @@ namespace ConfigEditor
                     {
                         DataGridViewCell s = new DataGridViewTextBoxCell() { Value = "[" };
                         grid.Columns.Add(new DataGridViewColumn(s) { Name = this.Name, Width = 20, Tag = this, HeaderText = "[", ReadOnly = true, ToolTipText = Comment });
-                        Parent.Document.Main.OpenDocument(Value).BeanDefine.BuildGridColumns(grid);
+                        Parent.Document.Main.OpenDocument(Value, out var r);
+                        Reference = r;
+                        r.BuildGridColumns(grid, Parent.Document == r.Document); // 只有当前文件内定义的结构才允许编辑。
                         DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
                         grid.Columns.Add(new DataGridViewColumn(e) { Name = this.Name, Width = 20, Tag = this, HeaderText = "]", ReadOnly = true, ToolTipText = Comment });
                     }
                     break;
-
+                    /*
                 case EType.Bean:
-                    Parent.Document.Main.OpenDocument(Type).BeanDefine.BuildGridColumns(grid);
+                    Parent.Document.Main.OpenDocument(Type, out var r);
+                    Reference = r;
+                    r.BuildGridColumns(grid);
                     break;
+                    */
 
                 case EType.Enum:
                     {

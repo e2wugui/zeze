@@ -97,7 +97,7 @@ namespace ConfigEditor
                         this.BeanDefine = new BeanDefine(this, e);
                         break;
                     case "bean":
-                        Beans.Add(new Bean(e));
+                        Beans.Add(new Bean(this, e));
                         break;
                     default:
                         throw new Exception("Unknown Element Name " + e.Name);
