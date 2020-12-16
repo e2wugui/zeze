@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
-using System.Xml;
 
 namespace ConfigEditor
 {
@@ -17,7 +14,10 @@ namespace ConfigEditor
         {
             public IList<string> RecentHomes { get; set; }
 
-            public string Home { get { return RecentHomes[0]; } }
+            public string GetHome()
+            {
+                return RecentHomes[0];
+            }
 
             public void SetRecentHome(string home)
             {
@@ -26,7 +26,7 @@ namespace ConfigEditor
                 foreach (var r in RecentHomes.Distinct())
                     distinct.Add(r);
                 RecentHomes = distinct;
-                if (RecentHomes.Count > 10)
+                while (RecentHomes.Count > 10)
                     RecentHomes.RemoveAt(RecentHomes.Count - 1);
             }
         }
@@ -53,9 +53,9 @@ namespace ConfigEditor
                 string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(GetConfigFileFullName()));
                 Config = JsonSerializer.Deserialize<EditorConfig>(json);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // skip error
+                MessageBox.Show(ex.ToString());
             }
             if (null == Config)
                 Config = new EditorConfig() { RecentHomes = new List<string>() };
@@ -73,7 +73,7 @@ namespace ConfigEditor
             while (Config.RecentHomes.Count > 0)
             {
                 string first = Config.RecentHomes.First();
-                if (System.IO.File.Exists(first))
+                if (System.IO.Directory.Exists(first))
                 {
                     this.folderBrowserDialog.SelectedPath = first;
                     break;
@@ -81,8 +81,12 @@ namespace ConfigEditor
                 Config.RecentHomes.RemoveAt(0);
             }
             this.folderBrowserDialog.ShowDialog();
-            Config.SetRecentHome(this.folderBrowserDialog.SelectedPath);
+            Config.SetRecentHome(this.folderBrowserDialog.SelectedPath.Length > 0
+                ? this.folderBrowserDialog.SelectedPath : Environment.CurrentDirectory);
             SaveConfig();
+            this.TopMost = true;
+            this.BringToFront();
+            this.TopMost = false;
         }
 
         private TabPage NewTabPage(string text)
@@ -107,58 +111,95 @@ namespace ConfigEditor
             return tab;
         }
 
+        private int NewFileSeed = 0;
+
         private void newButton_Click(object sender, EventArgs e)
         {
-            tabs.Controls.Add(NewTabPage("NewFile"));
-
+            ++NewFileSeed;
+            TabPage tab = NewTabPage("NewFile_" + NewFileSeed);
+            tabs.Controls.Add(tab);
+            tab.Select();
         }
 
         private Dictionary<string, Document> Documents = new Dictionary<string, Document>();
 
-        private void save(TabPage tab)
+        private bool Save(TabPage tab)
         {
             try
             {
                 if (tab == null)
-                    return;
+                    return true;
 
                 System.Collections.IEnumerator ie = tab.Controls.GetEnumerator();
                 if (!ie.MoveNext())
-                    return;
-                DataGridView grid = (DataGridView)tab.Controls.GetEnumerator().Current;
-
+                    return true;
+                DataGridView grid = (DataGridView)ie.Current;
                 Document doc = (Document)grid.Tag;
                 if (null == doc)
                 {
-                    this.openFileDialog1.InitialDirectory = Config.RecentHomes[0];
-                    this.openFileDialog1.FileName = "";
-                    this.openFileDialog1.Filter = "(*.xml)|*.xml";
-                    if (DialogResult.OK != this.openFileDialog1.ShowDialog())
-                        return;
-                    string file = this.openFileDialog1.FileName;
+                    switch (MessageBox.Show("是否保存新建文件？ " + tab.Text, "提示", MessageBoxButtons.YesNoCancel))
+                    {
+                        case DialogResult.Yes:
+                            break;
+                        case DialogResult.Cancel:
+                            return false;
+                        case DialogResult.No:
+                            return true;
+                    }
+                    this.saveFileDialog1.InitialDirectory = Config.RecentHomes[0];
+                    this.saveFileDialog1.FileName = tab.Text;
+                    this.saveFileDialog1.Filter = "(*.xml)|*.xml";
+                    if (DialogResult.OK != this.saveFileDialog1.ShowDialog())
+                        return false; // 取消保存，不关闭窗口
+
+                    string file = this.saveFileDialog1.FileName;
                     if (!file.EndsWith(".xml"))
                         file = file + ".xml";
 
                     doc = new Document(this, file);
                     Documents.Add(doc.RelateName, doc);
                     doc.Save();
-                    doc.Xml.Save(file);
                     grid.Tag = doc;
                     doc.Grid = grid;
-                    return;
+                    return true;
                 }
                 doc.Save();
-                doc.Xml.Save(doc.FileName);
+                return true;
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.ToString());
             }
+            return false;
         }
 
         private void saveButton_Click(object sender, EventArgs e)
         {
-            save(tabs.SelectedTab);
+            Save(tabs.SelectedTab);
+        }
+
+        private Document OpenDocument(string path, string[]refbeans, int offset)
+        {
+            Document doc = new Document(this, path);
+            doc.Open();
+            Documents.Add(doc.RelateName, doc);
+            return doc;
+        }
+
+        public Document OpenDocument(string relatePath)
+        {
+            string[] relates = relatePath.Split('.');
+            string path = Config.GetHome();
+
+            for (int i = 0; i < relates.Length; ++i)
+            {
+                path = System.IO.Path.Combine(path, relates[i]);
+                if (System.IO.File.Exists(path)) // 目录的话，这个判断会失败
+                {
+                    return OpenDocument(path, relates, i + 1);
+                }
+            }
+            throw new Exception("Open Document Error: " + relatePath);
         }
 
         private void openButton_Click(object sender, EventArgs e)
@@ -181,12 +222,13 @@ namespace ConfigEditor
                     }
                     else
                     {
-                        // used by foreign, not opened
+                        // used by foreign, no view
                         TabPage tab = NewTabPage(odoc.RelateName);
                         DataGridView grid = (DataGridView)tab.Controls[0];
-                        odoc.Open();
+                        grid.SuspendLayout();
                         tabs.Controls.Add(tab);
-
+                        tab.Select();
+                        grid.ResumeLayout();
                         odoc.Grid = grid;
                         grid.Tag = doc;
                     }
@@ -197,7 +239,10 @@ namespace ConfigEditor
                     DataGridView grid = (DataGridView)tab.Controls[0];
                     doc.Open();
                     Documents.Add(doc.RelateName, doc);
+                    grid.SuspendLayout();
                     tabs.Controls.Add(tab);
+                    tab.Select();
+                    grid.ResumeLayout();
                     grid.Tag = doc;
                     doc.Grid = grid;
                 }
@@ -208,26 +253,30 @@ namespace ConfigEditor
             }
         }
 
-        private void saveAll()
+        private bool SaveAll()
         {
             System.Collections.IEnumerator ie = tabs.Controls.GetEnumerator();
             while (ie.MoveNext())
-                save((TabPage)ie.Current);
+            {
+                if (false == Save((TabPage)ie.Current))
+                    return false;
+            }
+            return true;
         }
 
         private void saveAllButton_Click(object sender, EventArgs e)
         {
-            saveAll();
+            SaveAll();
         }
 
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            saveAll();
+            e.Cancel = false == SaveAll();
         }
 
         private void buildButton_Click(object sender, EventArgs e)
         {
-            saveAll();
+            SaveAll();
             // TODO 遍历Home所有配置文件，并且生成代码等。
         }
     }

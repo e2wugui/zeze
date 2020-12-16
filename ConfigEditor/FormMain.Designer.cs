@@ -36,11 +36,12 @@ namespace ConfigEditor
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.newButton = new System.Windows.Forms.ToolStripButton();
-            this.saveButton = new System.Windows.Forms.ToolStripButton();
-            this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.openButton = new System.Windows.Forms.ToolStripButton();
+            this.saveButton = new System.Windows.Forms.ToolStripButton();
             this.saveAllButton = new System.Windows.Forms.ToolStripButton();
             this.buildButton = new System.Windows.Forms.ToolStripButton();
+            this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
+            this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.tabFile.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.Grid)).BeginInit();
             this.tabs.SuspendLayout();
@@ -51,10 +52,10 @@ namespace ConfigEditor
             // 
             this.tabFile.Controls.Add(this.Grid);
             this.tabFile.Location = new System.Drawing.Point(8, 39);
-            this.tabFile.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabFile.Margin = new System.Windows.Forms.Padding(4);
             this.tabFile.Name = "tabFile";
-            this.tabFile.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.tabFile.Size = new System.Drawing.Size(1696, 961);
+            this.tabFile.Padding = new System.Windows.Forms.Padding(4);
+            this.tabFile.Size = new System.Drawing.Size(1696, 969);
             this.tabFile.TabIndex = 1;
             this.tabFile.Text = "NewFile";
             this.tabFile.UseVisualStyleBackColor = true;
@@ -68,12 +69,12 @@ namespace ConfigEditor
             | System.Windows.Forms.AnchorStyles.Right)));
             this.Grid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.Grid.Location = new System.Drawing.Point(0, 0);
-            this.Grid.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Grid.Margin = new System.Windows.Forms.Padding(4);
             this.Grid.MultiSelect = false;
             this.Grid.Name = "Grid";
             this.Grid.RowHeadersWidth = 82;
             this.Grid.RowTemplate.Height = 37;
-            this.Grid.Size = new System.Drawing.Size(1696, 952);
+            this.Grid.Size = new System.Drawing.Size(1696, 969);
             this.Grid.TabIndex = 0;
             // 
             // tabs
@@ -82,11 +83,11 @@ namespace ConfigEditor
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tabs.Controls.Add(this.tabFile);
-            this.tabs.Location = new System.Drawing.Point(0, 54);
-            this.tabs.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabs.Location = new System.Drawing.Point(0, 46);
+            this.tabs.Margin = new System.Windows.Forms.Padding(4);
             this.tabs.Name = "tabs";
             this.tabs.SelectedIndex = 0;
-            this.tabs.Size = new System.Drawing.Size(1712, 1008);
+            this.tabs.Size = new System.Drawing.Size(1712, 1016);
             this.tabs.TabIndex = 0;
             // 
             // toolStrip1
@@ -101,63 +102,68 @@ namespace ConfigEditor
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Padding = new System.Windows.Forms.Padding(0, 0, 4, 0);
-            this.toolStrip1.Size = new System.Drawing.Size(1712, 50);
+            this.toolStrip1.Size = new System.Drawing.Size(1712, 42);
             this.toolStrip1.TabIndex = 1;
             this.toolStrip1.Text = "toolStrip1";
             // 
             // newButton
             // 
-            this.newButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.newButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.newButton.Image = ((System.Drawing.Image)(resources.GetObject("newButton.Image")));
             this.newButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.newButton.Name = "newButton";
-            this.newButton.Size = new System.Drawing.Size(46, 44);
-            this.newButton.Text = "New(ctrl + N)";
+            this.newButton.Size = new System.Drawing.Size(67, 36);
+            this.newButton.Text = "New";
+            this.newButton.ToolTipText = "New(ctrl + N)";
             this.newButton.Click += new System.EventHandler(this.newButton_Click);
-            // 
-            // saveButton
-            // 
-            this.saveButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.saveButton.Image = ((System.Drawing.Image)(resources.GetObject("saveButton.Image")));
-            this.saveButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.saveButton.Name = "saveButton";
-            this.saveButton.Size = new System.Drawing.Size(46, 44);
-            this.saveButton.Text = "Save(ctrl + S)";
-            this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
-            // 
-            // openFileDialog1
-            // 
-            this.openFileDialog1.FileName = "openFileDialog1";
             // 
             // openButton
             // 
-            this.openButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.openButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.openButton.Image = ((System.Drawing.Image)(resources.GetObject("openButton.Image")));
             this.openButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.openButton.Name = "openButton";
-            this.openButton.Size = new System.Drawing.Size(46, 44);
-            this.openButton.Text = "openButton";
+            this.openButton.Size = new System.Drawing.Size(78, 44);
+            this.openButton.Text = "Open";
+            this.openButton.ToolTipText = "Open(ctrl + O)";
             this.openButton.Click += new System.EventHandler(this.openButton_Click);
+            // 
+            // saveButton
+            // 
+            this.saveButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.saveButton.Image = ((System.Drawing.Image)(resources.GetObject("saveButton.Image")));
+            this.saveButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.saveButton.Name = "saveButton";
+            this.saveButton.Size = new System.Drawing.Size(69, 44);
+            this.saveButton.Text = "Save";
+            this.saveButton.ToolTipText = "Save(ctrl + S)";
+            this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
             // 
             // saveAllButton
             // 
-            this.saveAllButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.saveAllButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.saveAllButton.Image = ((System.Drawing.Image)(resources.GetObject("saveAllButton.Image")));
             this.saveAllButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.saveAllButton.Name = "saveAllButton";
-            this.saveAllButton.Size = new System.Drawing.Size(46, 44);
-            this.saveAllButton.Text = "Save All(ctrl + shirt + S)";
+            this.saveAllButton.Size = new System.Drawing.Size(103, 44);
+            this.saveAllButton.Text = "Save All";
+            this.saveAllButton.ToolTipText = "Save All(ctrl + shirt + S)";
             this.saveAllButton.Click += new System.EventHandler(this.saveAllButton_Click);
             // 
             // buildButton
             // 
-            this.buildButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.buildButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.buildButton.Image = ((System.Drawing.Image)(resources.GetObject("buildButton.Image")));
             this.buildButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.buildButton.Name = "buildButton";
-            this.buildButton.Size = new System.Drawing.Size(46, 44);
-            this.buildButton.Text = "Build(ctrl + B)";
+            this.buildButton.Size = new System.Drawing.Size(73, 36);
+            this.buildButton.Text = "Build";
+            this.buildButton.ToolTipText = "Build";
             this.buildButton.Click += new System.EventHandler(this.buildButton_Click);
+            // 
+            // openFileDialog1
+            // 
+            this.openFileDialog1.FileName = "openFileDialog1";
             // 
             // FormMain
             // 
@@ -166,7 +172,7 @@ namespace ConfigEditor
             this.ClientSize = new System.Drawing.Size(1712, 1056);
             this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.tabs);
-            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "FormMain";
             this.Text = "Main";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormMain_FormClosing);
@@ -194,6 +200,7 @@ namespace ConfigEditor
         private System.Windows.Forms.ToolStripButton openButton;
         private System.Windows.Forms.ToolStripButton saveAllButton;
         private System.Windows.Forms.ToolStripButton buildButton;
+        private System.Windows.Forms.SaveFileDialog saveFileDialog1;
     }
 }
 

@@ -11,7 +11,6 @@ namespace ConfigEditor
     {
         public string Name { get; set; }
         public string Type { get; set; }
-        public string Key { get; set; }
         public string Value { get; set; }
         public string Foreign { get; set; }
         public string Properties { get; set; } // unique;
@@ -39,7 +38,6 @@ namespace ConfigEditor
             }
             Self.SetAttribute("name", Name);
             SetAttribute("type", Type);
-            SetAttribute("key", Key);
             SetAttribute("value", Value);
             SetAttribute("foreign", Foreign);
             SetAttribute("properties", Properties);
@@ -52,7 +50,6 @@ namespace ConfigEditor
 
             Name = self.GetAttribute("name");
             Type = self.GetAttribute("type");
-            Key = self.GetAttribute("key");
             Value = self.GetAttribute("value");
             Comment = self.GetAttribute("comment");
             if (Comment.Length == 0)

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
 using System.Xml;
 
 namespace ConfigEditor
@@ -10,12 +9,22 @@ namespace ConfigEditor
         public string Name { get; set; }
         public List<Enum> Enums { get; } = new List<Enum>();
         public List<Variable> Variables { get; } = new List<Variable>();
+        public List<BeanDefine> BeanDefines { get; } = new List<BeanDefine>();
+
         public XmlElement Self { get; private set; }
         public Document Document { get; }
+        public BeanDefine Parent { get; }
 
-        public BeanDefine(Document doc)
+        public BeanDefine CreateSubBeanDefine()
+        {
+            return new BeanDefine(Document, this);
+        }
+
+        public BeanDefine(Document doc, BeanDefine parent = null)
         {
             this.Document = doc;
+            this.Parent = parent;
+            this.Name = doc.Name;
         }
 
         public void Save()
@@ -23,11 +32,18 @@ namespace ConfigEditor
             if (null == Self)
             {
                 Self = Document.Xml.CreateElement("BeanDefine");
-                Document.Xml.DocumentElement.AppendChild(Self);
+                if (Parent == null)
+                    Document.Xml.DocumentElement.AppendChild(Self);
+                else
+                    Parent.Self.AppendChild(Self);
             }
             foreach (var e in Enums)
             {
                 e.Save(Self);
+            }
+            foreach (var b in BeanDefines)
+            {
+                b.Save();
             }
             foreach (var v in Variables)
             {
@@ -35,14 +51,13 @@ namespace ConfigEditor
             }
         }
 
-        public BeanDefine(Document doc, XmlElement self)
+        public BeanDefine(Document doc, XmlElement self, BeanDefine parent = null)
         {
             this.Document = doc;
+            this.Parent = parent;
             Name = self.GetAttribute("name");
             if (Name.Length == 0)
                 Name = doc.Name;
-
-            doc.BeanDefines.Add(Name, this);
             this.Self = self;
 
             XmlNodeList childNodes = self.ChildNodes;
@@ -53,9 +68,11 @@ namespace ConfigEditor
 
                 XmlElement e = (XmlElement)node;
 
-                String nodename = e.Name;
                 switch (e.Name)
                 {
+                    case "BeanDefine":
+                        BeanDefines.Add(new BeanDefine(Document, e, this));
+                        break;
                     case "variable":
                         Variables.Add(new Variable(this, e));
                         break;
@@ -63,7 +80,7 @@ namespace ConfigEditor
                         Enums.Add(new Enum(this, e));
                         break;
                     default:
-                        throw new Exception("node=" + nodename);
+                        throw new Exception("node=" + e.Name);
                 }
             }
         }
