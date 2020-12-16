@@ -16,20 +16,28 @@ namespace ConfigEditor
         public BeanDefine BeanDefine { get; private set; } // bean in this file
 
         public List<Bean> Beans { get; } = new List<Bean>();
+        public FormMain Main { get; }
 
-        public Document(FormMain fm, string fileName)
+        public void SetFileName(string fileName)
         {
             FileName = System.IO.Path.GetFullPath(fileName);
-            if (!FileName.StartsWith(fm.Config.GetHome()))
+            if (!FileName.StartsWith(Main.Config.GetHome()))
             {
                 throw new Exception("文件必须在Home(开始运行时选择的)目录下");
             }
-            string relate = FileName.Substring(fm.Config.GetHome().Length);
-            string[] relates = relate.Split(new char[] { '/', '\\' });
+            string relate = FileName.Substring(Main.Config.GetHome().Length + 1);
+            if (relate.EndsWith(".xml"))
+                relate = relate.Substring(0, relate.Length - 4);
+            string[] relates = relate.Split(new char[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
             RelateName = relates[0];
+            foreach (var c in relates[0])
+            {
+                if (char.IsWhiteSpace(c) || c == '.')
+                    throw new Exception("Config FileName and path cannot use WhiteSpace and '.'");
+            }
             for (int i = 1; i < relates.Length; ++i)
             {
-                Name = System.IO.Path.GetFileNameWithoutExtension(relates[i]); // store last
+                Name = relates[i]; // store last
                 foreach (var c in Name)
                 {
                     if (char.IsWhiteSpace(c) || c == '.')
@@ -37,6 +45,12 @@ namespace ConfigEditor
                 }
                 RelateName = RelateName + '.' + Name;
             }
+        }
+
+        public Document(FormMain fm)
+        {
+            Main = fm;
+            BeanDefine = new BeanDefine(this);
         }
 
         public XmlDocument Xml { get; private set; }
@@ -50,10 +64,10 @@ namespace ConfigEditor
                 Xml = new XmlDocument();
                 Xml.AppendChild(Xml.CreateElement("ZezeConfig"));
             }
-            BeanDefine?.Save();
+            BeanDefine.Save();
             foreach (var b in Beans)
             {
-                b.Save();
+                b.Save(Xml.DocumentElement);
             }
             using (TextWriter sw = new StreamWriter(FileName, false, Encoding.UTF8))
             {
@@ -83,9 +97,18 @@ namespace ConfigEditor
                         this.BeanDefine = new BeanDefine(this, e);
                         break;
                     case "bean":
-                        Beans.Add(new Bean(this, e));
+                        Beans.Add(new Bean(e));
                         break;
+                    default:
+                        throw new Exception("Unknown Element Name " + e.Name);
                 }
+            }
+            if (null == BeanDefine)
+                throw new Exception("BeanDefine Lost"); // TODO rebuild?
+
+            foreach (var data in Beans)
+            {
+                data.SetDefine(this.BeanDefine);
             }
         }
     }

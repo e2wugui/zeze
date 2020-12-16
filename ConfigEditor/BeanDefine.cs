@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Windows.Forms;
 using System.Xml;
 
 namespace ConfigEditor
@@ -14,17 +15,41 @@ namespace ConfigEditor
         public XmlElement Self { get; private set; }
         public Document Document { get; }
         public BeanDefine Parent { get; }
+        public bool IsLocked { get; set; } = false;
 
-        public BeanDefine CreateSubBeanDefine()
+        public Variable GetVariable(string name)
         {
-            return new BeanDefine(Document, this);
+            foreach (var v in Variables)
+            {
+                if (v.Name == name)
+                    return v;
+            }
+            throw new Exception("Variable Define Not Found for " + name);
         }
 
-        public BeanDefine(Document doc, BeanDefine parent = null)
+        public void BuildGridColumns(DataGridView grid)
+        {
+            foreach (var v in Variables)
+                v.BuildGridColumns(grid);
+
+            if (false == IsLocked)
+            {
+                // 这里创建的Variable用来新增，不加入Variables。
+                grid.Columns.Add(new DataGridViewColumn(new DataGridViewTextBoxCell()) { HeaderText = ",", Width = 60, Tag = new Variable(this) });
+            }
+            grid.Rows.Add();
+        }
+
+        public BeanDefine CreateSubBeanDefine(string name)
+        {
+            return new BeanDefine(Document, name, this);
+        }
+
+        public BeanDefine(Document doc, string name = null, BeanDefine parent = null)
         {
             this.Document = doc;
             this.Parent = parent;
-            this.Name = doc.Name;
+            this.Name = null != name ? name : doc.Name;
         }
 
         public void Save()

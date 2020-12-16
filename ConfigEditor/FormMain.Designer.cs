@@ -30,8 +30,6 @@ namespace ConfigEditor
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
-            this.tabFile = new System.Windows.Forms.TabPage();
-            this.Grid = new System.Windows.Forms.DataGridView();
             this.tabs = new System.Windows.Forms.TabControl();
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
@@ -42,47 +40,14 @@ namespace ConfigEditor
             this.buildButton = new System.Windows.Forms.ToolStripButton();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
-            this.tabFile.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.Grid)).BeginInit();
-            this.tabs.SuspendLayout();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // tabFile
-            // 
-            this.tabFile.Controls.Add(this.Grid);
-            this.tabFile.Location = new System.Drawing.Point(8, 39);
-            this.tabFile.Margin = new System.Windows.Forms.Padding(4);
-            this.tabFile.Name = "tabFile";
-            this.tabFile.Padding = new System.Windows.Forms.Padding(4);
-            this.tabFile.Size = new System.Drawing.Size(1696, 969);
-            this.tabFile.TabIndex = 1;
-            this.tabFile.Text = "NewFile";
-            this.tabFile.UseVisualStyleBackColor = true;
-            // 
-            // Grid
-            // 
-            this.Grid.AllowUserToAddRows = false;
-            this.Grid.AllowUserToDeleteRows = false;
-            this.Grid.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.Grid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.Grid.Location = new System.Drawing.Point(0, 0);
-            this.Grid.Margin = new System.Windows.Forms.Padding(4);
-            this.Grid.MultiSelect = false;
-            this.Grid.Name = "Grid";
-            this.Grid.RowHeadersWidth = 82;
-            this.Grid.RowTemplate.Height = 37;
-            this.Grid.Size = new System.Drawing.Size(1696, 969);
-            this.Grid.TabIndex = 0;
             // 
             // tabs
             // 
             this.tabs.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.tabs.Controls.Add(this.tabFile);
             this.tabs.Location = new System.Drawing.Point(0, 46);
             this.tabs.Margin = new System.Windows.Forms.Padding(4);
             this.tabs.Name = "tabs";
@@ -177,9 +142,6 @@ namespace ConfigEditor
             this.Text = "Main";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormMain_FormClosing);
             this.Load += new System.EventHandler(this.FormMain_Load);
-            this.tabFile.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.Grid)).EndInit();
-            this.tabs.ResumeLayout(false);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);
@@ -188,9 +150,6 @@ namespace ConfigEditor
         }
 
         #endregion
-
-        private System.Windows.Forms.TabPage tabFile;
-        private System.Windows.Forms.DataGridView Grid;
         private System.Windows.Forms.TabControl tabs;
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog;
         private System.Windows.Forms.ToolStrip toolStrip1;

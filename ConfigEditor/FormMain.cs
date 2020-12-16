@@ -89,6 +89,36 @@ namespace ConfigEditor
             this.TopMost = false;
         }
 
+        public void OnGridCellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            DataGridView grid = (DataGridView)sender;
+            ((TabPage)grid.Parent).Tag = 1; // setup changed
+
+            Document doc = (Document)grid.Tag;
+            DataGridViewColumn col = grid.Columns[e.ColumnIndex];
+            Variable var = (Variable)col.Tag;
+            if (null == var.Name)
+            {
+                // 新增变量
+                var.Name = Microsoft.VisualBasic.Interaction.InputBox("输入新增变量的名字", "输入名字", "", 0, 0);
+                var.Parent.Variables.Add(var);
+                var.GridColumnValueWidth = col.Width;
+                grid.Columns[e.ColumnIndex].HeaderText = var.Name;
+                grid.Columns.Insert(e.ColumnIndex, new DataGridViewColumn(new DataGridViewTextBoxCell())
+                {
+                    HeaderText = ",", Width = 60, Tag = new Variable(var.Parent)
+                });
+            }
+            if (e.RowIndex == grid.RowCount - 1) // is last row
+            {
+                Bean newb = new Bean();
+                newb.SetDefine(doc.BeanDefine);
+                newb.Variables.Add(new Bean.Variable(newb) { Name = var.Name, Value = , GridColumnValueWidth = col.Width });
+                doc.Beans.Add(newb);
+                grid.Rows.Add();
+            }
+        }
+
         private TabPage NewTabPage(string text)
         {
             DataGridView grid = new DataGridView();
@@ -100,10 +130,12 @@ namespace ConfigEditor
             grid.Margin = new Padding(2);
             grid.MultiSelect = false;
             grid.Name = "Grid";
-            grid.RowHeadersWidth = 82;
-            grid.RowTemplate.Height = 37;
+            grid.RowHeadersWidth = 40;
+            grid.RowTemplate.Height = 18;
             //gird.Size = new Size(848, 476);
             grid.TabIndex = 0;
+
+            grid.CellEndEdit += OnGridCellEndEdit;
 
             TabPage tab = new TabPage();
             tab.Text = text;
@@ -118,7 +150,12 @@ namespace ConfigEditor
             ++NewFileSeed;
             TabPage tab = NewTabPage("NewFile_" + NewFileSeed);
             tabs.Controls.Add(tab);
-            tab.Select();
+            Document doc = new Document(this);
+            DataGridView grid = (DataGridView)tab.Controls[0];
+            grid.Tag = doc;
+            doc.Grid = grid;
+            doc.BeanDefine.BuildGridColumns(grid);
+            tabs.SelectedTab = tab;
         }
 
         private Dictionary<string, Document> Documents = new Dictionary<string, Document>();
@@ -127,17 +164,14 @@ namespace ConfigEditor
         {
             try
             {
-                if (tab == null)
+                if (tab == null || tab.Tag == null) // Tag changed
                     return true;
 
-                System.Collections.IEnumerator ie = tab.Controls.GetEnumerator();
-                if (!ie.MoveNext())
-                    return true;
-                DataGridView grid = (DataGridView)ie.Current;
+                DataGridView grid = (DataGridView)tab.Controls[0];
                 Document doc = (Document)grid.Tag;
-                if (null == doc)
+                if (null == doc.FileName)
                 {
-                    switch (MessageBox.Show("是否保存新建文件？ " + tab.Text, "提示", MessageBoxButtons.YesNoCancel))
+                    switch (MessageBox.Show("是否保存文件？ " + tab.Text, "提示", MessageBoxButtons.YesNoCancel))
                     {
                         case DialogResult.Yes:
                             break;
@@ -156,14 +190,16 @@ namespace ConfigEditor
                     if (!file.EndsWith(".xml"))
                         file = file + ".xml";
 
-                    doc = new Document(this, file);
+                    doc.SetFileName(file);
                     Documents.Add(doc.RelateName, doc);
                     doc.Save();
                     grid.Tag = doc;
                     doc.Grid = grid;
+                    tab.Tag = null;
                     return true;
                 }
                 doc.Save();
+                tab.Tag = null;
                 return true;
             }
             catch (Exception ex)
@@ -180,7 +216,11 @@ namespace ConfigEditor
 
         private Document OpenDocument(string path, string[]refbeans, int offset)
         {
-            Document doc = new Document(this, path);
+            Document doc = new Document(this);
+            doc.SetFileName(path);
+            if (Documents.TryGetValue(doc.RelateName, out var exist))
+                return exist;
+
             doc.Open();
             Documents.Add(doc.RelateName, doc);
             return doc;
@@ -194,12 +234,16 @@ namespace ConfigEditor
             for (int i = 0; i < relates.Length; ++i)
             {
                 path = System.IO.Path.Combine(path, relates[i]);
-                if (System.IO.File.Exists(path)) // 目录的话，这个判断会失败
-                {
-                    return OpenDocument(path, relates, i + 1);
-                }
+                if (System.IO.Directory.Exists(path)) // is directory
+                    continue;
+                return OpenDocument(path + ".xml", relates, i + 1);
             }
             throw new Exception("Open Document Error: " + relatePath);
+        }
+
+        private void LoadDocumentToView(DataGridView grid, Document doc)
+        {
+            doc.BeanDefine.BuildGridColumns(grid);
         }
 
         private void openButton_Click(object sender, EventArgs e)
@@ -211,14 +255,15 @@ namespace ConfigEditor
                 this.openFileDialog1.Filter = "(*.xml)|*.xml";
                 if (DialogResult.OK != this.openFileDialog1.ShowDialog())
                     return;
-                Document doc = new Document(this, this.openFileDialog1.FileName);
+                Document doc = new Document(this);
+                doc.SetFileName(this.openFileDialog1.FileName);
                 if (Documents.TryGetValue(doc.RelateName, out var odoc))
                 {
                     if (odoc.Grid != null)
                     {
                         // has opened
                         TabPage tab = (TabPage)odoc.Grid.Parent;
-                        tab.Select();
+                        tabs.SelectedTab = tab;
                     }
                     else
                     {
@@ -227,8 +272,9 @@ namespace ConfigEditor
                         DataGridView grid = (DataGridView)tab.Controls[0];
                         grid.SuspendLayout();
                         tabs.Controls.Add(tab);
-                        tab.Select();
+                        LoadDocumentToView(grid, doc);
                         grid.ResumeLayout();
+                        tabs.SelectedTab = tab;
                         odoc.Grid = grid;
                         grid.Tag = doc;
                     }
@@ -241,8 +287,9 @@ namespace ConfigEditor
                     Documents.Add(doc.RelateName, doc);
                     grid.SuspendLayout();
                     tabs.Controls.Add(tab);
-                    tab.Select();
+                    LoadDocumentToView(grid, doc);
                     grid.ResumeLayout();
+                    tabs.SelectedTab = tab;
                     grid.Tag = doc;
                     doc.Grid = grid;
                 }
