@@ -47,30 +47,26 @@ namespace ConfigEditor
             return r;
         }
 
-        public void BuildGridColumns(DataGridView grid, bool allowAddVar)
+        public void BuildGridColumns(DataGridView grid)
         {
             foreach (var v in Variables)
+            {
                 v.BuildGridColumns(grid);
-
-            if (allowAddVar && false == IsLocked)
-            {
-                // 这里创建的Variable用来新增，不加入Variables。
-                grid.Columns.Add(new DataGridViewColumn(new DataGridViewTextBoxCell()) { HeaderText = ",", Width = 60, Tag = new Variable(this) });
             }
-            DataGridViewCellCollection cells = grid.Rows[grid.Rows.Add()].Cells;
-            BeanDefine current = this;
-            Bean bean = new Bean(this.Document, this);
-            for (int i = 0; i < grid.ColumnCount; ++i)
+            // 这里创建的Variable用来新增，不加入Variables。
+            grid.Columns.Add(new DataGridViewColumn(new DataGridViewTextBoxCell())
+            { HeaderText = ",", Width = 60, Tag = new Variable(this) });
+        }
+
+        public void BuildGridRows(DataGridView grid)
+        {
+            foreach (var rowData in Document.Beans)
             {
-                Variable define = (Variable)grid.Columns[i].Tag;
-                if (define.Parent != current)
+                grid.Rows.Add();
+                foreach (var v in Variables)
                 {
-                    bean = new Bean(this.Document, this);
-                    current = define.Parent;
+                    v.BuildGridLastRow(grid, rowData);
                 }
-                Bean.Variable bv = new Bean.Variable(bean, define.Name) { GridColumnValueWidth = define.GridColumnValueWidth };
-                bean.Variables.Add(bv); // TODO
-                cells[i].Tag = bv;
             }
         }
 

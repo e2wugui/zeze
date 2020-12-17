@@ -15,7 +15,6 @@ namespace ConfigEditor
 
             public Bean Parent { get; set; }
             public List<Bean> Beans { get; } = new List<Bean>(); // 变量是list或者bean的时候用来存储数据。
-            public ConfigEditor.Variable Define { get; private set; }
 
             public XmlElement Self { get; set; }
 
@@ -23,22 +22,6 @@ namespace ConfigEditor
             {
                 this.Parent = bean;
                 this.Name = name;
-                this.Define = bean.Define?.GetVariable(Self.Name);
-            }
-
-            public void SetDefine(BeanDefine bd)
-            {
-                if (null == bd)
-                    return;
-
-                this.Define = bd.GetVariable(Self.Name);
-                if (null == this.Define)
-                    return;
-
-                foreach (var b in Beans)
-                {
-                    b.SetDefine(this.Define.Reference);
-                }
             }
 
             public Variable(Bean bean, XmlElement self)
@@ -101,40 +84,25 @@ namespace ConfigEditor
                 Self.SetAttribute("GridColumnWidth", GridColumnNameWidth.ToString());
                 Self.SetAttribute("GridColumnValueWidth", GridColumnValueWidth.ToString());
 
-                if (null == Define)
+                if (Beans.Count > 0) // 这里没有判断Type，直接根据数据来决定怎么保存。
                 {
-                    Self.InnerText = Value; // TODO 需要测试如果内部包含xml是否会被正确保存。
+                    XmlElement list = Parent.Document.Xml.CreateElement("list");
+                    Self.AppendChild(list);
+                    foreach (var b in Beans)
+                    {
+                        b.Save(list);
+                    }
                 }
                 else
                 {
-                    switch (Define.GetEType())
-                    {
-                        /*
-                        case ConfigEditor.Variable.EType.Bean:
-                            Beans[0].Save(Self);
-                            break;
-                            */
-
-                        case ConfigEditor.Variable.EType.List:
-                            XmlElement list = Parent.Document.Xml.CreateElement("list");
-                            Self.AppendChild(list);
-                            foreach (var b in Beans)
-                            {
-                                b.Save(list);
-                            }
-                            break;
-                        default:
-                            Self.InnerText = Value;
-                            break;
-                    }
+                    Self.InnerText = Value;
                 }
             }
         }
 
-        public List<Variable> Variables { get; } = new List<Variable>();
+        public SortedDictionary<string, Variable> VariableMap { get; } = new SortedDictionary<string, Variable>();
         public XmlElement Self { get; set; }
         public Document Document { get; }
-        public BeanDefine Define { get; private set; }
 
         public Bean(Document doc, XmlElement self)
         {
@@ -147,35 +115,35 @@ namespace ConfigEditor
                 if (XmlNodeType.Element != node.NodeType)
                     continue;
                 XmlElement e = (XmlElement)node;
-                AddVariable(new Variable(this, e));
+                Variable var = new Variable(this, e);
+                VariableMap[var.Name] = var;
             }
         }
 
-        public Bean(Document doc, BeanDefine define)
+        public Bean(Document doc)
         {
             this.Document = doc;
-            this.Define = define;
         }
 
-        public void SetDefine(BeanDefine define)
+        public void AddOrUpdate(ConfigEditor.Variable varDefine, string varValue)
         {
-            this.Define = define;
-            foreach (var e in Variables)
+            if (varDefine.Parent == Document.BeanDefine)
             {
-                e.SetDefine(define);
+                // top level
+                if (VariableMap.TryGetValue(varDefine.Name, out var exist))
+                {
+                    exist.Value = varValue;
+                }
+                else
+                {
+                    VariableMap.Add(varDefine.Name, new Variable(this, varDefine.Name));
+                }
             }
-        }
+            else
+            {
+                // inner level
 
-        public void AddVariable(Variable var)
-        {
-            /*
-            foreach (var e in Variables)
-            {
-                if (e.Name == var.Name)
-                    throw new Exception("Duplicate Variable Name of " + var.Name);
             }
-            */
-            Variables.Add(var);
         }
 
         public void Save(XmlElement parent)
@@ -185,7 +153,7 @@ namespace ConfigEditor
                 Self = Document.Xml.CreateElement("bean");
                 parent.AppendChild(Self);
             }
-            foreach (var v in Variables)
+            foreach (var v in VariableMap.Values)
             {
                 v.Save(Self);
             }

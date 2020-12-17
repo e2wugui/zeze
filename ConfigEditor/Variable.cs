@@ -56,19 +56,34 @@ namespace ConfigEditor
             }
         }
 
-        public void BuildGridColumns(DataGridView grid)
+        public void BuildGridLastRow(DataGridView grid, Bean rowData)
+        {
+            switch (GetEType())
+            {
+                case EType.List:
+                    break;
+                case EType.Enum:
+                    break;
+                default:
+                    break;
+            }
+        }
+
+            public void BuildGridColumns(DataGridView grid)
         {
             switch (GetEType())
             {
                 case EType.List:
                     {
                         DataGridViewCell s = new DataGridViewTextBoxCell() { Value = "[" };
-                        grid.Columns.Add(new DataGridViewColumn(s) { Name = this.Name, Width = 20, Tag = this, HeaderText = "[", ReadOnly = true, ToolTipText = Comment });
+                        grid.Columns.Add(new DataGridViewColumn(s)
+                        { Name = this.Name, Width = 20, Tag = this, HeaderText = "[", ReadOnly = true, ToolTipText = Comment });
                         Parent.Document.Main.OpenDocument(Value, out var r);
                         Reference = r;
-                        r.BuildGridColumns(grid, Parent.Document == r.Document); // 只有当前文件内定义的结构才允许编辑。
+                        r.BuildGridColumns(grid);
                         DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
-                        grid.Columns.Add(new DataGridViewColumn(e) { Name = this.Name, Width = 20, Tag = this, HeaderText = "]", ReadOnly = true, ToolTipText = Comment });
+                        grid.Columns.Add(new DataGridViewColumn(e)
+                        { Name = this.Name, Width = 20, Tag = this, HeaderText = "]", ReadOnly = true, ToolTipText = Comment });
                     }
                     break;
                     /*
@@ -82,14 +97,16 @@ namespace ConfigEditor
                 case EType.Enum:
                     {
                         DataGridViewCell template = new DataGridViewComboBoxCell();
-                        grid.Columns.Add(new DataGridViewColumn(template) { Name = this.Name, Tag = this, Width = GridColumnValueWidth, ToolTipText = Comment });
+                        grid.Columns.Add(new DataGridViewColumn(template)
+                        { Name = this.Name, Tag = this, Width = GridColumnValueWidth, ToolTipText = Comment });
                     }
                     break;
 
                 default:
                     {
                         DataGridViewCell template = new DataGridViewTextBoxCell();
-                        grid.Columns.Add(new DataGridViewColumn(template) { Name = this.Name, Tag = this, Width = GridColumnValueWidth, ToolTipText = Comment });
+                        grid.Columns.Add(new DataGridViewColumn(template)
+                        { Name = this.Name, Tag = this, Width = GridColumnValueWidth, ToolTipText = Comment });
                     }
                     break;
             }

@@ -96,29 +96,24 @@ namespace ConfigEditor
 
             Document doc = (Document)grid.Tag;
             DataGridViewColumn col = grid.Columns[e.ColumnIndex];
-            Variable var = (Variable)col.Tag;
-            if (null == var.Name)
+            Variable vardefine = (Variable)col.Tag;
+            if (null == vardefine.Name)
             {
                 // 新增变量
-                var.Name = Microsoft.VisualBasic.Interaction.InputBox("输入新增变量的名字", "输入名字", "", 0, 0);
-                var.Parent.Variables.Add(var);
-                var.GridColumnValueWidth = col.Width;
-                grid.Columns[e.ColumnIndex].HeaderText = var.Name;
-                grid.Columns.Insert(e.ColumnIndex, new DataGridViewColumn(new DataGridViewTextBoxCell())
-                {
-                    HeaderText = ",", Width = 60, Tag = new Variable(var.Parent)
-                });
+                vardefine.Name = Microsoft.VisualBasic.Interaction.InputBox("输入新增变量的名字", "输入名字", "", 0, 0);
+                vardefine.Parent.Variables.Add(vardefine);
+                vardefine.GridColumnValueWidth = col.Width;
+                grid.Columns[e.ColumnIndex].HeaderText = vardefine.Name;
+                grid.Columns.Insert(e.ColumnIndex + 1, new DataGridViewColumn(new DataGridViewTextBoxCell())
+                { HeaderText = ",", Width = 60, Tag = new Variable(vardefine.Parent) });
             }
             if (e.RowIndex == grid.RowCount - 1) // is last row
             {
-                /*
-                Bean newb = new Bean(doc);
-                newb.SetDefine(doc.BeanDefine);
-                newb.Variables.Add(new Bean.Variable(newb) { Name = var.Name, Value = , GridColumnValueWidth = col.Width });
-                doc.Beans.Add(newb);
-                */
+                doc.Beans.Add(new Bean(doc));
                 grid.Rows.Add();
             }
+            string value = (string)grid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
+            doc.Beans[e.RowIndex].AddOrUpdate(vardefine, value); xxx
         }
 
         private TabPage NewTabPage(string text)
@@ -156,7 +151,7 @@ namespace ConfigEditor
             DataGridView grid = (DataGridView)tab.Controls[0];
             grid.Tag = doc;
             doc.Grid = grid;
-            doc.BeanDefine.BuildGridColumns(grid, true);
+            doc.BeanDefine.BuildGridColumns(grid);
             tabs.SelectedTab = tab;
         }
 
@@ -249,7 +244,9 @@ namespace ConfigEditor
 
         private void LoadDocumentToView(DataGridView grid, Document doc)
         {
-            doc.BeanDefine.BuildGridColumns(grid, true);
+            doc.BeanDefine.BuildGridColumns(grid);
+            doc.BeanDefine.BuildGridRows(grid);
+            grid.Rows.Add();
         }
 
         private void openButton_Click(object sender, EventArgs e)

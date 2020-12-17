@@ -104,12 +104,7 @@ namespace ConfigEditor
                 }
             }
             if (null == BeanDefine)
-                throw new Exception("BeanDefine Lost"); // TODO rebuild?
-
-            foreach (var data in Beans)
-            {
-                data.SetDefine(this.BeanDefine);
-            }
+                throw new Exception("BeanDefine Lost"); // rebuild?
         }
     }
 
