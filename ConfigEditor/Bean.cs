@@ -147,11 +147,11 @@ namespace ConfigEditor
             ++pathIndex;
             if (pathIndex == tag.Path.Count)
             {
-                if (varInfo.Define.GetEType() == Variable.EType.List)
+                if (varInfo.Define.GetEType() == VarDefine.EType.List)
                     throw new Exception("End Of Path. But Var Is A List");
                 return varData; // last
             }
-            if (varInfo.Define.GetEType() == Variable.EType.List)
+            if (varInfo.Define.GetEType() == VarDefine.EType.List)
             {
                 if (varInfo.Index >= varData.Beans.Count)
                 {

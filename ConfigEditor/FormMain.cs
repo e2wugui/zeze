@@ -109,7 +109,7 @@ namespace ConfigEditor
                         continue;
                     break;
                 }
-                Variable varDefine = new Variable(tag.BeanDefine) { Name = varName, GridColumnValueWidth = col.Width };
+                VarDefine varDefine = new VarDefine(tag.BeanDefine) { Name = varName, GridColumnValueWidth = col.Width };
                 tag.AddVar(varDefine, -1); // TODO List 需要增加开头结束，以及增加变量的列‘,'.
                 tag.BeanDefine.Variables.Add(varDefine);
                 grid.Columns[e.ColumnIndex].HeaderText = varDefine.Name;

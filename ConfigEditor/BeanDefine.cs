@@ -9,7 +9,7 @@ namespace ConfigEditor
     {
         public string Name { get; set; }
         public List<Enum> Enums { get; } = new List<Enum>();
-        public List<Variable> Variables { get; } = new List<Variable>();
+        public List<VarDefine> Variables { get; } = new List<VarDefine>();
         public List<BeanDefine> BeanDefines { get; } = new List<BeanDefine>();
 
         public XmlElement Self { get; private set; }
@@ -17,7 +17,7 @@ namespace ConfigEditor
         public BeanDefine Parent { get; }
         public bool IsLocked { get; set; } = false;
 
-        public Variable GetVariable(string name)
+        public VarDefine GetVariable(string name)
         {
             foreach (var v in Variables)
             {
@@ -121,7 +121,7 @@ namespace ConfigEditor
                         BeanDefines.Add(new BeanDefine(Document, e, this));
                         break;
                     case "variable":
-                        Variables.Add(new Variable(this, e));
+                        Variables.Add(new VarDefine(this, e));
                         break;
                     case "enum":
                         Enums.Add(new Enum(this, e));
