@@ -89,6 +89,25 @@ namespace ConfigEditor
             this.TopMost = false;
         }
 
+        private void LoadDocumentToView(DataGridView grid, Document doc)
+        {
+            doc.BeanDefine.BuildGridColumns(grid, new ColumnTag() { BeanDefine = doc.BeanDefine, });
+            foreach (var bean in doc.Beans)
+            {
+                grid.Rows.Add();
+                DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
+                for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex) // ColumnCount maybe change in loop
+                {
+                    ColumnTag tag = (ColumnTag)grid.Columns[colIndex].Tag;
+                    // TODO BuildColumn for list
+                    Bean.VarData data = bean.GetVarDataByPath(tag, 0);
+                    if (null != data)
+                        cells[colIndex].Value = data.Value;
+                }
+            }
+            grid.Rows.Add(); // prepare row to add data
+        }
+
         public void OnGridCellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             DataGridView grid = (DataGridView)sender;
@@ -97,9 +116,8 @@ namespace ConfigEditor
             Document doc = (Document)grid.Tag;
             DataGridViewColumn col = grid.Columns[e.ColumnIndex];
             ColumnTag tag = (ColumnTag)col.Tag;
-            if (0 == tag.Path.Count)
+            if (0 == tag.Path.Count) // TODO 嵌套定义增加变量识别问题。
             {
-
                 string varName = null;
                 while (true)
                 {
@@ -115,7 +133,11 @@ namespace ConfigEditor
                 grid.Columns[e.ColumnIndex].HeaderText = varDefine.Name;
 
                 grid.Columns.Insert(e.ColumnIndex + 1, new DataGridViewColumn(new DataGridViewTextBoxCell())
-                { HeaderText = ",", Width = 60, Tag = new ColumnTag() { BeanDefine = tag.BeanDefine } });
+                {
+                    HeaderText = ",",
+                    Width = 60,
+                    Tag = new ColumnTag() { BeanDefine = tag.BeanDefine }
+                });
             }
             if (e.RowIndex == grid.RowCount - 1) // is last row
             {
@@ -251,25 +273,6 @@ namespace ConfigEditor
                 return OpenDocument(path + ".xml", relates, i + 1, out define);
             }
             throw new Exception("Open Document Error: " + relatePath);
-        }
-
-        private void LoadDocumentToView(DataGridView grid, Document doc)
-        {
-            doc.BeanDefine.BuildGridColumns(grid, new ColumnTag() { BeanDefine = doc.BeanDefine, });
-            foreach (var bean in doc.Beans)
-            {
-                grid.Rows.Add();
-                DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
-                for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex) // ColumnCount maybe change in loop
-                {
-                    ColumnTag tag = (ColumnTag)grid.Columns[colIndex].Tag;
-                    // TODO BuildColumn for list
-                    Bean.VarData data = bean.GetVarDataByPath(tag, 0);
-                    if (null != data)
-                        cells[colIndex].Value = data.Value;
-                }
-            }
-            grid.Rows.Add(); // prepare row to add data
         }
 
         private void openButton_Click(object sender, EventArgs e)
