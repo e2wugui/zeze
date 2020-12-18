@@ -96,16 +96,26 @@ namespace ConfigEditor
 
             Document doc = (Document)grid.Tag;
             DataGridViewColumn col = grid.Columns[e.ColumnIndex];
-            Variable vardefine = (Variable)col.Tag;
-            if (null == vardefine.Name)
+            ColumnTag tag = (ColumnTag)col.Tag;
+            if (0 == tag.Path.Count)
             {
-                // 新增变量
-                vardefine.Name = Microsoft.VisualBasic.Interaction.InputBox("输入新增变量的名字", "输入名字", "", 0, 0);
-                vardefine.Parent.Variables.Add(vardefine);
-                vardefine.GridColumnValueWidth = col.Width;
-                grid.Columns[e.ColumnIndex].HeaderText = vardefine.Name;
+
+                string varName = null;
+                while (true)
+                {
+                    // 新增变量 TODO 自定义输入窗口，可以选择变量是否为List，并且选择引用的BeanDefine（可选）
+                    Microsoft.VisualBasic.Interaction.InputBox("输入新增变量的名字", "输入名字", "", 0, 0);
+                    if (varName == null || varName.Length == 0)
+                        continue;
+                    break;
+                }
+                Variable varDefine = new Variable(tag.BeanDefine) { Name = varName, GridColumnValueWidth = col.Width };
+                tag.AddVar(varDefine, -1); // TODO List 需要增加开头结束，以及增加变量的列‘,'.
+                tag.BeanDefine.Variables.Add(varDefine);
+                grid.Columns[e.ColumnIndex].HeaderText = varDefine.Name;
+
                 grid.Columns.Insert(e.ColumnIndex + 1, new DataGridViewColumn(new DataGridViewTextBoxCell())
-                { HeaderText = ",", Width = 60, Tag = new Variable(vardefine.Parent) });
+                { HeaderText = ",", Width = 60, Tag = new ColumnTag() { BeanDefine = tag.BeanDefine } });
             }
             if (e.RowIndex == grid.RowCount - 1) // is last row
             {
@@ -113,7 +123,8 @@ namespace ConfigEditor
                 grid.Rows.Add();
             }
             string value = (string)grid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
-            doc.Beans[e.RowIndex].AddOrUpdate(vardefine, value); xxx
+            var varData = doc.Beans[e.RowIndex].GetVarDataByPath(tag, 0, true);
+            varData.Value = value;
         }
 
         private TabPage NewTabPage(string text)
@@ -151,7 +162,7 @@ namespace ConfigEditor
             DataGridView grid = (DataGridView)tab.Controls[0];
             grid.Tag = doc;
             doc.Grid = grid;
-            doc.BeanDefine.BuildGridColumns(grid);
+            doc.BeanDefine.BuildGridColumns(grid, new ColumnTag() { BeanDefine = doc.BeanDefine, });
             tabs.SelectedTab = tab;
         }
 
@@ -244,9 +255,21 @@ namespace ConfigEditor
 
         private void LoadDocumentToView(DataGridView grid, Document doc)
         {
-            doc.BeanDefine.BuildGridColumns(grid);
-            doc.BeanDefine.BuildGridRows(grid);
-            grid.Rows.Add();
+            doc.BeanDefine.BuildGridColumns(grid, new ColumnTag() { BeanDefine = doc.BeanDefine, });
+            foreach (var bean in doc.Beans)
+            {
+                grid.Rows.Add();
+                DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
+                for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex) // ColumnCount maybe change in loop
+                {
+                    ColumnTag tag = (ColumnTag)grid.Columns[colIndex].Tag;
+                    // TODO BuildColumn for list
+                    Bean.VarData data = bean.GetVarDataByPath(tag, 0);
+                    if (null != data)
+                        cells[colIndex].Value = data.Value;
+                }
+            }
+            grid.Rows.Add(); // prepare row to add data
         }
 
         private void openButton_Click(object sender, EventArgs e)

@@ -47,27 +47,19 @@ namespace ConfigEditor
             return r;
         }
 
-        public void BuildGridColumns(DataGridView grid)
+        public void BuildGridColumns(DataGridView grid, ColumnTag tag)
         {
             foreach (var v in Variables)
             {
-                v.BuildGridColumns(grid);
+                v.BuildGridColumns(grid, tag);
             }
-            // 这里创建的Variable用来新增，不加入Variables。
+            // 这里创建的列用来新增。
             grid.Columns.Add(new DataGridViewColumn(new DataGridViewTextBoxCell())
-            { HeaderText = ",", Width = 60, Tag = new Variable(this) });
-        }
-
-        public void BuildGridRows(DataGridView grid)
-        {
-            foreach (var rowData in Document.Beans)
             {
-                grid.Rows.Add();
-                foreach (var v in Variables)
-                {
-                    v.BuildGridLastRow(grid, rowData);
-                }
-            }
+                HeaderText = ",",
+                Width = 60,
+                Tag = tag.Copy(),
+            });
         }
 
         public BeanDefine CreateSubBeanDefine(string name)

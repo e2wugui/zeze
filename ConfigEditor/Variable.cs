@@ -56,49 +56,49 @@ namespace ConfigEditor
             }
         }
 
-        public void BuildGridLastRow(DataGridView grid, Bean rowData)
-        {
-            switch (GetEType())
-            {
-                case EType.List:
-                    break;
-                case EType.Enum:
-                    break;
-                default:
-                    break;
-            }
-        }
-
-            public void BuildGridColumns(DataGridView grid)
+        public void BuildGridColumns(DataGridView grid, ColumnTag tag)
         {
             switch (GetEType())
             {
                 case EType.List:
                     {
+                        tag = tag.Copy().AddVar(this, -1);
                         DataGridViewCell s = new DataGridViewTextBoxCell() { Value = "[" };
                         grid.Columns.Add(new DataGridViewColumn(s)
-                        { Name = this.Name, Width = 20, Tag = this, HeaderText = "[", ReadOnly = true, ToolTipText = Comment });
+                        {
+                            Name = this.Name,
+                            Width = 20,
+                            HeaderText = "[",
+                            ReadOnly = true,
+                            ToolTipText = Comment,
+                            Tag = tag,
+                        });
                         Parent.Document.Main.OpenDocument(Value, out var r);
                         Reference = r;
-                        r.BuildGridColumns(grid);
+                        r.BuildGridColumns(grid, tag);
                         DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
                         grid.Columns.Add(new DataGridViewColumn(e)
-                        { Name = this.Name, Width = 20, Tag = this, HeaderText = "]", ReadOnly = true, ToolTipText = Comment });
+                        {
+                            Name = this.Name,
+                            Width = 20,
+                            HeaderText = "]",
+                            ReadOnly = true,
+                            ToolTipText = Comment,
+                            Tag = tag,
+                        });
                     }
                     break;
-                    /*
-                case EType.Bean:
-                    Parent.Document.Main.OpenDocument(Type, out var r);
-                    Reference = r;
-                    r.BuildGridColumns(grid);
-                    break;
-                    */
 
                 case EType.Enum:
                     {
                         DataGridViewCell template = new DataGridViewComboBoxCell();
                         grid.Columns.Add(new DataGridViewColumn(template)
-                        { Name = this.Name, Tag = this, Width = GridColumnValueWidth, ToolTipText = Comment });
+                        {
+                            Name = this.Name,
+                            Width = GridColumnValueWidth,
+                            ToolTipText = Comment,
+                            Tag = tag.Copy().AddVar(this, -1),
+                        });
                     }
                     break;
 
@@ -106,7 +106,12 @@ namespace ConfigEditor
                     {
                         DataGridViewCell template = new DataGridViewTextBoxCell();
                         grid.Columns.Add(new DataGridViewColumn(template)
-                        { Name = this.Name, Tag = this, Width = GridColumnValueWidth, ToolTipText = Comment });
+                        {
+                            Name = this.Name,
+                            Width = GridColumnValueWidth,
+                            ToolTipText = Comment,
+                            Tag = tag.Copy().AddVar(this, -1),
+                        });
                     }
                     break;
             }
