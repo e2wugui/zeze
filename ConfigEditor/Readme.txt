@@ -19,4 +19,4 @@ TODO
 	Bean变量的删除。
 	List中对象的删除。
 	List增加对象。
-
+	List.Bean Ref 验证。
