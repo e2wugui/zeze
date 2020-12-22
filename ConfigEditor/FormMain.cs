@@ -198,7 +198,7 @@ namespace ConfigEditor
                                         && tagref.PathLast.Define.Parent == tag.PathLast.Define.Parent)
                                     {
                                         c += varDefine.BuildGridColumns(gridref, c,
-                                            tag.Parent(ColumnTag.ETag.Normal), tagref.PathLast.ListIndex, true);
+                                            tagref.Parent(ColumnTag.ETag.Normal), tagref.PathLast.ListIndex, true);
                                         changed = true;
                                     }
                                 }

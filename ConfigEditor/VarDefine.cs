@@ -90,9 +90,8 @@ namespace ConfigEditor
                         Parent.Document.Main.OpenDocument(Value, out var r, createRefBeanIfNotExist);
                         Reference = r ?? throw new Exception("list reference bean not found: " + Value);
                         ++columnIndex;
-                        int colAdded = r.BuildGridColumns(grid, columnIndex,
-                            tag.Copy(tag.Tag).AddVar(this, listIndex >= 0 ? listIndex : 0),
-                            -1, createRefBeanIfNotExist);
+                        int li2 = listIndex >= 0 ? listIndex : 0;
+                        int colAdded = r.BuildGridColumns(grid, columnIndex, tag.Copy(tag.Tag).AddVar(this, li2), li2, createRefBeanIfNotExist);
                         DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
                         columnIndex += colAdded;
                         string listEndText = "]" + this.Name;

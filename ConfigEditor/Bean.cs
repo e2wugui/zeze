@@ -164,7 +164,7 @@ namespace ConfigEditor
                 {
                     if (EUpdate.Data != uptype)
                         continue; // data not found. done.
-                    varData = new VarData(this, varInfo.Define.Name) { Value = newValue };
+                    varData = new VarData(this, varInfo.Define.Name);
                     VariableMap.Add(varInfo.Define.Name, varData);
                 }
                 if (varInfo.Define.GetEType() == VarDefine.EType.List)
