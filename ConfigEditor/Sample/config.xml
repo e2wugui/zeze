@@ -1,31 +1,4 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ZezeConfig>
-  <BeanDefine name="config">
-    <BeanDefine name="list">
-      <variable name="var1" nw="0" vw="60" />
-      <variable name="var2" nw="0" vw="60" />
-    </BeanDefine>
-    <variable name="list" type="list" value="config.list" nw="0" vw="60" />
-    <variable name="listref" type="list" value="config.list" nw="0" vw="60" />
-  </BeanDefine>
-  <bean>
-    <list nw="0" vw="0">
-      <list>
-        <bean>
-          <var1 nw="0" vw="0">3</var1>
-          <var2 nw="0" vw="0">4</var2>
-        </bean>
-      </list>
-    </list>
-  </bean>
-  <bean>
-    <list nw="0" vw="0">
-      <list>
-        <bean>
-          <var1 nw="0" vw="0">7</var1>
-          <var2 nw="0" vw="0">8</var2>
-        </bean>
-      </list>
-    </list>
-  </bean>
+  <BeanDefine name="config"/>
 </ZezeConfig>

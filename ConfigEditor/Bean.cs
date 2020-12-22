@@ -138,17 +138,23 @@ namespace ConfigEditor
             this.Document = doc;
         }
 
-        public void Update(DataGridView grid, DataGridViewCellCollection cells, ref int colIndex, int colEnd,
-            int pathIndex, bool createIfNotExist, string newValue)
+        public enum EUpdate
+        {
+            Data,
+            Grid,
+        }
+
+        public bool Update(DataGridView grid, DataGridViewCellCollection cells,
+            ref int colIndex, int pathIndex, EUpdate uptype, string newValue = null)
         {
             // ColumnCount maybe change in loop
-            for (; colIndex < colEnd; ++colIndex)
+            for (; colIndex < grid.ColumnCount; ++colIndex)
             {
                 ColumnTag tag = (ColumnTag)grid.Columns[colIndex].Tag;
                 switch (tag.Tag)
                 {
                     case ColumnTag.ETag.AddVariable:
-                        return; // end of bean
+                        return false; // end of bean
                     case ColumnTag.ETag.ListStart:
                         continue;
                 }
@@ -156,7 +162,7 @@ namespace ConfigEditor
                 ColumnTag.VarInfo varInfo = tag.Path[pathIndex];
                 if (false == VariableMap.TryGetValue(varInfo.Define.Name, out var varData))
                 {
-                    if (false == createIfNotExist)
+                    if (EUpdate.Data != uptype)
                         continue; // data not found. done.
                     varData = new VarData(this, varInfo.Define.Name) { Value = newValue };
                     VariableMap.Add(varInfo.Define.Name, varData);
@@ -180,7 +186,7 @@ namespace ConfigEditor
                     }
                     if (varInfo.ListIndex >= varData.Beans.Count)
                     {
-                        if (createIfNotExist)
+                        if (EUpdate.Data == uptype)
                         {
                             for (int i = varData.Beans.Count; i < varInfo.ListIndex; ++i)
                             {
@@ -188,7 +194,8 @@ namespace ConfigEditor
                             }
                             Bean create = new Bean(Document);
                             varData.Beans.Add(create);
-                            create.Update(grid, cells, ref colIndex, colEnd, pathIndex + 1, createIfNotExist, newValue);
+                            if (create.Update(grid, cells, ref colIndex, pathIndex + 1, uptype, newValue))
+                                return true;
                         }
                         continue;
                     }
@@ -196,24 +203,33 @@ namespace ConfigEditor
                     Bean bean = varData.Beans[varInfo.ListIndex];
                     if (null != bean)
                     {
-                        bean.Update(grid, cells, ref colIndex, colEnd, pathIndex + 1, createIfNotExist, newValue);
+                        if (bean.Update(grid, cells, ref colIndex, pathIndex + 1, uptype, newValue))
+                            return true;
                         continue;
                     }
-                    if (createIfNotExist)
+                    if (EUpdate.Data == uptype)
                     {
                         Bean create = new Bean(Document);
                         varData.Beans[varInfo.ListIndex] = create;
-                        create.Update(grid, cells, ref colIndex, colEnd, pathIndex + 1, createIfNotExist, newValue);
+                        if (create.Update(grid, cells, ref colIndex, pathIndex + 1, uptype, newValue))
+                            return true;
                     }
                     continue;
                 }
                 if (pathIndex + 1 != tag.Path.Count)
                     throw new Exception("Remain Path, But Is Not A List");
-                if (null != newValue)
+                if (EUpdate.Data == uptype)
+                {
                     varData.Value = newValue; // OnGridCellEndEdit save data
+                    return true;
+                }
                 else
+                {
                     cells[colIndex].Value = varData.Value; // upate to grid
+                    return false;
+                }
             }
+            return true;
         }
 
         public void Save(XmlElement parent)

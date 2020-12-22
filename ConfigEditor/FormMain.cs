@@ -98,7 +98,8 @@ namespace ConfigEditor
                 AddGridRow(grid);
                 DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
                 int colIndex = 0;
-                bean.Update(grid, cells, ref colIndex, grid.ColumnCount, 0, false, null);
+                if (bean.Update(grid, cells, ref colIndex, 0, Bean.EUpdate.Grid, null))
+                    break;
             }
             AddGridRow(grid);
         }
@@ -121,7 +122,7 @@ namespace ConfigEditor
             DataGridViewCellCollection cells = grid.Rows[e.RowIndex].Cells;
             string value = (string)cells[e.ColumnIndex].Value;
             int colIndex = e.ColumnIndex;
-            doc.Beans[e.RowIndex].Update(grid, cells, ref colIndex, e.ColumnIndex + 1, 0, true, value);
+            doc.Beans[e.RowIndex].Update(grid, cells, ref colIndex, 0, Bean.EUpdate.Data, value);
         }
 
         public bool VerifyName(string name, bool showMsg = true)
@@ -196,7 +197,8 @@ namespace ConfigEditor
                                     if (tagref.Tag == ColumnTag.ETag.AddVariable
                                         && tagref.PathLast.Define.Parent == tag.PathLast.Define.Parent)
                                     {
-                                        c += varDefine.BuildGridColumns(gridref, c, tag.Parent(ColumnTag.ETag.Normal), -1, true);
+                                        c += varDefine.BuildGridColumns(gridref, c,
+                                            tag.Parent(ColumnTag.ETag.Normal), tagref.PathLast.ListIndex, true);
                                         changed = true;
                                     }
                                 }

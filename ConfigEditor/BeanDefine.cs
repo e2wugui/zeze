@@ -67,7 +67,7 @@ namespace ConfigEditor
                 HeaderText = ",",
                 Width = 20,
                 ReadOnly = true,
-                Tag = tag.Copy(ColumnTag.ETag.AddVariable).AddVar(new VarDefine(this), -1),
+                Tag = tag.Copy(ColumnTag.ETag.AddVariable).AddVar(new VarDefine(this), listIndex),
             });
             for (int i = 0; i < grid.RowCount; ++i)
             {
