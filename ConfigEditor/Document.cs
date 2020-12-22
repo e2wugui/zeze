@@ -17,6 +17,7 @@ namespace ConfigEditor
 
         public List<Bean> Beans { get; } = new List<Bean>();
         public FormMain Main { get; }
+        public bool IsChanged { get; set; } = false;
 
         public void SetFileName(string fileName)
         {

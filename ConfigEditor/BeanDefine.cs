@@ -16,7 +16,7 @@ namespace ConfigEditor
         public Document Document { get; }
         public BeanDefine Parent { get; }
         public bool IsLocked { get; set; } = false;
-
+        
         public VarDefine GetVariable(string name)
         {
             foreach (var v in Variables)
@@ -36,6 +36,7 @@ namespace ConfigEditor
             }
             if (createRefBeanIfNotExist)
             {
+                Document.IsChanged = true;
                 BeanDefine sub = new BeanDefine(Document, name, this);
                 BeanDefines.Add(sub);
                 return sub;

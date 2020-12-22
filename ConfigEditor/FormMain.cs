@@ -112,7 +112,7 @@ namespace ConfigEditor
                 return; // 不可能。特殊列都是不可编辑的。
 
             Document doc = (Document)grid.Tag;
-            ((TabPage)grid.Parent).Tag = 1; // setup changed
+            doc.IsChanged = true;
             if (e.RowIndex == grid.RowCount - 1) // is last row
             {
                 doc.Beans.Add(new Bean(doc));
@@ -201,8 +201,7 @@ namespace ConfigEditor
                                     }
                                 }
                                 gridref.ResumeLayout();
-                                if (changed)
-                                    ((TabPage)gridref.Parent).Tag = 1; // setup changed
+                                ((Document)gridref.Tag).IsChanged = changed;
                             }
                         }
                         break;
@@ -302,7 +301,6 @@ namespace ConfigEditor
                 doc.Save();
                 grid.Tag = doc;
                 doc.Grid = grid;
-                tab.Tag = null;
                 doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1, false);
                 AddGridRow(grid);
 
@@ -318,17 +316,15 @@ namespace ConfigEditor
 
         private Dictionary<string, Document> Documents = new Dictionary<string, Document>();
 
-        private bool Save(TabPage tab)
+        private bool Save(Document doc)
         {
             try
             {
-                if (tab == null || tab.Tag == null) // Tag changed
-                    return true;
-
-                DataGridView grid = (DataGridView)tab.Controls[0];
-                Document doc = (Document)grid.Tag;
-                doc.Save();
-                tab.Tag = null;
+                if (doc.IsChanged)
+                {
+                    doc.Save();
+                    doc.IsChanged = false;
+                }
                 return true;
             }
             catch (Exception ex)
@@ -340,7 +336,9 @@ namespace ConfigEditor
 
         private void saveButton_Click(object sender, EventArgs e)
         {
-            Save(tabs.SelectedTab);
+            if (null == tabs.SelectedTab)
+                return;
+            Save((Document)tabs.SelectedTab.Controls[0].Tag);
         }
 
         private Document OpenDocument(string path, string[]refbeans, int offset, out BeanDefine define, bool createRefBeanIfNotExist)
@@ -430,10 +428,9 @@ namespace ConfigEditor
 
         private bool SaveAll()
         {
-            System.Collections.IEnumerator ie = tabs.Controls.GetEnumerator();
-            while (ie.MoveNext())
+            foreach (var doc in Documents.Values)
             {
-                if (false == Save((TabPage)ie.Current))
+                if (false == Save(doc))
                     return false;
             }
             return true;
