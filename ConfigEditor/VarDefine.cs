@@ -88,7 +88,7 @@ namespace ConfigEditor
                             grid.Rows[i].Cells[columnIndex].Value = listStartText;
                         }
                         Parent.Document.Main.OpenDocument(Value, out var r, createRefBeanIfNotExist);
-                        Reference = r;
+                        Reference = r ?? throw new Exception("list reference bean not found: " + Value);
                         ++columnIndex;
                         int colAdded = r.BuildGridColumns(grid, columnIndex,
                             tag.Copy(tag.Tag).AddVar(this, listIndex >= 0 ? listIndex : 0),

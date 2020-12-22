@@ -15,8 +15,6 @@
 
 TODO
 	类型识别和Gen。
-	Bean的定义变化时更新所有引用的地方。
 	Bean变量的删除。
 	List中对象的删除。
 	List增加对象。
-	List.Bean Ref 验证。
