@@ -133,53 +133,81 @@ namespace ConfigEditor
             this.Document = doc;
         }
 
-        public VarData GetVarDataByPath(ColumnTag tag, int pathIndex, bool createIfNotExist = false)
+        public void SetDataToGrid(DataGridView grid, DataGridViewCellCollection cells, ref int colIndex, int pathIndex, bool createIfNotExist = false)
         {
-            ColumnTag.VarInfo varInfo = tag.Path[pathIndex];
-            if (false == VariableMap.TryGetValue(varInfo.Define.Name, out var varData))
+            // ColumnCount maybe change in loop
+            for (; colIndex < grid.ColumnCount; ++colIndex)
             {
-                if (false == createIfNotExist)
-                    return null; // data not found. done.
-                varData = new VarData(this, varInfo.Define.Name);
-                VariableMap.Add(varInfo.Define.Name, varData);
-            }
-
-            ++pathIndex;
-            if (pathIndex == tag.Path.Count)
-            {
-                if (varInfo.Define.GetEType() == VarDefine.EType.List)
-                    throw new Exception("End Of Path. But Var Is A List");
-                return varData; // last
-            }
-            if (varInfo.Define.GetEType() == VarDefine.EType.List)
-            {
-                if (varInfo.Index >= varData.Beans.Count)
+                ColumnTag tag = (ColumnTag)grid.Columns[colIndex].Tag;
+                switch (tag.Tag)
                 {
+                    case ColumnTag.ETag.AddVariable:
+                        return; // end of bean
+                    case ColumnTag.ETag.ListStart:
+                        continue;
+                }
+
+                ColumnTag.VarInfo varInfo = tag.Path[pathIndex];
+                if (false == VariableMap.TryGetValue(varInfo.Define.Name, out var varData))
+                {
+                    if (false == createIfNotExist)
+                        continue; // data not found. done.
+                    varData = new VarData(this, varInfo.Define.Name);
+                    VariableMap.Add(varInfo.Define.Name, varData);
+                }
+                ++pathIndex;
+                if (pathIndex == tag.Path.Count)
+                {
+                    if (varInfo.Define.GetEType() == VarDefine.EType.List)
+                        throw new Exception("End Of Path. But Var Is A List");
+                    cells[colIndex].Value = varData.Value; // last
+                    continue;
+                }
+                if (varInfo.Define.GetEType() == VarDefine.EType.List)
+                {
+                    if (tag.Tag == ColumnTag.ETag.ListEnd)
+                    {
+                        int curListCount = -varInfo.Index;
+                        int add = 0;
+                        for (int i = curListCount; i < varData.Beans.Count; ++i)
+                        {
+                            add += tag.BeanDefine.BuildGridColumns(grid, colIndex + add, tag.Copy(ColumnTag.ETag.Normal), i, false);
+                        }
+                        if (add > 0)
+                            --colIndex; // 新增加了列，回退一列，继续装载数据。
+                        continue;
+                    }
+                    if (varInfo.Index >= varData.Beans.Count)
+                    {
+                        if (createIfNotExist)
+                        {
+                            for (int i = varData.Beans.Count; i < varInfo.Index; ++i)
+                            {
+                                varData.Beans.Add(null); // List中间的Bean先使用null填充。
+                            }
+                            Bean create = new Bean(Document);
+                            varData.Beans.Add(create);
+                            create.SetDataToGrid(grid, cells, ref colIndex, pathIndex, createIfNotExist);
+                        }
+                        continue;
+                    }
+
+                    Bean bean = varData.Beans[varInfo.Index];
+                    if (null != bean)
+                    {
+                        bean.SetDataToGrid(grid, cells, ref colIndex, pathIndex, createIfNotExist);
+                        continue;
+                    }
                     if (createIfNotExist)
                     {
-                        for (int i = varData.Beans.Count; i < varInfo.Index; ++i)
-                        {
-                            varData.Beans.Add(null); // List中间的Bean先使用null填充。
-                        }
                         Bean create = new Bean(Document);
-                        varData.Beans.Add(create);
-                        return create.GetVarDataByPath(tag, pathIndex, createIfNotExist);
+                        varData.Beans[varInfo.Index] = create;
+                        create.SetDataToGrid(grid, cells, ref colIndex, pathIndex, createIfNotExist);
                     }
-                    return null;
+                    continue;
                 }
-                Bean bean = varData.Beans[varInfo.Index];
-                if (null != bean)
-                    return bean.GetVarDataByPath(tag, pathIndex, createIfNotExist);
-
-                if (createIfNotExist)
-                {
-                    Bean create = new Bean(Document);
-                    varData.Beans[varInfo.Index] = create;
-                    return create.GetVarDataByPath(tag, pathIndex, createIfNotExist);
-                }
-                return null;
+                throw new Exception("Remain Path, But Is Not A List");
             }
-            throw new Exception("Remain Path, But Is Not A List");
         }
 
         public void Save(XmlElement parent)

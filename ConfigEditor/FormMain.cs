@@ -99,8 +99,7 @@ namespace ConfigEditor
                 for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex) // ColumnCount maybe change in loop
                 {
                     ColumnTag tag = (ColumnTag)grid.Columns[colIndex].Tag;
-                    // TODO BuildColumn for list
-                    Bean.VarData data = bean.GetVarDataByPath(tag, 0);
+                    Bean.VarData data = bean.SetVarDataToGrid(tag, 0);
                     if (null != data)
                         cells[colIndex].Value = data.Value;
                 }
@@ -124,7 +123,7 @@ namespace ConfigEditor
                 AddGridRow(grid);
             }
             string value = (string)grid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
-            var varData = doc.Beans[e.RowIndex].GetVarDataByPath(tag, 0, true);
+            var varData = doc.Beans[e.RowIndex].SetVarDataToGrid(tag, 0, true);
             varData.Value = value;
         }
 
