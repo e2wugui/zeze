@@ -130,6 +130,14 @@ namespace ConfigEditor
                 throw new Exception("name cannot empty.");
             if (char.IsDigit(name[0]))
                 throw new Exception("name cannot begin with number.");
+            switch (name)
+            {
+                case "bean":
+                case "list":
+                case "BeanDefine":
+                case "variable":
+                    throw new Exception(name + " is reserved");
+            }
             foreach (var c in name)
             {
                 if (char.IsWhiteSpace(c) || c == '.')
