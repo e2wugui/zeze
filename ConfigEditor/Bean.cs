@@ -16,7 +16,7 @@ namespace ConfigEditor
 
             public Bean Parent { get; set; }
             public List<Bean> Beans { get; } = new List<Bean>(); // 变量是list或者bean的时候用来存储数据。
-
+            public XmlElement SelfList { get; set; }
             public XmlElement Self { get; set; }
 
             public VarData(Bean bean, string name)
@@ -31,9 +31,9 @@ namespace ConfigEditor
                 this.Self = self;
                 this.Name = self.Name;
 
-                string v = self.GetAttribute("GridColumnWidth");
+                string v = self.GetAttribute("nw");
                 this.GridColumnNameWidth = v.Length > 0 ? int.Parse(v) : 0;
-                v = self.GetAttribute("GridColumnValueWidth");
+                v = self.GetAttribute("vw");
                 this.GridColumnValueWidth = v.Length > 0 ? int.Parse(v) : 0;
 
                 XmlNodeList childNodes = self.ChildNodes;
@@ -46,6 +46,9 @@ namespace ConfigEditor
                     switch (e.Name)
                     {
                         case "list":
+                            if (null != SelfList)
+                                throw new Exception("duplicate list");
+                            SelfList = e;
                             foreach (XmlNode bInList in e.ChildNodes)
                             {
                                 if (XmlNodeType.Element != bInList.NodeType)
@@ -82,8 +85,8 @@ namespace ConfigEditor
                         Self = e;
                     }
                 }
-                Self.SetAttribute("GridColumnNameWidth", GridColumnNameWidth.ToString());
-                Self.SetAttribute("GridColumnValueWidth", GridColumnValueWidth.ToString());
+                Self.SetAttribute("nw", GridColumnNameWidth.ToString());
+                Self.SetAttribute("vw", GridColumnValueWidth.ToString());
 
                 int notNullCount = 0;
                 foreach (var b in Beans)
@@ -93,12 +96,14 @@ namespace ConfigEditor
                 }
                 if (notNullCount > 0) // 这里没有判断Type，直接根据数据来决定怎么保存。
                 {
-                    
-                    XmlElement list = Parent.Document.Xml.CreateElement("list");
-                    Self.AppendChild(list);
+                    if (null == SelfList)
+                    {
+                        SelfList = Parent.Document.Xml.CreateElement("list");
+                        Self.AppendChild(SelfList);
+                    }
                     foreach (var b in Beans)
                     {
-                        b?.Save(list);
+                        b?.Save(SelfList);
                     }
                 }
                 else
@@ -133,8 +138,8 @@ namespace ConfigEditor
             this.Document = doc;
         }
 
-        public void SetDataToGrid(DataGridView grid, DataGridViewCellCollection cells, ref int colIndex, int colEnd,
-            int pathIndex, bool createIfNotExist, string newValue) // newValue only valid when createIfNotExist is true
+        public void Update(DataGridView grid, DataGridViewCellCollection cells, ref int colIndex, int colEnd,
+            int pathIndex, bool createIfNotExist, string newValue)
         {
             // ColumnCount maybe change in loop
             for (; colIndex < colEnd; ++colIndex)
@@ -183,7 +188,7 @@ namespace ConfigEditor
                             }
                             Bean create = new Bean(Document);
                             varData.Beans.Add(create);
-                            create.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex + 1, createIfNotExist, newValue);
+                            create.Update(grid, cells, ref colIndex, colEnd, pathIndex + 1, createIfNotExist, newValue);
                         }
                         continue;
                     }
@@ -191,14 +196,14 @@ namespace ConfigEditor
                     Bean bean = varData.Beans[varInfo.ListIndex];
                     if (null != bean)
                     {
-                        bean.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex + 1, createIfNotExist, newValue);
+                        bean.Update(grid, cells, ref colIndex, colEnd, pathIndex + 1, createIfNotExist, newValue);
                         continue;
                     }
                     if (createIfNotExist)
                     {
                         Bean create = new Bean(Document);
                         varData.Beans[varInfo.ListIndex] = create;
-                        create.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex + 1, createIfNotExist, newValue);
+                        create.Update(grid, cells, ref colIndex, colEnd, pathIndex + 1, createIfNotExist, newValue);
                     }
                     continue;
                 }

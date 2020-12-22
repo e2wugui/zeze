@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
+using System.Xml;
 
 namespace ConfigEditor
 {
@@ -97,7 +98,7 @@ namespace ConfigEditor
                 AddGridRow(grid);
                 DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
                 int colIndex = 0;
-                bean.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, 0, false, null);
+                bean.Update(grid, cells, ref colIndex, grid.ColumnCount, 0, false, null);
             }
             AddGridRow(grid);
         }
@@ -120,16 +121,20 @@ namespace ConfigEditor
             DataGridViewCellCollection cells = grid.Rows[e.RowIndex].Cells;
             string value = (string)cells[e.ColumnIndex].Value;
             int colIndex = e.ColumnIndex;
-            doc.Beans[e.RowIndex].SetDataToGrid(grid, cells, ref colIndex, e.ColumnIndex + 1, 0, true, value);
+            doc.Beans[e.RowIndex].Update(grid, cells, ref colIndex, e.ColumnIndex + 1, 0, true, value);
         }
 
         public bool VerifyName(string name, bool showMsg = true)
         {
+            if (name.Length == 0)
+                throw new Exception("name cannot empty.");
+            if (char.IsDigit(name[0]))
+                throw new Exception("name cannot begin with number.");
             foreach (var c in name)
             {
                 if (char.IsWhiteSpace(c) || c == '.')
                 {
-                    string err = "Config FileName and path cannot use WhiteSpace and '.'";
+                    string err = "name cannot use WhiteSpace and '.'";
                     if (showMsg)
                         MessageBox.Show(err);
                     else
@@ -155,7 +160,7 @@ namespace ConfigEditor
                             varName = input.TextBoxVarName.Text;
                             if (false == VerifyName(varName))
                                 continue;
-                            if (varName.Length == 0 || null != tag.PathLast.Define.Parent.GetVariable(varName))
+                            if (null != tag.PathLast.Define.Parent.GetVariable(varName))
                             {
                                 MessageBox.Show("新增变量(列)的名字已经存在或者为空。");
                                 continue;
@@ -171,9 +176,26 @@ namespace ConfigEditor
                             if (input.CheckBoxIsList.Checked && varDefine.Value.Length == 0) // TODO，需要检测引用名字是否存在。
                                 varDefine.Value = varDefine.FullName();
                             tag.PathLast.Define.Parent.Variables.Add(varDefine);
-                            // TODO 遍历所有打开的grid，查找所有对当前BeanDefine的引用，全部更新列。
-                            varDefine.BuildGridColumns(grid, columnIndex, tag.Parent(ColumnTag.ETag.Normal), -1, true);
-                            ((TabPage)grid.Parent).Tag = 1; // setup changed
+
+                            foreach (var tab in tabs.Controls)
+                            {
+                                DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
+                                gridref.SuspendLayout();
+                                bool changed = false;
+                                for (int c = 0; c < gridref.ColumnCount; ++c)
+                                {
+                                    ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
+                                    if (tagref.Tag == ColumnTag.ETag.AddVariable
+                                        && tagref.PathLast.Define.Parent == tag.PathLast.Define.Parent)
+                                    {
+                                        c += varDefine.BuildGridColumns(gridref, c, tag.Parent(ColumnTag.ETag.Normal), -1, true);
+                                        changed = true;
+                                    }
+                                }
+                                gridref.ResumeLayout();
+                                if (changed)
+                                    ((TabPage)gridref.Parent).Tag = 1; // setup changed
+                            }
                         }
                         break;
                     }
@@ -263,21 +285,27 @@ namespace ConfigEditor
             string file = this.saveFileDialog1.FileName;
             if (!file.EndsWith(".xml"))
                 file = file + ".xml";
+            try
+            {
+                Document doc = new Document(this);
+                doc.SetFileName(file);
+                TabPage tab = NewTabPage(doc.RelateName);
+                DataGridView grid = (DataGridView)tab.Controls[0];
+                doc.Save();
+                grid.Tag = doc;
+                doc.Grid = grid;
+                tab.Tag = null;
+                doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1, false);
+                AddGridRow(grid);
 
-            Document doc = new Document(this);
-            doc.SetFileName(file);
-            TabPage tab = NewTabPage(doc.RelateName);
-            tabs.Controls.Add(tab);
-            DataGridView grid = (DataGridView)tab.Controls[0];
-            doc.Save();
-            grid.Tag = doc;
-            doc.Grid = grid;
-            tab.Tag = null;
-            Documents.Add(doc.RelateName, doc);
-
-            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1, false);
-            AddGridRow(grid);
-            tabs.SelectedTab = tab;
+                Documents.Add(doc.RelateName, doc);
+                tabs.Controls.Add(tab);
+                tabs.SelectedTab = tab;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
         }
 
         private Dictionary<string, Document> Documents = new Dictionary<string, Document>();
@@ -363,8 +391,8 @@ namespace ConfigEditor
                         TabPage tab = NewTabPage(odoc.RelateName);
                         DataGridView grid = (DataGridView)tab.Controls[0];
                         grid.SuspendLayout();
-                        tabs.Controls.Add(tab);
                         LoadDocumentToView(grid, doc);
+                        tabs.Controls.Add(tab);
                         grid.ResumeLayout();
                         tabs.SelectedTab = tab;
                         odoc.Grid = grid;
@@ -378,8 +406,8 @@ namespace ConfigEditor
                     doc.Open();
                     Documents.Add(doc.RelateName, doc);
                     grid.SuspendLayout();
-                    tabs.Controls.Add(tab);
                     LoadDocumentToView(grid, doc);
+                    tabs.Controls.Add(tab);
                     grid.ResumeLayout();
                     tabs.SelectedTab = tab;
                     grid.Tag = doc;

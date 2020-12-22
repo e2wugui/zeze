@@ -166,8 +166,8 @@ namespace ConfigEditor
             SetAttribute("foreign", Foreign);
             SetAttribute("properties", Properties);
 
-            Self.SetAttribute("GridColumnNameWidth", GridColumnNameWidth.ToString());
-            Self.SetAttribute("GridColumnValueWidth", GridColumnValueWidth.ToString());
+            Self.SetAttribute("nw", GridColumnNameWidth.ToString());
+            Self.SetAttribute("vw", GridColumnValueWidth.ToString());
         }
 
         public VarDefine(BeanDefine bean, XmlElement self)
@@ -179,9 +179,9 @@ namespace ConfigEditor
             Type = self.GetAttribute("type");
             Value = self.GetAttribute("value");
 
-            string v = self.GetAttribute("GridColumnWidth");
+            string v = self.GetAttribute("nw");
             this.GridColumnNameWidth = v.Length > 0 ? int.Parse(v) : 0;
-            v = self.GetAttribute("GridColumnValueWidth");
+            v = self.GetAttribute("vw");
             this.GridColumnValueWidth = v.Length > 0 ? int.Parse(v) : 0;
 
             Comment = self.GetAttribute("comment");
