@@ -91,10 +91,10 @@ namespace ConfigEditor
 
         private void LoadDocumentToView(DataGridView grid, Document doc)
         {
-            doc.BeanDefine.BuildGridColumns(grid, new ColumnTag() { BeanDefine = doc.BeanDefine, });
+            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(doc.BeanDefine, 0), false);
             foreach (var bean in doc.Beans)
             {
-                grid.Rows.Add();
+                AddGridRow(grid);
                 DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
                 for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex) // ColumnCount maybe change in loop
                 {
@@ -105,48 +105,109 @@ namespace ConfigEditor
                         cells[colIndex].Value = data.Value;
                 }
             }
-            grid.Rows.Add(); // prepare row to add data
+            AddGridRow(grid);
         }
 
         public void OnGridCellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             DataGridView grid = (DataGridView)sender;
-            ((TabPage)grid.Parent).Tag = 1; // setup changed
-
-            Document doc = (Document)grid.Tag;
             DataGridViewColumn col = grid.Columns[e.ColumnIndex];
             ColumnTag tag = (ColumnTag)col.Tag;
-            if (0 == tag.Path.Count) // TODO 嵌套定义增加变量识别问题。
-            {
-                string varName = null;
-                while (true)
-                {
-                    // 新增变量 TODO 自定义输入窗口，可以选择变量是否为List，并且选择引用的BeanDefine（可选）
-                    Microsoft.VisualBasic.Interaction.InputBox("输入新增变量的名字", "输入名字", "", 0, 0);
-                    if (varName == null || varName.Length == 0)
-                        continue;
-                    break;
-                }
-                VarDefine varDefine = new VarDefine(tag.BeanDefine) { Name = varName, GridColumnValueWidth = col.Width };
-                tag.AddVar(varDefine, -1); // TODO List 需要增加开头结束，以及增加变量的列‘,'.
-                tag.BeanDefine.Variables.Add(varDefine);
-                grid.Columns[e.ColumnIndex].HeaderText = varDefine.Name;
+            if (ColumnTag.ETag.Normal != tag.Tag)
+                return; // 不可能。特殊列都是不可编辑的。
 
-                grid.Columns.Insert(e.ColumnIndex + 1, new DataGridViewColumn(new DataGridViewTextBoxCell())
-                {
-                    HeaderText = ",",
-                    Width = 60,
-                    Tag = new ColumnTag() { BeanDefine = tag.BeanDefine }
-                });
-            }
+            Document doc = (Document)grid.Tag;
+            ((TabPage)grid.Parent).Tag = 1; // setup changed
             if (e.RowIndex == grid.RowCount - 1) // is last row
             {
                 doc.Beans.Add(new Bean(doc));
-                grid.Rows.Add();
+                AddGridRow(grid);
             }
             string value = (string)grid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
             var varData = doc.Beans[e.RowIndex].GetVarDataByPath(tag, 0, true);
             varData.Value = value;
+        }
+
+        public bool VerifyName(string name, bool showMsg = true)
+        {
+            foreach (var c in name)
+            {
+                if (char.IsWhiteSpace(c) || c == '.')
+                {
+                    string err = "Config FileName and path cannot use WhiteSpace and '.'";
+                    if (showMsg)
+                        MessageBox.Show(err);
+                    else
+                        throw new Exception(err);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void DoActionByColumnTag(DataGridView grid, int columnIndex, ColumnTag tag)
+        {
+            switch (tag.Tag)
+            {
+                case ColumnTag.ETag.AddVariable:
+                    string varName = "";
+                    FormInputVarDefine input = new FormInputVarDefine();
+                    while (true)
+                    {
+                        input.TextBoxVarName.Text = varName;
+                        if (DialogResult.OK == input.ShowDialog(this))
+                        {
+                            varName = input.TextBoxVarName.Text;
+                            if (null != tag.BeanDefine.GetVariable(varName))
+                            {
+                                MessageBox.Show("新增变量(列)的名字已经存在。");
+                                continue;
+                            }
+                            if (false == VerifyName(varName))
+                                continue;
+
+                            VarDefine varDefine = new VarDefine(tag.BeanDefine) { Name = varName, GridColumnValueWidth = 60 };
+                            varDefine.Type = input.CheckBoxIsList.Checked ? "list" : "";
+                            varDefine.Value = input.TextBoxListRefBeanName.Text;
+                            if (varDefine.Value.Length == 0) // TODO，需要检测引用名字是否存在。
+                                varDefine.Value = varDefine.FullName();
+                            tag.BeanDefine.Variables.Add(varDefine);
+                            // TODO 遍历所有打开的grid，查找所有对当前BeanDefine的引用，全部更新列。
+                            varDefine.BuildGridColumns(grid, columnIndex, tag.Copy(ColumnTag.ETag.Normal), true);
+                            ((TabPage)grid.Parent).Tag = 1; // setup changed
+                        }
+                        break;
+                    }
+                    input.Dispose();
+                    break;
+
+                case ColumnTag.ETag.ListEnd:
+                    // TODO add list item now
+                    break;
+            }
+        }
+        public void OnGridDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left)
+                return;
+
+            DataGridView grid = (DataGridView)sender;
+            DoActionByColumnTag(grid, e.ColumnIndex, (ColumnTag)grid.Columns[e.ColumnIndex].Tag);
+        }
+
+        public void OnGridKeyDown(object sender, KeyEventArgs e)
+        {
+            DataGridView grid = (DataGridView)sender;
+            if (grid.CurrentCell == null)
+                return;
+
+            switch (e.KeyCode)
+            {
+                case Keys.Enter:
+                    DoActionByColumnTag(grid, grid.CurrentCell.ColumnIndex,
+                        (ColumnTag)grid.Columns[grid.CurrentCell.ColumnIndex].Tag);
+                    break;
+            }
         }
 
         private TabPage NewTabPage(string text)
@@ -166,6 +227,8 @@ namespace ConfigEditor
             grid.TabIndex = 0;
 
             grid.CellEndEdit += OnGridCellEndEdit;
+            grid.CellMouseDoubleClick += OnGridDoubleClick;
+            grid.KeyDown += OnGridKeyDown;
 
             TabPage tab = new TabPage();
             tab.Text = text;
@@ -174,6 +237,24 @@ namespace ConfigEditor
         }
 
         private int NewFileSeed = 0;
+
+        private void AddGridRow(DataGridView grid)
+        {
+            grid.Rows.Add(); // prepare row to add data
+            DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
+            for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex) // ColumnCount maybe change in loop
+            {
+                DataGridViewColumn col = (DataGridViewColumn)grid.Columns[colIndex];
+                switch (((ColumnTag)(col.Tag)).Tag)
+                {
+                    case ColumnTag.ETag.AddVariable:
+                    case ColumnTag.ETag.ListStart:
+                    case ColumnTag.ETag.ListEnd:
+                        cells[colIndex].Value = col.HeaderText;
+                        break;
+                }
+            }
+        }
 
         private void newButton_Click(object sender, EventArgs e)
         {
@@ -184,7 +265,8 @@ namespace ConfigEditor
             DataGridView grid = (DataGridView)tab.Controls[0];
             grid.Tag = doc;
             doc.Grid = grid;
-            doc.BeanDefine.BuildGridColumns(grid, new ColumnTag() { BeanDefine = doc.BeanDefine, });
+            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(doc.BeanDefine, 0), false);
+            AddGridRow(grid);
             tabs.SelectedTab = tab;
         }
 
@@ -244,23 +326,23 @@ namespace ConfigEditor
             Save(tabs.SelectedTab);
         }
 
-        private Document OpenDocument(string path, string[]refbeans, int offset, out BeanDefine define)
+        private Document OpenDocument(string path, string[]refbeans, int offset, out BeanDefine define, bool createRefBeanIfNotExist)
         {
             Document doc = new Document(this);
             doc.SetFileName(path);
             if (Documents.TryGetValue(doc.RelateName, out var exist))
             {
-                define = exist.BeanDefine.Search(refbeans, offset);
+                define = exist.BeanDefine.Search(refbeans, offset, createRefBeanIfNotExist);
                 return exist;
             }
 
             doc.Open();
             Documents.Add(doc.RelateName, doc);
-            define = doc.BeanDefine.Search(refbeans, offset);
+            define = doc.BeanDefine.Search(refbeans, offset, createRefBeanIfNotExist);
             return doc;
         }
 
-        public Document OpenDocument(string relatePath, out BeanDefine define)
+        public Document OpenDocument(string relatePath, out BeanDefine define, bool createRefBeanIfNotExist)
         {
             string[] relates = relatePath.Split('.');
             string path = Config.GetHome();
@@ -270,7 +352,7 @@ namespace ConfigEditor
                 path = System.IO.Path.Combine(path, relates[i]);
                 if (System.IO.Directory.Exists(path)) // is directory
                     continue;
-                return OpenDocument(path + ".xml", relates, i + 1, out define);
+                return OpenDocument(path + ".xml", relates, i + 1, out define, createRefBeanIfNotExist);
             }
             throw new Exception("Open Document Error: " + relatePath);
         }

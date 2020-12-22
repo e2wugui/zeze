@@ -30,19 +30,11 @@ namespace ConfigEditor
                 relate = relate.Substring(0, relate.Length - 4);
             string[] relates = relate.Split(new char[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
             RelateName = relates[0];
-            foreach (var c in relates[0])
-            {
-                if (char.IsWhiteSpace(c) || c == '.')
-                    throw new Exception("Config FileName and path cannot use WhiteSpace and '.'");
-            }
+            Main.VerifyName(relates[0], false);
             for (int i = 1; i < relates.Length; ++i)
             {
                 Name = relates[i]; // store last
-                foreach (var c in Name)
-                {
-                    if (char.IsWhiteSpace(c) || c == '.')
-                        throw new Exception("Config FileName and path cannot use WhiteSpace and '.'");
-                }
+                Main.VerifyName(relates[i], false);
                 RelateName = RelateName + '.' + Name;
             }
         }
@@ -103,8 +95,6 @@ namespace ConfigEditor
                         throw new Exception("Unknown Element Name " + e.Name);
                 }
             }
-            if (null == BeanDefine)
-                throw new Exception("BeanDefine Lost"); // rebuild?
         }
     }
 

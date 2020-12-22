@@ -27,44 +27,49 @@ namespace ConfigEditor
             return null;
         }
 
-        public BeanDefine GetSubBeanDefine(string name)
+        public BeanDefine GetSubBeanDefine(string name, bool createRefBeanIfNotExist)
         {
             foreach (var v in BeanDefines)
             {
                 if (v.Name == name)
                     return v;
             }
+            if (createRefBeanIfNotExist)
+            {
+                BeanDefine sub = new BeanDefine(Document, name, this);
+                BeanDefines.Add(sub);
+                return sub;
+            }
             return null;
         }
 
-        public BeanDefine Search(string [] path, int offset)
+        public BeanDefine Search(string [] path, int offset, bool createRefBeanIfNotExist)
         {
             BeanDefine r = this;
             for (int i = offset; i < path.Length && null != r; ++i)
             {
-                r = r.GetSubBeanDefine(path[i]);
+                r = r.GetSubBeanDefine(path[i], createRefBeanIfNotExist);
             }
             return r;
         }
 
-        public void BuildGridColumns(DataGridView grid, ColumnTag tag)
+        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, bool createRefBeanIfNotExist)
         {
+            int colAdded = 0;
             foreach (var v in Variables)
             {
-                v.BuildGridColumns(grid, tag);
+                colAdded += v.BuildGridColumns(grid, columnIndex, tag, createRefBeanIfNotExist);
             }
             // 这里创建的列用来新增。
-            grid.Columns.Add(new DataGridViewColumn(new DataGridViewTextBoxCell())
+            grid.Columns.Insert(columnIndex, new DataGridViewColumn(new DataGridViewTextBoxCell())
             {
                 HeaderText = ",",
-                Width = 60,
-                Tag = tag.Copy(),
+                Width = 20,
+                ReadOnly = true,
+                Tag = tag.Copy(ColumnTag.ETag.AddVariable),
             });
-        }
-
-        public BeanDefine CreateSubBeanDefine(string name)
-        {
-            return new BeanDefine(Document, name, this);
+            ++colAdded;
+            return colAdded;
         }
 
         public BeanDefine(Document doc, string name = null, BeanDefine parent = null)
@@ -84,6 +89,7 @@ namespace ConfigEditor
                 else
                     Parent.Self.AppendChild(Self);
             }
+            Self.SetAttribute("name", Name);
             foreach (var e in Enums)
             {
                 e.Save(Self);
