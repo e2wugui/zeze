@@ -1,0 +1,120 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ZezeConfig>
+  <BeanDefine name="config">
+    <BeanDefine name="varlist">
+      <variable name="varinlist" GridColumnNameWidth="0" GridColumnValueWidth="60" />
+    </BeanDefine>
+    <variable name="varlist" type="list" value="config.varlist" GridColumnNameWidth="0" GridColumnValueWidth="60" />
+    <variable name="varnormal" GridColumnNameWidth="0" GridColumnValueWidth="60" />
+    <BeanDefine name="list2">
+      <variable name="list2var" GridColumnNameWidth="0" GridColumnValueWidth="60" />
+    </BeanDefine>
+    <variable name="list2" type="list" value="config.list2" GridColumnNameWidth="0" GridColumnValueWidth="60" />
+  </BeanDefine>
+  <bean>
+    <varlist GridColumnNameWidth="0" GridColumnValueWidth="0">
+      <list>
+        <bean>
+          <varinlist GridColumnNameWidth="0" GridColumnValueWidth="0">1</varinlist>
+        </bean>
+      </list>
+      <list />
+      <list />
+      <list />
+    </varlist>
+    <varnormal GridColumnNameWidth="0" GridColumnValueWidth="0">2</varnormal>
+    <list2 GridColumnNameWidth="0" GridColumnValueWidth="0">
+      <list>
+        <bean>
+          <list2var GridColumnNameWidth="0" GridColumnValueWidth="0">3</list2var>
+        </bean>
+      </list>
+      <list />
+      <list />
+    </list2>
+  </bean>
+  <bean>
+    <varlist GridColumnNameWidth="0" GridColumnValueWidth="0">
+      <list>
+        <bean>
+          <varinlist GridColumnNameWidth="0" GridColumnValueWidth="0">1</varinlist>
+        </bean>
+      </list>
+      <list />
+      <list />
+      <list />
+    </varlist>
+    <varnormal GridColumnNameWidth="0" GridColumnValueWidth="0">2</varnormal>
+    <list2 GridColumnNameWidth="0" GridColumnValueWidth="0">
+      <list>
+        <bean>
+          <list2var GridColumnNameWidth="0" GridColumnValueWidth="0">3</list2var>
+        </bean>
+      </list>
+      <list />
+      <list />
+    </list2>
+  </bean>
+  <bean>
+    <varlist GridColumnNameWidth="0" GridColumnValueWidth="0">
+      <list>
+        <bean>
+          <varinlist GridColumnNameWidth="0" GridColumnValueWidth="0">1</varinlist>
+        </bean>
+      </list>
+      <list />
+      <list />
+      <list />
+    </varlist>
+    <list2 GridColumnNameWidth="0" GridColumnValueWidth="0">
+      <list>
+        <bean>
+          <list2var GridColumnNameWidth="0" GridColumnValueWidth="0">3</list2var>
+        </bean>
+      </list>
+      <list />
+      <list />
+    </list2>
+    <varnormal GridColumnNameWidth="0" GridColumnValueWidth="0">2</varnormal>
+  </bean>
+  <bean>
+    <list2 GridColumnNameWidth="0" GridColumnValueWidth="0">
+      <list>
+        <bean>
+          <list2var GridColumnNameWidth="0" GridColumnValueWidth="0">3</list2var>
+        </bean>
+      </list>
+      <list />
+      <list />
+    </list2>
+    <varlist GridColumnNameWidth="0" GridColumnValueWidth="0">
+      <list>
+        <bean>
+          <varinlist GridColumnNameWidth="0" GridColumnValueWidth="0">1</varinlist>
+        </bean>
+      </list>
+      <list />
+      <list />
+    </varlist>
+    <varnormal GridColumnNameWidth="0" GridColumnValueWidth="0">2</varnormal>
+  </bean>
+  <bean>
+    <list2 GridColumnNameWidth="0" GridColumnValueWidth="0">
+      <list>
+        <bean>
+          <list2var GridColumnNameWidth="0" GridColumnValueWidth="0">3</list2var>
+        </bean>
+      </list>
+      <list />
+      <list />
+    </list2>
+    <varlist GridColumnNameWidth="0" GridColumnValueWidth="0">
+      <list>
+        <bean>
+          <varinlist GridColumnNameWidth="0" GridColumnValueWidth="0">1</varinlist>
+        </bean>
+      </list>
+    </varlist>
+    <varnormal GridColumnNameWidth="0" GridColumnValueWidth="0">2</varnormal>
+  </bean>
+</ZezeConfig>

@@ -68,6 +68,10 @@ namespace ConfigEditor
                 ReadOnly = true,
                 Tag = tag.Copy(ColumnTag.ETag.AddVariable).AddVar(new VarDefine(this), -1),
             });
+            for (int i = 0; i < grid.RowCount; ++i)
+            {
+                grid.Rows[i].Cells[columnIndex + colAdded].Value = ",";
+            }
             ++colAdded;
             return colAdded;
         }

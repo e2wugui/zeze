@@ -156,13 +156,6 @@ namespace ConfigEditor
                     varData = new VarData(this, varInfo.Define.Name) { Value = newValue };
                     VariableMap.Add(varInfo.Define.Name, varData);
                 }
-                if (pathIndex + 1 == tag.Path.Count)
-                {
-                    if (varInfo.Define.GetEType() == VarDefine.EType.List)
-                        throw new Exception("End Of Path. But Var Is A List");
-                    cells[colIndex].Value = varData.Value; // last
-                    continue;
-                }
                 if (varInfo.Define.GetEType() == VarDefine.EType.List)
                 {
                     if (tag.Tag == ColumnTag.ETag.ListEnd)
@@ -209,7 +202,12 @@ namespace ConfigEditor
                     }
                     continue;
                 }
-                throw new Exception("Remain Path, But Is Not A List");
+                if (pathIndex + 1 != tag.Path.Count)
+                    throw new Exception("Remain Path, But Is Not A List");
+                if (null != newValue)
+                    varData.Value = newValue; // OnGridCellEndEdit save data
+                else
+                    cells[colIndex].Value = varData.Value; // upate to grid
             }
         }
 

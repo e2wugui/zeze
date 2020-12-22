@@ -73,15 +73,20 @@ namespace ConfigEditor
                 case EType.List:
                     {
                         DataGridViewCell s = new DataGridViewTextBoxCell() { Value = "[" };
+                        string listStartText = "[" + this.Name;
                         grid.Columns.Insert(columnIndex, new DataGridViewColumn(s)
                         {
                             Name = this.Name,
                             Width = 20,
-                            HeaderText = "[",
+                            HeaderText = listStartText,
                             ReadOnly = true,
                             ToolTipText = Comment,
                             Tag = tag.Copy(ColumnTag.ETag.ListStart).AddVar(this, -1),
                         });
+                        for (int i = 0; i < grid.RowCount; ++i)
+                        {
+                            grid.Rows[i].Cells[columnIndex].Value = listStartText;
+                        }
                         Parent.Document.Main.OpenDocument(Value, out var r, createRefBeanIfNotExist);
                         Reference = r;
                         ++columnIndex;
@@ -90,15 +95,20 @@ namespace ConfigEditor
                             -1, createRefBeanIfNotExist);
                         DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
                         columnIndex += colAdded;
+                        string listEndText = "]" + this.Name;
                         grid.Columns.Insert(columnIndex, new DataGridViewColumn(e)
                         {
                             Name = this.Name,
                             Width = 20,
-                            HeaderText = "]",
+                            HeaderText = listEndText,
                             ReadOnly = true,
                             ToolTipText = Comment,
-                            Tag = tag.Copy(ColumnTag.ETag.ListEnd).AddVar(this, -1),
+                            Tag = tag.Copy(ColumnTag.ETag.ListEnd).AddVar(this, -1), // 初始为-1，以后在Bean.SetDataToGrid中修改。
                         });
+                        for (int i = 0; i < grid.RowCount; ++i)
+                        {
+                            grid.Rows[i].Cells[columnIndex].Value = listEndText;
+                        }
                         return colAdded + 2;
                     }
 
