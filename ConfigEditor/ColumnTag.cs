@@ -15,7 +15,7 @@ namespace ConfigEditor
             public int ListIndex { get; set; } = -1; // 负数在ListEnd的时候表示(-List.Count)。
 
         }
-        public BeanDefine BeanDefine { get; }
+
         public enum ETag
         {
             Normal = 0,
@@ -27,19 +27,19 @@ namespace ConfigEditor
 
         public List<VarInfo> Path { get; } = new List<VarInfo>();
 
-        public ColumnTag(BeanDefine define, ETag tag)
+        public ColumnTag(ETag tag)
         {
-            this.BeanDefine = define;
             this.Tag = tag;
         }
 
-        public ColumnTag(BeanDefine beanDefine, ETag tag, VarDefine define, int index)
+        public ColumnTag(ETag tag, VarDefine define, int index)
         {
-            this.BeanDefine = beanDefine;
             this.Tag = tag;
 
             AddVar(define, index);
         }
+
+        public VarInfo PathLast { get { return Path[Path.Count - 1]; } }
 
         public ColumnTag AddVar(VarDefine define, int index)
         {
@@ -49,8 +49,17 @@ namespace ConfigEditor
 
         public ColumnTag Copy(ETag tag)
         {
-            ColumnTag copy = new ColumnTag(this.BeanDefine, tag);
+            ColumnTag copy = new ColumnTag(tag);
             copy.Path.AddRange(Path);
+            return copy;
+        }
+
+        public ColumnTag Parent(ETag tag)
+        {
+            ColumnTag copy = new ColumnTag(tag);
+            int copyCount = Path.Count - 1;
+            for (int i = 0; i < copyCount; ++i)
+                copy.Path.Add(Path[i]);
             return copy;
         }
     }

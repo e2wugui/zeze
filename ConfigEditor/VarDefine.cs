@@ -86,7 +86,8 @@ namespace ConfigEditor
                         Reference = r;
                         ++columnIndex;
                         int colAdded = r.BuildGridColumns(grid, columnIndex,
-                            tag.Copy(tag.Tag).AddVar(this, listIndex >= 0 ? listIndex : 0), -1, createRefBeanIfNotExist);
+                            tag.Copy(tag.Tag).AddVar(this, listIndex >= 0 ? listIndex : 0),
+                            -1, createRefBeanIfNotExist);
                         DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
                         columnIndex += colAdded;
                         grid.Columns.Insert(columnIndex, new DataGridViewColumn(e)
@@ -155,7 +156,7 @@ namespace ConfigEditor
             SetAttribute("foreign", Foreign);
             SetAttribute("properties", Properties);
 
-            Self.SetAttribute("GridColumnWidth", GridColumnNameWidth.ToString());
+            Self.SetAttribute("GridColumnNameWidth", GridColumnNameWidth.ToString());
             Self.SetAttribute("GridColumnValueWidth", GridColumnValueWidth.ToString());
         }
 

@@ -82,7 +82,7 @@ namespace ConfigEditor
                         Self = e;
                     }
                 }
-                Self.SetAttribute("GridColumnWidth", GridColumnNameWidth.ToString());
+                Self.SetAttribute("GridColumnNameWidth", GridColumnNameWidth.ToString());
                 Self.SetAttribute("GridColumnValueWidth", GridColumnValueWidth.ToString());
 
                 int notNullCount = 0;
@@ -156,8 +156,7 @@ namespace ConfigEditor
                     varData = new VarData(this, varInfo.Define.Name) { Value = newValue };
                     VariableMap.Add(varInfo.Define.Name, varData);
                 }
-                ++pathIndex;
-                if (pathIndex == tag.Path.Count)
+                if (pathIndex + 1 == tag.Path.Count)
                 {
                     if (varInfo.Define.GetEType() == VarDefine.EType.List)
                         throw new Exception("End Of Path. But Var Is A List");
@@ -172,7 +171,8 @@ namespace ConfigEditor
                         int add = 0;
                         for (int i = curListCount; i < varData.Beans.Count; ++i)
                         {
-                            add += tag.BeanDefine.BuildGridColumns(grid, colIndex + add, tag.Copy(ColumnTag.ETag.Normal), i, false);
+                            add += tag.PathLast.Define.Parent.BuildGridColumns(grid, colIndex + add,
+                                tag.Copy(ColumnTag.ETag.Normal), i, false);
                         }
                         if (curListCount < varData.Beans.Count) // curListCount 至少为1.
                             varInfo.ListIndex = -varData.Beans.Count;
@@ -190,7 +190,7 @@ namespace ConfigEditor
                             }
                             Bean create = new Bean(Document);
                             varData.Beans.Add(create);
-                            create.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex, createIfNotExist, newValue);
+                            create.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex + 1, createIfNotExist, newValue);
                         }
                         continue;
                     }
@@ -198,14 +198,14 @@ namespace ConfigEditor
                     Bean bean = varData.Beans[varInfo.ListIndex];
                     if (null != bean)
                     {
-                        bean.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex, createIfNotExist, newValue);
+                        bean.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex + 1, createIfNotExist, newValue);
                         continue;
                     }
                     if (createIfNotExist)
                     {
                         Bean create = new Bean(Document);
                         varData.Beans[varInfo.ListIndex] = create;
-                        create.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex, createIfNotExist, newValue);
+                        create.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex + 1, createIfNotExist, newValue);
                     }
                     continue;
                 }

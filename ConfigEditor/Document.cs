@@ -29,14 +29,16 @@ namespace ConfigEditor
             if (relate.EndsWith(".xml"))
                 relate = relate.Substring(0, relate.Length - 4);
             string[] relates = relate.Split(new char[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
-            RelateName = relates[0];
             Main.VerifyName(relates[0], false);
+            RelateName = relates[0];
+            Name = RelateName;
             for (int i = 1; i < relates.Length; ++i)
             {
                 Name = relates[i]; // store last
                 Main.VerifyName(relates[i], false);
                 RelateName = RelateName + '.' + Name;
             }
+            BeanDefine.Name = Name;
         }
 
         public Document(FormMain fm)

@@ -91,7 +91,7 @@ namespace ConfigEditor
 
         private void LoadDocumentToView(DataGridView grid, Document doc)
         {
-            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(doc.BeanDefine, ColumnTag.ETag.Normal), -1, false);
+            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1, false);
             foreach (var bean in doc.Beans)
             {
                 AddGridRow(grid);
@@ -153,22 +153,26 @@ namespace ConfigEditor
                         if (DialogResult.OK == input.ShowDialog(this))
                         {
                             varName = input.TextBoxVarName.Text;
-                            if (null != tag.BeanDefine.GetVariable(varName))
-                            {
-                                MessageBox.Show("新增变量(列)的名字已经存在。");
-                                continue;
-                            }
                             if (false == VerifyName(varName))
                                 continue;
+                            if (varName.Length == 0 || null != tag.PathLast.Define.Parent.GetVariable(varName))
+                            {
+                                MessageBox.Show("新增变量(列)的名字已经存在或者为空。");
+                                continue;
+                            }
 
-                            VarDefine varDefine = new VarDefine(tag.BeanDefine) { Name = varName, GridColumnValueWidth = 60 };
-                            varDefine.Type = input.CheckBoxIsList.Checked ? "list" : "";
-                            varDefine.Value = input.TextBoxListRefBeanName.Text;
-                            if (varDefine.Value.Length == 0) // TODO，需要检测引用名字是否存在。
+                            VarDefine varDefine = new VarDefine(tag.PathLast.Define.Parent)
+                            {
+                                Name = varName,
+                                GridColumnValueWidth = 60,
+                                Type = input.CheckBoxIsList.Checked ? "list" : "",
+                                Value = input.TextBoxListRefBeanName.Text,
+                            };
+                            if (input.CheckBoxIsList.Checked && varDefine.Value.Length == 0) // TODO，需要检测引用名字是否存在。
                                 varDefine.Value = varDefine.FullName();
-                            tag.BeanDefine.Variables.Add(varDefine);
+                            tag.PathLast.Define.Parent.Variables.Add(varDefine);
                             // TODO 遍历所有打开的grid，查找所有对当前BeanDefine的引用，全部更新列。
-                            varDefine.BuildGridColumns(grid, columnIndex, tag.Copy(ColumnTag.ETag.Normal), -1, true);
+                            varDefine.BuildGridColumns(grid, columnIndex, tag.Parent(ColumnTag.ETag.Normal), -1, true);
                             ((TabPage)grid.Parent).Tag = 1; // setup changed
                         }
                         break;
@@ -231,8 +235,6 @@ namespace ConfigEditor
             return tab;
         }
 
-        private int NewFileSeed = 0;
-
         private void AddGridRow(DataGridView grid)
         {
             grid.Rows.Add(); // prepare row to add data
@@ -253,14 +255,27 @@ namespace ConfigEditor
 
         private void newButton_Click(object sender, EventArgs e)
         {
-            ++NewFileSeed;
-            TabPage tab = NewTabPage("NewFile_" + NewFileSeed);
-            tabs.Controls.Add(tab);
+            this.saveFileDialog1.InitialDirectory = Config.RecentHomes[0];
+            this.saveFileDialog1.FileName = "";
+            this.saveFileDialog1.Filter = "(*.xml)|*.xml";
+            if (DialogResult.OK != this.saveFileDialog1.ShowDialog())
+                return; // 取消保存，不关闭窗口
+            string file = this.saveFileDialog1.FileName;
+            if (!file.EndsWith(".xml"))
+                file = file + ".xml";
+
             Document doc = new Document(this);
+            doc.SetFileName(file);
+            TabPage tab = NewTabPage(doc.RelateName);
+            tabs.Controls.Add(tab);
             DataGridView grid = (DataGridView)tab.Controls[0];
+            doc.Save();
             grid.Tag = doc;
             doc.Grid = grid;
-            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(doc.BeanDefine, ColumnTag.ETag.Normal), -1, false);
+            tab.Tag = null;
+            Documents.Add(doc.RelateName, doc);
+
+            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1, false);
             AddGridRow(grid);
             tabs.SelectedTab = tab;
         }
@@ -276,35 +291,6 @@ namespace ConfigEditor
 
                 DataGridView grid = (DataGridView)tab.Controls[0];
                 Document doc = (Document)grid.Tag;
-                if (null == doc.FileName)
-                {
-                    switch (MessageBox.Show("是否保存文件？ " + tab.Text, "提示", MessageBoxButtons.YesNoCancel))
-                    {
-                        case DialogResult.Yes:
-                            break;
-                        case DialogResult.Cancel:
-                            return false;
-                        case DialogResult.No:
-                            return true;
-                    }
-                    this.saveFileDialog1.InitialDirectory = Config.RecentHomes[0];
-                    this.saveFileDialog1.FileName = tab.Text;
-                    this.saveFileDialog1.Filter = "(*.xml)|*.xml";
-                    if (DialogResult.OK != this.saveFileDialog1.ShowDialog())
-                        return false; // 取消保存，不关闭窗口
-
-                    string file = this.saveFileDialog1.FileName;
-                    if (!file.EndsWith(".xml"))
-                        file = file + ".xml";
-
-                    doc.SetFileName(file);
-                    Documents.Add(doc.RelateName, doc);
-                    doc.Save();
-                    grid.Tag = doc;
-                    doc.Grid = grid;
-                    tab.Tag = null;
-                    return true;
-                }
                 doc.Save();
                 tab.Tag = null;
                 return true;

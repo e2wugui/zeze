@@ -58,15 +58,15 @@ namespace ConfigEditor
             int colAdded = 0;
             foreach (var v in Variables)
             {
-                colAdded += v.BuildGridColumns(grid, columnIndex, tag, listIndex, createRefBeanIfNotExist);
+                colAdded += v.BuildGridColumns(grid, columnIndex + colAdded, tag, listIndex, createRefBeanIfNotExist);
             }
             // 这里创建的列用来新增。
-            grid.Columns.Insert(columnIndex, new DataGridViewColumn(new DataGridViewTextBoxCell())
+            grid.Columns.Insert(columnIndex + colAdded, new DataGridViewColumn(new DataGridViewTextBoxCell())
             {
                 HeaderText = ",",
                 Width = 20,
                 ReadOnly = true,
-                Tag = tag.Copy(ColumnTag.ETag.AddVariable),
+                Tag = tag.Copy(ColumnTag.ETag.AddVariable).AddVar(new VarDefine(this), -1),
             });
             ++colAdded;
             return colAdded;
