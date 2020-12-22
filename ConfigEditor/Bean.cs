@@ -133,10 +133,11 @@ namespace ConfigEditor
             this.Document = doc;
         }
 
-        public void SetDataToGrid(DataGridView grid, DataGridViewCellCollection cells, ref int colIndex, int pathIndex, bool createIfNotExist = false)
+        public void SetDataToGrid(DataGridView grid, DataGridViewCellCollection cells, ref int colIndex, int colEnd,
+            int pathIndex, bool createIfNotExist, string newValue) // newValue only valid when createIfNotExist is true
         {
             // ColumnCount maybe change in loop
-            for (; colIndex < grid.ColumnCount; ++colIndex)
+            for (; colIndex < colEnd; ++colIndex)
             {
                 ColumnTag tag = (ColumnTag)grid.Columns[colIndex].Tag;
                 switch (tag.Tag)
@@ -152,7 +153,7 @@ namespace ConfigEditor
                 {
                     if (false == createIfNotExist)
                         continue; // data not found. done.
-                    varData = new VarData(this, varInfo.Define.Name);
+                    varData = new VarData(this, varInfo.Define.Name) { Value = newValue };
                     VariableMap.Add(varInfo.Define.Name, varData);
                 }
                 ++pathIndex;
@@ -167,42 +168,44 @@ namespace ConfigEditor
                 {
                     if (tag.Tag == ColumnTag.ETag.ListEnd)
                     {
-                        int curListCount = -varInfo.Index;
+                        int curListCount = -varInfo.ListIndex;
                         int add = 0;
                         for (int i = curListCount; i < varData.Beans.Count; ++i)
                         {
                             add += tag.BeanDefine.BuildGridColumns(grid, colIndex + add, tag.Copy(ColumnTag.ETag.Normal), i, false);
                         }
+                        if (curListCount < varData.Beans.Count) // curListCount 至少为1.
+                            varInfo.ListIndex = -varData.Beans.Count;
                         if (add > 0)
                             --colIndex; // 新增加了列，回退一列，继续装载数据。
                         continue;
                     }
-                    if (varInfo.Index >= varData.Beans.Count)
+                    if (varInfo.ListIndex >= varData.Beans.Count)
                     {
                         if (createIfNotExist)
                         {
-                            for (int i = varData.Beans.Count; i < varInfo.Index; ++i)
+                            for (int i = varData.Beans.Count; i < varInfo.ListIndex; ++i)
                             {
                                 varData.Beans.Add(null); // List中间的Bean先使用null填充。
                             }
                             Bean create = new Bean(Document);
                             varData.Beans.Add(create);
-                            create.SetDataToGrid(grid, cells, ref colIndex, pathIndex, createIfNotExist);
+                            create.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex, createIfNotExist, newValue);
                         }
                         continue;
                     }
 
-                    Bean bean = varData.Beans[varInfo.Index];
+                    Bean bean = varData.Beans[varInfo.ListIndex];
                     if (null != bean)
                     {
-                        bean.SetDataToGrid(grid, cells, ref colIndex, pathIndex, createIfNotExist);
+                        bean.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex, createIfNotExist, newValue);
                         continue;
                     }
                     if (createIfNotExist)
                     {
                         Bean create = new Bean(Document);
-                        varData.Beans[varInfo.Index] = create;
-                        create.SetDataToGrid(grid, cells, ref colIndex, pathIndex, createIfNotExist);
+                        varData.Beans[varInfo.ListIndex] = create;
+                        create.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, pathIndex, createIfNotExist, newValue);
                     }
                     continue;
                 }

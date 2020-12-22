@@ -12,7 +12,7 @@ namespace ConfigEditor
         public class VarInfo
         {
             public VarDefine Define { get; set; }
-            public int Index { get; set; } = -1; // 负数在ListEnd的时候表示(-List.Count)。
+            public int ListIndex { get; set; } = -1; // 负数在ListEnd的时候表示(-List.Count)。
 
         }
         public BeanDefine BeanDefine { get; }
@@ -43,7 +43,7 @@ namespace ConfigEditor
 
         public ColumnTag AddVar(VarDefine define, int index)
         {
-            Path.Add(new VarInfo() { Define = define, Index = index });
+            Path.Add(new VarInfo() { Define = define, ListIndex = index });
             return this;
         }
 
@@ -53,15 +53,5 @@ namespace ConfigEditor
             copy.Path.AddRange(Path);
             return copy;
         }
-        /*
-        public ColumnTag Parent(ETag tag)
-        {
-            ColumnTag copy = new ColumnTag(this.BeanDefine, tag);
-            int copycount = Path.Count - 1;
-            for (int i = 0; i < copycount; ++i)
-                copy.Path.Add(Path[i]);
-            return copy;
-        }
-        */
     }
 }

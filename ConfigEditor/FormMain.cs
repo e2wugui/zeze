@@ -91,18 +91,13 @@ namespace ConfigEditor
 
         private void LoadDocumentToView(DataGridView grid, Document doc)
         {
-            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(doc.BeanDefine, 0), false);
+            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(doc.BeanDefine, ColumnTag.ETag.Normal), -1, false);
             foreach (var bean in doc.Beans)
             {
                 AddGridRow(grid);
                 DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
-                for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex) // ColumnCount maybe change in loop
-                {
-                    ColumnTag tag = (ColumnTag)grid.Columns[colIndex].Tag;
-                    Bean.VarData data = bean.SetVarDataToGrid(tag, 0);
-                    if (null != data)
-                        cells[colIndex].Value = data.Value;
-                }
+                int colIndex = 0;
+                bean.SetDataToGrid(grid, cells, ref colIndex, grid.ColumnCount, 0, false, null);
             }
             AddGridRow(grid);
         }
@@ -122,9 +117,10 @@ namespace ConfigEditor
                 doc.Beans.Add(new Bean(doc));
                 AddGridRow(grid);
             }
-            string value = (string)grid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
-            var varData = doc.Beans[e.RowIndex].SetVarDataToGrid(tag, 0, true);
-            varData.Value = value;
+            DataGridViewCellCollection cells = grid.Rows[e.RowIndex].Cells;
+            string value = (string)cells[e.ColumnIndex].Value;
+            int colIndex = e.ColumnIndex;
+            doc.Beans[e.RowIndex].SetDataToGrid(grid, cells, ref colIndex, e.ColumnIndex + 1, 0, true, value);
         }
 
         public bool VerifyName(string name, bool showMsg = true)
@@ -172,7 +168,7 @@ namespace ConfigEditor
                                 varDefine.Value = varDefine.FullName();
                             tag.BeanDefine.Variables.Add(varDefine);
                             // TODO 遍历所有打开的grid，查找所有对当前BeanDefine的引用，全部更新列。
-                            varDefine.BuildGridColumns(grid, columnIndex, tag.Copy(ColumnTag.ETag.Normal), true);
+                            varDefine.BuildGridColumns(grid, columnIndex, tag.Copy(ColumnTag.ETag.Normal), -1, true);
                             ((TabPage)grid.Parent).Tag = 1; // setup changed
                         }
                         break;
@@ -264,7 +260,7 @@ namespace ConfigEditor
             DataGridView grid = (DataGridView)tab.Controls[0];
             grid.Tag = doc;
             doc.Grid = grid;
-            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(doc.BeanDefine, 0), false);
+            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(doc.BeanDefine, ColumnTag.ETag.Normal), -1, false);
             AddGridRow(grid);
             tabs.SelectedTab = tab;
         }

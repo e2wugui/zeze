@@ -53,12 +53,12 @@ namespace ConfigEditor
             return r;
         }
 
-        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, bool createRefBeanIfNotExist)
+        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex, bool createRefBeanIfNotExist)
         {
             int colAdded = 0;
             foreach (var v in Variables)
             {
-                colAdded += v.BuildGridColumns(grid, columnIndex, tag, createRefBeanIfNotExist);
+                colAdded += v.BuildGridColumns(grid, columnIndex, tag, listIndex, createRefBeanIfNotExist);
             }
             // 这里创建的列用来新增。
             grid.Columns.Insert(columnIndex, new DataGridViewColumn(new DataGridViewTextBoxCell())

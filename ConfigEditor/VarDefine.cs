@@ -66,7 +66,7 @@ namespace ConfigEditor
             }
         }
 
-        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, bool createRefBeanIfNotExist = false)
+        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex, bool createRefBeanIfNotExist = false)
         {
             switch (GetEType())
             {
@@ -85,7 +85,8 @@ namespace ConfigEditor
                         Parent.Document.Main.OpenDocument(Value, out var r, createRefBeanIfNotExist);
                         Reference = r;
                         ++columnIndex;
-                        int colAdded = r.BuildGridColumns(grid, columnIndex, tag.Copy(tag.Tag).AddVar(this, 0), createRefBeanIfNotExist);
+                        int colAdded = r.BuildGridColumns(grid, columnIndex,
+                            tag.Copy(tag.Tag).AddVar(this, listIndex >= 0 ? listIndex : 0), -1, createRefBeanIfNotExist);
                         DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
                         columnIndex += colAdded;
                         grid.Columns.Insert(columnIndex, new DataGridViewColumn(e)
@@ -108,7 +109,7 @@ namespace ConfigEditor
                             Name = this.Name,
                             Width = GridColumnValueWidth,
                             ToolTipText = Comment,
-                            Tag = tag.Copy(tag.Tag).AddVar(this, -1),
+                            Tag = tag.Copy(tag.Tag).AddVar(this, listIndex),
                         });
                         return 1;
                     }
@@ -121,7 +122,7 @@ namespace ConfigEditor
                             Name = this.Name,
                             Width = GridColumnValueWidth,
                             ToolTipText = Comment,
-                            Tag = tag.Copy(tag.Tag).AddVar(this, -1),
+                            Tag = tag.Copy(tag.Tag).AddVar(this, listIndex),
                         });
                         return 1;
                     }
