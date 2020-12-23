@@ -205,8 +205,9 @@ namespace ConfigEditor
                         int add = 0;
                         for (int i = curListCount; i < varData.Beans.Count; ++i)
                         {
-                            add += tag.PathLast.Define.Parent.BuildGridColumns(grid, colIndex + add,
-                                tag.Parent(ColumnTag.ETag.Normal), i, false);
+                            ColumnTag tagSeed = tag.Copy(ColumnTag.ETag.Normal);
+                            tagSeed.PathLast.ListIndex = i;
+                            add += tag.PathLast.Define.Reference.BuildGridColumns(grid, colIndex + add, tagSeed, -1, false);
                         }
                         if (curListCount < varData.Beans.Count) // curListCount 至少为1.
                             varInfo.ListIndex = -varData.Beans.Count;
