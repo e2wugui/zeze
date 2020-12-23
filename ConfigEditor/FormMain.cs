@@ -22,6 +22,9 @@ namespace ConfigEditor
 
             public void SetRecentHome(string home)
             {
+                if (!System.IO.Directory.Exists(home))
+                    home = Environment.CurrentDirectory;
+
                 RecentHomes.Insert(0, home);
                 IList<string> distinct = new List<string>();
                 foreach (var r in RecentHomes.Distinct())
@@ -70,20 +73,28 @@ namespace ConfigEditor
 
         private void FormMain_Load(object sender, EventArgs e)
         {
-            this.folderBrowserDialog.Description = "选择配置所在的目录(Home)";
-            while (Config.RecentHomes.Count > 0)
+            // remove deleted directory.
+            for (int i = Config.RecentHomes.Count - 1; i >= 0; --i)
             {
-                string first = Config.RecentHomes.First();
-                if (System.IO.Directory.Exists(first))
+                string home = Config.RecentHomes[i];
+                if (System.IO.Directory.Exists(home))
                 {
-                    this.folderBrowserDialog.SelectedPath = first;
-                    break;
+                    continue;
                 }
-                Config.RecentHomes.RemoveAt(0);
+                Config.RecentHomes.RemoveAt(i);
             }
-            this.folderBrowserDialog.ShowDialog(); // check DialogResult
-            Config.SetRecentHome(this.folderBrowserDialog.SelectedPath.Length > 0
-                ? this.folderBrowserDialog.SelectedPath : Environment.CurrentDirectory);
+
+            FormSelectRecentHome select = new FormSelectRecentHome();
+            select.StartPosition = FormStartPosition.CenterParent;
+            select.Config = Config;
+            if (DialogResult.OK != select.ShowDialog(this))
+            {
+                select.Dispose();
+                Close();
+                return;
+            }
+            Config.SetRecentHome(select.ComboBoxRecentHomes.Text);
+            select.Dispose();
             SaveConfig();
             this.TopMost = true;
             this.BringToFront();
@@ -160,10 +171,10 @@ namespace ConfigEditor
                 case ColumnTag.ETag.AddVariable:
                     string varName = "";
                     FormInputVarDefine input = new FormInputVarDefine();
+                    input.StartPosition = FormStartPosition.CenterParent;
                     while (true)
                     {
                         input.TextBoxVarName.Text = varName;
-                        input.StartPosition = FormStartPosition.CenterParent;
                         if (DialogResult.OK == input.ShowDialog(this))
                         {
                             varName = input.TextBoxVarName.Text;

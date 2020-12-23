@@ -14,8 +14,9 @@
 	                  注意新增的Item如果没有填写数据不会被保存。
 
 TODO
+	define 编辑。
 	类型识别和Gen。
-	List中对象的删除。
+	enum识别和下拉列表。
 
 问题
-	程序开始时弹出的配置路径选择对话框没有居中显示。创建一个自己的Form用来选择RecentHomes。
+	Browse Dialog 初始显示位置偏离。

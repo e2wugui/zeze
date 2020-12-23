@@ -32,7 +32,6 @@ namespace ConfigEditor
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
             this.tabs = new System.Windows.Forms.TabControl();
-            this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.newButton = new System.Windows.Forms.ToolStripButton();
             this.openButton = new System.Windows.Forms.ToolStripButton();
@@ -142,7 +141,7 @@ namespace ConfigEditor
             this.deleteVariableColumnToolStripMenuItem,
             this.deleteListItemToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(350, 124);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(350, 80);
             // 
             // deleteVariableColumnToolStripMenuItem
             // 
@@ -180,7 +179,6 @@ namespace ConfigEditor
 
         #endregion
         private System.Windows.Forms.TabControl tabs;
-        private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog;
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripButton newButton;
         private System.Windows.Forms.ToolStripButton saveButton;
