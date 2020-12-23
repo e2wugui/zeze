@@ -539,7 +539,7 @@ namespace ConfigEditor
                                         --c;
                                         break;
                                     case ColumnTag.ETag.ListStart:
-                                        int colListEnd = FindListEnd(gridref, c);
+                                        int colListEnd = FindCloseListEnd(gridref, c);
                                         while (colListEnd >= c)
                                         {
                                             gridref.Columns.RemoveAt(colListEnd);
@@ -562,7 +562,7 @@ namespace ConfigEditor
             }
         }
 
-        private int FindListEnd(DataGridView grid, int startColIndex)
+        private int FindCloseListEnd(DataGridView grid, int startColIndex)
         {
             int listStartCount = 1;
             for (int c = startColIndex + 1; c < grid.ColumnCount; ++c)
@@ -581,6 +581,186 @@ namespace ConfigEditor
                 }
             }
             throw new Exception("List Not Closed.");
+        }
+
+        private int FindNextListEnd(DataGridView grid, int startColIndex)
+        {
+            int skipNestListCount = 0;
+            for (int c = startColIndex; c < grid.ColumnCount; ++c)
+            {
+                ColumnTag tag = (ColumnTag)grid.Columns[c].Tag;
+                if (skipNestListCount > 0)
+                {
+                    switch (tag.Tag)
+                    {
+                        case ColumnTag.ETag.ListEnd:
+                            --skipNestListCount;
+                            break;
+                        case ColumnTag.ETag.ListStart:
+                            ++skipNestListCount;
+                            break;
+                    }
+                    continue;
+                }
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.ListStart:
+                        ++skipNestListCount;
+                        break;
+                    //case ColumnTag.ETag.AddVariable:
+                    //case ColumnTag.ETag.Normal:
+                    //    break;
+                    case ColumnTag.ETag.ListEnd:
+                        return c;
+                }
+            }
+            return -1;
+        }
+
+        private int FindColumnBeanBegin(DataGridView grid, int startColIndex)
+        {
+            int skipNestListCount = 0;
+            for (int c = startColIndex - 1; c >= 0; --c)
+            {
+                ColumnTag tag = (ColumnTag)grid.Columns[c].Tag;
+                if (skipNestListCount > 0)
+                {
+                    switch (tag.Tag)
+                    {
+                        case ColumnTag.ETag.ListEnd:
+                            ++skipNestListCount;
+                            break;
+                        case ColumnTag.ETag.ListStart:
+                            --skipNestListCount;
+                            break;
+                    }
+                    continue;
+                }
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.AddVariable:
+                    case ColumnTag.ETag.ListStart:
+                        return c + 1;
+                    //case ColumnTag.ETag.Normal:
+                    //    break;
+                    case ColumnTag.ETag.ListEnd:
+                        ++skipNestListCount;
+                        break;
+                }
+            }
+            throw new Exception("FindColumnBeanBegin");
+        }
+
+        private int DoActionUntilBeanEnd(DataGridView grid, int colBeanBegin, int colListEnd, Action<int> action)
+        {
+            int skipNestListCount = 0;
+            for (int c = colBeanBegin; c < colListEnd; ++c)
+            {
+                action(c);
+                ColumnTag tag = (ColumnTag)grid.Columns[c].Tag;
+                if (skipNestListCount > 0)
+                {
+                    switch (tag.Tag)
+                    {
+                        case ColumnTag.ETag.ListEnd:
+                            --skipNestListCount;
+                            break;
+                        case ColumnTag.ETag.ListStart:
+                            ++skipNestListCount;
+                            break;
+                    }
+                    continue;
+                }
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.ListStart:
+                        ++skipNestListCount;
+                        break;
+                    case ColumnTag.ETag.AddVariable:
+                        return c + 1;
+                    //case ColumnTag.ETag.Normal:
+                    //    break;
+                    case ColumnTag.ETag.ListEnd:
+                        throw new Exception("DoActionUntilBeanEnd");
+                }
+            }
+            return colListEnd;
+        }
+
+        private void deleteListItemToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (tabs.SelectedTab == null)
+                return;
+
+            DataGridView grid = (DataGridView)tabs.SelectedTab.Controls[0];
+            if (grid.CurrentCell == null)
+                return;
+
+            ColumnTag tagSelected = (ColumnTag)grid.Columns[grid.CurrentCell.ColumnIndex].Tag;
+            switch (tagSelected.Tag)
+            {
+                case ColumnTag.ETag.ListStart:
+                case ColumnTag.ETag.ListEnd:
+                    MessageBox.Show("请选择 List 中间的列。");
+                    return;
+                /*
+                case ColumnTag.ETag.Normal:
+                case ColumnTag.ETag.AddVariable:
+                    break;
+                */
+            }
+
+            int colListEnd = FindNextListEnd(grid, grid.CurrentCell.ColumnIndex);
+            if (colListEnd < 0)
+            {
+                MessageBox.Show("请选择 List 中间的列。");
+                return; // not in list
+            }
+
+            Document doc = grid.Tag as Document;
+            ColumnTag tagListEnd = (ColumnTag)grid.Columns[colListEnd].Tag;
+            int pathEndIndex = tagListEnd.Path.Count - 1;
+            int colBeanBegin = FindColumnBeanBegin(grid, grid.CurrentCell.ColumnIndex);
+            int listIndex = tagSelected.Path[pathEndIndex].ListIndex;
+
+            // delete data(list item)
+            for (int row = 0; row < grid.RowCount - 1; ++row)
+            {
+                Bean.VarData varData = doc.Beans[row].GetVarData(0, tagSelected, pathEndIndex);
+                if (null != varData && listIndex < varData.Beans.Count)
+                {
+                    varData.Beans.RemoveAt(listIndex);
+                    doc.IsChanged = true;
+                }
+            }
+
+            if (tagListEnd.PathLast.ListIndex == -1)
+            {
+                // only have one item, delete data only.
+                return;
+            }
+
+            grid.SuspendLayout();
+            {
+                // delete column
+                List<int> colDelete = new List<int>();
+                DoActionUntilBeanEnd(grid, colBeanBegin, colListEnd, (int col) => colDelete.Add(col));
+                for (int i = colDelete.Count - 1; i >= 0; --i)
+                    grid.Columns.RemoveAt(colDelete[i]);
+            }
+            grid.ResumeLayout();
+
+            // reduce ListIndex In Current List after deleted item.
+            while (colBeanBegin < colListEnd)
+            {
+                colBeanBegin = DoActionUntilBeanEnd(grid, colBeanBegin, colListEnd,
+                    (int col) =>
+                    {
+                        ColumnTag tagReduce = (ColumnTag)grid.Columns[col].Tag;
+                        --tagReduce.Path[pathEndIndex].ListIndex;
+                    });
+            }
+            ++tagListEnd.PathLast.ListIndex;
         }
     }
 }

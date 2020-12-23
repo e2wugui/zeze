@@ -157,6 +157,31 @@ namespace ConfigEditor
             DeleteData,
         }
 
+        public VarData GetVarData(int pathCurrentIndex, ColumnTag tag, int pathEndIndex)
+        {
+            ColumnTag.VarInfo varInfo = tag.Path[pathCurrentIndex];
+            if (false == VariableMap.TryGetValue(varInfo.Define.Name, out var varData))
+            {
+                return null;
+            }
+
+            if (pathCurrentIndex == pathEndIndex)
+            {
+                return varData;
+            }
+
+            if (varInfo.Define.GetEType() == VarDefine.EType.List)
+            {
+                if (varInfo.ListIndex >= varData.Beans.Count)
+                    return null;
+                Bean bean = varData.Beans[varInfo.ListIndex];
+                if (null == bean)
+                    return null;
+                return bean.GetVarData(pathCurrentIndex + 1, tag, pathEndIndex);
+            }
+            throw new Exception("pathCurrentIndex != pathEndIndex And VarData Is Not A List");
+        }
+
         public bool Update(DataGridView grid, DataGridViewCellCollection cells,
             ref int colIndex, int pathIndex, EUpdate uptype)
         {

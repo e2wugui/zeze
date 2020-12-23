@@ -142,7 +142,7 @@ namespace ConfigEditor
             this.deleteVariableColumnToolStripMenuItem,
             this.deleteListItemToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(350, 80);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(350, 124);
             // 
             // deleteVariableColumnToolStripMenuItem
             // 
@@ -156,6 +156,7 @@ namespace ConfigEditor
             this.deleteListItemToolStripMenuItem.Name = "deleteListItemToolStripMenuItem";
             this.deleteListItemToolStripMenuItem.Size = new System.Drawing.Size(349, 38);
             this.deleteListItemToolStripMenuItem.Text = "Delete &List Item";
+            this.deleteListItemToolStripMenuItem.Click += new System.EventHandler(this.deleteListItemToolStripMenuItem_Click);
             // 
             // FormMain
             // 
