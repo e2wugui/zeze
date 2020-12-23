@@ -494,9 +494,6 @@ namespace ConfigEditor
             if (grid.CurrentCell == null)
                 return;
 
-            if (DialogResult.OK != MessageBox.Show("删除变量（列）将删除引用这个Bean定义的数据", "确认", MessageBoxButtons.OKCancel))
-                return;
-
             ColumnTag tag = (ColumnTag)grid.Columns[grid.CurrentCell.ColumnIndex].Tag;
             switch (tag.Tag)
             {
@@ -506,6 +503,9 @@ namespace ConfigEditor
                 case ColumnTag.ETag.ListEnd:
                 case ColumnTag.ETag.ListStart:
                 case ColumnTag.ETag.Normal:
+                    if (DialogResult.OK != MessageBox.Show("删除变量（列）将删除引用这个Bean定义的数据",
+                        "确认", MessageBoxButtons.OKCancel))
+                        return;
                     // delete data and column, all reference(opened grid).
                     foreach (var tab in tabs.Controls)
                     {
