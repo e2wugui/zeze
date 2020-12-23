@@ -138,14 +138,27 @@ namespace ConfigEditor
             this.Document = doc;
         }
 
+        public void DeleteVarData(string name)
+        {
+            if (VariableMap.TryGetValue(name, out var vardata))
+            {
+                if (Self != null && vardata.Self != null)
+                {
+                    Self.RemoveChild(vardata.Self);
+                }
+                VariableMap.Remove(name);
+            }
+        }
+
         public enum EUpdate
         {
             Data,
             Grid,
+            DeleteData,
         }
 
         public bool Update(DataGridView grid, DataGridViewCellCollection cells,
-            ref int colIndex, int pathIndex, EUpdate uptype, string newValue = null)
+            ref int colIndex, int pathIndex, EUpdate uptype)
         {
             // ColumnCount maybe change in loop
             for (; colIndex < grid.ColumnCount; ++colIndex)
@@ -155,8 +168,6 @@ namespace ConfigEditor
                 {
                     case ColumnTag.ETag.AddVariable:
                         return false; // end of bean
-                    case ColumnTag.ETag.ListStart:
-                        continue;
                 }
 
                 ColumnTag.VarInfo varInfo = tag.Path[pathIndex];
@@ -169,6 +180,23 @@ namespace ConfigEditor
                 }
                 if (varInfo.Define.GetEType() == VarDefine.EType.List)
                 {
+                    if (uptype == EUpdate.DeleteData)
+                    {
+                        if (ColumnTag.ETag.ListStart != tag.Tag)
+                            throw new Exception("应该仅在Tag为ListStart时移除数据. see FormMain.deleteVariable...");
+                        if (pathIndex + 1 < tag.Path.Count)
+                        {
+                            Bean bean1 = varData.Beans[varInfo.ListIndex];
+                            if (null != bean1)
+                                bean1.Update(grid, cells, ref colIndex, pathIndex + 1, uptype); // always return true;
+                        }
+                        else
+                        {
+                            DeleteVarData(varInfo.Define.Name);
+                        }
+                        return true;
+                    }
+
                     if (tag.Tag == ColumnTag.ETag.ListEnd)
                     {
                         int curListCount = -varInfo.ListIndex;
@@ -194,7 +222,7 @@ namespace ConfigEditor
                             }
                             Bean create = new Bean(Document);
                             varData.Beans.Add(create);
-                            if (create.Update(grid, cells, ref colIndex, pathIndex + 1, uptype, newValue))
+                            if (create.Update(grid, cells, ref colIndex, pathIndex + 1, uptype))
                                 return true;
                         }
                         continue;
@@ -203,7 +231,7 @@ namespace ConfigEditor
                     Bean bean = varData.Beans[varInfo.ListIndex];
                     if (null != bean)
                     {
-                        if (bean.Update(grid, cells, ref colIndex, pathIndex + 1, uptype, newValue))
+                        if (bean.Update(grid, cells, ref colIndex, pathIndex + 1, uptype))
                             return true;
                         continue;
                     }
@@ -211,22 +239,25 @@ namespace ConfigEditor
                     {
                         Bean create = new Bean(Document);
                         varData.Beans[varInfo.ListIndex] = create;
-                        if (create.Update(grid, cells, ref colIndex, pathIndex + 1, uptype, newValue))
+                        if (create.Update(grid, cells, ref colIndex, pathIndex + 1, uptype))
                             return true;
                     }
                     continue;
                 }
                 if (pathIndex + 1 != tag.Path.Count)
                     throw new Exception("Remain Path, But Is Not A List");
-                if (EUpdate.Data == uptype)
+
+                switch (uptype)
                 {
-                    varData.Value = newValue; // OnGridCellEndEdit save data
-                    return true;
-                }
-                else
-                {
-                    cells[colIndex].Value = varData.Value; // upate to grid
-                    return false;
+                    case EUpdate.Data:
+                        varData.Value = (string)cells[colIndex].Value; // OnGridCellEndEdit save data
+                        return true;
+                    case EUpdate.Grid:
+                        cells[colIndex].Value = varData.Value; // upate to grid
+                        return false;
+                    case EUpdate.DeleteData:
+                        DeleteVarData(varInfo.Define.Name);
+                        return true;
                 }
             }
             return true;

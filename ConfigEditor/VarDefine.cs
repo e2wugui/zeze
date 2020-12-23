@@ -23,6 +23,14 @@ namespace ConfigEditor
         public BeanDefine Parent { get; }
         public BeanDefine Reference { get; private set; } // type is List
 
+        public void Delete()
+        {
+            if (null != Self)
+                Self.ParentNode.RemoveChild(Self);
+            Parent.Document.IsChanged = true;
+            Parent.Variables.Remove(this);
+        }
+
         public enum EType
         {
             Zero = 0,
