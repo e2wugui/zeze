@@ -19,6 +19,21 @@ namespace ConfigEditor
             public XmlElement SelfList { get; set; }
             public XmlElement Self { get; set; }
 
+            public void DeleteBeanAt(int index)
+            {
+                if (index >= Beans.Count)
+                    return;
+
+                Bean exist = Beans[index];
+                if (null != exist && null != exist.Self && null != SelfList)
+                {
+                    SelfList.RemoveChild(exist.Self);
+                }
+
+                Beans.RemoveAt(index);
+                Parent.Document.IsChanged = true;
+            }
+
             public VarData(Bean bean, string name)
             {
                 this.Parent = bean;
@@ -209,9 +224,12 @@ namespace ConfigEditor
                     {
                         if (pathIndex + 1 < tag.Path.Count)
                         {
-                            Bean bean1 = varData.Beans[varInfo.ListIndex];
-                            if (null != bean1)
-                                bean1.Update(grid, cells, ref colIndex, pathIndex + 1, uptype); // always return true;
+                            if (varInfo.ListIndex < varData.Beans.Count)
+                            {
+                                Bean bean1 = varData.Beans[varInfo.ListIndex];
+                                if (null != bean1)
+                                    bean1.Update(grid, cells, ref colIndex, pathIndex + 1, uptype); // always return true;
+                            }
                         }
                         else
                         {

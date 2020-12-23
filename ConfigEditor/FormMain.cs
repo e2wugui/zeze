@@ -510,7 +510,7 @@ namespace ConfigEditor
                 case ColumnTag.ETag.ListEnd:
                 case ColumnTag.ETag.ListStart:
                 case ColumnTag.ETag.Normal:
-                    if (DialogResult.OK != MessageBox.Show("确定删除？所有引用该列所在Bean的数据也会被删除。",
+                    if (DialogResult.OK != MessageBox.Show("确定删除？所有引用该列的数据也会被删除。",
                         "确认", MessageBoxButtons.OKCancel))
                         return;
                     // delete data and column, all reference(opened grid).
@@ -726,17 +726,25 @@ namespace ConfigEditor
             // delete data(list item)
             for (int row = 0; row < grid.RowCount - 1; ++row)
             {
-                Bean.VarData varData = doc.Beans[row].GetVarData(0, tagSelected, pathEndIndex);
-                if (null != varData && listIndex < varData.Beans.Count)
-                {
-                    varData.Beans.RemoveAt(listIndex);
-                    doc.IsChanged = true;
-                }
+                doc.Beans[row].GetVarData(0, tagSelected, pathEndIndex)?.DeleteBeanAt(listIndex);
             }
 
             if (tagListEnd.PathLast.ListIndex == -1)
             {
-                // only have one item, delete data only.
+                // 只有一个item，仅删除数据，不需要删除Column。需要更新grid。
+                for (int row = 0; row < grid.RowCount - 1; ++row)
+                {
+                    DoActionUntilBeanEnd(grid, colBeanBegin, colListEnd,
+                        (int col) =>
+                        {
+                            switch ((grid.Columns[col].Tag as ColumnTag).Tag)
+                            {
+                                case ColumnTag.ETag.Normal:
+                                    grid[col, row].Value = null;
+                                    break;
+                            }
+                        });
+                }
                 return;
             }
 
@@ -747,6 +755,7 @@ namespace ConfigEditor
                 DoActionUntilBeanEnd(grid, colBeanBegin, colListEnd, (int col) => colDelete.Add(col));
                 for (int i = colDelete.Count - 1; i >= 0; --i)
                     grid.Columns.RemoveAt(colDelete[i]);
+                colListEnd -= colDelete.Count;
             }
             grid.ResumeLayout();
 
