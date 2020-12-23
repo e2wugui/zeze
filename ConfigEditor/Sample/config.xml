@@ -1,47 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ZezeConfig>
-  <BeanDefine name="config">
-    <BeanDefine name="L1">
-      <variable name="V1" nw="0" vw="60" />
-      <variable name="V2" nw="0" vw="60" />
-    </BeanDefine>
-    <variable name="L1" type="list" value="config.L1" nw="0" vw="60" />
-    <variable name="L1Ref" type="list" value="config.L1" nw="0" vw="60" />
+  <BeanDefine name="config" RefCount="0">
   </BeanDefine>
-  <bean>
-    <L1 nw="0" vw="0">
-      <list>
-        <bean>
-          <V1 nw="0" vw="0">1</V1>
-          <V2 nw="0" vw="0">2</V2>
-        </bean>
-      </list>
-    </L1>
-    <L1Ref nw="0" vw="0">
-      <list>
-        <bean>
-          <V1 nw="0" vw="0">3</V1>
-          <V2 nw="0" vw="0">4</V2>
-        </bean>
-      </list>
-    </L1Ref>
-  </bean>
-  <bean>
-    <L1 nw="0" vw="0">
-      <list>
-        <bean>
-          <V1 nw="0" vw="0">5</V1>
-          <V2 nw="0" vw="0">6</V2>
-        </bean>
-      </list>
-    </L1>
-    <L1Ref nw="0" vw="0">
-      <list>
-        <bean>
-          <V1 nw="0" vw="0">7</V1>
-          <V2 nw="0" vw="0">8</V2>
-        </bean>
-      </list>
-    </L1Ref>
-  </bean>
 </ZezeConfig>

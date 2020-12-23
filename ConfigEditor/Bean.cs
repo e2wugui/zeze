@@ -182,8 +182,6 @@ namespace ConfigEditor
                 {
                     if (uptype == EUpdate.DeleteData)
                     {
-                        if (ColumnTag.ETag.ListStart != tag.Tag)
-                            throw new Exception("应该仅在Tag为ListStart时移除数据. see FormMain.deleteVariable...");
                         if (pathIndex + 1 < tag.Path.Count)
                         {
                             Bean bean1 = varData.Beans[varInfo.ListIndex];
@@ -192,6 +190,8 @@ namespace ConfigEditor
                         }
                         else
                         {
+                            if (ColumnTag.ETag.ListStart != tag.Tag)
+                                throw new Exception("应该仅在Tag为ListStart时移除数据. see FormMain.deleteVariable...");
                             DeleteVarData(varInfo.Define.Name);
                         }
                         return true;

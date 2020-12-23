@@ -53,7 +53,6 @@ namespace ConfigEditor
             this.tabs.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.tabs.ContextMenuStrip = this.contextMenuStrip1;
             this.tabs.Location = new System.Drawing.Point(0, 46);
             this.tabs.Margin = new System.Windows.Forms.Padding(4);
             this.tabs.Name = "tabs";
@@ -143,7 +142,7 @@ namespace ConfigEditor
             this.deleteVariableColumnToolStripMenuItem,
             this.deleteListItemToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(350, 124);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(350, 80);
             // 
             // deleteVariableColumnToolStripMenuItem
             // 

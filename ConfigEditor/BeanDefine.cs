@@ -15,8 +15,32 @@ namespace ConfigEditor
         public XmlElement Self { get; private set; }
         public Document Document { get; }
         public BeanDefine Parent { get; }
+        private int RefCount;
         public bool IsLocked { get; set; } = false;
         
+        public void DecRefCount()
+        {
+            if (null == Parent)
+                return; // root BeanDefine 永远存在
+            --RefCount;
+
+            if (RefCount <= 0)
+            {
+                Document.IsChanged = true;
+                if (null != Self)
+                    Self.ParentNode.RemoveChild(Self);
+                Parent.BeanDefines.Remove(this);
+            }
+        }
+
+        public void AddRefCount()
+        {
+            if (null == Parent)
+                return; // root BeanDefine 永远存在
+            ++RefCount;
+            Document.IsChanged = true;
+        }
+
         public VarDefine GetVariable(string name)
         {
             foreach (var v in Variables)
@@ -95,6 +119,7 @@ namespace ConfigEditor
                     Parent.Self.AppendChild(Self);
             }
             Self.SetAttribute("name", Name);
+            Self.SetAttribute("RefCount", RefCount.ToString());
             foreach (var e in Enums)
             {
                 e.Save(Self);
@@ -116,6 +141,8 @@ namespace ConfigEditor
             Name = self.GetAttribute("name");
             if (Name.Length == 0)
                 Name = doc.Name;
+            string tmp = self.GetAttribute("RefCount");
+            RefCount = tmp.Length > 0 ? int.Parse(tmp) : 0;
             this.Self = self;
 
             XmlNodeList childNodes = self.ChildNodes;

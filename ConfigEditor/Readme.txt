@@ -15,6 +15,5 @@
 
 TODO
 	类型识别和Gen。
-	Bean变量的删除。
 	List中对象的删除。
 	List增加对象。

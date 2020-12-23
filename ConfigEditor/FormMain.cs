@@ -81,7 +81,7 @@ namespace ConfigEditor
                 }
                 Config.RecentHomes.RemoveAt(0);
             }
-            this.folderBrowserDialog.ShowDialog();
+            this.folderBrowserDialog.ShowDialog(); // check DialogResult
             Config.SetRecentHome(this.folderBrowserDialog.SelectedPath.Length > 0
                 ? this.folderBrowserDialog.SelectedPath : Environment.CurrentDirectory);
             SaveConfig();
@@ -188,12 +188,12 @@ namespace ConfigEditor
                                 createRef = true;
                             }
                             tag.PathLast.Define.Parent.Variables.Add(varDefine);
+                            tag.PathLast.Define.Parent.Document.IsChanged = true;
 
                             foreach (var tab in tabs.Controls)
                             {
                                 DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
                                 gridref.SuspendLayout();
-                                bool changed = false;
                                 for (int c = 0; c < gridref.ColumnCount; ++c)
                                 {
                                     ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
@@ -202,12 +202,10 @@ namespace ConfigEditor
                                     {
                                         c += varDefine.BuildGridColumns(gridref, c,
                                             tagref.Parent(ColumnTag.ETag.Normal), -1, createRef);
-                                        changed = true;
+                                        ((Document)gridref.Tag).IsChanged = true;
                                     }
                                 }
                                 gridref.ResumeLayout();
-                                if (changed)
-                                    ((Document)gridref.Tag).IsChanged = changed;
                             }
                         }
                         break;
@@ -277,6 +275,7 @@ namespace ConfigEditor
             grid.CellEndEdit += OnGridCellEndEdit;
             grid.CellMouseDoubleClick += OnGridDoubleClick;
             grid.KeyDown += OnGridKeyDown;
+            grid.CellMouseDown += OnCellMouseDown;
 
             TabPage tab = new TabPage();
             tab.Text = text;
@@ -472,6 +471,21 @@ namespace ConfigEditor
             // TODO 遍历Home所有配置文件，并且生成代码等。
         }
 
+        public void OnCellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Right)
+                return;
+
+            int col = e.ColumnIndex >= 0 ? e.ColumnIndex : 0;
+            int row = e.RowIndex >= 0 ? e.RowIndex : 0;
+            DataGridView grid = sender as DataGridView;
+            DataGridViewCell c = grid[col, row];
+            if (!c.Selected)
+            {
+                c.DataGridView.CurrentCell = c;
+            }
+            contextMenuStrip1.Show(grid, grid.PointToClient(Cursor.Position));
+        }
         private void deleteVariableColumnToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (tabs.SelectedTab == null)
@@ -498,14 +512,13 @@ namespace ConfigEditor
                         DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
                         Document doc = (Document)gridref.Tag;
                         gridref.SuspendLayout();
-                        bool changed = false;
                         for (int c = 0; c < gridref.ColumnCount; ++c)
                         {
                             ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
                             if (tagref.PathLast.Define == tag.PathLast.Define)
                             {
                                 // delete data
-                                for (int r = 0; r < gridref.RowCount; ++r)
+                                for (int r = 0; r < gridref.RowCount - 1; ++r)
                                 {
                                     DataGridViewCellCollection cells = gridref.Rows[r].Cells;
                                     int colref = c;
@@ -531,12 +544,10 @@ namespace ConfigEditor
                                         MessageBox.Show("ListEnd?");
                                         break;
                                 }
-                                changed = true;
+                                doc.IsChanged = true;
                             }
                         }
                         gridref.ResumeLayout();
-                        if (changed)
-                            doc.IsChanged = changed;
                     }
                     // delete define
                     tag.PathLast.Define.Delete();

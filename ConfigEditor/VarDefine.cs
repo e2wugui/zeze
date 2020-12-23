@@ -29,6 +29,7 @@ namespace ConfigEditor
                 Self.ParentNode.RemoveChild(Self);
             Parent.Document.IsChanged = true;
             Parent.Variables.Remove(this);
+            Reference?.DecRefCount();
         }
 
         public enum EType
@@ -97,6 +98,7 @@ namespace ConfigEditor
                         }
                         Parent.Document.Main.OpenDocument(Value, out var r, createRefBeanIfNotExist);
                         Reference = r ?? throw new Exception("list reference bean not found: " + Value);
+                        Reference.AddRefCount();
                         ++columnIndex;
                         int colAdded = r.BuildGridColumns(grid, columnIndex,
                             tag.Copy(tag.Tag).AddVar(this, listIndex >= 0 ? listIndex : 0),
