@@ -3,4 +3,22 @@
   <BeanDefine name="configref" RefCount="0">
     <variable name="Lref" type="list" value="config.L1" nw="0" vw="60" />
   </BeanDefine>
+  <bean>
+    <Lref nw="0" vw="0">
+      <list>
+        <bean>
+          <v2 nw="0" vw="0">1</v2>
+        </bean>
+      </list>
+    </Lref>
+  </bean>
+  <bean>
+    <Lref nw="0" vw="0">
+      <list>
+        <bean>
+          <v2 nw="0" vw="0">1</v2>
+        </bean>
+      </list>
+    </Lref>
+  </bean>
 </ZezeConfig>

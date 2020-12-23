@@ -162,6 +162,7 @@ namespace ConfigEditor
                     Self.RemoveChild(vardata.Self);
                 }
                 VariableMap.Remove(name);
+                Document.IsChanged = true;
             }
         }
 
@@ -207,7 +208,18 @@ namespace ConfigEditor
                 switch (tag.Tag)
                 {
                     case ColumnTag.ETag.AddVariable:
-                        return false; // end of bean
+                        // end of bean. 删除Define变化时没有同步的数据。
+                        HashSet<string> removed = new HashSet<string>();
+                        foreach (var k in VariableMap.Keys)
+                        {
+                            if (tag.PathLast.Define.Parent.GetVariable(k) == null)
+                                removed.Add(k);
+                        }
+                        foreach (var k in removed)
+                        {
+                            DeleteVarData(k);
+                        }
+                        return false;
                 }
 
                 ColumnTag.VarInfo varInfo = tag.Path[pathIndex];
