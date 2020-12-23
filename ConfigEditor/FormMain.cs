@@ -782,5 +782,20 @@ namespace ConfigEditor
             }
             ++tagListEnd.PathLast.ListIndex;
         }
+
+        private void FormMain_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Control)
+            {
+                switch (e.KeyCode)
+                {
+                    case Keys.N: newButton.PerformClick(); break;
+                    case Keys.O: openButton.PerformClick(); break;
+                    case Keys.A: saveAllButton.PerformClick(); break;
+                    case Keys.S: saveButton.PerformClick(); break;
+                    case Keys.B: buildButton.PerformClick(); break;
+                }
+            }
+        }
     }
 }

@@ -71,7 +71,7 @@ namespace ConfigEditor
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Padding = new System.Windows.Forms.Padding(0, 0, 4, 0);
-            this.toolStrip1.Size = new System.Drawing.Size(1712, 42);
+            this.toolStrip1.Size = new System.Drawing.Size(1712, 50);
             this.toolStrip1.TabIndex = 1;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -81,8 +81,8 @@ namespace ConfigEditor
             this.newButton.Image = ((System.Drawing.Image)(resources.GetObject("newButton.Image")));
             this.newButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.newButton.Name = "newButton";
-            this.newButton.Size = new System.Drawing.Size(67, 36);
-            this.newButton.Text = "New";
+            this.newButton.Size = new System.Drawing.Size(67, 44);
+            this.newButton.Text = "&New";
             this.newButton.ToolTipText = "New(ctrl + N)";
             this.newButton.Click += new System.EventHandler(this.newButton_Click);
             // 
@@ -92,8 +92,8 @@ namespace ConfigEditor
             this.openButton.Image = ((System.Drawing.Image)(resources.GetObject("openButton.Image")));
             this.openButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.openButton.Name = "openButton";
-            this.openButton.Size = new System.Drawing.Size(78, 36);
-            this.openButton.Text = "Open";
+            this.openButton.Size = new System.Drawing.Size(78, 44);
+            this.openButton.Text = "&Open";
             this.openButton.ToolTipText = "Open(ctrl + O)";
             this.openButton.Click += new System.EventHandler(this.openButton_Click);
             // 
@@ -103,8 +103,8 @@ namespace ConfigEditor
             this.saveButton.Image = ((System.Drawing.Image)(resources.GetObject("saveButton.Image")));
             this.saveButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.saveButton.Name = "saveButton";
-            this.saveButton.Size = new System.Drawing.Size(69, 36);
-            this.saveButton.Text = "Save";
+            this.saveButton.Size = new System.Drawing.Size(69, 44);
+            this.saveButton.Text = "&Save";
             this.saveButton.ToolTipText = "Save(ctrl + S)";
             this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
             // 
@@ -114,9 +114,9 @@ namespace ConfigEditor
             this.saveAllButton.Image = ((System.Drawing.Image)(resources.GetObject("saveAllButton.Image")));
             this.saveAllButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.saveAllButton.Name = "saveAllButton";
-            this.saveAllButton.Size = new System.Drawing.Size(103, 36);
-            this.saveAllButton.Text = "Save All";
-            this.saveAllButton.ToolTipText = "Save All(ctrl + shirt + S)";
+            this.saveAllButton.Size = new System.Drawing.Size(96, 44);
+            this.saveAllButton.Text = "Save&All";
+            this.saveAllButton.ToolTipText = "Save All(ctrl + A)";
             this.saveAllButton.Click += new System.EventHandler(this.saveAllButton_Click);
             // 
             // buildButton
@@ -125,9 +125,9 @@ namespace ConfigEditor
             this.buildButton.Image = ((System.Drawing.Image)(resources.GetObject("buildButton.Image")));
             this.buildButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.buildButton.Name = "buildButton";
-            this.buildButton.Size = new System.Drawing.Size(73, 36);
-            this.buildButton.Text = "Build";
-            this.buildButton.ToolTipText = "Build";
+            this.buildButton.Size = new System.Drawing.Size(73, 44);
+            this.buildButton.Text = "&Build";
+            this.buildButton.ToolTipText = "Build(ctrl + B)";
             this.buildButton.Click += new System.EventHandler(this.buildButton_Click);
             // 
             // openFileDialog1
@@ -164,11 +164,13 @@ namespace ConfigEditor
             this.ClientSize = new System.Drawing.Size(1712, 1056);
             this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.tabs);
+            this.KeyPreview = true;
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "FormMain";
             this.Text = "Main";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormMain_FormClosing);
             this.Load += new System.EventHandler(this.FormMain_Load);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FormMain_KeyDown);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             this.contextMenuStrip1.ResumeLayout(false);

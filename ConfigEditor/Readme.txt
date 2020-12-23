@@ -19,4 +19,4 @@ TODO
 	enum识别和下拉列表。
 
 问题
-	Browse Dialog 初始显示位置偏离。
+	Browse Dialog 初始显示位置偏离，可能跟windows放大有关，其他机器也许可以。
