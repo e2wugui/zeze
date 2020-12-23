@@ -153,7 +153,7 @@ namespace ConfigEditor
             return true;
         }
 
-        private void DoActionByColumnTag(DataGridView grid, int rowIndex, int columnIndex, ColumnTag tag)
+        private void DoActionByColumnTag(DataGridView grid, int columnIndex, ColumnTag tag)
         {
             switch (tag.Tag)
             {
@@ -215,7 +215,12 @@ namespace ConfigEditor
                     break;
 
                 case ColumnTag.ETag.ListEnd:
-                    // TODO add list item now
+                    // add list item now
+                    ColumnTag tagSeed = tag.Copy(ColumnTag.ETag.Normal);
+                    tagSeed.PathLast.ListIndex = -tag.PathLast.ListIndex;
+                    --tag.PathLast.ListIndex;
+                    tag.PathLast.Define.Reference.BuildGridColumns(grid, columnIndex, tagSeed, -1, false);
+                    //(grid.Tag as Document).IsChanged = true;
                     break;
             }
         }
@@ -223,11 +228,12 @@ namespace ConfigEditor
         {
             if (e.Button != MouseButtons.Left)
                 return;
-
+            if (e.ColumnIndex < 0)
+                return;
             try
             {
                 DataGridView grid = (DataGridView)sender;
-                DoActionByColumnTag(grid, e.RowIndex, e.ColumnIndex, (ColumnTag)grid.Columns[e.ColumnIndex].Tag);
+                DoActionByColumnTag(grid, e.ColumnIndex, (ColumnTag)grid.Columns[e.ColumnIndex].Tag);
             }
             catch (Exception ex)
             {
@@ -246,7 +252,7 @@ namespace ConfigEditor
                 switch (e.KeyCode)
                 {
                     case Keys.Enter:
-                        DoActionByColumnTag(grid, grid.CurrentCell.RowIndex, grid.CurrentCell.ColumnIndex,
+                        DoActionByColumnTag(grid, grid.CurrentCell.ColumnIndex,
                             (ColumnTag)grid.Columns[grid.CurrentCell.ColumnIndex].Tag);
                         break;
                 }

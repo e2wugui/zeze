@@ -1,5 +1,26 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ZezeConfig>
   <BeanDefine name="config" RefCount="0">
+    <BeanDefine name="L1" RefCount="8">
+      <variable name="v2" nw="0" vw="60" />
+    </BeanDefine>
+    <variable name="v0" nw="0" vw="60" />
+    <variable name="v1" nw="0" vw="60" />
+    <variable name="L1" type="list" value="config.L1" nw="0" vw="60" />
   </BeanDefine>
+  <bean>
+    <L1 nw="0" vw="0">
+      <list>
+        <bean>
+          <v2 nw="0" vw="0">4</v2>
+        </bean>
+        <bean>
+          <v2 nw="0" vw="0">5</v2>
+        </bean>
+        <bean>
+          <v2 nw="0" vw="0">6</v2>
+        </bean>
+      </list>
+    </L1>
+  </bean>
 </ZezeConfig>

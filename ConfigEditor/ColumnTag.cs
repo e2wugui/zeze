@@ -13,7 +13,10 @@ namespace ConfigEditor
         {
             public VarDefine Define { get; set; }
             public int ListIndex { get; set; } = -1; // 负数在ListEnd的时候表示(-List.Count)。
-
+            public VarInfo Copy()
+            {
+                return new VarInfo() { Define = this.Define, ListIndex = this.ListIndex };
+            }
         }
 
         public enum ETag
@@ -50,7 +53,9 @@ namespace ConfigEditor
         public ColumnTag Copy(ETag tag)
         {
             ColumnTag copy = new ColumnTag(tag);
-            copy.Path.AddRange(Path);
+            int copyCount = Path.Count;
+            for (int i = 0; i < copyCount; ++i)
+                copy.Path.Add(Path[i].Copy());
             return copy;
         }
 
@@ -59,7 +64,7 @@ namespace ConfigEditor
             ColumnTag copy = new ColumnTag(tag);
             int copyCount = Path.Count - 1;
             for (int i = 0; i < copyCount; ++i)
-                copy.Path.Add(Path[i]);
+                copy.Path.Add(Path[i].Copy());
             return copy;
         }
     }
