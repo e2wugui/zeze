@@ -163,6 +163,7 @@ namespace ConfigEditor
                     while (true)
                     {
                         input.TextBoxVarName.Text = varName;
+                        input.StartPosition = FormStartPosition.CenterParent;
                         if (DialogResult.OK == input.ShowDialog(this))
                         {
                             varName = input.TextBoxVarName.Text;
@@ -503,7 +504,7 @@ namespace ConfigEditor
                 case ColumnTag.ETag.ListEnd:
                 case ColumnTag.ETag.ListStart:
                 case ColumnTag.ETag.Normal:
-                    if (DialogResult.OK != MessageBox.Show("删除变量（列）将删除引用这个Bean定义的数据",
+                    if (DialogResult.OK != MessageBox.Show("确定删除？所有引用该列所在Bean的数据也会被删除。",
                         "确认", MessageBoxButtons.OKCancel))
                         return;
                     // delete data and column, all reference(opened grid).
