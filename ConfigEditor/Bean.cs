@@ -196,6 +196,8 @@ namespace ConfigEditor
                         }
                         return true;
                     }
+                    if (ColumnTag.ETag.ListStart == tag.Tag)
+                        continue;
 
                     if (tag.Tag == ColumnTag.ETag.ListEnd)
                     {
@@ -204,7 +206,7 @@ namespace ConfigEditor
                         for (int i = curListCount; i < varData.Beans.Count; ++i)
                         {
                             add += tag.PathLast.Define.Parent.BuildGridColumns(grid, colIndex + add,
-                                tag.Copy(ColumnTag.ETag.Normal), i, false);
+                                tag.Parent(ColumnTag.ETag.Normal), i, false);
                         }
                         if (curListCount < varData.Beans.Count) // curListCount 至少为1.
                             varInfo.ListIndex = -varData.Beans.Count;
@@ -250,11 +252,11 @@ namespace ConfigEditor
                 switch (uptype)
                 {
                     case EUpdate.Data:
-                        varData.Value = (string)cells[colIndex].Value; // OnGridCellEndEdit save data
+                        varData.Value = (string)cells[colIndex].Value; // OnGridCellEndEdit update data
                         return true;
                     case EUpdate.Grid:
                         cells[colIndex].Value = varData.Value; // upate to grid
-                        return false;
+                        break; // Update Grid 等到 ColumnTag.ETag.AddVariable 才返回。在这个函数开头。
                     case EUpdate.DeleteData:
                         DeleteVarData(varInfo.Define.Name);
                         return true;
