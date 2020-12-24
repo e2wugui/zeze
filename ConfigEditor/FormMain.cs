@@ -294,11 +294,27 @@ namespace ConfigEditor
             grid.CellMouseDoubleClick += OnGridDoubleClick;
             grid.KeyDown += OnGridKeyDown;
             grid.CellMouseDown += OnCellMouseDown;
+            grid.ColumnWidthChanged += OnGridColumnWidthChanged;
 
             TabPage tab = new TabPage();
             tab.Text = text;
             tab.Controls.Add(grid);
             return tab;
+        }
+
+        public void OnGridColumnWidthChanged(object sender, DataGridViewColumnEventArgs e)
+        {
+            if (e.Column == null)
+                return;
+
+            ColumnTag tag = e.Column.Tag as ColumnTag;
+            switch (tag.Tag)
+            {
+                case ColumnTag.ETag.Normal:
+                    tag.PathLast.Define.GridColumnValueWidth = e.Column.Width;
+                    tag.PathLast.Define.Parent.Document.IsChanged = true;
+                    break;
+            }
         }
 
         private void AddGridRow(DataGridView grid)

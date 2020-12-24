@@ -14,10 +14,15 @@
 	                  注意新增的Item如果没有填写数据不会被保存。
 
 TODO
-	
 	define 编辑。
 	类型识别和Gen。
 	enum识别和下拉列表。
+	SaveAs
 
 问题
-	Browse Dialog 初始显示位置偏离，可能跟windows放大有关，其他机器也许可以。
+	1 Browse Dialog 初始显示位置偏离，可能跟windows放大有关，其他机器也许可以。
+	2 Grid.Column.Width 保存在定义的Bean.Var中，如果Bean被多处引用或者多个实例（比如List中），
+	  那么这些列共享一个配置. 当然编辑的时候，可以把同一个Bean.Var的列调整成不同的Width。
+	  此时Bean.Var中保存最后一次调整Column.Width时的值。
+	3 不要在编辑工具外部直接改名。
+	  文件改名（改路径），怎么更新相关引用？扫描所有的配置文件？

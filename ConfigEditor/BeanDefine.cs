@@ -119,7 +119,8 @@ namespace ConfigEditor
                 else
                     Parent.Self.AppendChild(Self);
             }
-            Self.SetAttribute("name", Name);
+            if (Parent != null) // root BeanDefine 自动设置成文件名。
+                Self.SetAttribute("name", Name);
             Self.SetAttribute("RefCount", RefCount.ToString());
             foreach (var e in Enums)
             {
