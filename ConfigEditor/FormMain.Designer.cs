@@ -37,12 +37,16 @@ namespace ConfigEditor
             this.openButton = new System.Windows.Forms.ToolStripButton();
             this.saveButton = new System.Windows.Forms.ToolStripButton();
             this.saveAllButton = new System.Windows.Forms.ToolStripButton();
+            this.buttonSaveAs = new System.Windows.Forms.ToolStripButton();
             this.buildButton = new System.Windows.Forms.ToolStripButton();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.deleteVariableColumnToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteListItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripButtonDefine = new System.Windows.Forms.ToolStripButton();
             this.toolStrip1.SuspendLayout();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -65,8 +69,12 @@ namespace ConfigEditor
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.newButton,
             this.openButton,
+            this.toolStripSeparator1,
             this.saveButton,
             this.saveAllButton,
+            this.buttonSaveAs,
+            this.toolStripSeparator2,
+            this.toolStripButtonDefine,
             this.buildButton});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
@@ -119,6 +127,17 @@ namespace ConfigEditor
             this.saveAllButton.ToolTipText = "Save All(ctrl + A)";
             this.saveAllButton.Click += new System.EventHandler(this.saveAllButton_Click);
             // 
+            // buttonSaveAs
+            // 
+            this.buttonSaveAs.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.buttonSaveAs.Image = ((System.Drawing.Image)(resources.GetObject("buttonSaveAs.Image")));
+            this.buttonSaveAs.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.buttonSaveAs.Name = "buttonSaveAs";
+            this.buttonSaveAs.Size = new System.Drawing.Size(94, 44);
+            this.buttonSaveAs.Text = "SaveAs";
+            this.buttonSaveAs.ToolTipText = "SaveAs(ctrl + V)";
+            this.buttonSaveAs.Click += new System.EventHandler(this.buttonSaveAs_Click);
+            // 
             // buildButton
             // 
             this.buildButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
@@ -157,6 +176,27 @@ namespace ConfigEditor
             this.deleteListItemToolStripMenuItem.Text = "Delete &List Item";
             this.deleteListItemToolStripMenuItem.Click += new System.EventHandler(this.deleteListItemToolStripMenuItem_Click);
             // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(6, 50);
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 50);
+            // 
+            // toolStripButtonDefine
+            // 
+            this.toolStripButtonDefine.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripButtonDefine.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonDefine.Image")));
+            this.toolStripButtonDefine.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonDefine.Name = "toolStripButtonDefine";
+            this.toolStripButtonDefine.Size = new System.Drawing.Size(90, 44);
+            this.toolStripButtonDefine.Text = "&Define";
+            this.toolStripButtonDefine.ToolTipText = "Define(ctrl + D)";
+            this.toolStripButtonDefine.Click += new System.EventHandler(this.toolStripButtonDefine_Click);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 24F);
@@ -192,6 +232,10 @@ namespace ConfigEditor
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ToolStripMenuItem deleteVariableColumnToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteListItemToolStripMenuItem;
+        private System.Windows.Forms.ToolStripButton buttonSaveAs;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripButton toolStripButtonDefine;
     }
 }
 

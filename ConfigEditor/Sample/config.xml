@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ZezeConfig>
   <BeanDefine name="config" RefCount="0">
-    <BeanDefine name="L1" RefCount="25">
+    <BeanDefine name="L1" RefCount="27">
       <variable name="v2" nw="0" vw="60" />
     </BeanDefine>
     <variable name="v0" nw="0" vw="60" />
@@ -30,7 +30,7 @@
       </list>
     </L1>
     <v0 nw="0" vw="0">v0</v0>
-    <v1 nw="0" vw="0">v1</v1>
+    <v1 nw="0" vw="0">v1啦啦啦啦啦啦啦啦啦啦啦</v1>
     <v7 nw="0" vw="0">v7</v7>
   </bean>
 </ZezeConfig>

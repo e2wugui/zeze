@@ -5,6 +5,8 @@
 	动态增删列，
 	自动类型识别(Gen)，
 	支持容器(list)，
+	自动完成，
+	数据即时验证(只警告或者报错，允许保存错误数据)，Properties: unique;id;server;client;url;dns;file;...
 
 说明
 	每一行被识别看成一个Bean，每一列看成一个变量。
@@ -14,9 +16,21 @@
 	                  注意新增的Item如果没有填写数据不会被保存。
 
 TODO
+	CellToopTipTextNeeded 
+1private void dgv_PropDemo_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
+2{
+3     //鼠标在第三列的单元格上面时显示提示信息
+4     if (e.ColumnIndex == 2)
+5     {
+6        e.ToolTipText = "列:" + e.ColumnIndex.ToString() + ",行:" + e.RowIndex.ToString();
+7     }
+8 }
+
 	define 编辑。
 	类型识别和Gen。
-	enum识别和下拉列表。
+	自动完成和enum识别。
+	1 id存一个种子自动递增，或者从上一行的id往后找一个未用的。
+	2 普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
 	SaveAs
 
 问题
@@ -26,3 +40,4 @@ TODO
 	  此时Bean.Var中保存最后一次调整Column.Width时的值。
 	3 不要在编辑工具外部直接改名。
 	  文件改名（改路径），怎么更新相关引用？扫描所有的配置文件？
+	4 VarComment 先支持单行注释。多行再考虑。

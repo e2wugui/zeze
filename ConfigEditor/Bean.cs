@@ -100,16 +100,12 @@ namespace ConfigEditor
                         Self = e;
                     }
                 }
-                Self.SetAttribute("nw", GridColumnNameWidth.ToString());
-                Self.SetAttribute("vw", GridColumnValueWidth.ToString());
+                if (GridColumnNameWidth > 0)
+                    Self.SetAttribute("nw", GridColumnNameWidth.ToString());
+                if (GridColumnValueWidth > 0)
+                    Self.SetAttribute("vw", GridColumnValueWidth.ToString());
 
-                int notNullCount = 0;
-                foreach (var b in Beans)
-                {
-                    if (null != b)
-                        ++notNullCount;
-                }
-                if (notNullCount > 0) // 这里没有判断Type，直接根据数据来决定怎么保存。
+                if (Beans.Count > 0) // 这里没有判断Type，直接根据数据来决定怎么保存。
                 {
                     if (null == SelfList)
                     {
@@ -270,13 +266,14 @@ namespace ConfigEditor
                             --colIndex; // 新增加了列，回退一列，继续装载数据。
                         continue;
                     }
+
                     if (varInfo.ListIndex >= varData.Beans.Count)
                     {
                         if (EUpdate.Data == uptype)
                         {
                             for (int i = varData.Beans.Count; i < varInfo.ListIndex; ++i)
                             {
-                                varData.Beans.Add(null); // List中间的Bean先使用null填充。
+                                varData.Beans.Add(new Bean(Document));
                             }
                             Bean create = new Bean(Document);
                             varData.Beans.Add(create);

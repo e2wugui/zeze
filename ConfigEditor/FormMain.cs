@@ -189,7 +189,7 @@ namespace ConfigEditor
                             VarDefine varDefine = new VarDefine(tag.PathLast.Define.Parent)
                             {
                                 Name = varName,
-                                GridColumnValueWidth = 60,
+                                GridColumnValueWidth = 50,
                                 Type = input.CheckBoxIsList.Checked ? "list" : "",
                                 Value = input.TextBoxListRefBeanName.Text,
                             };
@@ -497,6 +497,11 @@ namespace ConfigEditor
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             e.Cancel = false == SaveAll();
+            if (e.Cancel)
+                return;
+
+            FormDefine.Dispose();
+            FormDefine = null;
         }
 
         private void buildButton_Click(object sender, EventArgs e)
@@ -810,8 +815,25 @@ namespace ConfigEditor
                     case Keys.A: saveAllButton.PerformClick(); break;
                     case Keys.S: saveButton.PerformClick(); break;
                     case Keys.B: buildButton.PerformClick(); break;
+                    case Keys.V: buttonSaveAs.PerformClick(); break;
+                    case Keys.D: toolStripButtonDefine.PerformClick(); break;
                 }
             }
         }
+
+        private FormDefine FormDefine;
+
+        private void toolStripButtonDefine_Click(object sender, EventArgs e)
+        {
+            if (null == FormDefine)
+                FormDefine = new FormDefine();
+            FormDefine.Show();
+        }
+
+        private void buttonSaveAs_Click(object sender, EventArgs e)
+        {
+            // TODO
+        }
+
     }
 }

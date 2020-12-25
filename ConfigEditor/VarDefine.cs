@@ -13,7 +13,7 @@ namespace ConfigEditor
         public string Type { get; set; }
         public string Value { get; set; }
         public string Foreign { get; set; }
-        public string Properties { get; set; } // unique;
+        public string Properties { get; set; }
         public string Comment { get; set; }
 
         public int GridColumnNameWidth { get; set; }
@@ -89,7 +89,7 @@ namespace ConfigEditor
                             Width = 20,
                             HeaderText = listStartText,
                             ReadOnly = true,
-                            ToolTipText = Comment,
+                            ToolTipText = Name + ":" + Value + ":" + Comment,
                             Tag = tag.Copy(ColumnTag.ETag.ListStart).AddVar(this, -1),
                         });
                         for (int i = 0; i < grid.RowCount; ++i)
@@ -112,7 +112,7 @@ namespace ConfigEditor
                             Width = 20,
                             HeaderText = listEndText,
                             ReadOnly = true,
-                            ToolTipText = Comment,
+                            ToolTipText = Name + ": 双击此列增加List Item。",
                             Tag = tag.Copy(ColumnTag.ETag.ListEnd).AddVar(this, -1), // 初始为-1，以后在Bean.SetDataToGrid中修改。
                         });
                         for (int i = 0; i < grid.RowCount; ++i)
@@ -129,7 +129,7 @@ namespace ConfigEditor
                         {
                             Name = this.Name,
                             Width = GridColumnValueWidth,
-                            ToolTipText = Comment,
+                            ToolTipText = Name + ":" + Comment,
                             Tag = tag.Copy(tag.Tag).AddVar(this, -1),
                         });
                         return 1;
@@ -142,7 +142,7 @@ namespace ConfigEditor
                         {
                             Name = this.Name,
                             Width = GridColumnValueWidth,
-                            ToolTipText = Comment,
+                            ToolTipText = Name + ":" + Comment,
                             Tag = tag.Copy(tag.Tag).AddVar(this, -1),
                         });
                         return 1;
@@ -176,8 +176,10 @@ namespace ConfigEditor
             SetAttribute("foreign", Foreign);
             SetAttribute("properties", Properties);
 
-            Self.SetAttribute("nw", GridColumnNameWidth.ToString());
-            Self.SetAttribute("vw", GridColumnValueWidth.ToString());
+            if (GridColumnNameWidth > 0)
+                Self.SetAttribute("nw", GridColumnNameWidth.ToString());
+            if (GridColumnValueWidth > 0)
+                Self.SetAttribute("vw", GridColumnValueWidth.ToString());
         }
 
         public VarDefine(BeanDefine bean, XmlElement self)
