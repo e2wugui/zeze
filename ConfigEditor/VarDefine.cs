@@ -24,13 +24,13 @@ namespace ConfigEditor
         public BeanDefine Parent { get; }
         public BeanDefine Reference { get; private set; } // type is List
 
-        public void Delete()
+        public BeanDefine Delete()
         {
             if (null != Self)
                 Self.ParentNode.RemoveChild(Self);
             Parent.Document.IsChanged = true;
             Parent.Variables.Remove(this);
-            Reference?.DecRefCount();
+            return Reference?.DecRefCount();
         }
 
         public enum EType
@@ -75,7 +75,7 @@ namespace ConfigEditor
             }
         }
 
-        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex, bool createRefBeanIfNotExist = false)
+        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex, bool create)
         {
             switch (Type)
             {
@@ -96,13 +96,12 @@ namespace ConfigEditor
                         {
                             grid.Rows[i].Cells[columnIndex].Value = listStartText;
                         }
-                        Parent.Document.Main.OpenDocument(Value, out var r, createRefBeanIfNotExist);
+                        Parent.Document.Main.OpenDocument(Value, out var r, create);
                         Reference = r ?? throw new Exception("list reference bean not found: " + Value);
-                        Reference.AddRefCount();
                         ++columnIndex;
                         int colAdded = r.BuildGridColumns(grid, columnIndex,
                             tag.Copy(tag.Tag).AddVar(this, listIndex >= 0 ? listIndex : 0),
-                            -1, createRefBeanIfNotExist);
+                            -1, create);
                         DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
                         columnIndex += colAdded;
                         string listEndText = "]" + this.Name;

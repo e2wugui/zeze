@@ -182,13 +182,13 @@ namespace ConfigEditor
             this.deleteVariableColumnToolStripMenuItem,
             this.deleteListItemToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(203, 48);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(259, 70);
             // 
             // deleteVariableColumnToolStripMenuItem
             // 
             this.deleteVariableColumnToolStripMenuItem.Name = "deleteVariableColumnToolStripMenuItem";
-            this.deleteVariableColumnToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
-            this.deleteVariableColumnToolStripMenuItem.Text = "&Delete Variable(Column)";
+            this.deleteVariableColumnToolStripMenuItem.Size = new System.Drawing.Size(258, 22);
+            this.deleteVariableColumnToolStripMenuItem.Text = "&Delete Bean Variable(Data Column)";
             this.deleteVariableColumnToolStripMenuItem.Click += new System.EventHandler(this.deleteVariableColumnToolStripMenuItem_Click);
             // 
             // deleteListItemToolStripMenuItem

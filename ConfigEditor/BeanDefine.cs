@@ -15,7 +15,7 @@ namespace ConfigEditor
         public XmlElement Self { get; private set; }
         public Document Document { get; }
         public BeanDefine Parent { get; }
-        private int RefCount;
+        private int RefCount = 1;
         public bool IsLocked { get; set; } = false;
         
         public string FullName()
@@ -38,10 +38,10 @@ namespace ConfigEditor
             }
         }
 
-        public void DecRefCount()
+        public BeanDefine DecRefCount()
         {
             if (null == Parent)
-                return; // root BeanDefine 永远存在
+                return null; // root BeanDefine 永远存在
             --RefCount;
 
             if (RefCount <= 0)
@@ -50,7 +50,9 @@ namespace ConfigEditor
                 if (null != Self)
                     Self.ParentNode.RemoveChild(Self);
                 Parent.BeanDefines.Remove(this.Name);
+                return this;
             }
+            return null;
         }
 
         public void AddRefCount()
@@ -96,12 +98,12 @@ namespace ConfigEditor
             return r;
         }
 
-        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex, bool createRefBeanIfNotExist)
+        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex, bool create)
         {
             int colAdded = 0;
             foreach (var v in Variables)
             {
-                colAdded += v.BuildGridColumns(grid, columnIndex + colAdded, tag, listIndex, createRefBeanIfNotExist);
+                colAdded += v.BuildGridColumns(grid, columnIndex + colAdded, tag, listIndex, create);
             }
             // 这里创建的列用来新增。
             grid.Columns.Insert(columnIndex + colAdded, new DataGridViewColumn(new DataGridViewTextBoxCell())

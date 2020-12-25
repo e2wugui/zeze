@@ -25,13 +25,15 @@ TODO
 6        e.ToolTipText = "列:" + e.ColumnIndex.ToString() + ",行:" + e.RowIndex.ToString();
 7     }
 8 }
-
-	define 编辑。
+	嵌套list问题：add时创建两个item。
+	define 编辑。add list var 时需要同步新创建的bean。
 	类型识别和Gen。
 	自动完成和enum识别。
 	1 id存一个种子自动递增，或者从上一行的id往后找一个未用的。
 	2 普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
 	SaveAs
+
+Need Test
 
 问题
 	1 Browse Dialog 初始显示位置偏离，可能跟windows放大有关，其他机器也许可以。

@@ -1,36 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ZezeConfig>
-  <BeanDefine name="config" RefCount="0">
-    <BeanDefine name="L1" RefCount="49">
-      <variable name="v2" nw="0" vw="60" type="Auto" />
-    </BeanDefine>
-    <variable name="v0" nw="0" vw="60" type="Auto" />
-    <variable name="v1" nw="0" vw="60" type="Auto" />
-    <variable name="L1" type="List" value="config.L1" nw="0" vw="60" />
-    <variable name="v7" nw="0" vw="60" type="Auto" />
+  <BeanDefine RefCount="0">
+    <BeanDefine name="list1" RefCount="1" />
+    <variable name="list1" type="List" value="config.list1" vw="50" />
   </BeanDefine>
-  <bean>
-    <L1 nw="0" vw="0">
-      <list>
-        <bean>
-          <v2 nw="0" vw="0">1</v2>
-        </bean>
-      </list>
-    </L1>
-    <v0 nw="0" vw="0">v0</v0>
-    <v1 nw="0" vw="0">v1</v1>
-    <v7 nw="0" vw="0">v7</v7>
-  </bean>
-  <bean>
-    <L1 nw="0" vw="0">
-      <list>
-        <bean>
-          <v2 nw="0" vw="0">1</v2>
-        </bean>
-      </list>
-    </L1>
-    <v0 nw="0" vw="0">v0</v0>
-    <v1 nw="0" vw="0">v1啦啦啦啦啦啦啦啦啦啦啦</v1>
-    <v7 nw="0" vw="0">v7</v7>
-  </bean>
 </ZezeConfig>

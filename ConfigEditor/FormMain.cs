@@ -16,7 +16,7 @@ namespace ConfigEditor
             public IList<string> RecentHomes { get; set; }
 
             public Size FormMainSize { get; set; } = new Size(828, 569);
-            public Point FormMainLocation { get; set; } = new Point(300, 150);
+            public Point FormMainLocation { get; set; } = new Point(150, 80);
             public FormWindowState FormMainState { get; set; } = FormWindowState.Maximized;
 
             public string GetHome()
@@ -61,7 +61,7 @@ namespace ConfigEditor
                 string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(GetConfigFileFullName()));
                 Config = JsonSerializer.Deserialize<EditorConfig>(json);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 //MessageBox.Show(ex.ToString());
             }
@@ -144,33 +144,109 @@ namespace ConfigEditor
             doc.Beans[e.RowIndex].Update(grid, cells, ref colIndex, 0, Bean.EUpdate.Data);
         }
 
-        public bool VerifyName(string name, bool showMsg = true)
+        private bool ReportError(string msg, bool showOnly)
+        {
+            if (showOnly)
+            {
+                MessageBox.Show(msg);
+                return false;
+            }
+            throw new Exception(msg);
+        }
+
+        public bool VerifyName(string name, bool showOnly = true)
         {
             if (name.Length == 0)
-                throw new Exception("name cannot empty.");
+                return ReportError("name cannot empty.", showOnly);
+
             if (char.IsDigit(name[0]))
-                throw new Exception("name cannot begin with number.");
+                return ReportError("name cannot begin with number.", showOnly);
+
             switch (name)
             {
                 case "bean":
                 case "list":
                 case "BeanDefine":
                 case "variable":
-                    throw new Exception(name + " is reserved");
+                    return ReportError(name + " is reserved", showOnly);
             }
+
             foreach (var c in name)
             {
                 if (char.IsWhiteSpace(c) || c == '.')
                 {
-                    string err = "name cannot use WhiteSpace and '.'";
-                    if (showMsg)
-                        MessageBox.Show(err);
-                    else
-                        throw new Exception(err);
-                    return false;
+                    return ReportError("name cannot use WhiteSpace and '.'", showOnly);
                 }
             }
             return true;
+        }
+
+        public VarDefine AddVariable(VarDefine hint)
+        {
+            string varName = "";
+            FormInputVarDefine input = new FormInputVarDefine();
+            input.StartPosition = FormStartPosition.CenterParent;
+            VarDefine varDefine = null;
+            while (true)
+            {
+                input.TextBoxVarName.Text = varName;
+                if (DialogResult.OK == input.ShowDialog(this))
+                {
+                    varName = input.TextBoxVarName.Text;
+                    if (false == VerifyName(varName))
+                        continue;
+                    if (null != hint.Parent.GetVariable(varName))
+                    {
+                        MessageBox.Show("新增变量(列)的名字已经存在或者为空。");
+                        continue;
+                    }
+
+                    varDefine = new VarDefine(hint.Parent)
+                    {
+                        Name = varName,
+                        GridColumnValueWidth = 50,
+                        Type = input.CheckBoxIsList.Checked ? VarDefine.EType.List : VarDefine.EType.Auto,
+                        Value = input.TextBoxListRefBeanName.Text,
+                    };
+                    bool createRef = false;
+                    if (input.CheckBoxIsList.Checked && varDefine.Value.Length == 0)
+                    {
+                        varDefine.Value = varDefine.FullName();
+                        createRef = true;
+                    }
+                    else
+                    {
+                        OpenDocument(varDefine.Value, out var r, false);
+                        if (null == r)
+                        {
+                            MessageBox.Show("list reference bean not found.");
+                            continue;
+                        }
+                        r.AddRefCount();
+                    }
+
+                    hint.Parent.Variables.Add(varDefine);
+                    hint.Parent.Document.IsChanged = true;
+                    foreach (var tab in tabs.Controls)
+                    {
+                        DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
+                        gridref.SuspendLayout();
+                        for (int c = 0; c < gridref.ColumnCount; ++c)
+                        {
+                            ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
+                            if (tagref.Tag == ColumnTag.ETag.AddVariable && tagref.PathLast.Define.Parent == hint.Parent)
+                            {
+                                c += varDefine.BuildGridColumns(gridref, c, tagref.Parent(ColumnTag.ETag.Normal), -1, createRef);
+                                ((Document)gridref.Tag).IsChanged = true;
+                            }
+                        }
+                        gridref.ResumeLayout();
+                    }
+                }
+                break;
+            }
+            input.Dispose();
+            return varDefine;
         }
 
         private void DoActionByColumnTag(DataGridView grid, int columnIndex, ColumnTag tag)
@@ -178,60 +254,7 @@ namespace ConfigEditor
             switch (tag.Tag)
             {
                 case ColumnTag.ETag.AddVariable:
-                    string varName = "";
-                    FormInputVarDefine input = new FormInputVarDefine();
-                    input.StartPosition = FormStartPosition.CenterParent;
-                    while (true)
-                    {
-                        input.TextBoxVarName.Text = varName;
-                        if (DialogResult.OK == input.ShowDialog(this))
-                        {
-                            varName = input.TextBoxVarName.Text;
-                            if (false == VerifyName(varName))
-                                continue;
-                            if (null != tag.PathLast.Define.Parent.GetVariable(varName))
-                            {
-                                MessageBox.Show("新增变量(列)的名字已经存在或者为空。");
-                                continue;
-                            }
-
-                            VarDefine varDefine = new VarDefine(tag.PathLast.Define.Parent)
-                            {
-                                Name = varName,
-                                GridColumnValueWidth = 50,
-                                Type = input.CheckBoxIsList.Checked ? VarDefine.EType.List : VarDefine.EType.Auto,
-                                Value = input.TextBoxListRefBeanName.Text,
-                            };
-                            bool createRef = false;
-                            if (input.CheckBoxIsList.Checked && varDefine.Value.Length == 0)
-                            {
-                                varDefine.Value = varDefine.FullName();
-                                createRef = true;
-                            }
-                            tag.PathLast.Define.Parent.Variables.Add(varDefine);
-                            tag.PathLast.Define.Parent.Document.IsChanged = true;
-
-                            foreach (var tab in tabs.Controls)
-                            {
-                                DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
-                                gridref.SuspendLayout();
-                                for (int c = 0; c < gridref.ColumnCount; ++c)
-                                {
-                                    ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
-                                    if (tagref.Tag == ColumnTag.ETag.AddVariable
-                                        && tagref.PathLast.Define.Parent == tag.PathLast.Define.Parent)
-                                    {
-                                        c += varDefine.BuildGridColumns(gridref, c,
-                                            tagref.Parent(ColumnTag.ETag.Normal), -1, createRef);
-                                        ((Document)gridref.Tag).IsChanged = true;
-                                    }
-                                }
-                                gridref.ResumeLayout();
-                            }
-                        }
-                        break;
-                    }
-                    input.Dispose();
+                    AddVariable(tag.PathLast.Define);
                     break;
 
                 case ColumnTag.ETag.ListEnd:
@@ -244,6 +267,7 @@ namespace ConfigEditor
                     break;
             }
         }
+
         public void OnGridDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
         {
             if (e.Button != MouseButtons.Left)
@@ -541,6 +565,58 @@ namespace ConfigEditor
             }
             contextMenuStrip1.Show(grid, grid.PointToClient(Cursor.Position));
         }
+
+        public BeanDefine DeleteVariable(VarDefine var)
+        {
+            if (DialogResult.OK != MessageBox.Show("确定删除？所有引用该列的数据也会被删除。", "确认", MessageBoxButtons.OKCancel))
+                return null;
+            // delete data and column, all reference(opened grid).
+            foreach (var tab in tabs.Controls)
+            {
+                DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
+                Document doc = (Document)gridref.Tag;
+                gridref.SuspendLayout();
+                for (int c = 0; c < gridref.ColumnCount; ++c)
+                {
+                    ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
+                    if (tagref.PathLast.Define == var)
+                    {
+                        // delete data
+                        for (int r = 0; r < gridref.RowCount - 1; ++r)
+                        {
+                            DataGridViewCellCollection cells = gridref.Rows[r].Cells;
+                            int colref = c;
+                            doc.Beans[r].Update(gridref, cells, ref colref, 0, Bean.EUpdate.DeleteData);
+                        }
+                        // delete columns
+                        switch (tagref.Tag)
+                        {
+                            case ColumnTag.ETag.Normal:
+                                gridref.Columns.RemoveAt(c);
+                                --c;
+                                break;
+                            case ColumnTag.ETag.ListStart:
+                                int colListEnd = FindCloseListEnd(gridref, c);
+                                while (colListEnd >= c)
+                                {
+                                    gridref.Columns.RemoveAt(colListEnd);
+                                    --colListEnd;
+                                }
+                                --c;
+                                break;
+                            default:
+                                MessageBox.Show("ListEnd?");
+                                break;
+                        }
+                        doc.IsChanged = true;
+                    }
+                }
+                gridref.ResumeLayout();
+            }
+            // delete define
+            return var.Delete();
+        }
+
         private void deleteVariableColumnToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (tabs.SelectedTab == null)
@@ -558,54 +634,7 @@ namespace ConfigEditor
                 case ColumnTag.ETag.ListEnd:
                 case ColumnTag.ETag.ListStart:
                 case ColumnTag.ETag.Normal:
-                    if (DialogResult.OK != MessageBox.Show("确定删除？所有引用该列的数据也会被删除。",
-                        "确认", MessageBoxButtons.OKCancel))
-                        return;
-                    // delete data and column, all reference(opened grid).
-                    foreach (var tab in tabs.Controls)
-                    {
-                        DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
-                        Document doc = (Document)gridref.Tag;
-                        gridref.SuspendLayout();
-                        for (int c = 0; c < gridref.ColumnCount; ++c)
-                        {
-                            ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
-                            if (tagref.PathLast.Define == tag.PathLast.Define)
-                            {
-                                // delete data
-                                for (int r = 0; r < gridref.RowCount - 1; ++r)
-                                {
-                                    DataGridViewCellCollection cells = gridref.Rows[r].Cells;
-                                    int colref = c;
-                                    doc.Beans[r].Update(gridref, cells, ref colref, 0, Bean.EUpdate.DeleteData);
-                                }
-                                // delete columns
-                                switch (tagref.Tag)
-                                {
-                                    case ColumnTag.ETag.Normal:
-                                        gridref.Columns.RemoveAt(c);
-                                        --c;
-                                        break;
-                                    case ColumnTag.ETag.ListStart:
-                                        int colListEnd = FindCloseListEnd(gridref, c);
-                                        while (colListEnd >= c)
-                                        {
-                                            gridref.Columns.RemoveAt(colListEnd);
-                                            --colListEnd;
-                                        }
-                                        --c;
-                                        break;
-                                    default:
-                                        MessageBox.Show("ListEnd?");
-                                        break;
-                                }
-                                doc.IsChanged = true;
-                            }
-                        }
-                        gridref.ResumeLayout();
-                    }
-                    // delete define
-                    tag.PathLast.Define.Delete();
+                    DeleteVariable(tag.PathLast.Define);
                     break;
             }
         }
