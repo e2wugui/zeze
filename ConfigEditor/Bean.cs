@@ -182,7 +182,7 @@ namespace ConfigEditor
                 return varData;
             }
 
-            if (varInfo.Define.GetEType() == VarDefine.EType.List)
+            if (varInfo.Define.Type == VarDefine.EType.List)
             {
                 if (varInfo.ListIndex >= varData.Beans.Count)
                     return null;
@@ -226,7 +226,7 @@ namespace ConfigEditor
                     varData = new VarData(this, varInfo.Define.Name);
                     VariableMap.Add(varInfo.Define.Name, varData);
                 }
-                if (varInfo.Define.GetEType() == VarDefine.EType.List)
+                if (varInfo.Define.Type == VarDefine.EType.List)
                 {
                     if (uptype == EUpdate.DeleteData)
                     {

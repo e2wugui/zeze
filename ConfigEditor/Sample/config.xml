@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ZezeConfig>
   <BeanDefine name="config" RefCount="0">
-    <BeanDefine name="L1" RefCount="27">
-      <variable name="v2" nw="0" vw="60" />
+    <BeanDefine name="L1" RefCount="48">
+      <variable name="v2" nw="0" vw="60" type="Auto" />
     </BeanDefine>
-    <variable name="v0" nw="0" vw="60" />
-    <variable name="v1" nw="0" vw="60" />
-    <variable name="L1" type="list" value="config.L1" nw="0" vw="60" />
-    <variable name="v7" nw="0" vw="60" />
+    <variable name="v0" nw="0" vw="60" type="Auto" />
+    <variable name="v1" nw="0" vw="60" type="Auto" />
+    <variable name="L1" type="List" value="config.L1" nw="0" vw="60" />
+    <variable name="v7" nw="0" vw="60" type="Auto" />
   </BeanDefine>
   <bean>
     <L1 nw="0" vw="0">

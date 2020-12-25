@@ -10,7 +10,7 @@ namespace ConfigEditor
         public string Name { get; set; }
         public List<Enum> Enums { get; } = new List<Enum>();
         public List<VarDefine> Variables { get; } = new List<VarDefine>();
-        public List<BeanDefine> BeanDefines { get; } = new List<BeanDefine>();
+        public SortedDictionary<string, BeanDefine> BeanDefines { get; } = new SortedDictionary<string, BeanDefine>();
 
         public XmlElement Self { get; private set; }
         public Document Document { get; }
@@ -18,6 +18,26 @@ namespace ConfigEditor
         private int RefCount;
         public bool IsLocked { get; set; } = false;
         
+        public string FullName()
+        {
+            string name = Name;
+            for (var b = Parent; null != b; b = b.Parent)
+            {
+                name = b.Name + "." + name;
+            }
+            return name;
+        }
+
+        public void ForEach(Action<BeanDefine> action)
+        {
+            action(this);
+
+            foreach (var bd in BeanDefines.Values)
+            {
+                bd.ForEach(action);
+            }
+        }
+
         public void DecRefCount()
         {
             if (null == Parent)
@@ -29,7 +49,7 @@ namespace ConfigEditor
                 Document.IsChanged = true;
                 if (null != Self)
                     Self.ParentNode.RemoveChild(Self);
-                Parent.BeanDefines.Remove(this);
+                Parent.BeanDefines.Remove(this.Name);
             }
         }
 
@@ -53,16 +73,14 @@ namespace ConfigEditor
 
         public BeanDefine GetSubBeanDefine(string name, bool createRefBeanIfNotExist)
         {
-            foreach (var v in BeanDefines)
-            {
-                if (v.Name == name)
-                    return v;
-            }
+            if (BeanDefines.TryGetValue(name, out var bd))
+                return bd;
+
             if (createRefBeanIfNotExist)
             {
                 Document.IsChanged = true;
                 BeanDefine sub = new BeanDefine(Document, name, this);
-                BeanDefines.Add(sub);
+                BeanDefines.Add(sub.Name, sub);
                 return sub;
             }
             return null;
@@ -127,7 +145,7 @@ namespace ConfigEditor
             {
                 e.Save(Self);
             }
-            foreach (var b in BeanDefines)
+            foreach (var b in BeanDefines.Values)
             {
                 b.Save();
             }
@@ -159,7 +177,8 @@ namespace ConfigEditor
                 switch (e.Name)
                 {
                     case "BeanDefine":
-                        BeanDefines.Add(new BeanDefine(Document, e, this));
+                        var bdnew = new BeanDefine(Document, e, this);
+                        BeanDefines.Add(bdnew.Name, bdnew);
                         break;
                     case "variable":
                         Variables.Add(new VarDefine(this, e));

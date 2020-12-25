@@ -11,6 +11,8 @@ namespace ConfigEditor.Property
     {
         public override string Name => "server";
 
+        public override Group Group => Group.GenTarget;
+
         public override Result VerifyCell(DataGridView grid, int columnIndex, int rowIndex)
         {
             return Result.Ok;

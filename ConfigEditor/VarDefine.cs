@@ -10,7 +10,8 @@ namespace ConfigEditor
     public class VarDefine
     {
         public string Name { get; set; }
-        public string Type { get; set; }
+        public EType Type { get; set; } = EType.Auto;
+
         public string Value { get; set; }
         public string Foreign { get; set; }
         public string Properties { get; set; }
@@ -34,7 +35,7 @@ namespace ConfigEditor
 
         public enum EType
         {
-            Zero = 0,
+            Auto = 0,
             Int = 1,
             Long = 2,
             Double = 3,
@@ -55,13 +56,12 @@ namespace ConfigEditor
             return name;
         }
 
-        public EType GetEType()
+        public EType ToEType(string type)
         {
-            if (Type == null || Type.Length == 0)
-                return EType.Zero;
-
-            switch (Type)
+            type = type.ToLower();
+            switch (type)
             {
+                case "": case "auto": return EType.Auto;
                 case "int": return EType.Int;
                 case "long": return EType.Long;
                 case "double": return EType.Double;
@@ -70,14 +70,14 @@ namespace ConfigEditor
                 case "float": return EType.Float;
                 case "enum": return EType.Enum;
                 default:
-                    throw new Exception("Unknown Type " + Type);
+                    throw new Exception("Unknown Type " + type);
                     //return EType.Bean;
             }
         }
 
         public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex, bool createRefBeanIfNotExist = false)
         {
-            switch (GetEType())
+            switch (Type)
             {
                 case EType.List:
                     {
@@ -171,7 +171,7 @@ namespace ConfigEditor
                 bean.AppendChild(Self);
             }
             Self.SetAttribute("name", Name);
-            SetAttribute("type", Type);
+            SetAttribute("type", System.Enum.GetName(typeof(EType), Type));
             SetAttribute("value", Value);
             SetAttribute("foreign", Foreign);
             SetAttribute("properties", Properties);
@@ -188,7 +188,7 @@ namespace ConfigEditor
             this.Parent = bean;
 
             Name = self.GetAttribute("name");
-            Type = self.GetAttribute("type");
+            Type = ToEType(self.GetAttribute("type"));
             Value = self.GetAttribute("value");
 
             string v = self.GetAttribute("nw");

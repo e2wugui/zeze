@@ -11,6 +11,8 @@ namespace ConfigEditor.Property
     {
         public override string Name => "url";
 
+        public override Group Group => Group.DataType;
+
         public override Result VerifyCell(DataGridView grid, int columnIndex, int rowIndex)
         {
             throw new NotImplementedException();

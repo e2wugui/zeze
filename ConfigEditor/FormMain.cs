@@ -190,7 +190,7 @@ namespace ConfigEditor
                             {
                                 Name = varName,
                                 GridColumnValueWidth = 50,
-                                Type = input.CheckBoxIsList.Checked ? "list" : "",
+                                Type = input.CheckBoxIsList.Checked ? VarDefine.EType.List : VarDefine.EType.Auto,
                                 Value = input.TextBoxListRefBeanName.Text,
                             };
                             bool createRef = false;
@@ -279,13 +279,14 @@ namespace ConfigEditor
             DataGridView grid = new DataGridView();
             grid.AllowUserToAddRows = false;
             grid.AllowUserToDeleteRows = false;
+            grid.AllowUserToResizeRows = false;
             grid.Anchor = ((AnchorStyles)((((AnchorStyles.Top | AnchorStyles.Bottom) | AnchorStyles.Left) | AnchorStyles.Right)));
             grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             grid.Location = new Point(0, 0);
             grid.Margin = new Padding(2);
             grid.MultiSelect = false;
             grid.Name = "Grid";
-            grid.RowHeadersWidth = 40;
+            grid.RowHeadersWidth = 25;
             grid.RowTemplate.Height = 18;
             //gird.Size = new Size(848, 476);
             grid.TabIndex = 0;
@@ -500,7 +501,7 @@ namespace ConfigEditor
             if (e.Cancel)
                 return;
 
-            FormDefine.Dispose();
+            FormDefine?.Dispose();
             FormDefine = null;
         }
 
@@ -821,13 +822,35 @@ namespace ConfigEditor
             }
         }
 
-        private FormDefine FormDefine;
+        public FormDefine FormDefine { get; set; }
+
+        public TabControl Tabs => tabs;
 
         private void toolStripButtonDefine_Click(object sender, EventArgs e)
         {
             if (null == FormDefine)
+            {
                 FormDefine = new FormDefine();
-            FormDefine.Show();
+                FormDefine.FormMain = this;
+                FormDefine.LoadDefine();
+
+                // Dialog 模式不需要同步更新数据，简单点，先这个方案。
+                FormDefine.StartPosition = FormStartPosition.CenterParent;
+                FormDefine.ShowDialog(this);
+                FormDefine.Dispose();
+                FormDefine = null;
+                // 同时显示两个窗口，需要同步数据。
+                // FormDefine.Show();
+            }
+            else
+            {
+                FormDefine.BringToFront();
+            }
+        }
+
+        private void tabs_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            FormDefine?.LoadDefine();
         }
 
         private void buttonSaveAs_Click(object sender, EventArgs e)
