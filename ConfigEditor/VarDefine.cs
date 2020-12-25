@@ -22,7 +22,7 @@ namespace ConfigEditor
 
         public XmlElement Self { get; private set; }
         public BeanDefine Parent { get; }
-        public BeanDefine Reference { get; private set; } // type is List
+        public BeanDefine Reference { get; set; } // type is List
 
         public BeanDefine Delete()
         {
@@ -75,7 +75,7 @@ namespace ConfigEditor
             }
         }
 
-        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex, bool create)
+        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex)
         {
             switch (Type)
             {
@@ -96,12 +96,17 @@ namespace ConfigEditor
                         {
                             grid.Rows[i].Cells[columnIndex].Value = listStartText;
                         }
-                        Parent.Document.Main.OpenDocument(Value, out var r, create);
-                        Reference = r ?? throw new Exception("list reference bean not found: " + Value);
+
+                        if (null == Reference)
+                        {
+                            Parent.Document.Main.OpenDocument(Value, out var r);
+                            Reference = r ?? throw new Exception("list reference bean not found: " + Value);
+                        }
+
                         ++columnIndex;
-                        int colAdded = r.BuildGridColumns(grid, columnIndex,
-                            tag.Copy(tag.Tag).AddVar(this, listIndex >= 0 ? listIndex : 0),
-                            -1, create);
+                        int colAdded = Reference.BuildGridColumns(grid, columnIndex,
+                            tag.Copy(tag.Tag).AddVar(this, listIndex >= 0 ? listIndex : 0), -1);
+
                         DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
                         columnIndex += colAdded;
                         string listEndText = "]" + this.Name;
@@ -159,6 +164,7 @@ namespace ConfigEditor
             if (null != value && value.Length > 0)
                 Self.SetAttribute(name, value);
         }
+
         public void Save(XmlElement bean)
         {
             if (null == Name) // 添加在beandefine尾部的var，不需要保存。
@@ -174,6 +180,7 @@ namespace ConfigEditor
             SetAttribute("value", Value);
             SetAttribute("foreign", Foreign);
             SetAttribute("properties", Properties);
+            SetAttribute("comment", Comment);
 
             if (GridColumnNameWidth > 0)
                 Self.SetAttribute("nw", GridColumnNameWidth.ToString());
@@ -194,6 +201,7 @@ namespace ConfigEditor
             this.GridColumnNameWidth = v.Length > 0 ? int.Parse(v) : 0;
             v = self.GetAttribute("vw");
             this.GridColumnValueWidth = v.Length > 0 ? int.Parse(v) : 0;
+            Properties = self.GetAttribute("properties");
 
             Comment = self.GetAttribute("comment");
             if (Comment.Length == 0)

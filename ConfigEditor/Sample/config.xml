@@ -1,7 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ZezeConfig>
   <BeanDefine RefCount="0">
-    <BeanDefine name="list1" RefCount="1" />
+    <BeanDefine name="list1" RefCount="2" />
     <variable name="list1" type="List" value="config.list1" vw="50" />
+    <variable name="为2" type="Auto" vw="50" />
+    <variable name="q1" type="Auto" vw="50" properties="unique" />
+    <variable name="去1" type="List" value="config.list1" vw="50" />
   </BeanDefine>
 </ZezeConfig>

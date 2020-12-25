@@ -5,8 +5,8 @@
 	动态增删列，
 	自动类型识别(Gen)，
 	支持容器(list)，
+	数据即时验证(只提示，允许保存错误数据)
 	自动完成，
-	数据即时验证(只警告或者报错，允许保存错误数据)，Properties: unique;id;server;client;url;dns;file;...
 
 说明
 	每一行被识别看成一个Bean，每一列看成一个变量。
@@ -16,17 +16,8 @@
 	                  注意新增的Item如果没有填写数据不会被保存。
 
 TODO
-	CellToopTipTextNeeded 
-1private void dgv_PropDemo_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
-2{
-3     //鼠标在第三列的单元格上面时显示提示信息
-4     if (e.ColumnIndex == 2)
-5     {
-6        e.ToolTipText = "列:" + e.ColumnIndex.ToString() + ",行:" + e.RowIndex.ToString();
-7     }
-8 }
 	嵌套list问题：add时创建两个item。
-	define 编辑。add list var 时需要同步新创建的bean。
+	define 编辑。
 	类型识别和Gen。
 	自动完成和enum识别。
 	1 id存一个种子自动递增，或者从上一行的id往后找一个未用的。

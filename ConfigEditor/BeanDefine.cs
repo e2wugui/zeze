@@ -17,7 +17,56 @@ namespace ConfigEditor
         public BeanDefine Parent { get; }
         private int RefCount = 1;
         public bool IsLocked { get; set; } = false;
-        
+
+        /// <summary>
+        /// AddVariable
+        /// return null means successed.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="type"></param>
+        /// <param name="reference"></param>
+        /// <returns>error string.</returns>
+        public (VarDefine, bool, string) AddVariable(string name,
+            VarDefine.EType type = VarDefine.EType.Auto, string reference = null)
+        {
+            if (GetVariable(name) != null)
+                return (null, false, "duplicate variable name");
+
+            VarDefine var = new VarDefine(this)
+            {
+                Name = name,
+                Type = type,
+                Value = reference,
+                GridColumnValueWidth = 50,
+            };
+
+            bool create = false;
+            if (type == VarDefine.EType.List)
+            {
+                if (reference == null || reference.Length == 0)
+                {
+                    var.Value = var.FullName();
+                    var.Reference = new BeanDefine(Document, var.Name, this);
+                    BeanDefines.Add(var.Name, var.Reference);
+                    create = true;
+                }
+                else
+                {
+                    Document.Main.OpenDocument(var.Value, out var r);
+                    if (null == r)
+                    {
+                        return (null, false, "list reference bean not found.");
+                    }
+                    var.Reference = r;
+                    r.AddRefCount();
+                }
+            }
+
+            Variables.Add(var);
+            Document.IsChanged = true;
+            return (var, create, "");
+        }
+
         public string FullName()
         {
             string name = Name;
@@ -73,37 +122,29 @@ namespace ConfigEditor
             return null;
         }
 
-        public BeanDefine GetSubBeanDefine(string name, bool createRefBeanIfNotExist)
+        public BeanDefine GetSubBeanDefine(string name)
         {
             if (BeanDefines.TryGetValue(name, out var bd))
                 return bd;
-
-            if (createRefBeanIfNotExist)
-            {
-                Document.IsChanged = true;
-                BeanDefine sub = new BeanDefine(Document, name, this);
-                BeanDefines.Add(sub.Name, sub);
-                return sub;
-            }
             return null;
         }
 
-        public BeanDefine Search(string [] path, int offset, bool createRefBeanIfNotExist)
+        public BeanDefine Search(string [] path, int offset)
         {
             BeanDefine r = this;
             for (int i = offset; i < path.Length && null != r; ++i)
             {
-                r = r.GetSubBeanDefine(path[i], createRefBeanIfNotExist);
+                r = r.GetSubBeanDefine(path[i]);
             }
             return r;
         }
 
-        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex, bool create)
+        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex)
         {
             int colAdded = 0;
             foreach (var v in Variables)
             {
-                colAdded += v.BuildGridColumns(grid, columnIndex + colAdded, tag, listIndex, create);
+                colAdded += v.BuildGridColumns(grid, columnIndex + colAdded, tag, listIndex);
             }
             // 这里创建的列用来新增。
             grid.Columns.Insert(columnIndex + colAdded, new DataGridViewColumn(new DataGridViewTextBoxCell())

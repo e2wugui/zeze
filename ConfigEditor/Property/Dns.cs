@@ -10,6 +10,7 @@ namespace ConfigEditor.Property
     public class Dns : IProperty
     {
         public override string Name => "dns";
+        public override string Comment => "表明此项数据时dns，自动验证能否解析。";
 
         public override Group Group => Group.DataType;
 

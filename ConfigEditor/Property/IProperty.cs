@@ -26,7 +26,7 @@ namespace ConfigEditor.Property
     public abstract class IProperty
     {
         public abstract string Name { get; }
-
+        public abstract string Comment { get; }
         public virtual Group Group => Group.Normal; 
 
         public virtual bool IsGroupRadio

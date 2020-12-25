@@ -112,7 +112,7 @@ namespace ConfigEditor
 
         private void LoadDocumentToView(DataGridView grid, Document doc)
         {
-            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1, false);
+            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
             foreach (var bean in doc.Beans)
             {
                 AddGridRow(grid);
@@ -181,72 +181,58 @@ namespace ConfigEditor
             return true;
         }
 
-        public VarDefine AddVariable(VarDefine hint)
+        public void UpdateWhenAddVariable(VarDefine var)
         {
-            string varName = "";
+            foreach (var tab in tabs.Controls)
+            {
+                DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
+                gridref.SuspendLayout();
+                for (int c = 0; c < gridref.ColumnCount; ++c)
+                {
+                    ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
+                    if (tagref.Tag == ColumnTag.ETag.AddVariable && tagref.PathLast.Define.Parent == var.Parent)
+                    {
+                        c += var.BuildGridColumns(gridref, c, tagref.Parent(ColumnTag.ETag.Normal), -1);
+                        ((Document)gridref.Tag).IsChanged = true;
+                    }
+                }
+                gridref.ResumeLayout();
+            }
+        }
+
+        public (VarDefine, bool) AddVariable(VarDefine hint)
+        {
             FormInputVarDefine input = new FormInputVarDefine();
             input.StartPosition = FormStartPosition.CenterParent;
-            VarDefine varDefine = null;
+
+            string varName = "";
+            VarDefine result = null;
+            bool createResult = false;
             while (true)
             {
                 input.TextBoxVarName.Text = varName;
-                if (DialogResult.OK == input.ShowDialog(this))
+                if (DialogResult.OK != input.ShowDialog(this))
+                    break;
+
+                varName = input.TextBoxVarName.Text;
+                if (false == VerifyName(varName))
+                    continue;
+
+                (VarDefine var, bool create, string err) = hint.Parent.AddVariable(varName, input.CheckBoxIsList.Checked
+                    ? VarDefine.EType.List : VarDefine.EType.Auto, input.TextBoxListRefBeanName.Text);
+
+                if (null == var)
                 {
-                    varName = input.TextBoxVarName.Text;
-                    if (false == VerifyName(varName))
-                        continue;
-                    if (null != hint.Parent.GetVariable(varName))
-                    {
-                        MessageBox.Show("新增变量(列)的名字已经存在或者为空。");
-                        continue;
-                    }
-
-                    varDefine = new VarDefine(hint.Parent)
-                    {
-                        Name = varName,
-                        GridColumnValueWidth = 50,
-                        Type = input.CheckBoxIsList.Checked ? VarDefine.EType.List : VarDefine.EType.Auto,
-                        Value = input.TextBoxListRefBeanName.Text,
-                    };
-                    bool createRef = false;
-                    if (input.CheckBoxIsList.Checked && varDefine.Value.Length == 0)
-                    {
-                        varDefine.Value = varDefine.FullName();
-                        createRef = true;
-                    }
-                    else
-                    {
-                        OpenDocument(varDefine.Value, out var r, false);
-                        if (null == r)
-                        {
-                            MessageBox.Show("list reference bean not found.");
-                            continue;
-                        }
-                        r.AddRefCount();
-                    }
-
-                    hint.Parent.Variables.Add(varDefine);
-                    hint.Parent.Document.IsChanged = true;
-                    foreach (var tab in tabs.Controls)
-                    {
-                        DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
-                        gridref.SuspendLayout();
-                        for (int c = 0; c < gridref.ColumnCount; ++c)
-                        {
-                            ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
-                            if (tagref.Tag == ColumnTag.ETag.AddVariable && tagref.PathLast.Define.Parent == hint.Parent)
-                            {
-                                c += varDefine.BuildGridColumns(gridref, c, tagref.Parent(ColumnTag.ETag.Normal), -1, createRef);
-                                ((Document)gridref.Tag).IsChanged = true;
-                            }
-                        }
-                        gridref.ResumeLayout();
-                    }
+                    MessageBox.Show(err);
+                    continue;
                 }
+                result = var;
+                createResult = create;
+                this.UpdateWhenAddVariable(var);
                 break;
             }
             input.Dispose();
-            return varDefine;
+            return (result, createResult);
         }
 
         private void DoActionByColumnTag(DataGridView grid, int columnIndex, ColumnTag tag)
@@ -262,7 +248,7 @@ namespace ConfigEditor
                     ColumnTag tagSeed = tag.Copy(ColumnTag.ETag.Normal);
                     tagSeed.PathLast.ListIndex = -tag.PathLast.ListIndex;
                     --tag.PathLast.ListIndex;
-                    tag.PathLast.Define.Reference.BuildGridColumns(grid, columnIndex, tagSeed, -1, false);
+                    tag.PathLast.Define.Reference.BuildGridColumns(grid, columnIndex, tagSeed, -1);
                     //(grid.Tag as Document).IsChanged = true;
                     break;
             }
@@ -314,7 +300,7 @@ namespace ConfigEditor
             grid.AllowUserToDeleteRows = false;
             grid.AllowUserToResizeRows = false;
             grid.Anchor = ((AnchorStyles)((((AnchorStyles.Top | AnchorStyles.Bottom) | AnchorStyles.Left) | AnchorStyles.Right)));
-            grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             grid.Location = new Point(0, 0);
             grid.Margin = new Padding(2);
             grid.MultiSelect = false;
@@ -388,7 +374,7 @@ namespace ConfigEditor
                 doc.Save();
                 grid.Tag = doc;
                 doc.Grid = grid;
-                doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1, false);
+                doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
                 AddGridRow(grid);
 
                 Documents.Add(doc.RelateName, doc);
@@ -428,23 +414,23 @@ namespace ConfigEditor
             Save((Document)tabs.SelectedTab.Controls[0].Tag);
         }
 
-        private Document OpenDocument(string path, string[]refbeans, int offset, out BeanDefine define, bool createRefBeanIfNotExist)
+        private Document OpenDocument(string path, string[]refbeans, int offset, out BeanDefine define)
         {
             Document doc = new Document(this);
             doc.SetFileName(path);
             if (Documents.TryGetValue(doc.RelateName, out var exist))
             {
-                define = exist.BeanDefine.Search(refbeans, offset, createRefBeanIfNotExist);
+                define = exist.BeanDefine.Search(refbeans, offset);
                 return exist;
             }
 
             doc.Open();
             Documents.Add(doc.RelateName, doc);
-            define = doc.BeanDefine.Search(refbeans, offset, createRefBeanIfNotExist);
+            define = doc.BeanDefine.Search(refbeans, offset);
             return doc;
         }
 
-        public Document OpenDocument(string relatePath, out BeanDefine define, bool createRefBeanIfNotExist)
+        public Document OpenDocument(string relatePath, out BeanDefine define)
         {
             string[] relates = relatePath.Split('.');
             string path = Config.GetHome();
@@ -454,9 +440,9 @@ namespace ConfigEditor
                 path = System.IO.Path.Combine(path, relates[i]);
                 if (System.IO.Directory.Exists(path)) // is directory
                     continue;
-                return OpenDocument(path + ".xml", relates, i + 1, out define, createRefBeanIfNotExist);
+                return OpenDocument(path + ".xml", relates, i + 1, out define);
             }
-            throw new Exception("Open Document Error: " + relatePath);
+            throw new Exception("Open Document Error With '" + relatePath + "'");
         }
 
         private void openButton_Click(object sender, EventArgs e)
@@ -566,10 +552,14 @@ namespace ConfigEditor
             contextMenuStrip1.Show(grid, grid.PointToClient(Cursor.Position));
         }
 
-        public BeanDefine DeleteVariable(VarDefine var)
+        public BeanDefine DeleteVariable(VarDefine var, bool confirm)
         {
-            if (DialogResult.OK != MessageBox.Show("确定删除？所有引用该列的数据也会被删除。", "确认", MessageBoxButtons.OKCancel))
-                return null;
+            if (confirm)
+            {
+                if (DialogResult.OK != MessageBox.Show("确定删除？所有引用该列的数据也会被删除。", "确认", MessageBoxButtons.OKCancel))
+                    return null;
+            }
+
             // delete data and column, all reference(opened grid).
             foreach (var tab in tabs.Controls)
             {
@@ -634,7 +624,7 @@ namespace ConfigEditor
                 case ColumnTag.ETag.ListEnd:
                 case ColumnTag.ETag.ListStart:
                 case ColumnTag.ETag.Normal:
-                    DeleteVariable(tag.PathLast.Define);
+                    DeleteVariable(tag.PathLast.Define, true);
                     break;
             }
         }
@@ -867,8 +857,8 @@ namespace ConfigEditor
         }
 
         public FormDefine FormDefine { get; set; }
-
         public TabControl Tabs => tabs;
+        public Property.Manager PropertyManager { get; } = new Property.Manager();
 
         private void toolStripButtonDefine_Click(object sender, EventArgs e)
         {
