@@ -15,6 +15,10 @@ namespace ConfigEditor
         {
             public IList<string> RecentHomes { get; set; }
 
+            public Size FormMainSize { get; set; } = new Size(828, 569);
+            public Point FormMainLocation { get; set; } = new Point(300, 150);
+            public FormWindowState FormMainState { get; set; } = FormWindowState.Maximized;
+
             public string GetHome()
             {
                 return RecentHomes[0];
@@ -59,7 +63,7 @@ namespace ConfigEditor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.ToString());
+                //MessageBox.Show(ex.ToString());
             }
             if (null == Config)
                 Config = new EditorConfig() { RecentHomes = new List<string>() };
@@ -95,7 +99,12 @@ namespace ConfigEditor
             }
             Config.SetRecentHome(select.ComboBoxRecentHomes.Text);
             select.Dispose();
-            SaveConfig();
+
+            if (Config.FormMainLocation != null)
+                this.Location = Config.FormMainLocation;
+            if (Config.FormMainSize != null)
+                this.Size = Config.FormMainSize;
+            this.WindowState = Config.FormMainState;
             this.TopMost = true;
             this.BringToFront();
             this.TopMost = false;
@@ -500,6 +509,12 @@ namespace ConfigEditor
             e.Cancel = false == SaveAll();
             if (e.Cancel)
                 return;
+
+            Config.FormMainLocation = this.Location;
+            Config.FormMainSize = this.Size;
+            Config.FormMainState = this.WindowState;
+
+            SaveConfig();
 
             FormDefine?.Dispose();
             FormDefine = null;
