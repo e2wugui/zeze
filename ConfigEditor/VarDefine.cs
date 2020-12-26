@@ -12,7 +12,7 @@ namespace ConfigEditor
         public string Name { get; set; }
         public EType Type { get; set; } = EType.Auto;
 
-        public string Value { get; set; }
+        public string Value { get; set; } = "";
         public string Foreign { get; set; }
         public string Properties { get; set; }
         public string Comment { get; set; }

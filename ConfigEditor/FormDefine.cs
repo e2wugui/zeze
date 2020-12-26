@@ -316,6 +316,15 @@ namespace ConfigEditor
                                 MessageBox.Show("引用的Bean名字没有找到。输入空将创建一个。");
                         }
                         break;
+
+                    case "VarForeign":
+                        string err = FormMain.CheckForeign(e.FormattedValue as string, var);
+                        if (null != err)
+                        {
+                            e.Cancel = true;
+                            MessageBox.Show(err);
+                        }
+                        break;
                 }
             }
             catch (Exception ex)
@@ -352,8 +361,15 @@ namespace ConfigEditor
                     break;
 
                 case "VarValue":
-                    // 修改list引用的bean：删除旧变量，使用相同的名字增加一个变量。
                     string newValue = cells[colName].Value as string;
+                    if (newValue == null || newValue.CompareTo(var.Value) == 0)
+                        break;
+
+                    if (DialogResult.OK != MessageBox.Show("修改List引用的Bean类型导致旧数据全部清除。",
+                        "确认", MessageBoxButtons.OKCancel))
+                        break;
+
+                    // 修改list引用的bean：删除旧变量，使用相同的名字增加一个变量。
                     DeleteVariable(e.RowIndex, var, false);
                     (VarDefine varNew, bool create, string err) = var.Parent.AddVariable(var.Name, VarDefine.EType.List, newValue);
                     if (null != varNew)
@@ -363,6 +379,7 @@ namespace ConfigEditor
                     }
                     else
                     {
+                        cells[colName].Value = var.Value; // restore
                         MessageBox.Show(err);
                     }
                     break;

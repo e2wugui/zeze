@@ -15,9 +15,11 @@
 	特殊列 ']...'	：容器(List)的结束，不能编辑。鼠标双击或者选中回车时增加list中的Item。
 	                  注意新增的Item如果没有填写数据不会被保存。
 
+Test
+	define 编辑基本完工。
+	嵌套list问题：define中add时创建两个item。
+
 TODO
-	嵌套list问题：add时创建两个item。
-	define 编辑。增加属性编辑窗口
 	类型识别和Gen。
 	自动完成和enum识别。
 	1 id存一个种子自动递增，或者从上一行的id往后找一个未用的。
@@ -34,8 +36,6 @@ TODO
 	   List<Bean3> varlist3; // 这种递归的话，好像可以？待确认？？？？？？？？
 	Bean3
 	   List<Bean2> varlist3;
-
-Need Test
 
 问题
 	1 Browse Dialog 初始显示位置偏离，可能跟windows放大有关，其他机器也许可以。

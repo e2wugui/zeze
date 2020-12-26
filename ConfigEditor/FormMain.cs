@@ -223,8 +223,9 @@ namespace ConfigEditor
                 if (false == VerifyName(varName))
                     continue;
 
-                (VarDefine var, bool create, string err) = hint.Parent.AddVariable(varName, input.CheckBoxIsList.Checked
-                    ? VarDefine.EType.List : VarDefine.EType.Auto, input.TextBoxListRefBeanName.Text);
+                (VarDefine var, bool create, string err) = hint.Parent.AddVariable(varName,
+                    input.CheckBoxIsList.Checked ? VarDefine.EType.List : VarDefine.EType.Auto,
+                    input.TextBoxListRefBeanName.Text);
 
                 if (null == var)
                 {
@@ -890,6 +891,29 @@ namespace ConfigEditor
         private void tabs_SelectedIndexChanged(object sender, EventArgs e)
         {
             FormDefine?.LoadDefine();
+        }
+
+        // return null if check ok
+        public string CheckForeign(string foreign, VarDefine var)
+        {
+            string[] newForeign = foreign.Split(':');
+            if (newForeign.Length != 2)
+                return "错误的Foreign格式。sample 'ConfigName:VarName'";
+
+            OpenDocument(newForeign[0], out var beanRef);
+            if (null == beanRef)
+                return "foreign Bean 不存在。";
+
+            VarDefine varForeign = beanRef.GetVariable(newForeign[1]);
+            if (null == varForeign)
+                return "foreign Bean 变量不存在。";
+
+            if (varForeign.Type == VarDefine.EType.List)
+                return "foreign Bean 变量类型不能为List。";
+
+            if (varForeign.Type != var.Type)
+                return "foreign Bean 变量类型和当前数据列的类型不匹配。";
+            return null;
         }
 
         private void buttonSaveAs_Click(object sender, EventArgs e)
