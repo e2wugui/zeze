@@ -40,7 +40,11 @@ namespace ConfigEditor
             if (null == oldValue)
                 oldValue = "";
 
-            if (oldValue.Equals(cell.Value as string))
+            string newValue = cell.Value as string;
+            if (null == newValue)
+                newValue = "";
+
+            if (oldValue.Equals(newValue))
                 return;
 
             if (UniqueIndex.TryGetValue(oldValue, out var cells))

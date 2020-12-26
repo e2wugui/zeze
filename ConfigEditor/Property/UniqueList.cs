@@ -49,7 +49,10 @@ namespace ConfigEditor.Property
                 currentValue = "";
             foreach (var c in cells)
             {
-                if (currentValue.Equals(c.Value as string))
+                string str = c.Value as string;
+                if (null == str)
+                    str = "";
+                if (currentValue.Equals(str))
                     same.Add(c);
             }
 

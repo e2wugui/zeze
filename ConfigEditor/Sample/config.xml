@@ -2,9 +2,11 @@
 <ZezeConfig>
   <BeanDefine RefCount="0" Locked="False">
     <BeanDefine name="list1" RefCount="2" Locked="False">
-      <variable name="去" type="Auto" vw="50" properties="unique;unique.list;" />
+      <variable name="去" type="Auto" vw="50" properties="unique;" />
       <BeanDefine name="v" RefCount="1" Locked="False">
         <variable name="了" type="Auto" vw="50" />
+        <BeanDefine name="啊21" RefCount="1" Locked="False" />
+        <variable name="啊21" type="List" value="config.list1.v.啊21" vw="50" />
       </BeanDefine>
       <variable name="v" type="List" value="config.list1.v" vw="50" />
     </BeanDefine>
@@ -17,7 +19,7 @@
     <list1>
       <list>
         <bean>
-          <去>9</去>
+          <去>1</去>
         </bean>
         <bean>
           <去>4</去>
@@ -45,6 +47,7 @@
         </bean>
       </list>
     </list1>
+    <为2>3</为2>
   </bean>
   <bean>
     <q1>127.0.0.1</q1>
@@ -59,7 +62,7 @@
     <list1>
       <list>
         <bean>
-          <去>1</去>
+          <去>9</去>
         </bean>
         <bean>
           <去>2</去>

@@ -20,6 +20,7 @@ Test
 	嵌套list问题：define中add时创建两个item，出现过一次，后来没有发现（看错了？多测试）。
 
 TODO
+	收集 FromError：对Cell错误进行计数。
 	变量改名。需要更新Foreign。
 	Bean改名。需要搜索引用。麻烦。
 	变量顺序允许调整（数据列顺序）。实现：defne中调整。grid重新load。
