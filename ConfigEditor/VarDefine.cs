@@ -10,6 +10,7 @@ namespace ConfigEditor
     public class VarDefine
     {
         private string _Properties = "";
+        private List<Property.IProperty> _PropertiesList; // 优化
 
         public string Name { get; set; }
         public EType Type { get; set; } = EType.Auto;
@@ -17,7 +18,15 @@ namespace ConfigEditor
         public string Value { get; set; } = "";
         public string Foreign { get; set; }
 
-        public List<Property.IProperty> PropertiesList { get; private set; } = new List<Property.IProperty>();
+        public List<Property.IProperty> PropertiesList
+        {
+            get
+            {
+                if (null == _PropertiesList)
+                    _PropertiesList = Parent.Document.Main.PropertyManager.Parse(_Properties);
+                return _PropertiesList;
+            }
+        }
 
         public string Properties
         {
@@ -31,8 +40,7 @@ namespace ConfigEditor
                     return;
 
                 _Properties = value;
-                Parent.Document.IsChanged = true;
-                PropertiesList = Parent.Document.Main.PropertyManager.Parse(value);
+                _PropertiesList = null;
             }
         }
 

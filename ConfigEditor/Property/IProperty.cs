@@ -63,9 +63,9 @@ namespace ConfigEditor.Property
 
         public abstract void VerifyCell(VerifyParam param);
 
-        public void UpdateVerifyResult(VerifyParam param, Result result = Result.Ok, string tip = null)
+        public void ReportVerifyResult(VerifyParam param, Result result = Result.Ok, string tip = null)
         {
-            Color back = Color.Transparent;
+            Color back = Color.White;
             switch (result)
             {
                 case Result.Ok:
@@ -82,8 +82,13 @@ namespace ConfigEditor.Property
             }
 
             DataGridViewCell cell = param.Grid[param.ColumnIndex, param.RowIndex];
+            cell.ToolTipText = tip; // last tip
             cell.Style.BackColor = back;
-            cell.ToolTipText = tip;
+
+            if (result != Result.Ok)
+            {
+                // TODO 收集 FromError
+            }
         }
     }
 }

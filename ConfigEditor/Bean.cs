@@ -204,7 +204,8 @@ namespace ConfigEditor
                 switch (tag.Tag)
                 {
                     case ColumnTag.ETag.AddVariable:
-                        // end of bean. 删除Define变化时没有同步的数据。
+                        // end of bean. 
+                        // 删除Define变化时没有同步的数据。
                         HashSet<string> removed = new HashSet<string>();
                         foreach (var k in VariableMap.Keys)
                         {
@@ -222,7 +223,15 @@ namespace ConfigEditor
                 if (false == VariableMap.TryGetValue(varInfo.Define.Name, out var varData))
                 {
                     if (EUpdate.Data != uptype)
+                    {
+                        if (varInfo.Define.Type == VarDefine.EType.List)
+                        {
+                            if (tag.Tag == ColumnTag.ETag.ListStart)
+                                ++colIndex;
+                            colIndex = Document.Main.FindNextListEnd(grid, colIndex);
+                        }
                         continue; // data not found. done.
+                    }
                     varData = new VarData(this, varInfo.Define.Name);
                     VariableMap.Add(varInfo.Define.Name, varData);
                 }

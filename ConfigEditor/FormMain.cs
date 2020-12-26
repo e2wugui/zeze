@@ -686,7 +686,7 @@ namespace ConfigEditor
             throw new Exception("List Not Closed.");
         }
 
-        private int FindNextListEnd(DataGridView grid, int startColIndex)
+        public int FindNextListEnd(DataGridView grid, int startColIndex)
         {
             int skipNestListCount = 0;
             for (int c = startColIndex; c < grid.ColumnCount; ++c)

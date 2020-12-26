@@ -230,12 +230,15 @@ namespace ConfigEditor
                         var bdnew = new BeanDefine(Document, e, this);
                         BeanDefines.Add(bdnew.Name, bdnew);
                         break;
+
                     case "variable":
                         Variables.Add(new VarDefine(this, e));
                         break;
+
                     case "enum":
                         Enums.Add(new Enum(this, e));
                         break;
+
                     default:
                         throw new Exception("node=" + e.Name);
                 }

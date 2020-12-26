@@ -12,9 +12,20 @@
     <variable name="去1" type="List" value="config.list1" vw="50" />
   </BeanDefine>
   <bean>
+    <list1>
+      <list>
+        <bean>
+          <去>
+          </去>
+        </bean>
+      </list>
+    </list1>
     <q1>1</q1>
   </bean>
   <bean>
-    <q1>2 </q1>
+    <q1>2</q1>
+  </bean>
+  <bean>
+    <q1>2</q1>
   </bean>
 </ZezeConfig>

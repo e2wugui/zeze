@@ -246,6 +246,7 @@ namespace ConfigEditor
                     p.Value.Button = null;
                 }
                 var.Properties = FormMain.PropertyManager.BuildString(current);
+                var.Parent.Document.IsChanged = true;
                 cell.Value = var.Properties;
             }
             fp.Dispose();

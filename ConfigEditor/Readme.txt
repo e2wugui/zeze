@@ -18,7 +18,6 @@
 Test
 	define 编辑基本完工。
 	嵌套list问题：define中add时创建两个item，出现过一次，后来没有发现（看错了？多测试）。
-	调试的时候发现几次数据被清除（无法重现）。
 
 TODO
                 DataGridViewCellStyle cstyle = new DataGridViewCellStyle();
