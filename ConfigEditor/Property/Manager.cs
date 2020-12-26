@@ -64,18 +64,21 @@ namespace ConfigEditor.Property
 
         public Manager()
         {
+            // Normal
             AddProperty(new Id());
             AddProperty(new Unique());
+            AddProperty(new UniqueList());
+            AddProperty(new IdList());
 
+            // GenTarget
             AddProperty(new Client());
             AddProperty(new Server());
 
+            // DataType
             AddProperty(new Dns());
             AddProperty(new File());
             AddProperty(new Url());
-
-            AddProperty(new UniqueList());
-            AddProperty(new IdList());
+            AddProperty(new Directory());
         }
     }
 }

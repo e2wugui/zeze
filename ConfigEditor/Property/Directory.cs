@@ -3,16 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace ConfigEditor.Property
 {
-    public class File : IProperty
+    public class Directory : IProperty
     {
-        public override string Name => "file";
-        public override string Comment => "表明此项数据是个文件，自动验证文件是否存在。";
+        public override string Name => "directory";
 
         public override Group Group => Group.DataType;
+
+        public override string Comment => "表明此项数据是个目录，自动验证目录是否存在。";
 
         public override void VerifyCell(VerifyParam param)
         {
@@ -24,8 +24,8 @@ namespace ConfigEditor.Property
             {
                 string path = System.IO.Path.Combine(param.FormMain.ConfigProject.ResourceHome,
                     param.Grid[param.ColumnIndex, param.RowIndex].Value as string);
-                if (false == System.IO.File.Exists(path))
-                    ReportVerifyResult(param, Result.Warn, "文件不存在。");
+                if (false == System.IO.Directory.Exists(path))
+                    ReportVerifyResult(param, Result.Warn, "路径不存在。");
                 else
                     ReportVerifyResult(param);
             }

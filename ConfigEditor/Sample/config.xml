@@ -8,7 +8,7 @@
     </BeanDefine>
     <variable name="list1" type="List" value="config.list1" vw="50" />
     <variable name="为2" type="Auto" vw="50" />
-    <variable name="q1" type="Auto" vw="50" properties="file;" foreign="config:q1" />
+    <variable name="q1" type="Auto" vw="156" properties="dns;" foreign="config:q1" />
     <variable name="去1" type="List" value="config.list1" vw="50" />
   </BeanDefine>
   <bean>
@@ -20,12 +20,27 @@
         </bean>
       </list>
     </list1>
-    <q1>1</q1>
+    <q1>http://www.163.comx</q1>
   </bean>
   <bean>
-    <q1>2</q1>
+    <q1>www.163.com</q1>
+    <去1>
+      <list>
+        <bean>
+          <去>3</去>
+        </bean>
+      </list>
+    </去1>
   </bean>
   <bean>
-    <q1>2</q1>
+    <q1>127.0.0.1</q1>
+    <去1>
+      <list>
+        <bean>
+          <去>
+          </去>
+        </bean>
+      </list>
+    </去1>
   </bean>
 </ZezeConfig>

@@ -14,9 +14,24 @@ namespace ConfigEditor.Property
 
         public override Group Group => Group.DataType;
 
-        public override void VerifyCell(VerifyParam param)
+        public async override void VerifyCell(VerifyParam p)
         {
-            throw new NotImplementedException();
+            string error = await Task.Run<string>(() =>
+            {
+                try
+                {
+                    System.Net.Dns.GetHostEntry(p.Grid[p.ColumnIndex, p.RowIndex].Value as string);
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    return ex.Message;
+                }
+            });
+            if (null != error)
+                ReportVerifyResult(p, Result.Warn, error);
+            else
+                ReportVerifyResult(p);
         }
     }
 }

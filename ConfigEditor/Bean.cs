@@ -222,15 +222,24 @@ namespace ConfigEditor
                 ColumnTag.VarInfo varInfo = tag.Path[pathIndex];
                 if (false == VariableMap.TryGetValue(varInfo.Define.Name, out var varData))
                 {
-                    if (EUpdate.Data != uptype)
+                    switch (uptype)
                     {
-                        if (varInfo.Define.Type == VarDefine.EType.List)
-                        {
-                            if (tag.Tag == ColumnTag.ETag.ListStart)
-                                ++colIndex;
-                            colIndex = Document.Main.FindNextListEnd(grid, colIndex);
-                        }
-                        continue; // data not found. done.
+                        case EUpdate.Data:
+                            break; // with new data
+                        case EUpdate.Grid:
+                            if (varInfo.Define.Type == VarDefine.EType.List)
+                            {
+                                if (tag.Tag == ColumnTag.ETag.ListStart)
+                                    ++colIndex;
+                                colIndex = Document.Main.FindNextListEnd(grid, colIndex);
+                            }
+                            continue; // data not found. continue load.
+
+                        case EUpdate.DeleteData:
+                            return true; // data not found. nothing need to delete.
+
+                        default:
+                            throw new Exception("unknown update type");
                     }
                     varData = new VarData(this, varInfo.Define.Name);
                     VariableMap.Add(varInfo.Define.Name, varData);
@@ -308,6 +317,7 @@ namespace ConfigEditor
                     }
                     continue;
                 }
+
                 if (pathIndex + 1 != tag.Path.Count)
                     throw new Exception("Remain Path, But Is Not A List");
 
@@ -322,6 +332,8 @@ namespace ConfigEditor
                     case EUpdate.DeleteData:
                         DeleteVarData(varInfo.Define.Name);
                         return true;
+                    default:
+                        throw new Exception("unkown update type. end.");
                 }
             }
             return true;
