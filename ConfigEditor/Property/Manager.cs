@@ -8,7 +8,19 @@ namespace ConfigEditor.Property
 {
     public class Manager
     {
-        public Dictionary<string, IProperty> Properties { get; } = new Dictionary<string, IProperty>();
+        public SortedDictionary<string, IProperty> Properties { get; } = new SortedDictionary<string, IProperty>();
+
+        public SortedDictionary<Group, List<IProperty>> SortedGroup()
+        {
+            SortedDictionary<Group, List<IProperty>> group = new SortedDictionary<Group, List<IProperty>>();
+            foreach (var e in Properties)
+            {
+                if (false == group.TryGetValue(e.Value.Group, out var exist))
+                    group.Add(e.Value.Group, exist = new List<IProperty>());
+                exist.Add(e.Value);
+            }
+            return group;
+        }
 
         public void AddProperty(IProperty p)
         {
@@ -36,6 +48,16 @@ namespace ConfigEditor.Property
             foreach (var p in Parse(properties))
             {
                 sb.Append(p.Name).Append(": ").Append(p.Comment).Append(Environment.NewLine);
+            }
+            return sb.ToString();
+        }
+
+        public string BuildString(List<IProperty> ps)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var p in ps)
+            {
+                sb.Append(p.Name).Append(";");
             }
             return sb.ToString();
         }

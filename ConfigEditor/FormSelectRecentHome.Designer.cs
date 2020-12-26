@@ -40,36 +40,40 @@ namespace ConfigEditor
             // comboBoxRecentHomes
             // 
             this.comboBoxRecentHomes.FormattingEnabled = true;
-            this.comboBoxRecentHomes.Location = new System.Drawing.Point(27, 64);
+            this.comboBoxRecentHomes.Location = new System.Drawing.Point(14, 32);
+            this.comboBoxRecentHomes.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.comboBoxRecentHomes.MaxDropDownItems = 10;
             this.comboBoxRecentHomes.Name = "comboBoxRecentHomes";
-            this.comboBoxRecentHomes.Size = new System.Drawing.Size(943, 32);
+            this.comboBoxRecentHomes.Size = new System.Drawing.Size(474, 20);
             this.comboBoxRecentHomes.TabIndex = 0;
             // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(23, 24);
+            this.label1.Location = new System.Drawing.Point(12, 12);
+            this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(106, 24);
+            this.label1.Size = new System.Drawing.Size(53, 12);
             this.label1.TabIndex = 1;
             this.label1.Text = "配置目录";
             // 
             // buttonOk
             // 
             this.buttonOk.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.buttonOk.Location = new System.Drawing.Point(674, 282);
+            this.buttonOk.Location = new System.Drawing.Point(337, 141);
+            this.buttonOk.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.buttonOk.Name = "buttonOk";
-            this.buttonOk.Size = new System.Drawing.Size(200, 61);
+            this.buttonOk.Size = new System.Drawing.Size(100, 30);
             this.buttonOk.TabIndex = 2;
             this.buttonOk.Text = "确定";
             this.buttonOk.UseVisualStyleBackColor = true;
             // 
             // buttonBrowse
             // 
-            this.buttonBrowse.Location = new System.Drawing.Point(989, 64);
+            this.buttonBrowse.Location = new System.Drawing.Point(494, 32);
+            this.buttonBrowse.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.buttonBrowse.Name = "buttonBrowse";
-            this.buttonBrowse.Size = new System.Drawing.Size(155, 41);
+            this.buttonBrowse.Size = new System.Drawing.Size(78, 20);
             this.buttonBrowse.TabIndex = 3;
             this.buttonBrowse.Text = "Browse...";
             this.buttonBrowse.UseVisualStyleBackColor = true;
@@ -78,9 +82,10 @@ namespace ConfigEditor
             // buttonCancel
             // 
             this.buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.buttonCancel.Location = new System.Drawing.Point(912, 282);
+            this.buttonCancel.Location = new System.Drawing.Point(456, 141);
+            this.buttonCancel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.buttonCancel.Name = "buttonCancel";
-            this.buttonCancel.Size = new System.Drawing.Size(200, 61);
+            this.buttonCancel.Size = new System.Drawing.Size(100, 30);
             this.buttonCancel.TabIndex = 4;
             this.buttonCancel.Text = "取消";
             this.buttonCancel.UseVisualStyleBackColor = true;
@@ -88,16 +93,18 @@ namespace ConfigEditor
             // FormSelectRecentHome
             // 
             this.AcceptButton = this.buttonOk;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 24F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.buttonCancel;
-            this.ClientSize = new System.Drawing.Size(1177, 388);
+            this.ClientSize = new System.Drawing.Size(588, 194);
             this.Controls.Add(this.buttonCancel);
             this.Controls.Add(this.buttonBrowse);
             this.Controls.Add(this.buttonOk);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.comboBoxRecentHomes);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "FormSelectRecentHome";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "选择配置目录(home)";
             this.ResumeLayout(false);
             this.PerformLayout();

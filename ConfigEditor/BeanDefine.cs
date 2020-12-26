@@ -16,7 +16,7 @@ namespace ConfigEditor
         public Document Document { get; }
         public BeanDefine Parent { get; }
         private int RefCount = 1;
-        public bool IsLocked { get; set; } = false;
+        public bool Locked { get; set; } = false;
 
         /// <summary>
         /// AddVariable
@@ -184,14 +184,18 @@ namespace ConfigEditor
             if (Parent != null) // root BeanDefine 自动设置成文件名。
                 Self.SetAttribute("name", Name);
             Self.SetAttribute("RefCount", RefCount.ToString());
+            Self.SetAttribute("Locked", Locked.ToString());
+
             foreach (var e in Enums)
             {
                 e.Save(Self);
             }
+
             foreach (var b in BeanDefines.Values)
             {
                 b.Save();
             }
+
             foreach (var v in Variables)
             {
                 v.Save(Self);
@@ -202,12 +206,15 @@ namespace ConfigEditor
         {
             this.Document = doc;
             this.Parent = parent;
+            this.Self = self;
+
             Name = self.GetAttribute("name");
             if (Name.Length == 0)
                 Name = doc.Name;
             string tmp = self.GetAttribute("RefCount");
             RefCount = tmp.Length > 0 ? int.Parse(tmp) : 0;
-            this.Self = self;
+            tmp = self.GetAttribute("Locked");
+            Locked = tmp.Length > 0 ? bool.Parse(tmp) : false;
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

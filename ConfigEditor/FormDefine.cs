@@ -69,7 +69,7 @@ namespace ConfigEditor
             for (int i = 0; i < cellsBeanStart.Count; ++i)
                 cellsBeanStart[i].ReadOnly = true;
             DataGridViewCell cellLocked = cellsBeanStart["BeanLocked"];
-            cellLocked.Value = bean.IsLocked ? "Yes" : "No";
+            cellLocked.Value = bean.Locked ? "Yes" : "No";
             cellLocked.Tag = bean; // BeanDefine
             cellsBeanStart["VarName"].Value = fullName;
 
@@ -109,19 +109,35 @@ namespace ConfigEditor
 
         private void define_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
         {
-            if (e.Button != MouseButtons.Right)
-                return;
-
-            int col = e.ColumnIndex >= 0 ? e.ColumnIndex : 0;
-            int row = e.RowIndex >= 0 ? e.RowIndex : 0;
-            DataGridView grid = sender as DataGridView;
-            DataGridViewCell c = grid[col, row];
-            if (!c.Selected)
+            switch (e.Button)
             {
-                c.DataGridView.CurrentCell = c;
-            }
-            contextMenuStrip1.Show(grid, grid.PointToClient(Cursor.Position));
+                case MouseButtons.Right:
+                    {
+                        int col = e.ColumnIndex >= 0 ? e.ColumnIndex : 0;
+                        int row = e.RowIndex >= 0 ? e.RowIndex : 0;
+                        DataGridView grid = sender as DataGridView;
+                        DataGridViewCell c = grid[col, row];
+                        if (!c.Selected)
+                        {
+                            c.DataGridView.CurrentCell = c;
+                        }
+                        contextMenuStrip1.Show(grid, grid.PointToClient(Cursor.Position));
+                    }
+                    break;
+
+                case MouseButtons.Left:
+                    if (e.ColumnIndex >= 0 && e.RowIndex >= 0)
+                    {
+                        if (define.CurrentCell == define[e.ColumnIndex, e.RowIndex])
+                        {
+                            // 在选中的当前cell中再次按下鼠标，打开编辑窗口。
+                            EditProperties(define.CurrentCell.RowIndex);
+                        }
+                    }
+                    break;
+
         }
+    }
 
         private void DeleteVariable(int rowIndex, VarDefine var, bool confirm)
         {
@@ -185,11 +201,52 @@ namespace ConfigEditor
                 case "BeanLocked":
                     DataGridViewCell cellBeanLocked = define[e.ColumnIndex, e.RowIndex];
                     var bean = cellBeanLocked.Tag as BeanDefine;
-                    bean.IsLocked = !bean.IsLocked;
-                    bean.Document.IsChanged = true;
-                    cellBeanLocked.Value = bean.IsLocked ? "Yes" : "No";
+                    if (null != bean)
+                    {
+                        bean.Locked = !bean.Locked;
+                        bean.Document.IsChanged = true;
+                        cellBeanLocked.Value = bean.Locked ? "Yes" : "No";
+                    }
+                    break;
+
+                case "VarProperties":
+                    EditProperties(e.RowIndex);
                     break;
             }
+        }
+
+        private void EditProperties(int rowIndex)
+        {
+            if (rowIndex < 0)
+                return;
+
+            DataGridViewCellCollection cells = define.Rows[rowIndex].Cells;
+            VarDefine var = cells["VarName"].Tag as VarDefine;
+            if (null == var)
+                return;
+
+            DataGridViewCell cell = cells["VarProperties"];
+            FormProperties fp = new FormProperties()
+            {
+                Properties = FormMain.PropertyManager.Parse(cell.Value as string),
+                FormDefine = this,
+            };
+            if (DialogResult.OK == fp.ShowDialog(this))
+            {
+                fp.Properties.Clear();
+                foreach (var p in FormMain.PropertyManager.Properties)
+                {
+                    if (p.Value.ButtonChecked)
+                    {
+                        fp.Properties.Add(p.Value);
+                    }
+                    p.Value.Button = null;
+                }
+                var.Properties = FormMain.PropertyManager.BuildString(fp.Properties);
+                cell.Value = var.Properties;
+                var.Parent.Document.IsChanged = true;
+            }
+            fp.Dispose();
         }
 
         private void UpdateWhenAddVariable(int rowIndex, VarDefine var, bool create)

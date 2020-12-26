@@ -52,7 +52,7 @@ namespace ConfigEditor
             this.define.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.define.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.define.ColumnHeadersHeight = 20;
             this.define.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.BeanLocked,
             this.VarName,
@@ -62,7 +62,7 @@ namespace ConfigEditor
             this.VarProperties,
             this.VarComment});
             this.define.Location = new System.Drawing.Point(-5, -1);
-            this.define.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.define.Margin = new System.Windows.Forms.Padding(2);
             this.define.MultiSelect = false;
             this.define.Name = "define";
             this.define.RowHeadersWidth = 25;
@@ -137,6 +137,7 @@ namespace ConfigEditor
             this.VarProperties.HeaderText = "属性";
             this.VarProperties.MinimumWidth = 10;
             this.VarProperties.Name = "VarProperties";
+            this.VarProperties.ReadOnly = true;
             this.VarProperties.Resizable = System.Windows.Forms.DataGridViewTriState.True;
             this.VarProperties.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             this.VarProperties.ToolTipText = "各种扩展属性，详细见属性编辑窗口。";
@@ -156,8 +157,9 @@ namespace ConfigEditor
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(963, 505);
             this.Controls.Add(this.define);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "FormDefine";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Bean 结构定义";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormDefine_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.define)).EndInit();

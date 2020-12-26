@@ -89,7 +89,6 @@ namespace ConfigEditor
             }
 
             FormSelectRecentHome select = new FormSelectRecentHome();
-            select.StartPosition = FormStartPosition.CenterParent;
             select.Config = Config;
             if (DialogResult.OK != select.ShowDialog(this))
             {
@@ -202,6 +201,12 @@ namespace ConfigEditor
 
         public (VarDefine, bool) AddVariable(VarDefine hint)
         {
+            if (hint.Parent.Locked)
+            {
+                MessageBox.Show("bean is Locked");
+                return (null, false);
+            }
+
             FormInputVarDefine input = new FormInputVarDefine();
             input.StartPosition = FormStartPosition.CenterParent;
 
@@ -300,13 +305,14 @@ namespace ConfigEditor
             grid.AllowUserToDeleteRows = false;
             grid.AllowUserToResizeRows = false;
             grid.Anchor = ((AnchorStyles)((((AnchorStyles.Top | AnchorStyles.Bottom) | AnchorStyles.Left) | AnchorStyles.Right)));
-            grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
+            grid.ColumnHeadersHeight = 20;
             grid.Location = new Point(0, 0);
             grid.Margin = new Padding(2);
             grid.MultiSelect = false;
             grid.Name = "Grid";
             grid.RowHeadersWidth = 25;
-            grid.RowTemplate.Height = 18;
+            grid.RowTemplate.Height = 20;
             //gird.Size = new Size(848, 476);
             grid.TabIndex = 0;
 
@@ -869,7 +875,6 @@ namespace ConfigEditor
                 FormDefine.LoadDefine();
 
                 // Dialog 模式不需要同步更新数据，简单点，先这个方案。
-                FormDefine.StartPosition = FormStartPosition.CenterParent;
                 FormDefine.ShowDialog(this);
                 FormDefine.Dispose();
                 FormDefine = null;

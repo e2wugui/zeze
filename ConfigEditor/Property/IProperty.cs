@@ -29,7 +29,25 @@ namespace ConfigEditor.Property
         public abstract string Comment { get; }
         public virtual Group Group => Group.Normal; 
 
-        public virtual bool IsGroupRadio
+        public ButtonBase Button { get; set; } // FormProperties使用，仅在编辑的时候才有效。
+
+        public bool ButtonChecked
+        {
+            get
+            {
+                if (Button is CheckBox cb) return cb.Checked;
+                if (Button is RadioButton rb) return rb.Checked;
+                return false;
+            }
+
+            set
+            {
+                if (Button is CheckBox cb) cb.Checked = value;
+                else if (Button is RadioButton rb) rb.Checked = value;
+            }
+        }
+
+        public virtual bool GroupRadio
         {
             get
             {

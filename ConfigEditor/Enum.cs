@@ -89,19 +89,15 @@ namespace ConfigEditor
                 this.Enum = e;
                 Name = self.GetAttribute("name");
                 Val = self.GetAttribute("value");
-                Comment = self.GetAttribute("description");
+                Comment = self.GetAttribute("comment").Trim();
                 if (Comment.Length == 0)
                 {
-                    Comment = self.GetAttribute("comment").Trim();
-                    if (Comment.Length == 0)
+                    XmlNode c = self.NextSibling;
+                    if (c != null && XmlNodeType.Text == c.NodeType)
                     {
-                        XmlNode c = self.NextSibling;
-                        if (c != null && XmlNodeType.Text == c.NodeType)
-                        {
-                            Comment = c.InnerText.Trim();
-                            Regex regex = new Regex("[\r\n]");
-                            Comment = regex.Replace(Comment, "");
-                        }
+                        Comment = c.InnerText.Trim();
+                        Regex regex = new Regex("[\r\n]");
+                        Comment = regex.Replace(Comment, "");
                     }
                 }
             }
