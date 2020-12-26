@@ -104,6 +104,7 @@ namespace ConfigEditor
             this.VarName.HeaderText = "名字";
             this.VarName.MinimumWidth = 10;
             this.VarName.Name = "VarName";
+            this.VarName.ReadOnly = true;
             this.VarName.ToolTipText = "列（变量）名，也用来显示Bean的名字。";
             // 
             // VarType

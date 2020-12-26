@@ -17,9 +17,13 @@
 
 Test
 	define 编辑基本完工。
-	嵌套list问题：define中add时创建两个item。
+	嵌套list问题：define中add时创建两个item，出现过一次，后来没有发现（看错了？多测试）。
 
 TODO
+	变量顺序调整。
+	
+	变量改名。需要更新Foreign。
+	Bean改名。需要搜索所哟引用。而且更新麻烦。
 	类型识别和Gen。
 	自动完成和enum识别。
 	1 id存一个种子自动递增，或者从上一行的id往后找一个未用的。

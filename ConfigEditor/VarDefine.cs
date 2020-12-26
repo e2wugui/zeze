@@ -24,6 +24,20 @@ namespace ConfigEditor
         public BeanDefine Parent { get; }
         public BeanDefine Reference { get; set; } // type is List
 
+        public string CanChangeTo(EType newType)
+        {
+            if (newType == Type)
+                return null; // same is ok
+
+            if (newType == EType.List)
+                return "Type.List 只能在新增的时候设置。不能通过修改设置";
+
+            if (Type == EType.List)
+                return "Type.List 设置以后不能修改。";
+
+            return null;
+        }
+
         public BeanDefine Delete()
         {
             if (null != Self)

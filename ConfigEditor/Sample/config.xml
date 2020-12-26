@@ -3,10 +3,12 @@
   <BeanDefine RefCount="0" Locked="False">
     <BeanDefine name="list1" RefCount="2" Locked="False">
       <variable name="去" type="Auto" vw="50" />
+      <BeanDefine name="v" RefCount="1" Locked="False" />
+      <variable name="v" type="List" value="config.list1.v" vw="50" />
     </BeanDefine>
     <variable name="list1" type="List" value="config.list1" vw="50" />
     <variable name="为2" type="Auto" vw="50" />
-    <variable name="q1" type="Auto" vw="50" properties="client;id;server;unique;url;" />
+    <variable name="q1" type="Auto" vw="50" properties="client;id;server;unique;url;" foreign="config:q1" />
     <variable name="去1" type="List" value="config.list1" vw="50" />
   </BeanDefine>
 </ZezeConfig>

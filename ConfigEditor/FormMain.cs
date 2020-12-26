@@ -896,6 +896,9 @@ namespace ConfigEditor
         // return null if check ok
         public string CheckForeign(string foreign, VarDefine var)
         {
+            if (foreign == null || foreign.Length == 0)
+                return null;
+
             string[] newForeign = foreign.Split(':');
             if (newForeign.Length != 2)
                 return "错误的Foreign格式。sample 'ConfigName:VarName'";

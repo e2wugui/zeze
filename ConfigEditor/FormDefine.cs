@@ -131,7 +131,7 @@ namespace ConfigEditor
                         if (define.CurrentCell == define[e.ColumnIndex, e.RowIndex])
                         {
                             // 在选中的当前cell中再次按下鼠标，打开编辑窗口。
-                            EditProperties(define.CurrentCell.RowIndex);
+                            EditProperties(define.CurrentCell.RowIndex, define.CurrentCell.ColumnIndex);
                         }
                     }
                     break;
@@ -210,19 +210,22 @@ namespace ConfigEditor
                     break;
 
                 case "VarProperties":
-                    EditProperties(e.RowIndex);
+                    EditProperties(e.RowIndex, e.ColumnIndex);
                     break;
             }
         }
 
-        private void EditProperties(int rowIndex)
+        private void EditProperties(int rowIndex, int colIndex)
         {
             if (rowIndex < 0)
                 return;
 
             DataGridViewCellCollection cells = define.Rows[rowIndex].Cells;
             VarDefine var = cells["VarName"].Tag as VarDefine;
-            if (null == var)
+            if (null == var || null == var.Name)
+                return;
+
+            if (!define.Columns[colIndex].Name.Equals("VarProperties"))
                 return;
 
             DataGridViewCell cell = cells["VarProperties"];
@@ -298,12 +301,12 @@ namespace ConfigEditor
 
             DataGridViewCellCollection cells = define.Rows[e.RowIndex].Cells;
             VarDefine var = cells["VarName"].Tag as VarDefine;
-            if (null == var)
+            if (null == var || null == var.Name) // var.Name is null when row is ',' for addvar
                 return;
 
-            string colName = define.Columns[e.ColumnIndex].Name;
             try
             {
+                string colName = define.Columns[e.ColumnIndex].Name;
                 switch (colName)
                 {
                     case "VarValue":
@@ -318,11 +321,22 @@ namespace ConfigEditor
                         break;
 
                     case "VarForeign":
-                        string err = FormMain.CheckForeign(e.FormattedValue as string, var);
-                        if (null != err)
+                        string errForeign = FormMain.CheckForeign(e.FormattedValue as string, var);
+                        if (null != errForeign)
                         {
                             e.Cancel = true;
-                            MessageBox.Show(err);
+                            MessageBox.Show(errForeign);
+                        }
+                        break;
+
+                    case "VarType":
+                        VarDefine.EType newType = (VarDefine.EType)System.Enum.Parse(
+                            typeof(VarDefine.EType), e.FormattedValue as string);
+                        string errType = var.CanChangeTo(newType);
+                        if (null != errType)
+                        {
+                            e.Cancel = true;
+                            MessageBox.Show(errType);
                         }
                         break;
                 }
@@ -352,12 +366,18 @@ namespace ConfigEditor
             {
                 case "VarName":
                     MessageBox.Show("改名涉及到修改引用这个名字的地方，比如forgeign，暂不支持。");
+                    cells[colName].Value = var.Name; // restore;
                     //var.Name = cells[colName].Value as string;
+                    //var.Parent.Document.IsChanged = true;
                     break;
 
                 case "VarType":
-                    var.Type = (VarDefine.EType)cells[colName].Value;
-                    var.Parent.Document.IsChanged = true;
+                    VarDefine.EType newType = (VarDefine.EType)cells[colName].Value;
+                    if (var.Type != newType)
+                    {
+                        var.Type = newType;
+                        var.Parent.Document.IsChanged = true;
+                    }
                     break;
 
                 case "VarValue":
