@@ -38,12 +38,20 @@ namespace ConfigEditor
                     RecentHomes.RemoveAt(RecentHomes.Count - 1);
             }
         }
+        
+        public class ProjectConfig
+        {
+            public string ResourceHome { get; set; } // 这个配置用来给 Property.File 用来检查文件是否存在。
+        }
 
-        public EditorConfig Config { get; private set; }
+        public EditorConfig ConfigEditor { get; private set; }
+        public ProjectConfig ConfigProject { get; private set; }
+
         public FormMain()
         {
             InitializeComponent();
             LoadConfig();
+            PropertyManager = new Property.Manager();
         }
 
         private string GetConfigFileFullName()
@@ -59,51 +67,59 @@ namespace ConfigEditor
             try
             {
                 string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(GetConfigFileFullName()));
-                Config = JsonSerializer.Deserialize<EditorConfig>(json);
+                ConfigEditor = JsonSerializer.Deserialize<EditorConfig>(json);
+
+                json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(
+                    System.IO.Path.Combine(ConfigEditor.GetHome(), "ConfigEditor.json")));
+                ConfigProject = JsonSerializer.Deserialize<ProjectConfig>(json);
             }
             catch (Exception)
             {
                 //MessageBox.Show(ex.ToString());
             }
-            if (null == Config)
-                Config = new EditorConfig() { RecentHomes = new List<string>() };
+            if (null == ConfigEditor)
+                ConfigEditor = new EditorConfig() { RecentHomes = new List<string>() };
+            if (null == ConfigProject)
+                ConfigProject = new ProjectConfig();
         }
 
         private void SaveConfig()
         {
             var options = new JsonSerializerOptions { WriteIndented = true };
-            System.IO.File.WriteAllBytes(GetConfigFileFullName(), JsonSerializer.SerializeToUtf8Bytes(Config, options));
+            System.IO.File.WriteAllBytes(GetConfigFileFullName(), JsonSerializer.SerializeToUtf8Bytes(ConfigEditor, options));
+            System.IO.File.WriteAllBytes(System.IO.Path.Combine(ConfigEditor.GetHome(), "ConfigEditor.json"),
+                JsonSerializer.SerializeToUtf8Bytes(ConfigProject, options));
         }
 
         private void FormMain_Load(object sender, EventArgs e)
         {
             // remove deleted directory.
-            for (int i = Config.RecentHomes.Count - 1; i >= 0; --i)
+            for (int i = ConfigEditor.RecentHomes.Count - 1; i >= 0; --i)
             {
-                string home = Config.RecentHomes[i];
+                string home = ConfigEditor.RecentHomes[i];
                 if (System.IO.Directory.Exists(home))
                 {
                     continue;
                 }
-                Config.RecentHomes.RemoveAt(i);
+                ConfigEditor.RecentHomes.RemoveAt(i);
             }
 
             FormSelectRecentHome select = new FormSelectRecentHome();
-            select.Config = Config;
+            select.Config = ConfigEditor;
             if (DialogResult.OK != select.ShowDialog(this))
             {
                 select.Dispose();
                 Close();
                 return;
             }
-            Config.SetRecentHome(select.ComboBoxRecentHomes.Text);
+            ConfigEditor.SetRecentHome(select.ComboBoxRecentHomes.Text);
             select.Dispose();
 
-            if (Config.FormMainLocation != null)
-                this.Location = Config.FormMainLocation;
-            if (Config.FormMainSize != null)
-                this.Size = Config.FormMainSize;
-            this.WindowState = Config.FormMainState;
+            if (ConfigEditor.FormMainLocation != null)
+                this.Location = ConfigEditor.FormMainLocation;
+            if (ConfigEditor.FormMainSize != null)
+                this.Size = ConfigEditor.FormMainSize;
+            this.WindowState = ConfigEditor.FormMainState;
             this.TopMost = true;
             this.BringToFront();
             this.TopMost = false;
@@ -141,6 +157,19 @@ namespace ConfigEditor
             DataGridViewCellCollection cells = grid.Rows[e.RowIndex].Cells;
             int colIndex = e.ColumnIndex;
             doc.Beans[e.RowIndex].Update(grid, cells, ref colIndex, 0, Bean.EUpdate.Data);
+
+            var param = new Property.VerifyParam()
+            {
+                FormMain = this,
+                Grid = grid,
+                ColumnIndex = e.ColumnIndex,
+                RowIndex = e.RowIndex,
+                ColumnTag = tag,
+            };
+            foreach (var p in tag.PathLast.Define.PropertiesList)
+            {
+                p.VerifyCell(param);
+            }
         }
 
         private bool ReportError(string msg, bool showOnly)
@@ -364,7 +393,7 @@ namespace ConfigEditor
 
         private void newButton_Click(object sender, EventArgs e)
         {
-            this.saveFileDialog1.InitialDirectory = Config.RecentHomes[0];
+            this.saveFileDialog1.InitialDirectory = ConfigEditor.RecentHomes[0];
             this.saveFileDialog1.FileName = "";
             this.saveFileDialog1.Filter = "(*.xml)|*.xml";
             if (DialogResult.OK != this.saveFileDialog1.ShowDialog())
@@ -440,7 +469,7 @@ namespace ConfigEditor
         public Document OpenDocument(string relatePath, out BeanDefine define)
         {
             string[] relates = relatePath.Split('.');
-            string path = Config.GetHome();
+            string path = ConfigEditor.GetHome();
 
             for (int i = 0; i < relates.Length; ++i)
             {
@@ -456,7 +485,7 @@ namespace ConfigEditor
         {
             try
             {
-                this.openFileDialog1.InitialDirectory = Config.RecentHomes[0];
+                this.openFileDialog1.InitialDirectory = ConfigEditor.RecentHomes[0];
                 this.openFileDialog1.FileName = "";
                 this.openFileDialog1.Filter = "(*.xml)|*.xml";
                 if (DialogResult.OK != this.openFileDialog1.ShowDialog())
@@ -527,9 +556,9 @@ namespace ConfigEditor
             if (e.Cancel)
                 return;
 
-            Config.FormMainLocation = this.Location;
-            Config.FormMainSize = this.Size;
-            Config.FormMainState = this.WindowState;
+            ConfigEditor.FormMainLocation = this.Location;
+            ConfigEditor.FormMainSize = this.Size;
+            ConfigEditor.FormMainState = this.WindowState;
 
             SaveConfig();
 
@@ -865,7 +894,7 @@ namespace ConfigEditor
 
         public FormDefine FormDefine { get; set; }
         public TabControl Tabs => tabs;
-        public Property.Manager PropertyManager { get; } = new Property.Manager();
+        public Property.Manager PropertyManager { get; }
 
         private void toolStripButtonDefine_Click(object sender, EventArgs e)
         {
@@ -891,6 +920,7 @@ namespace ConfigEditor
         private void tabs_SelectedIndexChanged(object sender, EventArgs e)
         {
             FormDefine?.LoadDefine();
+            
         }
 
         // return null if check ok

@@ -9,12 +9,33 @@ namespace ConfigEditor
 {
     public class VarDefine
     {
+        private string _Properties = "";
+
         public string Name { get; set; }
         public EType Type { get; set; } = EType.Auto;
 
         public string Value { get; set; } = "";
         public string Foreign { get; set; }
-        public string Properties { get; set; }
+
+        public List<Property.IProperty> PropertiesList { get; private set; } = new List<Property.IProperty>();
+
+        public string Properties
+        {
+            get
+            {
+                return _Properties;
+            }
+            set
+            {
+                if (_Properties.Equals(value))
+                    return;
+
+                _Properties = value;
+                Parent.Document.IsChanged = true;
+                PropertiesList = Parent.Document.Main.PropertyManager.Parse(value);
+            }
+        }
+
         public string Comment { get; set; }
 
         public int GridColumnNameWidth { get; set; }

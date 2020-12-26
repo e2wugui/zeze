@@ -73,6 +73,9 @@ namespace ConfigEditor.Property
             AddProperty(new Dns());
             AddProperty(new File());
             AddProperty(new Url());
+
+            AddProperty(new UniqueList());
+            AddProperty(new IdList());
         }
     }
 }

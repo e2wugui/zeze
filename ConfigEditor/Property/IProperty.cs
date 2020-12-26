@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -60,6 +61,29 @@ namespace ConfigEditor.Property
             }
         }
 
-        public abstract Result VerifyCell(DataGridView grid, int columnIndex, int rowIndex);
+        public abstract void VerifyCell(VerifyParam param);
+
+        public void UpdateVerifyResult(VerifyParam param, Result result = Result.Ok, string tip = null)
+        {
+            Color back = Color.Transparent;
+            switch (result)
+            {
+                case Result.Ok:
+                    back = Color.White;
+                    break;
+
+                case Result.Warn:
+                    back = Color.Yellow;
+                    break;
+
+                case Result.Error:
+                    back = Color.Red;
+                    break;
+            }
+
+            DataGridViewCell cell = param.Grid[param.ColumnIndex, param.RowIndex];
+            cell.Style.BackColor = back;
+            cell.ToolTipText = tip;
+        }
     }
 }

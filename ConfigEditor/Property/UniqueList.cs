@@ -7,15 +7,15 @@ using System.Windows.Forms;
 
 namespace ConfigEditor.Property
 {
-    public class Client : IProperty
+    public class UniqueList : IProperty
     {
-        public override string Name => "client";
-        public override string Comment => "生成client发布数据时，包含此项数据";
+        public override string Name => "unique.list";
 
-        public override Group Group => Group.GenTarget;
+        public override string Comment => "在所有 List.Item 中保持唯一（横向）。";
 
         public override void VerifyCell(VerifyParam param)
         {
+            throw new NotImplementedException();
         }
     }
 }

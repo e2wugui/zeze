@@ -14,9 +14,23 @@ namespace ConfigEditor.Property
 
         public override Group Group => Group.DataType;
 
-        public override Result VerifyCell(DataGridView grid, int columnIndex, int rowIndex)
+        public static string Home { get; set; }
+
+        public override void VerifyCell(VerifyParam param)
         {
-            throw new NotImplementedException();
+            if (param.FormMain.ConfigProject.ResourceHome == null)
+            {
+                UpdateVerifyResult(param, Result.Warn, "资源路径没有配置。$(ConfigHome)/ConfigEditor.json");
+            }
+            else
+            {
+                string path = System.IO.Path.Combine(param.FormMain.ConfigProject.ResourceHome,
+                    param.Grid[param.ColumnIndex, param.RowIndex].Value as string);
+                if (false == System.IO.File.Exists(path))
+                    UpdateVerifyResult(param, Result.Warn, "文件不存在。");
+                else
+                    UpdateVerifyResult(param);
+            }
         }
     }
 }

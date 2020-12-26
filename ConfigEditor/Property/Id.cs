@@ -12,9 +12,9 @@ namespace ConfigEditor.Property
         public override string Name => "id";
         public override string Comment => "验证是否在该列所有数据中唯一。并且生成代码时被当作Map.Key。";
 
-        public override Result VerifyCell(DataGridView grid, int columnIndex, int rowIndex)
+        public override void VerifyCell(VerifyParam param)
         {
-            return base.VerifyCell(grid, columnIndex, rowIndex);
+            base.VerifyCell(param);
         }
     }
 }

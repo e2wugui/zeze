@@ -231,23 +231,22 @@ namespace ConfigEditor
             DataGridViewCell cell = cells["VarProperties"];
             FormProperties fp = new FormProperties()
             {
-                Properties = FormMain.PropertyManager.Parse(cell.Value as string),
+                Properties = var.PropertiesList,
                 FormDefine = this,
             };
             if (DialogResult.OK == fp.ShowDialog(this))
             {
-                fp.Properties.Clear();
+                List<Property.IProperty> current = new List<Property.IProperty>();
                 foreach (var p in FormMain.PropertyManager.Properties)
                 {
                     if (p.Value.ButtonChecked)
                     {
-                        fp.Properties.Add(p.Value);
+                        current.Add(p.Value);
                     }
                     p.Value.Button = null;
                 }
-                var.Properties = FormMain.PropertyManager.BuildString(fp.Properties);
+                var.Properties = FormMain.PropertyManager.BuildString(current);
                 cell.Value = var.Properties;
-                var.Parent.Document.IsChanged = true;
             }
             fp.Dispose();
         }

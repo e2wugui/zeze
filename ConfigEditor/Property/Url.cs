@@ -14,7 +14,7 @@ namespace ConfigEditor.Property
 
         public override Group Group => Group.DataType;
 
-        public override Result VerifyCell(DataGridView grid, int columnIndex, int rowIndex)
+        public override void VerifyCell(VerifyParam param)
         {
             throw new NotImplementedException();
         }

@@ -22,11 +22,11 @@ namespace ConfigEditor
         public void SetFileName(string fileName)
         {
             FileName = System.IO.Path.GetFullPath(fileName);
-            if (!FileName.StartsWith(Main.Config.GetHome()))
+            if (!FileName.StartsWith(Main.ConfigEditor.GetHome()))
             {
                 throw new Exception("文件必须在Home(开始运行时选择的)目录下");
             }
-            string relate = FileName.Substring(Main.Config.GetHome().Length + 1);
+            string relate = FileName.Substring(Main.ConfigEditor.GetHome().Length + 1);
             if (relate.EndsWith(".xml"))
                 relate = relate.Substring(0, relate.Length - 4);
             string[] relates = relate.Split(new char[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);

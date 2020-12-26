@@ -40,14 +40,15 @@ namespace ConfigEditor
             // 
             this.groupBoxNormal.Location = new System.Drawing.Point(12, 12);
             this.groupBoxNormal.Name = "groupBoxNormal";
-            this.groupBoxNormal.Size = new System.Drawing.Size(517, 109);
+            this.groupBoxNormal.Size = new System.Drawing.Size(547, 109);
             this.groupBoxNormal.TabIndex = 0;
             this.groupBoxNormal.TabStop = false;
+            this.groupBoxNormal.Text = "Normal";
             // 
             // buttonOk
             // 
             this.buttonOk.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.buttonOk.Location = new System.Drawing.Point(571, 23);
+            this.buttonOk.Location = new System.Drawing.Point(610, 23);
             this.buttonOk.Name = "buttonOk";
             this.buttonOk.Size = new System.Drawing.Size(88, 41);
             this.buttonOk.TabIndex = 1;
@@ -57,7 +58,7 @@ namespace ConfigEditor
             // buttonCancel
             // 
             this.buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.buttonCancel.Location = new System.Drawing.Point(571, 80);
+            this.buttonCancel.Location = new System.Drawing.Point(610, 80);
             this.buttonCancel.Name = "buttonCancel";
             this.buttonCancel.Size = new System.Drawing.Size(88, 41);
             this.buttonCancel.TabIndex = 2;
@@ -71,7 +72,7 @@ namespace ConfigEditor
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoScroll = true;
             this.CancelButton = this.buttonCancel;
-            this.ClientSize = new System.Drawing.Size(671, 417);
+            this.ClientSize = new System.Drawing.Size(710, 417);
             this.Controls.Add(this.buttonCancel);
             this.Controls.Add(this.buttonOk);
             this.Controls.Add(this.groupBoxNormal);

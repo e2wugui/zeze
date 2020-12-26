@@ -71,7 +71,7 @@ namespace ConfigEditor
 
                 check.Location = location;
                 check.Name = "button" + p.Name;
-                check.Size = new Size(78, 24);
+                check.Size = new Size(90, 24);
                 check.TabIndex = i;
                 check.Text = p.Name;
                 toolTip1.SetToolTip(check, p.Comment);
@@ -80,8 +80,8 @@ namespace ConfigEditor
                 group.Controls.Add(check);
                 p.Button = check;
 
-                location.X += 84;
-                if ((i + 1) % 6 == 0) // new line
+                location.X += 94;
+                if ((i + 1) % 5 == 0) // new line
                 {
                     location.X = 6;
                     location.Y += 29;

@@ -8,7 +8,13 @@
     </BeanDefine>
     <variable name="list1" type="List" value="config.list1" vw="50" />
     <variable name="为2" type="Auto" vw="50" />
-    <variable name="q1" type="Auto" vw="50" properties="client;id;server;unique;url;" foreign="config:q1" />
+    <variable name="q1" type="Auto" vw="50" properties="file;" foreign="config:q1" />
     <variable name="去1" type="List" value="config.list1" vw="50" />
   </BeanDefine>
+  <bean>
+    <q1>1</q1>
+  </bean>
+  <bean>
+    <q1>2 </q1>
+  </bean>
 </ZezeConfig>

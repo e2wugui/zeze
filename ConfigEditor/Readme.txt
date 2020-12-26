@@ -4,8 +4,8 @@
 特性
 	动态增删列，
 	自动类型识别(Gen)，
-	支持容器(list)，
-	数据即时验证(只提示，允许保存错误数据)
+	支持容器(编辑时只有list，根据配置生成时可能是Map)，
+	数据即时验证(只提示，允许保存错误数据),
 	自动完成，
 
 说明
@@ -18,10 +18,31 @@
 Test
 	define 编辑基本完工。
 	嵌套list问题：define中add时创建两个item，出现过一次，后来没有发现（看错了？多测试）。
+	调试的时候发现几次数据被清除（无法重现）。
 
 TODO
-	变量顺序调整。
-	
+                DataGridViewCellStyle cstyle = new DataGridViewCellStyle();
+                cstyle.BackColor = Color.GreenYellow;
+
+                for (int i = 0; i < Flag.Length; i++)
+                {
+                    if (Flag[i] == "1")
+                    {
+
+                        //dgr.DefaultCellStyle.ForeColor = Color.Blue;
+
+                        dgr.Cells[0].Style = cstyle;
+                    }	变量顺序调整。仅支持在Define的时候改变。然后重新装载所有打开的grid（局部修改太麻烦）。
+方式3 ,设置DataGridViewButtonCell的FlatStyle属性，Popup或者Flat.
+
+DataGridViewRow row = new DataGridViewRow();
+DataGridViewButtonCell dg_btn_cell = new DataGridViewButtonCell();
+dg_btn_cell.Value = "Component" + i;
+dg_btn_cell.FlatStyle = FlatStyle.Flat;//FlatStyle.Popup;
+dg_btn_cell.Style.BackColor = Color.Red;
+dg_btn_cell.Style.ForeColor = Color.Black;
+
+	消息发回窗口线程。FormMain.BeginInvoke();
 	变量改名。需要更新Foreign。
 	Bean改名。需要搜索所哟引用。而且更新麻烦。
 	类型识别和Gen。
