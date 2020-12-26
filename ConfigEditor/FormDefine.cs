@@ -234,6 +234,7 @@ namespace ConfigEditor
                 Properties = var.PropertiesList,
                 FormDefine = this,
             };
+
             if (DialogResult.OK == fp.ShowDialog(this))
             {
                 List<Property.IProperty> current = new List<Property.IProperty>();

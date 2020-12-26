@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,6 +30,57 @@ namespace ConfigEditor
         public ETag Tag { get; }
 
         public List<VarInfo> Path { get; } = new List<VarInfo>();
+
+        // 存储是否唯一
+        public Dictionary<string, HashSet<DataGridViewCell>> UniqueIndex { get; }
+            = new Dictionary<string, HashSet<DataGridViewCell>>();
+
+        public void UpdateUniqueIndex(string oldValue, DataGridViewCell cell)
+        {
+            if (null == oldValue)
+                oldValue = "";
+
+            if (oldValue.Equals(cell.Value as string))
+                return;
+
+            if (UniqueIndex.TryGetValue(oldValue, out var cells))
+            {
+                cells.Remove(cell);
+
+                switch (cells.Count)
+                {
+                    case 1:
+                        // unique 找不到好办法恢复不是编辑中的unique，因为只有一个cell了，先这样设置一下。
+                        foreach (var unique in cells)
+                            unique.Style.BackColor = Color.White;
+                        break;
+
+                    case 0:
+                        UniqueIndex.Remove(oldValue);
+                        break;
+                }
+            }
+            AddUniqueIndex(cell);
+        }
+
+        public void AddUniqueIndex(DataGridViewCell cell)
+        {
+            string value = cell.Value as string;
+            if (null == value)
+                value = "";
+            if (false == UniqueIndex.TryGetValue(value, out var cells))
+                UniqueIndex.Add(value, cells = new HashSet<DataGridViewCell>());
+            cells.Add(cell);
+        }
+
+        public void BuildUniqueIndex(DataGridView grid, int columnIndex)
+        {
+            for (int i = 0; i < grid.RowCount; ++i)
+            {
+                DataGridViewCell cell = grid.Rows[i].Cells[columnIndex];
+                AddUniqueIndex(cell);
+            }
+        }
 
         public ColumnTag(ETag tag)
         {

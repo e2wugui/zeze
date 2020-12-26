@@ -81,9 +81,21 @@ namespace ConfigEditor.Property
                     break;
             }
 
-            DataGridViewCell cell = param.Grid[param.ColumnIndex, param.RowIndex];
-            cell.ToolTipText = tip; // last tip
-            cell.Style.BackColor = back;
+            if (null == param.Cells)
+            {
+                // update current cell
+                DataGridViewCell cell = param.Grid[param.ColumnIndex, param.RowIndex];
+                cell.ToolTipText = tip; // last tip
+                cell.Style.BackColor = back;
+            }
+            else
+            {
+                foreach (var cell in param.Cells)
+                {
+                    cell.ToolTipText = tip; // last tip
+                    cell.Style.BackColor = back;
+                }
+            }
 
             if (result != Result.Ok)
             {

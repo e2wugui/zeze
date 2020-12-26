@@ -15,7 +15,7 @@ namespace ConfigEditor.Property
 
         public override void VerifyCell(VerifyParam param)
         {
-            throw new NotImplementedException();
+            base.VerifyCell(param);
         }
     }
 }

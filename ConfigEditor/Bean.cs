@@ -10,7 +10,7 @@ namespace ConfigEditor
         public class VarData
         {
             public string Name { get; set; }
-            public string Value { get; set; }
+            public string Value { get; set; } = "";
             public int GridColumnNameWidth { get; set; }
             public int GridColumnValueWidth { get; set; }
 
@@ -171,6 +171,9 @@ namespace ConfigEditor
 
         public VarData GetVarData(int pathCurrentIndex, ColumnTag tag, int pathEndIndex)
         {
+            if (pathCurrentIndex > pathEndIndex)
+                return null;
+
             ColumnTag.VarInfo varInfo = tag.Path[pathCurrentIndex];
             if (false == VariableMap.TryGetValue(varInfo.Define.Name, out var varData))
             {
@@ -231,7 +234,7 @@ namespace ConfigEditor
                             {
                                 if (tag.Tag == ColumnTag.ETag.ListStart)
                                     ++colIndex;
-                                colIndex = Document.Main.FindNextListEnd(grid, colIndex);
+                                colIndex = Document.Main.FindColumnListEnd(grid, colIndex);
                             }
                             continue; // data not found. continue load.
 
@@ -324,14 +327,22 @@ namespace ConfigEditor
                 switch (uptype)
                 {
                     case EUpdate.Data:
-                        varData.Value = (string)cells[colIndex].Value; // OnGridCellEndEdit update data
+                        // OnGridCellEndEdit update data
+                        // TODO Enum Type
+                        DataGridViewCell cell = cells[colIndex];
+                        string newValue = cell.Value as string;
+                        tag.UpdateUniqueIndex(varData.Value, cell);
+                        varData.Value = newValue;
                         return true;
+
                     case EUpdate.Grid:
                         cells[colIndex].Value = varData.Value; // upate to grid
                         break; // Update Grid 等到 ColumnTag.ETag.AddVariable 才返回。在这个函数开头。
+
                     case EUpdate.DeleteData:
                         DeleteVarData(varInfo.Define.Name);
                         return true;
+
                     default:
                         throw new Exception("unkown update type. end.");
                 }

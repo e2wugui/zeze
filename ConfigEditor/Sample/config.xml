@@ -2,12 +2,14 @@
 <ZezeConfig>
   <BeanDefine RefCount="0" Locked="False">
     <BeanDefine name="list1" RefCount="2" Locked="False">
-      <variable name="去" type="Auto" vw="50" />
-      <BeanDefine name="v" RefCount="1" Locked="False" />
+      <variable name="去" type="Auto" vw="50" properties="unique;unique.list;" />
+      <BeanDefine name="v" RefCount="1" Locked="False">
+        <variable name="了" type="Auto" vw="50" />
+      </BeanDefine>
       <variable name="v" type="List" value="config.list1.v" vw="50" />
     </BeanDefine>
     <variable name="list1" type="List" value="config.list1" vw="50" />
-    <variable name="为2" type="Auto" vw="50" />
+    <variable name="为2" type="Auto" vw="50" properties="unique;" />
     <variable name="q1" type="Auto" vw="156" properties="dns;" foreign="config:q1" />
     <variable name="去1" type="List" value="config.list1" vw="50" />
   </BeanDefine>
@@ -15,15 +17,37 @@
     <list1>
       <list>
         <bean>
-          <去>
-          </去>
+          <去>9</去>
+        </bean>
+        <bean>
+          <去>4</去>
         </bean>
       </list>
     </list1>
-    <q1>http://www.163.comx</q1>
+    <q1>www.163.com</q1>
+    <为2>1</为2>
+    <去1>
+      <list>
+        <bean>
+          <去>1</去>
+        </bean>
+      </list>
+    </去1>
   </bean>
   <bean>
-    <q1>www.163.com</q1>
+    <list1>
+      <list>
+        <bean>
+          <去>1</去>
+        </bean>
+        <bean>
+          <去>3</去>
+        </bean>
+      </list>
+    </list1>
+  </bean>
+  <bean>
+    <q1>127.0.0.1</q1>
     <去1>
       <list>
         <bean>
@@ -31,16 +55,16 @@
         </bean>
       </list>
     </去1>
-  </bean>
-  <bean>
-    <q1>127.0.0.1</q1>
-    <去1>
+    <为2>2</为2>
+    <list1>
       <list>
         <bean>
-          <去>
-          </去>
+          <去>1</去>
+        </bean>
+        <bean>
+          <去>2</去>
         </bean>
       </list>
-    </去1>
+    </list1>
   </bean>
 </ZezeConfig>

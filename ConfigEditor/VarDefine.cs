@@ -172,26 +172,31 @@ namespace ConfigEditor
                 case EType.Enum:
                     {
                         DataGridViewCell template = new DataGridViewComboBoxCell();
+                        ColumnTag current = tag.Copy(tag.Tag).AddVar(this, -1);
                         grid.Columns.Insert(columnIndex, new DataGridViewColumn(template)
                         {
                             Name = this.Name,
                             Width = GridColumnValueWidth,
                             ToolTipText = Name + ":" + Comment,
-                            Tag = tag.Copy(tag.Tag).AddVar(this, -1),
+                            Tag = current,
                         });
+                        // TODO 实现 enum 的时候需要确认 cell.Value 的类型。编辑器使用的Column，然后类型是枚举而不是string。
+                        current.BuildUniqueIndex(grid, columnIndex);
                         return 1;
                     }
 
                 default:
                     {
                         DataGridViewCell template = new DataGridViewTextBoxCell();
+                        ColumnTag current = tag.Copy(tag.Tag).AddVar(this, -1);
                         grid.Columns.Insert(columnIndex, new DataGridViewColumn(template)
                         {
                             Name = this.Name,
                             Width = GridColumnValueWidth,
                             ToolTipText = Name + ":" + Comment,
-                            Tag = tag.Copy(tag.Tag).AddVar(this, -1),
+                            Tag = current,
                         });
+                        current.BuildUniqueIndex(grid, columnIndex);
                         return 1;
                     }
             }

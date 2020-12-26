@@ -125,8 +125,11 @@ namespace ConfigEditor
             this.TopMost = false;
         }
 
-        private void LoadDocumentToView(DataGridView grid, Document doc)
+        public void LoadDocumentToView(DataGridView grid, Document doc)
         {
+            grid.Columns.Clear();
+            grid.Rows.Clear();
+
             doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
             foreach (var bean in doc.Beans)
             {
@@ -136,7 +139,50 @@ namespace ConfigEditor
                 if (bean.Update(grid, cells, ref colIndex, 0, Bean.EUpdate.Grid))
                     break;
             }
+
+            for (int i = 0; i < grid.ColumnCount; ++i)
+            {
+                ColumnTag tag = grid.Columns[i].Tag as ColumnTag;
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.AddVariable:
+                    case ColumnTag.ETag.ListStart:
+                    case ColumnTag.ETag.ListEnd:
+                        continue;
+                }
+                tag.BuildUniqueIndex(grid, i);
+            }
             AddGridRow(grid);
+            VerifyAll(grid);
+        }
+
+        public void VerifyAll(DataGridView grid)
+        {
+            for (int rowIndex = 0; rowIndex < grid.RowCount - 1; ++rowIndex)
+            {
+                for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex)
+                {
+                    ColumnTag tag = grid.Columns[colIndex].Tag as ColumnTag;
+
+                    if (tag.Tag != ColumnTag.ETag.Normal)
+                        continue;
+
+                    var param = new Property.VerifyParam()
+                    {
+                        FormMain = this,
+                        Grid = grid,
+                        ColumnIndex = colIndex,
+                        RowIndex = rowIndex,
+                        ColumnTag = tag,
+                    };
+
+                    foreach (var p in tag.PathLast.Define.PropertiesList)
+                    {
+                        p.VerifyCell(param);
+                    }
+                }
+            }
+
         }
 
         public void OnGridCellEndEdit(object sender, DataGridViewCellEventArgs e)
@@ -686,7 +732,39 @@ namespace ConfigEditor
             throw new Exception("List Not Closed.");
         }
 
-        public int FindNextListEnd(DataGridView grid, int startColIndex)
+        public int FindColumnListStart(DataGridView grid, int startColIndex)
+        {
+            int skipNestListCount = 0;
+            for (int c = startColIndex; c >= 0; --c)
+            {
+                ColumnTag tag = (ColumnTag)grid.Columns[c].Tag;
+                if (skipNestListCount > 0)
+                {
+                    switch (tag.Tag)
+                    {
+                        case ColumnTag.ETag.ListEnd:
+                            ++skipNestListCount;
+                            break;
+                        case ColumnTag.ETag.ListStart:
+                            --skipNestListCount;
+                            break;
+                    }
+                    continue;
+                }
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.ListStart:
+                        return c;
+ 
+                    case ColumnTag.ETag.ListEnd:
+                        ++skipNestListCount;
+                        break;
+                }
+            }
+            return -1;
+        }
+
+        public int FindColumnListEnd(DataGridView grid, int startColIndex)
         {
             int skipNestListCount = 0;
             for (int c = startColIndex; c < grid.ColumnCount; ++c)
@@ -720,7 +798,7 @@ namespace ConfigEditor
             return -1;
         }
 
-        private int FindColumnBeanBegin(DataGridView grid, int startColIndex)
+        public int FindColumnBeanBegin(DataGridView grid, int startColIndex)
         {
             int skipNestListCount = 0;
             for (int c = startColIndex - 1; c >= 0; --c)
@@ -754,7 +832,7 @@ namespace ConfigEditor
             throw new Exception("FindColumnBeanBegin");
         }
 
-        private int DoActionUntilBeanEnd(DataGridView grid, int colBeanBegin, int colListEnd, Action<int> action)
+        public int DoActionUntilBeanEnd(DataGridView grid, int colBeanBegin, int colListEnd, Action<int> action)
         {
             int skipNestListCount = 0;
             for (int c = colBeanBegin; c < colListEnd; ++c)
@@ -813,7 +891,7 @@ namespace ConfigEditor
                 */
             }
 
-            int colListEnd = FindNextListEnd(grid, grid.CurrentCell.ColumnIndex);
+            int colListEnd = FindColumnListEnd(grid, grid.CurrentCell.ColumnIndex);
             if (colListEnd < 0)
             {
                 MessageBox.Show("请选择 List 中间的列。");
@@ -908,6 +986,10 @@ namespace ConfigEditor
                 FormDefine.ShowDialog(this);
                 FormDefine.Dispose();
                 FormDefine = null;
+
+                if (tabs.SelectedTab != null)
+                    VerifyAll(tabs.SelectedTab.Controls[0] as DataGridView);
+
                 // 同时显示两个窗口，需要同步数据。
                 // FormDefine.Show();
             }

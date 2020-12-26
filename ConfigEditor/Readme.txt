@@ -20,30 +20,9 @@ Test
 	嵌套list问题：define中add时创建两个item，出现过一次，后来没有发现（看错了？多测试）。
 
 TODO
-                DataGridViewCellStyle cstyle = new DataGridViewCellStyle();
-                cstyle.BackColor = Color.GreenYellow;
-
-                for (int i = 0; i < Flag.Length; i++)
-                {
-                    if (Flag[i] == "1")
-                    {
-
-                        //dgr.DefaultCellStyle.ForeColor = Color.Blue;
-
-                        dgr.Cells[0].Style = cstyle;
-                    }	变量顺序调整。仅支持在Define的时候改变。然后重新装载所有打开的grid（局部修改太麻烦）。
-方式3 ,设置DataGridViewButtonCell的FlatStyle属性，Popup或者Flat.
-
-DataGridViewRow row = new DataGridViewRow();
-DataGridViewButtonCell dg_btn_cell = new DataGridViewButtonCell();
-dg_btn_cell.Value = "Component" + i;
-dg_btn_cell.FlatStyle = FlatStyle.Flat;//FlatStyle.Popup;
-dg_btn_cell.Style.BackColor = Color.Red;
-dg_btn_cell.Style.ForeColor = Color.Black;
-
-	消息发回窗口线程。FormMain.BeginInvoke();
 	变量改名。需要更新Foreign。
-	Bean改名。需要搜索所哟引用。而且更新麻烦。
+	Bean改名。需要搜索引用。麻烦。
+	变量顺序允许调整（数据列顺序）。实现：defne中调整。grid重新load。
 	类型识别和Gen。
 	自动完成和enum识别。
 	1 id存一个种子自动递增，或者从上一行的id往后找一个未用的。
