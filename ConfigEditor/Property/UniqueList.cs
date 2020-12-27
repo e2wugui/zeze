@@ -41,29 +41,50 @@ namespace ConfigEditor.Property
                 });
             }
 
-            // count same value
+            // count same oldValue
             HashSet<DataGridViewCell> same = new HashSet<DataGridViewCell>();
-            DataGridViewCell current = p.Grid[p.ColumnIndex, p.RowIndex];
-            string currentValue = current.Value as string;
-            if (currentValue == null)
-                currentValue = "";
+            if (p.OldValue != null)
+            {
+                // load时的验证没有旧的值。
+                foreach (var c in cells)
+                {
+                    if (c == p.Cell)
+                        continue;
+
+                    string str = c.Value as string;
+                    if (null == str)
+                        str = "";
+                    if (p.OldValue.Equals(str))
+                        same.Add(c);
+                }
+                if (same.Count == 1)
+                {
+                    p.FormMain.FormError.RemoveError(same.First(), this);
+                }
+                same.Clear();
+            }
+
+            // count same newValue
             foreach (var c in cells)
             {
+                if (c == p.Cell)
+                    continue;
+
                 string str = c.Value as string;
                 if (null == str)
                     str = "";
-                if (currentValue.Equals(str))
+                if (p.NewValue.Equals(str))
                     same.Add(c);
             }
 
             // report
-            if (same.Count > 1)
+            if (same.Count >= 1)
             {
+                same.Add(p.Cell);
                 p.FormMain.FormError.AddError(same, this, ErrorLevel.Error, "UniqueList 重复啦。");
             }
             else
             {
-                // TODO UniqueList 怎么恢复原来受影响的其他cell. 这里没有旧的value了。
                 p.FormMain.FormError.RemoveError(p.Cell, this);
             }
         }

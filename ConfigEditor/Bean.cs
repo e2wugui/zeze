@@ -331,7 +331,6 @@ namespace ConfigEditor
                         // TODO Enum Type
                         DataGridViewCell cell = cells[colIndex];
                         string newValue = cell.Value as string;
-                        tag.UpdateUniqueIndex(varData.Value, cell);
                         varData.Value = newValue;
                         return true;
 

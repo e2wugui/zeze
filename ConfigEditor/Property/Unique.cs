@@ -14,12 +14,7 @@ namespace ConfigEditor.Property
 
         public override void VerifyCell(VerifyParam p)
         {
-            DataGridViewCell cell = p.Grid[p.ColumnIndex, p.RowIndex];
-            string value = cell.Value as string;
-            if (null == value)
-                value = "";
-
-            if (false == p.ColumnTag.UniqueIndex.TryGetValue(value, out var cells))
+            if (false == p.ColumnTag.UniqueIndex.TryGetValue(p.NewValue, out var cells))
                 throw new Exception("数据都建了索引，找不到？哪里漏了吧。");
 
             if (cells.Count > 1)

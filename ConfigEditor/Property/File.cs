@@ -22,8 +22,7 @@ namespace ConfigEditor.Property
             }
             else
             {
-                string path = System.IO.Path.Combine(param.FormMain.ConfigProject.ResourceHome,
-                    param.Grid[param.ColumnIndex, param.RowIndex].Value as string);
+                string path = System.IO.Path.Combine(param.FormMain.ConfigProject.ResourceHome, param.NewValue);
                 if (false == System.IO.File.Exists(path))
                     param.FormMain.FormError.AddError(param.Cell, this, ErrorLevel.Warn, "文件不存在。");
                 else

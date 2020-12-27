@@ -17,8 +17,7 @@ namespace ConfigEditor.Property
 
         public async override void VerifyCell(VerifyParam p)
         {
-            string value = p.Grid[p.ColumnIndex, p.RowIndex].Value as string;
-            if (null == value || value.Length == 0)
+            if (p.NewValue.Length == 0)
             {
                 p.FormMain.FormError.RemoveError(p.Cell, this);
                 return;
@@ -28,7 +27,7 @@ namespace ConfigEditor.Property
             {
                 try
                 {
-                    WebRequest req = WebRequest.Create(value);
+                    WebRequest req = WebRequest.Create(p.NewValue);
                     using (WebResponse res = req.GetResponse())
                     {
                         if (res is HttpWebResponse httpres)

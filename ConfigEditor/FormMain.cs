@@ -187,6 +187,10 @@ namespace ConfigEditor
                     if (tag.Tag != ColumnTag.ETag.Normal)
                         continue;
 
+                    DataGridViewCell cell = grid[colIndex, rowIndex];
+                    string newValue = cell.Value as string;
+                    if (newValue == null)
+                        newValue = "";
                     var param = new Property.VerifyParam()
                     {
                         FormMain = this,
@@ -194,6 +198,7 @@ namespace ConfigEditor
                         ColumnIndex = colIndex,
                         RowIndex = rowIndex,
                         ColumnTag = tag,
+                        NewValue = newValue,
                     };
 
                     foreach (var p in tag.PathLast.Define.PropertiesList)
@@ -203,6 +208,44 @@ namespace ConfigEditor
                 }
             }
 
+        }
+
+        public void OnGridCellValidating(object sender, DataGridViewCellValidatingEventArgs e)
+        {
+            // 编辑的时候仅使用文本，允许输入任何数据。所以验证肯定通过。
+            // 使用这个事件是为了得到 oldValue 做一些处理。
+            // 这里以后需要真正的校验并且cancel的话，需要注意不要影响下面的代码。
+
+            DataGridView grid = (DataGridView)sender;
+            DataGridViewColumn col = grid.Columns[e.ColumnIndex];
+            ColumnTag tag = (ColumnTag)col.Tag;
+            if (ColumnTag.ETag.Normal != tag.Tag)
+                return; // 不可能。特殊列都是不可编辑的。
+
+            DataGridViewCell cell = grid[e.ColumnIndex, e.RowIndex];
+            string oldValue = cell.Value as string;
+            if (oldValue == null)
+                oldValue = "";
+            string newValue = e.FormattedValue as string;
+            if (newValue == null)
+                newValue = "";
+
+            tag.UpdateUniqueIndex(oldValue, cell);
+
+            var param = new Property.VerifyParam()
+            {
+                FormMain = this,
+                Grid = grid,
+                ColumnIndex = e.ColumnIndex,
+                RowIndex = e.RowIndex,
+                ColumnTag = tag,
+                OldValue = oldValue,
+                NewValue = newValue,
+            };
+            foreach (var p in tag.PathLast.Define.PropertiesList)
+            {
+                p.VerifyCell(param);
+            }
         }
 
         public void OnGridCellEndEdit(object sender, DataGridViewCellEventArgs e)
@@ -223,19 +266,6 @@ namespace ConfigEditor
             DataGridViewCellCollection cells = grid.Rows[e.RowIndex].Cells;
             int colIndex = e.ColumnIndex;
             doc.Beans[e.RowIndex].Update(grid, cells, ref colIndex, 0, Bean.EUpdate.Data);
-
-            var param = new Property.VerifyParam()
-            {
-                FormMain = this,
-                Grid = grid,
-                ColumnIndex = e.ColumnIndex,
-                RowIndex = e.RowIndex,
-                ColumnTag = tag,
-            };
-            foreach (var p in tag.PathLast.Define.PropertiesList)
-            {
-                p.VerifyCell(param);
-            }
         }
 
         private bool ReportError(string msg, bool showOnly)
@@ -419,6 +449,7 @@ namespace ConfigEditor
             grid.Size = new Size(tab.ClientSize.Width, tab.ClientSize.Height);
             grid.TabIndex = 0;
 
+            grid.CellValidating += OnGridCellValidating;
             grid.CellEndEdit += OnGridCellEndEdit;
             grid.CellMouseDoubleClick += OnGridDoubleClick;
             grid.KeyDown += OnGridKeyDown;

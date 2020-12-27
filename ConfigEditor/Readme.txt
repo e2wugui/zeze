@@ -17,13 +17,13 @@
 
 Test
 	define 编辑基本完工。
+	数据即时验证基本完工（已有的，在define里面双击属性列设置）。
 	嵌套list问题：define中add时创建两个item，出现过一次，后来没有发现（看错了？多测试）。
 
 性能
 	加了一些数据，发现DataGridView刷的很慢；窗口resize也很慢；一开始就加了SuspendLayout了，没用。先写功能，这个慢慢来了。
 
 TODO
-	UniqueList 怎么恢复原来受影响的其他cell. 这里没有旧的value了。
 	type 验证。
 	变量改名。需要更新Foreign。
 	Bean改名。需要搜索引用。麻烦。
