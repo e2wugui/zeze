@@ -14,6 +14,11 @@
     <variable name="为2" type="Auto" vw="50" properties="unique;" />
     <variable name="q1" type="Auto" vw="156" properties="dns;" foreign="config:q1" />
     <variable name="去1" type="List" value="config.list1" vw="50" />
+    <BeanDefine name="uniquelist" RefCount="1" Locked="False">
+      <variable name="uniquelist" type="Auto" properties="unique.list;" vw="50" />
+    </BeanDefine>
+    <variable name="uniquelist" type="List" value="config.uniquelist" vw="50" />
+    <variable name="enum1" type="Enum" vw="50" />
   </BeanDefine>
   <bean>
     <list1>
@@ -35,6 +40,18 @@
         </bean>
       </list>
     </去1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
+    <enum1>
+    </enum1>
   </bean>
   <bean>
     <list1>
@@ -48,6 +65,18 @@
       </list>
     </list1>
     <为2>3</为2>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
+    <enum1>
+    </enum1>
   </bean>
   <bean>
     <q1>127.0.0.1</q1>
@@ -118,6 +147,8 @@
   </bean>
   <bean>
     <为2>16</为2>
+    <enum1>
+    </enum1>
   </bean>
   <bean>
     <q1>啊</q1>

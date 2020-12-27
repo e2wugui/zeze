@@ -24,6 +24,7 @@ Test
 
 TODO
 	UniqueList 怎么恢复原来受影响的其他cell. 这里没有旧的value了。
+	type 验证。
 	变量改名。需要更新Foreign。
 	Bean改名。需要搜索引用。麻烦。
 	变量顺序允许调整（数据列顺序）。实现：defne中调整。grid重新load。
