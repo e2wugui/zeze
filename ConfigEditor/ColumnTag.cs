@@ -54,9 +54,7 @@ namespace ConfigEditor
                 switch (cells.Count)
                 {
                     case 1:
-                        // unique 找不到好办法恢复不是编辑中的unique，因为只有一个cell了，先这样设置一下。
-                        foreach (var unique in cells)
-                            unique.Style.BackColor = Color.White;
+                        PathLast.Define.Parent.Document.Main.FormError.ReportVerifyResult(null, cells);
                         break;
 
                     case 0:

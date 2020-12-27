@@ -19,6 +19,10 @@ namespace ConfigEditor
             public Point FormMainLocation { get; set; } = new Point(150, 80);
             public FormWindowState FormMainState { get; set; } = FormWindowState.Maximized;
 
+            public Size FormErrorSize { get; set; } = new Size(925, 209);
+            public Point FormErrorLocation { get; set; } = new Point(100, 649);
+            public FormWindowState FormErrorState { get; set; } = FormWindowState.Normal;
+
             public string GetHome()
             {
                 return RecentHomes[0];
@@ -50,8 +54,9 @@ namespace ConfigEditor
         public FormMain()
         {
             InitializeComponent();
-            LoadConfig();
+            LoadConfigEditor();
             PropertyManager = new Property.Manager();
+            FormError = new FormError() { FormMain = this };
         }
 
         private string GetConfigFileFullName()
@@ -62,7 +67,7 @@ namespace ConfigEditor
             return System.IO.Path.Combine(confighome, "ConfigEditor.json");
         }
 
-        private void LoadConfig()
+        private void LoadConfigEditor()
         {
             try
             {
@@ -79,6 +84,20 @@ namespace ConfigEditor
             }
             if (null == ConfigEditor)
                 ConfigEditor = new EditorConfig() { RecentHomes = new List<string>() };
+        }
+
+        private void LoadConfigProject()
+        {
+            try
+            {
+                string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(
+                    System.IO.Path.Combine(ConfigEditor.GetHome(), "ConfigEditor.json")));
+                ConfigProject = JsonSerializer.Deserialize<ProjectConfig>(json);
+            }
+            catch (Exception)
+            {
+                //MessageBox.Show(ex.ToString());
+            }
             if (null == ConfigProject)
                 ConfigProject = new ProjectConfig();
         }
@@ -114,12 +133,14 @@ namespace ConfigEditor
             }
             ConfigEditor.SetRecentHome(select.ComboBoxRecentHomes.Text);
             select.Dispose();
+            LoadConfigProject();
 
             if (ConfigEditor.FormMainLocation != null)
                 this.Location = ConfigEditor.FormMainLocation;
             if (ConfigEditor.FormMainSize != null)
                 this.Size = ConfigEditor.FormMainSize;
             this.WindowState = ConfigEditor.FormMainState;
+
             this.TopMost = true;
             this.BringToFront();
             this.TopMost = false;
@@ -376,10 +397,16 @@ namespace ConfigEditor
 
         private TabPage NewTabPage(string text)
         {
+            TabPage tab = new TabPage();
+            tab.Text = text;
+            tab.Size = new Size(tabs.ClientSize.Width, tabs.ClientSize.Height);
+
             DataGridView grid = new DataGridView();
             grid.AllowUserToAddRows = false;
             grid.AllowUserToDeleteRows = false;
             grid.AllowUserToResizeRows = false;
+            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+            grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
             grid.Anchor = ((AnchorStyles)((((AnchorStyles.Top | AnchorStyles.Bottom) | AnchorStyles.Left) | AnchorStyles.Right)));
             grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
             grid.ColumnHeadersHeight = 20;
@@ -389,7 +416,8 @@ namespace ConfigEditor
             grid.Name = "Grid";
             grid.RowHeadersWidth = 25;
             grid.RowTemplate.Height = 20;
-            //gird.Size = new Size(848, 476);
+            grid.ScrollBars = ScrollBars.Both;
+            grid.Size = new Size(tab.ClientSize.Width, tab.ClientSize.Height);
             grid.TabIndex = 0;
 
             grid.CellEndEdit += OnGridCellEndEdit;
@@ -398,8 +426,6 @@ namespace ConfigEditor
             grid.CellMouseDown += OnCellMouseDown;
             grid.ColumnWidthChanged += OnGridColumnWidthChanged;
 
-            TabPage tab = new TabPage();
-            tab.Text = text;
             tab.Controls.Add(grid);
             return tab;
         }
@@ -606,10 +632,15 @@ namespace ConfigEditor
             ConfigEditor.FormMainSize = this.Size;
             ConfigEditor.FormMainState = this.WindowState;
 
+            ConfigEditor.FormErrorLocation = FormError.Location;
+            ConfigEditor.FormErrorSize = FormError.Size;
+            ConfigEditor.FormErrorState = FormError.WindowState;
+
             SaveConfig();
 
             FormDefine?.Dispose();
             FormDefine = null;
+            FormError.Dispose();
         }
 
         private void buildButton_Click(object sender, EventArgs e)
@@ -988,7 +1019,12 @@ namespace ConfigEditor
                 FormDefine = null;
 
                 if (tabs.SelectedTab != null)
-                    VerifyAll(tabs.SelectedTab.Controls[0] as DataGridView);
+                {
+                    DataGridView grid = tabs.SelectedTab.Controls[0] as DataGridView;
+                    grid.SuspendLayout();
+                    VerifyAll(grid);
+                    grid.ResumeLayout();
+                }
 
                 // 同时显示两个窗口，需要同步数据。
                 // FormDefine.Show();
@@ -1033,8 +1069,15 @@ namespace ConfigEditor
 
         private void buttonSaveAs_Click(object sender, EventArgs e)
         {
+            MessageBox.Show($"tabs({tabs.ClientSize.Width}, {tabs.ClientSize.Height}) grid({tabs.SelectedTab.Controls[0].Size.Width},{tabs.SelectedTab.Controls[0].Size.Height})");
             // TODO
         }
 
+        public FormError FormError { get; }
+
+        private void toolStripButtonError_Click(object sender, EventArgs e)
+        {
+            FormError.Show();
+        }
     }
 }

@@ -70,4 +70,50 @@
       </list>
     </list1>
   </bean>
+  <bean>
+    <为2>4</为2>
+  </bean>
+  <bean>
+    <为2>5</为2>
+  </bean>
+  <bean>
+    <为2>6</为2>
+    <q1>errordns</q1>
+  </bean>
+  <bean>
+    <为2>8</为2>
+    <list1>
+      <list>
+        <bean />
+        <bean>
+          <去>
+          </去>
+        </bean>
+      </list>
+    </list1>
+  </bean>
+  <bean>
+    <为2>9</为2>
+  </bean>
+  <bean>
+    <为2>10</为2>
+  </bean>
+  <bean>
+    <为2>11</为2>
+  </bean>
+  <bean>
+    <为2>12</为2>
+  </bean>
+  <bean>
+    <为2>13</为2>
+  </bean>
+  <bean>
+    <为2>14</为2>
+  </bean>
+  <bean>
+    <为2>15</为2>
+  </bean>
+  <bean>
+    <为2>16</为2>
+  </bean>
 </ZezeConfig>

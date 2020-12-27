@@ -155,6 +155,7 @@ namespace ConfigEditor
                 ToolTipText = "双击增加列",
                 // 使用跟List一样的规则设置ListIndex，仅用于Delete List Item，此时这个Bean肯定在List中。
                 Tag = tag.Copy(ColumnTag.ETag.AddVariable).AddVar(new VarDefine(this), listIndex >= 0 ? listIndex : 0),
+                Frozen = false,
             });
             for (int i = 0; i < grid.RowCount; ++i)
             {

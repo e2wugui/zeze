@@ -59,14 +59,12 @@ namespace ConfigEditor.Property
             // report
             if (same.Count > 1)
             {
-                p.Cells = same;
-                ReportVerifyResult(p, Result.Error, "UniqueList 重复啦。");
-                p.Cells = null;
+                p.FormMain.FormError.ReportVerifyResult(p, same, Result.Error, "UniqueList 重复啦。");
             }
             else
             {
                 // TODO 恢复受影响的其他cell.
-                ReportVerifyResult(p);
+                p.FormMain.FormError.ReportVerifyResult(p);
             }
         }
     }

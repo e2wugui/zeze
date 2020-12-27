@@ -10,7 +10,6 @@ namespace ConfigEditor
     public class VarDefine
     {
         private string _Properties = "";
-        private List<Property.IProperty> _PropertiesList; // 优化
 
         public string Name { get; set; }
         public EType Type { get; set; } = EType.Auto;
@@ -18,15 +17,7 @@ namespace ConfigEditor
         public string Value { get; set; } = "";
         public string Foreign { get; set; }
 
-        public List<Property.IProperty> PropertiesList
-        {
-            get
-            {
-                if (null == _PropertiesList)
-                    _PropertiesList = Parent.Document.Main.PropertyManager.Parse(_Properties);
-                return _PropertiesList;
-            }
-        }
+        public List<Property.IProperty> PropertiesList { get; private set; } = new List<Property.IProperty>(); // 优化
 
         public string Properties
         {
@@ -40,7 +31,7 @@ namespace ConfigEditor
                     return;
 
                 _Properties = value;
-                _PropertiesList = null;
+                PropertiesList = Parent.Document.Main.PropertyManager.Parse(_Properties);
             }
         }
 
@@ -134,6 +125,7 @@ namespace ConfigEditor
                             ReadOnly = true,
                             ToolTipText = Name + ":" + Value + ":" + Comment,
                             Tag = tag.Copy(ColumnTag.ETag.ListStart).AddVar(this, -1),
+                            Frozen = false,
                         });
                         for (int i = 0; i < grid.RowCount; ++i)
                         {
@@ -161,6 +153,7 @@ namespace ConfigEditor
                             ReadOnly = true,
                             ToolTipText = Name + ": 双击此列增加List Item。",
                             Tag = tag.Copy(ColumnTag.ETag.ListEnd).AddVar(this, -1), // 初始为-1，以后在Bean.SetDataToGrid中修改。
+                            Frozen = false,
                         });
                         for (int i = 0; i < grid.RowCount; ++i)
                         {
@@ -179,6 +172,7 @@ namespace ConfigEditor
                             Width = GridColumnValueWidth,
                             ToolTipText = Name + ":" + Comment,
                             Tag = current,
+                            Frozen = false,
                         });
                         // TODO 实现 enum 的时候需要确认 cell.Value 的类型。编辑器使用的Column，然后类型是枚举而不是string。
                         current.BuildUniqueIndex(grid, columnIndex);
@@ -195,6 +189,7 @@ namespace ConfigEditor
                             Width = GridColumnValueWidth,
                             ToolTipText = Name + ":" + Comment,
                             Tag = current,
+                            Frozen = false,
                         });
                         current.BuildUniqueIndex(grid, columnIndex);
                         return 1;

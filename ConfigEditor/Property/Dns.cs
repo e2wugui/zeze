@@ -16,6 +16,13 @@ namespace ConfigEditor.Property
 
         public async override void VerifyCell(VerifyParam p)
         {
+            string value = p.Grid[p.ColumnIndex, p.RowIndex].Value as string;
+            if (null == value || value.Length == 0)
+            {
+                p.FormMain.FormError.ReportVerifyResult(p);
+                return;
+            }
+
             string error = await Task.Run<string>(() =>
             {
                 try
@@ -29,9 +36,9 @@ namespace ConfigEditor.Property
                 }
             });
             if (null != error)
-                ReportVerifyResult(p, Result.Warn, error);
+                p.FormMain.FormError.ReportVerifyResult(p, null, Result.Warn, error);
             else
-                ReportVerifyResult(p);
+                p.FormMain.FormError.ReportVerifyResult(p);
         }
     }
 }

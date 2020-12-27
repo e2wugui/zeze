@@ -18,16 +18,16 @@ namespace ConfigEditor.Property
         {
             if (param.FormMain.ConfigProject.ResourceHome == null)
             {
-                ReportVerifyResult(param, Result.Warn, "资源路径没有配置。$(ConfigHome)/ConfigEditor.json");
+                param.FormMain.FormError.ReportVerifyResult(param, null, Result.Warn, "资源路径没有配置。$(ConfigHome)/ConfigEditor.json");
             }
             else
             {
                 string path = System.IO.Path.Combine(param.FormMain.ConfigProject.ResourceHome,
                     param.Grid[param.ColumnIndex, param.RowIndex].Value as string);
                 if (false == System.IO.Directory.Exists(path))
-                    ReportVerifyResult(param, Result.Warn, "路径不存在。");
+                    param.FormMain.FormError.ReportVerifyResult(param, null, Result.Warn, "路径不存在。");
                 else
-                    ReportVerifyResult(param);
+                    param.FormMain.FormError.ReportVerifyResult(param);
             }
         }
     }

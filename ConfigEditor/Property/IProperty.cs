@@ -62,45 +62,5 @@ namespace ConfigEditor.Property
         }
 
         public abstract void VerifyCell(VerifyParam param);
-
-        public void ReportVerifyResult(VerifyParam param, Result result = Result.Ok, string tip = null)
-        {
-            Color back = Color.White;
-            switch (result)
-            {
-                case Result.Ok:
-                    back = Color.White;
-                    break;
-
-                case Result.Warn:
-                    back = Color.Yellow;
-                    break;
-
-                case Result.Error:
-                    back = Color.Red;
-                    break;
-            }
-
-            if (null == param.Cells)
-            {
-                // update current cell
-                DataGridViewCell cell = param.Grid[param.ColumnIndex, param.RowIndex];
-                cell.ToolTipText = tip; // last tip
-                cell.Style.BackColor = back;
-            }
-            else
-            {
-                foreach (var cell in param.Cells)
-                {
-                    cell.ToolTipText = tip; // last tip
-                    cell.Style.BackColor = back;
-                }
-            }
-
-            if (result != Result.Ok)
-            {
-                // TODO 收集 FromError
-            }
-        }
     }
 }

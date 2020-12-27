@@ -47,6 +47,8 @@ namespace ConfigEditor
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.deleteVariableColumnToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteListItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripButtonError = new System.Windows.Forms.ToolStripButton();
             this.toolStrip1.SuspendLayout();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -60,7 +62,7 @@ namespace ConfigEditor
             this.tabs.Margin = new System.Windows.Forms.Padding(2);
             this.tabs.Name = "tabs";
             this.tabs.SelectedIndex = 0;
-            this.tabs.Size = new System.Drawing.Size(812, 506);
+            this.tabs.Size = new System.Drawing.Size(812, 502);
             this.tabs.TabIndex = 0;
             this.tabs.SelectedIndexChanged += new System.EventHandler(this.tabs_SelectedIndexChanged);
             // 
@@ -76,7 +78,9 @@ namespace ConfigEditor
             this.buttonSaveAs,
             this.toolStripSeparator2,
             this.toolStripButtonDefine,
-            this.buildButton});
+            this.buildButton,
+            this.toolStripSeparator3,
+            this.toolStripButtonError});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Padding = new System.Windows.Forms.Padding(0, 0, 2, 0);
@@ -182,7 +186,7 @@ namespace ConfigEditor
             this.deleteVariableColumnToolStripMenuItem,
             this.deleteListItemToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(259, 70);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(259, 48);
             // 
             // deleteVariableColumnToolStripMenuItem
             // 
@@ -194,9 +198,24 @@ namespace ConfigEditor
             // deleteListItemToolStripMenuItem
             // 
             this.deleteListItemToolStripMenuItem.Name = "deleteListItemToolStripMenuItem";
-            this.deleteListItemToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
+            this.deleteListItemToolStripMenuItem.Size = new System.Drawing.Size(258, 22);
             this.deleteListItemToolStripMenuItem.Text = "Delete &List Item";
             this.deleteListItemToolStripMenuItem.Click += new System.EventHandler(this.deleteListItemToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator3
+            // 
+            this.toolStripSeparator3.Name = "toolStripSeparator3";
+            this.toolStripSeparator3.Size = new System.Drawing.Size(6, 25);
+            // 
+            // toolStripButtonError
+            // 
+            this.toolStripButtonError.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripButtonError.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonError.Image")));
+            this.toolStripButtonError.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonError.Name = "toolStripButtonError";
+            this.toolStripButtonError.Size = new System.Drawing.Size(36, 22);
+            this.toolStripButtonError.Text = "&Error";
+            this.toolStripButtonError.Click += new System.EventHandler(this.toolStripButtonError_Click);
             // 
             // FormMain
             // 
@@ -237,6 +256,8 @@ namespace ConfigEditor
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripButton toolStripButtonDefine;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
+        private System.Windows.Forms.ToolStripButton toolStripButtonError;
     }
 }
 

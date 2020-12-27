@@ -19,8 +19,12 @@ Test
 	define 编辑基本完工。
 	嵌套list问题：define中add时创建两个item，出现过一次，后来没有发现（看错了？多测试）。
 
+性能
+	加了一些数据，发现DataGridView刷的很慢；窗口resize也很慢；一开始就加了SuspendLayout了，没用。先写功能，这个慢慢来了。
+
 TODO
-	收集 FromError：对Cell错误进行计数。
+	map<cell, map<propname, desc>>
+	收集 FormError：对Cell错误进行计数 key=(cell,property.name)。目前没有分类计数，当一个cell有多个错误时，显示状态可能会不正确。
 	变量改名。需要更新Foreign。
 	Bean改名。需要搜索引用。麻烦。
 	变量顺序允许调整（数据列顺序）。实现：defne中调整。grid重新load。

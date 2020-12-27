@@ -29,7 +29,7 @@ namespace ConfigEditor
             string relate = FileName.Substring(Main.ConfigEditor.GetHome().Length + 1);
             if (relate.EndsWith(".xml"))
                 relate = relate.Substring(0, relate.Length - 4);
-            string[] relates = relate.Split(new char[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] relates = relate.Split(new char[] { '/', '\\' });
             Main.VerifyName(relates[0], false);
             RelateName = relates[0];
             Name = RelateName;

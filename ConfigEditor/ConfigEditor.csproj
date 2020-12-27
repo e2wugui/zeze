@@ -85,6 +85,12 @@
     <Compile Include="FormDefine.Designer.cs">
       <DependentUpon>FormDefine.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormError.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormError.Designer.cs">
+      <DependentUpon>FormError.cs</DependentUpon>
+    </Compile>
     <Compile Include="FormInputVarDefine.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -127,6 +133,9 @@
     <Compile Include="VarDefine.cs" />
     <EmbeddedResource Include="FormDefine.resx">
       <DependentUpon>FormDefine.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormError.resx">
+      <DependentUpon>FormError.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormInputVarDefine.resx">
       <DependentUpon>FormInputVarDefine.cs</DependentUpon>
