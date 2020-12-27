@@ -450,13 +450,17 @@ namespace ConfigEditor
             DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
             for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex) // ColumnCount maybe change in loop
             {
-                DataGridViewColumn col = (DataGridViewColumn)grid.Columns[colIndex];
+                DataGridViewColumn col = grid.Columns[colIndex];
                 switch (((ColumnTag)(col.Tag)).Tag)
                 {
                     case ColumnTag.ETag.AddVariable:
+                        cells[colIndex].Value = ",";
+                        break;
                     case ColumnTag.ETag.ListStart:
+                        cells[colIndex].Value = "[";
+                        break;
                     case ColumnTag.ETag.ListEnd:
-                        cells[colIndex].Value = col.HeaderText;
+                        cells[colIndex].Value = "]";
                         break;
                 }
             }

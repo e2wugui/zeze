@@ -116,12 +116,11 @@ namespace ConfigEditor
                 case EType.List:
                     {
                         DataGridViewCell s = new DataGridViewTextBoxCell() { Value = "[" };
-                        string listStartText = "[" + this.Name;
                         grid.Columns.Insert(columnIndex, new DataGridViewColumn(s)
                         {
                             Name = this.Name,
                             Width = 20,
-                            HeaderText = listStartText,
+                            HeaderText = "[" + this.Name,
                             ReadOnly = true,
                             ToolTipText = Name + ":" + Value + ":" + Comment,
                             Tag = tag.Copy(ColumnTag.ETag.ListStart).AddVar(this, -1),
@@ -129,7 +128,7 @@ namespace ConfigEditor
                         });
                         for (int i = 0; i < grid.RowCount; ++i)
                         {
-                            grid.Rows[i].Cells[columnIndex].Value = listStartText;
+                            grid.Rows[i].Cells[columnIndex].Value = "[";
                         }
 
                         if (null == Reference)
@@ -144,12 +143,11 @@ namespace ConfigEditor
 
                         DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
                         columnIndex += colAdded;
-                        string listEndText = "]" + this.Name;
                         grid.Columns.Insert(columnIndex, new DataGridViewColumn(e)
                         {
                             Name = this.Name,
                             Width = 20,
-                            HeaderText = listEndText,
+                            HeaderText = "]" + this.Name,
                             ReadOnly = true,
                             ToolTipText = Name + ": 双击此列增加List Item。",
                             Tag = tag.Copy(ColumnTag.ETag.ListEnd).AddVar(this, -1), // 初始为-1，以后在Bean.SetDataToGrid中修改。
@@ -157,7 +155,7 @@ namespace ConfigEditor
                         });
                         for (int i = 0; i < grid.RowCount; ++i)
                         {
-                            grid.Rows[i].Cells[columnIndex].Value = listEndText;
+                            grid.Rows[i].Cells[columnIndex].Value = "]";
                         }
                         return colAdded + 2;
                     }
