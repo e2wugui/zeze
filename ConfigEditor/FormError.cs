@@ -37,8 +37,9 @@ namespace ConfigEditor
 
         public class Error
         {
-            public Property.Result Level { get; set; }
-            public string Desc { get; set; }
+            public Property.ErrorLevel Level { get; set; }
+            public string Description { get; set; }
+            public DataGridViewRow Row { get; set; }
         }
 
         private class IdentityEqualityComparer : IEqualityComparer<object>
@@ -57,13 +58,13 @@ namespace ConfigEditor
         private Dictionary<DataGridViewCell, SortedDictionary<string, Error>> Errors
             = new Dictionary<DataGridViewCell, SortedDictionary<string, Error>>(new IdentityEqualityComparer());
 
-        public void AddError(HashSet<DataGridViewCell> cells, Property.IProperty p, Property.Result level, string desc)
+        public void AddError(HashSet<DataGridViewCell> cells, Property.IProperty p, Property.ErrorLevel level, string desc)
         {
             foreach (var cell in cells)
                 AddError(cell, p, level, desc);
         }
 
-        public void AddError(DataGridViewCell cell, Property.IProperty p, Property.Result level, string desc)
+        public void AddError(DataGridViewCell cell, Property.IProperty p, Property.ErrorLevel level, string desc)
         {
             if (false == Errors.TryGetValue(cell, out var errors))
                 Errors.Add(cell, errors = new SortedDictionary<string, Error>());
@@ -71,7 +72,14 @@ namespace ConfigEditor
             if (errors.ContainsKey(p.Name)) // 同一个cell相同的prop只报告一次。
                 return;
 
-            errors.Add(p.Name, new Error() { Level = level, Desc = desc, });
+            grid.Rows.Add();
+            DataGridViewRow row = grid.Rows[grid.RowCount - 1];
+            row.Cells["Level"].Value = System.Enum.GetName(typeof(Property.ErrorLevel), level);
+            row.Cells["Level"].Tag = cell;
+            row.Cells["Description"].Value = desc;
+            row.Cells["File"].Value = cell.DataGridView.Parent.Text;
+
+            errors.Add(p.Name, new Error() { Level = level, Description = desc, Row = row, });
             UpdateErrorCell(cell, errors);
         }
 
@@ -80,7 +88,7 @@ namespace ConfigEditor
             if (false == Errors.TryGetValue(cell, out var errors))
                 return;
 
-            if (false == errors.ContainsKey(p.Name))
+            if (false == errors.TryGetValue(p.Name, out var error))
                 return;
 
             errors.Remove(p.Name);
@@ -89,6 +97,7 @@ namespace ConfigEditor
                 Errors.Remove(cell);
                 cell.Style.BackColor = Color.White;
                 cell.ToolTipText = null;
+                grid.Rows.Remove(error.Row);
             }
             else
             {
@@ -98,16 +107,28 @@ namespace ConfigEditor
 
         private void UpdateErrorCell(DataGridViewCell cell, SortedDictionary<string, Error> errors)
         {
-            Property.Result max = Property.Result.Warn;
+            Property.ErrorLevel max = Property.ErrorLevel.Warn;
             StringBuilder sb = new StringBuilder();
             foreach (var e in errors)
             {
-                sb.Append(e.Key).Append(": ").Append(e.Value.Desc).Append(Environment.NewLine);
+                sb.Append(e.Key).Append(": ").Append(e.Value.Description).Append(Environment.NewLine);
                 if (e.Value.Level > max)
                     max = e.Value.Level;
             }
-            cell.Style.BackColor = max == Property.Result.Error ? Color.Red : Color.Yellow;
+            cell.Style.BackColor = max == Property.ErrorLevel.Error ? Color.Red : Color.Yellow;
             cell.ToolTipText = sb.ToString();
+        }
+
+        private void grid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0)
+                return;
+
+            DataGridViewCell maincell = grid.Rows[e.RowIndex].Cells["Level"].Tag as DataGridViewCell;
+            DataGridView maingrid = maincell.DataGridView;
+            FormMain.Tabs.SelectedTab = maingrid.Parent as TabPage;
+            maingrid.FirstDisplayedCell = maincell;
+            maingrid.CurrentCell = maincell;
         }
     }
 }

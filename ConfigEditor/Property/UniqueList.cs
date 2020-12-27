@@ -59,7 +59,7 @@ namespace ConfigEditor.Property
             // report
             if (same.Count > 1)
             {
-                p.FormMain.FormError.AddError(same, this, Result.Error, "UniqueList 重复啦。");
+                p.FormMain.FormError.AddError(same, this, ErrorLevel.Error, "UniqueList 重复啦。");
             }
             else
             {

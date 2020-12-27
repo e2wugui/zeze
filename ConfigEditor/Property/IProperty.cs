@@ -8,7 +8,7 @@ using System.Windows.Forms;
 
 namespace ConfigEditor.Property
 {
-    public enum Result
+    public enum ErrorLevel
     {
         Ok,
         Warn,

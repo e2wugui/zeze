@@ -18,14 +18,14 @@ namespace ConfigEditor.Property
         {
             if (param.FormMain.ConfigProject.ResourceHome == null)
             {
-                param.FormMain.FormError.AddError(param.Cell, this, Result.Warn, "资源路径没有配置。$(ConfigHome)/ConfigEditor.json");
+                param.FormMain.FormError.AddError(param.Cell, this, ErrorLevel.Warn, "资源路径没有配置。$(ConfigHome)/ConfigEditor.json");
             }
             else
             {
                 string path = System.IO.Path.Combine(param.FormMain.ConfigProject.ResourceHome,
                     param.Grid[param.ColumnIndex, param.RowIndex].Value as string);
                 if (false == System.IO.File.Exists(path))
-                    param.FormMain.FormError.AddError(param.Cell, this, Result.Warn, "文件不存在。");
+                    param.FormMain.FormError.AddError(param.Cell, this, ErrorLevel.Warn, "文件不存在。");
                 else
                     param.FormMain.FormError.RemoveError(param.Cell, this);
             }

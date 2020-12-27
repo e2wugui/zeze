@@ -36,7 +36,7 @@ namespace ConfigEditor.Property
                 }
             });
             if (null != error)
-                p.FormMain.FormError.AddError(p.Cell, this, Result.Warn, error);
+                p.FormMain.FormError.AddError(p.Cell, this, ErrorLevel.Warn, error);
             else
                 p.FormMain.FormError.RemoveError(p.Cell, this);
         }
