@@ -24,11 +24,11 @@ namespace ConfigEditor.Property
 
             if (cells.Count > 1)
             {
-                p.FormMain.FormError.ReportVerifyResult(p, cells, Result.Error, "Unique 重复了");
+                p.FormMain.FormError.AddError(cells, this, Result.Error, "Unique 重复了");
             }
             else
             {
-                p.FormMain.FormError.ReportVerifyResult(p);
+                p.FormMain.FormError.RemoveError(p.Cell, this);
             }
         }
     }

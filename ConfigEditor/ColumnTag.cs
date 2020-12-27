@@ -54,7 +54,9 @@ namespace ConfigEditor
                 switch (cells.Count)
                 {
                     case 1:
-                        PathLast.Define.Parent.Document.Main.FormError.ReportVerifyResult(null, cells);
+                        // 关联的cell已经唯一了，特殊处理。
+                        if (PathLast.Define.Parent.Document.Main.PropertyManager.Properties.TryGetValue("unique", out var p))
+                            PathLast.Define.Parent.Document.Main.FormError.RemoveError(cells.First(), p);
                         break;
 
                     case 0:

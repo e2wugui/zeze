@@ -18,5 +18,8 @@ namespace ConfigEditor.Property
         public int ColumnIndex { get; set; }
         public int RowIndex { get; set; }
         public ColumnTag ColumnTag { get; set; }
+
+        // helper
+        public DataGridViewCell Cell { get { return Grid[ColumnIndex, RowIndex]; } }
     }
 }

@@ -35,44 +35,79 @@ namespace ConfigEditor
 
         }
 
-        public void ReportVerifyResult(Property.VerifyParam param, HashSet<DataGridViewCell> cells = null,
-            Property.Result result = Property.Result.Ok, string tip = null)
+        public class Error
         {
-            Color back = Color.White;
-            switch (result)
+            public Property.Result Level { get; set; }
+            public string Desc { get; set; }
+        }
+
+        private class IdentityEqualityComparer : IEqualityComparer<object>
+        {
+            bool IEqualityComparer<object>.Equals(object x, object y)
             {
-                case Property.Result.Ok:
-                    back = Color.White;
-                    break;
-
-                case Property.Result.Warn:
-                    back = Color.Yellow;
-                    break;
-
-                case Property.Result.Error:
-                    back = Color.Red;
-                    break;
+                return object.ReferenceEquals(x, y);
             }
 
-            if (null == cells)
+            int IEqualityComparer<object>.GetHashCode(object obj)
             {
-                // update current cell
-                DataGridViewCell cell = param.Grid[param.ColumnIndex, param.RowIndex];
-                cell.ToolTipText = tip; // last tip
-                if (cell.Style.BackColor != back)
-                {
-                    cell.Style.BackColor = back;
-                }
+                return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+            }
+        }
+
+        private Dictionary<DataGridViewCell, SortedDictionary<string, Error>> Errors
+            = new Dictionary<DataGridViewCell, SortedDictionary<string, Error>>(new IdentityEqualityComparer());
+
+        public void AddError(HashSet<DataGridViewCell> cells, Property.IProperty p, Property.Result level, string desc)
+        {
+            foreach (var cell in cells)
+                AddError(cell, p, level, desc);
+        }
+
+        public void AddError(DataGridViewCell cell, Property.IProperty p, Property.Result level, string desc)
+        {
+            if (false == Errors.TryGetValue(cell, out var errors))
+                Errors.Add(cell, errors = new SortedDictionary<string, Error>());
+
+            if (errors.ContainsKey(p.Name)) // 同一个cell相同的prop只报告一次。
+                return;
+
+            errors.Add(p.Name, new Error() { Level = level, Desc = desc, });
+            UpdateErrorCell(cell, errors);
+        }
+
+        public void RemoveError(DataGridViewCell cell, Property.IProperty p)
+        {
+            if (false == Errors.TryGetValue(cell, out var errors))
+                return;
+
+            if (false == errors.ContainsKey(p.Name))
+                return;
+
+            errors.Remove(p.Name);
+            if (errors.Count == 0)
+            {
+                Errors.Remove(cell);
+                cell.Style.BackColor = Color.White;
+                cell.ToolTipText = null;
             }
             else
             {
-                foreach (var cell in cells)
-                {
-                    cell.ToolTipText = tip; // last tip
-                    if (cell.Style.BackColor != back)
-                        cell.Style.BackColor = back;
-                }
+                UpdateErrorCell(cell, errors);
             }
+        }
+
+        private void UpdateErrorCell(DataGridViewCell cell, SortedDictionary<string, Error> errors)
+        {
+            Property.Result max = Property.Result.Warn;
+            StringBuilder sb = new StringBuilder();
+            foreach (var e in errors)
+            {
+                sb.Append(e.Key).Append(": ").Append(e.Value.Desc).Append(Environment.NewLine);
+                if (e.Value.Level > max)
+                    max = e.Value.Level;
+            }
+            cell.Style.BackColor = max == Property.Result.Error ? Color.Red : Color.Yellow;
+            cell.ToolTipText = sb.ToString();
         }
     }
 }

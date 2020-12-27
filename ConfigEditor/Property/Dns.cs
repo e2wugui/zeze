@@ -19,7 +19,7 @@ namespace ConfigEditor.Property
             string value = p.Grid[p.ColumnIndex, p.RowIndex].Value as string;
             if (null == value || value.Length == 0)
             {
-                p.FormMain.FormError.ReportVerifyResult(p);
+                p.FormMain.FormError.RemoveError(p.Cell, this);
                 return;
             }
 
@@ -36,9 +36,9 @@ namespace ConfigEditor.Property
                 }
             });
             if (null != error)
-                p.FormMain.FormError.ReportVerifyResult(p, null, Result.Warn, error);
+                p.FormMain.FormError.AddError(p.Cell, this, Result.Warn, error);
             else
-                p.FormMain.FormError.ReportVerifyResult(p);
+                p.FormMain.FormError.RemoveError(p.Cell, this);
         }
     }
 }
