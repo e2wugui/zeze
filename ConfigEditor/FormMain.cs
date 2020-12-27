@@ -73,10 +73,6 @@ namespace ConfigEditor
             {
                 string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(GetConfigFileFullName()));
                 ConfigEditor = JsonSerializer.Deserialize<EditorConfig>(json);
-
-                json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(
-                    System.IO.Path.Combine(ConfigEditor.GetHome(), "ConfigEditor.json")));
-                ConfigProject = JsonSerializer.Deserialize<ProjectConfig>(json);
             }
             catch (Exception)
             {
@@ -110,6 +106,8 @@ namespace ConfigEditor
                 JsonSerializer.SerializeToUtf8Bytes(ConfigProject, options));
         }
 
+        private bool LoadCancel = false;
+
         private void FormMain_Load(object sender, EventArgs e)
         {
             // remove deleted directory.
@@ -128,6 +126,7 @@ namespace ConfigEditor
             if (DialogResult.OK != select.ShowDialog(this))
             {
                 select.Dispose();
+                LoadCancel = true;
                 Close();
                 return;
             }
@@ -628,15 +627,18 @@ namespace ConfigEditor
             if (e.Cancel)
                 return;
 
-            ConfigEditor.FormMainLocation = this.Location;
-            ConfigEditor.FormMainSize = this.Size;
-            ConfigEditor.FormMainState = this.WindowState;
+            if (false == LoadCancel)
+            {
+                ConfigEditor.FormMainLocation = this.Location;
+                ConfigEditor.FormMainSize = this.Size;
+                ConfigEditor.FormMainState = this.WindowState;
 
-            ConfigEditor.FormErrorLocation = FormError.Location;
-            ConfigEditor.FormErrorSize = FormError.Size;
-            ConfigEditor.FormErrorState = FormError.WindowState;
+                ConfigEditor.FormErrorLocation = FormError.Location;
+                ConfigEditor.FormErrorSize = FormError.Size;
+                ConfigEditor.FormErrorState = FormError.WindowState;
 
-            SaveConfig();
+                SaveConfig();
+            }
 
             FormDefine?.Dispose();
             FormDefine = null;
@@ -1078,6 +1080,7 @@ namespace ConfigEditor
         private void toolStripButtonError_Click(object sender, EventArgs e)
         {
             FormError.Show();
+            FormError.BringToFront();
         }
     }
 }

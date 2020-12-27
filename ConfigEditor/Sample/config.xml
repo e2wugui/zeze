@@ -2,7 +2,7 @@
 <ZezeConfig>
   <BeanDefine RefCount="0" Locked="False">
     <BeanDefine name="list1" RefCount="2" Locked="False">
-      <variable name="去" type="Auto" vw="50" properties="unique;unique.list;" />
+      <variable name="去" type="Auto" vw="50" properties="unique;" />
       <BeanDefine name="v" RefCount="1" Locked="False">
         <variable name="了" type="Auto" vw="50" />
         <BeanDefine name="啊21" RefCount="1" Locked="False" />
@@ -24,10 +24,10 @@
     <list1>
       <list>
         <bean>
-          <去>2</去>
+          <去>1</去>
         </bean>
         <bean>
-          <去>4</去>
+          <去>1</去>
         </bean>
       </list>
     </list1>
@@ -57,14 +57,14 @@
     <list1>
       <list>
         <bean>
-          <去>1</去>
+          <去>2</去>
         </bean>
         <bean>
-          <去>3</去>
+          <去>2</去>
         </bean>
       </list>
     </list1>
-    <为2>3</为2>
+    <为2>2</为2>
     <uniquelist>
       <list>
         <bean>
@@ -77,6 +77,13 @@
     </uniquelist>
     <enum1>
     </enum1>
+    <去1>
+      <list>
+        <bean>
+          <去>2</去>
+        </bean>
+      </list>
+    </去1>
   </bean>
   <bean>
     <q1>127.0.0.1</q1>
@@ -87,70 +94,416 @@
         </bean>
       </list>
     </去1>
-    <为2>2</为2>
+    <为2>3</为2>
+    <list1>
+      <list>
+        <bean>
+          <去>3</去>
+        </bean>
+        <bean>
+          <去>3</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
+  </bean>
+  <bean>
+    <list1>
+      <list>
+        <bean>
+          <去>4</去>
+        </bean>
+        <bean>
+          <去>4</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
+    <为2>4</为2>
+    <去1>
+      <list>
+        <bean>
+          <去>4</去>
+        </bean>
+      </list>
+    </去1>
+  </bean>
+  <bean>
+    <list1>
+      <list>
+        <bean>
+          <去>5</去>
+        </bean>
+        <bean>
+          <去>5</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
+    <为2>5</为2>
+    <去1>
+      <list>
+        <bean>
+          <去>5</去>
+        </bean>
+      </list>
+    </去1>
+  </bean>
+  <bean>
+    <list1>
+      <list>
+        <bean>
+          <去>6</去>
+        </bean>
+        <bean>
+          <去>6</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
+    <为2>6</为2>
+    <去1>
+      <list>
+        <bean>
+          <去>6</去>
+        </bean>
+      </list>
+    </去1>
+  </bean>
+  <bean>
+    <为2>7</为2>
+    <list1>
+      <list>
+        <bean>
+          <去>7</去>
+        </bean>
+        <bean>
+          <去>7</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
+    <去1>
+      <list>
+        <bean>
+          <去>7</去>
+        </bean>
+      </list>
+    </去1>
+  </bean>
+  <bean>
+    <list1>
+      <list>
+        <bean>
+          <去>8</去>
+        </bean>
+        <bean>
+          <去>8</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
+    <为2>8</为2>
+    <去1>
+      <list>
+        <bean>
+          <去>8</去>
+        </bean>
+      </list>
+    </去1>
+  </bean>
+  <bean>
     <list1>
       <list>
         <bean>
           <去>9</去>
         </bean>
         <bean>
-          <去>2</去>
+          <去>9</去>
         </bean>
       </list>
     </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
+    <为2>9</为2>
+    <去1>
+      <list>
+        <bean>
+          <去>9</去>
+        </bean>
+      </list>
+    </去1>
   </bean>
   <bean>
-    <为2>4</为2>
-  </bean>
-  <bean>
-    <为2>5</为2>
-  </bean>
-  <bean>
-    <为2>6</为2>
-    <q1>errordns</q1>
-  </bean>
-  <bean>
-    <为2>8</为2>
     <list1>
       <list>
-        <bean />
         <bean>
-          <去>
-          </去>
+          <去>10</去>
+        </bean>
+        <bean>
+          <去>10</去>
         </bean>
       </list>
     </list1>
-  </bean>
-  <bean>
-    <为2>9</为2>
-  </bean>
-  <bean>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
     <为2>10</为2>
+    <去1>
+      <list>
+        <bean>
+          <去>10</去>
+        </bean>
+      </list>
+    </去1>
   </bean>
   <bean>
+    <list1>
+      <list>
+        <bean>
+          <去>11</去>
+        </bean>
+        <bean>
+          <去>11</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
     <为2>11</为2>
-    <q1>
-    </q1>
+    <去1>
+      <list>
+        <bean>
+          <去>11</去>
+        </bean>
+      </list>
+    </去1>
   </bean>
   <bean>
+    <list1>
+      <list>
+        <bean>
+          <去>12</去>
+        </bean>
+        <bean>
+          <去>12</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
     <为2>12</为2>
-    <q1>啊</q1>
+    <去1>
+      <list>
+        <bean>
+          <去>12</去>
+        </bean>
+      </list>
+    </去1>
   </bean>
   <bean>
+    <list1>
+      <list>
+        <bean>
+          <去>13</去>
+        </bean>
+        <bean>
+          <去>13</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
     <为2>13</为2>
+    <去1>
+      <list>
+        <bean>
+          <去>13</去>
+        </bean>
+      </list>
+    </去1>
   </bean>
   <bean>
+    <list1>
+      <list>
+        <bean>
+          <去>14</去>
+        </bean>
+        <bean>
+          <去>14</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
     <为2>14</为2>
+    <去1>
+      <list>
+        <bean>
+          <去>14</去>
+        </bean>
+      </list>
+    </去1>
   </bean>
   <bean>
+    <list1>
+      <list>
+        <bean>
+          <去>15</去>
+        </bean>
+        <bean>
+          <去>15</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
     <为2>15</为2>
+    <去1>
+      <list>
+        <bean>
+          <去>15</去>
+        </bean>
+      </list>
+    </去1>
   </bean>
   <bean>
+    <list1>
+      <list>
+        <bean>
+          <去>16</去>
+        </bean>
+        <bean>
+          <去>16</去>
+        </bean>
+      </list>
+    </list1>
+    <uniquelist>
+      <list>
+        <bean>
+          <uniquelist>1</uniquelist>
+        </bean>
+        <bean>
+          <uniquelist>2</uniquelist>
+        </bean>
+      </list>
+    </uniquelist>
     <为2>16</为2>
-    <enum1>
-    </enum1>
-  </bean>
-  <bean>
-    <q1>啊</q1>
+    <去1>
+      <list>
+        <bean>
+          <去>16</去>
+        </bean>
+      </list>
+    </去1>
   </bean>
 </ZezeConfig>
