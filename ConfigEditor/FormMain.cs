@@ -131,6 +131,7 @@ namespace ConfigEditor
                 return;
             }
             ConfigEditor.SetRecentHome(select.ComboBoxRecentHomes.Text);
+            this.Text = select.ComboBoxRecentHomes.Text;
             select.Dispose();
             LoadConfigProject();
 
