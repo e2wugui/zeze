@@ -60,8 +60,10 @@ namespace ConfigEditor
                 Xml.AppendChild(Xml.CreateElement("ZezeConfig"));
             }
             BeanDefine.Save();
-            foreach (var b in Beans)
+            for (int i = 0; i < Beans.Count; ++i)
             {
+                Bean b = Beans[i];
+                b.RowIndex = i;
                 b.Save(Xml.DocumentElement);
             }
             using (TextWriter sw = new StreamWriter(FileName, false, Encoding.UTF8))

@@ -16,9 +16,10 @@ namespace ConfigEditor.Property
         public FormMain FormMain { get; set; }
         public DataGridView Grid { get; set; }
         public int ColumnIndex { get; set; }
+        public int Columnindex { get; internal set; }
         public int RowIndex { get; set; }
         public ColumnTag ColumnTag { get; set; }
-        public string OldValue { get; set; }
+        public string OldValue { get; set; } // mabe null
         public string NewValue { get; set; }
 
         // helper

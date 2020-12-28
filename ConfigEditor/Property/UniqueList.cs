@@ -24,7 +24,7 @@ namespace ConfigEditor.Property
 
             // collect list item cell
             int colBeanBegin = colListStart + 1;
-            HashSet<DataGridViewCell> cells = new HashSet<DataGridViewCell>();
+            List<DataGridViewCell> cells = new List<DataGridViewCell>();
             while (colBeanBegin < colListEnd)
             {
                 colBeanBegin = p.FormMain.DoActionUntilBeanEnd(p.Grid, colBeanBegin, colListEnd, (int col) =>
@@ -40,14 +40,22 @@ namespace ConfigEditor.Property
                     }
                 });
             }
+            ColumnTag tagListEnd = p.Grid.Columns[colListEnd].Tag as ColumnTag;
+            int pathListVar = tagListEnd.Path.Count - 1;
+            Bean.VarData varList = tagListEnd.PathLast.Define.Parent.Document.Beans[p.RowIndex]
+                .GetVarData(0, tagListEnd, pathListVar);
+            int varListCount = varList == null ? 0 : varList.Beans.Count;
 
             // count same oldValue
             HashSet<DataGridViewCell> same = new HashSet<DataGridViewCell>();
             if (p.OldValue != null)
             {
-                // load时的验证没有旧的值。
-                foreach (var c in cells)
+                // load时 varListCount 包含所有数据。
+                // Validating 时，如果是新增的，varListCount少1。
+                // 计数 oldValue 不需要判断新数据，这里不需要额外判断。
+                for (int i = 0; i < varListCount; ++i)
                 {
+                    DataGridViewCell c = cells[i];
                     if (c == p.Cell)
                         continue;
 
@@ -65,8 +73,11 @@ namespace ConfigEditor.Property
             }
 
             // count same newValue
-            foreach (var c in cells)
+            // load时 varListCount 包含所有数据。
+            // Validating 时，如果是新增的，varListCount少1。当前新增cell在后面Add。所以不需要特别处理。
+            for (int i = 0; i < varListCount; ++i)
             {
+                DataGridViewCell c = cells[i];
                 if (c == p.Cell)
                     continue;
 

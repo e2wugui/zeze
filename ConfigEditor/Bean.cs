@@ -112,9 +112,11 @@ namespace ConfigEditor
                         SelfList = Parent.Document.Xml.CreateElement("list");
                         Self.AppendChild(SelfList);
                     }
-                    foreach (var b in Beans)
+                    for (int i = 0; i < Beans.Count; ++i)
                     {
-                        b?.Save(SelfList);
+                        Bean b = Beans[i];
+                        b.RowIndex = i;
+                        b.Save(SelfList);
                     }
                 }
                 else
@@ -127,6 +129,8 @@ namespace ConfigEditor
         public SortedDictionary<string, VarData> VariableMap { get; } = new SortedDictionary<string, VarData>();
         public XmlElement Self { get; set; }
         public Document Document { get; }
+
+        public int RowIndex { get; set; } = -1; // 仅在Save时设置，写到文件以后，好读点。
 
         public Bean(Document doc, XmlElement self)
         {
@@ -221,14 +225,13 @@ namespace ConfigEditor
                         }
                         return false;
                 }
-
                 ColumnTag.VarInfo varInfo = tag.Path[pathIndex];
                 if (false == VariableMap.TryGetValue(varInfo.Define.Name, out var varData))
                 {
                     switch (uptype)
                     {
                         case EUpdate.Data:
-                            break; // with new data
+                            break; // will new data
                         case EUpdate.Grid:
                             if (varInfo.Define.Type == VarDefine.EType.List)
                             {
@@ -269,7 +272,7 @@ namespace ConfigEditor
                         return true;
                     }
                     if (ColumnTag.ETag.ListStart == tag.Tag)
-                        continue;
+                        continue; // 此时没有进入下一级Bean，就在当前Bean再次判断，因为这里没有ListIndex。
 
                     if (tag.Tag == ColumnTag.ETag.ListEnd)
                     {
@@ -301,6 +304,8 @@ namespace ConfigEditor
                             if (create.Update(grid, cells, ref colIndex, pathIndex + 1, uptype))
                                 return true;
                         }
+                        // 忽略剩下的没有数据的item直到ListEnd。
+                        colIndex = Document.Main.FindColumnListEnd(grid, colIndex);
                         continue;
                     }
 
@@ -356,6 +361,8 @@ namespace ConfigEditor
                 Self = Document.Xml.CreateElement("bean");
                 parent.AppendChild(Self);
             }
+            if (RowIndex >= 0)
+                Self.SetAttribute("row", RowIndex.ToString());
             foreach (var v in VariableMap.Values)
             {
                 v.Save(Self);

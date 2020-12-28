@@ -37,6 +37,9 @@ namespace ConfigEditor
 
         public void UpdateUniqueIndex(string oldValue, string newValue, DataGridViewCell cell)
         {
+            if (null == oldValue)
+                oldValue = "";
+
             if (oldValue.Equals(newValue))
                 return;
 
@@ -71,7 +74,8 @@ namespace ConfigEditor
 
         public void BuildUniqueIndex(DataGridView grid, int columnIndex)
         {
-            for (int i = 0; i < grid.RowCount; ++i)
+            int skipLastRow = grid.RowCount - 1;
+            for (int i = 0; i < skipLastRow; ++i)
             {
                 DataGridViewCell cell = grid.Rows[i].Cells[columnIndex];
                 AddUniqueIndex(cell.Value as string, cell);

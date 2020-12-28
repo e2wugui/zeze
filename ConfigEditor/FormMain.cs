@@ -160,6 +160,7 @@ namespace ConfigEditor
                 if (bean.Update(grid, cells, ref colIndex, 0, Bean.EUpdate.Grid))
                     break;
             }
+            AddGridRow(grid);
 
             for (int i = 0; i < grid.ColumnCount; ++i)
             {
@@ -173,42 +174,48 @@ namespace ConfigEditor
                 }
                 tag.BuildUniqueIndex(grid, i);
             }
-            AddGridRow(grid);
             VerifyAll(grid);
         }
 
         public void VerifyAll(DataGridView grid)
         {
-            for (int rowIndex = 0; rowIndex < grid.RowCount - 1; ++rowIndex)
+            try
             {
-                for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex)
+                int skipLastRow = grid.RowCount - 1;
+                for (int rowIndex = 0; rowIndex < skipLastRow; ++rowIndex)
                 {
-                    ColumnTag tag = grid.Columns[colIndex].Tag as ColumnTag;
-
-                    if (tag.Tag != ColumnTag.ETag.Normal)
-                        continue;
-
-                    DataGridViewCell cell = grid[colIndex, rowIndex];
-                    string newValue = cell.Value as string;
-                    if (newValue == null)
-                        newValue = "";
-                    var param = new Property.VerifyParam()
+                    for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex)
                     {
-                        FormMain = this,
-                        Grid = grid,
-                        ColumnIndex = colIndex,
-                        RowIndex = rowIndex,
-                        ColumnTag = tag,
-                        NewValue = newValue,
-                    };
+                        ColumnTag tag = grid.Columns[colIndex].Tag as ColumnTag;
 
-                    foreach (var p in tag.PathLast.Define.PropertiesList)
-                    {
-                        p.VerifyCell(param);
+                        if (tag.Tag != ColumnTag.ETag.Normal)
+                            continue;
+
+                        DataGridViewCell cell = grid[colIndex, rowIndex];
+                        string newValue = cell.Value as string;
+                        if (newValue == null)
+                            newValue = "";
+                        var param = new Property.VerifyParam()
+                        {
+                            FormMain = this,
+                            Grid = grid,
+                            ColumnIndex = colIndex,
+                            RowIndex = rowIndex,
+                            ColumnTag = tag,
+                            NewValue = newValue,
+                        };
+
+                        foreach (var p in tag.PathLast.Define.PropertiesList)
+                        {
+                            p.VerifyCell(param);
+                        }
                     }
                 }
             }
-
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
         }
 
         public void OnGridCellValidating(object sender, DataGridViewCellValidatingEventArgs e)
@@ -217,22 +224,19 @@ namespace ConfigEditor
             // 使用这个事件是为了得到 oldValue 做一些处理。
             // 这里以后需要真正的校验并且cancel的话，需要注意不要影响下面的代码。
             // 问题：CurrentCell 改变的时候，即时没有在编辑模式，原来的Cell也会触发这个事件。
-
             DataGridView grid = (DataGridView)sender;
+            if (e.RowIndex == grid.RowCount - 1)
+                return; // skip last row
             DataGridViewColumn col = grid.Columns[e.ColumnIndex];
             ColumnTag tag = (ColumnTag)col.Tag;
             if (ColumnTag.ETag.Normal != tag.Tag)
                 return;
 
             DataGridViewCell cell = grid[e.ColumnIndex, e.RowIndex];
-            string oldValue = cell.Value as string;
-            if (oldValue == null)
-                oldValue = "";
+            string oldValue = cell.Value as string; // maybe null
             string newValue = e.FormattedValue as string;
             if (newValue == null)
                 newValue = "";
-            if (oldValue.Equals(newValue))
-                return;
 
             tag.UpdateUniqueIndex(oldValue, newValue, cell);
 
