@@ -35,15 +35,8 @@ namespace ConfigEditor
         public Dictionary<string, HashSet<DataGridViewCell>> UniqueIndex { get; }
             = new Dictionary<string, HashSet<DataGridViewCell>>();
 
-        public void UpdateUniqueIndex(string oldValue, DataGridViewCell cell)
+        public void UpdateUniqueIndex(string oldValue, string newValue, DataGridViewCell cell)
         {
-            if (null == oldValue)
-                oldValue = "";
-
-            string newValue = cell.Value as string;
-            if (null == newValue)
-                newValue = "";
-
             if (oldValue.Equals(newValue))
                 return;
 
@@ -64,16 +57,15 @@ namespace ConfigEditor
                         break;
                 }
             }
-            AddUniqueIndex(cell);
+            AddUniqueIndex(newValue, cell);
         }
 
-        public void AddUniqueIndex(DataGridViewCell cell)
+        public void AddUniqueIndex(string newValue, DataGridViewCell cell)
         {
-            string value = cell.Value as string;
-            if (null == value)
-                value = "";
-            if (false == UniqueIndex.TryGetValue(value, out var cells))
-                UniqueIndex.Add(value, cells = new HashSet<DataGridViewCell>());
+            if (null == newValue)
+                newValue = "";
+            if (false == UniqueIndex.TryGetValue(newValue, out var cells))
+                UniqueIndex.Add(newValue, cells = new HashSet<DataGridViewCell>());
             cells.Add(cell);
         }
 
@@ -82,7 +74,7 @@ namespace ConfigEditor
             for (int i = 0; i < grid.RowCount; ++i)
             {
                 DataGridViewCell cell = grid.Rows[i].Cells[columnIndex];
-                AddUniqueIndex(cell);
+                AddUniqueIndex(cell.Value as string, cell);
             }
         }
 

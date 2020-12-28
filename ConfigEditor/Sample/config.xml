@@ -46,7 +46,7 @@
           <uniquelist>1</uniquelist>
         </bean>
         <bean>
-          <uniquelist>2</uniquelist>
+          <uniquelist>1</uniquelist>
         </bean>
       </list>
     </uniquelist>
@@ -57,7 +57,7 @@
     <list1>
       <list>
         <bean>
-          <去>2</去>
+          <去>1</去>
         </bean>
         <bean>
           <去>2</去>

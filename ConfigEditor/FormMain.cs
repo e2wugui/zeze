@@ -216,12 +216,13 @@ namespace ConfigEditor
             // 编辑的时候仅使用文本，允许输入任何数据。所以验证肯定通过。
             // 使用这个事件是为了得到 oldValue 做一些处理。
             // 这里以后需要真正的校验并且cancel的话，需要注意不要影响下面的代码。
+            // 问题：CurrentCell 改变的时候，即时没有在编辑模式，原来的Cell也会触发这个事件。
 
             DataGridView grid = (DataGridView)sender;
             DataGridViewColumn col = grid.Columns[e.ColumnIndex];
             ColumnTag tag = (ColumnTag)col.Tag;
             if (ColumnTag.ETag.Normal != tag.Tag)
-                return; // 不可能。特殊列都是不可编辑的。
+                return;
 
             DataGridViewCell cell = grid[e.ColumnIndex, e.RowIndex];
             string oldValue = cell.Value as string;
@@ -230,8 +231,10 @@ namespace ConfigEditor
             string newValue = e.FormattedValue as string;
             if (newValue == null)
                 newValue = "";
+            if (oldValue.Equals(newValue))
+                return;
 
-            tag.UpdateUniqueIndex(oldValue, cell);
+            tag.UpdateUniqueIndex(oldValue, newValue, cell);
 
             var param = new Property.VerifyParam()
             {
