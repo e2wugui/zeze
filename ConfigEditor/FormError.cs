@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -17,6 +18,14 @@ namespace ConfigEditor
         public FormError()
         {
             InitializeComponent();
+            // Double buffering can make DGV slow in remote desktop
+            if (!System.Windows.Forms.SystemInformation.TerminalServerSession)
+            {
+                Type dgvType = grid.GetType();
+                PropertyInfo pi = dgvType.GetProperty("DoubleBuffered",
+                  BindingFlags.Instance | BindingFlags.NonPublic);
+                pi.SetValue(grid, true, null);
+            }
         }
 
         private void FormError_FormClosing(object sender, FormClosingEventArgs e)

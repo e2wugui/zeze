@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -21,6 +22,15 @@ namespace ConfigEditor
             DataGridViewComboBoxColumn col = (DataGridViewComboBoxColumn)define.Columns["VarType"];
             col.ValueType = typeof(VarDefine.EType);
             col.DataSource = System.Enum.GetValues(typeof(VarDefine.EType));
+
+            // Double buffering can make DGV slow in remote desktop
+            if (!System.Windows.Forms.SystemInformation.TerminalServerSession)
+            {
+                Type dgvType = define.GetType();
+                PropertyInfo pi = dgvType.GetProperty("DoubleBuffered",
+                  BindingFlags.Instance | BindingFlags.NonPublic);
+                pi.SetValue(define, true, null);
+            }
         }
 
         private void FormDefine_FormClosing(object sender, FormClosingEventArgs e)
