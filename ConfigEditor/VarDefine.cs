@@ -44,6 +44,12 @@ namespace ConfigEditor
         public BeanDefine Parent { get; }
         public BeanDefine Reference { get; set; } // type is List
 
+        public void Depends(HashSet<BeanDefine> deps)
+        {
+            if (null != Reference)
+                Reference.Depends(deps);
+        }
+
         public string CanChangeTo(EType newType)
         {
             if (newType == Type)

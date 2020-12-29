@@ -46,6 +46,7 @@ namespace ConfigEditor
             // 
             // define
             // 
+            this.define.AllowDrop = true;
             this.define.AllowUserToAddRows = false;
             this.define.AllowUserToDeleteRows = false;
             this.define.AllowUserToResizeRows = false;
@@ -53,6 +54,7 @@ namespace ConfigEditor
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.define.ColumnHeadersHeight = 20;
+            this.define.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             this.define.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.BeanLocked,
             this.VarName,
@@ -67,6 +69,7 @@ namespace ConfigEditor
             this.define.Name = "define";
             this.define.RowHeadersWidth = 25;
             this.define.RowTemplate.Height = 18;
+            this.define.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
             this.define.Size = new System.Drawing.Size(969, 504);
             this.define.TabIndex = 0;
             this.define.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.define_CellEndEdit);
@@ -74,6 +77,9 @@ namespace ConfigEditor
             this.define.CellMouseDown += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.define_CellMouseDown);
             this.define.CellValidating += new System.Windows.Forms.DataGridViewCellValidatingEventHandler(this.define_CellValidating);
             this.define.CellValueChanged += new System.Windows.Forms.DataGridViewCellEventHandler(this.define_CellValueChanged);
+            this.define.DragDrop += new System.Windows.Forms.DragEventHandler(this.define_DragDrop);
+            this.define.DragEnter += new System.Windows.Forms.DragEventHandler(this.define_DragEnter);
+            this.define.DragOver += new System.Windows.Forms.DragEventHandler(this.define_DragOver);
             // 
             // contextMenuStrip1
             // 
@@ -105,6 +111,7 @@ namespace ConfigEditor
             this.VarName.MinimumWidth = 10;
             this.VarName.Name = "VarName";
             this.VarName.ReadOnly = true;
+            this.VarName.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             this.VarName.ToolTipText = "列（变量）名，也用来显示Bean的名字。";
             // 
             // VarType
@@ -122,6 +129,7 @@ namespace ConfigEditor
             this.VarValue.HeaderText = "引用";
             this.VarValue.MinimumWidth = 10;
             this.VarValue.Name = "VarValue";
+            this.VarValue.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             this.VarValue.ToolTipText = "如果此列类型为List，这里是它的item的类型名字（BeanFullName）";
             this.VarValue.Width = 150;
             // 
@@ -130,6 +138,7 @@ namespace ConfigEditor
             this.VarForeign.HeaderText = "Foreign";
             this.VarForeign.MinimumWidth = 10;
             this.VarForeign.Name = "VarForeign";
+            this.VarForeign.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             this.VarForeign.ToolTipText = "此列的值必须在另一个配置中存在。格式如：BeanFullName:VarName";
             this.VarForeign.Width = 150;
             // 
@@ -149,6 +158,7 @@ namespace ConfigEditor
             this.VarComment.HeaderText = "注释";
             this.VarComment.MinimumWidth = 10;
             this.VarComment.Name = "VarComment";
+            this.VarComment.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             this.VarComment.ToolTipText = "注释";
             this.VarComment.Width = 200;
             // 

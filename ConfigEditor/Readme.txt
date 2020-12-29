@@ -22,12 +22,12 @@ Test
 
 性能
 	加了一些数据，发现DataGridView刷的很慢；窗口resize也很慢；一开始就加了SuspendLayout了，没用。先写功能，这个慢慢来了。
+	加了Double buffering后，看起来速度可以了。先观察。
 
 TODO
 	type 验证。
 	变量改名。需要更新Foreign。
 	Bean改名。需要搜索引用。麻烦。
-	变量顺序允许调整（数据列顺序）。实现：defne中调整。grid重新load。
 	类型识别和Gen。
 	自动完成和enum识别。
 	1 id存一个种子自动递增，或者从上一行的id往后找一个未用的。

@@ -139,5 +139,31 @@ namespace ConfigEditor
             maingrid.FirstDisplayedCell = maincell;
             maingrid.CurrentCell = maincell;
         }
+
+        public void OnRemoveGrid(DataGridView gridedit)
+        {
+            // 现在只显示打开grid的文件错误。如果要显示所有文件的。
+            // 就不能记住Cell的引用，应该使用文件名+(ColIndex, RowIndex)。
+            // 但是由于文件会变化，(ColIndex, RowIndex)可能不再准确（看看怎么处理这种情况）。
+
+            grid.SuspendLayout();
+            Dictionary<DataGridViewCell, int> removed
+                = new Dictionary<DataGridViewCell, int>(new IdentityEqualityComparer());
+            for (int i = grid.RowCount - 1; i >= 0; --i)
+            {
+                DataGridViewCell c = grid.Rows[i].Cells["Level"].Tag as DataGridViewCell;
+                if (c.DataGridView == gridedit)
+                {
+                    removed[c] = 1;
+                    grid.Rows.RemoveAt(i);
+                }
+            }
+            grid.ResumeLayout();
+
+            foreach (var c in removed.Keys)
+            {
+                Errors.Remove(c);
+            }
+        }
     }
 }

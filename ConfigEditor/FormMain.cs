@@ -149,6 +149,11 @@ namespace ConfigEditor
 
         public void LoadDocumentToView(DataGridView grid, Document doc)
         {
+            if (null == grid)
+                return; // 文档已经打开，可能没有打开显示界面。
+
+            grid.SuspendLayout();
+
             grid.Columns.Clear();
             grid.Rows.Clear();
 
@@ -194,6 +199,8 @@ namespace ConfigEditor
                 tag.BuildUniqueIndex(grid, i);
             }
             VerifyAll(grid);
+
+            grid.ResumeLayout();
         }
 
         public void VerifyAll(DataGridView grid)
@@ -657,10 +664,8 @@ namespace ConfigEditor
                         // used by foreign, no view
                         TabPage tab = NewTabPage(odoc.RelateName);
                         DataGridView grid = (DataGridView)tab.Controls[0];
-                        grid.SuspendLayout();
                         LoadDocumentToView(grid, doc);
                         tabs.Controls.Add(tab);
-                        grid.ResumeLayout();
                         tabs.SelectedTab = tab;
                         odoc.Grid = grid;
                         grid.Tag = doc;
@@ -672,10 +677,8 @@ namespace ConfigEditor
                     DataGridView grid = (DataGridView)tab.Controls[0];
                     doc.Open();
                     Documents.Add(doc.RelateName, doc);
-                    grid.SuspendLayout();
                     LoadDocumentToView(grid, doc);
                     tabs.Controls.Add(tab);
-                    grid.ResumeLayout();
                     tabs.SelectedTab = tab;
                     grid.Tag = doc;
                     doc.Grid = grid;
@@ -1162,6 +1165,35 @@ namespace ConfigEditor
         {
             FormError.Show();
             FormError.BringToFront();
+        }
+
+        private void toolStripButtonClose_Click(object sender, EventArgs e)
+        {
+            if (tabs.SelectedTab == null)
+                return;
+
+            DataGridView grid = tabs.SelectedTab.Controls[0] as DataGridView;
+            Document doc = grid.Tag as Document;
+            Save(doc);
+            HashSet<BeanDefine> deps = new HashSet<BeanDefine>();
+            foreach (var d in Documents.Values)
+            {
+                if (d == doc)
+                    continue;
+                d.BeanDefine.Depends(deps);
+            }
+
+            if (doc.BeanDefine.InDepends(deps))
+            {
+                doc.Grid = null;
+                MessageBox.Show("提示：这个文件里面的Bean定义被其他文件依赖，所以仅仅关闭编辑界面。");
+            }
+            else
+            {
+                Documents.Remove(doc.RelateName);
+            }
+            FormError.OnRemoveGrid(grid);
+            tabs.Controls.Remove(tabs.SelectedTab);
         }
     }
 }

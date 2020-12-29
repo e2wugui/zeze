@@ -18,6 +18,56 @@ namespace ConfigEditor
         private int RefCount = 1;
         public bool Locked { get; set; } = false;
 
+        public void Move(VarDefine src, VarDefine before)
+        {
+            int srcIndex = Variables.IndexOf(src);
+            if (srcIndex < 0)
+                return;
+            int beforeIndex = Variables.IndexOf(before);
+            if (beforeIndex < 0)
+                return;
+            Variables.RemoveAt(srcIndex); // 0 1 2 3
+            Variables.Insert(beforeIndex, src);
+            Document.IsChanged = true;
+        }
+
+        /// <summary>
+        /// 查看这个Bean以及Sub Bean是否被依赖（存在于deps中）。
+        /// </summary>
+        /// <param name="deps"></param>
+        /// <returns></returns>
+        public bool InDepends(HashSet<BeanDefine> deps)
+        {
+            if (deps.Contains(this))
+                return true;
+
+            foreach (var b in BeanDefines.Values)
+            {
+                if (b.InDepends(deps))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 收集这个 bean 所有的依赖的bean。
+        /// </summary>
+        /// <param name="deps"></param>
+        public void Depends(HashSet<BeanDefine> deps)
+        {
+            if (deps.Add(this)) // 因为可能循环引用，只有加入成功才继续变量的 Depends。
+            {
+                foreach (var b in BeanDefines.Values)
+                {
+                    b.Depends(deps);
+                }
+                foreach (var v in Variables)
+                {
+                    v.Depends(deps);
+                }
+            }
+        }
         /// <summary>
         /// AddVariable
         /// return null means successed.

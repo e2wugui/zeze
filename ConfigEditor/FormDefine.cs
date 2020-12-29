@@ -136,6 +136,9 @@ namespace ConfigEditor
                     break;
 
                 case MouseButtons.Left:
+                    // DragDrop begin. 一般来说这里记住鼠标位置，然后处理MouseMove，移动一定距离开始。先简单处理。
+                    if (TryStartDragDrop(e))
+                        break;
                     if (e.ColumnIndex >= 0 && e.RowIndex >= 0)
                     {
                         if (define.CurrentCell == define[e.ColumnIndex, e.RowIndex])
@@ -430,6 +433,99 @@ namespace ConfigEditor
                     var.Parent.Document.IsChanged = true;
                     break;
             }
+        }
+
+        private void define_DragEnter(object sender, DragEventArgs e)
+        {
+            if (GetDragRow(e, out var rowIndex, out var row))
+            {
+                e.Effect = DragDropEffects.Move;
+            }
+            else
+            {
+                e.Effect = DragDropEffects.None;
+            }
+        }
+
+        private void define_DragOver(object sender, DragEventArgs e)
+        {
+            if (GetDragRow(e, out var rowIndex, out var row))
+            {
+                e.Effect = DragDropEffects.Move;
+            }
+            else
+            {
+                e.Effect = DragDropEffects.None;
+            }
+        }
+
+        private bool GetDragRow(DragEventArgs e, out int dropIndex, out DataGridViewRow dragRow)
+        {
+            dropIndex = -1;
+            dragRow = null;
+
+            //将屏幕坐标转换为控件坐标之后获取该坐标下DataGridView的行和列
+            Point client = define.PointToClient(new Point(e.X, e.Y));
+            DataGridView.HitTestInfo ht = define.HitTest(client.X, client.Y);
+
+            if (ht.RowIndex < 0)
+                return false;
+
+            if (e.Data.GetDataPresent(typeof(DataGridViewRow)))
+            {
+                DataGridViewRow dragRowTmp = (DataGridViewRow)e.Data.GetData(typeof(DataGridViewRow));
+                if (dragRowTmp.DataGridView != define)
+                    return false;
+                DataGridViewRow dropRow = define.Rows[ht.RowIndex];
+                VarDefine dragVarDefine = dragRowTmp.Cells["VarName"].Tag as VarDefine;
+                VarDefine dropVarDefine = dropRow.Cells["VarName"].Tag as VarDefine;
+                if (null == dropVarDefine)
+                    return false;
+                if (dragVarDefine.Parent != dropVarDefine.Parent) // check same Bean
+                    return false;
+                if (dropVarDefine.Name == null) // check is special row "AddVariable"
+                    return false;
+
+                dropIndex = ht.RowIndex;
+                dragRow = dragRowTmp;
+                return true;
+            }
+            return false;
+        }
+
+        private void define_DragDrop(object sender, DragEventArgs e)
+        {
+            if (GetDragRow(e, out var dropIndex, out var dragRow))
+            {
+                DataGridViewRow dropRow = define.Rows[dropIndex];
+                if (dropRow != dragRow)
+                {
+                    VarDefine dragVarDefine = dragRow.Cells["VarName"].Tag as VarDefine;
+                    VarDefine dropVarDefine = dropRow.Cells["VarName"].Tag as VarDefine;
+                    dragVarDefine.Parent.Move(dragVarDefine, dropVarDefine);
+                    Document dragDoc = dragVarDefine.Parent.Document;
+                    FormMain.LoadDocumentToView(dragDoc.Grid, dragDoc);
+                    define.Rows.Remove(dragRow);
+                    define.Rows.Insert(dropIndex, dragRow);
+                }
+            }
+        }
+
+        private bool TryStartDragDrop(DataGridViewCellMouseEventArgs e)
+        {
+            if (e.ColumnIndex != -1)
+                return false;
+
+            if (e.RowIndex < 0)
+                return false;
+
+            DataGridViewRow row = define.Rows[e.RowIndex];
+            VarDefine varDefine = row.Cells["VarName"].Tag as VarDefine;
+            if (null == varDefine || null == varDefine.Name)
+                return false;
+
+            define.DoDragDrop(row, DragDropEffects.Move);
+            return true;
         }
     }
 }
