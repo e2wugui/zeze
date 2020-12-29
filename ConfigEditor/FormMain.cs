@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
@@ -152,6 +153,23 @@ namespace ConfigEditor
             grid.Rows.Clear();
 
             doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
+
+            /* 加快装载速度。
+             * 太多地方直接使用grid,而且装载过程中，Column会增加，所以这个优化方法暂时行不通。
+            List<DataGridViewRow> rows = new List<DataGridViewRow>(doc.Beans.Count);
+            foreach (var bean in doc.Beans)
+            {
+                DataGridViewRow row = new DataGridViewRow();
+                row.CreateCells(grid);
+                SetSpecialColumnText(grid, row.Cells);
+                int colIndex = 0;
+                if (bean.Update(grid, row.Cells, ref colIndex, 0, Bean.EUpdate.Grid))
+                    break;
+                rows.Add(row);
+            }
+            grid.Rows.AddRange(rows.ToArray());
+            */
+
             foreach (var bean in doc.Beans)
             {
                 AddGridRow(grid);
@@ -160,6 +178,7 @@ namespace ConfigEditor
                 if (bean.Update(grid, cells, ref colIndex, 0, Bean.EUpdate.Grid))
                     break;
             }
+
             AddGridRow(grid);
 
             for (int i = 0; i < grid.ColumnCount; ++i)
@@ -457,6 +476,20 @@ namespace ConfigEditor
             grid.Size = new Size(tab.ClientSize.Width, tab.ClientSize.Height);
             grid.TabIndex = 0;
 
+            // performance
+            //grid.RowHeadersVisible = false;
+            //grid.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.EnableResizing;
+            grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            // Double buffering can make DGV slow in remote desktop
+            if (!System.Windows.Forms.SystemInformation.TerminalServerSession)
+            {
+                Type dgvType = grid.GetType();
+                PropertyInfo pi = dgvType.GetProperty("DoubleBuffered",
+                  BindingFlags.Instance | BindingFlags.NonPublic);
+                pi.SetValue(grid, true, null);
+            }
+
+            // event handle
             grid.CellValidating += OnGridCellValidating;
             grid.CellEndEdit += OnGridCellEndEdit;
             grid.CellMouseDoubleClick += OnGridDoubleClick;
@@ -483,10 +516,8 @@ namespace ConfigEditor
             }
         }
 
-        private void AddGridRow(DataGridView grid)
+        private void SetSpecialColumnText(DataGridView grid, DataGridViewCellCollection cells)
         {
-            grid.Rows.Add(); // prepare row to add data
-            DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
             for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex) // ColumnCount maybe change in loop
             {
                 DataGridViewColumn col = grid.Columns[colIndex];
@@ -503,6 +534,13 @@ namespace ConfigEditor
                         break;
                 }
             }
+        }
+
+        private void AddGridRow(DataGridView grid)
+        {
+            grid.Rows.Add(); // prepare row to add data
+            DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
+            SetSpecialColumnText(grid, cells);
         }
 
         private void newButton_Click(object sender, EventArgs e)

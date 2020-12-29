@@ -24,7 +24,6 @@ Test
 	加了一些数据，发现DataGridView刷的很慢；窗口resize也很慢；一开始就加了SuspendLayout了，没用。先写功能，这个慢慢来了。
 
 TODO
-	BUG 删除Define变化时没有同步的数据。
 	type 验证。
 	变量改名。需要更新Foreign。
 	Bean改名。需要搜索引用。麻烦。

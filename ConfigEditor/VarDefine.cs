@@ -125,6 +125,7 @@ namespace ConfigEditor
                             ToolTipText = Name + ":" + Value + ":" + Comment,
                             Tag = tag.Copy(ColumnTag.ETag.ListStart).AddVar(this, -1),
                             Frozen = false,
+                            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                         });
                         for (int i = 0; i < grid.RowCount; ++i)
                         {
@@ -152,6 +153,7 @@ namespace ConfigEditor
                             ToolTipText = Name + ": 双击此列增加List Item。",
                             Tag = tag.Copy(ColumnTag.ETag.ListEnd).AddVar(this, -1), // 初始为-1，以后在Bean.SetDataToGrid中修改。
                             Frozen = false,
+                            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                         });
                         for (int i = 0; i < grid.RowCount; ++i)
                         {
@@ -171,6 +173,7 @@ namespace ConfigEditor
                             ToolTipText = Name + ":" + Comment,
                             Tag = current,
                             Frozen = false,
+                            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                         });
                         // 自动完成来实现enum选择。不使用Combobox.
                         // TODO 实现 enum 的时候需要确认 cell.Value 的类型。编辑器使用的Column，然后类型是枚举而不是string。
@@ -189,6 +192,7 @@ namespace ConfigEditor
                             ToolTipText = Name + ":" + Comment,
                             Tag = current,
                             Frozen = false,
+                            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                         });
                         current.BuildUniqueIndex(grid, columnIndex);
                         return 1;
