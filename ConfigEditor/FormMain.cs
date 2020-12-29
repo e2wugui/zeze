@@ -147,11 +147,24 @@ namespace ConfigEditor
             this.TopMost = false;
         }
 
-        public void LoadDocumentToView(DataGridView grid, Document doc)
+        public void ReloadIfContains(VarDefine var)
         {
-            if (null == grid)
-                return; // 文档已经打开，可能没有打开显示界面。
+            foreach (var tab in tabs.Controls)
+            {
+                DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
+                for (int i = 0; i < gridref.ColumnCount; ++i)
+                {
+                    ColumnTag tagref = gridref.Columns[i].Tag as ColumnTag;
+                    if (tagref.PathLast.Define == var)
+                    {
+                        LoadDocumentToView(gridref, gridref.Tag as Document);
+                    }
+                }
+            }
+        }
 
+        private void LoadDocumentToView(DataGridView grid, Document doc)
+        {
             grid.SuspendLayout();
 
             grid.Columns.Clear();

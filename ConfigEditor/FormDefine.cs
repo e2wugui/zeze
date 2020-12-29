@@ -503,8 +503,7 @@ namespace ConfigEditor
                     VarDefine dragVarDefine = dragRow.Cells["VarName"].Tag as VarDefine;
                     VarDefine dropVarDefine = dropRow.Cells["VarName"].Tag as VarDefine;
                     dragVarDefine.Parent.Move(dragVarDefine, dropVarDefine);
-                    Document dragDoc = dragVarDefine.Parent.Document;
-                    FormMain.LoadDocumentToView(dragDoc.Grid, dragDoc);
+                    FormMain.ReloadIfContains(dragVarDefine);
                     define.Rows.Remove(dragRow);
                     define.Rows.Insert(dropIndex, dragRow);
                 }
