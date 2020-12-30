@@ -77,7 +77,7 @@ namespace ConfigEditor
         /// <param name="reference"></param>
         /// <returns>error string.</returns>
         public (VarDefine, bool, string) AddVariable(string name,
-            VarDefine.EType type = VarDefine.EType.Auto, string reference = null)
+            VarDefine.EType type = VarDefine.EType.Undecided, string reference = null)
         {
             if (GetVariable(name) != null)
                 return (null, false, "duplicate variable name");

@@ -32,6 +32,8 @@ namespace ConfigEditor.Property
 
         public ButtonBase Button { get; set; } // FormProperties使用，仅在编辑的时候才有效。
 
+        public virtual bool BuildIn { get; } = false;
+
         public bool ButtonChecked
         {
             get

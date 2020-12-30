@@ -249,6 +249,7 @@ namespace ConfigEditor
                         {
                             p.VerifyCell(param);
                         }
+                        tag.PathLast.Define.VerifyCell(param);
                     }
                 }
             }
@@ -294,6 +295,7 @@ namespace ConfigEditor
             {
                 p.VerifyCell(param);
             }
+            tag.PathLast.Define.VerifyCell(param);
         }
 
         public void OnGridCellEndEdit(object sender, DataGridViewCellEventArgs e)
@@ -397,7 +399,7 @@ namespace ConfigEditor
                     continue;
 
                 (VarDefine var, bool create, string err) = hint.Parent.AddVariable(varName,
-                    input.CheckBoxIsList.Checked ? VarDefine.EType.List : VarDefine.EType.Auto,
+                    input.CheckBoxIsList.Checked ? VarDefine.EType.List : VarDefine.EType.Undecided,
                     input.TextBoxListRefBeanName.Text);
 
                 if (null == var)

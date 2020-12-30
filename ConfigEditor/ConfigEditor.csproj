@@ -126,6 +126,7 @@
     <Compile Include="Property\IProperty.cs" />
     <Compile Include="Property\Manager.cs" />
     <Compile Include="Property\Server.cs" />
+    <Compile Include="Property\TypeVerify.cs" />
     <Compile Include="Property\Unique.cs" />
     <Compile Include="Property\UniqueList.cs" />
     <Compile Include="Property\Url.cs" />

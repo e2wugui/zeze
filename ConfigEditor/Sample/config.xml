@@ -2,20 +2,20 @@
 <ZezeConfig>
   <BeanDefine RefCount="0" Locked="False">
     <BeanDefine name="list1" RefCount="2" Locked="False">
-      <variable name="去" type="Auto" vw="50" properties="unique;" />
+      <variable name="去" type="Undecided" vw="50" properties="unique;" />
       <BeanDefine name="v" RefCount="1" Locked="False">
-        <variable name="了" type="Auto" vw="50" />
+        <variable name="了" type="Int" vw="50" />
         <BeanDefine name="啊21" RefCount="1" Locked="False" />
         <variable name="啊21" type="List" value="config.list1.v.啊21" vw="50" />
       </BeanDefine>
       <variable name="v" type="List" value="config.list1.v" vw="50" />
     </BeanDefine>
     <variable name="list1" type="List" value="config.list1" vw="50" />
-    <variable name="为2" type="Auto" vw="50" properties="unique;" />
-    <variable name="q1" type="Auto" vw="156" properties="dns;" foreign="config:q1" />
+    <variable name="为2" type="Undecided" vw="50" properties="unique;" />
+    <variable name="q1" type="Undecided" vw="156" properties="dns;" foreign="config:q1" />
     <variable name="去1" type="List" value="config.list1" vw="50" />
     <BeanDefine name="uniquelist" RefCount="1" Locked="False">
-      <variable name="uniquelist" type="Auto" properties="unique.list;" vw="50" />
+      <variable name="uniquelist" type="Undecided" properties="unique.list;" vw="50" />
     </BeanDefine>
     <variable name="uniquelist" type="List" value="config.uniquelist" vw="50" />
     <variable name="enum1" type="Enum" vw="50" />
@@ -28,6 +28,13 @@
         </bean>
         <bean row="1">
           <去>1</去>
+          <v>
+            <list>
+              <bean row="0">
+                <了>1</了>
+              </bean>
+            </list>
+          </v>
         </bean>
       </list>
     </list1>
@@ -64,6 +71,13 @@
         </bean>
         <bean row="1">
           <去>2</去>
+          <v>
+            <list>
+              <bean row="0">
+                <了>2</了>
+              </bean>
+            </list>
+          </v>
         </bean>
       </list>
     </list1>
@@ -114,6 +128,13 @@
         </bean>
         <bean row="1">
           <去>3</去>
+          <v>
+            <list>
+              <bean row="0">
+                <了>3</了>
+              </bean>
+            </list>
+          </v>
         </bean>
       </list>
     </list1>
@@ -156,6 +177,7 @@
         </bean>
       </list>
     </去1>
+    <q1>unknowndns</q1>
   </bean>
   <bean row="4">
     <list1>

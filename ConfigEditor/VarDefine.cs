@@ -12,7 +12,7 @@ namespace ConfigEditor
         private string _Properties = "";
 
         public string Name { get; set; }
-        public EType Type { get; set; } = EType.Auto;
+        public EType Type { get; set; } = EType.Undecided;
 
         public string Value { get; set; } = "";
         public string Foreign { get; set; }
@@ -75,7 +75,7 @@ namespace ConfigEditor
 
         public enum EType
         {
-            Auto = 0,
+            Undecided = 0,
             Int = 1,
             Long = 2,
             Double = 3,
@@ -101,7 +101,7 @@ namespace ConfigEditor
             type = type.ToLower();
             switch (type)
             {
-                case "": case "auto": return EType.Auto;
+                case "": case "undecided":  return EType.Undecided;
                 case "int": return EType.Int;
                 case "long": return EType.Long;
                 case "double": return EType.Double;
@@ -112,6 +112,15 @@ namespace ConfigEditor
                 default:
                     throw new Exception("Unknown Type " + type);
                     //return EType.Bean;
+            }
+        }
+
+        public void VerifyCell(Property.VerifyParam param)
+        {
+            var typeName = System.Enum.GetName(typeof(EType), Type).ToLower();
+            if (param.FormMain.PropertyManager.BuildIns.TryGetValue(typeName, out var p))
+            {
+                p.VerifyCell(param);
             }
         }
 
