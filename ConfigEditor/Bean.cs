@@ -98,6 +98,8 @@ namespace ConfigEditor
                         XmlElement e = Parent.Document.Xml.CreateElement(Name);
                         bean.ReplaceChild(e, Self);
                         Self = e;
+                        if (null != SelfList)
+                            Self.AppendChild(SelfList);
                     }
                 }
                 if (GridColumnNameWidth > 0)
@@ -166,20 +168,19 @@ namespace ConfigEditor
             }
         }
 
-        public delegate void UpdateAction(DataGridView grid, int colIndex, VarData varData);
+        public delegate void UpdateAction(DataGridView grid, int colIndex, ColumnTag.VarInfo varInfo, VarData varData);
 
         public enum EUpdate
         {
             Data,
             Grid,
             DeleteData,
-            SearchDataByVarDefine,
+            CallAction,
         }
 
         public class UpdateParam
         {
             public EUpdate UpdateType { get; set; }
-            public VarDefine SearchVarDefine { get; set; }
             public UpdateAction UpdateAction { get; set; }
         }
 
@@ -249,7 +250,7 @@ namespace ConfigEditor
                     {
                         case EUpdate.Data:
                             break; // will new data
-                        case EUpdate.SearchDataByVarDefine:
+                        case EUpdate.CallAction:
                         case EUpdate.Grid:
                             if (varInfo.Define.Type == VarDefine.EType.List)
                             {
@@ -268,12 +269,9 @@ namespace ConfigEditor
                     varData = new VarData(this, varInfo.Define.Name);
                     VariableMap.Add(varInfo.Define.Name, varData);
                 }
-                else if (param.UpdateType == EUpdate.SearchDataByVarDefine)
+                else if (param.UpdateType == EUpdate.CallAction)
                 {
-                    if (param.SearchVarDefine == varInfo.Define)
-                    {
-                        param.UpdateAction(grid, colIndex, varData);
-                    }
+                    param.UpdateAction(grid, colIndex, varInfo, varData);
                 }
 
                 if (varInfo.Define.Type == VarDefine.EType.List)
@@ -366,7 +364,7 @@ namespace ConfigEditor
                         varData.Value = newValue;
                         return true;
 
-                    case EUpdate.SearchDataByVarDefine:
+                    case EUpdate.CallAction:
                         // 上面已经做完了。
                         break;
 
@@ -392,8 +390,8 @@ namespace ConfigEditor
 
             if (VariableMap.TryGetValue(oldName, out var exist))
             {
-                exist.Name = newName;
                 VariableMap.Add(newName, exist);
+                exist.Name = newName;
                 VariableMap.Remove(oldName);
             }
         }

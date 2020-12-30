@@ -412,14 +412,18 @@ namespace ConfigEditor
             if (deps.Contains(var.Parent))
             {
                 DataGridView gridTmp = new DataGridView();
+                gridTmp.Visible = false;
                 gridTmp.SuspendLayout();
                 doc.BeanDefine.BuildGridColumns(gridTmp, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
                 HashSet<Bean.VarData> varDatas = new HashSet<Bean.VarData>();
                 var param = new Bean.UpdateParam()
                 {
-                    UpdateType = Bean.EUpdate.SearchDataByVarDefine,
-                    SearchVarDefine = var,
-                    UpdateAction = (DataGridView grid, int colCurrentIndex, Bean.VarData varData) => varDatas.Add(varData),
+                    UpdateType = Bean.EUpdate.CallAction,
+                    UpdateAction = (DataGridView grid, int col, ColumnTag.VarInfo varInfo, Bean.VarData varData) =>
+                    {
+                        if (varInfo.Define == var)
+                            varDatas.Add(varData);
+                    },
                 };
                 foreach (var bean in doc.Beans)
                 {
@@ -433,6 +437,7 @@ namespace ConfigEditor
                 {
                     varData.Parent.RenameVar(varData.Name, newVarName);
                 }
+                doc.IsChanged = varDatas.Count > 0;
                 gridTmp.Dispose();
             }
         }
@@ -462,7 +467,6 @@ namespace ConfigEditor
                         var.Name = newVarName;
                         string newForengnName = var.Parent.FullName() + ":" + var.Name;
                         var.Name = oldVarName; // 修改数据里面的名字需要用到旧名字。最后再来修改。
-                        var.Parent.Document.IsChanged = true;
 
                         FormMain.LoadAllDocument();
                         foreach (var doc in FormMain.Documents.Values)
@@ -471,6 +475,7 @@ namespace ConfigEditor
                             doc.BeanDefine.UpdateForeign(oldForeignName, newForengnName);
                         }
                         var.Name = newVarName;
+                        var.Parent.Document.IsChanged = true;
                         FormMain.ReloadAllGridIfContains(var);
                     }
                     break;

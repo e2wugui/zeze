@@ -35,6 +35,8 @@ namespace ConfigEditor
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.newButton = new System.Windows.Forms.ToolStripButton();
             this.openButton = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripButtonClose = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.saveButton = new System.Windows.Forms.ToolStripButton();
             this.saveAllButton = new System.Windows.Forms.ToolStripButton();
@@ -49,8 +51,6 @@ namespace ConfigEditor
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.deleteVariableColumnToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteListItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripButtonClose = new System.Windows.Forms.ToolStripButton();
-            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStrip1.SuspendLayout();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -114,6 +114,21 @@ namespace ConfigEditor
             this.openButton.ToolTipText = "Open(ctrl + O)";
             this.openButton.Click += new System.EventHandler(this.openButton_Click);
             // 
+            // toolStripSeparator4
+            // 
+            this.toolStripSeparator4.Name = "toolStripSeparator4";
+            this.toolStripSeparator4.Size = new System.Drawing.Size(6, 25);
+            // 
+            // toolStripButtonClose
+            // 
+            this.toolStripButtonClose.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripButtonClose.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonClose.Image")));
+            this.toolStripButtonClose.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonClose.Name = "toolStripButtonClose";
+            this.toolStripButtonClose.Size = new System.Drawing.Size(40, 22);
+            this.toolStripButtonClose.Text = "&Close";
+            this.toolStripButtonClose.Click += new System.EventHandler(this.toolStripButtonClose_Click);
+            // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
@@ -148,8 +163,8 @@ namespace ConfigEditor
             this.buttonSaveAs.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.buttonSaveAs.Name = "buttonSaveAs";
             this.buttonSaveAs.Size = new System.Drawing.Size(48, 22);
-            this.buttonSaveAs.Text = "SaveAs";
-            this.buttonSaveAs.ToolTipText = "SaveAs(ctrl + V)";
+            this.buttonSaveAs.Text = "Sa&veAs";
+            this.buttonSaveAs.ToolTipText = "SaveAs";
             this.buttonSaveAs.Click += new System.EventHandler(this.buttonSaveAs_Click);
             // 
             // toolStripSeparator2
@@ -192,6 +207,7 @@ namespace ConfigEditor
             this.toolStripButtonError.Name = "toolStripButtonError";
             this.toolStripButtonError.Size = new System.Drawing.Size(36, 22);
             this.toolStripButtonError.Text = "&Error";
+            this.toolStripButtonError.ToolTipText = "Error(ctrl + E)";
             this.toolStripButtonError.Click += new System.EventHandler(this.toolStripButtonError_Click);
             // 
             // openFileDialog1
@@ -220,21 +236,6 @@ namespace ConfigEditor
             this.deleteListItemToolStripMenuItem.Size = new System.Drawing.Size(258, 22);
             this.deleteListItemToolStripMenuItem.Text = "Delete &List Item";
             this.deleteListItemToolStripMenuItem.Click += new System.EventHandler(this.deleteListItemToolStripMenuItem_Click);
-            // 
-            // toolStripButtonClose
-            // 
-            this.toolStripButtonClose.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.toolStripButtonClose.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonClose.Image")));
-            this.toolStripButtonClose.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButtonClose.Name = "toolStripButtonClose";
-            this.toolStripButtonClose.Size = new System.Drawing.Size(40, 22);
-            this.toolStripButtonClose.Text = "&Close";
-            this.toolStripButtonClose.Click += new System.EventHandler(this.toolStripButtonClose_Click);
-            // 
-            // toolStripSeparator4
-            // 
-            this.toolStripSeparator4.Name = "toolStripSeparator4";
-            this.toolStripSeparator4.Size = new System.Drawing.Size(6, 25);
             // 
             // FormMain
             // 

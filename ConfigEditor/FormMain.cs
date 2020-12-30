@@ -1132,13 +1132,13 @@ namespace ConfigEditor
             {
                 switch (e.KeyCode)
                 {
+                    case Keys.A: saveAllButton.PerformClick(); break;
+                    case Keys.B: buildButton.PerformClick(); break;
+                    case Keys.D: toolStripButtonDefine.PerformClick(); break;
+                    case Keys.E: toolStripButtonError.PerformClick(); break;
                     case Keys.N: newButton.PerformClick(); break;
                     case Keys.O: openButton.PerformClick(); break;
-                    case Keys.A: saveAllButton.PerformClick(); break;
                     case Keys.S: saveButton.PerformClick(); break;
-                    case Keys.B: buildButton.PerformClick(); break;
-                    case Keys.V: buttonSaveAs.PerformClick(); break;
-                    case Keys.D: toolStripButtonDefine.PerformClick(); break;
                 }
             }
         }
