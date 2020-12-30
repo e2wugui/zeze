@@ -136,9 +136,18 @@ namespace ConfigEditor
                     break;
 
                 case MouseButtons.Left:
-                    // DragDrop begin. 一般来说这里记住鼠标位置，然后处理MouseMove，移动一定距离开始。先简单处理。
-                    if (TryStartDragDrop(e))
-                        break;
+                    {
+                        // DragDrop prepare. 这里记住鼠标位置，然后处理MouseMove，移动一定距离开始。
+                        if (e.RowIndex >= 0 && e.ColumnIndex == -1) // row header
+                        {
+                            Size dragSize = SystemInformation.DragSize;
+                            DragBoxFromMouseDown = new Rectangle(new Point(e.X - (dragSize.Width / 2), e.Y - (dragSize.Height / 2)), dragSize);
+                        }
+                        else
+                        {
+                            DragBoxFromMouseDown = Rectangle.Empty;
+                        }
+                    }
                     if (e.ColumnIndex >= 0 && e.RowIndex >= 0)
                     {
                         if (define.CurrentCell == define[e.ColumnIndex, e.RowIndex])
@@ -503,7 +512,7 @@ namespace ConfigEditor
                     VarDefine dragVarDefine = dragRow.Cells["VarName"].Tag as VarDefine;
                     VarDefine dropVarDefine = dropRow.Cells["VarName"].Tag as VarDefine;
                     dragVarDefine.Parent.Move(dragVarDefine, dropVarDefine);
-                    FormMain.ReloadIfContains(dragVarDefine);
+                    FormMain.ReloadAllGridIfContains(dragVarDefine);
                     define.Rows.Remove(dragRow);
                     define.Rows.Insert(dropIndex, dragRow);
                 }
@@ -525,6 +534,21 @@ namespace ConfigEditor
 
             define.DoDragDrop(row, DragDropEffects.Move);
             return true;
+        }
+
+        private Rectangle DragBoxFromMouseDown;
+
+        private void define_CellMouseMove(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if ((e.Button & MouseButtons.Left) == MouseButtons.Left)
+            {
+                // If the mouse moves outside the rectangle, start the drag.
+                if (DragBoxFromMouseDown != Rectangle.Empty && !DragBoxFromMouseDown.Contains(e.X, e.Y))
+                {
+                    if (TryStartDragDrop(e))
+                        DragBoxFromMouseDown = Rectangle.Empty;
+                }
+            }
         }
     }
 }

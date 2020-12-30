@@ -31,8 +31,6 @@ namespace ConfigEditor
         {
             this.components = new System.ComponentModel.Container();
             this.define = new System.Windows.Forms.DataGridView();
-            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.deleteVariableColumnToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.BeanLocked = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.VarName = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.VarType = new System.Windows.Forms.DataGridViewComboBoxColumn();
@@ -40,6 +38,8 @@ namespace ConfigEditor
             this.VarForeign = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.VarProperties = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.VarComment = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.deleteVariableColumnToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.define)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -75,26 +75,12 @@ namespace ConfigEditor
             this.define.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.define_CellEndEdit);
             this.define.CellMouseDoubleClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.define_CellMouseDoubleClick);
             this.define.CellMouseDown += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.define_CellMouseDown);
+            this.define.CellMouseMove += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.define_CellMouseMove);
             this.define.CellValidating += new System.Windows.Forms.DataGridViewCellValidatingEventHandler(this.define_CellValidating);
             this.define.CellValueChanged += new System.Windows.Forms.DataGridViewCellEventHandler(this.define_CellValueChanged);
             this.define.DragDrop += new System.Windows.Forms.DragEventHandler(this.define_DragDrop);
             this.define.DragEnter += new System.Windows.Forms.DragEventHandler(this.define_DragEnter);
             this.define.DragOver += new System.Windows.Forms.DragEventHandler(this.define_DragOver);
-            // 
-            // contextMenuStrip1
-            // 
-            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.deleteVariableColumnToolStripMenuItem});
-            this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(259, 26);
-            this.contextMenuStrip1.Text = "&Delete Variable(Column)";
-            // 
-            // deleteVariableColumnToolStripMenuItem
-            // 
-            this.deleteVariableColumnToolStripMenuItem.Name = "deleteVariableColumnToolStripMenuItem";
-            this.deleteVariableColumnToolStripMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.deleteVariableColumnToolStripMenuItem.Text = "&Delete Bean Variable(Data Column)";
-            this.deleteVariableColumnToolStripMenuItem.Click += new System.EventHandler(this.deleteVariableColumnToolStripMenuItem_Click);
             // 
             // BeanLocked
             // 
@@ -161,6 +147,21 @@ namespace ConfigEditor
             this.VarComment.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             this.VarComment.ToolTipText = "注释";
             this.VarComment.Width = 200;
+            // 
+            // contextMenuStrip1
+            // 
+            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.deleteVariableColumnToolStripMenuItem});
+            this.contextMenuStrip1.Name = "contextMenuStrip1";
+            this.contextMenuStrip1.Size = new System.Drawing.Size(259, 26);
+            this.contextMenuStrip1.Text = "&Delete Variable(Column)";
+            // 
+            // deleteVariableColumnToolStripMenuItem
+            // 
+            this.deleteVariableColumnToolStripMenuItem.Name = "deleteVariableColumnToolStripMenuItem";
+            this.deleteVariableColumnToolStripMenuItem.Size = new System.Drawing.Size(258, 22);
+            this.deleteVariableColumnToolStripMenuItem.Text = "&Delete Bean Variable(Data Column)";
+            this.deleteVariableColumnToolStripMenuItem.Click += new System.EventHandler(this.deleteVariableColumnToolStripMenuItem_Click);
             // 
             // FormDefine
             // 

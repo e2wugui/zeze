@@ -147,7 +147,7 @@ namespace ConfigEditor
             this.TopMost = false;
         }
 
-        public void ReloadIfContains(VarDefine var)
+        public void ReloadAllGridIfContains(VarDefine var)
         {
             foreach (var tab in tabs.Controls)
             {
@@ -158,6 +158,7 @@ namespace ConfigEditor
                     if (tagref.PathLast.Define == var)
                     {
                         LoadDocumentToView(gridref, gridref.Tag as Document);
+                        break;
                     }
                 }
             }
