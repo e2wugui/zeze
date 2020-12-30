@@ -44,6 +44,24 @@ namespace ConfigEditor
         public BeanDefine Parent { get; }
         public BeanDefine Reference { get; set; } // type is List
 
+        public void UpdateForeign(string oldForeign, string newForeign)
+        {
+            if (string.IsNullOrEmpty(Foreign))
+                return;
+
+            if (Foreign.Equals(oldForeign))
+            {
+                Foreign = newForeign;
+                Parent.Document.IsChanged = true;
+
+                // 这个方法肯定在 FormDefine 打开时调用。否则下面增加重新 Reload 的代码不会被触发。
+                if (Parent.Document.Grid != null)
+                {
+                    Parent.Document.Main.ReloadGridsAfterFormDefineClosed.Add(Parent.Document.Grid);
+                }
+            }
+        }
+
         public void Depends(HashSet<BeanDefine> deps)
         {
             if (null != Reference)
@@ -137,7 +155,7 @@ namespace ConfigEditor
         public string OpenForeign(string foreign, out VarDefine foreignVar)
         {
             foreignVar = null;
-            if (foreign == null || foreign.Length == 0)
+            if (string.IsNullOrEmpty(foreign))
                 return null;
 
             string[] newForeign = foreign.Split(':');

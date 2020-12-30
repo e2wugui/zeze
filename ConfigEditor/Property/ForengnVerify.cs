@@ -11,6 +11,7 @@ namespace ConfigEditor.Property
         public override string Name => "foreign";
 
         public override string Comment => "";
+        public override bool BuildIn => true;
 
         private bool ExistData(VerifyParam param, VarDefine foreignVar)
         {
@@ -28,7 +29,7 @@ namespace ConfigEditor.Property
             string result = param.ColumnTag.PathLast.Define.OpenForeign(out var foreignVar);
             if (null == result)
             {
-                if (ExistData(param, foreignVar))
+                if (null == foreignVar || ExistData(param, foreignVar)) // no foreign is ok.
                     param.FormMain.FormError.RemoveError(param.Cell, this);
                 else
                     param.FormMain.FormError.AddError(param.Cell, this, ErrorLevel.Warn, "value not exist in foreign.");

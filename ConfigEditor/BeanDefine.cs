@@ -18,6 +18,18 @@ namespace ConfigEditor
         private int RefCount = 1;
         public bool Locked { get; set; } = false;
 
+        public void UpdateForeign(string oldForeign, string newForeign)
+        {
+            foreach (var v in Variables)
+            {
+                v.UpdateForeign(oldForeign, newForeign);
+            }
+            foreach (var b in BeanDefines.Values)
+            {
+                b.UpdateForeign(oldForeign, newForeign);
+            }
+        }
+
         public void Move(VarDefine src, VarDefine before)
         {
             int srcIndex = Variables.IndexOf(src);
@@ -93,7 +105,7 @@ namespace ConfigEditor
             bool create = false;
             if (type == VarDefine.EType.List)
             {
-                if (reference == null || reference.Length == 0)
+                if (string.IsNullOrEmpty(reference))
                 {
                     var.Value = var.FullName();
                     var.Reference = new BeanDefine(Document, var.Name, this);

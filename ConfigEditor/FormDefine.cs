@@ -322,19 +322,53 @@ namespace ConfigEditor
             if (e.RowIndex < 0)
                 return;
 
+            if (false == define.IsCurrentCellInEditMode)
+                return;
+
             DataGridViewCellCollection cells = define.Rows[e.RowIndex].Cells;
+
+            if (cells["BeanLocked"].Tag != null)
+            {
+                e.Cancel = true;
+                MessageBox.Show("TODO modify bean name");
+                return;
+            }
+
+            // modify Var
             VarDefine var = cells["VarName"].Tag as VarDefine;
             if (null == var || null == var.Name) // var.Name is null when row is ',' for addvar
+            {
+                e.Cancel = true;
+                MessageBox.Show("只有var的行才允许编辑，其他的应该都设置了 ReadOnly. 怎么到这里的？");
                 return;
+            }
 
             try
             {
                 string colName = define.Columns[e.ColumnIndex].Name;
                 switch (colName)
                 {
+                    case "VarName":
+                        string newVarName = e.FormattedValue as string;
+                        if (var.Name.Equals(newVarName))
+                            return;
+                        
+                        if (false == FormMain.VerifyName(newVarName))
+                        {
+                            e.Cancel = true;
+                            return; // VerifyName 里面已经显示消息了。
+                        }
+                        if (var.Parent.GetVariable(newVarName) != null)
+                        {
+                            e.Cancel = true;
+                            MessageBox.Show("变量名字重复了。");
+                            return;
+                        }
+                        break;
+
                     case "VarValue":
                         string newValue = e.FormattedValue as string;
-                        if (null != newValue && newValue.Length > 0)
+                        if (string.IsNullOrEmpty(newValue))
                         {
                             FormMain.OpenDocument(newValue, out var r);
                             e.Cancel = r == null;
@@ -388,10 +422,27 @@ namespace ConfigEditor
             switch (colName)
             {
                 case "VarName":
-                    MessageBox.Show("改名涉及到修改引用这个名字的地方，比如forgeign，暂不支持。");
-                    cells[colName].Value = var.Name; // restore;
-                    //var.Name = cells[colName].Value as string;
-                    //var.Parent.Document.IsChanged = true;
+                    string newVarName = cells[colName].Value as string;
+                    if (false == var.Name.Equals(newVarName))
+                    {
+                        string oldForeignName = var.Parent.FullName() + ":" + var.Name;
+                        var.Name = newVarName;
+                        string newForengnName = var.Parent.FullName() + ":" + var.Name;
+                        var.Parent.Document.IsChanged = true;
+
+                        // update foreign
+                        FormMain.LoadAllDocument();
+                        foreach (var doc in FormMain.Documents.Values)
+                        {
+                            foreach (var beanData in doc.Beans)
+                            {
+                                // TODO update data
+                                // beandData = ;
+                            }
+                            doc.BeanDefine.UpdateForeign(oldForeignName, newForengnName);
+                        }
+                        FormMain.ReloadAllGridIfContains(var);
+                    }
                     break;
 
                 case "VarType":

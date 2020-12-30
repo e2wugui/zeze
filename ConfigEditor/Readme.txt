@@ -19,33 +19,24 @@ Test
 	define 编辑基本完工。
 	数据即时验证基本完工（已有的，在define里面双击属性列设置）。
 	嵌套list问题：define中add时创建两个item，出现过一次，后来没有发现（看错了？多测试）。
-	变量(数据列)顺序允许调整。操作：在Defne窗口中的行首上拖放（只能拖动变量行）。
-	基本类型验证加入了。
-	foreign 校验加入了。
+
+	* 变量(数据列)顺序允许调整。操作：在Defne窗口中的行首上拖放（只能拖动变量行）。
+	* 基本类型验证加入了。
+	* foreign 校验加入了。
+	* 变量改名。更新Foreign。TODO 更新数据里面的名字。
 
 性能
 	加了一些数据，发现DataGridView刷的很慢；窗口resize也很慢；一开始就加了SuspendLayout了，没用。先写功能，这个慢慢来了。
 	加了Double buffering后，看起来速度可以了。先观察。
 
 TODO
-	变量改名。需要更新Foreign。
-	Bean改名。需要搜索引用。麻烦。
 	类型识别和Gen。
+	Gen 先转换数据（并进行识别和统计），然后生成代码。
 	自动完成和enum识别。
 	1 id存一个种子自动递增，或者从上一行的id往后找一个未用的。
 	2 普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
+	Bean改名。需要搜索引用。麻烦。
 	SaveAs
-
-	Gen 先转换数据（并进行识别和统计），然后生成代码。
-	?List.Count <= 1时，生成一个Bean实例，但不能递归(好像null-able的话并且不是马上递归自身也可以)?
-	Bean1
-	   List<Bean2> varlist2;
-	   --> Bean2 varlist2
-	Bean2
-	   List<Bean2> varlist2; // 这种递归的话，就不能简化，因为内部嵌套可能大于1，递归判断嵌套也<=1，规则太复杂也不好处理。
-	   List<Bean3> varlist3; // 这种递归的话，好像可以？待确认？？？？？？？？
-	Bean3
-	   List<Bean2> varlist3;
 
 问题
 	1 Browse Dialog 初始显示位置偏离，可能跟windows放大有关，其他机器也许可以。

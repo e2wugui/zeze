@@ -147,6 +147,8 @@ namespace ConfigEditor
             this.TopMost = false;
         }
 
+        public HashSet<DataGridView> ReloadGridsAfterFormDefineClosed { get; } = new HashSet<DataGridView>();
+
         public void ReloadAllGridIfContains(VarDefine var)
         {
             foreach (var tab in tabs.Controls)
@@ -157,7 +159,7 @@ namespace ConfigEditor
                     ColumnTag tagref = gridref.Columns[i].Tag as ColumnTag;
                     if (tagref.PathLast.Define == var)
                     {
-                        LoadDocumentToView(gridref, gridref.Tag as Document);
+                        ReloadGridsAfterFormDefineClosed.Add(gridref);
                         break;
                     }
                 }
@@ -330,8 +332,8 @@ namespace ConfigEditor
 
         public bool VerifyName(string name, bool showOnly = true)
         {
-            if (name.Length == 0)
-                return ReportError("name cannot empty.", showOnly);
+            if (string.IsNullOrEmpty(name))
+                return ReportError("name IsNullOrEmpty.", showOnly);
 
             if (char.IsDigit(name[0]))
                 return ReportError("name cannot begin with number.", showOnly);
@@ -347,9 +349,9 @@ namespace ConfigEditor
 
             foreach (var c in name)
             {
-                if (char.IsWhiteSpace(c) || c == '.')
+                if (char.IsWhiteSpace(c) || char.IsSymbol(c) || c == '.')
                 {
-                    return ReportError("name cannot use WhiteSpace and '.'", showOnly);
+                    return ReportError("char.IsWhiteSpace(c) || char.IsSymbol(c) || c == '.'", showOnly);
                 }
             }
             return true;
@@ -604,7 +606,7 @@ namespace ConfigEditor
             }
         }
 
-        private Dictionary<string, Document> Documents = new Dictionary<string, Document>();
+        public Dictionary<string, Document> Documents { get; } = new Dictionary<string, Document>();
 
         private bool Save(Document doc)
         {
@@ -662,6 +664,22 @@ namespace ConfigEditor
             throw new Exception("Open Document Error With '" + relatePath + "'");
         }
 
+        private Document OpenDocumentWithFilePath(string fileName, out BeanDefine define)
+        {
+            Document doc = new Document(this);
+            doc.SetFileName(fileName);
+            return OpenDocument(doc.RelateName, out define);
+        }
+
+        public void LoadAllDocument()
+        {
+            foreach (var fileName in System.IO.Directory.EnumerateFiles(
+                ConfigEditor.GetHome(), "*.xml", System.IO.SearchOption.AllDirectories))
+            {
+                OpenDocumentWithFilePath(fileName, out var _);
+            }
+        }
+
         private void openButton_Click(object sender, EventArgs e)
         {
             try
@@ -683,7 +701,7 @@ namespace ConfigEditor
                     }
                     else
                     {
-                        // used by foreign, no view
+                        // no grid
                         TabPage tab = NewTabPage(odoc.RelateName);
                         DataGridView grid = (DataGridView)tab.Controls[0];
                         LoadDocumentToView(grid, doc);
@@ -754,6 +772,7 @@ namespace ConfigEditor
         private void buildButton_Click(object sender, EventArgs e)
         {
             SaveAll();
+            LoadAllDocument();
             // TODO 遍历Home所有配置文件，并且生成代码等。
         }
 
@@ -1125,6 +1144,12 @@ namespace ConfigEditor
                 FormDefine.ShowDialog(this);
                 FormDefine.Dispose();
                 FormDefine = null;
+
+                foreach (var gridReload in ReloadGridsAfterFormDefineClosed)
+                {
+                    LoadDocumentToView(gridReload, gridReload.Tag as Document);
+                }
+                ReloadGridsAfterFormDefineClosed.Clear();
 
                 if (tabs.SelectedTab != null)
                 {
