@@ -130,6 +130,7 @@
     <Compile Include="Property\Unique.cs" />
     <Compile Include="Property\UniqueList.cs" />
     <Compile Include="Property\Url.cs" />
+    <Compile Include="Property\ForengnVerify.cs" />
     <Compile Include="Property\VerifyParam.cs" />
     <Compile Include="VarDefine.cs" />
     <EmbeddedResource Include="FormDefine.resx">

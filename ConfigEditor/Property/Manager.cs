@@ -92,7 +92,7 @@ namespace ConfigEditor.Property
             AddProperty(new Url());
             AddProperty(new Directory());
 
-            // BuildIn type. 不做校验的几个先不注册进去。这些不会在FormProperties中编辑。
+            // BuildIn verify. 不做校验的几个先不注册进去。这些不会在FormProperties中编辑。
             //AddBuildIn(new UndecidedVerify());
             AddBuildIn(new IntVerify());
             AddBuildIn(new LongVerify());
@@ -101,6 +101,7 @@ namespace ConfigEditor.Property
             //AddBuildIn(new ListVerify());
             AddBuildIn(new FloatVerify());
             AddBuildIn(new EnumVerify());
+            AddBuildIn(new ForengnVerify());
         }
     }
 }

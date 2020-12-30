@@ -344,7 +344,7 @@ namespace ConfigEditor
                         break;
 
                     case "VarForeign":
-                        string errForeign = FormMain.CheckForeign(e.FormattedValue as string, var);
+                        string errForeign = var.OpenForeign(e.FormattedValue as string, out var _);
                         if (null != errForeign)
                         {
                             e.Cancel = true;

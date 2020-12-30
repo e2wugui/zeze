@@ -173,6 +173,13 @@ namespace ConfigEditor
             DeleteData,
         }
 
+        public VarData GetLocalVarData(string varName)
+        {
+            if (VariableMap.TryGetValue(varName, out var varData))
+                return varData;
+            return null;
+        }
+
         public VarData GetVarData(int pathCurrentIndex, ColumnTag tag, int pathEndIndex)
         {
             if (pathCurrentIndex > pathEndIndex)

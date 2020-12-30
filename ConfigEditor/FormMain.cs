@@ -249,7 +249,7 @@ namespace ConfigEditor
                         {
                             p.VerifyCell(param);
                         }
-                        tag.PathLast.Define.VerifyCell(param);
+                        tag.PathLast.Define.Verify(param);
                     }
                 }
             }
@@ -295,7 +295,7 @@ namespace ConfigEditor
             {
                 p.VerifyCell(param);
             }
-            tag.PathLast.Define.VerifyCell(param);
+            tag.PathLast.Define.Verify(param);
         }
 
         public void OnGridCellEndEdit(object sender, DataGridViewCellEventArgs e)
@@ -1147,32 +1147,6 @@ namespace ConfigEditor
         {
             FormDefine?.LoadDefine();
             
-        }
-
-        // return null if check ok
-        public string CheckForeign(string foreign, VarDefine var)
-        {
-            if (foreign == null || foreign.Length == 0)
-                return null;
-
-            string[] newForeign = foreign.Split(':');
-            if (newForeign.Length != 2)
-                return "错误的Foreign格式。sample 'ConfigName:VarName'";
-
-            OpenDocument(newForeign[0], out var beanRef);
-            if (null == beanRef)
-                return "foreign Bean 不存在。";
-
-            VarDefine varForeign = beanRef.GetVariable(newForeign[1]);
-            if (null == varForeign)
-                return "foreign Bean 变量不存在。";
-
-            if (varForeign.Type == VarDefine.EType.List)
-                return "foreign Bean 变量类型不能为List。";
-
-            if (varForeign.Type != var.Type)
-                return "foreign Bean 变量类型和当前数据列的类型不匹配。";
-            return null;
         }
 
         private void buttonSaveAs_Click(object sender, EventArgs e)

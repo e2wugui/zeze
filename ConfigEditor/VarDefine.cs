@@ -115,14 +115,55 @@ namespace ConfigEditor
             }
         }
 
-        public void VerifyCell(Property.VerifyParam param)
+        public void Verify(Property.VerifyParam param)
         {
             var typeName = System.Enum.GetName(typeof(EType), Type).ToLower();
             if (param.FormMain.PropertyManager.BuildIns.TryGetValue(typeName, out var p))
             {
                 p.VerifyCell(param);
             }
+            if (param.FormMain.PropertyManager.BuildIns.TryGetValue("foreign", out var f))
+            {
+                f.VerifyCell(param);
+            }
         }
+
+        // return null if check ok
+        public string OpenForeign(out VarDefine foreignVar)
+        {
+            return OpenForeign(Foreign, out foreignVar);
+        }
+
+        public string OpenForeign(string foreign, out VarDefine foreignVar)
+        {
+            foreignVar = null;
+            if (foreign == null || foreign.Length == 0)
+                return null;
+
+            string[] newForeign = foreign.Split(':');
+            if (newForeign.Length != 2)
+                return "错误的Foreign格式。sample 'ConfigName:VarName'";
+
+            Parent.Document.Main.OpenDocument(newForeign[0], out var beanRef);
+            if (null == beanRef)
+                return "foreign Bean 不存在。";
+
+            foreignVar = beanRef.GetVariable(newForeign[1]);
+            if (null == foreignVar)
+                return "foreign Bean 变量不存在。";
+
+            if (foreignVar.Parent.Parent != null)
+                return "只能 foreign 到文档的 Root Bean。";
+
+            if (foreignVar.Type == EType.List)
+                return "foreign VarType 不能为 List。";
+
+            if (foreignVar.Type != Type)
+                return "foreign Bean 变量类型和当前数据列的类型不匹配。";
+
+            return null;
+        }
+
 
         public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex)
         {
