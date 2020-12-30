@@ -96,7 +96,7 @@ namespace ConfigEditor
             return name;
         }
 
-        public EType ToEType(string type)
+        public static EType ToEType(string type)
         {
             type = type.ToLower();
             switch (type)

@@ -394,23 +394,29 @@ namespace ConfigEditor
                 if (DialogResult.OK != input.ShowDialog(this))
                     break;
 
-                varName = input.TextBoxVarName.Text;
-                if (false == VerifyName(varName))
-                    continue;
-
-                (VarDefine var, bool create, string err) = hint.Parent.AddVariable(varName,
-                    input.CheckBoxIsList.Checked ? VarDefine.EType.List : VarDefine.EType.Undecided,
-                    input.TextBoxListRefBeanName.Text);
-
-                if (null == var)
+                try
                 {
-                    MessageBox.Show(err);
-                    continue;
+                    varName = input.TextBoxVarName.Text;
+                    if (false == VerifyName(varName))
+                        continue;
+                    VarDefine.EType varType = VarDefine.ToEType(input.ComboBoxVarType.Text);
+                    (VarDefine var, bool create, string err) =
+                        hint.Parent.AddVariable(varName, varType, input.TextBoxListRefBeanName.Text);
+
+                    if (null == var)
+                    {
+                        MessageBox.Show(err);
+                        continue;
+                    }
+                    result = var;
+                    createResult = create;
+                    this.UpdateWhenAddVariable(var);
+                    break;
                 }
-                result = var;
-                createResult = create;
-                this.UpdateWhenAddVariable(var);
-                break;
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.ToString());
+                }
             }
             input.Dispose();
             return (result, createResult);

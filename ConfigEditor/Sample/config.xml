@@ -7,6 +7,8 @@
         <variable name="了" type="Int" vw="50" />
         <BeanDefine name="啊21" RefCount="1" Locked="False" />
         <variable name="啊21" type="List" value="config.list1.v.啊21" vw="50" />
+        <variable name="啊" type="Undecided" vw="50" />
+        <variable name="去" type="Long" vw="50" />
       </BeanDefine>
       <variable name="v" type="List" value="config.list1.v" vw="50" />
     </BeanDefine>

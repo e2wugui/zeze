@@ -15,15 +15,12 @@ namespace ConfigEditor
         public FormInputVarDefine()
         {
             InitializeComponent();
-        }
-
-        private void FormInputVarDefine_Load(object sender, EventArgs e)
-        {
-
+            comboBoxTypes.DataSource = System.Enum.GetValues(typeof(VarDefine.EType));
+            comboBoxTypes.SelectedIndex = 0;
         }
 
         public TextBox TextBoxVarName { get { return textBoxVarName; } }
-        public CheckBox CheckBoxIsList { get { return checkBoxIsList;  } }
+        public ComboBox ComboBoxVarType { get { return comboBoxTypes;  } }
         public TextBox TextBoxListRefBeanName {  get { return textBoxListRefBeanName; } }
     }
 }
