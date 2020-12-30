@@ -6,49 +6,11 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
-using System.Xml;
 
 namespace ConfigEditor
 {
     public partial class FormMain : Form
     {
-        public class EditorConfig
-        {
-            public IList<string> RecentHomes { get; set; }
-
-            public Size FormMainSize { get; set; } = new Size(828, 569);
-            public Point FormMainLocation { get; set; } = new Point(150, 80);
-            public FormWindowState FormMainState { get; set; } = FormWindowState.Maximized;
-
-            public Size FormErrorSize { get; set; } = new Size(925, 209);
-            public Point FormErrorLocation { get; set; } = new Point(100, 649);
-            public FormWindowState FormErrorState { get; set; } = FormWindowState.Normal;
-
-            public string GetHome()
-            {
-                return RecentHomes[0];
-            }
-
-            public void SetRecentHome(string home)
-            {
-                if (!System.IO.Directory.Exists(home))
-                    home = Environment.CurrentDirectory;
-
-                RecentHomes.Insert(0, home);
-                IList<string> distinct = new List<string>();
-                foreach (var r in RecentHomes.Distinct())
-                    distinct.Add(r);
-                RecentHomes = distinct;
-                while (RecentHomes.Count > 10)
-                    RecentHomes.RemoveAt(RecentHomes.Count - 1);
-            }
-        }
-        
-        public class ProjectConfig
-        {
-            public string ResourceHome { get; set; } // 这个配置用来给 Property.File 用来检查文件是否存在。
-        }
-
         public EditorConfig ConfigEditor { get; private set; }
         public ProjectConfig ConfigProject { get; private set; }
 
@@ -123,7 +85,7 @@ namespace ConfigEditor
             }
 
             FormSelectRecentHome select = new FormSelectRecentHome();
-            select.Config = ConfigEditor;
+            select.InitComboRecentHomes(ConfigEditor);
             if (DialogResult.OK != select.ShowDialog(this))
             {
                 select.Dispose();

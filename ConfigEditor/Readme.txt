@@ -17,17 +17,18 @@
 
 Test
 	define 编辑基本完工。
-	数据即时验证基本完工（已有的，在define里面双击属性列设置）。
-	嵌套list问题：define中add时创建两个item，出现过一次，后来没有发现（看错了？多测试）。
+	数据即时验证基本完工（已有的，在define里面双击属性列设置）。	
 
-	* 变量(数据列)顺序允许调整。操作：在Defne窗口中的行首上拖放（只能拖动变量行）。
-	* 基本类型验证加入了。
-	* foreign 校验加入了。
-	* 变量改名。会更新Foreign和数据。
+	* NEW 变量(数据列)顺序允许调整。操作：在Defne窗口中的行首上拖放（只能拖动变量行）。
+	* NEW 基本类型验证加入了。
+	* NEW foreign 校验加入了。
+	* NEW 变量改名。会更新Foreign和数据。涉及全局搜索，大量配置时，可能很慢。
+
+	* BUG 保存了Error窗口的位置。有时会变成初始化的位置。
+	* BUG 嵌套list问题：define中addVar时创建两个item，出现过一次，后来没有发现（看错了？多测试）。
 
 性能
-	加了一些数据，发现DataGridView刷的很慢；窗口resize也很慢；一开始就加了SuspendLayout了，没用。先写功能，这个慢慢来了。
-	加了Double buffering后，看起来速度可以了。先观察。
+	几千行看看会怎么样。
 
 TODO
 	类型识别和Gen。
@@ -39,10 +40,11 @@ TODO
 	SaveAs
 
 问题
-	1 Browse Dialog 初始显示位置偏离，可能跟windows放大有关，其他机器也许可以。
-	2 Grid.Column.Width 保存在定义的Bean.Var中，如果Bean被多处引用或者多个实例（比如List中），
+	* Browse Dialog 初始显示位置偏离，可能跟windows放大有关，其他机器也许可以。
+	* Grid.Column.Width 保存在定义的Bean.Var中，如果Bean被多处引用或者多个实例（比如List中），
 	  那么这些列共享一个配置. 当然编辑的时候，可以把同一个Bean.Var的列调整成不同的Width。
 	  此时Bean.Var中保存最后一次调整Column.Width时的值。
-	3 不要在编辑工具外部直接改名。
+	* 不要在编辑工具外部直接改名。
 	  文件改名（改路径），怎么更新相关引用？扫描所有的配置文件？
-	4 VarComment 先支持单行注释。多行再考虑。
+	* VarComment 先支持单行注释。多行再考虑。
+	* 变量改名和Bean改名都需要全部搜索，不大好优化。使用时注意。

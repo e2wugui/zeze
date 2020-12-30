@@ -17,24 +17,15 @@ namespace ConfigEditor
             InitializeComponent();
         }
 
-        private FormMain.EditorConfig _Config;
-
-        public FormMain.EditorConfig Config
+        public void InitComboRecentHomes(EditorConfig Config)
         {
-            get
+            comboBoxRecentHomes.Items.Clear();
+            foreach (var home in Config.RecentHomes)
             {
-                return _Config;
+                comboBoxRecentHomes.Items.Add(home);
             }
-            set
-            {
-                _Config = value;
-                foreach (var home in _Config.RecentHomes)
-                {
-                    comboBoxRecentHomes.Items.Add(home);
-                }
-                if (comboBoxRecentHomes.Items.Count > 0)
-                    comboBoxRecentHomes.SelectedIndex = 0;
-            }
+            if (comboBoxRecentHomes.Items.Count > 0)
+                comboBoxRecentHomes.SelectedIndex = 0;
         }
         public ComboBox ComboBoxRecentHomes { get { return comboBoxRecentHomes; } }
 
