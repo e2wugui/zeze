@@ -165,5 +165,11 @@ namespace ConfigEditor
                 Errors.Remove(c);
             }
         }
+
+        public void Clear()
+        {
+            Errors.Clear();
+            grid.Rows.Clear();
+        }
     }
 }

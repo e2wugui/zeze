@@ -2,12 +2,52 @@
 <ZezeConfig>
   <BeanDefine RefCount="0" Locked="False">
     <BeanDefine name="list1" RefCount="2" Locked="False">
-      <variable name="inlist1" type="Undecided" vw="91" />
+      <variable name="unique0" type="Undecided" vw="91" properties="unique;" />
     </BeanDefine>
-    <variable name="unique" type="Undecided" vw="50" properties="unique;" />
+    <variable name="unique" type="Undecided" vw="90" properties="unique;" />
     <variable name="list1" type="List" value="config.list1" vw="50" />
-    <variable name="listref1" type="List" value="config.list1" vw="50" />
-    <variable name="dns" type="Undecided" properties="file;" vw="50" />
-    <variable name="dns2" type="Undecided" vw="50" />
+    <variable name="dns" type="Undecided" properties="dns;" vw="111" />
+    <variable name="list2ref" type="List" value="config.list1" vw="50" />
   </BeanDefine>
+  <bean row="0">
+    <unique>www.163.com</unique>
+    <list1>
+      <list>
+        <bean row="0">
+          <unique0>1</unique0>
+        </bean>
+        <bean row="1">
+          <unique0>1</unique0>
+        </bean>
+      </list>
+    </list1>
+    <list2ref>
+      <list>
+        <bean row="0">
+          <unique0>1</unique0>
+        </bean>
+      </list>
+    </list2ref>
+  </bean>
+  <bean row="1">
+    <list1>
+      <list>
+        <bean row="0">
+          <unique0>2</unique0>
+        </bean>
+        <bean row="1">
+          <unique0>2</unique0>
+        </bean>
+      </list>
+    </list1>
+    <unique>
+    </unique>
+    <list2ref>
+      <list>
+        <bean row="0">
+          <unique0>2</unique0>
+        </bean>
+      </list>
+    </list2ref>
+  </bean>
 </ZezeConfig>

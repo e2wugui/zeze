@@ -166,11 +166,21 @@ namespace ConfigEditor
             }
         }
 
+        public delegate void UpdateAction(DataGridView grid, int colIndex, VarData varData);
+
         public enum EUpdate
         {
             Data,
             Grid,
             DeleteData,
+            SearchDataByVarDefine,
+        }
+
+        public class UpdateParam
+        {
+            public EUpdate UpdateType { get; set; }
+            public VarDefine SearchVarDefine { get; set; }
+            public UpdateAction UpdateAction { get; set; }
         }
 
         public VarData GetLocalVarData(string varName)
@@ -209,7 +219,7 @@ namespace ConfigEditor
         }
 
         public bool Update(DataGridView grid, DataGridViewCellCollection cells,
-            ref int colIndex, int pathIndex, EUpdate uptype)
+            ref int colIndex, int pathIndex, UpdateParam param)
         {
             // ColumnCount maybe change in loop
             for (; colIndex < grid.ColumnCount; ++colIndex)
@@ -235,10 +245,11 @@ namespace ConfigEditor
                 ColumnTag.VarInfo varInfo = tag.Path[pathIndex];
                 if (false == VariableMap.TryGetValue(varInfo.Define.Name, out var varData))
                 {
-                    switch (uptype)
+                    switch (param.UpdateType)
                     {
                         case EUpdate.Data:
                             break; // will new data
+                        case EUpdate.SearchDataByVarDefine:
                         case EUpdate.Grid:
                             if (varInfo.Define.Type == VarDefine.EType.List)
                             {
@@ -257,9 +268,17 @@ namespace ConfigEditor
                     varData = new VarData(this, varInfo.Define.Name);
                     VariableMap.Add(varInfo.Define.Name, varData);
                 }
+                else if (param.UpdateType == EUpdate.SearchDataByVarDefine)
+                {
+                    if (param.SearchVarDefine == varInfo.Define)
+                    {
+                        param.UpdateAction(grid, colIndex, varData);
+                    }
+                }
+
                 if (varInfo.Define.Type == VarDefine.EType.List)
                 {
-                    if (uptype == EUpdate.DeleteData)
+                    if (param.UpdateType == EUpdate.DeleteData)
                     {
                         if (pathIndex + 1 < tag.Path.Count)
                         {
@@ -267,7 +286,8 @@ namespace ConfigEditor
                             {
                                 Bean bean1 = varData.Beans[varInfo.ListIndex];
                                 if (null != bean1)
-                                    bean1.Update(grid, cells, ref colIndex, pathIndex + 1, uptype); // always return true;
+                                    bean1.Update(grid, cells, ref colIndex, pathIndex + 1, param);
+                                // always return true;
                             }
                         }
                         else
@@ -300,7 +320,7 @@ namespace ConfigEditor
 
                     if (varInfo.ListIndex >= varData.Beans.Count)
                     {
-                        if (EUpdate.Data == uptype)
+                        if (EUpdate.Data == param.UpdateType)
                         {
                             for (int i = varData.Beans.Count; i < varInfo.ListIndex; ++i)
                             {
@@ -308,7 +328,7 @@ namespace ConfigEditor
                             }
                             Bean create = new Bean(Document);
                             varData.Beans.Add(create);
-                            if (create.Update(grid, cells, ref colIndex, pathIndex + 1, uptype))
+                            if (create.Update(grid, cells, ref colIndex, pathIndex + 1, param))
                                 return true;
                         }
                         // 忽略剩下的没有数据的item直到ListEnd。
@@ -319,15 +339,15 @@ namespace ConfigEditor
                     Bean bean = varData.Beans[varInfo.ListIndex];
                     if (null != bean)
                     {
-                        if (bean.Update(grid, cells, ref colIndex, pathIndex + 1, uptype))
+                        if (bean.Update(grid, cells, ref colIndex, pathIndex + 1, param))
                             return true;
                         continue;
                     }
-                    if (EUpdate.Data == uptype)
+                    if (EUpdate.Data == param.UpdateType)
                     {
                         Bean create = new Bean(Document);
                         varData.Beans[varInfo.ListIndex] = create;
-                        if (create.Update(grid, cells, ref colIndex, pathIndex + 1, uptype))
+                        if (create.Update(grid, cells, ref colIndex, pathIndex + 1, param))
                             return true;
                     }
                     continue;
@@ -336,7 +356,7 @@ namespace ConfigEditor
                 if (pathIndex + 1 != tag.Path.Count)
                     throw new Exception("Remain Path, But Is Not A List");
 
-                switch (uptype)
+                switch (param.UpdateType)
                 {
                     case EUpdate.Data:
                         // OnGridCellEndEdit update data
@@ -345,6 +365,10 @@ namespace ConfigEditor
                         string newValue = cell.Value as string;
                         varData.Value = newValue;
                         return true;
+
+                    case EUpdate.SearchDataByVarDefine:
+                        // 上面已经做完了。
+                        break;
 
                     case EUpdate.Grid:
                         cells[colIndex].Value = varData.Value; // upate to grid
@@ -359,6 +383,19 @@ namespace ConfigEditor
                 }
             }
             return true;
+        }
+
+        public void RenameVar(string oldName, string newName)
+        {
+            if (oldName.Equals(newName))
+                return;
+
+            if (VariableMap.TryGetValue(oldName, out var exist))
+            {
+                exist.Name = newName;
+                VariableMap.Add(newName, exist);
+                VariableMap.Remove(oldName);
+            }
         }
 
         public void Save(XmlElement parent)

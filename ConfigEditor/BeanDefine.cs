@@ -18,6 +18,18 @@ namespace ConfigEditor
         private int RefCount = 1;
         public bool Locked { get; set; } = false;
 
+        public void InitializeListReference()
+        {
+            foreach (var v in Variables)
+            {
+                v.InitializeListReference();
+            }
+            foreach (var b in BeanDefines.Values)
+            {
+                b.InitializeListReference();
+            }
+        }
+
         public void UpdateForeign(string oldForeign, string newForeign)
         {
             foreach (var v in Variables)

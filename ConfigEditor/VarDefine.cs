@@ -182,6 +182,14 @@ namespace ConfigEditor
             return null;
         }
 
+        public void InitializeListReference()
+        {
+            if (Type == EType.List)
+            {
+                Parent.Document.Main.OpenDocument(Value, out var r);
+                Reference = r ?? throw new Exception("list reference bean not found: " + Value);
+            }
+        }
 
         public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex)
         {
@@ -207,10 +215,7 @@ namespace ConfigEditor
                         }
 
                         if (null == Reference)
-                        {
-                            Parent.Document.Main.OpenDocument(Value, out var r);
-                            Reference = r ?? throw new Exception("list reference bean not found: " + Value);
-                        }
+                            throw new Exception("List Reference Not Initialize.");
 
                         ++columnIndex;
                         int colAdded = Reference.BuildGridColumns(grid, columnIndex,

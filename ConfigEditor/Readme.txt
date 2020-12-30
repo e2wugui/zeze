@@ -23,7 +23,7 @@ Test
 	* 变量(数据列)顺序允许调整。操作：在Defne窗口中的行首上拖放（只能拖动变量行）。
 	* 基本类型验证加入了。
 	* foreign 校验加入了。
-	* 变量改名。更新Foreign。TODO 更新数据里面的名字。
+	* 变量改名。会更新Foreign和数据。
 
 性能
 	加了一些数据，发现DataGridView刷的很慢；窗口resize也很慢；一开始就加了SuspendLayout了，没用。先写功能，这个慢慢来了。

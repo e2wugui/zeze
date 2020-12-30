@@ -175,28 +175,13 @@ namespace ConfigEditor
 
             doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
 
-            /* 加快装载速度。
-             * 太多地方直接使用grid,而且装载过程中，Column会增加，所以这个优化方法暂时行不通。
-            List<DataGridViewRow> rows = new List<DataGridViewRow>(doc.Beans.Count);
-            foreach (var bean in doc.Beans)
-            {
-                DataGridViewRow row = new DataGridViewRow();
-                row.CreateCells(grid);
-                SetSpecialColumnText(grid, row.Cells);
-                int colIndex = 0;
-                if (bean.Update(grid, row.Cells, ref colIndex, 0, Bean.EUpdate.Grid))
-                    break;
-                rows.Add(row);
-            }
-            grid.Rows.AddRange(rows.ToArray());
-            */
-
+            var param = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Grid };
             foreach (var bean in doc.Beans)
             {
                 AddGridRow(grid);
                 DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
                 int colIndex = 0;
-                if (bean.Update(grid, cells, ref colIndex, 0, Bean.EUpdate.Grid))
+                if (bean.Update(grid, cells, ref colIndex, 0, param))
                     break;
             }
 
@@ -215,7 +200,6 @@ namespace ConfigEditor
                 tag.BuildUniqueIndex(grid, i);
             }
             VerifyAll(grid);
-
             grid.ResumeLayout();
         }
 
@@ -223,6 +207,7 @@ namespace ConfigEditor
         {
             try
             {
+                FormError.Clear();
                 int skipLastRow = grid.RowCount - 1;
                 for (int rowIndex = 0; rowIndex < skipLastRow; ++rowIndex)
                 {
@@ -310,14 +295,39 @@ namespace ConfigEditor
 
             Document doc = (Document)grid.Tag;
             doc.IsChanged = true;
+            bool added = false;
             if (e.RowIndex == grid.RowCount - 1) // is last row
             {
                 doc.Beans.Add(new Bean(doc));
                 AddGridRow(grid);
+                added = true;
             }
             DataGridViewCellCollection cells = grid.Rows[e.RowIndex].Cells;
             int colIndex = e.ColumnIndex;
-            doc.Beans[e.RowIndex].Update(grid, cells, ref colIndex, 0, Bean.EUpdate.Data);
+            var param = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Data };
+            doc.Beans[e.RowIndex].Update(grid, cells, ref colIndex, 0, param);
+
+            if (added)
+            {
+                BuildUniqueIndexOnAddRow(grid, e.RowIndex);
+            }
+        }
+
+        private void BuildUniqueIndexOnAddRow(DataGridView grid, int rowIndex)
+        {
+            for (int i = 0; i < grid.ColumnCount; ++i)
+            {
+                ColumnTag tag = grid.Columns[i].Tag as ColumnTag;
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.AddVariable:
+                    case ColumnTag.ETag.ListStart:
+                    case ColumnTag.ETag.ListEnd:
+                        continue;
+                }
+                DataGridViewCell cell = grid.Rows[rowIndex].Cells[i];
+                tag.AddUniqueIndex(cell.Value as string, cell);
+            }
         }
 
         private bool ReportError(string msg, bool showOnly)
@@ -646,6 +656,8 @@ namespace ConfigEditor
             doc.Open();
             Documents.Add(doc.RelateName, doc);
             define = doc.BeanDefine.Search(refbeans, offset);
+            // 必须在 Documents.Add 之后初始化。否则里面查找就可能找不到。
+            doc.BeanDefine.InitializeListReference();
             return doc;
         }
 
@@ -717,6 +729,8 @@ namespace ConfigEditor
                     DataGridView grid = (DataGridView)tab.Controls[0];
                     doc.Open();
                     Documents.Add(doc.RelateName, doc);
+                    // 必须在 Documents.Add 之后初始化。否则里面查找就可能找不到。
+                    doc.BeanDefine.InitializeListReference();
                     LoadDocumentToView(grid, doc);
                     tabs.Controls.Add(tab);
                     tabs.SelectedTab = tab;
@@ -800,6 +814,7 @@ namespace ConfigEditor
                     return null;
             }
 
+            var updateParam = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.DeleteData }; // never change
             // delete data and column, all reference(opened grid).
             foreach (var tab in tabs.Controls)
             {
@@ -816,7 +831,7 @@ namespace ConfigEditor
                         {
                             DataGridViewCellCollection cells = gridref.Rows[r].Cells;
                             int colref = c;
-                            doc.Beans[r].Update(gridref, cells, ref colref, 0, Bean.EUpdate.DeleteData);
+                            doc.Beans[r].Update(gridref, cells, ref colref, 0, updateParam);
                         }
                         // delete columns
                         switch (tagref.Tag)

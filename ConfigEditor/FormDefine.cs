@@ -405,6 +405,38 @@ namespace ConfigEditor
             }
         }
 
+        private void UpdateData(Document doc, VarDefine var, string newVarName)
+        {
+            HashSet<BeanDefine> deps = new HashSet<BeanDefine>();
+            doc.BeanDefine.Depends(deps);
+            if (deps.Contains(var.Parent))
+            {
+                DataGridView gridTmp = new DataGridView();
+                gridTmp.SuspendLayout();
+                doc.BeanDefine.BuildGridColumns(gridTmp, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
+                HashSet<Bean.VarData> varDatas = new HashSet<Bean.VarData>();
+                var param = new Bean.UpdateParam()
+                {
+                    UpdateType = Bean.EUpdate.SearchDataByVarDefine,
+                    SearchVarDefine = var,
+                    UpdateAction = (DataGridView grid, int colCurrentIndex, Bean.VarData varData) => varDatas.Add(varData),
+                };
+                foreach (var bean in doc.Beans)
+                {
+                    gridTmp.Rows.Add();
+                    DataGridViewCellCollection cellsTmp = gridTmp.Rows[gridTmp.RowCount - 1].Cells;
+                    int colIndex = 0;
+                    if (bean.Update(gridTmp, cellsTmp, ref colIndex, 0, param))
+                        break;
+                }
+                foreach (var varData in varDatas)
+                {
+                    varData.Parent.RenameVar(varData.Name, newVarName);
+                }
+                gridTmp.Dispose();
+            }
+        }
+
         private void define_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             if (e.ColumnIndex < 0)
@@ -425,22 +457,20 @@ namespace ConfigEditor
                     string newVarName = cells[colName].Value as string;
                     if (false == var.Name.Equals(newVarName))
                     {
+                        string oldVarName = var.Name;
                         string oldForeignName = var.Parent.FullName() + ":" + var.Name;
                         var.Name = newVarName;
                         string newForengnName = var.Parent.FullName() + ":" + var.Name;
+                        var.Name = oldVarName; // 修改数据里面的名字需要用到旧名字。最后再来修改。
                         var.Parent.Document.IsChanged = true;
 
-                        // update foreign
                         FormMain.LoadAllDocument();
                         foreach (var doc in FormMain.Documents.Values)
                         {
-                            foreach (var beanData in doc.Beans)
-                            {
-                                // TODO update data
-                                // beandData = ;
-                            }
+                            UpdateData(doc, var, newVarName);
                             doc.BeanDefine.UpdateForeign(oldForeignName, newForengnName);
                         }
+                        var.Name = newVarName;
                         FormMain.ReloadAllGridIfContains(var);
                     }
                     break;
