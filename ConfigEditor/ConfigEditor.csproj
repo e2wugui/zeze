@@ -116,6 +116,9 @@
     <Compile Include="FormSelectRecentHome.Designer.cs">
       <DependentUpon>FormSelectRecentHome.cs</DependentUpon>
     </Compile>
+    <Compile Include="Gen\cs\BeanFormatter.cs" />
+    <Compile Include="Gen\cs\Main.cs" />
+    <Compile Include="Gen\cs\TypeName.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProjectConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -176,8 +179,6 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Gen\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

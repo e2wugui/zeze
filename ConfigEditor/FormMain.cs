@@ -341,6 +341,17 @@ namespace ConfigEditor
                     if (tagref.Tag == ColumnTag.ETag.AddVariable && tagref.PathLast.Define.Parent == var.Parent)
                     {
                         c += var.BuildGridColumns(gridref, c, tagref.Parent(ColumnTag.ETag.Normal), -1);
+
+                        // 如果是List，第一次加入的时候，默认创建一个Item列。
+                        // 但是仍然有问题：如果这个Item没有输入数据，下一次打开时，不会默认创建。需要手动增加Item。
+                        if (var.Type == VarDefine.EType.List)
+                        {
+                            ColumnTag tagListEnd = gridref.Columns[c - 1].Tag as ColumnTag;
+                            ColumnTag tagListEndCopy = tagListEnd.Copy(ColumnTag.ETag.Normal);
+                            tagListEndCopy.PathLast.ListIndex = -tagListEnd.PathLast.ListIndex; // 肯定是0，保险写法。
+                            --tagListEnd.PathLast.ListIndex;
+                            c += var.Reference.BuildGridColumns(gridref, c - 1, tagListEndCopy, -1);
+                        }
                         ((Document)gridref.Tag).IsChanged = true;
                     }
                 }
@@ -1047,7 +1058,7 @@ namespace ConfigEditor
 
             if (tagListEnd.PathLast.ListIndex == -1)
             {
-                // 只有一个item，仅删除数据，不需要删除Column。需要更新grid。
+                // TODO 只有一个item，仅删除数据，不需要删除Column。需要更新grid。
                 for (int row = 0; row < grid.RowCount - 1; ++row)
                 {
                     DoActionUntilBeanEnd(grid, colBeanBegin, colListEnd,
@@ -1136,7 +1147,7 @@ namespace ConfigEditor
                     grid.ResumeLayout();
                 }
 
-                // 同时显示两个窗口，需要同步数据。
+                // 同时显示两个窗口，需要同步数据。不是先这种方案了。
                 // FormDefine.Show();
             }
             else
@@ -1153,7 +1164,6 @@ namespace ConfigEditor
 
         private void buttonSaveAs_Click(object sender, EventArgs e)
         {
-            MessageBox.Show($"tabs({tabs.ClientSize.Width}, {tabs.ClientSize.Height}) grid({tabs.SelectedTab.Controls[0].Size.Width},{tabs.SelectedTab.Controls[0].Size.Height})");
             // TODO
         }
 

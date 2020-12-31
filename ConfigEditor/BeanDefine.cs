@@ -141,12 +141,12 @@ namespace ConfigEditor
             return (var, create, "");
         }
 
-        public string FullName()
+        public string FullName(char sep = '.')
         {
             string name = Name;
             for (var b = Parent; null != b; b = b.Parent)
             {
-                name = b.Name + "." + name;
+                name = b.Name + sep + name;
             }
             return name;
         }

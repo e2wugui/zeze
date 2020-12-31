@@ -19,6 +19,31 @@ namespace ConfigEditor
         public FormMain Main { get; }
         public bool IsChanged { get; set; } = false;
 
+        public static string NamespacePrefix { get; set; } = "Config";
+
+        public string Namespace
+        {
+            get
+            {
+                int last = RelateName.LastIndexOf('.');
+                if (last < 0)
+                    return NamespacePrefix;
+                return NamespacePrefix + "." + RelateName.Substring(0, last);
+            }
+        }
+
+        public StreamWriter OpenStreamWriter(string srcHome, string ext)
+        {
+            string[] parts = RelateName.Split('.');
+            int dirCount = parts.Length - 1;
+            string dir = Path.Combine(srcHome, NamespacePrefix);
+            for (int i = 0; i < dirCount; ++i)
+                dir = Path.Combine(dir, parts[i]);
+            Directory.CreateDirectory(dir);
+            string path = Path.Combine(dir, Name + ext);
+            return new StreamWriter(path, false, Encoding.UTF8);
+        }
+
         public void SetFileName(string fileName)
         {
             FileName = System.IO.Path.GetFullPath(fileName);

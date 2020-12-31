@@ -218,8 +218,12 @@ namespace ConfigEditor
                             throw new Exception("List Reference Not Initialize.");
 
                         ++columnIndex;
-                        int colAdded = Reference.BuildGridColumns(grid, columnIndex,
-                            tag.Copy(tag.Tag).AddVar(this, listIndex >= 0 ? listIndex : 0), -1);
+                        int colAdded = 0;
+                        if (listIndex >= 0)
+                        {
+                            colAdded = Reference.BuildGridColumns(grid, columnIndex,
+                                tag.Copy(tag.Tag).AddVar(this, listIndex), -1);
+                        }
 
                         DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
                         columnIndex += colAdded;
@@ -230,7 +234,8 @@ namespace ConfigEditor
                             HeaderText = "]" + this.Name,
                             ReadOnly = true,
                             ToolTipText = Name + ": 双击此列增加List Item。",
-                            Tag = tag.Copy(ColumnTag.ETag.ListEnd).AddVar(this, -1), // 初始为-1，以后在Bean.SetDataToGrid中修改。
+                            // 这里的 PathLast.ListIndex 是List中最大的Item数量，以后在Bean.Update中修改。
+                            Tag = tag.Copy(ColumnTag.ETag.ListEnd).AddVar(this, 0),
                             Frozen = false,
                             AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                         });
