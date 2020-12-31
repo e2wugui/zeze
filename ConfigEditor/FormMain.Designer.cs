@@ -51,6 +51,7 @@ namespace ConfigEditor
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.deleteVariableColumnToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteListItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripButtonConfig = new System.Windows.Forms.ToolStripButton();
             this.toolStrip1.SuspendLayout();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -82,6 +83,7 @@ namespace ConfigEditor
             this.buttonSaveAs,
             this.toolStripSeparator2,
             this.toolStripButtonDefine,
+            this.toolStripButtonConfig,
             this.buildButton,
             this.toolStripSeparator3,
             this.toolStripButtonError});
@@ -237,6 +239,16 @@ namespace ConfigEditor
             this.deleteListItemToolStripMenuItem.Text = "Delete &List Item";
             this.deleteListItemToolStripMenuItem.Click += new System.EventHandler(this.deleteListItemToolStripMenuItem_Click);
             // 
+            // toolStripButtonConfig
+            // 
+            this.toolStripButtonConfig.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripButtonConfig.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonConfig.Image")));
+            this.toolStripButtonConfig.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonConfig.Name = "toolStripButtonConfig";
+            this.toolStripButtonConfig.Size = new System.Drawing.Size(47, 22);
+            this.toolStripButtonConfig.Text = "Con&fig";
+            this.toolStripButtonConfig.Click += new System.EventHandler(this.toolStripButtonConfig_Click);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -280,6 +292,7 @@ namespace ConfigEditor
         private System.Windows.Forms.ToolStripButton toolStripButtonError;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
         private System.Windows.Forms.ToolStripButton toolStripButtonClose;
+        private System.Windows.Forms.ToolStripButton toolStripButtonConfig;
     }
 }
 

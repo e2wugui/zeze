@@ -32,11 +32,12 @@ Test
 
 	* CHANGE 新增变量编辑窗口，list类型引用Bean改成ComboBox。目前仅包含当前打开文件里面定义的。
 
+	* NEW 菜单 Config。
+
 性能
 	* 几千行看看会怎么样。
 
 TODO
-	FormAddVar Reference 改成 ComboBox
 	FormProjectConfig
 	类型识别和Gen。
 	Gen 先转换数据（并进行识别和统计），然后生成代码。

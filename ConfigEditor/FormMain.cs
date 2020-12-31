@@ -1174,6 +1174,7 @@ namespace ConfigEditor
 
         private void buttonSaveAs_Click(object sender, EventArgs e)
         {
+            MessageBox.Show(ConfigProject.ResourceHome);
             // TODO
         }
 
@@ -1212,6 +1213,14 @@ namespace ConfigEditor
             }
             FormError.OnRemoveGrid(grid);
             tabs.Controls.Remove(tabs.SelectedTab);
+        }
+
+        private void toolStripButtonConfig_Click(object sender, EventArgs e)
+        {
+            FormProjectConfig form = new FormProjectConfig();
+            form.FormMain = this;
+            form.ShowDialog();
+            form.Dispose();
         }
     }
 }
