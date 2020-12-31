@@ -146,9 +146,21 @@ namespace ConfigEditor
             string name = Name;
             for (var b = Parent; null != b; b = b.Parent)
             {
-                name = b.Name + sep + name;
+                name = b.Name + "." + name;
             }
-            return name;
+            string docpath = Parent?.Document.RelatePath;
+            if (string.IsNullOrEmpty(docpath))
+                return name;
+            return docpath + "." + name;
+        }
+
+        public void CollectFullNameIncludeSubBeanDefine(List<string> result)
+        {
+            result.Add(FullName());
+            foreach (var sub in BeanDefines.Values)
+            {
+                sub.CollectFullNameIncludeSubBeanDefine(result);
+            }
         }
 
         public void ForEach(Action<BeanDefine> action)

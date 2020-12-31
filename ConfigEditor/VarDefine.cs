@@ -111,7 +111,10 @@ namespace ConfigEditor
             {
                 name = b.Name + "." + name;
             }
-            return name;
+            string docpath = Parent.Document.RelatePath;
+            if (string.IsNullOrEmpty(docpath))
+                return name;
+            return docpath + "." + name;
         }
 
         public static EType ToEType(string type)

@@ -24,15 +24,20 @@ Test
 	* NEW foreign 校验加入了。
 	* NEW 变量改名。会更新Foreign和数据。涉及全局搜索，大量配置时，可能很慢。
 
-	* BUG 保存了Error窗口的位置。有时会变成初始化的位置。
+	* BUG 保存了FormError的窗口位置。但是有时会变成初始化的位置。
 	* BUG 嵌套list问题：define中addVar时创建两个item，出现过一次，后来没有发现（看错了？多测试）。
-	* CHANGE list变量在没有数据的时候不会显示一个默认的Item，需要双击']'列手动添加。
-	  当然AddVar时为了方便会加入一个默认Item。但是如果没有输入数据，关闭再打开旧需要手动增加了。
+
+	* CHANGE 为了支持循环引用Bean。list变量在没有数据的时候不会显示一个默认的Item，需要双击']'列手动添加。
+	  当然AddVar时为了方便会加入一个默认Item。但是如果没有输入数据，关闭再打开就需要手动增加了。
+
+	* CHANGE 新增变量编辑窗口，list类型引用Bean改成ComboBox。目前仅包含当前打开文件里面定义的。
 
 性能
 	* 几千行看看会怎么样。
 
 TODO
+	FormAddVar Reference 改成 ComboBox
+	FormProjectConfig
 	类型识别和Gen。
 	Gen 先转换数据（并进行识别和统计），然后生成代码。
 	自动完成和enum识别。
@@ -42,11 +47,6 @@ TODO
 	SaveAs
 
 问题
-	* Browse Dialog 初始显示位置偏离，可能跟windows放大有关，其他机器也许可以。
-	* Grid.Column.Width 保存在定义的Bean.Var中，如果Bean被多处引用或者多个实例（比如List中），
-	  那么这些列共享一个配置. 当然编辑的时候，可以把同一个Bean.Var的列调整成不同的Width。
-	  此时Bean.Var中保存最后一次调整Column.Width时的值。
-	* 不要在编辑工具外部直接改名。
-	  文件改名（改路径），怎么更新相关引用？扫描所有的配置文件？
+	* 不要在编辑工具外部直接改名。文件改名（改路径），怎么更新相关引用？扫描所有的配置文件？
 	* VarComment 先支持单行注释。多行再考虑。
-	* 变量改名和Bean改名都需要全部搜索，不大好优化。使用时注意。
+	* 变量改名需要搜索全部配置，不大好优化。使用时注意。

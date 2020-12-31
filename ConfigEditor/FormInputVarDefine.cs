@@ -21,6 +21,6 @@ namespace ConfigEditor
 
         public TextBox TextBoxVarName { get { return textBoxVarName; } }
         public ComboBox ComboBoxVarType { get { return comboBoxTypes;  } }
-        public TextBox TextBoxListRefBeanName {  get { return textBoxListRefBeanName; } }
+        public ComboBox ComboBoxBeanDefines {  get { return comboBoxBeanDefines; } }
     }
 }

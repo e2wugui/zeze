@@ -370,6 +370,16 @@ namespace ConfigEditor
             FormInputVarDefine input = new FormInputVarDefine();
             input.StartPosition = FormStartPosition.CenterParent;
 
+            // 初始化 input.ComboBoxBeanDefines。
+            // 如果要全部定义，调用 LoadAllDocument.
+            List<string> beanDefineFullNames = new List<string>();
+            foreach (var doc in Documents.Values)
+            {
+                doc.BeanDefine.CollectFullNameIncludeSubBeanDefine(beanDefineFullNames);
+            }
+            beanDefineFullNames.Sort();
+            input.ComboBoxBeanDefines.Items.AddRange(beanDefineFullNames.ToArray());
+
             string varName = "";
             VarDefine result = null;
             bool createResult = false;
@@ -386,7 +396,7 @@ namespace ConfigEditor
                         continue;
                     VarDefine.EType varType = VarDefine.ToEType(input.ComboBoxVarType.Text);
                     (VarDefine var, bool create, string err) =
-                        hint.Parent.AddVariable(varName, varType, input.TextBoxListRefBeanName.Text);
+                        hint.Parent.AddVariable(varName, varType, input.ComboBoxBeanDefines.Text);
 
                     if (null == var)
                     {
@@ -1058,7 +1068,7 @@ namespace ConfigEditor
 
             if (tagListEnd.PathLast.ListIndex == -1)
             {
-                // TODO 只有一个item，仅删除数据，不需要删除Column。需要更新grid。
+                // 只有一个item，仅删除数据，不需要删除Column。需要更新grid。
                 for (int row = 0; row < grid.RowCount - 1; ++row)
                 {
                     DoActionUntilBeanEnd(grid, colBeanBegin, colListEnd,

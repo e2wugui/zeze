@@ -21,14 +21,26 @@ namespace ConfigEditor
 
         public static string NamespacePrefix { get; set; } = "Config";
 
-        public string Namespace
+        // 不包含文档名，仅包含目录名。
+        public string RelatePath
         {
             get
             {
                 int last = RelateName.LastIndexOf('.');
                 if (last < 0)
+                    return string.Empty;
+                return RelateName.Substring(0, last);
+            }
+        }
+
+        public string Namespace
+        {
+            get
+            {
+                string docpath = RelatePath;
+                if (string.IsNullOrEmpty(docpath))
                     return NamespacePrefix;
-                return NamespacePrefix + "." + RelateName.Substring(0, last);
+                return NamespacePrefix + "." + docpath;
             }
         }
 

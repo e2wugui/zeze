@@ -9,6 +9,10 @@
     <variable name="listx" type="List" value="config.list1" vw="50" />
     <variable name="dns" type="Undecided" properties="dns;" vw="111" />
     <variable name="listy" type="List" value="config.list1" vw="50" />
+    <BeanDefine name="listnew" RefCount="1" Locked="False">
+      <variable name="t" type="Undecided" vw="50" />
+    </BeanDefine>
+    <variable name="listnew" type="List" value="config.listnew" vw="50" />
   </BeanDefine>
   <bean row="0">
     <unique>1</unique>
@@ -28,6 +32,8 @@
       </list>
     </listy>
     <dns>www.163.com</dns>
+    <listnew>
+    </listnew>
   </bean>
   <bean row="1">
     <listx>
@@ -47,5 +53,7 @@
       </list>
     </listy>
     <dns>errorhost</dns>
+    <listnew>
+    </listnew>
   </bean>
 </ZezeConfig>
