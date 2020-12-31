@@ -148,10 +148,7 @@ namespace ConfigEditor
             {
                 name = b.Name + "." + name;
             }
-            string docpath = Parent?.Document.RelatePath;
-            if (string.IsNullOrEmpty(docpath))
-                return name;
-            return docpath + "." + name;
+            return Document.Namespace + "." + name;
         }
 
         public void CollectFullNameIncludeSubBeanDefine(List<string> result)

@@ -8,7 +8,9 @@ namespace ConfigEditor.Property
 {
     public class ForengnVerify : IProperty
     {
-        public override string Name => "foreign";
+        public static readonly string PName = "foreign";
+
+        public override string Name => PName;
 
         public override string Comment => "";
         public override bool BuildIn => true;

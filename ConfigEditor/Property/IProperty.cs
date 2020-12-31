@@ -20,8 +20,16 @@ namespace ConfigEditor.Property
     {
         Normal, // 默认分组。
         DataType, // 数据类型，这个类型里面的属性是单选的。
-        GenTarget, // 标明生成输出。
+        DataOutputType, // 标明生成输出。
         // more group
+    }
+
+    public enum DataOutputFlags
+    {
+        None = 0,
+        Server = 1,
+        Client = 2,
+        All = Server | Client,
     }
 
     public abstract class IProperty

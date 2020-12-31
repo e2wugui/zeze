@@ -43,6 +43,7 @@ namespace ConfigEditor
             this.buttonSaveAs = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripButtonDefine = new System.Windows.Forms.ToolStripButton();
+            this.toolStripButtonConfig = new System.Windows.Forms.ToolStripButton();
             this.buildButton = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripButtonError = new System.Windows.Forms.ToolStripButton();
@@ -51,7 +52,6 @@ namespace ConfigEditor
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.deleteVariableColumnToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteListItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripButtonConfig = new System.Windows.Forms.ToolStripButton();
             this.toolStrip1.SuspendLayout();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -101,7 +101,7 @@ namespace ConfigEditor
             this.newButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.newButton.Name = "newButton";
             this.newButton.Size = new System.Drawing.Size(35, 22);
-            this.newButton.Text = "&New";
+            this.newButton.Text = "New";
             this.newButton.ToolTipText = "New(ctrl + N)";
             this.newButton.Click += new System.EventHandler(this.newButton_Click);
             // 
@@ -112,7 +112,7 @@ namespace ConfigEditor
             this.openButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.openButton.Name = "openButton";
             this.openButton.Size = new System.Drawing.Size(40, 22);
-            this.openButton.Text = "&Open";
+            this.openButton.Text = "Open";
             this.openButton.ToolTipText = "Open(ctrl + O)";
             this.openButton.Click += new System.EventHandler(this.openButton_Click);
             // 
@@ -128,7 +128,7 @@ namespace ConfigEditor
             this.toolStripButtonClose.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.toolStripButtonClose.Name = "toolStripButtonClose";
             this.toolStripButtonClose.Size = new System.Drawing.Size(40, 22);
-            this.toolStripButtonClose.Text = "&Close";
+            this.toolStripButtonClose.Text = "Close";
             this.toolStripButtonClose.Click += new System.EventHandler(this.toolStripButtonClose_Click);
             // 
             // toolStripSeparator1
@@ -143,7 +143,7 @@ namespace ConfigEditor
             this.saveButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.saveButton.Name = "saveButton";
             this.saveButton.Size = new System.Drawing.Size(35, 22);
-            this.saveButton.Text = "&Save";
+            this.saveButton.Text = "Save";
             this.saveButton.ToolTipText = "Save(ctrl + S)";
             this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
             // 
@@ -154,7 +154,7 @@ namespace ConfigEditor
             this.saveAllButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.saveAllButton.Name = "saveAllButton";
             this.saveAllButton.Size = new System.Drawing.Size(49, 22);
-            this.saveAllButton.Text = "Save&All";
+            this.saveAllButton.Text = "SaveAll";
             this.saveAllButton.ToolTipText = "Save All(ctrl + A)";
             this.saveAllButton.Click += new System.EventHandler(this.saveAllButton_Click);
             // 
@@ -165,7 +165,7 @@ namespace ConfigEditor
             this.buttonSaveAs.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.buttonSaveAs.Name = "buttonSaveAs";
             this.buttonSaveAs.Size = new System.Drawing.Size(48, 22);
-            this.buttonSaveAs.Text = "Sa&veAs";
+            this.buttonSaveAs.Text = "SaveAs";
             this.buttonSaveAs.ToolTipText = "SaveAs";
             this.buttonSaveAs.Click += new System.EventHandler(this.buttonSaveAs_Click);
             // 
@@ -181,9 +181,19 @@ namespace ConfigEditor
             this.toolStripButtonDefine.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.toolStripButtonDefine.Name = "toolStripButtonDefine";
             this.toolStripButtonDefine.Size = new System.Drawing.Size(45, 22);
-            this.toolStripButtonDefine.Text = "&Define";
+            this.toolStripButtonDefine.Text = "Define";
             this.toolStripButtonDefine.ToolTipText = "Define(ctrl + D)";
             this.toolStripButtonDefine.Click += new System.EventHandler(this.toolStripButtonDefine_Click);
+            // 
+            // toolStripButtonConfig
+            // 
+            this.toolStripButtonConfig.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripButtonConfig.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonConfig.Image")));
+            this.toolStripButtonConfig.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonConfig.Name = "toolStripButtonConfig";
+            this.toolStripButtonConfig.Size = new System.Drawing.Size(47, 22);
+            this.toolStripButtonConfig.Text = "Config";
+            this.toolStripButtonConfig.Click += new System.EventHandler(this.toolStripButtonConfig_Click);
             // 
             // buildButton
             // 
@@ -192,7 +202,7 @@ namespace ConfigEditor
             this.buildButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.buildButton.Name = "buildButton";
             this.buildButton.Size = new System.Drawing.Size(38, 22);
-            this.buildButton.Text = "&Build";
+            this.buildButton.Text = "Build";
             this.buildButton.ToolTipText = "Build(ctrl + B)";
             this.buildButton.Click += new System.EventHandler(this.buildButton_Click);
             // 
@@ -208,7 +218,7 @@ namespace ConfigEditor
             this.toolStripButtonError.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.toolStripButtonError.Name = "toolStripButtonError";
             this.toolStripButtonError.Size = new System.Drawing.Size(36, 22);
-            this.toolStripButtonError.Text = "&Error";
+            this.toolStripButtonError.Text = "Error";
             this.toolStripButtonError.ToolTipText = "Error(ctrl + E)";
             this.toolStripButtonError.Click += new System.EventHandler(this.toolStripButtonError_Click);
             // 
@@ -238,16 +248,6 @@ namespace ConfigEditor
             this.deleteListItemToolStripMenuItem.Size = new System.Drawing.Size(258, 22);
             this.deleteListItemToolStripMenuItem.Text = "Delete &List Item";
             this.deleteListItemToolStripMenuItem.Click += new System.EventHandler(this.deleteListItemToolStripMenuItem_Click);
-            // 
-            // toolStripButtonConfig
-            // 
-            this.toolStripButtonConfig.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.toolStripButtonConfig.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonConfig.Image")));
-            this.toolStripButtonConfig.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButtonConfig.Name = "toolStripButtonConfig";
-            this.toolStripButtonConfig.Size = new System.Drawing.Size(47, 22);
-            this.toolStripButtonConfig.Text = "Con&fig";
-            this.toolStripButtonConfig.Click += new System.EventHandler(this.toolStripButtonConfig_Click);
             // 
             // FormMain
             // 

@@ -9,10 +9,11 @@ namespace ConfigEditor.Property
 {
     public class Client : IProperty
     {
-        public override string Name => "client";
+        public static readonly string PName = "client";
+        public override string Name => PName;
         public override string Comment => "生成client发布数据时，包含此项数据";
 
-        public override Group Group => Group.GenTarget;
+        public override Group Group => Group.DataOutputType;
 
         public override void VerifyCell(VerifyParam param)
         {

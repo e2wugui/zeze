@@ -33,12 +33,12 @@ Test
 	* CHANGE 新增变量编辑窗口，list类型引用Bean改成ComboBox。目前仅包含当前打开文件里面定义的。
 
 	* NEW 菜单 Config。
+	* NEW cs GEN，还没有实现类型识别。
 
 性能
 	* 几千行看看会怎么样。
 
 TODO
-	FormProjectConfig
 	类型识别和Gen。
 	Gen 先转换数据（并进行识别和统计），然后生成代码。
 	自动完成和enum识别。

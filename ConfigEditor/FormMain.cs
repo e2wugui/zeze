@@ -50,7 +50,7 @@ namespace ConfigEditor
             try
             {
                 string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(
-                    System.IO.Path.Combine(ConfigEditor.GetHome(), "ConfigEditor.json")));
+                    System.IO.Path.Combine(ConfigEditor.GetHome(), "ProjectConfig.json")));
                 ConfigProject = JsonSerializer.Deserialize<ProjectConfig>(json);
             }
             catch (Exception)
@@ -65,7 +65,7 @@ namespace ConfigEditor
         {
             var options = new JsonSerializerOptions { WriteIndented = true };
             System.IO.File.WriteAllBytes(GetConfigFileFullName(), JsonSerializer.SerializeToUtf8Bytes(ConfigEditor, options));
-            System.IO.File.WriteAllBytes(System.IO.Path.Combine(ConfigEditor.GetHome(), "ConfigEditor.json"),
+            System.IO.File.WriteAllBytes(System.IO.Path.Combine(ConfigEditor.GetHome(), "ProjectConfig.json"),
                 JsonSerializer.SerializeToUtf8Bytes(ConfigProject, options));
         }
 
@@ -96,6 +96,7 @@ namespace ConfigEditor
             ConfigEditor.SetRecentHome(select.ComboBoxRecentHomes.Text);
             this.Text = select.ComboBoxRecentHomes.Text;
             select.Dispose();
+            Environment.CurrentDirectory = ConfigEditor.GetHome();
             LoadConfigProject();
 
             if (ConfigEditor.FormMainLocation != null)
@@ -770,7 +771,42 @@ namespace ConfigEditor
         {
             SaveAll();
             LoadAllDocument();
-            // TODO 遍历Home所有配置文件，并且生成代码等。
+
+            while (true)
+            {
+                if (string.IsNullOrEmpty(ConfigProject.ServerSrcDirectory)
+                    || string.IsNullOrEmpty(ConfigProject.ClientSrcDirectory)
+                    || string.IsNullOrEmpty(ConfigProject.DataOutputDirectory)
+                    )
+                {
+                    if (DialogResult.Cancel == MessageBox.Show("Build输出目录没有配置。请先设置。",
+                        "配置错误", MessageBoxButtons.OKCancel))
+                        return;
+                    OpenFormProjectConfig();
+                    continue; // check again.
+                }
+                break;
+            }
+
+            Gen.cs.Main.Gen(this, Property.DataOutputFlags.Server);
+            switch (string.IsNullOrEmpty(ConfigProject.ClientLanguage) ? "cs" : ConfigProject.ClientLanguage)
+            {
+                case "cs":
+                    Gen.cs.Main.Gen(this, Property.DataOutputFlags.Client);
+                    break;
+
+                case "ts":
+                    // TODO
+                    break;
+
+                case "lua":
+                    // TODO
+                    break;
+
+                default:
+                    MessageBox.Show("unkown client language: " + ConfigProject.ClientLanguage);
+                    break;
+            }
         }
 
         public void OnCellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
@@ -1174,7 +1210,7 @@ namespace ConfigEditor
 
         private void buttonSaveAs_Click(object sender, EventArgs e)
         {
-            MessageBox.Show(ConfigProject.ResourceHome);
+            MessageBox.Show(ConfigProject.ResourceDirectory);
             // TODO
         }
 
@@ -1215,12 +1251,17 @@ namespace ConfigEditor
             tabs.Controls.Remove(tabs.SelectedTab);
         }
 
-        private void toolStripButtonConfig_Click(object sender, EventArgs e)
+        public void OpenFormProjectConfig()
         {
             FormProjectConfig form = new FormProjectConfig();
             form.FormMain = this;
             form.ShowDialog();
             form.Dispose();
+        }
+
+        private void toolStripButtonConfig_Click(object sender, EventArgs e)
+        {
+            OpenFormProjectConfig();
         }
     }
 }

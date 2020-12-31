@@ -35,6 +35,32 @@ namespace ConfigEditor
             }
         }
 
+        public Property.DataOutputFlags DataOutputFlags
+        {
+            get
+            {
+                Property.DataOutputFlags flags = Property.DataOutputFlags.None;
+
+                if (Parent.Document.Main.PropertyManager.Properties.TryGetValue(Property.Server.PName, out var server))
+                {
+                    if (PropertiesList.Contains(server))
+                        flags |= Property.DataOutputFlags.Server;
+                }
+
+
+                if (Parent.Document.Main.PropertyManager.Properties.TryGetValue(Property.Client.PName, out var client))
+                {
+                    if (PropertiesList.Contains(client))
+                        flags |= Property.DataOutputFlags.Client;
+                }
+
+                if (flags == Property.DataOutputFlags.None)
+                    flags = Property.DataOutputFlags.All; // default to all.
+
+                return flags;
+            }
+        }
+
         public string Comment { get; set; }
 
         public int GridColumnNameWidth { get; set; }
@@ -143,7 +169,7 @@ namespace ConfigEditor
             {
                 p.VerifyCell(param);
             }
-            if (param.FormMain.PropertyManager.BuildIns.TryGetValue("foreign", out var f))
+            if (param.FormMain.PropertyManager.BuildIns.TryGetValue(Property.ForengnVerify.PName, out var f))
             {
                 f.VerifyCell(param);
             }

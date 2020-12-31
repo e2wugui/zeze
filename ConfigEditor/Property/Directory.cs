@@ -16,13 +16,13 @@ namespace ConfigEditor.Property
 
         public override void VerifyCell(VerifyParam param)
         {
-            if (param.FormMain.ConfigProject.ResourceHome == null)
+            if (string.IsNullOrEmpty(param.FormMain.ConfigProject.ResourceDirectory))
             {
-                param.FormMain.FormError.AddError(param.Cell, this, ErrorLevel.Warn, "资源路径没有配置。$(ConfigHome)/ConfigEditor.json");
+                param.FormMain.FormError.AddError(param.Cell, this, ErrorLevel.Warn, "资源路径没有配置。");
             }
             else
             {
-                string path = System.IO.Path.Combine(param.FormMain.ConfigProject.ResourceHome, param.NewValue);
+                string path = System.IO.Path.Combine(param.FormMain.ConfigProject.ResourceDirectory, param.NewValue);
                 if (false == System.IO.Directory.Exists(path))
                     param.FormMain.FormError.AddError(param.Cell, this, ErrorLevel.Warn, "路径不存在。");
                 else

@@ -41,6 +41,9 @@ namespace ConfigEditor
             this.gridConfig.AllowUserToDeleteRows = false;
             this.gridConfig.AllowUserToOrderColumns = true;
             this.gridConfig.AllowUserToResizeRows = false;
+            this.gridConfig.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.gridConfig.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.gridConfig.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.ConfigName,
@@ -49,7 +52,7 @@ namespace ConfigEditor
             this.gridConfig.Name = "gridConfig";
             this.gridConfig.RowHeadersWidth = 30;
             this.gridConfig.RowTemplate.Height = 23;
-            this.gridConfig.Size = new System.Drawing.Size(797, 448);
+            this.gridConfig.Size = new System.Drawing.Size(819, 448);
             this.gridConfig.TabIndex = 0;
             this.gridConfig.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.gridConfig_CellEndEdit);
             this.gridConfig.CellValidating += new System.Windows.Forms.DataGridViewCellValidatingEventHandler(this.gridConfig_CellValidating);
@@ -60,7 +63,7 @@ namespace ConfigEditor
             this.ConfigName.MinimumWidth = 10;
             this.ConfigName.Name = "ConfigName";
             this.ConfigName.ReadOnly = true;
-            this.ConfigName.Width = 150;
+            this.ConfigName.Width = 200;
             // 
             // ConfigValue
             // 
@@ -73,9 +76,10 @@ namespace ConfigEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ClientSize = new System.Drawing.Size(822, 450);
             this.Controls.Add(this.gridConfig);
             this.Name = "FormProjectConfig";
+            this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "FormProjectConfig";
             ((System.ComponentModel.ISupportInitialize)(this.gridConfig)).EndInit();

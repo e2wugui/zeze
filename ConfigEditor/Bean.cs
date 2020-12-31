@@ -69,7 +69,7 @@ namespace ConfigEditor
                                 if (XmlNodeType.Element != bInList.NodeType)
                                     continue;
                                 XmlElement eInList = (XmlElement)bInList;
-                                if (eInList.Name != "bean")
+                                if (!eInList.Name.Equals("bean"))
                                     throw new Exception("Unknown Element In List");
                                 Beans.Add(new Bean(bean.Document, eInList));
                             }
