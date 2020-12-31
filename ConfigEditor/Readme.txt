@@ -33,14 +33,16 @@ Test
 	* CHANGE 新增变量编辑窗口，list类型引用Bean改成ComboBox。目前仅包含当前打开文件里面定义的。
 
 	* NEW 菜单 Config。
-	* NEW cs GEN，还没有实现类型识别。
+	* NEW 菜单 Build 可以用了，现在生成 cs client server。
 
 性能
 	* 几千行看看会怎么样。
 
 TODO
-	类型识别和Gen。
-	Gen 先转换数据（并进行识别和统计），然后生成代码。
+	Gen 先转换数据（并进行类型识别），然后生成代码。
+	Map索引如果设置了property.id
+	ts gen
+	lua gen
 	自动完成和enum识别。
 	1 id存一个种子自动递增，或者从上一行的id往后找一个未用的。
 	2 普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。

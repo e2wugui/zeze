@@ -13,6 +13,7 @@ namespace ConfigEditor
 
         public string Name { get; set; }
         public EType Type { get; set; } = EType.Undecided;
+        public EType TypeDetected { get; set; } = EType.String; // 在导出数据完成时设置，仅在 Build 流程中使用。
 
         public string Value { get; set; } = "";
         public string Foreign { get; set; }

@@ -10,23 +10,25 @@ namespace ConfigEditor.Gen.cs
     {
         public static string GetName(VarDefine var)
         {
-            switch (var.Type)
+            VarDefine.EType type = (var.Type == VarDefine.EType.Undecided) ?  var.TypeDetected : var.Type;
+
+            switch (type)
             {
                 case VarDefine.EType.Double: return "double";
-                case VarDefine.EType.Enum: return "Enum" + var.Name;
+                case VarDefine.EType.Enum: return "Enum" + var.Name; // TODO
                 case VarDefine.EType.Float: return "float";
                 case VarDefine.EType.Int: return "int";
-                case VarDefine.EType.List: return $"List<{"Config." + var.Value}>";
+                case VarDefine.EType.List: return $"List<{var.Reference.FullName()}>";
                 case VarDefine.EType.Long: return "long";
                 case VarDefine.EType.String: return "string";
-                case VarDefine.EType.Undecided: return "string"; // TODO
                 default: throw new Exception("unknown type");
             }
         }
 
         public static void GenLoader(System.IO.StreamWriter sw, VarDefine var, string prefix, Property.DataOutputFlags flags)
         {
-            switch (var.Type)
+            VarDefine.EType type = (var.Type == VarDefine.EType.Undecided) ? var.TypeDetected : var.Type;
+            switch (type)
             {
                 case VarDefine.EType.Double:
                     sw.WriteLine($"{prefix}if (!string.IsNullOrEmpty(e.InnerText)) V{var.Name} = double.Parse(e.InnerText);");
@@ -76,10 +78,6 @@ namespace ConfigEditor.Gen.cs
                 case VarDefine.EType.String:
                     sw.WriteLine($"{prefix}V{var.Name} = e.InnerText;");
                     break;
-
-                case VarDefine.EType.Undecided:
-                    sw.WriteLine($"{prefix}V{var.Name} = e.InnerText;");
-                    break; // TODO
 
                 default:
                     throw new Exception("unknown type");
