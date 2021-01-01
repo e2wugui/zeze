@@ -148,7 +148,8 @@ namespace ConfigEditor
             {
                 name = b.Name + "." + name;
             }
-            return Document.Namespace + "." + name;
+            string relatePath = Document.RelatePath;
+            return string.IsNullOrEmpty(relatePath) ? name : relatePath + "." + name;
         }
 
         public void CollectFullNameIncludeSubBeanDefine(List<string> result)

@@ -30,7 +30,7 @@ Test
 	* CHANGE 为了支持循环引用Bean。list变量在没有数据的时候不会显示一个默认的Item，需要双击']'列手动添加。
 	  当然AddVar时为了方便会加入一个默认Item。但是如果没有输入数据，关闭再打开就需要手动增加了。
 
-	* CHANGE 新增变量编辑窗口，list类型引用Bean改成ComboBox。目前仅包含当前打开文件里面定义的。
+	* CHANGE 增加变量（列）的编辑窗口修改：list类型引用Bean改成ComboBox。目前仅包含当前打开文件里面定义的。
 
 	* NEW 菜单 Config。
 	* NEW 菜单 Build 可以用了，现在把数据导出；detect；生成cs代码. 
@@ -40,7 +40,6 @@ Test
 	* 几千行看看会怎么样。
 
 TODO
-	Property.idlist
 	enum
 	ts gen
 	lua gen
