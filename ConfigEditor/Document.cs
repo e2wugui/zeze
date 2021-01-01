@@ -91,21 +91,34 @@ namespace ConfigEditor
 
         public void Save()
         {
-            if (null == Xml)
+            SaveAs(FileName, false, Property.DataOutputFlags.All);
+        }
+
+        public void SaveAs(string fileName, bool create, Property.DataOutputFlags flags)
+        {
+            XmlDocument xml = create ? null : Xml;
+
+            if (null == xml)
             {
-                Xml = new XmlDocument();
-                Xml.AppendChild(Xml.CreateElement("ZezeConfig"));
+                xml = new XmlDocument();
+                xml.AppendChild(xml.CreateElement("ZezeConfig"));
+                if (false == create)
+                    Xml = xml;
             }
-            BeanDefine.Save();
+
+            if (flags == Property.DataOutputFlags.All)
+                BeanDefine.SaveAs(xml, xml.DocumentElement, create);
+
             for (int i = 0; i < Beans.Count; ++i)
             {
                 Bean b = Beans[i];
                 b.RowIndex = i;
-                b.Save(Xml.DocumentElement);
+                b.SaveAs(xml, xml.DocumentElement, create, flags);
             }
-            using (TextWriter sw = new StreamWriter(FileName, false, Encoding.UTF8))
+
+            using (TextWriter sw = new StreamWriter(fileName, false, Encoding.UTF8))
             {
-                Xml.Save(sw);
+                xml.Save(sw);
             }
         }
 

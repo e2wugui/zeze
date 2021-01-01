@@ -319,33 +319,39 @@ namespace ConfigEditor
             this.Parent = bean;
         }
 
-        private void SetAttribute(string name, string value)
+        private void SetAttribute(XmlElement e, string name, string value)
         {
-            if (null != value && value.Length > 0)
-                Self.SetAttribute(name, value);
+            if (string.IsNullOrEmpty(value))
+                return;
+            e.SetAttribute(name, value);
         }
 
-        public void Save(XmlElement bean)
+        public void SaveAs(XmlDocument xml, XmlElement parent, bool create)
         {
-            if (null == Name) // 添加在beandefine尾部的var，不需要保存。
+            XmlElement self = create ? null : Self;
+
+            if (null == Name) // 添加在beandefine尾部的var，不需要保存。应该是没有加到Bean.Varaibles里面的。
                 return;
 
-            if (null == Self)
+            if (null == self)
             {
-                Self = Parent.Document.Xml.CreateElement("variable");
-                bean.AppendChild(Self);
+                self = xml.CreateElement("variable");
+                parent.AppendChild(self);
+                if (false == create)
+                    Self = self;
             }
-            Self.SetAttribute("name", Name);
-            SetAttribute("type", System.Enum.GetName(typeof(EType), Type));
-            SetAttribute("value", Value);
-            SetAttribute("foreign", Foreign);
-            SetAttribute("properties", Properties);
-            SetAttribute("comment", Comment);
+
+            self.SetAttribute("name", Name);
+            SetAttribute(self, "type", System.Enum.GetName(typeof(EType), Type));
+            SetAttribute(self, "value", Value);
+            SetAttribute(self, "foreign", Foreign);
+            SetAttribute(self, "properties", Properties);
+            SetAttribute(self, "comment", Comment);
 
             if (GridColumnNameWidth > 0)
-                Self.SetAttribute("nw", GridColumnNameWidth.ToString());
+                self.SetAttribute("nw", GridColumnNameWidth.ToString());
             if (GridColumnValueWidth > 0)
-                Self.SetAttribute("vw", GridColumnValueWidth.ToString());
+                self.SetAttribute("vw", GridColumnValueWidth.ToString());
         }
 
         public VarDefine(BeanDefine bean, XmlElement self)

@@ -43,17 +43,22 @@ namespace ConfigEditor
             }
         }
 
-        public void Save(XmlElement b)
+        public void SaveAs(XmlDocument xml, XmlElement parent, bool create)
         {
-            if (null == Self)
+            XmlElement self = create ? null : Self;
+
+            if (null == self)
             {
-                Self = Bean.Document.Xml.CreateElement("enum");
-                b.AppendChild(Self);
+                self = xml.CreateElement("enum");
+                parent.AppendChild(self);
+                if (false == create)
+                    Self = self;
             }
-            Self.SetAttribute("name", Name);
+            self.SetAttribute("name", Name);
+
             foreach (var v in Values)
             {
-                v.Save(Self);
+                v.SaveAs(xml, self, create);
             }
         }
 
@@ -72,15 +77,19 @@ namespace ConfigEditor
                 this.Val = val;
             }
 
-            public void Save(XmlElement e)
+            public void SaveAs(XmlDocument xml, XmlElement parent, bool create)
             {
-                if (null == Self)
+                XmlElement self = create ? null : Self;
+
+                if (null == self)
                 {
-                    Self = Enum.Bean.Document.Xml.CreateElement("value");
-                    e.AppendChild(Self);
+                    self = xml.CreateElement("value");
+                    parent.AppendChild(self);
+                    if (false == create)
+                        Self = self;
                 }
-                Self.SetAttribute("name", Name);
-                Self.SetAttribute("value", Val);
+                self.SetAttribute("name", Name);
+                self.SetAttribute("value", Val);
             }
 
             public Value(Enum e, XmlElement self)

@@ -256,34 +256,37 @@ namespace ConfigEditor
             this.Name = null != name ? name : doc.Name;
         }
 
-        public void Save()
+        public void SaveAs(XmlDocument xml, XmlElement parent, bool create)
         {
-            if (null == Self)
+            XmlElement self = create ? null : Self;
+
+            if (null == self)
             {
-                Self = Document.Xml.CreateElement("BeanDefine");
-                if (Parent == null)
-                    Document.Xml.DocumentElement.AppendChild(Self);
-                else
-                    Parent.Self.AppendChild(Self);
+                self = xml.CreateElement("BeanDefine");
+                parent.AppendChild(self);
+                if (false == create)
+                    Self = self;
             }
+
             if (Parent != null) // root BeanDefine 自动设置成文件名。
-                Self.SetAttribute("name", Name);
-            Self.SetAttribute("RefCount", RefCount.ToString());
-            Self.SetAttribute("Locked", Locked.ToString());
+                self.SetAttribute("name", Name);
+
+            self.SetAttribute("RefCount", RefCount.ToString());
+            self.SetAttribute("Locked", Locked.ToString());
 
             foreach (var e in Enums)
             {
-                e.Save(Self);
+                e.SaveAs(xml, self, create);
             }
 
             foreach (var b in BeanDefines.Values)
             {
-                b.Save();
+                b.SaveAs(xml, self, create);
             }
 
             foreach (var v in Variables)
             {
-                v.Save(Self);
+                v.SaveAs(xml, self, create);
             }
         }
 

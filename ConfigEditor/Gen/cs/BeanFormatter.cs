@@ -68,8 +68,12 @@ namespace ConfigEditor.Gen.cs
                 sw.WriteLine();
             }
 
+            // 删除Var时可能有些文件没有删除数据（在LoadToGrid的时候才删除）；
+            // 导出数据为了效率，不严格判断是否被删除，所以可能存在多余的Var数据。
+            /*
             sw.WriteLine($"{prefix}                default:");
             sw.WriteLine($"{prefix}                    throw new Exception(\"unkown var name: \" + e.Name);");
+            */
             sw.WriteLine($"{prefix}            }}");
             sw.WriteLine($"{prefix}        }}");
             sw.WriteLine($"{prefix}    }}");

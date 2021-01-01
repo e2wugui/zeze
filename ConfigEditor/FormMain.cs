@@ -261,7 +261,7 @@ namespace ConfigEditor
             bool added = false;
             if (e.RowIndex == grid.RowCount - 1) // is last row
             {
-                doc.Beans.Add(new Bean(doc));
+                doc.Beans.Add(new Bean(doc, "")); // root bean allow empty.
                 AddGridRow(grid);
                 added = true;
             }
@@ -785,9 +785,34 @@ namespace ConfigEditor
                     OpenFormProjectConfig();
                     continue; // check again.
                 }
+                if (System.IO.Path.GetFullPath(ConfigProject.DataOutputDirectory).StartsWith(ConfigEditor.GetHome()))
+                {
+                    MessageBox.Show("数据输出目录不能是配置Home的子目录。");
+                    OpenFormProjectConfig();
+                    continue;
+                }
                 break;
             }
 
+            string serverDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Server");
+            string clientDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Client");
+
+            foreach (var doc in Documents.Values)
+            {
+                string docpath = doc.RelatePath.Replace('.', System.IO.Path.DirectorySeparatorChar);
+                
+                string serverDocDir = string.IsNullOrEmpty(docpath)
+                    ? serverDir : System.IO.Path.Combine(serverDir, docpath);
+                System.IO.Directory.CreateDirectory(serverDocDir);
+                string serverFileName = System.IO.Path.Combine(serverDocDir, doc.Name + ".xml");
+                doc.SaveAs(serverFileName, true, Property.DataOutputFlags.Server);
+
+                string clientDocDir = string.IsNullOrEmpty(docpath)
+                    ? clientDir : System.IO.Path.Combine(clientDir, docpath);
+                System.IO.Directory.CreateDirectory(clientDocDir);
+                string clientFileName = System.IO.Path.Combine(clientDocDir, doc.Name + ".xml");
+                doc.SaveAs(clientFileName, true, Property.DataOutputFlags.Client);
+            }
             Gen.cs.Main.Gen(this, Property.DataOutputFlags.Server);
             switch (string.IsNullOrEmpty(ConfigProject.ClientLanguage) ? "cs" : ConfigProject.ClientLanguage)
             {

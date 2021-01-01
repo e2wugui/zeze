@@ -82,48 +82,59 @@ namespace ConfigEditor
                 this.Value = (childElementCount == 0) ? self.InnerText : "";
             }
 
-            public void Save(XmlElement bean)
+            public void SaveAs(XmlDocument xml, XmlElement parent, bool create, Property.DataOutputFlags flags)
             {
-                if (null == this.Self)
+                XmlElement self = create ? null : Self;
+                XmlElement selfList = create ? null : SelfList;
+
+                if (null == self)
                 {
                     // new
-                    Self = Parent.Document.Xml.CreateElement(Name);
-                    bean.AppendChild(Self);
+                    self = xml.CreateElement(Name);
+                    parent.AppendChild(self);
+                    if (false == create)
+                        Self = self;
                 }
                 else
                 {
-                    if (this.Self.Name != Name)
+                    if (self.Name != Name)
                     {
                         // Name Change
-                        XmlElement e = Parent.Document.Xml.CreateElement(Name);
-                        bean.ReplaceChild(e, Self);
-                        Self = e;
-                        if (null != SelfList)
-                            Self.AppendChild(SelfList);
+                        XmlElement e = xml.CreateElement(Name);
+                        parent.ReplaceChild(e, self);
+                        self = e;
+                        if (null != selfList)
+                            self.AppendChild(selfList);
                     }
                 }
-                if (GridColumnNameWidth > 0)
-                    Self.SetAttribute("nw", GridColumnNameWidth.ToString());
-                if (GridColumnValueWidth > 0)
-                    Self.SetAttribute("vw", GridColumnValueWidth.ToString());
+
+                if (flags == Property.DataOutputFlags.All)
+                {
+                    if (GridColumnNameWidth > 0)
+                        self.SetAttribute("nw", GridColumnNameWidth.ToString());
+                    if (GridColumnValueWidth > 0)
+                        self.SetAttribute("vw", GridColumnValueWidth.ToString());
+                }
 
                 if (Beans.Count > 0) // 这里没有判断Type，直接根据数据来决定怎么保存。
                 {
-                    if (null == SelfList)
+                    if (null == selfList)
                     {
-                        SelfList = Parent.Document.Xml.CreateElement("list");
-                        Self.AppendChild(SelfList);
+                        selfList = xml.CreateElement("list");
+                        self.AppendChild(selfList);
+                        if (false == create)
+                            SelfList = selfList;
                     }
                     for (int i = 0; i < Beans.Count; ++i)
                     {
                         Bean b = Beans[i];
                         b.RowIndex = i;
-                        b.Save(SelfList);
+                        b.SaveAs(xml, selfList, create, flags);
                     }
                 }
                 else
                 {
-                    Self.InnerText = Value;
+                    self.InnerText = Value;
                 }
             }
         }
@@ -134,10 +145,14 @@ namespace ConfigEditor
 
         public int RowIndex { get; set; } = -1; // 仅在Save时设置，写到文件以后，好读点。
 
+        public string DefineFullName { get; private set; } = "";
+
         public Bean(Document doc, XmlElement self)
         {
             this.Self = self;
             this.Document = doc;
+
+            this.DefineFullName = self.GetAttribute("DefineFullName");
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
@@ -150,9 +165,10 @@ namespace ConfigEditor
             }
         }
 
-        public Bean(Document doc)
+        public Bean(Document doc, string defineFullName)
         {
             this.Document = doc;
+            this.DefineFullName = defineFullName;
         }
 
         public void DeleteVarData(string name)
@@ -322,9 +338,9 @@ namespace ConfigEditor
                         {
                             for (int i = varData.Beans.Count; i < varInfo.ListIndex; ++i)
                             {
-                                varData.Beans.Add(new Bean(Document));
+                                varData.Beans.Add(new Bean(Document, varInfo.Define.Value));
                             }
-                            Bean create = new Bean(Document);
+                            Bean create = new Bean(Document, varInfo.Define.Value);
                             varData.Beans.Add(create);
                             if (create.Update(grid, cells, ref colIndex, pathIndex + 1, param))
                                 return true;
@@ -343,7 +359,7 @@ namespace ConfigEditor
                     }
                     if (EUpdate.Data == param.UpdateType)
                     {
-                        Bean create = new Bean(Document);
+                        Bean create = new Bean(Document, varInfo.Define.Value);
                         varData.Beans[varInfo.ListIndex] = create;
                         if (create.Update(grid, cells, ref colIndex, pathIndex + 1, param))
                             return true;
@@ -396,18 +412,39 @@ namespace ConfigEditor
             }
         }
 
-        public void Save(XmlElement parent)
+        public void SaveAs(XmlDocument xml, XmlElement parent, bool create, Property.DataOutputFlags flags)
         {
-            if (null == Self)
+            XmlElement self = create ? null : Self;
+
+            if (null == self)
             {
-                Self = Document.Xml.CreateElement("bean");
-                parent.AppendChild(Self);
+                self = xml.CreateElement("bean");
+                parent.AppendChild(self);
+                if (false == create)
+                    Self = self;
             }
+
+            if (flags == Property.DataOutputFlags.All)
+                self.SetAttribute("DefineFullName", DefineFullName);
+
             if (RowIndex >= 0)
-                Self.SetAttribute("row", RowIndex.ToString());
+                self.SetAttribute("row", RowIndex.ToString());
+
+            // 使用 DefineFullName 找到 BeanDefine。慢的话，可以加cache优化速度。
+            BeanDefine define = Document.BeanDefine;
+            if (false == string.IsNullOrEmpty(DefineFullName))
+                Document.Main.OpenDocument(DefineFullName, out define);
+
             foreach (var v in VariableMap.Values)
             {
-                v.Save(Self);
+                var varDefine = define.GetVariable(v.Name);
+                if (null == varDefine)
+                    continue;
+
+                if (0 == (varDefine.DataOutputFlags & flags))
+                    continue;
+
+                v.SaveAs(xml, self, create, flags);
             }
         }
     }

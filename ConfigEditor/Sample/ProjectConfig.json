@@ -1,6 +1,6 @@
 {
   "ResourceDirectory": null,
-  "DataOutputDirectory": "DataOutput",
+  "DataOutputDirectory": "../DataOutput",
   "ServerSrcDirectory": "ServerSrc",
   "ClientSrcDirectory": "ClientSrc",
   "ClientLanguage": null

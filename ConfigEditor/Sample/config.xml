@@ -1,59 +1,22 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ZezeConfig>
   <BeanDefine RefCount="0" Locked="False">
-    <BeanDefine name="list1" RefCount="2" Locked="False">
-      <variable name="unique0" type="Undecided" vw="91" properties="unique;" />
-      <variable name="text" type="Undecided" vw="59" />
-    </BeanDefine>
     <variable name="unique" type="Undecided" vw="90" properties="unique;" />
-    <variable name="listx" type="List" value="config.list1" vw="50" />
     <variable name="dns" type="Undecided" properties="dns;" vw="111" />
-    <variable name="listy" type="List" value="config.list1" vw="50" />
-    <BeanDefine name="listnew" RefCount="1" Locked="False">
-      <variable name="t" type="Undecided" vw="50" />
+    <BeanDefine name="ListA" RefCount="1" Locked="False">
+      <variable name="A" type="Undecided" vw="50" />
+      <variable name="B" type="Undecided" vw="50" />
     </BeanDefine>
-    <variable name="listnew" type="List" value="config.listnew" vw="50" />
+    <variable name="ListA" type="List" value="config.ListA" vw="50" />
   </BeanDefine>
-  <bean row="0">
-    <unique>1</unique>
-    <listx>
+  <bean DefineFullName="" row="0">
+    <ListA>
       <list>
-        <bean row="0">
-          <unique0>1</unique0>
-          <text>1</text>
+        <bean DefineFullName="config.ListA" row="0">
+          <A>1</A>
+          <B>2</B>
         </bean>
       </list>
-    </listx>
-    <listy>
-      <list>
-        <bean row="0">
-          <unique0>1</unique0>
-        </bean>
-      </list>
-    </listy>
-    <dns>www.163.com</dns>
-    <listnew>
-    </listnew>
-  </bean>
-  <bean row="1">
-    <listx>
-      <list>
-        <bean row="0">
-          <unique0>2</unique0>
-          <text>2</text>
-        </bean>
-      </list>
-    </listx>
-    <unique>2</unique>
-    <listy>
-      <list>
-        <bean row="0">
-          <unique0>2</unique0>
-        </bean>
-      </list>
-    </listy>
-    <dns>errorhost</dns>
-    <listnew>
-    </listnew>
+    </ListA>
   </bean>
 </ZezeConfig>
