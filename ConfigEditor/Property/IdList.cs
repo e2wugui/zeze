@@ -9,7 +9,8 @@ namespace ConfigEditor.Property
 {
     public class IdList : UniqueList
     {
-        public override string Name => "id.list";
+        public static readonly string PName = "id.list";
+        public override string Name => PName;
 
         public override string Comment => "在所有 List.Item 中保持唯一（横向）。并且生成代码时被当作Map.Key。";
 

@@ -445,7 +445,10 @@ namespace ConfigEditor
                     varDefine.CheckAndDetectType(varData.Value);
                     varData.SaveAs(xml, self, create, flags);
                 }
-                varDefine.CheckAndDetectType("");
+                else
+                {
+                    varDefine.CheckAndDetectType("");
+                }
             }
         }
     }
