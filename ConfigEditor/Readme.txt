@@ -34,7 +34,7 @@ Test
 
 	* NEW 菜单 Config。
 	* NEW 菜单 Build 可以用了，现在把数据导出；detect；生成cs代码. 
-	* Property.Id 在 Build 时建立 Map 索引。
+	* Property.Id Property.idlist 在 Build 时建立 Map 索引。
 
 性能
 	* 几千行看看会怎么样。

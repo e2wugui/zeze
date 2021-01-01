@@ -25,7 +25,7 @@ namespace ConfigEditor.Gen.cs
             }
         }
 
-        public static void GenLoader(System.IO.StreamWriter sw, VarDefine var, string prefix, Property.DataOutputFlags flags)
+        public static void GenLoader(System.IO.StreamWriter sw, Document doc, VarDefine var, string prefix, Property.DataOutputFlags flags)
         {
             VarDefine.EType type = (var.Type == VarDefine.EType.Undecided) ? var.TypeDetected : var.Type;
             switch (type)
@@ -62,7 +62,19 @@ namespace ConfigEditor.Gen.cs
                     sw.WriteLine($"{prefix}                XmlElement eInList = (XmlElement)bInList;");
                     sw.WriteLine($"{prefix}                if (!eInList.Name.Equals(\"bean\"))");
                     sw.WriteLine($"{prefix}                    throw new Exception(\"Unknown Element In List\");");
-                    sw.WriteLine($"{prefix}                V{var.Name}.Add(new {var.Reference.FullName()}(eInList));");
+                    sw.WriteLine($"{prefix}                var beanInList = new {var.Reference.FullName()}(eInList);");
+                    sw.WriteLine($"{prefix}                V{var.Name}.Add(beanInList);");
+                    if (false == doc.Main.PropertyManager.Properties.TryGetValue(Property.IdList.PName, out var pid))
+                        throw new Exception("Property.Id miss!");
+                    foreach (var varRef in var.Reference.Variables)
+                    {
+                        if (varRef.Type == VarDefine.EType.List)
+                            continue;
+
+                        if (false == varRef.PropertiesList.Contains(pid))
+                            continue;
+                        sw.WriteLine($"{prefix}                V{var.Name}Map{varRef.Name}.Add(beanInList.V{varRef.Name}, beanInList);");
+                    }
                     sw.WriteLine($"{prefix}            }}");
                     sw.WriteLine($"{prefix}            break;");
                     sw.WriteLine($"{prefix}        default:");

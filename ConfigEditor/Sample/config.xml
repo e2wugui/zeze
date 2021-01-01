@@ -4,8 +4,8 @@
     <variable name="unique" type="Undecided" vw="90" properties="id;unique;" />
     <variable name="dns" type="Undecided" properties="dns;id;" vw="111" />
     <BeanDefine name="ListA" RefCount="1" Locked="False">
-      <variable name="A" type="Undecided" vw="50" />
-      <variable name="B" type="Undecided" vw="50" />
+      <variable name="A" type="Undecided" vw="50" properties="id.list;" />
+      <variable name="B" type="Undecided" vw="50" properties="id.list;" />
     </BeanDefine>
     <variable name="ListA" type="List" value="config.ListA" vw="50" />
     <variable name="u" type="Undecided" vw="50" />

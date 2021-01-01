@@ -20,12 +20,12 @@ namespace ConfigEditor.Gen.cs
                 sw.WriteLine();
                 sw.WriteLine($"namespace {doc.Namespace}");
                 sw.WriteLine($"{{");
-                Gen(sw, doc.BeanDefine, "    ", flags);
+                Gen(sw, doc, doc.BeanDefine, "    ", flags);
                 sw.WriteLine($"}}"); // end of namespace
             }
         }
 
-        public static void Gen(System.IO.StreamWriter sw, BeanDefine bean, string prefix, Property.DataOutputFlags flags)
+        public static void Gen(System.IO.StreamWriter sw, Document doc, BeanDefine bean, string prefix, Property.DataOutputFlags flags)
         {
             sw.WriteLine($"{prefix}public class {bean.Name}");
             sw.WriteLine($"{prefix}{{");
@@ -33,8 +33,11 @@ namespace ConfigEditor.Gen.cs
             // sub bean
             foreach (var sub in bean.BeanDefines.Values)
             {
-                Gen(sw, sub, prefix + "    ", flags);
+                Gen(sw, doc, sub, prefix + "    ", flags);
             }
+
+            if (false == doc.Main.PropertyManager.Properties.TryGetValue(Property.IdList.PName, out var pid))
+                throw new Exception("Property.Id miss!");
 
             // var property
             foreach (var var in bean.Variables)
@@ -42,8 +45,20 @@ namespace ConfigEditor.Gen.cs
                 if (0 == (var.DataOutputFlags & flags))
                     continue;
 
-                // TODO 类型推断。Enum。Map索引。
                 sw.WriteLine($"{prefix}    public {TypeHelper.GetName(var)} V{var.Name} {{ get; set; }}");
+                if (var.Type == VarDefine.EType.List)
+                {
+                    foreach (var varRef in var.Reference.Variables)
+                    {
+                        if (varRef.Type == VarDefine.EType.List)
+                            continue;
+
+                        if (false == varRef.PropertiesList.Contains(pid))
+                            continue;
+
+                        sw.WriteLine($"{prefix}    public Dictionary<{TypeHelper.GetName(varRef)}, {var.Reference.FullName()}> V{var.Name}Map{varRef.Name} {{ get; }} = new Dictionary<{TypeHelper.GetName(varRef)}, {var.Reference.FullName()}>();");
+                    }
+                }
             }
             sw.WriteLine();
 
@@ -63,17 +78,13 @@ namespace ConfigEditor.Gen.cs
                 if (0 == (var.DataOutputFlags & flags))
                     continue;
                 sw.WriteLine($"{prefix}                case \"{var.Name}\":");
-                TypeHelper.GenLoader(sw, var, prefix + "                    ", flags);
+                TypeHelper.GenLoader(sw, doc, var, prefix + "                    ", flags);
                 sw.WriteLine($"{prefix}                    break;");
                 sw.WriteLine();
             }
 
-            // 删除Var时可能有些文件没有删除数据（在LoadToGrid的时候才删除）；
-            // 导出数据为了效率，不严格判断是否被删除，所以可能存在多余的Var数据。
-            /*
             sw.WriteLine($"{prefix}                default:");
             sw.WriteLine($"{prefix}                    throw new Exception(\"unkown var name: \" + e.Name);");
-            */
             sw.WriteLine($"{prefix}            }}");
             sw.WriteLine($"{prefix}        }}");
             sw.WriteLine($"{prefix}    }}");
