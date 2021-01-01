@@ -700,11 +700,11 @@ namespace ConfigEditor
                         // no grid
                         TabPage tab = NewTabPage(odoc.RelateName);
                         DataGridView grid = (DataGridView)tab.Controls[0];
-                        LoadDocumentToView(grid, doc);
+                        LoadDocumentToView(grid, odoc);
                         tabs.Controls.Add(tab);
                         tabs.SelectedTab = tab;
                         odoc.Grid = grid;
-                        grid.Tag = doc;
+                        grid.Tag = odoc;
                     }
                 }
                 else
@@ -794,43 +794,49 @@ namespace ConfigEditor
                 break;
             }
 
-            string serverDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Server");
-            string clientDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Client");
-
-            foreach (var doc in Documents.Values)
+            try
             {
-                string docpath = doc.RelatePath.Replace('.', System.IO.Path.DirectorySeparatorChar);
-                
-                string serverDocDir = string.IsNullOrEmpty(docpath)
-                    ? serverDir : System.IO.Path.Combine(serverDir, docpath);
-                System.IO.Directory.CreateDirectory(serverDocDir);
-                string serverFileName = System.IO.Path.Combine(serverDocDir, doc.Name + ".xml");
-                doc.SaveAs(serverFileName, true, Property.DataOutputFlags.Server);
+                string serverDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Server");
+                string clientDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Client");
 
-                string clientDocDir = string.IsNullOrEmpty(docpath)
-                    ? clientDir : System.IO.Path.Combine(clientDir, docpath);
-                System.IO.Directory.CreateDirectory(clientDocDir);
-                string clientFileName = System.IO.Path.Combine(clientDocDir, doc.Name + ".xml");
-                doc.SaveAs(clientFileName, true, Property.DataOutputFlags.Client);
+                foreach (var doc in Documents.Values)
+                {
+                    string docpath = doc.RelatePath.Replace('.', System.IO.Path.DirectorySeparatorChar);
+
+                    string serverDocDir = System.IO.Path.Combine(serverDir, docpath);
+                    System.IO.Directory.CreateDirectory(serverDocDir);
+                    string serverFileName = System.IO.Path.Combine(serverDocDir, doc.Name + ".xml");
+                    doc.SaveAs(serverFileName, true, Property.DataOutputFlags.Server);
+
+                    string clientDocDir = System.IO.Path.Combine(clientDir, docpath);
+                    System.IO.Directory.CreateDirectory(clientDocDir);
+                    string clientFileName = System.IO.Path.Combine(clientDocDir, doc.Name + ".xml");
+                    doc.SaveAs(clientFileName, true, Property.DataOutputFlags.Client);
+                }
+
+                Gen.cs.Main.Gen(this, Property.DataOutputFlags.Server);
+                switch (string.IsNullOrEmpty(ConfigProject.ClientLanguage) ? "cs" : ConfigProject.ClientLanguage)
+                {
+                    case "cs":
+                        Gen.cs.Main.Gen(this, Property.DataOutputFlags.Client);
+                        break;
+
+                    case "ts":
+                        // TODO
+                        break;
+
+                    case "lua":
+                        // TODO
+                        break;
+
+                    default:
+                        MessageBox.Show("unkown client language: " + ConfigProject.ClientLanguage);
+                        break;
+                }
             }
-            Gen.cs.Main.Gen(this, Property.DataOutputFlags.Server);
-            switch (string.IsNullOrEmpty(ConfigProject.ClientLanguage) ? "cs" : ConfigProject.ClientLanguage)
+            catch (Exception ex)
             {
-                case "cs":
-                    Gen.cs.Main.Gen(this, Property.DataOutputFlags.Client);
-                    break;
-
-                case "ts":
-                    // TODO
-                    break;
-
-                case "lua":
-                    // TODO
-                    break;
-
-                default:
-                    MessageBox.Show("unkown client language: " + ConfigProject.ClientLanguage);
-                    break;
+                MessageBox.Show(ex.ToString());
             }
         }
 

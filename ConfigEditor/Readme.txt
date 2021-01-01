@@ -33,7 +33,7 @@ Test
 	* CHANGE 新增变量编辑窗口，list类型引用Bean改成ComboBox。目前仅包含当前打开文件里面定义的。
 
 	* NEW 菜单 Config。
-	* NEW 菜单 Build 可以用了，现在把数据导出和生成cs代码。todo type detect. 
+	* NEW 菜单 Build 可以用了，现在把数据导出；detect；生成cs代码. 
 
 性能
 	* 几千行看看会怎么样。

@@ -8,6 +8,7 @@
       <variable name="B" type="Undecided" vw="50" />
     </BeanDefine>
     <variable name="ListA" type="List" value="config.ListA" vw="50" />
+    <variable name="u" type="Undecided" vw="50" />
   </BeanDefine>
   <bean DefineFullName="" row="0">
     <ListA>
@@ -18,5 +19,7 @@
         </bean>
       </list>
     </ListA>
+    <dns>说</dns>
+    <unique>1</unique>
   </bean>
 </ZezeConfig>

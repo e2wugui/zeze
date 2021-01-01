@@ -13,12 +13,51 @@ namespace ConfigEditor
 
         public string Name { get; set; }
         public EType Type { get; set; } = EType.Undecided;
-        public EType TypeDetected { get; set; } = EType.String; // 在导出数据完成时设置，仅在 Build 流程中使用。
+        public EType TypeDetected { get; set; } = EType.Undecided; // 在导出数据完成时设置，仅在 Build 流程中使用。
 
         public string Value { get; set; } = "";
         public string Foreign { get; set; }
 
         public List<Property.IProperty> PropertiesList { get; private set; } = new List<Property.IProperty>(); // 优化
+
+        private EType Detect(string value)
+        {
+            // 下面的判断有优先级顺序。不支持自动发现所有类型。
+            if (string.IsNullOrEmpty(value))
+                return EType.String;
+
+            if (int.TryParse(value, out var _))
+                return EType.Int;
+            if (long.TryParse(value, out var _))
+                return EType.Long;
+            if (double.TryParse(value, out var _))
+                return EType.Double;
+
+            return EType.String;
+        }
+
+        public void CheckAndDetectType(string value)
+        {
+            if (Type != EType.Undecided)
+            { 
+                // check
+                switch (Type)
+                {
+                    case EType.Double: double.Parse(value); break;
+                    case EType.Enum: break; // TODO;
+                    case EType.Float: float.Parse(value); break;
+                    case EType.Int: int.Parse(value); break;
+                    case EType.List: break; // list item 将在内部再此调用。
+                    case EType.Long: long.Parse(value); break;
+                    case EType.String: break;
+                    default: throw new Exception("unknown type");
+                }
+                return;
+            }
+            EType valueType = Detect(value);
+            if (valueType > TypeDetected)
+                TypeDetected = valueType;
+        }
 
         public string Properties
         {

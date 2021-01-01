@@ -431,20 +431,21 @@ namespace ConfigEditor
                 self.SetAttribute("row", RowIndex.ToString());
 
             // 使用 DefineFullName 找到 BeanDefine。慢的话，可以加cache优化速度。
-            BeanDefine define = Document.BeanDefine;
+            BeanDefine beanDefine = Document.BeanDefine;
             if (false == string.IsNullOrEmpty(DefineFullName))
-                Document.Main.OpenDocument(DefineFullName, out define);
+                Document.Main.OpenDocument(DefineFullName, out beanDefine);
 
-            foreach (var v in VariableMap.Values)
+            foreach (var varDefine in beanDefine.Variables)
             {
-                var varDefine = define.GetVariable(v.Name);
-                if (null == varDefine)
-                    continue;
-
                 if (0 == (varDefine.DataOutputFlags & flags))
                     continue;
 
-                v.SaveAs(xml, self, create, flags);
+                if (VariableMap.TryGetValue(varDefine.Name, out var varData))
+                {
+                    varDefine.CheckAndDetectType(varData.Value);
+                    varData.SaveAs(xml, self, create, flags);
+                }
+                varDefine.CheckAndDetectType("");
             }
         }
     }
