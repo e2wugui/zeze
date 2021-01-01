@@ -18,6 +18,7 @@ namespace ConfigEditor.Gen.cs
                     {
                         BeanFormatter.Gen(main.ConfigProject.ServerSrcDirectory, doc, Property.DataOutputFlags.Server);
                     }
+                    GenManager(main, main.ConfigProject.ServerSrcDirectory);
                     break;
 
                 case Property.DataOutputFlags.Client:
@@ -25,7 +26,103 @@ namespace ConfigEditor.Gen.cs
                     {
                         BeanFormatter.Gen(main.ConfigProject.ClientSrcDirectory, doc, Property.DataOutputFlags.Client);
                     }
+                    GenManager(main, main.ConfigProject.ClientSrcDirectory);
                     break;
+            }
+
+        }
+
+        private static void GenManager(FormMain main, string srcdir)
+        {
+            string dir = System.IO.Path.Combine(srcdir, Document.NamespacePrefix);
+            System.IO.Directory.CreateDirectory(dir);
+            string file = System.IO.Path.Combine(dir, "Manager.cs");
+            using (System.IO.StreamWriter sw = new System.IO.StreamWriter(file, false, Encoding.UTF8))
+            {
+                sw.WriteLine("// auto generate");
+                sw.WriteLine();
+                sw.WriteLine($"using System;");
+                sw.WriteLine($"using System.Collections.Generic;");
+                sw.WriteLine($"using System.Xml;");
+                sw.WriteLine($"using System.IO;");
+                sw.WriteLine();
+                sw.WriteLine("namespace Config");
+                sw.WriteLine("{");
+                sw.WriteLine("    public class Manager");
+                sw.WriteLine("    {");
+
+                if (false == main.PropertyManager.Properties.TryGetValue(Property.Id.PName, out var pid))
+                    throw new Exception("Property.Id miss!");
+
+                foreach (var doc in main.Documents.Values)
+                {
+                    string varName = doc.RelateName.Replace('.', '_');
+                    sw.WriteLine($"        public static List<{doc.RelateName}> {varName} {{ get; }} = new List<{doc.RelateName}>();");
+
+                    foreach (var var in doc.BeanDefine.Variables)
+                    {
+                        if (var.Type == VarDefine.EType.List)
+                            continue;
+
+                        if (false == var.PropertiesList.Contains(pid))
+                            continue;
+
+                        sw.WriteLine($"        public static Dictionary<{TypeHelper.GetName(var)}, {doc.RelateName}> {varName}Map{var.Name} {{ get; }} = new Dictionary<{TypeHelper.GetName(var)}, {doc.RelateName}>();");
+                    }
+                }
+                sw.WriteLine();
+                sw.WriteLine("        public static void Load(string home)");
+                sw.WriteLine("        {");
+                foreach (var doc in main.Documents.Values)
+                {
+                    string varName = doc.RelateName.Replace('.', '_');
+                    sw.WriteLine($"            {varName}.Clear();");
+                    sw.WriteLine($"            Load(home, \"{doc.RelateName}\", (XmlElement e) => ");
+                    sw.WriteLine($"            {{");
+                    sw.WriteLine($"                var bean = new {doc.RelateName}(e);");
+                    sw.WriteLine($"                {varName}.Add(bean);");
+                    foreach (var var in doc.BeanDefine.Variables)
+                    {
+                        if (var.Type == VarDefine.EType.List)
+                            continue;
+
+                        if (false == var.PropertiesList.Contains(pid))
+                            continue;
+
+                        sw.WriteLine($"                {varName}Map{var.Name}.Add(bean.V{var.Name}, bean);");
+                    }
+                    sw.WriteLine($"            }});");
+                }
+                sw.WriteLine("        }");
+                sw.WriteLine();
+                sw.WriteLine("        public static void Load(string home, string relate, Action<XmlElement> action)");
+                sw.WriteLine("        {");
+                sw.WriteLine("            string fileName = Path.Combine(home, relate.Replace('.', Path.DirectorySeparatorChar));");
+                sw.WriteLine("            XmlDocument Xml = new XmlDocument();");
+                sw.WriteLine("            Xml.Load(fileName);");
+                sw.WriteLine("            XmlElement self = Xml.DocumentElement;");
+                sw.WriteLine("            if (false == self.Name.Equals(\"ZezeConfig\"))");
+                sw.WriteLine("                throw new Exception(\" is not ZezeConfig\");");
+                sw.WriteLine("            XmlNodeList childNodes = self.ChildNodes;");
+                sw.WriteLine("            foreach (XmlNode node in childNodes)");
+                sw.WriteLine("            {");
+                sw.WriteLine("                if (XmlNodeType.Element != node.NodeType)");
+                sw.WriteLine("                    continue;");
+                sw.WriteLine();
+                sw.WriteLine("                XmlElement e = (XmlElement)node;");
+                sw.WriteLine("                switch (e.Name)");
+                sw.WriteLine("                {");
+                sw.WriteLine("                    case \"bean\":");
+                sw.WriteLine("                        action(e);");
+                sw.WriteLine("                        break;");
+                sw.WriteLine("                    default:");
+                sw.WriteLine("                        throw new Exception(\"Unknown Element Name \" + e.Name);");
+                sw.WriteLine("                }");
+                sw.WriteLine("            }");
+                sw.WriteLine("        }");
+                sw.WriteLine();
+                sw.WriteLine("    }");
+                sw.WriteLine("}");
 
             }
         }

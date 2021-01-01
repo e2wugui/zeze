@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ZezeConfig>
   <BeanDefine RefCount="0" Locked="False">
-    <variable name="unique" type="Undecided" vw="90" properties="unique;" />
-    <variable name="dns" type="Undecided" properties="dns;" vw="111" />
+    <variable name="unique" type="Undecided" vw="90" properties="id;unique;" />
+    <variable name="dns" type="Undecided" properties="dns;id;" vw="111" />
     <BeanDefine name="ListA" RefCount="1" Locked="False">
       <variable name="A" type="Undecided" vw="50" />
       <variable name="B" type="Undecided" vw="50" />
