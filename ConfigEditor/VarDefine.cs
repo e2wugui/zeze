@@ -362,8 +362,8 @@ namespace ConfigEditor
 
         private void SetAttribute(XmlElement e, string name, string value)
         {
-            if (string.IsNullOrEmpty(value))
-                return;
+            if (null == value)
+                value = "";
             e.SetAttribute(name, value);
         }
 

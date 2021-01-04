@@ -1,20 +1,24 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ZezeConfig>
   <BeanDefine RefCount="0" Locked="False">
-    <variable name="unique" type="Undecided" vw="90" properties="id;unique;" />
-    <variable name="dns" type="Undecided" properties="dns;id;" vw="111" />
+    <variable name="unique" type="Undecided" vw="90" properties="id;unique;" value="" comment="" foreign="" />
+    <variable name="dns" type="Undecided" properties="dns;" vw="111" value="" comment="" foreign="" />
     <BeanDefine name="ListA" RefCount="1" Locked="False">
-      <variable name="A" type="Undecided" vw="50" properties="id.list;" />
-      <variable name="B" type="Undecided" vw="50" properties="id.list;" />
+      <variable name="A" type="Undecided" vw="50" properties="" value="" comment="" foreign="" />
+      <variable name="B" type="Undecided" vw="50" properties="" value="" comment="" foreign="" />
     </BeanDefine>
-    <variable name="ListA" type="List" value="config.ListA" vw="50" />
-    <variable name="u" type="Undecided" vw="50" />
+    <variable name="ListA" type="List" value="config.ListA" vw="50" properties="" comment="" foreign="" />
+    <variable name="u" type="Undecided" vw="50" value="" properties="" comment="" foreign="" />
   </BeanDefine>
   <bean DefineFullName="" row="0">
     <ListA>
       <list>
         <bean DefineFullName="config.ListA" row="0">
           <A>1</A>
+          <B>2</B>
+        </bean>
+        <bean DefineFullName="config.ListA" row="1">
+          <A>2</A>
           <B>2</B>
         </bean>
       </list>

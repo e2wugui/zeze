@@ -147,7 +147,7 @@ namespace ConfigEditor
             maingrid.CurrentCell = maincell;
         }
 
-        public void OnRemoveGrid(DataGridView gridedit)
+        public void RemoveErrorByGrid(DataGridView gridedit)
         {
             // 现在只显示打开grid的文件错误。如果要显示所有文件的。
             // 就不能记住Cell的引用，应该使用文件名+(ColIndex, RowIndex)。
@@ -162,6 +162,8 @@ namespace ConfigEditor
                 if (c.DataGridView == gridedit)
                 {
                     removed[c] = 1;
+                    c.Style.BackColor = Color.White;
+                    c.ToolTipText = null;
                     grid.Rows.RemoveAt(i);
                 }
             }

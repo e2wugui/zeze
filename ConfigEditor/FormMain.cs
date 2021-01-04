@@ -170,7 +170,7 @@ namespace ConfigEditor
         {
             try
             {
-                FormError.OnRemoveGrid(grid);
+                FormError.RemoveErrorByGrid(grid);
 
                 int skipLastRow = grid.RowCount - 1;
                 for (int rowIndex = 0; rowIndex < skipLastRow; ++rowIndex)
@@ -824,7 +824,7 @@ namespace ConfigEditor
                     }
                     else
                     {
-                        FormError.OnRemoveGrid(grid);
+                        FormError.RemoveErrorByGrid(grid);
                         tab.Dispose();
                     }
                     FormError.OnAddError = null;
@@ -1319,7 +1319,7 @@ namespace ConfigEditor
             {
                 Documents.Remove(doc.RelateName);
             }
-            FormError.OnRemoveGrid(grid);
+            FormError.RemoveErrorByGrid(grid);
             var seltab = tabs.SelectedTab;
             tabs.Controls.Remove(seltab);
             seltab.Dispose();

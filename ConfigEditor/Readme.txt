@@ -36,10 +36,13 @@ Test
 	* NEW 菜单 Build 可以用了，现在把数据导出；detect；生成cs代码. 
 	* Property.Id Property.idlist 在 Build 时建立 Map 索引。
 
+	* NEW Build 加入错误检查。如果有错误，中断执行。
+
 性能
 	* 几千行看看会怎么样。
 
 TODO
+	Property.idlist Property.uniquelist 都设置可能有问题。需要确认。
 	enum
 	    1 当把列从其他类型改成enum时，把现有的输入内容当作枚举的值，并弹出define窗口编辑enum名字。然后cell里面显示enumname=value
 	    2 当把enum改成其他类型时，cell显示value。
