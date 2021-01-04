@@ -45,7 +45,7 @@ TODO
 	    2 当把enum改成其他类型时，cell显示value。
 	    3 不允许在编辑配置的时候动态加入enum-value，只能在define里面增加？
 	    4 编辑数据的时候，只能从现有的定义中选择。
-
+	Build Verify Error 挑选哪些错误不让过。现在考虑 typeverify；unique；其他都允许了？
 	ts gen
 	lua gen
 	自动完成和enum识别。

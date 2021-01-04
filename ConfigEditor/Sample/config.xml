@@ -22,4 +22,7 @@
     <dns>说</dns>
     <unique>1</unique>
   </bean>
+  <bean DefineFullName="" row="1">
+    <unique>2</unique>
+  </bean>
 </ZezeConfig>

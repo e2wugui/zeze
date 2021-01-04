@@ -170,7 +170,8 @@ namespace ConfigEditor
         {
             try
             {
-                FormError.Clear();
+                FormError.OnRemoveGrid(grid);
+
                 int skipLastRow = grid.RowCount - 1;
                 for (int rowIndex = 0; rowIndex < skipLastRow; ++rowIndex)
                 {
@@ -796,6 +797,46 @@ namespace ConfigEditor
 
             try
             {
+                // verify
+                foreach (var doc in Documents.Values)
+                {
+                    if (doc.Grid != null)
+                        continue; // 已经打开的文档，已经有即时验证了。
+
+                    int ErrorCount = 0;
+
+                    // 创建一个临时的 Grid 用来Verify。
+                    TabPage tab = NewTabPage(doc.RelateName);
+                    DataGridView grid = (DataGridView)tab.Controls[0];
+                    FormError.OnAddError = (DataGridViewCell cell, Property.IProperty p, Property.ErrorLevel level, string desc) =>
+                    {
+                        if (cell.DataGridView == grid)
+                            ++ErrorCount;
+                    };
+                    LoadDocumentToView(grid, doc);
+                    if (ErrorCount > 0)
+                    {
+                        // 如果有错误，也显示出来。
+                        tabs.Controls.Add(tab);
+                        //tabs.SelectedTab = tab;
+                        doc.Grid = grid;
+                        grid.Tag = doc;
+                    }
+                    else
+                    {
+                        FormError.OnRemoveGrid(grid);
+                        tab.Dispose();
+                    }
+                    FormError.OnAddError = null;
+                }
+
+                if (FormError.GetErrorCount() > 0)
+                {
+                    FormError.Show();
+                    MessageBox.Show("存在一些验证错误。停止Build。");
+                    return;
+                }
+
                 string serverDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Server");
                 string clientDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Client");
 
@@ -1279,7 +1320,9 @@ namespace ConfigEditor
                 Documents.Remove(doc.RelateName);
             }
             FormError.OnRemoveGrid(grid);
-            tabs.Controls.Remove(tabs.SelectedTab);
+            var seltab = tabs.SelectedTab;
+            tabs.Controls.Remove(seltab);
+            seltab.Dispose();
         }
 
         public void OpenFormProjectConfig()

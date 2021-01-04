@@ -51,8 +51,11 @@ namespace ConfigEditor
                 {
                     case 1:
                         // 关联的cell已经唯一了，特殊处理。
-                        if (PathLast.Define.Parent.Document.Main.PropertyManager.Properties.TryGetValue("unique", out var p))
-                            PathLast.Define.Parent.Document.Main.FormError.RemoveError(cells.First(), p);
+                        var formMain = PathLast.Define.Parent.Document.Main;
+                        if (formMain.PropertyManager.Properties.TryGetValue(Property.Unique.PName, out var puniq))
+                            formMain.FormError.RemoveError(cells.First(), puniq);
+                        if (formMain.PropertyManager.Properties.TryGetValue(Property.Id.PName, out var pid))
+                            formMain.FormError.RemoveError(cells.First(), pid);
                         break;
 
                     case 0:

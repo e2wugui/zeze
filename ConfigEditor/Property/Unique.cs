@@ -9,7 +9,8 @@ namespace ConfigEditor.Property
 {
     public class Unique : IProperty
     {
-        public override string Name => "unique";
+        public static readonly string PName = "unique";
+        public override string Name => PName;
         public override string Comment => "验证是否在该列所有数据中唯一";
 
         public override void VerifyCell(VerifyParam p)

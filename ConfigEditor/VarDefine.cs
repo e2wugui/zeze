@@ -39,8 +39,9 @@ namespace ConfigEditor
         public void CheckAndDetectType(string value)
         {
             if (Type != EType.Undecided)
-            { 
-                // check
+            {
+                // 基本类型 verify，已经在 FormMain.buildButton_Click 里面做过了。
+                /*
                 switch (Type)
                 {
                     case EType.Double: double.Parse(value); break;
@@ -52,6 +53,7 @@ namespace ConfigEditor
                     case EType.String: break;
                     default: throw new Exception("unknown type");
                 }
+                */
                 return;
             }
             EType valueType = Detect(value);

@@ -73,6 +73,9 @@ namespace ConfigEditor
                 AddError(cell, p, level, desc);
         }
 
+        public delegate void AddErrorAction(DataGridViewCell cell, Property.IProperty p, Property.ErrorLevel level, string desc);
+        public AddErrorAction OnAddError { get; set; }
+
         public void AddError(DataGridViewCell cell, Property.IProperty p, Property.ErrorLevel level, string desc)
         {
             if (false == Errors.TryGetValue(cell, out var errors))
@@ -90,6 +93,9 @@ namespace ConfigEditor
 
             errors.Add(p.Name, new Error() { Level = level, Description = desc, Row = row, });
             UpdateErrorCell(cell, errors);
+
+            if (OnAddError != null)
+                OnAddError(cell, p, level, desc);
         }
 
         public void RemoveError(DataGridViewCell cell, Property.IProperty p)
@@ -101,12 +107,13 @@ namespace ConfigEditor
                 return;
 
             errors.Remove(p.Name);
+            grid.Rows.Remove(error.Row);
+
             if (errors.Count == 0)
             {
                 Errors.Remove(cell);
                 cell.Style.BackColor = Color.White;
                 cell.ToolTipText = null;
-                grid.Rows.Remove(error.Row);
             }
             else
             {
@@ -170,6 +177,20 @@ namespace ConfigEditor
         {
             Errors.Clear();
             grid.Rows.Clear();
+        }
+
+        public int GetErrorCount()
+        {
+            int error = 0;
+            foreach (var errorsByCell in Errors.Values)
+            {
+                foreach (var errors in errorsByCell.Values)
+                {
+                    if (errors.Level == Property.ErrorLevel.Error)
+                        ++error;
+                }
+            }
+            return error;
         }
     }
 }
