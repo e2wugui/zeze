@@ -92,7 +92,7 @@ namespace ConfigEditor.Property
             if (same.Count >= 1)
             {
                 same.Add(p.Cell);
-                p.FormMain.FormError.AddError(same, this, ErrorLevel.Error, "UniqueList 重复啦。");
+                p.FormMain.FormError.AddError(same, this, ErrorLevel.Error, Name + " 重复啦。");
             }
             else
             {

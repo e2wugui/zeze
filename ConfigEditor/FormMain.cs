@@ -808,6 +808,7 @@ namespace ConfigEditor
                     // 创建一个临时的 Grid 用来Verify。
                     TabPage tab = NewTabPage(doc.RelateName);
                     DataGridView grid = (DataGridView)tab.Controls[0];
+                    grid.SuspendLayout();
                     FormError.OnAddError = (DataGridViewCell cell, Property.IProperty p, Property.ErrorLevel level, string desc) =>
                     {
                         if (cell.DataGridView == grid)
@@ -821,6 +822,7 @@ namespace ConfigEditor
                         //tabs.SelectedTab = tab;
                         doc.Grid = grid;
                         grid.Tag = doc;
+                        grid.ResumeLayout(); // 仅在需要显示时才执行。
                     }
                     else
                     {
