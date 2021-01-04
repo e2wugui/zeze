@@ -36,7 +36,7 @@ Test
 	* NEW 菜单 Build 可以用了，现在把数据导出；detect；生成cs代码. 
 	* Property.Id Property.idlist 在 Build 时建立 Map 索引。
 
-	2021/1/4 之后
+	2021/1/4
 	* NEW Build 加入错误检查。如果有错误，中断执行。
 	* BUG FormError 在根据 Grid 删除错误时没有恢复 Cell 的状态。
 
@@ -49,7 +49,6 @@ TODO
 	    2 当把enum改成其他类型时，cell显示value。
 	    3 不允许在编辑配置的时候动态加入enum-value，只能在define里面增加？
 	    4 编辑数据的时候，只能从现有的定义中选择。
-	Build Verify Error 挑选哪些错误不让过。现在考虑 typeverify；unique；其他都允许了？
 	ts gen
 	lua gen
 	自动完成和enum识别。

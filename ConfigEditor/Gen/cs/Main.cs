@@ -121,9 +121,34 @@ namespace ConfigEditor.Gen.cs
                 sw.WriteLine("            }");
                 sw.WriteLine("        }");
                 sw.WriteLine();
+                sw.WriteLine("    public static void LoadList(XmlElement self, Action<XmlElement> action)");
+                sw.WriteLine("        {");
+                sw.WriteLine("            foreach (XmlNode nodeList in self.ChildNodes)");
+                sw.WriteLine("            {");
+                sw.WriteLine("                if (XmlNodeType.Element != nodeList.NodeType)");
+                sw.WriteLine("                    continue;");
+                sw.WriteLine("                XmlElement eList = (XmlElement)nodeList;");
+                sw.WriteLine("                switch (eList.Name)");
+                sw.WriteLine("                {");
+                sw.WriteLine("                    case \"list\":");
+                sw.WriteLine("                        foreach (XmlNode bInList in eList.ChildNodes)");
+                sw.WriteLine("                        {");
+                sw.WriteLine("                            if (XmlNodeType.Element != bInList.NodeType)");
+                sw.WriteLine("                                continue;");
+                sw.WriteLine("                            XmlElement eInList = (XmlElement)bInList;");
+                sw.WriteLine("                            if (!eInList.Name.Equals(\"bean\"))");
+                sw.WriteLine("                                throw new Exception(\"Unknown Element In List\");");
+                sw.WriteLine("                            action(eInList);");
+                sw.WriteLine("                        }");
+                sw.WriteLine("                        break;");
+                sw.WriteLine("                    default:");
+                sw.WriteLine("                        throw new Exception(\"Unknown Element In VarList\");");
+                sw.WriteLine("                }");
+                sw.WriteLine("            }");
+                sw.WriteLine("        }");
+                sw.WriteLine();
                 sw.WriteLine("    }");
                 sw.WriteLine("}");
-
             }
         }
     }
