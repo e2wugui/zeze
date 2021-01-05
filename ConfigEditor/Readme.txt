@@ -45,18 +45,15 @@ Test
 	* NEW typescript gen 数据生成在代码中。
 	* NEW lua gen 数据生成在代码中。
 	* NEW Add Var.Default。
+	* NEW enum
 
 性能
 	* 几千行看看会怎么样。
 
 TODO
-	
-	enum
-	    1 当把列从其他类型改成enum时，把现有的输入内容当作枚举的名字，并弹出define窗口编辑enum名字。然后cell里面显示enumname=value
-	    2 当把enum改成其他类型时，cell显示原来名字。
-	    3 不允许在编辑配置的时候动态加入enum-value，只能在define里面增加？
-	    4 编辑数据的时候，只能从现有的定义中选择。
-	
+	enum 编辑数据时给选择列表。如果列表中没有找到，提示是否新增。
+	enum gen. 应该需要更新成fullname，要不然有些语言可能找不到定义。
+
 	自动完成和enum识别。
 	1 id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
 	2 普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。

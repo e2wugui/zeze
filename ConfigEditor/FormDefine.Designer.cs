@@ -31,8 +31,6 @@ namespace ConfigEditor
         {
             this.components = new System.ComponentModel.Container();
             this.define = new System.Windows.Forms.DataGridView();
-            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.deleteVariableColumnToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.BeanLocked = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.VarName = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.VarType = new System.Windows.Forms.DataGridViewComboBoxColumn();
@@ -41,6 +39,8 @@ namespace ConfigEditor
             this.VarProperties = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.VarDefault = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.VarComment = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.deleteVariableColumnToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.define)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -83,21 +83,6 @@ namespace ConfigEditor
             this.define.DragDrop += new System.Windows.Forms.DragEventHandler(this.define_DragDrop);
             this.define.DragEnter += new System.Windows.Forms.DragEventHandler(this.define_DragEnter);
             this.define.DragOver += new System.Windows.Forms.DragEventHandler(this.define_DragOver);
-            // 
-            // contextMenuStrip1
-            // 
-            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.deleteVariableColumnToolStripMenuItem});
-            this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(259, 26);
-            this.contextMenuStrip1.Text = "&Delete Variable(Column)";
-            // 
-            // deleteVariableColumnToolStripMenuItem
-            // 
-            this.deleteVariableColumnToolStripMenuItem.Name = "deleteVariableColumnToolStripMenuItem";
-            this.deleteVariableColumnToolStripMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.deleteVariableColumnToolStripMenuItem.Text = "&Delete Bean Variable(Data Column)";
-            this.deleteVariableColumnToolStripMenuItem.Click += new System.EventHandler(this.deleteVariableColumnToolStripMenuItem_Click);
             // 
             // BeanLocked
             // 
@@ -169,6 +154,21 @@ namespace ConfigEditor
             this.VarComment.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             this.VarComment.ToolTipText = "注释";
             this.VarComment.Width = 200;
+            // 
+            // contextMenuStrip1
+            // 
+            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.deleteVariableColumnToolStripMenuItem});
+            this.contextMenuStrip1.Name = "contextMenuStrip1";
+            this.contextMenuStrip1.Size = new System.Drawing.Size(311, 48);
+            this.contextMenuStrip1.Text = "&Delete Variable(Column)";
+            // 
+            // deleteVariableColumnToolStripMenuItem
+            // 
+            this.deleteVariableColumnToolStripMenuItem.Name = "deleteVariableColumnToolStripMenuItem";
+            this.deleteVariableColumnToolStripMenuItem.Size = new System.Drawing.Size(310, 22);
+            this.deleteVariableColumnToolStripMenuItem.Text = "&Delete Variable(Data Column) Or Enum Value";
+            this.deleteVariableColumnToolStripMenuItem.Click += new System.EventHandler(this.deleteVariableColumnToolStripMenuItem_Click);
             // 
             // FormDefine
             // 

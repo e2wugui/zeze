@@ -168,7 +168,7 @@ namespace ConfigEditor.Property
             }
 
             var varDefine = p.ColumnTag.PathLast.Define;
-            if (varDefine.Parent.EnumDefines.TryGetValue(varDefine.Name, out var enumDefine))
+            if (false == varDefine.Parent.EnumDefines.TryGetValue(varDefine.Name, out var enumDefine))
             {
                 p.FormMain.FormError.AddError(p.Cell, this, ErrorLevel.Error, "枚举没有找到: " + varDefine.Name);
                 return;

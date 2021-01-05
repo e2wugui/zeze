@@ -232,15 +232,7 @@ namespace ConfigEditor
 
         public string FullName()
         {
-            string name = Name;
-            for (var b = Parent; null != b; b = b.Parent)
-            {
-                name = b.Name + "." + name;
-            }
-            string docpath = Parent.Document.RelatePath;
-            if (string.IsNullOrEmpty(docpath))
-                return name;
-            return docpath + "." + name;
+            return Parent.FullName() + "." + Name;
         }
 
         public void Verify(Property.VerifyParam param)

@@ -63,12 +63,65 @@ namespace ConfigEditor
             SortedDictionary<string, BeanDefine> BeanDefines = new SortedDictionary<string, BeanDefine>();
             doc.BeanDefine.ForEach((BeanDefine bd) => { BeanDefines.Add(bd.FullName(), bd); return true; });
 
+            SortedDictionary<string, EnumDefine> EnumDefines = new SortedDictionary<string, EnumDefine>();
             define.SuspendLayout();
             foreach (var e in BeanDefines)
             {
                 InsertBeanDefine(define.RowCount, e.Key, e.Value);
+                foreach (var ed in e.Value.EnumDefines.Values)
+                    EnumDefines.Add(ed.FullName(), ed);
+            }
+            foreach (var e in EnumDefines)
+            {
+                InsertEnumDefine(define.RowCount, e.Key, e.Value);
             }
             define.ResumeLayout();
+        }
+
+        private void InsertEnumDefine(int insertIndex, string fullName, EnumDefine enumDefine)
+        {
+            // row for enum start
+            define.Rows.Insert(insertIndex, 1);
+            DataGridViewCellCollection cellsBeanStart = define.Rows[insertIndex].Cells;
+            for (int i = 0; i < cellsBeanStart.Count; ++i)
+                cellsBeanStart[i].ReadOnly = true;
+            DataGridViewCell cellLocked = cellsBeanStart["BeanLocked"];
+            cellLocked.Tag = enumDefine;
+            cellsBeanStart["VarName"].Value = fullName;
+
+            // row for value
+            foreach (var v in enumDefine.ValueMap.Values)
+            {
+                ++insertIndex;
+                InsertValueDefine(insertIndex, v);
+            }
+
+            // row for enum end
+            ++insertIndex;
+            define.Rows.Insert(insertIndex, 1);
+            DataGridViewCellCollection cellsBeanEnd = define.Rows[insertIndex].Cells;
+            for (int i = 0; i < cellsBeanEnd.Count; ++i)
+                cellsBeanEnd[i].ReadOnly = true;
+            DataGridViewCell cellBeanEnd = cellsBeanEnd["VarName"];
+            cellBeanEnd.Value = ",";
+            cellBeanEnd.Tag = new EnumDefine.ValueDefine(enumDefine, "", -1);
+            cellBeanEnd.ToolTipText = "双击增加枚举";
+        }
+
+        private void InsertValueDefine(int rowIndex, EnumDefine.ValueDefine value)
+        {
+            define.Rows.Insert(rowIndex, 1);
+            DataGridViewCellCollection cellsValue = define.Rows[rowIndex].Cells;
+            for (int i = 0; i < cellsValue.Count; ++i)
+                cellsValue[i].ReadOnly = true;
+
+            cellsValue["VarName"].Value = value.Name;
+            cellsValue["VarName"].Tag = value;
+            cellsValue["VarName"].ReadOnly = false;
+            cellsValue["VarValue"].Value = value.Value;
+            cellsValue["VarValue"].ReadOnly = false;
+            cellsValue["VarComment"].Value = value.Comment;
+            cellsValue["VarComment"].ReadOnly = false;
         }
 
         private void InsertBeanDefine(int insertIndex, string fullName, BeanDefine bean)
@@ -194,10 +247,17 @@ namespace ConfigEditor
         {
             if (define.CurrentCell == null)
                 return;
-            VarDefine var = define.Rows[define.CurrentCell.RowIndex].Cells["VarName"].Tag as VarDefine;
-            if (null == var)
+            object tag = define.Rows[define.CurrentCell.RowIndex].Cells["VarName"].Tag;
+            if (null == tag)
                 return;
-            DeleteVariable(define.CurrentCell.RowIndex, var, true);
+
+            if (tag is EnumDefine.ValueDefine valueDefine)
+            {
+                valueDefine.Delete();
+                define.Rows.RemoveAt(define.CurrentCell.RowIndex);
+                return;
+            }
+            DeleteVariable(define.CurrentCell.RowIndex, tag as VarDefine, true);
         }
 
         private void define_CellMouseDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
@@ -214,10 +274,20 @@ namespace ConfigEditor
             {
                 case "VarName":
                     DataGridViewCell cellVarName = define[e.ColumnIndex, e.RowIndex];
-                    if (cellVarName.Value as string == ",")
+                    if (null != cellVarName.Tag && (cellVarName.Value as string == ","))
                     {
-                        (VarDefine var, bool create) = FormMain.AddVariable(cellVarName.Tag as VarDefine);
-                        UpdateWhenAddVariable(e.RowIndex, var, create);
+                        if (cellVarName.Tag is VarDefine varDefineHint)
+                        {
+                            (VarDefine var, bool create) = FormMain.AddVariable(varDefineHint);
+                            UpdateWhenAddVariable(e.RowIndex, var, create);
+                        }
+                        if (cellVarName.Tag is EnumDefine.ValueDefine valueDefine)
+                        {
+                            InsertValueDefine(e.RowIndex, new EnumDefine.ValueDefine(valueDefine.Parent, "", -1));
+                            define.CurrentCell = define[e.ColumnIndex, e.RowIndex];
+                            define.BeginEdit(true);
+                            // TODO 当编辑取消时，需要删掉新增的行。
+                        }
                     }
                     break;
 
@@ -335,12 +405,52 @@ namespace ConfigEditor
                 return;
             }
 
-            // modify Var
-            VarDefine var = cells["VarName"].Tag as VarDefine;
-            if (null == var || null == var.Name) // var.Name is null when row is ',' for addvar
+            DataGridViewCell cellVarName = cells["VarName"];
+            if (null == cellVarName.Tag)
             {
                 e.Cancel = true;
-                MessageBox.Show("只有var的行才允许编辑，其他的应该都设置了 ReadOnly. 怎么到这里的？");
+                MessageBox.Show("只有VarName.Tag设置的行才允许编辑，其他的应该都设置了 ReadOnly. 怎么到这里的？");
+                return;
+            }
+
+            if (cellVarName.Tag is EnumDefine.ValueDefine valueDefine)
+            {
+                string colName = define.Columns[e.ColumnIndex].Name;
+                switch (colName)
+                {
+                    case "VarName":
+                        var newValue = e.FormattedValue as string;
+                        if (null != Tools.VerifyName(newValue, CheckNameType.ShowMsg))
+                        {
+                            e.Cancel = true;
+                            return;
+                        }
+                        if (false == valueDefine.Name.Equals(newValue)
+                            && valueDefine.Parent.ValueMap.TryGetValue(newValue, out _))
+                        {
+                            e.Cancel = true;
+                            MessageBox.Show("enum.value 重名了。");
+                            return;
+                        }
+                        break;
+
+                    case "VarValue":
+                        if (false == int.TryParse(e.FormattedValue as string, out var _))
+                        {
+                            e.Cancel = true;
+                            MessageBox.Show("enum.value只能是整数。");
+                            return;
+                        }
+                        break;
+                }
+                return;
+            }
+
+            // modify Var
+            VarDefine var = cellVarName.Tag as VarDefine;
+            if (null == var.Name) // var.Name is null when row is ',' for addvar
+            {
+                e.Cancel = true; // 肯定时readonly吧。怎么到这里的。
                 return;
             }
 
@@ -460,10 +570,53 @@ namespace ConfigEditor
                 return;
 
             DataGridViewCellCollection cells = define.Rows[e.RowIndex].Cells;
-            VarDefine var = cells["VarName"].Tag as VarDefine;
-            if (null == var)
+            DataGridViewCell cellVarName = cells["VarName"];
+            if (null == cellVarName.Tag)
                 return;
 
+            if (cellVarName.Tag is EnumDefine.ValueDefine valueDefine)
+            {
+                string col = define.Columns[e.ColumnIndex].Name;
+                switch (col)
+                {
+                    case "VarName":
+                        {
+                            string newStrValue = cellVarName.Value as string;
+                            if (string.IsNullOrEmpty(newStrValue))
+                            {
+                                // 新增ValueDefine，如果没有输入就看做取消。删除掉。
+                                // 此时ValueDefine并没有被加入EnumDefine.
+                                define.Rows.RemoveAt(e.RowIndex);
+                            }
+                            else if (valueDefine.Name.Equals(newStrValue))
+                            {
+                                valueDefine.Parent.ChangeValueName(valueDefine, newStrValue);
+                                cells["VarValue"].Value = valueDefine.Value.ToString();
+                            }
+                        }
+                        break;
+
+                    case "VarValue":
+                        {
+                            string newStrValue = cells[col].Value as string;
+                            int newValue = string.IsNullOrEmpty(newStrValue) ? -1 : int.Parse(newStrValue);
+                            if (valueDefine.Value != newValue)
+                            {
+                                valueDefine.Value = newValue;
+                                valueDefine.Parent.Parent.Document.IsChanged = true;
+                            }
+                        }
+                        break;
+
+                    case "VarComment":
+                        valueDefine.Comment = cells[col].Value as string;
+                        valueDefine.Parent.Parent.Document.IsChanged = true;
+                        break;
+                }
+                return;
+            }
+
+            VarDefine var = cellVarName.Tag as VarDefine;
             string colName = define.Columns[e.ColumnIndex].Name;
             switch (colName)
             {
@@ -483,6 +636,7 @@ namespace ConfigEditor
                             UpdateData(doc, var, newVarName);
                             doc.BeanDefine.UpdateForeign(oldForeignName, newForengnName);
                         }
+                        var.Parent.ChangeEnumName(var.Name, newVarName);
                         var.Name = newVarName;
                         var.Parent.Document.IsChanged = true;
                         FormMain.ReloadAllGridIfContains(var);
@@ -495,6 +649,10 @@ namespace ConfigEditor
                     {
                         var.Type = newType;
                         var.Parent.Document.IsChanged = true;
+                        if (newType == VarDefine.EType.Enum)
+                        {
+                            BuildEnumFor(var);
+                        }
                     }
                     break;
 
@@ -542,6 +700,39 @@ namespace ConfigEditor
                     var.Parent.Document.IsChanged = true;
                     break;
             }
+        }
+
+        /// <summary>
+        /// 在当前搜索使用参数变量的的所有列的值，并且构建EnumDefine。
+        /// 不合法的Enum名字忽略。
+        /// 仅在 FromDefine 里面调用。
+        /// </summary>
+        /// <param name="var"></param>
+        public void BuildEnumFor(VarDefine var)
+        {
+            if (FormMain.Tabs.SelectedTab == null)
+                return;
+
+            var enumDefine = new EnumDefine(var.Parent, var.Name);
+            DataGridView grid = (DataGridView)FormMain.Tabs.SelectedTab.Controls[0];
+            for (int i = 0; i < grid.ColumnCount; ++i)
+            {
+                if ((grid.Columns[i].Tag as ColumnTag).PathLast.Define == var)
+                {
+                    for (int j = 0; j < grid.RowCount - 1; ++j)
+                    {
+                        var valueName = grid[i, j].Value as string;
+                        if (null == Tools.VerifyName(valueName, CheckNameType.CheckOnly))
+                        {
+                            // 增加enum定义。
+                            enumDefine.ChangeValueName(new EnumDefine.ValueDefine(enumDefine, "", -1), valueName);
+                        }
+                    }
+                }
+            }
+            var.Parent.EnumDefines.Add(enumDefine.Name, enumDefine);
+            var.Parent.Document.IsChanged = true;
+            InsertEnumDefine(define.RowCount, enumDefine.FullName(), enumDefine);
         }
 
         private void define_DragEnter(object sender, DragEventArgs e)

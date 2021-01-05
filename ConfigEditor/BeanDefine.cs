@@ -18,6 +18,16 @@ namespace ConfigEditor
         private int RefCount = 1;
         public bool Locked { get; set; } = false;
 
+        public void ChangeEnumName(string oldName, string newName)
+        {
+            if (EnumDefines.TryGetValue(oldName, out var e))
+            {
+                EnumDefines.Remove(oldName);
+                e.Name = newName;
+                EnumDefines.Add(newName, e);
+            }
+        }
+
         public void InitializeListReference()
         {
             foreach (var v in Variables)
