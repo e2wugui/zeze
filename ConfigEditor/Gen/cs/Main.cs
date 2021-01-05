@@ -61,7 +61,7 @@ namespace ConfigEditor.Gen.cs
 
                     foreach (var var in doc.BeanDefine.Variables)
                     {
-                        if (var.Type == VarDefine.EType.List)
+                        if (false == var.IsKeyable())
                             continue;
 
                         if (false == var.PropertiesList.Contains(pid))

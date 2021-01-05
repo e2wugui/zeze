@@ -11,7 +11,7 @@ namespace ConfigEditor.Gen.cs
         public static string GetName(VarDefine var)
         {
             VarDefine.EType type = (var.Type == VarDefine.EType.Undecided) ?  var.TypeDetected : var.Type;
-
+            
             switch (type)
             {
                 case VarDefine.EType.Double: return "double";
@@ -19,6 +19,7 @@ namespace ConfigEditor.Gen.cs
                 case VarDefine.EType.Float: return "float";
                 case VarDefine.EType.Int: return "int";
                 case VarDefine.EType.List: return $"List<{var.Reference.FullName()}>";
+                case VarDefine.EType.Date: return "DateTime";
                 case VarDefine.EType.Long: return "long";
                 case VarDefine.EType.String: return "string";
                 default: throw new Exception("unknown type");
@@ -58,11 +59,12 @@ namespace ConfigEditor.Gen.cs
                         throw new Exception("Property.Id miss!");
                     foreach (var varRef in var.Reference.Variables)
                     {
-                        if (varRef.Type == VarDefine.EType.List)
+                        if (false == varRef.IsKeyable())
                             continue;
 
                         if (false == varRef.PropertiesList.Contains(pid))
                             continue;
+
                         sw.WriteLine($"{prefix}    V{var.Name}Map{varRef.Name}.Add(beanInList.V{varRef.Name}, beanInList);");
                     }
                     sw.WriteLine($"{prefix}}});");
@@ -75,6 +77,10 @@ namespace ConfigEditor.Gen.cs
 
                 case VarDefine.EType.String:
                     sw.WriteLine($"{prefix}V{var.Name} = e.InnerText;");
+                    break;
+
+                case VarDefine.EType.Date:
+                    sw.WriteLine($"{prefix}V{var.Name} = DateTime.Parse(e.InnerText);");
                     break;
 
                 default:

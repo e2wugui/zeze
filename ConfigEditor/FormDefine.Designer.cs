@@ -170,6 +170,7 @@ namespace ConfigEditor
             this.Controls.Add(this.define);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "FormDefine";
+            this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Bean 结构定义";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormDefine_FormClosing);

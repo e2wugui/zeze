@@ -50,7 +50,7 @@ namespace ConfigEditor.Gen.cs
                 {
                     foreach (var varRef in var.Reference.Variables)
                     {
-                        if (varRef.Type == VarDefine.EType.List)
+                        if (false == varRef.IsKeyable())
                             continue;
 
                         if (false == varRef.PropertiesList.Contains(pid))

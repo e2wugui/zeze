@@ -129,6 +129,27 @@ namespace ConfigEditor.Property
         }
     }
 
+    public class DateVerify : IProperty
+    {
+        public override string Name => "date";
+
+        public override string Comment => "";
+
+        public override bool BuildIn => true;
+
+        public override void VerifyCell(VerifyParam param)
+        {
+            if (DateTime.TryParse(param.NewValue, out var _))
+            {
+                param.FormMain.FormError.RemoveError(param.Cell, this);
+            }
+            else
+            {
+                param.FormMain.FormError.AddError(param.Cell, this, ErrorLevel.Error, "It is not a Date.");
+            }
+        }
+    }
+
     public class EnumVerify : IProperty
     {
         public override string Name => "enum";

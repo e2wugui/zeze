@@ -141,7 +141,17 @@ namespace ConfigEditor
             return (var, create, "");
         }
 
-        public string FullName(char sep = '.')
+        /*
+        public string FullNameWithPrefix()
+        {
+            var fullName = FullName();
+            if (string.IsNullOrEmpty(Document.NamespacePrefix))
+                return fullName;
+            return Document.NamespacePrefix + "." + fullName;
+        }
+        */
+
+        public string FullName()
         {
             string name = Name;
             for (var b = Parent; null != b; b = b.Parent)

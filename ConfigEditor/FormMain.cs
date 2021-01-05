@@ -839,9 +839,8 @@ namespace ConfigEditor
                     return;
                 }
 
+                // 输出服务器使用的配置数据。现在是xml格式。
                 string serverDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Server");
-                string clientDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Client");
-
                 foreach (var doc in Documents.Values)
                 {
                     string docpath = doc.RelatePath.Replace('.', System.IO.Path.DirectorySeparatorChar);
@@ -850,11 +849,6 @@ namespace ConfigEditor
                     System.IO.Directory.CreateDirectory(serverDocDir);
                     string serverFileName = System.IO.Path.Combine(serverDocDir, doc.Name + ".xml");
                     doc.SaveAs(serverFileName, true, Property.DataOutputFlags.Server);
-
-                    string clientDocDir = System.IO.Path.Combine(clientDir, docpath);
-                    System.IO.Directory.CreateDirectory(clientDocDir);
-                    string clientFileName = System.IO.Path.Combine(clientDocDir, doc.Name + ".xml");
-                    doc.SaveAs(clientFileName, true, Property.DataOutputFlags.Client);
                 }
 
                 Gen.cs.Main.Gen(this, Property.DataOutputFlags.Server);
@@ -862,13 +856,26 @@ namespace ConfigEditor
                 {
                     case "cs":
                         Gen.cs.Main.Gen(this, Property.DataOutputFlags.Client);
+                        // 输出客户端使用的配置数据。xml格式。
+                        string clientDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Client");
+                        foreach (var doc in Documents.Values)
+                        {
+                            string docpath = doc.RelatePath.Replace('.', System.IO.Path.DirectorySeparatorChar);
+                            string clientDocDir = System.IO.Path.Combine(clientDir, docpath);
+                            System.IO.Directory.CreateDirectory(clientDocDir);
+                            string clientFileName = System.IO.Path.Combine(clientDocDir, doc.Name + ".xml");
+                            doc.SaveAs(clientFileName, true, Property.DataOutputFlags.Client);
+                        }
+
                         break;
 
                     case "ts":
-                        // TODO
+                        // 生成代码，数据也嵌入在代码中。
+                        Gen.ts.Main.Gen(this, Property.DataOutputFlags.Client);
                         break;
 
                     case "lua":
+                        // 生成代码，数据也嵌入在代码中。
                         // TODO
                         break;
 

@@ -102,6 +102,7 @@ namespace ConfigEditor.Property
             AddBuildIn(new FloatVerify());
             AddBuildIn(new EnumVerify());
             AddBuildIn(new ForengnVerify());
+            AddBuildIn(new DateVerify());
         }
     }
 }

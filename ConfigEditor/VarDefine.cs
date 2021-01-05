@@ -20,6 +20,19 @@ namespace ConfigEditor
 
         public List<Property.IProperty> PropertiesList { get; private set; } = new List<Property.IProperty>(); // 优化
 
+        public bool IsKeyable()
+        {
+            EType type = Type == EType.Undecided ? TypeDetected : Type;
+            switch (type)
+            {
+                case EType.Int:
+                case EType.Long:
+                case EType.String:
+                    return true;
+            }
+            return false;
+        }
+
         private EType Detect(string value)
         {
             // 下面的判断有优先级顺序。不支持自动发现所有类型。
@@ -32,7 +45,8 @@ namespace ConfigEditor
                 return EType.Long;
             if (double.TryParse(value, out var _))
                 return EType.Double;
-
+            if (DateTime.TryParse(value, out var _))
+                return EType.Date;
             return EType.String;
         }
 
@@ -165,11 +179,31 @@ namespace ConfigEditor
             Int = 1,
             Long = 2,
             Double = 3,
-            String = 4,
-            //Bean = 5,
+            Date = 4,
+            String = 5,
             List = 6,
             Float = 7,
             Enum = 8,
+        }
+
+        public static EType ToEType(string type)
+        {
+            type = type.ToLower();
+            switch (type)
+            {
+                case "": case "undecided":  return EType.Undecided;
+                case "int": return EType.Int;
+                case "long": return EType.Long;
+                case "double": return EType.Double;
+                case "date": return EType.Date;
+                case "string": return EType.String;
+                case "list": return EType.List;
+                case "float": return EType.Float;
+                case "enum": return EType.Enum;
+                default:
+                    throw new Exception("Unknown Type " + type);
+                    //return EType.Bean;
+            }
         }
 
         public string FullName()
@@ -183,25 +217,6 @@ namespace ConfigEditor
             if (string.IsNullOrEmpty(docpath))
                 return name;
             return docpath + "." + name;
-        }
-
-        public static EType ToEType(string type)
-        {
-            type = type.ToLower();
-            switch (type)
-            {
-                case "": case "undecided":  return EType.Undecided;
-                case "int": return EType.Int;
-                case "long": return EType.Long;
-                case "double": return EType.Double;
-                case "string": return EType.String;
-                case "list": return EType.List;
-                case "float": return EType.Float;
-                case "enum": return EType.Enum;
-                default:
-                    throw new Exception("Unknown Type " + type);
-                    //return EType.Bean;
-            }
         }
 
         public void Verify(Property.VerifyParam param)

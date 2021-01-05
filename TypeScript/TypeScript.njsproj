@@ -36,6 +36,7 @@
     <Content Include="tsconfig.json" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="config.ts" />
     <TypeScriptCompile Include="test.ts" />
     <TypeScriptCompile Include="zeze.ts" />
   </ItemGroup>

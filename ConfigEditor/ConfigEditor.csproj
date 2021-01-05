@@ -125,6 +125,9 @@
     <Compile Include="Gen\cs\BeanFormatter.cs" />
     <Compile Include="Gen\cs\Main.cs" />
     <Compile Include="Gen\cs\TypeHelper.cs" />
+    <Compile Include="Gen\ts\BeanFormatter.cs" />
+    <Compile Include="Gen\ts\Main.cs" />
+    <Compile Include="Gen\ts\TypeHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProjectConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

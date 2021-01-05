@@ -8,7 +8,7 @@
       <variable name="B" type="Undecided" vw="50" properties="" value="" comment="" foreign="" />
     </BeanDefine>
     <variable name="ListA" type="List" value="config.ListA" vw="50" properties="" comment="" foreign="" />
-    <variable name="u" type="Undecided" vw="50" value="" properties="" comment="" foreign="" />
+    <variable name="u" type="Date" vw="129" value="" properties="" comment="" foreign="" />
   </BeanDefine>
   <bean DefineFullName="" row="0">
     <ListA>
@@ -25,8 +25,13 @@
     </ListA>
     <dns>说</dns>
     <unique>1</unique>
+    <u>2021-1-5</u>
   </bean>
   <bean DefineFullName="" row="1">
     <unique>2</unique>
+    <u>10:10:10</u>
+  </bean>
+  <bean DefineFullName="" row="2">
+    <u>2021-1-5 10:10:10</u>
   </bean>
 </ZezeConfig>
