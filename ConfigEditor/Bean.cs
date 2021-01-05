@@ -442,12 +442,12 @@ namespace ConfigEditor
 
                 if (VariableMap.TryGetValue(varDefine.Name, out var varData))
                 {
-                    varDefine.CheckAndDetectType(varData.Value);
+                    varDefine.DetectType(varData.Value);
                     varData.SaveAs(xml, self, create, flags);
                 }
                 else
                 {
-                    varDefine.CheckAndDetectType("");
+                    varDefine.DetectType("");
                 }
             }
         }

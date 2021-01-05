@@ -61,7 +61,7 @@ namespace ConfigEditor
         private void LoadDocument(Document doc)
         {
             SortedDictionary<string, BeanDefine> BeanDefines = new SortedDictionary<string, BeanDefine>();
-            doc.BeanDefine.ForEach((BeanDefine bd) => BeanDefines.Add(bd.FullName(), bd));
+            doc.BeanDefine.ForEach((BeanDefine bd) => { BeanDefines.Add(bd.FullName(), bd); return true; });
 
             define.SuspendLayout();
             foreach (var e in BeanDefines)
@@ -114,6 +114,7 @@ namespace ConfigEditor
             cellsVar["VarValue"].Value = var.Value;
             cellsVar["VarForeign"].Value = var.Foreign;
             cellsVar["VarProperties"].Value = var.Properties;
+            cellsVar["VarDefault"].Value = var.Default;
             cellsVar["VarComment"].Value = var.Comment;
         }
 
@@ -396,6 +397,14 @@ namespace ConfigEditor
                             MessageBox.Show(errType);
                         }
                         break;
+
+                    case "VarDefault":
+                        if (false == VarDefine.CheckType(var.Type, e.FormattedValue as string))
+                        {
+                            e.Cancel = true;
+                            MessageBox.Show("这个默认值和当前类型不匹配。");
+                        }
+                        break;
                 }
             }
             catch (Exception ex)
@@ -520,6 +529,11 @@ namespace ConfigEditor
 
                 case "VarProperties":
                     var.Properties = cells[colName].Value as string;
+                    var.Parent.Document.IsChanged = true;
+                    break;
+
+                case "VarDefault":
+                    var.Default = cells[colName].Value as string;
                     var.Parent.Document.IsChanged = true;
                     break;
 

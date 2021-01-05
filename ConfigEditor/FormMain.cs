@@ -851,7 +851,32 @@ namespace ConfigEditor
                     doc.SaveAs(serverFileName, true, Property.DataOutputFlags.Server);
                 }
 
+                // check VarDefne.Default
+                VarDefine hasDefaultError = null;
+                foreach (var doc in Documents.Values)
+                {
+                    doc.BeanDefine.ForEach((BeanDefine beanDefine) =>
+                    {
+                        foreach (var varDefine in beanDefine.Variables)
+                        {
+                            if (false == VarDefine.CheckType(varDefine.TypeNow, varDefine.Default))
+                            {
+                                hasDefaultError = varDefine;
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                    );
+                }
+                if (hasDefaultError != null)
+                {
+                    MessageBox.Show(hasDefaultError.FullName() + " 默认值和类型不匹配。");
+                    return;
+                }
+
                 Gen.cs.Main.Gen(this, Property.DataOutputFlags.Server);
+
                 switch (string.IsNullOrEmpty(ConfigProject.ClientLanguage) ? "cs" : ConfigProject.ClientLanguage)
                 {
                     case "cs":

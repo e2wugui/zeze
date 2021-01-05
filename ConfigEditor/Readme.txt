@@ -44,12 +44,13 @@ Test
 	* NEW Add “Date” Type
 	* NEW typescript gen 数据生成在代码中。
 	* NEW lua gen 数据生成在代码中。
+	* NEW Add Var.Default。
 
 性能
 	* 几千行看看会怎么样。
 
 TODO
-	Var.Default
+	
 	enum
 	    1 当把列从其他类型改成enum时，把现有的输入内容当作枚举的名字，并弹出define窗口编辑enum名字。然后cell里面显示enumname=value
 	    2 当把enum改成其他类型时，cell显示原来名字。

@@ -25,6 +25,7 @@ namespace ConfigEditor
         }
         public string Value { get; set; } = "";
         public string Foreign { get; set; }
+        public string Default { get; set; }
         public string NamePinyin  => Tools.ToPinyin(Name);
         public List<Property.IProperty> PropertiesList { get; private set; } = new List<Property.IProperty>(); // 优化
 
@@ -58,23 +59,38 @@ namespace ConfigEditor
             return EType.String;
         }
 
-        public void CheckAndDetectType(string value)
+        /// <summary>
+        /// 用于检测 value 是否和 type 匹配。用来验证 default。// build 过程中会再次检测
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static bool CheckType(EType type, string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return true;
+
+            switch (type)
+            {
+                case EType.Undecided: return true;
+                case EType.Date: return DateTime.TryParse(value, out var _);
+                case EType.Double: return double.TryParse(value, out var _);
+                case EType.Enum: return true; // TODO;
+                case EType.Float: return float.TryParse(value, out var _);
+                case EType.Int: return int.TryParse(value, out var _);
+                case EType.List: return true;
+                case EType.Long: return long.TryParse(value, out var _);
+                case EType.String: return true;
+                default: throw new Exception("unknown type");
+            }
+        }
+
+        public void DetectType(string value)
         {
             if (Type != EType.Undecided)
             {
                 // 基本类型 verify，已经在 FormMain.buildButton_Click 里面做过了。
                 /*
-                switch (Type)
-                {
-                    case EType.Double: double.Parse(value); break;
-                    case EType.Enum: break; // TODO;
-                    case EType.Float: float.Parse(value); break;
-                    case EType.Int: int.Parse(value); break;
-                    case EType.List: break; // list item 将在内部再此调用。
-                    case EType.Long: long.Parse(value); break;
-                    case EType.String: break;
-                    default: throw new Exception("unknown type");
-                }
                 */
                 return;
             }
@@ -411,6 +427,7 @@ namespace ConfigEditor
             SetAttribute(self, "foreign", Foreign);
             SetAttribute(self, "properties", Properties);
             SetAttribute(self, "comment", Comment);
+            SetAttribute(self, "default", Default);
 
             if (GridColumnNameWidth > 0)
                 self.SetAttribute("nw", GridColumnNameWidth.ToString());
@@ -432,6 +449,7 @@ namespace ConfigEditor
             v = self.GetAttribute("vw");
             this.GridColumnValueWidth = v.Length > 0 ? int.Parse(v) : 0;
             Properties = self.GetAttribute("properties");
+            Default = self.GetAttribute("default");
 
             Comment = self.GetAttribute("comment");
             if (Comment.Length == 0)

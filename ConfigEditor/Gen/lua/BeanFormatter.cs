@@ -73,14 +73,18 @@ namespace ConfigEditor.Gen.lua
             switch (varDefine.TypeNow)
             {
                 case VarDefine.EType.Date:
+                    // 先使用string. 看看lua怎么用。
                     if (false == string.IsNullOrEmpty(varData.Value))
                         sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = \"{varData.Value}\"");
-                    // 先使用string. 看看lua有没有Date类型。
+                    else if (false == string.IsNullOrEmpty(varDefine.Default))
+                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = \"{varDefine.Default}\"");
                     break;
 
                 case VarDefine.EType.Double:
                     if (false == string.IsNullOrEmpty(varData.Value))
                         sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varData.Value}");
+                    else if (false == string.IsNullOrEmpty(varDefine.Default))
+                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varDefine.Default}");
                     break;
 
                 case VarDefine.EType.Enum:
@@ -89,21 +93,31 @@ namespace ConfigEditor.Gen.lua
                 case VarDefine.EType.Float:
                     if (false == string.IsNullOrEmpty(varData.Value))
                         sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varData.Value}");
+                    else if (false == string.IsNullOrEmpty(varDefine.Default))
+                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varDefine.Default}");
                     break;
 
                 case VarDefine.EType.Int:
                     if (false == string.IsNullOrEmpty(varData.Value))
                         sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varData.Value}");
+                    else if (false == string.IsNullOrEmpty(varDefine.Default))
+                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varDefine.Default}");
                     break;
 
                 case VarDefine.EType.Long:
                     if (false == string.IsNullOrEmpty(varData.Value))
                         sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varData.Value}");
+                    else if (false == string.IsNullOrEmpty(varDefine.Default))
+                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varDefine.Default}");
                     break;
 
                 case VarDefine.EType.String:
-                    var strValue = (null == varData.Value) ? "" : varData.Value;
-                    sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = \"{strValue}\"");
+                    if (false == string.IsNullOrEmpty(varData.Value))
+                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = \"{varData.Value}\"");
+                    else if (false == string.IsNullOrEmpty(varDefine.Default))
+                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = \"{varDefine.Default}\"");
+                    else
+                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = \"\"");
                     break;
 
                 case VarDefine.EType.List:

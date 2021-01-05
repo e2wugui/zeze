@@ -84,5 +84,51 @@ namespace ConfigEditor.Gen.cs
                     throw new Exception("unknown type");
             }
         }
+
+        public static string GetDefaultInitialize(VarDefine var)
+        {
+            switch (var.TypeNow)
+            {
+                case VarDefine.EType.Double:
+                    if (string.IsNullOrEmpty(var.Default))
+                        break;
+                    return $" = {var.Default};";
+
+                case VarDefine.EType.Enum:
+                    if (string.IsNullOrEmpty(var.Default))
+                        break;
+                    return $" = {var.Default};";
+
+                case VarDefine.EType.Float:
+                    if (string.IsNullOrEmpty(var.Default))
+                        break;
+                    return $" = {var.Default};";
+
+                case VarDefine.EType.Int:
+                    if (string.IsNullOrEmpty(var.Default))
+                        break;
+                    return $" = {var.Default};";
+
+                case VarDefine.EType.List:
+                    return $" = new List<{var.Reference.FullName()}>();";
+
+                case VarDefine.EType.Date:
+                    if (string.IsNullOrEmpty(var.Default))
+                        return $" = new DateTime();";
+                    return $" = new DateTime(\"{var.Default}\")";
+
+                case VarDefine.EType.Long:
+                    if (string.IsNullOrEmpty(var.Default))
+                        break;
+                    return $" = {var.Default};";
+
+                case VarDefine.EType.String:
+                    return $" = \"{var.Default}\";";
+
+                default:
+                    throw new Exception("unknown type");
+            }
+            return "";
+        }
     }
 }

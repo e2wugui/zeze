@@ -45,7 +45,7 @@ namespace ConfigEditor.Gen.cs
                 if (0 == (var.DataOutputFlags & flags))
                     continue;
 
-                sw.WriteLine($"{prefix}    public {TypeHelper.GetName(var)} V{var.Name} {{ get; set; }}");
+                sw.WriteLine($"{prefix}    public {TypeHelper.GetName(var)} V{var.Name} {{ get; set; }}{TypeHelper.GetDefaultInitialize(var)}");
                 if (var.Type == VarDefine.EType.List)
                 {
                     foreach (var varRef in var.Reference.Variables)

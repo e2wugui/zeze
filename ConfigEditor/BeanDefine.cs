@@ -171,14 +171,17 @@ namespace ConfigEditor
             }
         }
 
-        public void ForEach(Action<BeanDefine> action)
+        public bool ForEach(Func<BeanDefine, bool> action)
         {
-            action(this);
+            if (!action(this))
+                return false;
 
             foreach (var bd in BeanDefines.Values)
             {
-                bd.ForEach(action);
+                if (!bd.ForEach(action))
+                    return false;
             }
+            return true;
         }
 
         public BeanDefine DecRefCount()

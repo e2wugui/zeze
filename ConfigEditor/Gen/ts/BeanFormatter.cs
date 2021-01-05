@@ -146,7 +146,7 @@ namespace ConfigEditor.Gen.ts
                 var typeName = TypeHelper.GetName(var);
                 if (var.Type != VarDefine.EType.List)
                 {
-                    sw.WriteLine($"    public V{var.Name}?: {typeName};");
+                    sw.WriteLine($"    public V{var.Name}?: {typeName}{TypeHelper.GetDefaultInitialize(var)};");
                 }
                 else
                 {
