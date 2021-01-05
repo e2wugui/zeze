@@ -49,12 +49,12 @@ Test
 	* 几千行看看会怎么样。
 
 TODO
+	Var.Default
 	enum
-	    1 当把列从其他类型改成enum时，把现有的输入内容当作枚举的值，并弹出define窗口编辑enum名字。然后cell里面显示enumname=value
-	    2 当把enum改成其他类型时，cell显示value。
+	    1 当把列从其他类型改成enum时，把现有的输入内容当作枚举的名字，并弹出define窗口编辑enum名字。然后cell里面显示enumname=value
+	    2 当把enum改成其他类型时，cell显示原来名字。
 	    3 不允许在编辑配置的时候动态加入enum-value，只能在define里面增加？
 	    4 编辑数据的时候，只能从现有的定义中选择。
-
 	
 	自动完成和enum识别。
 	1 id存一个种子自动递增，或者从上一行的id往后找一个未用的。
