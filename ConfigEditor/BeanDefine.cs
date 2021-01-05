@@ -8,7 +8,7 @@ namespace ConfigEditor
     public class BeanDefine
     {
         public string Name { get; set; }
-        public List<Enum> Enums { get; } = new List<Enum>();
+        public List<EnumDefine> Enums { get; } = new List<EnumDefine>();
         public List<VarDefine> Variables { get; } = new List<VarDefine>();
         public SortedDictionary<string, BeanDefine> BeanDefines { get; } = new SortedDictionary<string, BeanDefine>();
 
@@ -338,7 +338,7 @@ namespace ConfigEditor
                         break;
 
                     case "enum":
-                        Enums.Add(new Enum(this, e));
+                        Enums.Add(new EnumDefine(this, e));
                         break;
 
                     default:
