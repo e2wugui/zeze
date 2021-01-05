@@ -10,9 +10,7 @@ namespace ConfigEditor.Gen.ts
     {
         public static string GetName(VarDefine var)
         {
-            VarDefine.EType type = (var.Type == VarDefine.EType.Undecided) ? var.TypeDetected : var.Type;
-
-            switch (type)
+            switch (var.TypeNow)
             {
                 case VarDefine.EType.Double: return "number";
                 case VarDefine.EType.Enum: return "Enum" + var.Name; // TODO

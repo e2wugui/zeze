@@ -10,9 +10,7 @@ namespace ConfigEditor.Gen.cs
     {
         public static string GetName(VarDefine var)
         {
-            VarDefine.EType type = (var.Type == VarDefine.EType.Undecided) ?  var.TypeDetected : var.Type;
-            
-            switch (type)
+            switch (var.TypeNow)
             {
                 case VarDefine.EType.Double: return "double";
                 case VarDefine.EType.Enum: return "Enum" + var.Name; // TODO
@@ -28,8 +26,7 @@ namespace ConfigEditor.Gen.cs
 
         public static void GenLoader(System.IO.StreamWriter sw, Document doc, VarDefine var, string prefix, Property.DataOutputFlags flags)
         {
-            VarDefine.EType type = (var.Type == VarDefine.EType.Undecided) ? var.TypeDetected : var.Type;
-            switch (type)
+            switch (var.TypeNow)
             {
                 case VarDefine.EType.Double:
                     sw.WriteLine($"{prefix}if (!string.IsNullOrEmpty(e.InnerText))");

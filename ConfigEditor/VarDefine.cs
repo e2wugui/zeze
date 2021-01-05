@@ -14,7 +14,15 @@ namespace ConfigEditor
         public string Name { get; set; }
         public EType Type { get; set; } = EType.Undecided;
         public EType TypeDetected { get; set; } = EType.Undecided; // 在导出数据完成时设置，仅在 Build 流程中使用。
-
+        public EType TypeNow
+        {
+            get
+            {
+                if (Type != EType.Undecided)
+                    return Type;
+                return TypeDetected;
+            }
+        }
         public string Value { get; set; } = "";
         public string Foreign { get; set; }
 

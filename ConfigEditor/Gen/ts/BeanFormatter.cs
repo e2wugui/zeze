@@ -69,6 +69,11 @@ namespace ConfigEditor.Gen.ts
                 {
                     GenLoad(sw, prefix + "    ", varDefine, varData, flags);
                 }
+                else if (VarDefine.EType.List == varDefine.TypeNow)
+                {
+                    sw.WriteLine($"{prefix}    V{varDefine.Name}: [");
+                    sw.WriteLine($"{prefix}    ],");
+                }
             }
             sw.Write($"{prefix}}}");
 
@@ -76,8 +81,7 @@ namespace ConfigEditor.Gen.ts
 
         public static void GenLoad(StreamWriter sw, string prefix, VarDefine varDefine, Bean.VarData varData, Property.DataOutputFlags flags)
         {
-            VarDefine.EType type = VarDefine.EType.Undecided == varDefine.Type ? varDefine.TypeDetected : varDefine.Type;
-            switch (type)
+            switch (varDefine.TypeNow)
             {
                 case VarDefine.EType.Date:
                     if (false == string.IsNullOrEmpty(varData.Value))
@@ -137,11 +141,17 @@ namespace ConfigEditor.Gen.ts
                 var typeName = TypeHelper.GetName(var);
                 if (var.Type != VarDefine.EType.List)
                 {
-                    sw.WriteLine($"    V{var.Name}?: {typeName};");
+                    sw.WriteLine($"    public V{var.Name}?: {typeName};");
                 }
                 else
                 {
-                    sw.WriteLine($"    V{var.Name}?: {typeName} = new {typeName}();");
+                    sw.WriteLine($"    private _V{var.Name}?: {typeName};");
+                    sw.WriteLine($"    public get V{var.Name}() {{");
+                    sw.WriteLine($"        return this._V{var.Name};");
+                    sw.WriteLine($"    }}");
+                    sw.WriteLine($"    public set V{var.Name}(value: {typeName}) {{");
+                    sw.WriteLine($"        this._V{var.Name} = value;");
+                    sw.WriteLine($"        for (var i = 0; i < value.length; ++i) {{");
                     foreach (var varRef in var.Reference.Variables)
                     {
                         if (false == varRef.IsKeyable())
@@ -150,7 +160,20 @@ namespace ConfigEditor.Gen.ts
                             continue;
                         var key = TypeHelper.GetName(varRef);
                         var value = var.Reference.FullName().Replace('.', '_');
-                        sw.WriteLine($"    V{var.Name}Map{varRef.Name}?: Map<{key}, _{value}> = new Map<{key}, _{value}>();");
+                        sw.WriteLine($"            var bean = value[i];");
+                        sw.WriteLine($"            this.V{var.Name}Map{varRef.Name}.set(bean.V{varRef.Name}, bean);");
+                    }
+                    sw.WriteLine($"        }}");
+                    sw.WriteLine($"    }}");
+                    foreach (var varRef in var.Reference.Variables)
+                    {
+                        if (false == varRef.IsKeyable())
+                            continue;
+                        if (false == varRef.PropertiesList.Contains(pid))
+                            continue;
+                        var key = TypeHelper.GetName(varRef);
+                        var value = var.Reference.FullName().Replace('.', '_');
+                        sw.WriteLine($"    public V{var.Name}Map{varRef.Name}?: Map<{key}, _{value}> = new Map<{key}, _{value}>();");
                     }
                 }
             }
