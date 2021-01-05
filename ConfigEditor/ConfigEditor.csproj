@@ -125,9 +125,12 @@
     <Compile Include="Gen\cs\BeanFormatter.cs" />
     <Compile Include="Gen\cs\Main.cs" />
     <Compile Include="Gen\cs\TypeHelper.cs" />
+    <Compile Include="Gen\lua\BeanFormatter.cs" />
+    <Compile Include="Gen\lua\Main.cs" />
     <Compile Include="Gen\ts\BeanFormatter.cs" />
     <Compile Include="Gen\ts\Main.cs" />
     <Compile Include="Gen\ts\TypeHelper.cs" />
+    <Compile Include="NPinyin\Pinyin.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProjectConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -146,6 +149,9 @@
     <Compile Include="Property\Url.cs" />
     <Compile Include="Property\ForengnVerify.cs" />
     <Compile Include="Property\VerifyParam.cs" />
+    <Compile Include="NPinyin\PyCode.cs" />
+    <Compile Include="NPinyin\PyHash.cs" />
+    <Compile Include="Tools.cs" />
     <Compile Include="VarDefine.cs" />
     <EmbeddedResource Include="FormDefine.resx">
       <DependentUpon>FormDefine.cs</DependentUpon>

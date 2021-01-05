@@ -107,6 +107,11 @@ namespace ConfigEditor.Gen.ts
                     break;
 
                 case VarDefine.EType.Long:
+                    if (false == string.IsNullOrEmpty(varData.Value))
+                        sw.WriteLine($"{prefix}V{varDefine.Name}: {varData.Value},");
+                    break;
+
+                case VarDefine.EType.String:
                     var strValue = (null == varData.Value) ? "" : varData.Value;
                     sw.WriteLine($"{prefix}V{varDefine.Name}: \"{strValue}\",");
                     break;

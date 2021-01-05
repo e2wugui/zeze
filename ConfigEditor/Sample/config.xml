@@ -9,6 +9,7 @@
     </BeanDefine>
     <variable name="ListA" type="List" value="config.ListA" vw="50" properties="" comment="" foreign="" />
     <variable name="u" type="Date" vw="129" value="" properties="" comment="" foreign="" />
+    <variable name="汉字" type="Undecided" value="" foreign="" properties="" comment="" vw="50" />
   </BeanDefine>
   <bean DefineFullName="" row="0">
     <ListA>
@@ -26,12 +27,16 @@
     <dns>说</dns>
     <unique>1</unique>
     <u>2021-1-5</u>
+    <汉字>1</汉字>
   </bean>
   <bean DefineFullName="" row="1">
     <unique>2</unique>
     <u>10:10:10</u>
+    <汉字>1</汉字>
   </bean>
   <bean DefineFullName="" row="2">
     <u>2021-1-5 10:10:10</u>
+    <unique>3</unique>
+    <汉字>1</汉字>
   </bean>
 </ZezeConfig>

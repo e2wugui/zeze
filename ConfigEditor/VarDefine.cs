@@ -25,7 +25,7 @@ namespace ConfigEditor
         }
         public string Value { get; set; } = "";
         public string Foreign { get; set; }
-
+        public string NamePinyin  => Tools.ToPinyin(Name);
         public List<Property.IProperty> PropertiesList { get; private set; } = new List<Property.IProperty>(); // 优化
 
         public bool IsKeyable()

@@ -876,7 +876,7 @@ namespace ConfigEditor
 
                     case "lua":
                         // 生成代码，数据也嵌入在代码中。
-                        // TODO
+                        Gen.lua.Main.Gen(this, Property.DataOutputFlags.Client);
                         break;
 
                     default:

@@ -41,8 +41,9 @@ Test
 	* BUG FormError 在根据 Grid 删除错误时没有恢复 Cell 的状态。
 
 	2021/1/5
-	* NEW Add Date Type
-	* NEW ts gen 数据生成在代码中。
+	* NEW Add “Date” Type
+	* NEW typescript gen 数据生成在代码中。
+	* NEW lua gen 数据生成在代码中。
 
 性能
 	* 几千行看看会怎么样。
@@ -54,7 +55,7 @@ TODO
 	    3 不允许在编辑配置的时候动态加入enum-value，只能在define里面增加？
 	    4 编辑数据的时候，只能从现有的定义中选择。
 
-	lua gen
+	
 	自动完成和enum识别。
 	1 id存一个种子自动递增，或者从上一行的id往后找一个未用的。
 	2 普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。

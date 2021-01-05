@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ConfigEditor.Gen.ts
+namespace ConfigEditor.Gen.lua
 {
     public class Main
     {
@@ -19,7 +19,7 @@ namespace ConfigEditor.Gen.ts
                     }
                     break;
                 default:
-                    throw new Exception("Ts. Client Only");
+                    throw new Exception("lua. Client Only");
             }
 
         }
