@@ -50,6 +50,8 @@ namespace ConfigEditor.Gen.cs
                 {
                     foreach (var varRef in var.Reference.Variables)
                     {
+                        if (0 == (varRef.DataOutputFlags & flags))
+                            continue;
                         if (false == varRef.IsKeyable())
                             continue;
 

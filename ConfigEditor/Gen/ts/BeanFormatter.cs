@@ -26,6 +26,8 @@ namespace ConfigEditor.Gen.ts
                     throw new Exception("Property.Id miss!");
                 foreach (var var in doc.BeanDefine.Variables)
                 {
+                    if (0 == (var.DataOutputFlags & flags))
+                        continue;
                     if (false == var.IsKeyable())
                         continue;
                     if (false == var.PropertiesList.Contains(pid))
@@ -45,6 +47,8 @@ namespace ConfigEditor.Gen.ts
                     sw.WriteLine($"        {beanFullName}.Beans.push(bean{bean.RowIndex});");
                     foreach (var var in doc.BeanDefine.Variables)
                     {
+                        if (0 == (var.DataOutputFlags & flags))
+                            continue;
                         if (false == var.IsKeyable())
                             continue;
                         if (false == var.PropertiesList.Contains(pid))

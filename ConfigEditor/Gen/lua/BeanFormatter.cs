@@ -24,6 +24,8 @@ namespace ConfigEditor.Gen.lua
 
                 foreach (var var in doc.BeanDefine.Variables)
                 {
+                    if (0 == (var.DataOutputFlags & flags))
+                        continue;
                     if (false == var.IsKeyable())
                         continue;
                     if (false == var.PropertiesList.Contains(pid))
@@ -37,6 +39,8 @@ namespace ConfigEditor.Gen.lua
                     GenLoad(sw, $"Config.Beans[{bean.RowIndex + 1}]", doc.BeanDefine, bean, flags);
                     foreach (var var in doc.BeanDefine.Variables)
                     {
+                        if (0 == (var.DataOutputFlags & flags))
+                            continue;
                         if (false == var.IsKeyable())
                             continue;
                         if (false == var.PropertiesList.Contains(pid))
