@@ -8,7 +8,7 @@ namespace ConfigEditor
     public class BeanDefine
     {
         public string Name { get; set; }
-        public List<EnumDefine> Enums { get; } = new List<EnumDefine>();
+        public SortedDictionary<string, EnumDefine> EnumDefines { get; } = new SortedDictionary<string, EnumDefine>();
         public List<VarDefine> Variables { get; } = new List<VarDefine>();
         public SortedDictionary<string, BeanDefine> BeanDefines { get; } = new SortedDictionary<string, BeanDefine>();
 
@@ -288,7 +288,7 @@ namespace ConfigEditor
             self.SetAttribute("RefCount", RefCount.ToString());
             self.SetAttribute("Locked", Locked.ToString());
 
-            foreach (var e in Enums)
+            foreach (var e in EnumDefines.Values)
             {
                 e.SaveAs(xml, self, create);
             }
@@ -338,7 +338,8 @@ namespace ConfigEditor
                         break;
 
                     case "enum":
-                        Enums.Add(new EnumDefine(this, e));
+                        var enew = new EnumDefine(this, e);
+                        EnumDefines.Add(enew.Name, enew);
                         break;
 
                     default:

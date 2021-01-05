@@ -354,7 +354,7 @@ namespace ConfigEditor
                         if (var.Name.Equals(newVarName))
                             return;
                         
-                        if (false == FormMain.VerifyName(newVarName))
+                        if (null != Tools.VerifyName(newVarName, CheckNameType.ShowMsg))
                         {
                             e.Cancel = true;
                             return; // VerifyName 里面已经显示消息了。

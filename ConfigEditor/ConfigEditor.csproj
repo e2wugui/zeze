@@ -79,7 +79,7 @@
     <Compile Include="ColumnTag.cs" />
     <Compile Include="Document.cs" />
     <Compile Include="EditorConfig.cs" />
-    <Compile Include="Enum.cs" />
+    <Compile Include="EnumDefine.cs" />
     <Compile Include="FormDefine.cs">
       <SubType>Form</SubType>
     </Compile>

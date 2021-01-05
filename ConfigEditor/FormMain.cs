@@ -294,43 +294,6 @@ namespace ConfigEditor
             }
         }
 
-        private bool ReportError(string msg, bool showOnly)
-        {
-            if (showOnly)
-            {
-                MessageBox.Show(msg);
-                return false;
-            }
-            throw new Exception(msg);
-        }
-
-        public bool VerifyName(string name, bool showOnly = true)
-        {
-            if (string.IsNullOrEmpty(name))
-                return ReportError("name IsNullOrEmpty.", showOnly);
-
-            if (char.IsDigit(name[0]))
-                return ReportError("name cannot begin with number.", showOnly);
-
-            switch (name)
-            {
-                case "bean":
-                case "list":
-                case "BeanDefine":
-                case "variable":
-                    return ReportError(name + " is reserved", showOnly);
-            }
-
-            foreach (var c in name)
-            {
-                if (char.IsWhiteSpace(c) || char.IsSymbol(c) || c == '.')
-                {
-                    return ReportError("char.IsWhiteSpace(c) || char.IsSymbol(c) || c == '.'", showOnly);
-                }
-            }
-            return true;
-        }
-
         public void UpdateWhenAddVariable(VarDefine var)
         {
             foreach (var tab in tabs.Controls)
@@ -394,7 +357,7 @@ namespace ConfigEditor
                 try
                 {
                     varName = input.TextBoxVarName.Text;
-                    if (false == VerifyName(varName))
+                    if (null != Tools.VerifyName(varName, CheckNameType.ShowMsg))
                         continue;
                     VarDefine.EType varType = VarDefine.ToEType(input.ComboBoxVarType.Text);
                     (VarDefine var, bool create, string err) =

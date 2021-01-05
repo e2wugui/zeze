@@ -67,13 +67,13 @@ namespace ConfigEditor
             if (relate.EndsWith(".xml"))
                 relate = relate.Substring(0, relate.Length - 4);
             string[] relates = relate.Split(new char[] { '/', '\\' });
-            Main.VerifyName(relates[0], false);
+            Tools.VerifyName(relates[0], CheckNameType.ThrowExp);
             RelateName = relates[0];
             Name = RelateName;
             for (int i = 1; i < relates.Length; ++i)
             {
                 Name = relates[i]; // store last
-                Main.VerifyName(relates[i], false);
+                Tools.VerifyName(relates[i], CheckNameType.ThrowExp);
                 RelateName = RelateName + '.' + Name;
             }
             BeanDefine.Name = Name;

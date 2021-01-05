@@ -158,9 +158,29 @@ namespace ConfigEditor.Property
 
         public override bool BuildIn => true;
 
-        public override void VerifyCell(VerifyParam param)
+        public override void VerifyCell(VerifyParam p)
         {
-            // TODO
+            var msg = Tools.VerifyName(p.NewValue, CheckNameType.CheckOnly);
+            if (null != msg)
+            {
+                p.FormMain.FormError.AddError(p.Cell, this, ErrorLevel.Error, "枚举名不符合要求: " + msg);
+                return;
+            }
+
+            var varDefine = p.ColumnTag.PathLast.Define;
+            if (varDefine.Parent.EnumDefines.TryGetValue(varDefine.Name, out var enumDefine))
+            {
+                p.FormMain.FormError.AddError(p.Cell, this, ErrorLevel.Error, "枚举没有找到: " + varDefine.Name);
+                return;
+            }
+
+            if (false == enumDefine.ValueMap.TryGetValue(p.NewValue, out var valueDefine))
+            {
+                p.FormMain.FormError.AddError(p.Cell, this, ErrorLevel.Error, "枚举常量没有定义。");
+                return;
+            }
+
+            p.FormMain.FormError.RemoveError(p.Cell, this);
         }
     }
 }
