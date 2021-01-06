@@ -9,6 +9,7 @@ namespace ConfigEditor
     public class EnumDefine
     {
         public string Name { get; set; }
+        public string NamePinyin => Tools.ToPinyin(Name);
         public SortedDictionary<string, ValueDefine> ValueMap { get;} = new SortedDictionary<string, ValueDefine>();
         public XmlElement Self { get; private set; }
         public BeanDefine Parent { get; }
@@ -20,6 +21,11 @@ namespace ConfigEditor
                 Self.ParentNode.RemoveChild(Self);
             }
             Parent.EnumDefines.Remove(Name);
+        }
+
+        public string FullNamePinyin()
+        {
+            return Parent.FullNamePinyin() + "." + NamePinyin;
         }
 
         public string FullName()
@@ -98,6 +104,7 @@ namespace ConfigEditor
         public class ValueDefine
         {
             public string Name { get; set; } = "";
+            public string NamePinyin => Tools.ToPinyin(Name);
             public int Value { get; set; } = -1;
             public string Comment { get; set; }
             public XmlElement Self { get; private set; }

@@ -26,6 +26,7 @@ namespace ConfigEditor
         public string Value { get; set; } = "";
         public string Foreign { get; set; }
         public string Default { get; set; }
+        public string DefaultPinyin => Tools.ToPinyin(Default);
         public string NamePinyin  => Tools.ToPinyin(Name);
         public List<Property.IProperty> PropertiesList { get; private set; } = new List<Property.IProperty>(); // 优化
 
@@ -233,6 +234,11 @@ namespace ConfigEditor
                     throw new Exception("Unknown Type " + type);
                     //return EType.Bean;
             }
+        }
+
+        public string FullNamePinyin()
+        {
+            return Parent.FullNamePinyin() + "." + NamePinyin;
         }
 
         public string FullName()

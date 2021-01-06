@@ -27,16 +27,16 @@ namespace ConfigEditor.Gen.lua
                 doc.BeanDefine.ForEach((BeanDefine bd) =>
                 {
                     foreach (var e in bd.EnumDefines.Values)
-                        enums.Add(e.FullName().Replace('.', '_'), e);
+                        enums.Add(e.FullNamePinyin().Replace('.', '_'), e);
                     return true;
                 });
                 sw.WriteLine($"Config.Enums = {{}}");
                 foreach (var e in enums)
                 {
-                    sw.WriteLine($"Config.Enums[\"{e.Key}\"] = {{}}");
+                    sw.WriteLine($"Config.Enums.{e.Key} = {{}}");
                     foreach (var v in e.Value.ValueMap.Values)
                     {
-                        sw.WriteLine($"Config.Enums[\"{e.Key}\"][\"{v.Name}\"] = {v.Value}");
+                        sw.WriteLine($"Config.Enums.{e.Key}.{v.NamePinyin} = {v.Value}");
                     }
                 }
                 // gen map if need
@@ -64,7 +64,7 @@ namespace ConfigEditor.Gen.lua
                         if (false == var.PropertiesList.Contains(pid))
                             continue;
                         // 需要确认，如果 var 是 string 时，下面 Index 写法是否正确。
-                        sw.WriteLine($"Config.BeansMap{var.NamePinyin}[Config.Beans[{bean.RowIndex + 1}][\"{var.Name}\"]] = Config.Beans[{bean.RowIndex + 1}]");
+                        sw.WriteLine($"Config.BeansMap{var.NamePinyin}[Config.Beans[{bean.RowIndex + 1}].{var.NamePinyin}] = Config.Beans[{bean.RowIndex + 1}]");
                     }
                     sw.WriteLine();
                 }
@@ -85,11 +85,11 @@ namespace ConfigEditor.Gen.lua
                 }
                 else if (VarDefine.EType.List == varDefine.TypeNow)
                 {
-                    sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {{}}");
+                    sw.WriteLine($"{baseTable}.{varDefine.NamePinyin} = {{}}");
                 }
                 else if (false == string.IsNullOrEmpty(varDefine.Default))
                 {
-                    sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {GetDefaultInitialize(varDefine)}");
+                    sw.WriteLine($"{baseTable}.{varDefine.NamePinyin}\"] = {GetDefaultInitialize(varDefine)}");
                 }
             }
         }
@@ -109,7 +109,7 @@ namespace ConfigEditor.Gen.lua
                     return var.Default;
 
                 case VarDefine.EType.Enum:
-                    return $"Config[\"{var.FullName().Replace('.', '_')}\"][\"{var.Default}\"]";
+                    return $"Config.Enums.{var.FullNamePinyin().Replace('.', '_')}.{var.DefaultPinyin}]";
 
                 default:
                     throw new Exception("unknown type");
@@ -123,61 +123,43 @@ namespace ConfigEditor.Gen.lua
                 case VarDefine.EType.Date:
                     // 先使用string. 看看lua怎么用。
                     if (false == string.IsNullOrEmpty(varData.Value))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = \"{varData.Value}\"");
+                        sw.WriteLine($"{baseTable}.{varDefine.NamePinyin} = \"{varData.Value}\"");
                     else if (false == string.IsNullOrEmpty(varDefine.Default))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = \"{varDefine.Default}\"");
-                    break;
-
-                case VarDefine.EType.Double:
-                    if (false == string.IsNullOrEmpty(varData.Value))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varData.Value}");
-                    else if (false == string.IsNullOrEmpty(varDefine.Default))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varDefine.Default}");
-                    break;
-
-                case VarDefine.EType.Enum:
-                    var enumClassName = varDefine.FullName().Replace('.', '_');
-                    if (false == string.IsNullOrEmpty(varData.Value))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = Config.Enums[\"{enumClassName}\"][\"{varData.Value}\"]");
-                    else if (false == string.IsNullOrEmpty(varDefine.Default))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = Config.Enums[\"{enumClassName}\"][\"{varDefine.Default}\"");
-                    break;
-
-                case VarDefine.EType.Float:
-                    if (false == string.IsNullOrEmpty(varData.Value))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varData.Value}");
-                    else if (false == string.IsNullOrEmpty(varDefine.Default))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varDefine.Default}");
+                        sw.WriteLine($"{baseTable}.{varDefine.NamePinyin} = \"{varDefine.Default}\"");
                     break;
 
                 case VarDefine.EType.Int:
-                    if (false == string.IsNullOrEmpty(varData.Value))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varData.Value}");
-                    else if (false == string.IsNullOrEmpty(varDefine.Default))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varDefine.Default}");
-                    break;
-
+                case VarDefine.EType.Float:
+                case VarDefine.EType.Double:
                 case VarDefine.EType.Long:
                     if (false == string.IsNullOrEmpty(varData.Value))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varData.Value}");
+                        sw.WriteLine($"{baseTable}.{varDefine.NamePinyin} = {varData.Value}");
                     else if (false == string.IsNullOrEmpty(varDefine.Default))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {varDefine.Default}");
+                        sw.WriteLine($"{baseTable}.{varDefine.NamePinyin} = {varDefine.Default}");
+                    break;
+
+                case VarDefine.EType.Enum:
+                    var enumClassName = varDefine.FullNamePinyin().Replace('.', '_');
+                    if (false == string.IsNullOrEmpty(varData.Value))
+                        sw.WriteLine($"{baseTable}.{varDefine.NamePinyin} = Config.Enums.{enumClassName}.{varData.ValuePinyin}");
+                    else if (false == string.IsNullOrEmpty(varDefine.Default))
+                        sw.WriteLine($"{baseTable}.{varDefine.NamePinyin} = Config.Enums.{enumClassName}.{varDefine.DefaultPinyin}");
                     break;
 
                 case VarDefine.EType.String:
                     if (false == string.IsNullOrEmpty(varData.Value))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = \"{varData.Value}\"");
+                        sw.WriteLine($"{baseTable}.{varDefine.NamePinyin} = \"{varData.Value}\"");
                     else if (false == string.IsNullOrEmpty(varDefine.Default))
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = \"{varDefine.Default}\"");
+                        sw.WriteLine($"{baseTable}.{varDefine.NamePinyin} = \"{varDefine.Default}\"");
                     else
-                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = \"\"");
+                        sw.WriteLine($"{baseTable}.{varDefine.NamePinyin} = \"\"");
                     break;
 
                 case VarDefine.EType.List:
-                    sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {{}}");
+                    sw.WriteLine($"{baseTable}.{varDefine.NamePinyin} = {{}}");
                     foreach (var bean in varData.Beans)
                     {
-                        var beanVarName = $"{baseTable}[\"{varDefine.Name}\"][{bean.RowIndex + 1}]";
+                        var beanVarName = $"{baseTable}.{varDefine.NamePinyin}[{bean.RowIndex + 1}]";
                         sw.WriteLine($"{beanVarName} = {{}}");
                         GenLoad(sw, beanVarName, varDefine.Reference, bean, flags);
                     }

@@ -896,6 +896,12 @@ namespace ConfigEditor
 
         public (BeanDefine, EnumDefine) DeleteVariable(VarDefine var, bool confirm)
         {
+            if (var.Parent.Locked)
+            {
+                MessageBox.Show("bean is Locked");
+                return (null, null);
+            }
+
             if (confirm)
             {
                 if (DialogResult.OK != MessageBox.Show("确定删除？所有引用该列的数据也会被删除。", "确认", MessageBoxButtons.OKCancel))

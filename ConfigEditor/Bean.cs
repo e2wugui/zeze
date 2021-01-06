@@ -11,6 +11,7 @@ namespace ConfigEditor
         {
             public string Name { get; set; }
             public string Value { get; set; } = "";
+            public string ValuePinyin => Tools.ToPinyin(Value);
             public int GridColumnNameWidth { get; set; }
             public int GridColumnValueWidth { get; set; }
 

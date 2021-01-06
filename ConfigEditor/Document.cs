@@ -12,7 +12,8 @@ namespace ConfigEditor
         public string FileName { get; private set; } // fullpath
         public string RelateName { get; private set; } // for search
         public string Name { get; private set; } // FileNameWithoutExtension
-
+        public string NamePinyin => Tools.ToPinyin(Name);
+        public string RelateNamePinyin => Tools.ToPinyin(RelateName);
         public BeanDefine BeanDefine { get; private set; } // bean in this file
 
         public List<Bean> Beans { get; } = new List<Bean>();
@@ -20,6 +21,17 @@ namespace ConfigEditor
         public bool IsChanged { get; set; } = false;
 
         public static string NamespacePrefix { get; set; } = "Config";
+
+        public string RelatePathPinyin
+        {
+            get
+            {
+                int last = RelateNamePinyin.LastIndexOf('.');
+                if (last < 0)
+                    return string.Empty;
+                return RelateNamePinyin.Substring(0, last);
+            }
+        }
 
         // 不包含文档名，仅包含目录名。
         public string RelatePath

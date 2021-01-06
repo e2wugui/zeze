@@ -13,12 +13,13 @@
     </BeanDefine>
     <variable name="ListA" type="List" value="config.ListA" vw="50" properties="" comment="" foreign="" default="" />
     <variable name="u" type="Date" vw="129" value="" properties="" comment="" foreign="" default="" />
-    <enum name="e">
+    <enum name="枚举">
       <value name="e0" value="2" />
       <value name="e1" value="0" />
       <value name="e2" value="1" />
+      <value name="枚举值" value="3" />
     </enum>
-    <variable name="e" type="Enum" value="" foreign="" properties="" comment="" default="" vw="50" />
+    <variable name="枚举" type="Enum" value="" foreign="" properties="" comment="" default="枚举值" vw="50" />
   </BeanDefine>
   <bean DefineFullName="" row="0">
     <ListA>
@@ -43,7 +44,7 @@
     <dns>说</dns>
     <unique>1</unique>
     <u>2021-1-5</u>
-    <e>e0</e>
+    <枚举>e0</枚举>
   </bean>
   <bean DefineFullName="" row="1">
     <unique>2</unique>
@@ -58,14 +59,14 @@
               </bean>
             </list>
           </nl>
+          <A>2</A>
         </bean>
         <bean DefineFullName="config.ListA" row="1">
-          <A>
-          </A>
+          <A>1</A>
         </bean>
       </list>
     </ListA>
-    <e>e1</e>
+    <枚举>e1</枚举>
   </bean>
   <bean DefineFullName="" row="2">
     <u>2021-1-5 10:10:10</u>
@@ -81,9 +82,13 @@
               </bean>
             </list>
           </nl>
+          <A>3</A>
+        </bean>
+        <bean DefineFullName="config.ListA" row="1">
+          <A>4</A>
         </bean>
       </list>
     </ListA>
-    <e>e3</e>
+    <枚举>枚举值</枚举>
   </bean>
 </ZezeConfig>

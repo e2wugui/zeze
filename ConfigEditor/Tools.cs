@@ -70,7 +70,7 @@ namespace ConfigEditor
                     continue;
                 }
                 string py = NPinyin.Pinyin.GetPinyin(c);
-                if (false == py.Equals(c.ToString()) && py.Length > 0)
+                if (py.Length > 0)
                 {
                     sb.Append(py.Substring(0, 1).ToUpper() + py.Substring(1));
                 }

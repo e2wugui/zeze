@@ -8,6 +8,7 @@ namespace ConfigEditor
     public class BeanDefine
     {
         public string Name { get; set; }
+        public string NamePinyin => Tools.ToPinyin(Name);
         public SortedDictionary<string, EnumDefine> EnumDefines { get; } = new SortedDictionary<string, EnumDefine>();
         public List<VarDefine> Variables { get; } = new List<VarDefine>();
         public SortedDictionary<string, BeanDefine> BeanDefines { get; } = new SortedDictionary<string, BeanDefine>();
@@ -166,6 +167,17 @@ namespace ConfigEditor
             return Document.NamespacePrefix + "." + fullName;
         }
         */
+
+        public string FullNamePinyin()
+        {
+            string name = NamePinyin;
+            for (var b = Parent; null != b; b = b.Parent)
+            {
+                name = b.NamePinyin + "." + name;
+            }
+            string relatePath = Document.RelatePathPinyin;
+            return string.IsNullOrEmpty(relatePath) ? name : relatePath + "." + name;
+        }
 
         public string FullName()
         {
