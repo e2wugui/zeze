@@ -894,12 +894,12 @@ namespace ConfigEditor
             contextMenuStrip1.Show(grid, grid.PointToClient(Cursor.Position));
         }
 
-        public BeanDefine DeleteVariable(VarDefine var, bool confirm)
+        public (BeanDefine, EnumDefine) DeleteVariable(VarDefine var, bool confirm)
         {
             if (confirm)
             {
                 if (DialogResult.OK != MessageBox.Show("确定删除？所有引用该列的数据也会被删除。", "确认", MessageBoxButtons.OKCancel))
-                    return null;
+                    return (null, null);
             }
 
             var updateParam = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.DeleteData }; // never change

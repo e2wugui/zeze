@@ -125,25 +125,31 @@ namespace ConfigEditor
             };
 
             bool create = false;
-            if (type == VarDefine.EType.List)
+            switch (type)
             {
-                if (string.IsNullOrEmpty(reference))
-                {
-                    var.Value = var.FullName();
-                    var.Reference = new BeanDefine(Document, var.Name, this);
-                    BeanDefines.Add(var.Name, var.Reference);
-                    create = true;
-                }
-                else
-                {
-                    Document.Main.OpenDocument(var.Value, out var r);
-                    if (null == r)
+                case VarDefine.EType.List:
+                    if (string.IsNullOrEmpty(reference))
                     {
-                        return (null, false, "list reference bean not found.");
+                        var.Value = var.FullName();
+                        var.Reference = new BeanDefine(Document, var.Name, this);
+                        BeanDefines.Add(var.Name, var.Reference);
+                        create = true;
                     }
-                    var.Reference = r;
-                    r.AddRefCount();
-                }
+                    else
+                    {
+                        Document.Main.OpenDocument(var.Value, out var r);
+                        if (null == r)
+                        {
+                            return (null, false, "list reference bean not found.");
+                        }
+                        var.Reference = r;
+                        r.AddRefCount();
+                    }
+                    break;
+
+                case VarDefine.EType.Enum:
+                    EnumDefines.Add(var.Name, new EnumDefine(this, var.Name));
+                    break;
             }
 
             Variables.Add(var);

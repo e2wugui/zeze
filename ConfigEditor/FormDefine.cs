@@ -211,35 +211,49 @@ namespace ConfigEditor
                         }
                     }
                     break;
-
+            }
         }
-    }
+
+        private void DeleteRowsByBeanLockedTag(object tag)
+        {
+            int i = 0;
+            for (; i < define.RowCount; ++i)
+            {
+                if (object.ReferenceEquals(define.Rows[i].Cells["BeanLocked"].Tag, tag))
+                    break;
+            }
+            while (i < define.RowCount)
+            {
+                define.Rows.RemoveAt(i);
+                if (i >= define.RowCount)
+                    break;
+                DataGridViewCell cell = define.Rows[i].Cells["BeanLocked"];
+                if (cell.Tag != null && !object.ReferenceEquals(cell.Tag, tag))
+                    break;
+            }
+        }
 
         private void DeleteVariable(int rowIndex, VarDefine var, bool confirm)
         {
-            var beanDeleted = FormMain.DeleteVariable(var, confirm);
+            var (beanDeleted, enumDeleted) = FormMain.DeleteVariable(var, confirm);
 
             define.SuspendLayout();
             define.Rows.RemoveAt(rowIndex);
             if (null != beanDeleted && IsLoadedDocument(beanDeleted.Document))
             {
                 // remove bean
-                int i = 0;
-                for (; i < define.RowCount; ++i)
+                DeleteRowsByBeanLockedTag(beanDeleted);
+                beanDeleted.ForEach((BeanDefine bd) =>
                 {
-                    if (define.Rows[i].Cells["BeanLocked"].Tag == beanDeleted)
-                        break;
-                }
-                while (i < define.RowCount)
-                {
-                    define.Rows.RemoveAt(i);
-                    if (i >= define.RowCount)
-                        break;
-                    DataGridViewCell cell = define.Rows[i].Cells["BeanLocked"];
-                    if (cell.Tag != null && cell.Tag != beanDeleted)
-                        break;
-                }
+                    foreach (var enumdef in bd.EnumDefines.Values)
+                    {
+                        // remove enum
+                        DeleteRowsByBeanLockedTag(enumdef);
+                    }
+                    return true;
+                });
             }
+            DeleteRowsByBeanLockedTag(enumDeleted);
             define.ResumeLayout();
         }
 
@@ -280,6 +294,8 @@ namespace ConfigEditor
                         {
                             (VarDefine var, bool create) = FormMain.AddVariable(varDefineHint);
                             UpdateWhenAddVariable(e.RowIndex, var, create);
+                            if (null != var && var.Parent.EnumDefines.TryGetValue(var.Name, out var enumDefine))
+                                InsertEnumDefine(define.RowCount, enumDefine.FullName(), enumDefine);
                         }
                         if (cellVarName.Tag is EnumDefine.ValueDefine valueDefine)
                         {

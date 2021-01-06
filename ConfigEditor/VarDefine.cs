@@ -188,13 +188,15 @@ namespace ConfigEditor
             return null;
         }
 
-        public BeanDefine Delete()
+        public (BeanDefine, EnumDefine) Delete()
         {
             if (null != Self)
                 Self.ParentNode.RemoveChild(Self);
+            if (Parent.EnumDefines.TryGetValue(Name, out var enumDefine))
+                Parent.EnumDefines.Remove(Name);
             Parent.Document.IsChanged = true;
             Parent.Variables.Remove(this);
-            return Reference?.DecRefCount();
+            return (Reference?.DecRefCount(), enumDefine);
         }
 
         public enum EType
