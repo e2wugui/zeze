@@ -12,12 +12,14 @@
       <variable name="nl" type="List" value="config.ListA.nl" foreign="" properties="" comment="" default="" vw="50" />
     </BeanDefine>
     <variable name="ListA" type="List" value="config.ListA" vw="50" properties="" comment="" foreign="" default="" />
-    <variable name="u" type="Date" vw="129" value="" properties="" comment="" foreign="" default="" />
+    <variable name="u" type="Date" vw="113" value="" properties="" comment="" foreign="" default="" />
     <enum name="枚举">
       <value name="e0" value="2" />
       <value name="e1" value="0" />
       <value name="e2" value="1" />
       <value name="枚举值" value="3" />
+      <value name="e3" value="4" />
+      <value name="abc" value="5" />
     </enum>
     <variable name="枚举" type="Enum" value="" foreign="" properties="" comment="" default="枚举值" vw="50" />
   </BeanDefine>
@@ -66,12 +68,13 @@
         </bean>
       </list>
     </ListA>
-    <枚举>e1</枚举>
+    <枚举>e0</枚举>
+    <dns>
+    </dns>
   </bean>
   <bean DefineFullName="" row="2">
     <u>2021-1-5 10:10:10</u>
-    <unique>
-    </unique>
+    <unique>3</unique>
     <ListA>
       <list>
         <bean DefineFullName="config.ListA" row="0">
@@ -90,5 +93,33 @@
       </list>
     </ListA>
     <枚举>枚举值</枚举>
+    <dns>
+    </dns>
+  </bean>
+  <bean DefineFullName="" row="3">
+    <ListA>
+      <list>
+        <bean DefineFullName="config.ListA" row="0">
+          <nl>
+            <list>
+              <bean DefineFullName="config.ListA.nl" row="0">
+                <哪里>
+                </哪里>
+              </bean>
+            </list>
+          </nl>
+          <A>4</A>
+        </bean>
+        <bean DefineFullName="config.ListA" row="1">
+          <A>5</A>
+        </bean>
+      </list>
+    </ListA>
+    <u>2021-1-6</u>
+    <枚举>abc</枚举>
+    <unique>4</unique>
+  </bean>
+  <bean DefineFullName="" row="4">
+    <枚举>啊</枚举>
   </bean>
 </ZezeConfig>

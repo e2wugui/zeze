@@ -20,6 +20,7 @@ namespace ConfigEditor
             LoadConfigEditor();
             PropertyManager = new Property.Manager();
             FormError = new FormError() { FormMain = this };
+            FormPopupListBox =  new FormPopupListBox() { FormMain = this };
         }
 
         private string GetConfigFileFullName()
@@ -217,16 +218,47 @@ namespace ConfigEditor
             // 这里以后需要真正的校验并且cancel的话，需要注意不要影响下面的代码。
             // 问题：CurrentCell 改变的时候，即时没有在编辑模式，原来的Cell也会触发这个事件。
             DataGridView grid = (DataGridView)sender;
-            if (e.RowIndex == grid.RowCount - 1)
-                return; // skip last row
+            if (false == grid.IsCurrentCellInEditMode)
+                return;
+
             DataGridViewColumn col = grid.Columns[e.ColumnIndex];
             ColumnTag tag = (ColumnTag)col.Tag;
             if (ColumnTag.ETag.Normal != tag.Tag)
                 return;
 
+            string newValue = e.FormattedValue as string;
+
+            if (tag.PathLast.Define.Type == VarDefine.EType.Enum)
+            {
+                e.Cancel = true;
+                if (null != Tools.VerifyName(newValue, CheckNameType.ShowMsg))
+                    return;
+                if (false == tag.PathLast.Define.Parent.EnumDefines.TryGetValue(tag.PathLast.Define.Name, out var enumDefine))
+                {
+                    MessageBox.Show("Error EnumDefine Not Found!!!");
+                    return;
+                }
+                if (false == enumDefine.ValueMap.TryGetValue(newValue, out var _))
+                {
+                    switch (MessageBox.Show("输入的枚举名字不存在，是否添加进去？", "提示", MessageBoxButtons.YesNoCancel))
+                    {
+                        case DialogResult.Yes:
+                            enumDefine.AddValue(new EnumDefine.ValueDefine(enumDefine, newValue, -1));
+                            enumDefine.Parent.Parent.Document.IsChanged = true;
+                            break;
+
+                        case DialogResult.No:
+                            break; // 继续，允许错误输入。
+
+                        case DialogResult.Cancel:
+                            return; // cancel
+                    }
+                }
+                e.Cancel = false;
+            }
+
             DataGridViewCell cell = grid[e.ColumnIndex, e.RowIndex];
             string oldValue = cell.Value as string; // maybe null
-            string newValue = e.FormattedValue as string;
             if (newValue == null)
                 newValue = "";
 
@@ -251,6 +283,8 @@ namespace ConfigEditor
 
         public void OnGridCellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
+            HideFormHelp();
+
             DataGridView grid = (DataGridView)sender;
             DataGridViewColumn col = grid.Columns[e.ColumnIndex];
             ColumnTag tag = (ColumnTag)col.Tag;
@@ -258,18 +292,22 @@ namespace ConfigEditor
                 return; // 不可能。特殊列都是不可编辑的。
 
             Document doc = (Document)grid.Tag;
-            doc.IsChanged = true;
             bool added = false;
+            DataGridViewCellCollection cells = grid.Rows[e.RowIndex].Cells;
             if (e.RowIndex == grid.RowCount - 1) // is last row
             {
+                // 最后一行输入但是取消不添加行。
+                if (string.IsNullOrEmpty(cells[e.ColumnIndex].Value as string))
+                    return;
+
                 doc.Beans.Add(new Bean(doc, "")); // root bean allow empty.
                 AddGridRow(grid);
                 added = true;
             }
-            DataGridViewCellCollection cells = grid.Rows[e.RowIndex].Cells;
             int colIndex = e.ColumnIndex;
             var param = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Data };
             doc.Beans[e.RowIndex].Update(grid, cells, ref colIndex, 0, param);
+            doc.IsChanged = true;
 
             if (added)
             {
@@ -440,13 +478,43 @@ namespace ConfigEditor
             }
         }
 
+        public class DataGridViewKeyPreview : DataGridView
+        {
+            public FormMain FormMain { get; set; }
+
+            protected override bool ProcessKeyPreview(ref Message m)
+            {
+                if (IsCurrentCellInEditMode && null != FormMain.FormPopup)
+                {
+                    if (FormMain.FormPopup.ProcessGridKeyPreview(ref m))
+                    {
+                        return true;
+                    }
+                    // 想像程序提示一样，回车确认选择。但是下面的代码不工作。
+                    /*
+                    const int VK_ENTER = 0x0d;
+                    const int WM_KEYDOWN = 0x100;
+                    if (m.Msg == WM_KEYDOWN && m.WParam.ToInt32() == VK_ENTER)
+                    {
+                        var seltext = FormMain.FormPopup.ListBox.SelectedItem as string;
+                        if (null != seltext)
+                        {
+                            EditingControl.Text = seltext;
+                        }
+                    }
+                    */
+                }
+                return base.ProcessKeyPreview(ref m);
+            }
+        }
+
         private TabPage NewTabPage(string text)
         {
             TabPage tab = new TabPage();
             tab.Text = text;
             tab.Size = new Size(tabs.ClientSize.Width, tabs.ClientSize.Height);
 
-            DataGridView grid = new DataGridView();
+            DataGridView grid = new DataGridViewKeyPreview() { FormMain = this };
             grid.AllowUserToAddRows = false;
             grid.AllowUserToDeleteRows = false;
             grid.AllowUserToResizeRows = false;
@@ -481,6 +549,7 @@ namespace ConfigEditor
             // event handle
             grid.CellValidating += OnGridCellValidating;
             grid.CellEndEdit += OnGridCellEndEdit;
+            grid.CellBeginEdit += OnGridCellBeginEdit;
             grid.CellMouseDoubleClick += OnGridDoubleClick;
             grid.KeyDown += OnGridKeyDown;
             grid.CellMouseDown += OnCellMouseDown;
@@ -1339,6 +1408,79 @@ namespace ConfigEditor
         private void toolStripButtonConfig_Click(object sender, EventArgs e)
         {
             OpenFormProjectConfig();
+        }
+
+        public FormPopupListBox FormPopupListBox;
+        private FormPopupListBox FormPopup = null; // 当有其他Popup实现时，使用基类。要有个公共基类处理事件。
+
+        public void HideFormHelp()
+        {
+            FormPopup?.Hide();
+            FormPopup = null;
+        }
+
+        public void ShowFormHelp(DataGridView grid, int col, int row)
+        {
+            if (null == FormPopup)
+                return;
+
+            var rect = grid.GetCellDisplayRectangle(col, row, true);
+            FormPopup.Location = grid.PointToScreen(new Point(rect.X, rect.Y + rect.Height));
+            FormPopup.Show();
+            //form.BringToFront();
+        }
+
+        private void OnGridCellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
+        {
+            var grid = sender as DataGridView;
+            var tag = grid.Columns[e.ColumnIndex].Tag as ColumnTag;
+
+            switch (tag.PathLast.Define.Type)
+            {
+                case VarDefine.EType.Undecided:
+                case VarDefine.EType.String:
+                case VarDefine.EType.Int:
+                case VarDefine.EType.Long:
+                case VarDefine.EType.Double:
+                case VarDefine.EType.Float:
+                case VarDefine.EType.Date:
+                case VarDefine.EType.List:
+                    return; // 先不支持。
+
+                case VarDefine.EType.Enum:
+                    if (!tag.PathLast.Define.Parent.EnumDefines.TryGetValue(tag.PathLast.Define.Name, out var enumDefine))
+                        return;
+                    FormPopupListBox.ListBox.Items.Clear();
+                    foreach (var v in enumDefine.ValueMap.Values)
+                    {
+                        FormPopupListBox.ListBox.Items.Add(v.Name);
+                    }
+                    var value = grid[e.ColumnIndex, e.RowIndex].Value;
+                    if (null == value)
+                        value = "";
+                    FormPopupListBox.ListBox.SelectedIndex = FormPopupListBox.ListBox.Items.IndexOf(value);
+                    FormPopup = FormPopupListBox;
+                    break;
+            }
+
+            ShowFormHelp(grid, e.ColumnIndex, e.RowIndex);
+        }
+
+        private void FormMain_Activated(object sender, EventArgs e)
+        {
+            if (null == tabs.SelectedTab)
+                return;
+
+            var grid = tabs.SelectedTab.Controls[0] as DataGridView;
+            if (grid.IsCurrentCellInEditMode)
+            {
+                ShowFormHelp(grid, grid.CurrentCell.ColumnIndex, grid.CurrentCell.RowIndex);
+            }
+        }
+
+        private void FormMain_Deactivate(object sender, EventArgs e)
+        {
+            FormPopup?.Hide();
         }
     }
 }
