@@ -25,6 +25,17 @@ namespace ConfigEditor.Gen.cs
             }
         }
 
+        public static void Gen(System.IO.StreamWriter sw, Document doc, EnumDefine e, string prefix, Property.DataOutputFlags flags)
+        {
+            sw.WriteLine($"{prefix}public enum {e.Name}");
+            sw.WriteLine($"{prefix}{{");
+            foreach (var v in e.ValueMap.Values)
+            {
+                sw.WriteLine($"{prefix}    {v.Name} = {v.Value},");
+            }
+            sw.WriteLine($"{prefix}}}");
+        }
+
         public static void Gen(System.IO.StreamWriter sw, Document doc, BeanDefine bean, string prefix, Property.DataOutputFlags flags)
         {
             sw.WriteLine($"{prefix}public class {bean.Name}");
@@ -34,6 +45,11 @@ namespace ConfigEditor.Gen.cs
             foreach (var sub in bean.BeanDefines.Values)
             {
                 Gen(sw, doc, sub, prefix + "    ", flags);
+            }
+
+            foreach (var e in bean.EnumDefines.Values)
+            {
+                Gen(sw, doc, e, prefix + "    ", flags);
             }
 
             if (false == doc.Main.PropertyManager.Properties.TryGetValue(Property.IdList.PName, out var pid))

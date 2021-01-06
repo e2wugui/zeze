@@ -43,7 +43,7 @@ Test
 	2021/1/5
 	* NEW Add “Date” Type
 	* NEW typescript gen 数据生成在代码中。
-	* NEW lua gen 数据生成在代码中。
+	* NEW lua gen 数据生成在代码中。生成代码没有执行过。
 	* NEW Add Var.Default。
 	* NEW enum
 
@@ -52,13 +52,13 @@ Test
 
 TODO
 	enum 编辑数据时给选择列表。如果列表中没有找到，提示是否新增。
-	enum gen. 应该需要更新成fullname，要不然有些语言可能找不到定义。
 
 	自动完成和enum识别。
 	1 id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
 	2 普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
 	Bean改名。需要搜索引用。
 	SaveAs
+	enum 现在不支持引用在其他地方定义的，有需要了再来加。
 
 问题
 	* 不要在编辑工具外部直接改名。文件改名（改路径），怎么更新相关引用？扫描所有的配置文件？

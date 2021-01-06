@@ -94,6 +94,11 @@ namespace ConfigEditor
             public XmlElement Self { get; private set; }
             public EnumDefine Parent { get; }
 
+            public string FullName()
+            {
+                return Parent.FullName() + "." + Name;
+            }
+
             public void Delete()
             {
                 Parent.ValueMap.Remove(Name);

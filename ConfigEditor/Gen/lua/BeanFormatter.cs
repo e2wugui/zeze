@@ -22,6 +22,24 @@ namespace ConfigEditor.Gen.lua
                 if (false == doc.Main.PropertyManager.Properties.TryGetValue(Property.Id.PName, out var pid))
                     throw new Exception("Property.Id miss!");
 
+                // gen enum
+                SortedDictionary<string, EnumDefine> enums = new SortedDictionary<string, EnumDefine>();
+                doc.BeanDefine.ForEach((BeanDefine bd) =>
+                {
+                    foreach (var e in bd.EnumDefines.Values)
+                        enums.Add(e.FullName().Replace('.', '_'), e);
+                    return true;
+                });
+                sw.WriteLine($"Config.Enums = {{}}");
+                foreach (var e in enums)
+                {
+                    sw.WriteLine($"Config.Enums[\"{e.Key}\"] = {{}}");
+                    foreach (var v in e.Value.ValueMap.Values)
+                    {
+                        sw.WriteLine($"Config.Enums[\"{e.Key}\"][\"{v.Name}\"] = {v.Value}");
+                    }
+                }
+                // gen map if need
                 foreach (var var in doc.BeanDefine.Variables)
                 {
                     if (0 == (var.DataOutputFlags & flags))
@@ -69,6 +87,32 @@ namespace ConfigEditor.Gen.lua
                 {
                     sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {{}}");
                 }
+                else if (false == string.IsNullOrEmpty(varDefine.Default))
+                {
+                    sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = {GetDefaultInitialize(varDefine)}");
+                }
+            }
+        }
+
+        private static string GetDefaultInitialize(VarDefine var)
+        {
+            switch (var.TypeNow)
+            {
+                case VarDefine.EType.String:
+                case VarDefine.EType.Date:
+                    return $"\"{var.Default}\"";
+
+                case VarDefine.EType.Int:
+                case VarDefine.EType.Long:
+                case VarDefine.EType.Float:
+                case VarDefine.EType.Double:
+                    return var.Default;
+
+                case VarDefine.EType.Enum:
+                    return $"Config[\"{var.FullName().Replace('.', '_')}\"][\"{var.Default}\"]";
+
+                default:
+                    throw new Exception("unknown type");
             }
         }
 
@@ -92,7 +136,12 @@ namespace ConfigEditor.Gen.lua
                     break;
 
                 case VarDefine.EType.Enum:
-                    break; // TODO
+                    var enumClassName = varDefine.FullName().Replace('.', '_');
+                    if (false == string.IsNullOrEmpty(varData.Value))
+                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = Config.Enums[\"{enumClassName}\"][\"{varData.Value}\"]");
+                    else if (false == string.IsNullOrEmpty(varDefine.Default))
+                        sw.WriteLine($"{baseTable}[\"{varDefine.Name}\"] = Config.Enums[\"{enumClassName}\"][\"{varDefine.Default}\"");
+                    break;
 
                 case VarDefine.EType.Float:
                     if (false == string.IsNullOrEmpty(varData.Value))

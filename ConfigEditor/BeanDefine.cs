@@ -172,6 +172,18 @@ namespace ConfigEditor
             return string.IsNullOrEmpty(relatePath) ? name : relatePath + "." + name;
         }
 
+        // ClassName 的前面加上字符 '_'
+        public string _FullName()
+        {
+            string name = "_" + Name;
+            for (var b = Parent; null != b; b = b.Parent)
+            {
+                name = b.Name + "." + name;
+            }
+            string relatePath = Document.RelatePath;
+            return string.IsNullOrEmpty(relatePath) ? name : relatePath + "." + name;
+        }
+
         public void CollectFullNameIncludeSubBeanDefine(List<string> result)
         {
             result.Add(FullName());

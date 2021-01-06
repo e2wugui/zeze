@@ -13,7 +13,7 @@ namespace ConfigEditor.Gen.ts
             switch (var.TypeNow)
             {
                 case VarDefine.EType.Double: return "number";
-                case VarDefine.EType.Enum: return "Enum" + var.Name; // TODO
+                case VarDefine.EType.Enum: return var.FullName().Replace('.', '_');
                 case VarDefine.EType.Float: return "number";
                 case VarDefine.EType.Int: return "number";
                 case VarDefine.EType.List: return $"Array<_{var.Reference.FullName().Replace('.', '_')}>";
@@ -36,7 +36,7 @@ namespace ConfigEditor.Gen.ts
                 case VarDefine.EType.Enum:
                     if (string.IsNullOrEmpty(var.Default))
                         break;
-                    return $" = {var.Default}";
+                    return $" = {var.FullName().Replace('.', '_')}.{var.Default}";
 
                 case VarDefine.EType.Float:
                     if (string.IsNullOrEmpty(var.Default))

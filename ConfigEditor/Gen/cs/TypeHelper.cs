@@ -13,7 +13,7 @@ namespace ConfigEditor.Gen.cs
             switch (var.TypeNow)
             {
                 case VarDefine.EType.Double: return "double";
-                case VarDefine.EType.Enum: return "Enum" + var.Name; // TODO
+                case VarDefine.EType.Enum: return var.Name;
                 case VarDefine.EType.Float: return "float";
                 case VarDefine.EType.Int: return "int";
                 case VarDefine.EType.List: return $"List<{var.Reference.FullName()}>";
@@ -34,7 +34,7 @@ namespace ConfigEditor.Gen.cs
                     break;
 
                 case VarDefine.EType.Enum:
-                    // TODO
+                    sw.WriteLine($"{prefix}V{var.Name} = ({var.Name})System.Enum.Parse(typeof({var.Name}), e.InnerText);");
                     break;
 
                 case VarDefine.EType.Float:
@@ -97,7 +97,7 @@ namespace ConfigEditor.Gen.cs
                 case VarDefine.EType.Enum:
                     if (string.IsNullOrEmpty(var.Default))
                         break;
-                    return $" = {var.Default};";
+                    return $" = {var.Name}.{var.Default};";
 
                 case VarDefine.EType.Float:
                     if (string.IsNullOrEmpty(var.Default))

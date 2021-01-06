@@ -18,10 +18,10 @@ namespace ConfigEditor.Gen.ts
                 Gen(sw, doc, doc.BeanDefine, flags);
                 sw.WriteLine();
 
-                var beanFullName = doc.BeanDefine.FullName().Replace('.', '_');
-
-                sw.WriteLine($"export class {beanFullName} {{");
-                sw.WriteLine($"    public static Beans: Array<_{beanFullName}> = new Array<_{beanFullName}>();");
+                var _ClassName = doc.BeanDefine._FullName().Replace('.', '_');
+                var DataName = doc.BeanDefine.FullName().Replace('.', '_');
+                sw.WriteLine($"export class {DataName} {{");
+                sw.WriteLine($"    public static Beans: Array<{_ClassName}> = new Array<{_ClassName}>();");
                 if (false == doc.Main.PropertyManager.Properties.TryGetValue(Property.Id.PName, out var pid))
                     throw new Exception("Property.Id miss!");
                 foreach (var var in doc.BeanDefine.Variables)
@@ -33,18 +33,18 @@ namespace ConfigEditor.Gen.ts
                     if (false == var.PropertiesList.Contains(pid))
                         continue;
                     var key = TypeHelper.GetName(var);
-                    var value = beanFullName;
-                    sw.WriteLine($"    public static BeansMap{var.Name}: Map<{key}, _{value}> = new Map<{key}, _{value}>();");
+                    var value = _ClassName;
+                    sw.WriteLine($"    public static BeansMap{var.Name}: Map<{key}, {value}> = new Map<{key}, {value}>();");
                 }
                 sw.WriteLine();
                 sw.WriteLine($"    public static Load(): void");
                 sw.WriteLine($"    {{");
                 foreach (var bean in doc.Beans)
                 {
-                    sw.Write($"        var bean{bean.RowIndex}: _{beanFullName} = ");
+                    sw.Write($"        var bean{bean.RowIndex}: {_ClassName} = ");
                     GenLoad(sw, "        ", doc.BeanDefine, bean, flags);
                     sw.WriteLine($";");
-                    sw.WriteLine($"        {beanFullName}.Beans.push(bean{bean.RowIndex});");
+                    sw.WriteLine($"        {DataName}.Beans.push(bean{bean.RowIndex});");
                     foreach (var var in doc.BeanDefine.Variables)
                     {
                         if (0 == (var.DataOutputFlags & flags))
@@ -53,7 +53,7 @@ namespace ConfigEditor.Gen.ts
                             continue;
                         if (false == var.PropertiesList.Contains(pid))
                             continue;
-                        sw.WriteLine($"        {beanFullName}.BeansMap{var.Name}.set(bean{bean.RowIndex}.V{var.Name}, bean{bean.RowIndex});");
+                        sw.WriteLine($"        {DataName}.BeansMap{var.Name}.set(bean{bean.RowIndex}.V{var.Name}, bean{bean.RowIndex});");
                         sw.WriteLine();
                     }
                 }
@@ -98,7 +98,8 @@ namespace ConfigEditor.Gen.ts
                     break;
 
                 case VarDefine.EType.Enum:
-                    break; // TODO
+                    sw.WriteLine($"{prefix}V{varDefine.Name}: {varDefine.FullName().Replace('.', '_')}.{varData.Value}");
+                    break;
 
                 case VarDefine.EType.Float:
                     if (false == string.IsNullOrEmpty(varData.Value))
@@ -134,8 +135,25 @@ namespace ConfigEditor.Gen.ts
             }
         }
 
+        public static void Gen(StreamWriter sw, Document doc, EnumDefine e, Property.DataOutputFlags flags)
+        {
+            var fullName = e.FullName().Replace('.', '_');
+            sw.WriteLine($"export enum {fullName} {{");
+            foreach (var v in e.ValueMap.Values)
+            {
+                sw.WriteLine($"    {v.Name} = {v.Value},");
+            }
+            sw.WriteLine($"}}");
+        }
+
         public static void Gen(StreamWriter sw, Document doc, BeanDefine bean, Property.DataOutputFlags flags)
         {
+            // gen enum
+            foreach (var e in bean.EnumDefines.Values)
+            {
+                Gen(sw, doc, e, flags);
+            }
+
             var beanFullName = bean.FullName().Replace('.', '_');
 
             sw.WriteLine($"export class _{beanFullName} {{");
