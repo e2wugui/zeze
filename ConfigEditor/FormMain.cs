@@ -132,8 +132,6 @@ namespace ConfigEditor
 
         private void LoadDocumentToView(DataGridView grid, Document doc)
         {
-            grid.SuspendLayout();
-
             grid.Columns.Clear();
             grid.Rows.Clear();
 
@@ -164,7 +162,6 @@ namespace ConfigEditor
                 tag.BuildUniqueIndex(grid, i);
             }
             VerifyAll(grid);
-            grid.ResumeLayout();
         }
 
         public void VerifyAll(DataGridView grid)
@@ -554,6 +551,7 @@ namespace ConfigEditor
             grid.KeyDown += OnGridKeyDown;
             grid.CellMouseDown += OnCellMouseDown;
             grid.ColumnWidthChanged += OnGridColumnWidthChanged;
+            grid.EditingControlShowing += OnGridEditingControlShowing;
 
             tab.Controls.Add(grid);
             return tab;
@@ -733,9 +731,11 @@ namespace ConfigEditor
                         // no grid
                         TabPage tab = NewTabPage(odoc.RelateName);
                         DataGridView grid = (DataGridView)tab.Controls[0];
+                        grid.SuspendLayout();
                         LoadDocumentToView(grid, odoc);
                         tabs.Controls.Add(tab);
                         tabs.SelectedTab = tab;
+                        grid.ResumeLayout();
                         odoc.Grid = grid;
                         grid.Tag = odoc;
                     }
@@ -748,9 +748,11 @@ namespace ConfigEditor
                     Documents.Add(doc.RelateName, doc);
                     // 必须在 Documents.Add 之后初始化。否则里面查找就可能找不到。
                     doc.BeanDefine.InitializeListReference();
+                    grid.SuspendLayout();
                     LoadDocumentToView(grid, doc);
                     tabs.Controls.Add(tab);
                     tabs.SelectedTab = tab;
+                    grid.ResumeLayout();
                     grid.Tag = doc;
                     doc.Grid = grid;
                 }
@@ -840,12 +842,12 @@ namespace ConfigEditor
                     // 创建一个临时的 Grid 用来Verify。
                     TabPage tab = NewTabPage(doc.RelateName);
                     DataGridView grid = (DataGridView)tab.Controls[0];
-                    grid.SuspendLayout();
                     FormError.OnAddError = (DataGridViewCell cell, Property.IProperty p, Property.ErrorLevel level, string desc) =>
                     {
                         if (cell.DataGridView == grid)
                             ++ErrorCount;
                     };
+                    grid.SuspendLayout();
                     LoadDocumentToView(grid, doc);
                     if (ErrorCount > 0)
                     {
@@ -1325,7 +1327,9 @@ namespace ConfigEditor
 
                 foreach (var gridReload in ReloadGridsAfterFormDefineClosed)
                 {
+                    gridReload.SuspendLayout();
                     LoadDocumentToView(gridReload, gridReload.Tag as Document);
+                    gridReload.ResumeLayout();
                 }
                 ReloadGridsAfterFormDefineClosed.Clear();
 
@@ -1430,6 +1434,21 @@ namespace ConfigEditor
             //form.BringToFront();
         }
 
+        private void OnGridEditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e)
+        {
+            var grid = sender as DataGridView;
+            e.Control.TextChanged += OnGridEditingControlTextChanged;
+        }
+
+        private void OnGridEditingControlTextChanged(object sender, EventArgs e)
+        {
+            if (FormPopupListBox.Visible)
+            {
+                var editingControl = sender as Control;
+                FormPopupListBox.ListBox.SelectedIndex = FormPopupListBox.ListBox.Items.IndexOf(editingControl.Text);
+            }
+        }
+
         private void OnGridCellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
         {
             var grid = sender as DataGridView;
@@ -1462,7 +1481,6 @@ namespace ConfigEditor
                     FormPopup = FormPopupListBox;
                     break;
             }
-
             ShowFormHelp(grid, e.ColumnIndex, e.RowIndex);
         }
 

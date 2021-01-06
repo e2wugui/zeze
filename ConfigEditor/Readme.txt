@@ -48,6 +48,8 @@ protected override CreateParams CreateParams
      return ret;
    }
  } 
+ 	FormBuildProgress async
+	OpenDocument doc.SetFileName(fileName); 调整。现在有点绕。
 	enum 编辑数据时给选择列表。如果列表中没有找到，提示是否新增。
 	更多自动完成？
 		普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
