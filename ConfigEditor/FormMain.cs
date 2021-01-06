@@ -822,7 +822,7 @@ namespace ConfigEditor
                     {
                         foreach (var varDefine in beanDefine.Variables)
                         {
-                            if (false == VarDefine.CheckType(varDefine.TypeNow, varDefine.Default))
+                            if (false == varDefine.CheckType(varDefine.TypeNow, varDefine.Default))
                             {
                                 hasDefaultError = varDefine;
                                 return false;

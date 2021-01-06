@@ -65,7 +65,7 @@ namespace ConfigEditor
         /// <param name="type"></param>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static bool CheckType(EType type, string value)
+        public bool CheckType(EType type, string value)
         {
             if (string.IsNullOrEmpty(value))
                 return true;
@@ -75,7 +75,10 @@ namespace ConfigEditor
                 case EType.Undecided: return true;
                 case EType.Date: return DateTime.TryParse(value, out var _);
                 case EType.Double: return double.TryParse(value, out var _);
-                case EType.Enum: return true; // TODO;
+                case EType.Enum:
+                    return Parent.EnumDefines.TryGetValue(Name, out var enumDefine)
+                        && enumDefine.ValueMap.TryGetValue(value, out var _);
+
                 case EType.Float: return float.TryParse(value, out var _);
                 case EType.Int: return int.TryParse(value, out var _);
                 case EType.List: return true;
@@ -364,7 +367,6 @@ namespace ConfigEditor
                             AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                         });
                         // 自动完成来实现enum选择。不使用Combobox.
-                        // TODO 实现 enum 的时候需要确认 cell.Value 的类型。编辑器使用的Column，然后类型是枚举而不是string。
                         current.BuildUniqueIndex(grid, columnIndex);
                         return 1;
                     }

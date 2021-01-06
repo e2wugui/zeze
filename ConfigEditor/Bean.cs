@@ -374,7 +374,6 @@ namespace ConfigEditor
                 {
                     case EUpdate.Data:
                         // OnGridCellEndEdit update data
-                        // TODO Enum Type
                         DataGridViewCell cell = cells[colIndex];
                         string newValue = cell.Value as string;
                         varData.Value = newValue;

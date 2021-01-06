@@ -45,6 +45,8 @@ Test
 	* NEW typescript gen 数据生成在代码中。
 	* NEW lua gen 数据生成在代码中。生成代码没有执行过。
 	* NEW Add Var.Default。
+
+	2021/1/6
 	* NEW enum
 
 性能

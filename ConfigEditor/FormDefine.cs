@@ -302,7 +302,7 @@ namespace ConfigEditor
                             InsertValueDefine(e.RowIndex, new EnumDefine.ValueDefine(valueDefine.Parent, "", -1));
                             define.CurrentCell = define[e.ColumnIndex, e.RowIndex];
                             define.BeginEdit(true);
-                            // TODO 当编辑取消时，需要删掉新增的行。
+                            // 当编辑取消时，删掉新增的行。see define_CellEndEdit
                         }
                     }
                     break;
@@ -525,7 +525,7 @@ namespace ConfigEditor
                         break;
 
                     case "VarDefault":
-                        if (false == VarDefine.CheckType(var.Type, e.FormattedValue as string))
+                        if (false == var.CheckType(var.Type, e.FormattedValue as string))
                         {
                             e.Cancel = true;
                             MessageBox.Show("这个默认值和当前类型不匹配。");
