@@ -75,7 +75,7 @@ namespace ConfigEditor
             this.buttonCancel.Margin = new System.Windows.Forms.Padding(2);
             this.buttonCancel.Name = "buttonCancel";
             this.buttonCancel.Size = new System.Drawing.Size(86, 30);
-            this.buttonCancel.TabIndex = 5;
+            this.buttonCancel.TabIndex = 101;
             this.buttonCancel.Text = "取消";
             this.buttonCancel.UseVisualStyleBackColor = true;
             // 
@@ -86,7 +86,7 @@ namespace ConfigEditor
             this.buttonOk.Margin = new System.Windows.Forms.Padding(2);
             this.buttonOk.Name = "buttonOk";
             this.buttonOk.Size = new System.Drawing.Size(93, 30);
-            this.buttonOk.TabIndex = 6;
+            this.buttonOk.TabIndex = 100;
             this.buttonOk.Text = "确定";
             this.buttonOk.UseVisualStyleBackColor = true;
             // 
@@ -101,6 +101,7 @@ namespace ConfigEditor
             this.textBox1.ReadOnly = true;
             this.textBox1.Size = new System.Drawing.Size(318, 51);
             this.textBox1.TabIndex = 8;
+            this.textBox1.TabStop = false;
             this.textBox1.Text = "List类型可以引用已经定义的Bean。不指定时，自动创建；指定时，必须存在。";
             // 
             // label3
@@ -118,7 +119,7 @@ namespace ConfigEditor
             this.comboBoxTypes.Location = new System.Drawing.Point(56, 33);
             this.comboBoxTypes.Name = "comboBoxTypes";
             this.comboBoxTypes.Size = new System.Drawing.Size(276, 20);
-            this.comboBoxTypes.TabIndex = 10;
+            this.comboBoxTypes.TabIndex = 1;
             // 
             // comboBoxBeanDefines
             // 
@@ -126,7 +127,7 @@ namespace ConfigEditor
             this.comboBoxBeanDefines.Location = new System.Drawing.Point(14, 78);
             this.comboBoxBeanDefines.Name = "comboBoxBeanDefines";
             this.comboBoxBeanDefines.Size = new System.Drawing.Size(318, 20);
-            this.comboBoxBeanDefines.TabIndex = 11;
+            this.comboBoxBeanDefines.TabIndex = 2;
             // 
             // FormInputVarDefine
             // 

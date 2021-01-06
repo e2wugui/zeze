@@ -577,6 +577,19 @@ namespace ConfigEditor
             }
         }
 
+        private void UpdateEnumDefine(EnumDefine enumDefine)
+        {
+            for (int i = 0; i < define.RowCount; ++i)
+            {
+                DataGridViewCellCollection cells = define.Rows[i].Cells;
+                if (cells["BeanLocked"].Tag == enumDefine)
+                {
+                    cells["VarName"].Value = enumDefine.FullName();
+                    break;
+                }
+            }
+        }
+
         private void define_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             if (e.ColumnIndex < 0)
@@ -652,7 +665,7 @@ namespace ConfigEditor
                             UpdateData(doc, var, newVarName);
                             doc.BeanDefine.UpdateForeign(oldForeignName, newForengnName);
                         }
-                        var.Parent.ChangeEnumName(var.Name, newVarName);
+                        UpdateEnumDefine(var.Parent.ChangeEnumName(var.Name, newVarName));
                         var.Name = newVarName;
                         var.Parent.Document.IsChanged = true;
                         FormMain.ReloadAllGridIfContains(var);

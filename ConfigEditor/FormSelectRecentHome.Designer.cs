@@ -41,7 +41,7 @@ namespace ConfigEditor
             // 
             this.comboBoxRecentHomes.FormattingEnabled = true;
             this.comboBoxRecentHomes.Location = new System.Drawing.Point(14, 32);
-            this.comboBoxRecentHomes.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.comboBoxRecentHomes.Margin = new System.Windows.Forms.Padding(2);
             this.comboBoxRecentHomes.MaxDropDownItems = 10;
             this.comboBoxRecentHomes.Name = "comboBoxRecentHomes";
             this.comboBoxRecentHomes.Size = new System.Drawing.Size(474, 20);
@@ -61,17 +61,17 @@ namespace ConfigEditor
             // 
             this.buttonOk.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.buttonOk.Location = new System.Drawing.Point(337, 141);
-            this.buttonOk.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.buttonOk.Margin = new System.Windows.Forms.Padding(2);
             this.buttonOk.Name = "buttonOk";
             this.buttonOk.Size = new System.Drawing.Size(100, 30);
-            this.buttonOk.TabIndex = 2;
+            this.buttonOk.TabIndex = 100;
             this.buttonOk.Text = "确定";
             this.buttonOk.UseVisualStyleBackColor = true;
             // 
             // buttonBrowse
             // 
             this.buttonBrowse.Location = new System.Drawing.Point(494, 32);
-            this.buttonBrowse.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.buttonBrowse.Margin = new System.Windows.Forms.Padding(2);
             this.buttonBrowse.Name = "buttonBrowse";
             this.buttonBrowse.Size = new System.Drawing.Size(78, 20);
             this.buttonBrowse.TabIndex = 3;
@@ -83,10 +83,10 @@ namespace ConfigEditor
             // 
             this.buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.buttonCancel.Location = new System.Drawing.Point(456, 141);
-            this.buttonCancel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.buttonCancel.Margin = new System.Windows.Forms.Padding(2);
             this.buttonCancel.Name = "buttonCancel";
             this.buttonCancel.Size = new System.Drawing.Size(100, 30);
-            this.buttonCancel.TabIndex = 4;
+            this.buttonCancel.TabIndex = 101;
             this.buttonCancel.Text = "取消";
             this.buttonCancel.UseVisualStyleBackColor = true;
             // 
@@ -102,7 +102,7 @@ namespace ConfigEditor
             this.Controls.Add(this.buttonOk);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.comboBoxRecentHomes);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "FormSelectRecentHome";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "选择配置目录(home)";
