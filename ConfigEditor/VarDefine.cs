@@ -196,7 +196,7 @@ namespace ConfigEditor
             if (null != Self)
                 Self.ParentNode.RemoveChild(Self);
             if (Parent.EnumDefines.TryGetValue(Name, out var enumDefine))
-                Parent.EnumDefines.Remove(Name);
+                enumDefine.Delete();
             Parent.Document.IsChanged = true;
             Parent.Variables.Remove(this);
             return (Reference?.DecRefCount(), enumDefine);

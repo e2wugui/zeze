@@ -13,6 +13,15 @@ namespace ConfigEditor
         public XmlElement Self { get; private set; }
         public BeanDefine Parent { get; }
 
+        public void Delete()
+        {
+            if (null != Self)
+            {
+                Self.ParentNode.RemoveChild(Self);
+            }
+            Parent.EnumDefines.Remove(Name);
+        }
+
         public string FullName()
         {
             return Parent.FullName() + "." + Name;

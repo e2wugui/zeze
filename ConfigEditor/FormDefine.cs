@@ -604,7 +604,7 @@ namespace ConfigEditor
                                 // 此时ValueDefine并没有被加入EnumDefine.
                                 define.Rows.RemoveAt(e.RowIndex);
                             }
-                            else if (valueDefine.Name.Equals(newStrValue))
+                            else if (false == valueDefine.Name.Equals(newStrValue))
                             {
                                 valueDefine.Parent.ChangeValueName(valueDefine, newStrValue);
                                 cells["VarValue"].Value = valueDefine.Value.ToString();
