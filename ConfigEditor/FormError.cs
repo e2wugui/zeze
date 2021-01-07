@@ -13,8 +13,6 @@ namespace ConfigEditor
 {
     public partial class FormError : Form
     {
-        public FormMain FormMain { get; set; }
-
         public FormError()
         {
             InitializeComponent();
@@ -36,11 +34,11 @@ namespace ConfigEditor
 
         private void FormError_Load(object sender, EventArgs e)
         {
-            if (FormMain.ConfigEditor.FormErrorLocation != null)
-                this.Location = FormMain.ConfigEditor.FormErrorLocation;
-            if (FormMain.ConfigEditor.FormErrorSize != null)
-                this.Size = FormMain.ConfigEditor.FormErrorSize;
-            this.WindowState = FormMain.ConfigEditor.FormErrorState;
+            if (FormMain.Instance.ConfigEditor.FormErrorLocation != null)
+                this.Location = FormMain.Instance.ConfigEditor.FormErrorLocation;
+            if (FormMain.Instance.ConfigEditor.FormErrorSize != null)
+                this.Size = FormMain.Instance.ConfigEditor.FormErrorSize;
+            this.WindowState = FormMain.Instance.ConfigEditor.FormErrorState;
 
         }
 
@@ -142,7 +140,7 @@ namespace ConfigEditor
 
             DataGridViewCell maincell = grid.Rows[e.RowIndex].Cells["Level"].Tag as DataGridViewCell;
             DataGridView maingrid = maincell.DataGridView;
-            FormMain.Tabs.SelectedTab = maingrid.Parent as TabPage;
+            FormMain.Instance.Tabs.SelectedTab = maingrid.Parent as TabPage;
             maingrid.FirstDisplayedCell = maincell;
             maingrid.CurrentCell = maincell;
         }

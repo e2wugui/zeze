@@ -88,12 +88,11 @@ namespace ConfigEditor
             return false;
         }
 
-        public FormMain FormMain { get; set; }
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (null == FormMain.Tabs.SelectedTab)
+            if (null == FormMain.Instance.Tabs.SelectedTab)
                 return;
-            var grid = FormMain.Tabs.SelectedTab.Controls[0] as DataGridView;
+            var grid = FormMain.Instance.Tabs.SelectedTab.Controls[0] as DataGridView;
             var seltext = ListBox.SelectedItem as string;
             if (null != seltext && null != grid.EditingControl)
             {

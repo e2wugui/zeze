@@ -22,7 +22,7 @@ namespace ConfigEditor.Gen.ts
                 var DataName = doc.BeanDefine.FullName().Replace('.', '_');
                 sw.WriteLine($"export class {DataName} {{");
                 sw.WriteLine($"    public static Beans: Array<{_ClassName}> = new Array<{_ClassName}>();");
-                if (false == doc.Main.PropertyManager.Properties.TryGetValue(Property.Id.PName, out var pid))
+                if (false == FormMain.Instance.PropertyManager.Properties.TryGetValue(Property.Id.PName, out var pid))
                     throw new Exception("Property.Id miss!");
                 foreach (var var in doc.BeanDefine.Variables)
                 {
@@ -157,7 +157,7 @@ namespace ConfigEditor.Gen.ts
             var beanFullName = bean.FullName().Replace('.', '_');
 
             sw.WriteLine($"export class _{beanFullName} {{");
-            if (false == doc.Main.PropertyManager.Properties.TryGetValue(Property.IdList.PName, out var pid))
+            if (false == FormMain.Instance.PropertyManager.Properties.TryGetValue(Property.IdList.PName, out var pid))
                 throw new Exception("Property.Id miss!");
 
             // var property

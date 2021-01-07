@@ -52,7 +52,7 @@ namespace ConfigEditor.Gen.cs
                 Gen(sw, doc, e, prefix + "    ", flags);
             }
 
-            if (false == doc.Main.PropertyManager.Properties.TryGetValue(Property.IdList.PName, out var pid))
+            if (false == FormMain.Instance.PropertyManager.Properties.TryGetValue(Property.IdList.PName, out var pid))
                 throw new Exception("Property.Id miss!");
 
             // var property

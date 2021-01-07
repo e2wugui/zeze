@@ -32,25 +32,15 @@ Test
 	2021/1/6
 	* NEW enum
 
+	2021/1/7
+	* CHANGE OpenDocument 重构。
+
 性能
 	* 几千行看看会怎么样。
 
 TODO
-protected override CreateParams CreateParams
-  {
-   get
-    {
-     CreateParams ret = base.CreateParams;
-     ret.Style = (int)Flags.WindowStyles.WS_THICKFRAME | 
-		(int)Flags.WindowStyles.WS_CHILD;
-     ret.ExStyle |= (int)Flags.WindowStyles.WS_EX_NOACTIVATE | 
-		(int)Flags.WindowStyles.WS_EX_TOOLWINDOW;
-     return ret;
-   }
- } 
  	FormBuildProgress async
-	OpenDocument doc.SetFileName(fileName); 调整。现在有点绕。
-	enum 编辑数据时给选择列表。如果列表中没有找到，提示是否新增。
+	自动完成: Foreign
 	更多自动完成？
 		普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
 	id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。

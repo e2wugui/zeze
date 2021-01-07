@@ -9,47 +9,24 @@ namespace ConfigEditor
 {
     public class Document
     {
-        public string FileName { get; private set; } // fullpath
-        public string RelateName { get; private set; } // for search
-        public string Name { get; private set; } // FileNameWithoutExtension
+        public Documents.File File { get; }
+        public string FileName => File.AbsoluteName;
+        public string RelateName { get; }
+        public string Name => File.Name;
         public string NamePinyin => Tools.ToPinyin(Name);
-        public string RelateNamePinyin => Tools.ToPinyin(RelateName);
         public BeanDefine BeanDefine { get; private set; } // bean in this file
 
         public List<Bean> Beans { get; } = new List<Bean>();
-        public FormMain Main { get; }
         public bool IsChanged { get; set; } = false;
 
         public static string NamespacePrefix { get; set; } = "Config";
 
-        public string RelatePathPinyin
-        {
-            get
-            {
-                int last = RelateNamePinyin.LastIndexOf('.');
-                if (last < 0)
-                    return string.Empty;
-                return RelateNamePinyin.Substring(0, last);
-            }
-        }
-
         // 不包含文档名，仅包含目录名。
-        public string RelatePath
-        {
-            get
-            {
-                int last = RelateName.LastIndexOf('.');
-                if (last < 0)
-                    return string.Empty;
-                return RelateName.Substring(0, last);
-            }
-        }
-
         public string Namespace
         {
             get
             {
-                string docpath = RelatePath;
+                string docpath = File.Parent.RelateName;
                 if (string.IsNullOrEmpty(docpath))
                     return NamespacePrefix;
                 return NamespacePrefix + "." + docpath;
@@ -58,24 +35,21 @@ namespace ConfigEditor
 
         public StreamWriter OpenStreamWriter(string srcHome, string ext)
         {
-            string[] parts = RelateName.Split('.');
-            int dirCount = parts.Length - 1;
-            string dir = Path.Combine(srcHome, NamespacePrefix);
-            for (int i = 0; i < dirCount; ++i)
-                dir = Path.Combine(dir, parts[i]);
+            string dir = Path.Combine(srcHome, NamespacePrefix, File.Parent.RelateName);
             Directory.CreateDirectory(dir);
             string path = Path.Combine(dir, Name + ext);
             return new StreamWriter(path, false, Encoding.UTF8);
         }
 
+        /*
         public void SetFileName(string fileName)
         {
             FileName = System.IO.Path.GetFullPath(fileName);
-            if (!FileName.StartsWith(Main.ConfigEditor.GetHome()))
+            if (!FileName.StartsWith(FormMain.Instance.ConfigEditor.GetHome()))
             {
                 throw new Exception("文件必须在Home(开始运行时选择的)目录下");
             }
-            string relate = FileName.Substring(Main.ConfigEditor.GetHome().Length + 1);
+            string relate = FileName.Substring(FormMain.Instance.ConfigEditor.GetHome().Length + 1);
             if (relate.EndsWith(".xml"))
                 relate = relate.Substring(0, relate.Length - 4);
             string[] relates = relate.Split(new char[] { '/', '\\' });
@@ -90,11 +64,19 @@ namespace ConfigEditor
             }
             BeanDefine.Name = Name;
         }
+        */
 
-        public Document(FormMain fm)
+        public Document(Documents.File file)
         {
-            Main = fm;
+            File = file;
+            RelateName = file.RelateName.Replace(System.IO.Path.DirectorySeparatorChar, '.');
             BeanDefine = new BeanDefine(this);
+            BeanDefine.Name = file.Name;
+        }
+
+        public void Close()
+        {
+            File.Close(this);
         }
 
         public XmlDocument Xml { get; private set; }

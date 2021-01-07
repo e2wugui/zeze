@@ -19,7 +19,7 @@ namespace ConfigEditor.Gen.lua
                 sw.WriteLine();
                 sw.WriteLine($"Config.Beans = {{}}");
 
-                if (false == doc.Main.PropertyManager.Properties.TryGetValue(Property.Id.PName, out var pid))
+                if (false == FormMain.Instance.PropertyManager.Properties.TryGetValue(Property.Id.PName, out var pid))
                     throw new Exception("Property.Id miss!");
 
                 // gen enum

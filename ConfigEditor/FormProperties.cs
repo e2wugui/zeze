@@ -22,7 +22,7 @@ namespace ConfigEditor
 
         private void FormProperties_Load(object sender, EventArgs e)
         {
-            var group = FormDefine.FormMain.PropertyManager.SortedGroup();
+            var group = FormMain.Instance.PropertyManager.SortedGroup();
 
             this.SuspendLayout();
 

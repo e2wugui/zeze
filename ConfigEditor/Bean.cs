@@ -273,7 +273,7 @@ namespace ConfigEditor
                             {
                                 if (tag.Tag == ColumnTag.ETag.ListStart)
                                     ++colIndex;
-                                colIndex = Document.Main.FindColumnListEnd(grid, colIndex);
+                                colIndex = FormMain.Instance.FindColumnListEnd(grid, colIndex);
                             }
                             continue; // data not found. continue load.
 
@@ -347,7 +347,7 @@ namespace ConfigEditor
                                 return true;
                         }
                         // 忽略剩下的没有数据的item直到ListEnd。
-                        colIndex = Document.Main.FindColumnListEnd(grid, colIndex);
+                        colIndex = FormMain.Instance.FindColumnListEnd(grid, colIndex);
                         continue;
                     }
 
@@ -433,7 +433,7 @@ namespace ConfigEditor
             // 使用 DefineFullName 找到 BeanDefine。慢的话，可以加cache优化速度。
             BeanDefine beanDefine = Document.BeanDefine;
             if (false == string.IsNullOrEmpty(DefineFullName))
-                Document.Main.OpenDocument(DefineFullName, out beanDefine);
+                beanDefine = FormMain.Instance.Documents.SearchReference(DefineFullName);
 
             foreach (var varDefine in beanDefine.Variables)
             {

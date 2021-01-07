@@ -52,7 +52,7 @@ namespace ConfigEditor.Gen.cs
                     sw.WriteLine($"{prefix}{{");
                     sw.WriteLine($"{prefix}    var beanInList = new {var.Reference.FullName()}(eInList);");
                     sw.WriteLine($"{prefix}    V{var.Name}.Add(beanInList);");
-                    if (false == doc.Main.PropertyManager.Properties.TryGetValue(Property.IdList.PName, out var pid))
+                    if (false == FormMain.Instance.PropertyManager.Properties.TryGetValue(Property.IdList.PName, out var pid))
                         throw new Exception("Property.Id miss!");
                     foreach (var varRef in var.Reference.Variables)
                     {

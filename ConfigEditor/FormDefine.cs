@@ -13,8 +13,6 @@ namespace ConfigEditor
 {
     public partial class FormDefine : Form
     {
-        public FormMain FormMain { get; set; }
-
         public FormDefine()
         {
             InitializeComponent();
@@ -36,17 +34,17 @@ namespace ConfigEditor
         private void FormDefine_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (false == this.Modal)
-                FormMain.FormDefine = null;
+                FormMain.Instance.FormDefine = null;
         }
 
         public void LoadDefine()
         {
             define.Rows.Clear();
 
-            if (null == FormMain.Tabs.SelectedTab)
+            if (null == FormMain.Instance.Tabs.SelectedTab)
                 return; // no file
 
-            DataGridView grid = (DataGridView)FormMain.Tabs.SelectedTab.Controls[0];
+            DataGridView grid = (DataGridView)FormMain.Instance.Tabs.SelectedTab.Controls[0];
             Document = (Document)grid.Tag;
             LoadDocument(Document);
         }
@@ -235,7 +233,7 @@ namespace ConfigEditor
 
         private void DeleteVariable(int rowIndex, VarDefine var, bool confirm)
         {
-            var (beanDeleted, enumDeleted) = FormMain.DeleteVariable(var, confirm);
+            var (beanDeleted, enumDeleted) = FormMain.Instance.DeleteVariable(var, confirm);
 
             define.SuspendLayout();
             define.Rows.RemoveAt(rowIndex);
@@ -292,7 +290,7 @@ namespace ConfigEditor
                     {
                         if (cellVarName.Tag is VarDefine varDefineHint)
                         {
-                            (VarDefine var, bool create) = FormMain.AddVariable(varDefineHint);
+                            (VarDefine var, bool create) = FormMain.Instance.AddVariable(varDefineHint);
                             UpdateWhenAddVariable(e.RowIndex, var, create);
                             if (null != var && var.Parent.EnumDefines.TryGetValue(var.Name, out var enumDefine))
                                 InsertEnumDefine(define.RowCount, enumDefine.FullName(), enumDefine);
@@ -347,7 +345,7 @@ namespace ConfigEditor
             if (DialogResult.OK == fp.ShowDialog(this))
             {
                 List<Property.IProperty> current = new List<Property.IProperty>();
-                foreach (var p in FormMain.PropertyManager.Properties)
+                foreach (var p in FormMain.Instance.PropertyManager.Properties)
                 {
                     if (p.Value.ButtonChecked)
                     {
@@ -355,7 +353,7 @@ namespace ConfigEditor
                     }
                     p.Value.Button = null;
                 }
-                var.Properties = FormMain.PropertyManager.BuildString(current);
+                var.Properties = FormMain.Instance.PropertyManager.BuildString(current);
                 var.Parent.Document.IsChanged = true;
                 cell.Value = var.Properties;
             }
@@ -396,7 +394,7 @@ namespace ConfigEditor
             {
                 case "VarProperties":
                     DataGridViewCell cell = define.Rows[e.RowIndex].Cells["VarProperties"];
-                    cell.ToolTipText = FormMain.PropertyManager.BuildToolTipText(cell.Value as string);
+                    cell.ToolTipText = FormMain.Instance.PropertyManager.BuildToolTipText(cell.Value as string);
                     break;
             }
         }
@@ -495,9 +493,9 @@ namespace ConfigEditor
 
                     case "VarValue":
                         string newValue = e.FormattedValue as string;
-                        if (string.IsNullOrEmpty(newValue))
+                        if (false == string.IsNullOrEmpty(newValue))
                         {
-                            FormMain.OpenDocument(newValue, out var r);
+                            var r = FormMain.Instance.Documents.SearchReference(newValue);
                             e.Cancel = r == null;
                             if (e.Cancel)
                                 MessageBox.Show("引用的Bean名字没有找到。输入空将创建一个。");
@@ -659,16 +657,17 @@ namespace ConfigEditor
                         string newForengnName = var.Parent.FullName() + ":" + var.Name;
                         var.Name = oldVarName; // 修改数据里面的名字需要用到旧名字。最后再来修改。
 
-                        FormMain.LoadAllDocument();
-                        foreach (var doc in FormMain.Documents.Values)
+                        FormMain.Instance.Documents.LoadAllDocument();
+                        FormMain.Instance.Documents.ForEachOpenedDocument((Document doc) =>
                         {
                             UpdateData(doc, var, newVarName);
                             doc.BeanDefine.UpdateForeign(oldForeignName, newForengnName);
-                        }
+                            return true;
+                        });
                         UpdateEnumDefine(var.Parent.ChangeEnumName(var.Name, newVarName));
                         var.Name = newVarName;
                         var.Parent.Document.IsChanged = true;
-                        FormMain.ReloadAllGridIfContains(var);
+                        FormMain.Instance.ReloadAllGridIfContains(var);
                     }
                     break;
 
@@ -700,7 +699,7 @@ namespace ConfigEditor
                     if (null != varNew)
                     {
                         UpdateWhenAddVariable(e.RowIndex, varNew, create);
-                        FormMain.UpdateWhenAddVariable(varNew);
+                        FormMain.Instance.UpdateWhenAddVariable(varNew);
                     }
                     else
                     {
@@ -739,11 +738,11 @@ namespace ConfigEditor
         /// <param name="var"></param>
         public void BuildEnumFor(VarDefine var)
         {
-            if (FormMain.Tabs.SelectedTab == null)
+            if (FormMain.Instance.Tabs.SelectedTab == null)
                 return;
 
             var enumDefine = new EnumDefine(var.Parent, var.Name);
-            DataGridView grid = (DataGridView)FormMain.Tabs.SelectedTab.Controls[0];
+            DataGridView grid = (DataGridView)FormMain.Instance.Tabs.SelectedTab.Controls[0];
             for (int i = 0; i < grid.ColumnCount; ++i)
             {
                 if ((grid.Columns[i].Tag as ColumnTag).PathLast.Define == var)
@@ -832,7 +831,7 @@ namespace ConfigEditor
                     VarDefine dragVarDefine = dragRow.Cells["VarName"].Tag as VarDefine;
                     VarDefine dropVarDefine = dropRow.Cells["VarName"].Tag as VarDefine;
                     dragVarDefine.Parent.Move(dragVarDefine, dropVarDefine);
-                    FormMain.ReloadAllGridIfContains(dragVarDefine);
+                    FormMain.Instance.ReloadAllGridIfContains(dragVarDefine);
                     define.Rows.Remove(dragRow);
                     define.Rows.Insert(dropIndex, dragRow);
                 }

@@ -1,7 +1,7 @@
 {
   "ResourceDirectory": null,
-  "DataOutputDirectory": "../DataOutput",
-  "ServerSrcDirectory": "ServerSrc",
-  "ClientSrcDirectory": "ClientSrc",
-  "ClientLanguage": "lua"
+  "DataOutputDirectory": "../Output/Data",
+  "ServerSrcDirectory": "../Output/ServerSrc",
+  "ClientSrcDirectory": "../Output/ClientSrc",
+  "ClientLanguage": "cs"
 }

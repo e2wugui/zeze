@@ -13,10 +13,11 @@ namespace ConfigEditor.Gen.ts
             switch (flags)
             {
                 case Property.DataOutputFlags.Client:
-                    foreach (var doc in main.Documents.Values)
+                    main.Documents.ForEachFile((Documents.File file) =>
                     {
-                        BeanFormatter.Gen(main.ConfigProject.ClientSrcDirectory, doc, Property.DataOutputFlags.Client);
-                    }
+                        BeanFormatter.Gen(main.ConfigProject.ClientSrcDirectory, file.Document, Property.DataOutputFlags.Client);
+                        return true;
+                    });
                     break;
                 default:
                     throw new Exception("Ts. Client Only");

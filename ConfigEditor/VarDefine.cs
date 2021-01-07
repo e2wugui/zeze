@@ -14,15 +14,7 @@ namespace ConfigEditor
         public string Name { get; set; }
         public EType Type { get; set; } = EType.Undecided;
         public EType TypeDetected { get; set; } = EType.Undecided; // 在导出数据完成时设置，仅在 Build 流程中使用。
-        public EType TypeNow
-        {
-            get
-            {
-                if (Type != EType.Undecided)
-                    return Type;
-                return TypeDetected;
-            }
-        }
+        public EType TypeNow => (Type != EType.Undecided) ? Type : TypeDetected; // 仅在 Build 流程中使用。
         public string Value { get; set; } = "";
         public string Foreign { get; set; }
         public string Default { get; set; }
@@ -30,10 +22,9 @@ namespace ConfigEditor
         public string NamePinyin  => Tools.ToPinyin(Name);
         public List<Property.IProperty> PropertiesList { get; private set; } = new List<Property.IProperty>(); // 优化
 
-        public bool IsKeyable()
+        public bool IsKeyable() // 仅在 Build 流程中使用。
         {
-            EType type = Type == EType.Undecided ? TypeDetected : Type;
-            switch (type)
+            switch (TypeNow)
             {
                 case EType.Int:
                 case EType.Long:
@@ -115,7 +106,7 @@ namespace ConfigEditor
                     return;
 
                 _Properties = value;
-                PropertiesList = Parent.Document.Main.PropertyManager.Parse(_Properties);
+                PropertiesList = FormMain.Instance.PropertyManager.Parse(_Properties);
             }
         }
 
@@ -125,14 +116,14 @@ namespace ConfigEditor
             {
                 Property.DataOutputFlags flags = Property.DataOutputFlags.None;
 
-                if (Parent.Document.Main.PropertyManager.Properties.TryGetValue(Property.Server.PName, out var server))
+                if (FormMain.Instance.PropertyManager.Properties.TryGetValue(Property.Server.PName, out var server))
                 {
                     if (PropertiesList.Contains(server))
                         flags |= Property.DataOutputFlags.Server;
                 }
 
 
-                if (Parent.Document.Main.PropertyManager.Properties.TryGetValue(Property.Client.PName, out var client))
+                if (FormMain.Instance.PropertyManager.Properties.TryGetValue(Property.Client.PName, out var client))
                 {
                     if (PropertiesList.Contains(client))
                         flags |= Property.DataOutputFlags.Client;
@@ -167,7 +158,7 @@ namespace ConfigEditor
                 // 这个方法肯定在 FormDefine 打开时调用。否则下面增加重新 Reload 的代码不会被触发。
                 if (Parent.Document.Grid != null)
                 {
-                    Parent.Document.Main.ReloadGridsAfterFormDefineClosed.Add(Parent.Document.Grid);
+                    FormMain.Instance.ReloadGridsAfterFormDefineClosed.Add(Parent.Document.Grid);
                 }
             }
         }
@@ -275,7 +266,7 @@ namespace ConfigEditor
             if (newForeign.Length != 2)
                 return "错误的Foreign格式。sample 'ConfigName:VarName'";
 
-            Parent.Document.Main.OpenDocument(newForeign[0], out var beanRef);
+            var beanRef = FormMain.Instance.Documents.SearchReference(newForeign[0]);
             if (null == beanRef)
                 return "foreign Bean 不存在。";
 
@@ -299,8 +290,9 @@ namespace ConfigEditor
         {
             if (Type == EType.List)
             {
-                Parent.Document.Main.OpenDocument(Value, out var r);
-                Reference = r ?? throw new Exception("list reference bean not found: " + Value);
+                Reference = FormMain.Instance.Documents.SearchReference(Value);
+                if (null == Reference)
+                    throw new Exception("list reference bean not found: " + Value);
             }
         }
 

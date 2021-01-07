@@ -14,13 +14,16 @@ namespace ConfigEditor
         public EditorConfig ConfigEditor { get; private set; }
         public ProjectConfig ConfigProject { get; private set; }
 
+        public static FormMain Instance;
+
         public FormMain()
         {
             InitializeComponent();
             LoadConfigEditor();
             PropertyManager = new Property.Manager();
-            FormError = new FormError() { FormMain = this };
-            FormPopupListBox =  new FormPopupListBox() { FormMain = this };
+            FormError = new FormError();
+            FormPopupListBox =  new FormPopupListBox();
+            Instance = this;
         }
 
         private string GetConfigFileFullName()
@@ -99,6 +102,9 @@ namespace ConfigEditor
             select.Dispose();
             Environment.CurrentDirectory = ConfigEditor.GetHome();
             LoadConfigProject();
+
+            Documents = new Documents();
+            Documents.Build();
 
             if (ConfigEditor.FormMainLocation != null)
                 this.Location = ConfigEditor.FormMainLocation;
@@ -373,10 +379,11 @@ namespace ConfigEditor
             // 初始化 input.ComboBoxBeanDefines。
             // 如果要全部定义，调用 LoadAllDocument.
             List<string> beanDefineFullNames = new List<string>();
-            foreach (var doc in Documents.Values)
+            Documents.ForEachOpenedDocument((Document doc) =>
             {
                 doc.BeanDefine.CollectFullNameIncludeSubBeanDefine(beanDefineFullNames);
-            }
+                return true;
+            });
             beanDefineFullNames.Sort();
             input.ComboBoxBeanDefines.Items.AddRange(beanDefineFullNames.ToArray());
 
@@ -599,31 +606,31 @@ namespace ConfigEditor
             SetSpecialColumnText(grid, cells);
         }
 
-        private void newButton_Click(object sender, EventArgs e)
+        private void OpenGrid(Document doc)
         {
-            this.saveFileDialog1.InitialDirectory = ConfigEditor.RecentHomes[0];
-            this.saveFileDialog1.FileName = "";
-            this.saveFileDialog1.Filter = "(*.xml)|*.xml";
-            if (DialogResult.OK != this.saveFileDialog1.ShowDialog())
-                return; // 取消保存，不关闭窗口
-            string file = this.saveFileDialog1.FileName;
-            if (!file.EndsWith(".xml"))
-                file = file + ".xml";
+            if (null == doc)
+                return;
+
             try
             {
-                Document doc = new Document(this);
-                doc.SetFileName(file);
-                TabPage tab = NewTabPage(doc.RelateName);
-                DataGridView grid = (DataGridView)tab.Controls[0];
-                doc.Save();
-                grid.Tag = doc;
-                doc.Grid = grid;
-                doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
-                AddGridRow(grid);
-
-                Documents.Add(doc.RelateName, doc);
-                tabs.Controls.Add(tab);
-                tabs.SelectedTab = tab;
+                if (doc.Grid == null)
+                {
+                    TabPage tab = NewTabPage(doc.RelateName);
+                    DataGridView grid = (DataGridView)tab.Controls[0];
+                    grid.SuspendLayout();
+                    LoadDocumentToView(grid, doc);
+                    tabs.Controls.Add(tab);
+                    tabs.SelectedTab = tab;
+                    grid.ResumeLayout();
+                    doc.Grid = grid;
+                    grid.Tag = doc;
+                }
+                else
+                {
+                    // has opened
+                    TabPage tab = (TabPage)doc.Grid.Parent;
+                    tabs.SelectedTab = tab;
+                }
             }
             catch (Exception ex)
             {
@@ -631,7 +638,20 @@ namespace ConfigEditor
             }
         }
 
-        public Dictionary<string, Document> Documents { get; } = new Dictionary<string, Document>();
+        private void newButton_Click(object sender, EventArgs e)
+        {
+            this.saveFileDialog1.InitialDirectory = ConfigEditor.RecentHomes[0];
+            this.saveFileDialog1.FileName = "";
+            this.saveFileDialog1.Filter = "(*.xml)|*.xml";
+            if (DialogResult.OK != this.saveFileDialog1.ShowDialog())
+                return; // 取消
+            string file = this.saveFileDialog1.FileName;
+            if (!file.EndsWith(".xml"))
+                file = file + ".xml";
+            OpenGrid(Documents.OpenFile(file, true)?.Open());
+        }
+
+        public Documents Documents { get; private set; }
 
         private bool Save(Document doc)
         {
@@ -658,6 +678,7 @@ namespace ConfigEditor
             Save((Document)tabs.SelectedTab.Controls[0].Tag);
         }
 
+        /*
         private Document OpenDocument(string path, string[]refbeans, int offset, out BeanDefine define)
         {
             Document doc = new Document(this);
@@ -706,70 +727,26 @@ namespace ConfigEditor
                 OpenDocumentWithFilePath(fileName, out var _);
             }
         }
+        */
 
         private void openButton_Click(object sender, EventArgs e)
         {
-            try
-            {
-                this.openFileDialog1.InitialDirectory = ConfigEditor.RecentHomes[0];
-                this.openFileDialog1.FileName = "";
-                this.openFileDialog1.Filter = "(*.xml)|*.xml";
-                if (DialogResult.OK != this.openFileDialog1.ShowDialog())
-                    return;
-                Document doc = new Document(this);
-                doc.SetFileName(this.openFileDialog1.FileName);
-                if (Documents.TryGetValue(doc.RelateName, out var odoc))
-                {
-                    if (odoc.Grid != null)
-                    {
-                        // has opened
-                        TabPage tab = (TabPage)odoc.Grid.Parent;
-                        tabs.SelectedTab = tab;
-                    }
-                    else
-                    {
-                        // no grid
-                        TabPage tab = NewTabPage(odoc.RelateName);
-                        DataGridView grid = (DataGridView)tab.Controls[0];
-                        grid.SuspendLayout();
-                        LoadDocumentToView(grid, odoc);
-                        tabs.Controls.Add(tab);
-                        tabs.SelectedTab = tab;
-                        grid.ResumeLayout();
-                        odoc.Grid = grid;
-                        grid.Tag = odoc;
-                    }
-                }
-                else
-                {
-                    TabPage tab = NewTabPage(doc.RelateName);
-                    DataGridView grid = (DataGridView)tab.Controls[0];
-                    doc.Open();
-                    Documents.Add(doc.RelateName, doc);
-                    // 必须在 Documents.Add 之后初始化。否则里面查找就可能找不到。
-                    doc.BeanDefine.InitializeListReference();
-                    grid.SuspendLayout();
-                    LoadDocumentToView(grid, doc);
-                    tabs.Controls.Add(tab);
-                    tabs.SelectedTab = tab;
-                    grid.ResumeLayout();
-                    grid.Tag = doc;
-                    doc.Grid = grid;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString());
-            }
+            this.openFileDialog1.InitialDirectory = ConfigEditor.RecentHomes[0];
+            this.openFileDialog1.FileName = "";
+            this.openFileDialog1.Filter = "(*.xml)|*.xml";
+            if (DialogResult.OK != this.openFileDialog1.ShowDialog())
+                return;
+            OpenGrid(Documents.OpenFile(this.openFileDialog1.FileName, false)?.Open());
         }
 
         private bool SaveAll()
         {
-            foreach (var doc in Documents.Values)
+            Documents.ForEachOpenedDocument((Document doc) =>
             {
                 if (false == Save(doc))
                     return false;
-            }
+                return true;
+            });
             return true;
         }
 
@@ -800,12 +777,13 @@ namespace ConfigEditor
             FormDefine?.Dispose();
             FormDefine = null;
             FormError.Dispose();
+            FormMain.Instance = null;
         }
 
         private void buildButton_Click(object sender, EventArgs e)
         {
             SaveAll();
-            LoadAllDocument();
+            Documents.LoadAllDocument();
 
             while (true)
             {
@@ -832,10 +810,10 @@ namespace ConfigEditor
             try
             {
                 // verify
-                foreach (var doc in Documents.Values)
+                Documents.ForEachOpenedDocument((Document doc) =>
                 {
                     if (doc.Grid != null)
-                        continue; // 已经打开的文档，已经有即时验证了。
+                        return true; // 已经打开的文档，有即时验证。
 
                     int ErrorCount = 0;
 
@@ -864,7 +842,8 @@ namespace ConfigEditor
                         tab.Dispose();
                     }
                     FormError.OnAddError = null;
-                }
+                    return true;
+                });
 
                 if (FormError.GetErrorCount() > 0)
                 {
@@ -875,21 +854,20 @@ namespace ConfigEditor
 
                 // 输出服务器使用的配置数据。现在是xml格式。
                 string serverDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Server");
-                foreach (var doc in Documents.Values)
+                Documents.ForEachOpenedDocument((Document doc) =>
                 {
-                    string docpath = doc.RelatePath.Replace('.', System.IO.Path.DirectorySeparatorChar);
-
-                    string serverDocDir = System.IO.Path.Combine(serverDir, docpath);
+                    string serverDocDir = System.IO.Path.Combine(serverDir, doc.File.Parent.RelateName);
                     System.IO.Directory.CreateDirectory(serverDocDir);
                     string serverFileName = System.IO.Path.Combine(serverDocDir, doc.Name + ".xml");
                     doc.SaveAs(serverFileName, true, Property.DataOutputFlags.Server);
-                }
+                    return true;
+                });
 
                 // check VarDefne.Default
                 VarDefine hasDefaultError = null;
-                foreach (var doc in Documents.Values)
+                Documents.ForEachOpenedDocument((Document doc) =>
                 {
-                    doc.BeanDefine.ForEach((BeanDefine beanDefine) =>
+                    if (!doc.BeanDefine.ForEach((BeanDefine beanDefine) =>
                     {
                         foreach (var varDefine in beanDefine.Variables)
                         {
@@ -900,9 +878,10 @@ namespace ConfigEditor
                             }
                         }
                         return true;
-                    }
-                    );
-                }
+                    }))
+                        return false;
+                    return true;
+                });
                 if (hasDefaultError != null)
                 {
                     MessageBox.Show(hasDefaultError.FullName() + " 默认值和类型不匹配。");
@@ -917,14 +896,14 @@ namespace ConfigEditor
                         Gen.cs.Main.Gen(this, Property.DataOutputFlags.Client);
                         // 输出客户端使用的配置数据。xml格式。
                         string clientDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Client");
-                        foreach (var doc in Documents.Values)
+                        Documents.ForEachOpenedDocument((Document doc) =>
                         {
-                            string docpath = doc.RelatePath.Replace('.', System.IO.Path.DirectorySeparatorChar);
-                            string clientDocDir = System.IO.Path.Combine(clientDir, docpath);
+                            string clientDocDir = System.IO.Path.Combine(clientDir, doc.File.Parent.RelateName);
                             System.IO.Directory.CreateDirectory(clientDocDir);
                             string clientFileName = System.IO.Path.Combine(clientDocDir, doc.Name + ".xml");
                             doc.SaveAs(clientFileName, true, Property.DataOutputFlags.Client);
-                        }
+                            return true;
+                        });
 
                         break;
 
@@ -1317,7 +1296,6 @@ namespace ConfigEditor
             if (null == FormDefine)
             {
                 FormDefine = new FormDefine();
-                FormDefine.FormMain = this;
                 FormDefine.LoadDefine();
 
                 // Dialog 模式不需要同步更新数据，简单点，先这个方案。
@@ -1379,12 +1357,13 @@ namespace ConfigEditor
             Document doc = grid.Tag as Document;
             Save(doc);
             HashSet<BeanDefine> deps = new HashSet<BeanDefine>();
-            foreach (var d in Documents.Values)
+            Documents.ForEachOpenedDocument((Document d) =>
             {
                 if (d == doc)
-                    continue;
+                    return true;
                 d.BeanDefine.Depends(deps);
-            }
+                return true;
+            });
 
             if (doc.BeanDefine.InDepends(deps))
             {
@@ -1393,7 +1372,7 @@ namespace ConfigEditor
             }
             else
             {
-                Documents.Remove(doc.RelateName);
+                doc.Close();
             }
             FormError.RemoveErrorByGrid(grid);
             var seltab = tabs.SelectedTab;
@@ -1475,9 +1454,8 @@ namespace ConfigEditor
                         FormPopupListBox.ListBox.Items.Add(v.Name);
                     }
                     var value = grid[e.ColumnIndex, e.RowIndex].Value;
-                    if (null == value)
-                        value = "";
-                    FormPopupListBox.ListBox.SelectedIndex = FormPopupListBox.ListBox.Items.IndexOf(value);
+                    if (null != value)
+                        FormPopupListBox.ListBox.SelectedIndex = FormPopupListBox.ListBox.Items.IndexOf(value);
                     FormPopup = FormPopupListBox;
                     break;
             }

@@ -140,7 +140,7 @@ namespace ConfigEditor
                     }
                     else
                     {
-                        Document.Main.OpenDocument(var.Value, out var r);
+                        var r = FormMain.Instance.Documents.SearchReference(var.Value);
                         if (null == r)
                         {
                             return (null, false, "list reference bean not found.");
@@ -160,16 +160,6 @@ namespace ConfigEditor
             return (var, create, "");
         }
 
-        /*
-        public string FullNameWithPrefix()
-        {
-            var fullName = FullName();
-            if (string.IsNullOrEmpty(Document.NamespacePrefix))
-                return fullName;
-            return Document.NamespacePrefix + "." + fullName;
-        }
-        */
-
         public string FullNamePinyin()
         {
             string name = NamePinyin;
@@ -177,7 +167,8 @@ namespace ConfigEditor
             {
                 name = b.NamePinyin + "." + name;
             }
-            string relatePath = Document.RelatePathPinyin;
+            string relatePath = Document.File.Parent.RelateName.Replace(System.IO.Path.DirectorySeparatorChar, '.');
+            relatePath = Tools.ToPinyin(relatePath);
             return string.IsNullOrEmpty(relatePath) ? name : relatePath + "." + name;
         }
 
@@ -188,7 +179,7 @@ namespace ConfigEditor
             {
                 name = b.Name + "." + name;
             }
-            string relatePath = Document.RelatePath;
+            string relatePath = Document.File.Parent.RelateName.Replace(System.IO.Path.DirectorySeparatorChar, '.');
             return string.IsNullOrEmpty(relatePath) ? name : relatePath + "." + name;
         }
 
@@ -200,7 +191,7 @@ namespace ConfigEditor
             {
                 name = b.Name + "." + name;
             }
-            string relatePath = Document.RelatePath;
+            string relatePath = Document.File.Parent.RelateName.Replace(System.IO.Path.DirectorySeparatorChar, '.');
             return string.IsNullOrEmpty(relatePath) ? name : relatePath + "." + name;
         }
 

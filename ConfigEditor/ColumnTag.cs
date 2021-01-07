@@ -51,7 +51,7 @@ namespace ConfigEditor
                 {
                     case 1:
                         // 关联的cell已经唯一了，特殊处理。
-                        var formMain = PathLast.Define.Parent.Document.Main;
+                        var formMain = FormMain.Instance;
                         if (formMain.PropertyManager.Properties.TryGetValue(Property.Unique.PName, out var puniq))
                             formMain.FormError.RemoveError(cells.First(), puniq);
                         if (formMain.PropertyManager.Properties.TryGetValue(Property.Id.PName, out var pid))

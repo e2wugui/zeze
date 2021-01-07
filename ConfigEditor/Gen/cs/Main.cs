@@ -14,18 +14,20 @@ namespace ConfigEditor.Gen.cs
             switch (flags)
             {
                 case Property.DataOutputFlags.Server:
-                    foreach (var doc in main.Documents.Values)
+                    main.Documents.ForEachFile((Documents.File file) =>
                     {
-                        BeanFormatter.Gen(main.ConfigProject.ServerSrcDirectory, doc, Property.DataOutputFlags.Server);
-                    }
+                        BeanFormatter.Gen(main.ConfigProject.ServerSrcDirectory, file.Document, Property.DataOutputFlags.Server);
+                        return true;
+                    });
                     GenManager(main, main.ConfigProject.ServerSrcDirectory);
                     break;
 
                 case Property.DataOutputFlags.Client:
-                    foreach (var doc in main.Documents.Values)
+                    main.Documents.ForEachFile((Documents.File file) =>
                     {
-                        BeanFormatter.Gen(main.ConfigProject.ClientSrcDirectory, doc, Property.DataOutputFlags.Client);
-                    }
+                        BeanFormatter.Gen(main.ConfigProject.ClientSrcDirectory, file.Document, Property.DataOutputFlags.Client);
+                        return true;
+                    });
                     GenManager(main, main.ConfigProject.ClientSrcDirectory);
                     break;
             }
@@ -54,8 +56,9 @@ namespace ConfigEditor.Gen.cs
                 if (false == main.PropertyManager.Properties.TryGetValue(Property.Id.PName, out var pid))
                     throw new Exception("Property.Id miss!");
 
-                foreach (var doc in main.Documents.Values)
+                main.Documents.ForEachFile((Documents.File fileForEach) =>
                 {
+                    var doc = fileForEach.Document;
                     string varName = doc.RelateName.Replace('.', '_');
                     sw.WriteLine($"        public static List<{doc.RelateName}> {varName} {{ get; }} = new List<{doc.RelateName}>();");
 
@@ -69,12 +72,14 @@ namespace ConfigEditor.Gen.cs
 
                         sw.WriteLine($"        public static Dictionary<{TypeHelper.GetName(var)}, {doc.RelateName}> {varName}Map{var.Name} {{ get; }} = new Dictionary<{TypeHelper.GetName(var)}, {doc.RelateName}>();");
                     }
-                }
+                    return true;
+                });
                 sw.WriteLine();
                 sw.WriteLine("        public static void Load(string home)");
                 sw.WriteLine("        {");
-                foreach (var doc in main.Documents.Values)
+                main.Documents.ForEachFile((Documents.File fileForEach) =>
                 {
+                    var doc = fileForEach.Document;
                     string varName = doc.RelateName.Replace('.', '_');
                     sw.WriteLine($"            {varName}.Clear();");
                     sw.WriteLine($"            Load(home, \"{doc.RelateName}\", (XmlElement e) => ");
@@ -92,7 +97,8 @@ namespace ConfigEditor.Gen.cs
                         sw.WriteLine($"                {varName}Map{var.Name}.Add(bean.V{var.Name}, bean);");
                     }
                     sw.WriteLine($"            }});");
-                }
+                    return true;
+                });
                 sw.WriteLine("        }");
                 sw.WriteLine();
                 sw.WriteLine("        public static void Load(string home, string relate, Action<XmlElement> action)");
