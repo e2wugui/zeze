@@ -35,7 +35,6 @@ namespace ConfigEditor
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.newButton = new System.Windows.Forms.ToolStripButton();
             this.openButton = new System.Windows.Forms.ToolStripButton();
-            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripButtonClose = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.saveButton = new System.Windows.Forms.ToolStripButton();
@@ -75,7 +74,6 @@ namespace ConfigEditor
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.newButton,
             this.openButton,
-            this.toolStripSeparator4,
             this.toolStripButtonClose,
             this.toolStripSeparator1,
             this.saveButton,
@@ -115,11 +113,6 @@ namespace ConfigEditor
             this.openButton.Text = "Open";
             this.openButton.ToolTipText = "Open(ctrl + O)";
             this.openButton.Click += new System.EventHandler(this.openButton_Click);
-            // 
-            // toolStripSeparator4
-            // 
-            this.toolStripSeparator4.Name = "toolStripSeparator4";
-            this.toolStripSeparator4.Size = new System.Drawing.Size(6, 25);
             // 
             // toolStripButtonClose
             // 
@@ -226,6 +219,10 @@ namespace ConfigEditor
             // 
             this.openFileDialog1.FileName = "openFileDialog1";
             // 
+            // saveFileDialog1
+            // 
+            this.saveFileDialog1.OverwritePrompt = false;
+            // 
             // contextMenuStrip1
             // 
             this.contextMenuStrip1.ImageScalingSize = new System.Drawing.Size(32, 32);
@@ -292,7 +289,6 @@ namespace ConfigEditor
         private System.Windows.Forms.ToolStripButton toolStripButtonDefine;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
         private System.Windows.Forms.ToolStripButton toolStripButtonError;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
         private System.Windows.Forms.ToolStripButton toolStripButtonClose;
         private System.Windows.Forms.ToolStripButton toolStripButtonConfig;
     }

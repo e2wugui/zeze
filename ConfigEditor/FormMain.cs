@@ -136,7 +136,7 @@ namespace ConfigEditor
             }
         }
 
-        private void LoadDocumentToView(DataGridView grid, Document doc)
+        public void LoadDocumentToView(DataGridView grid, Document doc)
         {
             grid.Columns.Clear();
             grid.Rows.Clear();
@@ -512,7 +512,7 @@ namespace ConfigEditor
             }
         }
 
-        private TabPage NewTabPage(string text)
+        public TabPage NewTabPage(string text)
         {
             TabPage tab = new TabPage();
             tab.Text = text;
@@ -678,57 +678,6 @@ namespace ConfigEditor
             Save((Document)tabs.SelectedTab.Controls[0].Tag);
         }
 
-        /*
-        private Document OpenDocument(string path, string[]refbeans, int offset, out BeanDefine define)
-        {
-            Document doc = new Document(this);
-            doc.SetFileName(path);
-            if (Documents.TryGetValue(doc.RelateName, out var exist))
-            {
-                define = exist.BeanDefine.Search(refbeans, offset);
-                return exist;
-            }
-
-            doc.Open();
-            Documents.Add(doc.RelateName, doc);
-            define = doc.BeanDefine.Search(refbeans, offset);
-            // 必须在 Documents.Add 之后初始化。否则里面查找就可能找不到。
-            doc.BeanDefine.InitializeListReference();
-            return doc;
-        }
-
-        public Document OpenDocument(string relatePath, out BeanDefine define)
-        {
-            string[] relates = relatePath.Split('.');
-            string path = ConfigEditor.GetHome();
-
-            for (int i = 0; i < relates.Length; ++i)
-            {
-                path = System.IO.Path.Combine(path, relates[i]);
-                if (System.IO.Directory.Exists(path)) // is directory
-                    continue;
-                return OpenDocument(path + ".xml", relates, i + 1, out define);
-            }
-            throw new Exception("Open Document Error With '" + relatePath + "'");
-        }
-
-        private Document OpenDocumentWithFilePath(string fileName, out BeanDefine define)
-        {
-            Document doc = new Document(this);
-            doc.SetFileName(fileName);
-            return OpenDocument(doc.RelateName, out define);
-        }
-
-        public void LoadAllDocument()
-        {
-            foreach (var fileName in System.IO.Directory.EnumerateFiles(
-                ConfigEditor.GetHome(), "*.xml", System.IO.SearchOption.AllDirectories))
-            {
-                OpenDocumentWithFilePath(fileName, out var _);
-            }
-        }
-        */
-
         private void openButton_Click(object sender, EventArgs e)
         {
             this.openFileDialog1.InitialDirectory = ConfigEditor.RecentHomes[0];
@@ -739,7 +688,7 @@ namespace ConfigEditor
             OpenGrid(Documents.OpenFile(this.openFileDialog1.FileName, false)?.Open());
         }
 
-        private bool SaveAll()
+        public bool SaveAll()
         {
             Documents.ForEachOpenedDocument((Document doc) =>
             {
@@ -782,9 +731,6 @@ namespace ConfigEditor
 
         private void buildButton_Click(object sender, EventArgs e)
         {
-            SaveAll();
-            Documents.LoadAllDocument();
-
             while (true)
             {
                 if (string.IsNullOrEmpty(ConfigProject.ServerSrcDirectory)
@@ -806,126 +752,10 @@ namespace ConfigEditor
                 }
                 break;
             }
-
-            try
-            {
-                // verify
-                Documents.ForEachOpenedDocument((Document doc) =>
-                {
-                    if (doc.Grid != null)
-                        return true; // 已经打开的文档，有即时验证。
-
-                    int ErrorCount = 0;
-
-                    // 创建一个临时的 Grid 用来Verify。
-                    TabPage tab = NewTabPage(doc.RelateName);
-                    DataGridView grid = (DataGridView)tab.Controls[0];
-                    FormError.OnAddError = (DataGridViewCell cell, Property.IProperty p, Property.ErrorLevel level, string desc) =>
-                    {
-                        if (cell.DataGridView == grid)
-                            ++ErrorCount;
-                    };
-                    grid.SuspendLayout();
-                    LoadDocumentToView(grid, doc);
-                    if (ErrorCount > 0)
-                    {
-                        // 如果有错误，也显示出来。
-                        tabs.Controls.Add(tab);
-                        //tabs.SelectedTab = tab;
-                        doc.Grid = grid;
-                        grid.Tag = doc;
-                        grid.ResumeLayout(); // 仅在需要显示时才执行。
-                    }
-                    else
-                    {
-                        FormError.RemoveErrorByGrid(grid);
-                        tab.Dispose();
-                    }
-                    FormError.OnAddError = null;
-                    return true;
-                });
-
-                if (FormError.GetErrorCount() > 0)
-                {
-                    FormError.Show();
-                    MessageBox.Show("存在一些验证错误。停止Build。");
-                    return;
-                }
-
-                // 输出服务器使用的配置数据。现在是xml格式。
-                string serverDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Server");
-                Documents.ForEachOpenedDocument((Document doc) =>
-                {
-                    string serverDocDir = System.IO.Path.Combine(serverDir, doc.File.Parent.RelateName);
-                    System.IO.Directory.CreateDirectory(serverDocDir);
-                    string serverFileName = System.IO.Path.Combine(serverDocDir, doc.Name + ".xml");
-                    doc.SaveAs(serverFileName, true, Property.DataOutputFlags.Server);
-                    return true;
-                });
-
-                // check VarDefne.Default
-                VarDefine hasDefaultError = null;
-                Documents.ForEachOpenedDocument((Document doc) =>
-                {
-                    if (!doc.BeanDefine.ForEach((BeanDefine beanDefine) =>
-                    {
-                        foreach (var varDefine in beanDefine.Variables)
-                        {
-                            if (false == varDefine.CheckType(varDefine.TypeNow, varDefine.Default))
-                            {
-                                hasDefaultError = varDefine;
-                                return false;
-                            }
-                        }
-                        return true;
-                    }))
-                        return false;
-                    return true;
-                });
-                if (hasDefaultError != null)
-                {
-                    MessageBox.Show(hasDefaultError.FullName() + " 默认值和类型不匹配。");
-                    return;
-                }
-
-                Gen.cs.Main.Gen(this, Property.DataOutputFlags.Server);
-
-                switch (string.IsNullOrEmpty(ConfigProject.ClientLanguage) ? "cs" : ConfigProject.ClientLanguage)
-                {
-                    case "cs":
-                        Gen.cs.Main.Gen(this, Property.DataOutputFlags.Client);
-                        // 输出客户端使用的配置数据。xml格式。
-                        string clientDir = System.IO.Path.Combine(ConfigProject.DataOutputDirectory, "Client");
-                        Documents.ForEachOpenedDocument((Document doc) =>
-                        {
-                            string clientDocDir = System.IO.Path.Combine(clientDir, doc.File.Parent.RelateName);
-                            System.IO.Directory.CreateDirectory(clientDocDir);
-                            string clientFileName = System.IO.Path.Combine(clientDocDir, doc.Name + ".xml");
-                            doc.SaveAs(clientFileName, true, Property.DataOutputFlags.Client);
-                            return true;
-                        });
-
-                        break;
-
-                    case "ts":
-                        // 生成代码，数据也嵌入在代码中。
-                        Gen.ts.Main.Gen(this, Property.DataOutputFlags.Client);
-                        break;
-
-                    case "lua":
-                        // 生成代码，数据也嵌入在代码中。
-                        Gen.lua.Main.Gen(this, Property.DataOutputFlags.Client);
-                        break;
-
-                    default:
-                        MessageBox.Show("unkown client language: " + ConfigProject.ClientLanguage);
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString());
-            }
+            FormBuildProgress progress = new FormBuildProgress();
+            progress.ShowDialog();
+            progress.StopAndWait();
+            progress.Dispose();
         }
 
         public void OnCellMouseDown(object sender, DataGridViewCellMouseEventArgs e)

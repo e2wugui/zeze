@@ -33,7 +33,7 @@ Test
 	* NEW enum
 
 	2021/1/7
-	* CHANGE OpenDocument 重构。
+	* CHANGE OpenDocument 重构。处理一个目录下的子目录名和文件名（不含后缀）相同的情况。正常使用禁止发生。
 
 性能
 	* 几千行看看会怎么样。

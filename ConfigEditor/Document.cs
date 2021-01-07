@@ -41,31 +41,6 @@ namespace ConfigEditor
             return new StreamWriter(path, false, Encoding.UTF8);
         }
 
-        /*
-        public void SetFileName(string fileName)
-        {
-            FileName = System.IO.Path.GetFullPath(fileName);
-            if (!FileName.StartsWith(FormMain.Instance.ConfigEditor.GetHome()))
-            {
-                throw new Exception("文件必须在Home(开始运行时选择的)目录下");
-            }
-            string relate = FileName.Substring(FormMain.Instance.ConfigEditor.GetHome().Length + 1);
-            if (relate.EndsWith(".xml"))
-                relate = relate.Substring(0, relate.Length - 4);
-            string[] relates = relate.Split(new char[] { '/', '\\' });
-            Tools.VerifyName(relates[0], CheckNameType.ThrowExp);
-            RelateName = relates[0];
-            Name = RelateName;
-            for (int i = 1; i < relates.Length; ++i)
-            {
-                Name = relates[i]; // store last
-                Tools.VerifyName(relates[i], CheckNameType.ThrowExp);
-                RelateName = RelateName + '.' + Name;
-            }
-            BeanDefine.Name = Name;
-        }
-        */
-
         public Document(Documents.File file)
         {
             File = file;
