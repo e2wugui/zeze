@@ -39,6 +39,15 @@ namespace ConfigEditor
                 listBox1.SelectedIndex = indexMouseDown;
         }
 
+        private void listBox1_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            listBox1_MouseDown(sender, e);
+            if (null == FormMain.Instance.Tabs.SelectedTab)
+                return;
+            var grid = FormMain.Instance.Tabs.SelectedTab.Controls[0] as DataGridView;
+            grid.EndEdit();
+        }
+
         const int WM_KEYDOWN = 0x100;
         const int VK_UP = 0x26;
         const int VK_DOWN = 0x28;

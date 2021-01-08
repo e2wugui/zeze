@@ -25,7 +25,15 @@ namespace ConfigEditor
         public bool AppendLine(string line)
         {
             Delegate d = delegate { richTextBox1.AppendText(line + Environment.NewLine); };
-            richTextBox1.BeginInvoke(d);
+
+            if (richTextBox1.InvokeRequired)
+            {
+                richTextBox1.BeginInvoke(d);
+            }
+            else
+            {
+                d();
+            }
             return Running;
         }
 

@@ -143,6 +143,7 @@
     <Compile Include="Gen\ts\Main.cs" />
     <Compile Include="Gen\ts\TypeHelper.cs" />
     <Compile Include="Documents.cs" />
+    <Compile Include="GridData.cs" />
     <Compile Include="NPinyin\Pinyin.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProjectConfig.cs" />

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ConfigEditor
@@ -358,7 +359,7 @@ namespace ConfigEditor
                             --tagListEnd.PathLast.ListIndex;
                             c += var.Reference.BuildGridColumns(gridref, c - 1, tagListEndCopy, -1);
                         }
-                        ((Document)gridref.Tag).IsChanged = true;
+                        //((Document)gridref.Tag).IsChanged = true; // 引用的Grid仅更新界面，数据实际上没有改变。
                     }
                 }
                 gridref.ResumeLayout();
@@ -1164,10 +1165,37 @@ namespace ConfigEditor
             
         }
 
-        private void buttonSaveAs_Click(object sender, EventArgs e)
+        delegate void AddTabPage();
+
+        public void AddTabPageAsync(TabPage tab)
         {
-            MessageBox.Show(ConfigProject.ResourceDirectory);
+            AddTabPage d = delegate
+            {
+                tabs.Controls.Add(tab);
+                tabs.SelectedTab = tab;
+            };
+            this.BeginInvoke(d);
+        }
+
+        private async void buttonSaveAs_Click(object sender, EventArgs e)
+        {
             // TODO
+            await Task.Run(() =>
+            {
+                var tab = NewTabPage("");
+                DataGridView grid = tab.Controls[0] as DataGridView;
+                DataGridViewCell s = new DataGridViewTextBoxCell() { Value = "[" };
+                grid.Columns.Insert(grid.ColumnCount, new DataGridViewColumn(s)
+                {
+                    Name = "test",
+                    Width = 20,
+                    HeaderText = "test",
+                    Frozen = false,
+                    AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                });
+                grid.Rows.Add();
+                AddTabPageAsync(tab);
+            });
         }
 
         public FormError FormError { get; }
@@ -1198,7 +1226,7 @@ namespace ConfigEditor
             if (doc.BeanDefine.InDepends(deps))
             {
                 doc.Grid = null;
-                MessageBox.Show("提示：这个文件里面的Bean定义被其他文件依赖，所以仅仅关闭编辑界面。");
+                //MessageBox.Show("提示：这个文件里面的Bean定义被其他文件依赖，所以仅仅关闭编辑界面。");
             }
             else
             {

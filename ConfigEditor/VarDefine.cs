@@ -302,7 +302,7 @@ namespace ConfigEditor
             {
                 case EType.List:
                     {
-                        DataGridViewCell s = new DataGridViewTextBoxCell() { Value = "[" };
+                        DataGridViewCell s = new DataGridViewTextBoxCell();
                         grid.Columns.Insert(columnIndex, new DataGridViewColumn(s)
                         {
                             Name = this.Name,
@@ -330,7 +330,7 @@ namespace ConfigEditor
                                 tag.Copy(tag.Tag).AddVar(this, listIndex), -1);
                         }
 
-                        DataGridViewCell e = new DataGridViewTextBoxCell() { Value = "]" };
+                        DataGridViewCell e = new DataGridViewTextBoxCell();
                         columnIndex += colAdded;
                         grid.Columns.Insert(columnIndex, new DataGridViewColumn(e)
                         {
@@ -350,7 +350,7 @@ namespace ConfigEditor
                         }
                         return colAdded + 2;
                     }
-
+                    /*
                 case EType.Enum:
                     {
                         DataGridViewCell template = new DataGridViewTextBoxCell();
@@ -368,6 +368,7 @@ namespace ConfigEditor
                         current.BuildUniqueIndex(grid, columnIndex);
                         return 1;
                     }
+                    */
 
                 default:
                     {
