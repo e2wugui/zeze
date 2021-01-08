@@ -17,18 +17,31 @@ namespace ConfigEditor
         /// 自此之后的 GridData 操作就会和 DataGridView 同步。
         /// 但是就不能在其他线程再访问了。
         /// </summary>
-        public DataGridView DataGridView { get; set; }
+
+        private DataGridView _View;
+
+        public DataGridView View
+        {
+            get
+            {
+                return _View;
+            }
+            set
+            {
+                _View = value;
+                InitializeView();
+            }
+        }
 
         public class Column
         {
             public string HeaderText { get; set; }
             public string ToolTipText { get; set; }
             public bool ReadOnly { get; set; }
-            public string CellTemplateValue { get; set; }
             public ColumnTag Tag { get; set; }
         }
 
-        public class Row
+        class Row
         {
             public GridData Parent { get; }
 
@@ -36,18 +49,7 @@ namespace ConfigEditor
             // 列的顺序调整也不需要调整 Row.Cells。
             private Dictionary<Column, Cell> Cells = new Dictionary<Column, Cell>();
 
-            // maybe null
             public Cell GetCell(int columnIndex)
-            {
-                var column = Parent.Columns[columnIndex];
-                if (Cells.TryGetValue(column, out var cell))
-                {
-                    return cell;
-                }
-                return null;
-            }
-
-            public Cell GetCellOrAdd(int columnIndex)
             {
                 var column = Parent.Columns[columnIndex];
                 if (Cells.TryGetValue(column, out var cell))
@@ -57,7 +59,6 @@ namespace ConfigEditor
                 cell = new Cell();
                 Cells.Add(column, cell);
                 return cell;
-
             }
 
             public Row(GridData parent)
@@ -79,25 +80,65 @@ namespace ConfigEditor
 
         public class Cell
         {
-            public string Value { get; set; }
-            public System.Drawing.Color BackColor { get; set; }
+            public string Value { get; set; } = "";
+            public System.Drawing.Color BackColor { get; set; } = System.Drawing.Color.White;
+        }
+
+        public class CellTemporary
+        {
+            Cell Cell { get; }
+
+            public int ColumnIndex { get; set; }
+            public int RowIndex { get; set; }
+            public string Value
+            {
+                get
+                {
+                    return Cell.Value;
+                }
+                set
+                {
+                    Cell.Value = value;
+                }
+            }
+            public System.Drawing.Color BackColor { get { return Cell.BackColor; } set { Cell.BackColor = value; } }
+
+            public DataGridView View { get; }
+
+            public CellTemporary(Cell store, DataGridView view)
+            {
+                Cell = store;
+                View = view;
+            }
+
+            public void Invalidate()
+            {
+                View?.InvalidateCell(ColumnIndex, RowIndex);
+            }
         }
 
         private List<Column> Columns = new List<Column>();
         private List<Row> Rows = new List<Row>();
 
-        public void InsertColumn(int columnIndex, Column column)
+        private void InitializeView()
         {
-            Columns.Insert(columnIndex, column);
+            View.SuspendLayout();
+            View.Columns.Clear();
+            View.Rows.Clear();
+            for (int i = 0; i < Columns.Count; ++i)
+            {
+                InsertColumnToView(i, Columns[i]);
+            }
+            View.RowCount = Rows.Count;
+            View.ResumeLayout();
+        }
 
-            DataGridView?.Columns.Insert(columnIndex,
-                new DataGridViewColumn(
-                    new DataGridViewTextBoxCell()
-                    {
-                        Value = column.CellTemplateValue
-                    })
+        private void InsertColumnToView(int columnIndex, Column column)
+        {
+            View?.Columns.Insert(columnIndex,
+                new DataGridViewColumn(new DataGridViewTextBoxCell())
                 {
-                    Width = column.Tag.PathLast.Define.GridColumnValueWidth,
+                    Width = column.Tag == null ? 80 : column.Tag.PathLast.Define.GridColumnValueWidth,
                     HeaderText = column.HeaderText,
                     ReadOnly = column.ReadOnly,
                     ToolTipText = column.ToolTipText,
@@ -105,6 +146,15 @@ namespace ConfigEditor
                     Frozen = false,
                     AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                 });
+        }
+
+        public int ColumnCount => Columns.Count;
+        public int RowCount => Rows.Count;
+
+        public void InsertColumn(int columnIndex, Column column)
+        {
+            Columns.Insert(columnIndex, column);
+            InsertColumnToView(columnIndex, column);
         }
 
         public void RemoveColumn(int columnIndex)
@@ -116,25 +166,25 @@ namespace ConfigEditor
             }
             Columns.RemoveAt(columnIndex);
 
-            DataGridView?.Columns.RemoveAt(columnIndex);
+            View?.Columns.RemoveAt(columnIndex);
         }
 
-        // TODO Virtual: 行同步
-        public void InsertRow(int rowIndex, Row row)
+        public void InsertRow(int rowIndex)
         {
-            Rows.Insert(rowIndex, row);
+            Rows.Insert(rowIndex, new Row(this));
+            View?.Rows.Insert(rowIndex, 1);
         }
 
-        public Row GetRow(int rowIndex)
+        public void RemoveRow(int rowIndex)
         {
-            return Rows[rowIndex];
+            Rows.RemoveAt(rowIndex);
+            View?.Rows.RemoveAt(rowIndex);
         }
 
-        public Row AddRow()
+        public CellTemporary GetCell(int columnIndex, int rowIndex)
         {
-            var row = new Row(this);
-            Rows.Add(row);
-            return row;
+            Cell store = Rows[rowIndex].GetCell(columnIndex);
+            return new CellTemporary(store, View) { ColumnIndex = columnIndex, RowIndex = rowIndex };
         }
     }
 }

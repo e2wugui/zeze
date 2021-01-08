@@ -691,7 +691,7 @@ namespace ConfigEditor
 
         public bool SaveAll()
         {
-            Documents.ForEachOpenedDocument((Document doc) =>
+            Documents?.ForEachOpenedDocument((Document doc) =>
             {
                 if (false == Save(doc))
                     return false;
@@ -1165,37 +1165,10 @@ namespace ConfigEditor
             
         }
 
-        delegate void AddTabPage();
-
-        public void AddTabPageAsync(TabPage tab)
-        {
-            AddTabPage d = delegate
-            {
-                tabs.Controls.Add(tab);
-                tabs.SelectedTab = tab;
-            };
-            this.BeginInvoke(d);
-        }
-
         private async void buttonSaveAs_Click(object sender, EventArgs e)
         {
-            // TODO
-            await Task.Run(() =>
-            {
-                var tab = NewTabPage("");
-                DataGridView grid = tab.Controls[0] as DataGridView;
-                DataGridViewCell s = new DataGridViewTextBoxCell() { Value = "[" };
-                grid.Columns.Insert(grid.ColumnCount, new DataGridViewColumn(s)
-                {
-                    Name = "test",
-                    Width = 20,
-                    HeaderText = "test",
-                    Frozen = false,
-                    AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
-                });
-                grid.Rows.Add();
-                AddTabPageAsync(tab);
-            });
+            FormTest test = new FormTest();
+            test.ShowDialog();
         }
 
         public FormError FormError { get; }
