@@ -35,9 +35,6 @@ namespace ConfigEditor.Property
                 }
             });
 
-            if (p.Grid.IsDisposed)
-                return;
-
             if (null != error)
                 p.FormMain.FormError.AddError(p.Cell, this, ErrorLevel.Warn, error);
             else

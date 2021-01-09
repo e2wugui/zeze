@@ -138,42 +138,6 @@ namespace ConfigEditor
             }
         }
 
-        /*
-        public void LoadDocumentToView(DataGridView grid, Document doc)
-        {
-            grid.Columns.Clear();
-            grid.Rows.Clear();
-
-            doc.BeanDefine.BuildGridColumns(grid, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
-
-            var param = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Grid };
-            foreach (var bean in doc.Beans)
-            {
-                AddGridRow(grid);
-                DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
-                int colIndex = 0;
-                if (bean.Update(grid, cells, ref colIndex, 0, param))
-                    break;
-            }
-
-            AddGridRow(grid);
-
-            for (int i = 0; i < grid.ColumnCount; ++i)
-            {
-                ColumnTag tag = grid.Columns[i].Tag as ColumnTag;
-                switch (tag.Tag)
-                {
-                    case ColumnTag.ETag.AddVariable:
-                    case ColumnTag.ETag.ListStart:
-                    case ColumnTag.ETag.ListEnd:
-                        continue;
-                }
-                tag.BuildUniqueIndex(grid, i);
-            }
-            VerifyAll(grid);
-        }
-        */
-
         public void OnGridCellValidating(object sender, DataGridViewCellValidatingEventArgs e)
         {
             // 编辑的时候仅使用文本，允许输入任何数据。所以验证肯定通过。
@@ -540,6 +504,7 @@ namespace ConfigEditor
                     grid.SuspendLayout();
                     doc.BuildGridData();
                     doc.GridData.View = grid;
+                    doc.GridData.SyncToView();
                     tabs.Controls.Add(tab);
                     tabs.SelectedTab = tab;
                     grid.ResumeLayout();
@@ -783,7 +748,7 @@ namespace ConfigEditor
                 foreach (var gridReload in ReloadGridsAfterFormDefineClosed)
                 {
                     gridReload.SuspendLayout();
-                    LoadDocumentToView(gridReload, gridReload.Tag as Document);
+                    (gridReload.Tag as Document).GridData.SyncToView();
                     gridReload.ResumeLayout();
                 }
                 ReloadGridsAfterFormDefineClosed.Clear();

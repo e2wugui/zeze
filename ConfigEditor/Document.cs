@@ -54,6 +54,8 @@ namespace ConfigEditor
 
         public void BuildGridData()
         {
+            GridData.Clear();
+
             BeanDefine.BuildGridColumns(GridData, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
 
             var param = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Grid };

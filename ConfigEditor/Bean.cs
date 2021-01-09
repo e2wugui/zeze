@@ -272,7 +272,7 @@ namespace ConfigEditor
                             {
                                 if (tag.Tag == ColumnTag.ETag.ListStart)
                                     ++colIndex;
-                                colIndex = grid.FindColumnListEnd(colIndex);
+                                colIndex = GridData.FindColumnListEnd(grid, colIndex);
                             }
                             continue; // data not found. continue load.
 
@@ -346,7 +346,7 @@ namespace ConfigEditor
                                 return true;
                         }
                         // 忽略剩下的没有数据的item直到ListEnd。
-                        colIndex = grid.FindColumnListEnd(colIndex);
+                        colIndex = GridData.FindColumnListEnd(grid, colIndex);
                         continue;
                     }
 

@@ -18,22 +18,7 @@ namespace ConfigEditor
         /// 但是就不能在其他线程再访问了。
         /// </summary>
 
-        private DataGridView _View;
-
-        public DataGridView View
-        {
-            get
-            {
-                return _View;
-            }
-            set
-            {
-                _View = value;
-                if (_View != null)
-                    InitializeView();
-            }
-        }
-
+        public DataGridView View { get; set; }
         public Document Document { get; }
         public GridData(Document doc)
         {
@@ -91,12 +76,21 @@ namespace ConfigEditor
         private List<Column> Columns = new List<Column>();
         private List<Row> Rows = new List<Row>();
 
+        // 这里没有清除 FormError。在 VerifyAll 里面清除。
+        // 如果调用 Clear()，又不调用 VerifyAll 。
+        // 需要自己调用 FormMain.Instance.FormError.RemoveErrorByGrid(GridData);
+        public void Clear()
+        {
+            Columns.Clear();
+            Rows.Clear();
+        }
+
         public int IndexOfRow(Row row)
         {
             return Rows.IndexOf(row);
         }
 
-        public void InitializeView()
+        public void SyncToView()
         {
             View.SuspendLayout();
             View.Columns.Clear();
@@ -219,12 +213,12 @@ namespace ConfigEditor
             return Rows[rowIndex].Cells[columnIndex];
         }
 
-        public int FindColumnListEnd(int startColIndex)
+        public static int FindColumnListEnd(GridData grid, int startColIndex)
         {
             int skipNestListCount = 0;
-            for (int c = startColIndex; c < ColumnCount; ++c)
+            for (int c = startColIndex; c < grid.ColumnCount; ++c)
             {
-                ColumnTag tag = Columns[c].ColumnTag;
+                ColumnTag tag = grid.GetColumn(c).ColumnTag;
                 if (skipNestListCount > 0)
                 {
                     switch (tag.Tag)
@@ -341,7 +335,7 @@ namespace ConfigEditor
                             --c;
                             break;
                         case ColumnTag.ETag.ListStart:
-                            int colListEnd = FindCloseListEnd(c);
+                            int colListEnd = GridData.FindCloseListEnd(this, c);
                             while (colListEnd >= c)
                             {
                                 RemoveColumn(colListEnd);
@@ -359,12 +353,12 @@ namespace ConfigEditor
             View?.ResumeLayout();
         }
 
-        private int FindCloseListEnd(int startColIndex)
+        public static int FindCloseListEnd(GridData grid, int startColIndex)
         {
             int listStartCount = 1;
-            for (int c = startColIndex + 1; c < ColumnCount; ++c)
+            for (int c = startColIndex + 1; c < grid.ColumnCount; ++c)
             {
-                ColumnTag tag = Columns[c].ColumnTag;
+                ColumnTag tag = grid.GetColumn(c).ColumnTag;
                 switch (tag.Tag)
                 {
                     case ColumnTag.ETag.ListEnd:
@@ -380,12 +374,12 @@ namespace ConfigEditor
             throw new Exception("List Not Closed.");
         }
 
-        private int FindColumnListStart(int startColIndex)
+        public static int FindColumnListStart(GridData grid, int startColIndex)
         {
             int skipNestListCount = 0;
             for (int c = startColIndex; c >= 0; --c)
             {
-                ColumnTag tag = Columns[c].ColumnTag;
+                ColumnTag tag = grid.GetColumn(c).ColumnTag;
                 if (skipNestListCount > 0)
                 {
                     switch (tag.Tag)
@@ -413,12 +407,12 @@ namespace ConfigEditor
         }
 
 
-        private int FindColumnBeanBegin(int startColIndex)
+        public static int FindColumnBeanBegin(GridData grid, int startColIndex)
         {
             int skipNestListCount = 0;
             for (int c = startColIndex - 1; c >= 0; --c)
             {
-                ColumnTag tag = Columns[c].ColumnTag;
+                ColumnTag tag = grid.GetColumn(c).ColumnTag;
                 if (skipNestListCount > 0)
                 {
                     switch (tag.Tag)
@@ -447,13 +441,13 @@ namespace ConfigEditor
             throw new Exception("FindColumnBeanBegin");
         }
 
-        public int DoActionUntilBeanEnd(int colBeanBegin, int colListEnd, Action<int> action)
+        public static int DoActionUntilBeanEnd(GridData grid, int colBeanBegin, int colListEnd, Action<int> action)
         {
             int skipNestListCount = 0;
             for (int c = colBeanBegin; c < colListEnd; ++c)
             {
                 action(c);
-                ColumnTag tag = Columns[c].ColumnTag;
+                ColumnTag tag = grid.GetColumn(c).ColumnTag;
                 if (skipNestListCount > 0)
                 {
                     switch (tag.Tag)
@@ -485,7 +479,7 @@ namespace ConfigEditor
 
         public void DeleteListItem(int columnIndexSelected)
         {
-            int colListEnd = FindColumnListEnd(columnIndexSelected);
+            int colListEnd = GridData.FindColumnListEnd(this, columnIndexSelected);
             if (colListEnd < 0)
             {
                 MessageBox.Show("请选择 List 中间的列。");
@@ -495,7 +489,7 @@ namespace ConfigEditor
             ColumnTag tagSelected = Columns[columnIndexSelected].ColumnTag;
             ColumnTag tagListEnd = Columns[colListEnd].ColumnTag;
             int pathEndIndex = tagListEnd.Path.Count - 1;
-            int colBeanBegin = FindColumnBeanBegin(columnIndexSelected);
+            int colBeanBegin = GridData.FindColumnBeanBegin(this, columnIndexSelected);
             int listIndex = tagSelected.Path[pathEndIndex].ListIndex;
 
             // delete data(list item)
@@ -509,7 +503,7 @@ namespace ConfigEditor
                 // 只有一个item，仅删除数据，不需要删除Column。需要更新grid。
                 for (int row = 0; row < RowCount; ++row)
                 {
-                    DoActionUntilBeanEnd(colBeanBegin, colListEnd,
+                    GridData.DoActionUntilBeanEnd(this, colBeanBegin, colListEnd,
                         (int col) =>
                         {
                             switch (Columns[col].ColumnTag.Tag)
@@ -528,7 +522,7 @@ namespace ConfigEditor
             {
                 // delete column
                 List<int> colDelete = new List<int>();
-                DoActionUntilBeanEnd(colBeanBegin, colListEnd, (int col) => colDelete.Add(col));
+                GridData.DoActionUntilBeanEnd(this, colBeanBegin, colListEnd, (int col) => colDelete.Add(col));
                 for (int i = colDelete.Count - 1; i >= 0; --i)
                     RemoveColumn(colDelete[i]);
                 colListEnd -= colDelete.Count;
@@ -537,7 +531,7 @@ namespace ConfigEditor
             // reduce ListIndex In Current List after deleted item.
             while (colBeanBegin < colListEnd)
             {
-                colBeanBegin = DoActionUntilBeanEnd(colBeanBegin, colListEnd,
+                colBeanBegin = GridData.DoActionUntilBeanEnd(this, colBeanBegin, colListEnd,
                     (int col) =>
                     {
                         ColumnTag tagReduce = Columns[col].ColumnTag;

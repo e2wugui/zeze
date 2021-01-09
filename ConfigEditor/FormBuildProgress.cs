@@ -58,8 +58,12 @@ namespace ConfigEditor
                 FormMain.Instance.Documents.LoadAllDocument();
 
                 // verify
-                FormMain.Instance.Documents.ForEachOpenedDocument((Document doc) =>
+                FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
                 {
+                    var doc = file.Document;
+                    if (null == doc)
+                        return true;
+                    
                     if (doc.GridData.View != null)
                         return true; // 已经打开的文档，有即时验证。
 
@@ -85,7 +89,7 @@ namespace ConfigEditor
                     }
                     else
                     {
-                        // TODO FormMain.Instance.FormError.RemoveErrorByGrid(doc.GridData);
+                        // FormMain.Instance.FormError.RemoveErrorByGrid(doc.GridData);
                     }
                     FormMain.Instance.FormError.OnAddError = null;
                     return true;
@@ -100,20 +104,20 @@ namespace ConfigEditor
 
                 // 输出服务器使用的配置数据。现在是xml格式。
                 string serverDir = System.IO.Path.Combine(FormMain.Instance.ConfigProject.DataOutputDirectory, "Server");
-                FormMain.Instance.Documents.ForEachOpenedDocument((Document doc) =>
+                FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
                 {
-                    string serverDocDir = System.IO.Path.Combine(serverDir, doc.File.Parent.RelateName);
+                    string serverDocDir = System.IO.Path.Combine(serverDir, file.Parent.RelateName);
                     System.IO.Directory.CreateDirectory(serverDocDir);
-                    string serverFileName = System.IO.Path.Combine(serverDocDir, doc.Name + ".xml");
-                    doc.SaveAs(serverFileName, true, Property.DataOutputFlags.Server);
+                    string serverFileName = System.IO.Path.Combine(serverDocDir, file.Document.Name + ".xml");
+                    file.Document.SaveAs(serverFileName, true, Property.DataOutputFlags.Server);
                     return true;
                 });
 
-                // check VarDefne.Default
+                // check VarDefine.Default
                 VarDefine hasDefaultError = null;
-                FormMain.Instance.Documents.ForEachOpenedDocument((Document doc) =>
+                FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
                 {
-                    if (!doc.BeanDefine.ForEach((BeanDefine beanDefine) =>
+                    return file.Document.BeanDefine.ForEach((BeanDefine beanDefine) =>
                     {
                         foreach (var varDefine in beanDefine.Variables)
                         {
@@ -124,9 +128,7 @@ namespace ConfigEditor
                             }
                         }
                         return true;
-                    }))
-                        return false;
-                    return true;
+                    });
                 });
                 if (hasDefaultError != null)
                 {
@@ -143,12 +145,12 @@ namespace ConfigEditor
                         Gen.cs.Main.Gen(FormMain.Instance, Property.DataOutputFlags.Client);
                         // 输出客户端使用的配置数据。xml格式。
                         string clientDir = System.IO.Path.Combine(FormMain.Instance.ConfigProject.DataOutputDirectory, "Client");
-                        FormMain.Instance.Documents.ForEachOpenedDocument((Document doc) =>
+                        FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
                         {
-                            string clientDocDir = System.IO.Path.Combine(clientDir, doc.File.Parent.RelateName);
+                            string clientDocDir = System.IO.Path.Combine(clientDir, file.Parent.RelateName);
                             System.IO.Directory.CreateDirectory(clientDocDir);
-                            string clientFileName = System.IO.Path.Combine(clientDocDir, doc.Name + ".xml");
-                            doc.SaveAs(clientFileName, true, Property.DataOutputFlags.Client);
+                            string clientFileName = System.IO.Path.Combine(clientDocDir, file.Document.Name + ".xml");
+                            file.Document.SaveAs(clientFileName, true, Property.DataOutputFlags.Client);
                             return true;
                         });
 

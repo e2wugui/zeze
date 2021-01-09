@@ -15,39 +15,39 @@ namespace ConfigEditor.Property
 
         public override void VerifyCell(VerifyParam p)
         {
-            int colListStart = p.FormMain.FindColumnListStart(p.Grid, p.ColumnIndex);
+            int colListStart = GridData.FindColumnListStart(p.Grid, p.ColumnIndex);
             if (colListStart < 0)
                 return; // Not A List Item
-            int colListEnd = p.FormMain.FindColumnListEnd(p.Grid, p.ColumnIndex);
+            int colListEnd = GridData.FindColumnListEnd(p.Grid, p.ColumnIndex);
             if (colListStart < 0)
                 return; // Not A List Item. FindColumnListStart 应该足够判断了，都判断一下吧。
 
             // collect list item cell
             int colBeanBegin = colListStart + 1;
-            List<DataGridViewCell> cells = new List<DataGridViewCell>();
+            List<GridData.Cell> cells = new List<GridData.Cell>();
             while (colBeanBegin < colListEnd)
             {
-                colBeanBegin = p.FormMain.DoActionUntilBeanEnd(p.Grid, colBeanBegin, colListEnd, (int col) =>
+                colBeanBegin = GridData.DoActionUntilBeanEnd(p.Grid, colBeanBegin, colListEnd, (int col) =>
                 {
-                    ColumnTag tag = (ColumnTag)p.Grid.Columns[col].Tag;
+                    ColumnTag tag = (ColumnTag)p.Grid.GetColumn(col).ColumnTag;
                     if (tag.Tag != ColumnTag.ETag.Normal)
                         return;
 
                     if (tag.Path.Count == p.ColumnTag.Path.Count // same level.
                         && tag.PathLast.Define == p.ColumnTag.PathLast.Define) // same var
                     {
-                        cells.Add(p.Grid.Rows[p.RowIndex].Cells[col]);
+                        cells.Add(p.Grid.GetRow(p.RowIndex).Cells[col]);
                     }
                 });
             }
-            ColumnTag tagListEnd = p.Grid.Columns[colListEnd].Tag as ColumnTag;
+            ColumnTag tagListEnd = p.Grid.GetColumn(colListEnd).ColumnTag;
             int pathListVar = tagListEnd.Path.Count - 1;
             Bean.VarData varList = tagListEnd.PathLast.Define.Parent.Document.Beans[p.RowIndex]
                 .GetVarData(0, tagListEnd, pathListVar);
             int varListCount = varList == null ? 0 : varList.Beans.Count;
 
             // count same oldValue
-            HashSet<DataGridViewCell> same = new HashSet<DataGridViewCell>();
+            HashSet<GridData.Cell> same = new HashSet<GridData.Cell>();
             if (p.OldValue != null)
             {
                 // load时 varListCount 包含所有数据。
@@ -55,7 +55,7 @@ namespace ConfigEditor.Property
                 // 计数 oldValue 不需要判断新数据，这里不需要额外判断。
                 for (int i = 0; i < varListCount; ++i)
                 {
-                    DataGridViewCell c = cells[i];
+                    var c = cells[i];
                     if (c == p.Cell)
                         continue;
 
@@ -77,7 +77,7 @@ namespace ConfigEditor.Property
             // Validating 时，如果是新增的，varListCount少1。当前新增cell在后面Add。所以不需要特别处理。
             for (int i = 0; i < varListCount; ++i)
             {
-                DataGridViewCell c = cells[i];
+                var c = cells[i];
                 if (c == p.Cell)
                     continue;
 
