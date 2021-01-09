@@ -367,7 +367,7 @@ namespace ConfigEditor
                             ToolTipText = Name + ":" + Comment,
                             ColumnTag = current,
                         });
-                        current.BuildUniqueIndex(columnIndex);
+                        current.BuildUniqueIndex(grid, columnIndex);
                         return 1;
                     }
             }

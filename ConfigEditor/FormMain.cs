@@ -118,6 +118,7 @@ namespace ConfigEditor
             this.TopMost = false;
         }
 
+        // TODO Reload 确认。哪些操作，现在可能需要重新调用 Document.BuildData 。
         public HashSet<DataGridView> ReloadGridsAfterFormDefineClosed { get; } = new HashSet<DataGridView>();
 
         public void ReloadAllGridIfContains(VarDefine var)
@@ -719,130 +720,6 @@ namespace ConfigEditor
             }
         }
 
-        private int FindCloseListEnd(DataGridView grid, int startColIndex)
-        {
-            int listStartCount = 1;
-            for (int c = startColIndex + 1; c < grid.ColumnCount; ++c)
-            {
-                ColumnTag tag = (ColumnTag)grid.Columns[c].Tag;
-                switch (tag.Tag)
-                {
-                    case ColumnTag.ETag.ListEnd:
-                        --listStartCount;
-                        if (listStartCount == 0)
-                            return c;
-                        break;
-                    case ColumnTag.ETag.ListStart:
-                        ++listStartCount;
-                        break;
-                }
-            }
-            throw new Exception("List Not Closed.");
-        }
-
-        public int FindColumnListStart(DataGridView grid, int startColIndex)
-        {
-            int skipNestListCount = 0;
-            for (int c = startColIndex; c >= 0; --c)
-            {
-                ColumnTag tag = (ColumnTag)grid.Columns[c].Tag;
-                if (skipNestListCount > 0)
-                {
-                    switch (tag.Tag)
-                    {
-                        case ColumnTag.ETag.ListEnd:
-                            ++skipNestListCount;
-                            break;
-                        case ColumnTag.ETag.ListStart:
-                            --skipNestListCount;
-                            break;
-                    }
-                    continue;
-                }
-                switch (tag.Tag)
-                {
-                    case ColumnTag.ETag.ListStart:
-                        return c;
- 
-                    case ColumnTag.ETag.ListEnd:
-                        ++skipNestListCount;
-                        break;
-                }
-            }
-            return -1;
-        }
-
-
-        public int FindColumnBeanBegin(DataGridView grid, int startColIndex)
-        {
-            int skipNestListCount = 0;
-            for (int c = startColIndex - 1; c >= 0; --c)
-            {
-                ColumnTag tag = (ColumnTag)grid.Columns[c].Tag;
-                if (skipNestListCount > 0)
-                {
-                    switch (tag.Tag)
-                    {
-                        case ColumnTag.ETag.ListEnd:
-                            ++skipNestListCount;
-                            break;
-                        case ColumnTag.ETag.ListStart:
-                            --skipNestListCount;
-                            break;
-                    }
-                    continue;
-                }
-                switch (tag.Tag)
-                {
-                    case ColumnTag.ETag.AddVariable:
-                    case ColumnTag.ETag.ListStart:
-                        return c + 1;
-                    //case ColumnTag.ETag.Normal:
-                    //    break;
-                    case ColumnTag.ETag.ListEnd:
-                        ++skipNestListCount;
-                        break;
-                }
-            }
-            throw new Exception("FindColumnBeanBegin");
-        }
-
-        public int DoActionUntilBeanEnd(DataGridView grid, int colBeanBegin, int colListEnd, Action<int> action)
-        {
-            int skipNestListCount = 0;
-            for (int c = colBeanBegin; c < colListEnd; ++c)
-            {
-                action(c);
-                ColumnTag tag = (ColumnTag)grid.Columns[c].Tag;
-                if (skipNestListCount > 0)
-                {
-                    switch (tag.Tag)
-                    {
-                        case ColumnTag.ETag.ListEnd:
-                            --skipNestListCount;
-                            break;
-                        case ColumnTag.ETag.ListStart:
-                            ++skipNestListCount;
-                            break;
-                    }
-                    continue;
-                }
-                switch (tag.Tag)
-                {
-                    case ColumnTag.ETag.ListStart:
-                        ++skipNestListCount;
-                        break;
-                    case ColumnTag.ETag.AddVariable:
-                        return c + 1;
-                    //case ColumnTag.ETag.Normal:
-                    //    break;
-                    case ColumnTag.ETag.ListEnd:
-                        throw new Exception("DoActionUntilBeanEnd");
-                }
-            }
-            return colListEnd;
-        }
-
         private void deleteListItemToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (tabs.SelectedTab == null)
@@ -865,66 +742,9 @@ namespace ConfigEditor
                     break;
                 */
             }
-            var doc = grid.Tag as Document;
-            int colListEnd = doc.GridData.FindColumnListEnd(grid.CurrentCell.ColumnIndex);
-            if (colListEnd < 0)
-            {
-                MessageBox.Show("请选择 List 中间的列。");
-                return; // not in list
-            }
-
-            ColumnTag tagListEnd = (ColumnTag)grid.Columns[colListEnd].Tag;
-            int pathEndIndex = tagListEnd.Path.Count - 1;
-            int colBeanBegin = FindColumnBeanBegin(grid, grid.CurrentCell.ColumnIndex);
-            int listIndex = tagSelected.Path[pathEndIndex].ListIndex;
-
-            // delete data(list item)
-            for (int row = 0; row < grid.RowCount - 1; ++row)
-            {
-                doc.Beans[row].GetVarData(0, tagSelected, pathEndIndex)?.DeleteBeanAt(listIndex);
-            }
-
-            if (tagListEnd.PathLast.ListIndex == -1)
-            {
-                // 只有一个item，仅删除数据，不需要删除Column。需要更新grid。
-                for (int row = 0; row < grid.RowCount - 1; ++row)
-                {
-                    DoActionUntilBeanEnd(grid, colBeanBegin, colListEnd,
-                        (int col) =>
-                        {
-                            switch ((grid.Columns[col].Tag as ColumnTag).Tag)
-                            {
-                                case ColumnTag.ETag.Normal:
-                                    grid[col, row].Value = null;
-                                    break;
-                            }
-                        });
-                }
-                return;
-            }
-
             grid.SuspendLayout();
-            {
-                // delete column
-                List<int> colDelete = new List<int>();
-                DoActionUntilBeanEnd(grid, colBeanBegin, colListEnd, (int col) => colDelete.Add(col));
-                for (int i = colDelete.Count - 1; i >= 0; --i)
-                    grid.Columns.RemoveAt(colDelete[i]);
-                colListEnd -= colDelete.Count;
-            }
+            (grid.Tag as Document).GridData.DeleteListItem(grid.CurrentCell.ColumnIndex);
             grid.ResumeLayout();
-
-            // reduce ListIndex In Current List after deleted item.
-            while (colBeanBegin < colListEnd)
-            {
-                colBeanBegin = DoActionUntilBeanEnd(grid, colBeanBegin, colListEnd,
-                    (int col) =>
-                    {
-                        ColumnTag tagReduce = (ColumnTag)grid.Columns[col].Tag;
-                        --tagReduce.Path[pathEndIndex].ListIndex;
-                    });
-            }
-            ++tagListEnd.PathLast.ListIndex;
         }
 
         private void FormMain_KeyDown(object sender, KeyEventArgs e)
@@ -972,7 +792,7 @@ namespace ConfigEditor
                 {
                     DataGridView grid = tabs.SelectedTab.Controls[0] as DataGridView;
                     grid.SuspendLayout();
-                    VerifyAll(grid);
+                    (grid.Tag as Document).GridData.VerifyAll();
                     grid.ResumeLayout();
                 }
 

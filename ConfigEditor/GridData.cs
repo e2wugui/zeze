@@ -68,6 +68,10 @@ namespace ConfigEditor
             public string ToolTipText { get; set; }
             public Row Row { get; }
 
+
+            /// <summary>
+            /// 查找的到cell坐标，仅在上下文得不到坐标时。
+            /// </summary>
             public void Invalidate()
             {
                 if (null != Row.GridData.View)
@@ -92,7 +96,7 @@ namespace ConfigEditor
             return Rows.IndexOf(row);
         }
 
-        private void InitializeView()
+        public void InitializeView()
         {
             View.SuspendLayout();
             View.Columns.Clear();
@@ -315,31 +319,32 @@ namespace ConfigEditor
 
         public void DeleteVariable(VarDefine var)
         {
+            View?.SuspendLayout();
             var updateParam = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.DeleteData }; // never change
-            for (int c = 0; c < gridref.ColumnCount; ++c)
+            for (int c = 0; c < ColumnCount; ++c)
             {
-                ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
+                ColumnTag tagref = Columns[c].ColumnTag;
                 if (tagref.PathLast.Define == var)
                 {
                     // delete data
-                    for (int r = 0; r < gridref.RowCount - 1; ++r)
+                    for (int r = 0; r < RowCount; ++r)
                     {
-                        DataGridViewCellCollection cells = gridref.Rows[r].Cells;
+                        var row = Rows[r];
                         int colref = c;
-                        doc.Beans[r].Update(gridref, cells, ref colref, 0, updateParam);
+                        Document.Beans[r].Update(this, row, ref colref, 0, updateParam);
                     }
                     // delete columns
                     switch (tagref.Tag)
                     {
                         case ColumnTag.ETag.Normal:
-                            gridref.Columns.RemoveAt(c);
+                            this.RemoveColumn(c);
                             --c;
                             break;
                         case ColumnTag.ETag.ListStart:
-                            int colListEnd = FindCloseListEnd(gridref, c);
+                            int colListEnd = FindCloseListEnd(c);
                             while (colListEnd >= c)
                             {
-                                gridref.Columns.RemoveAt(colListEnd);
+                                RemoveColumn(colListEnd);
                                 --colListEnd;
                             }
                             --c;
@@ -348,9 +353,198 @@ namespace ConfigEditor
                             MessageBox.Show("ListEnd?");
                             break;
                     }
-                    doc.IsChanged = true;
+                    Document.IsChanged = true;
                 }
             }
+            View?.ResumeLayout();
+        }
+
+        private int FindCloseListEnd(int startColIndex)
+        {
+            int listStartCount = 1;
+            for (int c = startColIndex + 1; c < ColumnCount; ++c)
+            {
+                ColumnTag tag = Columns[c].ColumnTag;
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.ListEnd:
+                        --listStartCount;
+                        if (listStartCount == 0)
+                            return c;
+                        break;
+                    case ColumnTag.ETag.ListStart:
+                        ++listStartCount;
+                        break;
+                }
+            }
+            throw new Exception("List Not Closed.");
+        }
+
+        private int FindColumnListStart(int startColIndex)
+        {
+            int skipNestListCount = 0;
+            for (int c = startColIndex; c >= 0; --c)
+            {
+                ColumnTag tag = Columns[c].ColumnTag;
+                if (skipNestListCount > 0)
+                {
+                    switch (tag.Tag)
+                    {
+                        case ColumnTag.ETag.ListEnd:
+                            ++skipNestListCount;
+                            break;
+                        case ColumnTag.ETag.ListStart:
+                            --skipNestListCount;
+                            break;
+                    }
+                    continue;
+                }
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.ListStart:
+                        return c;
+
+                    case ColumnTag.ETag.ListEnd:
+                        ++skipNestListCount;
+                        break;
+                }
+            }
+            return -1;
+        }
+
+
+        private int FindColumnBeanBegin(int startColIndex)
+        {
+            int skipNestListCount = 0;
+            for (int c = startColIndex - 1; c >= 0; --c)
+            {
+                ColumnTag tag = Columns[c].ColumnTag;
+                if (skipNestListCount > 0)
+                {
+                    switch (tag.Tag)
+                    {
+                        case ColumnTag.ETag.ListEnd:
+                            ++skipNestListCount;
+                            break;
+                        case ColumnTag.ETag.ListStart:
+                            --skipNestListCount;
+                            break;
+                    }
+                    continue;
+                }
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.AddVariable:
+                    case ColumnTag.ETag.ListStart:
+                        return c + 1;
+                    //case ColumnTag.ETag.Normal:
+                    //    break;
+                    case ColumnTag.ETag.ListEnd:
+                        ++skipNestListCount;
+                        break;
+                }
+            }
+            throw new Exception("FindColumnBeanBegin");
+        }
+
+        public int DoActionUntilBeanEnd(int colBeanBegin, int colListEnd, Action<int> action)
+        {
+            int skipNestListCount = 0;
+            for (int c = colBeanBegin; c < colListEnd; ++c)
+            {
+                action(c);
+                ColumnTag tag = Columns[c].ColumnTag;
+                if (skipNestListCount > 0)
+                {
+                    switch (tag.Tag)
+                    {
+                        case ColumnTag.ETag.ListEnd:
+                            --skipNestListCount;
+                            break;
+                        case ColumnTag.ETag.ListStart:
+                            ++skipNestListCount;
+                            break;
+                    }
+                    continue;
+                }
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.ListStart:
+                        ++skipNestListCount;
+                        break;
+                    case ColumnTag.ETag.AddVariable:
+                        return c + 1;
+                    //case ColumnTag.ETag.Normal:
+                    //    break;
+                    case ColumnTag.ETag.ListEnd:
+                        throw new Exception("DoActionUntilBeanEnd");
+                }
+            }
+            return colListEnd;
+        }
+
+        public void DeleteListItem(int columnIndexSelected)
+        {
+            int colListEnd = FindColumnListEnd(columnIndexSelected);
+            if (colListEnd < 0)
+            {
+                MessageBox.Show("请选择 List 中间的列。");
+                return; // not in list
+            }
+
+            ColumnTag tagSelected = Columns[columnIndexSelected].ColumnTag;
+            ColumnTag tagListEnd = Columns[colListEnd].ColumnTag;
+            int pathEndIndex = tagListEnd.Path.Count - 1;
+            int colBeanBegin = FindColumnBeanBegin(columnIndexSelected);
+            int listIndex = tagSelected.Path[pathEndIndex].ListIndex;
+
+            // delete data(list item)
+            for (int row = 0; row < RowCount; ++row)
+            {
+                Document.Beans[row].GetVarData(0, tagSelected, pathEndIndex)?.DeleteBeanAt(listIndex);
+            }
+
+            if (tagListEnd.PathLast.ListIndex == -1)
+            {
+                // 只有一个item，仅删除数据，不需要删除Column。需要更新grid。
+                for (int row = 0; row < RowCount; ++row)
+                {
+                    DoActionUntilBeanEnd(colBeanBegin, colListEnd,
+                        (int col) =>
+                        {
+                            switch (Columns[col].ColumnTag.Tag)
+                            {
+                                case ColumnTag.ETag.Normal:
+                                    var cell = GetCell(col, row);
+                                    cell.Value = "";
+                                    View?.InvalidateCell(col, row);
+                                    break;
+                            }
+                        });
+                }
+                return;
+            }
+
+            {
+                // delete column
+                List<int> colDelete = new List<int>();
+                DoActionUntilBeanEnd(colBeanBegin, colListEnd, (int col) => colDelete.Add(col));
+                for (int i = colDelete.Count - 1; i >= 0; --i)
+                    RemoveColumn(colDelete[i]);
+                colListEnd -= colDelete.Count;
+            }
+
+            // reduce ListIndex In Current List after deleted item.
+            while (colBeanBegin < colListEnd)
+            {
+                colBeanBegin = DoActionUntilBeanEnd(colBeanBegin, colListEnd,
+                    (int col) =>
+                    {
+                        ColumnTag tagReduce = Columns[col].ColumnTag;
+                        --tagReduce.Path[pathEndIndex].ListIndex;
+                    });
+            }
+            ++tagListEnd.PathLast.ListIndex;
         }
     }
 }

@@ -655,8 +655,11 @@ namespace ConfigEditor
                         var.Name = oldVarName; // 修改数据里面的名字需要用到旧名字。最后再来修改。
 
                         FormMain.Instance.Documents.LoadAllDocument();
-                        FormMain.Instance.Documents.ForEachOpenedDocument((Document doc) =>
+                        FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
                         {
+                            var doc = file.Document;
+                            if (null == doc)
+                                return true;
                             UpdateData(doc, var, newVarName);
                             doc.BeanDefine.UpdateForeign(oldForeignName, newForengnName);
                             return true;
