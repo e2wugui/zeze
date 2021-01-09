@@ -282,32 +282,11 @@ namespace ConfigEditor
 
         public void UpdateWhenAddVariable(VarDefine var)
         {
-            foreach (var tab in tabs.Controls)
-            {
-                DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
-                gridref.SuspendLayout();
-                for (int c = 0; c < gridref.ColumnCount; ++c)
-                {
-                    ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
-                    if (tagref.Tag == ColumnTag.ETag.AddVariable && tagref.PathLast.Define.Parent == var.Parent)
-                    {
-                        c += var.BuildGridColumns(gridref, c, tagref.Parent(ColumnTag.ETag.Normal), -1);
-
-                        // 如果是List，第一次加入的时候，默认创建一个Item列。
-                        // 但是仍然有问题：如果这个Item没有输入数据，下一次打开时，不会默认创建。需要手动增加Item。
-                        if (var.Type == VarDefine.EType.List)
-                        {
-                            ColumnTag tagListEnd = gridref.Columns[c - 1].Tag as ColumnTag;
-                            ColumnTag tagListEndCopy = tagListEnd.Copy(ColumnTag.ETag.Normal);
-                            tagListEndCopy.PathLast.ListIndex = -tagListEnd.PathLast.ListIndex; // 肯定是0，保险写法。
-                            --tagListEnd.PathLast.ListIndex;
-                            c += var.Reference.BuildGridColumns(gridref, c - 1, tagListEndCopy, -1);
-                        }
-                        //((Document)gridref.Tag).IsChanged = true; // 引用的Grid仅更新界面，数据实际上没有改变。
-                    }
-                }
-                gridref.ResumeLayout();
-            }
+            Documents.ForEachFile((Documents.File file) =>
+            { 
+                file.Document?.GridData.UpdateWhenAddVariable(var);
+                return true;
+            });
         }
 
         public (VarDefine, bool) AddVariable(VarDefine hint)
@@ -324,9 +303,9 @@ namespace ConfigEditor
             // 初始化 input.ComboBoxBeanDefines。
             // 如果要全部定义，调用 LoadAllDocument.
             List<string> beanDefineFullNames = new List<string>();
-            Documents.ForEachOpenedDocument((Document doc) =>
+            Documents.ForEachFile((Documents.File file) =>
             {
-                doc.BeanDefine.CollectFullNameIncludeSubBeanDefine(beanDefineFullNames);
+                file.Document?.BeanDefine.CollectFullNameIncludeSubBeanDefine(beanDefineFullNames);
                 return true;
             });
             beanDefineFullNames.Sort();
@@ -382,7 +361,7 @@ namespace ConfigEditor
                     ColumnTag tagSeed = tag.Copy(ColumnTag.ETag.Normal);
                     tagSeed.PathLast.ListIndex = -tag.PathLast.ListIndex;
                     --tag.PathLast.ListIndex;
-                    tag.PathLast.Define.Reference.BuildGridColumns(grid, columnIndex, tagSeed, -1);
+                    tag.PathLast.Define.Reference.BuildGridColumns((grid.Tag as Document).GridData, columnIndex, tagSeed, -1);
                     //(grid.Tag as Document).IsChanged = true;
                     break;
             }
@@ -524,9 +503,10 @@ namespace ConfigEditor
             }
         }
 
+        /*
         private void SetSpecialColumnText(DataGridView grid, DataGridViewCellCollection cells)
         {
-            for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex) // ColumnCount maybe change in loop
+            for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex)
             {
                 DataGridViewColumn col = grid.Columns[colIndex];
                 switch (((ColumnTag)(col.Tag)).Tag)
@@ -543,6 +523,7 @@ namespace ConfigEditor
                 }
             }
         }
+        */
 
         private void OpenGrid(Document doc)
         {
@@ -556,11 +537,11 @@ namespace ConfigEditor
                     TabPage tab = NewTabPage(doc.RelateName);
                     DataGridView grid = (DataGridView)tab.Controls[0];
                     grid.SuspendLayout();
-                    LoadDocumentToView(grid, doc);
+                    doc.BuildGridData();
+                    doc.GridData.View = grid;
                     tabs.Controls.Add(tab);
                     tabs.SelectedTab = tab;
                     grid.ResumeLayout();
-                    doc.GridData.View = grid;
                     grid.Tag = doc;
                 }
                 else
@@ -591,29 +572,9 @@ namespace ConfigEditor
 
         public Documents Documents { get; private set; }
 
-        private bool Save(Document doc)
-        {
-            try
-            {
-                if (doc.IsChanged)
-                {
-                    doc.Save();
-                    doc.IsChanged = false;
-                }
-                return true;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString());
-            }
-            return false;
-        }
-
         private void saveButton_Click(object sender, EventArgs e)
         {
-            if (null == tabs.SelectedTab)
-                return;
-            Save((Document)tabs.SelectedTab.Controls[0].Tag);
+            (tabs.SelectedTab?.Controls[0].Tag as Document).SaveIfChanged();
         }
 
         private void openButton_Click(object sender, EventArgs e)
@@ -628,10 +589,9 @@ namespace ConfigEditor
 
         public bool SaveAll()
         {
-            Documents?.ForEachOpenedDocument((Document doc) =>
+            Documents?.ForEachFile((Documents.File file) =>
             {
-                if (false == Save(doc))
-                    return false;
+                file.Document?.SaveIfChanged();
                 return true;
             });
             return true;
@@ -726,50 +686,13 @@ namespace ConfigEditor
                     return (null, null);
             }
 
-            var updateParam = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.DeleteData }; // never change
             // delete data and column, all reference(opened grid).
-            foreach (var tab in tabs.Controls)
+            Documents.ForEachFile((Documents.File file) =>
             {
-                DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
-                Document doc = (Document)gridref.Tag;
-                gridref.SuspendLayout();
-                for (int c = 0; c < gridref.ColumnCount; ++c)
-                {
-                    ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
-                    if (tagref.PathLast.Define == var)
-                    {
-                        // delete data
-                        for (int r = 0; r < gridref.RowCount - 1; ++r)
-                        {
-                            DataGridViewCellCollection cells = gridref.Rows[r].Cells;
-                            int colref = c;
-                            doc.Beans[r].Update(gridref, cells, ref colref, 0, updateParam);
-                        }
-                        // delete columns
-                        switch (tagref.Tag)
-                        {
-                            case ColumnTag.ETag.Normal:
-                                gridref.Columns.RemoveAt(c);
-                                --c;
-                                break;
-                            case ColumnTag.ETag.ListStart:
-                                int colListEnd = FindCloseListEnd(gridref, c);
-                                while (colListEnd >= c)
-                                {
-                                    gridref.Columns.RemoveAt(colListEnd);
-                                    --colListEnd;
-                                }
-                                --c;
-                                break;
-                            default:
-                                MessageBox.Show("ListEnd?");
-                                break;
-                        }
-                        doc.IsChanged = true;
-                    }
-                }
-                gridref.ResumeLayout();
-            }
+                file.Document?.GridData.DeleteVariable(var);
+                return true;
+            });
+
             // delete define
             return var.Delete();
         }
@@ -942,15 +865,14 @@ namespace ConfigEditor
                     break;
                 */
             }
-
-            int colListEnd = FindColumnListEnd(grid, grid.CurrentCell.ColumnIndex);
+            var doc = grid.Tag as Document;
+            int colListEnd = doc.GridData.FindColumnListEnd(grid.CurrentCell.ColumnIndex);
             if (colListEnd < 0)
             {
                 MessageBox.Show("请选择 List 中间的列。");
                 return; // not in list
             }
 
-            Document doc = grid.Tag as Document;
             ColumnTag tagListEnd = (ColumnTag)grid.Columns[colListEnd].Tag;
             int pathEndIndex = tagListEnd.Path.Count - 1;
             int colBeanBegin = FindColumnBeanBegin(grid, grid.CurrentCell.ColumnIndex);
@@ -1090,13 +1012,11 @@ namespace ConfigEditor
 
             DataGridView grid = seltab.Controls[0] as DataGridView;
             Document doc = grid.Tag as Document;
-            Save(doc);
+            doc.SaveIfChanged();
             HashSet<BeanDefine> deps = new HashSet<BeanDefine>();
-            Documents.ForEachOpenedDocument((Document d) =>
+            Documents.ForEachFile((Documents.File file) =>
             {
-                if (d == doc)
-                    return true;
-                d.BeanDefine.Depends(deps);
+                file.Document?.BeanDefine.Depends(deps);
                 return true;
             });
 
@@ -1109,7 +1029,6 @@ namespace ConfigEditor
             {
                 doc.Close();
             }
-            FormError.RemoveErrorByGrid(grid);
             tabs.Controls.Remove(seltab);
             seltab.Dispose();
         }

@@ -288,5 +288,69 @@ namespace ConfigEditor
                 MessageBox.Show(ex.ToString());
             }
         }
+
+        public void UpdateWhenAddVariable(VarDefine var)
+        {
+            for (int c = 0; c < ColumnCount; ++c)
+            {
+                ColumnTag tagref = Columns[c].ColumnTag;
+                if (tagref.Tag == ColumnTag.ETag.AddVariable && tagref.PathLast.Define.Parent == var.Parent)
+                {
+                    c += var.BuildGridColumns(this, c, tagref.Parent(ColumnTag.ETag.Normal), -1);
+
+                    // 如果是List，第一次加入的时候，默认创建一个Item列。
+                    // 但是仍然有问题：如果这个Item没有输入数据，下一次打开时，不会默认创建。需要手动增加Item。
+                    if (var.Type == VarDefine.EType.List)
+                    {
+                        ColumnTag tagListEnd = Columns[c - 1].ColumnTag;
+                        ColumnTag tagListEndCopy = tagListEnd.Copy(ColumnTag.ETag.Normal);
+                        tagListEndCopy.PathLast.ListIndex = -tagListEnd.PathLast.ListIndex; // 肯定是0，保险写法。
+                        --tagListEnd.PathLast.ListIndex;
+                        c += var.Reference.BuildGridColumns(this, c - 1, tagListEndCopy, -1);
+                    }
+                    //((Document)gridref.Tag).IsChanged = true; // 引用的Grid仅更新界面，数据实际上没有改变。
+                }
+            }
+        }
+
+        public void DeleteVariable(VarDefine var)
+        {
+            var updateParam = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.DeleteData }; // never change
+            for (int c = 0; c < gridref.ColumnCount; ++c)
+            {
+                ColumnTag tagref = (ColumnTag)gridref.Columns[c].Tag;
+                if (tagref.PathLast.Define == var)
+                {
+                    // delete data
+                    for (int r = 0; r < gridref.RowCount - 1; ++r)
+                    {
+                        DataGridViewCellCollection cells = gridref.Rows[r].Cells;
+                        int colref = c;
+                        doc.Beans[r].Update(gridref, cells, ref colref, 0, updateParam);
+                    }
+                    // delete columns
+                    switch (tagref.Tag)
+                    {
+                        case ColumnTag.ETag.Normal:
+                            gridref.Columns.RemoveAt(c);
+                            --c;
+                            break;
+                        case ColumnTag.ETag.ListStart:
+                            int colListEnd = FindCloseListEnd(gridref, c);
+                            while (colListEnd >= c)
+                            {
+                                gridref.Columns.RemoveAt(colListEnd);
+                                --colListEnd;
+                            }
+                            --c;
+                            break;
+                        default:
+                            MessageBox.Show("ListEnd?");
+                            break;
+                    }
+                    doc.IsChanged = true;
+                }
+            }
+        }
     }
 }

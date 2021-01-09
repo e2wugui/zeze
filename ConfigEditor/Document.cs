@@ -86,9 +86,17 @@ namespace ConfigEditor
         public void Close()
         {
             File.Close(this);
+            FormMain.Instance.FormError.RemoveErrorByGrid(GridData);
         }
 
         public XmlDocument Xml { get; private set; }
+
+        public void SaveIfChanged()
+        {
+            if (IsChanged)
+                Save();
+            IsChanged = false;
+        }
 
         public void Save()
         {

@@ -253,18 +253,6 @@ namespace ConfigEditor
             return Root.ForEachFile(action);
         }
 
-        public bool ForEachOpenedDocument(Func<Document, bool> action)
-        {
-            return Root.ForEachFile((File file) =>
-            {
-                if (null == file.Document)
-                    return true;
-                if (!action(file.Document))
-                    return false;
-                return true;
-            });
-        }
-
         public void LoadAllDocument()
         {
             ForEachFile((File file) => { file.Open(); return true; });
