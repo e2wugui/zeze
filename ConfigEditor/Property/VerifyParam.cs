@@ -14,7 +14,7 @@ namespace ConfigEditor.Property
     public class VerifyParam
     {
         public FormMain FormMain { get; set; }
-        public DataGridView Grid { get; set; }
+        public GridData Grid { get; set; }
         public int ColumnIndex { get; set; }
         public int Columnindex { get; internal set; }
         public int RowIndex { get; set; }
@@ -23,6 +23,6 @@ namespace ConfigEditor.Property
         public string NewValue { get; set; }
 
         // helper
-        public DataGridViewCell Cell { get { return Grid[ColumnIndex, RowIndex]; } }
+        public GridData.Cell Cell => Grid.GetCell(ColumnIndex, RowIndex);
     }
 }

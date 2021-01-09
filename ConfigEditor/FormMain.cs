@@ -137,6 +137,7 @@ namespace ConfigEditor
             }
         }
 
+        /*
         public void LoadDocumentToView(DataGridView grid, Document doc)
         {
             grid.Columns.Clear();
@@ -170,50 +171,7 @@ namespace ConfigEditor
             }
             VerifyAll(grid);
         }
-
-        public void VerifyAll(DataGridView grid)
-        {
-            try
-            {
-                FormError.RemoveErrorByGrid(grid);
-
-                int skipLastRow = grid.RowCount - 1;
-                for (int rowIndex = 0; rowIndex < skipLastRow; ++rowIndex)
-                {
-                    for (int colIndex = 0; colIndex < grid.ColumnCount; ++colIndex)
-                    {
-                        ColumnTag tag = grid.Columns[colIndex].Tag as ColumnTag;
-
-                        if (tag.Tag != ColumnTag.ETag.Normal)
-                            continue;
-
-                        DataGridViewCell cell = grid[colIndex, rowIndex];
-                        string newValue = cell.Value as string;
-                        if (newValue == null)
-                            newValue = "";
-                        var param = new Property.VerifyParam()
-                        {
-                            FormMain = this,
-                            Grid = grid,
-                            ColumnIndex = colIndex,
-                            RowIndex = rowIndex,
-                            ColumnTag = tag,
-                            NewValue = newValue,
-                        };
-
-                        foreach (var p in tag.PathLast.Define.PropertiesList)
-                        {
-                            p.VerifyCell(param);
-                        }
-                        tag.PathLast.Define.Verify(param);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString());
-            }
-        }
+        */
 
         public void OnGridCellValidating(object sender, DataGridViewCellValidatingEventArgs e)
         {
@@ -266,12 +224,13 @@ namespace ConfigEditor
             if (newValue == null)
                 newValue = "";
 
-            tag.UpdateUniqueIndex(oldValue, newValue, cell);
+            // TODO 给自己的Cell设置值的时候Verify。
+            tag.UpdateUniqueIndex(oldValue, newValue, (grid.Tag as Document).GridData.GetCell(e.ColumnIndex, e.RowIndex));
 
             var param = new Property.VerifyParam()
             {
                 FormMain = this,
-                Grid = grid,
+                Grid = (grid.Tag as Document).GridData,
                 ColumnIndex = e.ColumnIndex,
                 RowIndex = e.RowIndex,
                 ColumnTag = tag,
@@ -305,34 +264,19 @@ namespace ConfigEditor
                     return;
 
                 doc.Beans.Add(new Bean(doc, "")); // root bean allow empty.
-                AddGridRow(grid);
+                doc.GridData.AddRow();
+
+                grid.Rows.Add(); // prepare row to add data
                 added = true;
             }
             int colIndex = e.ColumnIndex;
             var param = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Data };
-            doc.Beans[e.RowIndex].Update(grid, cells, ref colIndex, 0, param);
+            doc.Beans[e.RowIndex].Update(doc.GridData, doc.GridData.GetRow(e.RowIndex), ref colIndex, 0, param);
             doc.IsChanged = true;
 
             if (added)
             {
-                BuildUniqueIndexOnAddRow(grid, e.RowIndex);
-            }
-        }
-
-        private void BuildUniqueIndexOnAddRow(DataGridView grid, int rowIndex)
-        {
-            for (int i = 0; i < grid.ColumnCount; ++i)
-            {
-                ColumnTag tag = grid.Columns[i].Tag as ColumnTag;
-                switch (tag.Tag)
-                {
-                    case ColumnTag.ETag.AddVariable:
-                    case ColumnTag.ETag.ListStart:
-                    case ColumnTag.ETag.ListEnd:
-                        continue;
-                }
-                DataGridViewCell cell = grid.Rows[rowIndex].Cells[i];
-                tag.AddUniqueIndex(cell.Value as string, cell);
+                doc.GridData.BuildUniqueIndexOnAddRow(e.RowIndex);
             }
         }
 
@@ -600,13 +544,6 @@ namespace ConfigEditor
             }
         }
 
-        private void AddGridRow(DataGridView grid)
-        {
-            grid.Rows.Add(); // prepare row to add data
-            DataGridViewCellCollection cells = grid.Rows[grid.RowCount - 1].Cells;
-            SetSpecialColumnText(grid, cells);
-        }
-
         private void OpenGrid(Document doc)
         {
             if (null == doc)
@@ -614,7 +551,7 @@ namespace ConfigEditor
 
             try
             {
-                if (doc.Grid == null)
+                if (doc.GridData.View == null)
                 {
                     TabPage tab = NewTabPage(doc.RelateName);
                     DataGridView grid = (DataGridView)tab.Controls[0];
@@ -623,13 +560,13 @@ namespace ConfigEditor
                     tabs.Controls.Add(tab);
                     tabs.SelectedTab = tab;
                     grid.ResumeLayout();
-                    doc.Grid = grid;
+                    doc.GridData.View = grid;
                     grid.Tag = doc;
                 }
                 else
                 {
                     // has opened
-                    TabPage tab = (TabPage)doc.Grid.Parent;
+                    TabPage tab = (TabPage)doc.GridData.View.Parent;
                     tabs.SelectedTab = tab;
                 }
             }
@@ -912,39 +849,6 @@ namespace ConfigEditor
             return -1;
         }
 
-        public int FindColumnListEnd(DataGridView grid, int startColIndex)
-        {
-            int skipNestListCount = 0;
-            for (int c = startColIndex; c < grid.ColumnCount; ++c)
-            {
-                ColumnTag tag = (ColumnTag)grid.Columns[c].Tag;
-                if (skipNestListCount > 0)
-                {
-                    switch (tag.Tag)
-                    {
-                        case ColumnTag.ETag.ListEnd:
-                            --skipNestListCount;
-                            break;
-                        case ColumnTag.ETag.ListStart:
-                            ++skipNestListCount;
-                            break;
-                    }
-                    continue;
-                }
-                switch (tag.Tag)
-                {
-                    case ColumnTag.ETag.ListStart:
-                        ++skipNestListCount;
-                        break;
-                    //case ColumnTag.ETag.AddVariable:
-                    //case ColumnTag.ETag.Normal:
-                    //    break;
-                    case ColumnTag.ETag.ListEnd:
-                        return c;
-                }
-            }
-            return -1;
-        }
 
         public int FindColumnBeanBegin(DataGridView grid, int startColIndex)
         {
@@ -1162,10 +1066,9 @@ namespace ConfigEditor
         private void tabs_SelectedIndexChanged(object sender, EventArgs e)
         {
             FormDefine?.LoadDefine();
-            
         }
 
-        private async void buttonSaveAs_Click(object sender, EventArgs e)
+        private void buttonSaveAs_Click(object sender, EventArgs e)
         {
             FormTest test = new FormTest();
             test.ShowDialog();
@@ -1181,10 +1084,11 @@ namespace ConfigEditor
 
         private void toolStripButtonClose_Click(object sender, EventArgs e)
         {
-            if (tabs.SelectedTab == null)
+            var seltab = tabs.SelectedTab;
+            if (seltab == null)
                 return;
 
-            DataGridView grid = tabs.SelectedTab.Controls[0] as DataGridView;
+            DataGridView grid = seltab.Controls[0] as DataGridView;
             Document doc = grid.Tag as Document;
             Save(doc);
             HashSet<BeanDefine> deps = new HashSet<BeanDefine>();
@@ -1198,7 +1102,7 @@ namespace ConfigEditor
 
             if (doc.BeanDefine.InDepends(deps))
             {
-                doc.Grid = null;
+                doc.GridData.View = null;
                 //MessageBox.Show("提示：这个文件里面的Bean定义被其他文件依赖，所以仅仅关闭编辑界面。");
             }
             else
@@ -1206,7 +1110,6 @@ namespace ConfigEditor
                 doc.Close();
             }
             FormError.RemoveErrorByGrid(grid);
-            var seltab = tabs.SelectedTab;
             tabs.Controls.Remove(seltab);
             seltab.Dispose();
         }

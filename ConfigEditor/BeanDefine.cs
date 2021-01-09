@@ -269,7 +269,7 @@ namespace ConfigEditor
             return r;
         }
 
-        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex)
+        public int BuildGridColumns(GridData grid, int columnIndex, ColumnTag tag, int listIndex)
         {
             int colAdded = 0;
             foreach (var v in Variables)
@@ -277,20 +277,17 @@ namespace ConfigEditor
                 colAdded += v.BuildGridColumns(grid, columnIndex + colAdded, tag, listIndex);
             }
             // 这里创建的列用来新增。
-            grid.Columns.Insert(columnIndex + colAdded, new DataGridViewColumn(new DataGridViewTextBoxCell())
+            grid.InsertColumn(columnIndex + colAdded, new GridData.Column()
             {
                 HeaderText = ",",
-                Width = 20,
                 ReadOnly = true,
                 ToolTipText = "双击增加列",
                 // 使用跟List一样的规则设置ListIndex，仅用于Delete List Item，此时这个Bean肯定在List中。
-                Tag = tag.Copy(ColumnTag.ETag.AddVariable).AddVar(new VarDefine(this), listIndex >= 0 ? listIndex : 0),
-                Frozen = false,
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                ColumnTag = tag.Copy(ColumnTag.ETag.AddVariable).AddVar(new VarDefine(this), listIndex >= 0 ? listIndex : 0),
             });
-            for (int i = 0; i < grid.RowCount; ++i)
+            for (int i = 0; i < Document.GridData.RowCount; ++i)
             {
-                grid.Rows[i].Cells[columnIndex + colAdded].Value = ",";
+                grid.GetCell(columnIndex + colAdded, i).Value = ",";
             }
             ++colAdded;
             return colAdded;

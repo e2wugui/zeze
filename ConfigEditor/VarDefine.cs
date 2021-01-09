@@ -156,9 +156,9 @@ namespace ConfigEditor
                 Parent.Document.IsChanged = true;
 
                 // 这个方法肯定在 FormDefine 打开时调用。否则下面增加重新 Reload 的代码不会被触发。
-                if (Parent.Document.Grid != null)
+                if (Parent.Document.GridData.View != null)
                 {
-                    FormMain.Instance.ReloadGridsAfterFormDefineClosed.Add(Parent.Document.Grid);
+                    FormMain.Instance.ReloadGridsAfterFormDefineClosed.Add(Parent.Document.GridData.View);
                 }
             }
         }
@@ -296,27 +296,22 @@ namespace ConfigEditor
             }
         }
 
-        public int BuildGridColumns(DataGridView grid, int columnIndex, ColumnTag tag, int listIndex)
+        public int BuildGridColumns(GridData grid, int columnIndex, ColumnTag tag, int listIndex)
         {
             switch (Type)
             {
                 case EType.List:
                     {
-                        DataGridViewCell s = new DataGridViewTextBoxCell();
-                        grid.Columns.Insert(columnIndex, new DataGridViewColumn(s)
+                        grid.InsertColumn(columnIndex, new GridData.Column()
                         {
-                            Name = this.Name,
-                            Width = 20,
                             HeaderText = "[" + this.Name,
                             ReadOnly = true,
                             ToolTipText = Name + ":" + Value + ":" + Comment,
-                            Tag = tag.Copy(ColumnTag.ETag.ListStart).AddVar(this, -1),
-                            Frozen = false,
-                            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                            ColumnTag = tag.Copy(ColumnTag.ETag.ListStart).AddVar(this, -1),
                         });
                         for (int i = 0; i < grid.RowCount; ++i)
                         {
-                            grid.Rows[i].Cells[columnIndex].Value = "[";
+                            grid.GetCell(columnIndex, i).Value = "[";
                         }
 
                         if (null == Reference)
@@ -326,27 +321,21 @@ namespace ConfigEditor
                         int colAdded = 0;
                         if (listIndex >= 0)
                         {
-                            colAdded = Reference.BuildGridColumns(grid, columnIndex,
-                                tag.Copy(tag.Tag).AddVar(this, listIndex), -1);
+                            colAdded = Reference.BuildGridColumns(grid, columnIndex, tag.Copy(tag.Tag).AddVar(this, listIndex), -1);
                         }
 
-                        DataGridViewCell e = new DataGridViewTextBoxCell();
                         columnIndex += colAdded;
-                        grid.Columns.Insert(columnIndex, new DataGridViewColumn(e)
+                        grid.InsertColumn(columnIndex, new GridData.Column()
                         {
-                            Name = this.Name,
-                            Width = 20,
                             HeaderText = "]" + this.Name,
                             ReadOnly = true,
                             ToolTipText = Name + ": 双击此列增加List Item。",
                             // 这里的 PathLast.ListIndex 是List中最大的Item数量，以后在Bean.Update中修改。
-                            Tag = tag.Copy(ColumnTag.ETag.ListEnd).AddVar(this, 0),
-                            Frozen = false,
-                            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                            ColumnTag = tag.Copy(ColumnTag.ETag.ListEnd).AddVar(this, 0),
                         });
                         for (int i = 0; i < grid.RowCount; ++i)
                         {
-                            grid.Rows[i].Cells[columnIndex].Value = "]";
+                            Parent.Document.GridData.GetCell(columnIndex, i).Value = "]";
                         }
                         return colAdded + 2;
                     }
@@ -372,18 +361,13 @@ namespace ConfigEditor
 
                 default:
                     {
-                        DataGridViewCell template = new DataGridViewTextBoxCell();
                         ColumnTag current = tag.Copy(tag.Tag).AddVar(this, -1);
-                        grid.Columns.Insert(columnIndex, new DataGridViewColumn(template)
+                        grid.InsertColumn(columnIndex, new GridData.Column()
                         {
-                            Name = this.Name,
-                            Width = GridColumnValueWidth,
                             ToolTipText = Name + ":" + Comment,
-                            Tag = current,
-                            Frozen = false,
-                            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                            ColumnTag = current,
                         });
-                        current.BuildUniqueIndex(grid, columnIndex);
+                        current.BuildUniqueIndex(columnIndex);
                         return 1;
                     }
             }

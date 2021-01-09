@@ -60,34 +60,32 @@ namespace ConfigEditor
                 // verify
                 FormMain.Instance.Documents.ForEachOpenedDocument((Document doc) =>
                 {
-                    if (doc.Grid != null)
+                    if (doc.GridData.View != null)
                         return true; // 已经打开的文档，有即时验证。
 
                     int ErrorCount = 0;
 
-                    // 创建一个临时的 Grid 用来Verify。
-                    TabPage tab = FormMain.Instance.NewTabPage(doc.RelateName);
-                    DataGridView grid = (DataGridView)tab.Controls[0];
-                    FormMain.Instance.FormError.OnAddError = (DataGridViewCell cell, Property.IProperty p, Property.ErrorLevel level, string desc) =>
+                    FormMain.Instance.FormError.OnAddError = (GridData.Cell cell, Property.IProperty p, Property.ErrorLevel level, string desc) =>
                     {
-                        if (cell.DataGridView == grid)
+                        if (cell.Row.GridData == doc.GridData)
                             ++ErrorCount;
                     };
-                    grid.SuspendLayout();
-                    FormMain.Instance.LoadDocumentToView(grid, doc);
+                    doc.BuildGridData();
                     if (ErrorCount > 0)
                     {
                         // 如果有错误，也显示出来。
+                        TabPage tab = FormMain.Instance.NewTabPage(doc.RelateName);
+                        DataGridView grid = (DataGridView)tab.Controls[0];
+                        grid.SuspendLayout();
+                        doc.GridData.View = grid;
                         FormMain.Instance.Tabs.Controls.Add(tab);
+                        grid.ResumeLayout();
                         //tabs.SelectedTab = tab;
-                        doc.Grid = grid;
                         grid.Tag = doc;
-                        grid.ResumeLayout(); // 仅在需要显示时才执行。
                     }
                     else
                     {
-                        FormMain.Instance.FormError.RemoveErrorByGrid(grid);
-                        tab.Dispose();
+                        // TODO FormMain.Instance.FormError.RemoveErrorByGrid(doc.GridData);
                     }
                     FormMain.Instance.FormError.OnAddError = null;
                     return true;

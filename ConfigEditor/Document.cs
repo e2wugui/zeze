@@ -17,6 +17,8 @@ namespace ConfigEditor
         public BeanDefine BeanDefine { get; private set; } // bean in this file
 
         public List<Bean> Beans { get; } = new List<Bean>();
+        public GridData GridData { get; }
+
         public bool IsChanged { get; set; } = false;
 
         public static string NamespacePrefix { get; set; } = "Config";
@@ -47,6 +49,38 @@ namespace ConfigEditor
             RelateName = file.RelateName.Replace(System.IO.Path.DirectorySeparatorChar, '.');
             BeanDefine = new BeanDefine(this);
             BeanDefine.Name = file.Name;
+            GridData = new GridData(this);
+        }
+
+        public void BuildGridData()
+        {
+            BeanDefine.BuildGridColumns(GridData, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
+
+            var param = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Grid };
+            foreach (var bean in Beans)
+            {
+                int insertIndex = GridData.RowCount;
+                GridData.InsertRow(insertIndex);
+
+                int colIndex = 0;
+                if (bean.Update(GridData, GridData.GetRow(insertIndex), ref colIndex, 0, param))
+                    break;
+            }
+
+            for (int i = 0; i < GridData.ColumnCount; ++i)
+            {
+                ColumnTag tag = GridData.GetColumn(i).ColumnTag;
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.AddVariable:
+                    case ColumnTag.ETag.ListStart:
+                    case ColumnTag.ETag.ListEnd:
+                        continue;
+                }
+                tag.BuildUniqueIndex(GridData, i);
+            }
+
+            GridData.VerifyAll();
         }
 
         public void Close()
@@ -55,8 +89,6 @@ namespace ConfigEditor
         }
 
         public XmlDocument Xml { get; private set; }
-
-        public DataGridView Grid { get; set; }
 
         public void Save()
         {

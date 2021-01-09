@@ -32,10 +32,10 @@ namespace ConfigEditor
         public List<VarInfo> Path { get; } = new List<VarInfo>();
 
         // 存储是否唯一
-        public Dictionary<string, HashSet<DataGridViewCell>> UniqueIndex { get; }
-            = new Dictionary<string, HashSet<DataGridViewCell>>();
+        public Dictionary<string, HashSet<GridData.Cell>> UniqueIndex { get; }
+            = new Dictionary<string, HashSet<GridData.Cell>>();
 
-        public void UpdateUniqueIndex(string oldValue, string newValue, DataGridViewCell cell)
+        public void UpdateUniqueIndex(string oldValue, string newValue, GridData.Cell cell)
         {
             if (null == oldValue)
                 oldValue = "";
@@ -66,22 +66,19 @@ namespace ConfigEditor
             AddUniqueIndex(newValue, cell);
         }
 
-        public void AddUniqueIndex(string newValue, DataGridViewCell cell)
+        public void AddUniqueIndex(string newValue, GridData.Cell cell)
         {
-            if (null == newValue)
-                newValue = "";
             if (false == UniqueIndex.TryGetValue(newValue, out var cells))
-                UniqueIndex.Add(newValue, cells = new HashSet<DataGridViewCell>());
+                UniqueIndex.Add(newValue, cells = new HashSet<GridData.Cell>());
             cells.Add(cell);
         }
 
-        public void BuildUniqueIndex(DataGridView grid, int columnIndex)
+        public void BuildUniqueIndex(GridData grid, int columnIndex)
         {
-            int skipLastRow = grid.RowCount - 1;
-            for (int i = 0; i < skipLastRow; ++i)
+            for (int i = 0; i < grid.RowCount; ++i)
             {
-                DataGridViewCell cell = grid.Rows[i].Cells[columnIndex];
-                AddUniqueIndex(cell.Value as string, cell);
+                var cell = grid.GetCell(columnIndex, i);
+                AddUniqueIndex(cell.Value, cell);
             }
         }
 

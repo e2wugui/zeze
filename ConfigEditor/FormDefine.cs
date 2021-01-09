@@ -544,15 +544,13 @@ namespace ConfigEditor
             doc.BeanDefine.Depends(deps);
             if (deps.Contains(var.Parent))
             {
-                DataGridView gridTmp = new DataGridView();
-                gridTmp.Visible = false;
-                gridTmp.SuspendLayout();
+                GridData gridTmp = new GridData(doc);
                 doc.BeanDefine.BuildGridColumns(gridTmp, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
                 HashSet<Bean.VarData> varDatas = new HashSet<Bean.VarData>();
                 var param = new Bean.UpdateParam()
                 {
                     UpdateType = Bean.EUpdate.CallAction,
-                    UpdateAction = (DataGridView grid, int col, ColumnTag.VarInfo varInfo, Bean.VarData varData) =>
+                    UpdateAction = (GridData grid, int col, ColumnTag.VarInfo varInfo, Bean.VarData varData) =>
                     {
                         if (varInfo.Define == var)
                             varDatas.Add(varData);
@@ -560,10 +558,10 @@ namespace ConfigEditor
                 };
                 foreach (var bean in doc.Beans)
                 {
-                    gridTmp.Rows.Add();
-                    DataGridViewCellCollection cellsTmp = gridTmp.Rows[gridTmp.RowCount - 1].Cells;
+                    int insertIndex = gridTmp.RowCount;
+                    gridTmp.InsertRow(insertIndex);
                     int colIndex = 0;
-                    if (bean.Update(gridTmp, cellsTmp, ref colIndex, 0, param))
+                    if (bean.Update(gridTmp, gridTmp.GetRow(insertIndex), ref colIndex, 0, param))
                         break;
                 }
                 foreach (var varData in varDatas)
@@ -571,7 +569,6 @@ namespace ConfigEditor
                     varData.Parent.RenameVar(varData.Name, newVarName);
                 }
                 doc.IsChanged = varDatas.Count > 0;
-                gridTmp.Dispose();
             }
         }
 

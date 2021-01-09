@@ -62,19 +62,19 @@ namespace ConfigEditor
             }
         }
 
-        private Dictionary<DataGridViewCell, SortedDictionary<string, Error>> Errors
-            = new Dictionary<DataGridViewCell, SortedDictionary<string, Error>>(new IdentityEqualityComparer());
+        private Dictionary<GridData.Cell, SortedDictionary<string, Error>> Errors
+            = new Dictionary<GridData.Cell, SortedDictionary<string, Error>>(new IdentityEqualityComparer());
 
-        public void AddError(HashSet<DataGridViewCell> cells, Property.IProperty p, Property.ErrorLevel level, string desc)
+        public void AddError(HashSet<GridData.Cell> cells, Property.IProperty p, Property.ErrorLevel level, string desc)
         {
             foreach (var cell in cells)
                 AddError(cell, p, level, desc);
         }
 
-        public delegate void AddErrorAction(DataGridViewCell cell, Property.IProperty p, Property.ErrorLevel level, string desc);
+        public delegate void AddErrorAction(GridData.Cell cell, Property.IProperty p, Property.ErrorLevel level, string desc);
         public AddErrorAction OnAddError { get; set; }
 
-        public void AddError(DataGridViewCell cell, Property.IProperty p, Property.ErrorLevel level, string desc)
+        public void AddError(GridData.Cell cell, Property.IProperty p, Property.ErrorLevel level, string desc)
         {
             if (false == Errors.TryGetValue(cell, out var errors))
                 Errors.Add(cell, errors = new SortedDictionary<string, Error>());
@@ -87,7 +87,7 @@ namespace ConfigEditor
             row.Cells["Level"].Value = System.Enum.GetName(typeof(Property.ErrorLevel), level);
             row.Cells["Level"].Tag = cell;
             row.Cells["Description"].Value = desc;
-            row.Cells["File"].Value = cell.DataGridView.Parent.Text;
+            row.Cells["File"].Value = cell.Row.GridData.Document.RelateName;
 
             errors.Add(p.Name, new Error() { Level = level, Description = desc, Row = row, });
             UpdateErrorCell(cell, errors);
@@ -96,7 +96,7 @@ namespace ConfigEditor
                 OnAddError(cell, p, level, desc);
         }
 
-        public void RemoveError(DataGridViewCell cell, Property.IProperty p)
+        public void RemoveError(GridData.Cell cell, Property.IProperty p)
         {
             if (false == Errors.TryGetValue(cell, out var errors))
                 return;
@@ -110,8 +110,9 @@ namespace ConfigEditor
             if (errors.Count == 0)
             {
                 Errors.Remove(cell);
-                cell.Style.BackColor = Color.White;
+                cell.BackColor = Color.White;
                 cell.ToolTipText = null;
+                cell.Invalidate();
             }
             else
             {
@@ -119,7 +120,7 @@ namespace ConfigEditor
             }
         }
 
-        private void UpdateErrorCell(DataGridViewCell cell, SortedDictionary<string, Error> errors)
+        private void UpdateErrorCell(GridData.Cell cell, SortedDictionary<string, Error> errors)
         {
             Property.ErrorLevel max = Property.ErrorLevel.Warn;
             StringBuilder sb = new StringBuilder();
@@ -129,8 +130,9 @@ namespace ConfigEditor
                 if (e.Value.Level > max)
                     max = e.Value.Level;
             }
-            cell.Style.BackColor = max == Property.ErrorLevel.Error ? Color.Red : Color.Yellow;
+            cell.BackColor = max == Property.ErrorLevel.Error ? Color.Red : Color.Yellow;
             cell.ToolTipText = sb.ToString();
+            cell.Invalidate();
         }
 
         private void grid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
@@ -145,23 +147,24 @@ namespace ConfigEditor
             maingrid.CurrentCell = maincell;
         }
 
-        public void RemoveErrorByGrid(DataGridView gridedit)
+        public void RemoveErrorByGrid(GridData gridedit)
         {
             // 现在只显示打开grid的文件错误。如果要显示所有文件的。
             // 就不能记住Cell的引用，应该使用文件名+(ColIndex, RowIndex)。
             // 但是由于文件会变化，(ColIndex, RowIndex)可能不再准确（看看怎么处理这种情况）。
 
             grid.SuspendLayout();
-            Dictionary<DataGridViewCell, int> removed
-                = new Dictionary<DataGridViewCell, int>(new IdentityEqualityComparer());
-            for (int i = grid.RowCount - 1; i >= 0; --i)
+            Dictionary<GridData.Cell, int> removed
+                = new Dictionary<GridData.Cell, int>(new IdentityEqualityComparer());
+            for (int i = grid.RowCount; i >= 0; --i)
             {
-                DataGridViewCell c = grid.Rows[i].Cells["Level"].Tag as DataGridViewCell;
-                if (c.DataGridView == gridedit)
+                GridData.Cell c = grid.Rows[i].Cells["Level"].Tag as GridData.Cell;
+                if (c.Row.GridData == gridedit)
                 {
                     removed[c] = 1;
-                    c.Style.BackColor = Color.White;
+                    c.BackColor = Color.White;
                     c.ToolTipText = null;
+                    c.Invalidate();
                     grid.Rows.RemoveAt(i);
                 }
             }

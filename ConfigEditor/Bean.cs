@@ -185,7 +185,7 @@ namespace ConfigEditor
             }
         }
 
-        public delegate void UpdateAction(DataGridView grid, int colIndex, ColumnTag.VarInfo varInfo, VarData varData);
+        public delegate void UpdateAction(GridData grid, int colIndex, ColumnTag.VarInfo varInfo, VarData varData);
 
         public enum EUpdate
         {
@@ -236,13 +236,12 @@ namespace ConfigEditor
             throw new Exception("pathCurrentIndex != pathEndIndex And VarData Is Not A List");
         }
 
-        public bool Update(DataGridView grid, DataGridViewCellCollection cells,
-            ref int colIndex, int pathIndex, UpdateParam param)
+        public bool Update(GridData grid, GridData.Row row, ref int colIndex, int pathIndex, UpdateParam param)
         {
             // ColumnCount maybe change in loop
             for (; colIndex < grid.ColumnCount; ++colIndex)
             {
-                ColumnTag tag = (ColumnTag)grid.Columns[colIndex].Tag;
+                ColumnTag tag = grid.GetColumn(colIndex).ColumnTag;
                 switch (tag.Tag)
                 {
                     case ColumnTag.ETag.AddVariable:
@@ -273,7 +272,7 @@ namespace ConfigEditor
                             {
                                 if (tag.Tag == ColumnTag.ETag.ListStart)
                                     ++colIndex;
-                                colIndex = FormMain.Instance.FindColumnListEnd(grid, colIndex);
+                                colIndex = grid.FindColumnListEnd(colIndex);
                             }
                             continue; // data not found. continue load.
 
@@ -301,7 +300,7 @@ namespace ConfigEditor
                             {
                                 Bean bean1 = varData.Beans[varInfo.ListIndex];
                                 if (null != bean1)
-                                    bean1.Update(grid, cells, ref colIndex, pathIndex + 1, param);
+                                    bean1.Update(grid, row, ref colIndex, pathIndex + 1, param);
                                 // always return true;
                             }
                         }
@@ -343,18 +342,18 @@ namespace ConfigEditor
                             }
                             Bean create = new Bean(Document, varInfo.Define.Value);
                             varData.Beans.Add(create);
-                            if (create.Update(grid, cells, ref colIndex, pathIndex + 1, param))
+                            if (create.Update(grid, row, ref colIndex, pathIndex + 1, param))
                                 return true;
                         }
                         // 忽略剩下的没有数据的item直到ListEnd。
-                        colIndex = FormMain.Instance.FindColumnListEnd(grid, colIndex);
+                        colIndex = grid.FindColumnListEnd(colIndex);
                         continue;
                     }
 
                     Bean bean = varData.Beans[varInfo.ListIndex];
                     if (null != bean)
                     {
-                        if (bean.Update(grid, cells, ref colIndex, pathIndex + 1, param))
+                        if (bean.Update(grid, row, ref colIndex, pathIndex + 1, param))
                             return true;
                         continue;
                     }
@@ -362,7 +361,7 @@ namespace ConfigEditor
                     {
                         Bean create = new Bean(Document, varInfo.Define.Value);
                         varData.Beans[varInfo.ListIndex] = create;
-                        if (create.Update(grid, cells, ref colIndex, pathIndex + 1, param))
+                        if (create.Update(grid, row, ref colIndex, pathIndex + 1, param))
                             return true;
                     }
                     continue;
@@ -375,9 +374,7 @@ namespace ConfigEditor
                 {
                     case EUpdate.Data:
                         // OnGridCellEndEdit update data
-                        DataGridViewCell cell = cells[colIndex];
-                        string newValue = cell.Value as string;
-                        varData.Value = newValue;
+                        varData.Value = row.Cells[colIndex].Value;
                         return true;
 
                     case EUpdate.CallAction:
@@ -385,7 +382,7 @@ namespace ConfigEditor
                         break;
 
                     case EUpdate.Grid:
-                        cells[colIndex].Value = varData.Value; // upate to grid
+                        row.Cells[colIndex].Value = varData.Value; // upate to grid
                         break; // Update Grid 等到 ColumnTag.ETag.AddVariable 才返回。在这个函数开头。
 
                     case EUpdate.DeleteData:

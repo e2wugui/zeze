@@ -29,8 +29,15 @@ namespace ConfigEditor
             set
             {
                 _View = value;
-                InitializeView();
+                if (_View != null)
+                    InitializeView();
             }
+        }
+
+        public Document Document { get; }
+        public GridData(Document doc)
+        {
+            Document = doc;
         }
 
         public class Column
@@ -38,43 +45,19 @@ namespace ConfigEditor
             public string HeaderText { get; set; }
             public string ToolTipText { get; set; }
             public bool ReadOnly { get; set; }
-            public ColumnTag Tag { get; set; }
+            public ColumnTag ColumnTag { get; set; }
         }
 
-        class Row
+        public class Row
         {
-            public GridData Parent { get; }
-
-            // 动态存储行数据，这样增加列的时候不用每一行修改。仅在需要创建（一般是输入）时才创建。
-            // 列的顺序调整也不需要调整 Row.Cells。
-            private Dictionary<Column, Cell> Cells = new Dictionary<Column, Cell>();
-
-            public Cell GetCell(int columnIndex)
-            {
-                var column = Parent.Columns[columnIndex];
-                if (Cells.TryGetValue(column, out var cell))
-                {
-                    return cell;
-                }
-                cell = new Cell();
-                Cells.Add(column, cell);
-                return cell;
-            }
+            public GridData GridData { get; }
+            public List<Cell> Cells { get; } = new List<Cell>();
 
             public Row(GridData parent)
             {
-                Parent = parent;
-            }
-
-            /// <summary>
-            /// 目前仅在 RemoveColumn 中用来删除不需要的数据。
-            /// RemoveColumn 会同步 DataGridView.Columns。
-            /// 如果外面直接调用这个方法，将不会同步 DataGridView。
-            /// </summary>
-            /// <param name="column"></param>
-            public void RemoveCell(Column column)
-            {
-                Cells.Remove(column);
+                GridData = parent;
+                for (int col = 0; col < GridData.ColumnCount; ++col)
+                    Cells.Add(new Cell(this));
             }
         }
 
@@ -82,43 +65,32 @@ namespace ConfigEditor
         {
             public string Value { get; set; } = "";
             public System.Drawing.Color BackColor { get; set; } = System.Drawing.Color.White;
-        }
-
-        public class CellTemporary
-        {
-            Cell Cell { get; }
-
-            public int ColumnIndex { get; set; }
-            public int RowIndex { get; set; }
-            public string Value
-            {
-                get
-                {
-                    return Cell.Value;
-                }
-                set
-                {
-                    Cell.Value = value;
-                }
-            }
-            public System.Drawing.Color BackColor { get { return Cell.BackColor; } set { Cell.BackColor = value; } }
-
-            public DataGridView View { get; }
-
-            public CellTemporary(Cell store, DataGridView view)
-            {
-                Cell = store;
-                View = view;
-            }
+            public string ToolTipText { get; set; }
+            public Row Row { get; }
 
             public void Invalidate()
             {
-                View?.InvalidateCell(ColumnIndex, RowIndex);
+                if (null != Row.GridData.View)
+                {
+                    int col = Row.Cells.IndexOf(this);
+                    int row = Row.GridData.IndexOfRow(Row);
+                    Row.GridData.View.InvalidateCell(col, row);
+                }
+            }
+
+            public Cell(Row row)
+            {
+                Row = row;
             }
         }
 
         private List<Column> Columns = new List<Column>();
         private List<Row> Rows = new List<Row>();
+
+        public int IndexOfRow(Row row)
+        {
+            return Rows.IndexOf(row);
+        }
 
         private void InitializeView()
         {
@@ -138,11 +110,11 @@ namespace ConfigEditor
             View?.Columns.Insert(columnIndex,
                 new DataGridViewColumn(new DataGridViewTextBoxCell())
                 {
-                    Width = column.Tag == null ? 80 : column.Tag.PathLast.Define.GridColumnValueWidth,
+                    Width = column.ColumnTag == null ? 80 : column.ColumnTag.PathLast.Define.GridColumnValueWidth,
                     HeaderText = column.HeaderText,
                     ReadOnly = column.ReadOnly,
                     ToolTipText = column.ToolTipText,
-                    Tag = column.Tag,
+                    Tag = column.ColumnTag,
                     Frozen = false,
                     AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                 });
@@ -151,28 +123,80 @@ namespace ConfigEditor
         public int ColumnCount => Columns.Count;
         public int RowCount => Rows.Count;
 
+        public Column GetColumn(int columnIndex)
+        {
+            return Columns[columnIndex];
+        }
+
         public void InsertColumn(int columnIndex, Column column)
         {
             Columns.Insert(columnIndex, column);
+            foreach (var row in Rows)
+            {
+                row.Cells.Insert(columnIndex, new Cell(row));
+                // TODO fromerror sync
+            }
             InsertColumnToView(columnIndex, column);
         }
 
         public void RemoveColumn(int columnIndex)
         {
-            var col = Columns[columnIndex];
             foreach (var row in Rows)
             {
-                row.RemoveCell(col);
+                row.Cells.RemoveAt(columnIndex);
+                // TODO fromerror sync
             }
             Columns.RemoveAt(columnIndex);
-
             View?.Columns.RemoveAt(columnIndex);
+        }
+
+        public void AddRow()
+        {
+            InsertRow(RowCount);
         }
 
         public void InsertRow(int rowIndex)
         {
-            Rows.Insert(rowIndex, new Row(this));
+            var row = new Row(this);
+            Rows.Insert(rowIndex, row);
+
+            // SetSpecialColumnText
+            for (int colIndex = 0; colIndex < ColumnCount; ++colIndex)
+            {
+                Column col = Columns[colIndex];
+                switch (col.ColumnTag.Tag)
+                {
+                    case ColumnTag.ETag.AddVariable:
+                        row.Cells[colIndex].Value = ",";
+                        break;
+                    case ColumnTag.ETag.ListStart:
+                        row.Cells[colIndex].Value = "[";
+                        break;
+                    case ColumnTag.ETag.ListEnd:
+                        row.Cells[colIndex].Value = "]";
+                        break;
+                }
+            }
+
             View?.Rows.Insert(rowIndex, 1);
+        }
+
+        public void BuildUniqueIndexOnAddRow(int rowIndex)
+        {
+            var row = Rows[rowIndex];
+            for (int i = 0; i < ColumnCount; ++i)
+            {
+                ColumnTag tag = Columns[i].ColumnTag;
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.AddVariable:
+                    case ColumnTag.ETag.ListStart:
+                    case ColumnTag.ETag.ListEnd:
+                        continue;
+                }
+                var cell = row.Cells[i];
+                tag.AddUniqueIndex(cell.Value, cell);
+            }
         }
 
         public void RemoveRow(int rowIndex)
@@ -181,10 +205,88 @@ namespace ConfigEditor
             View?.Rows.RemoveAt(rowIndex);
         }
 
-        public CellTemporary GetCell(int columnIndex, int rowIndex)
+        public Row GetRow(int rowIndex)
         {
-            Cell store = Rows[rowIndex].GetCell(columnIndex);
-            return new CellTemporary(store, View) { ColumnIndex = columnIndex, RowIndex = rowIndex };
+            return Rows[rowIndex];
+        }
+
+        public Cell GetCell(int columnIndex, int rowIndex)
+        {
+            return Rows[rowIndex].Cells[columnIndex];
+        }
+
+        public int FindColumnListEnd(int startColIndex)
+        {
+            int skipNestListCount = 0;
+            for (int c = startColIndex; c < ColumnCount; ++c)
+            {
+                ColumnTag tag = Columns[c].ColumnTag;
+                if (skipNestListCount > 0)
+                {
+                    switch (tag.Tag)
+                    {
+                        case ColumnTag.ETag.ListEnd:
+                            --skipNestListCount;
+                            break;
+                        case ColumnTag.ETag.ListStart:
+                            ++skipNestListCount;
+                            break;
+                    }
+                    continue;
+                }
+                switch (tag.Tag)
+                {
+                    case ColumnTag.ETag.ListStart:
+                        ++skipNestListCount;
+                        break;
+                    //case ColumnTag.ETag.AddVariable:
+                    //case ColumnTag.ETag.Normal:
+                    //    break;
+                    case ColumnTag.ETag.ListEnd:
+                        return c;
+                }
+            }
+            return -1;
+        }
+
+        public void VerifyAll()
+        {
+            try
+            {
+                FormMain.Instance.FormError.RemoveErrorByGrid(this);
+
+                for (int rowIndex = 0; rowIndex < RowCount; ++rowIndex)
+                {
+                    for (int colIndex = 0; colIndex < ColumnCount; ++colIndex)
+                    {
+                        ColumnTag tag = Columns[colIndex].ColumnTag;
+
+                        if (tag.Tag != ColumnTag.ETag.Normal)
+                            continue;
+
+                        Cell cell = GetCell(colIndex, rowIndex);
+                        var param = new Property.VerifyParam()
+                        {
+                            FormMain = FormMain.Instance,
+                            Grid = this,
+                            ColumnIndex = colIndex,
+                            RowIndex = rowIndex,
+                            ColumnTag = tag,
+                            NewValue = cell.Value,
+                        };
+
+                        foreach (var p in tag.PathLast.Define.PropertiesList)
+                        {
+                            p.VerifyCell(param);
+                        }
+                        tag.PathLast.Define.Verify(param);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
         }
     }
 }
