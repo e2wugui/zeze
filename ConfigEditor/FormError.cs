@@ -139,12 +139,14 @@ namespace ConfigEditor
         {
             if (e.RowIndex < 0)
                 return;
-
-            DataGridViewCell maincell = grid.Rows[e.RowIndex].Cells["Level"].Tag as DataGridViewCell;
-            DataGridView maingrid = maincell.DataGridView;
+            // TODO Buid过程可能在没有View的时候需要记录错误。处理双击定位错误时需要处理这种情况。
+            /*
+            var maincell = grid.Rows[e.RowIndex].Cells["Level"].Tag as GridData.Cell;
+            DataGridView maingrid = maincell.Row.GridData.View;
             FormMain.Instance.Tabs.SelectedTab = maingrid.Parent as TabPage;
             maingrid.FirstDisplayedCell = maincell;
             maingrid.CurrentCell = maincell;
+            */
         }
 
         public void RemoveErrorByGrid(GridData gridedit)
@@ -156,7 +158,7 @@ namespace ConfigEditor
             grid.SuspendLayout();
             Dictionary<GridData.Cell, int> removed
                 = new Dictionary<GridData.Cell, int>(new IdentityEqualityComparer());
-            for (int i = grid.RowCount; i >= 0; --i)
+            for (int i = grid.RowCount - 1; i >= 0; --i)
             {
                 GridData.Cell c = grid.Rows[i].Cells["Level"].Tag as GridData.Cell;
                 if (c.Row.GridData == gridedit)

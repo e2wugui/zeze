@@ -122,5 +122,6 @@
   <bean DefineFullName="" row="4">
     <枚举>枚举值</枚举>
     <u>2021-1-7</u>
+    <unique>5</unique>
   </bean>
 </ZezeConfig>

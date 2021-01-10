@@ -335,7 +335,7 @@ namespace ConfigEditor
                         });
                         for (int i = 0; i < grid.RowCount; ++i)
                         {
-                            Parent.Document.GridData.GetCell(columnIndex, i).Value = "]";
+                            grid.GetCell(columnIndex, i).Value = "]";
                         }
                         return colAdded + 2;
                     }
@@ -364,6 +364,7 @@ namespace ConfigEditor
                         ColumnTag current = tag.Copy(tag.Tag).AddVar(this, -1);
                         grid.InsertColumn(columnIndex, new GridData.Column()
                         {
+                            HeaderText = Name,
                             ToolTipText = Name + ":" + Comment,
                             ColumnTag = current,
                         });

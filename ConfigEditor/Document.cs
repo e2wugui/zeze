@@ -88,6 +88,7 @@ namespace ConfigEditor
         public void Close()
         {
             File.Close(this);
+            GridData.View = null;
             FormMain.Instance.FormError.RemoveErrorByGrid(GridData);
         }
 

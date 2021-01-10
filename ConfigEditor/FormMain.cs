@@ -189,7 +189,7 @@ namespace ConfigEditor
             if (newValue == null)
                 newValue = "";
 
-            // TODO 给自己的Cell设置值的时候Verify。
+            // TODO 代码移动：给自己的Cell设置值的时候Verify。
             tag.UpdateUniqueIndex(oldValue, newValue, (grid.Tag as Document).GridData.GetCell(e.ColumnIndex, e.RowIndex));
 
             var param = new Property.VerifyParam()
@@ -212,7 +212,7 @@ namespace ConfigEditor
         public void OnGridCellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             HideFormHelp();
-
+            /*
             DataGridView grid = (DataGridView)sender;
             DataGridViewColumn col = grid.Columns[e.ColumnIndex];
             ColumnTag tag = (ColumnTag)col.Tag;
@@ -243,6 +243,7 @@ namespace ConfigEditor
             {
                 doc.GridData.BuildUniqueIndexOnAddRow(e.RowIndex);
             }
+            */
         }
 
         public void UpdateWhenAddVariable(VarDefine var)
@@ -425,6 +426,7 @@ namespace ConfigEditor
             grid.ScrollBars = ScrollBars.Both;
             grid.Size = new Size(tab.ClientSize.Width, tab.ClientSize.Height);
             grid.TabIndex = 0;
+            grid.VirtualMode = true;
 
             // performance
             //grid.RowHeadersVisible = false;
@@ -449,8 +451,43 @@ namespace ConfigEditor
             grid.ColumnWidthChanged += OnGridColumnWidthChanged;
             grid.EditingControlShowing += OnGridEditingControlShowing;
 
+            // virtualmode
+            grid.CellValueNeeded += OnCellValueNeeded;
+            grid.CellValuePushed += OnCellValuePushed;
+
             tab.Controls.Add(grid);
             return tab;
+        }
+
+        private void OnCellValuePushed(object sender, DataGridViewCellValueEventArgs e)
+        {
+            var grid = sender as DataGridView;
+            DataGridViewColumn col = grid.Columns[e.ColumnIndex];
+            ColumnTag tag = (ColumnTag)col.Tag;
+            if (ColumnTag.ETag.Normal != tag.Tag)
+                return; // 不可能。特殊列都是不可编辑的。
+
+            var doc = grid.Tag as Document;
+            var cell = doc.GridData.GetCell(e.ColumnIndex, e.RowIndex);
+
+            cell.Value = e.Value as string;
+            if (cell.Value == null)
+                cell.Value = "";
+
+            int colIndex = e.ColumnIndex;
+            var param = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Data };
+            doc.Beans[e.RowIndex].Update(doc.GridData, doc.GridData.GetRow(e.RowIndex), ref colIndex, 0, param);
+            doc.IsChanged = true;
+        }
+
+        private void OnCellValueNeeded(object sender, DataGridViewCellValueEventArgs e)
+        {
+            var grid = sender as DataGridView;
+            var doc = grid.Tag as Document;
+            // TODO 用来增加数据的最后一行的处理。
+            var cell = doc.GridData.GetCell(e.ColumnIndex, e.RowIndex);
+            e.Value = cell.Value;
+            grid[e.ColumnIndex, e.RowIndex].Style.BackColor = cell.BackColor;
         }
 
         public void OnGridColumnWidthChanged(object sender, DataGridViewColumnEventArgs e)
@@ -801,6 +838,8 @@ namespace ConfigEditor
             HashSet<BeanDefine> deps = new HashSet<BeanDefine>();
             Documents.ForEachFile((Documents.File file) =>
             {
+                if (doc == file.Document)
+                    return true; // skip self
                 file.Document?.BeanDefine.Depends(deps);
                 return true;
             });

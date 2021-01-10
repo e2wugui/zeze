@@ -544,6 +544,7 @@ namespace ConfigEditor
             doc.BeanDefine.Depends(deps);
             if (deps.Contains(var.Parent))
             {
+                // TODO 修改数据重用原来的算法，需要构建GridData的数据。看看是否能重用原来存在的GridData。
                 GridData gridTmp = new GridData(doc);
                 doc.BeanDefine.BuildGridColumns(gridTmp, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
                 HashSet<Bean.VarData> varDatas = new HashSet<Bean.VarData>();
