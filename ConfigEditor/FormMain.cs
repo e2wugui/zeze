@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -76,6 +78,54 @@ namespace ConfigEditor
 
         private bool LoadCancel = false;
 
+        ///<summary>
+        /// 该函数设置由不同线程产生的窗口的显示状态
+        /// </summary>
+        /// <param name="hWnd">窗口句柄</param>
+        /// <param name="cmdShow">指定窗口如何显示。查看允许值列表，请查阅ShowWindow函数的说明部分</param>
+        /// <returns>如果函数原来可见，返回值为非零；如果函数原来被隐藏，返回值为零</returns>
+        [DllImport("User32.dll")]
+        private static extern bool ShowWindowAsync(IntPtr hWnd, int cmdShow);
+
+        /// <summary>
+        ///  该函数将创建指定窗口的线程设置到前台，并且激活该窗口。键盘输入转向该窗口，并为用户改各种可视的记号。
+        ///  系统给创建前台窗口的线程分配的权限稍高于其他线程。 
+        /// </summary>
+        /// <param name="hWnd">将被激活并被调入前台的窗口句柄</param>
+        /// <returns>如果窗口设入了前台，返回值为非零；如果窗口未被设入前台，返回值为零</returns>
+        [DllImport("User32.dll", EntryPoint = "SetForegroundWindow")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern void SwitchToThisWindow(IntPtr hWnd, bool fAltTab);
+
+        private const int SW_SHOWNOMAL = 1;
+
+        private bool LockHome()
+        {
+            var home = ConfigEditor.GetHome();
+            try
+            {
+                var lockFile = System.IO.Path.Combine(home, "ConfigEditor.lock");
+                System.IO.File.Create(lockFile, 1024, System.IO.FileOptions.DeleteOnClose);
+                return true;
+            }
+            catch (Exception)
+            {
+                //MessageBox.Show($"Home 已经在编辑中。");
+                var processes = Process.GetProcessesByName("ConfigEditor");
+                foreach (var process in processes)
+                {
+                    if (process.MainWindowTitle.Equals(home))
+                    {
+                        ShowWindowAsync(process.MainWindowHandle, SW_SHOWNOMAL);
+                        SetForegroundWindow(process.MainWindowHandle);
+                        SwitchToThisWindow(process.MainWindowHandle, true);
+                    }
+                }
+                return false;
+            }
+        }
         private void FormMain_Load(object sender, EventArgs e)
         {
             // remove deleted directory.
@@ -102,6 +152,12 @@ namespace ConfigEditor
             this.Text = select.ComboBoxRecentHomes.Text;
             select.Dispose();
             Environment.CurrentDirectory = ConfigEditor.GetHome();
+            if (false == LockHome())
+            {
+                LoadCancel = true;
+                Close();
+                return;
+            }
             LoadConfigProject();
 
             Documents = new Documents();
@@ -418,6 +474,11 @@ namespace ConfigEditor
                 addRow = true;
             }
 
+            if (addRow)
+            {
+                doc.GridData.BuildUniqueIndexOnAddRow(e.RowIndex);
+            }
+
             var cell = doc.GridData.GetCell(e.ColumnIndex, e.RowIndex);
             var oldValue = cell.Value;
             cell.Value = e.Value as string;
@@ -425,12 +486,18 @@ namespace ConfigEditor
                 cell.Value = "";
             var newValue = cell.Value;
 
+            // save data
+            int colIndex = e.ColumnIndex;
+            var updateParam = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Data };
+            doc.Beans[e.RowIndex].Update(doc.GridData, doc.GridData.GetRow(e.RowIndex), ref colIndex, 0, updateParam);
+            doc.IsChanged = true;
+
             // verify
-            tag.UpdateUniqueIndex(oldValue, newValue, (grid.Tag as Document).GridData.GetCell(e.ColumnIndex, e.RowIndex));
+            tag.UpdateUniqueIndex(oldValue, newValue, cell);
             var param = new Property.VerifyParam()
             {
                 FormMain = this,
-                Grid = (grid.Tag as Document).GridData,
+                Grid = doc.GridData,
                 ColumnIndex = e.ColumnIndex,
                 RowIndex = e.RowIndex,
                 ColumnTag = tag,
@@ -442,17 +509,6 @@ namespace ConfigEditor
                 p.VerifyCell(param);
             }
             tag.PathLast.Define.Verify(param);
-
-            // save data
-            int colIndex = e.ColumnIndex;
-            var updateParam = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Data };
-            doc.Beans[e.RowIndex].Update(doc.GridData, doc.GridData.GetRow(e.RowIndex), ref colIndex, 0, updateParam);
-            doc.IsChanged = true;
-
-            if (addRow)
-            {
-                doc.GridData.BuildUniqueIndexOnAddRow(e.RowIndex);
-            }
         }
 
         private void OnCellValueNeeded(object sender, DataGridViewCellValueEventArgs e)

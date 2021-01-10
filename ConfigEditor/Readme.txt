@@ -39,11 +39,17 @@ Test
 	* CHANGE 重构：DataGridView 改成 VirtualMode。改动较大，有可能的话帮我回归测试一下。
 	* XXX 双击错误列表定位到文档的功能暂时不能用了。
 
+	2021/1/11
+	* NEW 工作时，在Home下生成一个文件，用来避免同时（本机）编辑。
+
 性能
 	* 几千行看看会怎么样。
 
 TODO
+	
 	重构以后，verify获取oldValue，newValue的逻辑可能要改。
+	去掉 LoadAllDocument 改为按需装载，并且使用过后，在可能的情况下关闭。
+	装载文档改成可选异步装载。用于打开（新建）文件时。其他时候还是同步装载。
  	FormBuildProgress async。需要把gird的数据层独立出来自己管理，使用virtual模式。
 
 	自动完成: Foreign
