@@ -17,7 +17,7 @@ namespace ConfigEditor
         public BeanDefine BeanDefine { get; private set; } // bean in this file
 
         public List<Bean> Beans { get; } = new List<Bean>();
-        public GridData GridData { get; }
+        public GridData GridData { get; set; }
 
         public bool IsChanged { get; set; } = false;
 

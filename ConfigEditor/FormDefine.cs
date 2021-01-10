@@ -544,9 +544,8 @@ namespace ConfigEditor
             doc.BeanDefine.Depends(deps);
             if (deps.Contains(var.Parent))
             {
-                // TODO 修改数据重用原来的算法，需要构建GridData的数据。看看是否能重用原来存在的GridData。
-                GridData gridTmp = new GridData(doc);
-                doc.BeanDefine.BuildGridColumns(gridTmp, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
+                GridData gridDataTmp = new GridData(doc);
+                doc.BeanDefine.BuildGridColumns(gridDataTmp, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
                 HashSet<Bean.VarData> varDatas = new HashSet<Bean.VarData>();
                 var param = new Bean.UpdateParam()
                 {
@@ -559,10 +558,10 @@ namespace ConfigEditor
                 };
                 foreach (var bean in doc.Beans)
                 {
-                    int insertIndex = gridTmp.RowCount;
-                    gridTmp.InsertRow(insertIndex);
+                    int insertIndex = gridDataTmp.RowCount;
+                    gridDataTmp.InsertRow(insertIndex);
                     int colIndex = 0;
-                    if (bean.Update(gridTmp, gridTmp.GetRow(insertIndex), ref colIndex, 0, param))
+                    if (bean.Update(gridDataTmp, gridDataTmp.GetRow(insertIndex), ref colIndex, 0, param))
                         break;
                 }
                 foreach (var varData in varDatas)
@@ -575,6 +574,9 @@ namespace ConfigEditor
 
         private void UpdateEnumDefine(EnumDefine enumDefine)
         {
+            if (null == enumDefine)
+                return;
+
             for (int i = 0; i < define.RowCount; ++i)
             {
                 DataGridViewCellCollection cells = define.Rows[i].Cells;

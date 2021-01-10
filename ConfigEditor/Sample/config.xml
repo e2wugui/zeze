@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ZezeConfig>
   <BeanDefine RefCount="0" Locked="False">
-    <variable name="unique" type="Undecided" vw="90" properties="id;unique;" value="" comment="1" foreign="" default="123" />
+    <variable name="unique" type="Undecided" vw="67" properties="id;unique;" value="" comment="1" foreign="" default="123" />
     <variable name="dns" type="Undecided" properties="dns;" vw="101" value="" comment="" foreign="" default="" />
     <BeanDefine name="ListA" RefCount="1" Locked="False">
       <variable name="A" type="Undecided" vw="50" properties="id.list;" value="" comment="" foreign="" default="" />

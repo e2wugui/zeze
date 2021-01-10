@@ -409,6 +409,7 @@ namespace ConfigEditor
             tab.Size = new Size(tabs.ClientSize.Width, tabs.ClientSize.Height);
 
             DataGridView grid = new DataGridViewKeyPreview() { FormMain = this };
+            grid.VirtualMode = true;
             grid.AllowUserToAddRows = false;
             grid.AllowUserToDeleteRows = false;
             grid.AllowUserToResizeRows = false;
@@ -426,7 +427,6 @@ namespace ConfigEditor
             grid.ScrollBars = ScrollBars.Both;
             grid.Size = new Size(tab.ClientSize.Width, tab.ClientSize.Height);
             grid.TabIndex = 0;
-            grid.VirtualMode = true;
 
             // performance
             //grid.RowHeadersVisible = false;
@@ -785,7 +785,11 @@ namespace ConfigEditor
                 foreach (var gridReload in ReloadGridsAfterFormDefineClosed)
                 {
                     gridReload.SuspendLayout();
-                    (gridReload.Tag as Document).GridData.SyncToView();
+                    var doc = gridReload.Tag as Document;
+                    doc.GridData.View = null;
+                    doc.BuildGridData();
+                    doc.GridData.View = gridReload;
+                    doc.GridData.SyncToView();
                     gridReload.ResumeLayout();
                 }
                 ReloadGridsAfterFormDefineClosed.Clear();

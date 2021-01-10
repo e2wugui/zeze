@@ -105,10 +105,30 @@ namespace ConfigEditor
 
         private void InsertColumnToView(int columnIndex, Column column)
         {
+            // 在 Column 里面定义 Width，构造的时候初始化，就不需要下面的处理了。
+            // 但是这样在 Width 改变的时候需要同步数据，而且也多定义了一份。
+            // 所以这里特殊处理一下。反正这个代码也不是拿来重用的。
+
+            int width = 80;
+            if (null != column.ColumnTag)
+            {
+                switch (column.ColumnTag.Tag)
+                {
+                    case ColumnTag.ETag.AddVariable:
+                    case ColumnTag.ETag.ListStart:
+                    case ColumnTag.ETag.ListEnd:
+                        width = 20;
+                        break;
+                    default:
+                        width = column.ColumnTag.PathLast.Define.GridColumnValueWidth;
+                        break;
+                }
+            }
+
             View?.Columns.Insert(columnIndex,
                 new DataGridViewColumn(new DataGridViewTextBoxCell())
                 {
-                    Width = column.ColumnTag == null ? 80 : column.ColumnTag.PathLast.Define.GridColumnValueWidth,
+                    Width = width,
                     HeaderText = column.HeaderText,
                     ReadOnly = column.ReadOnly,
                     ToolTipText = column.ToolTipText,
@@ -132,7 +152,6 @@ namespace ConfigEditor
             foreach (var row in Rows)
             {
                 row.Cells.Insert(columnIndex, new Cell(row));
-                // TODO fromerror sync
             }
             InsertColumnToView(columnIndex, column);
         }
@@ -142,7 +161,6 @@ namespace ConfigEditor
             foreach (var row in Rows)
             {
                 row.Cells.RemoveAt(columnIndex);
-                // TODO fromerror sync
             }
             Columns.RemoveAt(columnIndex);
             View?.Columns.RemoveAt(columnIndex);

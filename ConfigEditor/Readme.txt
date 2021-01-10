@@ -39,10 +39,9 @@ Test
 	* 几千行看看会怎么样。
 
 TODO
- 	FormBuildProgress async。需要把gird的数据层独立出来自己管理，使用virtual模式。
-	? DataGridViewTextBoxCell template 里面的value看起来没用。不会被自动复制到新增的行里面。
 	原来在 OnGridCellValidating 里面 Verify。改到 OnCellValuePushed
 	原来在 OnGridCellEndEdit 里面 Bean.Update。改到 OnCellValuePushed
+ 	FormBuildProgress async。需要把gird的数据层独立出来自己管理，使用virtual模式。
 
 	自动完成: Foreign
 	更多自动完成？

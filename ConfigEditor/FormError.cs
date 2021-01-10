@@ -76,6 +76,9 @@ namespace ConfigEditor
 
         public void AddError(GridData.Cell cell, Property.IProperty p, Property.ErrorLevel level, string desc)
         {
+            if (IsDisposed) // 某些 verify 是异步的，可能在窗口关闭后返回。
+                return;
+
             if (false == Errors.TryGetValue(cell, out var errors))
                 Errors.Add(cell, errors = new SortedDictionary<string, Error>());
 
