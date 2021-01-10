@@ -35,12 +35,14 @@ Test
 	2021/1/7
 	* CHANGE OpenDocument 重构。处理一个目录下的子目录名和文件名（不含后缀）相同的情况。正常使用禁止发生。
 
+	2021/1/10
+	* CHANGE 重构：DataGridView 改成 VirtualMode。
+
 性能
 	* 几千行看看会怎么样。
 
 TODO
-	原来在 OnGridCellValidating 里面 Verify。改到 OnCellValuePushed
-	原来在 OnGridCellEndEdit 里面 Bean.Update。改到 OnCellValuePushed
+	重构以后，verify获取oldValue，newValue的逻辑可能要改。
  	FormBuildProgress async。需要把gird的数据层独立出来自己管理，使用virtual模式。
 
 	自动完成: Foreign

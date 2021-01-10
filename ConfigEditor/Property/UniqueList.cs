@@ -59,9 +59,7 @@ namespace ConfigEditor.Property
                     if (c == p.Cell)
                         continue;
 
-                    string str = c.Value as string;
-                    if (null == str)
-                        str = "";
+                    string str = c.Value;
                     if (p.OldValue.Equals(str))
                         same.Add(c);
                 }
@@ -81,9 +79,7 @@ namespace ConfigEditor.Property
                 if (c == p.Cell)
                     continue;
 
-                string str = c.Value as string;
-                if (null == str)
-                    str = "";
+                string str = c.Value;
                 if (p.NewValue.Equals(str))
                     same.Add(c);
             }

@@ -4,8 +4,8 @@
     <variable name="unique" type="Undecided" vw="67" properties="id;unique;" value="" comment="1" foreign="" default="123" />
     <variable name="dns" type="Undecided" properties="dns;" vw="101" value="" comment="" foreign="" default="" />
     <BeanDefine name="ListA" RefCount="1" Locked="False">
-      <variable name="A" type="Undecided" vw="50" properties="id.list;" value="" comment="" foreign="" default="" />
       <variable name="B" type="Undecided" vw="50" properties="" value="" comment="" foreign="" default="" />
+      <variable name="A" type="Undecided" vw="50" properties="id.list;" value="" comment="" foreign="" default="" />
       <BeanDefine name="nl" RefCount="1" Locked="False">
         <variable name="哪里" type="Undecided" value="" foreign="" properties="" comment="" default="" vw="50" />
       </BeanDefine>
@@ -22,6 +22,7 @@
       <value name="abc" value="5" />
     </enum>
     <variable name="枚举" type="Enum" value="" foreign="" properties="" comment="" default="枚举值" vw="50" />
+    <variable name="啊" type="Undecided" value="" foreign="" properties="" comment="" default="" vw="50" />
   </BeanDefine>
   <bean DefineFullName="" row="0">
     <ListA>
@@ -123,5 +124,59 @@
     <枚举>枚举值</枚举>
     <u>2021-1-7</u>
     <unique>5</unique>
+    <ListA>
+      <list>
+        <bean DefineFullName="config.ListA" row="0">
+          <A>1</A>
+        </bean>
+        <bean DefineFullName="config.ListA" row="1">
+          <A>2</A>
+        </bean>
+      </list>
+    </ListA>
+  </bean>
+  <bean DefineFullName="" row="5">
+    <unique>6</unique>
+    <枚举>abc</枚举>
+    <ListA>
+      <list>
+        <bean DefineFullName="config.ListA" row="0">
+          <A>1</A>
+        </bean>
+        <bean DefineFullName="config.ListA" row="1">
+          <A>
+          </A>
+        </bean>
+      </list>
+    </ListA>
+  </bean>
+  <bean DefineFullName="" row="6">
+    <ListA>
+      <list>
+        <bean DefineFullName="config.ListA" row="0">
+          <nl>
+            <list>
+              <bean DefineFullName="config.ListA.nl" row="0">
+                <哪里>
+                </哪里>
+              </bean>
+            </list>
+          </nl>
+          <A>1</A>
+        </bean>
+        <bean DefineFullName="config.ListA" row="1">
+          <A>
+          </A>
+        </bean>
+      </list>
+    </ListA>
+    <枚举>e1</枚举>
+    <unique>7</unique>
+  </bean>
+  <bean DefineFullName="" row="7">
+    <unique>8</unique>
+  </bean>
+  <bean DefineFullName="" row="8">
+    <unique>9</unique>
   </bean>
 </ZezeConfig>

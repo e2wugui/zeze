@@ -386,6 +386,15 @@ namespace ConfigEditor
             e.SetAttribute(name, value);
         }
 
+        public void CreateXmlElementIfNeed()
+        {
+            if (null == Self && Parent.Self != null)
+            {
+                Self = Parent.Document.Xml.CreateElement("variable");
+                Parent.Self.AppendChild(Self);
+            }
+        }
+
         public void SaveAs(XmlDocument xml, XmlElement parent, bool create)
         {
             XmlElement self = create ? null : Self;

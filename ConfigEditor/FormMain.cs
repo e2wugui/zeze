@@ -118,7 +118,6 @@ namespace ConfigEditor
             this.TopMost = false;
         }
 
-        // TODO Reload 确认。哪些操作，现在可能需要重新调用 Document.BuildData 。
         public HashSet<DataGridView> ReloadGridsAfterFormDefineClosed { get; } = new HashSet<DataGridView>();
 
         public void ReloadAllGridIfContains(VarDefine var)
@@ -140,9 +139,6 @@ namespace ConfigEditor
 
         public void OnGridCellValidating(object sender, DataGridViewCellValidatingEventArgs e)
         {
-            // 编辑的时候仅使用文本，允许输入任何数据。所以验证肯定通过。
-            // 使用这个事件是为了得到 oldValue 做一些处理。
-            // 这里以后需要真正的校验并且cancel的话，需要注意不要影响下面的代码。
             // 问题：CurrentCell 改变的时候，即时没有在编辑模式，原来的Cell也会触发这个事件。
             DataGridView grid = (DataGridView)sender;
             if (false == grid.IsCurrentCellInEditMode)
@@ -183,67 +179,11 @@ namespace ConfigEditor
                 }
                 e.Cancel = false;
             }
-
-            DataGridViewCell cell = grid[e.ColumnIndex, e.RowIndex];
-            string oldValue = cell.Value as string; // maybe null
-            if (newValue == null)
-                newValue = "";
-
-            // TODO 代码移动：给自己的Cell设置值的时候Verify。
-            tag.UpdateUniqueIndex(oldValue, newValue, (grid.Tag as Document).GridData.GetCell(e.ColumnIndex, e.RowIndex));
-
-            var param = new Property.VerifyParam()
-            {
-                FormMain = this,
-                Grid = (grid.Tag as Document).GridData,
-                ColumnIndex = e.ColumnIndex,
-                RowIndex = e.RowIndex,
-                ColumnTag = tag,
-                OldValue = oldValue,
-                NewValue = newValue,
-            };
-            foreach (var p in tag.PathLast.Define.PropertiesList)
-            {
-                p.VerifyCell(param);
-            }
-            tag.PathLast.Define.Verify(param);
         }
 
         public void OnGridCellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             HideFormHelp();
-            /*
-            DataGridView grid = (DataGridView)sender;
-            DataGridViewColumn col = grid.Columns[e.ColumnIndex];
-            ColumnTag tag = (ColumnTag)col.Tag;
-            if (ColumnTag.ETag.Normal != tag.Tag)
-                return; // 不可能。特殊列都是不可编辑的。
-
-            Document doc = (Document)grid.Tag;
-            bool added = false;
-            DataGridViewCellCollection cells = grid.Rows[e.RowIndex].Cells;
-            if (e.RowIndex == grid.RowCount - 1) // is last row
-            {
-                // 最后一行输入但是取消不添加行。
-                if (string.IsNullOrEmpty(cells[e.ColumnIndex].Value as string))
-                    return;
-
-                doc.Beans.Add(new Bean(doc, "")); // root bean allow empty.
-                doc.GridData.AddRow();
-
-                grid.Rows.Add(); // prepare row to add data
-                added = true;
-            }
-            int colIndex = e.ColumnIndex;
-            var param = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Data };
-            doc.Beans[e.RowIndex].Update(doc.GridData, doc.GridData.GetRow(e.RowIndex), ref colIndex, 0, param);
-            doc.IsChanged = true;
-
-            if (added)
-            {
-                doc.GridData.BuildUniqueIndexOnAddRow(e.RowIndex);
-            }
-            */
         }
 
         public void UpdateWhenAddVariable(VarDefine var)
@@ -468,23 +408,60 @@ namespace ConfigEditor
                 return; // 不可能。特殊列都是不可编辑的。
 
             var doc = grid.Tag as Document;
-            var cell = doc.GridData.GetCell(e.ColumnIndex, e.RowIndex);
 
+            bool addRow = false;
+            if (e.RowIndex == doc.GridData.RowCount)
+            {
+                doc.Beans.Add(new Bean(doc, ""));
+                doc.GridData.InsertRow(e.RowIndex, false);
+                grid.Rows.Add();
+                addRow = true;
+            }
+
+            var cell = doc.GridData.GetCell(e.ColumnIndex, e.RowIndex);
+            var oldValue = cell.Value;
             cell.Value = e.Value as string;
             if (cell.Value == null)
                 cell.Value = "";
+            var newValue = cell.Value;
 
+            // verify
+            tag.UpdateUniqueIndex(oldValue, newValue, (grid.Tag as Document).GridData.GetCell(e.ColumnIndex, e.RowIndex));
+            var param = new Property.VerifyParam()
+            {
+                FormMain = this,
+                Grid = (grid.Tag as Document).GridData,
+                ColumnIndex = e.ColumnIndex,
+                RowIndex = e.RowIndex,
+                ColumnTag = tag,
+                OldValue = oldValue,
+                NewValue = newValue,
+            };
+            foreach (var p in tag.PathLast.Define.PropertiesList)
+            {
+                p.VerifyCell(param);
+            }
+            tag.PathLast.Define.Verify(param);
+
+            // save data
             int colIndex = e.ColumnIndex;
-            var param = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Data };
-            doc.Beans[e.RowIndex].Update(doc.GridData, doc.GridData.GetRow(e.RowIndex), ref colIndex, 0, param);
+            var updateParam = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Data };
+            doc.Beans[e.RowIndex].Update(doc.GridData, doc.GridData.GetRow(e.RowIndex), ref colIndex, 0, updateParam);
             doc.IsChanged = true;
+
+            if (addRow)
+            {
+                doc.GridData.BuildUniqueIndexOnAddRow(e.RowIndex);
+            }
         }
 
         private void OnCellValueNeeded(object sender, DataGridViewCellValueEventArgs e)
         {
             var grid = sender as DataGridView;
             var doc = grid.Tag as Document;
-            // TODO 用来增加数据的最后一行的处理。
+            if (e.RowIndex == doc.GridData.RowCount)
+                return;
+
             var cell = doc.GridData.GetCell(e.ColumnIndex, e.RowIndex);
             e.Value = cell.Value;
             grid[e.ColumnIndex, e.RowIndex].Style.BackColor = cell.BackColor;
@@ -770,6 +747,16 @@ namespace ConfigEditor
         public TabControl Tabs => tabs;
         public Property.Manager PropertyManager { get; }
 
+        private DataGridViewCell GetSafeCell(DataGridView grid, DataGridViewCell hint)
+        {
+            if (null == hint)
+                return null;
+            if (hint.ColumnIndex >= 0 && hint.ColumnIndex < grid.ColumnCount
+                && hint.RowIndex >= 0 && hint.RowIndex < grid.RowCount)
+                return grid[hint.ColumnIndex, hint.RowIndex];
+            return null;
+        }
+
         private void toolStripButtonDefine_Click(object sender, EventArgs e)
         {
             if (null == FormDefine)
@@ -784,12 +771,25 @@ namespace ConfigEditor
 
                 foreach (var gridReload in ReloadGridsAfterFormDefineClosed)
                 {
+                    var firstDisplayCell = gridReload.FirstDisplayedCell;
+                    var currentCell = gridReload.CurrentCell;
+
                     gridReload.SuspendLayout();
+
                     var doc = gridReload.Tag as Document;
                     doc.GridData.View = null;
                     doc.BuildGridData();
                     doc.GridData.View = gridReload;
                     doc.GridData.SyncToView();
+
+                    // resore view.
+                    var firstDisplayCellNow = GetSafeCell(gridReload, firstDisplayCell);
+                    if (null != firstDisplayCellNow)
+                        gridReload.FirstDisplayedCell = firstDisplayCellNow;
+                    var currentCellNow = GetSafeCell(gridReload, currentCell);
+                    if (null != currentCellNow)
+                        gridReload.CurrentCell = currentCellNow;
+
                     gridReload.ResumeLayout();
                 }
                 ReloadGridsAfterFormDefineClosed.Clear();

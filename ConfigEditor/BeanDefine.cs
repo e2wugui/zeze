@@ -63,8 +63,31 @@ namespace ConfigEditor
             int beforeIndex = Variables.IndexOf(before);
             if (beforeIndex < 0)
                 return;
-            Variables.RemoveAt(srcIndex); // 0 1 2 3
+            Variables.RemoveAt(srcIndex);
             Variables.Insert(beforeIndex, src);
+            if (null != src.Self && null != before.Self)
+            {
+                XmlNode parent = src.Self.ParentNode;
+                bool srcFirst = true;
+                foreach (var childNode in parent.ChildNodes)
+                {
+                    if (childNode == src.Self)
+                    {
+                        srcFirst = true;
+                        break;
+                    }
+                    if (childNode == before.Self)
+                    {
+                        srcFirst = false;
+                        break;
+                    }
+                }
+                parent.RemoveChild(src.Self);
+                if (srcFirst)
+                    parent.InsertAfter(src.Self, before.Self);
+                else
+                    parent.InsertBefore(src.Self, before.Self);
+            }
             Document.IsChanged = true;
         }
 
@@ -156,6 +179,7 @@ namespace ConfigEditor
             }
 
             Variables.Add(var);
+            var.CreateXmlElementIfNeed(); // 调整变量顺序的时候需要这个创建好。
             Document.IsChanged = true;
             return (var, create, "");
         }

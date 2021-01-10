@@ -99,7 +99,8 @@ namespace ConfigEditor
             {
                 InsertColumnToView(i, Columns[i]);
             }
-            View.RowCount = Rows.Count;
+            // 多加一行，用来添加数据，需要在OnCellValueNeeded,OnCellValuePushed中特殊处理。
+            View.RowCount = Rows.Count + 1;
             View.ResumeLayout();
         }
 
@@ -166,12 +167,7 @@ namespace ConfigEditor
             View?.Columns.RemoveAt(columnIndex);
         }
 
-        public void AddRow()
-        {
-            InsertRow(RowCount);
-        }
-
-        public void InsertRow(int rowIndex)
+        public void InsertRow(int rowIndex, bool syncToView = false)
         {
             var row = new Row(this);
             Rows.Insert(rowIndex, row);
@@ -194,7 +190,8 @@ namespace ConfigEditor
                 }
             }
 
-            View?.Rows.Insert(rowIndex, 1);
+            if (syncToView)
+                View?.Rows.Insert(rowIndex, 1);
         }
 
         public void BuildUniqueIndexOnAddRow(int rowIndex)
