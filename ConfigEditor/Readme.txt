@@ -36,7 +36,8 @@ Test
 	* CHANGE OpenDocument 重构。处理一个目录下的子目录名和文件名（不含后缀）相同的情况。正常使用禁止发生。
 
 	2021/1/10
-	* CHANGE 重构：DataGridView 改成 VirtualMode。
+	* CHANGE 重构：DataGridView 改成 VirtualMode。改动较大，有可能的话帮我回归测试一下。
+	* XXX 双击错误列表定位到文档的功能暂时不能用了。
 
 性能
 	* 几千行看看会怎么样。
