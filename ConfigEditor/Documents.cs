@@ -45,13 +45,10 @@ namespace ConfigEditor
 
                 if (System.IO.File.Exists(AbsoluteName))
                 {
-                    // 同步则装载成功后才返回;
-                    // 异步返回 null，内部会调用 FormMain OpenGrid 进行下一步处理。
-                    // 有个问题，怎么设置到 this.Document
                     Document = Load(isOpenOrNew);
-                    // doc.Open(false);
                     // 必须在 Document 设置之后初始化引用。
-                    Document.BeanDefine.InitializeListReference();
+                    // XXX 异步装载，在 FormMain.OpenGrid 里面调用这个。
+                    Document?.BeanDefine.InitializeListReference();
                 }
                 else
                 {
@@ -78,7 +75,8 @@ namespace ConfigEditor
                     doc.LoadXmlFile();
                     Document = doc; // 后续所有的 Open 调用都能看到 Document 了。
                     Loading = null; // 仅仅清除，设置了 Document 变量以后，这个不会被访问了。
-                    // TODO 把执行权限交给 FormMain 继续 OpenOrNew
+                    // 把执行权限交给 FormMain 继续 OpenOrNew
+                    FormMain.Instance.InvokeOpenGrid(doc);
                 });
                 Loading.Start();
                 if (isOpenOrNew)

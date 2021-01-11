@@ -561,6 +561,14 @@ namespace ConfigEditor
         }
         */
 
+        private delegate void DelegateOpenGrid();
+
+        public void InvokeOpenGrid(Document doc)
+        {
+            DelegateOpenGrid d = delegate { OpenGrid(doc); };
+            this.BeginInvoke(d);
+        }
+
         private void OpenGrid(Document doc)
         {
             if (null == doc)
@@ -573,6 +581,7 @@ namespace ConfigEditor
                     TabPage tab = NewTabPage(doc.RelateName);
                     DataGridView grid = (DataGridView)tab.Controls[0];
                     grid.SuspendLayout();
+                    doc.BeanDefine.InitializeListReference(); // XXX
                     doc.BuildGridData();
                     doc.GridData.VerifyAll();
                     doc.GridData.View = grid;
@@ -605,7 +614,7 @@ namespace ConfigEditor
             string file = this.saveFileDialog1.FileName;
             if (!file.EndsWith(".xml"))
                 file = file + ".xml";
-            OpenGrid(Documents.OpenFile(file, true)?.Open());
+            OpenGrid(Documents.OpenFile(file, true)?.Open(true));
         }
 
         public Documents Documents { get; private set; }
@@ -622,7 +631,8 @@ namespace ConfigEditor
             this.openFileDialog1.Filter = "(*.xml)|*.xml";
             if (DialogResult.OK != this.openFileDialog1.ShowDialog())
                 return;
-            OpenGrid(Documents.OpenFile(this.openFileDialog1.FileName, false)?.Open());
+            
+            OpenGrid(Documents.OpenFile(this.openFileDialog1.FileName, false)?.Open(true));
         }
 
         public bool SaveAll()
