@@ -121,6 +121,7 @@ namespace ConfigEditor
                         ShowWindowAsync(process.MainWindowHandle, SW_SHOWNOMAL);
                         SetForegroundWindow(process.MainWindowHandle);
                         SwitchToThisWindow(process.MainWindowHandle, true);
+                        break;
                     }
                 }
                 return false;
