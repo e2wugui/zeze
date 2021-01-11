@@ -574,6 +574,7 @@ namespace ConfigEditor
                     DataGridView grid = (DataGridView)tab.Controls[0];
                     grid.SuspendLayout();
                     doc.BuildGridData();
+                    doc.GridData.VerifyAll();
                     doc.GridData.View = grid;
                     doc.GridData.SyncToView();
                     tabs.Controls.Add(tab);
@@ -836,6 +837,7 @@ namespace ConfigEditor
                     var doc = gridReload.Tag as Document;
                     doc.GridData.View = null;
                     doc.BuildGridData();
+                    doc.GridData.VerifyAll();
                     doc.GridData.View = gridReload;
                     doc.GridData.SyncToView();
 

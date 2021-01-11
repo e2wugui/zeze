@@ -49,19 +49,6 @@ namespace ConfigEditor
             public DataGridViewRow Row { get; set; }
         }
 
-        private class IdentityEqualityComparer : IEqualityComparer<object>
-        {
-            bool IEqualityComparer<object>.Equals(object x, object y)
-            {
-                return object.ReferenceEquals(x, y);
-            }
-
-            int IEqualityComparer<object>.GetHashCode(object obj)
-            {
-                return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
-            }
-        }
-
         private Dictionary<GridData.Cell, SortedDictionary<string, Error>> Errors
             = new Dictionary<GridData.Cell, SortedDictionary<string, Error>>(new IdentityEqualityComparer());
 

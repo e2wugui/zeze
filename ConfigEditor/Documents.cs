@@ -38,20 +38,59 @@ namespace ConfigEditor
                 this.Parent = parent;
             }
 
-            public Document Open()
+            public Document Open(bool isOpenOrNew = false)
             {
                 if (null != Document)
                     return Document;
 
-                Document = new Document(this);
-                Document.Open();
-                // 必须在 Document 设置之后初始化引用。
-                Document.BeanDefine.InitializeListReference();
+                if (System.IO.File.Exists(AbsoluteName))
+                {
+                    // 同步则装载成功后才返回;
+                    // 异步返回 null，内部会调用 FormMain OpenGrid 进行下一步处理。
+                    // 有个问题，怎么设置到 this.Document
+                    Document = Load(isOpenOrNew);
+                    // doc.Open(false);
+                    // 必须在 Document 设置之后初始化引用。
+                    Document.BeanDefine.InitializeListReference();
+                }
+                else
+                {
+                    Document = new Document(this);
+                    Document.Save(); // 马上创建文件。免得没有修改的话，不会保存。
+                }
+                return Document;
+            }
+
+            private Task Loading;
+            private Document Load(bool isOpenOrNew)
+            {
+                if (null != Loading)
+                {
+                    if (isOpenOrNew)
+                        return null;
+
+                    Loading?.Wait();
+                    return Document;
+                }
+                var doc = new Document(this);
+                Loading = new Task(() =>
+                {
+                    doc.LoadXmlFile();
+                    Document = doc; // 后续所有的 Open 调用都能看到 Document 了。
+                    Loading = null; // 仅仅清除，设置了 Document 变量以后，这个不会被访问了。
+                    // TODO 把执行权限交给 FormMain 继续 OpenOrNew
+                });
+                Loading.Start();
+                if (isOpenOrNew)
+                    return null;
+
+                Loading?.Wait();
                 return Document;
             }
 
             public void Close(Document doc)
             {
+                Loading = null; // 在 Load 完成以后就可以清除了。这里保险起见。
                 Document = null;
             }
         }
@@ -77,7 +116,7 @@ namespace ConfigEditor
                 }
                 if (offset == paths.Length - 1)
                 {
-                    var file = new File(System.IO.Path.Combine(AbsoluteName, name + "*.xml"), this);
+                    var file = new File(System.IO.Path.Combine(AbsoluteName, name + ".xml"), this);
                     AddFile(file);
                     return file;
                 }

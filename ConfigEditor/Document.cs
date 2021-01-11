@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -52,6 +53,17 @@ namespace ConfigEditor
             GridData = new GridData(this);
         }
 
+        public void Open(bool buildData)
+        {
+            LoadXmlFile();
+            // 必须在 Document 设置之后初始化引用。
+            BeanDefine.InitializeListReference();
+            if (buildData)
+            {
+                BuildGridData();
+            }
+        }
+
         public void BuildGridData()
         {
             GridData.Clear();
@@ -81,8 +93,6 @@ namespace ConfigEditor
                 }
                 tag.BuildUniqueIndex(GridData, i);
             }
-
-            GridData.VerifyAll();
         }
 
         public void Close()
@@ -134,7 +144,7 @@ namespace ConfigEditor
             }
         }
 
-        public void Open()
+        public void LoadXmlFile()
         {
             if (null != Xml)
                 throw new Exception("Duplicate Open Document for " + FileName);

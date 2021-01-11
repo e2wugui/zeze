@@ -52,15 +52,18 @@ Test
 	2021/1/11
 	* NEW 工作时，在Home下生成一个文件，用来避免同时（本机）编辑。
 
+	2021/1/12
+	* CHANGE 装载文档增加异步模式。用于打开（新建）文件时。其他时候还是同步装载。
+	* CHANGE Build 改成 async，但实际上只有一个线程在执行，就是为了显示进度和可以取消。
+
 性能
 	* 几千行看看会怎么样。
 
 TODO
-	
-	重构以后，verify获取oldValue，newValue的逻辑可能要改。
+	NewFile 的时候文件不存在，现在 Xml.Load 会失败。
 	去掉 LoadAllDocument 改为按需装载，并且使用过后，在可能的情况下关闭。
-	装载文档改成可选异步装载。用于打开（新建）文件时。其他时候还是同步装载。
- 	FormBuildProgress async。需要把gird的数据层独立出来自己管理，使用virtual模式。
+	FormError 还是在 UI-thread 里面执行，只是 AddError RemoveError 根据需要使用 BeginInvoke. 主要看 Verify 是否异步。
+	VerifyAll async，这个比较麻烦。初步考虑，需要 Document 加锁。看实际使用，以后再说了。
 
 	自动完成: Foreign
 	更多自动完成？

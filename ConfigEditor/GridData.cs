@@ -77,7 +77,7 @@ namespace ConfigEditor
         private List<Row> Rows = new List<Row>();
 
         // 这里没有清除 FormError。在 VerifyAll 里面清除。
-        // 如果调用 Clear()，又不调用 VerifyAll 。
+        // 如果调用 Clear()，后面又不调用 VerifyAll 。
         // 需要自己调用 FormMain.Instance.FormError.RemoveErrorByGrid(GridData);
         public void Clear()
         {
