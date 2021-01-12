@@ -39,12 +39,12 @@ Test
 	* Build 改成 async，实际上只有一个线程在执行，就是为了显示进度和可以取消。
 	* Build 后，关闭掉没有打开View及被View依赖的Document。
 	* FormError 还是在 UI-thread 里面执行，只是 AddError RemoveError 根据需要使用 BeginInvoke. 
+	* FormBuildProgress 显示彩色。
 
 性能
 	* 几千行看看会怎么样。
 
 TODO
-	FormBuildProgress 错误的时候显示红色。
 	变量改名 还需要更新 var 所在 BeanDefine 的名字，以及相关引用。好像就实现 Bean 改名了。
 	变量改名，BeanDefine.ref 不仅仅记录数量，改成 File.RelateName + VarName。因为嵌套list，名字编码还没确定。
 		第一层 {File.RelateName}:VarName;

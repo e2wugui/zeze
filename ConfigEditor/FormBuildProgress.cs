@@ -24,7 +24,7 @@ namespace ConfigEditor
         {
             Delegate d = delegate
             {
-                richTextBox1.ForeColor = color;
+                richTextBox1.SelectionColor = color;
                 richTextBox1.AppendText(line + Environment.NewLine);
             };
 
@@ -71,6 +71,7 @@ namespace ConfigEditor
                 file.Document.Close();
                 return true;
             });
+            this.AppendLine($"Build 结束.", Color.Blue);
             buttonBreak.Text = "关闭";
         }
 
