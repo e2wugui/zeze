@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Xml;
 using System.Windows.Forms;
+using System.Collections.ObjectModel;
 
 namespace ConfigEditor
 {
@@ -9,43 +10,107 @@ namespace ConfigEditor
     {
         public class VarData
         {
-            public string Name { get; set; }
-            public string Value { get; set; } = "";
+            private string _Name;
+            private string _Value = "";
+            private int _GridColumnNameWidth;
+            private int _GridColumnValueWidth;
+
+            public string Name
+            {
+                get
+                {
+                    return _Name;
+                }
+                set
+                {
+                    _Name = value;
+                    Parent.Document.IsChanged = true;
+                }
+            }
+            public string Value
+            {
+                get
+                {
+                    return _Value;
+                }
+                set
+                {
+                    _Value = value;
+                    Parent.Document.IsChanged = true;
+                }
+            }
             public string ValuePinyin => Tools.ToPinyin(Value);
-            public int GridColumnNameWidth { get; set; }
-            public int GridColumnValueWidth { get; set; }
+            public int GridColumnNameWidth
+            {
+                get
+                {
+                    return _GridColumnNameWidth;
+                }
+                set
+                {
+                    _GridColumnNameWidth = value;
+                    Parent.Document.IsChanged = true;
+                }
+            }
+            public int GridColumnValueWidth
+            {
+                get
+                {
+                    return _GridColumnValueWidth;
+                }
+                set
+                {
+                    _GridColumnValueWidth = value;
+                    Parent.Document.IsChanged = true;
+                }
+            }
 
             public Bean Parent { get; set; }
-            public List<Bean> Beans { get; } = new List<Bean>(); // 变量是list或者bean的时候用来存储数据。
-            public XmlElement SelfList { get; set; }
-            public XmlElement Self { get; set; }
+            private List<Bean> _Beans = new List<Bean>(); // 变量是list的时候用来存储数据。
+            public ReadOnlyCollection<Bean> Beans { get; }
+            public XmlElement SelfList { get; private set; }
+            public XmlElement Self { get; private set; }
+
+            public void SetBeanAt(int index, Bean bean)
+            {
+                _Beans[index] = bean;
+                Parent.Document.IsChanged = true;
+            }
+
+            public void AddBean(Bean bean)
+            {
+                _Beans.Add(bean);
+                Parent.Document.IsChanged = true;
+            }
 
             public void DeleteBeanAt(int index)
             {
-                if (index >= Beans.Count)
+                if (index >= _Beans.Count)
                     return;
 
-                Bean exist = Beans[index];
+                Bean exist = _Beans[index];
                 if (null != exist && null != exist.Self && null != SelfList)
                 {
                     SelfList.RemoveChild(exist.Self);
                 }
 
-                Beans.RemoveAt(index);
+                _Beans.RemoveAt(index);
                 Parent.Document.IsChanged = true;
             }
 
             public VarData(Bean bean, string name)
             {
                 this.Parent = bean;
-                this.Name = name;
+                this._Name = name;
+                Beans = new ReadOnlyCollection<Bean>(_Beans);
             }
 
             public VarData(Bean bean, XmlElement self)
             {
                 this.Parent = bean;
                 this.Self = self;
-                this.Name = self.Name;
+                this._Name = self.Name;
+                Beans = new ReadOnlyCollection<Bean>(_Beans);
 
                 string v = self.GetAttribute("nw");
                 this.GridColumnNameWidth = v.Length > 0 ? int.Parse(v) : 0;
@@ -72,7 +137,7 @@ namespace ConfigEditor
                                 XmlElement eInList = (XmlElement)bInList;
                                 if (!eInList.Name.Equals("bean"))
                                     throw new Exception("Unknown Element In List");
-                                Beans.Add(new Bean(bean.Document, eInList));
+                                _Beans.Add(new Bean(bean.Document, eInList));
                             }
                             ++childElementCount;
                             break;
@@ -117,7 +182,7 @@ namespace ConfigEditor
                         self.SetAttribute("vw", GridColumnValueWidth.ToString());
                 }
 
-                if (Beans.Count > 0) // 这里没有判断Type，直接根据数据来决定怎么保存。
+                if (_Beans.Count > 0) // 这里没有判断Type，直接根据数据来决定怎么保存。
                 {
                     if (null == selfList)
                     {
@@ -126,9 +191,9 @@ namespace ConfigEditor
                         if (false == create)
                             SelfList = selfList;
                     }
-                    for (int i = 0; i < Beans.Count; ++i)
+                    for (int i = 0; i < _Beans.Count; ++i)
                     {
-                        Bean b = Beans[i];
+                        Bean b = _Beans[i];
                         b.RowIndex = i;
                         b.SaveAs(xml, selfList, create, flags);
                     }
@@ -338,10 +403,10 @@ namespace ConfigEditor
                         {
                             for (int i = varData.Beans.Count; i < varInfo.ListIndex; ++i)
                             {
-                                varData.Beans.Add(new Bean(Document, varInfo.Define.Value));
+                                varData.AddBean(new Bean(Document, varInfo.Define.Value));
                             }
                             Bean create = new Bean(Document, varInfo.Define.Value);
-                            varData.Beans.Add(create);
+                            varData.AddBean(create);
                             if (create.Update(grid, row, ref colIndex, pathIndex + 1, param))
                                 return true;
                         }
@@ -360,7 +425,7 @@ namespace ConfigEditor
                     if (EUpdate.Data == param.UpdateType)
                     {
                         Bean create = new Bean(Document, varInfo.Define.Value);
-                        varData.Beans[varInfo.ListIndex] = create;
+                        varData.SetBeanAt(varInfo.ListIndex, create);
                         if (create.Update(grid, row, ref colIndex, pathIndex + 1, param))
                             return true;
                     }

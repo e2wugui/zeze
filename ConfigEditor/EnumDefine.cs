@@ -3,20 +3,36 @@ using System.Windows.Forms;
 using System.Xml;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace ConfigEditor
 {
     public class EnumDefine
     {
-        public string Name { get; set; }
+        private string _Name;
+        private SortedDictionary<string, ValueDefine> _ValueMap = new SortedDictionary<string, ValueDefine>();
+
+        public string Name
+        {
+            get
+            {
+                return _Name;
+            }
+            set
+            {
+                _Name = value;
+                Parent.Document.IsChanged = true;
+            }
+        }
         public string NamePinyin => Tools.ToPinyin(Name);
-        public SortedDictionary<string, ValueDefine> ValueMap { get;} = new SortedDictionary<string, ValueDefine>();
+        public ReadOnlyDictionary<string, ValueDefine> ValueMap { get;}
+
         public XmlElement Self { get; private set; }
         public BeanDefine Parent { get; }
 
         public ValueDefine GetValueDefine(string name)
         {
-            if (ValueMap.TryGetValue(name, out var v))
+            if (_ValueMap.TryGetValue(name, out var v))
                 return v;
             return null;
         }
@@ -43,14 +59,16 @@ namespace ConfigEditor
         public EnumDefine(BeanDefine bean, string name)
         {
             this.Parent = bean;
-            this.Name = name;
+            this._Name = name;
+            ValueMap = new ReadOnlyDictionary<string, ValueDefine>(_ValueMap);
         }
 
         public EnumDefine(BeanDefine bean, XmlElement self)
         {
             this.Parent = bean;
             this.Self = self;
-            this.Name = self.GetAttribute("name");
+            this._Name = self.GetAttribute("name");
+            ValueMap = new ReadOnlyDictionary<string, ValueDefine>(_ValueMap);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
@@ -74,7 +92,7 @@ namespace ConfigEditor
 
         public void AddValue(ValueDefine valueDefine)
         {
-            ValueMap.Add(valueDefine.Name, valueDefine);
+            _ValueMap.Add(valueDefine.Name, valueDefine);
             if (valueDefine.Value < 0)
                 valueDefine.Value = ++MaxValue;
             else if (valueDefine.Value > MaxValue)
@@ -83,7 +101,7 @@ namespace ConfigEditor
 
         public void ChangeValueName(ValueDefine valueDefine, string newName)
         {
-            ValueMap.Remove(valueDefine.Name);
+            _ValueMap.Remove(valueDefine.Name);
             valueDefine.Name = newName;
             AddValue(valueDefine);
             Parent.Document.IsChanged = true;
@@ -102,7 +120,7 @@ namespace ConfigEditor
             }
             self.SetAttribute("name", Name);
 
-            foreach (var v in ValueMap.Values)
+            foreach (var v in _ValueMap.Values)
             {
                 v.SaveAs(xml, self, create);
             }
@@ -124,7 +142,7 @@ namespace ConfigEditor
 
             public void Delete()
             {
-                Parent.ValueMap.Remove(Name);
+                Parent._ValueMap.Remove(Name);
                 if (null != Self)
                 {
                     Self.ParentNode.RemoveChild(Self);

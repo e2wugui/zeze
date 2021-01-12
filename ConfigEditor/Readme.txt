@@ -41,6 +41,9 @@ Test
 	* FormError 还是在 UI-thread 里面执行，只是 AddError RemoveError 根据需要使用 BeginInvoke. 
 	* FormBuildProgress 显示彩色。
 
+	2021/1/13
+	Document.IsChanged：拦截所有的public Property，在里面设置IsChanged。保护一下，免得以后不好维护。
+
 性能
 	* 几千行看看会怎么样。
 
@@ -61,7 +64,7 @@ TODO
 			refby: file1.BeanList2:list3
 			refby: file0.BeanLevel0:BeanList1:list4
 			var: int
-	Document.IsChanged：拦截所有的数据Property，在里面设置IsChanged。
+	
 	VerifyAll async，这个比较麻烦。初步考虑，需要 Document 加锁。看实际使用，以后再说了。
 	自动完成: Foreign
 	更多自动完成？

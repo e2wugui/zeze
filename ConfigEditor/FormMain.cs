@@ -218,7 +218,7 @@ namespace ConfigEditor
                     MessageBox.Show("Error EnumDefine Not Found!!!");
                     return;
                 }
-                if (false == enumDefine.ValueMap.TryGetValue(newValue, out var _))
+                if (null == enumDefine.GetValueDefine(newValue))
                 {
                     switch (MessageBox.Show("输入的枚举名字不存在，是否添加进去？", "提示", MessageBoxButtons.YesNoCancel))
                     {

@@ -86,6 +86,7 @@ namespace ConfigEditor
             DataGridViewCell cellLocked = cellsBeanStart["BeanLocked"];
             cellLocked.Tag = enumDefine;
             cellsBeanStart["VarName"].Value = fullName;
+            cellsBeanStart["VarName"].Style.ForeColor = Color.Blue;
 
             // row for value
             foreach (var v in enumDefine.ValueMap.Values)
@@ -116,6 +117,7 @@ namespace ConfigEditor
             cellsValue["VarName"].Value = value.Name;
             cellsValue["VarName"].Tag = value;
             cellsValue["VarName"].ReadOnly = false;
+            cellsValue["VarName"].Style.ForeColor = Color.Blue;
             cellsValue["VarValue"].Value = value.Value;
             cellsValue["VarValue"].ReadOnly = false;
             cellsValue["VarComment"].Value = value.Comment;
@@ -440,7 +442,7 @@ namespace ConfigEditor
                             return;
                         }
                         if (false == valueDefine.Name.Equals(newValue)
-                            && valueDefine.Parent.ValueMap.TryGetValue(newValue, out _))
+                            && null != valueDefine.Parent.GetValueDefine(newValue))
                         {
                             e.Cancel = true;
                             MessageBox.Show("enum.value 重名了。");

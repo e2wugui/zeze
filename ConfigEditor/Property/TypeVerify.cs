@@ -175,7 +175,8 @@ namespace ConfigEditor.Property
                 return;
             }
 
-            if (false == enumDefine.ValueMap.TryGetValue(p.NewValue, out var valueDefine))
+            var valueDefine = enumDefine.GetValueDefine(p.NewValue);
+            if (null == valueDefine)
             {
                 p.FormMain.FormError.AddError(p.Cell, this, ErrorLevel.Error, "枚举常量没有定义。");
                 return;

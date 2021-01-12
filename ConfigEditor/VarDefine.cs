@@ -123,7 +123,7 @@ namespace ConfigEditor
         }
         public XmlElement Self { get; private set; }
         public BeanDefine Parent { get; }
-        public BeanDefine Reference { get; set; } // type is List
+        public BeanDefine Reference { get; set; } // type is List or foreign
 
         public bool IsKeyable() // 仅在 Build 流程中使用。
         {
