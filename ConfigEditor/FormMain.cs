@@ -247,7 +247,7 @@ namespace ConfigEditor
         {
             Documents.ForEachFile((Documents.File file) =>
             { 
-                file.Document?.GridData.UpdateWhenAddVariable(var);
+                file.Document?.GridData?.UpdateWhenAddVariable(var);
                 return true;
             });
         }
@@ -576,14 +576,15 @@ namespace ConfigEditor
 
             try
             {
-                if (doc.GridData.View == null)
+                if (doc.GridData?.View == null)
                 {
+                    doc.BeanDefine.InitializeListReference(); // XXX
+                    doc.BuildGridData();
+                    doc.GridData.VerifyAll(false);
+
                     TabPage tab = NewTabPage(doc.RelateName);
                     DataGridView grid = (DataGridView)tab.Controls[0];
                     grid.SuspendLayout();
-                    doc.BeanDefine.InitializeListReference(); // XXX
-                    doc.BuildGridData();
-                    doc.GridData.VerifyAll();
                     doc.GridData.View = grid;
                     doc.GridData.SyncToView();
                     tabs.Controls.Add(tab);
@@ -847,7 +848,7 @@ namespace ConfigEditor
                     var doc = gridReload.Tag as Document;
                     doc.GridData.View = null;
                     doc.BuildGridData();
-                    doc.GridData.VerifyAll();
+                    doc.GridData.VerifyAll(false);
                     doc.GridData.View = gridReload;
                     doc.GridData.SyncToView();
 
@@ -861,15 +862,18 @@ namespace ConfigEditor
 
                     gridReload.ResumeLayout();
                 }
-                ReloadGridsAfterFormDefineClosed.Clear();
 
                 if (tabs.SelectedTab != null)
                 {
                     DataGridView grid = tabs.SelectedTab.Controls[0] as DataGridView;
-                    grid.SuspendLayout();
-                    (grid.Tag as Document).GridData.VerifyAll();
-                    grid.ResumeLayout();
+                    if (false == ReloadGridsAfterFormDefineClosed.Contains(grid)) // 如果已经Reload过，就不需要再次VerifyAll。
+                    {
+                        grid.SuspendLayout();
+                        (grid.Tag as Document).GridData.VerifyAll(true);
+                        grid.ResumeLayout();
+                    }
                 }
+                ReloadGridsAfterFormDefineClosed.Clear();
 
                 // 同时显示两个窗口，需要同步数据。不是先这种方案了。
                 // FormDefine.Show();

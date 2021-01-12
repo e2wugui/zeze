@@ -60,8 +60,18 @@ Test
 	* 几千行看看会怎么样。
 
 TODO
-	NewFile 的时候文件不存在，现在 Xml.Load 会失败。
 	去掉 LoadAllDocument 改为按需装载，并且使用过后，在可能的情况下关闭。
+	变量改名，BeanDefine.ref 不仅仅记录数量，改成 File.RelateName + VarName。因为嵌套list，名字编码还没确定。
+		第一层 {File.RelateName}:VarName;
+		file0.BeanLevel0
+			list1: file0.BeanLevel0.BeanList1 -> file0.BeanLevel0-list1
+		file0.BeanLevel0.BeanList1
+			list2: file1.BeanList2 -> file0.BeanLevel0:BeanList1-list2
+		file1.BeanList2
+			list3: file1.BeanList2.BeanList3 -> file1.BeanList2-list3
+		file1.BeanList2.BeanList3
+			var: int
+
 	FormError 还是在 UI-thread 里面执行，只是 AddError RemoveError 根据需要使用 BeginInvoke. 主要看 Verify 是否异步。
 	VerifyAll async，这个比较麻烦。初步考虑，需要 Document 加锁。看实际使用，以后再说了。
 

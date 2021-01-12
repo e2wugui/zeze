@@ -51,7 +51,7 @@ namespace ConfigEditor
 
             foreach (var c in name)
             {
-                if (char.IsWhiteSpace(c) || char.IsSymbol(c) || c == '.')
+                if (char.IsWhiteSpace(c) || char.IsSymbol(c) || c == '.' || c == ';')
                 {
                     return ReportError("char.IsWhiteSpace(c) || char.IsSymbol(c) || c == '.'", type);
                 }

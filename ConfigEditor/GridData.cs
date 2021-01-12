@@ -76,15 +76,6 @@ namespace ConfigEditor
         private List<Column> Columns = new List<Column>();
         private List<Row> Rows = new List<Row>();
 
-        // 这里没有清除 FormError。在 VerifyAll 里面清除。
-        // 如果调用 Clear()，后面又不调用 VerifyAll 。
-        // 需要自己调用 FormMain.Instance.FormError.RemoveErrorByGrid(GridData);
-        public void Clear()
-        {
-            Columns.Clear();
-            Rows.Clear();
-        }
-
         public int IndexOfRow(Row row)
         {
             return Rows.IndexOf(row);
@@ -262,11 +253,12 @@ namespace ConfigEditor
             return -1;
         }
 
-        public void VerifyAll()
+        public void VerifyAll(bool RemoveError)
         {
             try
             {
-                FormMain.Instance.FormError.RemoveErrorByGrid(this);
+                if (RemoveError) // 优化，如果外面上下文已经知道重建了 GridData，就需要再次清除了。
+                    FormMain.Instance.FormError.RemoveErrorByGrid(this);
 
                 for (int rowIndex = 0; rowIndex < RowCount; ++rowIndex)
                 {

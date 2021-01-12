@@ -141,6 +141,9 @@ namespace ConfigEditor
 
         public void RemoveErrorByGrid(GridData gridedit)
         {
+            if (null == gridedit)
+                return;
+
             // 现在只显示打开grid的文件错误。如果要显示所有文件的。
             // 就不能记住Cell的引用，应该使用文件名+(ColIndex, RowIndex)。
             // 但是由于文件会变化，(ColIndex, RowIndex)可能不再准确（看看怎么处理这种情况）。

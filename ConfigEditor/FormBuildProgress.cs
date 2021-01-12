@@ -75,7 +75,7 @@ namespace ConfigEditor
                             ++ErrorCount;
                     };
                     doc.BuildGridData();
-                    doc.GridData.VerifyAll();
+                    doc.GridData.VerifyAll(false);
                     if (ErrorCount > 0)
                     {
                         // 如果有错误，也显示出来。

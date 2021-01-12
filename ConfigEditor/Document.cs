@@ -18,7 +18,7 @@ namespace ConfigEditor
         public BeanDefine BeanDefine { get; private set; } // bean in this file
 
         public List<Bean> Beans { get; } = new List<Bean>();
-        public GridData GridData { get; set; }
+        public GridData GridData { get; private set; }
 
         public bool IsChanged { get; set; } = false;
 
@@ -50,23 +50,12 @@ namespace ConfigEditor
             RelateName = file.RelateName.Replace(System.IO.Path.DirectorySeparatorChar, '.');
             BeanDefine = new BeanDefine(this);
             BeanDefine.Name = file.Name;
-            GridData = new GridData(this);
-        }
-
-        public void Open(bool buildData)
-        {
-            LoadXmlFile();
-            // 必须在 Document 设置之后初始化引用。
-            BeanDefine.InitializeListReference();
-            if (buildData)
-            {
-                BuildGridData();
-            }
         }
 
         public void BuildGridData()
         {
-            GridData.Clear();
+            FormMain.Instance.FormError.RemoveErrorByGrid(GridData);
+            GridData = new GridData(this);
 
             BeanDefine.BuildGridColumns(GridData, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
 
@@ -100,6 +89,7 @@ namespace ConfigEditor
             File.Close(this);
             GridData.View = null;
             FormMain.Instance.FormError.RemoveErrorByGrid(GridData);
+            GridData = null;
         }
 
         public XmlDocument Xml { get; private set; }
