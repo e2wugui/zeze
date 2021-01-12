@@ -32,7 +32,7 @@ namespace ConfigEditor
                 string docpath = File.Parent.RelateName;
                 if (string.IsNullOrEmpty(docpath))
                     return NamespacePrefix;
-                return NamespacePrefix + "." + docpath;
+                return NamespacePrefix + "." + docpath.Replace(Path.DirectorySeparatorChar, '.');
             }
         }
 
@@ -51,8 +51,7 @@ namespace ConfigEditor
             if (tmp.EndsWith(".xml"))
                 tmp = tmp.Substring(0, tmp.Length - 4);
             RelateName = tmp.Replace(System.IO.Path.DirectorySeparatorChar, '.');
-            BeanDefine = new BeanDefine(this);
-            BeanDefine.Name = file.Name;
+            BeanDefine = new BeanDefine(this, file.Name);
         }
 
         public void BuildGridData()

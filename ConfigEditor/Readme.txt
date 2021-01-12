@@ -61,7 +61,7 @@ TODO
 			refby: file1.BeanList2:list3
 			refby: file0.BeanLevel0:BeanList1:list4
 			var: int
-
+	Document.IsChanged：拦截所有的数据Property，在里面设置IsChanged。
 	VerifyAll async，这个比较麻烦。初步考虑，需要 Document 加锁。看实际使用，以后再说了。
 	自动完成: Foreign
 	更多自动完成？

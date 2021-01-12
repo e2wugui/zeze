@@ -895,6 +895,8 @@ namespace ConfigEditor
 
         private void buttonSaveAs_Click(object sender, EventArgs e)
         {
+            //char.IsSeparator
+            MessageBox.Show($":{char.IsPunctuation(':')};{char.IsPunctuation(';')}.{char.IsPunctuation('.')}'{char.IsPunctuation('\'')}\"{char.IsPunctuation('\"')}");
         }
 
         public FormError FormError { get; }

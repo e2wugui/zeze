@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -7,11 +8,27 @@ namespace ConfigEditor
 {
     public class BeanDefine
     {
-        public string Name { get; set; }
+        private string _Name;
+        private SortedDictionary<string, EnumDefine> _EnumDefines = new SortedDictionary<string, EnumDefine>();
+        private SortedDictionary<string, BeanDefine> _BeanDefines = new SortedDictionary<string, BeanDefine>();
+        private List<VarDefine> _Variables = new List<VarDefine>();
+
+        public string Name
+        {
+            get
+            {
+                return _Name;
+            }
+            /*set
+            {
+                _Name = value;
+                Document.IsChanged = true;
+            }*/
+        }
         public string NamePinyin => Tools.ToPinyin(Name);
-        public SortedDictionary<string, EnumDefine> EnumDefines { get; } = new SortedDictionary<string, EnumDefine>();
-        public List<VarDefine> Variables { get; } = new List<VarDefine>();
-        public SortedDictionary<string, BeanDefine> BeanDefines { get; } = new SortedDictionary<string, BeanDefine>();
+        public ReadOnlyDictionary<string, EnumDefine> EnumDefines { get; }
+        public ReadOnlyDictionary<string, BeanDefine> BeanDefines { get; }
+        public ReadOnlyCollection<VarDefine> Variables { get; }
 
         public XmlElement Self { get; private set; }
         public Document Document { get; }
@@ -21,11 +38,11 @@ namespace ConfigEditor
 
         public EnumDefine ChangeEnumName(string oldName, string newName)
         {
-            if (EnumDefines.TryGetValue(oldName, out var e))
+            if (_EnumDefines.TryGetValue(oldName, out var e))
             {
-                EnumDefines.Remove(oldName);
+                _EnumDefines.Remove(oldName);
                 e.Name = newName;
-                EnumDefines.Add(newName, e);
+                _EnumDefines.Add(newName, e);
                 return e;
             }
             return null;
@@ -33,11 +50,11 @@ namespace ConfigEditor
 
         public void InitializeListReference()
         {
-            foreach (var v in Variables)
+            foreach (var v in _Variables)
             {
                 v.InitializeListReference();
             }
-            foreach (var b in BeanDefines.Values)
+            foreach (var b in _BeanDefines.Values)
             {
                 b.InitializeListReference();
             }
@@ -45,11 +62,11 @@ namespace ConfigEditor
 
         public void UpdateForeign(string oldForeign, string newForeign)
         {
-            foreach (var v in Variables)
+            foreach (var v in _Variables)
             {
                 v.UpdateForeign(oldForeign, newForeign);
             }
-            foreach (var b in BeanDefines.Values)
+            foreach (var b in _BeanDefines.Values)
             {
                 b.UpdateForeign(oldForeign, newForeign);
             }
@@ -57,14 +74,14 @@ namespace ConfigEditor
 
         public void Move(VarDefine src, VarDefine before)
         {
-            int srcIndex = Variables.IndexOf(src);
+            int srcIndex = _Variables.IndexOf(src);
             if (srcIndex < 0)
                 return;
-            int beforeIndex = Variables.IndexOf(before);
+            int beforeIndex = _Variables.IndexOf(before);
             if (beforeIndex < 0)
                 return;
-            Variables.RemoveAt(srcIndex);
-            Variables.Insert(beforeIndex, src);
+            _Variables.RemoveAt(srcIndex);
+            _Variables.Insert(beforeIndex, src);
             if (null != src.Self && null != before.Self)
             {
                 XmlNode parent = src.Self.ParentNode;
@@ -101,7 +118,7 @@ namespace ConfigEditor
             if (deps.Contains(this))
                 return true;
 
-            foreach (var b in BeanDefines.Values)
+            foreach (var b in _BeanDefines.Values)
             {
                 if (b.InDepends(deps))
                     return true;
@@ -118,11 +135,11 @@ namespace ConfigEditor
         {
             if (deps.Add(this)) // 因为可能循环引用，只有加入成功才继续变量的 Depends。
             {
-                foreach (var b in BeanDefines.Values)
+                foreach (var b in _BeanDefines.Values)
                 {
                     b.Depends(deps);
                 }
-                foreach (var v in Variables)
+                foreach (var v in _Variables)
                 {
                     v.Depends(deps);
                 }
@@ -158,7 +175,7 @@ namespace ConfigEditor
                     {
                         var.Value = var.FullName();
                         var.Reference = new BeanDefine(Document, var.Name, this);
-                        BeanDefines.Add(var.Name, var.Reference);
+                        _BeanDefines.Add(var.Name, var.Reference);
                         create = true;
                     }
                     else
@@ -174,11 +191,11 @@ namespace ConfigEditor
                     break;
 
                 case VarDefine.EType.Enum:
-                    EnumDefines.Add(var.Name, new EnumDefine(this, var.Name));
+                    _EnumDefines.Add(var.Name, new EnumDefine(this, var.Name));
                     break;
             }
 
-            Variables.Add(var);
+            _Variables.Add(var);
             var.CreateXmlElementIfNeed(); // 调整变量顺序的时候需要这个创建好。
             Document.IsChanged = true;
             return (var, create, "");
@@ -222,7 +239,7 @@ namespace ConfigEditor
         public void CollectFullNameIncludeSubBeanDefine(List<string> result)
         {
             result.Add(FullName());
-            foreach (var sub in BeanDefines.Values)
+            foreach (var sub in _BeanDefines.Values)
             {
                 sub.CollectFullNameIncludeSubBeanDefine(result);
             }
@@ -233,7 +250,7 @@ namespace ConfigEditor
             if (!action(this))
                 return false;
 
-            foreach (var bd in BeanDefines.Values)
+            foreach (var bd in _BeanDefines.Values)
             {
                 if (!bd.ForEach(action))
                     return false;
@@ -245,14 +262,15 @@ namespace ConfigEditor
         {
             if (null == Parent)
                 return null; // root BeanDefine 永远存在
+
             --RefCount;
+            Document.IsChanged = true;
 
             if (RefCount <= 0)
             {
-                Document.IsChanged = true;
                 if (null != Self)
                     Self.ParentNode.RemoveChild(Self);
-                Parent.BeanDefines.Remove(this.Name);
+                Parent._BeanDefines.Remove(this.Name);
                 return this;
             }
             return null;
@@ -268,7 +286,7 @@ namespace ConfigEditor
 
         public VarDefine GetVariable(string name)
         {
-            foreach (var v in Variables)
+            foreach (var v in _Variables)
             {
                 if (v.Name == name)
                     return v;
@@ -278,7 +296,7 @@ namespace ConfigEditor
 
         public BeanDefine GetSubBeanDefine(string name)
         {
-            if (BeanDefines.TryGetValue(name, out var bd))
+            if (_BeanDefines.TryGetValue(name, out var bd))
                 return bd;
             return null;
         }
@@ -296,7 +314,7 @@ namespace ConfigEditor
         public int BuildGridColumns(GridData grid, int columnIndex, ColumnTag tag, int listIndex)
         {
             int colAdded = 0;
-            foreach (var v in Variables)
+            foreach (var v in _Variables)
             {
                 colAdded += v.BuildGridColumns(grid, columnIndex + colAdded, tag, listIndex);
             }
@@ -321,7 +339,10 @@ namespace ConfigEditor
         {
             this.Document = doc;
             this.Parent = parent;
-            this.Name = null != name ? name : doc.Name;
+            this._Name = null != name ? name : doc.Name;
+            EnumDefines = new ReadOnlyDictionary<string, EnumDefine>(_EnumDefines);
+            BeanDefines = new ReadOnlyDictionary<string, BeanDefine>(_BeanDefines);
+            Variables = new ReadOnlyCollection<VarDefine>(_Variables);
         }
 
         public void SaveAs(XmlDocument xml, XmlElement parent, bool create)
@@ -342,17 +363,17 @@ namespace ConfigEditor
             self.SetAttribute("RefCount", RefCount.ToString());
             self.SetAttribute("Locked", Locked.ToString());
 
-            foreach (var e in EnumDefines.Values)
+            foreach (var e in _EnumDefines.Values)
             {
                 e.SaveAs(xml, self, create);
             }
 
-            foreach (var b in BeanDefines.Values)
+            foreach (var b in _BeanDefines.Values)
             {
                 b.SaveAs(xml, self, create);
             }
 
-            foreach (var v in Variables)
+            foreach (var v in _Variables)
             {
                 v.SaveAs(xml, self, create);
             }
@@ -364,9 +385,13 @@ namespace ConfigEditor
             this.Parent = parent;
             this.Self = self;
 
-            Name = self.GetAttribute("name");
+            EnumDefines = new ReadOnlyDictionary<string, EnumDefine>(_EnumDefines);
+            BeanDefines = new ReadOnlyDictionary<string, BeanDefine>(_BeanDefines);
+            Variables = new ReadOnlyCollection<VarDefine>(_Variables);
+
+            _Name = self.GetAttribute("name");
             if (Name.Length == 0)
-                Name = doc.Name;
+                _Name = doc.Name;
             string tmp = self.GetAttribute("RefCount");
             RefCount = tmp.Length > 0 ? int.Parse(tmp) : 0;
             tmp = self.GetAttribute("Locked");
@@ -384,22 +409,47 @@ namespace ConfigEditor
                 {
                     case "BeanDefine":
                         var bdnew = new BeanDefine(Document, e, this);
-                        BeanDefines.Add(bdnew.Name, bdnew);
+                        _BeanDefines.Add(bdnew.Name, bdnew);
                         break;
 
                     case "variable":
-                        Variables.Add(new VarDefine(this, e));
+                        _Variables.Add(new VarDefine(this, e));
                         break;
 
                     case "enum":
                         var enew = new EnumDefine(this, e);
-                        EnumDefines.Add(enew.Name, enew);
+                        _EnumDefines.Add(enew.Name, enew);
                         break;
 
                     default:
                         throw new Exception("node=" + e.Name);
                 }
             }
+        }
+
+        public void RemoveEnumDefines(string name)
+        {
+            if (_EnumDefines.Remove(name))
+                Document.IsChanged = true;
+        }
+
+        public EnumDefine GetEnumDefine(string name)
+        {
+            if (_EnumDefines.TryGetValue(name, out var e))
+                return e;
+            return null;
+        }
+
+        public void AddEnumDefine(EnumDefine def)
+        {
+            _EnumDefines.Add(def.Name, def);
+            Document.IsChanged = true;
+        }
+
+        public void RemoveVariable(VarDefine var)
+        {
+            if (_Variables.Remove(var))
+                Document.IsChanged = true;
         }
     }
 }

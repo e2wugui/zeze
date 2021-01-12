@@ -9,18 +9,121 @@ namespace ConfigEditor
 {
     public class VarDefine
     {
+        private string _Name;
+        private EType _Type = EType.Undecided;
+        private string _Value = "";
+        private string _Foreign;
+        private string _Default;
+        private string _Comment;
+        private int _GridColumnNameWidth;
+        private int _GridColumnValueWidth;
         private string _Properties = "";
 
-        public string Name { get; set; }
-        public EType Type { get; set; } = EType.Undecided;
+        public string Name
+        {
+            get
+            {
+                return _Name;
+            }
+            set
+            {
+                _Name = value;
+                Parent.Document.IsChanged = true;
+            }
+        }
+
+        public EType Type
+        {
+            get
+            {
+                return _Type;
+            }
+            set
+            {
+                _Type = value;
+                Parent.Document.IsChanged = true;
+            }
+        }
         public EType TypeDetected { get; set; } = EType.Undecided; // 在导出数据完成时设置，仅在 Build 流程中使用。
         public EType TypeNow => (Type != EType.Undecided) ? Type : TypeDetected; // 仅在 Build 流程中使用。
-        public string Value { get; set; } = "";
-        public string Foreign { get; set; }
-        public string Default { get; set; }
+        public string Value
+        {
+            get
+            {
+                return _Value;
+            }
+            set
+            {
+                _Value = value;
+                Parent.Document.IsChanged = true;
+            }
+        }
+        public string Foreign
+        {
+            get
+            {
+                return _Foreign;
+            }
+            set
+            {
+                _Foreign = value;
+                Parent.Document.IsChanged = true;
+            }
+        }
+        public string Default
+        {
+            get
+            {
+                return _Default;
+            }
+            set
+            {
+                _Default = value;
+                Parent.Document.IsChanged = true;
+            }
+        }
         public string DefaultPinyin => Tools.ToPinyin(Default);
         public string NamePinyin  => Tools.ToPinyin(Name);
         public List<Property.IProperty> PropertiesList { get; private set; } = new List<Property.IProperty>(); // 优化
+        public string Comment
+        {
+            get
+            {
+                return _Comment;
+            }
+            set
+            {
+                _Comment = value;
+                Parent.Document.IsChanged = true;
+            }
+        }
+        public int GridColumnNameWidth
+        {
+            get
+            {
+                return _GridColumnNameWidth;
+            }
+            set
+            {
+                _GridColumnNameWidth = value;
+                Parent.Document.IsChanged = true;
+            }
+        }
+        public int GridColumnValueWidth
+        {
+            get
+            {
+                return _GridColumnValueWidth;
+            }
+            set
+            {
+                _GridColumnValueWidth = value;
+                Parent.Document.IsChanged = true;
+            }
+        }
+        public XmlElement Self { get; private set; }
+        public BeanDefine Parent { get; }
+        public BeanDefine Reference { get; set; } // type is List
 
         public bool IsKeyable() // 仅在 Build 流程中使用。
         {
@@ -68,8 +171,7 @@ namespace ConfigEditor
                 case EType.Date: return DateTime.TryParse(value, out var _);
                 case EType.Double: return double.TryParse(value, out var _);
                 case EType.Enum:
-                    return Parent.EnumDefines.TryGetValue(Name, out var enumDefine)
-                        && enumDefine.ValueMap.TryGetValue(value, out var _);
+                    return null != Parent.GetEnumDefine(Name)?.GetValueDefine(value);
 
                 case EType.Float: return float.TryParse(value, out var _);
                 case EType.Int: return int.TryParse(value, out var _);
@@ -93,7 +195,7 @@ namespace ConfigEditor
             if (valueType > TypeDetected)
                 TypeDetected = valueType;
         }
-
+        
         public string Properties
         {
             get
@@ -102,11 +204,11 @@ namespace ConfigEditor
             }
             set
             {
-                if (_Properties.Equals(value))
-                    return;
-
-                _Properties = value;
-                PropertiesList = FormMain.Instance.PropertyManager.Parse(_Properties);
+                if (false == _Properties.Equals(value))
+                {
+                    _Properties = value;
+                    PropertiesList = FormMain.Instance.PropertyManager.Parse(_Properties);
+                }
             }
         }
 
@@ -136,15 +238,6 @@ namespace ConfigEditor
             }
         }
 
-        public string Comment { get; set; }
-
-        public int GridColumnNameWidth { get; set; }
-        public int GridColumnValueWidth { get; set; }
-
-        public XmlElement Self { get; private set; }
-        public BeanDefine Parent { get; }
-        public BeanDefine Reference { get; set; } // type is List
-
         public void UpdateForeign(string oldForeign, string newForeign)
         {
             if (string.IsNullOrEmpty(Foreign))
@@ -156,7 +249,8 @@ namespace ConfigEditor
                 Parent.Document.IsChanged = true;
 
                 // 这个方法肯定在 FormDefine 打开时调用。否则下面增加重新 Reload 的代码不会被触发。
-                if (Parent.Document.GridData.View != null)
+                // TODO Foreign 由于改名更新不需要 Reload 吧。需要确认。
+                if (Parent.Document.GridData?.View != null)
                 {
                     FormMain.Instance.ReloadGridsAfterFormDefineClosed.Add(Parent.Document.GridData.View);
                 }
@@ -187,10 +281,10 @@ namespace ConfigEditor
         {
             if (null != Self)
                 Self.ParentNode.RemoveChild(Self);
-            if (Parent.EnumDefines.TryGetValue(Name, out var enumDefine))
-                enumDefine.Delete();
+            var enumDefine = Parent.GetEnumDefine(Name);
+            enumDefine.Delete();
             Parent.Document.IsChanged = true;
-            Parent.Variables.Remove(this);
+            Parent.RemoveVariable(this);
             return (Reference?.DecRefCount(), enumDefine);
         }
 
@@ -429,26 +523,27 @@ namespace ConfigEditor
             this.Self = self;
             this.Parent = bean;
 
-            Name = self.GetAttribute("name");
-            Type = ToEType(self.GetAttribute("type"));
-            Value = self.GetAttribute("value");
+            _Name = self.GetAttribute("name");
+            _Type = ToEType(self.GetAttribute("type"));
+            _Value = self.GetAttribute("value");
 
             string v = self.GetAttribute("nw");
-            this.GridColumnNameWidth = v.Length > 0 ? int.Parse(v) : 0;
+            this._GridColumnNameWidth = v.Length > 0 ? int.Parse(v) : 0;
             v = self.GetAttribute("vw");
-            this.GridColumnValueWidth = v.Length > 0 ? int.Parse(v) : 0;
-            Properties = self.GetAttribute("properties");
-            Default = self.GetAttribute("default");
+            this._GridColumnValueWidth = v.Length > 0 ? int.Parse(v) : 0;
+            _Properties = self.GetAttribute("properties");
+            PropertiesList = FormMain.Instance.PropertyManager.Parse(_Properties);
+            _Default = self.GetAttribute("default");
 
-            Comment = self.GetAttribute("comment");
-            if (Comment.Length == 0)
+            _Comment = self.GetAttribute("comment");
+            if (_Comment.Length == 0)
             {
                 XmlNode c = self.NextSibling;
                 if (c != null && XmlNodeType.Text == c.NodeType)
                 {
-                    Comment = c.InnerText.Trim();
+                    _Comment = c.InnerText.Trim();
                     Regex regex = new Regex("[\r\n]");
-                    Comment = regex.Replace(Comment, "");
+                    _Comment = regex.Replace(_Comment, "");
                 }
             }
         }

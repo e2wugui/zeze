@@ -762,7 +762,7 @@ namespace ConfigEditor
                     }
                 }
             }
-            var.Parent.EnumDefines.Add(enumDefine.Name, enumDefine);
+            var.Parent.AddEnumDefine(enumDefine);
             var.Parent.Document.IsChanged = true;
             InsertEnumDefine(define.RowCount, enumDefine.FullName(), enumDefine);
         }

@@ -14,13 +14,20 @@ namespace ConfigEditor
         public XmlElement Self { get; private set; }
         public BeanDefine Parent { get; }
 
+        public ValueDefine GetValueDefine(string name)
+        {
+            if (ValueMap.TryGetValue(name, out var v))
+                return v;
+            return null;
+        }
+
         public void Delete()
         {
             if (null != Self)
             {
                 Self.ParentNode.RemoveChild(Self);
             }
-            Parent.EnumDefines.Remove(Name);
+            Parent.RemoveEnumDefines(Name);
         }
 
         public string FullNamePinyin()
