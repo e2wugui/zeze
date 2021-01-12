@@ -61,7 +61,26 @@ namespace ConfigEditor
         public delegate void AddErrorAction(GridData.Cell cell, Property.IProperty p, Property.ErrorLevel level, string desc);
         public AddErrorAction OnAddError { get; set; }
 
+        private delegate void DelegateInvoke();
+
         public void AddError(GridData.Cell cell, Property.IProperty p, Property.ErrorLevel level, string desc)
+        {
+            // 在调用线程中回调。
+            if (OnAddError != null)
+                OnAddError(cell, p, level, desc);
+
+            if (this.InvokeRequired)
+            {
+                DelegateInvoke d = delegate { _AddError(cell, p, level, desc); };
+                this.BeginInvoke(d);
+            }
+            else
+            {
+                _AddError(cell, p, level, desc);
+            }
+        }
+
+        private void _AddError(GridData.Cell cell, Property.IProperty p, Property.ErrorLevel level, string desc)
         {
             if (IsDisposed) // 某些 verify 是异步的，可能在窗口关闭后返回。
                 return;
@@ -81,12 +100,22 @@ namespace ConfigEditor
 
             errors.Add(p.Name, new Error() { Level = level, Description = desc, Row = row, });
             UpdateErrorCell(cell, errors);
-
-            if (OnAddError != null)
-                OnAddError(cell, p, level, desc);
         }
 
         public void RemoveError(GridData.Cell cell, Property.IProperty p)
+        {
+            if (this.InvokeRequired)
+            {
+                DelegateInvoke d = delegate { _RemoveError(cell, p); };
+                this.BeginInvoke(d);
+            }
+            else
+            {
+                _RemoveError(cell, p);
+            }
+        }
+
+        private void _RemoveError(GridData.Cell cell, Property.IProperty p)
         {
             if (false == Errors.TryGetValue(cell, out var errors))
                 return;
@@ -140,6 +169,19 @@ namespace ConfigEditor
         }
 
         public void RemoveErrorByGrid(GridData gridedit)
+        {
+            if (this.InvokeRequired)
+            {
+                DelegateInvoke d = delegate { _RemoveErrorByGrid(gridedit); };
+                this.BeginInvoke(d);
+            }
+            else
+            {
+                _RemoveErrorByGrid(gridedit);
+            }
+        }
+
+        private void _RemoveErrorByGrid(GridData gridedit)
         {
             if (null == gridedit)
                 return;

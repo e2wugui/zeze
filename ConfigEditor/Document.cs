@@ -47,7 +47,10 @@ namespace ConfigEditor
         public Document(Documents.File file)
         {
             File = file;
-            RelateName = file.RelateName.Replace(System.IO.Path.DirectorySeparatorChar, '.');
+            var tmp = file.RelateName;
+            if (tmp.EndsWith(".xml"))
+                tmp = tmp.Substring(0, tmp.Length - 4);
+            RelateName = tmp.Replace(System.IO.Path.DirectorySeparatorChar, '.');
             BeanDefine = new BeanDefine(this);
             BeanDefine.Name = file.Name;
         }

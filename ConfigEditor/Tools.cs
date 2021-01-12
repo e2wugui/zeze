@@ -45,15 +45,15 @@ namespace ConfigEditor
                 case "bean":
                 case "list":
                 case "BeanDefine":
-                case "variable":
+                //case "variable":
                     return ReportError(name + " is reserved", type);
             }
 
             foreach (var c in name)
             {
-                if (char.IsWhiteSpace(c) || char.IsSymbol(c) || c == '.' || c == ';')
+                if (char.IsWhiteSpace(c) || char.IsSymbol(c) || c == '.' || c == ';' || c == ':')
                 {
-                    return ReportError("char.IsWhiteSpace(c) || char.IsSymbol(c) || c == '.'", type);
+                    return ReportError("char.IsWhiteSpace(c) || char.IsSymbol(c)", type);
                 }
             }
             return null;

@@ -76,7 +76,8 @@ namespace ConfigEditor
                     Document = doc; // 后续所有的 Open 调用都能看到 Document 了。
                     Loading = null; // 仅仅清除，设置了 Document 变量以后，这个不会被访问了。
                     // 把执行权限交给 FormMain 继续 OpenOrNew
-                    FormMain.Instance.InvokeOpenGrid(doc);
+                    if (isOpenOrNew)
+                        FormMain.Instance.InvokeOpenGrid(doc);
                 });
                 Loading.Start();
                 if (isOpenOrNew)
@@ -186,6 +187,8 @@ namespace ConfigEditor
                 this.RelateName = this.AbsoluteName.Substring(home.Length);
                 if (this.RelateName.StartsWith(System.IO.Path.DirectorySeparatorChar.ToString()))
                     this.RelateName = this.RelateName.Substring(1);
+                if (this.RelateName.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString()))
+                    this.RelateName = this.RelateName.Substring(0, this.RelateName.Length - 1);
                 this.Name = System.IO.Path.GetFileName(path);
                 this.Parent = parent;
             }

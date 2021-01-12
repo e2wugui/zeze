@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,25 +10,31 @@ namespace ConfigEditor.Gen.cs
 {
     public class Main
     {
-        public static void Gen(FormMain main, Property.DataOutputFlags flags)
+        public static void Gen(FormMain main, Property.DataOutputFlags flags, FormBuildProgress progress)
         {
             switch (flags)
             {
                 case Property.DataOutputFlags.Server:
                     main.Documents.ForEachFile((Documents.File file) =>
                     {
+                        progress.AppendLine($"生成cs服务器代码. {file.Document.RelateName}", Color.Black);
                         BeanFormatter.Gen(main.ConfigProject.ServerSrcDirectory, file.Document, Property.DataOutputFlags.Server);
-                        return true;
+                        return progress.Running;
                     });
+                    if (false == progress.Running)
+                        return;
                     GenManager(main, main.ConfigProject.ServerSrcDirectory);
                     break;
 
                 case Property.DataOutputFlags.Client:
                     main.Documents.ForEachFile((Documents.File file) =>
                     {
+                        progress.AppendLine($"生成cs客户端代码. {file.Document.RelateName}", Color.Black);
                         BeanFormatter.Gen(main.ConfigProject.ClientSrcDirectory, file.Document, Property.DataOutputFlags.Client);
-                        return true;
+                        return progress.Running;
                     });
+                    if (false == progress.Running)
+                        return;
                     GenManager(main, main.ConfigProject.ClientSrcDirectory);
                     break;
             }

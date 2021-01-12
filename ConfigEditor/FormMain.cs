@@ -561,15 +561,15 @@ namespace ConfigEditor
         }
         */
 
-        private delegate void DelegateOpenGrid();
+        private delegate void DelegateVoid();
 
-        public void InvokeOpenGrid(Document doc)
+        public void InvokeOpenGrid(Document doc, bool select = true)
         {
-            DelegateOpenGrid d = delegate { OpenGrid(doc); };
+            DelegateVoid d = delegate { OpenGrid(doc, select); };
             this.BeginInvoke(d);
         }
 
-        private void OpenGrid(Document doc)
+        private void OpenGrid(Document doc, bool select = true)
         {
             if (null == doc)
                 return;
@@ -578,9 +578,12 @@ namespace ConfigEditor
             {
                 if (doc.GridData?.View == null)
                 {
-                    doc.BeanDefine.InitializeListReference(); // XXX
-                    doc.BuildGridData();
-                    doc.GridData.VerifyAll(false);
+                    if (doc.GridData == null)
+                    {
+                        doc.BeanDefine.InitializeListReference(); // XXX
+                        doc.BuildGridData();
+                        doc.GridData.VerifyAll(false);
+                    }
 
                     TabPage tab = NewTabPage(doc.RelateName);
                     DataGridView grid = (DataGridView)tab.Controls[0];
@@ -588,7 +591,8 @@ namespace ConfigEditor
                     doc.GridData.View = grid;
                     doc.GridData.SyncToView();
                     tabs.Controls.Add(tab);
-                    tabs.SelectedTab = tab;
+                    if (select)
+                        tabs.SelectedTab = tab;
                     grid.ResumeLayout();
                     grid.Tag = doc;
                 }
@@ -891,8 +895,6 @@ namespace ConfigEditor
 
         private void buttonSaveAs_Click(object sender, EventArgs e)
         {
-            FormTest test = new FormTest();
-            test.ShowDialog();
         }
 
         public FormError FormError { get; }
@@ -901,6 +903,15 @@ namespace ConfigEditor
         {
             FormError.Show();
             FormError.BringToFront();
+        }
+
+        public void OpenedDataGridViewDepends(HashSet<BeanDefine> deps)
+        { 
+            foreach (var tab in tabs.Controls)
+            {
+                var doc = (tab as TabPage).Controls[0].Tag as Document;
+                doc.BeanDefine.Depends(deps);
+            }
         }
 
         private void toolStripButtonClose_Click(object sender, EventArgs e)
@@ -1031,6 +1042,12 @@ namespace ConfigEditor
         private void FormMain_Deactivate(object sender, EventArgs e)
         {
             FormPopup?.Hide();
+        }
+
+        public void InvokeShowFormError()
+        {
+            DelegateVoid d = delegate { this.FormError.Show(); };
+            this.BeginInvoke(d);
         }
     }
 }

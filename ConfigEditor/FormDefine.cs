@@ -670,6 +670,7 @@ namespace ConfigEditor
                         UpdateEnumDefine(var.Parent.ChangeEnumName(var.Name, newVarName));
                         var.Name = newVarName;
                         var.Parent.Document.IsChanged = true;
+                        // TODO 还需要更新 var 所在 BeanDefine 的名字，以及相关引用。好像就实现 Bean 改名了。 
                         FormMain.Instance.ReloadAllGridIfContains(var);
                     }
                     break;

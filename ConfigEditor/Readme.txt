@@ -25,25 +25,7 @@
 	变量(列)改名需要搜索全部配置，不大好优化。使用时注意;
 
 Test
-	* NEW foreign 校验加入了。
-	* NEW 变量改名。会更新Foreign和数据。涉及全局搜索，大量配置时，可能很慢。
 	* BUG 保存了FormError的窗口位置。但是有时会变成初始化的位置。
-
-	2021/1/4
-	* NEW Build 加入错误检查。如果有错误，中断执行。
-	* BUG FormError 在根据 Grid 删除错误时没有恢复 Cell 的状态。
-
-	2021/1/5
-	* NEW Add “Date” Type
-	* NEW typescript gen 数据生成在代码中。
-	* NEW lua gen 数据生成在代码中。生成代码没有执行过。
-	* NEW Add Var.Default。
-
-	2021/1/6
-	* NEW enum
-
-	2021/1/7
-	* CHANGE OpenDocument 重构。处理一个目录下的子目录名和文件名（不含后缀）相同的情况。正常使用禁止发生。
 
 	2021/1/10
 	* CHANGE 重构：DataGridView 改成 VirtualMode。改动较大，有可能的话帮我回归测试一下。
@@ -53,28 +35,34 @@ Test
 	* NEW 工作时，在Home下生成一个文件，用来避免同时（本机）编辑。
 
 	2021/1/12
-	* CHANGE 装载文档增加异步模式。用于打开（新建）文件时。其他时候还是同步装载。
-	* CHANGE Build 改成 async，但实际上只有一个线程在执行，就是为了显示进度和可以取消。
+	* CHANGE 装载文档增加异步模式。用于打开文件时。其他时候还是同步装载。
+	* Build 改成 async，实际上只有一个线程在执行，就是为了显示进度和可以取消。
+	* Build 后，关闭掉没有打开View及被View依赖的Document。
+	* FormError 还是在 UI-thread 里面执行，只是 AddError RemoveError 根据需要使用 BeginInvoke. 
 
 性能
 	* 几千行看看会怎么样。
 
 TODO
-	去掉 LoadAllDocument 改为按需装载，并且使用过后，在可能的情况下关闭。
+	FormBuildProgress 错误的时候显示红色。
+	变量改名 还需要更新 var 所在 BeanDefine 的名字，以及相关引用。好像就实现 Bean 改名了。
 	变量改名，BeanDefine.ref 不仅仅记录数量，改成 File.RelateName + VarName。因为嵌套list，名字编码还没确定。
 		第一层 {File.RelateName}:VarName;
 		file0.BeanLevel0
-			list1: file0.BeanLevel0.BeanList1 -> file0.BeanLevel0-list1
+			list1: file0.BeanLevel0.BeanList1 -> file0.BeanLevel0:list1
 		file0.BeanLevel0.BeanList1
-			list2: file1.BeanList2 -> file0.BeanLevel0:BeanList1-list2
+			refby file0.BeanLevel0:list1;
+			list2: file1.BeanList2 -> file0.BeanLevel0:BeanList1:list2
+			list4: file1.BeanList2.BeanList3 -> file0.BeanLevel0:BeanList1:list4
 		file1.BeanList2
-			list3: file1.BeanList2.BeanList3 -> file1.BeanList2-list3
+			refby: file0.BeanLevel0:BeanList1:list2
+			list3: file1.BeanList2.BeanList3 -> file1.BeanList2:list3
 		file1.BeanList2.BeanList3
+			refby: file1.BeanList2:list3
+			refby: file0.BeanLevel0:BeanList1:list4
 			var: int
 
-	FormError 还是在 UI-thread 里面执行，只是 AddError RemoveError 根据需要使用 BeginInvoke. 主要看 Verify 是否异步。
 	VerifyAll async，这个比较麻烦。初步考虑，需要 Document 加锁。看实际使用，以后再说了。
-
 	自动完成: Foreign
 	更多自动完成？
 		普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。

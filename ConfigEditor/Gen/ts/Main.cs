@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,15 +9,16 @@ namespace ConfigEditor.Gen.ts
 {
     public class Main
     {
-        public static void Gen(FormMain main, Property.DataOutputFlags flags)
+        public static void Gen(FormMain main, Property.DataOutputFlags flags, FormBuildProgress progress)
         {
             switch (flags)
             {
                 case Property.DataOutputFlags.Client:
                     main.Documents.ForEachFile((Documents.File file) =>
                     {
+                        progress.AppendLine($"生成ts客户端代码. {file.Document.RelateName}", Color.Black);
                         BeanFormatter.Gen(main.ConfigProject.ClientSrcDirectory, file.Document, Property.DataOutputFlags.Client);
-                        return true;
+                        return progress.Running;
                     });
                     break;
                 default:
