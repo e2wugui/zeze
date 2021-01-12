@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -293,9 +294,39 @@ namespace ConfigEditor
             return Root.ForEachFile(action);
         }
 
-        public void LoadAllDocument()
+        public void LoadAllDocument(FormBuildProgress progress = null)
         {
-            ForEachFile((File file) => { file.Open(); return true; });
+            ForEachFile((File file) =>
+            {
+                if (file.Document == null)
+                {
+                    file.Open();
+                    progress?.AppendLine($"Load  {file.Document.RelateName}", Color.Black);
+                }
+                return true;
+            });
+        }
+
+        public static void CloseNotDependsByView()
+        {
+            HashSet<BeanDefine> deps = new HashSet<BeanDefine>();
+            foreach (var tab in FormMain.Instance.Tabs.Controls)
+            {
+                var doc = (tab as TabPage).Controls[0].Tag as Document;
+                doc.BeanDefine.Depends(deps);
+            }
+            HashSet<Document> docs = new HashSet<Document>();
+            foreach (var bean in deps)
+            {
+                docs.Add(bean.Document);
+            }
+            FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
+            {
+                if (docs.Contains(file.Document))
+                    return true;
+                file.Document.Close();
+                return true;
+            });
         }
     }
 }

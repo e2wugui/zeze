@@ -905,15 +905,6 @@ namespace ConfigEditor
             FormError.BringToFront();
         }
 
-        public void OpenedDataGridViewDepends(HashSet<BeanDefine> deps)
-        { 
-            foreach (var tab in tabs.Controls)
-            {
-                var doc = (tab as TabPage).Controls[0].Tag as Document;
-                doc.BeanDefine.Depends(deps);
-            }
-        }
-
         private void toolStripButtonClose_Click(object sender, EventArgs e)
         {
             var seltab = tabs.SelectedTab;

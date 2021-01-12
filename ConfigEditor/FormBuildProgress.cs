@@ -56,21 +56,7 @@ namespace ConfigEditor
         private async void AsyncBuild()
         {
             await Task.Run(() => Build());
-            HashSet<BeanDefine> deps = new HashSet<BeanDefine>();
-            FormMain.Instance.OpenedDataGridViewDepends(deps);
-            HashSet<Document> docs = new HashSet<Document>();
-            foreach (var bean in deps)
-            {
-                docs.Add(bean.Document);
-            }
-            FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
-            {
-                if (docs.Contains(file.Document))
-                    return true;
-                //this.AppendLine($"关闭 {file.Document.RelateName}", Color.Red);
-                file.Document.Close();
-                return true;
-            });
+            Documents.CloseNotDependsByView();
             this.AppendLine($"Build 结束.", Color.Blue);
             buttonBreak.Text = "关闭";
         }
@@ -80,7 +66,7 @@ namespace ConfigEditor
             try
             {
                 FormMain.Instance.SaveAll();
-                FormMain.Instance.Documents.LoadAllDocument();
+                FormMain.Instance.Documents.LoadAllDocument(this);
 
                 // verify
                 FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
