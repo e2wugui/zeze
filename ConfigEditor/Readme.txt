@@ -35,21 +35,24 @@ Test
 	* NEW 工作时，在Home下生成一个文件，用来避免同时（本机）编辑。
 
 	2021/1/12
-	* CHANGE 装载文档增加异步模式。用于打开文件时。其他时候还是同步装载。
-	* Build 改成 async，实际上只有一个线程在执行，就是为了显示进度和可以取消。
-	* Build 后，关闭掉没有打开View及被View依赖的Document。
-	* FormError 还是在 UI-thread 里面执行，只是 AddError RemoveError 根据需要使用 BeginInvoke. 
-	* FormBuildProgress 显示彩色。
+	装载文档增加异步模式。用于打开文件时。其他时候还是同步装载。
+	Build 改成 async，实际上只有一个线程在执行，就是为了显示进度和可以取消。
+	Build 后，关闭掉没有打开View及被View依赖的Document。
+	FormError 还是在 UI-thread 里面执行，只是 AddError RemoveError 根据需要使用 BeginInvoke. 
+	FormBuildProgress 显示彩色。
 
 	2021/1/13
 	Document.IsChanged：拦截所有的public Property，在里面设置IsChanged。保护一下成员变量，免得以后不好维护。
+	BeanDefine 引用计数改成 List，记录 ReferenceFrom。准备用来优化”变量改名“，”Bean改名“，”文件改名“。
 
 性能
 	* 几千行看看会怎么样。
 
 TODO
+	查看所有的 Documents.ForEachFile，确认是否可以用 ReferenceFrom。
 	变量改名 还需要更新 var 所在 BeanDefine 的名字，以及相关引用。好像就实现 Bean 改名了。
 	变量改名，BeanDefine.ref 不仅仅记录数量，改成 File.RelateName + VarName。因为嵌套list，名字编码还没确定。
+	Bean改名。需要搜索引用。
 		第一层 {File.RelateName}:VarName;
 		file0.BeanLevel0
 			list1: file0.BeanLevel0.BeanList1 -> file0.BeanLevel0:list1
@@ -70,6 +73,5 @@ TODO
 	更多自动完成？
 		普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
 	id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
-	Bean改名。需要搜索引用。
 	SaveAs
 	enum 现在不支持引用在其他地方定义的，有需要了再来加。

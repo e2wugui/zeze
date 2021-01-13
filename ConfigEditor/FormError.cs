@@ -65,6 +65,9 @@ namespace ConfigEditor
 
         public void AddError(GridData.Cell cell, Property.IProperty p, Property.ErrorLevel level, string desc)
         {
+            if (IsDisposed) // 某些 verify 是异步的，可能在窗口关闭后返回。
+                return;
+
             // 在调用线程中回调。
             if (OnAddError != null)
                 OnAddError(cell, p, level, desc);
@@ -82,9 +85,6 @@ namespace ConfigEditor
 
         private void _AddError(GridData.Cell cell, Property.IProperty p, Property.ErrorLevel level, string desc)
         {
-            if (IsDisposed) // 某些 verify 是异步的，可能在窗口关闭后返回。
-                return;
-
             if (false == Errors.TryGetValue(cell, out var errors))
                 Errors.Add(cell, errors = new SortedDictionary<string, Error>());
 
@@ -104,6 +104,9 @@ namespace ConfigEditor
 
         public void RemoveError(GridData.Cell cell, Property.IProperty p)
         {
+            if (IsDisposed) // 某些 verify 是异步的，可能在窗口关闭后返回。
+                return;
+
             if (this.InvokeRequired)
             {
                 DelegateInvoke d = delegate { _RemoveError(cell, p); };

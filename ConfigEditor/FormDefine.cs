@@ -59,7 +59,13 @@ namespace ConfigEditor
         private void LoadDocument(Document doc)
         {
             SortedDictionary<string, BeanDefine> BeanDefines = new SortedDictionary<string, BeanDefine>();
-            doc.BeanDefine.ForEach((BeanDefine bd) => { BeanDefines.Add(bd.FullName(), bd); return true; });
+            doc.BeanDefine.ForEach((BeanDefine bd) =>
+            {
+                if (bd.NamespaceOnly)
+                    return true; // skip
+                BeanDefines.Add(bd.FullName(), bd);
+                return true;
+            });
 
             SortedDictionary<string, EnumDefine> EnumDefines = new SortedDictionary<string, EnumDefine>();
             define.SuspendLayout();
@@ -235,15 +241,21 @@ namespace ConfigEditor
 
         private void DeleteVariable(int rowIndex, VarDefine var, bool confirm)
         {
-            var (beanDeleted, enumDeleted) = FormMain.Instance.DeleteVariable(var, confirm);
+            var deletedBeanDefines = new HashSet<BeanDefine>();
+            var deletedEnumDefines = new HashSet<EnumDefine>();
+            FormMain.Instance.DeleteVariable(var, confirm, deletedBeanDefines, deletedEnumDefines);
 
             define.SuspendLayout();
             define.Rows.RemoveAt(rowIndex);
-            if (null != beanDeleted && IsLoadedDocument(beanDeleted.Document))
+            foreach (var beanDefine in deletedBeanDefines)
             {
+                if (!IsLoadedDocument(beanDefine.Document))
+                    continue;
+
                 // remove bean
-                DeleteRowsByBeanLockedTag(beanDeleted);
-                beanDeleted.ForEach((BeanDefine bd) =>
+                DeleteRowsByBeanLockedTag(beanDefine);
+                /*
+                beanDefine.ForEach((BeanDefine bd) =>
                 {
                     foreach (var enumdef in bd.EnumDefines.Values)
                     {
@@ -252,8 +264,14 @@ namespace ConfigEditor
                     }
                     return true;
                 });
+                */
             }
-            DeleteRowsByBeanLockedTag(enumDeleted);
+            foreach (var enumDefine in deletedEnumDefines)
+            {
+                if (!IsLoadedDocument(enumDefine.Parent.Document))
+                    continue;
+                DeleteRowsByBeanLockedTag(enumDefine);
+            }
             define.ResumeLayout();
         }
 

@@ -244,6 +244,7 @@ namespace ConfigEditor
 
         public void UpdateWhenAddVariable(VarDefine var)
         {
+            // TODO 只更新 RefBy 的地方。
             Documents.ForEachFile((Documents.File file) =>
             { 
                 file.Document?.GridData?.UpdateWhenAddVariable(var);
@@ -578,7 +579,7 @@ namespace ConfigEditor
                 {
                     if (doc.GridData == null)
                     {
-                        doc.BeanDefine.InitializeListReference(); // XXX
+                        doc.BeanDefine.InitializeReference(); // XXX
                         doc.BuildGridData();
                         doc.GridData.VerifyAll(false);
                     }
@@ -723,29 +724,30 @@ namespace ConfigEditor
             contextMenuStrip1.Show(grid, grid.PointToClient(Cursor.Position));
         }
 
-        public (BeanDefine, EnumDefine) DeleteVariable(VarDefine var, bool confirm)
+        public void DeleteVariable(VarDefine var, bool confirm,
+            HashSet<BeanDefine> deletedBeanDefines, HashSet<EnumDefine> deletedEnumDefines)
         {
             if (var.Parent.Locked)
             {
                 MessageBox.Show("bean is Locked");
-                return (null, null);
+                return;
             }
 
             if (confirm)
             {
                 if (DialogResult.OK != MessageBox.Show("确定删除？所有引用该列的数据也会被删除。", "确认", MessageBoxButtons.OKCancel))
-                    return (null, null);
+                    return;
             }
 
-            // delete data and column, all reference(opened grid).
+            // TODO delete data and column, all reference.
             Documents.ForEachFile((Documents.File file) =>
             {
-                file.Document?.GridData.DeleteVariable(var);
+                file.Document?.GridData?.DeleteVariable(var);
                 return true;
             });
 
             // delete define
-            return var.Delete();
+            var.Delete(deletedBeanDefines, deletedEnumDefines);
         }
 
         private void deleteVariableColumnToolStripMenuItem_Click(object sender, EventArgs e)
@@ -765,7 +767,7 @@ namespace ConfigEditor
                 case ColumnTag.ETag.ListEnd:
                 case ColumnTag.ETag.ListStart:
                 case ColumnTag.ETag.Normal:
-                    DeleteVariable(tag.PathLast.Define, true);
+                    DeleteVariable(tag.PathLast.Define, true, null, null);
                     break;
             }
         }

@@ -58,6 +58,7 @@ namespace ConfigEditor
                 Parent.Document.IsChanged = true;
             }
         }
+
         public string Foreign
         {
             get
@@ -66,10 +67,26 @@ namespace ConfigEditor
             }
             set
             {
+                Reference?.RemoveReferenceFrom(this, null, null);
                 _Foreign = value;
+                InitializeForeignReference();
                 Parent.Document.IsChanged = true;
             }
         }
+
+        private void InitializeForeignReference()
+        {
+            if (Type == EType.List)
+                throw new Exception("Error: setup foreign to list.");
+
+            if (false == string.IsNullOrEmpty(_Foreign))
+            {
+                var foreign = _Foreign.Substring(0, _Foreign.IndexOf(':'));
+                Reference = FormMain.Instance.Documents.SearchReference(foreign);
+                Reference?.AddReferenceFrom(this, BeanDefine.ReferenceFrom.Reasons.Foreign);
+            }
+        }
+
         public string Default
         {
             get
@@ -278,15 +295,21 @@ namespace ConfigEditor
             return null;
         }
 
-        public (BeanDefine, EnumDefine) Delete()
+        // deletedEnumDefines 现在只能用于 var 本身，没有被其他地方引用，所以最多只返回一个。
+        // deletedBeanDefines 可能多个，也可能是其他配置文件里面的定义。
+        public void Delete(HashSet<BeanDefine> deletedBeanDefines, HashSet<EnumDefine> deletedEnumDefines)
         {
             if (null != Self)
                 Self.ParentNode.RemoveChild(Self);
             var enumDefine = Parent.GetEnumDefine(Name);
-            enumDefine.Delete();
-            Parent.Document.IsChanged = true;
+            if (null != enumDefine)
+            {
+                enumDefine.Delete();
+                deletedEnumDefines?.Add(enumDefine);
+            }
             Parent.RemoveVariable(this);
-            return (Reference?.DecRefCount(), enumDefine);
+            Reference?.RemoveReferenceFrom(this, deletedBeanDefines, deletedEnumDefines);
+            Parent.Document.IsChanged = true;
         }
 
         public enum EType
@@ -345,7 +368,7 @@ namespace ConfigEditor
             }
         }
 
-        // return null if check ok
+        // return null if check ok // foreign.Reference 已经初始化了，这里要不要使用？
         public string OpenForeign(out VarDefine foreignVar)
         {
             return OpenForeign(Foreign, out foreignVar);
@@ -381,13 +404,17 @@ namespace ConfigEditor
             return null;
         }
 
-        public void InitializeListReference()
+        public void InitializeReference()
         {
             if (Type == EType.List)
             {
                 Reference = FormMain.Instance.Documents.SearchReference(Value);
                 if (null == Reference)
                     throw new Exception("list reference bean not found: " + Value);
+            }
+            else
+            {
+                InitializeForeignReference();
             }
         }
 
@@ -527,6 +554,7 @@ namespace ConfigEditor
             _Name = self.GetAttribute("name");
             _Type = ToEType(self.GetAttribute("type"));
             _Value = self.GetAttribute("value");
+            _Foreign = self.GetAttribute("foreign");
 
             string v = self.GetAttribute("nw");
             this._GridColumnNameWidth = v.Length > 0 ? int.Parse(v) : 0;

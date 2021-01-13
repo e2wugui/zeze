@@ -3,5 +3,5 @@
   "DataOutputDirectory": "../Output/Data",
   "ServerSrcDirectory": "../Output/ServerSrc",
   "ClientSrcDirectory": "../Output/ClientSrc",
-  "ClientLanguage": "lua"
+  "ClientLanguage": "cs"
 }

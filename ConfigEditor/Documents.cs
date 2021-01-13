@@ -49,7 +49,7 @@ namespace ConfigEditor
                     Document = Load(isOpenOrNew);
                     // 必须在 Document 设置之后初始化引用。
                     // XXX 异步装载，在 FormMain.OpenGrid 里面调用这个。
-                    Document?.BeanDefine.InitializeListReference();
+                    Document?.BeanDefine.InitializeReference();
                 }
                 else
                 {
@@ -322,6 +322,8 @@ namespace ConfigEditor
             }
             FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
             {
+                if (null == file.Document)
+                    return true;
                 if (docs.Contains(file.Document))
                     return true;
                 file.Document.Close();

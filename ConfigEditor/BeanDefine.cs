@@ -9,11 +9,63 @@ namespace ConfigEditor
     public class BeanDefine
     {
         private string _Name;
-        private int RefCount = 1;
+        private Dictionary<string, ReferenceFrom> _ReferenceFroms = new Dictionary<string, ReferenceFrom>();
         private bool _Locked = false;
         private SortedDictionary<string, EnumDefine> _EnumDefines = new SortedDictionary<string, EnumDefine>();
         private SortedDictionary<string, BeanDefine> _BeanDefines = new SortedDictionary<string, BeanDefine>();
         private List<VarDefine> _Variables = new List<VarDefine>();
+
+        // 此类定义已经没人引用了，但是由于存在嵌套的类，不能删除。
+        // 此时 FormDefine 不显示编辑这样的类定义。
+        public bool NamespaceOnly => _ReferenceFroms.Count == 0 && Parent != null;
+        public ReadOnlyDictionary<string, ReferenceFrom> ReferenceFroms { get; }
+        public class ReferenceFrom
+        {
+            public enum Reasons
+            {
+                List,
+                Foreign,
+            }
+
+            public string FullName { get; }
+            public string VarName { get; }
+            public Reasons Reason { get; }
+
+            public XmlElement Self { get; private set; }
+
+            public ReferenceFrom(string fullName, string varName, Reasons reason)
+            {
+                FullName = fullName;
+                VarName = varName;
+                Reason = reason;
+            }
+
+            public void SaveAs(XmlDocument xml, XmlElement parent, bool create)
+            {
+                XmlElement self = create ? null : Self;
+
+                if (null == self)
+                {
+                    self = xml.CreateElement("ReferenceFrom");
+                    parent.AppendChild(self);
+                    if (false == create)
+                        Self = self;
+                }
+
+                self.SetAttribute("FullName", FullName);
+                self.SetAttribute("VarName", VarName);
+                self.SetAttribute("Reason", System.Enum.GetName(typeof(Reasons), Reason));
+            }
+
+            public ReferenceFrom(XmlElement self)
+            {
+                this.Self = self;
+
+                FullName = self.GetAttribute("FullName");
+                VarName = self.GetAttribute("VarName");
+                Reason = (Reasons)System.Enum.Parse(typeof(Reasons), self.GetAttribute("Reason"));
+            }
+        }
 
         public string Name
         {
@@ -60,15 +112,15 @@ namespace ConfigEditor
             return null;
         }
 
-        public void InitializeListReference()
+        public void InitializeReference()
         {
             foreach (var v in _Variables)
             {
-                v.InitializeListReference();
+                v.InitializeReference();
             }
             foreach (var b in _BeanDefines.Values)
             {
-                b.InitializeListReference();
+                b.InitializeReference();
             }
         }
 
@@ -159,7 +211,6 @@ namespace ConfigEditor
         }
         /// <summary>
         /// AddVariable
-        /// return null means successed.
         /// </summary>
         /// <param name="name"></param>
         /// <param name="type"></param>
@@ -186,8 +237,18 @@ namespace ConfigEditor
                     if (string.IsNullOrEmpty(reference))
                     {
                         var.Value = var.FullName();
-                        var.Reference = new BeanDefine(Document, var.Name, this);
-                        _BeanDefines.Add(var.Name, var.Reference);
+                        if (_BeanDefines.TryGetValue(var.Name, out var exist))
+                        {
+                            if (false == exist.NamespaceOnly)
+                                return (null, false, $"尝试为变量'{var.Name}'创建一个 BeanDefine 失败：已经存在。");
+                        }
+                        else
+                        {
+                            exist = new BeanDefine(Document, var.Name, this);
+                            _BeanDefines.Add(var.Name, exist);
+                        }
+                        var.Reference = exist;
+                        exist.AddReferenceFrom(var, ReferenceFrom.Reasons.List);
                         create = true;
                     }
                     else
@@ -198,7 +259,7 @@ namespace ConfigEditor
                             return (null, false, "list reference bean not found.");
                         }
                         var.Reference = r;
-                        r.AddRefCount();
+                        r.AddReferenceFrom(var, ReferenceFrom.Reasons.List);
                     }
                     break;
 
@@ -270,29 +331,65 @@ namespace ConfigEditor
             return true;
         }
 
-        public BeanDefine DecRefCount()
+        private bool Deleting = false;
+
+        private void TryDeleteThis(HashSet<BeanDefine> deletedBeanDefines, HashSet<EnumDefine> deletedEnumDefines)
         {
-            if (null == Parent)
-                return null; // root BeanDefine 永远存在
-
-            --RefCount;
-            Document.IsChanged = true;
-
-            if (RefCount <= 0)
+            // 删除类定义的时候，一路往上找，把能删除的都删除。就像删除空目录。
+            for (var cur = this; null != cur; cur = cur.Parent)
             {
-                if (null != Self)
-                    Self.ParentNode.RemoveChild(Self);
-                Parent._BeanDefines.Remove(this.Name);
-                return this;
+                if (null == cur.Parent || Deleting)
+                    return; // never delete root bean
+
+                if (cur._ReferenceFroms.Count > 0)
+                    break;
+
+                Deleting = true; // var.Delete 会递归
+                try
+                {
+                    foreach (var var in _Variables.ToArray())
+                    {
+                        var.Delete(deletedBeanDefines, deletedEnumDefines);
+                    }
+                }
+                finally
+                {
+                    Deleting = false;
+                }
+
+                // 仍然有子类，说明里面的类被其他地方引用了。
+                // 此时 This 作用变成一个名字空间。
+                if (cur._BeanDefines.Count > 0)
+                    break;
+
+                if (null != cur.Self)
+                    cur.Self.ParentNode.RemoveChild(cur.Self);
+                cur.Parent._BeanDefines.Remove(cur.Name);
+                deletedBeanDefines?.Add(cur);
             }
-            return null;
         }
 
-        public void AddRefCount()
+        // 如果由于不再被引用，需要删除类定义时，返回this，否则返回null。
+        public void RemoveReferenceFrom(VarDefine var,
+            HashSet<BeanDefine> deletedBeanDefines, HashSet<EnumDefine> deletedEnumDefines)
         {
-            if (null == Parent)
-                return; // root BeanDefine 永远存在
-            ++RefCount;
+            var fullName = var.Parent.FullName();
+            var referenceFromKey = $"{fullName}:{var.Name}";
+            if (_ReferenceFroms.TryGetValue(referenceFromKey, out var exist))
+            {
+                if (null != exist.Self)
+                    exist.Self.ParentNode.RemoveChild(exist.Self);
+                _ReferenceFroms.Remove(referenceFromKey);
+                // 本来想Foreign弄成弱引用，由于Foreign只能引用root，肯定不会被删除。强弱就无所谓了。
+                TryDeleteThis(deletedBeanDefines, deletedEnumDefines);
+                Document.IsChanged = true;
+            }
+        }
+
+        public void AddReferenceFrom(VarDefine var, ReferenceFrom.Reasons reason)
+        {
+            var fullName = var.Parent.FullName();
+            _ReferenceFroms.Add($"{fullName}:{var.Name}", new ReferenceFrom(fullName, var.Name, reason));
             Document.IsChanged = true;
         }
 
@@ -355,6 +452,7 @@ namespace ConfigEditor
             EnumDefines = new ReadOnlyDictionary<string, EnumDefine>(_EnumDefines);
             BeanDefines = new ReadOnlyDictionary<string, BeanDefine>(_BeanDefines);
             Variables = new ReadOnlyCollection<VarDefine>(_Variables);
+            ReferenceFroms = new ReadOnlyDictionary<string, ReferenceFrom>(_ReferenceFroms);
         }
 
         public void SaveAs(XmlDocument xml, XmlElement parent, bool create)
@@ -372,9 +470,12 @@ namespace ConfigEditor
             if (Parent != null) // root BeanDefine 自动设置成文件名。
                 self.SetAttribute("name", Name);
 
-            self.SetAttribute("RefCount", RefCount.ToString());
             self.SetAttribute("Locked", Locked.ToString());
 
+            foreach (var r in _ReferenceFroms.Values)
+            {
+                r.SaveAs(xml, self, create);
+            }
             foreach (var e in _EnumDefines.Values)
             {
                 e.SaveAs(xml, self, create);
@@ -400,13 +501,12 @@ namespace ConfigEditor
             EnumDefines = new ReadOnlyDictionary<string, EnumDefine>(_EnumDefines);
             BeanDefines = new ReadOnlyDictionary<string, BeanDefine>(_BeanDefines);
             Variables = new ReadOnlyCollection<VarDefine>(_Variables);
+            ReferenceFroms = new ReadOnlyDictionary<string, ReferenceFrom>(_ReferenceFroms);
 
             _Name = self.GetAttribute("name");
             if (Name.Length == 0)
                 _Name = doc.Name;
-            string tmp = self.GetAttribute("RefCount");
-            RefCount = tmp.Length > 0 ? int.Parse(tmp) : 0;
-            tmp = self.GetAttribute("Locked");
+            string tmp = self.GetAttribute("Locked");
             _Locked = tmp.Length > 0 ? bool.Parse(tmp) : false;
 
             XmlNodeList childNodes = self.ChildNodes;
@@ -431,6 +531,11 @@ namespace ConfigEditor
                     case "enum":
                         var enew = new EnumDefine(this, e);
                         _EnumDefines.Add(enew.Name, enew);
+                        break;
+
+                    case "ReferenceFrom":
+                        var rf = new ReferenceFrom(e);
+                        _ReferenceFroms.Add($"{rf.FullName}:{rf.VarName}", rf);
                         break;
 
                     default:
