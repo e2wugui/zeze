@@ -42,7 +42,7 @@ Test
 	* FormBuildProgress 显示彩色。
 
 	2021/1/13
-	Document.IsChanged：拦截所有的public Property，在里面设置IsChanged。保护一下，免得以后不好维护。
+	Document.IsChanged：拦截所有的public Property，在里面设置IsChanged。保护一下成员变量，免得以后不好维护。
 
 性能
 	* 几千行看看会怎么样。

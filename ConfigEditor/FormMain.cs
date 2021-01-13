@@ -224,7 +224,6 @@ namespace ConfigEditor
                     {
                         case DialogResult.Yes:
                             enumDefine.AddValue(new EnumDefine.ValueDefine(enumDefine, newValue, -1));
-                            enumDefine.Parent.Parent.Document.IsChanged = true;
                             break;
 
                         case DialogResult.No:
@@ -469,7 +468,7 @@ namespace ConfigEditor
             bool addRow = false;
             if (e.RowIndex == doc.GridData.RowCount)
             {
-                doc.Beans.Add(new Bean(doc, ""));
+                doc.AddBean(new Bean(doc, ""));
                 doc.GridData.InsertRow(e.RowIndex, false);
                 grid.Rows.Add();
                 addRow = true;
@@ -491,7 +490,6 @@ namespace ConfigEditor
             int colIndex = e.ColumnIndex;
             var updateParam = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Data };
             doc.Beans[e.RowIndex].Update(doc.GridData, doc.GridData.GetRow(e.RowIndex), ref colIndex, 0, updateParam);
-            doc.IsChanged = true;
 
             // verify
             tag.UpdateUniqueIndex(oldValue, newValue, cell);

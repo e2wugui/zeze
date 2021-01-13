@@ -313,7 +313,6 @@ namespace ConfigEditor
                     if (null != bean)
                     {
                         bean.Locked = !bean.Locked;
-                        bean.Document.IsChanged = true;
                         cellBeanLocked.Value = bean.Locked ? "Yes" : "No";
                     }
                     break;
@@ -356,7 +355,6 @@ namespace ConfigEditor
                     p.Value.Button = null;
                 }
                 var.Properties = FormMain.Instance.PropertyManager.BuildString(current);
-                var.Parent.Document.IsChanged = true;
                 cell.Value = var.Properties;
             }
             fp.Dispose();
@@ -570,7 +568,6 @@ namespace ConfigEditor
                 {
                     varData.Parent.RenameVar(varData.Name, newVarName);
                 }
-                doc.IsChanged = varDatas.Count > 0;
             }
         }
 
@@ -632,14 +629,12 @@ namespace ConfigEditor
                             if (valueDefine.Value != newValue)
                             {
                                 valueDefine.Value = newValue;
-                                valueDefine.Parent.Parent.Document.IsChanged = true;
                             }
                         }
                         break;
 
                     case "VarComment":
                         valueDefine.Comment = cells[col].Value as string;
-                        valueDefine.Parent.Parent.Document.IsChanged = true;
                         break;
                 }
                 return;
@@ -671,7 +666,6 @@ namespace ConfigEditor
                         });
                         UpdateEnumDefine(var.Parent.ChangeEnumName(var.Name, newVarName));
                         var.Name = newVarName;
-                        var.Parent.Document.IsChanged = true;
                         // TODO 还需要更新 var 所在 BeanDefine 的名字，以及相关引用。好像就实现 Bean 改名了。 
                         FormMain.Instance.ReloadAllGridIfContains(var);
                     }
@@ -682,7 +676,6 @@ namespace ConfigEditor
                     if (var.Type != newType)
                     {
                         var.Type = newType;
-                        var.Parent.Document.IsChanged = true;
                         if (newType == VarDefine.EType.Enum)
                         {
                             BuildEnumFor(var);
@@ -716,22 +709,18 @@ namespace ConfigEditor
 
                 case "VarForeign":
                     var.Foreign = cells[colName].Value as string;
-                    var.Parent.Document.IsChanged = true;
                     break;
 
                 case "VarProperties":
                     var.Properties = cells[colName].Value as string;
-                    var.Parent.Document.IsChanged = true;
                     break;
 
                 case "VarDefault":
                     var.Default = cells[colName].Value as string;
-                    var.Parent.Document.IsChanged = true;
                     break;
 
                 case "VarComment":
                     var.Comment = cells[colName].Value as string;
-                    var.Parent.Document.IsChanged = true;
                     break;
             }
         }
@@ -765,7 +754,6 @@ namespace ConfigEditor
                 }
             }
             var.Parent.AddEnumDefine(enumDefine);
-            var.Parent.Document.IsChanged = true;
             InsertEnumDefine(define.RowCount, enumDefine.FullName(), enumDefine);
         }
 

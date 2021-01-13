@@ -208,6 +208,7 @@ namespace ConfigEditor
                 {
                     _Properties = value;
                     PropertiesList = FormMain.Instance.PropertyManager.Parse(_Properties);
+                    Parent.Document.IsChanged = true;
                 }
             }
         }

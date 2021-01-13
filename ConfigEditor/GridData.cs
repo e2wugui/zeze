@@ -354,7 +354,6 @@ namespace ConfigEditor
                             MessageBox.Show("ListEnd?");
                             break;
                     }
-                    Document.IsChanged = true;
                 }
             }
             View?.ResumeLayout();

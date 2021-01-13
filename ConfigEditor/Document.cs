@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,11 +18,14 @@ namespace ConfigEditor
         public string NamePinyin => Tools.ToPinyin(Name);
         public BeanDefine BeanDefine { get; private set; } // bean in this file
 
-        public List<Bean> Beans { get; } = new List<Bean>();
+        private List<Bean> _Beans = new List<Bean>();
+        public ReadOnlyCollection<Bean> Beans { get; }
         public GridData GridData { get; private set; }
 
         public bool IsChanged { get; set; } = false;
 
+        // 目前只有c#使用了。所有的生成代码放在这个空间下。
+        // 这样输入 Config. 就可以有配置提示。
         public static string NamespacePrefix { get; set; } = "Config";
 
         // 不包含文档名，仅包含目录名。
@@ -44,6 +48,12 @@ namespace ConfigEditor
             return new StreamWriter(path, false, Encoding.UTF8);
         }
 
+        public void AddBean(Bean bean)
+        {
+            _Beans.Add(bean);
+            IsChanged = true;
+        }
+
         public Document(Documents.File file)
         {
             File = file;
@@ -52,6 +62,7 @@ namespace ConfigEditor
                 tmp = tmp.Substring(0, tmp.Length - 4);
             RelateName = tmp.Replace(System.IO.Path.DirectorySeparatorChar, '.');
             BeanDefine = new BeanDefine(this, file.Name);
+            Beans = new ReadOnlyCollection<Bean>(_Beans);
         }
 
         public void BuildGridData()
@@ -62,7 +73,7 @@ namespace ConfigEditor
             BeanDefine.BuildGridColumns(GridData, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
 
             var param = new Bean.UpdateParam() { UpdateType = Bean.EUpdate.Grid };
-            foreach (var bean in Beans)
+            foreach (var bean in _Beans)
             {
                 int insertIndex = GridData.RowCount;
                 GridData.InsertRow(insertIndex);
@@ -123,9 +134,9 @@ namespace ConfigEditor
             if (flags == Property.DataOutputFlags.All)
                 BeanDefine.SaveAs(xml, xml.DocumentElement, create);
 
-            for (int i = 0; i < Beans.Count; ++i)
+            for (int i = 0; i < _Beans.Count; ++i)
             {
-                Bean b = Beans[i];
+                Bean b = _Beans[i];
                 b.RowIndex = i;
                 b.SaveAs(xml, xml.DocumentElement, create, flags);
             }
@@ -158,7 +169,7 @@ namespace ConfigEditor
                         this.BeanDefine = new BeanDefine(this, e);
                         break;
                     case "bean":
-                        Beans.Add(new Bean(this, e));
+                        _Beans.Add(new Bean(this, e));
                         break;
                     default:
                         throw new Exception("Unknown Element Name " + e.Name);

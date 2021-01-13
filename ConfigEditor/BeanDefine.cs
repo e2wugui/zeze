@@ -9,6 +9,8 @@ namespace ConfigEditor
     public class BeanDefine
     {
         private string _Name;
+        private int RefCount = 1;
+        private bool _Locked = false;
         private SortedDictionary<string, EnumDefine> _EnumDefines = new SortedDictionary<string, EnumDefine>();
         private SortedDictionary<string, BeanDefine> _BeanDefines = new SortedDictionary<string, BeanDefine>();
         private List<VarDefine> _Variables = new List<VarDefine>();
@@ -25,6 +27,18 @@ namespace ConfigEditor
                 Document.IsChanged = true;
             }*/
         }
+        public bool Locked
+        {
+            get
+            {
+                return _Locked;
+            }
+            set
+            {
+                _Locked = value;
+                Document.IsChanged = true;
+            }
+        }
         public string NamePinyin => Tools.ToPinyin(Name);
         public ReadOnlyDictionary<string, EnumDefine> EnumDefines { get; }
         public ReadOnlyDictionary<string, BeanDefine> BeanDefines { get; }
@@ -33,8 +47,6 @@ namespace ConfigEditor
         public XmlElement Self { get; private set; }
         public Document Document { get; }
         public BeanDefine Parent { get; }
-        private int RefCount = 1;
-        public bool Locked { get; set; } = false;
 
         public EnumDefine ChangeEnumName(string oldName, string newName)
         {
@@ -395,7 +407,7 @@ namespace ConfigEditor
             string tmp = self.GetAttribute("RefCount");
             RefCount = tmp.Length > 0 ? int.Parse(tmp) : 0;
             tmp = self.GetAttribute("Locked");
-            Locked = tmp.Length > 0 ? bool.Parse(tmp) : false;
+            _Locked = tmp.Length > 0 ? bool.Parse(tmp) : false;
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

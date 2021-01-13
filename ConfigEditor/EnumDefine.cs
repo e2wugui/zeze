@@ -97,6 +97,7 @@ namespace ConfigEditor
                 valueDefine.Value = ++MaxValue;
             else if (valueDefine.Value > MaxValue)
                 MaxValue = valueDefine.Value;
+            Parent.Document.IsChanged = true;
         }
 
         public void ChangeValueName(ValueDefine valueDefine, string newName)
@@ -128,10 +129,49 @@ namespace ConfigEditor
 
         public class ValueDefine
         {
-            public string Name { get; set; } = "";
+            private string _Name = "";
+            private int _Value = -1;
+            private string _Comment;
+
+            public string Name
+            {
+                get
+                {
+                    return _Name;
+                }
+                set
+                {
+                    _Name = value;
+                    Parent.Parent.Document.IsChanged = true;
+                }
+            }
+
             public string NamePinyin => Tools.ToPinyin(Name);
-            public int Value { get; set; } = -1;
-            public string Comment { get; set; }
+            public int Value
+            {
+                get
+                {
+                    return _Value;
+                }
+                set
+                {
+                    _Value = value;
+                    Parent.Parent.Document.IsChanged = true;
+                }
+            }
+
+            public string Comment
+            {
+                get
+                {
+                    return _Comment;
+                }
+                set
+                {
+                    _Comment = value;
+                    Parent.Parent.Document.IsChanged = true;
+                }
+            }
             public XmlElement Self { get; private set; }
             public EnumDefine Parent { get; }
 
@@ -153,8 +193,8 @@ namespace ConfigEditor
             public ValueDefine(EnumDefine e, string name, int val)
             {
                 this.Parent = e;
-                this.Name = name;
-                this.Value = val;
+                this._Name = name;
+                this._Value = val;
             }
 
             public void SaveAs(XmlDocument xml, XmlElement parent, bool create)
@@ -176,18 +216,18 @@ namespace ConfigEditor
             {
                 this.Self = self;
                 this.Parent = e;
-                Name = self.GetAttribute("name");
+                _Name = self.GetAttribute("name");
                 var tmp = self.GetAttribute("value");
-                Value = tmp.Length > 0 ? int.Parse(tmp) : 0;
-                Comment = self.GetAttribute("comment").Trim();
-                if (Comment.Length == 0)
+                _Value = tmp.Length > 0 ? int.Parse(tmp) : 0;
+                _Comment = self.GetAttribute("comment").Trim();
+                if (_Comment.Length == 0)
                 {
                     XmlNode c = self.NextSibling;
                     if (c != null && XmlNodeType.Text == c.NodeType)
                     {
-                        Comment = c.InnerText.Trim();
+                        _Comment = c.InnerText.Trim();
                         Regex regex = new Regex("[\r\n]");
-                        Comment = regex.Replace(Comment, "");
+                        _Comment = regex.Replace(Comment, "");
                     }
                 }
             }
