@@ -27,9 +27,73 @@ namespace ConfigEditor
             }
             set
             {
-                _Name = value;
-                Parent.Document.IsChanged = true;
+                ChangeName(value);
             }
+        }
+
+        private void ChangeName(string newVarName)
+        {
+            if (_Name.Equals(newVarName))
+                return;
+
+            foreach (var reff in Parent.ReferenceFroms.Values)
+            {
+                var refBeanDefine = FormMain.Instance.Documents.SearchReference(reff.FullName);
+                switch (reff.Reason)
+                {
+                    case BeanDefine.ReferenceFrom.Reasons.List:
+                        UpdateData(refBeanDefine.Document, newVarName);
+                        break;
+
+                    case BeanDefine.ReferenceFrom.Reasons.Foreign:
+                        var beanFullName = Parent.FullName();
+                        var refVar = refBeanDefine.GetVariable(reff.VarName);
+                        // beanFullName 肯定是 root，不会由于变量改名而变化。
+                        refVar._Foreign = $"{beanFullName}:{newVarName}"; // 引用保持不变。
+                        break;
+                }
+            }
+
+            // 检查ref是否自动创建的（Var同名）。如果是则自动改名。
+            if (this.Type == EType.List && Value.Equals(FullName()))
+            {
+                Reference.Name = newVarName;
+            }
+
+            _Name = newVarName;
+            Parent.Document.IsChanged = true;
+        }
+
+        private void UpdateData(Document doc, string newVarName)
+        {
+            GridData gridDataTmp = new GridData(doc);
+            doc.BeanDefine.BuildGridColumns(gridDataTmp, 0, new ColumnTag(ColumnTag.ETag.Normal), -1);
+            HashSet<Bean.VarData> varDatas = new HashSet<Bean.VarData>();
+            var param = new Bean.UpdateParam()
+            {
+                UpdateType = Bean.EUpdate.CallAction,
+                UpdateAction = (GridData grid, int col, ColumnTag.VarInfo varInfo, Bean.VarData varData) =>
+                {
+                    if (varInfo.Define == this)
+                        varDatas.Add(varData);
+                },
+            };
+            foreach (var bean in doc.Beans)
+            {
+                int insertIndex = gridDataTmp.RowCount;
+                gridDataTmp.InsertRow(insertIndex);
+                int colIndex = 0;
+                if (bean.Update(gridDataTmp, gridDataTmp.GetRow(insertIndex), ref colIndex, 0, param))
+                    break;
+            }
+            foreach (var varData in varDatas)
+            {
+                varData.Parent.RenameVar(varData.Name, newVarName);
+            }
+
+            // 打开状态的文档需要重新装载。
+            if (null != doc.GridData && null != doc.GridData.View)
+                FormMain.Instance.ReloadGridsAfterFormDefineClosed.Add(doc.GridData.View);
         }
 
         public EType Type
@@ -74,6 +138,17 @@ namespace ConfigEditor
             }
         }
 
+        /// <summary>
+        /// 警告，这个方法没有重建引用，请确定可以安全使用。
+        /// 目前仅用于BeanDefine.ChangeName。
+        /// </summary>
+        /// <param name="foreign"></param>
+        internal void SetRawForeign(string foreign)
+        {
+            _Foreign = foreign;
+            Parent.Document.IsChanged = true;
+        }
+
         private void InitializeForeignReference()
         {
             if (Type == EType.List)
@@ -84,6 +159,10 @@ namespace ConfigEditor
                 var foreign = _Foreign.Substring(0, _Foreign.IndexOf(':'));
                 Reference = FormMain.Instance.Documents.SearchReference(foreign);
                 Reference?.AddReferenceFrom(this, BeanDefine.ReferenceFrom.Reasons.Foreign);
+            }
+            else
+            {
+                Reference = null;
             }
         }
 

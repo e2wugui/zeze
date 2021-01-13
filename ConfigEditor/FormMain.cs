@@ -182,6 +182,7 @@ namespace ConfigEditor
             foreach (var tab in tabs.Controls)
             {
                 DataGridView gridref = (DataGridView)((TabPage)tab).Controls[0];
+                //if (gridref.Tag == )
                 for (int i = 0; i < gridref.ColumnCount; ++i)
                 {
                     ColumnTag tagref = gridref.Columns[i].Tag as ColumnTag;

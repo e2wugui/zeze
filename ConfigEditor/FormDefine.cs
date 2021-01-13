@@ -141,6 +141,7 @@ namespace ConfigEditor
             cellLocked.Value = bean.Locked ? "Yes" : "No";
             cellLocked.Tag = bean; // BeanDefine
             cellsBeanStart["VarName"].Value = fullName;
+            cellsBeanStart["VarName"].ReadOnly = false;
 
             // row for vars
             foreach (var v in bean.Variables)
@@ -432,8 +433,13 @@ namespace ConfigEditor
 
             if (cells["BeanLocked"].Tag != null)
             {
-                e.Cancel = true;
-                MessageBox.Show("TODO modify bean name");
+                // assert(cells["VarName"] == cells[e.ColumnIndex]);
+                var newValue = e.FormattedValue as string;
+                if (null != Tools.VerifyName(newValue, CheckNameType.ShowMsg))
+                {
+                    e.Cancel = true;
+                    return; // VerifyName 里面已经显示消息了。
+                }
                 return;
             }
 
@@ -556,6 +562,7 @@ namespace ConfigEditor
             }
         }
 
+        /*
         private void UpdateData(Document doc, VarDefine var, string newVarName)
         {
             HashSet<BeanDefine> deps = new HashSet<BeanDefine>();
@@ -588,6 +595,7 @@ namespace ConfigEditor
                 }
             }
         }
+        */
 
         private void UpdateEnumDefine(EnumDefine enumDefine)
         {
@@ -614,6 +622,14 @@ namespace ConfigEditor
                 return;
 
             DataGridViewCellCollection cells = define.Rows[e.RowIndex].Cells;
+
+            var cellBeanLocked = cells["BeanLocked"];
+            if (cellBeanLocked.Tag != null)
+            {
+                (cellBeanLocked.Tag as BeanDefine).Name = cells[e.ColumnIndex].Value as string;
+                return;
+            }
+
             DataGridViewCell cellVarName = cells["VarName"];
             if (null == cellVarName.Tag)
                 return;
@@ -663,6 +679,12 @@ namespace ConfigEditor
             switch (colName)
             {
                 case "VarName":
+                    string oldVarName = var.Name;
+                    var.Name = cells[colName].Value as string;
+                    Documents.CloseNotDependsByView();
+                    // 仅在Type==Enum时才有效。其他时候什么都不做。
+                    UpdateEnumDefine(var.Parent.ChangeEnumName(oldVarName, var.Name));
+                    /*
                     string newVarName = cells[colName].Value as string;
                     if (false == var.Name.Equals(newVarName))
                     {
@@ -687,6 +709,7 @@ namespace ConfigEditor
                         // TODO 还需要更新 var 所在 BeanDefine 的名字，以及相关引用。好像就实现 Bean 改名了。 
                         FormMain.Instance.ReloadAllGridIfContains(var);
                     }
+                    */
                     break;
 
                 case "VarType":

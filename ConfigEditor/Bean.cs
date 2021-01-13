@@ -471,6 +471,7 @@ namespace ConfigEditor
                 VariableMap.Add(newName, exist);
                 exist.Name = newName;
                 VariableMap.Remove(oldName);
+                Document.IsChanged = true;
             }
         }
 

@@ -45,29 +45,15 @@ Test
 	Document.IsChanged：拦截所有的public Property，在里面设置IsChanged。保护一下成员变量，免得以后不好维护。
 	BeanDefine 引用计数改成 List，记录 ReferenceFrom。准备用来优化”变量改名“，”Bean改名“，”文件改名“。
 
+	2021/1/14
+	新的变量改名，不再搜索全部文档。
+	Bean改名，如果是root，还差改文件名。
+
 性能
 	* 几千行看看会怎么样。
 
 TODO
 	查看所有的 Documents.ForEachFile，确认是否可以用 ReferenceFrom。
-	变量改名 还需要更新 var 所在 BeanDefine 的名字，以及相关引用。好像就实现 Bean 改名了。
-	变量改名，BeanDefine.ref 不仅仅记录数量，改成 File.RelateName + VarName。因为嵌套list，名字编码还没确定。
-	Bean改名。需要搜索引用。
-		第一层 {File.RelateName}:VarName;
-		file0.BeanLevel0
-			list1: file0.BeanLevel0.BeanList1 -> file0.BeanLevel0:list1
-		file0.BeanLevel0.BeanList1
-			refby file0.BeanLevel0:list1;
-			list2: file1.BeanList2 -> file0.BeanLevel0:BeanList1:list2
-			list4: file1.BeanList2.BeanList3 -> file0.BeanLevel0:BeanList1:list4
-		file1.BeanList2
-			refby: file0.BeanLevel0:BeanList1:list2
-			list3: file1.BeanList2.BeanList3 -> file1.BeanList2:list3
-		file1.BeanList2.BeanList3
-			refby: file1.BeanList2:list3
-			refby: file0.BeanLevel0:BeanList1:list4
-			var: int
-	
 	VerifyAll async，这个比较麻烦。初步考虑，需要 Document 加锁。看实际使用，以后再说了。
 	自动完成: Foreign
 	更多自动完成？

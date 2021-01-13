@@ -73,12 +73,12 @@ namespace ConfigEditor
             {
                 return _Name;
             }
-            /*set
+            set
             {
-                _Name = value;
-                Document.IsChanged = true;
-            }*/
+                ChangeName(value);
+            }
         }
+
         public bool Locked
         {
             get
@@ -100,6 +100,38 @@ namespace ConfigEditor
         public Document Document { get; }
         public BeanDefine Parent { get; }
 
+        private void ChangeName(string newName)
+        {
+            if (_Name.Equals(newName))
+                return;
+
+            var newFullName = FullName(newName);
+            foreach (var reff in ReferenceFroms.Values)
+            {
+                var refBeanDefine = FormMain.Instance.Documents.SearchReference(reff.FullName);
+                switch (reff.Reason)
+                {
+                    case BeanDefine.ReferenceFrom.Reasons.List:
+                        refBeanDefine.GetVariable(reff.VarName).Value = newFullName;
+                        break;
+
+                    case BeanDefine.ReferenceFrom.Reasons.Foreign:
+                        // beanFullName 肯定是 root，引用保持不变，不需要重新SearchReference。
+                        var refVar = refBeanDefine.GetVariable(reff.VarName);
+                        var refForeignVarName = refVar.Foreign.Substring(refVar.Foreign.IndexOf(':') + 1);
+                        refVar.SetRawForeign($"{newFullName}:{refForeignVarName}");
+                        break;
+                }
+            }
+            _Name = newName;
+            Document.IsChanged = true;
+
+            if (Parent == null)
+            {
+                // TODO is root! rename file now.
+            }
+        }
+
         public EnumDefine ChangeEnumName(string oldName, string newName)
         {
             if (_EnumDefines.TryGetValue(oldName, out var e))
@@ -107,6 +139,7 @@ namespace ConfigEditor
                 _EnumDefines.Remove(oldName);
                 e.Name = newName;
                 _EnumDefines.Add(newName, e);
+                Document.IsChanged = true;
                 return e;
             }
             return null;
@@ -288,7 +321,12 @@ namespace ConfigEditor
 
         public string FullName()
         {
-            string name = Name;
+            return FullName(Name);
+        }
+
+        public string FullName(string ReplaceThisName)
+        {
+            string name = ReplaceThisName;
             for (var b = Parent; null != b; b = b.Parent)
             {
                 name = b.Name + "." + name;
@@ -300,13 +338,7 @@ namespace ConfigEditor
         // ClassName 的前面加上字符 '_'
         public string _FullName()
         {
-            string name = "_" + Name;
-            for (var b = Parent; null != b; b = b.Parent)
-            {
-                name = b.Name + "." + name;
-            }
-            string relatePath = Document.File.Parent.RelateName.Replace(System.IO.Path.DirectorySeparatorChar, '.');
-            return string.IsNullOrEmpty(relatePath) ? name : relatePath + "." + name;
+            return FullName("_" + Name);
         }
 
         public void CollectFullNameIncludeSubBeanDefine(List<string> result)
@@ -364,6 +396,8 @@ namespace ConfigEditor
 
                 if (null != cur.Self)
                     cur.Self.ParentNode.RemoveChild(cur.Self);
+
+                cur.Self = null;
                 cur.Parent._BeanDefines.Remove(cur.Name);
                 deletedBeanDefines?.Add(cur);
             }
