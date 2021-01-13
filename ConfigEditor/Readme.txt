@@ -16,7 +16,7 @@
 
 注意
 	使用源码管理库
-		编辑工具使用xml等文本类型文件保存数据便于追踪变化；
+		编辑工具使用xml等文本文件保存数据便于追踪变化；
 		Build导出的Release数据也可以提交一份到源码管理库；
 	多人编辑
 		注意涉及id,unique的列，如果两个人添加了相同的值，会导致验证失败；
@@ -47,12 +47,16 @@ Test
 
 	2021/1/14
 	新的变量改名，不再搜索全部文档。
-	Bean改名，如果是root，还差改文件名。
+	Bean改名，不搜索全部文档。如果是root，文件名也改。（还不能改目录）。
 
 性能
 	* 几千行看看会怎么样。
 
 TODO
+	AddVar,DeleteVar更新也是用ReferenceFroms。
+	列改名引起的bean.rename，没有更新formdefine。
+	改名更新foreign，测试。
+	变量改名，新的UpdateData好像有问题。
 	查看所有的 Documents.ForEachFile，确认是否可以用 ReferenceFrom。
 	VerifyAll async，这个比较麻烦。初步考虑，需要 Document 加锁。看实际使用，以后再说了。
 	自动完成: Foreign

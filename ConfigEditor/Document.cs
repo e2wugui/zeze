@@ -13,8 +13,9 @@ namespace ConfigEditor
     {
         public Documents.File File { get; }
         public string FileName => File.AbsoluteName;
-        public string RelateName { get; }
+        public string RelateName { get; private set; }
         public string Name => File.Name;
+
         public string NamePinyin => Tools.ToPinyin(Name);
         public BeanDefine BeanDefine { get; private set; } // bean in this file
 
@@ -54,13 +55,21 @@ namespace ConfigEditor
             IsChanged = true;
         }
 
-        public Document(Documents.File file)
+        public void UpdateRelateName()
         {
-            File = file;
-            var tmp = file.RelateName;
+            var tmp = File.RelateName;
             if (tmp.EndsWith(".xml"))
                 tmp = tmp.Substring(0, tmp.Length - 4);
             RelateName = tmp.Replace(System.IO.Path.DirectorySeparatorChar, '.');
+            TabPage tab = GridData?.View?.Parent as TabPage;
+            if (null != tab)
+                tab.Text = RelateName;
+        }
+
+        public Document(Documents.File file)
+        {
+            File = file;
+            UpdateRelateName();
             BeanDefine = new BeanDefine(this, file.Name);
             Beans = new ReadOnlyCollection<Bean>(_Beans);
         }

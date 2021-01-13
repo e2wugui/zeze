@@ -33,8 +33,10 @@ namespace ConfigEditor
 
         private void ChangeName(string newVarName)
         {
-            if (_Name.Equals(newVarName))
+            if (string.IsNullOrEmpty(_Name) || _Name.Equals(newVarName))
+            {
                 return;
+            }
 
             foreach (var reff in Parent.ReferenceFroms.Values)
             {
@@ -575,9 +577,10 @@ namespace ConfigEditor
             }
         }
 
-        public VarDefine(BeanDefine bean)
+        public VarDefine(BeanDefine bean, string name)
         {
             this.Parent = bean;
+            this._Name = name;
         }
 
         private void SetAttribute(XmlElement e, string name, string value)

@@ -21,9 +21,9 @@ namespace ConfigEditor
     {
         public class File
         {
-            public string Name { get; }
-            public string AbsoluteName { get; }
-            public string RelateName { get; }
+            public string Name { get; private set; }
+            public string AbsoluteName { get; private set; }
+            public string RelateName { get; private set; }
             public Directory Parent { get; }
 
             public Document Document { get; private set; }
@@ -37,6 +37,25 @@ namespace ConfigEditor
                 if (this.RelateName.StartsWith(System.IO.Path.DirectorySeparatorChar.ToString()))
                     this.RelateName = this.RelateName.Substring(1);
                 this.Parent = parent;
+            }
+
+            // TODO 扩展到新的path，连路径一起改了。
+            public void Rename(string nameOnlyWithoutExtension)
+            {
+                if (this.Name.Equals(nameOnlyWithoutExtension))
+                    return;
+
+                var oldAbsoluteName = this.AbsoluteName;
+
+                this.Name = nameOnlyWithoutExtension;
+                this.AbsoluteName = System.IO.Path.Combine(Parent.AbsoluteName, this.Name + ".xml");
+                var home = FormMain.Instance.ConfigEditor.GetHome();
+                this.RelateName = this.AbsoluteName.Substring(home.Length);
+                if (this.RelateName.StartsWith(System.IO.Path.DirectorySeparatorChar.ToString()))
+                    this.RelateName = this.RelateName.Substring(1);
+
+                Document?.UpdateRelateName();
+                System.IO.File.Move(oldAbsoluteName, this.AbsoluteName);
             }
 
             public Document Open(bool isOpenOrNew = false)

@@ -75,7 +75,19 @@ namespace ConfigEditor
             }
             set
             {
-                ChangeName(value);
+                if (_Name.Equals(value))
+                    return;
+
+                Parent?._BeanDefines.Remove(_Name);
+                _Name = value;
+                Parent?._BeanDefines.Add(_Name, this);
+                if (Parent == null)
+                {
+                    // rename file
+                    Document.File.Rename(_Name);
+                }
+                Document.IsChanged = true;
+                UpdateReferenceFroms();
             }
         }
 
@@ -100,12 +112,9 @@ namespace ConfigEditor
         public Document Document { get; }
         public BeanDefine Parent { get; }
 
-        private void ChangeName(string newName)
+        private void UpdateReferenceFroms()
         {
-            if (_Name.Equals(newName))
-                return;
-
-            var newFullName = FullName(newName);
+            var newFullName = FullName();
             foreach (var reff in ReferenceFroms.Values)
             {
                 var refBeanDefine = FormMain.Instance.Documents.SearchReference(reff.FullName);
@@ -123,12 +132,9 @@ namespace ConfigEditor
                         break;
                 }
             }
-            _Name = newName;
-            Document.IsChanged = true;
-
-            if (Parent == null)
+            foreach (var sub in _BeanDefines.Values)
             {
-                // TODO is root! rename file now.
+                sub.UpdateReferenceFroms();
             }
         }
 
@@ -255,9 +261,8 @@ namespace ConfigEditor
             if (GetVariable(name) != null)
                 return (null, false, "duplicate variable name");
 
-            VarDefine var = new VarDefine(this)
+            VarDefine var = new VarDefine(this, name)
             {
-                Name = name,
                 Type = type,
                 Value = reference,
                 GridColumnValueWidth = 50,
@@ -468,7 +473,7 @@ namespace ConfigEditor
                 ReadOnly = true,
                 ToolTipText = "双击增加列",
                 // 使用跟List一样的规则设置ListIndex，仅用于Delete List Item，此时这个Bean肯定在List中。
-                ColumnTag = tag.Copy(ColumnTag.ETag.AddVariable).AddVar(new VarDefine(this), listIndex >= 0 ? listIndex : 0),
+                ColumnTag = tag.Copy(ColumnTag.ETag.AddVariable).AddVar(new VarDefine(this, ""), listIndex >= 0 ? listIndex : 0),
             });
             for (int i = 0; i < grid.RowCount; ++i)
             {

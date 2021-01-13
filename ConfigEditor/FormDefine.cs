@@ -158,7 +158,7 @@ namespace ConfigEditor
                 cellsBeanEnd[i].ReadOnly = true;
             DataGridViewCell cellBeanEnd = cellsBeanEnd["VarName"];
             cellBeanEnd.Value = ",";
-            cellBeanEnd.Tag = new VarDefine(bean);
+            cellBeanEnd.Tag = new VarDefine(bean, "");
             cellBeanEnd.ToolTipText = "双击增加变量（数据列）";
         }
 
