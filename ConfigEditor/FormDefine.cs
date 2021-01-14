@@ -39,8 +39,6 @@ namespace ConfigEditor
 
         public void LoadDefine()
         {
-            define.Rows.Clear();
-
             if (null == FormMain.Instance.Tabs.SelectedTab)
                 return; // no file
 
@@ -58,6 +56,7 @@ namespace ConfigEditor
 
         private void LoadDocument(Document doc)
         {
+            define.Rows.Clear();
             SortedDictionary<string, BeanDefine> BeanDefines = new SortedDictionary<string, BeanDefine>();
             doc.BeanDefine.ForEach((BeanDefine bd) =>
             {
@@ -681,6 +680,7 @@ namespace ConfigEditor
                 case "VarName":
                     string oldVarName = var.Name;
                     var.Name = cells[colName].Value as string;
+                    LoadDocument(Document);
                     Documents.CloseNotDependsByView();
                     // 仅在Type==Enum时才有效。其他时候什么都不做。
                     UpdateEnumDefine(var.Parent.ChangeEnumName(oldVarName, var.Name));

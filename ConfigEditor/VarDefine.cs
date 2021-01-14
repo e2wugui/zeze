@@ -151,7 +151,7 @@ namespace ConfigEditor
             Parent.Document.IsChanged = true;
         }
 
-        private void InitializeForeignReference()
+        internal void InitializeForeignReference()
         {
             if (Type == EType.List)
                 throw new Exception("Error: setup foreign to list.");

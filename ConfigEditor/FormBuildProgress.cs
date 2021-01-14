@@ -68,6 +68,13 @@ namespace ConfigEditor
                 FormMain.Instance.SaveAll();
                 FormMain.Instance.Documents.LoadAllDocument(this);
 
+                if (FormMain.Instance.FormError.GetErrorCount() > 0)
+                {
+                    FormMain.Instance.InvokeShowFormError();
+                    this.AppendLine("当前打开的文档存在一些验证错误。停止Build。", Color.Red);
+                    return;
+                }
+
                 // verify
                 FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
                 {
@@ -96,13 +103,6 @@ namespace ConfigEditor
                     return Running;
                 });
                 FormMain.Instance.FormError.OnAddError = null;
-
-                if (FormMain.Instance.FormError.GetErrorCount() > 0)
-                {
-                    FormMain.Instance.InvokeShowFormError();
-                    this.AppendLine("存在一些验证错误。停止Build。", Color.Red);
-                    return;
-                }
 
                 if (false == Running)
                     return;

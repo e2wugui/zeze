@@ -39,8 +39,9 @@ namespace ConfigEditor
                 this.Parent = parent;
             }
 
-            // TODO 扩展到新的path，连路径一起改了。
-            public void Rename(string nameOnlyWithoutExtension)
+            // TODO 改路径。有点不一样。
+            // 这个方法在 Document.BeanDefine 改名的时候调用。所以不能再去更新 BeanDefine.Name。 
+            internal void Rename(string nameOnlyWithoutExtension)
             {
                 if (this.Name.Equals(nameOnlyWithoutExtension))
                     return;

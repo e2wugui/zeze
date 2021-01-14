@@ -31,7 +31,7 @@ namespace ConfigEditor
             public string VarName { get; }
             public Reasons Reason { get; }
 
-            public XmlElement Self { get; private set; }
+            public XmlElement Self { get; internal set; }
 
             public ReferenceFrom(string fullName, string varName, Reasons reason)
             {
@@ -78,9 +78,11 @@ namespace ConfigEditor
                 if (_Name.Equals(value))
                     return;
 
+                RemoveReferenceFromMe();
                 Parent?._BeanDefines.Remove(_Name);
                 _Name = value;
                 Parent?._BeanDefines.Add(_Name, this);
+                AddReferenceFromMe();
                 if (Parent == null)
                 {
                     // rename file
@@ -112,9 +114,42 @@ namespace ConfigEditor
         public Document Document { get; }
         public BeanDefine Parent { get; }
 
+        private void RemoveReferenceFromMe()
+        {
+            foreach (var v in _Variables)
+            {
+                v.Reference?.RemoveReferenceFrom(v, null, null, true);
+            }
+            foreach (var sub in _BeanDefines.Values)
+            {
+                sub.RemoveReferenceFromMe();
+            }
+        }
+
+        private void AddReferenceFromMe()
+        {
+            foreach (var v in _Variables)
+            {
+                switch (v.Type)
+                {
+                    case VarDefine.EType.List:
+                        v.Reference?.AddReferenceFrom(v,  ReferenceFrom.Reasons.List);
+                        break;
+                    default:
+                        v.InitializeForeignReference();
+                        break;
+                }
+            }
+            foreach (var sub in _BeanDefines.Values)
+            {
+                sub.AddReferenceFromMe();
+            }
+        }
+
         private void UpdateReferenceFroms()
         {
             var newFullName = FullName();
+            // 更新自己引用别人的FullName，需要旧的名字。改变_Name前先Remove，之后重新Add。
             foreach (var reff in ReferenceFroms.Values)
             {
                 var refBeanDefine = FormMain.Instance.Documents.SearchReference(reff.FullName);
@@ -410,7 +445,8 @@ namespace ConfigEditor
 
         // 如果由于不再被引用，需要删除类定义时，返回this，否则返回null。
         public void RemoveReferenceFrom(VarDefine var,
-            HashSet<BeanDefine> deletedBeanDefines, HashSet<EnumDefine> deletedEnumDefines)
+            HashSet<BeanDefine> deletedBeanDefines, HashSet<EnumDefine> deletedEnumDefines,
+            bool willAddBack = false)
         {
             var fullName = var.Parent.FullName();
             var referenceFromKey = $"{fullName}:{var.Name}";
@@ -418,9 +454,11 @@ namespace ConfigEditor
             {
                 if (null != exist.Self)
                     exist.Self.ParentNode.RemoveChild(exist.Self);
+                exist.Self = null;
                 _ReferenceFroms.Remove(referenceFromKey);
                 // 本来想Foreign弄成弱引用，由于Foreign只能引用root，肯定不会被删除。强弱就无所谓了。
-                TryDeleteThis(deletedBeanDefines, deletedEnumDefines);
+                if (false == willAddBack)
+                    TryDeleteThis(deletedBeanDefines, deletedEnumDefines);
                 Document.IsChanged = true;
             }
         }
