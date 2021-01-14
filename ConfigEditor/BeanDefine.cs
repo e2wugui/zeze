@@ -136,7 +136,8 @@ namespace ConfigEditor
                         v.Reference?.AddReferenceFrom(v,  ReferenceFrom.Reasons.List);
                         break;
                     default:
-                        v.InitializeForeignReference();
+                        //if (false == string.IsNullOrEmpty(v.Foreign) && v.Foreign.IndexOf(':') > 0)
+                        v.Reference?.AddReferenceFrom(v, BeanDefine.ReferenceFrom.Reasons.Foreign);
                         break;
                 }
             }

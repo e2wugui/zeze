@@ -48,10 +48,9 @@ Test
 	2021/1/14
 	新的变量改名，不再搜索全部文档。
 	Bean改名，不搜索全部文档。如果是root，文件名也改。（还不能改目录）。
-
-	改名还需要更新ReferenceFrom的参数。NEED TEST。
-	列改名引起的bean.rename，没有更新formdefine。再此调用FormDefine.LoadDocument。NEED TEST。
-	改名更新foreign，NEED TEST。
+	改名还需要更新ReferenceFrom的参数。
+	列改名引起的bean.rename，没有更新formdefine。再次调用FormDefine.LoadDefine
+	改名更新foreign。
 
 	2021/1/15
 
@@ -59,6 +58,7 @@ Test
 	* 几千行看看会怎么样。
 
 TODO
+	bean改名输入的时候要根据是否FullName做一些转换。
 	AddVar,DeleteVar更新也是用ReferenceFroms。
 	变量改名，新的UpdateData好像有问题。
 	查看所有的 Documents.ForEachFile，确认是否可以用 ReferenceFrom。

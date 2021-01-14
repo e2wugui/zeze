@@ -47,8 +47,9 @@ namespace ConfigEditor
                     return;
 
                 var oldAbsoluteName = this.AbsoluteName;
-
+                Parent.Files.Remove(this.Name);
                 this.Name = nameOnlyWithoutExtension;
+                Parent.Files.Add(this.Name, this);
                 this.AbsoluteName = System.IO.Path.Combine(Parent.AbsoluteName, this.Name + ".xml");
                 var home = FormMain.Instance.ConfigEditor.GetHome();
                 this.RelateName = this.AbsoluteName.Substring(home.Length);
@@ -122,7 +123,7 @@ namespace ConfigEditor
             public string RelateName { get; }
             public Directory Parent { get; }
 
-            private Dictionary<string, File> Files = new Dictionary<string, File>();
+            internal Dictionary<string, File> Files = new Dictionary<string, File>();
             private Dictionary<string, Directory> Directorys = new Dictionary<string, Directory>();
 
             private File Create(string[] paths, ref int offset)

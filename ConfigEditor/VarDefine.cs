@@ -136,6 +136,7 @@ namespace ConfigEditor
                 Reference?.RemoveReferenceFrom(this, null, null);
                 _Foreign = value;
                 InitializeForeignReference();
+                Reference?.AddReferenceFrom(this, BeanDefine.ReferenceFrom.Reasons.Foreign);
                 Parent.Document.IsChanged = true;
             }
         }
@@ -160,7 +161,6 @@ namespace ConfigEditor
             {
                 var foreign = _Foreign.Substring(0, _Foreign.IndexOf(':'));
                 Reference = FormMain.Instance.Documents.SearchReference(foreign);
-                Reference?.AddReferenceFrom(this, BeanDefine.ReferenceFrom.Reasons.Foreign);
             }
             else
             {
