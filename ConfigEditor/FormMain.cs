@@ -245,12 +245,10 @@ namespace ConfigEditor
 
         public void UpdateWhenAddVariable(VarDefine var)
         {
-            // TODO 只更新 RefBy 的地方。
-            Documents.ForEachFile((Documents.File file) =>
+            foreach (var doc in CollectDocumentNeedUpdate(var))
             { 
-                file.Document?.GridData?.UpdateWhenAddVariable(var);
-                return true;
-            });
+                doc.GridData?.UpdateWhenAddVariable(var);
+            };
         }
 
         public (VarDefine, bool) AddVariable(VarDefine hint)
@@ -725,6 +723,21 @@ namespace ConfigEditor
             contextMenuStrip1.Show(grid, grid.PointToClient(Cursor.Position));
         }
 
+        private HashSet<Document> CollectDocumentNeedUpdate(VarDefine var)
+        {
+            HashSet<Document> docs = new HashSet<Document>();
+            // 自己所在的文档实际上不一定需要更新，有可能仅被其他文档引用。
+            // 由于 root bean 不会记录自己的引用，所以没办法，总是加入。
+            // 这个不会造成问题，因为后面的操作仅更新实际搜索到引用的地方。
+            docs.Add(var.Parent.Document);
+            foreach (var reff in var.Parent.ReferenceFroms.Values)
+            {
+                var refBeanDefine = Documents.SearchReference(reff.FullName);
+                docs.Add(refBeanDefine.Document);
+            }
+            return docs;
+        }
+
         public void DeleteVariable(VarDefine var, bool confirm,
             HashSet<BeanDefine> deletedBeanDefines, HashSet<EnumDefine> deletedEnumDefines)
         {
@@ -740,13 +753,11 @@ namespace ConfigEditor
                     return;
             }
 
-            // TODO delete data and column, all reference.
-            Documents.ForEachFile((Documents.File file) =>
+            // delete data and column, all reference.
+            foreach (var doc in CollectDocumentNeedUpdate(var))
             {
-                file.Document?.GridData?.DeleteVariable(var);
-                return true;
-            });
-
+                doc.GridData?.DeleteVariable(var);
+            };
             // delete define
             var.Delete(deletedBeanDefines, deletedEnumDefines);
         }
@@ -821,13 +832,10 @@ namespace ConfigEditor
         public TabControl Tabs => tabs;
         public Property.Manager PropertyManager { get; }
 
-        private DataGridViewCell GetSafeCell(DataGridView grid, DataGridViewCell hint)
+        private DataGridViewCell GetSafeCell(DataGridView grid, int col, int row)
         {
-            if (null == hint)
-                return null;
-            if (hint.ColumnIndex >= 0 && hint.ColumnIndex < grid.ColumnCount
-                && hint.RowIndex >= 0 && hint.RowIndex < grid.RowCount)
-                return grid[hint.ColumnIndex, hint.RowIndex];
+            if (col >= 0 && col < grid.ColumnCount && row >= 0 && row < grid.RowCount)
+                return grid[col, row];
             return null;
         }
 
@@ -845,8 +853,21 @@ namespace ConfigEditor
 
                 foreach (var gridReload in ReloadGridsAfterFormDefineClosed)
                 {
-                    var firstDisplayCell = gridReload.FirstDisplayedCell;
-                    var currentCell = gridReload.CurrentCell;
+                    var firstDisplayCellCol = -1;
+                    var firstDisplayCellRow = -1;
+                    if (null != gridReload.FirstDisplayedCell)
+                    {
+                        firstDisplayCellCol = gridReload.FirstDisplayedCell.ColumnIndex;
+                        firstDisplayCellRow = gridReload.FirstDisplayedCell.RowIndex;
+                    }
+
+                    var currentCellCol = -1;
+                    var currentCellRow = -1;
+                    if (null != gridReload.CurrentCell)
+                    {
+                        currentCellCol = gridReload.CurrentCell.ColumnIndex;
+                        currentCellRow = gridReload.CurrentCell.RowIndex;
+                    }
 
                     gridReload.SuspendLayout();
 
@@ -858,10 +879,10 @@ namespace ConfigEditor
                     doc.GridData.SyncToView();
 
                     // resore view.
-                    var firstDisplayCellNow = GetSafeCell(gridReload, firstDisplayCell);
+                    var firstDisplayCellNow = GetSafeCell(gridReload, firstDisplayCellCol, firstDisplayCellRow);
                     if (null != firstDisplayCellNow)
                         gridReload.FirstDisplayedCell = firstDisplayCellNow;
-                    var currentCellNow = GetSafeCell(gridReload, currentCell);
+                    var currentCellNow = GetSafeCell(gridReload, currentCellCol, currentCellRow);
                     if (null != currentCellNow)
                         gridReload.CurrentCell = currentCellNow;
 
@@ -879,6 +900,7 @@ namespace ConfigEditor
                     }
                 }
                 ReloadGridsAfterFormDefineClosed.Clear();
+                Documents.CloseNotDependsByView();
 
                 // 同时显示两个窗口，需要同步数据。不是先这种方案了。
                 // FormDefine.Show();
@@ -896,8 +918,25 @@ namespace ConfigEditor
 
         private void buttonSaveAs_Click(object sender, EventArgs e)
         {
-            //char.IsSeparator
-            MessageBox.Show($":{char.IsPunctuation(':')};{char.IsPunctuation(';')}.{char.IsPunctuation('.')}'{char.IsPunctuation('\'')}\"{char.IsPunctuation('\"')}");
+            if (Tabs.SelectedTab == null)
+                return;
+
+            this.saveFileDialog1.InitialDirectory = ConfigEditor.RecentHomes[0];
+            this.saveFileDialog1.FileName = "";
+            this.saveFileDialog1.Filter = "(*.xml)|*.xml";
+            if (DialogResult.OK != this.saveFileDialog1.ShowDialog())
+                return; // 取消
+            string file = this.saveFileDialog1.FileName;
+            if (!file.EndsWith(".xml"))
+                file = file + ".xml";
+            if (System.IO.File.Exists(file))
+            {
+                MessageBox.Show("目标文件已经存在：SaveAs 必须新建文件。");
+                return;
+            }
+            DataGridView grid = Tabs.SelectedTab.Controls[0] as DataGridView;
+            Document doc = grid.Tag as Document;
+            doc.File.Rename(file);
         }
 
         public FormError FormError { get; }

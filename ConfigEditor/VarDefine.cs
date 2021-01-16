@@ -38,13 +38,16 @@ namespace ConfigEditor
                 return;
             }
 
+            // Document 可能重复，要先用 HashSet 收集，然后更新数据。
+            HashSet<Document> docsNeedUpdateData = new HashSet<Document>();
+            docsNeedUpdateData.Add(Parent.Document);
             foreach (var reff in Parent.ReferenceFroms.Values)
             {
                 var refBeanDefine = FormMain.Instance.Documents.SearchReference(reff.FullName);
                 switch (reff.Reason)
                 {
                     case BeanDefine.ReferenceFrom.Reasons.List:
-                        UpdateData(refBeanDefine.Document, newVarName);
+                        docsNeedUpdateData.Add(refBeanDefine.Document);
                         break;
 
                     case BeanDefine.ReferenceFrom.Reasons.Foreign:
@@ -55,14 +58,20 @@ namespace ConfigEditor
                         break;
                 }
             }
+            foreach (var doc in docsNeedUpdateData)
+            {
+                UpdateData(doc, newVarName);
+            }
 
             // 检查ref是否自动创建的（Var同名）。如果是则自动改名。
             if (this.Type == EType.List && Value.Equals(FullName()))
             {
                 Reference.Name = newVarName;
             }
-
+            Reference?.RemoveReferenceFrom(this, null, null, true);
             _Name = newVarName;
+            var reason = this.Type == EType.List ? BeanDefine.ReferenceFrom.Reasons.List : BeanDefine.ReferenceFrom.Reasons.Foreign;
+            Reference?.AddReferenceFrom(this, reason);
             Parent.Document.IsChanged = true;
         }
 

@@ -74,6 +74,7 @@ namespace ConfigEditor
             this.define.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
             this.define.Size = new System.Drawing.Size(948, 504);
             this.define.TabIndex = 0;
+            this.define.CellBeginEdit += new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.define_CellBeginEdit);
             this.define.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.define_CellEndEdit);
             this.define.CellMouseDoubleClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.define_CellMouseDoubleClick);
             this.define.CellMouseDown += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.define_CellMouseDown);
@@ -160,7 +161,7 @@ namespace ConfigEditor
             this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.deleteVariableColumnToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(311, 48);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(311, 26);
             this.contextMenuStrip1.Text = "&Delete Variable(Column)";
             // 
             // deleteVariableColumnToolStripMenuItem

@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -37,8 +38,31 @@ namespace ConfigEditor
                 FormMain.Instance.FormDefine = null;
         }
 
+        private DataGridViewCell GetSafeCell(DataGridView grid, int col, int row)
+        {
+            if (col >= 0 && col < grid.ColumnCount && row >= 0 && row < grid.RowCount)
+                return grid[col, row];
+            return null;
+        }
+
         public void LoadDefine()
         {
+            var firstDisplayCellCol = -1;
+            var firstDisplayCellRow = -1;
+            if (null != define.FirstDisplayedCell)
+            {
+                firstDisplayCellCol = define.FirstDisplayedCell.ColumnIndex;
+                firstDisplayCellRow = define.FirstDisplayedCell.RowIndex;
+            }
+
+            var currentCellCol = -1;
+            var currentCellRow = -1;
+            if (null != define.CurrentCell)
+            {
+                currentCellCol = define.CurrentCell.ColumnIndex;
+                currentCellRow = define.CurrentCell.RowIndex;
+            }
+
             define.Rows.Clear();
             if (null == FormMain.Instance.Tabs.SelectedTab)
                 return; // no file
@@ -46,6 +70,13 @@ namespace ConfigEditor
             DataGridView grid = (DataGridView)FormMain.Instance.Tabs.SelectedTab.Controls[0];
             Document = (Document)grid.Tag;
             LoadDocument(Document);
+
+            var firstDisplayCellNow = GetSafeCell(define, firstDisplayCellCol, firstDisplayCellRow);
+            if (null != firstDisplayCellNow)
+                define.FirstDisplayedCell = firstDisplayCellNow;
+            var currentCellNow = GetSafeCell(define, currentCellCol, currentCellRow);
+            if (null != currentCellNow)
+                define.CurrentCell = currentCellNow;
         }
 
         Document Document { get; set; } // 现在还不需要记住这个，保留来以后同时装载多个Document的BeanDefine
@@ -612,161 +643,6 @@ namespace ConfigEditor
             }
         }
 
-        private void define_CellEndEdit(object sender, DataGridViewCellEventArgs e)
-        {
-            if (e.ColumnIndex < 0)
-                return;
-
-            if (e.RowIndex < 0)
-                return;
-
-            DataGridViewCellCollection cells = define.Rows[e.RowIndex].Cells;
-
-            var cellBeanLocked = cells["BeanLocked"];
-            if (cellBeanLocked.Tag != null)
-            {
-                (cellBeanLocked.Tag as BeanDefine).Name = cells[e.ColumnIndex].Value as string;
-                LoadDefine();
-                return;
-            }
-
-            DataGridViewCell cellVarName = cells["VarName"];
-            if (null == cellVarName.Tag)
-                return;
-
-            if (cellVarName.Tag is EnumDefine.ValueDefine valueDefine)
-            {
-                string col = define.Columns[e.ColumnIndex].Name;
-                switch (col)
-                {
-                    case "VarName":
-                        {
-                            string newStrValue = cellVarName.Value as string;
-                            if (string.IsNullOrEmpty(newStrValue))
-                            {
-                                // 新增ValueDefine，如果没有输入就看做取消。删除掉。
-                                // 此时ValueDefine并没有被加入EnumDefine.
-                                define.Rows.RemoveAt(e.RowIndex);
-                            }
-                            else if (false == valueDefine.Name.Equals(newStrValue))
-                            {
-                                valueDefine.Parent.ChangeValueName(valueDefine, newStrValue);
-                                cells["VarValue"].Value = valueDefine.Value.ToString();
-                            }
-                        }
-                        break;
-
-                    case "VarValue":
-                        {
-                            string newStrValue = cells[col].Value as string;
-                            int newValue = string.IsNullOrEmpty(newStrValue) ? -1 : int.Parse(newStrValue);
-                            if (valueDefine.Value != newValue)
-                            {
-                                valueDefine.Value = newValue;
-                            }
-                        }
-                        break;
-
-                    case "VarComment":
-                        valueDefine.Comment = cells[col].Value as string;
-                        break;
-                }
-                return;
-            }
-
-            VarDefine var = cellVarName.Tag as VarDefine;
-            string colName = define.Columns[e.ColumnIndex].Name;
-            switch (colName)
-            {
-                case "VarName":
-                    //string oldVarName = var.Name;
-                    var.Name = cells[colName].Value as string;
-                    LoadDefine();
-                    Documents.CloseNotDependsByView();
-                    // 仅在Type==Enum时才有效。其他时候什么都不做。
-                    //UpdateEnumDefine(var.Parent.ChangeEnumName(oldVarName, var.Name));
-                    /*
-                    string newVarName = cells[colName].Value as string;
-                    if (false == var.Name.Equals(newVarName))
-                    {
-                        string oldVarName = var.Name;
-                        string oldForeignName = var.Parent.FullName() + ":" + var.Name;
-                        var.Name = newVarName;
-                        string newForengnName = var.Parent.FullName() + ":" + var.Name;
-                        var.Name = oldVarName; // 修改数据里面的名字需要用到旧名字。最后再来修改。
-
-                        FormMain.Instance.Documents.LoadAllDocument();
-                        FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
-                        {
-                            var doc = file.Document;
-                            if (null == doc)
-                                return true;
-                            UpdateData(doc, var, newVarName);
-                            doc.BeanDefine.UpdateForeign(oldForeignName, newForengnName);
-                            return true;
-                        });
-                        UpdateEnumDefine(var.Parent.ChangeEnumName(var.Name, newVarName));
-                        var.Name = newVarName;
-                        // TODO 还需要更新 var 所在 BeanDefine 的名字，以及相关引用。好像就实现 Bean 改名了。 
-                        FormMain.Instance.ReloadAllGridIfContains(var);
-                    }
-                    */
-                    break;
-
-                case "VarType":
-                    VarDefine.EType newType = (VarDefine.EType)cells[colName].Value;
-                    if (var.Type != newType)
-                    {
-                        var.Type = newType;
-                        if (newType == VarDefine.EType.Enum)
-                        {
-                            BuildEnumFor(var);
-                        }
-                    }
-                    break;
-
-                case "VarValue":
-                    string newValue = cells[colName].Value as string;
-                    if (newValue == null || newValue.CompareTo(var.Value) == 0)
-                        break;
-
-                    if (DialogResult.OK != MessageBox.Show("修改List引用的Bean类型导致旧数据全部清除。",
-                        "确认", MessageBoxButtons.OKCancel))
-                        break;
-
-                    // 修改list引用的bean：删除旧变量，使用相同的名字增加一个变量。
-                    DeleteVariable(e.RowIndex, var, false);
-                    (VarDefine varNew, bool create, string err) = var.Parent.AddVariable(var.Name, VarDefine.EType.List, newValue);
-                    if (null != varNew)
-                    {
-                        UpdateWhenAddVariable(e.RowIndex, varNew, create);
-                        FormMain.Instance.UpdateWhenAddVariable(varNew);
-                    }
-                    else
-                    {
-                        cells[colName].Value = var.Value; // restore
-                        MessageBox.Show(err);
-                    }
-                    break;
-
-                case "VarForeign":
-                    var.Foreign = cells[colName].Value as string;
-                    break;
-
-                case "VarProperties":
-                    var.Properties = cells[colName].Value as string;
-                    break;
-
-                case "VarDefault":
-                    var.Default = cells[colName].Value as string;
-                    break;
-
-                case "VarComment":
-                    var.Comment = cells[colName].Value as string;
-                    break;
-            }
-        }
-
         /// <summary>
         /// 在当前搜索使用参数变量的的所有列的值，并且构建EnumDefine。
         /// 不合法的Enum名字忽略。
@@ -904,6 +780,231 @@ namespace ConfigEditor
                         DragBoxFromMouseDown = Rectangle.Empty;
                 }
             }
+        }
+
+        private void define_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
+        {
+            if (e.ColumnIndex < 0)
+                return;
+
+            if (e.RowIndex < 0)
+                return;
+
+            DataGridViewCellCollection cells = define.Rows[e.RowIndex].Cells;
+
+            if (cells["BeanLocked"].Tag != null)
+            {
+                var beanDefine = cells["BeanLocked"].Tag as BeanDefine;
+                cells["VarName"].Value = beanDefine.Name; // 编辑的时候去掉path，只编辑名字。
+                return;
+            }
+        }
+
+        [DllImport("User32.dll", EntryPoint = "PostMessage")]
+        public static extern int PostMessage(
+            IntPtr hWnd,        // 信息发往的窗口的句柄
+            int Msg,            // 消息ID
+            int wParam,         // 参数1
+            int lParam            // 参数2
+        );
+
+        const int WM_APP = 0x8000;
+        const int WM_RELOAD_DEFINE = WM_APP + 1;
+
+        private void PostReleadDefine()
+        {
+            PostMessage(this.Handle, WM_RELOAD_DEFINE, 0, 0);
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            switch (m.Msg)
+            {
+                case WM_RELOAD_DEFINE:
+                    LoadDefine();
+                    return;
+            }
+            base.WndProc(ref m);
+        }
+
+        private bool CellEndEditUpdateBeanDefineRow(DataGridViewCellCollection cells, DataGridViewCellEventArgs e)
+        {
+            var cellBeanLocked = cells["BeanLocked"];
+            if (cellBeanLocked.Tag != null)
+            {
+                string col = define.Columns[e.ColumnIndex].Name;
+                switch (col)
+                {
+                    case "VarName":
+                        (cellBeanLocked.Tag as BeanDefine).Name = cells[e.ColumnIndex].Value as string;
+                        PostReleadDefine();
+                        break;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool CellEndEditUpdateEnumValueDefineRow(DataGridViewCellCollection cells,
+            DataGridViewCell cellVarName, DataGridViewCellEventArgs e)
+        {
+            if (cellVarName.Tag is EnumDefine.ValueDefine valueDefine)
+            {
+                string col = define.Columns[e.ColumnIndex].Name;
+                switch (col)
+                {
+                    case "VarName":
+                        {
+                            string newStrValue = cellVarName.Value as string;
+                            if (string.IsNullOrEmpty(newStrValue))
+                            {
+                                // 新增ValueDefine，如果没有输入就看做取消。删除掉。
+                                // 此时ValueDefine并没有被加入EnumDefine.
+                                define.Rows.RemoveAt(e.RowIndex);
+                            }
+                            else if (false == valueDefine.Name.Equals(newStrValue))
+                            {
+                                valueDefine.Parent.ChangeValueName(valueDefine, newStrValue);
+                                cells["VarValue"].Value = valueDefine.Value.ToString();
+                            }
+                        }
+                        break;
+
+                    case "VarValue":
+                        {
+                            string newStrValue = cells[col].Value as string;
+                            int newValue = string.IsNullOrEmpty(newStrValue) ? -1 : int.Parse(newStrValue);
+                            if (valueDefine.Value != newValue)
+                            {
+                                valueDefine.Value = newValue;
+                            }
+                        }
+                        break;
+
+                    case "VarComment":
+                        valueDefine.Comment = cells[col].Value as string;
+                        break;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool CellEndEditUpdateVarValueDefineRow(DataGridViewCellCollection cells,
+            DataGridViewCell cellVarName, DataGridViewCellEventArgs e)
+        {
+            if (!(cellVarName.Tag is VarDefine))
+                return false;
+
+            VarDefine var = cellVarName.Tag as VarDefine;
+            string colName = define.Columns[e.ColumnIndex].Name;
+            switch (colName)
+            {
+                case "VarName":
+                    //string oldVarName = var.Name;
+                    var.Name = cells[colName].Value as string;
+                    PostReleadDefine();
+                    // 仅在Type==Enum时才有效。其他时候什么都不做。
+                    //UpdateEnumDefine(var.Parent.ChangeEnumName(oldVarName, var.Name));
+                    /*
+                    string newVarName = cells[colName].Value as string;
+                    if (false == var.Name.Equals(newVarName))
+                    {
+                        string oldVarName = var.Name;
+                        string oldForeignName = var.Parent.FullName() + ":" + var.Name;
+                        var.Name = newVarName;
+                        string newForengnName = var.Parent.FullName() + ":" + var.Name;
+                        var.Name = oldVarName; // 修改数据里面的名字需要用到旧名字。最后再来修改。
+
+                        FormMain.Instance.Documents.LoadAllDocument();
+                        FormMain.Instance.Documents.ForEachFile((Documents.File file) =>
+                        {
+                            var doc = file.Document;
+                            if (null == doc)
+                                return true;
+                            UpdateData(doc, var, newVarName);
+                            doc.BeanDefine.UpdateForeign(oldForeignName, newForengnName);
+                            return true;
+                        });
+                        UpdateEnumDefine(var.Parent.ChangeEnumName(var.Name, newVarName));
+                        var.Name = newVarName;
+                        // TODO 还需要更新 var 所在 BeanDefine 的名字，以及相关引用。好像就实现 Bean 改名了。 
+                        FormMain.Instance.ReloadAllGridIfContains(var);
+                    }
+                    */
+                    break;
+
+                case "VarType":
+                    VarDefine.EType newType = (VarDefine.EType)cells[colName].Value;
+                    if (var.Type != newType)
+                    {
+                        var.Type = newType;
+                        if (newType == VarDefine.EType.Enum)
+                        {
+                            BuildEnumFor(var);
+                        }
+                    }
+                    break;
+
+                case "VarValue":
+                    string newValue = cells[colName].Value as string;
+                    if (newValue == null || newValue.CompareTo(var.Value) == 0)
+                        break;
+
+                    if (DialogResult.OK != MessageBox.Show("修改List引用的Bean类型导致旧数据全部清除。",
+                        "确认", MessageBoxButtons.OKCancel))
+                        break;
+
+                    // 修改list引用的bean：删除旧变量，使用相同的名字增加一个变量。
+                    DeleteVariable(e.RowIndex, var, false);
+                    (VarDefine varNew, bool create, string err) = var.Parent.AddVariable(var.Name, VarDefine.EType.List, newValue);
+                    if (null != varNew)
+                    {
+                        UpdateWhenAddVariable(e.RowIndex, varNew, create);
+                        FormMain.Instance.UpdateWhenAddVariable(varNew);
+                    }
+                    else
+                    {
+                        cells[colName].Value = var.Value; // restore
+                        MessageBox.Show(err);
+                    }
+                    break;
+
+                case "VarForeign":
+                    var.Foreign = cells[colName].Value as string;
+                    break;
+
+                case "VarProperties":
+                    var.Properties = cells[colName].Value as string;
+                    break;
+
+                case "VarDefault":
+                    var.Default = cells[colName].Value as string;
+                    break;
+
+                case "VarComment":
+                    var.Comment = cells[colName].Value as string;
+                    break;
+            }
+            return true;
+        }
+
+        private void define_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            DataGridViewCellCollection cells = define.Rows[e.RowIndex].Cells;
+            if (CellEndEditUpdateBeanDefineRow(cells, e))
+                return;
+
+            DataGridViewCell cellVarName = cells["VarName"];
+            if (null == cellVarName.Tag)
+                return;
+
+            if (CellEndEditUpdateEnumValueDefineRow(cells, cellVarName, e))
+                return;
+
+            if (CellEndEditUpdateVarValueDefineRow(cells, cellVarName, e))
+                return;
+
         }
     }
 }

@@ -86,11 +86,17 @@ namespace ConfigEditor
                 if (Parent == null)
                 {
                     // rename file
-                    Document.File.Rename(_Name);
+                    Document.File.RenameWhenRootBeanDefineNameChange(_Name);
                 }
                 Document.IsChanged = true;
                 UpdateReferenceFroms();
             }
+        }
+
+        internal void SetNameOnly(string name)
+        {
+            _Name = name;
+            Document.IsChanged = true;
         }
 
         public bool Locked
@@ -114,7 +120,7 @@ namespace ConfigEditor
         public Document Document { get; }
         public BeanDefine Parent { get; }
 
-        private void RemoveReferenceFromMe()
+        internal void RemoveReferenceFromMe()
         {
             foreach (var v in _Variables)
             {
@@ -126,7 +132,7 @@ namespace ConfigEditor
             }
         }
 
-        private void AddReferenceFromMe()
+        internal void AddReferenceFromMe()
         {
             foreach (var v in _Variables)
             {
@@ -147,7 +153,7 @@ namespace ConfigEditor
             }
         }
 
-        private void UpdateReferenceFroms()
+        internal void UpdateReferenceFroms()
         {
             var newFullName = FullName();
             // 更新自己引用别人的FullName，需要旧的名字。改变_Name前先Remove，之后重新Add。

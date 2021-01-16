@@ -26,13 +26,7 @@
 
 Test
 	* BUG 保存了FormError的窗口位置。但是有时会变成初始化的位置。
-
-	2021/1/10
-	* CHANGE 重构：DataGridView 改成 VirtualMode。改动较大，有可能的话帮我回归测试一下。
 	* XXX 双击错误列表定位到文档的功能暂时不能用了。
-
-	2021/1/11
-	* NEW 工作时，在Home下生成一个文件，用来避免同时（本机）编辑。
 
 	2021/1/12
 	装载文档增加异步模式。用于打开文件时。其他时候还是同步装载。
@@ -53,19 +47,22 @@ Test
 	改名更新foreign。
 
 	2021/1/15
+	变量改名需要更新引用别人的ReferenceFrom。
+	变量改名，先收集需要更新的Document，去掉重复的，然后UpdateData。
+	bean改名输入的时候去掉path。
+
+	2021/1/16
+	AddVar,DeleteVar更新也使用ReferenceFroms。
+	查看所有的 Documents.ForEachFile，确认是否可以用 ReferenceFrom。
+	SaveAs
 
 性能
 	* 几千行看看会怎么样。
 
 TODO
-	bean改名输入的时候要根据是否FullName做一些转换。
-	AddVar,DeleteVar更新也是用ReferenceFroms。
-	变量改名，新的UpdateData好像有问题。
-	查看所有的 Documents.ForEachFile，确认是否可以用 ReferenceFrom。
 	VerifyAll async，这个比较麻烦。初步考虑，需要 Document 加锁。看实际使用，以后再说了。
 	自动完成: Foreign
 	更多自动完成？
 		普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
 	id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
-	SaveAs
 	enum 现在不支持引用在其他地方定义的，有需要了再来加。

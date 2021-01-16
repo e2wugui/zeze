@@ -30,26 +30,50 @@ namespace ConfigEditor
 
             public File(string path, Directory parent)
             {
+                this.Parent = parent;
+                SetupNames(path);
+            }
+
+            private void SetupNames(string path)
+            {
                 this.Name = System.IO.Path.GetFileNameWithoutExtension(path);
                 this.AbsoluteName = System.IO.Path.GetFullPath(path);
                 var home = FormMain.Instance.ConfigEditor.GetHome();
                 this.RelateName = this.AbsoluteName.Substring(home.Length);
                 if (this.RelateName.StartsWith(System.IO.Path.DirectorySeparatorChar.ToString()))
                     this.RelateName = this.RelateName.Substring(1);
-                this.Parent = parent;
             }
 
-            // TODO 改路径。有点不一样。
-            // 这个方法在 Document.BeanDefine 改名的时候调用。所以不能再去更新 BeanDefine.Name。 
-            internal void Rename(string nameOnlyWithoutExtension)
+            // 这个是 SaveAs 调用，需要更新Document（修改引用等操作）
+            public void Rename(string path)
+            {
+                return;
+                // TODO 移动文件到目录需要根据路径建立目录树，而且需要提前 VerifyName，有点烦，等下写。
+                // 仅更新 root-BeanDefine.Name, 不管是否真的变化（有可能仅变化路径），不能再次触发修改引用。
+                var oldAbsoluteName = this.AbsoluteName;
+                var oldName = this.Name;
+                Open(false);
+                Document.BeanDefine.RemoveReferenceFromMe();
+                SetupNames(path);
+                Document.UpdateRelateName();
+                Document.BeanDefine.SetNameOnly(Document.Name);
+                Document.BeanDefine.AddReferenceFromMe();
+                Parent.RemoveFile(oldName);
+                Parent.AddFile(this);
+                System.IO.File.Move(oldAbsoluteName, this.AbsoluteName);
+                Document.BeanDefine.UpdateReferenceFroms();
+            }
+
+            // 这个方法仅在 Document.BeanDefine 改名的时候调用。所以不能再去更新: 修改BeanDefine.Name。 
+            internal void RenameWhenRootBeanDefineNameChange(string nameOnlyWithoutExtension)
             {
                 if (this.Name.Equals(nameOnlyWithoutExtension))
                     return;
 
                 var oldAbsoluteName = this.AbsoluteName;
-                Parent.Files.Remove(this.Name);
+                Parent.RemoveFile(this.Name);
                 this.Name = nameOnlyWithoutExtension;
-                Parent.Files.Add(this.Name, this);
+                Parent.AddFile(this);
                 this.AbsoluteName = System.IO.Path.Combine(Parent.AbsoluteName, this.Name + ".xml");
                 var home = FormMain.Instance.ConfigEditor.GetHome();
                 this.RelateName = this.AbsoluteName.Substring(home.Length);
@@ -123,7 +147,7 @@ namespace ConfigEditor
             public string RelateName { get; }
             public Directory Parent { get; }
 
-            internal Dictionary<string, File> Files = new Dictionary<string, File>();
+            private Dictionary<string, File> Files = new Dictionary<string, File>();
             private Dictionary<string, Directory> Directorys = new Dictionary<string, Directory>();
 
             private File Create(string[] paths, ref int offset)
@@ -175,7 +199,12 @@ namespace ConfigEditor
                 return null;
             }
 
-            private void AddFile(File file)
+            internal void RemoveFile(string name)
+            {
+                Files.Remove(name);
+            }
+
+            internal void AddFile(File file)
             {
                 var err = Tools.VerifyName(file.Name, CheckNameType.CheckOnly);
                 if (null != err)
