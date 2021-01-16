@@ -31,11 +31,6 @@ namespace ConfigEditor
             public File(string path, Directory parent)
             {
                 this.Parent = parent;
-                SetupNames(path);
-            }
-
-            private void SetupNames(string path)
-            {
                 this.Name = System.IO.Path.GetFileNameWithoutExtension(path);
                 this.AbsoluteName = System.IO.Path.GetFullPath(path);
                 var home = FormMain.Instance.ConfigEditor.GetHome();
@@ -47,21 +42,29 @@ namespace ConfigEditor
             // 这个是 SaveAs 调用，需要更新Document（修改引用等操作）
             public void Rename(string path)
             {
-                return;
-                // TODO 移动文件到目录需要根据路径建立目录树，而且需要提前 VerifyName，有点烦，等下写。
-                // 仅更新 root-BeanDefine.Name, 不管是否真的变化（有可能仅变化路径），不能再次触发修改引用。
-                var oldAbsoluteName = this.AbsoluteName;
-                var oldName = this.Name;
+                // 移动文件到目录需要根据路径建立目录树，而且需要提前 VerifyName。
+                File newFile = FormMain.Instance.Documents.OpenFile(path, true);
+                if (null == newFile)
+                    return;
                 Open(false);
+                // 装载完就可以移动文件了。虽然马上不会用到。这样可以把文件系统错误提前暴露出来，避免修改到最后才报错。
+                System.IO.File.Move(this.AbsoluteName, newFile.AbsoluteName);
+
+                // use old full-name
                 Document.BeanDefine.RemoveReferenceFromMe();
-                SetupNames(path);
+
+                // 把打开的 Document 移到 newFile
+                newFile.Document = Document;
+                Document.File = newFile;
+
+                // update to new full-name
                 Document.UpdateRelateName();
                 Document.BeanDefine.SetNameOnly(Document.Name);
                 Document.BeanDefine.AddReferenceFromMe();
-                Parent.RemoveFile(oldName);
-                Parent.AddFile(this);
-                System.IO.File.Move(oldAbsoluteName, this.AbsoluteName);
                 Document.BeanDefine.UpdateReferenceFroms();
+                Parent.RemoveFile(this.Name);
+                Document.IsChanged = true;
+                Document.SaveIfChanged();
             }
 
             // 这个方法仅在 Document.BeanDefine 改名的时候调用。所以不能再去更新: 修改BeanDefine.Name。 

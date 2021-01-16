@@ -11,7 +11,7 @@ namespace ConfigEditor
 {
     public class Document
     {
-        public Documents.File File { get; }
+        public Documents.File File { get; internal set; }
         public string FileName => File.AbsoluteName;
         public string RelateName { get; private set; }
         public string Name => File.Name;
