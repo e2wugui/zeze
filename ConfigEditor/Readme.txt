@@ -60,9 +60,9 @@ Test
 	* 几千行看看会怎么样。
 
 TODO
-	VerifyAll async，这个比较麻烦。初步考虑，需要 Document 加锁。看实际使用，以后再说了。
 	自动完成: Foreign
+	自动完成：id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
 	更多自动完成？
 		普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
-	id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
-	enum 现在不支持引用在其他地方定义的，有需要了再来加。
+	VerifyAll async，这个比较麻烦。初步考虑，需要 Document 加锁。看实际使用，以后再说了。
+	enum 现在不支持引用在其他文档定义的，有需要了再来加。

@@ -44,9 +44,11 @@ namespace ConfigEditor
             {
                 // 移动文件到目录需要根据路径建立目录树，而且需要提前 VerifyName。
                 File newFile = FormMain.Instance.Documents.OpenFile(path, true);
-                if (null == newFile)
+                if (null == newFile || newFile == this)
                     return;
+
                 Open(false);
+
                 // 装载完就可以移动文件了。虽然马上不会用到。这样可以把文件系统错误提前暴露出来，避免修改到最后才报错。
                 System.IO.File.Move(this.AbsoluteName, newFile.AbsoluteName);
 
@@ -62,6 +64,7 @@ namespace ConfigEditor
                 Document.BeanDefine.SetNameOnly(Document.Name);
                 Document.BeanDefine.AddReferenceFromMe();
                 Document.BeanDefine.UpdateReferenceFroms();
+
                 Parent.RemoveFile(this.Name);
                 Document.IsChanged = true;
                 Document.SaveIfChanged();
