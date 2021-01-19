@@ -617,7 +617,7 @@ namespace ConfigEditor
             string file = this.saveFileDialog1.FileName;
             if (!file.EndsWith(".xml"))
                 file = file + ".xml";
-            OpenGrid(Documents.OpenFile(file, true)?.Open(true));
+            OpenGrid(Documents.OpenFile(file, true)?.OpenDocument(true));
         }
 
         public Documents Documents { get; private set; }
@@ -635,7 +635,7 @@ namespace ConfigEditor
             if (DialogResult.OK != this.openFileDialog1.ShowDialog())
                 return;
             
-            OpenGrid(Documents.OpenFile(this.openFileDialog1.FileName, false)?.Open(true));
+            OpenGrid(Documents.OpenFile(this.openFileDialog1.FileName, false)?.OpenDocument(true));
         }
 
         public bool SaveAll()

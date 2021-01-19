@@ -47,7 +47,7 @@ namespace ConfigEditor
                 if (null == newFile || newFile == this)
                     return;
 
-                Open(false);
+                OpenDocument(false);
 
                 // 装载完就可以移动文件了。虽然马上不会用到。这样可以把文件系统错误提前暴露出来，避免修改到最后才报错。
                 System.IO.File.Move(this.AbsoluteName, newFile.AbsoluteName);
@@ -90,7 +90,7 @@ namespace ConfigEditor
                 System.IO.File.Move(oldAbsoluteName, this.AbsoluteName);
             }
 
-            public Document Open(bool isOpenOrNew = false)
+            public Document OpenDocument(bool isOpenOrNew = false)
             {
                 if (null != Document)
                     return Document;
@@ -303,7 +303,7 @@ namespace ConfigEditor
         {
             int offset = 0;
             File file = Root.SearchFile(paths, ref offset, false);
-            return file?.Open().BeanDefine.Search(paths, offset + 1);
+            return file?.OpenDocument().BeanDefine.Search(paths, offset + 1);
         }
 
         public BeanDefine SearchReference(string referenceName)
@@ -356,7 +356,7 @@ namespace ConfigEditor
             {
                 if (file.Document == null)
                 {
-                    file.Open();
+                    file.OpenDocument();
                     progress?.AppendLine($"Load  {file.Document.RelateName}", Color.Black);
                 }
                 return true;
