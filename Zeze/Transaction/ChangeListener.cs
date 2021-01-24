@@ -100,10 +100,5 @@ namespace Zeze.Transaction
 			Dictionary<int, HashSet<ChangeListener>> tmp = mapCopy;
 			return tmp.ContainsKey(variableId);
 		}
-
-		internal void Notify()
-        {
-
-        }
 	}
 }

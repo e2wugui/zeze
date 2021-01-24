@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
-using Microsoft.VisualBasic;
 
 namespace Zeze.Gen
 {
@@ -57,11 +56,13 @@ namespace Zeze.Gen
             XmlDocument doc = new XmlDocument();
             doc.Load(xmlfile);
             Solution solution = new Solution(doc.DocumentElement);
+            /*
             foreach (KeyValuePair<string, Solution> exist in solutions)
             {
                 if (exist.Value.Name.Equals(solution.Name))
                     Console.WriteLine("WARN duplicate solution name: " + solution.Name + " in file: " + exist.Key + "," + xmlfile);
             }
+            */
             solutions.Add(xmlfile, solution);
         }
         public static void Main(string[] args)

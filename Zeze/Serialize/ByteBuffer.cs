@@ -754,6 +754,12 @@ namespace Zeze.Serialize
             WriteIndex += length;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteBytes(Zeze.Net.Binary binary)
+        {
+            WriteBytes(binary.Bytes, binary.Offset, binary.Count);
+        }
+
         public byte[] ReadBytes()
         {
             int n = ReadInt();
@@ -826,6 +832,7 @@ namespace Zeze.Serialize
 
             return true;
         }
+
         public override int GetHashCode()
         {
             int sum = 0;

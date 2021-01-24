@@ -339,5 +339,14 @@ namespace Zeze.Net
                 return null;
             }
         }
+
+        // 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
+        public void Foreach(Action<AsyncSocket> action)
+        {
+            foreach (var socket in _asocketMap.Values)
+            {
+                action(socket);
+            }
+        }
     }
 }

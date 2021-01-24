@@ -100,7 +100,7 @@ namespace Zeze.Gen.cs
 
         void Visitor.Visit(TypeBinary type)
         {
-            sw.WriteLine(prefix + "sb.Append(\"" + sep + "\").Append(\"" + var.NameUpper1 + ":\").Append(System.BitConverter.ToString(" + var.NameUpper1 + "));");
+            sw.WriteLine(prefix + "sb.Append(\"" + sep + "\").Append(\"" + var.NameUpper1 + ":\").Append(" + var.NameUpper1 + ");");
         }
 
         void Visitor.Visit(TypeString type)

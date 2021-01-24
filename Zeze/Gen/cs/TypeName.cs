@@ -54,7 +54,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeBinary type)
         {
-            name = "byte[]";
+            name = "Zeze.Net.Binary";
         }
 
         public void Visit(TypeString type)

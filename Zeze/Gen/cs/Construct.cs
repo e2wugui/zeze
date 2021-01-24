@@ -83,7 +83,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeBinary type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = System.Array.Empty<byte>();");
+            sw.WriteLine(prefix + variable.NamePrivate + " = Zeze.Net.Binary.Empty;");
         }
 
         public void Visit(TypeString type)

@@ -149,9 +149,19 @@ namespace Zeze.Net
             }
         }
 
+        public void Send(Protocol protocol)
+        {
+            Send(protocol.Encode());
+        }
+
         public void Send(global::Zeze.Serialize.ByteBuffer bb)
         {
             Send(bb.Bytes, bb.ReadIndex, bb.Size);
+        }
+
+        public void Send(Binary binary)
+        {
+            Send(binary.Bytes, binary.Offset, binary.Count);
         }
 
         public void Send(byte[] bytes)

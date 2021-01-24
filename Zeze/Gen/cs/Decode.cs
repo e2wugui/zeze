@@ -181,7 +181,7 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (ByteBuffer.BYTES | " + id + " << ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + " = " + bufname + ".ReadBytes();");
+                sw.WriteLine(prefix + "    " + varname + " = new Zeze.Net.Binary(" + bufname + ".ReadBytes());");
                 sw.WriteLine(prefix + "    break;");
             }
             else

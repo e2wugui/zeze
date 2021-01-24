@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Zeze.Gen.Types;
 using Zeze.Serialize;
 
 namespace Zeze.Net
@@ -11,6 +10,15 @@ namespace Zeze.Net
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
         public int TypeId => ModuleId << 16 | ProtocolId;
+
+		public static int GetModuleId(int type)
+        {
+			return type >> 16 & 0xffff;
+        }
+		public static int GetProtocolId(int type)
+		{
+			return type & 0xffff;
+		}
 
 		public AsyncSocket Sender { get; protected set; }
 		public object UserState { get; set; }
@@ -70,7 +78,7 @@ namespace Zeze.Net
 				else
 				{
 					// SKIP! 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
-					bb.ReadIndex = readIndexSaved;
+					//bb.ReadIndex = readIndexSaved;
 					return;
 				}
 

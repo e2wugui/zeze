@@ -117,8 +117,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeBinary type)
         {
-            // private
-            sw.WriteLine(prefix + "private " + TypeName.GetName(type) + " " + var.NameUpper1);
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    get");
             sw.WriteLine(prefix + "    {");
@@ -139,29 +138,6 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
             sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + "Copy");
-            sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    get");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        return ByteBuffer.Copy(" + var.NameUpper1 + ");");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    set");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        " + var.NameUpper1 + " = ByteBuffer.Copy(value);");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
-            sw.WriteLine(prefix + "public void " + var.NameUpper1 + "Encode(Serializable _s_)");
-            sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    " + var.NameUpper1 + " = ByteBuffer.Encode(_s_).Copy();");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
-            sw.WriteLine(prefix + "public void " + var.NameUpper1 + "Decode(Serializable _s_)");
-            sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    ByteBuffer _bb_ = ByteBuffer.Wrap(" + var.NameUpper1 + ");");
-            sw.WriteLine(prefix + "    _s_.Decode(_bb_);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
