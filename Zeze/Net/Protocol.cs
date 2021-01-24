@@ -20,7 +20,7 @@ namespace Zeze.Net
 			return type & 0xffff;
 		}
 
-		public AsyncSocket Sender { get; protected set; }
+		public AsyncSocket Sender { get; set; }
 		public object UserState { get; set; }
 
 		internal virtual void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)

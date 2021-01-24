@@ -21,7 +21,12 @@ namespace Zeze.Net
         private static readonly Binary _Empty = new Binary(System.Array.Empty<byte>());
         public static Binary Empty { get { return _Empty; } }
 
-        // 这里实际上直接wrap传入的bytes，所以以后就不能再修改bytes的值了。
+        /// <summary>
+        /// 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <param name="offset"></param>
+        /// <param name="count"></param>
         public Binary(byte[] bytes, int offset, int count)
         {
             _Bytes = bytes;
@@ -29,8 +34,21 @@ namespace Zeze.Net
             Count = count;
         }
 
+        /// <summary>
+        /// 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
+        /// </summary>
+        /// <param name="bytes"></param>
         public Binary(byte[] bytes) : this(bytes, 0, bytes.Length)
         {
+        }
+
+        /// <summary>
+        /// 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
+        /// </summary>
+        /// <param name="bb"></param>
+        public Binary(Zeze.Serialize.ByteBuffer bb) : this(bb.Bytes, bb.ReadIndex, bb.Size)
+        {
+
         }
 
         // 这里调用Copy是因为ByteBuffer可能分配的保留内存较大。Copy返回实际大小的数据。

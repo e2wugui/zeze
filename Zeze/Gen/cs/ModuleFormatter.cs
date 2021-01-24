@@ -43,7 +43,7 @@ namespace Zeze.Gen.cs
                     sw.WriteLine("        private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
             }
             sw.WriteLine("");
-            sw.WriteLine("        public Module(" + module.Solution.Name + ".App app)");
+            sw.WriteLine("        public Module(" + project.Solution.Name + ".App app)");
             sw.WriteLine("        {");
             sw.WriteLine("            // register protocol factory and handles");
             Service serv = module.ReferenceService;
@@ -96,11 +96,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class Module : AbstractModule");
             sw.WriteLine("    {");
-            sw.WriteLine("        public void Start(" + module.Solution.Name + ".App app)");
+            sw.WriteLine("        public void Start(" + project.Solution.Name + ".App app)");
             sw.WriteLine("        {");
             sw.WriteLine("        }");
             sw.WriteLine("");
-            sw.WriteLine("        public void Stop(" + module.Solution.Name + ".App app)");
+            sw.WriteLine("        public void Stop(" + project.Solution.Name + ".App app)");
             sw.WriteLine("        {");
             sw.WriteLine("        }");
             sw.WriteLine("");

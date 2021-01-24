@@ -25,6 +25,11 @@ namespace Zeze.Serialize
             return new ByteBuffer(bytes, offset, offset + length);
         }
 
+        public static ByteBuffer Wrap(Zeze.Net.Binary binary)
+        {
+            return Wrap(binary.Bytes, binary.Offset, binary.Count);
+        }
+
         public static ByteBuffer Allocate()
         {
             return Allocate(1024);
