@@ -37,6 +37,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed  partial class Module : AbstractModule");
             sw.WriteLine("    {");
+            sw.WriteLine($"        public const int ModuleId = {module.Id};");
+            sw.WriteLine("");
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen))
