@@ -61,7 +61,7 @@
 		<table name="taccount" key="string" value="BAccount"/>
 		<table name="trole" key="long" value="BRoleData" autokey="true"/>
 		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
-		<table name="tonline" key="long" value="BOnline" memory="true" autokey="true"/>
+		<table name="tonline" key="long" value="BOnline" memory="true"/>
 	</module>
 
 	<module name="Bag" id="2">

@@ -155,6 +155,19 @@
 	   c) 定义 solutions.xml 时，客户端要处理的协议的 handle 设置为 clientscript.
 	   d) 使用例子：zeze\UnitTestClientCxx\main.cpp
 
+	9. ChangeListener 和可靠数据同步
+	   数据同步。使用这个功能可以只需要监听一次，以后任何修改都会得到通知。
+	   问题：
+	     GetData 和 ChangeNotify 之间的原子性。
+	   解决方案：
+	     核心是先保存再确认。
+	     在 Online.Data 里面增加一个 Queue，MarkNameSet。
+	     GetData 同时设置 MarkNameSet.Add(ListenerName)
+	     OnChange: Queue.Add(Notify), if (Online) Send(Notify)
+	     Confirm: 推进ConfirmCount。
+	     ReLogin: 同步 Queue（同时可能推进ConfirmCount）。
+	     采用这个方案也顺便解决了断线重连的问题。仅需同步Queue。
+
 	*. 其他参考
 	   "Game/游戏使用方案建议.txt"
 
@@ -178,6 +191,8 @@
 	a) 扩充性能简单方案，把 GlobalTableKey.Hash 分配到不同的服务上。
 	b) 连接断开：释放该连接对应的本地所有相关记录(Invalid)。
 	async await?
+	XXX 另外Binary.Decode的时候，不拷贝，直接引用ByteBuffer的内部byte[]。这个有点浪费内存，只能用于纯转发类服务(linkd,gate)，不会保存数据。
+	实现：加一个配置，然后修改ByteBuffer.ReadBinary即可。
 
 #### 历史
 

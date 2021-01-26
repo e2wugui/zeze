@@ -760,9 +760,14 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteBytes(Zeze.Net.Binary binary)
+        public void WriteBinary(Zeze.Net.Binary binary)
         {
             WriteBytes(binary.Bytes, binary.Offset, binary.Count);
+        }
+
+        public Zeze.Net.Binary ReadBinary()
+        {
+            return new Zeze.Net.Binary(ReadBytes());
         }
 
         public byte[] ReadBytes()

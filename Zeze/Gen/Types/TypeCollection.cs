@@ -15,6 +15,7 @@ namespace Zeze.Gen.Types
 			if (includes.Add(this))
 				ValueType.Depends(includes);
 		}
+
 		protected void _compile(ModuleSpace space, String key, String value)
 		{
 			if (key != null && key.Length > 0)

@@ -47,6 +47,17 @@ namespace Zeze.Util
 			concurrency[index].Execute(action);
         }
 
+
+		public void Execute(object key, Func<int> action)
+		{
+			if (null == action)
+				throw new ArgumentNullException();
+
+			int h = Hash(key.GetHashCode());
+			int index = h & (concurrency.Length - 1);
+			concurrency[index].Execute(action);
+		}
+
 		/**
 		 * Applies a supplemental hash function to a given hashCode, which defends
 		 * against poor quality hash functions. This is critical because HashMap uses
@@ -89,6 +100,23 @@ namespace Zeze.Util
                     {
 						Task.Run(queue.First.Value);
                     }
+				}
+			}
+
+			internal void Execute(Func<int> action)
+			{
+				lock (this)
+				{
+					queue.AddLast(() =>
+					{
+						action();
+						RunNext();
+					});
+
+					if (queue.Count == 1)
+					{
+						Task.Run(queue.First.Value);
+					}
 				}
 			}
 

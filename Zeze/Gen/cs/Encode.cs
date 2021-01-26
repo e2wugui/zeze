@@ -137,7 +137,7 @@ namespace Zeze.Gen.cs
             {
                 sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.BYTES | " + id + " << ByteBuffer.TAG_SHIFT);");
             }
-            sw.WriteLine(prefix + bufname + ".WriteBytes(" + varname + ");");
+            sw.WriteLine(prefix + bufname + ".WriteBinary(" + varname + ");");
         }
 
         public void Visit(TypeString type)
