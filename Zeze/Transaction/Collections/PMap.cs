@@ -77,6 +77,8 @@ namespace Zeze.Transaction.Collections
         public abstract void Add(K key, V value);
         public abstract void Add(KeyValuePair<K, V> item);
         public abstract void AddRange(IEnumerable<KeyValuePair<K, V>> pairs);
+        public abstract void SetItem(K key, V value);
+        public abstract void SetItems(IEnumerable<KeyValuePair<K, V>> items);
         public abstract void Clear();
         public abstract bool Remove(K key);
         public abstract bool Remove(KeyValuePair<K, V> item);

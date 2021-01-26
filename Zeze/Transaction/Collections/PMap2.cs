@@ -102,6 +102,68 @@ namespace Zeze.Transaction.Collections
             }
         }
 
+        public override void SetItem(K key, V value)
+        {
+            if (key == null)
+                throw new ArgumentNullException();
+            if (value == null)
+                throw new ArgumentNullException();
+
+            if (this.IsManaged)
+            {
+                value.InitTableKey(TableKey, Parent);
+                value.VariableId = this.VariableId;
+                var txn = Transaction.Current;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var newv = oldv.SetItem(key, value);
+                if (newv != oldv)
+                {
+                    txn.PutLog(NewLog(newv));
+                    ((ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteMap2<K, V>(this))).LogPut(key, value);
+                }
+            }
+            else
+            {
+                map = map.SetItem(key, value);
+            }
+        }
+
+        public override void SetItems(IEnumerable<KeyValuePair<K, V>> pairs)
+        {
+            foreach (KeyValuePair<K, V> p in pairs)
+            {
+                if (p.Key == null)
+                    throw new ArgumentNullException();
+                if (p.Value == null)
+                    throw new ArgumentNullException();
+            }
+
+            if (this.IsManaged)
+            {
+                foreach (var p in pairs)
+                {
+                    p.Value.InitTableKey(TableKey, Parent);
+                    p.Value.VariableId = this.VariableId;
+                }
+                var txn = Transaction.Current;
+                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var newv = oldv.SetItems(pairs);
+                if (newv != oldv)
+                {
+                    txn.PutLog(NewLog(newv));
+                    ChangeNoteMap2<K, V> note = (ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteMap2<K, V>(this));
+                    foreach (var p in pairs)
+                    {
+                        note.LogPut(p.Key, p.Value);
+                    }
+                }
+            }
+            else
+            {
+                map = map.SetItems(pairs);
+            }
+        }
+
         public override void Add(KeyValuePair<K, V> item)
         {
             if (item.Key == null)
