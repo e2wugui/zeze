@@ -111,7 +111,11 @@ namespace Zeze.Transaction
 
         public override int GetHashCode()
         {
-            return LocalId ^ Name.GetHashCode();
+			const int prime = 31;
+			int result = 17;
+			result = prime * result + LocalId;
+			result = prime * result + Name.GetHashCode();
+			return result;
         }
 
         public override bool Equals(object obj)

@@ -32,7 +32,12 @@ namespace Zeze.Util
 
             public override int GetHashCode()
             {
-                return Type + ConfigId + InstanceId.GetHashCode();
+                const int prime = 31;
+                int result = 17;
+                result = prime * result + Type;
+                result = prime * result + ConfigId;
+                result = prime * result + InstanceId.GetHashCode();
+                return result;
             }
 
             public override bool Equals(object obj)

@@ -587,7 +587,11 @@ namespace Zeze.Services
 
             public override int GetHashCode()
             {
-                return TableName.GetHashCode() + ByteBuffer.calc_hashnr(Key, 0, Key.Length);
+                const int prime = 31;
+                int result = 17;
+                result = prime * result + TableName.GetHashCode();
+                result = prime * result + ByteBuffer.calc_hashnr(Key, 0, Key.Length);
+                return result;
             }
 
             public override string ToString()

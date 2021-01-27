@@ -32,7 +32,11 @@ namespace Zeze.Transaction
 
         public override int GetHashCode()
         {
-            return TableId + Key.GetHashCode();
+            const int prime = 31;
+            int result = 17;
+            result = prime * result + TableId;
+            result = prime * result + Key.GetHashCode();
+            return result;
         }
 
         public override bool Equals(object obj)
