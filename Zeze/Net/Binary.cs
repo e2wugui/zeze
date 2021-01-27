@@ -98,10 +98,7 @@ namespace Zeze.Net
 
         public override int GetHashCode()
         {
-            int hash = 0;
-            for (int i = Offset; i < Count; ++i)
-                hash += _Bytes[i];
-            return hash;
+            return (int)Zeze.Serialize.ByteBuffer.calc_hashnr(_Bytes, Offset, Count);
         }
     }
 }

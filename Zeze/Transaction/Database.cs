@@ -469,7 +469,7 @@ namespace Zeze.Transaction
 
                 public int GetHashCode(byte[] key)
                 {
-                    return ByteBuffer.GetHashCode(key);
+                    return ByteBuffer.calc_hashnr(key, 0, key.Length);
                 }
             }
             public ConcurrentDictionary<byte[], byte[]> Map { get; } = new ConcurrentDictionary<byte[], byte[]>(new ByteArrayComparer());

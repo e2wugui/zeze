@@ -843,14 +843,21 @@ namespace Zeze.Serialize
             return true;
         }
 
+        public static int calc_hashnr(byte[] keys, int offset, int len) 
+        {
+            int end = offset + len;
+            uint hash = 0;
+            for (int i = offset; i < end; ++i)
+            {
+                hash *= 16777619;
+                hash ^= (uint)keys[i];
+            }            
+            return (int)hash; 
+        }
+
         public override int GetHashCode()
         {
-            int sum = 0;
-            for (int i = ReadIndex; i < WriteIndex; ++i)
-            {
-                sum += Bytes[i];
-            }
-            return sum;
+            return (int)calc_hashnr(Bytes, ReadIndex, Size);
         }
 
         // 只能增加新的类型定义，增加时记得同步 SkipUnknownField
@@ -980,14 +987,6 @@ namespace Zeze.Serialize
                 sb.Append(e.Value).Append(',');
             }
             sb.Append('}');
-        }
-
-        public static int GetHashCode(byte[] bytes)
-        {
-            int hash = 0;
-            foreach (byte b in bytes)
-                hash += b;
-            return hash;
         }
 
         public static bool Equals(byte[] left, byte[] right)

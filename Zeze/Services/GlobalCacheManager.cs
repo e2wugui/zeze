@@ -587,7 +587,7 @@ namespace Zeze.Services
 
             public override int GetHashCode()
             {
-                return TableName.GetHashCode() + ByteBuffer.GetHashCode(Key);
+                return TableName.GetHashCode() + ByteBuffer.calc_hashnr(Key, 0, Key.Length);
             }
 
             public override string ToString()
