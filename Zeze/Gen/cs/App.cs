@@ -41,7 +41,7 @@ namespace Zeze.Gen.cs
 
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("        public " + m.Path(".", "Module") + " " + m.Path("_", "Module") + " { get; private set; }");
+                sw.WriteLine("        public " + m.Path(".", $"Module{m.Name}") + " " + m.Path("_") + " { get; private set; }");
                 sw.WriteLine("");
             }
 
@@ -67,12 +67,12 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("                " + m.Path("_", "Module") + " = new " + m.Path(".", "Module") + "(this);");
+                sw.WriteLine("                " + m.Path("_") + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
             }
             sw.WriteLine("");
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("                " + m.Path("_", "Module") + ".Start(this);");
+                sw.WriteLine("                " + m.Path("_") + ".Start(this);");
             }
             sw.WriteLine("");
             foreach (Service m in project.Services.Values)
@@ -91,7 +91,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("                " + m.Path("_", "Module") + ".Stop(this);");
+                sw.WriteLine("                " + m.Path("_") + ".Stop(this);");
             }
             sw.WriteLine("");
             foreach (Service m in project.Services.Values)

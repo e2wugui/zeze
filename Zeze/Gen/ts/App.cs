@@ -46,7 +46,7 @@ namespace Zeze.Gen.ts
         {
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("    public " + m.Path("_", "Module") + ": " + m.Path("_", "Module") + ";");
+                sw.WriteLine("    public " + m.Path("_") + ": " + m.Path("_") + ";");
             }
             foreach (Service m in project.Services.Values)
             {
@@ -63,7 +63,7 @@ namespace Zeze.Gen.ts
             }
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("        this." + m.Path("_", "Module") + " = new " + m.Path("_", "Module") + "(this);");
+                sw.WriteLine("        this." + m.Path("_") + " = new " + m.Path("_") + "(this);");
             }
         }
 
@@ -72,7 +72,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine("import { Zeze } from \"zeze\"");
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("import { " + m.Path("_", "Module")  + " } from \"" + m.Path("/", "Module") + "\"");
+                sw.WriteLine("import { " + m.Path("_")  + " } from \"" + m.Path("/", $"Module{m.Name}") + "\"");
             }
         }
 
@@ -80,7 +80,7 @@ namespace Zeze.Gen.ts
         {
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("        this." + m.Path("_", "Module") + ".Start(this);");
+                sw.WriteLine("        this." + m.Path("_") + ".Start(this);");
             }
         }
 
@@ -88,7 +88,7 @@ namespace Zeze.Gen.ts
         {
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("        this." + m.Path("_", "Module") + ".Stop(this);");
+                sw.WriteLine("        this." + m.Path("_") + ".Stop(this);");
             }
         }
 

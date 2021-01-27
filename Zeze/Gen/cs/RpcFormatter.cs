@@ -29,8 +29,12 @@ namespace Zeze.Gen.cs
 
             sw.WriteLine("    public sealed class " + rpc.Name + " : Zeze.Net.Rpc<" + argument + ", " + result + ">");
             sw.WriteLine("    {");
-            sw.WriteLine("        public override int ModuleId => " + rpc.Space.Id + ";");
-            sw.WriteLine("        public override int ProtocolId => " + rpc.Id + ";");
+            sw.WriteLine("        public const int ModuleId_ = " + rpc.Space.Id + ";");
+            sw.WriteLine("        public const int ProtocolId_ = " + rpc.Id + ";");
+            sw.WriteLine("        public const int TypeId_ = ModuleId_ << 16 | ProtocolId_; ");
+            sw.WriteLine();
+            sw.WriteLine("        public override int ModuleId => ModuleId_;");
+            sw.WriteLine("        public override int ProtocolId => ProtocolId_;");
             // declare enums
             foreach (Types.Enum e in rpc.Enums)
             {

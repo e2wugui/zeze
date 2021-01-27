@@ -9,12 +9,13 @@ namespace Zeze.Net
     {
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
-        public int TypeId => ModuleId << 16 | ProtocolId;
+		public int TypeId => ModuleId << 16 | ProtocolId;
 
 		public static int GetModuleId(int type)
         {
 			return type >> 16 & 0xffff;
         }
+
 		public static int GetProtocolId(int type)
 		{
 			return type & 0xffff;

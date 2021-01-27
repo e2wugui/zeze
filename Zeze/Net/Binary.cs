@@ -67,5 +67,41 @@ namespace Zeze.Net
         {
             return System.BitConverter.ToString(_Bytes, Offset, Count);
         }
+
+        public override bool Equals(object obj)
+        {
+            if (this == obj)
+                return true;
+
+            if (obj is Binary other)
+                return Equals(other);
+
+            return false;
+        }
+
+        public bool Equals(Binary other)
+        {
+            if (other == null)
+                return false;
+
+            if (this.Count != other.Count)
+                return false;
+
+            for (int i = 0, n = this.Count; i < n; ++i)
+            {
+                if (_Bytes[Offset + i] != other._Bytes[other.Offset + i])
+                    return false;
+            }
+
+            return true;
+        }
+
+        public override int GetHashCode()
+        {
+            int hash = 0;
+            for (int i = Offset; i < Count; ++i)
+                hash += _Bytes[i];
+            return hash;
+        }
     }
 }

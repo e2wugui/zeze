@@ -30,16 +30,16 @@ namespace UnitTest.Zeze.Trans
 
         int ProcTableRemove()
         {
-            demo.App.Instance.demo_Module1_Module.Table1.Remove(4321);
+            demo.App.Instance.demo_Module1.Table1.Remove(4321);
             return Procedure.Success;
         }
 
         int ProcTableAdd()
         {
-            demo.Module1.Value v1 = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(4321);
+            demo.Module1.Value v1 = demo.App.Instance.demo_Module1.Table1.GetOrAdd(4321);
             Assert.IsNotNull(v1);
             Assert.IsTrue(Procedure.Success != demo.App.Instance.Zeze.NewProcedure(ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback").Call());
-            demo.Module1.Value v2 = demo.App.Instance.demo_Module1_Module.Table1.Get(4321);
+            demo.Module1.Value v2 = demo.App.Instance.demo_Module1.Table1.Get(4321);
             Assert.IsNotNull(v1);
             Assert.IsTrue(v1 == v2);
             return Procedure.Success;
@@ -48,7 +48,7 @@ namespace UnitTest.Zeze.Trans
         int ProcTablePutNestAndRollback()
         {
             demo.Module1.Value v = new demo.Module1.Value();
-            demo.App.Instance.demo_Module1_Module.Table1.Put(4321, v);
+            demo.App.Instance.demo_Module1.Table1.Put(4321, v);
             return Procedure.Unknown;
         }
     }

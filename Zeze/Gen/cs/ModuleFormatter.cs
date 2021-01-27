@@ -29,13 +29,13 @@ namespace Zeze.Gen.cs
 
         public void MakePartialImplementInGen()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(genDir, "Module.cs");
+            using System.IO.StreamWriter sw = module.OpenWriter(genDir, $"Module{module.Name}Gen.cs");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed  partial class Module : AbstractModule");
+            sw.WriteLine($"    public sealed  partial class Module{module.Name} : AbstractModule");
             sw.WriteLine("    {");
             sw.WriteLine($"        public const int ModuleId = {module.Id};");
             sw.WriteLine("");
@@ -45,7 +45,7 @@ namespace Zeze.Gen.cs
                     sw.WriteLine("        private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
             }
             sw.WriteLine("");
-            sw.WriteLine("        public Module(" + project.Solution.Name + ".App app)");
+            sw.WriteLine($"        public Module{module.Name}({project.Solution.Name}.App app)");
             sw.WriteLine("        {");
             sw.WriteLine("            // register protocol factory and handles");
             Service serv = module.ReferenceService;
@@ -88,7 +88,7 @@ namespace Zeze.Gen.cs
 
         public void MakePartialImplement()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(srcDir, "Module.cs", false);
+            using System.IO.StreamWriter sw = module.OpenWriter(srcDir, $"Module{module.Name}.cs", false);
 
             if (null == sw)
                 return;
@@ -96,7 +96,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed partial class Module : AbstractModule");
+            sw.WriteLine($"    public sealed partial class Module{module.Name} : AbstractModule");
             sw.WriteLine("    {");
             sw.WriteLine("        public void Start(" + project.Solution.Name + ".App app)");
             sw.WriteLine("        {");

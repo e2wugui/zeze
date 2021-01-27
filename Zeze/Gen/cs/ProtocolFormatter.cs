@@ -27,8 +27,12 @@ namespace Zeze.Gen.cs
             string argument = p.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(p.ArgumentType);
             sw.WriteLine("    public sealed class " + p.Name + " : Zeze.Net.Protocol<" + argument + ">");
             sw.WriteLine("    {");
-            sw.WriteLine("        public override int ModuleId => " + p.Space.Id + ";");
-            sw.WriteLine("        public override int ProtocolId => " + p.Id + ";");
+            sw.WriteLine("        public const int ModuleId_ = " + p.Space.Id + ";");
+            sw.WriteLine("        public const int ProtocolId_ = " + p.Id + ";");
+            sw.WriteLine("        public const int TypeId_ = ModuleId_ << 16 | ProtocolId_; ");
+            sw.WriteLine();
+            sw.WriteLine("        public override int ModuleId => ModuleId_;");
+            sw.WriteLine("        public override int ProtocolId => ProtocolId_;");
             sw.WriteLine("");
             // declare enums
             foreach (Types.Enum e in p.Enums)

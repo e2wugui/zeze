@@ -24,7 +24,7 @@ namespace Zeze.Gen
             if (space.Modules.ContainsKey(Name))
                 throw new Exception("duplicate module name：" + Name);
             space.Modules.Add(Name, this);
-            Program.AddNamedObject(Path(".", "Module"), this);
+            Program.AddNamedObject(Path(".", $"Module{Name}"), this);
             Program.AddNamedObject(Path(".", "AbstractModule"), this);
 
             XmlNodeList childNodes = self.ChildNodes;

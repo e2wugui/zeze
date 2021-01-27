@@ -5,6 +5,7 @@ using Zeze.Transaction;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Serialize;
 using System.Runtime.InteropServices;
+using Zeze.Net;
 
 namespace UnitTest.Zeze.Trans
 {
@@ -27,13 +28,13 @@ namespace UnitTest.Zeze.Trans
         {
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.App.Instance.demo_Module1_Module.Table1.Remove(1);
+                demo.App.Instance.demo_Module1.Table1.Remove(1);
                 return Procedure.Success;
             }, "TestChangeListener.Remove").Call());
 
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(1);
+                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
                 value.Int1 = 123;
                 value.Long2 = 123;
                 value.String3 = "123";
@@ -41,7 +42,7 @@ namespace UnitTest.Zeze.Trans
                 value.Short5 = 123;
                 value.Float6 = 123.0f;
                 value.Double7 = 123.0;
-                value.Bytes8Copy = System.Array.Empty<byte>();
+                value.Bytes8 = Binary.Empty;
                 value.List9.Add(new demo.Bean1() { V1 = 1 }); value.List9.Add(new demo.Bean1() { V1 = 2 });
                 value.Set10.Add(123); value.Set10.Add(124);
                 value.Map11.Add(1, new demo.Module2.Value()); value.Map11.Add(2, new demo.Module2.Value());
@@ -62,7 +63,7 @@ namespace UnitTest.Zeze.Trans
             Init();
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(1);
+                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
                 value.Int1 = 124;
                 value.Long2 = 124;
                 value.String3 = "124";
@@ -70,7 +71,7 @@ namespace UnitTest.Zeze.Trans
                 value.Short5 = 124;
                 value.Float6 = 124.0f;
                 value.Double7 = 124.0;
-                value.Bytes8Copy = new byte[4];
+                value.Bytes8 = new Binary(new byte[4]);
                 value.List9.Add(new demo.Bean1() { V1 = 2 }); value.List9.Add(new demo.Bean1() { V1 = 3 });
                 value.Set10.Add(125); value.Set10.Add(126);
                 value.Map11.Add(3, new demo.Module2.Value()); value.Map11.Add(4, new demo.Module2.Value());
@@ -85,7 +86,7 @@ namespace UnitTest.Zeze.Trans
             Init();
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(1);
+                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
                 value.Set10.Add(127); value.Set10.Remove(124);
                 value.Map11.Add(5, new demo.Module2.Value()); value.Map11.Add(6, new demo.Module2.Value());
                 value.Map11.Remove(1); value.Map11.Remove(2);
@@ -98,7 +99,7 @@ namespace UnitTest.Zeze.Trans
             Init();
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(1);
+                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
                 List<int> except = new List<int>
                 {
                     1,
@@ -112,7 +113,7 @@ namespace UnitTest.Zeze.Trans
             Init();
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(1);
+                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
                 List<int> intersect = new List<int>
                 {
                     123,
@@ -126,7 +127,7 @@ namespace UnitTest.Zeze.Trans
             Init();
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(1);
+                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
                 List<int> SymmetricExcept = new List<int>
                 {
                     123,
@@ -140,7 +141,7 @@ namespace UnitTest.Zeze.Trans
             Init();
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.GetOrAdd(1);
+                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
                 List<int> Union = new List<int>
                 {
                     123,
@@ -154,7 +155,7 @@ namespace UnitTest.Zeze.Trans
             Init();
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.App.Instance.demo_Module1_Module.Table1.Put(1, new demo.Module1.Value());
+                demo.App.Instance.demo_Module1.Table1.Put(1, new demo.Module1.Value());
                 return Procedure.Success;
             }, "TestChangeListener.PutRecord").Call());
             Verify();
@@ -162,7 +163,7 @@ namespace UnitTest.Zeze.Trans
             Init();
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.App.Instance.demo_Module1_Module.Table1.Remove(1);
+                demo.App.Instance.demo_Module1.Table1.Remove(1);
                 return Procedure.Success;
             }, "TestChangeListener.RemoveRecord").Call());
             Verify();
@@ -174,7 +175,7 @@ namespace UnitTest.Zeze.Trans
         {
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.Get(1);
+                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.Get(1);
                 localValue = value?.Copy();
                 return Procedure.Success;
             }, "TestChangeListener.CopyLocal").Call());
@@ -201,7 +202,7 @@ namespace UnitTest.Zeze.Trans
         {
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
             {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1_Module.Table1.Get(1);
+                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.Get(1);
                 localValue = value?.Copy();
                 return Procedure.Success;
             }, "TestChangeListener.CopyLocal").Call());
@@ -225,21 +226,21 @@ namespace UnitTest.Zeze.Trans
 
         private void AddListener()
         {
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_int1, _CLInt1);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_long2, _ClLong2);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_string3, _CLString3);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bool4, _CLBool4);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_short5, _CLShort5);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_float6, _CLFloat6);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_double7, _CLDouble7);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bytes8, _CLBytes8);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_list9, _CLList9);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_set10, _CLSet10);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_map11, _CLMap11);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bean12, _CLBean12);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_byte13, _CLByte13);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_dynamic14, _ClDynamic14);
-            demo.App.Instance.demo_Module1_Module.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_map15, _CLMap15);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_int1, _CLInt1);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_long2, _ClLong2);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_string3, _CLString3);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bool4, _CLBool4);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_short5, _CLShort5);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_float6, _CLFloat6);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_double7, _CLDouble7);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bytes8, _CLBytes8);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_list9, _CLList9);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_set10, _CLSet10);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_map11, _CLMap11);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bean12, _CLBean12);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_byte13, _CLByte13);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_dynamic14, _ClDynamic14);
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_map15, _CLMap15);
         }
 
         private readonly CLInt1 _CLInt1 = new CLInt1();
@@ -597,11 +598,11 @@ namespace UnitTest.Zeze.Trans
 
         class CLBytes8 : ChangeListener
         {
-            private byte[] newValue;
+            private Binary newValue;
 
             public void Init(demo.Module1.Value current)
             {
-                newValue = current?.Bytes8Copy;
+                newValue = current?.Bytes8;
             }
 
             public void Verify(demo.Module1.Value current)
@@ -611,17 +612,17 @@ namespace UnitTest.Zeze.Trans
                     Assert.IsTrue(null == newValue);
                     return;
                 }
-                Assert.IsTrue(ByteBuffer.Equals(newValue, current.Bytes8Copy));
+                Assert.AreEqual(newValue, current.Bytes8);
             }
 
             void ChangeListener.OnChanged(object key, Bean value)
             {
-                newValue = ((demo.Module1.Value)value).Bytes8Copy;
+                newValue = ((demo.Module1.Value)value).Bytes8;
             }
 
             void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
             {
-                newValue = ((demo.Module1.Value)value).Bytes8Copy;
+                newValue = ((demo.Module1.Value)value).Bytes8;
             }
 
             void ChangeListener.OnRemoved(object key)

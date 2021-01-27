@@ -63,8 +63,8 @@ namespace Zeze.Gen.ts
             {
                 if (p is Rpc rpc)
                 {
-                    if (0 != (p.HandleFlags & Program.HandleScriptFlags))
-                        need.Add(p);
+                    // rpc 总是需要注册.
+                    need.Add(p);
                     continue;
                 }
                 if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
@@ -104,7 +104,7 @@ namespace Zeze.Gen.ts
         {
             Zeze.Util.FileChunkGen fcg = new Util.FileChunkGen();
             string fullDir = module.GetFullPath(genDir);
-            string fullFileName = System.IO.Path.Combine(fullDir, "Module.ts");
+            string fullFileName = System.IO.Path.Combine(fullDir, $"Module{module.Name}.ts");
             if (fcg.LoadFile(fullFileName))
             {
                 fcg.SaveFile(fullFileName, GenChunkByName);
@@ -119,7 +119,7 @@ namespace Zeze.Gen.ts
                 Import(sw);
                 sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);
                 sw.WriteLine();
-                sw.WriteLine("export class " + module.Path("_", "Module") + " {");
+                sw.WriteLine("export class " + module.Path("_") + " {");
                 sw.WriteLine("    public constructor(app: " + module.Solution.Name + "_App) {");
                 sw.WriteLine("        " + fcg.ChunkStartTag + " " + ChunkNameRegisterProtocol);
                 RegisterProtocol(sw);
