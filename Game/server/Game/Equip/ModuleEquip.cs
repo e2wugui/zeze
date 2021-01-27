@@ -4,7 +4,7 @@ using Zeze.Transaction;
 
 namespace Game.Equip
 {
-    public sealed partial class Module : AbstractModule
+    public sealed partial class ModuleEquip : AbstractModule
     {
         public void Start(Game.App app)
         {
@@ -26,7 +26,7 @@ namespace Game.Equip
                 changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordChanged;
                 changed.Argument.ItemsReplace.AddRange(bequips.Items);
 
-                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+                Game.App.Instance.Game_Login.Onlines.Send((long)key, changed);
             }
 
             void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
@@ -43,14 +43,14 @@ namespace Game.Equip
                 foreach (var p in notemap2.Removed)
                     changed.Argument.ItemsRemove.Add(p);
 
-                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+                Game.App.Instance.Game_Login.Onlines.Send((long)key, changed);
             }
 
             void ChangeListener.OnRemoved(object key)
             {
                 SEquipement changed = new SEquipement();
                 changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordIsRemoved;
-                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+                Game.App.Instance.Game_Login.Onlines.Send((long)key, changed);
             }
         }
 
@@ -68,7 +68,7 @@ namespace Game.Equip
         {
             Login.Session session = Login.Session.Get(protocol);
 
-            Bag.Bag bag = App.Instance.Game_Bag_Module.GetBag(session.LoginRoleId.Value);
+            Bag.Bag bag = App.Instance.Game_Bag.GetBag(session.LoginRoleId.Value);
             if (bag.Items.TryGetValue(protocol.Argument.BagPos, out var bItem))
             {
                 int equipPos = GetEquipPosition(bItem.Id);
@@ -111,7 +111,7 @@ namespace Game.Equip
             if (equips.Items.TryGetValue(protocol.Argument.EquipPos, out var eItem))
             {
                 equips.Items.Remove(protocol.Argument.EquipPos);
-                Bag.Bag bag = App.Instance.Game_Bag_Module.GetBag(session.LoginRoleId.Value);
+                Bag.Bag bag = App.Instance.Game_Bag.GetBag(session.LoginRoleId.Value);
                 Bag.BItem bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() };
                 if (0 != bag.Add(-1, bItemAdd))
                     return Zeze.Transaction.Procedure.LogicError; // bag is full

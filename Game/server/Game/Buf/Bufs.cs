@@ -38,7 +38,7 @@ namespace Game.Buf
             if (bean.Bufs.Remove(id))
             {
                 // 因为没有取消Scheduler，所以可能发生删除不存在的buf。
-                Game.App.Instance.Game_Fight_Module.StartCalculateFighter(RoleId);
+                Game.App.Instance.Game_Fight.StartCalculateFighter(RoleId);
             }
         }
 
@@ -60,7 +60,7 @@ namespace Game.Buf
             bean.Bufs[buf.Id] = buf.Bean;
 
             Zeze.Util.Scheduler.Instance.Schedule(() => Detach(buf.Id), buf.ContinueTime);
-            Game.App.Instance.Game_Fight_Module.StartCalculateFighter(RoleId);
+            Game.App.Instance.Game_Fight.StartCalculateFighter(RoleId);
         }
 
         public void CalculateFighter(Game.Fight.Fighter fighter)

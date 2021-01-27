@@ -4,7 +4,7 @@ using Zeze.Transaction;
 
 namespace Game.Fight
 {
-    public sealed partial class Module : AbstractModule
+    public sealed partial class ModuleFight : AbstractModule
     {
         public void Start(Game.App app)
         {
@@ -27,8 +27,8 @@ namespace Game.Fight
             switch (fighterId.Type)
             {
                 case BFighterId.TypeRole:
-                    Game.App.Instance.Game_Buf_Module.GetBufs(fighterId.InstanceId).CalculateFighter(fighter);
-                    Game.App.Instance.Game_Equip_Module.CalculateFighter(fighter);
+                    Game.App.Instance.Game_Buf.GetBufs(fighterId.InstanceId).CalculateFighter(fighter);
+                    Game.App.Instance.Game_Equip.CalculateFighter(fighter);
                     break;
             }
             _tfighters.GetOrAdd(fighterId).Assign(fighter.Bean);
@@ -40,7 +40,6 @@ namespace Game.Fight
             BFighterId fighterId = new BFighterId(BFighterId.TypeRole, roleId);
             Task.Run(Game.App.Instance.Zeze.NewProcedure(() => CalculateFighter(fighterId), "CalculateFighter").Call);
         }
-
 
     }
 }

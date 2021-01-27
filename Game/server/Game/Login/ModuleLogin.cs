@@ -1,7 +1,7 @@
 ﻿
 namespace Game.Login
 {
-    public sealed partial class Module : AbstractModule
+    public sealed partial class ModuleLogin : AbstractModule
     {
         public void Start(Game.App app)
         {
@@ -60,7 +60,7 @@ namespace Game.Login
             }
 
             // initialize role data
-            Game.App.Instance.Game_Bag_Module.GetBag(roleid).SetCapacity(50);
+            Game.App.Instance.Game_Bag.GetBag(roleid).SetCapacity(50);
 
             result.Argument.Id = roleid;
             result.ResultCode = SCreateRole.ResultSuccess;

@@ -1,7 +1,7 @@
 ﻿
 namespace Game.Map
 {
-    public sealed partial class Module : AbstractModule
+    public sealed partial class ModuleMap : AbstractModule
     {
         public void Start(Game.App app)
         {

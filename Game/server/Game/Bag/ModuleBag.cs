@@ -3,7 +3,7 @@ using Zeze.Transaction;
 
 namespace Game.Bag
 {
-    public sealed partial class Module : AbstractModule
+    public sealed partial class ModuleBag : AbstractModule
     {
         public void Start(Game.App app)
         {
@@ -25,7 +25,7 @@ namespace Game.Bag
                 changed.Argument.ChangeTag = BChangedResult.ChangeTagRecordChanged;
                 changed.Argument.ItemsReplace.AddRange(bbag.Items);
 
-                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+                Game.App.Instance.Game_Login.Onlines.Send((long)key, changed);
             }
 
             void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
@@ -42,14 +42,14 @@ namespace Game.Bag
                 foreach (var p in notemap2.Removed)
                     changed.Argument.ItemsRemove.Add(p);
 
-                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+                Game.App.Instance.Game_Login.Onlines.Send((long)key, changed);
             }
 
             void ChangeListener.OnRemoved(object key)
             {
                 SChanged changed = new SChanged();
                 changed.Argument.ChangeTag = BChangedResult.ChangeTagRecordIsRemoved;
-                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+                Game.App.Instance.Game_Login.Onlines.Send((long)key, changed);
             }
         }
         // protocol handles

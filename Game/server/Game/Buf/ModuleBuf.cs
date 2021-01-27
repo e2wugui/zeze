@@ -3,7 +3,7 @@ using Zeze.Transaction;
 
 namespace Game.Buf
 {
-    public sealed partial class Module : AbstractModule
+    public sealed partial class ModuleBuf : AbstractModule
     {
         public void Start(Game.App app)
         {
@@ -25,7 +25,7 @@ namespace Game.Buf
                 changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordChanged;
                 changed.Argument.Replace.AddRange(record.Bufs);
 
-                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+                Game.App.Instance.Game_Login.Onlines.Send((long)key, changed);
             }
 
             void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
@@ -42,14 +42,14 @@ namespace Game.Buf
                 foreach (var p in notemap2.Removed)
                     changed.Argument.Remove.Add(p);
 
-                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+                Game.App.Instance.Game_Login.Onlines.Send((long)key, changed);
             }
 
             void ChangeListener.OnRemoved(object key)
             {
                 SChanged changed = new SChanged();
                 changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordIsRemoved;
-                Game.App.Instance.Game_Login_Module.Onlines.Send((long)key, changed);
+                Game.App.Instance.Game_Login.Onlines.Send((long)key, changed);
             }
         }
 
@@ -58,5 +58,6 @@ namespace Game.Buf
         {
             return new Bufs(roleId, _tbufs.GetOrAdd(roleId));
         }
+
     }
 }

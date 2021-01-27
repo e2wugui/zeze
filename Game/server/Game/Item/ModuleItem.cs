@@ -1,7 +1,7 @@
 ﻿
 namespace Game.Item
 {
-    public sealed partial class Module : AbstractModule
+    public sealed partial class ModuleItem : AbstractModule
     {
         public void Start(Game.App app)
         {
@@ -10,5 +10,6 @@ namespace Game.Item
         public void Stop(Game.App app)
         {
         }
+
     }
 }
