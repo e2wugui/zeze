@@ -45,6 +45,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("        }");
             sw.WriteLine("");
+            /*
             if (service.IsProvider)
             {
                 sw.WriteLine("        // 用来同步等待Provider的静态绑定完成。");
@@ -64,6 +65,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("        }");
                 sw.WriteLine("");
             }
+            */
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }

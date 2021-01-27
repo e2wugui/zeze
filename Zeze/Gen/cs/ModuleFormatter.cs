@@ -145,9 +145,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public abstract class AbstractModule");
+            sw.WriteLine("    public abstract class AbstractModule : Zeze.IModule");
             sw.WriteLine("    {");
- 
+            sw.WriteLine($"        public string Name => \"{module.Path()}\";");
+            sw.WriteLine($"        public int Id => {module.Id};");
+
             if (module.ReferenceService != null)
             {
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;

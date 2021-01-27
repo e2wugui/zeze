@@ -54,7 +54,7 @@ namespace Zeze.Transaction
         internal override void Merge(ChangeNote note)
         {
             ChangeNoteMap1<K, V> another = (ChangeNoteMap1<K, V>)note;
-            // TODO Put,Remove 需要确认有没有顺序问题
+            // Put,Remove 需要确认有没有顺序问题
             // this: replace 1,3 remove 2,4 nest: repalce 2 remove 1
             foreach (var e in another.Replaced) LogPut(e.Key, e.Value); // replace 1,2,3 remove 4
             foreach (var e in another.Removed) LogRemove(e); // replace 2,3 remove 1,4
@@ -125,7 +125,7 @@ namespace Zeze.Transaction
         internal override void Merge(ChangeNote other)
         {
             ChangeNoteSet<K> another = (ChangeNoteSet<K>)other;
-            // TODO Put,Remove 需要确认有没有顺序问题
+            // Put,Remove 需要确认有没有顺序问题
             // this: add 1,3 remove 2,4 nest: add 2 remove 1
             foreach (var e in another.Added) LogAdd(e); // replace 1,2,3 remove 4
             foreach (var e in another.Removed) LogRemove(e); // replace 2,3 remove 1,4

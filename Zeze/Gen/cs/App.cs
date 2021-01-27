@@ -29,19 +29,23 @@ namespace Zeze.Gen.cs
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");
+            sw.WriteLine("using System.Collections.Generic;");
+            sw.WriteLine("");
             sw.WriteLine("namespace " + project.Solution.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class App");
             sw.WriteLine("    {");
             sw.WriteLine("        public static App Instance { get; } = new App();");
             sw.WriteLine("");
-
             sw.WriteLine("        public Zeze.Application Zeze { get; private set; }");
+            sw.WriteLine("");
+            sw.WriteLine("        public Dictionary<string, Zeze.IModule> Modules { get; } = new Dictionary<string, Zeze.IModule>();");
             sw.WriteLine("");
 
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("        public " + m.Path(".", $"Module{m.Name}") + " " + m.Path("_") + " { get; private set; }");
+                var fullname = m.Path("_");
+                sw.WriteLine($"        public {m.Path(".", $"Module{m.Name}")} {fullname} {{ get; private set; }}");
                 sw.WriteLine("");
             }
 
@@ -67,7 +71,9 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             foreach (Module m in project.AllModules)
             {
-                sw.WriteLine("                " + m.Path("_") + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
+                var fullname = m.Path("_");
+                sw.WriteLine("                " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
+                sw.WriteLine($"                Modules.Add({fullname}.Name, {fullname});");
             }
             sw.WriteLine("");
             foreach (Module m in project.AllModules)

@@ -66,6 +66,12 @@ namespace Zeze.Transaction.Collections
         public int Count => Data.Count;
         public bool IsReadOnly => false;
 
+        public void AddAll(IEnumerable<E> items)
+        {
+            foreach (var item in items)
+                Add(item);
+        }
+
         public abstract bool Add(E item);
         public abstract void Clear();
         public abstract void ExceptWith(IEnumerable<E> other);

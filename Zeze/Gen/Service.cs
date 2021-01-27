@@ -19,8 +19,8 @@ namespace Zeze.Gen
 
         // setup when compile
         public List<Module> Modules { get; private set; }
-        public HashSet<string> DynamicModules { get; } = new HashSet<string>();
-        public bool IsProvider { get; private set; } = false;
+        //public HashSet<string> DynamicModules { get; } = new HashSet<string>();
+        //public bool IsProvider { get; private set; } = false;
 
         private HashSet<Protocol> AllProtocols;
         public HashSet<Protocol> GetAllProtocols()
@@ -47,14 +47,14 @@ namespace Zeze.Gen
             if (HandleFlags == 0)
                 throw new Exception("handle miss. " + Name + " in project " + project.Name);
             Base = self.GetAttribute("base");
-            IsProvider = self.GetAttribute("provider").Equals("true");
+            //IsProvider = self.GetAttribute("provider").Equals("true");
 
             //Program.AddNamedObject(FullName, this);
 
             if (project.Services.ContainsKey(Name))
                 throw new Exception("duplicate service " + Name + " in project " + project.Name);
             project.Services.Add(Name, this);
-
+            /*
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
             {
@@ -75,6 +75,7 @@ namespace Zeze.Gen
             DynamicModules.Clear();
             foreach (var fullName in fullNameRefs)
                 DynamicModules.Add(fullName);
+            */
         }
 
         private string FullModuleNameToClassName(string name)
