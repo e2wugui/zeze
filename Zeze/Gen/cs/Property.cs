@@ -31,7 +31,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
         }
 
-        private void WriteProperty(Types.Type type)
+        private void WriteProperty(Types.Type type, bool checkNull = false)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
             sw.WriteLine(prefix + "{");
@@ -46,6 +46,10 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    set");
             sw.WriteLine(prefix + "    {");
+            if (checkNull)
+            {
+                sw.WriteLine(prefix + "        if (null == value) throw new System.ArgumentNullException();");
+            }
             sw.WriteLine(prefix + "        if (false == this.IsManaged)");
             sw.WriteLine(prefix + "        {");
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
@@ -130,6 +134,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    set");
             sw.WriteLine(prefix + "    {");
+            sw.WriteLine(prefix + "        if (null == value) throw new System.ArgumentNullException();");
             sw.WriteLine(prefix + "        if (false == this.IsManaged)");
             sw.WriteLine(prefix + "        {");
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
@@ -144,7 +149,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeString type)
         {
-            WriteProperty(type);
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeList type)
