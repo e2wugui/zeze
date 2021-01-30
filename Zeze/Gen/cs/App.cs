@@ -55,7 +55,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("");
             }
 
-            sw.WriteLine("        public void StartModules(Zeze.Config config = null)");
+            sw.WriteLine("        private void Create(Zeze.Config config = null)");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
@@ -75,7 +75,31 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("                " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
                 sw.WriteLine($"                Modules.Add({fullname}.Name, {fullname});");
             }
+            sw.WriteLine("            }");
+            sw.WriteLine("        }");
             sw.WriteLine("");
+            sw.WriteLine("        private void Destroy()");
+            sw.WriteLine("        {");
+            sw.WriteLine("            lock(this)");
+            sw.WriteLine("            {");
+            foreach (Module m in project.AllModules)
+            {
+                var fullname = m.Path("_");
+                sw.WriteLine("                " + fullname + " = null;");
+            }
+            sw.WriteLine("                Modules.Clear();");
+            foreach (Service m in project.Services.Values)
+            {
+                sw.WriteLine("                " + m.Name + " = null;");
+            }
+            sw.WriteLine("                Zeze = null;");
+            sw.WriteLine("            }");
+            sw.WriteLine("        }");
+            sw.WriteLine("");
+            sw.WriteLine("        private void StartModules()");
+            sw.WriteLine("        {");
+            sw.WriteLine("            lock(this)");
+            sw.WriteLine("            {");
             foreach (Module m in project.AllModules)
             {
                 sw.WriteLine("                " + m.Path("_") + ".Start(this);");
@@ -84,22 +108,38 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine("");
-            sw.WriteLine("        public void StopModules()");
+            sw.WriteLine("        private void StopModules()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
-            sw.WriteLine("                if (null == Zeze)");
-            sw.WriteLine("                    return;");
-            sw.WriteLine("");
             foreach (Module m in project.AllModules)
             {
                 sw.WriteLine("                " + m.Path("_") + ".Stop(this);");
             }
-            sw.WriteLine("");
-            sw.WriteLine("                Zeze = null;");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine("");
+            sw.WriteLine("        private void StartService()");
+            sw.WriteLine("        {");
+            sw.WriteLine("            lock(this)");
+            sw.WriteLine("            {");
+            foreach (Service m in project.Services.Values)
+            {
+                sw.WriteLine("                " + m.Name + ".Start();");
+            }
+            sw.WriteLine("            }");
+            sw.WriteLine("        }");
+            sw.WriteLine("");
+            sw.WriteLine("        private void StopService()");
+            sw.WriteLine("        {");
+            sw.WriteLine("            lock(this)");
+            sw.WriteLine("            {");
+            foreach (Service m in project.Services.Values)
+            {
+                sw.WriteLine("                " + m.Name + ".Close();");
+            }
+            sw.WriteLine("            }");
+            sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }
@@ -119,21 +159,12 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            StartModules(); // 启动模块，装载配置什么的。");
             sw.WriteLine("            Zeze.Start(); // 启动数据库");
-            sw.WriteLine("            // 启动网络");
-            foreach (Service m in project.Services.Values)
-            {
-                sw.WriteLine("                " + m.Name + ".Start();");
-            }
+            sw.WriteLine("            StartService(); // 启动网络");
             sw.WriteLine("        }");
             sw.WriteLine("");
             sw.WriteLine("        public void Stop()");
             sw.WriteLine("        {");
-            sw.WriteLine("            // 关闭网络");
-            foreach (Service m in project.Services.Values)
-            {
-                sw.WriteLine("                " + m.Name + ".Close();");
-                sw.WriteLine("                " + m.Name + " = null;");
-            }
+            sw.WriteLine("            StopService(); // 关闭网络");
             sw.WriteLine("            Zeze.Stop(); // 关闭数据库");
             sw.WriteLine("            StopModules(); // 关闭模块,，卸载配置什么的。");
             sw.WriteLine("        }");
