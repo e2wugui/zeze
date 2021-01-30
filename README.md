@@ -195,6 +195,7 @@
 	实现：加一个配置，然后修改ByteBuffer.ReadBinary即可。
 	更好的 hash 实现。
 	Binary现在不能修改，可以当key了。
+	增加统计，readlock,writelock,procedure,protocol...
 
 #### 历史
 

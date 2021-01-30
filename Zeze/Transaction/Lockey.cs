@@ -37,6 +37,10 @@ namespace Zeze.Transaction
 		public void EnterReadLock()
         {
 			//logger.Debug("EnterReadLock {0}", TableKey);
+#if ENABLE_STATISTICS
+			if (false == rwLock.IsReadLockHeld) // 第一次才计数
+				TableStatistics.Instance.GetOrAdd(TableKey.TableId).ReadLockTimes.IncrementAndGet();
+#endif
 			rwLock.EnterReadLock();
         }
 
@@ -49,6 +53,10 @@ namespace Zeze.Transaction
 		public void EnterWriteLock()
 		{
 			//logger.Debug("EnterWriteLock {0}", TableKey);
+#if ENABLE_STATISTICS
+			if (false == rwLock.IsWriteLockHeld) // 第一次才计数
+				TableStatistics.Instance.GetOrAdd(TableKey.TableId).WriteLockTimes.IncrementAndGet();
+#endif
 			rwLock.EnterWriteLock();
 		}
 
@@ -60,11 +68,19 @@ namespace Zeze.Transaction
 
 		public bool TryEnterReadLock(int millisecondsTimeout)
         {
+#if ENABLE_STATISTICS
+			if (false == rwLock.IsReadLockHeld) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
+				TableStatistics.Instance.GetOrAdd(TableKey.TableId).TryReadLockTimes.IncrementAndGet();
+#endif
 			return rwLock.TryEnterReadLock(millisecondsTimeout);
         }
 
 		public bool TryEnterWriteLock(int millisecondsTimeout)
         {
+#if ENABLE_STATISTICS
+			if (false == rwLock.IsWriteLockHeld) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
+				TableStatistics.Instance.GetOrAdd(TableKey.TableId).TryWriteLockTimes.IncrementAndGet();
+#endif
 			return rwLock.TryEnterWriteLock(millisecondsTimeout);
         }
 
@@ -87,12 +103,12 @@ namespace Zeze.Transaction
 					rwLock.ExitReadLock();
 
 				//logger.Debug("EnterLock::EnterWriteLock {0}", TableKey);
-				rwLock.EnterWriteLock();
+				EnterWriteLock();
 			}
 			else
             {
 				//logger.Debug("EnterLock::EnterReadLock {0}", TableKey);
-				rwLock.EnterReadLock();
+				EnterReadLock();
 			} 
 		}
 

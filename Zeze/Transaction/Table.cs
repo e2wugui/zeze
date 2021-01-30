@@ -9,7 +9,7 @@ namespace Zeze.Transaction
 {
     public abstract class Table
     {
-        private static List<Table> Tables { get; } = new List<Table>(); // 全局。这样允许多个Zeze实例。线程安全：仅在初始化时保护一下。
+        private static List<Table> Tables { get; } = new List<Table>(); // 全局。这样允许多个Zeze实例。线程不安全：仅在初始化时保护一下。
         public static Table GetTable(int id) => Tables[id];
 
         public Table(string name)
@@ -88,6 +88,9 @@ namespace Zeze.Transaction
 
                         if (null != Storage)
                         {
+#if ENABLE_STATISTICS
+                            TableStatistics.Instance.GetOrAdd(Id).StorageFindCount.IncrementAndGet();
+#endif
                             r.Value = Storage.Find(key, this); // r.Value still maybe null
                             if (null == r.Value && null != OldTable)
                             {

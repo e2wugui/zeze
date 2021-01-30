@@ -57,6 +57,23 @@ namespace Zeze.Transaction
 
             GlobalCacheManager.GlobalTableKey gkey = new GlobalCacheManager.GlobalTableKey(Table.Name, Table.EncodeKey(Key));
             logger.Debug($"Acquire NewState={state} {this}");
+#if ENABLE_STATISTICS
+            var stat = TableStatistics.Instance.GetOrAdd(Table.Id);
+            switch (state)
+            {
+                case GlobalCacheManager.StateInvalid:
+                    stat.GlobalAcquireInvalid.IncrementAndGet();
+                    break;
+
+                case GlobalCacheManager.StateShare:
+                    stat.GlobalAcquireShare.IncrementAndGet();
+                    break;
+
+                case GlobalCacheManager.StateModify:
+                    stat.GlobalAcquireModify.IncrementAndGet();
+                    break;
+            }
+#endif
             return Table.Zeze.GlobalAgent.Acquire(gkey, state);
         }
 

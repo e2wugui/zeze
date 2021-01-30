@@ -13,6 +13,7 @@ namespace Zeze.Transaction
         public const int Unknown = -4;
         public const int ErrorSavepoint = -5;
         public const int LogicError = -6;
+        public const int RedoAndRelease = -7;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -64,20 +65,32 @@ namespace Zeze.Transaction
                 if (Success == result)
                 {
                     currentT.Commit();
+#if ENABLE_STATISTICS
+                    ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(result).IncrementAndGet();
+#endif
                     return Success;
                 }
                 currentT.Rollback();
+#if ENABLE_STATISTICS
+                ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(result).IncrementAndGet();
+#endif
                 return result;
             }
             catch (RedoAndReleaseLockException redo)
             {
                 currentT.Rollback();
+#if ENABLE_STATISTICS
+                ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(RedoAndRelease).IncrementAndGet();
+#endif
                 throw redo;
             }
             catch (Exception e)
             {
                 currentT.Rollback();
                 logger.Error(e, "Procedure.Process");
+#if ENABLE_STATISTICS
+                ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(Excption).IncrementAndGet();
+#endif
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (e.GetType().Name == "AssertFailedException")
