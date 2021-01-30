@@ -194,8 +194,7 @@
 	XXX 另外Binary.Decode的时候，不拷贝，直接引用ByteBuffer的内部byte[]。这个有点浪费内存，只能用于纯转发类服务(linkd,gate)，不会保存数据。
 	实现：加一个配置，然后修改ByteBuffer.ReadBinary即可。
 	更好的 hash 实现。
-	Binary现在不能修改，可以当key了。
-	增加统计，readlock,writelock,procedure,protocol...
+	
 
 #### 历史
 
