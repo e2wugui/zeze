@@ -39,7 +39,7 @@ namespace Zeze.Transaction
             {
                 get
                 {
-                    long total = TableFindCount;
+                    double total = TableFindCount;
                     return (total - StorageFindCount.Get()) / total;
                 }
             }
@@ -47,7 +47,7 @@ namespace Zeze.Transaction
             {
                 get
                 {
-                    long total = TableFindCount;
+                    double total = TableFindCount;
                     return (total - GlobalAcquireShare.Get()) / total;
                 }
             }
@@ -55,7 +55,7 @@ namespace Zeze.Transaction
             {
                 get
                 {
-                    long total = TableFindCount;
+                    double total = TableFindCount;
                     return (total - GlobalAcquireModify.Get()) / total;
                 }
             }
