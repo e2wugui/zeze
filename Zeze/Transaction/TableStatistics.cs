@@ -35,7 +35,30 @@ namespace Zeze.Transaction
 
             // 虽然有锁升级存在，但数量很少，忽略掉后，就可以把读写访问加起来当作总的查找次数。
             public long TableFindCount => ReadLockTimes.Get() + WriteLockTimes.Get();
-            public double TableCacheHit { get { long total = TableFindCount; return (total - StorageFindCount.Get()) / total; } }
+            public double TableCacheHit
+            {
+                get
+                {
+                    long total = TableFindCount;
+                    return (total - StorageFindCount.Get()) / total;
+                }
+            }
+            public double GlobalAcquireShareHit
+            {
+                get
+                {
+                    long total = TableFindCount;
+                    return (total - GlobalAcquireShare.Get()) / total;
+                }
+            }
+            public double GlobalAcquireModifyHit
+            {
+                get
+                {
+                    long total = TableFindCount;
+                    return (total - GlobalAcquireModify.Get()) / total;
+                }
+            }
         }
     }
 }
