@@ -18,6 +18,7 @@ namespace Zeze.Transaction
         private static System.Threading.ThreadLocal<Transaction> threadLocal = new System.Threading.ThreadLocal<Transaction>();
 
         public static Transaction Current => threadLocal.Value;
+        public object UserState { get; set; } // 在处理协议时，把协议的UserState设置到这里，see Net.Service.DispatchProtocol
 
         public static Transaction Create()
         {

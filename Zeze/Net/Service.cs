@@ -224,6 +224,7 @@ namespace Zeze.Net
                     {
                         try
                         {
+                            global::Zeze.Transaction.Transaction.Current.UserState = p.UserState;
                             return factoryHandle.Handle(p);
                         }
                         catch (Exception ex)

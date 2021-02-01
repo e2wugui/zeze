@@ -187,7 +187,7 @@
 	EventHelper
 	打包和更新工具
 	每事务提交
-	GlobalCacheManager 问题。
+	GlobalCacheManager 性能问题。
 	a) 扩充性能简单方案，把 GlobalTableKey.Hash 分配到不同的服务上。
 	b) 连接断开：释放该连接对应的本地所有相关记录(Invalid)。
 	async await?

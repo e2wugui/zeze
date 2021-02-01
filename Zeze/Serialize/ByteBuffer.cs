@@ -432,7 +432,7 @@ namespace Zeze.Serialize
             return (int)ReadUint();
         }
 
-        private void WriteUint(uint x)
+        public void WriteUint(uint x)
         {
             // 0 111 1111
             if (x < 0x80)
@@ -476,7 +476,7 @@ namespace Zeze.Serialize
             }
         }
 
-        private uint ReadUint()
+        public uint ReadUint()
         {
             EnsureRead(1);
             uint h = Bytes[ReadIndex];
@@ -528,7 +528,7 @@ namespace Zeze.Serialize
             return (long)ReadUlong();
         }
 
-        private void WriteUlong(ulong x)
+        public void WriteUlong(ulong x)
         {
             // 0 111 1111
             if (x < 0x80)
@@ -622,7 +622,7 @@ namespace Zeze.Serialize
             }
         }
 
-        private ulong ReadUlong()
+        public ulong ReadUlong()
         {
             EnsureRead(1);
             uint h = Bytes[ReadIndex];

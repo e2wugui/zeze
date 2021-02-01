@@ -35,7 +35,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
-            sw.WriteLine($"    public sealed  partial class Module{module.Name} : AbstractModule");
+            sw.WriteLine($"    public partial class Module{module.Name} : AbstractModule");
             sw.WriteLine("    {");
             sw.WriteLine($"        public const int ModuleId = {module.Id};");
             sw.WriteLine("");
@@ -96,7 +96,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
-            sw.WriteLine($"    public sealed partial class Module{module.Name} : AbstractModule");
+            sw.WriteLine($"    public partial class Module{module.Name} : AbstractModule");
             sw.WriteLine("    {");
             sw.WriteLine("        public void Start(" + project.Solution.Name + ".App app)");
             sw.WriteLine("        {");

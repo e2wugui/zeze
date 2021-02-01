@@ -37,7 +37,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("    {");
             sw.WriteLine("        public static App Instance { get; } = new App();");
             sw.WriteLine("");
-            sw.WriteLine("        public Zeze.Application Zeze { get; private set; }");
+            sw.WriteLine("        public Zeze.Application Zeze { get; set; }");
             sw.WriteLine("");
             sw.WriteLine("        public Dictionary<string, Zeze.IModule> Modules { get; } = new Dictionary<string, Zeze.IModule>();");
             sw.WriteLine("");
@@ -45,13 +45,13 @@ namespace Zeze.Gen.cs
             foreach (Module m in project.AllModules)
             {
                 var fullname = m.Path("_");
-                sw.WriteLine($"        public {m.Path(".", $"Module{m.Name}")} {fullname} {{ get; private set; }}");
+                sw.WriteLine($"        public {m.Path(".", $"Module{m.Name}")} {fullname} {{ get; set; }}");
                 sw.WriteLine("");
             }
 
             foreach (Service m in project.Services.Values)
             {
-                sw.WriteLine("        public " + m.FullName + " " + m.Name + " { get; private set; }");
+                sw.WriteLine("        public " + m.FullName + " " + m.Name + " { get; set; }");
                 sw.WriteLine("");
             }
 
@@ -73,6 +73,7 @@ namespace Zeze.Gen.cs
             {
                 var fullname = m.Path("_");
                 sw.WriteLine("                " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
+                sw.WriteLine($"                {fullname} = ({m.Path(".", $"Module{m.Name}")})ReplaceModuleInstance({fullname});");
                 sw.WriteLine($"                Modules.Add({fullname}.Name, {fullname});");
             }
             sw.WriteLine("            }");
@@ -155,6 +156,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class App");
             sw.WriteLine("    {");
+            sw.WriteLine("        public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)");
+            sw.WriteLine("        {");
+            sw.WriteLine("            return module;");
+            sw.WriteLine("        }");
+            sw.WriteLine("");
             sw.WriteLine("        public void Start()");
             sw.WriteLine("        {");
             sw.WriteLine("            Create();");
