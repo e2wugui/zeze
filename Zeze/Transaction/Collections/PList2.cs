@@ -2,7 +2,6 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace Zeze.Transaction.Collections
 {

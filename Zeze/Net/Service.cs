@@ -269,7 +269,7 @@ namespace Zeze.Net
             public bool NoProcedure { get; set; } = false;
         }
 
-        private ConcurrentDictionary<int, ProtocolFactoryHandle> Factorys { get; } = new ConcurrentDictionary<int, ProtocolFactoryHandle>();
+        public ConcurrentDictionary<int, ProtocolFactoryHandle> Factorys { get; } = new ConcurrentDictionary<int, ProtocolFactoryHandle>();
 
         public void AddFactoryHandle(int type, ProtocolFactoryHandle factory)
         {

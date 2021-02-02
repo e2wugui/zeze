@@ -72,6 +72,16 @@ namespace Zeze
             throw new Exception($"database not found dbName={dbName}");
         }
 
+        public void RemoveTable(string dbName, Transaction.Table table)
+        {
+            if (Databases.TryGetValue(dbName, out var db))
+            {
+                db.RemoveTable(table);
+                return;
+            }
+            throw new Exception($"database not found dbName={dbName}");
+        }
+
         public Table GetTable(string name)
         {
             foreach (Database db in Databases.Values)

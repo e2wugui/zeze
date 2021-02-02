@@ -55,7 +55,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("");
             }
 
-            sw.WriteLine("        private void Create(Zeze.Config config = null)");
+            sw.WriteLine("        public void Create(Zeze.Config config = null)");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
@@ -79,7 +79,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine("");
-            sw.WriteLine("        private void Destroy()");
+            sw.WriteLine("        public void Destroy()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
@@ -97,7 +97,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine("");
-            sw.WriteLine("        private void StartModules()");
+            sw.WriteLine("        public void StartModules()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
@@ -109,7 +109,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine("");
-            sw.WriteLine("        private void StopModules()");
+            sw.WriteLine("        public void StopModules()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
@@ -120,7 +120,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine("");
-            sw.WriteLine("        private void StartService()");
+            sw.WriteLine("        public void StartService()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
@@ -131,7 +131,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine("");
-            sw.WriteLine("        private void StopService()");
+            sw.WriteLine("        public void StopService()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");

@@ -85,11 +85,14 @@ namespace Zeze.Gen
             if (xmlFileList.Count == 0)
             {
                 string xmlDefault = "solution.xml";
-                if (false == System.IO.File.Exists(xmlDefault))
+                if (System.IO.File.Exists(xmlDefault))
+                {
+                    xmlFileList.Add(xmlDefault);
+                }
+                else
                 {
                     Console.WriteLine(xmlDefault + " not found");
                 }
-                xmlFileList.Add(xmlDefault);
             }
             foreach (string file in xmlFileList)
             {

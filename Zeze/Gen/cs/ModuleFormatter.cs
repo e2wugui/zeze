@@ -45,8 +45,11 @@ namespace Zeze.Gen.cs
                     sw.WriteLine("        private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
             }
             sw.WriteLine("");
+            sw.WriteLine($"        public {project.Solution.Name}.App App {{ get; }}");
+            sw.WriteLine("");
             sw.WriteLine($"        public Module{module.Name}({project.Solution.Name}.App app)");
             sw.WriteLine("        {");
+            sw.WriteLine("            App = app;");
             sw.WriteLine("            // register protocol factory and handles");
             Service serv = module.ReferenceService;
             if (serv != null)
@@ -57,7 +60,7 @@ namespace Zeze.Gen.cs
                     if (p is Rpc rpc)
                     {
                         // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
-                        sw.WriteLine($"            app.{serv.Name}.AddFactoryHandle({rpc.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
+                        sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({rpc.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
                         sw.WriteLine("            {");
                         sw.WriteLine($"                Factory = () => new {rpc.Space.Path(".", rpc.Name)}(),");
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
@@ -67,7 +70,7 @@ namespace Zeze.Gen.cs
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine($"            app.{serv.Name}.AddFactoryHandle({p.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
+                        sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({p.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
                         sw.WriteLine( "            {");
                         sw.WriteLine($"                Factory = () => new {p.Space.Path(".", p.Name)}(),");
                         sw.WriteLine($"                Handle = Zeze.Net.Service.MakeHandle<{p.Name}>(this, GetType().GetMethod(nameof(Process{p.Name}))),");
@@ -79,9 +82,36 @@ namespace Zeze.Gen.cs
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen))
-                    sw.WriteLine($"            app.Zeze.AddTable(app.Zeze.Config.GetTableConf(_{table.Name}.Name).DatabaseName, _{table.Name});");
+                    sw.WriteLine($"            App.Zeze.AddTable(App.Zeze.Config.GetTableConf(_{table.Name}.Name).DatabaseName, _{table.Name});");
             }
             sw.WriteLine("        }");
+            sw.WriteLine("");
+            sw.WriteLine("        public override void UnRegister()");
+            sw.WriteLine("        {");
+            if (serv != null)
+            {
+                int serviceHandleFlags = module.ReferenceService.HandleFlags;
+                foreach (Protocol p in module.Protocols.Values)
+                {
+                    if (p is Rpc rpc)
+                    {
+                        // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
+                        sw.WriteLine($"            App.{serv.Name}.Factorys.TryRemove({rpc.TypeId}, out var _);");
+                        continue;
+                    }
+                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
+                    {
+                        sw.WriteLine($"            App.{serv.Name}.Factorys.TryRemove({p.TypeId}, out var _);");
+                    }
+                }
+            }
+            foreach (Table table in module.Tables.Values)
+            {
+                if (project.GenTables.Contains(table.Gen))
+                    sw.WriteLine($"            App.Zeze.RemoveTable(App.Zeze.Config.GetTableConf(_{table.Name}.Name).DatabaseName, _{table.Name});");
+            }
+            sw.WriteLine("        }");
+            sw.WriteLine("");
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }
@@ -147,8 +177,10 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public abstract class AbstractModule : Zeze.IModule");
             sw.WriteLine("    {");
-            sw.WriteLine($"        public string Name => \"{module.Path()}\";");
+            sw.WriteLine($"        public string FullName => \"{module.Path()}\";");
+            sw.WriteLine($"        public string Name => \"{module.Name}\";");
             sw.WriteLine($"        public int Id => {module.Id};");
+            sw.WriteLine($"        public abstract void UnRegister();");
 
             if (module.ReferenceService != null)
             {

@@ -1,4 +1,4 @@
 
-..\Gen\bin\Debug\netcoreapp3.1\Gen.exe
+..\Gen\bin\Debug\net5.0\Gen.exe
 
 pause

@@ -43,6 +43,11 @@ namespace Zeze.Transaction
             tables.Add(table.Name, table);
         }
 
+        public void RemoveTable(Zeze.Transaction.Table table)
+        {
+            tables.Remove(table.Name);
+        }
+
         public void Open(Zeze.Application app)
         {
             foreach (Zeze.Transaction.Table table in tables.Values)
