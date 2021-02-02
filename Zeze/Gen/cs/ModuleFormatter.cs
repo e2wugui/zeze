@@ -65,6 +65,8 @@ namespace Zeze.Gen.cs
                         sw.WriteLine($"                Factory = () => new {rpc.Space.Path(".", rpc.Name)}(),");
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                             sw.WriteLine($"                Handle = Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Request))),");
+                        if (p.NoProcedure)
+                            sw.WriteLine($"                NoProcedure = true,");
                         sw.WriteLine("            });");
                         continue;
                     }
@@ -74,6 +76,8 @@ namespace Zeze.Gen.cs
                         sw.WriteLine( "            {");
                         sw.WriteLine($"                Factory = () => new {p.Space.Path(".", p.Name)}(),");
                         sw.WriteLine($"                Handle = Zeze.Net.Service.MakeHandle<{p.Name}>(this, GetType().GetMethod(nameof(Process{p.Name}))),");
+                        if (p.NoProcedure)
+                            sw.WriteLine($"                NoProcedure = true,");
                         sw.WriteLine( "            });");
                     }
                 }

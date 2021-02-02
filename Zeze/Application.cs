@@ -107,6 +107,21 @@ namespace Zeze
             return new Procedure(_checkpoint, action, actionName);
         }
 
+        public void RunProcedureInAnotherThread(Func<int> action, string actionName)
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    NewProcedure(action, actionName).Call();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "RunProcedureInAnotherThread");
+                }
+            });
+        }
+
         public void Start()
         {
             lock (this)

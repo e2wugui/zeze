@@ -14,7 +14,7 @@ namespace Zeze.Gen
         public string Argument { get; private set; }
         public string Handle { get; private set; }
         public int HandleFlags { get; }
-
+        public bool NoProcedure { get; }
         public List<Types.Enum> Enums { get; private set; } = new List<Types.Enum>();
 
         // setup in compile
@@ -33,6 +33,7 @@ namespace Zeze.Gen
             Argument = self.GetAttribute("argument");
             Handle = self.GetAttribute("handle");
             HandleFlags = Program.ToHandleFlags(Handle);
+            NoProcedure = "true".Equals(self.GetAttribute("NoProcedure"));
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

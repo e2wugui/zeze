@@ -28,12 +28,13 @@ namespace Zeze.Transaction
         {
             Checkpoint = checkpoint;
         }
-
+        private object UserState { get; }
         public Procedure(Checkpoint checkpoint, Func<int> action, string actionName)
         {
             Checkpoint = checkpoint;
             Action = action;
             ActionName = actionName;
+            UserState = Transaction.Current?.UserState;
         }
 
         /// <summary>
@@ -48,7 +49,7 @@ namespace Zeze.Transaction
                 try
                 {
                     // 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-                    return Transaction.Create().Perform(this);
+                    return Transaction.Create(UserState).Perform(this);
                 }
                 finally
                 {

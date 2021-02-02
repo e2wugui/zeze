@@ -80,6 +80,8 @@ namespace Zeze.Util
 
 		internal class TaskOneByOne
 		{
+			private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
 			LinkedList<Action> queue = new LinkedList<Action>();
 
             public TaskOneByOne()
@@ -92,7 +94,14 @@ namespace Zeze.Util
                 {
 					queue.AddLast(() =>
 					{
-						action();
+						try
+						{
+							action();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(ex);
+						}
 						RunNext();
 					});
 
@@ -109,7 +118,14 @@ namespace Zeze.Util
 				{
 					queue.AddLast(() =>
 					{
-						action();
+						try
+						{
+							action();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(ex);
+						}
 						RunNext();
 					});
 

@@ -20,10 +20,15 @@ namespace Zeze.Transaction
         public static Transaction Current => threadLocal.Value;
         public object UserState { get; set; } // 在处理协议时，把协议的UserState设置到这里，see Net.Service.DispatchProtocol
 
-        public static Transaction Create()
+        private Transaction(object userState = null)
+        {
+            this.UserState = userState;
+        }
+
+        public static Transaction Create(object userState = null)
         {
             if (null == threadLocal.Value)
-                threadLocal.Value = new Transaction();
+                threadLocal.Value = new Transaction(userState);
             return threadLocal.Value;
         }
 
