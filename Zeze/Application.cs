@@ -102,24 +102,9 @@ namespace Zeze
             throw new Exception($"database not exist name={name}");
         }
 
-        public Procedure NewProcedure(Func<int> action, string actionName)
+        public Procedure NewProcedure(Func<int> action, string actionName, object userState = null)
         {
-            return new Procedure(_checkpoint, action, actionName);
-        }
-
-        public void RunProcedureInAnotherThread(Func<int> action, string actionName)
-        {
-            Task.Run(() =>
-            {
-                try
-                {
-                    NewProcedure(action, actionName).Call();
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "RunProcedureInAnotherThread");
-                }
-            });
+            return new Procedure(_checkpoint, action, actionName, userState);
         }
 
         public void Start()

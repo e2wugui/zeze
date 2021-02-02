@@ -220,33 +220,11 @@ namespace Zeze.Net
             {
                 if (null != Zeze && false == factoryHandle.NoProcedure)
                 {
-                    Task.Run(Zeze.NewProcedure(() =>
-                    {
-                        try
-                        {
-                            global::Zeze.Transaction.Transaction.Current.UserState = p.UserState;
-                            return factoryHandle.Handle(p);
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Error(ex, "DispatchProtocol.NewProcedure");
-                            return Procedure.Excption;
-                        }
-                    }, p.GetType().FullName).Call);
+                    global::Zeze.Util.Task.Run(Zeze.NewProcedure(() => factoryHandle.Handle(p), p.GetType().FullName, p.UserState));
                 }
                 else
                 {
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            factoryHandle.Handle(p);
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Error(ex, "DispatchProtocol");
-                        }
-                    });
+                    global::Zeze.Util.Task.Run(() => factoryHandle.Handle(p), "Service.DispatchProtocol");
                 }
             }
             else

@@ -109,6 +109,8 @@ namespace Zeze.Util
     }
     public class SchedulerTask : IComparable<SchedulerTask>
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public Scheduler Scheduler { get; private set; }
         public long Time { get; private set; }
         public long Period { get; private set; }
@@ -139,7 +141,7 @@ namespace Zeze.Util
             if (this.canceled)
                 return;
 
-            Task.Run(action); // 派发出去运行，让系统管理大量任务的线程问题。
+            Zeze.Util.Task.Run(action, "SchedulerTask.Run"); // 派发出去运行，让系统管理大量任务的线程问题。
 
             if (this.Period > 0)
             {

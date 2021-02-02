@@ -80,8 +80,6 @@ namespace Zeze.Util
 
 		internal class TaskOneByOne
 		{
-			private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
 			LinkedList<Action> queue = new LinkedList<Action>();
 
             public TaskOneByOne()
@@ -98,16 +96,15 @@ namespace Zeze.Util
 						{
 							action();
 						}
-						catch (Exception ex)
+						finally
 						{
-							logger.Error(ex);
+							RunNext();
 						}
-						RunNext();
 					});
 
 					if (queue.Count == 1)
                     {
-						Task.Run(queue.First.Value);
+						Task.Run(queue.First.Value, "TaskOneByOne.Execute1");
                     }
 				}
 			}
@@ -122,16 +119,15 @@ namespace Zeze.Util
 						{
 							action();
 						}
-						catch (Exception ex)
+						finally
 						{
-							logger.Error(ex);
+							RunNext();
 						}
-						RunNext();
 					});
 
 					if (queue.Count == 1)
 					{
-						Task.Run(queue.First.Value);
+						Task.Run(queue.First.Value, "TaskOneByOne.Execute2");
 					}
 				}
 			}
@@ -144,7 +140,7 @@ namespace Zeze.Util
 
 					if (queue.Count > 0)
 					{
-						Task.Run(queue.First.Value);
+						Task.Run(queue.First.Value, "TaskOneByOne.Execute3");
 					}
 				}
 			}

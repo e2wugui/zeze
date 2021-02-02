@@ -29,12 +29,14 @@ namespace Zeze.Transaction
             Checkpoint = checkpoint;
         }
         private object UserState { get; }
-        public Procedure(Checkpoint checkpoint, Func<int> action, string actionName)
+        public Procedure(Checkpoint checkpoint, Func<int> action, string actionName, object userState)
         {
             Checkpoint = checkpoint;
             Action = action;
             ActionName = actionName;
-            UserState = Transaction.Current?.UserState;
+            UserState = userState;
+            if (null == UserState) // 没指定，就从当前事务继承。
+                UserState = Transaction.Current?.UserState;
         }
 
         /// <summary>

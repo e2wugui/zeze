@@ -57,7 +57,7 @@ namespace Zeze.Transaction
                 IsRunning = true;
                 Period = period;
                 flushThreads = new Util.SimpleThreadPool(databases.Count);
-                RunningTask = Task.Run(Run);
+                RunningTask = Zeze.Util.Task.Run(Run, "Checkpoint.Run");
             }
         }
 

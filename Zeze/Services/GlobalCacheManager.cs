@@ -172,7 +172,7 @@ namespace Zeze.Services
                         }
 
                         int stateReduceResult = StateReduceException;
-                        Task.Run(() =>
+                        Zeze.Util.Task.Run(() =>
                         {
                             stateReduceResult = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare);
 
@@ -180,7 +180,7 @@ namespace Zeze.Services
                             {
                                 Monitor.PulseAll(cs);
                             }
-                        });
+                        }, "GlobalCacheManager.AcquireShare.Reduce");
                         logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
 
@@ -271,14 +271,14 @@ namespace Zeze.Services
                         }
 
                         int stateReduceResult = StateReduceException;
-                        Task.Run(() =>
+                        Zeze.Util.Task.Run(() =>
                         {
                             stateReduceResult = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
                             lock (cs)
                             {
                                 Monitor.PulseAll(cs);
                             }
-                        });
+                        }, "GlobalCacheManager.AcquireModify.Reduce");
                         logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
 
@@ -332,7 +332,7 @@ namespace Zeze.Services
                         }
                     }
 
-                    Task.Run(() =>
+                    Zeze.Util.Task.Run(() =>
                     {
                         // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
                         foreach (var reduce in reducePending)
@@ -353,7 +353,7 @@ namespace Zeze.Services
                         {
                             Monitor.PulseAll(cs); // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
                         }
-                    });
+                    }, "GlobalCacheManager.AcquireModify.WaitReduce");
                     logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     Monitor.Wait(cs);
 
