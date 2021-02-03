@@ -1,0 +1,121 @@
+
+linkd 转发方案说明
+
+【名词】
+	linkd 转发服务器。
+	client 客户端，玩家。
+	server 服务器，主要逻辑服务提供者。现在作为linkd的provider。
+	module 模块，linkd根据module配置和转发。
+	provider 内部服务提供者，启动的时候注册相应的module到linkd。
+
+【Provider】
+	每个provider是一个project，独立进程。
+	需要实现 solution.linkd.xml 里面的 Provider 模块中的协议。
+	每一个module只能在一个provider实现。
+	Provider 的 Service.type 一般都是 "server"，但是它主动连接 linkd，并注册支持的module。
+	*** Provider-Instance，运行进程实例，一般来说一个provider一个进程。
+	*** 启用cache-sync的server会运行多个进程。可以同时注册。
+	*** 某些特殊moudule可以存在于多个进程中，但不能同时注册，参见后面的动态绑定。
+	*** 绑定亲缘性。当linkd给client选择provider-instance时，会把该provider支持的module全部都一起绑定到client.sesion中。
+
+【linkd转发规则】
+	从收到的协议头中取出mouduleId，根据注册配置，选择一个provicer-instance。把协议转给她处理。
+	linkSid：client 在linkd上的连接编号，会在上下文中传给provider。
+	provider发送协议给client时，指定 linkSid。
+
+【动态绑定】
+	由程序流程在需要的时候注册。
+	例子：
+	地图服务器实现了所有地图的管理，有多个进程实例。玩家一个时候只存在于一个地图实例。
+	enterworld：根据一定规则选择一个地图实例，该地图实例把自己注册到linkd的client.session中。
+	leaveworld：离开地图时，unbind。
+	【注意】 动态绑定是绑定某个玩家(client.session)的请求，不是全局的。
+
+	module默认是静态绑定的，动态绑定需要特别在配置文件"provider.module.binds.xml"中指明。
+	例子：
+	<module name="Game.Map" providers=""/> 不指定providers即可。
+
+【总结一】
+	1) 每一个module只能在一个provider实现
+	2) 每个privider只有一个进程。
+	这样即可完成转发服务了。
+
+【cache-sync】
+	启用 cache-sync 的 provider 可以运行多个进程，提供相同的服务。
+	此时，同一个module会注册多个provider-Instance。
+	linkd 可以随便选择provider-instance，目前轮转。
+	绑定亲缘性。当linkd给client选择provider-instance时，会把该provider支持的module全部都一起绑定到client.sesion中。
+	同一个client的请求会被发给同一个provider-instance。
+
+【provider.module.binds.xml】
+	【可选】没有使用动态绑定，也没有使用cache-sync，不需要这个配置文件。
+	参见文件内部的说明。
+
+
+【性能】
+	0) cache-hit
+	TableCache 的命中率是决定性能的关键。
+	在cache-sync时，写会导致其他provider-instance的cache失效。
+	少量写，大多数读的模块数据仍然会有很高的命中率，不需要特殊处理。
+	大量写的模块数据需要提供特殊的解决方案，后面的hash模式，可以解决部分问题。
+
+	1) 并发性
+	游戏中，很多操作都是role相关的，具有局部性。是天然并发的。
+	虽然随意挑选provider-instance，但仍然会有很高的cache-hit。
+	对于公会成员列表这样的数据，多人共享，但不是全员共享，而且它的写操作很少，仍然具有很高的并发性。
+
+	2) 排行榜
+	在概念上，排行榜是对定义的数据进行排序。这种实现方式在大多数情况下都无法提供足够的性能。
+	有一种实现是每天用备份库排一次序。这种的缺点狠明显，更新不及时，而且在数据量大时，仍然消耗大量计算资源。现在一般没人用了吧。
+	一般来说，排行榜只需要显示排在开头的少量数据，比如前100名。所以有一种实现是在排行榜相关数据变更时，马上更新排行榜（快速判断是否进榜）。
+	对于只增长的数据，这种实现方式是完全正确的。对于可能变小的数据，有个缺陷，当排到当前排行榜数据的末尾时，可能是不正确的。
+	因为原来没进榜的数据可能比此时末尾的大。这里一般用一个技巧，就是排行榜的个数在计算时比需求大些，比如1000个。这样当它处于第1000个时，
+	从计算数据中删除它。只要计算数据中的数量还剩的比100多，仍然是正确的。如果比100还少，那么就显示少一些的数据，
+	也不会出现玩家发现自己该进榜而不在里面的问题。
+	这种实现方式，排行榜的写操作很很多，而且概念上还是全局共享的，需要额外的解决方案。
+
+【hash】
+	如果全局共享的数据可以按一定规则分组存储，并在需要的时候汇总。能这样做的数据仍然可以用很小的代价并提供足够的并发性能。
+	比如排行榜。table.key = account.hash % 1024。根据玩家账号hash分组，在自己的分组中排序，每一个分组数量都是1000，都要比需求大。
+	读取的时候汇总生成最终的排行榜，还需要提供自己的定时cache，只是定时更新。自己的cache和定时更新仍然很重要，否则读取操作也会导致cache降级。
+	这种模式的实现方案之一是提供特别的内部服务给server访问。每个服务都需要自己提供网络协议存储，有点工作量。
+	linkd实现了一种hash-choice模式用来简化实现，并且数据仍然存储在server的database中，具有cache-sync的优点。
+	开发的时候这种module的实现方式和普通的差不多，提供技术手段实现请求转发。
+
+	【要点】
+	 1) 当然排行版的数据修改一般在新的事务中执行。特殊情况下，并且少量的话，可以嵌套到原来事务中。
+	 2) 修改排行榜需要的数据都可以通过参数传递，不需要自己去其他数据表里面读。
+	 3) 没有返回值，异步的。不需要等待排行榜数据的更新。特殊情况下，可以等待。
+
+	【hash分组数量】
+	 分组数量决定了最大的并发度。一般来说设置足够大，并留有一定余地即可。比如1024。嗯，这个数字比较漂亮。
+	 分组数量一般来说不好随便改。比如对于排行榜来说，修改这个参数，对导致分组数据全部失效（作废掉重来）。
+	 分组数量是比较关键的，要慎重考虑。
+
+	 【TaskOneByOneByKey】
+	 对于每一个分组，是不需要并发的。可以使用TaskOneByOneByKey.Exceute(hash, task)。
+	 在这里可以再次设置并发执行的"度"，TaskOneByOneByKey默认构造了1024的并发度。
+	 这是运行期配置，修改不影响数据。
+
+	【Task.Run】
+	 这里任务实际提交给系统线程池。可以配置系统线程池的线程数量。zeze.xml。
+	 这是运行期配置，修改不影响数据。
+
+	【最大并行机器数量】
+	 = hash分组数量 / cpu内核线程数
+	 假设所有的cpu线程都满载。
+	 这是运行期配置，修改不影响数据。
+
+	【实现】
+	 当其他module调用排行榜时，
+	 1) 排行榜接口先判断是否要嵌套到原事务中，如果要就本地执行（此时cache-sync起作用）。这种调用不能太多。
+	 2) 判断调用者和自己是否同一个服务(same AutoKeyLocalId)，决定是否转发请求给相应的服务器或者本地NewProcedure。
+	 *) AOP?
+
+	 linkd对于排行榜的来自client的请求，根据ChoiceType选择server。
+	 linkd实现转发请求。根据参数协议中算好的hash选择server。在来自client的请求和server内部的转发请求没有冲突时，hash计算可以使用不是linkd支持的。
+	 比如排行榜内部转发请求要根据hash，把数据保存到相应的分组中。client的请求就是一个读取，任意server都是可以的。
+	 最后，linkd支持的hash规则可以自己增加，增加参数到LinksSesseion.Statex 中，然后加上新的hash算法即可。
+
+	有返回值的怎么等待。
+	hash上下文怎么传递。

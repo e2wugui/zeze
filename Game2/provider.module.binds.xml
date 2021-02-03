@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ProviderModuleBinds>
+	<!--
+	没有特别说明的模块都会被注册到linkd.StaticBinds中。
+	module.name 必须是全名。
+	-->
+	<module name="Game.UniqueModule" providers="0"/> providers里面填写 zeze.xml::AutoKeyLocalId，多个用','分开。
+	<module name="Game.Map" providers=""/> providers为空表示动态绑定，不会注册到StaticBinds中。
+
+	<!--
+	表明该AutoKeyLocalId指定的服务器不注册默认模块。这个配置和module配置配合起来就能实现专用服务器。
+	-->
+	<ProviderNoDefaultModule providers="10"/>
+
+	<!--
+	module provider 的配置实际上是一个二维表，全配的话，会很不好读。
+	设计成上面的格式，可以减少配置量。应该够用了。
+	-->
+</ProviderModuleBinds>

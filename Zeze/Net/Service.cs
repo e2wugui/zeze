@@ -224,7 +224,7 @@ namespace Zeze.Net
                 }
                 else
                 {
-                    global::Zeze.Util.Task.Run(() => factoryHandle.Handle(p), "Service.DispatchProtocol");
+                    global::Zeze.Util.Task.Run(() => factoryHandle.Handle(p), p.GetType().FullName);
                 }
             }
             else

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="gnet" ModuleIdAllowRanges="10000-11000">
+
+	<module name="Linkd" id="10000">
+		<bean name="BAuth">
+			<variable id="1" name="Account" type="string"/>
+			<variable id="2" name="Token" type="string"/> security. maybe password
+		</bean>
+		<protocol name="CAuth" argument="BAuth" handle="server"/>
+
+		<bean name="BAuthResult">
+			<variable id="1" name="Account" type="string"/>
+		</bean>
+
+		<protocol name="SAuth" argument="BAuthResult" handle="client">
+			<enum name="ResultSuccess" value="0"/>
+			<enum name="ResultFaild" value="1"/>
+		</protocol>
+
+		<bean name="BReportError">
+			<enum name="FromLink"     value="0"/>
+			<enum name="FromProvider" value="1"/>
+
+			<enum name="CodeNotAuthed"  value="1"/>
+			<enum name="CodeNoProvider" value="2"/>
+
+			<variable id="1" name="from" type="int"/>
+			<variable id="2" name="code" type="int"/>
+			<variable id="3" name="desc" type="string"/>
+		</bean>
+
+		<protocol name="ReportError" argument="BReportError" handle="client"/>
+
+		<bean name="BKeepAlive">
+			<variable id="1" name="timestamp" type="long"/> 客户端发上来，服务器原样放回。
+		</bean>
+
+		<protocol name="KeepAlive" argument="BKeepAlive" handle="server,client"/>
+
+	</module>
+
+	<module name="Provider" id="10001">
+		<!-- gs to link -->
+		<bean name="BBind">
+			<enum name="ChoiceTypeDefault"    value="0"/>
+			<enum name="ChoiceTypeHashUserId" value="1"/>
+			<enum name="ChoiceTypeHashRoleId" value="2"/>
+
+			<variable name="modules" id="1" type="map" key="int" value="int"/> moduleId -> type
+			<!--
+			模式一，静态绑定，用于启用cache同步的多个gs（gameserver）。
+			此时 lindSids 为空。同一个moduleId可以绑定多个内部服务。客户端第一次访问时，随便选择一个内部服务，以后都用这个。
+			模式二，动态绑定，用于地图服务器，玩家只能在一个地图服务器上，进入退出地图时绑定。
+			lindSids 指定临时绑定该客户端连接到此服务。这个功能可能不需要，保留。
+			*** 同一个moduleId不能既是静态绑定又是动态绑定。
+			-->
+			<variable name="linkSids" id="2" type="set" value="long"/>
+
+			<enum name="ResultSuccess" value="0"/>
+			<enum name="ResultFaild"   value="1"/>
+		</bean>
+
+		<rpc name="Bind"   argument="BBind" handle="client"/>
+		<rpc name="UnBind" argument="BBind" handle="client"/>
+
+		<bean name="BKick">
+			<enum name="ErrorProtocolUnkown"    value="1"/>
+			<enum name="ErrorDecode"            value="2"/>
+			<enum name="ErrorProtocolException" value="3"/>
+
+			<variable name="linksid" id="1" type="long"/>
+			<variable name="code"    id="2" type="int"/>
+			<variable name="desc"    id="3" type="string"/> // for debug
+		</bean>
+
+		<protocol name="Kick" argument="BKick" handle="client"/>
+
+		<bean name="BSend">
+			<variable name="linkSids"     id="1" type="set" value="long"/>
+			<variable name="protocolType" id="2" type="int"/>
+			<variable name="protocolWholeData" id="3" type="binary"/> 完整的协议打包，包括了 type, size
+		</bean>
+
+		<protocol name="Send" argument="BSend" handle="client"/>
+
+		<bean name="BBroadcast">
+			<variable name="protocolType" id="1" type="int"/>
+			<variable name="protocolWholeData" id="2" type="binary"/> 完整的协议打包，包括了 type, size
+			<variable name="time"         id="3" type="int"/>
+		</bean>
+
+		<protocol name="Broadcast" argument="BBroadcast" handle="client"/>
+
+		<bean name="BSetUserState">
+			<variable name="linkSid" id="1" type="long"/>
+			<variable name="states"  id="2" type="list" value="long"/> nullable
+			<variable name="statex"  id="3" type="binary"/>
+		</bean>
+
+		<protocol name="SetUserState" argument="BSetUserState" handle="client"/>
+
+		<!-- link to gs -->
+		<bean name="BDispatch">
+			<variable name="linkSid"      id="1" type="long"/>
+			<variable name="userId"       id="2" type="string"/>
+			<variable name="protocolType" id="3" type="int"/>
+			<variable name="protocolData" id="4" type="binary"/> 协议打包，不包括 type, size
+			<variable name="states"       id="5" type="list" value="long"/> SetUserState
+			<variable name="statex"       id="6" type="binary"/> SetUserState
+		</bean>
+		<protocol name="Dispatch" argument="BDispatch" handle="server"/>
+
+		<bean name="BLinkBroken">
+			<enum name="REASON_PEERCLOSE" value="0"/>
+
+			<variable name="userId"  id="1" type="string"/>
+			<variable name="linkSid" id="2" type="long"/>
+			<variable name="reason"  id="3" type="int"/>
+
+			<variable name="states"  id="5" type="list" value="long"/> SetUserState
+			<variable name="statex"  id="6" type="binary"/> SetUserState
+		</bean>
+
+		<protocol name="LinkBroken" argument="BLinkBroken" handle="server"/>
+
+		<!--
+		<protocol name="AnnounceLinkId">
+			<variable name="linkid" type="int"/>
+		</protocol>
+		-->
+
+		<bean name="BModuleRedirectArgument">
+			<variable name="ModuleId"   id="1" type="int"/>
+			<variable name="HashCode"   id="2" type="int"/> server 计算。see BBind.ChoiceType。
+
+			<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:Method"
+			<variable name="Params"         id="5" type="binary"/>
+			</bean>
+
+		<bean name="BModuleRedirectResult">
+			<variable name="ModuleId"       id="1" type="int"/>
+			<variable name="AutoKeyLocalId" id="2" type="int"/> 目标server的id。
+			<!-- 上面两个参数用来调试，不是必要的。 -->
+
+			<!--
+			rpc.ResultCode == ResultCodeSuccess 时，才使用下面两个变量，此时表示rpc调用流程正确了。
+			处理结果是否正确，还需要进一步查看 ReturnCode。
+			-->
+			<variable name="ReturnCode"     id="4" type="int"/> 实现函数的返回。
+			<variable name="Params"         id="5" type="binary"/>
+		</bean>
+
+		<!-- 转发只定义一个rpc，可能实现server之间的直连 -->
+		<rpc name="ModuleRedirect" argument="BModuleRedirectArgument" result="BModuleRedirectResult" handle="server,client">
+			<enum name="ResultCodeSuccess" value="0"/>
+			<enum name="ResultCodeMethodFullNameNotFound" value="1"/>
+			<enum name="ResultCodeHandleException" value="2"/>
+			<enum name="ResultCodeHandleError" value="3"/>
+
+			<enum name="ResultCodeLinkdTimeout"    value="10"/>
+			<enum name="ResultCodeLinkdNoProvider" value="11"/>
+			<enum name="ResultCodeRequestTimeout"  value="12"/>
+		</rpc>
+
+	</module>
+
+	<project name="linkd" gendir="." platform="cs">
+		<service name="LinkdService" handle="server" base="Zeze.Services.HandshakeClient">
+			<module ref="Linkd"/>
+		</service>
+
+		<service name="ProviderService" handle="client">
+			<module ref="Provider"/>
+		</service>
+	</project>
+
+</solution>

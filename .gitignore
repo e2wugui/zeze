@@ -38,3 +38,13 @@ TestResults
 /ConfigEditor/obj
 /packages
 /ConfigEditor/Output
+/Game2/client/Gen
+/Game2/server/Gen
+/Game2/client/bin
+/Game2/client/obj
+/Game2/server/bin
+/Game2/server/obj
+/Game2/.vs
+/Game2/linkd/bin
+/Game2/linkd/obj
+/Game2/linkd/Gen
