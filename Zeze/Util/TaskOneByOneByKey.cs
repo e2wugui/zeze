@@ -37,25 +37,35 @@ namespace Zeze.Util
 				this.concurrency[i] = new TaskOneByOne();
 		}
 
-		public void Execute(object key, Action action)
+		public void Execute(object key, Action action, string actionName = null)
         {
 			if (null == action)
 				throw new ArgumentNullException();
 
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
-			concurrency[index].Execute(action);
+			concurrency[index].Execute(action, actionName);
         }
 
 
-		public void Execute(object key, Func<int> action)
+		public void Execute(object key, Func<int> action, string actionName = null)
 		{
 			if (null == action)
 				throw new ArgumentNullException();
 
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
-			concurrency[index].Execute(action);
+			concurrency[index].Execute(action, actionName);
+		}
+
+		public void Execute(object key, Zeze.Transaction.Procedure procedure)
+		{
+			if (null == procedure)
+				throw new ArgumentNullException();
+
+			int h = Hash(key.GetHashCode());
+			int index = h & (concurrency.Length - 1);
+			concurrency[index].Execute(procedure.Call, procedure.ActionName);
 		}
 
 		/**
@@ -80,17 +90,17 @@ namespace Zeze.Util
 
 		internal class TaskOneByOne
 		{
-			LinkedList<Action> queue = new LinkedList<Action>();
+			LinkedList<(Action, string)> queue = new LinkedList<(Action, string)>();
 
             public TaskOneByOne()
             {
             }
 
-			internal void Execute(Action action)
+			internal void Execute(Action action, string actionName)
             {
 				lock (this)
                 {
-					queue.AddLast(() =>
+					queue.AddLast((() =>
 					{
 						try
 						{
@@ -100,20 +110,20 @@ namespace Zeze.Util
 						{
 							RunNext();
 						}
-					});
+					}, actionName));
 
 					if (queue.Count == 1)
                     {
-						Task.Run(queue.First.Value, "TaskOneByOne.Execute1");
+						Zeze.Util.Task.Run(queue.First.Value.Item1, queue.First.Value.Item2);
                     }
 				}
 			}
 
-			internal void Execute(Func<int> action)
+			internal void Execute(Func<int> action, string actionName)
 			{
 				lock (this)
 				{
-					queue.AddLast(() =>
+					queue.AddLast((() =>
 					{
 						try
 						{
@@ -123,11 +133,11 @@ namespace Zeze.Util
 						{
 							RunNext();
 						}
-					});
+					}, actionName));
 
 					if (queue.Count == 1)
 					{
-						Task.Run(queue.First.Value, "TaskOneByOne.Execute2");
+						Zeze.Util.Task.Run(queue.First.Value.Item1, queue.First.Value.Item2);
 					}
 				}
 			}
@@ -140,7 +150,7 @@ namespace Zeze.Util
 
 					if (queue.Count > 0)
 					{
-						Task.Run(queue.First.Value, "TaskOneByOne.Execute3");
+						Zeze.Util.Task.Run(queue.First.Value.Item1, queue.First.Value.Item2);
 					}
 				}
 			}
