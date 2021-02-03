@@ -29,9 +29,10 @@
   可以转发的方法规范
   [ModuleRedirect()]
   public virtual TaskCompletionSource<int> SomeMethod(params..., Game.TransactionModes mode = Game.TransactionModes.ExecuteInAnotherThread)
-  1) 注解声明需要转发
+  1) [ModuleRedirect()] 注解声明需要转发
   2) virtual 必须的，否则生成的时候会抛异常报错。
   3) mode 这个参数可选，不提供的话，默认仅支持Game.TransactionModes.ExecuteInAnotherThread模式。
+  4) TaskCompletionSource<int> 返回值必须是这个类型。
 
 . client 选择 unity+ts
   尽量采用 rpc？

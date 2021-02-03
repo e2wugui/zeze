@@ -259,6 +259,27 @@
 		<protocol name="CEnterWorldDone" argument="BEnterWorldDone" handle="server"/> client load resource done
 	</module>
 
+	<module name="Rank" id="9">
+		<beankey name="BConcurrentKey">
+			<enum name="RankTypeGold" value="1"/>
+
+			<variable id="1" name="RankType"     type="int"/>
+			<variable id="2" name="ConcurrentId" type="int"/> = hash % ConcurrentLevel
+		</beankey>
+
+		<bean name="BRankValue">
+			<variable id="1" name="RoleId" type="long"/>
+			<variable id="2" name="Value"  type="long"/> 含义由 BConcurrentKey.RankType 决定
+			<variable id="3" name="ValueEx" type="binary"/> 排名更多自定义数据。
+		</bean>
+
+		<bean name="BRankList">
+			<variable id="1" name="RankList"  type="list" value="BRankValue"/>
+		</bean>
+
+		<table name="trank" key="BConcurrentKey" value="BRankList"/>
+	</module>
+
 	<!--
 	name 项目名字
 	gendir 代码生成输出目录，默认是当前目录
@@ -280,6 +301,7 @@
 			<module ref="Equip"/>
 			<module ref="Map" dynamic="true"/> 地图模块动态绑定。
 			<module ref="gnet.Provider" dynamic="true"/>
+			<module ref="Rank"/>
 		</service>
 	</project>
 

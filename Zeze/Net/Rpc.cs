@@ -106,7 +106,17 @@ namespace Zeze.Net
                 return; // SendForWait，设置结果唤醒等待者。
             }
             //context.IsTimeout = false; // not need
-            context.ResponseHandle?.Invoke(context);
+            if (null != context.ResponseHandle)
+            {
+                if (null != service.Zeze && false == factoryHandle.NoProcedure)
+                {
+                    global::Zeze.Util.Task.Run(service.Zeze.NewProcedure(() => context.ResponseHandle(context), context.GetType().FullName + ":Response", context.UserState));
+                }
+                else
+                {
+                    global::Zeze.Util.Task.Run(() => context.ResponseHandle(context), context.GetType().FullName + ":Response");
+                }
+            }
         }
 
         public override void Decode(ByteBuffer bb)
