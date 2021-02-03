@@ -178,7 +178,7 @@ namespace Zeze
 
         public Zeze.Util.TaskOneByOneByKey ExecutorOneByOne { get; } = new Zeze.Util.TaskOneByOneByKey();
 
-        public TaskCompletionSource<int> Run(Func<int> func, string actionName, object oneByOneKey, TransactionModes mode)
+        public TaskCompletionSource<int> Run(Func<int> func, string actionName, TransactionModes mode, object oneByOneKey = null)
         {
             var future = new TaskCompletionSource<int>();
             switch (mode)
@@ -192,7 +192,10 @@ namespace Zeze
                     break;
 
                 case TransactionModes.ExecuteInAnotherThread:
-                    ExecutorOneByOne.Execute(oneByOneKey, () => future.SetResult(NewProcedure(func, actionName).Call()), actionName);
+                    if (null != oneByOneKey)
+                        ExecutorOneByOne.Execute(oneByOneKey, () => future.SetResult(NewProcedure(func, actionName).Call()), actionName);
+                    else
+                        Zeze.Util.Task.Run(() => future.SetResult(NewProcedure(func, actionName).Call()), actionName);
                     break;
             }
             return future;
