@@ -176,7 +176,7 @@ namespace Zeze
             logger.Error(e, "UnhandledExceptionEventArgs");
         }
 
-        public Zeze.Util.TaskOneByOneByKey ExecutorOneByOne { get; } = new Zeze.Util.TaskOneByOneByKey();
+        public Zeze.Util.TaskOneByOneByKey TaskOneByOneByKey { get; } = new Zeze.Util.TaskOneByOneByKey();
 
         public TaskCompletionSource<int> Run(Func<int> func, string actionName, TransactionModes mode, object oneByOneKey = null)
         {
@@ -193,7 +193,7 @@ namespace Zeze
 
                 case TransactionModes.ExecuteInAnotherThread:
                     if (null != oneByOneKey)
-                        ExecutorOneByOne.Execute(oneByOneKey, () => future.SetResult(NewProcedure(func, actionName).Call()), actionName);
+                        TaskOneByOneByKey.Execute(oneByOneKey, () => future.SetResult(NewProcedure(func, actionName).Call()), actionName);
                     else
                         Zeze.Util.Task.Run(() => future.SetResult(NewProcedure(func, actionName).Call()), actionName);
                     break;
