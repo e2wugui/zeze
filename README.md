@@ -194,7 +194,7 @@
 	XXX 另外Binary.Decode的时候，不拷贝，直接引用ByteBuffer的内部byte[]。这个有点浪费内存，只能用于纯转发类服务(linkd,gate)，不会保存数据。
 	实现：加一个配置，然后修改ByteBuffer.ReadBinary即可。
 	更好的 hash 实现。
-	
+	Zeze.Application 增加参数 AutoKeyLocalId 另外服务器可以通过启动参数覆盖配置。
 
 #### 历史
 

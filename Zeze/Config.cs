@@ -20,7 +20,7 @@ namespace Zeze
         public int CompletionPortThreads { get; set; }
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
         public int InternalThreadPoolWorkerCount { get; set; }
-        public int AutoKeyLocalId { get; } = 0;
+        public int AutoKeyLocalId { get; set; } = 0;
         public int AutoKeyLocalStep { get; } = 4096;
         public string GlobalCacheManagerHostNameOrAddress { get; set; }
         public int GlobalCacheManagerPort { get; }
