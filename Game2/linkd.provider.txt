@@ -110,12 +110,6 @@ linkd 转发方案说明
 	 当其他module调用排行榜时，
 	 1) 排行榜接口先判断是否要嵌套到原事务中，如果要就本地执行（此时cache-sync起作用）。这种调用不能太多。
 	 2) 判断调用者和自己是否同一个服务(same AutoKeyLocalId)，决定是否转发请求给相应的服务器或者本地NewProcedure。
-	 *) AOP?
-
-	 linkd对于排行榜的来自client的请求，根据ChoiceType选择server。
-	 linkd实现转发请求。根据参数协议中算好的hash选择server。在来自client的请求和server内部的转发请求没有冲突时，hash计算可以使用不是linkd支持的。
-	 比如排行榜内部转发请求要根据hash，把数据保存到相应的分组中。client的请求就是一个读取，任意server都是可以的。
-	 最后，linkd支持的hash规则可以自己增加，增加参数到LinksSesseion.Statex 中，然后加上新的hash算法即可。
 
 	有返回值的怎么等待。
 	hash上下文怎么传递。
