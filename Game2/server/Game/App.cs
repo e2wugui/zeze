@@ -6,8 +6,6 @@ namespace Game
     public sealed partial class App
     {
         public Zeze.Util.Scheduler Scheduler { get; } = new Zeze.Util.Scheduler();
-        public Zeze.Util.TaskOneByOneByKey ExecutorOneByOne { get; } = new Zeze.Util.TaskOneByOneByKey();
-
         public Dictionary<int, int> StaticBinds { get; } = new Dictionary<int, int>();
         public ProviderModuleBinds ProviderModuleBinds { get; private set; }
 

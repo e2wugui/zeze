@@ -175,5 +175,27 @@ namespace Zeze
             Exception e = (Exception)args.ExceptionObject;
             logger.Error(e, "UnhandledExceptionEventArgs");
         }
+
+        public Zeze.Util.TaskOneByOneByKey ExecutorOneByOne { get; } = new Zeze.Util.TaskOneByOneByKey();
+
+        public TaskCompletionSource<int> Run(Func<int> func, string actionName, object oneByOneKey, TransactionModes mode)
+        {
+            var future = new TaskCompletionSource<int>();
+            switch (mode)
+            {
+                case TransactionModes.ExecuteInTheCallerTransaction:
+                    future.SetResult(func());
+                    break;
+
+                case TransactionModes.ExecuteInNestedCall:
+                    future.SetResult(NewProcedure(func, actionName).Call());
+                    break;
+
+                case TransactionModes.ExecuteInAnotherThread:
+                    ExecutorOneByOne.Execute(oneByOneKey, () => future.SetResult(NewProcedure(func, actionName).Call()), actionName);
+                    break;
+            }
+            return future;
+        }
     }
 }

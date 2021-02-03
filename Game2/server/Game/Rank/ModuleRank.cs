@@ -89,10 +89,10 @@ namespace Game.Rank
         }
 
         [ModuleRedirect()]
-        public virtual TaskCompletionSource<int> SetRankWhenGoldChange(long roleId, long goldNumber, TransactionModes mode = TransactionModes.ExecuteInAnotherThread)
+        public virtual TaskCompletionSource<int> SetRankWhenGoldChange(long roleId, long goldNumber, Zeze.TransactionModes mode = Zeze.TransactionModes.ExecuteInAnotherThread)
         {
             int hash = (Transaction.Current.UserState as Login.Session).Account.GetHashCode();
-            return TransactionMode.Run(() => _SetRankWhenGoldChange(hash, roleId, goldNumber), nameof(SetRankWhenGoldChange), roleId, mode);
+            return App.Zeze.Run(() => _SetRankWhenGoldChange(hash, roleId, goldNumber), nameof(SetRankWhenGoldChange), roleId, mode);
         }
 
         protected int _GeRankGold(int hash, long roleId, Action<int> outCallback)
@@ -103,10 +103,10 @@ namespace Game.Rank
         }
 
         [ModuleRedirect()]
-        public virtual TaskCompletionSource<int> GeRankGold(long roleId, Action<int> outCallback, TransactionModes mode = TransactionModes.ExecuteInAnotherThread)
+        public virtual TaskCompletionSource<int> GeRankGold(long roleId, Action<int> outCallback, Zeze.TransactionModes mode = Zeze.TransactionModes.ExecuteInAnotherThread)
         {
             int hash = (Transaction.Current.UserState as Login.Session).Account.GetHashCode();
-            return TransactionMode.Run(() => _GeRankGold(hash, roleId, outCallback), nameof(GeRankGold), roleId, mode);
+            return App.Zeze.Run(() => _GeRankGold(hash, roleId, outCallback), nameof(GeRankGold), roleId, mode);
         }
     }
 }
