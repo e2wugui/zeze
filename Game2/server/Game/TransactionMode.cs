@@ -15,7 +15,7 @@ namespace Game
 
     public class TransactionMode
     {
-		public static TaskCompletionSource<int> Run(Func<int> func, string actionName, TransactionModes mode)
+		public static TaskCompletionSource<int> Run(Func<int> func, string actionName, object oneByOneKey, TransactionModes mode)
 		{
 			var future = new TaskCompletionSource<int>();
 			switch (mode)
@@ -29,7 +29,7 @@ namespace Game
 					break;
 
 				case TransactionModes.ExecuteInAnotherThread:
-					Zeze.Util.Task.Run(() => future.SetResult(Game.App.Instance.Zeze.NewProcedure(func, actionName).Call()), actionName);
+					Game.App.Instance.ExecutorOneByOne.Execute(oneByOneKey, () => future.SetResult(Game.App.Instance.Zeze.NewProcedure(func, actionName).Call()), actionName);
 					break;
 			}
 			return future;

@@ -27,7 +27,7 @@ namespace Game.Rank
         {
             var concurrentKey = new BConcurrentKey(rankType, hash % concurrentLevel);
             var rank = _trank.GetOrAdd(concurrentKey);
-            // remove if role exist
+            // remove if role exist. 看看有没有更快的算法。
             for (int i = 0; i < rank.RankList.Count; ++i)
             {
                 if (rank.RankList[i].RoleId == roleId)
@@ -36,7 +36,7 @@ namespace Game.Rank
                     break;
                 }
             }
-            // insert if in rank
+            // insert if in rank. 这里可以用 BinarySearch。
             for (int i = 0; i < rank.RankList.Count; ++i)
             {
                 if (rank.RankList[i].Value < value)
@@ -48,6 +48,12 @@ namespace Game.Rank
                     }
                     return i + 1;
                 }
+            }
+            // try append
+            if (rank.RankList.Count < maxCount)
+            {
+                rank.RankList.Add(new BRankValue() { RoleId = roleId, Value = value });
+                return rank.RankList.Count;
             }
             return -1;
         }
@@ -86,21 +92,21 @@ namespace Game.Rank
         public virtual TaskCompletionSource<int> SetRankWhenGoldChange(long roleId, long goldNumber, TransactionModes mode = TransactionModes.ExecuteInAnotherThread)
         {
             int hash = (Transaction.Current.UserState as Login.Session).Account.GetHashCode();
-            return TransactionMode.Run(() => _SetRankWhenGoldChange(hash, roleId, goldNumber), nameof(SetRankWhenGoldChange), mode);
+            return TransactionMode.Run(() => _SetRankWhenGoldChange(hash, roleId, goldNumber), nameof(SetRankWhenGoldChange), roleId, mode);
         }
 
-        protected int _GeRankGold(int hash, long roleId, Action<int> resultCallback)
+        protected int _GeRankGold(int hash, long roleId, Action<int> outCallback)
         {
             int rankOrder = GetRank(hash, BConcurrentKey.RankTypeGold, roleId, RankTypeGoldConcurrentLevel);
-            resultCallback(rankOrder);
+            outCallback(rankOrder);
             return Procedure.Success;
         }
 
         [ModuleRedirect()]
-        public virtual TaskCompletionSource<int> GeRankGold(long roleId, Action<int> resultCallback, TransactionModes mode = TransactionModes.ExecuteInAnotherThread)
+        public virtual TaskCompletionSource<int> GeRankGold(long roleId, Action<int> outCallback, TransactionModes mode = TransactionModes.ExecuteInAnotherThread)
         {
             int hash = (Transaction.Current.UserState as Login.Session).Account.GetHashCode();
-            return TransactionMode.Run(() => _GeRankGold(hash, roleId, resultCallback), nameof(GeRankGold), mode);
+            return TransactionMode.Run(() => _GeRankGold(hash, roleId, outCallback), nameof(GeRankGold), roleId, mode);
         }
     }
 }
