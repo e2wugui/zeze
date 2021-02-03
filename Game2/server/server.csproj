@@ -5,12 +5,12 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\zeze\Zeze\Zeze.csproj" />
-  </ItemGroup>
-
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="$(OutDir)\$(TargetName) -srcDirWhenPostBuild $(ProjectDir)" />
   </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Zeze\Zeze.csproj" />
+  </ItemGroup>
 
 </Project>
