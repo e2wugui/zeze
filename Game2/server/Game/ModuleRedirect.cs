@@ -22,6 +22,13 @@ namespace Game
     /// </summary>
     public class ModuleRedirect
     {
+        // 本应用：hash分组的一些配置。
+        public const int ChoiceType = gnet.Provider.BBind.ChoiceTypeHashUserId;
+        public static int GetChoiceHashCode()
+        {
+            return (Zeze.Transaction.Transaction.Current.UserState as Login.Session).Account.GetHashCode();
+        }
+
         public static ModuleRedirect Instance = new ModuleRedirect();
 
         public string SrcDirWhenPostBuild { get; set; } // ugly
@@ -44,7 +51,7 @@ namespace Game
                 return module; // 没有需要重定向的方法。
 
 
-            string genClassName = $"_{module.FullName.Replace('.', '_')}_ModuleRedirect_Gen_";
+            string genClassName = $"_ModuleRedirect_{module.FullName.Replace('.', '_')}_Gen_";
             if (null == SrcDirWhenPostBuild)
             {
                 module.UnRegister();
@@ -111,6 +118,7 @@ namespace Game
             sb.AppendLine($"public class {genClassName} : {module.FullName}.Module{module.Name}");
             sb.AppendLine($"{{");
 
+            // TaskCompletionSource<int> void
             StringBuilder sbCallback = new StringBuilder();
             foreach (var method in overrides)
             {

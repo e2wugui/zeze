@@ -77,6 +77,8 @@ namespace Zeze.Transaction
 
         public void PutLog(Log log)
         {
+            if (IsCompleted)
+                throw new Exception("Transaction Is Completed.");
             savepoints[savepoints.Count - 1].PutLog(log);
         }
 
@@ -281,17 +283,21 @@ namespace Zeze.Transaction
                     });
                 }
 
-                savepoints.Clear(); // not need
-                accessedRecords.Clear(); // not need
+                savepoints.Clear();
+                accessedRecords.Clear();
 
                 // 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
                 // 不再支持在回调中再次执行事务。
-                IsCompleted = true;
+                IsCompleted = true; // 在Notify之前设置的。
                 cc.Notify();
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "ChangeListener Collect And Notify");
+            }
+            finally
+            {
+                IsCompleted = true; // 懒得判断什么时候设置这个合适了，防止ChangListener触发异常，没有设置，再设置一遍。
             }
 
             foreach (Action action in CommitActions)
@@ -310,6 +316,7 @@ namespace Zeze.Transaction
 
         private void _final_rollback_(Procedure procedure)
         {
+            IsCompleted = true;
             foreach (Action action in RollbackActions)
             {
                 try
@@ -389,7 +396,8 @@ namespace Zeze.Transaction
 
         private readonly SortedDictionary<TableKey, RecordAccessed> accessedRecords = new SortedDictionary<TableKey, RecordAccessed>();
         private readonly List<Savepoint> savepoints = new List<Savepoint>();
-        private bool IsCompleted = false;
+
+        public bool IsCompleted { get; private set; } = false;
 
         /// <summary>
         /// 只能添加一次。

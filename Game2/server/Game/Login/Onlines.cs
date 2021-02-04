@@ -51,6 +51,26 @@ namespace Game.Login
             table.Get(roleId)?.ReliableNotifyMark.Remove(listenerName);
         }
 
+        public void SendReliableNotifyWhileCommit(long roleId, string listenerName, Protocol p)
+        {
+            Transaction.Current.RunWhileCommit(() => SendReliableNotify(roleId, listenerName, p));
+        }
+
+        public void SendReliableNotifyWhileCommit(long roleId, string listenerName, int typeId, Zeze.Net.Binary fullEncodedProtocol)
+        {
+            Transaction.Current.RunWhileCommit(() => SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
+        }
+
+        public void SendReliableNotifyWhileRollback(long roleId, string listenerName, Protocol p)
+        {
+            Transaction.Current.RunWhileRollback(() => SendReliableNotify(roleId, listenerName, p));
+        }
+
+        public void SendReliableNotifyWhileRollback(long roleId, string listenerName, int typeId, Zeze.Net.Binary fullEncodedProtocol)
+        {
+            Transaction.Current.RunWhileRollback(() => SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
+        }
+
         public void SendReliableNotify(long roleId, string listenerName, Protocol p)
         {
             SendReliableNotify(roleId, listenerName, p.TypeId, new Zeze.Net.Binary(p.Encode()));

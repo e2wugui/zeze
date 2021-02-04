@@ -278,6 +278,18 @@
 		</bean>
 
 		<table name="trank" key="BConcurrentKey" value="BRankList"/>
+
+		<bean name="BGetRankList">
+			<variable id="1" name="RankType"     type="int"/>
+		</bean>
+
+		<bean name="BRankListResult">
+			<variable id="1" name="RankType"  type="int"/>
+			<variable id="2" name="RankList"  type="list" value="BRankValue"/>
+		</bean>
+
+		<protocol name="CGetRankList" argument="BGetRankList" handle="server"/>
+		<protocol name="SGetRankList" argument="BRankListResult" handle="client"/>
 	</module>
 
 	<!--

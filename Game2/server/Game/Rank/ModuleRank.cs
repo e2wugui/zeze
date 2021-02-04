@@ -1,10 +1,16 @@
 ﻿
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Zeze.Transaction;
 
 namespace Game.Rank
 {
+    /// <summary>
+    /// 基本排行榜，实现了按long value从大到小进榜。
+    /// 增加排行被类型。在 solution.xml::beankey::BConcurrentKey中增加类型定义。
+    /// 然后在数据变化时调用 RunUpdateRank 方法更行排行榜。
     public partial class ModuleRank : AbstractModule
     {
         public void Start(Game.App app)
@@ -23,16 +29,21 @@ namespace Game.Rank
         /// <param name="roleId"></param>
         /// <param name="value"></param>
         /// <returns>排名，从1开始。-1表示没有进榜</returns>
-        private int SetRank(int hash, int rankType, long roleId, long value, int concurrentLevel, int maxCount)
+        private int UpdateRank(int hash, int rankType, long roleId, long value, Zeze.Net.Binary valueEx)
         {
+            int concurrentLevel = GetConcurrentLevel(rankType);
+            int maxCount = GetRankComputeCount(rankType);
+
             var concurrentKey = new BConcurrentKey(rankType, hash % concurrentLevel);
             var rank = _trank.GetOrAdd(concurrentKey);
             // remove if role exist. 看看有没有更快的算法。
+            bool found = false;
             for (int i = 0; i < rank.RankList.Count; ++i)
             {
                 if (rank.RankList[i].RoleId == roleId)
                 {
                     rank.RankList.RemoveAt(i);
+                    found = true;
                     break;
                 }
             }
@@ -41,72 +52,190 @@ namespace Game.Rank
             {
                 if (rank.RankList[i].Value < value)
                 {
-                    rank.RankList.Insert(i, new BRankValue() { RoleId = roleId, Value = value });
+                    rank.RankList.Insert(i, new BRankValue() { RoleId = roleId, Value = value, ValueEx = valueEx });
                     if (rank.RankList.Count > maxCount)
                     {
                         rank.RankList.RemoveAt(rank.RankList.Count - 1);
                     }
-                    return i + 1;
+                    return Procedure.Success;
                 }
             }
-            // try append
-            if (rank.RankList.Count < maxCount)
+            // try append. 原来进榜，又排到了队尾，此时可能在未进榜的数据中存在比当前大的，所以不要放进去。
+            if (rank.RankList.Count < maxCount && false == found)
             {
-                rank.RankList.Add(new BRankValue() { RoleId = roleId, Value = value });
-                return rank.RankList.Count;
+                rank.RankList.Add(new BRankValue() { RoleId = roleId, Value = value, ValueEx = valueEx });
             }
-            return -1;
+            return Procedure.Success;
         }
 
-        private int GetRank(int hash, int rankType, long roleId, int concurrentLevel)
+        public class Rank
         {
-            var concurrentKey = new BConcurrentKey(rankType, hash % concurrentLevel);
-            var rank = _trank.GetOrAdd(concurrentKey);
-            for (int i = 0; i < rank.RankList.Count; ++i)
+            public long BuildTime { get; set; }
+            public BRankList TableValue { get; set; }
+        }
+
+        ConcurrentDictionary<int, Rank> Ranks = new ConcurrentDictionary<int, Rank>();
+        public const long RebuildTime = 5 * 60 * 1000; // 5 min
+
+        private BRankList Merge(BRankList left, BRankList right)
+        {
+            BRankList result = new BRankList();
+            int indexLeft = 0;
+            int indexRight = 0;
+            while (indexLeft < left.RankList.Count && indexRight < right.RankList.Count)
             {
-                if (rank.RankList[i].RoleId == roleId)
+                if (left.RankList[indexLeft].Value >= right.RankList[indexRight].Value)
                 {
-                    return i + 1;
+                    result.RankList.Add(left.RankList[indexLeft]);
+                    ++indexLeft;
+                }
+                else
+                {
+                    result.RankList.Add(right.RankList[indexRight]);
+                    ++indexRight;
                 }
             }
-            return -1;
+            // 下面两种情况不会同时存在，同时存在"在上面"处理。
+            if (indexLeft < left.RankList.Count)
+            {
+                while (indexLeft < left.RankList.Count)
+                {
+                    result.RankList.Add(left.RankList[indexLeft]);
+                    ++indexLeft;
+                }
+            }
+            else if (indexRight < right.RankList.Count)
+            {
+                while (indexRight < right.RankList.Count)
+                {
+                    result.RankList.Add(right.RankList[indexRight]);
+                    ++indexRight;
+                }
+            }
+            return result;
         }
-        //////////////////////////////////////////////////////////////////////
-        /// 金钱排行榜实现接口 RankTypeGold
+
+        private Rank GetRank(int rankType)
+        {
+            var Rank = Ranks.GetOrAdd(rankType, (key) => new Rank());
+            lock (Rank)
+            {
+                long now = Zeze.Util.Time.NowUnixMillis;
+                if (now - Rank.BuildTime < RebuildTime)
+                {
+                    return Rank;
+                }
+                // rebuild
+                List<BRankList> datas = new List<BRankList>();
+                int cocurrentLevel = GetConcurrentLevel(rankType);
+                for (int i = 0; i < cocurrentLevel; ++i)
+                {
+                    var concurrentKey = new BConcurrentKey(rankType, i);
+                    var rank = _trank.GetOrAdd(concurrentKey);
+                    datas.Add(rank);
+                }
+                int countNeed = GetRankCount(rankType);
+                switch (datas.Count)
+                {
+                    case 0:
+                        Rank.TableValue = new BRankList();
+                        break;
+
+                    case 1:
+                        Rank.TableValue = datas[0].Copy();
+                        break;
+
+                    default:
+                        // 合并过程中，结果是新的 BRankList，List中的 BRankValue 引用到表中。
+                        // 最后 Copy 一次。
+                        BRankList current = datas[0];
+                        for (int i = 1; i < datas.Count; ++i)
+                        {
+                            current = Merge(current, datas[i]);
+                            if (current.RankList.Count > countNeed)
+                            {
+                                // 合并中间结果超过需要的数量可以先删除。
+                                // 第一个current直接引用table.data，不能删除。
+                                current.RankList.RemoveRange(countNeed, current.RankList.Count - countNeed);
+                            }
+                        }
+                        Rank.TableValue = current.Copy(); // current 可能还直接引用第一个，虽然逻辑上不大可能。先Copy。
+                        break;
+                }
+                Rank.BuildTime = now;
+                if (Rank.TableValue.RankList.Count > countNeed) // 再次删除多余的结果。
+                {
+                    Rank.TableValue.RankList.RemoveRange(countNeed, Rank.TableValue.RankList.Count - countNeed);
+                }
+            }
+            return Rank;
+        }
+
         /// <summary>
+        /// 相关数据变化时，更新排行榜。
+        /// 最好在事务成功结束或者处理快完的时候或者ChangeListener中调用这个方法更新排行榜。
+        /// 比如使用 Transaction.Current.RunWhileCommit(() => RunUpdateRank(...));
+        /// </summary>
+        /// <param name="rankType"></param>
+        /// <param name="roleId"></param>
+        /// <param name="value"></param>
+        /// <param name="valueEx">只保存，不参与比较。如果需要参与比较，需要另行实现自己的Update和Get。</param>
+        [ModuleRedirect()]
+        public virtual void RunUpdateRank(int rankType, long roleId, long value, Zeze.Net.Binary valueEx)
+        {
+            int hash = Game.ModuleRedirect.GetChoiceHashCode();
+            App.Zeze.Run(() => UpdateRank(hash, rankType, roleId, value, valueEx), nameof(UpdateRank), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+        }
+
+        /// <summary>
+        /// 为排行榜设置最大并发级别。【有默认值】
         /// 【这个参数非常重要】
         /// 决定了最大的并发度，改变的时候，旧数据全部失效，需要清除，重建。
         /// 一般选择一个足够大，但是又不能太大的数据。
         /// </summary>
-        public const int RankTypeGoldConcurrentLevel = 1024;
-        public const int RankTypeGoldCount = 100; // 需要的排名数量
-        public const int RankTypeGoldCountCompute = 500; // 排名计算数量，比RankTypeGoldCount大。
-        
-        protected int _SetRankWhenGoldChange(int hash, long roleId, long goldNumber)
+        public int GetConcurrentLevel(int rankType)
         {
-            SetRank(hash, BConcurrentKey.RankTypeGold, roleId, goldNumber, RankTypeGoldConcurrentLevel, RankTypeGoldCountCompute);
+            return rankType switch
+            {
+                BConcurrentKey.RankTypeGold => 1024,
+                _ => 1024, // default
+            };
+        }
+
+        // 为排行榜设置需要的数量。【有默认值】
+        public int GetRankCount(int rankType)
+        {
+            return rankType switch
+            {
+                BConcurrentKey.RankTypeGold => 100,
+                _ => 100,
+            };
+        }
+
+        // 排行榜中间数据的数量。【有默认值】
+        public int GetRankComputeCount(int rankType)
+        {
+            return rankType switch
+            {
+                BConcurrentKey.RankTypeGold => 500,
+                _ => GetRankCount(rankType) * 5,
+            };
+        }
+
+        public override int ProcessCGetRankList(CGetRankList protocol)
+        {
+            Login.Session session = Login.Session.Get(protocol);
+
+            var result = new SGetRankList();
+            if (null == session.RoleId)
+            {
+                result.ResultCode = -1;
+                session.SendResponse(result);
+                return Procedure.LogicError;
+            }
+            result.Argument.RankList.AddRange(GetRank(protocol.Argument.RankType).TableValue.RankList);
+            session.SendResponse(result);
             return Procedure.Success;
-        }
-
-        [ModuleRedirect()]
-        public virtual TaskCompletionSource<int> SetRankWhenGoldChange(long roleId, long goldNumber, Zeze.TransactionModes mode = Zeze.TransactionModes.ExecuteInAnotherThread)
-        {
-            int hash = (Transaction.Current.UserState as Login.Session).Account.GetHashCode();
-            return App.Zeze.Run(() => _SetRankWhenGoldChange(hash, roleId, goldNumber), nameof(SetRankWhenGoldChange), mode, hash);
-        }
-
-        protected int _GeRankGold(int hash, long roleId, Action<int> outCallback)
-        {
-            int rankOrder = GetRank(hash, BConcurrentKey.RankTypeGold, roleId, RankTypeGoldConcurrentLevel);
-            outCallback(rankOrder);
-            return Procedure.Success;
-        }
-
-        [ModuleRedirect()]
-        public virtual TaskCompletionSource<int> GeRankGold(long roleId, Action<int> outCallback, Zeze.TransactionModes mode = Zeze.TransactionModes.ExecuteInAnotherThread)
-        {
-            int hash = (Transaction.Current.UserState as Login.Session).Account.GetHashCode();
-            return App.Zeze.Run(() => _GeRankGold(hash, roleId, outCallback), nameof(GeRankGold), mode, hash);
         }
     }
 }

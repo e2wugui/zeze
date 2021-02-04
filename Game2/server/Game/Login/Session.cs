@@ -35,7 +35,8 @@ namespace Game.Login
             send.Argument.LinkSids.Add(SessionId);
             send.Argument.ProtocolType = typeId;
             send.Argument.ProtocolWholeData = fullEncodedProtocol;
-            if (Link.Socket != null)
+
+            if (null != Link && null != Link.Socket)
             {
                 Link.Send(send);
                 return;
