@@ -95,7 +95,7 @@ namespace gnet.Provider
                     rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
                     return Zeze.Transaction.Procedure.LogicError;
                 }
-                rpc.Result.ReturnCode = handle(rpc.Argument.Params, rpc.Result);
+                rpc.Result.ReturnCode = handle(rpc);
                 rpc.Result.ModuleId = rpc.Argument.ModuleId;
                 rpc.Result.AutoKeyLocalId = App.Zeze.Config.AutoKeyLocalId;
                 rpc.SendResultCode(ModuleRedirect.ResultCodeSuccess);

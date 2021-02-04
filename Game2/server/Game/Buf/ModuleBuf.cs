@@ -15,40 +15,6 @@ namespace Game.Buf
         {
         }
 
-        [ModuleRedirect()]
-        public virtual void Redirect(ICollection<int> icollection)
-        { 
-        }
-
-        [ModuleRedirect()]
-        public virtual void RedirectTest0(KeyValuePair<int, int> pair)
-        {
-
-        }
-
-        [ModuleRedirect()]
-        public virtual void RedirectTest(int x, Stack<int> stack)
-        {
-
-        }
-
-        public class MyClass
-        {
-            public int i { get; set; }
-
-            public class MyClass2<T, T2>
-            { 
-                public T t { get; set; }
-            }
-        }
-
-        [ModuleRedirect()]
-        public virtual int RedirectTest2(int x, MyClass.MyClass2<int, long> m2, Game.Bag.BBag bean, MyClass o, Dictionary<int, Dictionary<int, object>> y)
-        {
-            return 0;
-        }
-
-
         class BufChangeListener : Zeze.Transaction.ChangeListener
         {
             public string Name { get; }

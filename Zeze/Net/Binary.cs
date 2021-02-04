@@ -44,6 +44,7 @@ namespace Zeze.Net
 
         /// <summary>
         /// 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
+        /// 【一般用于临时存储】
         /// </summary>
         /// <param name="bb"></param>
         public Binary(Zeze.Serialize.ByteBuffer bb) : this(bb.Bytes, bb.ReadIndex, bb.Size)
@@ -51,7 +52,11 @@ namespace Zeze.Net
 
         }
 
-        // 这里调用Copy是因为ByteBuffer可能分配的保留内存较大。Copy返回实际大小的数据。
+        /// <summary>
+        /// 这里调用Copy是因为ByteBuffer可能分配的保留内存较大。Copy返回实际大小的数据。
+        /// 使用这个方法的地方一般是应用。这个数据可能被存储到表中。
+        /// </summary>
+        /// <param name="_s_"></param>
         public Binary(Zeze.Serialize.Serializable _s_)
             : this(Zeze.Serialize.ByteBuffer.Encode(_s_).Copy())
         {

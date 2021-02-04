@@ -2,6 +2,7 @@
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -109,8 +110,49 @@ namespace Game
         }
         // */
 
-        public Dictionary<string, Func<Zeze.Net.Binary, gnet.Provider.BModuleRedirectResult, int>> Handles { get; }
-            = new Dictionary<string, Func<Zeze.Net.Binary, gnet.Provider.BModuleRedirectResult, int>>();
+        public Dictionary<string, Func<gnet.Provider.ModuleRedirect, int>> Handles { get; }
+            = new Dictionary<string, Func<gnet.Provider.ModuleRedirect, int>>();
+
+        enum ReturnType
+        {
+            Void,
+            TaskCompletionSource,
+        }
+        private (ReturnType, string) GetReturnType(Type type)
+        {
+            if (type == typeof(void))
+                return (ReturnType.Void, "void");
+            if (type == typeof(TaskCompletionSource<int>))
+                return (ReturnType.TaskCompletionSource, "System.Threading.Tasks.TaskCompletionSource<int>");
+            throw new Exception("ReturnType Must Be void Or TaskCompletionSource<int>");
+        }
+
+        private bool HasModeParamter(ParameterInfo[] parameters)
+        {
+            if (parameters.Length == 0)
+                return false;
+            if (parameters[parameters.Length - 1].ParameterType == typeof(Zeze.TransactionModes))
+                return true;
+            return false;
+        }
+
+        private string GetChoiceHashCodeSource(MethodInfo method)
+        {
+            var attrs = method.GetCustomAttributes(typeof(ModuleRedirectAttribute), false);
+            if (null == attrs || attrs.Length == 0)
+                return "Game.ModuleRedirect.GetChoiceHashCode()";
+            var attr = attrs[0] as ModuleRedirectAttribute;
+            if (string.IsNullOrEmpty(attr.ChoiceHashCodeSource))
+                return "Game.ModuleRedirect.GetChoiceHashCode()";
+            return attr.ChoiceHashCodeSource;
+        }
+
+        private string GetMethodNameWithHash(string name)
+        {
+            if (!name.StartsWith("Run"))
+                throw new Exception("Method Name Need StartsWith 'Run'.");
+            return name.Substring(3);
+        }
 
         private string GenModuleCode(Zeze.IModule module, string genClassName, List<System.Reflection.MethodInfo> overrides)
         {
@@ -119,45 +161,78 @@ namespace Game
             sb.AppendLine($"{{");
 
             // TaskCompletionSource<int> void
-            StringBuilder sbCallback = new StringBuilder();
+            StringBuilder sbHandles = new StringBuilder();
             foreach (var method in overrides)
             {
                 var parameters = method.GetParameters();
                 var parametersDefine = ToDefineString(parameters);
-                var parametersCall = ToCallString(parameters);
-                var returnTypeName = GetTypeName(method.ReturnParameter.ParameterType);
+                var (parametersCallNoMode, modeCall) = ToCallString(parameters);
+
+                var methodNameWithHash = GetMethodNameWithHash(method.Name);
+                var (returnType, returnTypeName) = GetReturnType(method.ReturnParameter.ParameterType);
 
                 sb.AppendLine($"    public override {returnTypeName} {method.Name}({parametersDefine})");
                 sb.AppendLine($"    {{");
                 sb.AppendLine($"        if (Game.ModuleRedirect.Instance.IsLocalServer(\"{module.FullName}\"))");
                 sb.AppendLine($"        {{");
-
-                string returnStr = method.ReturnParameter.ParameterType == typeof(void) ? "" : "return ";
-                sb.AppendLine($"            {returnStr} base.{method.Name}({parametersCall});");
+                switch (returnType)
+                {
+                    case ReturnType.Void:
+                        sb.AppendLine($"            base.{method.Name}({parametersCallNoMode}{modeCall});");
+                        sb.AppendLine($"            return;");
+                        break;
+                    case ReturnType.TaskCompletionSource:
+                        sb.AppendLine($"            return base.{method.Name}({parametersCallNoMode}{modeCall});");
+                        break;
+                }
                 sb.AppendLine($"        }}");
-
+                sb.AppendLine($"");
+                string rpcVarName = "tmp" + TmpVarNameId.IncrementAndGet();
+                sb.AppendLine($"        var {rpcVarName} = new gnet.Provider.ModuleRedirect();");
+                sb.AppendLine($"        {rpcVarName}.Argument.ModuleId = {module.Id};");
+                sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {GetChoiceHashCodeSource(method)};");
+                sb.AppendLine($"        {rpcVarName}.Argument.MethodFullName = \"{module.FullName}:{method.Name}\";");
                 sb.AppendLine($"        var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
                 GenEncode(sb, "        ", parameters);
-                if (false == string.IsNullOrEmpty(returnStr)) // TODO
-                    sb.AppendLine($"        {returnStr} default({returnTypeName});");
-
+                sb.AppendLine($"        {rpcVarName}.Argument.Params = new Zeze.Net.Binary(_bb_);");
+                sb.AppendLine($"");
+                string sessionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
+                string futureVarName = "tmp" + TmpVarNameId.IncrementAndGet();
+                sb.AppendLine($"        var {sessionVarName} = Zeze.Transaction.Transaction.Current.UserState as Game.Login.Session;");
+                sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource<int>();");
+                sb.AppendLine($"        {rpcVarName}.Send({sessionVarName}.Link, (_) =>");
+                sb.AppendLine($"        {{");
+                sb.AppendLine($"            if ({rpcVarName}.IsTimeout)");
+                sb.AppendLine($"                {futureVarName}.SetException(new System.Exception(\"{module.FullName}:{method.Name} Rpc Timeout.\"));");
+                sb.AppendLine($"            else if (gnet.Provider.ModuleRedirect.ResultCodeSuccess != {rpcVarName}.ResultCode)");
+                sb.AppendLine($"                {futureVarName}.SetException(new System.Exception($\"{module.FullName}:{method.Name} Rpc Error {{{rpcVarName}.ResultCode}}.\"));");
+                sb.AppendLine($"            else");
+                sb.AppendLine($"                {futureVarName}.SetResult({rpcVarName}.Result.ReturnCode);");
+                sb.AppendLine($"            // TODO decode Result.Params and callback.");
+                sb.AppendLine($"            return Zeze.Transaction.Procedure.Success;");
+                sb.AppendLine($"        }});");
+                if (returnType == ReturnType.TaskCompletionSource)
+                    sb.AppendLine($"        return {futureVarName};");
                 sb.AppendLine($"    }}");
                 sb.AppendLine($"");
 
-                sbCallback.AppendLine($"        System.Action<Zeze.Serialize.ByteBuffer> callback{TmpVarNameId.IncrementAndGet()} = (_bb_) =>");
-                sbCallback.AppendLine($"        {{");
+                sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{method.Name}\", (rpc) =>");
+                sbHandles.AppendLine($"        {{");
+                sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc.Argument.Params);");
                 foreach (var p in parameters)
                 {
-                    GenLocalVariable(sbCallback, "            ", p.ParameterType, p.Name);
+                    GenLocalVariable(sbHandles, "            ", p.ParameterType, p.Name);
                 }
-                GenDecode(sbCallback, "            ", parameters);
-                sbCallback.AppendLine($"            base.{method.Name}({parametersCall});");
-                sbCallback.AppendLine($"        }};");
-                sbCallback.AppendLine($"");
+                GenDecode(sbHandles, "            ", parameters);
+                sbHandles.AppendLine($"            rpc.Result.ReturnCode = base.{methodNameWithHash}(rpc.Argument.HashCode, {parametersCallNoMode});");
+                sbHandles.AppendLine($"            // TODO encode out|ref params to rpc.Result.Params");
+                sbHandles.AppendLine($"            return rpc.Result.ReturnCode;");
+                sbHandles.AppendLine($"        }});");
+                sbHandles.AppendLine($"");
             }
             sb.AppendLine($"    public {genClassName}() : base(Game.App.Instance)");
             sb.AppendLine($"    {{");
-            sb.AppendLine(sbCallback.ToString());
+            sb.Append(sbHandles.ToString());
             sb.AppendLine($"    }}");
             sb.AppendLine($"");
             sb.AppendLine($"}}");
@@ -194,12 +269,14 @@ namespace Game
 
         private ModuleRedirect()
         {
+            /*
             Serializer[typeof(void)] = (
                 (sb, prefix, varName) => { },
                 (sb, prefix, varName) => { },
                 (sb, prefix, varName) => { },
                 () => "void"
                 );
+            */
 
             Serializer[typeof(Zeze.Net.Binary)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteBinary({varName});"),
@@ -696,6 +773,8 @@ namespace Game
         {
             foreach (var p in parameters)
             {
+                if (p.IsOut)
+                    continue;
                 GenEncode(sb, prefix, p.ParameterType, p.Name);
             }
         }
@@ -704,6 +783,8 @@ namespace Game
         {
             foreach (var p in parameters)
             {
+                if (p.IsOut)
+                    continue;
                 GenDecode(sb, prefix, p.ParameterType, p.Name);
             }
         }
@@ -718,32 +799,52 @@ namespace Game
                     first = false;
                 else
                     sb.Append(", ");
-                sb.Append(GetTypeName(p.ParameterType)).Append(" ").Append(p.Name);
+                string prefix = "";
+                if (p.IsOut)
+                    prefix = "out ";
+                else if (p.ParameterType.IsByRef)
+                    prefix = "ref ";
+                sb.Append(GetTypeName(p.ParameterType)).Append(" ").Append(prefix).Append(p.Name);
             }
             return sb.ToString();
         }
 
-        public string ToCallString(System.Reflection.ParameterInfo[] parameters)
+        public (string, string) ToCallString(System.Reflection.ParameterInfo[] parameters)
         {
             StringBuilder sb = new StringBuilder();
             bool first = true;
-            foreach (var p in parameters)
+            int callCount = HasModeParamter(parameters) ? parameters.Length - 1 : parameters.Length;
+            for (int i = 0; i < callCount; ++i)
             {
+                var p = parameters[i];
                 if (first)
                     first = false;
                 else
                     sb.Append(", ");
-                sb.Append(p.Name);
+                string prefix = "";
+                if (p.IsOut)
+                    prefix = "out ";
+                else if (p.ParameterType.IsByRef)
+                    prefix = "ref ";
+
+                if (string.IsNullOrEmpty(prefix))
+                    sb.Append(p.Name);
+                else
+                    sb.Append(prefix).Append("_" + p.Name + "_");
             }
-            return sb.ToString();
+            string separatorMode = callCount == 0 ? "" : ", ";
+            string modeCall = (callCount == parameters.Length) ? "" : $"{separatorMode}{parameters[parameters.Length - 1].Name}";
+            return (sb.ToString(), modeCall);
         }
     }
 
     [System.AttributeUsage(System.AttributeTargets.Method)]
     public class ModuleRedirectAttribute : System.Attribute
     {
-        public ModuleRedirectAttribute()
+        public string ChoiceHashCodeSource { get; }
+        public ModuleRedirectAttribute(string source = null)
         {
+            ChoiceHashCodeSource = source;
         }
     }
 }

@@ -13,7 +13,7 @@ namespace Game.Login
         public string LinkName { get; }
         public long SessionId { get; } // 客户端在linkd上的SessionId
 
-        private AsyncSocket Link { get; set; }
+        public AsyncSocket Link { get; set; }
 
         public Session(string account, IList<long> states, AsyncSocket link, long linkSid)
         {

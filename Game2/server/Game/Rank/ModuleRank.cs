@@ -1,8 +1,6 @@
 ﻿
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Zeze.Transaction;
 
 namespace Game.Rank
@@ -28,8 +26,8 @@ namespace Game.Rank
         /// <param name="rankType"></param>
         /// <param name="roleId"></param>
         /// <param name="value"></param>
-        /// <returns>排名，从1开始。-1表示没有进榜</returns>
-        private int UpdateRank(int hash, int rankType, long roleId, long value, Zeze.Net.Binary valueEx)
+        /// <returns>Procudure.Success...</returns>
+        protected int UpdateRank(int hash, int rankType, long roleId, long value, Zeze.Net.Binary valueEx)
         {
             int concurrentLevel = GetConcurrentLevel(rankType);
             int maxCount = GetRankComputeCount(rankType);
