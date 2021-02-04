@@ -190,21 +190,6 @@
 	1）使用 Bean.Copy
 	2）传递 table.key，等必要的传值参数，新事务重新查表。
 
-#### TODO
-
-	表中的数据跨事务传递的的问题。
-	EventHelper
-	打包和更新工具
-	每事务提交
-	GlobalCacheManager 性能问题。
-	a) 扩充性能简单方案，把 GlobalTableKey.Hash 分配到不同的服务上。
-	b) 连接断开：释放该连接对应的本地所有相关记录(Invalid)。
-	async await?
-	XXX 另外Binary.Decode的时候，不拷贝，直接引用ByteBuffer的内部byte[]。这个有点浪费内存，只能用于纯转发类服务(linkd,gate)，不会保存数据。
-	实现：加一个配置，然后修改ByteBuffer.ReadBinary即可。
-	更好的 hash 实现。
-	Zeze.Application 增加参数 AutoKeyLocalId 另外服务器可以通过启动参数覆盖配置。
-
 #### 历史
 
 	写程序一开始，我就对检查状态并修改数据感到很困惑。特别是程序复杂分模块以后，此时检查所有的状态，最后修改数据，就需要每个模块状态检查代码提取出来提前一起判断。

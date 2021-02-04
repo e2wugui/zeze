@@ -65,17 +65,6 @@
    2) 异步模式，通过增加一个回调，"Action<int> outCallback"。内部需要返回数据时，回调这个接口。
       这个模式使用时，要注意，outCallback一般在另一个事务中执行。注意表中的数据跨事务传递的问题。
 
-有返回值的怎么等待。
-   处理：XXX 不能等待，太危险了。使用异步回调得到结果。还需要能反射出action的参数。
-hash上下文怎么传递。
-   处理：规定有个 protected 实现，第一个参数 hash。由redirect-handle调用。
-
-这两个问题这样处理？
-过几天再看了。
-TODO TODO TODO TODO log那些代码的异常安全要审查一边
-
-linkd: 来自客户端的协议choice-provider时判断type。
-
 . client 选择 unity+ts
   尽量采用 rpc？
 
