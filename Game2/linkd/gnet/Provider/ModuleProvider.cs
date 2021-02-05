@@ -37,7 +37,7 @@ namespace gnet.Provider
             public bool Choice(out long provider)
             {
                 // 现在是顺序轮转。
-                // 根据ProviderSession.Count选择。但是又不能一下子都选它。
+                // TODO 负载均衡：根据 ProviderSession.Count 选择。对于新起的Provider，要有节流控制，不能都选它。
                 if (ProviderSessionIdArray.Length == 0)
                 {
                     provider = 0;
@@ -85,6 +85,22 @@ namespace gnet.Provider
             {
                 if (StaticBinds.TryGetValue(moduleId, out var providers))
                 {
+                    switch (providers.ChoiceType)
+                    {
+                        case BBind.ChoiceTypeHashUserId:
+                            return providers.Choice(linkSession.UserId.GetHashCode(), out provider);
+
+                        case BBind.ChoiceTypeHashRoleId:
+                            if (linkSession.UserStates.Count > 0)
+                            {
+                                return providers.Choice(linkSession.UserStates[0].GetHashCode(), out provider);
+                            }
+                            else
+                            {
+                                provider = 0;
+                                return false;
+                            }
+                    }
                     if (providers.Choice(out provider))
                     {
                         var providerSocket = gnet.App.Instance.ProviderService.GetSocket(provider);

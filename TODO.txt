@@ -21,7 +21,7 @@ Zeze
 	Zeze: log那些代码的异常安全要审查一遍。
 
 Game2
-	linkd: 来自客户端的协议choice-provider时判断type。
+	
 	client: 可靠消息实现的错误检查。
 
 ConfigEditor
