@@ -134,7 +134,7 @@
 			<variable name="ModuleId"   id="1" type="int"/>
 			<variable name="HashCode"   id="2" type="int"/> server 计算。see BBind.ChoiceType。
 
-			<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:Method"
+			<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"
 			<variable name="Params"         id="5" type="binary"/>
 			</bean>
 
@@ -147,8 +147,14 @@
 			rpc.ResultCode == ResultCodeSuccess 时，才使用下面两个变量，此时表示rpc调用流程正确了。
 			处理结果是否正确，还需要进一步查看 ReturnCode。
 			-->
-			<variable name="ReturnCode"     id="4" type="int"/> 实现函数的返回。
-			<variable name="Params"         id="5" type="binary"/>
+			<variable name="ReturnCode" id="4" type="int"/> 实现函数的返回。
+			<variable name="Params"     id="5" type="binary"/>
+			<variable name="Actions"    id="6" type="list" value="BActionParam"/> 按回调顺序。！不是定义顺序！
+		</bean>
+
+		<bean name="BActionParam">
+			<variable name="Name"   id="1" type="string"/>
+			<variable name="Params" id="2" type="binary"/>
 		</bean>
 
 		<!-- 转发只定义一个rpc，可能实现server之间的直连 -->

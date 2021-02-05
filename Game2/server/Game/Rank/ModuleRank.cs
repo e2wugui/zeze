@@ -1,6 +1,7 @@
 ﻿
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Zeze.Transaction;
 
 namespace Game.Rank
@@ -187,7 +188,7 @@ namespace Game.Rank
 
         /// <summary>
         /// 为排行榜设置最大并发级别。【有默认值】
-        /// 【这个参数非常重要】
+        /// 【这个参数非常重要】【这个参数非常重要】【这个参数非常重要】【这个参数非常重要】
         /// 决定了最大的并发度，改变的时候，旧数据全部失效，需要清除，重建。
         /// 一般选择一个足够大，但是又不能太大的数据。
         /// </summary>
@@ -233,6 +234,67 @@ namespace Game.Rank
             }
             result.Argument.RankList.AddRange(GetRank(protocol.Argument.RankType).TableValue.RankList);
             session.SendResponse(result);
+            return Procedure.Success;
+        }
+
+        /******************************** ModuleRedirect 测试 *****************************************/
+        [ModuleRedirect()]
+        public virtual TaskCompletionSource<int> RunTest1(Zeze.TransactionModes mode)
+        {
+            int hash = Game.ModuleRedirect.GetChoiceHashCode();
+            return App.Zeze.Run(() => Test1(hash), nameof(Test1), mode, hash);
+        }
+
+        protected int Test1(int hash)
+        {
+            return Procedure.Success;
+        }
+
+        [ModuleRedirect()]
+        public virtual void RunTest2(int inData, ref int refData, out int outData)
+        {
+            int hash = Game.ModuleRedirect.GetChoiceHashCode();
+            int outDataTmp = 0;
+            int refDataTmp = refData;
+            var future = App.Zeze.Run(() => Test2(hash, inData, ref refDataTmp, out outDataTmp), nameof(Test2), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+            future.Task.Wait();
+            refData = refDataTmp;
+            outData = outDataTmp;
+        }
+
+        protected int Test2(int hash, int inData, ref int refData, out int outData)
+        {
+            outData = 1;
+            ++refData;
+            return Procedure.Success;
+        }
+
+        [ModuleRedirect()]
+        public virtual void RunTest3(int inData, ref int refData, out int outData, System.Action<int> resultCallback)
+        {
+            int hash = Game.ModuleRedirect.GetChoiceHashCode();
+            int outDataTmp = 0;
+            int refDataTmp = refData;
+            var future = App.Zeze.Run(() => Test3(hash, inData, ref refDataTmp, out outDataTmp, resultCallback), nameof(Test3), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+            future.Task.Wait();
+            refData = refDataTmp;
+            outData = outDataTmp;
+        }
+
+        /*
+         * 一般来说 ref|out 和 Action 回调方式不该一起用。存粹为了测试。
+         * 如果混用，首先 Action 回调先发生，然后 ref|out 的变量才会被赋值。这个当然吧。
+         * 
+         * 可以包含多个 Action。纯粹为了...可以用 Empty 表示 null，嗯，总算找到理由了。
+         * 如果包含多个，按照真正的实现的回调顺序回调，不是定义顺序。这个也当然吧。
+         * 
+         * ref|out 方式需要同步等待，【不建议使用这种方式】【不建议使用这种方式】【不建议使用这种方式】
+         */
+        protected int Test3(int hash, int inData, ref int refData, out int outData, System.Action<int> resultCallback)
+        {
+            outData = 1;
+            ++refData;
+            resultCallback(1);
             return Procedure.Success;
         }
     }

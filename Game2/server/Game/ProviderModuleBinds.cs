@@ -49,7 +49,7 @@ namespace Game
             foreach (var m in Modules.Values)
             {
                 if (m.Providers.Contains(AutoKeyLocalId))
-                    binds.Add(m.Name);
+                    binds.Add(m.FullName);
             }
 
             // default binds
@@ -57,23 +57,25 @@ namespace Game
             {
                 foreach (var m in AllModules.Values)
                 {
-                    if (IsDynamicModule(m.Name))
-                        continue;
-                    binds.Add(m.Name);
+                    if (IsDynamicModule(m.FullName))
+                        continue; // 忽略动态注册的模块。
+                    if (Modules.ContainsKey(m.FullName))
+                        continue; // 忽略已经有特别配置的模块
+                    binds.Add(m.FullName);
                 }
             }
 
             // output
-            foreach (var mname in binds)
+            foreach (var fullName in binds)
             {
-                if (AllModules.TryGetValue(mname, out var m))
-                    modules.Add(m.Id, GetModuleChoiceType(mname));
+                if (AllModules.TryGetValue(fullName, out var m))
+                    modules.Add(m.Id, GetModuleChoiceType(fullName));
             }
         }
 
         public class Module
         { 
-            public string Name { get; }
+            public string FullName { get; }
             public int ChoiceType { get; }
             public HashSet<int> Providers { get; } = new HashSet<int>();
 
@@ -94,7 +96,7 @@ namespace Game
 
             public Module(XmlElement self)
             {
-                Name = self.GetAttribute("name");
+                FullName = self.GetAttribute("name");
                 ChoiceType = GetChoiceType(self);
                 ProviderModuleBinds.ToSet(self.GetAttribute("providers"), Providers);
             }
@@ -137,7 +139,7 @@ namespace Game
 
         private void AddModule(Module module)
         {
-            Modules.Add(module.Name, module);
+            Modules.Add(module.FullName, module);
         }
 
         private static void ToSet(string providers, HashSet<int> set)

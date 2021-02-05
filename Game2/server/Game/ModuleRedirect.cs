@@ -154,6 +154,159 @@ namespace Game
             return name.Substring(3);
         }
 
+        private List<ParameterInfo> GetOutOrRef(ParameterInfo[] parameters, int lengthNoMode)
+        {
+            var result = new List<ParameterInfo>();
+            for (int i = 0; i < lengthNoMode; ++i)
+            {
+                var p = parameters[i];
+                if (p.IsOut)
+                    result.Add(p);
+                else if (p.ParameterType.IsByRef)
+                    result.Add(p);
+            }
+            return result;
+        }
+
+        private static bool IsDelegate(Type type)
+        {
+            if (type.IsByRef)
+                type = type.GetElementType();
+            return type == typeof(Delegate) || type.IsSubclassOf(typeof(Delegate));
+        }
+
+        private static bool IsActionDelegate(Type sourceType)
+        {
+            if (sourceType.IsSubclassOf(typeof(MulticastDelegate)) &&
+               sourceType.GetMethod("Invoke").ReturnType == typeof(void))
+                return true;
+            return false;
+        }
+
+        public class ActionGen
+        {
+            public Type ActionType { get; }
+
+            private Type[] GenericArguments;
+            private string[] GenericArgumentVarNames;
+            public string VarName { get; }
+
+            public ActionGen(Type actionType, string varName)
+            {
+                if (false == ModuleRedirect.IsActionDelegate(actionType))
+                    throw new Exception("Need A Action Callback.");
+
+                ActionType = actionType;
+                VarName = varName;
+
+                GenericArguments = ActionType.GetGenericArguments();
+                GenericArgumentVarNames = new string[GenericArguments.Length];
+                for (int i = 0; i < GenericArguments.Length; ++i)
+                {
+                    var arg = GenericArguments[i];
+
+                    if (ModuleRedirect.IsDelegate(arg))
+                        throw new Exception("Action GenericArgument IsDelegate.");
+
+                    // 这个好像不可能，判断一下吧。
+                    if (arg.IsByRef)
+                        throw new Exception("Action GenericArgument IsByRef.");
+
+                    GenericArgumentVarNames[i] = "tmp" + ModuleRedirect.Instance.TmpVarNameId.IncrementAndGet();
+                }
+            }
+
+            private string GetGenericArgumentsDefine()
+            {
+                if (GenericArguments.Length == 0)
+                    return string.Empty;
+
+                StringBuilder sb = new StringBuilder();
+                sb.Append("<");
+                for (int i = 0; i < GenericArguments.Length; ++i)
+                {
+                    var argType = GenericArguments[i];
+                    if (i > 0)
+                        sb.Append(", ");
+                    sb.Append(ModuleRedirect.Instance.GetTypeName(argType));
+                }
+                sb.Append(">");
+
+                return sb.ToString();
+            }
+
+            private string GetGenericArgumentVarNamesDefine()
+            {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < GenericArgumentVarNames.Length; ++i)
+                {
+                    if (i > 0)
+                        sb.Append(", ");
+                    sb.Append(GenericArgumentVarNames[i]);
+                }
+                return sb.ToString();
+            }
+
+            public void GenActionEncode(StringBuilder sb, string prefix)
+            {
+                sb.AppendLine($"{prefix}System.Action{GetGenericArgumentsDefine()} {VarName} = ({GetGenericArgumentVarNamesDefine()}) =>");
+                sb.AppendLine($"{prefix}{{");
+                if (GenericArguments.Length > 0)
+                {
+                    sb.AppendLine($"{prefix}    var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
+                    GenEncode(sb, prefix + "    ");
+                    sb.AppendLine($"{prefix}    _rpc_.Result.Actions.Add(new gnet.Provider.BActionParam() {{ Name = \"{VarName}\", Params = new Zeze.Net.Binary(_bb_) }});");
+                }
+                sb.AppendLine($"{prefix}}};");
+            }
+
+            public void GenActionDecode(StringBuilder sb, string prefix)
+            {
+                sb.AppendLine($"{prefix}System.Action<Zeze.Net.Binary> _{VarName}_ = (_params_) =>");
+                sb.AppendLine($"{prefix}{{");
+                if (GenericArguments.Length > 0)
+                {
+                    sb.AppendLine($"{prefix}    var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
+                    GenDecode(sb, prefix + "    ");
+                    sb.AppendLine($"{prefix}    {VarName}({GetGenericArgumentVarNamesDefine()});");
+                }
+                sb.AppendLine($"{prefix}}};");
+            }
+
+            private void GenEncode(StringBuilder sb, string prefix)
+            {
+                for (int i = 0; i < GenericArguments.Length; ++i)
+                {
+                    var type = GenericArguments[i];
+                    ModuleRedirect.Instance.GenEncode(sb, prefix, type, GenericArgumentVarNames[i]);
+                }
+            }
+
+            private void GenDecode(StringBuilder sb, string prefix)
+            {
+                for (int i = 0; i < GenericArguments.Length; ++i)
+                {
+                    var type = GenericArguments[i];
+                    ModuleRedirect.Instance.GenLocalVariable(sb, prefix, type, GenericArgumentVarNames[i]);
+                    ModuleRedirect.Instance.GenDecode(sb, prefix, type, GenericArgumentVarNames[i]);
+                }
+            }
+        }
+
+        private List<ActionGen> GetActions(ParameterInfo[] parameters, int lengthNoMode)
+        {
+            List<ActionGen> result = new List<ActionGen>();
+            for (int i = 0; i < lengthNoMode; ++i)
+            {
+                var p = parameters[i];
+                if (IsDelegate(p.ParameterType))
+                {
+                    result.Add(new ActionGen(p.ParameterType, p.Name));
+                }
+            }
+            return result;
+        }
+
         private string GenModuleCode(Zeze.IModule module, string genClassName, List<System.Reflection.MethodInfo> overrides)
         {
             StringBuilder sb = new StringBuilder();
@@ -166,10 +319,13 @@ namespace Game
             {
                 var parameters = method.GetParameters();
                 var parametersDefine = ToDefineString(parameters);
-                var (parametersCallNoMode, modeCall) = ToCallString(parameters);
-
+                var hasMode = HasModeParamter(parameters);
+                var lengthNoMode = hasMode ? parameters.Length - 1 : parameters.Length;
+                var (parametersCallNoMode, modeCall) = ToCallString(parameters, lengthNoMode);
+                var parametersOutOrRef = GetOutOrRef(parameters, lengthNoMode);
                 var methodNameWithHash = GetMethodNameWithHash(method.Name);
                 var (returnType, returnTypeName) = GetReturnType(method.ReturnParameter.ParameterType);
+                var actions = GetActions(parameters, lengthNoMode);
 
                 sb.AppendLine($"    public override {returnTypeName} {method.Name}({parametersDefine})");
                 sb.AppendLine($"    {{");
@@ -192,41 +348,118 @@ namespace Game
                 sb.AppendLine($"        {rpcVarName}.Argument.ModuleId = {module.Id};");
                 sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {GetChoiceHashCodeSource(method)};");
                 sb.AppendLine($"        {rpcVarName}.Argument.MethodFullName = \"{module.FullName}:{method.Name}\";");
-                sb.AppendLine($"        var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
-                GenEncode(sb, "        ", parameters);
-                sb.AppendLine($"        {rpcVarName}.Argument.Params = new Zeze.Net.Binary(_bb_);");
+                if (lengthNoMode > 0)
+                {
+                    // lengthNoMode 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
+                    sb.AppendLine($"        {{");
+                    sb.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
+                    GenEncode(sb, "            ", parameters, lengthNoMode);
+                    sb.AppendLine($"            {rpcVarName}.Argument.Params = new Zeze.Net.Binary(_bb_);");
+                    sb.AppendLine($"        }}");
+                }
                 sb.AppendLine($"");
                 string sessionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
                 string futureVarName = "tmp" + TmpVarNameId.IncrementAndGet();
                 sb.AppendLine($"        var {sessionVarName} = Zeze.Transaction.Transaction.Current.UserState as Game.Login.Session;");
                 sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource<int>();");
+                sb.AppendLine($"");
+                foreach (var outOrRef in parametersOutOrRef)
+                {
+                    GenLocalVariable(sb, "        ", outOrRef.ParameterType, "_" + outOrRef.Name + "_");
+                    if (!outOrRef.IsOut && outOrRef.ParameterType.IsByRef)
+                        sb.AppendLine($"        _{outOrRef.Name}_ = {outOrRef.Name};");
+                }
                 sb.AppendLine($"        {rpcVarName}.Send({sessionVarName}.Link, (_) =>");
                 sb.AppendLine($"        {{");
                 sb.AppendLine($"            if ({rpcVarName}.IsTimeout)");
+                sb.AppendLine($"            {{");
                 sb.AppendLine($"                {futureVarName}.SetException(new System.Exception(\"{module.FullName}:{method.Name} Rpc Timeout.\"));");
+                sb.AppendLine($"            }}");
                 sb.AppendLine($"            else if (gnet.Provider.ModuleRedirect.ResultCodeSuccess != {rpcVarName}.ResultCode)");
+                sb.AppendLine($"            {{");
                 sb.AppendLine($"                {futureVarName}.SetException(new System.Exception($\"{module.FullName}:{method.Name} Rpc Error {{{rpcVarName}.ResultCode}}.\"));");
+                sb.AppendLine($"            }}");
                 sb.AppendLine($"            else");
+                sb.AppendLine($"            {{");
+                if (actions.Count > 0)
+                {
+                    foreach (var action in actions)
+                    {
+                        action.GenActionDecode(sb, "                ");
+                    }
+                    var actionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
+                    sb.AppendLine($"                foreach (var {actionVarName} in {rpcVarName}.Result.Actions)");
+                    sb.AppendLine($"                {{");
+                    sb.AppendLine($"                    switch ({actionVarName}.Name)");
+                    sb.AppendLine($"                    {{");
+                    foreach (var action in actions)
+                    {
+                        sb.AppendLine($"                        case \"{action.VarName}\": _{action.VarName}_({actionVarName}.Params); break;");
+                    }
+                    sb.AppendLine($"                    }}");
+                    sb.AppendLine($"                }}");
+                }
+                if(parametersOutOrRef.Count > 0)
+                {
+                    sb.AppendLine($"                {{");
+                    sb.AppendLine($"                    var _bb_ = Zeze.Serialize.ByteBuffer.Wrap({rpcVarName}.Result.Params);");
+                    foreach (var outOrRef in parametersOutOrRef)
+                    {
+                        GenDecode(sb, "                    ", outOrRef.ParameterType, "_" + outOrRef.Name + "_");
+                    }
+                    sb.AppendLine($"                }}");
+                }
                 sb.AppendLine($"                {futureVarName}.SetResult({rpcVarName}.Result.ReturnCode);");
-                sb.AppendLine($"            // TODO decode Result.Params and callback.");
+                sb.AppendLine($"            }}");
                 sb.AppendLine($"            return Zeze.Transaction.Procedure.Success;");
                 sb.AppendLine($"        }});");
+                sb.AppendLine($"");
+                if (parametersOutOrRef.Count > 0)
+                {
+                    sb.AppendLine($"        {futureVarName}.Task.Wait();");
+                    foreach (var outOrRef in parametersOutOrRef)
+                    {
+                        sb.AppendLine($"        {outOrRef.Name} = _{outOrRef.Name}_;");
+                    }
+                }
                 if (returnType == ReturnType.TaskCompletionSource)
+                {
                     sb.AppendLine($"        return {futureVarName};");
+                }
                 sb.AppendLine($"    }}");
                 sb.AppendLine($"");
 
-                sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{method.Name}\", (rpc) =>");
+                sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{method.Name}\", (_rpc_) =>");
                 sbHandles.AppendLine($"        {{");
-                sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc.Argument.Params);");
-                foreach (var p in parameters)
+                sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_rpc_.Argument.Params);");
+                for (int i = 0; i < lengthNoMode; ++i)
                 {
+                    var p = parameters[i];
+                    if (IsDelegate(p.ParameterType))
+                        continue; // define later.
                     GenLocalVariable(sbHandles, "            ", p.ParameterType, p.Name);
                 }
-                GenDecode(sbHandles, "            ", parameters);
-                sbHandles.AppendLine($"            rpc.Result.ReturnCode = base.{methodNameWithHash}(rpc.Argument.HashCode, {parametersCallNoMode});");
-                sbHandles.AppendLine($"            // TODO encode out|ref params to rpc.Result.Params");
-                sbHandles.AppendLine($"            return rpc.Result.ReturnCode;");
+                GenDecode(sbHandles, "            ", parameters, lengthNoMode);
+
+                if (actions.Count > 0)
+                {
+                    foreach (var action in actions)
+                    {
+                        action.GenActionEncode(sbHandles, "            ");
+                    }
+                }
+                string sep = string.IsNullOrEmpty(parametersCallNoMode) ? "" : ", ";
+                sbHandles.AppendLine($"            _rpc_.Result.ReturnCode = base.{methodNameWithHash}(_rpc_.Argument.HashCode{sep}{parametersCallNoMode});");
+                if (parametersOutOrRef.Count > 0)
+                {
+                    sbHandles.AppendLine($"            _bb_ = Zeze.Serialize.ByteBuffer.Allocate(); // reuse _bb_");
+                    foreach (var outOrRef in parametersOutOrRef)
+                    {
+                        GenEncode(sbHandles, "            ", outOrRef.ParameterType, outOrRef.Name);
+                    }
+                    sbHandles.AppendLine($"            _rpc_.Result.Params = new Zeze.Net.Binary(_bb_);");
+                }
+                sbHandles.AppendLine($"            return _rpc_.Result.ReturnCode;");
                 sbHandles.AppendLine($"        }});");
                 sbHandles.AppendLine($"");
             }
@@ -281,21 +514,21 @@ namespace Game
             Serializer[typeof(Zeze.Net.Binary)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteBinary({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadBinary();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}Zeze.Net.Binary {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}Zeze.Net.Binary {varName} = null;"),
                 () => "Zeze.Net.Binary"
                 );
 
             Serializer[typeof(bool)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteBool({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadBool();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}bool {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}bool {varName} = false;"),
                 () => "bool"
                 );
 
             Serializer[typeof(byte)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteByte({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadByte();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}byte {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}byte {varName} = 0;"),
                 () => "byte"
                 );
 
@@ -303,70 +536,70 @@ namespace Game
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteByteBuffer({varName});"),
                 // 这里不用ReadByteBuffer，这个方法和原来的buffer共享内存，除了编解码时用用，开放给应用不大好。
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = Zeze.Serialize.ByteBuffer.Wrap(_bb_.ReadBytes());"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}Zeze.Serialize.ByteBuffer {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}Zeze.Serialize.ByteBuffer {varName} = null;"),
                 () => "Zeze.Serialize.ByteBuffer"
                 );
 
             Serializer[typeof(byte[])] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteBytes({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadBytes();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}byte[] {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}byte[] {varName} = null;"),
                 () => "byte[]"
                 );
 
             Serializer[typeof(double)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteDouble({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadDouble();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}double {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}double {varName} = 0.0;"),
                 () => "double"
                 );
 
             Serializer[typeof(float)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteFloat({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadFloat();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}float {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}float {varName} = 0.0;"),
                 () => "float"
                 );
 
             Serializer[typeof(int)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteInt({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadInt();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}int {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}int {varName} = 0;"),
                 () => "int"
                 );
 
             Serializer[typeof(long)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteLong({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadLong();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}long {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}long {varName} = 0;"),
                 () => "long"
                 );
 
             Serializer[typeof(short)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteShort({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadShort();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}short {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}short {varName} = 0;"),
                 () => "short"
                 );
 
             Serializer[typeof(string)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteString({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadString();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}string {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}string {varName} = null;"),
                 () => "string"
                );
 
             Serializer[typeof(uint)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteUint({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadUint();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}uint {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}uint {varName} = 0;"),
                 () => "uint"
                 );
 
             Serializer[typeof(ulong)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteUlong({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadUlong();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}ulong {varName};"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}ulong {varName} = 0;"),
                 () => "ulong"
                 );
 
@@ -465,7 +698,7 @@ namespace Game
                     GenDecode(sb, prefix, value, $"{tmpValue}");
                     sb.AppendLine($"{prefix}{varName} = new System.Collections.Generic.KeyValuePair<{GetTypeName(key)}, {GetTypeName(value)}>({tmpKey}, {tmpValue});");
                 },
-                (sb, prefix, varName, key, value) => sb.AppendLine($"{prefix}System.Collections.Generic.KeyValuePair<{GetTypeName(key)}, {GetTypeName(value)}> {varName};"),
+                (sb, prefix, varName, key, value) => sb.AppendLine($"{prefix}System.Collections.Generic.KeyValuePair<{GetTypeName(key)}, {GetTypeName(value)}> {varName} = null;"),
                 (key, value) => $"System.Collections.Generic.KeyValuePair<{GetTypeName(key)}, {GetTypeName(value)}>"
             );
 
@@ -599,6 +832,9 @@ namespace Game
 
         public string GetTypeName(Type type)
         {
+            if (type.IsByRef)
+                type = type.GetElementType();
+
             if (Serializer.TryGetValue(type, out var basic))
             {
                 return basic.Item4();
@@ -644,6 +880,9 @@ namespace Game
 
         public void GenLocalVariable(StringBuilder sb, string prefix, Type type, string varName)
         {
+            if (type.IsByRef)
+                type = type.GetElementType();
+
             if (Serializer.TryGetValue(type, out var basic))
             {
                 basic.Item3(sb, prefix, varName);
@@ -660,7 +899,7 @@ namespace Game
             if (false == type.IsGenericType)
             {
                 // decode 不需要初始化。JsonSerializer.Deserialize
-                sb.AppendLine($"{prefix}{typename} {varName};");
+                sb.AppendLine($"{prefix}{typename} {varName} = default({typename});");
                 return;
             }
             Type[] parameters = type.GenericTypeArguments;
@@ -681,11 +920,14 @@ namespace Game
                 }
             }
             // decode 不需要初始化。JsonSerializer.Deserialize
-            sb.AppendLine($"{prefix}{typename} {varName};");
+            sb.AppendLine($"{prefix}{typename} {varName} = default({typename});");
         }
 
         public void GenEncode(StringBuilder sb, string prefix, Type type, string varName)
         {
+            if (type.IsByRef)
+                type = type.GetElementType();
+
             if (Serializer.TryGetValue(type, out var basic))
             {
                 basic.Item1(sb, prefix, varName);
@@ -726,6 +968,9 @@ namespace Game
 
         public void GenDecode(StringBuilder sb, string prefix, Type type, string varName)
         {
+            if (type.IsByRef)
+                type = type.GetElementType();
+
             if (Serializer.TryGetValue(type, out var p))
             {
                 p.Item2(sb, prefix, varName);
@@ -769,21 +1014,27 @@ namespace Game
             sb.AppendLine($"{prefix}{varName} = System.Text.Json.JsonSerializer.Deserialize<{GetTypeName(type)}> ({tmp2});");
         }
 
-        public void GenEncode(StringBuilder sb, string prefix, System.Reflection.ParameterInfo[] parameters)
+        public void GenEncode(StringBuilder sb, string prefix, System.Reflection.ParameterInfo[] parameters, int lengthNoMode)
         {
-            foreach (var p in parameters)
+            for (int i = 0; i < lengthNoMode; ++i)
             {
+                var p = parameters[i];
                 if (p.IsOut)
+                    continue;
+                if (IsDelegate(p.ParameterType))
                     continue;
                 GenEncode(sb, prefix, p.ParameterType, p.Name);
             }
         }
 
-        public void GenDecode(StringBuilder sb, string prefix, System.Reflection.ParameterInfo[] parameters)
+        public void GenDecode(StringBuilder sb, string prefix, System.Reflection.ParameterInfo[] parameters, int lengthNoMode)
         {
-            foreach (var p in parameters)
+            for (int i = 0; i < lengthNoMode; ++i)
             {
+                var p = parameters[i];
                 if (p.IsOut)
+                    continue;
+                if (IsDelegate(p.ParameterType))
                     continue;
                 GenDecode(sb, prefix, p.ParameterType, p.Name);
             }
@@ -804,17 +1055,16 @@ namespace Game
                     prefix = "out ";
                 else if (p.ParameterType.IsByRef)
                     prefix = "ref ";
-                sb.Append(GetTypeName(p.ParameterType)).Append(" ").Append(prefix).Append(p.Name);
+                sb.Append(prefix).Append(GetTypeName(p.ParameterType)).Append(" ").Append(p.Name);
             }
             return sb.ToString();
         }
 
-        public (string, string) ToCallString(System.Reflection.ParameterInfo[] parameters)
+        public (string, string) ToCallString(System.Reflection.ParameterInfo[] parameters, int LengthNoMode)
         {
             StringBuilder sb = new StringBuilder();
             bool first = true;
-            int callCount = HasModeParamter(parameters) ? parameters.Length - 1 : parameters.Length;
-            for (int i = 0; i < callCount; ++i)
+            for (int i = 0; i < LengthNoMode; ++i)
             {
                 var p = parameters[i];
                 if (first)
@@ -830,10 +1080,10 @@ namespace Game
                 if (string.IsNullOrEmpty(prefix))
                     sb.Append(p.Name);
                 else
-                    sb.Append(prefix).Append("_" + p.Name + "_");
+                    sb.Append(prefix).Append(p.Name);
             }
-            string separatorMode = callCount == 0 ? "" : ", ";
-            string modeCall = (callCount == parameters.Length) ? "" : $"{separatorMode}{parameters[parameters.Length - 1].Name}";
+            string separatorMode = LengthNoMode == 0 ? "" : ", ";
+            string modeCall = (LengthNoMode == parameters.Length) ? "" : $"{separatorMode}{parameters[parameters.Length - 1].Name}";
             return (sb.ToString(), modeCall);
         }
     }

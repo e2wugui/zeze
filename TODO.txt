@@ -6,19 +6,23 @@ Zeze
 	EventHelper
 	打包和更新工具
 	每事务提交
+
 	GlobalCacheManager 性能问题。
 	a) 扩充性能简单方案，把 GlobalTableKey.Hash 分配到不同的服务上。
 	b) 连接断开：释放该连接对应的本地所有相关记录(Invalid)。
+
 	async await?
+
 	XXX 另外Binary.Decode的时候，不拷贝，直接引用ByteBuffer的内部byte[]。这个有点浪费内存，只能用于纯转发类服务(linkd,gate)，不会保存数据。
 	实现：加一个配置，然后修改ByteBuffer.ReadBinary即可。
-	更好的 hash 实现。
+
 	Zeze.Application 增加参数 AutoKeyLocalId 另外服务器可以通过启动参数覆盖配置。
 
-	Zeze: log那些代码的异常安全要审查一边
+	Zeze: log那些代码的异常安全要审查一遍。
 
 Game2
 	linkd: 来自客户端的协议choice-provider时判断type。
+	client: 可靠消息实现的错误检查。
 
 ConfigEditor
 	自动完成: Foreign
