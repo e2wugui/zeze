@@ -27,7 +27,8 @@ namespace Game
         public const int ChoiceType = gnet.Provider.BBind.ChoiceTypeHashUserId;
         public static int GetChoiceHashCode()
         {
-            return (Zeze.Transaction.Transaction.Current.UserState as Login.Session).Account.GetHashCode();
+            string userid = (Zeze.Transaction.Transaction.Current.UserState as Login.Session).Account;
+            return Zeze.Serialize.ByteBuffer.calc_hashnr(userid);
         }
 
         public static ModuleRedirect Instance = new ModuleRedirect();

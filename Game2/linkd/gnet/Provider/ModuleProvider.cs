@@ -88,12 +88,12 @@ namespace gnet.Provider
                     switch (providers.ChoiceType)
                     {
                         case BBind.ChoiceTypeHashUserId:
-                            return providers.Choice(linkSession.UserId.GetHashCode(), out provider);
+                            return providers.Choice(Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.UserId), out provider);
 
                         case BBind.ChoiceTypeHashRoleId:
                             if (linkSession.UserStates.Count > 0)
                             {
-                                return providers.Choice(linkSession.UserStates[0].GetHashCode(), out provider);
+                                return providers.Choice(Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.UserStates[0]), out provider);
                             }
                             else
                             {

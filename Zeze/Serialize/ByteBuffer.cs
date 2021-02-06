@@ -843,6 +843,21 @@ namespace Zeze.Serialize
             return true;
         }
 
+        public static int calc_hashnr(long value)
+        {
+            return calc_hashnr(value.ToString());
+        }
+
+        public static int calc_hashnr(string str)
+        {
+            return calc_hashnr(Encoding.UTF8.GetBytes(str));
+        }
+
+        public static int calc_hashnr(byte[] keys)
+        {
+            return calc_hashnr(keys, 0, keys.Length);
+        }
+
         public static int calc_hashnr(byte[] keys, int offset, int len) 
         {
             int end = offset + len;
