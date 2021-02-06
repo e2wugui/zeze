@@ -8,6 +8,8 @@ namespace Game
 {
     public sealed partial class Server
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         private Zeze.Config.ServiceConf.Connector FindConnector(AsyncSocket sender)
         {
             foreach (var connector in this.Config.Connectors)
@@ -47,6 +49,34 @@ namespace Game
             var rpc = new gnet.Provider.Bind();
             rpc.Argument.Modules.AddRange(App.Instance.StaticBinds);
             rpc.Send(sender, (protocol) => { ProviderStaticBindCompleted.Set(); return 0; });
+        }
+
+        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        {
+            if (p.TypeId == gnet.Provider.ModuleRedirect.TypeId_)
+            {
+                if (null != factoryHandle.Handle)
+                {
+                    var modureRecirect = p as gnet.Provider.ModuleRedirect;
+                    if (null != Zeze && false == factoryHandle.NoProcedure)
+                    {
+                        Zeze.TaskOneByOneByKey.Execute(modureRecirect.Argument.HashCode,
+                            Zeze.NewProcedure(() => factoryHandle.Handle(p), p.GetType().FullName, p.UserState));
+                    }
+                    else
+                    {
+                        Zeze.TaskOneByOneByKey.Execute(modureRecirect.Argument.HashCode,
+                            () => factoryHandle.Handle(p), p.GetType().FullName);
+                    }
+                }
+                else
+                {
+                    logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}", p);
+                }
+                return;
+            }
+
+            base.DispatchProtocol(p, factoryHandle);
         }
 
         public override void OnSocketClose(AsyncSocket so, System.Exception e)
