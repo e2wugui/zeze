@@ -429,7 +429,11 @@ namespace Zeze.Services
                         reduce.Future.Task.Wait();
                         return reduce.Result.State;
                     }
-                    return state; // 网络错误，认为reduce成功。
+                    // XXX 网络错误，认为reduce成功。
+                    // 逻辑服务器更容易发生关闭。
+                    // 逻辑服务器那边对于网络断开的处理是退出程序。
+                    // TODO 这里存在时间窗口。
+                    return state;
                 }
                 catch (RpcTimeoutException timeoutex)
                 {

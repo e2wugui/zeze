@@ -104,7 +104,11 @@ namespace Zeze
 
         public Procedure NewProcedure(Func<int> action, string actionName, object userState = null)
         {
-            return new Procedure(_checkpoint, action, actionName, userState);
+            if (IsStart)
+            {
+                return new Procedure(_checkpoint, action, actionName, userState);
+            }
+            throw new Exception("App Not Start");
         }
 
         public void Start()

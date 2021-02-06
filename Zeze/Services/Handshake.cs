@@ -11,6 +11,8 @@ using System.Collections.Concurrent;
 
 /// <summary>
 /// 使用dh算法交换密匙把连接加密。
+/// 如果dh交换失败，现在依赖加密压缩实现以及后面的协议解析的错误检查来发现。
+/// 有没有好的安全的dh交换失败的检测手段。
 /// </summary>
 
 namespace Zeze.Services

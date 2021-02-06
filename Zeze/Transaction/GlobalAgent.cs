@@ -65,7 +65,7 @@ namespace Zeze.Transaction
             {
                 if (null != Client)
                     return;
-                Client = new GlobalClient(this);
+                Client = new GlobalClient(this, Zeze);
                 Client.AddFactoryHandle(new GlobalCacheManager.Reduce().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new GlobalCacheManager.Reduce(),
@@ -99,7 +99,8 @@ namespace Zeze.Transaction
     public sealed class GlobalClient : Zeze.Net.Service
     {
         GlobalAgent agent;
-        public GlobalClient(GlobalAgent agent) : base("GlobalClient")
+
+        public GlobalClient(GlobalAgent agent, Application zeze) : base("GlobalClient", zeze)
         {
             this.agent = agent;
         }
@@ -131,6 +132,7 @@ namespace Zeze.Transaction
             if (so == agent.ClientSocket)
             {
                 // XXX 被动关闭。和 GlobalCacheManager 失去连接，意味着 Cache 同步无法正常工作。必须停止程序。
+                // 确认 Environment.Exit 会触发 AppDomain.ProcessExit
                 System.Environment.Exit(5678);
             }
         }
