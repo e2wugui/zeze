@@ -24,6 +24,13 @@ namespace Zeze.Net
 
         protected readonly ConcurrentDictionary<long, AsyncSocket> _asocketMap = new ConcurrentDictionary<long, AsyncSocket>();
 
+        public Service(string name, Config config)
+        {
+            Name = name;
+            Config = config.GetServiceConf(name);
+            SocketOptions = Config.SocketOptions;
+        }
+
         public Service(string name, Application zeze)
         {
             Name = name;

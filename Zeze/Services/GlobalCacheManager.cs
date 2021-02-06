@@ -44,13 +44,15 @@ namespace Zeze.Services
         { 
         }
 
-        public void Start(IPAddress ipaddress, int port)
+        public void Start(IPAddress ipaddress, int port, Config config = null)
         {
             lock (this)
             {
                 if (Server != null)
                     return;
-                Server = new ServerService();
+                if (null == config)
+                    config = Config.Load();
+                Server = new ServerService(config);
                 Server.AddFactoryHandle(new Acquire().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new Acquire(),
@@ -539,7 +541,7 @@ namespace Zeze.Services
 
         public sealed class ServerService : Zeze.Net.Service
         {
-            public ServerService() : base("GlobalCacheManager")
+            public ServerService(Config config) : base("GlobalCacheManager", config)
             { 
             }
 
