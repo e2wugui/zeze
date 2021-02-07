@@ -17,6 +17,7 @@ Zeze
 	实现：加一个配置，然后修改ByteBuffer.ReadBinary即可。
 
 	Zeze.Application 增加参数 AutoKeyLocalId 另外服务器可以通过启动参数覆盖配置。
+	GlobalTaskOneByOneByKey？？？
 
 	Zeze: log那些代码的异常安全要审查一遍。
 

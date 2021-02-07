@@ -84,10 +84,7 @@ namespace Game.Login
         /// <param name="fullEncodedProtocol">协议必须先编码，因为会跨事务。</param>
         public void SendReliableNotify(long roleId, string listenerName, int typeId, Zeze.Net.Binary fullEncodedProtocol)
         {
-            // ExecutorOneByOne 使用 listenerName 当作 key 更准确。相同的数据挨个执行。
-            // 使用 TypeId 效率高些，也可以，虽然协议可能被多个数据共用，但逻辑上也是正确的。
-            // 不同的数据(协议)可以并发执行。
-            Game.App.Instance.Zeze.TaskOneByOneByKey.Execute(typeId, Game.App.Instance.Zeze.NewProcedure(() =>
+            Game.App.Instance.Zeze.TaskOneByOneByKey.Execute(listenerName, Game.App.Instance.Zeze.NewProcedure(() =>
             {
                 BOnline online = table.Get(roleId);
                 if (null == online || online.State == BOnline.StateOffline)

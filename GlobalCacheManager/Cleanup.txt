@@ -38,11 +38,46 @@ GlobalAgent::OnSocketClose_Passive()
 	Closed = false; // 重新允许继续重连发送新请求。
 
 这样处理的话，有没有”正确性“问题呢。还有没有时间窗口。
+当然，重连的话，GlobalCacheManager 还需要识别和处理。方法是连接建立成功发送
+LogicServer.ServerId。现在框架里面存在的Id就是AutoKeyLocalId。
+
 如果没有时间问题了。再处理最后一个问题：如果 LogicServer 一直没起来，
 那么所有原来分配到它的记录都无法被别人申请。
 这个问题暂时想到的方法是超时，比如5分钟。过后，NetNotExist看作成功。
 这里超时的意义是让GlobalAgent::OnSocketClose_Passive()能完成工作。
 如果 LogicServer 已经异常退出，那么它的本地状态当然都是失效的。
 
-当然，重连的话，GlobalCacheManager 还需要识别和处理。方法是连接建立成功发送
-LogicServer.ServerId。现在框架里面存在的Id就是AutoKeyLocalId。
+===================================================================
+# 这里 TIMEOUT 不管怎么设置都是有风险的。
+# 这里关键的问题是要确认发生了什么情况导致连接丢失。
+# 采用下面更复杂的规则来处理。
+===================================================================
+# 1 LogicServer 退出了，但是操作系统网络是正常的：此时采用daemon工具启动 LogicServer，发现退出，起一个新的。
+# 2 其他情况：需要“人工确认（管理员）” + 延时执行。
+#   人工确认：就是GlobalCacheManager给管理员发消息（短信什么的），让管理员去确认 LogicServer 的情况。
+#             管理员发现 LogicServer 确实不行了，短时间也无法恢复，那么通过 GlobalCacheManager 的控制台执行Cleanup命令。
+#             为了防止人为的错误，管理执行Cleanup需要SecureKey。
+#             进一步防止人为的错误，SecureKey可以由多人（比如两个）分别掌握一部分。
+#             如果管理员都判断不出来LogicServer的运行状况。可靠的处理方式是：关机重启，然后去执行GlobalCacheManager.Cleanup。
+#   延时执行：如果 LogicServer 在正常运行，只是网络断了，延时可以让 OnSocketClose_Passive 做完清理。
+#             LogicServer 正常的时候，这个时间不会太长。这是为了防止人为出错的一个手段。
+===================================================================
+# 【实现方案】
+# 上面已经说过的处理流程就不再说了。
+# 1 GlobalCacheManager.OnLogin(LogicServerId)
+#       FindSession(LogicServerId)?.Cleanup(); // set to Invalid.
+# 2 GlobalCacheManager.OnReLogin(LogicServerId)
+#       Bind Current Socket Session;
+# 3 GlobalCacheManager.Cleanup(LogicServerId, SecureKey)
+#       Verify(SecureKey);
+#       DelayRun(FindSession(LogicServerId)?.Cleanup());
+# 4 LogicServer:OnSocketConnect()
+#        if (firstTime)
+#             Login().Send();
+#        else
+#             Relogin().Send();
+#
+#
+# 更多细节看实现代码（实现了以后）。计划修改的相关文件：
+# zeze\Zeze\Services\GlobalCacheManager.cs
+# zeze\Zeze\Transaction\GlobalAgent.cs

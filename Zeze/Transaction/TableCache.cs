@@ -141,8 +141,11 @@ namespace Zeze.Transaction
                 if (storage.IsRecordChanged(p.Key)) // 在记录里面维持一个 Dirty 标志是可行的，但是由于 Cache.CleanNow 执行的不频繁，无所谓了。
                     return false;
 
-                if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
-                    return false;
+                if (p.Value.State != GlobalCacheManager.StateInvalid)
+                {
+                    if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
+                        return false;
+                }
                 return Remove(p);
             }
             finally
