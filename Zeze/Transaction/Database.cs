@@ -22,6 +22,8 @@ namespace Zeze.Transaction
 
         private Dictionary<string, Zeze.Transaction.Table> tables = new Dictionary<string, Zeze.Transaction.Table>();
         internal List<Storage> storages = new List<Storage>();
+        internal ICollection<Zeze.Transaction.Table> Tables => tables.Values;
+
         public string DatabaseUrl { get; }
 
         public Database(string url)

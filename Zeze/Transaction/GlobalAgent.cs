@@ -19,7 +19,7 @@ namespace Zeze.Transaction
             public TaskCompletionSource<int> Logined { get; private set; }
             public string Host { get; }
             public int Port { get; }
-            public int ConnectTimes { get; private set; }
+            public Zeze.Util.AtomicLong LoginedTimes { get; } = new Util.AtomicLong();
             public int GlobalCacheManagerHashIndex { get; }
 
             public Agent(string host, int port, int _GlobalCacheManagerHashIndex)
@@ -37,7 +37,6 @@ namespace Zeze.Transaction
                     {
                         Socket = client.NewClientSocket(Host, Port);
                         Socket.UserState = this;
-                        ++ConnectTimes;
                         // 每次新建连接创建future，没并发问题吧，还没仔细考虑。
                         Logined = new TaskCompletionSource<int>();
                     }
@@ -56,28 +55,31 @@ namespace Zeze.Transaction
 
                     Socket = null; // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
                 }
-                var normalClose = new GlobalCacheManager.NormalClose();
-                var future = new TaskCompletionSource<int>();
-                normalClose.Send(tmp, (_) =>
+                if (Logined.Task.IsCompleted && Logined.Task.Result == 0)
                 {
-                    if (normalClose.IsTimeout)
+                    var normalClose = new GlobalCacheManager.NormalClose();
+                    var future = new TaskCompletionSource<int>();
+                    normalClose.Send(tmp, (_) =>
                     {
-                        future.SetResult(-100); // 关闭错误就不抛异常了。
-                    }
-                    else
-                    {
-                        future.SetResult(normalClose.ResultCode);
-                        if (normalClose.ResultCode != 0)
-                            logger.Error("GlobalAgent:NormalClose ResultCode={0}", normalClose.ResultCode);
-                    }
-                    return 0;
-                });
-                future.Task.Wait();
+                        if (normalClose.IsTimeout)
+                        {
+                            future.SetResult(-100); // 关闭错误就不抛异常了。
+                        }
+                        else
+                        {
+                            future.SetResult(normalClose.ResultCode);
+                            if (normalClose.ResultCode != 0)
+                                logger.Error("GlobalAgent:NormalClose ResultCode={0}", normalClose.ResultCode);
+                        }
+                        return 0;
+                    });
+                    future.Task.Wait();
+                }
                 Logined.TrySetException(new Exception("GlobalAgent.Close")); // 这个，，，，
                 tmp.Dispose();
             }
 
-            public void OnSocketClose(Exception ex)
+            public void OnSocketClose(GlobalClient client, Exception ex)
             {
                 lock (this)
                 {
@@ -88,9 +90,18 @@ namespace Zeze.Transaction
                     }
                     Socket = null;
                 }
+                if (Logined.Task.IsCompleted && Logined.Task.Result == 0)
+                {
+                    foreach (var database in client.Zeze.Databases.Values)
+                    {
+                        foreach (var table in database.Tables)
+                        {
+                            table.ReduceInvalidAllLocalOnly(GlobalCacheManagerHashIndex);
+                        }
+                    }
+                    client.Zeze.CheckpointRun();
+                }
                 Logined.TrySetException(ex);
-                // XXX 被动关闭。释放所有从该GlobalCacheManager分配的资源，并Checkpoint一次。
-                System.Environment.Exit(5678);
             }
         }
 
@@ -243,7 +254,7 @@ namespace Zeze.Transaction
         {
             base.OnSocketConnected(so);
             var agent = so.UserState as GlobalAgent.Agent;
-            if (agent.ConnectTimes > 1)
+            if (agent.LoginedTimes.Get() > 1)
             {
                 var relogin = new GlobalCacheManager.ReLogin();
                 relogin.Argument.AutoKeyLocalId = Zeze.Config.AutoKeyLocalId;
@@ -260,6 +271,7 @@ namespace Zeze.Transaction
                     }
                     else
                     {
+                        agent.LoginedTimes.IncrementAndGet();
                         agent.Logined.SetResult(0);
                     }
                     return 0;
@@ -282,6 +294,7 @@ namespace Zeze.Transaction
                     }
                     else
                     {
+                        agent.LoginedTimes.IncrementAndGet();
                         agent.Logined.SetResult(0);
                     }
                     return 0;
@@ -313,7 +326,7 @@ namespace Zeze.Transaction
             var agent = so.UserState as GlobalAgent.Agent;
             if (null == e)
                 e = new Exception("Peer Normal Close.");
-            agent.OnSocketClose(e);
+            agent.OnSocketClose(this, e);
         }
     }
 }

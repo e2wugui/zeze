@@ -36,6 +36,10 @@ namespace Zeze.Transaction
             return storage;
         }
 
+        internal override void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
+        {
+        }
+
         sealed class StorageSys : Storage
         {
             public AutoKeys AutoKeys { get; }

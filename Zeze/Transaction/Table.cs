@@ -41,6 +41,11 @@ namespace Zeze.Transaction
             throw new NotImplementedException();
         }
 
+        internal virtual void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
+        {
+            throw new NotImplementedException();
+        }
+
         public ChangeListenerMap ChangeListenerMap { get; } = new ChangeListenerMap();
 
         public abstract ChangeVariableCollector CreateChangeVariableCollector(int variableId);
@@ -223,6 +228,32 @@ namespace Zeze.Transaction
             Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r); rpc.SendResult(); });
             //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
+        }
+
+        internal override void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
+        {
+            foreach (var e in Cache.map)
+            {
+                var gkey = new GlobalCacheManager.GlobalTableKey(Name, EncodeKey(e.Key));
+                if (Zeze.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
+                {
+                    // 不是断开连接的GlobalCacheManager。跳过。
+                    continue;
+                }
+
+                TableKey tkey = new TableKey(Id, e.Key);
+                Lockey lockey = Locks.Instance.Get(tkey);
+                lockey.EnterWriteLock();
+                try
+                {
+                    // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
+                    e.Value.State = GlobalCacheManager.StateInvalid;
+                }
+                finally
+                {
+                    lockey.ExitWriteLock();
+                }
+            }
         }
 
         public V Get(K key)
