@@ -7,6 +7,7 @@ namespace linkd
     {
         public static void Main(string[] args)
         {
+            Zeze.Serialize.ByteBuffer.BinaryNoCopy = true;
             gnet.App.Instance.Start();
             try
             {

@@ -14,9 +14,24 @@ namespace Game
             return Game.ModuleRedirect.Instance.ReplaceModuleInstance(module);
         }
 
-        public void Start()
+        public void Start(string[] args)
         {
-            Create();
+            int AutoKeyLocalId = -1;
+            for (int i = 0; i < args.Length; ++i)
+            {
+                switch (args[i])
+                {
+                    case "-AutoKeyLocalId":
+                        AutoKeyLocalId = int.Parse(args[++i]);
+                        break;
+                }
+            }
+
+            var config = global::Zeze.Config.Load();
+            if (AutoKeyLocalId != -1)
+                config.AutoKeyLocalId = AutoKeyLocalId; // replace from args
+            Create(config);
+
             ProviderModuleBinds = ProviderModuleBinds.Load();
             ProviderModuleBinds.BuildStaticBinds(Modules, Zeze.Config.AutoKeyLocalId, StaticBinds);
             StartModules(); // 启动模块，装载配置什么的。

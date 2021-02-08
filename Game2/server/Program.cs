@@ -33,7 +33,7 @@ namespace gsd
                 return;
             }
 
-            Game.App.Instance.Start();
+            Game.App.Instance.Start(args);
             try
             {
                 while (true)
