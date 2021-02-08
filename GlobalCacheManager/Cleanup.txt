@@ -13,7 +13,7 @@ LogicServer 可能仍然继续处理了一些事务，它根据本地的State，使得修改成功了。
 增加一条 NormalClose Rpc，在 LogicServer 正常关闭的时候发送给 GlobalCacheManager。
 GlobalCacheManager 收到协议清理该 LogicServer 的所有记录状态。此外如果发现网络丢失，所有相关Acquire失败。
 
-GlobalAgent 是 LogicServer 的连接管理类。
+GlobalAgent 是 GlobalCacheManager 的客户端，包含在 LogicServer 内。
 
 Shutdown 本地简单规则：
 	关闭时，禁止新的存储过程，和丢弃没有在执行的任务。正在执行的，等待执行完成。
@@ -58,9 +58,16 @@ LogicServer.ServerId。现在框架里面存在的Id就是AutoKeyLocalId。
 #             管理员发现 LogicServer 确实不行了，短时间也无法恢复，那么通过 GlobalCacheManager 的控制台执行Cleanup命令。
 #             为了防止人为的错误，管理执行Cleanup需要SecureKey。
 #             进一步防止人为的错误，SecureKey可以由多人（比如两个）分别掌握一部分。
-#             如果管理员都判断不出来LogicServer的运行状况。可靠的处理方式是：关机重启，然后去执行GlobalCacheManager.Cleanup。
+#             如果管理员都判断不出来LogicServer的运行状况。可靠的处理方式是：【关机重启，然后去执行GlobalCacheManager.Cleanup。】
+#             XXX 人工参与可能带来人为问题，所以可能的话应该提供更多技术上的手段，用来检测 LogicServer 的死活。
+#             XXX 比如：定时向 LogicServer 发送一个请求，启动一个事务，如果超时，就认为失败。
+#             XXX 再提供一个可靠的自动的“关机”的能力。这要求提供除了ip网络外其他通讯手段。
+#             XXX 【宁可服务不可用，也不能损坏数据】
+#
 #   延时执行：如果 LogicServer 在正常运行，只是网络断了，延时可以让 OnSocketClose_Passive 做完清理。
 #             LogicServer 正常的时候，这个时间不会太长。这是为了防止人为出错的一个手段。
+#             这种情况也是最容易出问题的。其他 LogicServer 的失败多数都是不能再工作了，也不容易造成数据损坏。
+#
 ===================================================================
 # 【实现方案】
 # 上面已经说过的处理流程就不再说了。
@@ -71,13 +78,13 @@ LogicServer.ServerId。现在框架里面存在的Id就是AutoKeyLocalId。
 # 3 GlobalCacheManager.Cleanup(LogicServerId, SecureKey)
 #       Verify(SecureKey);
 #       DelayRun(FindSession(LogicServerId)?.Cleanup());
-# 4 LogicServer:OnSocketConnect()
+# 4 GlobalAgent:OnSocketConnect()
 #        if (firstTime)
 #             Login().Send();
 #        else
 #             Relogin().Send();
 #
 #
-# 更多细节看实现代码（实现了以后）。计划修改的相关文件：
+# 更多实现细节看实现代码。计划修改的相关文件：
 # zeze\Zeze\Services\GlobalCacheManager.cs
 # zeze\Zeze\Transaction\GlobalAgent.cs

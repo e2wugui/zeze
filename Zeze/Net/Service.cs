@@ -221,6 +221,19 @@ namespace Zeze.Net
             Protocol.Decode(this, so, input);
         }
 
+        // 用来派发异步rpc回调。
+        public virtual void DispatchRpcResponse(Protocol rpc, Func<Protocol, int> responseHandle, ProtocolFactoryHandle factoryHandle)
+        {
+            if (null != Zeze && false == factoryHandle.NoProcedure)
+            {
+                global::Zeze.Util.Task.Run(Zeze.NewProcedure(() => responseHandle(rpc), rpc.GetType().FullName + ":Response", rpc.UserState));
+            }
+            else
+            {
+                global::Zeze.Util.Task.Run(() => responseHandle(rpc), rpc.GetType().FullName + ":Response");
+            }
+        }
+
         public virtual void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             if (null != factoryHandle.Handle)

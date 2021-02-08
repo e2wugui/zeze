@@ -105,17 +105,10 @@ namespace Zeze.Net
                 context.Future.SetResult(context.Result);
                 return; // SendForWait，设置结果唤醒等待者。
             }
-            //context.IsTimeout = false; // not need
+            context.IsTimeout = false; // not need
             if (null != context.ResponseHandle)
             {
-                if (null != service.Zeze && false == factoryHandle.NoProcedure)
-                {
-                    global::Zeze.Util.Task.Run(service.Zeze.NewProcedure(() => context.ResponseHandle(context), context.GetType().FullName + ":Response", context.UserState));
-                }
-                else
-                {
-                    global::Zeze.Util.Task.Run(() => context.ResponseHandle(context), context.GetType().FullName + ":Response");
-                }
+                service.DispatchRpcResponse(this, context.ResponseHandle, factoryHandle);
             }
         }
 

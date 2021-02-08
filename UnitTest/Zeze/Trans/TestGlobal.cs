@@ -49,9 +49,12 @@ namespace UnitTest.Zeze.Trans
         {
             demo.App app1 = demo.App.Instance;
             demo.App app2 = new demo.App();
+            var config1 = global::Zeze.Config.Load();
+            var config2 = global::Zeze.Config.Load();
+            config2.AutoKeyLocalId = config1.AutoKeyLocalId + 1;
 
-            app1.Start();
-            app2.Start();
+            app1.Start(config1);
+            app2.Start(config2);
             try
             {
                 // 只删除一个app里面的记录就够了。

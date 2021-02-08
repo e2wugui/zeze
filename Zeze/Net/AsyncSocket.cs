@@ -260,17 +260,26 @@ namespace Zeze.Net
 
         private void ProcessAccept(SocketAsyncEventArgs e)
         {
-            AsyncSocket accepted = null;
-            try
+            if (e.SocketError == SocketError.Success)
             {
-                accepted = new AsyncSocket(this.Service, e.AcceptSocket);
-                this.Service.OnSocketAccept(accepted);
+                AsyncSocket accepted = null;
+                try
+                {
+                    accepted = new AsyncSocket(this.Service, e.AcceptSocket);
+                    this.Service.OnSocketAccept(accepted);
+                }
+                catch (Exception ce)
+                {
+                    accepted?.Close(ce);
+                }
+                BeginAcceptAsync();
             }
-            catch (Exception ce)
+            /*
+            else
             {
-                accepted?.Close(ce);
+                Console.WriteLine("ProcessAccept " + e.SocketError);
             }
-            BeginAcceptAsync();
+            */
         }
 
         private void OnAsyncGetHostAddresses(IAsyncResult ar)
@@ -468,8 +477,8 @@ namespace Zeze.Net
                 try
                 {
                     Service?.OnSocketClose(this, this.LastException);
-                    Service = null;
                     Socket?.Dispose();
+                    Service = null;
                     Socket = null;
                 }
                 catch (Exception)

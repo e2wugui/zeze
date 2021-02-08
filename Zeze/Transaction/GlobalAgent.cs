@@ -11,19 +11,111 @@ namespace Zeze.Transaction
     public sealed class GlobalAgent
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        private GlobalClient Client { get; set; }
-        internal AsyncSocket ClientSocket;
-        internal TaskCompletionSource<AsyncSocket> Connected;
+        private GlobalClient Client { get; set; } // 未启用cache-sync时为空。
+
+        public class Agent
+        {
+            public AsyncSocket Socket{ get; private set; }
+            public TaskCompletionSource<int> Logined { get; private set; }
+            public string Host { get; }
+            public int Port { get; }
+            public int ConnectTimes { get; private set; }
+            public int GlobalCacheManagerHashIndex { get; }
+
+            public Agent(string host, int port, int _GlobalCacheManagerHashIndex)
+            {
+                this.Host = host;
+                this.Port = port;
+                GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+            }
+
+            public void Connect(GlobalClient client)
+            {
+                lock (this)
+                {
+                    if (null == Socket)
+                    {
+                        Socket = client.NewClientSocket(Host, Port);
+                        Socket.UserState = this;
+                        ++ConnectTimes;
+                        // 每次新建连接创建future，没并发问题吧，还没仔细考虑。
+                        Logined = new TaskCompletionSource<int>();
+                    }
+                }
+                Logined.Task.Wait();
+            }
+
+            public void Close()
+            {
+                var tmp = Socket;
+                lock (this)
+                {
+                    // 简单保护一下，Close 正常程序退出的时候才调用这个，应该不用保护。
+                    if (null == Socket)
+                        return;
+
+                    Socket = null; // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
+                }
+                var normalClose = new GlobalCacheManager.NormalClose();
+                var future = new TaskCompletionSource<int>();
+                normalClose.Send(tmp, (_) =>
+                {
+                    if (normalClose.IsTimeout)
+                    {
+                        future.SetResult(-100); // 关闭错误就不抛异常了。
+                    }
+                    else
+                    {
+                        future.SetResult(normalClose.ResultCode);
+                        if (normalClose.ResultCode != 0)
+                            logger.Error("GlobalAgent:NormalClose ResultCode={0}", normalClose.ResultCode);
+                    }
+                    return 0;
+                });
+                future.Task.Wait();
+                Logined.TrySetException(new Exception("GlobalAgent.Close")); // 这个，，，，
+                tmp.Dispose();
+            }
+
+            public void OnSocketClose(Exception ex)
+            {
+                lock (this)
+                {
+                    if (null == Socket)
+                    {
+                        // normal close
+                        return;
+                    }
+                    Socket = null;
+                }
+                Logined.TrySetException(ex);
+                // XXX 被动关闭。释放所有从该GlobalCacheManager分配的资源，并Checkpoint一次。
+                System.Environment.Exit(5678);
+            }
+        }
+
+        internal Agent[] Agents;
+
+        internal int GetGlobalCacheManagerHashIndex(GlobalCacheManager.GlobalTableKey gkey)
+        {
+            return gkey.GetHashCode() % Agents.Length;
+        }
 
         internal int Acquire(GlobalCacheManager.GlobalTableKey gkey, int state)
         {
-            if (null != ClientSocket)
+            if (null != Client)
             {
-                // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了）。
+                var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+
+                if (null == agent.Socket)
+                    agent.Connect(Client);
+
+                // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
+                // 一个请求异常不关闭连接，尝试继续工作。
                 GlobalCacheManager.Acquire rpc = new GlobalCacheManager.Acquire(gkey, state);
-                rpc.SendForWait(ClientSocket, 12000).Task.Wait();
+                rpc.SendForWait(agent.Socket, 12000).Task.Wait();
                 /*
-                if (rpc.ResultCode != 0)
+                if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
                 {
                     logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
                 }
@@ -65,21 +157,58 @@ namespace Zeze.Transaction
             {
                 if (null != Client)
                     return;
+
                 Client = new GlobalClient(this, Zeze);
                 Client.AddFactoryHandle(new GlobalCacheManager.Reduce().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new GlobalCacheManager.Reduce(),
-                    Handle = ProcessReduceRequest
+                    Handle = ProcessReduceRequest,
+                    NoProcedure = true
                 });
                 Client.AddFactoryHandle(new GlobalCacheManager.Acquire().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new GlobalCacheManager.Acquire(),
+                    NoProcedure = true
                     // 同步方式调用，不需要设置Handle: Response Timeout 
                 });
+                Client.AddFactoryHandle(new GlobalCacheManager.Login().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = ()=>new GlobalCacheManager.Login(),
+                    NoProcedure = true
+                });
+                Client.AddFactoryHandle(new GlobalCacheManager.ReLogin().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new GlobalCacheManager.ReLogin(),
+                    NoProcedure = true
+                });
+                Client.AddFactoryHandle(new GlobalCacheManager.NormalClose().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new GlobalCacheManager.NormalClose(),
+                    NoProcedure = true
+                });
 
-                Connected = new TaskCompletionSource<AsyncSocket>();
-                ClientSocket = Client.NewClientSocket(hostNameOrAddress, port);
-                Connected.Task.Wait();
+                var globals = hostNameOrAddress.Split(';');
+                Agents = new Agent[globals.Length];
+                for (int i = 0; i < globals.Length; ++i)
+                {
+                    var hp = globals[i].Split(':');
+                    if (hp.Length > 1)
+                        Agents[i] = new Agent(hp[0], int.Parse(hp[1]), i);
+                    else
+                        Agents[i] = new Agent(hp[0], port, i);
+                }
+                foreach (var agent in Agents)
+                {
+                    try
+                    {
+                        agent.Connect(Client);
+                    }
+                    catch (Exception ex)
+                    {
+                        // 允许部分GlobalCacheManager连接错误时，继续启动程序，虽然后续相关事务都会失败。
+                        logger.Error(ex, "GlobalAgent.Connect"); 
+                    }
+                }
             }
         }
 
@@ -89,7 +218,12 @@ namespace Zeze.Transaction
             {
                 if (null == Client)
                     return;
-                ClientSocket = null;
+
+                foreach (var agent in Agents)
+                {
+                    agent.Close();
+                }
+
                 Client.Close();
                 Client = null;
             }
@@ -108,13 +242,60 @@ namespace Zeze.Transaction
         public override void OnSocketConnected(AsyncSocket so)
         {
             base.OnSocketConnected(so);
-            agent.Connected.SetResult(so);
+            var agent = so.UserState as GlobalAgent.Agent;
+            if (agent.ConnectTimes > 1)
+            {
+                var relogin = new GlobalCacheManager.ReLogin();
+                relogin.Argument.AutoKeyLocalId = Zeze.Config.AutoKeyLocalId;
+                relogin.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
+                relogin.Send(so, (_) =>
+                {
+                    if (relogin.IsTimeout)
+                    {
+                        agent.Logined.SetException(new Exception("GloalAgent.ReLogin Timeout")); ;
+                    }
+                    else if (relogin.ResultCode != 0)
+                    {
+                        agent.Logined.SetException(new Exception($"GlobalAgent.ReLogoin Error {relogin.ResultCode}"));
+                    }
+                    else
+                    {
+                        agent.Logined.SetResult(0);
+                    }
+                    return 0;
+                });
+            }
+            else
+            {
+                var login = new GlobalCacheManager.Login();
+                login.Argument.AutoKeyLocalId = Zeze.Config.AutoKeyLocalId;
+                login.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
+                login.Send(so, (_) =>
+                {
+                    if (login.IsTimeout)
+                    {
+                        agent.Logined.SetException(new Exception("GloalAgent.Login Timeout")); ;
+                    }
+                    else if (login.ResultCode != 0)
+                    {
+                        agent.Logined.SetException(new Exception($"GlobalAgent.Logoin Error {login.ResultCode}"));
+                    }
+                    else
+                    {
+                        agent.Logined.SetResult(0);
+                    }
+                    return 0;
+                });
+            }
         }
 
         public override void OnSocketConnectError(AsyncSocket so, Exception e)
         {
             base.OnSocketConnectError(so, e);
-            agent.Connected.SetException(e);
+            var agent = so.UserState as GlobalAgent.Agent;
+            if (null == e)
+                e = new Exception("Normal Connect Error???");
+            agent.Logined.SetException(e);
         }
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
@@ -129,12 +310,10 @@ namespace Zeze.Transaction
         public override void OnSocketClose(AsyncSocket so, Exception e)
         {
             base.OnSocketClose(so, e);
-            if (so == agent.ClientSocket)
-            {
-                // XXX 被动关闭。和 GlobalCacheManager 失去连接，意味着 Cache 同步无法正常工作。必须停止程序。
-                // 确认 Environment.Exit 会触发 AppDomain.ProcessExit
-                System.Environment.Exit(5678);
-            }
+            var agent = so.UserState as GlobalAgent.Agent;
+            if (null == e)
+                e = new Exception("Peer Normal Close.");
+            agent.OnSocketClose(e);
         }
     }
 }
