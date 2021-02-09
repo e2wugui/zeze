@@ -292,7 +292,7 @@ namespace Zeze.Transaction
                 }
 
                 savepoints.Clear();
-                accessedRecords.Clear();
+                //accessedRecords.Clear(); // 事务内访问过的记录保留，这样在Listener中可以读取。
 
                 // 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
                 // 不再支持在回调中再次执行事务。
@@ -423,8 +423,9 @@ namespace Zeze.Transaction
 
         internal RecordAccessed GetRecordAccessed(TableKey key)
         {
-            if (IsCompleted)
-                throw new Exception("Transaction Is Completed");
+            // 允许读取事务内访问过的记录。
+            //if (IsCompleted)
+            //    throw new Exception("Transaction Is Completed");
 
             if (accessedRecords.TryGetValue(key, out var record))
             {

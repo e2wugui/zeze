@@ -293,7 +293,7 @@ namespace Zeze.Net
             catch (Exception e)
             {
                 this.Service.OnSocketConnectError(this, e);
-                Close(e);
+                Close(null);
             }
         }
 
@@ -310,7 +310,7 @@ namespace Zeze.Net
             catch (Exception e)
             {
                 this.Service.OnSocketConnectError(this, e);
-                Close(e);
+                Close(null);
             }
         }
 
