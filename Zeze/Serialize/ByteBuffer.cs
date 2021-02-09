@@ -765,7 +765,7 @@ namespace Zeze.Serialize
             WriteBytes(binary.Bytes, binary.Offset, binary.Count);
         }
 
-        public static bool BinaryNoCopy { get; set; } = false;
+        public static bool BinaryNoCopy { get; set; } = false; // 没有线程保护
         // XXX 对于byte[]类型直接使用引用，不拷贝。全局配置，只能用于Linkd这种纯转发的程序，优化。
 
         public Zeze.Net.Binary ReadBinary()

@@ -14,6 +14,7 @@ namespace Zeze.Transaction
         public const int ErrorSavepoint = -5;
         public const int LogicError = -6;
         public const int RedoAndRelease = -7;
+        public const int AbortException = -8;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -74,10 +75,17 @@ namespace Zeze.Transaction
                     return Success;
                 }
                 currentT.Rollback();
+                logger.Error("Procedure {0} Return={1}:{2} UserState={3}", ToString(),
+                    Zeze.Net.Protocol.GetModuleId(result), Zeze.Net.Protocol.GetProtocolId(result), UserState);
 #if ENABLE_STATISTICS
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(result).IncrementAndGet();
 #endif
                 return result;
+            }
+            catch (AbortException abort)
+            {
+                currentT.Rollback();
+                throw abort;
             }
             catch (RedoAndReleaseLockException redo)
             {
@@ -90,7 +98,7 @@ namespace Zeze.Transaction
             catch (Exception e)
             {
                 currentT.Rollback();
-                logger.Error(e, "Procedure.Process");
+                logger.Error(e, "Procedure {0} Exception UserState={1}", ToString(), UserState);
 #if ENABLE_STATISTICS
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(Excption).IncrementAndGet();
 #endif
@@ -115,7 +123,7 @@ namespace Zeze.Transaction
         public override string ToString()
         {
             // GetType().FullName 仅在用继承的方式实现 Procedure 才有意义。
-            return $"{ActionName} {(null != Action ? Action.Method.Name : this.GetType().FullName)}";
+            return (null != Action) ? ActionName : this.GetType().FullName;
         }
     }
 }

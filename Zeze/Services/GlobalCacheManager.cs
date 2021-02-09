@@ -154,13 +154,16 @@ namespace Zeze.Services
             // 还有更多的防止出错的手段吗？
 
             // XXX verify danger
-            foreach (var gkey in session.Acquired.Keys)
+            Zeze.Util.Scheduler.Instance.Schedule(() =>
             {
-                // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                Release(session, gkey);
-            }
+                foreach (var gkey in session.Acquired.Keys)
+                {
+                    // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+                    Release(session, gkey);
+                }
+                rpc.SendResultCode(0);
+            }, 5 * 60 * 1000); // delay 5 mins
 
-            rpc.SendResultCode(0);
             return 0;
         }
 
@@ -508,9 +511,14 @@ namespace Zeze.Services
                                     reduce.Key.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out var _);
                                     reduceSuccessed.Add(reduce.Key);
                                 }
+                                else
+                                {
+                                    reduce.Key.SetError();
+                                }
                             }
                             catch (Exception ex)
                             {
+                                reduce.Key.SetError();
                                 // 等待失败不再看作成功。这个以前已经处理了，但这个注释没有更新。
                                 logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Value.Argument);
                             }
@@ -552,7 +560,7 @@ namespace Zeze.Services
                         logger.Error("XXX 10 {0} {1} {2}", sender, rpc.Argument.State, cs);
 
                         rpc.Result.State = StateInvalid;
-                        rpc.SendResult();
+                        rpc.SendResultCode(AcquireModifyFaild);
                     }
                     // 很好，网络失败不再看成成功，发现除了加break，其他处理已经能包容这个改动，都不用动。
                     return 0;
@@ -653,6 +661,18 @@ namespace Zeze.Services
                 }
             }
 
+            public const long ForbitPeriod = 10 * 1000; // 10 seconds
+            private long LastErrorTime = 0;
+
+            public void SetError()
+            {
+                lock (this)
+                {
+                    long now = global::Zeze.Util.Time.NowUnixMillis;
+                    if (now - LastErrorTime > ForbitPeriod)
+                        LastErrorTime = now;
+                }
+            }
             /// <summary>
             /// 返回null表示发生了网络错误，或者应用服务器已经关闭。
             /// </summary>
@@ -663,8 +683,12 @@ namespace Zeze.Services
             {
                 try
                 {
+                    lock (this)
+                    {
+                        if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbitPeriod)
+                            return null;
+                    }
                     AsyncSocket peer = GlobalCacheManager.Instance.Server.GetSocket(SessionId);
-                    // 逻辑服务器网络连接关闭，表示自动释放所有锁。所有Reduce都看作成功。
                     if (null != peer)
                     {
                         Reduce reduce = new Reduce(gkey, state);
@@ -677,6 +701,7 @@ namespace Zeze.Services
                     // 这里的异常只应该是网络发送异常。
                     logger.Error(ex, "ReduceWaitLater Exception {0}", gkey);
                 }
+                SetError();
                 return null;
             }
         }
@@ -895,7 +920,7 @@ namespace Zeze.Services
             {
                 const int prime = 31;
                 int result = 17;
-                result = prime * result + TableName.GetHashCode();
+                result = prime * result + ByteBuffer.calc_hashnr(TableName);
                 result = prime * result + ByteBuffer.calc_hashnr(Key, 0, Key.Length);
                 return result;
             }

@@ -143,7 +143,7 @@ namespace Zeze.Transaction
                                         _final_commit_(procedure);
 #if ENABLE_STATISTICS
                                         // 正常一次成功的不统计，用来观察redo多不多。
-                                        // 另外失败也不看了，这个可以去看Procedure.cs中的统计。
+                                        // 另外失败在 Procedure.cs 中的统计。
                                         if (tryCount > 0)
                                             ProcedureStatistics.Instance.GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).IncrementAndGet();
 #endif
@@ -159,9 +159,16 @@ namespace Zeze.Transaction
                                 checkResult = CheckResult.RedoAndReleaseLock;
                                 logger.Debug(redorelease, "RedoAndReleaseLockException");
                             }
+                            catch (AbortException abort)
+                            {
+                                logger.Debug(abort, "Transaction.Perform: Abort");
+                                _final_rollback_(procedure);
+                                return Procedure.AbortException;
+                            }
                             catch (Exception e)
                             {
-                                // 如果异常是因为 数据不一致引入，需要回滚重做，否则事务失败
+                                // Procedure.Call 里面已经处理了异常。只有 unit test 或者内部错误会到达这里。
+                                // 在 unit test 下，异常日志会被记录两次。
                                 logger.Error(e, "Transaction.Perform:{0} exception. run count:{1}", procedure, tryCount);
                                 if (savepoints.Count != 0)
                                 {

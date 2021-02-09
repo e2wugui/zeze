@@ -7,10 +7,9 @@ Zeze
 	打包和更新工具
 	每事务提交
 	async await?
-
 	GlobalTaskOneByOneByKey？？？
-
 	Zeze: log那些代码的异常安全要审查一遍。
+	AsyncSocket.Connect Timeout 可配置，不是很有必要，外面需要同步等待时，可以设置自己的等待时间，不需要依赖Socket.Timeout。
 
 Game2
 	client: 可靠消息实现的错误检查。

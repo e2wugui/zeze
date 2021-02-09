@@ -230,7 +230,7 @@ namespace Zeze.Net
             }
             else
             {
-                global::Zeze.Util.Task.Run(() => responseHandle(rpc), rpc.GetType().FullName + ":Response");
+                global::Zeze.Util.Task.Run(() => responseHandle(rpc), rpc);
             }
         }
 
@@ -244,7 +244,7 @@ namespace Zeze.Net
                 }
                 else
                 {
-                    global::Zeze.Util.Task.Run(() => factoryHandle.Handle(p), p.GetType().FullName);
+                    global::Zeze.Util.Task.Run(() => factoryHandle.Handle(p), p);
                 }
             }
             else

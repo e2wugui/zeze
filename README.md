@@ -71,9 +71,24 @@
 	XXX Do Not Catch Exception
 	  原则上不要捕捉异常。如果你实在需要，捕捉处理以后，请再次抛出。
 
-	. Sample
-	  see Game\Readme.txt
-	  Game\game.sln
+	. UserState
+	  AsyncSocket.UserState 连接上下文
+	  Protocol.UserState 从某个连接收到的所有协议的上下文，默认从连接上下文复制引用。
+	  Transaction.UserState 当为协议处理创建存储过程执行事务时，默认从协议上下文复制引用。
+	  这个上下文应该从应用整体考虑来使用，一般来说对于服务器，用来保存用户的登录会话（Login.Session）。
+	  see Game\game.sln, Game2\game2.sln
+
+	. 错误日志
+	  当协议（或者存储过程）执行抛出异常或者返回值不是Procedure.Success时，Zeze会记录错误日志，并为每一种返回值统计。
+	  Zeze 记录日志的时候会把 UserState.ToString 也记录进去。应用可以在自己的UserState对象实现类中添加更多上下文信息。
+	  比如, Login.Session.SetLastError("detail");
+	  这样写的时候只需要返回错误，不用每个地方自己记录日志。
+
+	. 协议存储过程处理结果返回值规划建议
+	  0  Success
+	  <0 Used By Zeze 
+	  >0 User Defined. 自定义错误码时可以这样 (Module.Id << 16) | CodeInModule。
+	  注意协议存储过程返回值使用同一个定义空间。
 
 #### 特殊模式
 

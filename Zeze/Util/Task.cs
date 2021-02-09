@@ -22,17 +22,27 @@ namespace Zeze.Util
             });
         }
 
-        public static System.Threading.Tasks.Task Run(Func<int> func, string actionName)
+        public static System.Threading.Tasks.Task Run(Func<int> func, Zeze.Net.Protocol p)
         {
             return System.Threading.Tasks.Task.Run(() =>
             {
                 try
                 {
-                    func();
+                    int result = func();
+                    var actionName = p.GetType().FullName;
+                    if (result != 0)
+                    {
+                        logger.Error("Task {0} Return={1}:{2} UserState={3}", actionName,
+                            Zeze.Net.Protocol.GetModuleId(result), Zeze.Net.Protocol.GetProtocolId(result),
+                            p.UserState);
+                    }
+#if ENABLE_STATISTICS
+                    Zeze.Transaction.ProcedureStatistics.Instance.GetOrAdd(actionName).GetOrAdd(result).IncrementAndGet();
+#endif
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, actionName);
+                    logger.Error(ex, "Task {0} Exception UserState={1}", p.GetType().FullName, p.UserState);
                 }
             });
         }
@@ -43,10 +53,13 @@ namespace Zeze.Util
             {
                 try
                 {
+                    // 日志在Call里面记录。因为要支持嵌套。
+                    // 统计在Call里面实现。
                     procdure.Call();
                 }
                 catch (Exception ex)
                 {
+                    // 这里应该不可能会发生了，除非内部错误。
                     logger.Error(ex, procdure.ActionName);
                 }
             });
