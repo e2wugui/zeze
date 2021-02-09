@@ -39,11 +39,11 @@ namespace gnet.Provider
                 p2.Sender = p.Sender;
                 
                 p2.UserState = new Game.Login.Session(p.Argument.UserId, p.Argument.States, p.Sender, p.Argument.LinkSid);
-
                 if (Zeze.Transaction.Transaction.Current != null)
                 {
                     // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
-                    Zeze.Transaction.Transaction.Current.UserState = p2.UserState;
+                    Zeze.Transaction.Transaction.Current.RootProcedure.ActionName = p2.GetType().FullName;
+                    Zeze.Transaction.Transaction.Current.RootProcedure.UserState = p2.UserState;
                     return factoryHandle.Handle(p2);
                 }
 
@@ -54,19 +54,7 @@ namespace gnet.Provider
                 }
 
                 // 创建存储过程并且在当前线程中调用。
-                p2.Sender.Service.Zeze.NewProcedure(() =>
-                {
-                    try
-                    {
-                        global::Zeze.Transaction.Transaction.Current.UserState = p2.UserState;
-                        return factoryHandle.Handle(p2);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "ProcessDispatch");
-                        return Zeze.Transaction.Procedure.Excption;
-                    }
-                }, p2.GetType().FullName).Call();
+                p2.Sender.Service.Zeze.NewProcedure(() => factoryHandle.Handle(p2), p2.GetType().FullName, p2.UserState).Call();
             }
             catch (Exception ex)
             {

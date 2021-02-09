@@ -22,22 +22,24 @@ namespace Zeze.Transaction
 
         public Func<int> Action { get; set; }
 
-        public string ActionName { get; } // 用来统计或者调试
+        public string ActionName { get; set; } // 用来统计或者日志
 
         // 用于继承方式实现 Procedure。
         public Procedure(Checkpoint checkpoint)
         {
             Checkpoint = checkpoint;
         }
-        private object UserState { get; }
+
+        public object UserState { get; set; }
+
         public Procedure(Checkpoint checkpoint, Func<int> action, string actionName, object userState)
         {
             Checkpoint = checkpoint;
             Action = action;
             ActionName = actionName;
             UserState = userState;
-            if (null == UserState) // 没指定，就从当前事务继承。
-                UserState = Transaction.Current?.UserState;
+            if (null == UserState) // 没指定，就从当前事务继承。嵌套时发生。
+                UserState = Transaction.Current?.RootProcedure.UserState;
         }
 
         /// <summary>
@@ -52,7 +54,7 @@ namespace Zeze.Transaction
                 try
                 {
                     // 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-                    return Transaction.Create(UserState).Perform(this);
+                    return Transaction.Create(this).Perform(this);
                 }
                 finally
                 {

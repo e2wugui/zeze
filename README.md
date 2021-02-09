@@ -74,7 +74,7 @@
 	. UserState
 	  AsyncSocket.UserState 连接上下文
 	  Protocol.UserState 从某个连接收到的所有协议的上下文，默认从连接上下文复制引用。
-	  Transaction.UserState 当为协议处理创建存储过程执行事务时，默认从协议上下文复制引用。
+	  Transaction.RootProcedure.UserState 当为协议处理创建存储过程执行事务时，默认从协议上下文复制引用。
 	  这个上下文应该从应用整体考虑来使用，一般来说对于服务器，用来保存用户的登录会话（Login.Session）。
 	  see Game\game.sln, Game2\game2.sln
 

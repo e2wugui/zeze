@@ -27,8 +27,13 @@ namespace Game
         public const int ChoiceType = gnet.Provider.BBind.ChoiceTypeHashUserId;
         public static int GetChoiceHashCode()
         {
-            string userid = (Zeze.Transaction.Transaction.Current.UserState as Login.Session).Account;
+            string userid = GetLoginSession().Account;
             return Zeze.Serialize.ByteBuffer.calc_hashnr(userid);
+        }
+
+        public static Login.Session GetLoginSession()
+        {
+            return Zeze.Transaction.Transaction.Current.RootProcedure.UserState as Login.Session;
         }
 
         public static ModuleRedirect Instance = new ModuleRedirect();
@@ -361,7 +366,7 @@ namespace Game
                 sb.AppendLine($"");
                 string sessionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
                 string futureVarName = "tmp" + TmpVarNameId.IncrementAndGet();
-                sb.AppendLine($"        var {sessionVarName} = Zeze.Transaction.Transaction.Current.UserState as Game.Login.Session;");
+                sb.AppendLine($"        var {sessionVarName} = Game.ModuleRedirect.GetLoginSession();");
                 sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource<int>();");
                 sb.AppendLine($"");
                 foreach (var outOrRef in parametersOutOrRef)

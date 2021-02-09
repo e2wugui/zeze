@@ -18,17 +18,18 @@ namespace Zeze.Transaction
         private static System.Threading.ThreadLocal<Transaction> threadLocal = new System.Threading.ThreadLocal<Transaction>();
 
         public static Transaction Current => threadLocal.Value;
-        public object UserState { get; set; } // 在处理协议时，把协议的UserState设置到这里，see Net.Service.DispatchProtocol
 
-        private Transaction(object userState = null)
+        public Procedure RootProcedure { get; set; }
+
+        private Transaction(Procedure root)
         {
-            this.UserState = userState;
+            this.RootProcedure = root;
         }
 
-        public static Transaction Create(object userState = null)
+        public static Transaction Create(Procedure root)
         {
             if (null == threadLocal.Value)
-                threadLocal.Value = new Transaction(userState);
+                threadLocal.Value = new Transaction(root);
             return threadLocal.Value;
         }
 
