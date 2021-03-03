@@ -15,6 +15,8 @@ namespace Zeze.Transaction
         public const int LogicError = -6;
         public const int RedoAndRelease = -7;
         public const int AbortException = -8;
+        public const int ProviderNotExist = -9;
+        public const int Timeout = -10;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -84,18 +86,18 @@ namespace Zeze.Transaction
 #endif
                 return result;
             }
-            catch (AbortException abort)
+            catch (AbortException)
             {
                 currentT.Rollback();
-                throw abort;
+                throw;
             }
-            catch (RedoAndReleaseLockException redo)
+            catch (RedoAndReleaseLockException)
             {
                 currentT.Rollback();
 #if ENABLE_STATISTICS
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(RedoAndRelease).IncrementAndGet();
 #endif
-                throw redo;
+                throw;
             }
             catch (Exception e)
             {

@@ -19,6 +19,8 @@ namespace Zeze.Transaction
 
         public static Transaction Current => threadLocal.Value;
 
+        // 如果要完整支持嵌套调试，这里应该是一个stack，但是一般抛出异常时就带了call-stack，调试足够了，
+        // 这里简单保存一个根，统计调试默认都使用根的调试信息。看以后具体使用情况再改。
         public Procedure RootProcedure { get; set; }
 
         private Transaction(Procedure root)

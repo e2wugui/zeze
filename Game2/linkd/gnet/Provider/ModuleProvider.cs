@@ -296,5 +296,82 @@ namespace gnet.Provider
             }
             return Zeze.Transaction.Procedure.Success;
         }
+
+        public override int ProcessModuleRedirectAllRequest(ModuleRedirectAllRequest protocol)
+        {
+            Dictionary<long, ModuleRedirectAllRequest> transmits = new Dictionary<long, ModuleRedirectAllRequest>();
+
+            ModuleRedirectAllResult miss = new ModuleRedirectAllResult();
+            miss.Argument.ModuleId = protocol.Argument.ModuleId;
+            miss.Argument.MethodFullName = protocol.Argument.MethodFullName;
+            miss.Argument.SourceProvider = protocol.Sender.SessionId; // not used
+            miss.Argument.SessionId = protocol.Argument.SessionId;
+            miss.Argument.AutoKeyLocalId = 0; // 在这里没法知道逻辑服务器id，错误报告就不提供这个了。
+            miss.ResultCode = ModuleRedirect.ResultCodeLinkdNoProvider;
+
+            for (int i = 0; i < protocol.Argument.HashCodeConcurrentLevel; ++i)
+            {
+                long provider;
+                if (ChoiceProvider(protocol.Argument.ModuleId, i, out provider))
+                {
+                    if (false == transmits.TryGetValue(provider, out var exist))
+                    {
+                        exist = new ModuleRedirectAllRequest();
+                        exist.Argument.ModuleId = protocol.Argument.ModuleId;
+                        exist.Argument.HashCodeConcurrentLevel = protocol.Argument.HashCodeConcurrentLevel;
+                        exist.Argument.MethodFullName = protocol.Argument.MethodFullName;
+                        exist.Argument.SourceProvider = protocol.Sender.SessionId;
+                        exist.Argument.SessionId = protocol.Argument.SessionId;
+                        exist.Argument.Params = protocol.Argument.Params;
+                        transmits.Add(provider, exist);
+                    }
+                    exist.Argument.HashCodes.Add(i);
+                }
+                else
+                {
+                    miss.Argument.Hashs[i] = new BModuleRedirectAllHash()
+                    {
+                        ReturnCode = Zeze.Transaction.Procedure.ProviderNotExist
+                    };
+                }
+            }
+
+            // 转发给provider
+            foreach (var transmit in transmits)
+            {
+                var socket = App.ProviderService.GetSocket(transmit.Key);
+                if (null != socket)
+                {
+                    transmit.Value.Send(socket);
+                }
+                else
+                {
+                    foreach (var hashindex in transmit.Value.Argument.HashCodes)
+                    {
+                        miss.Argument.Hashs[hashindex] = new BModuleRedirectAllHash()
+                        {
+                            ReturnCode = Zeze.Transaction.Procedure.ProviderNotExist
+                        };
+                    }
+                }
+            }
+
+            // 没有转发成功的provider的hash分组，马上发送结果报告错误。
+            if (miss.Argument.Hashs.Count > 0)
+            {
+                miss.Send(protocol.Sender);
+            }
+            return Zeze.Transaction.Procedure.Success;
+        }
+
+        public override int ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol)
+        {
+            var sourcerProvider = App.ProviderService.GetSocket(protocol.Argument.SourceProvider);
+            if (null != sourcerProvider)
+            {
+                protocol.Send(sourcerProvider);
+            }
+            return Zeze.Transaction.Procedure.Success;
+        }
     }
 }

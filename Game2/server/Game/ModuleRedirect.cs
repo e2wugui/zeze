@@ -41,18 +41,154 @@ namespace Game
         public string SrcDirWhenPostBuild { get; set; } // ugly
         public bool HasNewGen { get; private set; } = false;
 
+        public enum OverrideType
+        {
+            Redirect,
+            RedirectWithHash,
+            RedirectAll,
+        }
+
+        public class MethodOverride
+        {
+            public MethodInfo Method { get; }
+            public OverrideType OverrideType { get; }
+            public Attribute Attribute { get; }
+
+            public MethodOverride(MethodInfo method, OverrideType type, Attribute attribute)
+            {
+                if (false == method.IsVirtual)
+                    throw new Exception("ModuleRedirect Need Virtual。");
+                Method = method;
+                OverrideType = type;
+                Attribute = attribute;
+            }
+
+            public ParameterInfo ParameterFirstWithHash { get; private set; } // only setup when OverrideType.RedirectWithHash
+            public List<ParameterInfo> ParametersNormal { get; } = new List<ParameterInfo>();
+            public ParameterInfo ParameterLastWithMode { get; private set; } // maybe null
+
+            public ParameterInfo[] ParametersAll { get; private set; }
+
+            public void PrepareParameters()
+            {
+                ParametersAll = Method.GetParameters();
+                ParametersNormal.AddRange(ParametersAll);
+
+                if (OverrideType == OverrideType.RedirectWithHash)
+                {
+                    ParameterFirstWithHash = ParametersAll[0];
+                    if (ParameterFirstWithHash.ParameterType != typeof(int))
+                        throw new Exception("ModuleRedirectWithHash: type of first parameter must be 'int'");
+                    if (false == ParameterFirstWithHash.Name.Equals("hash"))
+                        throw new Exception("ModuleRedirectWithHash: name of first parameter must be 'hash'");
+                    ParametersNormal.RemoveAt(0);
+                }
+
+                if (ParametersNormal.Count > 0
+                    && ParametersNormal[ParametersNormal.Count - 1].ParameterType == typeof(Zeze.TransactionModes))
+                {
+                    ParameterLastWithMode = ParametersNormal[ParametersNormal.Count - 1];
+                    ParametersNormal.RemoveAt(ParametersNormal.Count - 1);
+                }
+            }
+
+            public string GetNarmalCallString()
+            {
+                StringBuilder sb = new StringBuilder();
+                bool first = true;
+                for (int i = 0; i < ParametersNormal.Count; ++i)
+                {
+                    var p = ParametersNormal[i];
+                    if (first)
+                        first = false;
+                    else
+                        sb.Append(", ");
+                    string prefix = "";
+                    if (p.IsOut)
+                        prefix = "out ";
+                    else if (p.ParameterType.IsByRef)
+                        prefix = "ref ";
+
+                    if (string.IsNullOrEmpty(prefix))
+                        sb.Append(p.Name);
+                    else
+                        sb.Append(prefix).Append(p.Name);
+                }
+                return sb.ToString();
+            }
+
+            public string GetModeCallString()
+            {
+                if (ParameterLastWithMode == null)
+                    return "";
+                if (ParametersAll.Length == 1) // 除了mode，没有其他参数。
+                    return ParameterLastWithMode.Name;
+                return $", {ParameterLastWithMode.Name}";
+            }
+
+            public string GetHashCallString(string varname)
+            {
+                if (ParameterFirstWithHash == null)
+                    return "";
+                if (ParametersAll.Length == 1) // 除了hash，没有其他参数。
+                    return varname;
+                return $"{varname}, ";
+            }
+
+            public string GetBaseCallString()
+            {
+                return $"{GetHashCallString("hash")}{GetNarmalCallString()}{GetModeCallString()}";
+            }
+
+            public string GetChoiceHashCodeSource()
+            {
+                switch (OverrideType)
+                {
+                    case OverrideType.RedirectWithHash:
+                        return "hash"; // parameter name
+
+                    case OverrideType.Redirect:
+                        var attr = Attribute as ModuleRedirectAttribute;
+                        if (string.IsNullOrEmpty(attr.ChoiceHashCodeSource))
+                            return "Game.ModuleRedirect.GetChoiceHashCode()";
+                        return attr.ChoiceHashCodeSource;
+
+                    default:
+                        throw new Exception("error state");
+                }
+            }
+
+            public string GetConcurrentLevelSource()
+            {
+                if (OverrideType != OverrideType.RedirectAll)
+                    throw new Exception("is not RedirectAll");
+                var attr = Attribute as ModuleRedirectAllAttribute;
+                return attr.GetConcurrentLevelSource;
+            }
+        }
+
+        private bool CheckAddMethod(MethodInfo method, OverrideType type, object[] attrs, List<MethodOverride> result)
+        {
+            if (attrs.Length == 1)
+            {
+                result.Add(new MethodOverride(method, type, attrs[0] as Attribute));
+                return true;
+            }
+            return false;
+        }
+
         public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
         {
-            List<System.Reflection.MethodInfo> overrides = new List<System.Reflection.MethodInfo>();
+            List<MethodOverride> overrides = new List<MethodOverride>();
             var methods = module.GetType().GetMethods();
             foreach (var method in methods)
             {
-                var attrs = method.GetCustomAttributes(typeof(ModuleRedirectAttribute), false);
-                if (attrs.Length == 0)
+                if (CheckAddMethod(method, OverrideType.Redirect, method.GetCustomAttributes(typeof(ModuleRedirectAttribute), false), overrides))
                     continue;
-                if (false == method.IsVirtual)
-                    throw new Exception("ModuleRedirect Need Virtual。");
-                overrides.Add(method);
+                if (CheckAddMethod(method, OverrideType.RedirectWithHash, method.GetCustomAttributes(typeof(ModuleRedirectWithHashAttribute), false), overrides))
+                    continue;
+                if (CheckAddMethod(method, OverrideType.RedirectAll, method.GetCustomAttributes(typeof(ModuleRedirectAllAttribute), false), overrides))
+                    continue;
             }
             if (overrides.Count == 0)
                 return module; // 没有需要重定向的方法。
@@ -116,8 +252,16 @@ namespace Game
         }
         // */
 
-        public Dictionary<string, Func<gnet.Provider.ModuleRedirect, int>> Handles { get; }
-            = new Dictionary<string, Func<gnet.Provider.ModuleRedirect, int>>();
+        /// <summary>
+        /// 1) int [in] hash
+        /// 2) Zeze.Net.Binary [in] encoded parameters
+        /// 3) List<gnet.Provider.BActionParam> [result] result for callback. avoid copy.
+        /// 4) (int ReturnCode, Zeze.Net.Binary encoded-parameters) [return]
+        ///     Func不能使用ref，而Zeze.Net.Binary是只读的。就这样吧。
+        /// </summary>
+        public Dictionary<string, Func<int, Zeze.Net.Binary, IList<gnet.Provider.BActionParam>,
+            (int, Zeze.Net.Binary)>> Handles { get; }
+            = new Dictionary<string, Func<int, Zeze.Net.Binary, IList<gnet.Provider.BActionParam>, (int, Zeze.Net.Binary)>>();
 
         enum ReturnType
         {
@@ -133,26 +277,6 @@ namespace Game
             throw new Exception("ReturnType Must Be void Or TaskCompletionSource<int>");
         }
 
-        private bool HasModeParamter(ParameterInfo[] parameters)
-        {
-            if (parameters.Length == 0)
-                return false;
-            if (parameters[parameters.Length - 1].ParameterType == typeof(Zeze.TransactionModes))
-                return true;
-            return false;
-        }
-
-        private string GetChoiceHashCodeSource(MethodInfo method)
-        {
-            var attrs = method.GetCustomAttributes(typeof(ModuleRedirectAttribute), false);
-            if (null == attrs || attrs.Length == 0)
-                return "Game.ModuleRedirect.GetChoiceHashCode()";
-            var attr = attrs[0] as ModuleRedirectAttribute;
-            if (string.IsNullOrEmpty(attr.ChoiceHashCodeSource))
-                return "Game.ModuleRedirect.GetChoiceHashCode()";
-            return attr.ChoiceHashCodeSource;
-        }
-
         private string GetMethodNameWithHash(string name)
         {
             if (!name.StartsWith("Run"))
@@ -160,10 +284,10 @@ namespace Game
             return name.Substring(3);
         }
 
-        private List<ParameterInfo> GetOutOrRef(ParameterInfo[] parameters, int lengthNoMode)
+        private List<ParameterInfo> GetOutOrRef(List<ParameterInfo> parameters)
         {
             var result = new List<ParameterInfo>();
-            for (int i = 0; i < lengthNoMode; ++i)
+            for (int i = 0; i < parameters.Count; ++i)
             {
                 var p = parameters[i];
                 if (p.IsOut)
@@ -193,8 +317,8 @@ namespace Game
         {
             public Type ActionType { get; }
 
-            private Type[] GenericArguments;
-            private string[] GenericArgumentVarNames;
+            public Type[] GenericArguments { get; }
+            public string[] GenericArgumentVarNames { get; }
             public string VarName { get; }
 
             public ActionGen(Type actionType, string varName)
@@ -222,7 +346,7 @@ namespace Game
                 }
             }
 
-            private string GetGenericArgumentsDefine()
+            public string GetGenericArgumentsDefine()
             {
                 if (GenericArguments.Length == 0)
                     return string.Empty;
@@ -241,12 +365,12 @@ namespace Game
                 return sb.ToString();
             }
 
-            private string GetGenericArgumentVarNamesDefine()
+            private string GetGenericArgumentVarNamesDefine(int offset = 0)
             {
                 StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < GenericArgumentVarNames.Length; ++i)
+                for (int i = offset; i < GenericArgumentVarNames.Length; ++i)
                 {
-                    if (i > 0)
+                    if (i > offset)
                         sb.Append(", ");
                     sb.Append(GenericArgumentVarNames[i]);
                 }
@@ -261,20 +385,21 @@ namespace Game
                 {
                     sb.AppendLine($"{prefix}    var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
                     GenEncode(sb, prefix + "    ");
-                    sb.AppendLine($"{prefix}    _rpc_.Result.Actions.Add(new gnet.Provider.BActionParam() {{ Name = \"{VarName}\", Params = new Zeze.Net.Binary(_bb_) }});");
+                    sb.AppendLine($"{prefix}    _actions_.Add(new gnet.Provider.BActionParam() {{ Name = \"{VarName}\", Params = new Zeze.Net.Binary(_bb_) }});");
                 }
                 sb.AppendLine($"{prefix}}};");
             }
 
-            public void GenActionDecode(StringBuilder sb, string prefix)
+            public void GenActionDecode(StringBuilder sb, string prefix, string callcontext = "", int offset = 0)
             {
                 sb.AppendLine($"{prefix}System.Action<Zeze.Net.Binary> _{VarName}_ = (_params_) =>");
                 sb.AppendLine($"{prefix}{{");
                 if (GenericArguments.Length > 0)
                 {
                     sb.AppendLine($"{prefix}    var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
-                    GenDecode(sb, prefix + "    ");
-                    sb.AppendLine($"{prefix}    {VarName}({GetGenericArgumentVarNamesDefine()});");
+                    GenDecode(sb, prefix + "    ", offset);
+                    string sep = string.IsNullOrEmpty(callcontext) ? "" : ", ";
+                    sb.AppendLine($"{prefix}    {VarName}({callcontext}{sep}{GetGenericArgumentVarNamesDefine(offset)});");
                 }
                 sb.AppendLine($"{prefix}}};");
             }
@@ -288,9 +413,9 @@ namespace Game
                 }
             }
 
-            private void GenDecode(StringBuilder sb, string prefix)
+            private void GenDecode(StringBuilder sb, string prefix, int offset = 0)
             {
-                for (int i = 0; i < GenericArguments.Length; ++i)
+                for (int i = offset; i < GenericArguments.Length; ++i)
                 {
                     var type = GenericArguments[i];
                     ModuleRedirect.Instance.GenLocalVariable(sb, prefix, type, GenericArgumentVarNames[i]);
@@ -299,10 +424,10 @@ namespace Game
             }
         }
 
-        private List<ActionGen> GetActions(ParameterInfo[] parameters, int lengthNoMode)
+        private List<ActionGen> GetActions(List<ParameterInfo> parameters)
         {
             List<ActionGen> result = new List<ActionGen>();
-            for (int i = 0; i < lengthNoMode; ++i)
+            for (int i = 0; i < parameters.Count; ++i)
             {
                 var p = parameters[i];
                 if (IsDelegate(p.ParameterType))
@@ -313,7 +438,31 @@ namespace Game
             return result;
         }
 
-        private string GenModuleCode(Zeze.IModule module, string genClassName, List<System.Reflection.MethodInfo> overrides)
+        private void Verify(MethodOverride method, List<ParameterInfo> outRefParams, List<ActionGen> actions)
+        {
+            switch (method.OverrideType)
+            {
+                case OverrideType.RedirectAll:
+                    if (outRefParams.Count > 0)
+                        throw new Exception("RedirectAll Not Support out|ref.");
+                    if (method.Method.ReturnType != typeof(void))
+                        throw new Exception("RedirectAll ReturnType Must Be void");
+                    foreach (var action in actions)
+                    {
+                        if (action.GenericArguments.Length < 3)
+                            throw new Exception("RedirectAll callback must have parameters: long,int");
+                        if (action.GenericArguments[0] != typeof(long))
+                            throw new Exception("RedirectAll callback first parameter muse be long(sessionId)");
+                        if (action.GenericArguments[1] != typeof(int))
+                            throw new Exception("RedirectAll callback second parameter muse be int(hash-index)");
+                        if (action.GenericArguments[2] != typeof(int))
+                            throw new Exception("RedirectAll callback thrid parameter muse be int(return-code)");
+                    }
+                    break;
+            }
+        }
+
+        private string GenModuleCode(Zeze.IModule module, string genClassName, List<MethodOverride> overrides)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"public class {genClassName} : {module.FullName}.Module{module.Name}");
@@ -321,45 +470,51 @@ namespace Game
 
             // TaskCompletionSource<int> void
             StringBuilder sbHandles = new StringBuilder();
-            foreach (var method in overrides)
+            StringBuilder sbContexts = new StringBuilder();
+            foreach (var methodOverride in overrides)
             {
-                var parameters = method.GetParameters();
-                var parametersDefine = ToDefineString(parameters);
-                var hasMode = HasModeParamter(parameters);
-                var lengthNoMode = hasMode ? parameters.Length - 1 : parameters.Length;
-                var (parametersCallNoMode, modeCall) = ToCallString(parameters, lengthNoMode);
-                var parametersOutOrRef = GetOutOrRef(parameters, lengthNoMode);
-                var methodNameWithHash = GetMethodNameWithHash(method.Name);
-                var (returnType, returnTypeName) = GetReturnType(method.ReturnParameter.ParameterType);
-                var actions = GetActions(parameters, lengthNoMode);
+                methodOverride.PrepareParameters();
+                var parametersDefine = ToDefineString(methodOverride.ParametersAll);
+                var parametersOutOrRef = GetOutOrRef(methodOverride.ParametersNormal);
+                var methodNameWithHash = GetMethodNameWithHash(methodOverride.Method.Name);
+                var (returnType, returnTypeName) = GetReturnType(methodOverride.Method.ReturnParameter.ParameterType);
+                var actions = GetActions(methodOverride.ParametersNormal);
+                Verify(methodOverride, parametersOutOrRef, actions);
 
-                sb.AppendLine($"    public override {returnTypeName} {method.Name}({parametersDefine})");
+                sb.AppendLine($"    public override {returnTypeName} {methodOverride.Method.Name}({parametersDefine})");
                 sb.AppendLine($"    {{");
                 sb.AppendLine($"        if (Game.ModuleRedirect.Instance.IsLocalServer(\"{module.FullName}\"))");
                 sb.AppendLine($"        {{");
                 switch (returnType)
                 {
                     case ReturnType.Void:
-                        sb.AppendLine($"            base.{method.Name}({parametersCallNoMode}{modeCall});");
+                        sb.AppendLine($"            base.{methodOverride.Method.Name}({methodOverride.GetBaseCallString()});");
                         sb.AppendLine($"            return;");
                         break;
                     case ReturnType.TaskCompletionSource:
-                        sb.AppendLine($"            return base.{method.Name}({parametersCallNoMode}{modeCall});");
+                        sb.AppendLine($"            return base.{methodOverride.Method.Name}({methodOverride.GetBaseCallString()});");
                         break;
                 }
                 sb.AppendLine($"        }}");
                 sb.AppendLine($"");
+
+                if (methodOverride.OverrideType == OverrideType.RedirectAll)
+                {
+                    GenRedirectAllContext(sbContexts, methodOverride, actions);
+                    GenRedirectAll(sb, module, methodOverride, actions);
+                    continue;
+                }
                 string rpcVarName = "tmp" + TmpVarNameId.IncrementAndGet();
                 sb.AppendLine($"        var {rpcVarName} = new gnet.Provider.ModuleRedirect();");
                 sb.AppendLine($"        {rpcVarName}.Argument.ModuleId = {module.Id};");
-                sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {GetChoiceHashCodeSource(method)};");
-                sb.AppendLine($"        {rpcVarName}.Argument.MethodFullName = \"{module.FullName}:{method.Name}\";");
-                if (lengthNoMode > 0)
+                sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {methodOverride.GetChoiceHashCodeSource()};");
+                sb.AppendLine($"        {rpcVarName}.Argument.MethodFullName = \"{module.FullName}:{methodOverride.Method.Name}\";");
+                if (methodOverride.ParametersNormal.Count > 0)
                 {
-                    // lengthNoMode 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
+                    // normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
                     sb.AppendLine($"        {{");
                     sb.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
-                    GenEncode(sb, "            ", parameters, lengthNoMode);
+                    GenEncode(sb, "            ", methodOverride.ParametersNormal);
                     sb.AppendLine($"            {rpcVarName}.Argument.Params = new Zeze.Net.Binary(_bb_);");
                     sb.AppendLine($"        }}");
                 }
@@ -379,11 +534,11 @@ namespace Game
                 sb.AppendLine($"        {{");
                 sb.AppendLine($"            if ({rpcVarName}.IsTimeout)");
                 sb.AppendLine($"            {{");
-                sb.AppendLine($"                {futureVarName}.SetException(new System.Exception(\"{module.FullName}:{method.Name} Rpc Timeout.\"));");
+                sb.AppendLine($"                {futureVarName}.SetException(new System.Exception(\"{module.FullName}:{methodOverride.Method.Name} Rpc Timeout.\"));");
                 sb.AppendLine($"            }}");
                 sb.AppendLine($"            else if (gnet.Provider.ModuleRedirect.ResultCodeSuccess != {rpcVarName}.ResultCode)");
                 sb.AppendLine($"            {{");
-                sb.AppendLine($"                {futureVarName}.SetException(new System.Exception($\"{module.FullName}:{method.Name} Rpc Error {{{rpcVarName}.ResultCode}}.\"));");
+                sb.AppendLine($"                {futureVarName}.SetException(new System.Exception($\"{module.FullName}:{methodOverride.Method.Name} Rpc Error {{{rpcVarName}.ResultCode}}.\"));");
                 sb.AppendLine($"            }}");
                 sb.AppendLine($"            else");
                 sb.AppendLine($"            {{");
@@ -405,7 +560,7 @@ namespace Game
                     sb.AppendLine($"                    }}");
                     sb.AppendLine($"                }}");
                 }
-                if(parametersOutOrRef.Count > 0)
+                if (parametersOutOrRef.Count > 0)
                 {
                     sb.AppendLine($"                {{");
                     sb.AppendLine($"                    var _bb_ = Zeze.Serialize.ByteBuffer.Wrap({rpcVarName}.Result.Params);");
@@ -435,17 +590,17 @@ namespace Game
                 sb.AppendLine($"    }}");
                 sb.AppendLine($"");
 
-                sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{method.Name}\", (_rpc_) =>");
+                sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<gnet.Provider.BActionParam> _actions_) =>");
                 sbHandles.AppendLine($"        {{");
-                sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_rpc_.Argument.Params);");
-                for (int i = 0; i < lengthNoMode; ++i)
+                sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
+                for (int i = 0; i < methodOverride.ParametersNormal.Count; ++i)
                 {
-                    var p = parameters[i];
+                    var p = methodOverride.ParametersNormal[i];
                     if (IsDelegate(p.ParameterType))
                         continue; // define later.
                     GenLocalVariable(sbHandles, "            ", p.ParameterType, p.Name);
                 }
-                GenDecode(sbHandles, "            ", parameters, lengthNoMode);
+                GenDecode(sbHandles, "            ", methodOverride.ParametersNormal);
 
                 if (actions.Count > 0)
                 {
@@ -454,8 +609,12 @@ namespace Game
                         action.GenActionEncode(sbHandles, "            ");
                     }
                 }
-                string sep = string.IsNullOrEmpty(parametersCallNoMode) ? "" : ", ";
-                sbHandles.AppendLine($"            _rpc_.Result.ReturnCode = base.{methodNameWithHash}(_rpc_.Argument.HashCode{sep}{parametersCallNoMode});");
+                string normalcall = methodOverride.GetNarmalCallString();
+                string sep = string.IsNullOrEmpty(normalcall) ? "" : ", ";
+                var returnCodeVarName = "tmp" + TmpVarNameId.IncrementAndGet();
+                var returnParamsVarName = "tmp" + TmpVarNameId.IncrementAndGet();
+                sbHandles.AppendLine($"            var {returnCodeVarName} = base.{methodNameWithHash}(_hash_{sep}{normalcall});");
+                sbHandles.AppendLine($"            var {returnParamsVarName} = Zeze.Net.Binary.Empty;");
                 if (parametersOutOrRef.Count > 0)
                 {
                     sbHandles.AppendLine($"            _bb_ = Zeze.Serialize.ByteBuffer.Allocate(); // reuse _bb_");
@@ -463,9 +622,9 @@ namespace Game
                     {
                         GenEncode(sbHandles, "            ", outOrRef.ParameterType, outOrRef.Name);
                     }
-                    sbHandles.AppendLine($"            _rpc_.Result.Params = new Zeze.Net.Binary(_bb_);");
+                    sbHandles.AppendLine($"            {returnParamsVarName} = new Zeze.Net.Binary(_bb_);");
                 }
-                sbHandles.AppendLine($"            return _rpc_.Result.ReturnCode;");
+                sbHandles.AppendLine($"            return ({returnCodeVarName},{returnParamsVarName});");
                 sbHandles.AppendLine($"        }});");
                 sbHandles.AppendLine($"");
             }
@@ -474,9 +633,109 @@ namespace Game
             sb.Append(sbHandles.ToString());
             sb.AppendLine($"    }}");
             sb.AppendLine($"");
+            sb.Append(sbContexts.ToString());
             sb.AppendLine($"}}");
-
             return sb.ToString();
+        }
+
+        void GenRedirectAll(StringBuilder sb, Zeze.IModule module, MethodOverride methodOverride, List<ActionGen> actions)
+        {
+            string reqVarName = "tmp" + TmpVarNameId.IncrementAndGet();
+            sb.AppendLine($"        var {reqVarName} = new gnet.Provider.ModuleRedirectAllRequest();");
+            sb.AppendLine($"        {reqVarName}.Argument.ModuleId = {module.Id};");
+            sb.AppendLine($"        {reqVarName}.Argument.HashCodeConcurrentLevel = {methodOverride.GetConcurrentLevelSource()};");
+            sb.AppendLine($"        // {reqVarName}.Argument.HashCodes = // setup in linkd;");
+            sb.AppendLine($"        {reqVarName}.Argument.MethodFullName = \"{module.FullName}:{methodOverride.Method.Name}\";");
+            bool first = true;
+            StringBuilder actionVarNames = new StringBuilder();
+            foreach (var action in actions)
+            {
+                if (first)
+                    first = false;
+                else
+                    actionVarNames.Append(", ");
+                actionVarNames.Append($"{action.VarName}");
+            }
+            string contextVarName = "tmp" + TmpVarNameId.IncrementAndGet();
+            sb.AppendLine($"        var {contextVarName} = new Context{methodOverride.Method.Name}({actionVarNames});");
+            sb.AppendLine($"        {reqVarName}.Argument.SessionId = App.Server.AddManualContextWithTimeout({contextVarName});");
+            sb.AppendLine($"        {contextVarName}.Init({reqVarName}.Argument.SessionId, {reqVarName}.Argument.HashCodeConcurrentLevel, {reqVarName}.Argument.MethodFullName);");
+            if (methodOverride.ParametersNormal.Count > 0)
+            {
+                // normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
+                sb.AppendLine($"        {{");
+                sb.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
+                GenEncode(sb, "            ", methodOverride.ParametersNormal);
+                sb.AppendLine($"            {reqVarName}.Argument.Params = new Zeze.Net.Binary(_bb_);");
+                sb.AppendLine($"        }}");
+            }
+            sb.AppendLine($"");
+            string sessionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
+            sb.AppendLine($"        var {sessionVarName} = Game.ModuleRedirect.GetLoginSession();");
+            sb.AppendLine($"        {reqVarName}.Send({sessionVarName}.Link);");
+            sb.AppendLine($"    }}");
+            sb.AppendLine($"");
+        }
+
+        void GenRedirectAllContext(StringBuilder sb, MethodOverride methodOverride, List<ActionGen> actions)
+        {
+            sb.AppendLine($"    public class Context{methodOverride.Method.Name} : gnet.Provider.ModuleProvider.ModuleRedirectAllContext");
+            sb.AppendLine($"    {{");
+            foreach (var action in actions)
+            {
+                sb.AppendLine($"        private System.Action{action.GetGenericArgumentsDefine()} {action.VarName};");
+            }
+            sb.AppendLine($"");
+            StringBuilder actionVarNames = new StringBuilder();
+            bool first = true;
+            foreach (var action in actions)
+            {
+                if (first)
+                    first = false;
+                else
+                    actionVarNames.Append(", ");
+                actionVarNames.Append($"System.Action{action.GetGenericArgumentsDefine()} {action.VarName}");
+            }
+            sb.AppendLine($"        public void Init(long sessionId, int concurrentLevel, string methodFullName)");
+            sb.AppendLine($"        {{");
+            sb.AppendLine($"            base.SessionId = sessionId;");
+            sb.AppendLine($"            base.MethodFullName = methodFullName;");
+            sb.AppendLine($"            for (int hash = 0; hash < concurrentLevel; ++hash)");
+            sb.AppendLine($"                base.HashCodes.Add(hash);");
+            sb.AppendLine($"        }}");
+            sb.AppendLine($"");
+            sb.AppendLine($"        public Context{methodOverride.Method.Name}({actionVarNames})");
+            sb.AppendLine($"        {{");
+            foreach (var action in actions)
+            {
+                sb.AppendLine($"            this.{action.VarName} = {action.VarName};");
+            }
+            sb.AppendLine($"        }}");
+            sb.AppendLine($"");
+            sb.AppendLine($"        public override int ProcessHashResult(int _hash_, int _returnCode_, Zeze.Net.Binary _params, System.Collections.Generic.IList<gnet.Provider.BActionParam> _actions_)");
+            sb.AppendLine($"        {{");
+            if (actions.Count > 0)
+            {
+                foreach (var action in actions)
+                {
+                    action.GenActionDecode(sb, "            ", "base.SessionId, _hash_, _returnCode_", 3);
+                }
+                var actionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
+                sb.AppendLine($"            foreach (var {actionVarName} in _actions_)");
+                sb.AppendLine($"            {{");
+                sb.AppendLine($"                switch ({actionVarName}.Name)");
+                sb.AppendLine($"                {{");
+                foreach (var action in actions)
+                {
+                    sb.AppendLine($"                    case \"{action.VarName}\": _{action.VarName}_({actionVarName}.Params); break;");
+                }
+                sb.AppendLine($"                }}");
+                sb.AppendLine($"            }}");
+            }
+            sb.AppendLine($"            return Zeze.Transaction.Procedure.Success;");
+            sb.AppendLine($"        }}");
+            sb.AppendLine($"    }}");
+            sb.AppendLine($"");
         }
 
         public bool IsLocalServer(string moduleName)
@@ -1020,9 +1279,9 @@ namespace Game
             sb.AppendLine($"{prefix}{varName} = System.Text.Json.JsonSerializer.Deserialize<{GetTypeName(type)}> ({tmp2});");
         }
 
-        public void GenEncode(StringBuilder sb, string prefix, System.Reflection.ParameterInfo[] parameters, int lengthNoMode)
+        public void GenEncode(StringBuilder sb, string prefix, List<ParameterInfo> parameters)
         {
-            for (int i = 0; i < lengthNoMode; ++i)
+            for (int i = 0; i < parameters.Count; ++i)
             {
                 var p = parameters[i];
                 if (p.IsOut)
@@ -1033,9 +1292,9 @@ namespace Game
             }
         }
 
-        public void GenDecode(StringBuilder sb, string prefix, System.Reflection.ParameterInfo[] parameters, int lengthNoMode)
+        public void GenDecode(StringBuilder sb, string prefix, List<ParameterInfo> parameters)
         {
-            for (int i = 0; i < lengthNoMode; ++i)
+            for (int i = 0; i < parameters.Count; ++i)
             {
                 var p = parameters[i];
                 if (p.IsOut)
@@ -1065,33 +1324,6 @@ namespace Game
             }
             return sb.ToString();
         }
-
-        public (string, string) ToCallString(System.Reflection.ParameterInfo[] parameters, int LengthNoMode)
-        {
-            StringBuilder sb = new StringBuilder();
-            bool first = true;
-            for (int i = 0; i < LengthNoMode; ++i)
-            {
-                var p = parameters[i];
-                if (first)
-                    first = false;
-                else
-                    sb.Append(", ");
-                string prefix = "";
-                if (p.IsOut)
-                    prefix = "out ";
-                else if (p.ParameterType.IsByRef)
-                    prefix = "ref ";
-
-                if (string.IsNullOrEmpty(prefix))
-                    sb.Append(p.Name);
-                else
-                    sb.Append(prefix).Append(p.Name);
-            }
-            string separatorMode = LengthNoMode == 0 ? "" : ", ";
-            string modeCall = (LengthNoMode == parameters.Length) ? "" : $"{separatorMode}{parameters[parameters.Length - 1].Name}";
-            return (sb.ToString(), modeCall);
-        }
     }
 
     [System.AttributeUsage(System.AttributeTargets.Method)]
@@ -1101,6 +1333,25 @@ namespace Game
         public ModuleRedirectAttribute(string source = null)
         {
             ChoiceHashCodeSource = source;
+        }
+    }
+
+    [System.AttributeUsage(System.AttributeTargets.Method)]
+    public class ModuleRedirectWithHashAttribute : System.Attribute
+    {
+        public ModuleRedirectWithHashAttribute()
+        {
+        }
+    }
+
+    [System.AttributeUsage(System.AttributeTargets.Method)]
+    public class ModuleRedirectAllAttribute : System.Attribute
+    {
+        public string GetConcurrentLevelSource { get; }
+
+        public ModuleRedirectAllAttribute(string source)
+        {
+            GetConcurrentLevelSource = source;
         }
     }
 }

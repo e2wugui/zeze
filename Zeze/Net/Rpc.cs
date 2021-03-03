@@ -17,7 +17,7 @@ namespace Zeze.Net
         public bool IsRequest { get; private set; }
         public Func<Protocol, int> ResponseHandle;
         public bool IsTimeout { get; private set; }
-        private long sid;
+        public long SessionId { get; private set; }
 
         public TaskCompletionSource<TResult> Future { get; private set; }
 
@@ -35,14 +35,14 @@ namespace Zeze.Net
         {
             this.IsRequest = true;
             this.ResponseHandle = responseHandle;
-            this.sid = so.Service.AddRpcContext(this);
+            this.SessionId = so.Service.AddRpcContext(this);
 
             global::Zeze.Util.Scheduler.Instance.Schedule(()=>
             {
                 if (null == so.Service)
                     return; // Socket closed.
 
-                Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
+                Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
                 if (null == context) // 一般来说，此时结果已经返回。
                     return;
 
@@ -87,7 +87,7 @@ namespace Zeze.Net
             }
 
             // response, 从上下文中查找原来发送的rpc对象，并派发该对象。
-            Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sid);
+            Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
             if (null == context)
             {
                 logger.Info("rpc response: lost context, maybe timeout. {0}", this);
@@ -115,7 +115,7 @@ namespace Zeze.Net
         public override void Decode(ByteBuffer bb)
         {
             IsRequest = bb.ReadBool();
-            sid = bb.ReadLong();
+            SessionId = bb.ReadLong();
             ResultCode = bb.ReadInt();
 
             if (IsRequest)
@@ -131,7 +131,7 @@ namespace Zeze.Net
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteBool(IsRequest);
-            bb.WriteLong(sid);
+            bb.WriteLong(SessionId);
             bb.WriteInt(ResultCode);
 
             if (IsRequest)

@@ -136,7 +136,7 @@
 
 			<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"
 			<variable name="Params"         id="5" type="binary"/>
-			</bean>
+		</bean>
 
 		<bean name="BModuleRedirectResult">
 			<variable name="ModuleId"       id="1" type="int"/>
@@ -157,7 +157,7 @@
 			<variable name="Params" id="2" type="binary"/>
 		</bean>
 
-		<!-- 转发只定义一个rpc，可能实现server之间的直连 -->
+		<!-- 转发只定义一个rpc，以后可能需要实现server之间的直连，不再通过转发 -->
 		<rpc name="ModuleRedirect" argument="BModuleRedirectArgument" result="BModuleRedirectResult" handle="server,client">
 			<enum name="ResultCodeSuccess" value="0"/>
 			<enum name="ResultCodeMethodFullNameNotFound" value="1"/>
@@ -168,6 +168,41 @@
 			<enum name="ResultCodeLinkdNoProvider" value="11"/>
 			<enum name="ResultCodeRequestTimeout"  value="12"/>
 		</rpc>
+
+		<bean name="BModuleRedirectAllRequest">
+			<variable name="ModuleId"                id="1" type="int"/>
+			<variable name="HashCodeConcurrentLevel" id="2" type="int"/> 总的并发分组数量
+			<variable name="HashCodes"               id="3" type="set" value="int"/> 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+			<variable name="SourceProvider"          id="4" type="long"/> linkd 转发的时候填写本地provider的sessionId。
+			<variable name="SessionId"               id="5" type="long"/> 发起请求者初始化，返回结果时带回。
+
+			<variable name="MethodFullName"          id="6" type="string"/> format="ModuleFullName:MethodName"
+			<variable name="Params"                  id="7" type="binary"/>
+		</bean>
+
+		<bean name="BModuleRedirectAllHash">
+			<variable name="ReturnCode" id="4" type="int"/> 实现函数的返回。
+			<variable name="Params"     id="5" type="binary"/> 目前不支持out|ref，这个先保留。
+			<variable name="Actions"    id="6" type="list" value="BActionParam"/> 按回调顺序。！不是定义顺序！
+		</bean>
+
+		<bean name="BModuleRedirectAllResult">
+			<variable name="ModuleId"       id="1" type="int"/>
+			<variable name="AutoKeyLocalId" id="2" type="int"/> 目标server的id。
+			<!-- 上面两个参数用来调试，不是必要的。 -->
+			<variable name="SourceProvider" id="3" type="long"/> 从BModuleRedirectAllRequest里面得到。
+			<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"
+			<variable name="SessionId"      id="5" type="long"/> 发起请求者初始化，返回结果时带回。
+			<!--
+			ResultCode == ResultCodeSuccess 时，才使用下面变量的Value，此时表示调用流程正确了。
+			处理结果是否正确，还需要进一步查看Value.ReturnCode。
+			-->
+			<variable name="Hashs"          id="6" type="map" key="int" value="BModuleRedirectAllHash"/> 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+		</bean>
+
+		<!-- 使用protocol而不是rpc，是为了可以按分组返回结果，当然现在定义支持一个结果里面包含多个分组结果 -->
+		<protocol name="ModuleRedirectAllRequest" argument="BModuleRedirectAllRequest" handle="server,client"/> handle在转发时需要client
+		<protocol name="ModuleRedirectAllResult" argument="BModuleRedirectAllResult" handle="server,client"/> handle在转发时需要client
 
 	</module>
 

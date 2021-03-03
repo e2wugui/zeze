@@ -59,7 +59,7 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestRollback()
         {
-            Transaction.Create();
+            Transaction.Create(null);
             try
             {
                 Transaction.Current.Begin();
@@ -83,7 +83,7 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestCommit()
         {
-            Transaction.Create();
+            Transaction.Create(null);
             try
             {
                 Transaction.Current.Begin();
@@ -118,7 +118,7 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestNestRollback()
         {
-            Transaction.Create();
+            Transaction.Create(null);
             try
             {
                 Transaction.Current.Begin();
@@ -155,7 +155,7 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestNestCommit()
         {
-            Transaction.Create();
+            Transaction.Create(null);
             try
             {
                 Transaction.Current.Begin();

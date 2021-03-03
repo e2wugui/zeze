@@ -57,6 +57,11 @@ namespace Zeze.Gen.cs
             Construct.Make(bean, sw, "        ");
             Assign.Make(bean, sw, "        ");
             // Copy
+            sw.WriteLine("        public " + bean.Name + " CopyIfManaged()");
+            sw.WriteLine("        {");
+            sw.WriteLine("            return IsManaged ? Copy() : this;");
+            sw.WriteLine("        }");
+            sw.WriteLine();
             sw.WriteLine("        public " + bean.Name + " Copy()");
             sw.WriteLine("        {");
             sw.WriteLine("            var copy = new " + bean.Name + "();");

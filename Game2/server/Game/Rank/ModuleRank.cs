@@ -183,7 +183,111 @@ namespace Game.Rank
         public virtual void RunUpdateRank(int rankType, long roleId, long value, Zeze.Net.Binary valueEx)
         {
             int hash = Game.ModuleRedirect.GetChoiceHashCode();
-            App.Zeze.Run(() => UpdateRank(hash, rankType, roleId, value, valueEx), nameof(UpdateRank), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+            App.Zeze.Run(() => UpdateRank(hash, rankType, roleId, value, valueEx), nameof(RunUpdateRank), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+        }
+
+        // 名字必须和RunUpdateRankWithHash匹配，内部使用一样的实现。
+        protected int UpdateRankWithHash(int hash, int rankType, long roleId, long value, Zeze.Net.Binary valueEx)
+        {
+            return UpdateRank(hash, rankType, roleId, value, valueEx);
+        }
+
+        [ModuleRedirectWithHash()]
+        public virtual void RunUpdateRankWithHash(int hash, int rankType, long roleId, long value, Zeze.Net.Binary valueEx)
+        {
+            App.Zeze.Run(() => UpdateRankWithHash(hash, rankType, roleId, value, valueEx), nameof(RunUpdateRankWithHash), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+        }
+
+        /// <summary>
+        /// ModuleRedirectAll 实现要求：
+        /// 1）第一个参数是调用会话id；
+        /// 2）第二个参数是hash-index；
+        /// 3）然后是实现自定义输入参数；
+        /// 4）最后是结果回调,
+        ///    a) 第一参数是会话id，
+        ///    b) 第二参数hash-index，
+        ///    c) 第三个参数是returnCode，
+        ///    d) 剩下的是自定义参数。
+        /// </summary>
+        protected int GetRank(long sessionId, int hash, int rankType, System.Action<long, int, int, BRankList> rankCallback)
+        {
+            // 根据hash获取分组rank。
+            int concurrentLevel = GetConcurrentLevel(rankType);
+            var concurrentKey = new BConcurrentKey(rankType, hash % concurrentLevel);
+            rankCallback(sessionId, hash, Procedure.Success, _trank.GetOrAdd(concurrentKey));
+            return Procedure.Success;
+        }
+
+        // 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
+        // 需要注意在子类上下文中可以编译通过。可以是常量。
+        [ModuleRedirectAll("GetConcurrentLevel(rankType)")]
+        public virtual void RunGetRank(int rankType, System.Action<long, int, int, BRankList> rankCallback)
+        {
+            // 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
+            long sessionId = App.Server.NextSessionId();
+            int concurrentLevel = GetConcurrentLevel(rankType);
+            for (int i = 0; i < concurrentLevel; ++i)
+            {
+                GetRank(sessionId, i, rankType, rankCallback);
+            }
+        }
+
+        public class RankSession
+        {
+            public Rank Rank { get; } = new Rank();
+            public HashSet<int> Results { get; } = new HashSet<int>();
+        }
+
+        private ConcurrentDictionary<long, RankSession> GetRankSessions = new ConcurrentDictionary<long, RankSession>();
+
+        // 使用异步方案构建rank。
+        private void GetRankAsync(int rankType, System.Action<Rank> callback)
+        {
+            if (Ranks.TryGetValue(rankType, out var rank))
+            {
+                long now = Zeze.Util.Time.NowUnixMillis;
+                if (now - rank.BuildTime < RebuildTime)
+                {
+                    callback(rank);
+                    return;
+                }
+            }
+            // 异步方式没法锁住Rank，所以并发的情况下，可能多次去获取数据，多次构建，多次覆盖Ranks的cache。
+            int countNeed = GetRankCount(rankType);
+            int concurrentLevel = GetConcurrentLevel(rankType);
+            RunGetRank(rankType, (sessionId, hash, returnCode, BRankList) =>
+            {
+                var rankSession = GetRankSessions.GetOrAdd(sessionId, (key) => new RankSession());
+                lock (rankSession)
+                {
+                    rankSession.Results.Add(hash);
+                    if (returnCode == Procedure.Success) // 只有处理成功的结果才是有效的。
+                    {
+                        if (rankSession.Rank.TableValue == null)
+                        {
+                            // 本地实现的时候可能返回受管理的数据Bean，此时需要拷贝。
+                            rankSession.Rank.TableValue = BRankList.CopyIfManaged();
+                        }
+                        else
+                        {
+                            rankSession.Rank.TableValue = Merge(rankSession.Rank.TableValue, BRankList);
+                        }
+                        // 合并中间结果超过需要的数量可以先删除。
+                        if (rankSession.Rank.TableValue.RankList.Count > countNeed)
+                        {
+                            rankSession.Rank.TableValue.RankList.RemoveRange(countNeed, rankSession.Rank.TableValue.RankList.Count - countNeed);
+                        }
+                    }
+                    // 所有的hash分组的结果都已经返回了。简单判断一下结果的数量。
+                    if (rankSession.Results.Count == concurrentLevel)
+                    {
+                        rankSession.Rank.BuildTime = Zeze.Util.Time.NowUnixMillis;
+                        Ranks[rankType] = rankSession.Rank; // 覆盖最新的数据到缓存里面。
+                        GetRankSessions.TryRemove(sessionId, out var _);
+                        callback(rankSession.Rank);
+                    }
+                }
+            });
         }
 
         /// <summary>
@@ -232,8 +336,18 @@ namespace Game.Rank
                 session.SendResponse(result);
                 return Procedure.LogicError;
             }
+            /* 
+            //异步方式获取rank
+            GetRankAsync(protocol.Argument.RankType, (rank) =>
+            {
+                result.Argument.RankList.AddRange(rank.TableValue.RankList);
+                session.SendResponse(result);
+            });
+            /*/
+            // 同步方式获取rank
             result.Argument.RankList.AddRange(GetRank(protocol.Argument.RankType).TableValue.RankList);
             session.SendResponse(result);
+            // */
             return Procedure.Success;
         }
 

@@ -65,7 +65,31 @@
    2) 异步模式，通过增加一个回调，"Action<int> resultCallback"。内部需要返回数据时，回调这个接口。
       这个模式使用时，要注意，resultCallback一般在另一个事务中回调。注意表中的数据跨事务传递的问题。
 
+. ModuleRedirectWithHash
+
+  根据指定的 hash 转发请求。第一个参数必须是int hash。
+  内部转发的时候使用指定的 hash，而不是根据Session计算。
+  除此外，其他和 ModuleRedirect 一样。
+
+. ModuleRedirectAll
+
+  遍历处理所有的 hash 分组。执行的效果和MapReduce类似。这里更加专用化。
+  由于每个 hash 分组都可能有返回值，所以不能使用ref|out返回数据，只能使用callback。每个分组分别回调。
+  回调的第一个参数必须是long sessionId，用来区分不同的调用。
+  回调的第二个参数必须是int hash，用来区分不同的hash分组，也用来判断结果是否收集完成。
+  回调的其他参数自定义。
+  标记为ModuleRedirectAll的方法的实现和普通ModuleRedirect相比，多一个参数（第一个）SessionId，实现的时候传递给回调方法。
+  sample: see Game/ModuleRank/RunGetRank
+
+ 【ModuleRedirect 汇总方案选择】
+  当需要遍历所有的hash分组时，可以使用 ModuleRedirectAll，也可以直接从数据库中读取。
+  采用 ModuleRedirectAll 时，可以把hash分组的读也分配到相关的配置服务器中，不会破坏缓存，具有很高的命中率。
+  具体采用哪种方案，需要根据具体需求来决定。一般建议如下：
+  1) 当分组数据量不大的时候直接从数据库中装载，不使用ModureRedirect。see server\Game\ModuleRank.GetRank.
+  2）当分组数据量比较大，但是处理结果的数据量比较小，此时ModuleRedirectAll比较适合。
+  3) 原则上所有的读取结果都可以在本地缓存，定时更新，此时上面两种方案都比较高效。如果需求不能使用定时缓存，那么ModuleRedirectAll更合适。
+
 . client 选择 unity+ts
   尽量采用 rpc？
 
-. map 动态绑定怎么实现
+. map 动态绑定

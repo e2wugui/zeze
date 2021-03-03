@@ -304,39 +304,67 @@ namespace Zeze.Net
 
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// Rpc Context. 模板不好放进去，使用基类 Protocol
-        private long serialId = 0;
-        private readonly Dictionary<long, Protocol> contexts = new Dictionary<long, Protocol>();
+        private Util.AtomicLong SessionIdGen = new Util.AtomicLong();
+        private readonly ConcurrentDictionary<long, Protocol> RpcContexts = new ConcurrentDictionary<long, Protocol>();
+
+        public long NextSessionId()
+        {
+            return SessionIdGen.IncrementAndGet();
+        }
 
         internal long AddRpcContext(Protocol p)
         {
-            lock (contexts)
+            while (true)
             {
-                while (true)
+                long sessionId = SessionIdGen.IncrementAndGet();
+                if (RpcContexts.TryAdd(sessionId, p))
                 {
-                    ++serialId;
-                    if (serialId <= 0) // 高位保留给rpc，用来区分是否请求. 另外保留 0。
-                        serialId = 1;
-
-                    if (!contexts.ContainsKey(serialId))
-                    {
-                        contexts.Add(serialId, p);
-                        return serialId;
-                    }
+                    return sessionId;
                 }
             }
         }
 
         internal T RemoveRpcContext<T>(long sid) where T : Protocol
         {
-            lock (contexts)
+            if (RpcContexts.TryRemove(sid, out var p))
             {
-                if (contexts.TryGetValue(sid, out var p))
-                {
-                    contexts.Remove(sid);
-                    return (T)p;
-                }
-                return null;
+                return (T)p;
             }
+            return null;
+        }
+
+        public abstract class ManualContext
+        {
+            public abstract void OnTimeout();
+        }
+
+        private readonly ConcurrentDictionary<long, ManualContext> ManualContexts = new ConcurrentDictionary<long, ManualContext>();
+
+        public long AddManualContextWithTimeout(ManualContext context, long timeout = 10*1000)
+        {
+            while (true)
+            {
+                long sessionId = SessionIdGen.IncrementAndGet();
+                if (ManualContexts.TryAdd(sessionId, context))
+                {
+                    Util.Scheduler.Instance.Schedule(() => TryRemoveManualContext<ManualContext>(sessionId)?.OnTimeout(), timeout);
+                    return sessionId;
+                }
+            }
+        }
+
+        public T TryGetManualContext<T>(long sessionId) where T : ManualContext
+        {
+            if (ManualContexts.TryGetValue(sessionId, out var c))
+                return (T)c;
+            return null;
+        }
+
+        public T TryRemoveManualContext<T>(long sessionId) where T : ManualContext
+        {
+            if (ManualContexts.TryRemove(sessionId, out var c))
+                return (T)c;
+            return null;
         }
 
         // 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
