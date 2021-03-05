@@ -335,7 +335,18 @@ namespace Zeze.Net
 
         public abstract class ManualContext
         {
-            public abstract void OnTimeout();
+            public long SessionId { get; internal set; }
+            public object UserState { get; set; }
+
+            public virtual void OnRemoved()
+            {
+            }
+
+            // after OnRemoved if Timeout
+            public virtual void OnTimeout()
+            {
+            }
+
         }
 
         private readonly ConcurrentDictionary<long, ManualContext> ManualContexts = new ConcurrentDictionary<long, ManualContext>();
@@ -347,6 +358,7 @@ namespace Zeze.Net
                 long sessionId = SessionIdGen.IncrementAndGet();
                 if (ManualContexts.TryAdd(sessionId, context))
                 {
+                    context.SessionId = sessionId;
                     Util.Scheduler.Instance.Schedule(() => TryRemoveManualContext<ManualContext>(sessionId)?.OnTimeout(), timeout);
                     return sessionId;
                 }
@@ -363,7 +375,10 @@ namespace Zeze.Net
         public T TryRemoveManualContext<T>(long sessionId) where T : ManualContext
         {
             if (ManualContexts.TryRemove(sessionId, out var c))
+            {
+                c.OnRemoved();
                 return (T)c;
+            }
             return null;
         }
 

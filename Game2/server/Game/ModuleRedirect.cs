@@ -92,13 +92,15 @@ namespace Game
                 }
             }
 
-            public string GetNarmalCallString()
+            public string GetNarmalCallString(Func<ParameterInfo, bool> skip = null)
             {
                 StringBuilder sb = new StringBuilder();
                 bool first = true;
                 for (int i = 0; i < ParametersNormal.Count; ++i)
                 {
                     var p = ParametersNormal[i];
+                    if (null != skip && skip(p))
+                        continue;
                     if (first)
                         first = false;
                     else
@@ -253,15 +255,16 @@ namespace Game
         // */
 
         /// <summary>
+        /// 0) long [in] sessionid
         /// 1) int [in] hash
         /// 2) Zeze.Net.Binary [in] encoded parameters
         /// 3) List<gnet.Provider.BActionParam> [result] result for callback. avoid copy.
         /// 4) (int ReturnCode, Zeze.Net.Binary encoded-parameters) [return]
         ///     Func不能使用ref，而Zeze.Net.Binary是只读的。就这样吧。
         /// </summary>
-        public Dictionary<string, Func<int, Zeze.Net.Binary, IList<gnet.Provider.BActionParam>,
+        public Dictionary<string, Func<long, int, Zeze.Net.Binary, IList<gnet.Provider.BActionParam>,
             (int, Zeze.Net.Binary)>> Handles { get; }
-            = new Dictionary<string, Func<int, Zeze.Net.Binary, IList<gnet.Provider.BActionParam>, (int, Zeze.Net.Binary)>>();
+            = new Dictionary<string, Func<long, int, Zeze.Net.Binary, IList<gnet.Provider.BActionParam>, (int, Zeze.Net.Binary)>>();
 
         enum ReturnType
         {
@@ -422,6 +425,25 @@ namespace Game
                     ModuleRedirect.Instance.GenDecode(sb, prefix, type, GenericArgumentVarNames[i]);
                 }
             }
+
+            public bool IsOnHashEnd => ModuleRedirect.IsOnHashEnd(GenericArguments);
+        }
+
+        private static bool IsOnHashEnd(Type[] GenericArguments)
+        {
+            if (GenericArguments.Length != 1)
+                return false;
+            if (GenericArguments[0] != typeof(gnet.Provider.ModuleProvider.ModuleRedirectAllContext))
+                return false;
+            return true;
+        }
+
+        private static bool IsOnHashEnd(ParameterInfo pInfo)
+        {
+            var pType = pInfo.ParameterType;
+            if (!IsActionDelegate(pType))
+                return false;
+            return IsOnHashEnd(pType.GetGenericArguments());
         }
 
         private List<ActionGen> GetActions(List<ParameterInfo> parameters)
@@ -447,8 +469,20 @@ namespace Game
                         throw new Exception("RedirectAll Not Support out|ref.");
                     if (method.Method.ReturnType != typeof(void))
                         throw new Exception("RedirectAll ReturnType Must Be void");
+
+                    // 如果每个hash分组处理需要多个回调，把这个检查去掉。
+                    if (actions.Count > 2)
+                        throw new Exception("RedirectAll (actions.Count > 2)");
+
+                    int end = 0;
                     foreach (var action in actions)
                     {
+                        if (action.IsOnHashEnd)
+                        {
+                            end++;
+                            continue;
+                        }
+
                         if (action.GenericArguments.Length < 3)
                             throw new Exception("RedirectAll callback must have parameters: long,int");
                         if (action.GenericArguments[0] != typeof(long))
@@ -458,6 +492,8 @@ namespace Game
                         if (action.GenericArguments[2] != typeof(int))
                             throw new Exception("RedirectAll callback thrid parameter muse be int(return-code)");
                     }
+                    if (end > 1)
+                        throw new Exception("RedirectAll Too Many OnHashEnd.");
                     break;
             }
         }
@@ -501,7 +537,7 @@ namespace Game
                 if (methodOverride.OverrideType == OverrideType.RedirectAll)
                 {
                     GenRedirectAllContext(sbContexts, methodOverride, actions);
-                    GenRedirectAll(sb, module, methodOverride, actions);
+                    GenRedirectAll(sb, sbHandles, module, methodOverride, actions);
                     continue;
                 }
                 string rpcVarName = "tmp" + TmpVarNameId.IncrementAndGet();
@@ -590,7 +626,7 @@ namespace Game
                 sb.AppendLine($"    }}");
                 sb.AppendLine($"");
 
-                sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<gnet.Provider.BActionParam> _actions_) =>");
+                sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<gnet.Provider.BActionParam> _actions_) =>");
                 sbHandles.AppendLine($"        {{");
                 sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
                 for (int i = 0; i < methodOverride.ParametersNormal.Count; ++i)
@@ -638,7 +674,7 @@ namespace Game
             return sb.ToString();
         }
 
-        void GenRedirectAll(StringBuilder sb, Zeze.IModule module, MethodOverride methodOverride, List<ActionGen> actions)
+        void GenRedirectAll(StringBuilder sb, StringBuilder sbHandles, Zeze.IModule module, MethodOverride methodOverride, List<ActionGen> actions)
         {
             string reqVarName = "tmp" + TmpVarNameId.IncrementAndGet();
             sb.AppendLine($"        var {reqVarName} = new gnet.Provider.ModuleRedirectAllRequest();");
@@ -646,10 +682,16 @@ namespace Game
             sb.AppendLine($"        {reqVarName}.Argument.HashCodeConcurrentLevel = {methodOverride.GetConcurrentLevelSource()};");
             sb.AppendLine($"        // {reqVarName}.Argument.HashCodes = // setup in linkd;");
             sb.AppendLine($"        {reqVarName}.Argument.MethodFullName = \"{module.FullName}:{methodOverride.Method.Name}\";");
+
+            int actionCountSkipOnHashEnd = GetActionCountSkipOnHashEnd(actions);
+
             bool first = true;
             StringBuilder actionVarNames = new StringBuilder();
             foreach (var action in actions)
             {
+                if (action.IsOnHashEnd)
+                    continue;
+
                 if (first)
                     first = false;
                 else
@@ -657,9 +699,8 @@ namespace Game
                 actionVarNames.Append($"{action.VarName}");
             }
             string contextVarName = "tmp" + TmpVarNameId.IncrementAndGet();
-            sb.AppendLine($"        var {contextVarName} = new Context{methodOverride.Method.Name}({actionVarNames});");
+            sb.AppendLine($"        var {contextVarName} = new Context{methodOverride.Method.Name}({reqVarName}.Argument.HashCodeConcurrentLevel, {reqVarName}.Argument.MethodFullName, {actionVarNames});");
             sb.AppendLine($"        {reqVarName}.Argument.SessionId = App.Server.AddManualContextWithTimeout({contextVarName});");
-            sb.AppendLine($"        {contextVarName}.Init({reqVarName}.Argument.SessionId, {reqVarName}.Argument.HashCodeConcurrentLevel, {reqVarName}.Argument.MethodFullName);");
             if (methodOverride.ParametersNormal.Count > 0)
             {
                 // normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
@@ -675,6 +716,48 @@ namespace Game
             sb.AppendLine($"        {reqVarName}.Send({sessionVarName}.Link);");
             sb.AppendLine($"    }}");
             sb.AppendLine($"");
+
+            // handles
+            sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<gnet.Provider.BActionParam> _actions_) =>");
+            sbHandles.AppendLine($"        {{");
+            sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
+            for (int i = 0; i < methodOverride.ParametersNormal.Count; ++i)
+            {
+                var p = methodOverride.ParametersNormal[i];
+                if (IsDelegate(p.ParameterType))
+                    continue; // define later.
+                GenLocalVariable(sbHandles, "            ", p.ParameterType, p.Name);
+            }
+            GenDecode(sbHandles, "            ", methodOverride.ParametersNormal);
+
+            if (actionCountSkipOnHashEnd > 0)
+            {
+                foreach (var action in actions)
+                {
+                    if (action.IsOnHashEnd)
+                        continue;
+                    action.GenActionEncode(sbHandles, "            ");
+                }
+            }
+            string normalcall = methodOverride.GetNarmalCallString((pInfo) => IsOnHashEnd(pInfo) );
+            string sep = string.IsNullOrEmpty(normalcall) ? "" : ", ";
+            var returnCodeVarName = "tmp" + TmpVarNameId.IncrementAndGet();
+            sbHandles.AppendLine($"            var {returnCodeVarName} = base.{GetMethodNameWithHash(methodOverride.Method.Name)}(_sessionid_, _hash_{sep}{normalcall});");
+            sbHandles.AppendLine($"            return ({returnCodeVarName}, Zeze.Net.Binary.Empty);");
+            sbHandles.AppendLine($"        }});");
+            sbHandles.AppendLine($"");
+        }
+
+        private int GetActionCountSkipOnHashEnd(List<ActionGen> actions)
+        {
+            int count = 0;
+            foreach (var action in actions)
+            {
+                if (action.IsOnHashEnd)
+                    continue;
+                ++count;
+            }
+            return count;
         }
 
         void GenRedirectAllContext(StringBuilder sb, MethodOverride methodOverride, List<ActionGen> actions)
@@ -683,6 +766,8 @@ namespace Game
             sb.AppendLine($"    {{");
             foreach (var action in actions)
             {
+                if (action.IsOnHashEnd)
+                    continue;
                 sb.AppendLine($"        private System.Action{action.GetGenericArgumentsDefine()} {action.VarName};");
             }
             sb.AppendLine($"");
@@ -690,34 +775,34 @@ namespace Game
             bool first = true;
             foreach (var action in actions)
             {
+                if (action.IsOnHashEnd)
+                    continue;
+
                 if (first)
                     first = false;
                 else
                     actionVarNames.Append(", ");
                 actionVarNames.Append($"System.Action{action.GetGenericArgumentsDefine()} {action.VarName}");
             }
-            sb.AppendLine($"        public void Init(long sessionId, int concurrentLevel, string methodFullName)");
+            sb.AppendLine($"        public Context{methodOverride.Method.Name}(int _c_, string _n_, {actionVarNames}) : base(_c_, _n_)");
             sb.AppendLine($"        {{");
-            sb.AppendLine($"            base.SessionId = sessionId;");
-            sb.AppendLine($"            base.MethodFullName = methodFullName;");
-            sb.AppendLine($"            for (int hash = 0; hash < concurrentLevel; ++hash)");
-            sb.AppendLine($"                base.HashCodes.Add(hash);");
-            sb.AppendLine($"        }}");
-            sb.AppendLine($"");
-            sb.AppendLine($"        public Context{methodOverride.Method.Name}({actionVarNames})");
-            sb.AppendLine($"        {{");
+            int actionCountSkipOnHashEnd = GetActionCountSkipOnHashEnd(actions);
             foreach (var action in actions)
             {
+                if (action.IsOnHashEnd)
+                    continue;
                 sb.AppendLine($"            this.{action.VarName} = {action.VarName};");
             }
             sb.AppendLine($"        }}");
             sb.AppendLine($"");
             sb.AppendLine($"        public override int ProcessHashResult(int _hash_, int _returnCode_, Zeze.Net.Binary _params, System.Collections.Generic.IList<gnet.Provider.BActionParam> _actions_)");
             sb.AppendLine($"        {{");
-            if (actions.Count > 0)
+            if (actionCountSkipOnHashEnd > 0)
             {
                 foreach (var action in actions)
                 {
+                    if (action.IsOnHashEnd)
+                        continue;
                     action.GenActionDecode(sb, "            ", "base.SessionId, _hash_, _returnCode_", 3);
                 }
                 var actionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
@@ -727,6 +812,8 @@ namespace Game
                 sb.AppendLine($"                {{");
                 foreach (var action in actions)
                 {
+                    if (action.IsOnHashEnd)
+                        continue;
                     sb.AppendLine($"                    case \"{action.VarName}\": _{action.VarName}_({actionVarName}.Params); break;");
                 }
                 sb.AppendLine($"                }}");

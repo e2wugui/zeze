@@ -72,14 +72,18 @@
   除此外，其他和 ModuleRedirect 一样。
 
 . ModuleRedirectAll
-
   遍历处理所有的 hash 分组。执行的效果和MapReduce类似。这里更加专用化。
   由于每个 hash 分组都可能有返回值，所以不能使用ref|out返回数据，只能使用callback。每个分组分别回调。
-  回调的第一个参数必须是long sessionId，用来区分不同的调用。
-  回调的第二个参数必须是int hash，用来区分不同的hash分组，也用来判断结果是否收集完成。
-  回调的其他参数自定义。
-  标记为ModuleRedirectAll的方法的实现和普通ModuleRedirect相比，多一个参数（第一个）SessionId，实现的时候传递给回调方法。
-  sample: see Game/ModuleRank/RunGetRank
+  a) ModuleRedirectAll 的接口方法参数如：(..., Action<...> onHashResult, Action onHashEnd)
+    onHashResult 如 Action<long, int, int, ...> 用来处理hash分组的结果。hash分组的处理没有返回值时，不需要这个参数。
+    1) 第一个模板参数是long sessionId，用来区分不同的调用。
+    2) 第二个模板参数是int hash，用来区分不同的hash分组。
+    3) 第三个模板参数是int returncode，hash分组的处理结果，只有Success时，自定义参数才有效。
+    4) ... 自定义参数。
+    onHashEnd 类型必须是 Action<ModuleRedirectAllContext>，当所有的hash分组都处理完的时候回调，不关心处理完成情况时，可以不定义这个参数。
+  b) ModuleRedirectAll 的实现方法参数如：(long sessionId, int hash, ..., Action<...> onHashResult)
+    实现方法不需要 onHashEnd 参数。
+    sample: see Game/ModuleRank/RunGetRank
 
  【ModuleRedirect 汇总方案选择】
   当需要遍历所有的hash分组时，可以使用 ModuleRedirectAll，也可以直接从数据库中读取。

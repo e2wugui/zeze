@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using static Zeze.Net.Service;
 
 namespace gnet.Provider
 {
@@ -89,7 +90,7 @@ namespace gnet.Provider
                     rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
                     return Zeze.Transaction.Procedure.LogicError;
                 }
-                var (ReturnCode, Params) = handle(rpc.Argument.HashCode, rpc.Argument.Params, rpc.Result.Actions);
+                var (ReturnCode, Params) = handle(rpc.SessionId, rpc.Argument.HashCode, rpc.Argument.Params, rpc.Result.Actions);
                 rpc.Result.ReturnCode = ReturnCode;
                 if (ReturnCode == Zeze.Transaction.Procedure.Success)
                 {
@@ -163,7 +164,7 @@ namespace gnet.Provider
                     Zeze.Net.Binary Params = null;
                     hashResult.ReturnCode = App.Zeze.NewProcedure(() =>
                     {
-                        var (_ReturnCode, _Params) = handle(hash, protocol.Argument.Params, hashResult.Actions);
+                        var (_ReturnCode, _Params) = handle(protocol.Argument.SessionId, hash, protocol.Argument.Params, hashResult.Actions);
                         Params = _Params;
                         return _ReturnCode;
                     }, Zeze.Transaction.Transaction.Current.RootProcedure.ActionName).Call();
@@ -192,50 +193,72 @@ namespace gnet.Provider
             }
         }
 
-        public abstract class ModuleRedirectAllContext : Zeze.Net.Service.ManualContext
+        public class ModuleRedirectAllContext : Zeze.Net.Service.ManualContext
         {
-            public long SessionId { get; protected set; } // 在subclass里面初始化
-            public string MethodFullName { get; protected set; } // 在subclass里面初始化
-            public HashSet<int> HashCodes { get; } = new HashSet<int>(); // 在subclass里面初始化
+            public string MethodFullName { get; }
+            public HashSet<int> HashCodes { get; } = new HashSet<int>();
+            public Action<ModuleRedirectAllContext> OnHashEnd { get; set; }
 
-            public override void OnTimeout()
+            public ModuleRedirectAllContext(int concurrentLevel, string methodFullName)
             {
-                // 只会发生一次Timeout，不会并发。
-                // 由于这里在事务外，所以下面的执行肯定会起一个新的事务。
-                foreach (var hash in HashCodes)
-                {
-                    Game.App.Instance.Zeze.NewProcedure(() =>
-                        ProcessHashResult(hash, Zeze.Transaction.Procedure.Timeout, null, null),
-                        MethodFullName).Call();
-                }
+                for (int hash = 0; hash < concurrentLevel; ++hash)
+                    HashCodes.Add(hash);
+                MethodFullName = methodFullName;
             }
 
-            public void ProcessResult(ModuleRedirectAllResult result)
+            public override void OnRemoved()
             {
                 lock (this)
                 {
-                    foreach (var hash in result.Argument.Hashs.Keys2)
+                    OnHashEnd?.Invoke(this);
+                }
+            }
+
+            /// <summary>
+            /// 调用这个方法处理hash分组结果，真正的处理代码在action中实现。
+            /// 1) 在锁内执行；
+            /// 2) 需要时初始化UserState并传给action；
+            /// 3) 处理完成时删除Context
+            /// </summary>
+            public int ProcessHash<T>(int hash, Func<T> factory, Func<T, int> action)
+            {
+                lock (this)
+                {
+                    try
                     {
-                        HashCodes.Remove(hash);
+                        if (null == UserState)
+                            UserState = factory();
+                        return action((T)UserState);
                     }
-                    if (HashCodes.Count == 0)
+                    finally
                     {
-                        Game.App.Instance.Server.TryRemoveManualContext<ModuleRedirectAllContext>(SessionId);
+                        HashCodes.Remove(hash); // 如果不允许一个hash分组处理措辞，把这个移到开头并判断结果。
+                        if (HashCodes.Count == 0)
+                        {
+                            Game.App.Instance.Server.TryRemoveManualContext<ManualContext>(SessionId);
+                        }
                     }
                 }
+            }
 
-                foreach (var hash in result.Argument.Hashs)
+            // 这里处理真正redirect发生时，从远程返回的结果。
+            public void ProcessResult(ModuleRedirectAllResult result)
+            {
+                foreach (var h in result.Argument.Hashs)
                 {
                     // 嵌套存储过程，单个分组的结果处理不影响其他分组。
                     // 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
                     Game.App.Instance.Zeze.NewProcedure(() =>
-                        ProcessHashResult(hash.Key, hash.Value.ReturnCode, hash.Value.Params, hash.Value.Actions),
+                        ProcessHashResult(h.Key, h.Value.ReturnCode, h.Value.Params, h.Value.Actions),
                         MethodFullName).Call();
                 }
             }
 
             // 生成代码实现。see Game.ModuleRedirect.cs
-            public abstract int ProcessHashResult(int _hash_, int _returnCode_, Zeze.Net.Binary _params, IList<gnet.Provider.BActionParam> _actions_);
+            public virtual int ProcessHashResult(int _hash_, int _returnCode_, Zeze.Net.Binary _params, IList<gnet.Provider.BActionParam> _actions_)
+            {
+                return Zeze.Transaction.Procedure.NotImplement;
+            }
         }
 
         public override int ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol)
