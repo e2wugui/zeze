@@ -684,13 +684,16 @@ namespace Game
             sb.AppendLine($"        {reqVarName}.Argument.MethodFullName = \"{module.FullName}:{methodOverride.Method.Name}\";");
 
             int actionCountSkipOnHashEnd = GetActionCountSkipOnHashEnd(actions);
-
+            string initOnHashEnd = "";
             bool first = true;
             StringBuilder actionVarNames = new StringBuilder();
             foreach (var action in actions)
             {
                 if (action.IsOnHashEnd)
+                {
+                    initOnHashEnd = $"{{ OnHashEnd = {action.VarName} }}";
                     continue;
+                }
 
                 if (first)
                     first = false;
@@ -699,7 +702,7 @@ namespace Game
                 actionVarNames.Append($"{action.VarName}");
             }
             string contextVarName = "tmp" + TmpVarNameId.IncrementAndGet();
-            sb.AppendLine($"        var {contextVarName} = new Context{methodOverride.Method.Name}({reqVarName}.Argument.HashCodeConcurrentLevel, {reqVarName}.Argument.MethodFullName, {actionVarNames});");
+            sb.AppendLine($"        var {contextVarName} = new Context{methodOverride.Method.Name}({reqVarName}.Argument.HashCodeConcurrentLevel, {reqVarName}.Argument.MethodFullName, {actionVarNames}){initOnHashEnd};");
             sb.AppendLine($"        {reqVarName}.Argument.SessionId = App.Server.AddManualContextWithTimeout({contextVarName});");
             if (methodOverride.ParametersNormal.Count > 0)
             {
