@@ -33,7 +33,7 @@ namespace Game
 
         public static Login.Session GetLoginSession()
         {
-            return Zeze.Transaction.Transaction.Current.RootProcedure.UserState as Login.Session;
+            return Zeze.Transaction.Transaction.Current.TopProcedure.UserState as Login.Session;
         }
 
         public static ModuleRedirect Instance = new ModuleRedirect();

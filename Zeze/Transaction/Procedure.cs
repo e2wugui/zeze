@@ -40,8 +40,8 @@ namespace Zeze.Transaction
             Action = action;
             ActionName = actionName;
             UserState = userState;
-            if (null == UserState) // 没指定，就从当前事务继承。嵌套时发生。
-                UserState = Transaction.Current?.RootProcedure.UserState;
+            if (null == UserState) // 没指定，就从当前存储过程继承。嵌套时发生。
+                UserState = Transaction.Current?.TopProcedure?.UserState;
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace Zeze.Transaction
                 try
                 {
                     // 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-                    return Transaction.Create(this).Perform(this);
+                    return Transaction.Create().Perform(this);
                 }
                 finally
                 {
@@ -65,6 +65,7 @@ namespace Zeze.Transaction
             }
 
             Transaction currentT = Transaction.Current;
+            currentT.ProcedureStack.Add(this);
             currentT.Begin();
 
             try
@@ -114,6 +115,10 @@ namespace Zeze.Transaction
                 }
 #endif
                 return Excption;
+            }
+            finally
+            {
+                currentT.ProcedureStack.RemoveAt(currentT.ProcedureStack.Count - 1);
             }
         }
 

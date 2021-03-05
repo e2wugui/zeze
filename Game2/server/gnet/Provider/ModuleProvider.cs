@@ -44,8 +44,8 @@ namespace gnet.Provider
                 if (Zeze.Transaction.Transaction.Current != null)
                 {
                     // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
-                    Zeze.Transaction.Transaction.Current.RootProcedure.ActionName = p2.GetType().FullName;
-                    Zeze.Transaction.Transaction.Current.RootProcedure.UserState = p2.UserState;
+                    Zeze.Transaction.Transaction.Current.TopProcedure.ActionName = p2.GetType().FullName;
+                    Zeze.Transaction.Transaction.Current.TopProcedure.UserState = p2.UserState;
                     return factoryHandle.Handle(p2);
                 }
 
@@ -81,7 +81,7 @@ namespace gnet.Provider
             try
             {
                 // replace RootProcedure.ActionName. 为了统计和日志输出。
-                Zeze.Transaction.Transaction.Current.RootProcedure.ActionName = rpc.Argument.MethodFullName;
+                Zeze.Transaction.Transaction.Current.TopProcedure.ActionName = rpc.Argument.MethodFullName;
 
                 rpc.Result.ModuleId = rpc.Argument.ModuleId;
                 rpc.Result.AutoKeyLocalId = App.Zeze.Config.AutoKeyLocalId;
@@ -131,7 +131,7 @@ namespace gnet.Provider
             try
             {
                 // replace RootProcedure.ActionName. 为了统计和日志输出。
-                Zeze.Transaction.Transaction.Current.RootProcedure.ActionName = protocol.Argument.MethodFullName;
+                Zeze.Transaction.Transaction.Current.TopProcedure.ActionName = protocol.Argument.MethodFullName;
 
                 // common parameters for result
                 result.Argument.ModuleId = protocol.Argument.ModuleId;
@@ -167,7 +167,7 @@ namespace gnet.Provider
                         var (_ReturnCode, _Params) = handle(protocol.Argument.SessionId, hash, protocol.Argument.Params, hashResult.Actions);
                         Params = _Params;
                         return _ReturnCode;
-                    }, Zeze.Transaction.Transaction.Current.RootProcedure.ActionName).Call();
+                    }, Zeze.Transaction.Transaction.Current.TopProcedure.ActionName).Call();
 
                     // 单个分组处理失败继续执行。XXX
                     if (hashResult.ReturnCode == Zeze.Transaction.Procedure.Success)
@@ -264,7 +264,7 @@ namespace gnet.Provider
         public override int ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol)
         {
             // replace RootProcedure.ActionName. 为了统计和日志输出。
-            Zeze.Transaction.Transaction.Current.RootProcedure.ActionName = protocol.Argument.MethodFullName;
+            Zeze.Transaction.Transaction.Current.TopProcedure.ActionName = protocol.Argument.MethodFullName;
             App.Server.TryGetManualContext<ModuleRedirectAllContext>(protocol.Argument.SessionId)?.ProcessResult(protocol);
             return Zeze.Transaction.Procedure.Success;
         }
