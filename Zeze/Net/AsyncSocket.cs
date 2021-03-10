@@ -102,12 +102,13 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="hostNameOrAddress"></param>
         /// <param name="port"></param>
-        public AsyncSocket(Service service, string hostNameOrAddress, int port)
+        public AsyncSocket(Service service, string hostNameOrAddress, int port, object userState = null)
         {
             this.Service = service;
 
             Socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             Socket.Blocking = false;
+            UserState = userState;
 
             if (null != service.SocketOptions.ReceiveBuffer)
                 Socket.ReceiveBufferSize = service.SocketOptions.ReceiveBuffer.Value;

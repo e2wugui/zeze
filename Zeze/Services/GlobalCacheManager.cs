@@ -725,7 +725,7 @@ namespace Zeze.Services
                 bb.WriteInt(State);
             }
 
-            protected override void InitChildrenTableKey(Transaction.TableKey root)
+            protected override void InitChildrenRootInfo(Record.RootInfo root)
             {
                 throw new NotImplementedException();
             }
@@ -789,7 +789,7 @@ namespace Zeze.Services
                 bb.WriteInt(GlobalCacheManagerHashIndex);
             }
 
-            protected override void InitChildrenTableKey(TableKey root)
+            protected override void InitChildrenRootInfo(Record.RootInfo root)
             {
                 throw new NotImplementedException();
             }
@@ -852,7 +852,7 @@ namespace Zeze.Services
                 bb.WriteInt(GlobalCacheManagerHashIndex);
             }
 
-            protected override void InitChildrenTableKey(TableKey root)
+            protected override void InitChildrenRootInfo(Record.RootInfo root)
             {
                 throw new NotImplementedException();
             }

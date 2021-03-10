@@ -387,7 +387,7 @@ namespace Zeze.Transaction
                 Put(current, null);
             }
 
-            protected override void InitChildrenTableKey(TableKey root)
+            protected override void InitChildrenRootInfo(Record.RootInfo root)
             {
             }
 
@@ -410,13 +410,13 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="key"></param>
         /// <param name="r"></param>
-        internal void AddRecordAccessed(TableKey key, RecordAccessed r)
+        internal void AddRecordAccessed(Record.RootInfo root, RecordAccessed r)
         {
             if (IsCompleted)
                 throw new Exception("Transaction Is Completed");
 
-            r.InitTableKey(key, null);
-            accessedRecords.Add(key, r);
+            r.InitRootInfo(root, null);
+            accessedRecords.Add(root.TableKey, r);
         }
 
         internal RecordAccessed GetRecordAccessed(TableKey key)
@@ -430,6 +430,19 @@ namespace Zeze.Transaction
                 return record;
             }
             return null;
+        }
+
+        public void VerifyRecoredAccessed(Bean bean, bool IsRead = false)
+        {
+            //if (IsRead)// && App.Config.AllowReadWhenRecoredNotAccessed)
+            //    return;
+            if (bean.RootInfo.Record.State == GlobalCacheManager.StateRemoved)
+                throw new Exception($"VerifyRecoredAccessed: Record Has Bean Removed From Cache. {bean.TableKey}");
+            var ra = GetRecordAccessed(bean.TableKey);
+            if (ra == null)
+                throw new Exception($"VerifyRecoredAccessed: Record Not Control Under Current Transastion. {bean.TableKey}");
+            if (bean.RootInfo.Record != ra.OriginRecord)
+                throw new Exception($"VerifyRecoredAccessed: Record Reloaded.{bean.TableKey}");
         }
 
         enum CheckResult

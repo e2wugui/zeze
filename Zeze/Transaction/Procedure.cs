@@ -65,8 +65,8 @@ namespace Zeze.Transaction
             }
 
             Transaction currentT = Transaction.Current;
-            currentT.ProcedureStack.Add(this);
             currentT.Begin();
+            currentT.ProcedureStack.Add(this);
 
             try
             {

@@ -142,9 +142,9 @@ namespace Zeze.Net
             return new AsyncSocket(this, localEP);
         }
 
-        public AsyncSocket NewClientSocket(string hostNameOrAddress, int port)
+        public AsyncSocket NewClientSocket(string hostNameOrAddress, int port, object userState = null)
         {
-            return new AsyncSocket(this, hostNameOrAddress, port);
+            return new AsyncSocket(this, hostNameOrAddress, port, userState);
         }
 
         /// <summary>

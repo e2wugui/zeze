@@ -46,8 +46,7 @@ namespace Zeze.Transaction
 
                     if (null == Socket)
                     {
-                        Socket = client.NewClientSocket(Host, Port);
-                        Socket.UserState = this;
+                        Socket = client.NewClientSocket(Host, Port, this);
                         // 每次新建连接创建future，没并发问题吧，还没仔细考虑。
                         Logined = new TaskCompletionSource<AsyncSocket>();
                     }

@@ -164,7 +164,7 @@ namespace Zeze.Transaction.Collections
             }
         }
 
-        protected override void InitChildrenTableKey(TableKey root)
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
 
         }

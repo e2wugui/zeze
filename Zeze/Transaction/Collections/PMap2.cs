@@ -21,7 +21,7 @@ namespace Zeze.Transaction.Collections
 
                 if (this.IsManaged)
                 {
-                    value.InitTableKey(TableKey, Parent);
+                    value.InitRootInfo(RootInfo, Parent);
                     value.VariableId = this.VariableId;
                     var txn = Transaction.Current;
                     var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
@@ -49,7 +49,7 @@ namespace Zeze.Transaction.Collections
 
             if (this.IsManaged)
             {
-                value.InitTableKey(TableKey, Parent);
+                value.InitRootInfo(RootInfo, Parent);
                 value.VariableId = this.VariableId;
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
@@ -80,7 +80,7 @@ namespace Zeze.Transaction.Collections
             {
                 foreach (var p in pairs)
                 {
-                    p.Value.InitTableKey(TableKey, Parent);
+                    p.Value.InitRootInfo(RootInfo, Parent);
                     p.Value.VariableId = this.VariableId;
                 }
                 var txn = Transaction.Current;
@@ -111,7 +111,7 @@ namespace Zeze.Transaction.Collections
 
             if (this.IsManaged)
             {
-                value.InitTableKey(TableKey, Parent);
+                value.InitRootInfo(RootInfo, Parent);
                 value.VariableId = this.VariableId;
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
@@ -142,7 +142,7 @@ namespace Zeze.Transaction.Collections
             {
                 foreach (var p in pairs)
                 {
-                    p.Value.InitTableKey(TableKey, Parent);
+                    p.Value.InitRootInfo(RootInfo, Parent);
                     p.Value.VariableId = this.VariableId;
                 }
                 var txn = Transaction.Current;
@@ -173,7 +173,7 @@ namespace Zeze.Transaction.Collections
 
             if (this.IsManaged)
             {
-                item.Value.InitTableKey(TableKey, Parent);
+                item.Value.InitRootInfo(RootInfo, Parent);
                 item.Value.VariableId = this.VariableId;
                 var txn = Transaction.Current;
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
@@ -270,11 +270,11 @@ namespace Zeze.Transaction.Collections
             }
         }
 
-        protected override void InitChildrenTableKey(TableKey tableKey)
+        protected override void InitChildrenRootInfo(Record.RootInfo tableKey)
         {
             foreach (var v in map.Values)
             {
-                v.InitTableKey(TableKey, Parent);
+                v.InitRootInfo(RootInfo, Parent);
             }
         }
     }

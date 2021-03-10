@@ -9,6 +9,26 @@ namespace Zeze.Transaction
 {
     public abstract class Record
     {
+        public class RootInfo
+        {
+            public Record Record { get; }
+            public TableKey TableKey { get; }
+
+            public RootInfo(Record record, TableKey tableKey)
+            {
+                Record = record;
+                TableKey = tableKey;
+            }
+        }
+
+        public RootInfo CreateRootInfoIfNeed(TableKey tkey)
+        {
+            var cur = Value?.RootInfo;
+            if (null == cur)
+                cur = new RootInfo(this, tkey);
+            return cur;
+        }
+
         internal long Timestamp { get; set; }
 
         internal Bean Value { get; set; }
@@ -47,7 +67,8 @@ namespace Zeze.Transaction
 
         public override string ToString()
         {
-            return $"T {Table.Id}:{Table.Name} K {Key} S {State} T {Timestamp} V {Value}";
+            return $"T {Table.Id}:{Table.Name} K {Key} S {State} T {Timestamp}";// V {Value}";
+            // 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
         }
 
         internal override int Acquire(int state)

@@ -26,6 +26,7 @@ namespace Zeze
         public int GlobalCacheManagerPort { get; }
         public Dictionary<string, TableConf> TableConfMap { get; } = new Dictionary<string, TableConf>();
         public TableConf DefaultTableConf { get; set; } = new TableConf();
+        public bool AllowReadWhenRecoredNotAccessed { get; set; } = true;
         public TableConf GetTableConf(string name)
         {
             if (TableConfMap.TryGetValue(name, out var tableConf))
@@ -98,7 +99,6 @@ namespace Zeze
             AutoKeyLocalId = int.Parse(self.GetAttribute("AutoKeyLocalId"));
             AutoKeyLocalStep = int.Parse(self.GetAttribute("AutoKeyLocalStep"));
             GlobalCacheManagerHostNameOrAddress = self.GetAttribute("GlobalCacheManagerHostNameOrAddress");
-
             string attr = self.GetAttribute("GlobalCacheManagerPort");
             GlobalCacheManagerPort = attr.Length > 0 ? int.Parse(attr) : 0;
 
@@ -110,6 +110,9 @@ namespace Zeze
 
             attr = self.GetAttribute("CompletionPortThreads");
             CompletionPortThreads = attr.Length > 0 ? int.Parse(attr) : -1;
+
+            attr = self.GetAttribute("AllowReadWhenRecoredNotAccessed");
+            AllowReadWhenRecoredNotAccessed = attr.Length > 0 ? bool.Parse(attr) : true;
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

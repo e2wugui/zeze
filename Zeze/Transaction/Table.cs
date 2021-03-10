@@ -108,7 +108,7 @@ namespace Zeze.Transaction
                             }
                             if (null != r.Value)
                             {
-                                r.Value.InitTableKey(tkey, null);
+                                r.Value.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
                             }
                         }
                         logger.Debug($"FindInCacheOrStorage {r}");
@@ -268,7 +268,7 @@ namespace Zeze.Transaction
             }
 
             Record<K, V> r = FindInCacheOrStorage(key);
-            currentT.AddRecordAccessed(tkey, new Transaction.RecordAccessed(r));
+            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
             return r.ValueTyped;
         }
 
@@ -291,7 +291,7 @@ namespace Zeze.Transaction
             {
                 Record<K, V> r = FindInCacheOrStorage(key);
                 cr = new Transaction.RecordAccessed(r);
-                currentT.AddRecordAccessed(tkey, cr);
+                currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 
                 if (null != r.Value)
                     return r.ValueTyped;
@@ -299,7 +299,7 @@ namespace Zeze.Transaction
             }
 
             V add = NewValue();
-            add.InitTableKey(tkey, null);
+            add.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, add);
             return add;
         }
@@ -315,7 +315,7 @@ namespace Zeze.Transaction
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Id, key);
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-            value.InitTableKey(tkey, null);
+            value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
             return true;
         }
@@ -334,7 +334,7 @@ namespace Zeze.Transaction
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
-                value.InitTableKey(tkey, null);
+                value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
                 cr.Put(currentT, value);
                 return;
             }
@@ -343,7 +343,7 @@ namespace Zeze.Transaction
             Record<K, V> r = FindInCacheOrStorage(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, value);
-            currentT.AddRecordAccessed(tkey, cr);
+            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
         }
 
         // 几乎和Put一样，还是独立开吧。
@@ -362,7 +362,7 @@ namespace Zeze.Transaction
             Record<K, V> r = FindInCacheOrStorage(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, null);
-            currentT.AddRecordAccessed(tkey, cr);
+            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
         }
 
         internal TableCache<K, V> Cache { get; private set; }

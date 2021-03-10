@@ -262,7 +262,7 @@ namespace Zeze.Services.Handshake
             bb.WriteBytes(dh_data);
         }
 
-        protected override void InitChildrenTableKey(TableKey root)
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
         }
     }
@@ -287,7 +287,7 @@ namespace Zeze.Services.Handshake
             bb.WriteBool(c2sneedcompress);
         }
 
-        protected override void InitChildrenTableKey(TableKey root)
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
         }
     }

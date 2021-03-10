@@ -22,7 +22,7 @@ namespace UnitTest.Zeze.Trans
                 throw new NotImplementedException();
             }
 
-            protected override void InitChildrenTableKey(TableKey root)
+            protected override void InitChildrenRootInfo(Record.RootInfo root)
             {
             }
 

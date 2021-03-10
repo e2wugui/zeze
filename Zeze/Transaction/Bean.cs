@@ -15,7 +15,8 @@ namespace Zeze.Transaction
         public static long NextObjectId => _objectIdGen.AddAndGet(ObjectIdStep);
 
         public long ObjectId { get; } = NextObjectId;
-        public TableKey TableKey { get; private set; }
+        public Record.RootInfo RootInfo { get; private set; }
+        public TableKey TableKey => RootInfo?.TableKey;
         // Parent VariableId 是 ChangeListener 需要的属性。
         // Parent 和 TableKey 一起初始化，仅在被Table管理以后才设置。
         public Bean Parent { get; private set; }
@@ -46,21 +47,21 @@ namespace Zeze.Transaction
             }
         }
 
-        public bool IsManaged => TableKey != null;
+        public bool IsManaged => RootInfo != null;
 
-        public void InitTableKey(TableKey tableKey, Bean parent)
+        public void InitRootInfo(Record.RootInfo rootInfo, Bean parent)
         {
-            if (this.TableKey != null)
+            if (IsManaged)
             {
                 throw new HasManagedException();
             }
-            this.TableKey = tableKey;
+            this.RootInfo = rootInfo;
             this.Parent = parent;
-            InitChildrenTableKey(tableKey);
+            InitChildrenRootInfo(rootInfo);
         }
 
         // 用在第一次加载Bean时，需要初始化它的root
-        protected abstract void InitChildrenTableKey(TableKey root);
+        protected abstract void InitChildrenRootInfo(Record.RootInfo root);
 
         public abstract void Decode(global::Zeze.Serialize.ByteBuffer bb);
         public abstract void Encode(global::Zeze.Serialize.ByteBuffer bb);
@@ -118,7 +119,7 @@ namespace Zeze.Transaction
             bb.WriteInt(0);
         }
 
-        protected override void InitChildrenTableKey(TableKey root)
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
         }
 
