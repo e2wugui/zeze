@@ -48,7 +48,7 @@ namespace Zeze.Transaction.Collections
                     {
                         return set;
                     }
-
+                    txn.VerifyRecordAccessed(this, true);
                     return txn.GetLog(LogKey) is LogV log ? log.Value : set;
                 }
                 else

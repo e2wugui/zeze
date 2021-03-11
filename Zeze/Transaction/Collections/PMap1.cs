@@ -21,6 +21,7 @@ namespace Zeze.Transaction.Collections
                 if (this.IsManaged)
                 {
                     var txn = Transaction.Current;
+                    txn.VerifyRecordAccessed(this);
                     var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                     var newv = oldv.SetItem(key, value);
                     if (newv != oldv)
@@ -47,6 +48,7 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
+                txn.VerifyRecordAccessed(this);
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 var newv = oldv.Add(key, value);
                 if (newv != oldv)
@@ -74,6 +76,7 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
+                txn.VerifyRecordAccessed(this);
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 var newv = oldv.AddRange(pairs);
                 if (newv != oldv)
@@ -102,6 +105,7 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
+                txn.VerifyRecordAccessed(this);
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 var newv = oldv.SetItem(key, value);
                 if (newv != oldv)
@@ -129,6 +133,7 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
+                txn.VerifyRecordAccessed(this);
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 var newv = oldv.SetItems(pairs);
                 if (newv != oldv)
@@ -157,6 +162,7 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
+                txn.VerifyRecordAccessed(this);
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 var newv = oldv.Add(item.Key, item.Value);
                 if (newv != oldv)
@@ -176,6 +182,7 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
+                txn.VerifyRecordAccessed(this);
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 if (!oldv.IsEmpty)
                 {
@@ -198,6 +205,7 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
+                txn.VerifyRecordAccessed(this);
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 var newv = oldv.Remove(key);
                 if (newv != oldv)
@@ -224,6 +232,7 @@ namespace Zeze.Transaction.Collections
             if (this.IsManaged)
             {
                 var txn = Transaction.Current;
+                txn.VerifyRecordAccessed(this);
                 var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
                 // equals 处有box，能否优化掉？
                 if (oldv.TryGetValue(item.Key, out var olde) && olde.Equals(item.Value))

@@ -432,17 +432,17 @@ namespace Zeze.Transaction
             return null;
         }
 
-        public void VerifyRecoredAccessed(Bean bean, bool IsRead = false)
+        public void VerifyRecordAccessed(Bean bean, bool IsRead = false)
         {
             //if (IsRead)// && App.Config.AllowReadWhenRecoredNotAccessed)
             //    return;
             if (bean.RootInfo.Record.State == GlobalCacheManager.StateRemoved)
-                throw new Exception($"VerifyRecoredAccessed: Record Has Bean Removed From Cache. {bean.TableKey}");
+                throw new Exception($"VerifyRecordAccessed: Record Has Bean Removed From Cache. {bean.TableKey}");
             var ra = GetRecordAccessed(bean.TableKey);
             if (ra == null)
-                throw new Exception($"VerifyRecoredAccessed: Record Not Control Under Current Transastion. {bean.TableKey}");
+                throw new Exception($"VerifyRecordAccessed: Record Not Control Under Current Transastion. {bean.TableKey}");
             if (bean.RootInfo.Record != ra.OriginRecord)
-                throw new Exception($"VerifyRecoredAccessed: Record Reloaded.{bean.TableKey}");
+                throw new Exception($"VerifyRecordAccessed: Record Reloaded.{bean.TableKey}");
         }
 
         enum CheckResult
