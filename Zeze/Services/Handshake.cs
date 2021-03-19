@@ -49,7 +49,7 @@ namespace Zeze.Services
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public HandshakeServer(string name, Application zeze) : base(name, zeze)
+        public HandshakeServer(string name, Application app) : base(name, app)
         {
             AddFactoryHandle(new Handshake.CHandshake().TypeId, new Service.ProtocolFactoryHandle()
             {
@@ -109,7 +109,7 @@ namespace Zeze.Services
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public HandshakeClient(string name, Application zeze) : base(name, zeze)
+        public HandshakeClient(string name, Application app) : base(name, app)
         {
             AddFactoryHandle(new Handshake.SHandshake().TypeId, new Service.ProtocolFactoryHandle()
             {

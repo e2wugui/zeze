@@ -95,7 +95,7 @@ namespace Zeze.Transaction
                     break;
             }
 #endif
-            return Table.Zeze.GlobalAgent.Acquire(gkey, state);
+            return Table.App.GlobalAgent.Acquire(gkey, state);
         }
 
         // XXX 临时写个实现，以后调整。

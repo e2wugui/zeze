@@ -28,11 +28,11 @@ namespace Zeze.Transaction
 
         public AutoKeys AutoKeys => storage.AutoKeys;
 
-        internal override Storage Open(Application zeze, Database database)
+        internal override Storage Open(Application app, Database database)
         {
             if (null != storage)
                 throw new Exception("tablesys has opened");
-            storage = new StorageSys(zeze, database);
+            storage = new StorageSys(app, database);
             return storage;
         }
 
@@ -47,12 +47,12 @@ namespace Zeze.Transaction
             private readonly ByteBuffer keyOfAutoKeys;
 		    private ByteBuffer snapshotValue = null;
 
-            internal StorageSys(Application zeze, Database database)
+            internal StorageSys(Application app, Database database)
             {
                 DatabaseTable = database.OpenTable("_sys_");
 
-                int localInitValue = zeze.Config.AutoKeyLocalId;
-                int localStep = zeze.Config.AutoKeyLocalStep;
+                int localInitValue = app.Config.AutoKeyLocalId;
+                int localStep = app.Config.AutoKeyLocalStep;
 
                 keyOfAutoKeys = ByteBuffer.Allocate(32);
                 keyOfAutoKeys.WriteString("zeze.AutoKeys." + localInitValue);

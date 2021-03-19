@@ -28,7 +28,7 @@ namespace Zeze.Transaction
         public virtual bool IsMemory => true;
         public virtual bool IsAutoKey => false;
 
-        internal abstract Storage Open(Application zeze, Database database);
+        internal abstract Storage Open(Application app, Database database);
         internal abstract void Close();
 
         internal virtual int ReduceShare(GlobalCacheManager.Reduce rpc)
@@ -57,7 +57,7 @@ namespace Zeze.Transaction
         public Table(string name) : base(name)
         {
         }
-        public Application Zeze { get; private set; }
+        public Application App { get; private set; }
 
         protected AutoKey AutoKey { get; private set;  }
 
@@ -170,7 +170,7 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateShare;
-            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r);  rpc.SendResult(); });
+            App.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r);  rpc.SendResult(); });
             //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
@@ -225,7 +225,7 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateInvalid;
-            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r); rpc.SendResult(); });
+            App.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r); rpc.SendResult(); });
             //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
@@ -235,7 +235,7 @@ namespace Zeze.Transaction
             foreach (var e in Cache.map)
             {
                 var gkey = new GlobalCacheManager.GlobalTableKey(Name, EncodeKey(e.Key));
-                if (Zeze.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
+                if (App.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
                 {
                     // 不是断开连接的GlobalCacheManager。跳过。
                     continue;
@@ -373,18 +373,18 @@ namespace Zeze.Transaction
         public Storage<K, V> Storage { get; private set; }
         private Database.Table OldTable;
 
-        internal override Storage Open(Application zeze, Database database)
+        internal override Storage Open(Application app, Database database)
         {
             if (null != Storage)
                 throw new Exception("table has opened." + Name);
-            Zeze = zeze;
+            App = app;
             if (this.IsAutoKey)
-                AutoKey = zeze.TableSys.AutoKeys.GetAutoKey(Name);
-            Cache = new TableCache<K, V>(zeze, this);
+                AutoKey = app.TableSys.AutoKeys.GetAutoKey(Name);
+            Cache = new TableCache<K, V>(app, this);
 
             Storage = IsMemory ? null : new Storage<K, V>(this, database, Name);
-            Config.TableConf tableConf = zeze.Config.GetTableConf(Name);
-            OldTable = tableConf.DatabaseOldMode == 1 ? zeze.GetDatabase(tableConf.DatabaseOldName).OpenTable(Name) : null;
+            Config.TableConf tableConf = app.Config.GetTableConf(Name);
+            OldTable = tableConf.DatabaseOldMode == 1 ? app.GetDatabase(tableConf.DatabaseOldName).OpenTable(Name) : null;
             return Storage;
         }
 

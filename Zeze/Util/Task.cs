@@ -32,8 +32,12 @@ namespace Zeze.Util
                     var actionName = p.GetType().FullName;
                     if (result != 0)
                     {
-                        logger.Error("Task {0} Return={1}:{2} UserState={3}", actionName,
-                            Zeze.Net.Protocol.GetModuleId(result), Zeze.Net.Protocol.GetProtocolId(result),
+                        logger.Log(p.Service.App.Config.ProcessReturnErrorLogLevel,
+                            "Task {0} Return={1}@{2}:{3} UserState={4}",
+                            actionName,
+                            result,
+                            Zeze.Net.Protocol.GetModuleId(result),
+                            Zeze.Net.Protocol.GetProtocolId(result),
                             p.UserState);
                     }
 #if ENABLE_STATISTICS

@@ -31,7 +31,7 @@ namespace Zeze.Services
         public ToLuaService.ToLua ToLua { get; private set; } = new ToLuaService.ToLua();
         public Net.Service Service => this;
 
-        public ToLuaServiceClient(string name, Zeze.Application zeze) : base(name, zeze)
+        public ToLuaServiceClient(string name, Zeze.Application app) : base(name, app)
         {
         }
 
@@ -73,7 +73,7 @@ namespace Zeze.Services
         public ToLuaService.ToLua ToLua { get; private set; } = new ToLuaService.ToLua();
         public Net.Service Service => this;
 
-        public ToLuaServiceServer(string name, Zeze.Application zeze) : base(name, zeze)
+        public ToLuaServiceServer(string name, Zeze.Application app) : base(name, app)
         {
         }
 

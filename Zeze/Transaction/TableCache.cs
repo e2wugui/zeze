@@ -16,10 +16,10 @@ namespace Zeze.Transaction
 
         internal readonly ConcurrentDictionary<K, Record<K, V>> map = new ConcurrentDictionary<K, Record<K, V>>();
 
-        public TableCache(Application zeze, Table<K, V> table)
+        public TableCache(Application app, Table<K, V> table)
         {
             this.Table = table;
-            Config.TableConf tableConf = zeze.Config.GetTableConf(table.Name);
+            Config.TableConf tableConf = app.Config.GetTableConf(table.Name);
             this.Capacity = tableConf.CacheCapaicty;
             if (Capacity < 0)
                 throw new ArgumentException();

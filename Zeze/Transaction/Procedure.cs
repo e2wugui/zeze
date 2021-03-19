@@ -20,23 +20,24 @@ namespace Zeze.Transaction
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        public Checkpoint Checkpoint { get; }
+
+        public Application App { get; }
 
         public Func<int> Action { get; set; }
 
         public string ActionName { get; set; } // 用来统计或者日志
 
         // 用于继承方式实现 Procedure。
-        public Procedure(Checkpoint checkpoint)
+        public Procedure(Application app)
         {
-            Checkpoint = checkpoint;
+            App = app;
         }
 
         public object UserState { get; set; }
 
-        public Procedure(Checkpoint checkpoint, Func<int> action, string actionName, object userState)
+        public Procedure(Application app, Func<int> action, string actionName, object userState)
         {
-            Checkpoint = checkpoint;
+            App = app;
             Action = action;
             ActionName = actionName;
             UserState = userState;
@@ -80,8 +81,13 @@ namespace Zeze.Transaction
                     return Success;
                 }
                 currentT.Rollback();
-                logger.Error("Procedure {0} Return={1}:{2} UserState={3}", ToString(),
-                    Zeze.Net.Protocol.GetModuleId(result), Zeze.Net.Protocol.GetProtocolId(result), UserState);
+                logger.Log(App.Config.ProcessReturnErrorLogLevel,
+                    "Procedure {0} Return{1}@{2}:{3} UserState={4}",
+                    ToString(),
+                    result,
+                    Zeze.Net.Protocol.GetModuleId(result),
+                    Zeze.Net.Protocol.GetProtocolId(result),
+                    UserState);
 #if ENABLE_STATISTICS
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(result).IncrementAndGet();
 #endif

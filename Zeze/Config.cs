@@ -19,6 +19,7 @@ namespace Zeze
         public int WorkerThreads { get; set; }
         public int CompletionPortThreads { get; set; }
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
+        public NLog.LogLevel ProcessReturnErrorLogLevel { get; set; } = NLog.LogLevel.Info;
         public int InternalThreadPoolWorkerCount { get; set; }
         public int AutoKeyLocalId { get; set; } = 0;
         public int AutoKeyLocalStep { get; } = 4096;
@@ -101,6 +102,10 @@ namespace Zeze
             GlobalCacheManagerHostNameOrAddress = self.GetAttribute("GlobalCacheManagerHostNameOrAddress");
             string attr = self.GetAttribute("GlobalCacheManagerPort");
             GlobalCacheManagerPort = attr.Length > 0 ? int.Parse(attr) : 0;
+
+            attr = self.GetAttribute("ProcessReturnErrorLogLevel");
+            if (attr.Length > 0)
+                ProcessReturnErrorLogLevel = NLog.LogLevel.FromString(attr);
 
             attr = self.GetAttribute("InternalThreadPoolWorkerCount");
             InternalThreadPoolWorkerCount = attr.Length > 0 ? int.Parse(attr) : 10;

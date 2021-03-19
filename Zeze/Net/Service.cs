@@ -19,7 +19,7 @@ namespace Zeze.Net
         /// </summary>
         public SocketOptions SocketOptions { get; private set; } = new SocketOptions();
         public Config.ServiceConf Config { get; private set; }
-        public Application Zeze { get; }
+        public Application App { get; }
         public string Name { get; }
 
         protected readonly ConcurrentDictionary<long, AsyncSocket> _asocketMap = new ConcurrentDictionary<long, AsyncSocket>();
@@ -31,14 +31,14 @@ namespace Zeze.Net
             SocketOptions = Config.SocketOptions;
         }
 
-        public Service(string name, Application zeze)
+        public Service(string name, Application app)
         {
             Name = name;
-            Zeze = zeze;
+            App = app;
 
-            if (null != zeze)
+            if (null != app)
             {
-                Config = zeze.Config.GetServiceConf(name);
+                Config = app.Config.GetServiceConf(name);
                 SocketOptions = Config.SocketOptions;
             }
             else
@@ -224,9 +224,9 @@ namespace Zeze.Net
         // 用来派发异步rpc回调。
         public virtual void DispatchRpcResponse(Protocol rpc, Func<Protocol, int> responseHandle, ProtocolFactoryHandle factoryHandle)
         {
-            if (null != Zeze && false == factoryHandle.NoProcedure)
+            if (null != App && false == factoryHandle.NoProcedure)
             {
-                global::Zeze.Util.Task.Run(Zeze.NewProcedure(() => responseHandle(rpc), rpc.GetType().FullName + ":Response", rpc.UserState));
+                global::Zeze.Util.Task.Run(App.NewProcedure(() => responseHandle(rpc), rpc.GetType().FullName + ":Response", rpc.UserState));
             }
             else
             {
@@ -238,9 +238,9 @@ namespace Zeze.Net
         {
             if (null != factoryHandle.Handle)
             {
-                if (null != Zeze && false == factoryHandle.NoProcedure)
+                if (null != App && false == factoryHandle.NoProcedure)
                 {
-                    global::Zeze.Util.Task.Run(Zeze.NewProcedure(() => factoryHandle.Handle(p), p.GetType().FullName, p.UserState));
+                    global::Zeze.Util.Task.Run(App.NewProcedure(() => factoryHandle.Handle(p), p.GetType().FullName, p.UserState));
                 }
                 else
                 {

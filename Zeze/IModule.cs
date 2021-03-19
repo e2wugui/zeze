@@ -4,12 +4,19 @@ using System.Text;
 
 namespace Zeze
 {
-    public interface IModule
+    public abstract class IModule
     {
-        public string FullName { get; }
-        public string Name { get; }
-        public int Id { get; }
+        public virtual string FullName { get; }
+        public virtual string Name { get; }
+        public virtual int Id { get; }
 
-        public void UnRegister(); // 为了重新装载 Module 的补丁。注册在构造函数里面进行。
+        public virtual void UnRegister() // 为了重新装载 Module 的补丁。注册在构造函数里面进行。
+        {
+        }
+
+        public int ReturnCode(ushort code)
+        {
+            return Id << 16 | code;
+        }
     }
 }

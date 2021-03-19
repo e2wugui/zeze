@@ -10,6 +10,7 @@ namespace Zeze.Net
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
 		public int TypeId => ModuleId << 16 | ProtocolId;
+		public Service Service { get; set; }
 
 		public static int GetModuleId(int type)
         {
@@ -104,6 +105,7 @@ namespace Zeze.Net
 				if (null != factoryHandle)
 				{
 					Protocol p = factoryHandle.Factory();
+					p.Service = service;
 					p.Decode(os);
 					p.Sender = so;
 					p.UserState = so.UserState;

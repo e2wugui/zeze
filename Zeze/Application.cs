@@ -106,7 +106,7 @@ namespace Zeze
         {
             if (IsStart)
             {
-                return new Procedure(_checkpoint, action, actionName, userState);
+                return new Procedure(this, action, actionName, userState);
             }
             throw new Exception("App Not Start");
         }

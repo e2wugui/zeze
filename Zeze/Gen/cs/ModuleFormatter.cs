@@ -181,10 +181,9 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public abstract class AbstractModule : Zeze.IModule");
             sw.WriteLine("    {");
-            sw.WriteLine($"        public string FullName => \"{module.Path()}\";");
-            sw.WriteLine($"        public string Name => \"{module.Name}\";");
-            sw.WriteLine($"        public int Id => {module.Id};");
-            sw.WriteLine($"        public abstract void UnRegister();");
+            sw.WriteLine($"        public override string FullName => \"{module.Path()}\";");
+            sw.WriteLine($"        public override string Name => \"{module.Name}\";");
+            sw.WriteLine($"        public override int Id => {module.Id};");
 
             if (module.ReferenceService != null)
             {
