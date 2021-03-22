@@ -8,7 +8,7 @@ namespace Zeze.Gen.Types
 {
 	public class Variable
 	{
-		public Type Bean{ get; private set; } // Bean or BeanKey
+		public Type Bean { get; private set; } // Bean or BeanKey
 		public String Name { get; private set; }
 		public String NamePrivate => "_" + Name;
 		public String NameUpper1 => Name.Substring(0, 1).ToUpper() + Name.Substring(1);
