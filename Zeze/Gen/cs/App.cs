@@ -76,6 +76,8 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"                {fullname} = ({m.Path(".", $"Module{m.Name}")})ReplaceModuleInstance({fullname});");
                 sw.WriteLine($"                Modules.Add({fullname}.Name, {fullname});");
             }
+            sw.WriteLine("");
+            sw.WriteLine("                Zeze.Schemas = new " + project.Solution.Path(".", "Schemas") + "();");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine("");

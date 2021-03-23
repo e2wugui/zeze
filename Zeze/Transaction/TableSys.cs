@@ -27,11 +27,30 @@ namespace Zeze.Transaction
         }
 
         public AutoKeys AutoKeys => storage.AutoKeys;
+        public Schemas SchemasPrevious => storage.SchemasPrevious;
+        public Application App { get; private set; }
+
+        internal void SaveSchemas(Schemas schemas)
+        {
+            // 这个是在Zeze.Start过程中设置，加个严格的全局写锁，以后Checkpoint保存一次就会清除。
+            App.Checkpoint.FlushReadWriteLock.EnterWriteLock();
+            try
+            {
+                var bb = ByteBuffer.Allocate();
+                schemas.Encode(bb);
+                storage.snapshotOfSchemas = bb;
+            }
+            finally
+            {
+                App.Checkpoint.FlushReadWriteLock.ExitWriteLock();
+            }
+        }
 
         internal override Storage Open(Application app, Database database)
         {
             if (null != storage)
                 throw new Exception("tablesys has opened");
+            App = app;
             storage = new StorageSys(app, database);
             return storage;
         }
@@ -45,7 +64,13 @@ namespace Zeze.Transaction
             public AutoKeys AutoKeys { get; }
 
             private readonly ByteBuffer keyOfAutoKeys;
-		    private ByteBuffer snapshotValue = null;
+		    private ByteBuffer snapshotOfAutoKeys = null;
+
+            public Schemas SchemasPrevious { get; }
+
+            private readonly ByteBuffer keyOfSchemas;
+            internal ByteBuffer snapshotOfSchemas = null;
+            private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
             internal StorageSys(Application app, Database database)
             {
@@ -57,6 +82,26 @@ namespace Zeze.Transaction
                 keyOfAutoKeys = ByteBuffer.Allocate(32);
                 keyOfAutoKeys.WriteString("zeze.AutoKeys." + localInitValue);
                 AutoKeys = new AutoKeys(DatabaseTable.Find(keyOfAutoKeys), localInitValue, localStep);
+
+                keyOfSchemas = ByteBuffer.Allocate(32);
+                // 本来是localId无关的，为了合服不冲突，单独记录。
+                keyOfSchemas.WriteString("zeze.Schemas." + localInitValue);
+                var bbSchemas = DatabaseTable.Find(keyOfSchemas);
+                if (null != bbSchemas)
+                {
+                    // 上一次的结构一值记着，直到下一次重启。
+                    try
+                    {
+                        SchemasPrevious = new Schemas();
+                        SchemasPrevious.Decode(bbSchemas);
+                        SchemasPrevious.Compile();
+                    }
+                    catch (Exception ex)
+                    {
+                        SchemasPrevious = null;
+                        logger.Error(ex, "Schemas Implement Changed?");
+                    }
+                }
             }
 
             public Database.Table DatabaseTable { get; }
@@ -73,26 +118,45 @@ namespace Zeze.Transaction
 
             public int Encode0()
             {
-                snapshotValue = AutoKeys.Encode();
-                return null == snapshotValue ? 0 : 1;
+                snapshotOfAutoKeys = AutoKeys.Encode();
+                int c = 0;
+                if (null != snapshotOfAutoKeys)
+                    ++c;
+                if (null != snapshotOfSchemas)
+                    ++c;
+                return c;
             }
 
             public int Snapshot()
             {
-                return null == snapshotValue ? 0 : 1;
+                int c = 0;
+                if (null != snapshotOfAutoKeys)
+                    ++c;
+                if (null != snapshotOfSchemas)
+                    ++c;
+                return c;
             }
 
             public int Flush()
             {
-                if (null == snapshotValue)
-                    return 0;
-                DatabaseTable.Replace(keyOfAutoKeys, snapshotValue);
-                return 1;
+                int c = 0;
+                if (null != snapshotOfAutoKeys)
+                {
+                    DatabaseTable.Replace(keyOfAutoKeys, snapshotOfAutoKeys);
+                    ++c;
+                }
+                if (null != snapshotOfSchemas)
+                {
+                    DatabaseTable.Replace(keyOfSchemas, snapshotOfSchemas);
+                    ++c;
+                }
+                return c;
             }
 
             public void Cleanup()
             {
-                snapshotValue = null;
+                snapshotOfAutoKeys = null;
+                snapshotOfSchemas = null;
             }
 
         }

@@ -41,6 +41,8 @@ namespace Zeze
             }
         }
 
+        public Schemas Schemas { get; set; } // no thread protected
+
         public Application(Config config = null)
         {
             Config = config;
@@ -133,8 +135,12 @@ namespace Zeze
                     db.Open(this);
                 }
                 defaultDb.AddTable(TableSys);
-
                 Checkpoint.Start(Config.CheckpointPeriod);
+
+                Schemas.Compile();
+                if (false == Schemas.IsCompatible(TableSys.SchemasPrevious))
+                    throw new Exception("Database Struct Not Compatible!");
+                TableSys.SaveSchemas(Schemas);
             }
         }
 
@@ -145,8 +151,8 @@ namespace Zeze
                 if (false == IsStart)
                     return;
                 IsStart = false;
-                Checkpoint.StopAndJoin();
-                GlobalAgent.Stop();
+                Checkpoint?.StopAndJoin();
+                GlobalAgent?.Stop();
                 foreach (var db in Databases.Values)
                 {
                     db.Close();

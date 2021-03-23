@@ -52,6 +52,7 @@ namespace Zeze.Gen.cs
                 if (Project.GenTables.Contains(table.Gen))
                     new TableFormatter(table, genDir).Make();
             }
+            new Schemas(Project, genDir).Make();
 
             new App(Project, genDir, srcDir).Make();
         }

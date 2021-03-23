@@ -71,17 +71,19 @@ namespace Zeze
             public virtual void Compile(Schemas s)
             {
                 Key = s.Compile(KeyName, "", "");
+                if (null != Key && Key is Bean bean)
+                    bean.KeyRefCount++;
                 Value = s.Compile(ValueName, "", "");
             }
         }
 
         public class Variable : Serializable
         {
-            public int Id { get; private set; }
-            public string Name { get; private set; }
-            public string TypeName { get; private set; }
-            public string KeyName { get; private set; }
-            public string ValueName { get; private set; }
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public string TypeName { get; set; }
+            public string KeyName { get; set; } = "";
+            public string ValueName { get; set; } = "";
             public Type Type { get; private set; }
 
             public void Decode(ByteBuffer bb)
@@ -113,6 +115,8 @@ namespace Zeze
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
             public Dictionary<int, Variable> Variables { get; } = new Dictionary<int, Variable>();
+            public bool IsBeanKey { get; set; } = false;
+            public int KeyRefCount { get; set; } = 0;
 
             /// <summary>
             /// var可能增加，也可能删除，所以兼容仅判断var.id相同的。
@@ -138,6 +142,26 @@ namespace Zeze
                             }
                         }
                     }
+                    // 限制beankey的var只能增加，不能减少。
+                    // 如果发生了Bean和BeanKey改变，应该是名字服用，忽略这个检查。
+                    // 如果没有被真正当作Key，忽略这个检查。
+                    if (IsBeanKey && KeyRefCount > 0
+                        && beanOther.IsBeanKey && beanOther.KeyRefCount > 0)
+                    {
+                        if (Variables.Count < beanOther.Variables.Count)
+                        {
+                            logger.Error("Not Compatible. beankey={0} Variables.Count < DB.Variables.Count,Must Be Reduced", Name);
+                            return false;
+                        }
+                        foreach (var vOther in beanOther.Variables.Values)
+                        {
+                            if (false == Variables.TryGetValue(vOther.Id, out var _))
+                            {
+                                logger.Error("Not Compatible. beankey={0} variable={1} Not Exist", Name, vOther.Name);
+                                return false;
+                            }
+                        }
+                    }
                     return true;
                 }
                 return false;
@@ -145,6 +169,8 @@ namespace Zeze
 
             public override void Decode(ByteBuffer bb)
             {
+                Name = bb.ReadString();
+                IsBeanKey = bb.ReadBool();
                 for (int count = bb.ReadInt(); count > 0; --count)
                 {
                     var v = new Variable();
@@ -155,6 +181,8 @@ namespace Zeze
 
             public override void Encode(ByteBuffer bb)
             {
+                bb.WriteString(Name);
+                bb.WriteBool(IsBeanKey);
                 bb.WriteInt(Variables.Count);
                 foreach (var v in Variables.Values)
                 {
@@ -169,28 +197,33 @@ namespace Zeze
                     v.Compile(s);
                 }
             }
+
+            public void AddVariable(Variable var)
+            {
+                Variables.Add(var.Id, var);
+            }
         }
 
         public class Table : Serializable
         {
-            public string Name { get; private set; } // FullName, sample: demo_Module1_Table1
-            public string KeyTypeName { get; private set; }
-            public string ValueTypeName { get; private set; }
+            public string Name { get; set; } // FullName, sample: demo_Module1_Table1
+            public string KeyName { get; set; }
+            public string ValueName { get; set; }
             public Type KeyType { get; private set; }
             public Bean ValueType { get; private set; } // Must Be Bean
 
             public void Decode(ByteBuffer bb)
             {
                 Name = bb.ReadString();
-                KeyTypeName = bb.ReadString();
-                ValueTypeName = bb.ReadString();
+                KeyName = bb.ReadString();
+                ValueName = bb.ReadString();
             }
 
             public void Encode(ByteBuffer bb)
             {
                 bb.WriteString(Name);
-                bb.WriteString(KeyTypeName);
-                bb.WriteString(ValueTypeName);
+                bb.WriteString(KeyName);
+                bb.WriteString(ValueName);
             }
 
             public bool IsCompatible(Table other)
@@ -202,8 +235,10 @@ namespace Zeze
 
             public void Compile(Schemas s)
             {
-                KeyType = s.Compile(KeyTypeName, "", "");
-                ValueType = (Bean)s.Compile(ValueTypeName, "", "");
+                KeyType = s.Compile(KeyName, "", "");
+                if (KeyType is Bean bean)
+                    bean.KeyRefCount++;
+                ValueType = (Bean)s.Compile(ValueName, "", "");
             }
         }
 
@@ -214,6 +249,9 @@ namespace Zeze
 
         public bool IsCompatible(Schemas other)
         {
+            if (null == other)
+                return true;
+
             foreach (var table in Tables.Values)
             {
                 if (other.Tables.TryGetValue(table.Name, out var otherTable))
