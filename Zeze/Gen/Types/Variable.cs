@@ -40,6 +40,8 @@ namespace Zeze.Gen.Types
 			if (Id <= 0 || Id > global::Zeze.Transaction.Bean.MaxVariableId)
 				throw new Exception("variable id invalid. range [1, " + global::Zeze.Transaction.Bean.MaxVariableId + "] @" + GetBeanFullName());
 			Type = self.GetAttribute("type").Trim();
+			if (string.IsNullOrEmpty(Type))
+				throw new Exception("Variable Type Can Not Be Empty.");
 			Key = self.GetAttribute("key").Trim();
 			Value = self.GetAttribute("value").Trim();
 			Initial = self.GetAttribute("default").Trim();

@@ -5,6 +5,12 @@ using Zeze.Serialize;
 
 /// <summary>
 /// 1 启动数据库时，用来判断当前代码的数据定义结构是否和当前数据库的定义结构兼容。
+///   当前包含以下兼容检测。
+///   a) 对于每个 Variable.Id，Type不能修改。
+///   b) 不能复用已经删除的 Variable.Id。
+///   c) beankey 被应用于map.Key或set.Value或table.Key以后就不能再删除变量了。
+///      当作key以后，如果删除变量，beankey.Encode() 就可能不再唯一。
+///      
 /// 2 TODO 通过查询类型信息，从数据转换到具体实例。合服可能需要。
 ///   如果是通用合并的insert，应该在二进制接口上操作（目前还没有）。
 ///   如果合并时需要处理冲突，此时应用是知道具体类型的。
@@ -71,9 +77,17 @@ namespace Zeze
             public virtual void Compile(Schemas s)
             {
                 Key = s.Compile(KeyName, "", "");
-                if (null != Key && Key is Bean bean)
-                    bean.KeyRefCount++;
+                if (null != Key && Key is Bean key)
+                {
+                    key.KeyRefCount++;
+                }
+
                 Value = s.Compile(ValueName, "", "");
+                if (null != Value)
+                {
+                    if (Name.Equals("set") && Value is Bean value)
+                        value.KeyRefCount++;
+                }
             }
         }
 
@@ -108,6 +122,23 @@ namespace Zeze
             {
                 Type = s.Compile(TypeName, KeyName, ValueName);
             }
+
+            public Variable()
+            {
+
+            }
+
+            private Variable(int id, string name)
+            {
+                Id = id;
+                Name = name;
+                TypeName = ""; // 不指定类型用来表示已经删除。
+            }
+
+            public Variable Delete()
+            {
+                return new Variable(Id, Name);
+            }
         }
 
         public class Bean : Type
@@ -131,19 +162,38 @@ namespace Zeze
 
                 if (other is Bean beanOther)
                 {
-                    foreach (var vThis in Variables.Values)
+                    List<Variable> Deleteds = new List<Variable>();
+                    foreach (var vOther in beanOther.Variables.Values)
                     {
-                        if (beanOther.Variables.TryGetValue(vThis.Id, out var vOther))
+                        if (Variables.TryGetValue(vOther.Id, out var vThis))
                         {
-                            if (false == Type.IsCompatible(vThis.Type, vOther.Type))
+                            if (string.IsNullOrEmpty(vThis.TypeName))
                             {
-                                logger.Error("Not Compatible. bean={0} variable={1}", Name, vThis.Name);
+                                // bean 可能被多个地方使用，前面比较的时候，创建或者复制了被删除的变量。
+                                // 所以可能存在已经被删除var，这个时候忽略比较就行了。
+                                // 正常情况下，TypeName是不可能为空的。
+                                continue;
+                            }
+                            if (string.IsNullOrEmpty(vOther.TypeName))
+                            {
+                                // 重用了已经被删除的var。此时vOther.Type也是null。
+                                logger.Error("Not Compatible. bean={0} variable={1} Can Not Reuse Deleted Variable.Id", Name, vThis.Name);
+                                return false;
+                            }
+                            if (false == Type.IsCompatible(vOther.Type, vThis.Type))
+                            {
+                                logger.Error("Not Compatible. bean={0} variable={1}", Name, vOther.Name);
                                 return false;
                             }
                         }
+                        else
+                        {
+                            // 新删除或以前删除的都创建一个新的。
+                            Deleteds.Add(vOther.Delete());
+                        }
                     }
                     // 限制beankey的var只能增加，不能减少。
-                    // 如果发生了Bean和BeanKey改变，应该是名字服用，忽略这个检查。
+                    // 如果发生了Bean和BeanKey改变，忽略这个检查。
                     // 如果没有被真正当作Key，忽略这个检查。
                     if (IsBeanKey && KeyRefCount > 0
                         && beanOther.IsBeanKey && beanOther.KeyRefCount > 0)
@@ -155,12 +205,26 @@ namespace Zeze
                         }
                         foreach (var vOther in beanOther.Variables.Values)
                         {
+                            if (string.IsNullOrEmpty(vOther.TypeName))
+                            {
+                                // 当作Key前允许删除变量，所以可能存在已经被删除的变量。
+                                continue;
+                            }
                             if (false == Variables.TryGetValue(vOther.Id, out var _))
                             {
+                                // 被当作Key以后就不能再删除变量了。
                                 logger.Error("Not Compatible. beankey={0} variable={1} Not Exist", Name, vOther.Name);
                                 return false;
                             }
                         }
+                    }
+                    // 把本次（包括以前）删除的变量复制过来。
+                    foreach (var vDelete in Deleteds)
+                    {
+                        // 一次Schemas比较操作中，Bean.IsCompatible可能被调用多次，
+                        // 但除了第一次，以后调用时，Deleteds应该都是空的，
+                        // 这里用一下TryAdd表示一下？当然Add会严格点。
+                        Variables.Add(vDelete.Id, vDelete);
                     }
                     return true;
                 }
