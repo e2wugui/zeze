@@ -47,7 +47,7 @@ namespace Game
 
             // static binds
             var rpc = new gnet.Provider.Bind();
-            rpc.Argument.Modules.AddRange(App.Instance.StaticBinds);
+            rpc.Argument.Modules.AddRange(Game.App.Instance.StaticBinds);
             rpc.Send(sender, (protocol) => { ProviderStaticBindCompleted.Set(); return 0; });
         }
 

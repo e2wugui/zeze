@@ -57,7 +57,7 @@ namespace Zeze.Transaction
         public Table(string name) : base(name)
         {
         }
-        public Application App { get; private set; }
+        public Application Zeze { get; private set; }
 
         protected AutoKey AutoKey { get; private set;  }
 
@@ -170,7 +170,7 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateShare;
-            App.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r);  rpc.SendResult(); });
+            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r);  rpc.SendResult(); });
             //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
@@ -225,7 +225,7 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateInvalid;
-            App.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r); rpc.SendResult(); });
+            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r); rpc.SendResult(); });
             //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
@@ -235,7 +235,7 @@ namespace Zeze.Transaction
             foreach (var e in Cache.map)
             {
                 var gkey = new GlobalCacheManager.GlobalTableKey(Name, EncodeKey(e.Key));
-                if (App.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
+                if (Zeze.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
                 {
                     // 不是断开连接的GlobalCacheManager。跳过。
                     continue;
@@ -377,7 +377,7 @@ namespace Zeze.Transaction
         {
             if (null != Storage)
                 throw new Exception("table has opened." + Name);
-            App = app;
+            Zeze = app;
             if (this.IsAutoKey)
                 AutoKey = app.TableSys.AutoKeys.GetAutoKey(Name);
             Cache = new TableCache<K, V>(app, this);

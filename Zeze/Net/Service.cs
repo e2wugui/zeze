@@ -19,7 +19,7 @@ namespace Zeze.Net
         /// </summary>
         public SocketOptions SocketOptions { get; private set; } = new SocketOptions();
         public Config.ServiceConf Config { get; private set; }
-        public Application App { get; }
+        public Application Zeze { get; }
         public string Name { get; }
 
         protected readonly ConcurrentDictionary<long, AsyncSocket> _asocketMap = new ConcurrentDictionary<long, AsyncSocket>();
@@ -34,7 +34,7 @@ namespace Zeze.Net
         public Service(string name, Application app)
         {
             Name = name;
-            App = app;
+            Zeze = app;
 
             if (null != app)
             {
@@ -224,9 +224,9 @@ namespace Zeze.Net
         // 用来派发异步rpc回调。
         public virtual void DispatchRpcResponse(Protocol rpc, Func<Protocol, int> responseHandle, ProtocolFactoryHandle factoryHandle)
         {
-            if (null != App && false == factoryHandle.NoProcedure)
+            if (null != Zeze && false == factoryHandle.NoProcedure)
             {
-                global::Zeze.Util.Task.Run(App.NewProcedure(() => responseHandle(rpc), rpc.GetType().FullName + ":Response", rpc.UserState));
+                global::Zeze.Util.Task.Run(Zeze.NewProcedure(() => responseHandle(rpc), rpc.GetType().FullName + ":Response", rpc.UserState));
             }
             else
             {
@@ -238,9 +238,9 @@ namespace Zeze.Net
         {
             if (null != factoryHandle.Handle)
             {
-                if (null != App && false == factoryHandle.NoProcedure)
+                if (null != Zeze && false == factoryHandle.NoProcedure)
                 {
-                    global::Zeze.Util.Task.Run(App.NewProcedure(() => factoryHandle.Handle(p), p.GetType().FullName, p.UserState));
+                    global::Zeze.Util.Task.Run(Zeze.NewProcedure(() => factoryHandle.Handle(p), p.GetType().FullName, p.UserState));
                 }
                 else
                 {

@@ -10,6 +10,12 @@ namespace Zeze.Gen
         private static Dictionary<string, Solution> solutions = new Dictionary<string, Solution>();
         public static Zeze.Util.AtomicLong IdGen = new Zeze.Util.AtomicLong();
 
+        public static void CheckReserveName(string name)
+        {
+            if (name.StartsWith("_"))
+                throw new Exception("Name Can Not Starts With '_'.");
+        }
+
         public static string GenUniqVarName()
         {
             return "_v_" + IdGen.IncrementAndGet() + "_";

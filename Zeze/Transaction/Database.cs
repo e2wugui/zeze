@@ -139,6 +139,43 @@ namespace Zeze.Transaction
                 public bool OnRecord(byte[] key, byte[] value);
             }
         }
+
+        /// <summary>
+        /// 由后台数据库直接支持的存储过程。
+        /// 直接操作后台数据库，不经过cache。
+        /// </summary>
+        public interface Procedures
+        {
+            /*
+             table zeze_global {string global} 一条记录
+             table zeze_instances {int localId} 每个启动的gs一条记录
+             SetInUse(localId, global) // 没有启用cache-sync时，global是""
+               if (false == zeze_instances.insert(localId))
+               {
+                 rollback;
+                 return false; // 同一个localId只能启动一个。
+               }
+               globalNow = zeze_global.getOrAdd(global); // sql 应该是没有这样的方法的
+               if (globalNow != global)
+               {
+                 // 不管是否启用cache-sync，global都必须一致
+                 rollback;
+                 return false;
+               }
+               if (zeze_instances.count == 1)
+                 return true; // 只有一个实例，肯定成功。
+               if (global.Count == 0)
+               {
+                 // 没有启用global，但是实例超过1。
+                 rollback;
+                 return false;
+               }
+               commit;
+               return true;
+             */
+            public bool SetInUse(int localId, string global);
+            public void ClearInUse(int localId, string global);
+        }
     }
 
 #if USE_DATABASE

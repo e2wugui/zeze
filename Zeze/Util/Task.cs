@@ -32,7 +32,7 @@ namespace Zeze.Util
                     var actionName = p.GetType().FullName;
                     if (result != 0)
                     {
-                        logger.Log(p.Service.App.Config.ProcessReturnErrorLogLevel,
+                        logger.Log(p.Service.Zeze.Config.ProcessReturnErrorLogLevel,
                             "Task {0} Return={1}@{2}:{3} UserState={4}",
                             actionName,
                             result,

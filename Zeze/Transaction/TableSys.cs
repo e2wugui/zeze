@@ -28,12 +28,12 @@ namespace Zeze.Transaction
 
         public AutoKeys AutoKeys => storage.AutoKeys;
         public Schemas SchemasPrevious => storage.SchemasPrevious;
-        public Application App { get; private set; }
+        public Application Zeze { get; private set; }
 
         internal void SaveSchemas(Schemas schemas)
         {
             // 这个是在Zeze.Start过程中设置，加个严格的全局写锁，以后Checkpoint保存一次就会清除。
-            App.Checkpoint.FlushReadWriteLock.EnterWriteLock();
+            Zeze.Checkpoint.FlushReadWriteLock.EnterWriteLock();
             try
             {
                 var bb = ByteBuffer.Allocate();
@@ -42,7 +42,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                App.Checkpoint.FlushReadWriteLock.ExitWriteLock();
+                Zeze.Checkpoint.FlushReadWriteLock.ExitWriteLock();
             }
         }
 
@@ -50,7 +50,7 @@ namespace Zeze.Transaction
         {
             if (null != storage)
                 throw new Exception("tablesys has opened");
-            App = app;
+            Zeze = app;
             storage = new StorageSys(app, database);
             return storage;
         }

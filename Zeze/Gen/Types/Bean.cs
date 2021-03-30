@@ -92,6 +92,7 @@ namespace Zeze.Gen.Types
 		{
 			Space = space;
 			_name = self.GetAttribute("name").Trim();
+			Program.CheckReserveName(_name);
 			Type.Add(space, this);
 			space.Add(this);
 

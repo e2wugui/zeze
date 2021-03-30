@@ -22,25 +22,71 @@ namespace Zeze
 {
     public class Schemas : Serializable
     {
+        public class Checked : System.IComparable
+        {
+            public string PreviousBeanName { get; set; }
+            public string CurrentBeanName { get; set; }
+
+            public int CompareTo(object obj)
+            {
+                if (this == obj)
+                    return 0;
+                if (obj is Checked other)
+                {
+                    int c = 0;
+                    c = PreviousBeanName.CompareTo(other.PreviousBeanName);
+                    if (c != 0)
+                        return c;
+                    c = CurrentBeanName.CompareTo(other.CurrentBeanName);
+                    if (c != 0)
+                        return c;
+                    return c;
+                }
+                throw new System.Exception("CompareTo: another object is not Checked.");
+            }
+        }
+
+        public class Context
+        {
+            public Schemas Current { get; set; }
+            public Schemas Previous { get; set; }
+            public HashSet<Checked> Checked { get; } = new HashSet<Checked>();
+
+            public bool SetChecked(string previousBeanName, string currentBeanName)
+            {
+                return Checked.Add(new Schemas.Checked()
+                {
+                    PreviousBeanName = previousBeanName,
+                    CurrentBeanName = currentBeanName,
+                });
+            }
+        }
         public class Type : Serializable
         {
             public string Name { get;  set; }
-            public string KeyName { get; set; } = "";
-            public string ValueName { get; set; } = "";
+            public string KeyName { get { return _KeyName; } set { _KeyName = value; } }
+            public string ValueName { get { return _ValueName; } set { _ValueName = value; } }
 
-            public Type Key { get; private set; }
-            public Type Value { get; private set; }
+            public Type Key { get { return _Key; } private set { _Key = value; } }
+            public Type Value { get { return _Value; } private set { _Value = value; } }
 
-            public static bool IsCompatible(Type a, Type b)
+            private string _KeyName = "";
+            private string _ValueName = "";
+            private Type _Key;
+            private Type _Value;
+
+            public static bool IsCompatible(Type a, Type b,
+                Context context, ref string varTypeName, ref Type varType)
             {
                 if (a == b) // same instance || all null
                     return true;
                 if (null != a)
-                    return a.IsCompatible(b);
+                    return a.IsCompatible(b, context, ref varTypeName, ref varType);
                 return false; // b.IsCompatible(a);
             }
 
-            public virtual bool IsCompatible(Type other)
+            public virtual bool IsCompatible(Type other,
+                Context context, ref string varTypeName, ref Type varType)
             {
                 if (other == this)
                     return true;
@@ -51,10 +97,10 @@ namespace Zeze
                 if (false == Name.Equals(other.Name))
                     return false;
 
-                if (false == IsCompatible(Key, other.Key))
+                if (false == IsCompatible(Key, other.Key, context, ref _KeyName, ref _Key))
                     return false;
 
-                if (false == IsCompatible(Value, other.Value))
+                if (false == IsCompatible(Value, other.Value, context, ref _ValueName, ref _Value))
                     return false;
 
                 return true;
@@ -89,6 +135,12 @@ namespace Zeze
                         value.KeyRefCount++;
                 }
             }
+
+            public virtual void TryCreateBeanIfRefZeroWhenDelete(Context context, ref string varTypeName, ref Type varType)
+            {
+                Key?.TryCreateBeanIfRefZeroWhenDelete(context, ref _KeyName, ref _Key);
+                Value?.TryCreateBeanIfRefZeroWhenDelete(context, ref _ValueName, ref _Value);
+            }
         }
 
         public class Variable : Serializable
@@ -99,6 +151,7 @@ namespace Zeze
             public string KeyName { get; set; } = "";
             public string ValueName { get; set; } = "";
             public Type Type { get; private set; }
+            public bool Deleted { get; set; } = false;
 
             public void Decode(ByteBuffer bb)
             {
@@ -107,6 +160,7 @@ namespace Zeze
                 TypeName = bb.ReadString();
                 KeyName = bb.ReadString();
                 ValueName = bb.ReadString();
+                Deleted = bb.ReadBool();
             }
 
             public void Encode(ByteBuffer bb)
@@ -116,6 +170,7 @@ namespace Zeze
                 bb.WriteString(TypeName);
                 bb.WriteString(KeyName);
                 bb.WriteString(ValueName);
+                bb.WriteBool(Deleted);
             }
 
             public void Compile(Schemas s)
@@ -123,21 +178,33 @@ namespace Zeze
                 Type = s.Compile(TypeName, KeyName, ValueName);
             }
 
-            public Variable()
+            public bool IsCompatible(Variable other, Context context)
             {
-
+                string varName = TypeName;
+                Type varType = Type;
+                bool result = this.Type.IsCompatible(other.Type, context, ref varName, ref varType);
+                // 只有 bean 的时候才可能会被修改。
+                // 下面不判断是否真的发生bean重新命名。
+                TypeName = varName;
+                Type = varType;
+                // collection 时在Type内部传递ref，把修改复制到变量里。
+                KeyName = this.Type.KeyName;
+                ValueName = this.Type.ValueName;
+                return result;
             }
 
-            private Variable(int id, string name)
+            public void TryCreateBeanIfRefZeroWhenDelete(Context context)
             {
-                Id = id;
-                Name = name;
-                TypeName = ""; // 不指定类型用来表示已经删除。
-            }
-
-            public Variable Delete()
-            {
-                return new Variable(Id, Name);
+                string varName = TypeName;
+                Type varType = Type;
+                this.Type.TryCreateBeanIfRefZeroWhenDelete(context, ref varName, ref varType);
+                // 只有 bean 的时候才可能会被修改。
+                // 下面不判断是否真的发生bean重新命名。
+                TypeName = varName;
+                Type = varType;
+                // collection 时在Type内部传递ref，把修改复制到变量里。
+                KeyName = this.Type.KeyName;
+                ValueName = this.Type.ValueName;
             }
         }
 
@@ -148,6 +215,12 @@ namespace Zeze
             public Dictionary<int, Variable> Variables { get; } = new Dictionary<int, Variable>();
             public bool IsBeanKey { get; set; } = false;
             public int KeyRefCount { get; set; } = 0;
+            public bool Deleted { get; private set; } = false;
+            // 这里记录在当前版本Schemas中Bean的实际名字，只有生成的bean包含这个。
+            public string RealName { get; private set; } = "";
+
+            // 这个变量在Previous版本的数据里面修改标记。
+            public bool CreateBeanIfRefZeroWhenDelete { get; private set; } = false;
 
             /// <summary>
             /// var可能增加，也可能删除，所以兼容仅判断var.id相同的。
@@ -155,32 +228,40 @@ namespace Zeze
             /// </summary>
             /// <param name="other"></param>
             /// <returns></returns>
-            public override bool IsCompatible(Type other)
+            public override bool IsCompatible(Type other,
+                Context context, ref string varTypeName, ref Type varType)
             {
                 if (other == null)
                     return false;
 
                 if (other is Bean beanOther)
                 {
+                    if (false == context.SetChecked(beanOther.Name, Name))
+                        return true;
+
                     List<Variable> Deleteds = new List<Variable>();
                     foreach (var vOther in beanOther.Variables.Values)
                     {
                         if (Variables.TryGetValue(vOther.Id, out var vThis))
                         {
-                            if (string.IsNullOrEmpty(vThis.TypeName))
+                            if (vThis.Deleted)
                             {
                                 // bean 可能被多个地方使用，前面比较的时候，创建或者复制了被删除的变量。
                                 // 所以可能存在已经被删除var，这个时候忽略比较就行了。
-                                // 正常情况下，TypeName是不可能为空的。
                                 continue;
                             }
-                            if (string.IsNullOrEmpty(vOther.TypeName))
+                            if (vOther.Deleted)
                             {
+                                if (vThis.IsCompatible(vOther, context))
+                                {
+                                    // 反悔
+                                    continue;
+                                }
                                 // 重用了已经被删除的var。此时vOther.Type也是null。
                                 logger.Error("Not Compatible. bean={0} variable={1} Can Not Reuse Deleted Variable.Id", Name, vThis.Name);
                                 return false;
                             }
-                            if (false == Type.IsCompatible(vOther.Type, vThis.Type))
+                            if (false == vThis.IsCompatible(vOther, context))
                             {
                                 logger.Error("Not Compatible. bean={0} variable={1}", Name, vOther.Name);
                                 return false;
@@ -189,7 +270,15 @@ namespace Zeze
                         else
                         {
                             // 新删除或以前删除的都创建一个新的。
-                            Deleteds.Add(vOther.Delete());
+                            Deleteds.Add(new Variable()
+                            {
+                                Id = vOther.Id,
+                                Name = vOther.Name,
+                                TypeName = vOther.TypeName,
+                                KeyName = vOther.KeyName,
+                                ValueName = vOther.ValueName,
+                                Deleted = true,
+                            });
                         }
                     }
                     // 限制beankey的var只能增加，不能减少。
@@ -205,7 +294,7 @@ namespace Zeze
                         }
                         foreach (var vOther in beanOther.Variables.Values)
                         {
-                            if (string.IsNullOrEmpty(vOther.TypeName))
+                            if (vOther.Deleted)
                             {
                                 // 当作Key前允许删除变量，所以可能存在已经被删除的变量。
                                 continue;
@@ -218,23 +307,131 @@ namespace Zeze
                             }
                         }
                     }
-                    // 把本次（包括以前）删除的变量复制过来。
-                    foreach (var vDelete in Deleteds)
+
+                    if (Deleteds.Count > 0)
                     {
-                        // 一次Schemas比较操作中，Bean.IsCompatible可能被调用多次，
-                        // 但除了第一次，以后调用时，Deleteds应该都是空的，
-                        // 这里用一下TryAdd表示一下？当然Add会严格点。
-                        Variables.Add(vDelete.Id, vDelete);
+                        // 把本次（包括以前）删除的变量复制过来。
+                        if (beanOther.Name.Equals(this.Name))
+                        {
+                            // Name 相同，正常情况下删除 bean.var。不新建Bean。
+                            foreach (var vDelete in Deleteds)
+                            {
+                                Variables.Add(vDelete.Id, vDelete);
+                            }
+                        }
+                        else
+                        {
+                            Bean newBean = CopyExcludeDeletedVariable();
+                            while (true)
+                            {
+                                if (context.Current.Beans.TryAdd(newBean.Name, newBean))
+                                {
+                                    varTypeName = newBean.Name;
+                                    varType = newBean;
+                                    break;
+                                }
+                                newBean.Name = Schemas.GenerateName();
+                            }
+                            foreach (var vDelete in Deleteds)
+                            {
+                                vDelete.TryCreateBeanIfRefZeroWhenDelete(context);
+                                newBean.Variables.Add(vDelete.Id, vDelete);
+                            }
+                        }
                     }
                     return true;
                 }
                 return false;
             }
 
+            public override void TryCreateBeanIfRefZeroWhenDelete(Context context, ref string varTypeName, ref Type varType)
+            {
+                if (CreateBeanIfRefZeroWhenDelete)
+                    return;
+                CreateBeanIfRefZeroWhenDelete = true;
+
+                if (Name.StartsWith("_"))
+                {
+                    // bean 是内部创建的，可能是原来删除的，也可能是合并改名引起的。
+                    if (context.Current.Beans.TryGetValue(RealName, out var _))
+                        return;
+
+                    if (context.Current.Beans.TryAdd(Name, this))
+                        return; // 直接引用旧的实例。
+
+                    var newb = Copy(); // 原来创建的名字重复了，新建一个，可能性不大。
+                    while (true)
+                    {
+                        if (context.Current.Beans.TryAdd(newb.Name, newb))
+                        {
+                            varTypeName = newb.Name;
+                            varType = newb;
+                            return;
+                        }
+                        newb.Name = Schemas.GenerateName();
+                    }
+                }
+
+                // 通过查找当前Schemas来发现RefZero。
+                if (context.Current.Beans.TryGetValue(Name, out var _))
+                    return;
+                var newb2 = Copy();
+                while (true)
+                {
+                    if (context.Current.Beans.TryAdd(newb2.Name, newb2))
+                    {
+                        varTypeName = newb2.Name;
+                        varType = newb2;
+                        break;
+                    }
+                    newb2.Name = Schemas.GenerateName();
+                }
+
+                foreach (var v in Variables.Values)
+                {
+                    v.TryCreateBeanIfRefZeroWhenDelete(context);
+                }
+            }
+
+            private Bean Copy()
+            {
+                var newBean = new Bean();
+                newBean.Name = Schemas.GenerateName();
+                newBean.IsBeanKey = this.IsBeanKey;
+                newBean.KeyRefCount = this.KeyRefCount;
+                newBean.RealName = this.Name;
+                newBean.Deleted = this.Deleted;
+                foreach (var v in Variables.Values)
+                {
+                    newBean.Variables.Add(v.Id, v); // 这些变量不会被改变，先不拷贝了。需要再拷贝。
+                }
+                return newBean;
+            }
+
+            private Bean CopyExcludeDeletedVariable()
+            {
+                var newBean = new Bean();
+                newBean.Name = Schemas.GenerateName();
+                newBean.IsBeanKey = this.IsBeanKey;
+                newBean.KeyRefCount = this.KeyRefCount;
+                newBean.RealName = this.Name;
+                // Deleted 仅用来保存不被引用的Bean，这种情况下不可能发生Copy需求。
+
+                foreach (var v in Variables.Values)
+                {
+                    if (v.Deleted)
+                        continue;
+                    newBean.Variables.Add(v.Id, v); // 这些变量不会被改变，先不拷贝了。需要再拷贝。
+                }
+                return newBean;
+            }
+
             public override void Decode(ByteBuffer bb)
             {
                 Name = bb.ReadString();
                 IsBeanKey = bb.ReadBool();
+                Deleted = bb.ReadBool();
+                RealName = bb.ReadString();
                 for (int count = bb.ReadInt(); count > 0; --count)
                 {
                     var v = new Variable();
@@ -247,6 +444,8 @@ namespace Zeze
             {
                 bb.WriteString(Name);
                 bb.WriteBool(IsBeanKey);
+                bb.WriteBool(Deleted);
+                bb.WriteString(RealName);
                 bb.WriteInt(Variables.Count);
                 foreach (var v in Variables.Values)
                 {
@@ -271,10 +470,15 @@ namespace Zeze
         public class Table : Serializable
         {
             public string Name { get; set; } // FullName, sample: demo_Module1_Table1
-            public string KeyName { get; set; }
-            public string ValueName { get; set; }
-            public Type KeyType { get; private set; }
-            public Bean ValueType { get; private set; } // Must Be Bean
+            public string KeyName { get { return _KeyName; } set { _KeyName = value; } }
+            public string ValueName { get { return _ValueName; } set { _ValueName = value; } }
+            public Type KeyType { get { return _KeyType; } private set { _KeyType = value; } }
+            public Type ValueType { get { return _ValueType; } private set { _ValueType = value; } }
+
+            private string _KeyName;
+            private string _ValueName;
+            private Type _KeyType;
+            private Type _ValueType;
 
             public void Decode(ByteBuffer bb)
             {
@@ -290,11 +494,11 @@ namespace Zeze
                 bb.WriteString(ValueName);
             }
 
-            public bool IsCompatible(Table other)
+            public bool IsCompatible(Table other, Context context)
             {
                 return Name.Equals(other.Name)
-                    && KeyType.IsCompatible(other.KeyType)
-                    && ValueType.IsCompatible(other.ValueType);
+                    && KeyType.IsCompatible(other.KeyType, context, ref _KeyName, ref _KeyType)
+                    && ValueType.IsCompatible(other.ValueType, context, ref _ValueName, ref _ValueType);
             }
 
             public void Compile(Schemas s)
@@ -302,7 +506,7 @@ namespace Zeze
                 KeyType = s.Compile(KeyName, "", "");
                 if (KeyType is Bean bean)
                     bean.KeyRefCount++;
-                ValueType = (Bean)s.Compile(ValueName, "", "");
+                ValueType = s.Compile(ValueName, "", "");
             }
         }
 
@@ -316,11 +520,16 @@ namespace Zeze
             if (null == other)
                 return true;
 
+            var context = new Context()
+            {
+                Current = this,
+                Previous = other,
+            };
             foreach (var table in Tables.Values)
             {
                 if (other.Tables.TryGetValue(table.Name, out var otherTable))
                 {
-                    if (false == table.IsCompatible(otherTable))
+                    if (false == table.IsCompatible(otherTable, context))
                     {
                         logger.Error("Not Compatible. table={0}", table.Name);
                         return false;
@@ -395,6 +604,11 @@ namespace Zeze
             OtherTypes.Add($"{type}:{key}:{value}", n);
             n.Compile(this); // 容器需要编译。这里的时机不是太好。
             return n;
+        }
+
+        public static string GenerateName()
+        {
+            return "_" + DateTime.Now.Ticks;
         }
 
         public void AddBean(Bean bean)

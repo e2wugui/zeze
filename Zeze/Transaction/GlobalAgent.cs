@@ -116,14 +116,14 @@ namespace Zeze.Transaction
                 }
                 if (Logined.Task.IsCompletedSuccessfully)
                 {
-                    foreach (var database in client.App.Databases.Values)
+                    foreach (var database in client.Zeze.Databases.Values)
                     {
                         foreach (var table in database.Tables)
                         {
                             table.ReduceInvalidAllLocalOnly(GlobalCacheManagerHashIndex);
                         }
                     }
-                    client.App.CheckpointRun();
+                    client.Zeze.CheckpointRun();
                 }
                 Logined.TrySetException(ex); // 连接关闭，这个继续保持。仅在Connect里面需要时创建。
             }
@@ -171,10 +171,10 @@ namespace Zeze.Transaction
             switch (rpc.Argument.State)
             {
                 case GlobalCacheManager.StateInvalid:
-                    return App.GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceInvalid(rpc);
+                    return Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceInvalid(rpc);
 
                 case GlobalCacheManager.StateShare:
-                    return App.GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceShare(rpc);
+                    return Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceShare(rpc);
 
                 default:
                     rpc.Result = rpc.Argument;
@@ -183,11 +183,11 @@ namespace Zeze.Transaction
             }
         }
 
-        public Zeze.Application App { get;  }
+        public Zeze.Application Zeze { get;  }
 
         public GlobalAgent(Zeze.Application app)
         {
-            App = app;
+            Zeze = app;
         }
 
         public void Start(string hostNameOrAddress, int port)
@@ -197,7 +197,7 @@ namespace Zeze.Transaction
                 if (null != Client)
                     return;
 
-                Client = new GlobalClient(this, App);
+                Client = new GlobalClient(this, Zeze);
                 Client.AddFactoryHandle(new GlobalCacheManager.Reduce().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new GlobalCacheManager.Reduce(),
@@ -285,7 +285,7 @@ namespace Zeze.Transaction
             if (agent.LoginedTimes.Get() > 1)
             {
                 var relogin = new GlobalCacheManager.ReLogin();
-                relogin.Argument.AutoKeyLocalId = App.Config.AutoKeyLocalId;
+                relogin.Argument.AutoKeyLocalId = Zeze.Config.AutoKeyLocalId;
                 relogin.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
                 relogin.Send(so, (_) =>
                 {
@@ -308,7 +308,7 @@ namespace Zeze.Transaction
             else
             {
                 var login = new GlobalCacheManager.Login();
-                login.Argument.AutoKeyLocalId = App.Config.AutoKeyLocalId;
+                login.Argument.AutoKeyLocalId = Zeze.Config.AutoKeyLocalId;
                 login.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
                 login.Send(so, (_) =>
                 {
@@ -344,7 +344,7 @@ namespace Zeze.Transaction
             // Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
             if (null != factoryHandle.Handle)
             {
-                agent.App.InternalThreadPool.QueueUserWorkItem(() => factoryHandle.Handle(p));
+                agent.Zeze.InternalThreadPool.QueueUserWorkItem(() => factoryHandle.Handle(p));
             }
         }
 

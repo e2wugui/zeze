@@ -21,7 +21,7 @@ namespace Zeze.Transaction
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public Application App { get; }
+        public Application Zeze { get; }
 
         public Func<int> Action { get; set; }
 
@@ -30,14 +30,14 @@ namespace Zeze.Transaction
         // 用于继承方式实现 Procedure。
         public Procedure(Application app)
         {
-            App = app;
+            Zeze = app;
         }
 
         public object UserState { get; set; }
 
         public Procedure(Application app, Func<int> action, string actionName, object userState)
         {
-            App = app;
+            Zeze = app;
             Action = action;
             ActionName = actionName;
             UserState = userState;
@@ -81,12 +81,12 @@ namespace Zeze.Transaction
                     return Success;
                 }
                 currentT.Rollback();
-                logger.Log(App.Config.ProcessReturnErrorLogLevel,
+                logger.Log(Zeze.Config.ProcessReturnErrorLogLevel,
                     "Procedure {0} Return{1}@{2}:{3} UserState={4}",
                     ToString(),
                     result,
-                    Zeze.Net.Protocol.GetModuleId(result),
-                    Zeze.Net.Protocol.GetProtocolId(result),
+                    global::Zeze.Net.Protocol.GetModuleId(result),
+                    global::Zeze.Net.Protocol.GetProtocolId(result),
                     UserState);
 #if ENABLE_STATISTICS
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(result).IncrementAndGet();
