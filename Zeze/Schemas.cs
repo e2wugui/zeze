@@ -47,6 +47,15 @@ namespace Zeze
         public class CheckResult
         {
             public Bean Bean { get; set; }
+            public List<Action<Bean>> Updates { get; set; } = new List<Action<Bean>>();
+
+            public void Update()
+            {
+                foreach (var update in Updates)
+                {
+                    update(Bean);
+                }
+            }
         }
         public class Context
         {
@@ -79,6 +88,26 @@ namespace Zeze
             public void AddCreateBeanIfRefZero(Bean bean, CheckResult result)
             {
                 CreateBeanIfRefZero.Add(bean, result);
+            }
+
+            public void Update()
+            {
+                foreach (var r in Checked.Values)
+                {
+                    r.Update();
+                }
+                foreach (var r in CreateBeanIfRefZero.Values)
+                {
+                    r.Update();
+                }
+            }
+
+            private long ReNameCount = 0;
+
+            public string GenerateUniqueName()
+            {
+                ++ReNameCount;
+                return "_" + ReNameCount;
             }
         }
 
@@ -261,7 +290,7 @@ namespace Zeze
                     CheckResult result = context.GetCheckResult(beanOther, this);
                     if (null != result)
                     {
-                        Update(result.Bean);
+                        result.Updates.Add(Update);
                         return true;
                     }
                     result = new CheckResult() { Bean = this }; // result在后面可能被更新。
@@ -338,30 +367,10 @@ namespace Zeze
 
                     if (Deleteds.Count > 0)
                     {
-                        // 把本次（包括以前）删除的变量复制过来。
-                        /*
-                        if (beanOther.Name.Equals(this.Name))
-                        {
-                            // Name 相同，正常情况下删除 bean.var。不新建Bean。
-                            foreach (var vDelete in Deleteds)
-                            {
-                                Variables.Add(vDelete.Id, vDelete);
-                            }
-                            return true;
-                            // 总是新建Bean，否则的话，不知道会不会有没有考虑到的情况。
-                        }
-                        */
-                        Bean newBean = Copy(); // CopyExcludeDeletedVariable
-                        while (true)
-                        {
-                            if (context.Current.Beans.TryAdd(newBean.Name, newBean))
-                            {
-                                Update(newBean);
-                                result.Bean = newBean; // 保存下来，后续重复的比较需要更新到最新的Bean。
-                                break;
-                            }
-                            newBean.Name = Schemas.GenerateName();
-                        }
+                        Bean newBean = Copy(context);
+                        context.Current.AddBean(newBean);
+                        result.Bean = newBean;
+                        result.Updates.Add(Update);
                         foreach (var vDelete in Deleteds)
                         {
                             vDelete.TryCreateBeanIfRefZeroWhenDelete(context);
@@ -378,7 +387,7 @@ namespace Zeze
                 CheckResult result = context.GetCreateBeanIfRefZero(this);
                 if (null != result)
                 {
-                    Update(result.Bean);
+                    result.Updates.Add(Update);
                     return;
                 }
                 result = new CheckResult() { Bean = this };
@@ -390,37 +399,23 @@ namespace Zeze
                     if (context.Current.Beans.TryGetValue(RealName, out var _))
                         return;
 
-                    if (context.Current.Beans.TryAdd(Name, this))
-                        return; // 直接引用旧的实例。
-
-                    var newb = Copy(); // 原来创建的名字重复了，新建一个，可能性不大。
-                    while (true)
-                    {
-                        if (context.Current.Beans.TryAdd(newb.Name, newb))
-                        {
-                            Update(newb);
-                            result.Bean = newb;
-                            return;
-                        }
-                        newb.Name = Schemas.GenerateName();
-                    }
+                    var newb = Copy(context);
+                    newb.RealName = RealName; // 原来是新建的Bean，要使用这个。
+                    context.Current.AddBean(newb);
+                    result.Bean = newb;
+                    result.Updates.Add(Update);
+                    return;
                 }
 
                 // 通过查找当前Schemas来发现RefZero。
                 if (context.Current.Beans.TryGetValue(Name, out var _))
                     return;
-                var newb2 = Copy();
+
+                var newb2 = Copy(context);
                 newb2.Deleted = true;
-                while (true)
-                {
-                    if (context.Current.Beans.TryAdd(newb2.Name, newb2))
-                    {
-                        Update(newb2);
-                        result.Bean = newb2;
-                        break;
-                    }
-                    newb2.Name = Schemas.GenerateName();
-                }
+                context.Current.AddBean(newb2);
+                result.Bean = newb2;
+                result.Updates.Add(Update);
 
                 foreach (var v in Variables.Values)
                 {
@@ -428,10 +423,10 @@ namespace Zeze
                 }
             }
 
-            private Bean Copy()
+            private Bean Copy(Context context)
             {
                 var newBean = new Bean();
-                newBean.Name = Schemas.GenerateName();
+                newBean.Name = context.GenerateUniqueName();
                 newBean.IsBeanKey = this.IsBeanKey;
                 newBean.KeyRefCount = this.KeyRefCount;
                 newBean.RealName = this.Name;
@@ -442,26 +437,6 @@ namespace Zeze
                 }
                 return newBean;
             }
-
-            /*
-            private Bean CopyExcludeDeletedVariable()
-            {
-                var newBean = new Bean();
-                newBean.Name = Schemas.GenerateName();
-                newBean.IsBeanKey = this.IsBeanKey;
-                newBean.KeyRefCount = this.KeyRefCount;
-                newBean.RealName = this.Name;
-                // Deleted 仅用来保存不被引用的Bean，这种情况下不可能发生Copy需求。
-
-                foreach (var v in Variables.Values)
-                {
-                    if (v.Deleted)
-                        continue;
-                    newBean.Variables.Add(v.Id, v); // 这些变量不会被改变，先不拷贝了。需要再拷贝。
-                }
-                return newBean;
-            }
-            */
 
             public override void Decode(ByteBuffer bb)
             {
@@ -576,6 +551,7 @@ namespace Zeze
                     }
                 }
             }
+            context.Update();
             return true;
         }
 
@@ -644,11 +620,6 @@ namespace Zeze
             OtherTypes.Add($"{type}:{key}:{value}", n);
             n.Compile(this); // 容器需要编译。这里的时机不是太好。
             return n;
-        }
-
-        public static string GenerateName()
-        {
-            return "_" + DateTime.Now.Ticks;
         }
 
         public void AddBean(Bean bean)

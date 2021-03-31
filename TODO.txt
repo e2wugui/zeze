@@ -29,5 +29,6 @@ ConfigEditor
 	增加一个工作线程，所有数据操作都放到这里面，和UI线程交互。看情况再决定做不做。
 	enum 现在不支持引用在其他文档定义的，有需要了再来加。
 
-DynamicBean 辅助写了70多行。准备改gen了，cs，lua，ts，还有使用的地方：game，game2。我想想还有没有涉及到的地方。，，，
-DynamicBean.VariableId 和 内部Bean的VariableId设置问题。
+DynamicBean 
+	gen，cs，lua，ts，
+	game，game2
