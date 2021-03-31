@@ -63,6 +63,7 @@ namespace Zeze
             public Schemas Previous { get; set; }
             public Dictionary<Checked, CheckResult> Checked { get; } = new Dictionary<Checked, CheckResult>();
             public Dictionary<Bean, CheckResult> CreateBeanIfRefZero { get; } = new Dictionary<Bean, CheckResult>();
+            public HashSet<Variable> AllVariables { get; } = new HashSet<Variable>();
 
             public CheckResult GetCheckResult(Bean previous, Bean current)
             {
@@ -92,13 +93,17 @@ namespace Zeze
 
             public void Update()
             {
-                foreach (var r in Checked.Values)
+                foreach (var result in Checked.Values)
                 {
-                    r.Update();
+                    result.Update();
                 }
-                foreach (var r in CreateBeanIfRefZero.Values)
+                foreach (var result in CreateBeanIfRefZero.Values)
                 {
-                    r.Update();
+                    result.Update();
+                }
+                foreach (var v in AllVariables)
+                {
+                    v.Update();
                 }
             }
 
@@ -238,15 +243,18 @@ namespace Zeze
 
             public bool IsCompatible(Variable other, Context context)
             {
-                bool result = this.Type.IsCompatible(other.Type, context, (bean) =>
+                context.AllVariables.Add(this);
+                return this.Type.IsCompatible(other.Type, context, (bean) =>
                 {
                     TypeName = bean.Name;
                     Type = bean;
                 });
-                // collection 时在Type内部变量可能发生改变，把修改复制过来。
+            }
+
+            public void Update()
+            {
                 KeyName = this.Type.KeyName;
                 ValueName = this.Type.ValueName;
-                return result;
             }
 
             public void TryCreateBeanIfRefZeroWhenDelete(Context context)
@@ -256,9 +264,7 @@ namespace Zeze
                     TypeName = bean.Name;
                     Type = bean;
                 });
-                // collection 时在Type内部传递ref，把修改复制到变量里。
-                KeyName = this.Type.KeyName;
-                ValueName = this.Type.ValueName;
+                context.AllVariables.Add(this);
             }
         }
 
@@ -433,7 +439,7 @@ namespace Zeze
                 newBean.Deleted = this.Deleted;
                 foreach (var v in Variables.Values)
                 {
-                    newBean.Variables.Add(v.Id, v); // 这些变量不会被改变，先不拷贝了。需要再拷贝。
+                    newBean.Variables.Add(v.Id, v);
                 }
                 return newBean;
             }
