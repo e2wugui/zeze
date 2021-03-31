@@ -22,45 +22,66 @@ namespace Zeze
 {
     public class Schemas : Serializable
     {
-        public class Checked : System.IComparable
+        public class Checked
         {
-            public string PreviousBeanName { get; set; }
-            public string CurrentBeanName { get; set; }
+            public Bean Previous { get; set; }
+            public Bean Current { get; set; }
 
-            public int CompareTo(object obj)
+            public override int GetHashCode()
+            {
+                const int _prime_ = 31;
+                int _h_ = 0;
+                _h_ = _h_ * _prime_ + Previous.Name.GetHashCode();
+                _h_ = _h_ * _prime_ + Current.Name.GetHashCode();
+                return _h_;
+            }
+
+            public override bool Equals(object obj)
             {
                 if (this == obj)
-                    return 0;
-                if (obj is Checked other)
-                {
-                    int c = 0;
-                    c = PreviousBeanName.CompareTo(other.PreviousBeanName);
-                    if (c != 0)
-                        return c;
-                    c = CurrentBeanName.CompareTo(other.CurrentBeanName);
-                    if (c != 0)
-                        return c;
-                    return c;
-                }
-                throw new System.Exception("CompareTo: another object is not Checked.");
+                    return true;
+                return (obj is Checked other) && Previous == other.Previous && Current == other.Current;
             }
         }
 
+        public class CheckResult
+        {
+            public Bean Bean { get; set; }
+        }
         public class Context
         {
             public Schemas Current { get; set; }
             public Schemas Previous { get; set; }
-            public HashSet<Checked> Checked { get; } = new HashSet<Checked>();
+            public Dictionary<Checked, CheckResult> Checked { get; } = new Dictionary<Checked, CheckResult>();
+            public Dictionary<Bean, CheckResult> CreateBeanIfRefZero { get; } = new Dictionary<Bean, CheckResult>();
 
-            public bool SetChecked(string previousBeanName, string currentBeanName)
+            public CheckResult GetCheckResult(Bean previous, Bean current)
             {
-                return Checked.Add(new Schemas.Checked()
-                {
-                    PreviousBeanName = previousBeanName,
-                    CurrentBeanName = currentBeanName,
-                });
+                if (Checked.TryGetValue(
+                    new Schemas.Checked() { Previous = previous, Current = current },
+                    out var exist))
+                    return exist;
+                return null;
+            }
+
+            public void AddCheckResult(Bean previous, Bean current, CheckResult result)
+            {
+                Checked.Add(new Schemas.Checked() { Previous = previous, Current = current }, result);
+            }
+
+            public CheckResult GetCreateBeanIfRefZero(Bean bean)
+            {
+                if (CreateBeanIfRefZero.TryGetValue(bean, out var exist))
+                    return exist;
+                return null;
+            }
+
+            public void AddCreateBeanIfRefZero(Bean bean, CheckResult result)
+            {
+                CreateBeanIfRefZero.Add(bean, result);
             }
         }
+
         public class Type : Serializable
         {
             public string Name { get;  set; }
@@ -136,17 +157,17 @@ namespace Zeze
                 }
             }
 
-            public virtual void TryCreateBeanIfRefZeroWhenDelete(Context context, Action<string, Type> Update)
+            public virtual void TryCreateBeanIfRefZeroWhenDelete(Context context, Action<Bean> Update)
             {
-                Key?.TryCreateBeanIfRefZeroWhenDelete(context, (name, type) =>
+                Key?.TryCreateBeanIfRefZeroWhenDelete(context, (bean) =>
                 {
-                    KeyName = name;
-                    Key = type;
+                    KeyName = bean.Name;
+                    Key = bean;
                 });
-                Value?.TryCreateBeanIfRefZeroWhenDelete(context, (name, type) =>
+                Value?.TryCreateBeanIfRefZeroWhenDelete(context, (bean) =>
                 {
-                    ValueName = name;
-                    Value = type;
+                    ValueName = bean.Name;
+                    Value = bean;
                 });
             }
         }
@@ -201,10 +222,10 @@ namespace Zeze
 
             public void TryCreateBeanIfRefZeroWhenDelete(Context context)
             {
-                this.Type.TryCreateBeanIfRefZeroWhenDelete(context, (name, type) =>
+                this.Type.TryCreateBeanIfRefZeroWhenDelete(context, (bean) =>
                 {
-                    TypeName = name;
-                    Type = type;
+                    TypeName = bean.Name;
+                    Type = bean;
                 });
                 // collection 时在Type内部传递ref，把修改复制到变量里。
                 KeyName = this.Type.KeyName;
@@ -224,9 +245,6 @@ namespace Zeze
             // 这里记录在当前版本Schemas中Bean的实际名字，只有生成的bean包含这个。
             public string RealName { get; private set; } = "";
 
-            // 这个变量在Previous版本的数据里面修改标记。
-            public bool CreateBeanIfRefZeroWhenDelete { get; private set; } = false;
-
             /// <summary>
             /// var可能增加，也可能删除，所以兼容仅判断var.id相同的。
             /// 并且和谁比较谁没有关系。
@@ -240,8 +258,14 @@ namespace Zeze
 
                 if (other is Bean beanOther)
                 {
-                    if (false == context.SetChecked(beanOther.Name, Name))
+                    CheckResult result = context.GetCheckResult(beanOther, this);
+                    if (null != result)
+                    {
+                        Update(result.Bean);
                         return true;
+                    }
+                    result = new CheckResult() { Bean = this }; // result在后面可能被更新。
+                    context.AddCheckResult(beanOther, this, result);
 
                     List<Variable> Deleteds = new List<Variable>();
                     foreach (var vOther in beanOther.Variables.Values)
@@ -333,6 +357,7 @@ namespace Zeze
                             if (context.Current.Beans.TryAdd(newBean.Name, newBean))
                             {
                                 Update(newBean);
+                                result.Bean = newBean; // 保存下来，后续重复的比较需要更新到最新的Bean。
                                 break;
                             }
                             newBean.Name = Schemas.GenerateName();
@@ -348,11 +373,16 @@ namespace Zeze
                 return false;
             }
 
-            public override void TryCreateBeanIfRefZeroWhenDelete(Context context, Action<string, Type> Update)
+            public override void TryCreateBeanIfRefZeroWhenDelete(Context context, Action<Bean> Update)
             {
-                if (CreateBeanIfRefZeroWhenDelete)
+                CheckResult result = context.GetCreateBeanIfRefZero(this);
+                if (null != result)
+                {
+                    Update(result.Bean);
                     return;
-                CreateBeanIfRefZeroWhenDelete = true;
+                }
+                result = new CheckResult() { Bean = this };
+                context.AddCreateBeanIfRefZero(this, result);
 
                 if (Name.StartsWith("_"))
                 {
@@ -368,7 +398,8 @@ namespace Zeze
                     {
                         if (context.Current.Beans.TryAdd(newb.Name, newb))
                         {
-                            Update(newb.Name, newb);
+                            Update(newb);
+                            result.Bean = this;
                             return;
                         }
                         newb.Name = Schemas.GenerateName();
@@ -384,7 +415,8 @@ namespace Zeze
                 {
                     if (context.Current.Beans.TryAdd(newb2.Name, newb2))
                     {
-                        Update(newb2.Name, newb2);
+                        Update(newb2);
+                        result.Bean = this;
                         break;
                     }
                     newb2.Name = Schemas.GenerateName();

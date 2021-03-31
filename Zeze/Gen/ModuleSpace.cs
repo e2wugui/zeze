@@ -105,6 +105,7 @@ namespace Zeze.Gen
         {
             Parent = parent;
             Name = self.GetAttribute("name").Trim();
+            Program.CheckReserveName(Name);
 
             if (hasId)
             {

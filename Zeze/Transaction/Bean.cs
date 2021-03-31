@@ -132,4 +132,78 @@ namespace Zeze.Transaction
 
         public override long TypeId => TYPEID;
     }
+
+    public class DynamicBean : Bean
+    {
+        public override long TypeId => _TypeId;
+        public Bean Bean { get; private set; }
+        private long _TypeId;
+
+        public Func<Bean, long> GetSpecialTypeIdFromBean { get; }
+        public Func<long, Bean> CreateBeanFromSpecialTypeId { get; }
+
+        public DynamicBean(Func<Bean, long> get, Func<long, Bean> create)
+        {
+            Bean = new EmptyBean();
+            GetSpecialTypeIdFromBean = get;
+            CreateBeanFromSpecialTypeId = create;
+        }
+
+        /// <summary>
+        /// 警告！
+        /// 这个方法仅用于gen生成的代码，不要直接调用。
+        /// </summary>
+        /// <param name="bean"></param>
+        /// <param name="typeId"></param>
+        protected void SetDynamicBeanWithSpecialTypeId(Bean bean, long typeId)
+        {
+            Bean = bean;
+            _TypeId = typeId;
+        }
+
+        public override bool NegativeCheck()
+        {
+            return Bean.NegativeCheck();
+        }
+
+        public override int CapacityHintOfByteBuffer => Bean.CapacityHintOfByteBuffer;
+
+        public override Bean CopyBean()
+        {
+            var copy = new DynamicBean(GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId);
+            copy.SetDynamicBeanWithSpecialTypeId(Bean.CopyBean(), TypeId);
+            return copy;
+        }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            long typeId = bb.ReadLong8();
+            Bean real = CreateBeanFromSpecialTypeId(typeId);
+            if (null != real)
+            {
+                bb.BeginReadSegment(out var _state_);
+                real.Decode(bb);
+                bb.EndReadSegment(_state_);
+                Bean = real;
+            }
+            else
+            {
+                bb.SkipBytes();
+                Bean = new EmptyBean(); // 不认识的Bean（旧的数据）或者EmptyBean都new一个新的。
+            }
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteLong8(TypeId);
+            bb.BeginWriteSegment(out var _state_);
+            Bean.Encode(bb);
+            bb.EndWriteSegment(_state_);
+        }
+
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            Bean.InitRootInfo(root, this);
+        }
+    }
 }
