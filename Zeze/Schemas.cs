@@ -399,7 +399,7 @@ namespace Zeze
                         if (context.Current.Beans.TryAdd(newb.Name, newb))
                         {
                             Update(newb);
-                            result.Bean = this;
+                            result.Bean = newb;
                             return;
                         }
                         newb.Name = Schemas.GenerateName();
@@ -416,7 +416,7 @@ namespace Zeze
                     if (context.Current.Beans.TryAdd(newb2.Name, newb2))
                     {
                         Update(newb2);
-                        result.Bean = this;
+                        result.Bean = newb2;
                         break;
                     }
                     newb2.Name = Schemas.GenerateName();
