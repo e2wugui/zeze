@@ -135,30 +135,69 @@ namespace Zeze.Transaction
 
     public class DynamicBean : Bean
     {
-        public override long TypeId => _TypeId;
-        public Bean Bean { get; private set; }
+        public override long TypeId
+        {
+            get
+            {
+                if (false == this.IsManaged)
+                    return _TypeId;
+                var txn = Transaction.Current;
+                if (txn == null)
+                    return _TypeId;
+                txn.VerifyRecordAccessed(this, true);
+                // 不能独立设置，总是设置Bean时一起Commit，所以这里访问Bean的Log。
+                var log = (Log)txn.GetLog(this.ObjectId + 1);
+                return log != null ? log.SpecialTypeId : _TypeId;
+            }
+        }
+
+        public Bean Bean
+        {
+            get
+            {
+                if (false == this.IsManaged)
+                    return _Bean;
+                var txn = Transaction.Current;
+                if (txn == null)
+                    return _Bean;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log)txn.GetLog(this.ObjectId + 1);
+                return log != null ? log.Value : _Bean;
+            }
+
+            set
+            {
+                if (null == value)
+                    throw new System.ArgumentNullException();
+
+                if (false == this.IsManaged)
+                {
+                    _TypeId = GetSpecialTypeIdFromBean(value);
+                    _Bean = value;
+                    return;
+                }
+                value.InitRootInfo(RootInfo, this);
+                value.VariableId = 1; // 只有一个变量
+                var txn = Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log(this, value));
+            }
+        }
+
         private long _TypeId;
+        private Bean _Bean;
 
         public Func<Bean, long> GetSpecialTypeIdFromBean { get; }
         public Func<long, Bean> CreateBeanFromSpecialTypeId { get; }
 
-        public DynamicBean(Func<Bean, long> get, Func<long, Bean> create)
+        public DynamicBean(int variableId, Func<Bean, long> get, Func<long, Bean> create)
+            : base(variableId)
         {
-            Bean = new EmptyBean();
+            _Bean = new EmptyBean();
+            _TypeId = EmptyBean.TYPEID;
+
             GetSpecialTypeIdFromBean = get;
             CreateBeanFromSpecialTypeId = create;
-        }
-
-        /// <summary>
-        /// 警告！
-        /// 这个方法仅用于gen生成的代码，不要直接调用。
-        /// </summary>
-        /// <param name="bean"></param>
-        /// <param name="typeId"></param>
-        protected void SetDynamicBeanWithSpecialTypeId(Bean bean, long typeId)
-        {
-            Bean = bean;
-            _TypeId = typeId;
         }
 
         public override bool NegativeCheck()
@@ -170,13 +209,31 @@ namespace Zeze.Transaction
 
         public override Bean CopyBean()
         {
-            var copy = new DynamicBean(GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId);
-            copy.SetDynamicBeanWithSpecialTypeId(Bean.CopyBean(), TypeId);
+            var copy = new DynamicBean(VariableId, GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId);
+            copy._Bean = Bean.CopyBean();
+            copy._TypeId = TypeId;
             return copy;
+        }
+
+        private void SetBeanWithSpecialTypeId(long specialTypeId, Bean bean)
+        {
+            if (false == this.IsManaged)
+            {
+                _TypeId = specialTypeId;
+                _Bean = bean;
+                return;
+            }
+            bean.InitRootInfo(RootInfo, this);
+            bean.VariableId = 1; // 只有一个变量
+            var txn = Transaction.Current;
+            txn.VerifyRecordAccessed(this);
+            txn.PutLog(new Log(specialTypeId, this, bean));
         }
 
         public override void Decode(ByteBuffer bb)
         {
+            // 由于可能在事务中执行，这里仅修改Bean
+            // TypeId 在 Bean 提交时才修改，但是要在事务中读到最新值，参见 TypeId 的 getter 实现。
             long typeId = bb.ReadLong8();
             Bean real = CreateBeanFromSpecialTypeId(typeId);
             if (null != real)
@@ -184,12 +241,12 @@ namespace Zeze.Transaction
                 bb.BeginReadSegment(out var _state_);
                 real.Decode(bb);
                 bb.EndReadSegment(_state_);
-                Bean = real;
+                SetBeanWithSpecialTypeId(typeId, real);
             }
             else
             {
                 bb.SkipBytes();
-                Bean = new EmptyBean(); // 不认识的Bean（旧的数据）或者EmptyBean都new一个新的。
+                SetBeanWithSpecialTypeId(EmptyBean.TYPEID, new EmptyBean());
             }
         }
 
@@ -204,6 +261,30 @@ namespace Zeze.Transaction
         protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
             Bean.InitRootInfo(root, this);
+        }
+
+        private sealed class Log : Zeze.Transaction.Log<DynamicBean, Zeze.Transaction.Bean>
+        {
+            public long SpecialTypeId { get; }
+
+            public Log(DynamicBean self, Zeze.Transaction.Bean value) : base(self, value)
+            {
+                // 提前转换，如果是本Dynamic中没有配置的Bean，马上抛出异常。
+                SpecialTypeId = self.GetSpecialTypeIdFromBean(value);
+            }
+
+            internal Log(long specialTypeId, DynamicBean self, Zeze.Transaction.Bean value) : base(self, value)
+            {
+                SpecialTypeId = specialTypeId;
+            }
+
+            public override long LogKey => this.Bean.ObjectId + 1;
+
+            public override void Commit()
+            {
+                this.BeanTyped._Bean = this.Value;
+                this.BeanTyped._TypeId = SpecialTypeId;
+            }
         }
     }
 }
