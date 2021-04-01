@@ -8,15 +8,16 @@ using Zeze.Serialize;
 ///   当前包含以下兼容检测。
 ///   a) 对于每个 Variable.Id，Type不能修改。
 ///   b) 不能复用已经删除的 Variable.Id。
+///      但是允许"反悔"，也就是说可以重新使用已经删除的Variable.Id时，只要Type和原来一样，就允许。
+///      这是为了处理多人使用同一个数据库进行开发时的冲突（具体不解释了）。
 ///   c) beankey 被应用于map.Key或set.Value或table.Key以后就不能再删除变量了。
 ///      当作key以后，如果删除变量，beankey.Encode() 就可能不再唯一。
 ///      
-/// 2 TODO 通过查询类型信息，从数据转换到具体实例。合服可能需要。
+/// 2 通过查询类型信息，从数据转换到具体实例。合服可能需要。
 ///   如果是通用合并的insert，应该在二进制接口上操作（目前还没有）。
 ///   如果合并时需要处理冲突，此时应用是知道具体类型的。
 ///   所以这个功能暂时先不提供了。
 ///   
-/// * 由于仅比较兼容，所以下面是一个简单实现，以后需要了再改吧。
 /// </summary>
 namespace Zeze
 {
@@ -47,7 +48,7 @@ namespace Zeze
         public class CheckResult
         {
             public Bean Bean { get; set; }
-            public List<Action<Bean>> Updates { get; set; } = new List<Action<Bean>>();
+            public List<Action<Bean>> Updates { get; } = new List<Action<Bean>>();
 
             public void Update()
             {
@@ -62,7 +63,7 @@ namespace Zeze
             public Schemas Current { get; set; }
             public Schemas Previous { get; set; }
             public Dictionary<Checked, CheckResult> Checked { get; } = new Dictionary<Checked, CheckResult>();
-            public Dictionary<Bean, CheckResult> CreateBeanIfRefZero { get; } = new Dictionary<Bean, CheckResult>();
+            public Dictionary<Bean, CheckResult> CreateBeanIfNotExistInCurrent { get; } = new Dictionary<Bean, CheckResult>();
             public HashSet<Variable> AllVariables { get; } = new HashSet<Variable>();
 
             public CheckResult GetCheckResult(Bean previous, Bean current)
@@ -79,16 +80,16 @@ namespace Zeze
                 Checked.Add(new Schemas.Checked() { Previous = previous, Current = current }, result);
             }
 
-            public CheckResult GetCreateBeanIfRefZero(Bean bean)
+            public CheckResult GetCreateBeanIfNotExistInCurrentResult(Bean bean)
             {
-                if (CreateBeanIfRefZero.TryGetValue(bean, out var exist))
+                if (CreateBeanIfNotExistInCurrent.TryGetValue(bean, out var exist))
                     return exist;
                 return null;
             }
 
-            public void AddCreateBeanIfRefZero(Bean bean, CheckResult result)
+            public void AddCreateBeanIfNotExistInCurrentResult(Bean bean, CheckResult result)
             {
-                CreateBeanIfRefZero.Add(bean, result);
+                CreateBeanIfNotExistInCurrent.Add(bean, result);
             }
 
             public void Update()
@@ -97,7 +98,7 @@ namespace Zeze
                 {
                     result.Update();
                 }
-                foreach (var result in CreateBeanIfRefZero.Values)
+                foreach (var result in CreateBeanIfNotExistInCurrent.Values)
                 {
                     result.Update();
                 }
@@ -124,15 +125,6 @@ namespace Zeze
             public Type Key { get; private set; }
             public Type Value { get; private set; }
 
-            public static bool IsCompatible(Type a, Type b, Context context, Action<Bean> Update)
-            {
-                if (a == b) // same instance || all null
-                    return true;
-                if (null != a)
-                    return a.IsCompatible(b, context, Update);
-                return false; // b.IsCompatible(a);
-            }
-
             public virtual bool IsCompatible(Type other, Context context, Action<Bean> Update)
             {
                 if (other == this)
@@ -144,19 +136,35 @@ namespace Zeze
                 if (false == Name.Equals(other.Name))
                     return false;
 
-                if (false == IsCompatible(Key, other.Key, context, (bean) =>
+                // Name 相同的情况下，下面的 Key Value 仅在 Collection 时有值。
+                // 当 this.Key == null && other.Key != null 在 Name 相同的情况下是不可能发生的。
+                if (null != Key)
                 {
-                    KeyName = bean.Name;
-                    Key= bean;
-                }))
-                    return false;
+                    if (false == Key.IsCompatible(other.Key, context, (bean) =>
+                    {
+                        KeyName = bean.Name;
+                        Key = bean;
+                    }))
+                        return false;
+                }
+                else if (other.Key != null)
+                {
+                    throw new Exception("(this.Key == null && other.Key != null) Imposible!");
+                }
 
-                if (false == IsCompatible(Value, other.Value, context, (bean) =>
+                if (null != Value)
                 {
-                    ValueName = bean.Name;
-                    Value = bean;
-                }))
-                    return false;
+                    if (false == Value.IsCompatible(other.Value, context, (bean) =>
+                    {
+                        ValueName = bean.Name;
+                        Value = bean;
+                    }))
+                        return false;
+                }
+                else if (other.Value != null)
+                {
+                    throw new Exception("(this.Value == null && other.Value != null) Imposible!");
+                }
 
                 return true;
             }
@@ -191,14 +199,14 @@ namespace Zeze
                 }
             }
 
-            public virtual void TryCreateBeanIfRefZeroWhenDelete(Context context, Action<Bean> Update)
+            public virtual void TryCreateBeanIfNotExsitInCurrentWhenDelete(Context context, Action<Bean> Update)
             {
-                Key?.TryCreateBeanIfRefZeroWhenDelete(context, (bean) =>
+                Key?.TryCreateBeanIfNotExsitInCurrentWhenDelete(context, (bean) =>
                 {
                     KeyName = bean.Name;
                     Key = bean;
                 });
-                Value?.TryCreateBeanIfRefZeroWhenDelete(context, (bean) =>
+                Value?.TryCreateBeanIfNotExsitInCurrentWhenDelete(context, (bean) =>
                 {
                     ValueName = bean.Name;
                     Value = bean;
@@ -259,7 +267,7 @@ namespace Zeze
 
             public void TryCreateBeanIfRefZeroWhenDelete(Context context)
             {
-                this.Type.TryCreateBeanIfRefZeroWhenDelete(context, (bean) =>
+                this.Type.TryCreateBeanIfNotExsitInCurrentWhenDelete(context, (bean) =>
                 {
                     TypeName = bean.Name;
                     Type = bean;
@@ -388,16 +396,16 @@ namespace Zeze
                 return false;
             }
 
-            public override void TryCreateBeanIfRefZeroWhenDelete(Context context, Action<Bean> Update)
+            public override void TryCreateBeanIfNotExsitInCurrentWhenDelete(Context context, Action<Bean> Update)
             {
-                CheckResult result = context.GetCreateBeanIfRefZero(this);
+                CheckResult result = context.GetCreateBeanIfNotExistInCurrentResult(this);
                 if (null != result)
                 {
                     result.Updates.Add(Update);
                     return;
                 }
                 result = new CheckResult() { Bean = this };
-                context.AddCreateBeanIfRefZero(this, result);
+                context.AddCreateBeanIfNotExistInCurrentResult(this, result);
 
                 if (Name.StartsWith("_"))
                 {
