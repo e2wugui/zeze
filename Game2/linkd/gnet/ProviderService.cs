@@ -32,7 +32,7 @@ namespace gnet
         public override void OnHandshakeDone(Zeze.Net.AsyncSocket sender)
         {
             base.OnHandshakeDone(sender);
-            sender.UserState = new ProviderSession();
+            sender.UserState = new ProviderSession(sender.SessionId);
         }
 
         public override void OnSocketClose(Zeze.Net.AsyncSocket so, System.Exception e)
@@ -57,11 +57,20 @@ namespace gnet
         /// 维护此Provider上绑定的StaticBinds，用来在Provider关闭的时候，进行 UnBind。
         /// 同时，当此Provider第一次被选中时，所有的StaticBinds都会一起被绑定到LinkSession上，
         /// 多线程：这里面的数据访问都处于 lock (gnet.App.Instance.gnet_Provider_Module.StaticBinds) 下
-        /// see gnet.Provider.Module
+        /// see gnet.Provider.ModuleProvider
         /// </summary>
         public HashSet<int> StaticBinds { get; } = new HashSet<int>();
-        private Zeze.Util.AtomicLong _Count { get; } = new Zeze.Util.AtomicLong();
-        public long Count => _Count.Get();
+
+        // 这里仅记录一个linkd分配过去的，需要Provider.Online的话
+        public int CountFromThisLink { get; private set; }
+        public int Online => CountFromThisLink; // TODO report from provider timer
+        public int ProposeMaxOnline => 20000; // TODO config
+        public long SessionId { get; }
+
+        public ProviderSession(long ssid)
+        {
+            SessionId = ssid;
+        }
 
         public void AddLinkSession(int moduleId, long linkSessionId)
         {
@@ -73,7 +82,7 @@ namespace gnet
                     LinkSessionIds.Add(moduleId, linkSids);
                 }
                 if (linkSids.Add(linkSessionId))
-                    _Count.AddAndGet(1);
+                    ++CountFromThisLink;
             }
         }
 
@@ -85,7 +94,7 @@ namespace gnet
                 {
                     if (linkSids.Remove(linkSessionId))
                     {
-                        _Count.AddAndGet(-1);
+                        --CountFromThisLink;
                         if (linkSids.Count == 0)
                             LinkSessionIds.Remove(moduleId);
                     }

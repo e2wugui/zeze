@@ -15,63 +15,125 @@ namespace gnet.Provider
         {
         }
 
+        /// <summary>
+        /// under lock (StaticBinds) or readonly
+        /// </summary>
         public class Providers
         {
-            // 保留计数，可以知道moduleId的访问次数。
-            public HashSet<long> ProviderSessionIds { get; } = new HashSet<long>();
+            // HashSet改成List，新增的机器放在后面，负载均衡时，从后往前搜索，会更快一些。
+            // 后台服务不会随便增删，不需要高效Add,Remove。
+            private List<long> ProviderSessionIds { get; } = new List<long>();
             public int ChoiceType { get; }
-            public Zeze.Util.AtomicLong AccessCount { get; } = new Zeze.Util.AtomicLong();
-            private long[] ProviderSessionIdArray;
+
+            public Providers DeepCopy()
+            {
+                var copy = new Providers(ChoiceType);
+                copy.ProviderSessionIds.AddRange(ProviderSessionIds);
+                return copy;
+            }
 
             public Providers(int choiceType)
             {
                 ChoiceType = choiceType;
             }
 
-            public void SetupChoice()
+            public void AddProvider(long provider)
             {
-                ProviderSessionIdArray = new long[ProviderSessionIds.Count];
-                ProviderSessionIds.CopyTo(ProviderSessionIdArray);
+                if (ProviderSessionIds.Contains(provider))
+                    return;
+                ProviderSessionIds.Add(provider);
             }
 
+            public int RemoveProvider(long provider)
+            {
+                ProviderSessionIds.Remove(provider);
+                return ProviderSessionIds.Count;
+            }
+
+            /// <summary>
+            /// 加权负载均衡
+            /// TODO 对于新起的Provider，要有节流控制，不能都选它。
+            /// </summary>
+            /// <param name="provider"></param>
+            /// <returns></returns>
             public bool Choice(out long provider)
             {
-                // 现在是顺序轮转。
-                // TODO 负载均衡：根据 ProviderSession.Count 选择。对于新起的Provider，要有节流控制，不能都选它。
-                if (ProviderSessionIdArray.Length == 0)
+                var frees = new List<ProviderSession>(ProviderSessionIds.Count);
+                int TotalWeight = 0;
+
+                // 新的provider在后面，从后面开始搜索。
+                for (int i = ProviderSessionIds.Count - 1; i >= 0; --i)
                 {
-                    provider = 0;
-                    return false;
+                    var ps = App.Instance.ProviderService.GetSocket(ProviderSessionIds[i])?.UserState as ProviderSession;
+                    if (null == ps)
+                        continue; // 这里发现关闭的服务，仅仅忽略.
+                    int weight = ps.ProposeMaxOnline - ps.Online;
+                    if (weight > 0)
+                    {
+                        frees.Add(ps);
+                        TotalWeight += weight;
+                    }
                 }
-                provider = ProviderSessionIdArray[(int)(AccessCount.IncrementAndGet() % ProviderSessionIdArray.Length)];
-                return true;
+                if (TotalWeight > 0)
+                {
+                    int randweight = Zeze.Util.Random.Instance.Next(TotalWeight);
+                    foreach (var ps in frees)
+                    {
+                        int weight = ps.ProposeMaxOnline - ps.Online;
+                        if (randweight < weight)
+                        {
+                            provider = ps.SessionId;
+                            return true;
+                        }
+                        randweight -= weight;
+                    }
+                }
+                // 选择失败，一般是都满载了，随机选择一个。
+                if (frees.Count > 0)
+                {
+                    provider = frees[Zeze.Util.Random.Instance.Next(frees.Count)].SessionId;
+                    return true;
+                }
+                // no providers
+                provider = 0;
+                return false;
             }
 
             public bool Choice(int hash, out long provider)
             {
-                if (ProviderSessionIdArray.Length == 0)
+                if (ProviderSessionIds.Count == 0)
                 {
                     provider = 0;
                     return false;
                 }
-                provider = ProviderSessionIdArray[hash % ProviderSessionIdArray.Length];
+                provider = ProviderSessionIds[hash % ProviderSessionIds.Count];
                 return true;
             }
         }
 
         private Dictionary<int, Providers> StaticBinds { get; } = new Dictionary<int, Providers>();
+        private volatile Dictionary<int, Providers> StaticBindsCopy = new Dictionary<int, Providers>();
+
+        // under lock (StaticBinds)
+        private void StaticBindsCopyNow()
+        {
+            var tmp = new Dictionary<int, Providers>();
+            foreach (var sb in StaticBinds)
+            {
+                tmp.Add(sb.Key, sb.Value.DeepCopy());
+            }
+            StaticBindsCopy = tmp;
+        }
 
         public bool ChoiceProvider(int moduleId, int hash, out long provider)
         {
-            // TODO 这个用于provider之间转发请求，需要优化并发。考虑实现方案：volatile StaticBindsCopy。不锁。
-            lock (StaticBinds)
+            // avoid lock
+            var tmp = StaticBindsCopy;
+            if (tmp.TryGetValue(moduleId, out var providers))
             {
-                if (StaticBinds.TryGetValue(moduleId, out var providers))
+                if (providers.Choice(hash, out provider))
                 {
-                    if (providers.Choice(hash, out provider))
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
             provider = 0;
@@ -161,9 +223,9 @@ namespace gnet.Provider
                             binds = new Providers(module.Value);
                             StaticBinds.Add(module.Key, binds);
                         }
-                        binds.ProviderSessionIds.Add(rpc.Sender.SessionId);
-                        binds.SetupChoice();
+                        binds.AddProvider(rpc.Sender.SessionId);
                     }
+                    StaticBindsCopyNow();
                 }
             }
             else
@@ -194,12 +256,11 @@ namespace gnet.Provider
                         providerSession.StaticBinds.Remove(moduleId);
                     if (StaticBinds.TryGetValue(moduleId, out var binds))
                     {
-                        binds.ProviderSessionIds.Remove(provider.SessionId);
-                        binds.SetupChoice();
-                        if (binds.ProviderSessionIds.Count == 0)
+                        if (binds.RemoveProvider(provider.SessionId) == 0)
                             StaticBinds.Remove(moduleId);
                     }
                 }
+                StaticBindsCopyNow();
             }
         }
         public override int ProcessUnBindRequest(UnBind rpc)
