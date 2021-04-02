@@ -29,8 +29,8 @@
 			<variable id="11" name="map11" type="map" key="long" value="demo.Module2.Value"/> com aa
 			<variable id="12" name="bean12" type="Simple"/> simple
 			<variable id="13" name="byte13" type="byte"/> com aa
-			<variable id="14" name="dynamic14" type="dynamic" value="demo.Bean1">
-				<value bean="Simple"/>
+			<variable id="14" name="dynamic14" type="dynamic" value="demo.Bean1:1">
+				<value bean="Simple:2"/>
 			</variable>
 			<variable id="15" name="map15" type="map" key="long" value="long"/> com aa
 			<variable id="16" name="map16" type="map" key="Key" value="Simple"/> com aa

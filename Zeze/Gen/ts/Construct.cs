@@ -119,7 +119,11 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + "this." + variable.Name + " = new Zeze.EmptyBean();");
+            var bean = variable.Bean as Bean;
+            sw.WriteLine(prefix + "this." + variable.Name + " = new Zeze.DynamicBean("
+                + $"{bean.Space.Path("_", bean.Name)}.GetSpecialTypeIdFromBean_{variable.NameUpper1}, "
+                + $"{bean.Space.Path("_", bean.Name)}.CreateBeanFromSpecialTypeId_{variable.NameUpper1}"
+                + ");");
         }
     }
 }

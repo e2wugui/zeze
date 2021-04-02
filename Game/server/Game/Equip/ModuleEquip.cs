@@ -131,10 +131,9 @@ namespace Game.Equip
         {
             if (equips.Items.TryGetValue(position, out var equip))
             {
-                Zeze.Transaction.Bean dynamicBean = equip.Extra;
-                switch (dynamicBean.TypeId)
+                switch (equip.Extra.TypeId)
                 {
-                    case BEquipExtra.TYPEID: return new Equip(equip, (BEquipExtra)dynamicBean);
+                    case BEquipExtra.TYPEID: return new Equip(equip, (BEquipExtra)equip.Extra.Bean);
                     default:
                         throw new System.Exception("unknown extra");
                 }

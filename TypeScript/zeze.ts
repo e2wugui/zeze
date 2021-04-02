@@ -157,6 +157,59 @@ export module Zeze {
         }
 	}
 
+	export class DynamicBean implements Bean {
+		public TypeId(): bigint {
+			return this._TypeId;
+        }
+
+		public GetRealBean(): Bean {
+			return this._Bean;
+        }
+
+		public SetRealBean(bean: Bean): void {
+			var typeId = this.GetSpecialTypeIdFromBean(bean);
+			this._Bean = bean;
+			this._TypeId = typeId;
+        }
+
+		private _TypeId: bigint;
+		private _Bean: Bean;
+
+		public GetSpecialTypeIdFromBean: (Bean) => bigint;
+		public CreateBeanFromSpecialTypeId: (bigint) => Bean;
+
+		public constructor(get: (Bean) => bigint, create: (bigint) => Bean) {
+			this.GetSpecialTypeIdFromBean = get;
+			this.CreateBeanFromSpecialTypeId = create;
+			this._Bean = new EmptyBean();
+			this._TypeId = EmptyBean.TYPEID;
+		}
+
+		public Encode(_os_: ByteBuffer): void {
+			_os_.WriteLong8(this.TypeId());
+			var _state_ = _os_.BeginWriteSegment();
+			this._Bean.Encode(_os_);
+			_os_.EndWriteSegment(_state_);
+		}
+
+		public Decode(_os_: ByteBuffer): void {
+			var typeId = _os_.ReadLong8();
+			var real = this.CreateBeanFromSpecialTypeId(typeId);
+			if (null != real) {
+				var _state_ = _os_.BeginReadSegment();
+				real.Decode(_os_);
+				_os_.EndReadSegment(_state_);
+				this._Bean = real;
+				this._TypeId = typeId;
+			}
+			else {
+				_os_.SkipBytes();
+				this._Bean = new EmptyBean();
+				this._TypeId = EmptyBean.TYPEID;
+			}
+		}
+	}
+
 	export abstract class Protocol implements Serializable {
 		public ResultCode: number; // int
 		public Sender: Socket;

@@ -96,7 +96,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            name = "Zeze.Transaction.Bean";
+            name = "Zeze.Transaction.DynamicBean";
         }
     }
 }

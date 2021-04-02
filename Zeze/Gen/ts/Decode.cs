@@ -312,6 +312,8 @@ namespace Zeze.Gen.ts
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (Zeze.ByteBuffer.DYNAMIC | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
+                sw.WriteLine(prefix + $"    {varname}.Decode({bufname});");
+                /*
                 sw.WriteLine(prefix + "    switch (" + bufname + ".ReadLong8())");
                 sw.WriteLine(prefix + "    {");
                 foreach (Bean real in type.RealBeans)
@@ -334,6 +336,7 @@ namespace Zeze.Gen.ts
                 sw.WriteLine(prefix + "            " + bufname + ".SkipBytes();");
                 sw.WriteLine(prefix + "            break;");
                 sw.WriteLine(prefix + "    }");
+                */
                 sw.WriteLine(prefix + "    break;");
             }
             else

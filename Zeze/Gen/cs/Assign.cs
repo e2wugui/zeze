@@ -120,7 +120,7 @@ namespace Zeze.Gen.cs
 
         void Visitor.Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + var.NameUpper1 + " = other." + var.NameUpper1 + ".CopyBean();");
+            sw.WriteLine(prefix + var.NameUpper1 + ".Assign(other." + var.NameUpper1 + ");");
         }
     }
 }

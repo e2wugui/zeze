@@ -315,12 +315,11 @@ namespace Game.Bag
         {
             if (bag.Items.TryGetValue(position, out var bItem))
             {
-                Zeze.Transaction.Bean dynamicBean = bItem.Extra;
-                switch (dynamicBean.TypeId)
+                switch (bItem.Extra.TypeId)
                 {
-                    case Item.BFoodExtra.TYPEID: return new Item.Food(bItem, (Item.BFoodExtra)dynamicBean);
-                    case Item.BHorseExtra.TYPEID: return new Item.Horse(bItem, (Item.BHorseExtra)dynamicBean);
-                    case Equip.BEquipExtra.TYPEID: return new Equip.Equip(bItem, (Equip.BEquipExtra)dynamicBean);
+                    case Item.BFoodExtra.TYPEID: return new Item.Food(bItem, (Item.BFoodExtra)bItem.Extra.Bean);
+                    case Item.BHorseExtra.TYPEID: return new Item.Horse(bItem, (Item.BHorseExtra)bItem.Extra.Bean);
+                    case Equip.BEquipExtra.TYPEID: return new Equip.Equip(bItem, (Equip.BEquipExtra)bItem.Extra.Bean);
                     default:
                         throw new System.Exception("unknown extra");
                 }

@@ -142,6 +142,48 @@ var Zeze;
     }
     EmptyBean.TYPEID = 0n;
     Zeze.EmptyBean = EmptyBean;
+    class DynamicBean {
+        constructor(get, create) {
+            this.GetSpecialTypeIdFromBean = get;
+            this.CreateBeanFromSpecialTypeId = create;
+            this._Bean = new EmptyBean();
+            this._TypeId = EmptyBean.TYPEID;
+        }
+        TypeId() {
+            return this._TypeId;
+        }
+        GetRealBean() {
+            return this._Bean;
+        }
+        SetRealBean(bean) {
+            var typeId = this.GetSpecialTypeIdFromBean(bean);
+            this._Bean = bean;
+            this._TypeId = typeId;
+        }
+        Encode(_os_) {
+            _os_.WriteLong8(this.TypeId());
+            var _state_ = _os_.BeginWriteSegment();
+            this._Bean.Encode(_os_);
+            _os_.EndWriteSegment(_state_);
+        }
+        Decode(_os_) {
+            var typeId = _os_.ReadLong8();
+            var real = this.CreateBeanFromSpecialTypeId(typeId);
+            if (null != real) {
+                var _state_ = _os_.BeginReadSegment();
+                real.Decode(_os_);
+                _os_.EndReadSegment(_state_);
+                this._Bean = real;
+                this._TypeId = typeId;
+            }
+            else {
+                _os_.SkipBytes();
+                this._Bean = new EmptyBean();
+                this._TypeId = EmptyBean.TYPEID;
+            }
+        }
+    }
+    Zeze.DynamicBean = DynamicBean;
     class Protocol {
         TypeId() {
             return this.ModuleId() << 16 | this.ProtocolId();

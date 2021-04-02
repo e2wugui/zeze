@@ -200,6 +200,11 @@ namespace Zeze.Transaction
             CreateBeanFromSpecialTypeId = create;
         }
 
+        public void Assign(DynamicBean other)
+        {
+            Bean = other.Bean.CopyBean();
+        }
+
         public override bool NegativeCheck()
         {
             return Bean.NegativeCheck();
@@ -260,7 +265,7 @@ namespace Zeze.Transaction
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
-            Bean.InitRootInfo(root, this);
+            _Bean.InitRootInfo(root, this);
         }
 
         private sealed class Log : Zeze.Transaction.Log<DynamicBean, Zeze.Transaction.Bean>

@@ -93,7 +93,7 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeDynamic type)
         {
-            name = "Zeze.Bean";
+            name = "Zeze.DynamicBean";
         }
     }
 }

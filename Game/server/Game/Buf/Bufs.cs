@@ -22,10 +22,9 @@ namespace Game.Buf
         {
             if (bean.Bufs.TryGetValue(id, out var bBuf))
             {
-                Zeze.Transaction.Bean dynamicBean = bBuf.Extra;
-                switch (dynamicBean.TypeId)
+                switch (bBuf.Extra.TypeId)
                 {
-                    case BBufExtra.TYPEID: return new BufExtra(bBuf, (BBufExtra)dynamicBean);
+                    case BBufExtra.TYPEID: return new BufExtra(bBuf, (BBufExtra)bBuf.Extra.Bean);
                     default:
                         throw new System.Exception("unknown extra");
                 }

@@ -188,7 +188,8 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
+            sw.WriteLine($"{prefix}public {TypeName.GetName(type)} {var.NameUpper1} => {var.NamePrivate};");
+            /*
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    get");
             sw.WriteLine(prefix + "    {");
@@ -216,14 +217,15 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
+            */
             sw.WriteLine();
-            foreach (Bean real in type.RealBeans)
+            foreach (Bean real in type.RealBeans.Values)
             {
                 string rname = TypeName.GetName(real);
                 sw.WriteLine(prefix + "public " + rname + " " + var.NameUpper1 + "_" + real.Space.Path("_", real.Name));
                 sw.WriteLine(prefix + "{");
-                sw.WriteLine(prefix + "    get { return (" + rname + ")" + var.NameUpper1 + "; }");
-                sw.WriteLine(prefix + "    set { " + var.NameUpper1 + " = value; }");
+                sw.WriteLine(prefix + "    get { return (" + rname + ")" + var.NameUpper1 + ".Bean; }");
+                sw.WriteLine(prefix + "    set { " + var.NameUpper1 + ".Bean = value; }");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
             }

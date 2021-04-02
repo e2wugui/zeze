@@ -123,7 +123,8 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.EmptyBean();");
+            sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean"
+                + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.NameUpper1}, CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
         }
     }
 }

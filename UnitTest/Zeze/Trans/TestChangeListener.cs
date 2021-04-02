@@ -336,7 +336,7 @@ namespace UnitTest.Zeze.Trans
                 if (newValue.TypeId == demo.Module1.Simple.TYPEID)
                 {
                     demo.Module1.Simple newSimple = newValue as demo.Module1.Simple;
-                    demo.Module1.Simple currentSimple = current.Dynamic14 as demo.Module1.Simple;
+                    demo.Module1.Simple currentSimple = current.Dynamic14.Bean as demo.Module1.Simple;
                     Assert.IsTrue(null != newSimple);
                     Assert.IsTrue(null != currentSimple);
                     Assert.IsTrue(newSimple.Int1 == currentSimple.Int1);

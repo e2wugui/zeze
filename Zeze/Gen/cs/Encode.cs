@@ -226,12 +226,15 @@ namespace Zeze.Gen.cs
             if (id >= 0)
             {
                 sw.WriteLine($"{prefix}{bufname}.WriteInt(ByteBuffer.DYNAMIC | {id} << ByteBuffer.TAG_SHIFT);");
+                sw.WriteLine($"{prefix}{varname}.Encode({bufname});");
+                /*
                 sw.WriteLine($"{prefix}{bufname}.WriteLong8({varname}.TypeId);");
                 sw.WriteLine(prefix + "{");
                 sw.WriteLine(prefix + "    " + bufname + ".BeginWriteSegment(out var _state_);");
                 sw.WriteLine(prefix + "    " + varname + ".Encode(" + bufname + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".EndWriteSegment(_state_);");
                 sw.WriteLine(prefix + "}");
+                */
             }
             else
             {

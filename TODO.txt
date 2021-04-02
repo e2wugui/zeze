@@ -29,6 +29,4 @@ ConfigEditor
 	增加一个工作线程，所有数据操作都放到这里面，和UI线程交互。看情况再决定做不做。
 	enum 现在不支持引用在其他文档定义的，有需要了再来加。
 
-DynamicBean 
-	gen，cs，lua，ts，
-	game，game2
+DynamicBean 允许明确配置在所属的Bean内唯一的Id，和默认的Bean的TypeId分离。TODO lua

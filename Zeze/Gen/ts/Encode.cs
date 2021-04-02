@@ -233,12 +233,15 @@ namespace Zeze.Gen.ts
             if (id >= 0)
             {
                 sw.WriteLine($"{prefix}{bufname}.WriteInt(Zeze.ByteBuffer.DYNAMIC | {id} << Zeze.ByteBuffer.TAG_SHIFT);");
+                sw.WriteLine($"{prefix}{varname}.Encode({bufname});");
+                /*
                 sw.WriteLine($"{prefix}{bufname}.WriteLong8({varname}.TypeId());");
                 sw.WriteLine(prefix + "{");
                 sw.WriteLine(prefix + "    var _state_ = " + bufname + ".BeginWriteSegment();");
                 sw.WriteLine(prefix + "    " + varname + ".Encode(" + bufname + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".EndWriteSegment(_state_);");
                 sw.WriteLine(prefix + "}");
+                */
             }
             else
             {
