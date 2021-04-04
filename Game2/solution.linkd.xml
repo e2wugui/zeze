@@ -94,11 +94,56 @@
 
 		<bean name="BSetUserState">
 			<variable name="linkSid" id="1" type="long"/>
-			<variable name="states"  id="2" type="list" value="long"/> nullable
+			<variable name="states"  id="2" type="list" value="long"/>
 			<variable name="statex"  id="3" type="binary"/>
 		</bean>
 
 		<protocol name="SetUserState" argument="BSetUserState" handle="client"/>
+
+		<bean name="BLoad">
+			<variable name="Online"           id="1" type="int"/> 用户数量
+			<variable name="ProposeMaxOnline" id="2" type="int"/> 建议最大用户数量
+			<variable name="OnlineNew"        id="3" type="int"/> 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
+		</bean>
+		<!--
+		gs 定时向所有的 linkd 报告负载。
+		如果启用cahce-sync，可能linkd数量比较多。所以正常情况下，报告间隔应长点。比如10秒。
+		1）一般gs实现：
+		long LoginCount;
+		long LogoutCount;
+
+		long LoginCountLast;
+		int  CheckCount;
+		Zeze.Util.Scheduler.Instance.Schedule(OnTimerTask, 1000);
+
+		void OnTimerTask()
+		{
+			int onlineNew = LoginCount - LoginCountLast;
+			LoginCountLast = LoginCount;
+
+			if (onlineNew > ConfigMaxOnlineNew)
+			{
+				ReportLoadToAllLinkd; // 最近上线太多，马上报告负载。linkd会
+				Zeze.Util.Scheduler.Instance.Schedule(OnTimerTask, 2000); // 延迟2秒，用于消化最近上线
+				CheckCount = 10; // 消化完后，强迫下一次报告Load。
+				return;
+			}
+			// normal check and report
+			++CheckCount;
+			if (CheckCount >= 10)
+			{
+				CheckCount = 0;
+				ReportLoadToAllLinkd;
+			}
+			Zeze.Util.Scheduler.Instance.Schedule(OnTimerTask, 1000); // 延迟1秒，继续下一次检测。
+		}
+		Timer: 因为随时调整Timer的时间，所以这里使用 Zeze.Util.Scheduler。当然也可以使用系统的Timer。
+
+		2）一般linkd实现：
+		linkd在负载均衡选择gs时，会忽略掉 (Online > ProposeMaxOnline || OnlineNew > ConfigMaxOnlineNew)的gs。
+		详细实现参见 linkd/gnet.Provider.ModuleProvider.Providers
+		-->
+		<protocol name="ReportLoad" argument="BLoad" handle="client"/>
 
 		<!-- link to gs -->
 		<bean name="BDispatch">

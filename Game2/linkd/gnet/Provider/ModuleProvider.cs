@@ -52,13 +52,13 @@ namespace gnet.Provider
 
             /// <summary>
             /// 加权负载均衡
-            /// TODO 对于新起的Provider，要有节流控制，不能都选它。
             /// </summary>
             /// <param name="provider"></param>
             /// <returns></returns>
             public bool Choice(out long provider)
             {
                 var frees = new List<ProviderSession>(ProviderSessionIds.Count);
+                var all = new List<ProviderSession>(ProviderSessionIds.Count);
                 int TotalWeight = 0;
 
                 // 新的provider在后面，从后面开始搜索。
@@ -67,12 +67,14 @@ namespace gnet.Provider
                     var ps = App.Instance.ProviderService.GetSocket(ProviderSessionIds[i])?.UserState as ProviderSession;
                     if (null == ps)
                         continue; // 这里发现关闭的服务，仅仅忽略.
+                    all.Add(ps);
+                    if (ps.OnlineNew > App.Instance.Config.MaxOnlineNew)
+                        continue;
                     int weight = ps.ProposeMaxOnline - ps.Online;
-                    if (weight > 0)
-                    {
-                        frees.Add(ps);
-                        TotalWeight += weight;
-                    }
+                    if (weight <= 0)
+                        continue;
+                    frees.Add(ps);
+                    TotalWeight += weight;
                 }
                 if (TotalWeight > 0)
                 {
@@ -89,9 +91,9 @@ namespace gnet.Provider
                     }
                 }
                 // 选择失败，一般是都满载了，随机选择一个。
-                if (frees.Count > 0)
+                if (all.Count > 0)
                 {
-                    provider = frees[Zeze.Util.Random.Instance.Next(frees.Count)].SessionId;
+                    provider = all[Zeze.Util.Random.Instance.Next(all.Count)].SessionId;
                     return true;
                 }
                 // no providers
@@ -432,6 +434,13 @@ namespace gnet.Provider
             {
                 protocol.Send(sourcerProvider);
             }
+            return Zeze.Transaction.Procedure.Success;
+        }
+
+        public override int ProcessReportLoad(ReportLoad protocol)
+        {
+            var providerSession = protocol.Sender.UserState as ProviderSession;
+            providerSession?.SetLoad(protocol.Argument);
             return Zeze.Transaction.Procedure.Success;
         }
     }

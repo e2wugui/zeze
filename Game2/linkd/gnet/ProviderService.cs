@@ -60,16 +60,24 @@ namespace gnet
         /// see gnet.Provider.ModuleProvider
         /// </summary>
         public HashSet<int> StaticBinds { get; } = new HashSet<int>();
+        private Provider.BLoad Load { get; set; }
+        public int ProposeMaxOnline => Load.ProposeMaxOnline;
+        public int Online => Load.Online;
+        public int OnlineNew => Load.OnlineNew;
 
-        // 这里仅记录一个linkd分配过去的，需要Provider.Online的话
-        public int CountFromThisLink { get; private set; }
-        public int Online => CountFromThisLink; // TODO report from provider timer
-        public int ProposeMaxOnline => 20000; // TODO config
         public long SessionId { get; }
 
         public ProviderSession(long ssid)
         {
             SessionId = ssid;
+        }
+
+        public void SetLoad(Provider.BLoad load)
+        {
+            lock (LinkSessionIds)
+            {
+                Load.Assign(load); // 复制一次吧。
+            }
         }
 
         public void AddLinkSession(int moduleId, long linkSessionId)
@@ -82,7 +90,12 @@ namespace gnet
                     LinkSessionIds.Add(moduleId, linkSids);
                 }
                 if (linkSids.Add(linkSessionId))
-                    ++CountFromThisLink;
+                {
+                    ++Load.Online;
+                    // 在真正的数据报告回来之前，临时增加统计。仅包括本linkd分配的。
+                    // 本来Load应该总是由Provider报告的。
+                    // linkd 的临时增加是为了能快速反应出报告间隔期间的分配。
+                }
             }
         }
 
@@ -94,7 +107,9 @@ namespace gnet
                 {
                     if (linkSids.Remove(linkSessionId))
                     {
-                        --CountFromThisLink;
+                        // 下线时Provider会进行统计，这里避免二次计数，
+                        // 没有扣除不会有问题，本来Load应该总是由Provider报告的。
+                        //--Load.Online;
                         if (linkSids.Count == 0)
                             LinkSessionIds.Remove(moduleId);
                     }
