@@ -14,26 +14,22 @@ namespace gnet
             return module;
         }
 
-        public class LinkdConfig
-        {
-            public int MaxOnlineNew { get; set; } = 100;
-        }
 
-        public LinkdConfig Config { get; private set; }
+        public Config Config { get; private set; }
 
         private void LoadConfig()
         {
             try
             {
                 string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes("linkd.json"));
-                Config = JsonSerializer.Deserialize<LinkdConfig>(json);
+                Config = JsonSerializer.Deserialize<Config>(json);
             }
             catch (Exception)
             {
                 //MessageBox.Show(ex.ToString());
             }
             if (null == Config)
-                Config = new LinkdConfig();
+                Config = new Config();
         }
 
         public void Start()

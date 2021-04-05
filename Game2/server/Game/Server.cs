@@ -84,5 +84,19 @@ namespace Game
             base.OnSocketClose(so, e);
             Links.TryRemove(KeyValuePair.Create(GetLinkName(so), so)); // .NET 5.0
         }
+
+        public void ReportLoad(int online, int proposeMaxOnline, int onlineNew)
+        {
+            var report = new gnet.Provider.ReportLoad();
+
+            report.Argument.Online = online;
+            report.Argument.ProposeMaxOnline = proposeMaxOnline;
+            report.Argument.OnlineNew = onlineNew;
+
+            foreach (var link in Links.Values)
+            {
+                link.Send(report);
+            }
+        }
     }
 }

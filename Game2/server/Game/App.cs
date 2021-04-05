@@ -1,5 +1,8 @@
 ﻿
+using System;
 using System.Collections.Generic;
+using System.Text;
+using System.Text.Json;
 
 namespace Game
 {
@@ -14,6 +17,24 @@ namespace Game
             return Game.ModuleRedirect.Instance.ReplaceModuleInstance(module);
         }
 
+        public Config Config { get; private set; }
+
+        private void LoadConfig()
+        {
+            try
+            {
+                string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes("game.json"));
+                Config = JsonSerializer.Deserialize<Config>(json);
+            }
+            catch (Exception)
+            {
+                //MessageBox.Show(ex.ToString());
+            }
+            if (null == Config)
+                Config = new Config();
+        }
+
+
         public void Start(string[] args)
         {
             int AutoKeyLocalId = -1;
@@ -27,6 +48,7 @@ namespace Game
                 }
             }
 
+            LoadConfig();
             var config = global::Zeze.Config.Load();
             if (AutoKeyLocalId != -1)
                 config.AutoKeyLocalId = AutoKeyLocalId; // replace from args

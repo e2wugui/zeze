@@ -113,29 +113,36 @@
 		long LogoutCount;
 
 		long LoginCountLast;
-		int  CheckCount;
-		Zeze.Util.Scheduler.Instance.Schedule(OnTimerTask, 1000);
+		int  ReportDelaySeconds;
+		int  TimoutDelaySeconds;
+
+		void StartTimerTask(int delaySeconds = 1)
+		{
+			TimoutDelaySeconds = delaySeconds;
+			Zeze.Util.Scheduler.Instance.Schedule(OnTimerTask, TimoutDelaySeconds * 1000);
+		}
 
 		void OnTimerTask()
 		{
 			int onlineNew = LoginCount - LoginCountLast;
 			LoginCountLast = LoginCount;
-
-			if (onlineNew > ConfigMaxOnlineNew)
+			int onlineNewPerSecond = onlineNew / TimoutDelaySeconds;
+			if (onlineNewPerSecond > Config.MaxOnlineNew)
 			{
-				ReportLoadToAllLinkd; // 最近上线太多，马上报告负载。linkd会
-				Zeze.Util.Scheduler.Instance.Schedule(OnTimerTask, 2000); // 延迟2秒，用于消化最近上线
-				CheckCount = 10; // 消化完后，强迫下一次报告Load。
+				// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
+				ReportLoadToAllLinkd;
+				StartTimerTask(onlineNewPerSecond / Config.MaxOnlineNew + 1); // new delay for digestion
+				ReportDelaySeconds = Config.ReportDelaySeconds; // 消化完后，下一次强迫报告Load。
 				return;
 			}
-			// normal check and report
-			++CheckCount;
-			if (CheckCount >= 10)
+			// slow report
+			ReportDelaySeconds += TimoutDelaySeconds;
+			if (ReportDelaySeconds >= Config.ReportDelaySeconds)
 			{
-				CheckCount = 0;
+				ReportDelaySeconds = 0;
 				ReportLoadToAllLinkd;
 			}
-			Zeze.Util.Scheduler.Instance.Schedule(OnTimerTask, 1000); // 延迟1秒，继续下一次检测。
+			StartTimerTask();
 		}
 		Timer: 因为随时调整Timer的时间，所以这里使用 Zeze.Util.Scheduler。当然也可以使用系统的Timer。
 
