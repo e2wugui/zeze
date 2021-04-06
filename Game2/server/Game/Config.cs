@@ -11,5 +11,6 @@ namespace Game
         public int MaxOnlineNew { get; set; } = 30;
         public int ReportDelaySeconds { get; set; } = 10;
         public int ProposeMaxOnline { get; set; } = 15000;
+        public int DigestionDelayExSeconds { get; set; } = 2;
     }
 }

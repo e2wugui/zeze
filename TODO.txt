@@ -30,8 +30,7 @@ ConfigEditor
 	enum 现在不支持引用在其他文档定义的，有需要了再来加。
 
 DynamicBean 允许明确配置在所属的Bean内唯一的Id，和默认的Bean的TypeId分离。TODO lua
-linkd:  负载均衡避免短时间给一台provider分配太多用户。
-	provider增加报告 ProposeMaxOnline Online 的参数。
 Zeze
-	Schema
+	Schemas
 	InUse
+	RoleRedirect

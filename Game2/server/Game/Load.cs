@@ -39,7 +39,7 @@ namespace Game
 				// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
 				App.Instance.Server.ReportLoad(online, App.Instance.Config.ProposeMaxOnline, onlineNew);
 				// new delay for digestion
-				StartTimerTask(onlineNewPerSecond / App.Instance.Config.MaxOnlineNew + 1);
+				StartTimerTask(onlineNewPerSecond / App.Instance.Config.MaxOnlineNew + App.Instance.Config.DigestionDelayExSeconds);
 				// 消化完后，下一次强迫报告Load。
 				ReportDelaySeconds = App.Instance.Config.ReportDelaySeconds;
 				return;

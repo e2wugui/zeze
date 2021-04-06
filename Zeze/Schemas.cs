@@ -48,11 +48,23 @@ namespace Zeze
         public class CheckResult
         {
             public Bean Bean { get; set; }
-            public List<Action<Bean>> Updates { get; } = new List<Action<Bean>>();
+            private List<Action<Bean>> Updates { get; } = new List<Action<Bean>>();
+            private List<Action<Bean>> UpdateVariables { get; } = new List<Action<Bean>>();
+
+            public void AddUpdate(Action<Bean> Update, Action<Bean> UpdateVariable)
+            {
+                Updates.Add(Update);
+                if (null != UpdateVariable)
+                    UpdateVariables.Add(UpdateVariable);
+            }
 
             public void Update()
             {
                 foreach (var update in Updates)
+                {
+                    update(Bean);
+                }
+                foreach (var update in UpdateVariables)
                 {
                     update(Bean);
                 }
@@ -63,8 +75,7 @@ namespace Zeze
             public Schemas Current { get; set; }
             public Schemas Previous { get; set; }
             public Dictionary<Checked, CheckResult> Checked { get; } = new Dictionary<Checked, CheckResult>();
-            public Dictionary<Bean, CheckResult> CreateBeanIfNotExistInCurrent { get; } = new Dictionary<Bean, CheckResult>();
-            public HashSet<Variable> AllVariables { get; } = new HashSet<Variable>();
+            public Dictionary<Bean, CheckResult> CopyBeanIfRemoved { get; } = new Dictionary<Bean, CheckResult>();
 
             public CheckResult GetCheckResult(Bean previous, Bean current)
             {
@@ -80,16 +91,16 @@ namespace Zeze
                 Checked.Add(new Schemas.Checked() { Previous = previous, Current = current }, result);
             }
 
-            public CheckResult GetCreateBeanIfNotExistInCurrentResult(Bean bean)
+            public CheckResult GetCopyBeanIfRemovedResult(Bean bean)
             {
-                if (CreateBeanIfNotExistInCurrent.TryGetValue(bean, out var exist))
+                if (CopyBeanIfRemoved.TryGetValue(bean, out var exist))
                     return exist;
                 return null;
             }
 
-            public void AddCreateBeanIfNotExistInCurrentResult(Bean bean, CheckResult result)
+            public void AddCopyBeanIfRemovedResult(Bean bean, CheckResult result)
             {
-                CreateBeanIfNotExistInCurrent.Add(bean, result);
+                CopyBeanIfRemoved.Add(bean, result);
             }
 
             public void Update()
@@ -98,13 +109,9 @@ namespace Zeze
                 {
                     result.Update();
                 }
-                foreach (var result in CreateBeanIfNotExistInCurrent.Values)
+                foreach (var result in CopyBeanIfRemoved.Values)
                 {
                     result.Update();
-                }
-                foreach (var v in AllVariables)
-                {
-                    v.Update();
                 }
             }
 
@@ -125,7 +132,7 @@ namespace Zeze
             public Type Key { get; private set; }
             public Type Value { get; private set; }
 
-            public virtual bool IsCompatible(Type other, Context context, Action<Bean> Update)
+            public virtual bool IsCompatible(Type other, Context context, Action<Bean> Update, Action<Bean> UpdateVariable = null)
             {
                 if (other == this)
                     return true;
@@ -199,14 +206,14 @@ namespace Zeze
                 }
             }
 
-            public virtual void TryCreateBeanIfNotExsitInCurrentWhenDelete(Context context, Action<Bean> Update)
+            public virtual void TryCopyBeanIfRemoved(Context context, Action<Bean> Update, Action<Bean> UpdateVariable = null)
             {
-                Key?.TryCreateBeanIfNotExsitInCurrentWhenDelete(context, (bean) =>
+                Key?.TryCopyBeanIfRemoved(context, (bean) =>
                 {
                     KeyName = bean.Name;
                     Key = bean;
                 });
-                Value?.TryCreateBeanIfNotExsitInCurrentWhenDelete(context, (bean) =>
+                Value?.TryCopyBeanIfRemoved(context, (bean) =>
                 {
                     ValueName = bean.Name;
                     Value = bean;
@@ -251,11 +258,15 @@ namespace Zeze
 
             public bool IsCompatible(Variable other, Context context)
             {
-                context.AllVariables.Add(this);
                 return this.Type.IsCompatible(other.Type, context, (bean) =>
                 {
                     TypeName = bean.Name;
                     Type = bean;
+                },
+                (bean) =>
+                {
+                    KeyName = Type.KeyName;
+                    ValueName = Type.ValueName;
                 });
             }
 
@@ -265,14 +276,18 @@ namespace Zeze
                 ValueName = this.Type.ValueName;
             }
 
-            public void TryCreateBeanIfRefZeroWhenDelete(Context context)
+            public void TryCopyBeanIfRemoved(Context context)
             {
-                this.Type.TryCreateBeanIfNotExsitInCurrentWhenDelete(context, (bean) =>
+                this.Type.TryCopyBeanIfRemoved(context, (bean) =>
                 {
                     TypeName = bean.Name;
                     Type = bean;
+                },
+                (bean)=>
+                {
+                    KeyName = Type.KeyName;
+                    ValueName = Type.ValueName;
                 });
-                context.AllVariables.Add(this);
             }
         }
 
@@ -294,7 +309,7 @@ namespace Zeze
             /// </summary>
             /// <param name="other"></param>
             /// <returns></returns>
-            public override bool IsCompatible(Type other, Context context, Action<Bean> Update)
+            public override bool IsCompatible(Type other, Context context, Action<Bean> Update, Action<Bean> UpdateVariable = null)
             {
                 if (other == null)
                     return false;
@@ -304,7 +319,7 @@ namespace Zeze
                     CheckResult result = context.GetCheckResult(beanOther, this);
                     if (null != result)
                     {
-                        result.Updates.Add(Update);
+                        result.AddUpdate(Update, UpdateVariable);
                         return true;
                     }
                     result = new CheckResult() { Bean = this }; // result在后面可能被更新。
@@ -381,13 +396,13 @@ namespace Zeze
 
                     if (Deleteds.Count > 0)
                     {
-                        Bean newBean = Copy(context);
+                        Bean newBean = ShadowCopy(context);
                         context.Current.AddBean(newBean);
                         result.Bean = newBean;
-                        result.Updates.Add(Update);
+                        result.AddUpdate(Update, UpdateVariable);
                         foreach (var vDelete in Deleteds)
                         {
-                            vDelete.TryCreateBeanIfRefZeroWhenDelete(context);
+                            vDelete.TryCopyBeanIfRemoved(context);
                             newBean.Variables.Add(vDelete.Id, vDelete);
                         }
                     }
@@ -396,16 +411,16 @@ namespace Zeze
                 return false;
             }
 
-            public override void TryCreateBeanIfNotExsitInCurrentWhenDelete(Context context, Action<Bean> Update)
+            public override void TryCopyBeanIfRemoved(Context context, Action<Bean> Update, Action<Bean> UpdateVariable)
             {
-                CheckResult result = context.GetCreateBeanIfNotExistInCurrentResult(this);
+                CheckResult result = context.GetCopyBeanIfRemovedResult(this);
                 if (null != result)
                 {
-                    result.Updates.Add(Update);
+                    result.AddUpdate(Update, UpdateVariable);
                     return;
                 }
                 result = new CheckResult() { Bean = this };
-                context.AddCreateBeanIfNotExistInCurrentResult(this, result);
+                context.AddCopyBeanIfRemovedResult(this, result);
 
                 if (Name.StartsWith("_"))
                 {
@@ -413,11 +428,11 @@ namespace Zeze
                     if (context.Current.Beans.TryGetValue(RealName, out var _))
                         return;
 
-                    var newb = Copy(context);
+                    var newb = ShadowCopy(context);
                     newb.RealName = RealName; // 原来是新建的Bean，要使用这个。
                     context.Current.AddBean(newb);
                     result.Bean = newb;
-                    result.Updates.Add(Update);
+                    result.AddUpdate(Update, UpdateVariable);
                     return;
                 }
 
@@ -425,19 +440,19 @@ namespace Zeze
                 if (context.Current.Beans.TryGetValue(Name, out var _))
                     return;
 
-                var newb2 = Copy(context);
+                var newb2 = ShadowCopy(context);
                 newb2.Deleted = true;
                 context.Current.AddBean(newb2);
                 result.Bean = newb2;
-                result.Updates.Add(Update);
+                result.AddUpdate(Update, UpdateVariable);
 
                 foreach (var v in Variables.Values)
                 {
-                    v.TryCreateBeanIfRefZeroWhenDelete(context);
+                    v.TryCopyBeanIfRemoved(context);
                 }
             }
 
-            private Bean Copy(Context context)
+            private Bean ShadowCopy(Context context)
             {
                 var newBean = new Bean();
                 newBean.Name = context.GenerateUniqueName();
@@ -611,7 +626,7 @@ namespace Zeze
             }
         }
 
-        private Dictionary<string, Type> OtherTypes { get; } = new Dictionary<string, Type>();
+        private Dictionary<string, Type> BasicTypes { get; } = new Dictionary<string, Type>();
 
         public Type Compile(string type, string key, string value)
         {
@@ -622,7 +637,7 @@ namespace Zeze
                 return bean;
 
             // 除了Bean，其他基本类型和容器类型都动态创建。
-            if (OtherTypes.TryGetValue($"{type}:{key}:{value}", out var o))
+            if (BasicTypes.TryGetValue($"{type}:{key}:{value}", out var o))
                 return o;
 
             var n = new Type()
@@ -631,7 +646,7 @@ namespace Zeze
                 KeyName = key,
                 ValueName = value,
             };
-            OtherTypes.Add($"{type}:{key}:{value}", n);
+            BasicTypes.Add($"{type}:{key}:{value}", n);
             n.Compile(this); // 容器需要编译。这里的时机不是太好。
             return n;
         }

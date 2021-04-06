@@ -138,8 +138,22 @@ namespace Zeze
                 Checkpoint.Start(Config.CheckpointPeriod);
 
                 Schemas.Compile();
-                if (false == Schemas.IsCompatible(TableSys.SchemasPrevious))
-                    throw new Exception("Database Struct Not Compatible!");
+                if (null != TableSys.SchemasPreviousEncoded)
+                {
+                    var SchemasPrevious = new Schemas();
+                    // 上一次的结构一值记着，直到下一次重启。
+                    try
+                    {
+                        SchemasPrevious.Decode(TableSys.SchemasPreviousEncoded);
+                        SchemasPrevious.Compile();
+                        if (false == Schemas.IsCompatible(SchemasPrevious))
+                            throw new Exception("Database Struct Not Compatible!");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "Schemas Implement Changed?");
+                    }
+                }
                 TableSys.SaveSchemas(Schemas);
             }
         }

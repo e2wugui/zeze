@@ -27,7 +27,7 @@ namespace Zeze.Transaction
         }
 
         public AutoKeys AutoKeys => storage.AutoKeys;
-        public Schemas SchemasPrevious => storage.SchemasPrevious;
+        public ByteBuffer SchemasPreviousEncoded => storage.SchemasPreviousEncoded;
         public Application Zeze { get; private set; }
 
         internal void SaveSchemas(Schemas schemas)
@@ -66,7 +66,7 @@ namespace Zeze.Transaction
             private readonly ByteBuffer keyOfAutoKeys;
 		    private ByteBuffer snapshotOfAutoKeys = null;
 
-            public Schemas SchemasPrevious { get; }
+            public ByteBuffer SchemasPreviousEncoded { get; }
 
             private readonly ByteBuffer keyOfSchemas;
             internal ByteBuffer snapshotOfSchemas = null;
@@ -86,22 +86,7 @@ namespace Zeze.Transaction
                 keyOfSchemas = ByteBuffer.Allocate(32);
                 // 本来是localId无关的，为了合服不冲突，单独记录。
                 keyOfSchemas.WriteString("zeze.Schemas." + localInitValue);
-                var bbSchemas = DatabaseTable.Find(keyOfSchemas);
-                if (null != bbSchemas)
-                {
-                    // 上一次的结构一值记着，直到下一次重启。
-                    try
-                    {
-                        SchemasPrevious = new Schemas();
-                        SchemasPrevious.Decode(bbSchemas);
-                        SchemasPrevious.Compile();
-                    }
-                    catch (Exception ex)
-                    {
-                        SchemasPrevious = null;
-                        logger.Error(ex, "Schemas Implement Changed?");
-                    }
-                }
+                SchemasPreviousEncoded = DatabaseTable.Find(keyOfSchemas);
             }
 
             public Database.Table DatabaseTable { get; }
