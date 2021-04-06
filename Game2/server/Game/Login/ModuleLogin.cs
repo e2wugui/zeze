@@ -112,7 +112,7 @@ namespace Game.Login
                 setUserState.Argument.States.Add(protocol.Argument.RoleId);
                 protocol.Sender.Send(setUserState); // 直接使用link连接。
             });
-
+            App.Load.LoginCount.IncrementAndGet();
             return Zeze.Transaction.Procedure.Success;
         }
 
@@ -171,6 +171,7 @@ namespace Game.Login
                 session.SendResponse(result);
                 return Zeze.Transaction.Procedure.LogicError;
             }
+            App.Load.LoginCount.IncrementAndGet();
             return Zeze.Transaction.Procedure.Success;
         }
 
@@ -243,6 +244,7 @@ namespace Game.Login
             });
             result.ResultCode = BLogin.ResultCodeSuccess;
             session.SendResponseWhileCommit(result);
+            // App.Load.LogoutCount.IncrementAndGet(); // 处理异常关闭，在离线（Offline）里面计数。
             return Zeze.Transaction.Procedure.Success;
         }
     }

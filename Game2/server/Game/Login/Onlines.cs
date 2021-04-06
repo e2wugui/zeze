@@ -10,7 +10,7 @@ namespace Game.Login
     public class Onlines
     {
         private tonline table;
-
+        
         public Onlines(tonline table)
         {
             this.table = table;
@@ -32,6 +32,8 @@ namespace Game.Login
                     var online = table.Get(roleId);
                     if (null != online && online.State == BOnline.StateNetBroken)
                         table.Remove(roleId);
+                    App.Instance.Load.LogoutCount.IncrementAndGet();
+
                     return Procedure.Success;
                 }, "Onlines.OnLinkBroken").Call();
             }, 10 * 60 * 1000); // 10 minuts for relogin
