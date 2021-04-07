@@ -27,24 +27,7 @@ namespace Zeze.Transaction
         }
 
         public AutoKeys AutoKeys => storage.AutoKeys;
-        public ByteBuffer SchemasPreviousEncoded => storage.SchemasPreviousEncoded;
         public Application Zeze { get; private set; }
-
-        internal void SaveSchemas(Schemas schemas)
-        {
-            // 这个是在Zeze.Start过程中设置，加个严格的全局写锁，以后Checkpoint保存一次就会清除。
-            Zeze.Checkpoint.FlushReadWriteLock.EnterWriteLock();
-            try
-            {
-                var bb = ByteBuffer.Allocate();
-                schemas.Encode(bb);
-                storage.snapshotOfSchemas = bb;
-            }
-            finally
-            {
-                Zeze.Checkpoint.FlushReadWriteLock.ExitWriteLock();
-            }
-        }
 
         internal override Storage Open(Application app, Database database)
         {
@@ -66,10 +49,6 @@ namespace Zeze.Transaction
             private readonly ByteBuffer keyOfAutoKeys;
 		    private ByteBuffer snapshotOfAutoKeys = null;
 
-            public ByteBuffer SchemasPreviousEncoded { get; }
-
-            private readonly ByteBuffer keyOfSchemas;
-            internal ByteBuffer snapshotOfSchemas = null;
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
             internal StorageSys(Application app, Database database)
@@ -82,11 +61,6 @@ namespace Zeze.Transaction
                 keyOfAutoKeys = ByteBuffer.Allocate(32);
                 keyOfAutoKeys.WriteString("zeze.AutoKeys." + localInitValue);
                 AutoKeys = new AutoKeys(DatabaseTable.Find(keyOfAutoKeys), localInitValue, localStep);
-
-                keyOfSchemas = ByteBuffer.Allocate(32);
-                // 本来是localId无关的，为了合服不冲突，单独记录。
-                keyOfSchemas.WriteString("zeze.Schemas." + localInitValue);
-                SchemasPreviousEncoded = DatabaseTable.Find(keyOfSchemas);
             }
 
             public Database.Table DatabaseTable { get; }
@@ -107,8 +81,6 @@ namespace Zeze.Transaction
                 int c = 0;
                 if (null != snapshotOfAutoKeys)
                     ++c;
-                if (null != snapshotOfSchemas)
-                    ++c;
                 return c;
             }
 
@@ -116,8 +88,6 @@ namespace Zeze.Transaction
             {
                 int c = 0;
                 if (null != snapshotOfAutoKeys)
-                    ++c;
-                if (null != snapshotOfSchemas)
                     ++c;
                 return c;
             }
@@ -130,18 +100,12 @@ namespace Zeze.Transaction
                     DatabaseTable.Replace(keyOfAutoKeys, snapshotOfAutoKeys);
                     ++c;
                 }
-                if (null != snapshotOfSchemas)
-                {
-                    DatabaseTable.Replace(keyOfSchemas, snapshotOfSchemas);
-                    ++c;
-                }
                 return c;
             }
 
             public void Cleanup()
             {
                 snapshotOfAutoKeys = null;
-                snapshotOfSchemas = null;
             }
 
         }

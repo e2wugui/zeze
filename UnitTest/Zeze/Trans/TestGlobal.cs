@@ -44,6 +44,25 @@ namespace UnitTest.Zeze.Trans
             }
         }
 
+        //[TestMethod]
+        public void Test2AppSameLocalId()
+        {
+            demo.App app1 = demo.App.Instance;
+            demo.App app2 = new demo.App();
+            var config1 = global::Zeze.Config.Load();
+            var config2 = global::Zeze.Config.Load();
+            try
+            {
+                app1.Start(config1);
+                app2.Start(config2);
+            }
+            finally
+            {
+                app1.Stop();
+                app2.Stop();
+            }
+        }
+
         [TestMethod]
         public void Test2App()
         {

@@ -76,6 +76,7 @@ namespace Zeze
             public Schemas Previous { get; set; }
             public Dictionary<Checked, CheckResult> Checked { get; } = new Dictionary<Checked, CheckResult>();
             public Dictionary<Bean, CheckResult> CopyBeanIfRemoved { get; } = new Dictionary<Bean, CheckResult>();
+            public Config Config { get; set; }
 
             public CheckResult GetCheckResult(Bean previous, Bean current)
             {
@@ -228,7 +229,7 @@ namespace Zeze
             public string TypeName { get; set; }
             public string KeyName { get; set; } = "";
             public string ValueName { get; set; } = "";
-            public Type Type { get; private set; }
+            public Type Type { get; set; }
             public bool Deleted { get; set; } = false;
 
             public void Decode(ByteBuffer bb)
@@ -338,7 +339,8 @@ namespace Zeze
                             }
                             if (vOther.Deleted)
                             {
-                                if (vThis.IsCompatible(vOther, context))
+                                if (context.Config.AllowSchemasReuseVariableIdWithSameType
+                                    && vThis.IsCompatible(vOther, context))
                                 {
                                     // 反悔
                                     continue;
@@ -363,6 +365,7 @@ namespace Zeze
                                 TypeName = vOther.TypeName,
                                 KeyName = vOther.KeyName,
                                 ValueName = vOther.ValueName,
+                                Type = vOther.Type,
                                 Deleted = true,
                             });
                         }
@@ -559,7 +562,7 @@ namespace Zeze
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public bool IsCompatible(Schemas other)
+        public bool IsCompatible(Schemas other, Config config)
         {
             if (null == other)
                 return true;
@@ -568,6 +571,7 @@ namespace Zeze
             {
                 Current = this,
                 Previous = other,
+                Config = config,
             };
             foreach (var table in Tables.Values)
             {

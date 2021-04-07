@@ -31,6 +31,4 @@ ConfigEditor
 
 DynamicBean 允许明确配置在所属的Bean内唯一的Id，和默认的Bean的TypeId分离。TODO lua
 Zeze
-	Schemas
-	InUse
 	RoleRedirect

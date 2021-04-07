@@ -117,6 +117,12 @@ namespace Zeze
         {
             lock (this)
             {
+                //ClearInUseAndIAmSureAppStopped();
+                foreach (var db in Databases.Values)
+                {
+                    db.DirectOperates.SetInUse(Config.AutoKeyLocalId, Config.GlobalCacheManagerHostNameOrAddress);
+                }
+
                 if (IsStart)
                     return;
                 IsStart = true;
@@ -137,24 +143,43 @@ namespace Zeze
                 defaultDb.AddTable(TableSys);
                 Checkpoint.Start(Config.CheckpointPeriod);
 
+                /////////////////////////////////////////////////////
+                /// Schemas Check
                 Schemas.Compile();
-                if (null != TableSys.SchemasPreviousEncoded)
+                var keyOfSchemas = Zeze.Serialize.ByteBuffer.Allocate();
+                keyOfSchemas.WriteString("zeze.Schemas." + Config.AutoKeyLocalId);
+                while (true)
                 {
-                    var SchemasPrevious = new Schemas();
-                    // 上一次的结构一值记着，直到下一次重启。
-                    try
+                    var (data, version) = defaultDb.DirectOperates.GetDataWithVersion(keyOfSchemas);
+                    if (null != data)
                     {
-                        SchemasPrevious.Decode(TableSys.SchemasPreviousEncoded);
-                        SchemasPrevious.Compile();
-                        if (false == Schemas.IsCompatible(SchemasPrevious))
+                        var SchemasPrevious = new Schemas();
+                        try
+                        {
+                            SchemasPrevious.Decode(data);
+                            SchemasPrevious.Compile();
+                        }
+                        catch (Exception ex)
+                        {
+                            SchemasPrevious = null;
+                            logger.Error(ex, "Schemas Implement Changed?");
+                        }
+                        if (false == Schemas.IsCompatible(SchemasPrevious, Config))
                             throw new Exception("Database Struct Not Compatible!");
                     }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "Schemas Implement Changed?");
-                    }
+                    var newdata = Serialize.ByteBuffer.Allocate();
+                    Schemas.Encode(newdata);
+                    if (defaultDb.DirectOperates.SaveDataWithSameVersion(keyOfSchemas, newdata, ref version))
+                        break;
                 }
-                TableSys.SaveSchemas(Schemas);
+            }
+        }
+
+        public void ClearInUseAndIAmSureAppStopped()
+        {
+            foreach (var db in Databases.Values)
+            {
+                db.DirectOperates.ClearInUse(Config.AutoKeyLocalId, Config.GlobalCacheManagerHostNameOrAddress);
             }
         }
 
@@ -164,6 +189,8 @@ namespace Zeze
             {
                 if (false == IsStart)
                     return;
+                ClearInUseAndIAmSureAppStopped();
+
                 IsStart = false;
                 Checkpoint?.StopAndJoin();
                 GlobalAgent?.Stop();

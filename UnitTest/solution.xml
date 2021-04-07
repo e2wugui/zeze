@@ -12,6 +12,8 @@
 	<module name="Module1" id="1">
 		<bean name="Simple">
 			<variable id="1" name="int1" type="int"/> com aa
+			<variable id="2" name="long2" type="long"/> com aa
+			<variable id="3" name="string3" type="string"/> com aa
 		</bean>
 		<bean name="Value">
 			<enum name="Enum1" value="4"/>
