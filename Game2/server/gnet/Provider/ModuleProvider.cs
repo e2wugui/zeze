@@ -268,5 +268,20 @@ namespace gnet.Provider
             App.Server.TryGetManualContext<ModuleRedirectAllContext>(protocol.Argument.SessionId)?.ProcessResult(protocol);
             return Zeze.Transaction.Procedure.Success;
         }
+
+        public override int ProcessTransmit(Transmit protocol)
+        {
+            if (App.Game_Login.Onlines.TransmitActions.TryGetValue(
+                protocol.Argument.ActionName, out var handle))
+            {
+                foreach (var target in protocol.Argument.Role2LinkSid.Keys2)
+                {
+                    Zeze.Util.Task.Run(App.Zeze.NewProcedure(
+                        () => handle(protocol.Argument.Sender, target),
+                        "Game.Online.Transmit:" + protocol.Argument.ActionName));
+                }
+            }
+            return Zeze.Transaction.Procedure.Success;
+        }
     }
 }

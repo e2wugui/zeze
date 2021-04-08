@@ -178,6 +178,18 @@ namespace gnet.Provider
             return false;
         }
 
+        public int FirstStaticBindModuleId()
+        { 
+            lock (StaticBinds)
+            {
+                foreach (var moduleId in StaticBinds.Keys)
+                {
+                    return moduleId;
+                }
+                return 0;
+            }
+        }
+
         public void OnProviderClose(Zeze.Net.AsyncSocket provider)
         {
             ProviderSession providerSession = provider.UserState as ProviderSession;
@@ -441,6 +453,58 @@ namespace gnet.Provider
         {
             var providerSession = protocol.Sender.UserState as ProviderSession;
             providerSession?.SetLoad(protocol.Argument);
+            return Zeze.Transaction.Procedure.Success;
+        }
+
+        public override int ProcessTransmit(Transmit protocol)
+        {
+            // 查询 role 所在的 provider 并转发。
+            var transmits = new Dictionary<long, Transmit>();
+            // 如果 role 不在线，就根据 hash(roleId) 选择 provider 转发。
+            var transmitsHash = new Dictionary<int, Transmit>();
+
+            // 随便找一个静态绑定的ModuleId，用来查找玩家所在的Provider。
+            var firstModuleId = FirstStaticBindModuleId();
+            foreach (var target in protocol.Argument.Role2LinkSid)
+            {
+                var linkSession = App.LinkdService.GetSocket(target.Value)?.UserState as LinkSession;
+                if (null == linkSession
+                    || false == linkSession.TryGetProvider(firstModuleId, out var provider))
+                {
+                    var hash = target.Key.GetHashCode();
+                    if (false == transmitsHash.TryGetValue(hash, out var transmitHash))
+                    {
+                        transmitHash = new Transmit();
+                        transmitHash.Argument.ActionName = protocol.Argument.ActionName;
+                        transmitHash.Argument.Sender = protocol.Argument.Sender;
+                        transmitsHash.Add(hash, transmitHash);
+                    }
+                    transmitHash.Argument.Role2LinkSid.Add(target.Key, target.Value);
+                    continue;
+                }
+                if (false == transmits.TryGetValue(provider, out var transmit))
+                {
+                    transmit = new Transmit();
+                    transmit.Argument.ActionName = protocol.Argument.ActionName;
+                    transmit.Argument.Sender = protocol.Argument.Sender;
+                    transmits.Add(provider, transmit);
+                }
+                transmit.Argument.Role2LinkSid.Add(target.Key, target.Value);
+            }
+
+            // 已经绑定的会话，查找连接并转发，忽略连接查找错误。
+            foreach (var transmit in transmits)
+            {
+                App.ProviderService.GetSocket(transmit.Key)?.Send(transmit.Value);
+            }
+
+            // 会话不存在，根据hash选择Provider并转发，忽略连接查找错误。
+            foreach (var transmitHash in transmitsHash)
+            {
+                if (App.gnet_Provider.ChoiceProvider(firstModuleId, transmitHash.Key, out var provider))
+                    App.ProviderService.GetSocket(provider)?.Send(transmitHash.Value);
+            }
+
             return Zeze.Transaction.Procedure.Success;
         }
     }

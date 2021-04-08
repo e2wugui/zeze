@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,7 +11,7 @@ namespace Game.Login
     public class Onlines
     {
         private tonline table;
-        
+
         public Onlines(tonline table)
         {
             this.table = table;
@@ -114,52 +115,68 @@ namespace Game.Login
             }, "SendReliableNotify." + listenerName));
         }
 
-        class ToLink
+        public class RoleOnLink
         {
-            public Zeze.Net.AsyncSocket Socket { get; }
-            public gnet.Provider.Send Protocol { get; } = new gnet.Provider.Send();
+            public string LinkName { get; set; } = ""; // empty when not online
+            public AsyncSocket Socket { get; set; } // null if not online
+            public Dictionary<long, long> Role2LinkSid { get; } = new Dictionary<long, long>();
+        }
 
-            public ToLink(AsyncSocket socket)
+        public ICollection<RoleOnLink> GroupByLink(ICollection<long> roleIds)
+        {
+            var groups = new Dictionary<string, RoleOnLink>();
+            var groupNotOnline = new RoleOnLink(); // LinkName is Empty And Socket is null.
+            groups.Add(groupNotOnline.LinkName, groupNotOnline);
+
+            foreach (var roleId in roleIds)
             {
-                Socket = socket;
+                var online = table.Get(roleId);
+                if (null == online || online.State != BOnline.StateOnline)
+                {
+                    groupNotOnline.Role2LinkSid.TryAdd(roleId, 0);
+                    continue;
+                }
+
+                if (false == Game.App.Instance.Server.Links.TryGetValue(online.LinkName, out var socket))
+                {
+                    groupNotOnline.Role2LinkSid.TryAdd(roleId, 0);
+                    continue;
+                }
+
+                if (false == groups.TryGetValue(online.LinkName, out var group))
+                {
+                    group = new RoleOnLink() { LinkName = online.LinkName, Socket = socket };
+                    groups.Add(group.LinkName, group);
+                }
+                group.Role2LinkSid.TryAdd(roleId, online.LinkSid); // 使用 TryAdd，忽略重复的 roleId。
             }
+            return groups.Values;
         }
 
         private void SendInProcedure(ICollection<long> roleIds, int typeId, Zeze.Net.Binary fullEncodedProtocol)
         {
-            Dictionary<string, ToLink> toLinks = new Dictionary<string, ToLink>();
-            foreach (var roleId in roleIds)
+            var groups = GroupByLink(roleIds);
+            foreach (var group in groups)
             {
-                var online = table.Get(roleId);
-                if (null == online || online.State == BOnline.StateOffline)
-                    continue;
+                if (group.Socket == null)
+                    continue; // skip not online
 
-                if (false == Game.App.Instance.Server.Links.TryGetValue(online.LinkName, out var socket))
-                    continue;
-
-                if (false == toLinks.TryGetValue(online.LinkName, out var toLink))
-                {
-                    toLink = new ToLink(socket);
-                    toLink.Protocol.Argument.ProtocolType = typeId;
-                    toLink.Protocol.Argument.ProtocolWholeData = fullEncodedProtocol;
-                    toLinks.Add(online.LinkName, toLink);
-                }
-                toLink.Protocol.Argument.LinkSids.Add(online.LinkSid);
-            }
-
-            foreach (var toLink in toLinks.Values)
-            {
-                toLink.Socket.Send(toLink.Protocol);
+                var send = new gnet.Provider.Send();
+                send.Argument.ProtocolType = typeId;
+                send.Argument.ProtocolWholeData = fullEncodedProtocol;
+                send.Argument.LinkSids.AddAll(group.Role2LinkSid.Values);
+                group.Socket.Send(send);
             }
         }
 
         private void Send(ICollection<long> roleIds, int typeId, Zeze.Net.Binary fullEncodedProtocol)
         {
-            Task.Run(Game.App.Instance.Zeze.NewProcedure(() =>
+            // 发送协议请求在另外的事务中执行。
+            Zeze.Util.Task.Run(Game.App.Instance.Zeze.NewProcedure(() =>
             {
                 SendInProcedure(roleIds, typeId, fullEncodedProtocol);
                 return Zeze.Transaction.Procedure.Success;
-            }, "Onlines.Send").Call);
+            }, "Onlines.Send"));
         }
 
         public void Send(long roleId, Protocol p)
@@ -190,6 +207,93 @@ namespace Game.Login
         public void SendWhileRollback(ICollection<long> roleIds, Protocol p)
         {
             Transaction.Current.RunWhileRollback(() => Send(roleIds, p));
+        }
+
+        /// <summary>
+        /// Func<sender, target, result>
+        /// sender: 查询发起者，结果发送给他。
+        /// target: 查询目标角色。
+        /// result: 返回值，int，按普通事务处理过程返回值处理。
+        /// </summary>
+        public ConcurrentDictionary<string, Func<long, long, int>> TransmitActions { get; }
+            = new ConcurrentDictionary<string, Func<long, long, int>>();
+
+        public void Transmit(long sender, string actionName, long roleId)
+        {
+            Transmit(sender, actionName, new List<long>() { roleId });
+        }
+
+        private void TransmitInProcedure(long sender, string actionName, ICollection<long> roleIds)
+        {
+            var groups = GroupByLink(roleIds);
+            foreach (var group in groups)
+            {
+                var transmit = new gnet.Provider.Transmit();
+                transmit.Argument.ActionName = actionName;
+                transmit.Argument.Sender = sender;
+                transmit.Argument.Role2LinkSid.AddRange(group.Role2LinkSid);
+
+                if (null != group.Socket)
+                {
+                    group.Socket.Send(transmit);
+                    continue;
+                }
+                
+                if (App.Instance.Server.Links.Count > 0)
+                {
+                    // 对于不在线的角色，随机选择一个linkd转发。
+                    // linkd将按 hash(roleId) 选择gs。对于相同的不在线role会被转发到同一台gs去。
+                    // 如果需要优化，可以在Links改变的时候，把Links.Values.CopyTo到数组中，一次随机得到。
+                    int randIndex = Zeze.Util.Random.Instance.Next(App.Instance.Server.Links.Count);
+                    var it = App.Instance.Server.Links.Values.GetEnumerator();
+                    for (int i = 0; i <= randIndex; ++i)
+                    {
+                        it.MoveNext(); // must return true.
+                    }
+                    it.Current.Send(transmit);
+                }
+            }
+        }
+
+        public void Transmit(long sender, string actionName, ICollection<long> roleIds)
+        {
+            if (false == TransmitActions.ContainsKey(actionName))
+                throw new Exception("Unkown Action Name: " + actionName);
+
+            // 发送协议请求在另外的事务中执行。
+            Zeze.Util.Task.Run(Game.App.Instance.Zeze.NewProcedure(() =>
+            {
+                TransmitInProcedure(sender, actionName, roleIds);
+                return Zeze.Transaction.Procedure.Success;
+            }, "Onlines.Transmit"));
+        }
+
+        public void TransmitWhileCommit(long sender, string actionName, long roleId)
+        {
+            if (false == TransmitActions.ContainsKey(actionName))
+                throw new Exception("Unkown Action Name: " + actionName);
+            Transaction.Current.RunWhileCommit(() => Transmit(sender, actionName, roleId));
+        }
+
+        public void TransmitWhileCommit(long sender, string actionName, ICollection<long> roleIds)
+        {
+            if (false == TransmitActions.ContainsKey(actionName))
+                throw new Exception("Unkown Action Name: " + actionName);
+            Transaction.Current.RunWhileCommit(() => Transmit(sender, actionName, roleIds));
+        }
+
+        public void TransmitWhileRollback(long sender, string actionName, long roleId)
+        {
+            if (false == TransmitActions.ContainsKey(actionName))
+                throw new Exception("Unkown Action Name: " + actionName);
+            Transaction.Current.RunWhileRollback(() => Transmit(sender, actionName, roleId));
+        }
+
+        public void TransmitWhileRollback(long sender, string actionName, ICollection<long> roleIds)
+        {
+            if (false == TransmitActions.ContainsKey(actionName))
+                throw new Exception("Unkown Action Name: " + actionName);
+            Transaction.Current.RunWhileRollback(() => Transmit(sender, actionName, roleIds));
         }
     }
 }

@@ -182,6 +182,8 @@
 		</protocol>
 		-->
 
+		<!-- both: link, gs -->
+
 		<bean name="BModuleRedirectArgument">
 			<variable name="ModuleId"   id="1" type="int"/>
 			<variable name="HashCode"   id="2" type="int"/> server 计算。see BBind.ChoiceType。
@@ -256,6 +258,13 @@
 		<protocol name="ModuleRedirectAllRequest" argument="BModuleRedirectAllRequest" handle="server,client"/> handle在转发时需要client
 		<protocol name="ModuleRedirectAllResult" argument="BModuleRedirectAllResult" handle="server,client"/> handle在转发时需要client
 
+		<bean name="BTransmit">
+			<variable name="ActionName"   id="1" type="string"/>
+			<variable name="Role2LinkSid" id="2" type="map" key="long" value="long"/> 查询目标角色。
+			<variable name="Sender"       id="3" type="long"/> 结果发送给Sender。
+		</bean>
+
+		<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server,client"/> 默认不启用事务，由协议实现自己控制。
 	</module>
 
 	<project name="linkd" gendir="." platform="cs">
