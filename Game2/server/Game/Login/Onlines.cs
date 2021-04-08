@@ -218,6 +218,12 @@ namespace Game.Login
         public ConcurrentDictionary<string, Func<long, long, int>> TransmitActions { get; }
             = new ConcurrentDictionary<string, Func<long, long, int>>();
 
+        /// <summary>
+        /// 转发查询请求给RoleId。
+        /// </summary>
+        /// <param name="sender">查询发起者，结果发送给他。</param>
+        /// <param name="actionName">查询处理的实现</param>
+        /// <param name="roleId">目标角色</param>
         public void Transmit(long sender, string actionName, long roleId)
         {
             Transmit(sender, actionName, new List<long>() { roleId });
