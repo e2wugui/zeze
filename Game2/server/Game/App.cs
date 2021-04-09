@@ -9,7 +9,7 @@ namespace Game
     public sealed partial class App
     {
         public Zeze.Util.Scheduler Scheduler { get; } = new Zeze.Util.Scheduler();
-        public Dictionary<int, int> StaticBinds { get; } = new Dictionary<int, int>();
+        public Dictionary<int, gnet.Provider.BModule> StaticBinds { get; } = new Dictionary<int, gnet.Provider.BModule>();
         public ProviderModuleBinds ProviderModuleBinds { get; private set; }
 
         public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)

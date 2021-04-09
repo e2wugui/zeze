@@ -38,18 +38,19 @@ namespace Game
             {
                 return m.ChoiceType;
             }
-            return gnet.Provider.BBind.ChoiceTypeDefault;
+            return gnet.Provider.BModule.ChoiceTypeDefault;
         }
 
-        public void BuildStaticBinds(Dictionary<string, Zeze.IModule> AllModules, int AutoKeyLocalId, Dictionary<int, int> modules)
+        public void BuildStaticBinds(Dictionary<string, Zeze.IModule> AllModules,
+            int AutoKeyLocalId, Dictionary<int, gnet.Provider.BModule> modules)
         {
-            HashSet<string> binds = new HashSet<string>();
+            Dictionary<string, int> binds = new Dictionary<string, int>();
 
             // special binds
             foreach (var m in Modules.Values)
             {
                 if (m.Providers.Contains(AutoKeyLocalId))
-                    binds.Add(m.FullName);
+                    binds.Add(m.FullName, gnet.Provider.BModule.ConfigTypeSpecial);
             }
 
             // default binds
@@ -61,15 +62,19 @@ namespace Game
                         continue; // 忽略动态注册的模块。
                     if (Modules.ContainsKey(m.FullName))
                         continue; // 忽略已经有特别配置的模块
-                    binds.Add(m.FullName);
+                    binds.Add(m.FullName, gnet.Provider.BModule.ConfigTypeDefault);
                 }
             }
 
             // output
-            foreach (var fullName in binds)
+            foreach (var bind in binds)
             {
-                if (AllModules.TryGetValue(fullName, out var m))
-                    modules.Add(m.Id, GetModuleChoiceType(fullName));
+                if (AllModules.TryGetValue(bind.Key, out var m))
+                    modules.Add(m.Id, new gnet.Provider.BModule()
+                    {
+                        ChoiceType = GetModuleChoiceType(bind.Key),
+                        ConfigType = bind.Value,
+                    });
             }
         }
 
@@ -84,13 +89,13 @@ namespace Game
                 switch (self.GetAttribute("ChoiceType"))
                 {
                     case "ChoiceTypeHashUserId":
-                        return gnet.Provider.BBind.ChoiceTypeHashUserId;
+                        return gnet.Provider.BModule.ChoiceTypeHashUserId;
 
                     case "ChoiceTypeHashRoleId":
-                        return gnet.Provider.BBind.ChoiceTypeHashRoleId;
+                        return gnet.Provider.BModule.ChoiceTypeHashRoleId;
 
                     default:
-                        return gnet.Provider.BBind.ChoiceTypeDefault;
+                        return gnet.Provider.BModule.ChoiceTypeDefault;
                 }
             }
 

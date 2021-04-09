@@ -102,6 +102,10 @@ namespace Game.Login
             online.ReliableNotifyMark.Clear();
             online.ReliableNotifyQueue.Clear();
 
+            var linkSession = session.Link.UserState as Game.Server.LinkSession;
+            online.ProviderId = App.Zeze.Config.AutoKeyLocalId;
+            online.ProviderSessionId = linkSession.ProviderSessionId;
+
             // 先提交结果再设置状态。see linkd::gnet.Provider.ModuleProvider。ProcessBroadcast
             session.SendResponseWhileCommit(result); 
 

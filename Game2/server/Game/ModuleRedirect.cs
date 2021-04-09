@@ -24,7 +24,7 @@ namespace Game
     public class ModuleRedirect
     {
         // 本应用：hash分组的一些配置。
-        public const int ChoiceType = gnet.Provider.BBind.ChoiceTypeHashUserId;
+        public const int ChoiceType = gnet.Provider.BModule.ChoiceTypeHashUserId;
         public static int GetChoiceHashCode()
         {
             string userid = GetLoginSession().Account;

@@ -33,6 +33,10 @@ namespace gnet
         {
             base.OnHandshakeDone(sender);
             sender.UserState = new ProviderSession(sender.SessionId);
+            var announce = new Provider.AnnounceLinkInfo();
+            announce.Argument.LinkId = 0; // reserve
+            announce.Argument.ProviderSessionId = sender.SessionId;
+            sender.Send(announce);
         }
 
         public override void OnSocketClose(Zeze.Net.AsyncSocket so, System.Exception e)

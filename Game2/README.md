@@ -24,6 +24,12 @@
   2) Game.Login.SReliableNotify 发送给客户端的可靠消息打包
   3) Game.Login.CReliableNotifyConfirm 客户端确认
 
+. Online.Transmit
+  查询目标角色数据并发送给客户端。
+  这里请求会在目标角色在线时，转发给所在的provider（gs）。
+  目标角色不在线，就根据目标roleId.GetHashCode，固定选择一个provider并转发。
+  这样做的目的是提高cache命中率。
+
 . ModuleRedirect
 
   这个主要目的是为了提高共享模块的 cache 命中率问题。see linkd.provider.txt 排行榜相关问题。

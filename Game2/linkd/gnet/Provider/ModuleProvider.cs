@@ -24,17 +24,19 @@ namespace gnet.Provider
             // 后台服务不会随便增删，不需要高效Add,Remove。
             private List<long> ProviderSessionIds { get; } = new List<long>();
             public int ChoiceType { get; }
+            public int ConfigType { get; }
 
             public Providers DeepCopy()
             {
-                var copy = new Providers(ChoiceType);
+                var copy = new Providers(ChoiceType, ConfigType);
                 copy.ProviderSessionIds.AddRange(ProviderSessionIds);
                 return copy;
             }
 
-            public Providers(int choiceType)
+            public Providers(int choiceType, int configType)
             {
                 ChoiceType = choiceType;
+                ConfigType = configType;
             }
 
             public void AddProvider(long provider)
@@ -151,10 +153,10 @@ namespace gnet.Provider
                 {
                     switch (providers.ChoiceType)
                     {
-                        case BBind.ChoiceTypeHashUserId:
+                        case BModule.ChoiceTypeHashUserId:
                             return providers.Choice(Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.UserId), out provider);
 
-                        case BBind.ChoiceTypeHashRoleId:
+                        case BModule.ChoiceTypeHashRoleId:
                             if (linkSession.UserStates.Count > 0)
                             {
                                 return providers.Choice(Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.UserStates[0]), out provider);
@@ -222,6 +224,8 @@ namespace gnet.Provider
             }
         }
 
+        public int FirstModuleWithConfigTypeDefault { get; private set; } = 0;
+
         public override int ProcessBindRequest(Bind rpc)
         {
             if (rpc.Argument.LinkSids.Count == 0)
@@ -231,10 +235,16 @@ namespace gnet.Provider
                     var providerSession = rpc.Sender.UserState as ProviderSession;
                     foreach (var module in rpc.Argument.Modules)
                     {
+                        if (FirstModuleWithConfigTypeDefault == 0
+                            && module.Value.ConfigType == BModule.ConfigTypeDefault)
+                        {
+                            FirstModuleWithConfigTypeDefault = module.Value.ConfigType;
+                        }
+
                         providerSession.StaticBinds.Add(module.Key);
                         if (false == StaticBinds.TryGetValue(module.Key, out var binds))
                         {
-                            binds = new Providers(module.Value);
+                            binds = new Providers(module.Value.ChoiceType, module.Value.ConfigType);
                             StaticBinds.Add(module.Key, binds);
                         }
                         binds.AddProvider(rpc.Sender.SessionId);
@@ -463,13 +473,10 @@ namespace gnet.Provider
             // 如果 role 不在线，就根据 hash(roleId) 选择 provider 转发。
             var transmitsHash = new Dictionary<int, Transmit>();
 
-            // 随便找一个静态绑定的ModuleId，用来查找玩家所在的Provider。
-            var firstModuleId = FirstStaticBindModuleId();
-            foreach (var target in protocol.Argument.Role2LinkSid)
+            foreach (var target in protocol.Argument.Roles)
             {
-                var linkSession = App.LinkdService.GetSocket(target.Value)?.UserState as LinkSession;
-                if (null == linkSession
-                    || false == linkSession.TryGetProvider(firstModuleId, out var provider))
+                var provider = App.ProviderService.GetSocket(target.Value.ProviderSessionId);
+                if (null == provider)
                 {
                     var hash = target.Key.GetHashCode();
                     if (false == transmitsHash.TryGetValue(hash, out var transmitHash))
@@ -479,17 +486,17 @@ namespace gnet.Provider
                         transmitHash.Argument.Sender = protocol.Argument.Sender;
                         transmitsHash.Add(hash, transmitHash);
                     }
-                    transmitHash.Argument.Role2LinkSid.Add(target.Key, target.Value);
+                    transmitHash.Argument.Roles.Add(target.Key, target.Value);
                     continue;
                 }
-                if (false == transmits.TryGetValue(provider, out var transmit))
+                if (false == transmits.TryGetValue(target.Value.ProviderSessionId, out var transmit))
                 {
                     transmit = new Transmit();
                     transmit.Argument.ActionName = protocol.Argument.ActionName;
                     transmit.Argument.Sender = protocol.Argument.Sender;
-                    transmits.Add(provider, transmit);
+                    transmits.Add(target.Value.ProviderSessionId, transmit);
                 }
-                transmit.Argument.Role2LinkSid.Add(target.Key, target.Value);
+                transmit.Argument.Roles.Add(target.Key, target.Value);
             }
 
             // 已经绑定的会话，查找连接并转发，忽略连接查找错误。
@@ -501,8 +508,11 @@ namespace gnet.Provider
             // 会话不存在，根据hash选择Provider并转发，忽略连接查找错误。
             foreach (var transmitHash in transmitsHash)
             {
-                if (App.gnet_Provider.ChoiceProvider(firstModuleId, transmitHash.Key, out var provider))
+                if (App.gnet_Provider.ChoiceProvider(FirstModuleWithConfigTypeDefault,
+                    transmitHash.Key, out var provider))
+                {
                     App.ProviderService.GetSocket(provider)?.Send(transmitHash.Value);
+                }
             }
 
             return Zeze.Transaction.Procedure.Success;

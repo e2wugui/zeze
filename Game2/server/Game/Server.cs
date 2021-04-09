@@ -33,6 +33,28 @@ namespace Game
             return connector.HostNameOrAddress + " " + connector.Port;
         }
 
+        public class LinkSession
+        { 
+            public string Name { get; }
+            public long SessionId { get; }
+
+            // 在和linkd连接建立完成以后，由linkd发送通告协议时保存。
+            public int LinkId { get; private set; } // reserve
+            public long ProviderSessionId { get; private set; }
+
+            public LinkSession(string name, long sid)
+            {
+                Name = name;
+                SessionId = sid;
+            }
+
+            public void Setup(int linkId, long providerSessionId)
+            {
+                LinkId = linkId;
+                ProviderSessionId = providerSessionId;
+            }
+        }
+
         public ConcurrentDictionary<string, AsyncSocket> Links { get; } = new ConcurrentDictionary<string, AsyncSocket>();
 
         // 用来同步等待Provider的静态绑定完成。
@@ -43,7 +65,7 @@ namespace Game
             base.OnHandshakeDone(sender);
             var linkName = GetLinkName(sender);
             Links[linkName] = sender;
-            sender.UserState = linkName;
+            sender.UserState = new LinkSession(linkName, sender.SessionId);
 
             // static binds
             var rpc = new gnet.Provider.Bind();

@@ -118,8 +118,10 @@ namespace Game.Login
         public class RoleOnLink
         {
             public string LinkName { get; set; } = ""; // empty when not online
-            public AsyncSocket Socket { get; set; } // null if not online
-            public Dictionary<long, long> Role2LinkSid { get; } = new Dictionary<long, long>();
+            public AsyncSocket LinkSocket { get; set; } // null if not online
+            public int ProviderId { get; set; } = -1;
+            public long ProviderSessionId { get; set; }
+            public Dictionary<long, gnet.Provider.BTransmitContext> Roles { get; } = new Dictionary<long, gnet.Provider.BTransmitContext>();
         }
 
         public ICollection<RoleOnLink> GroupByLink(ICollection<long> roleIds)
@@ -133,22 +135,33 @@ namespace Game.Login
                 var online = table.Get(roleId);
                 if (null == online || online.State != BOnline.StateOnline)
                 {
-                    groupNotOnline.Role2LinkSid.TryAdd(roleId, 0);
+                    groupNotOnline.Roles.TryAdd(roleId, new gnet.Provider.BTransmitContext());
                     continue;
                 }
 
                 if (false == Game.App.Instance.Server.Links.TryGetValue(online.LinkName, out var socket))
                 {
-                    groupNotOnline.Role2LinkSid.TryAdd(roleId, 0);
+                    groupNotOnline.Roles.TryAdd(roleId, new gnet.Provider.BTransmitContext());
                     continue;
                 }
 
                 if (false == groups.TryGetValue(online.LinkName, out var group))
                 {
-                    group = new RoleOnLink() { LinkName = online.LinkName, Socket = socket };
+                    group = new RoleOnLink()
+                    {
+                        LinkName = online.LinkName,
+                        LinkSocket = socket,
+                        ProviderId = online.ProviderId,
+                        ProviderSessionId = online.ProviderSessionId,
+                    };
                     groups.Add(group.LinkName, group);
                 }
-                group.Role2LinkSid.TryAdd(roleId, online.LinkSid); // 使用 TryAdd，忽略重复的 roleId。
+                group.Roles.TryAdd(roleId, new gnet.Provider.BTransmitContext()
+                {
+                    LinkSid = online.LinkSid,
+                    ProviderId = online.ProviderId,
+                    ProviderSessionId = online.ProviderSessionId,
+                }); // 使用 TryAdd，忽略重复的 roleId。
             }
             return groups.Values;
         }
@@ -158,14 +171,17 @@ namespace Game.Login
             var groups = GroupByLink(roleIds);
             foreach (var group in groups)
             {
-                if (group.Socket == null)
+                if (group.LinkSocket == null)
                     continue; // skip not online
 
                 var send = new gnet.Provider.Send();
                 send.Argument.ProtocolType = typeId;
                 send.Argument.ProtocolWholeData = fullEncodedProtocol;
-                send.Argument.LinkSids.AddAll(group.Role2LinkSid.Values);
-                group.Socket.Send(send);
+                foreach (var ctx in group.Roles.Values)
+                {
+                    send.Argument.LinkSids.Add(ctx.LinkSid);
+                }
+                group.LinkSocket.Send(send);
             }
         }
 
@@ -229,19 +245,44 @@ namespace Game.Login
             Transmit(sender, actionName, new List<long>() { roleId });
         }
 
+        public void ProcessTransmit(long sender, string actionName, IEnumerable<long> roleIds)
+        {
+            if (TransmitActions.TryGetValue(actionName, out var handle))
+            {
+                foreach (var target in roleIds)
+                {
+                    Zeze.Util.Task.Run(App.Instance.Zeze.NewProcedure(
+                        () => handle(sender, target), "Game.Online.Transmit:" + actionName));
+                }
+            }
+        }
+
         private void TransmitInProcedure(long sender, string actionName, ICollection<long> roleIds)
         {
+            if (App.Instance.Zeze.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
+            {
+                // 没有启用cache-sync，马上触发本地任务。
+                ProcessTransmit(sender, actionName, roleIds);
+                return;
+            }
+
             var groups = GroupByLink(roleIds);
             foreach (var group in groups)
             {
+                if (group.ProviderId == App.Instance.Zeze.Config.AutoKeyLocalId)
+                {
+                    // loopback 就是当前gs.
+                    ProcessTransmit(sender, actionName, group.Roles.Keys);
+                    continue;
+                }
                 var transmit = new gnet.Provider.Transmit();
                 transmit.Argument.ActionName = actionName;
                 transmit.Argument.Sender = sender;
-                transmit.Argument.Role2LinkSid.AddRange(group.Role2LinkSid);
+                transmit.Argument.Roles.AddRange(group.Roles);
 
-                if (null != group.Socket)
+                if (null != group.LinkSocket)
                 {
-                    group.Socket.Send(transmit);
+                    group.LinkSocket.Send(transmit);
                     continue;
                 }
                 

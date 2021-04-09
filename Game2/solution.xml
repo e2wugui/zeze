@@ -83,6 +83,9 @@
 			<variable id="5" name="ReliableNotifyQueue"        type="list" value="binary"/> full encoded protocol list
 			<variable id="6" name="ReliableNotifyConfirmCount" type="long"/>
 			<variable id="7" name="ReliableNotifyTotalCount"   type="long"/>
+
+			<variable id="8" name="ProviderId" type="int"/> Config.AutoKeyLocalId
+			<variable id="9" name="ProviderSessionId" type="long"/> 登录所在Linkd与当前Provider的连接在Linkd方的SessionId
 		</bean>
 
 		<bean name="BAccount">
