@@ -26,7 +26,12 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed class " + bean.Name + " : Zeze.Transaction.Bean");
+            sw.WriteLine($"    public interface {bean.Name}ReadOnly");
+            sw.WriteLine("    {");
+            PropertyReadOnly.Make(bean, sw, "        ");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine($"    public sealed class {bean.Name} : Zeze.Transaction.Bean, {bean.Name}ReadOnly");
             sw.WriteLine("    {");
             WriteDefine(sw);
             sw.WriteLine("    }");
@@ -49,6 +54,15 @@ namespace Zeze.Gen.cs
             foreach (Types.Variable v in bean.Variables)
             {
                 sw.WriteLine("        private " + TypeName.GetName(v.VariableType) + " " + v.NamePrivate + ";" + v.Comment);
+                if (v.VariableType is Types.TypeMap pmap)
+                {
+                    var key = TypeName.GetName(pmap.KeyType);
+                    var value = pmap.ValueType.IsNormalBean
+                        ? TypeName.GetName(pmap.ValueType) + "ReadOnly"
+                        : TypeName.GetName(pmap.ValueType);
+                    var readonlyTypeName = $"Zeze.Transaction.Collections.PMapReadOnly<{key},{value},{TypeName.GetName(pmap.ValueType)}>";
+                    sw.WriteLine($"        private {readonlyTypeName} {v.NamePrivate}ReadOnly;");
+                }
             }
             sw.WriteLine("");
 

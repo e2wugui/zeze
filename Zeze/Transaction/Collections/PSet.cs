@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 
 namespace Zeze.Transaction.Collections
 {
-    public abstract class PSet<E> : PCollection, ISet<E>
+    public abstract class PSet<E> : PCollection, ISet<E>, IReadOnlySet<E>
     {
         private readonly Func<ImmutableHashSet<E>, Log> _logFactory;
 

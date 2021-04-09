@@ -57,13 +57,13 @@ namespace Zeze.Transaction.Collections
         }
 
         [Obsolete("Don't use this, please use Keys2", true)]
-        public ICollection<K> Keys => throw new NotImplementedException();
+        ICollection<K> IDictionary<K, V>.Keys => throw new NotImplementedException();
         [Obsolete("Don't use this, please use Values2", true)]
-        public ICollection<V> Values => throw new NotImplementedException();
+        ICollection<V> IDictionary<K, V>.Values => throw new NotImplementedException();
 
-        public IEnumerable<K> Keys2 => Data.Keys;
+        public IEnumerable<K> Keys => Data.Keys;
 
-        public IEnumerable<V> Values2 => Data.Values;
+        public IEnumerable<V> Values => Data.Values;
 
         public int Count => Data.Count;
 
@@ -121,6 +121,47 @@ namespace Zeze.Transaction.Collections
         public ImmutableDictionary<K, V>.Enumerator GetEnumerator()
         {
             return Data.GetEnumerator();
+        }
+    }
+
+    public class PMapReadOnly<K, V, P> : IReadOnlyDictionary<K, V> where P : V
+    {
+        private readonly PMap<K, P> _origin;
+
+        public PMapReadOnly(PMap<K, P> origin)
+        {
+            _origin = origin;
+        }
+
+        public V this[K key] => _origin[key];
+
+        public IEnumerable<K> Keys => _origin.Keys;
+
+        public IEnumerable<V> Values => (IEnumerable<V>)_origin.Values;
+
+        public int Count => _origin.Count;
+
+        public bool ContainsKey(K key) => _origin.ContainsKey(key);
+
+        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+        {
+            foreach (var e in _origin)
+            {
+                yield return new KeyValuePair<K, V>(e.Key, e.Value);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)_origin).GetEnumerator();
+
+        public bool TryGetValue(K key, out V value)
+        {
+            if (_origin.TryGetValue(key, out var cur))
+            {
+                value = cur;
+                return true;
+            }
+            value = default;
+            return false;
         }
     }
 }

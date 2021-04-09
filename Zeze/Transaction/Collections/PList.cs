@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 
 namespace Zeze.Transaction.Collections
 {
-    public abstract class PList<E> : PCollection, IList<E>
+    public abstract class PList<E> : PCollection, IList<E>, IReadOnlyList<E>
     {
         private readonly Func<ImmutableList<E>, Log> _logFactory;
 

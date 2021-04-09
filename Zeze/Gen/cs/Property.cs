@@ -28,7 +28,11 @@ namespace Zeze.Gen.cs
 
         public void Visit(Bean type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
+            var typeName = TypeName.GetName(type);
+            var typeNameReadOnly = typeName + "ReadOnly";
+            var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
+            sw.WriteLine(prefix + "public " + typeName + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + typeNameReadOnly + " " + beanNameReadOnly + "." + var.NameUpper1 + " => " + var.NamePrivate + ";");
         }
 
         private void WriteProperty(Types.Type type, bool checkNull = false)
@@ -161,18 +165,33 @@ namespace Zeze.Gen.cs
         public void Visit(TypeList type)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
+            var valueName = type.ValueType.IsNormalBean
+                ? TypeName.GetName(type.ValueType) + "ReadOnly"
+                : TypeName.GetName(type.ValueType);
+            var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
+            sw.WriteLine($"{prefix}System.Collections.Generic.IReadOnlyList<{valueName}> {beanNameReadOnly}.{var.NameUpper1} => {var.NamePrivate};");
             sw.WriteLine();
         }
 
         public void Visit(TypeSet type)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
+            var v = TypeName.GetName(type.ValueType);
+            var t = $"System.Collections.Generic.IReadOnlySet<{v}>";
+            var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
+            sw.WriteLine($"{prefix}{t} {beanNameReadOnly}.{var.NameUpper1} => {var.NamePrivate};");
             sw.WriteLine();
         }
 
         public void Visit(TypeMap type)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
+            var valueName = type.ValueType.IsNormalBean
+                ? TypeName.GetName(type.ValueType) + "ReadOnly"
+                : TypeName.GetName(type.ValueType);
+            var keyName = TypeName.GetName(type.KeyType);
+            var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
+            sw.WriteLine($"{prefix}System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {beanNameReadOnly}.{var.NameUpper1} => {var.NamePrivate}ReadOnly;");
             sw.WriteLine();
         }
 
@@ -188,7 +207,10 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine($"{prefix}public {TypeName.GetName(type)} {var.NameUpper1} => {var.NamePrivate};");
+            var typeName = TypeName.GetName(type);
+            var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
+            sw.WriteLine($"{prefix}public {typeName} {var.NameUpper1} => {var.NamePrivate};");
+            sw.WriteLine($"{prefix}{typeName}ReadOnly {beanNameReadOnly}.{var.NameUpper1} => {var.NameUpper1};");
             /*
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    get");
@@ -222,11 +244,14 @@ namespace Zeze.Gen.cs
             foreach (Bean real in type.RealBeans.Values)
             {
                 string rname = TypeName.GetName(real);
-                sw.WriteLine(prefix + "public " + rname + " " + var.NameUpper1 + "_" + real.Space.Path("_", real.Name));
+                string pname = var.NameUpper1 + "_" + real.Space.Path("_", real.Name);
+                sw.WriteLine(prefix + "public " + rname + " " + pname);
                 sw.WriteLine(prefix + "{");
                 sw.WriteLine(prefix + "    get { return (" + rname + ")" + var.NameUpper1 + ".Bean; }");
                 sw.WriteLine(prefix + "    set { " + var.NameUpper1 + ".Bean = value; }");
                 sw.WriteLine(prefix + "}");
+                sw.WriteLine();
+                sw.WriteLine(prefix + rname + "ReadOnly " + beanNameReadOnly + "." + pname + " => " + pname + ";");
                 sw.WriteLine();
             }
         }

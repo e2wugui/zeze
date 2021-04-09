@@ -116,7 +116,7 @@ namespace Zeze.Gen.cs
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "foreach (var _v_ in " + varname + ".Values2)");
+                sw.WriteLine(prefix + "foreach (var _v_ in " + varname + ".Values)");
                 sw.WriteLine(prefix + "{");
                 type.ValueType.Accept(new NegativeCheck(sw, "_v_", prefix + "    "));
                 sw.WriteLine(prefix + "}");

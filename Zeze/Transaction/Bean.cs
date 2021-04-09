@@ -133,7 +133,13 @@ namespace Zeze.Transaction
         public override long TypeId => TYPEID;
     }
 
-    public class DynamicBean : Bean
+    public interface DynamicBeanReadOnly
+    { 
+        public long TypeId { get; }
+        public Bean Bean { get; }
+    }
+
+    public class DynamicBean : Bean, DynamicBeanReadOnly
     {
         public override long TypeId
         {

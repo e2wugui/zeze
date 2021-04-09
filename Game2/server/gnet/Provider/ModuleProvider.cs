@@ -110,7 +110,7 @@ namespace gnet.Provider
         private void SendResultIfSizeExceed(Zeze.Net.AsyncSocket sender, ModuleRedirectAllResult result)
         {
             int size = 0;
-            foreach (var hashResult in result.Argument.Hashs.Values2)
+            foreach (var hashResult in result.Argument.Hashs.Values)
             {
                 size += hashResult.Params.Count;
                 foreach (var hashActions in hashResult.Actions)
@@ -272,7 +272,7 @@ namespace gnet.Provider
         public override int ProcessTransmit(Transmit protocol)
         {
             App.Game_Login.Onlines.ProcessTransmit(protocol.Argument.Sender,
-                protocol.Argument.ActionName, protocol.Argument.Roles.Keys2);
+                protocol.Argument.ActionName, protocol.Argument.Roles.Keys);
             return Zeze.Transaction.Procedure.Success;
         }
 

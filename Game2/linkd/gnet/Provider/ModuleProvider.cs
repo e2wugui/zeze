@@ -261,7 +261,7 @@ namespace gnet.Provider
                     if (null != link)
                     {
                         var linkSession = link.UserState as LinkSession;
-                        linkSession.Bind(link, rpc.Argument.Modules.Keys2, rpc.Sender);
+                        linkSession.Bind(link, rpc.Argument.Modules.Keys, rpc.Sender);
                     }
                 }
             }
@@ -291,7 +291,7 @@ namespace gnet.Provider
         {
             if (rpc.Argument.LinkSids.Count == 0)
             {
-                UnBindModules(rpc.Sender, rpc.Argument.Modules.Keys2);
+                UnBindModules(rpc.Sender, rpc.Argument.Modules.Keys);
             }
             else
             {
@@ -302,7 +302,7 @@ namespace gnet.Provider
                     if (null != link)
                     {
                         var linkSession = link.UserState as LinkSession;
-                        linkSession.UnBind(link, rpc.Argument.Modules.Keys2, rpc.Sender);
+                        linkSession.UnBind(link, rpc.Argument.Modules.Keys, rpc.Sender);
                     }
                 }
             }

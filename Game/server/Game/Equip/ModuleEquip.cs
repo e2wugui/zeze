@@ -148,7 +148,7 @@ namespace Game.Equip
                 return;
 
             BEquips equips = _tequip.GetOrAdd(fighter.Id.InstanceId);
-            foreach (var pos in equips.Items.Keys2)
+            foreach (var pos in equips.Items.Keys)
             {
                 GetEquipItem(equips, pos).CalculateFighter(fighter);
             }

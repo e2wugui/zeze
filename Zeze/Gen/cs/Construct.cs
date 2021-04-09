@@ -109,6 +109,12 @@ namespace Zeze.Gen.cs
         {
             String typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(ObjectId + " + variable.Id + ", _v => new Log_" + variable.NamePrivate + "(this, _v));");
+            var key = TypeName.GetName(type.KeyType);
+            var value = type.ValueType.IsNormalBean
+                ? TypeName.GetName(type.ValueType) + "ReadOnly"
+                : TypeName.GetName(type.ValueType);
+            var readonlyTypeName = $"Zeze.Transaction.Collections.PMapReadOnly<{key},{value},{TypeName.GetName(type.ValueType)}>";
+            sw.WriteLine($"{prefix}{variable.NamePrivate}ReadOnly = new {readonlyTypeName}({variable.NamePrivate});");
         }
 
         public void Visit(TypeFloat type)

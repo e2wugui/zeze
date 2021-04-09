@@ -64,7 +64,7 @@ namespace Game.Buf
 
         public void CalculateFighter(Game.Fight.Fighter fighter)
         {
-            foreach (var bufid in bean.Bufs.Keys2)
+            foreach (var bufid in bean.Bufs.Keys)
             {
                 GetBuf(bufid).CalculateFighter(fighter);
             }
