@@ -133,7 +133,7 @@ namespace Zeze
             public Type Key { get; private set; }
             public Type Value { get; private set; }
 
-            public virtual bool IsCompatible(Type other, Context context, Action<Bean> Update, Action<Bean> UpdateVariable = null)
+            public virtual bool IsCompatible(Type other, Context context, Action<Bean> Update, Action<Bean> UpdateVariable)
             {
                 if (other == this)
                     return true;
@@ -152,7 +152,7 @@ namespace Zeze
                     {
                         KeyName = bean.Name;
                         Key = bean;
-                    }))
+                    }, UpdateVariable))
                         return false;
                 }
                 else if (other.Key != null)
@@ -166,7 +166,7 @@ namespace Zeze
                     {
                         ValueName = bean.Name;
                         Value = bean;
-                    }))
+                    }, UpdateVariable))
                         return false;
                 }
                 else if (other.Value != null)
@@ -207,18 +207,18 @@ namespace Zeze
                 }
             }
 
-            public virtual void TryCopyBeanIfRemoved(Context context, Action<Bean> Update, Action<Bean> UpdateVariable = null)
+            public virtual void TryCopyBeanIfRemoved(Context context, Action<Bean> Update, Action<Bean> UpdateVariable)
             {
                 Key?.TryCopyBeanIfRemoved(context, (bean) =>
                 {
                     KeyName = bean.Name;
                     Key = bean;
-                });
+                }, UpdateVariable);
                 Value?.TryCopyBeanIfRemoved(context, (bean) =>
                 {
                     ValueName = bean.Name;
                     Value = bean;
-                });
+                }, UpdateVariable);
             }
         }
 
@@ -310,7 +310,7 @@ namespace Zeze
             /// </summary>
             /// <param name="other"></param>
             /// <returns></returns>
-            public override bool IsCompatible(Type other, Context context, Action<Bean> Update, Action<Bean> UpdateVariable = null)
+            public override bool IsCompatible(Type other, Context context, Action<Bean> Update, Action<Bean> UpdateVariable)
             {
                 if (other == null)
                     return false;
@@ -540,12 +540,12 @@ namespace Zeze
                     {
                         KeyName = bean.Name;
                         KeyType = bean;
-                    })
+                    }, null)
                     && ValueType.IsCompatible(other.ValueType, context, (bean) =>
                     {
                         ValueName = bean.Name;
                         ValueType = bean;
-                    });
+                    }, null);
             }
 
             public void Compile(Schemas s)

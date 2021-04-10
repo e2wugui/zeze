@@ -30,5 +30,3 @@ ConfigEditor
 	enum 现在不支持引用在其他文档定义的，有需要了再来加。
 
 DynamicBean 允许明确配置在所属的Bean内唯一的Id，和默认的Bean的TypeId分离。TODO lua
-
-ReadOnly
