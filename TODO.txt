@@ -23,7 +23,6 @@ Game2
 	client: 可靠消息实现的错误检查。
 
 ConfigEditor
-	FormError 双击定位到位置需要重新实现。
 	自动完成: Foreign
 	自动完成：id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
 	更多自动完成？普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。

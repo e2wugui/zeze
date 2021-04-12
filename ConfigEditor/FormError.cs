@@ -161,14 +161,9 @@ namespace ConfigEditor
         {
             if (e.RowIndex < 0)
                 return;
-            // TODO Buid过程可能在没有View的时候需要记录错误。处理双击定位错误时需要处理这种情况。
-            /*
+            // Buid过程可能在没有View的时候需要记录错误。处理双击定位错误时需要处理这种情况。
             var maincell = grid.Rows[e.RowIndex].Cells["Level"].Tag as GridData.Cell;
-            DataGridView maingrid = maincell.Row.GridData.View;
-            FormMain.Instance.Tabs.SelectedTab = maingrid.Parent as TabPage;
-            maingrid.FirstDisplayedCell = maincell;
-            maingrid.CurrentCell = maincell;
-            */
+            maincell.Show();
         }
 
         public void RemoveErrorByGrid(GridData gridedit)

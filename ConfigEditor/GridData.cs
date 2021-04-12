@@ -67,6 +67,20 @@ namespace ConfigEditor
                 }
             }
 
+            public void Show()
+            {
+                if (null == Row.GridData.View)
+                {
+                    FormMain.Instance.OpenGrid(Row.GridData.Document, true);
+                }
+                FormMain.Instance.Tabs.SelectedTab = Row.GridData.View.Parent as TabPage;
+                int col = Row.Cells.IndexOf(this);
+                int row = Row.GridData.IndexOfRow(Row);
+                var cellView = Row.GridData.View.Rows[row].Cells[col];
+                Row.GridData.View.FirstDisplayedCell = cellView;
+                Row.GridData.View.CurrentCell = cellView;
+            }
+
             public Cell(Row row)
             {
                 Row = row;

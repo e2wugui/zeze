@@ -567,7 +567,7 @@ namespace ConfigEditor
             this.BeginInvoke(d);
         }
 
-        private void OpenGrid(Document doc, bool select = true)
+        public void OpenGrid(Document doc, bool select = true)
         {
             if (null == doc)
                 return;
