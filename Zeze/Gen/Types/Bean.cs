@@ -69,7 +69,8 @@ namespace Zeze.Gen.Types
 		public override bool IsImmutable => false;
 		public override bool IsBean => true;
 		public override string Name => _name;
-        private string _name;
+		public string NamePinyin => Program.ToPinyin(Name);
+		private string _name;
         public override bool IsNeedNegativeCheck
 		{
 			get

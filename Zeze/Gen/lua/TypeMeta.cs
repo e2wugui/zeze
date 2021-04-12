@@ -7,6 +7,7 @@ namespace Zeze.Gen.lua
 {
     public class TypeMeta : Types.Visitor
     {
+        public Types.Variable Var { get; private set; }
         public int Type { get; private set; }
         public long TypeBeanTypeId { get; private set; }
         public int Key { get; private set; }
@@ -16,12 +17,17 @@ namespace Zeze.Gen.lua
 
         public override string ToString()
         {
-            return $"{{ {Type},{TypeBeanTypeId},{Key},{KeyBeanTypeId},{Value},{ValueBeanTypeId} }}";
+            return $"{{ {Type},{TypeBeanTypeId},{Key},{KeyBeanTypeId},{Value},{ValueBeanTypeId},\"{Var.NamePinyin}\" }}";
         }
 
-        public static TypeMeta Get(Types.Type type)
+        public TypeMeta(Variable var)
         {
-            TypeMeta v = new TypeMeta();
+            Var = var;
+        }
+
+        public static TypeMeta Get(Types.Variable var, Types.Type type)
+        {
+            TypeMeta v = new TypeMeta(var);
             type.Accept(v);
             return v;
         }
@@ -86,7 +92,7 @@ namespace Zeze.Gen.lua
         void Visitor.Visit(TypeList type)
         {
             Type = Zeze.Serialize.ByteBuffer.LIST;
-            TypeMeta vm = TypeMeta.Get(type.ValueType);
+            TypeMeta vm = TypeMeta.Get(Var, type.ValueType);
             Value = vm.Type;
             ValueBeanTypeId = vm.TypeBeanTypeId;
         }
@@ -94,7 +100,7 @@ namespace Zeze.Gen.lua
         void Visitor.Visit(TypeSet type)
         {
             Type = Zeze.Serialize.ByteBuffer.SET;
-            TypeMeta vm = TypeMeta.Get(type.ValueType);
+            TypeMeta vm = TypeMeta.Get(Var, type.ValueType);
             Value = vm.Type;
             ValueBeanTypeId = vm.TypeBeanTypeId;
         }
@@ -103,11 +109,11 @@ namespace Zeze.Gen.lua
         {
             Type = Zeze.Serialize.ByteBuffer.MAP;
 
-            TypeMeta km = TypeMeta.Get(type.KeyType);
+            TypeMeta km = TypeMeta.Get(Var, type.KeyType);
             Key = km.Type;
             KeyBeanTypeId = km.TypeBeanTypeId;
 
-            TypeMeta vm = TypeMeta.Get(type.ValueType);
+            TypeMeta vm = TypeMeta.Get(Var, type.ValueType);
             Value = vm.Type;
             ValueBeanTypeId = vm.TypeBeanTypeId;
         }

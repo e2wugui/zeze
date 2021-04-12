@@ -8,6 +8,7 @@ namespace Zeze.Gen
     public class ModuleSpace
     {
         public string Name { get; private set; }
+        public string NamePinyin => Program.ToPinyin(Name);
         public ModuleSpace Parent { get; private set; }
         public global::Zeze.Util.Ranges ProtocolIdRanges { get; } = new global::Zeze.Util.Ranges();
         public short Id { get; }
@@ -38,6 +39,19 @@ namespace Zeze.Gen
             for (ModuleSpace p = Parent; null != p; p = p.Parent)
             {
                 path = p.Name + sep + path;
+            }
+            if (null == ObjectName)
+                return path;
+
+            return path + sep + ObjectName;
+        }
+
+        public string PathPinyin(string sep = ".", string ObjectName = null)
+        {
+            string path = NamePinyin;
+            for (ModuleSpace p = Parent; null != p; p = p.Parent)
+            {
+                path = p.NamePinyin + sep + path;
             }
             if (null == ObjectName)
                 return path;

@@ -17,12 +17,30 @@ namespace Zeze.Gen.lua
             sw.WriteLine("}");
         }
 
-        public static void MakeMeta(long typeId, List<Types.Variable> vars, System.IO.StreamWriter sw)
+        public static void MakeMeta(string beanFullName, long typeId, List<Types.Variable> vars, System.IO.StreamWriter sw)
         {
             sw.WriteLine("meta.beans[" + typeId + "] = {");
+            sw.WriteLine($"    [0] = \"{beanFullName}\", ");
             foreach (var v in vars)
-                sw.WriteLine($"    [{v.Id}] = {TypeMeta.Get(v.VariableType)},");
+            {
+                sw.WriteLine($"    [{v.Id}] = {TypeMeta.Get(v, v.VariableType)},");
+            }
             sw.WriteLine("}");
+            foreach (var v in vars)
+            {
+                if (v.VariableType is Types.TypeDynamic d)
+                {
+                    sw.WriteLine($"function Zeze_GetRealBeanTypeIdFromSpecial_{beanFullName}_{v.NamePinyin}(specialTypeId)");
+                    foreach (var r in d.RealBeans)
+                    {
+                        sw.WriteLine($"    if (specialTypeId == {r.Key}) then");
+                        sw.WriteLine($"        return {r.Value.TypeId}");
+                        sw.WriteLine($"    end");
+                    }
+                    sw.WriteLine($"    return specialTypeId");
+                    sw.WriteLine($"end");
+                }
+            }
         }
     }
 }

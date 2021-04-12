@@ -47,12 +47,14 @@ namespace Zeze.Gen.lua
             foreach (Types.BeanKey beanKey in Project.AllBeanKeys)
             {
                 allRefModules.Add(beanKey.Space);
-                BeanFormatter.MakeMeta(beanKey.TypeId, beanKey.Variables, swMeta);
+                BeanFormatter.MakeMeta(beanKey.Space.PathPinyin("_", beanKey.NamePinyin),
+                    beanKey.TypeId, beanKey.Variables, swMeta);
             }
             foreach (Types.Bean bean in Project.AllBeans)
             {
                 allRefModules.Add(bean.Space);
-                BeanFormatter.MakeMeta(bean.TypeId, bean.Variables, swMeta);
+                BeanFormatter.MakeMeta(bean.Space.PathPinyin("_", bean.NamePinyin), 
+                    bean.TypeId, bean.Variables, swMeta);
             }
             swMeta.WriteLine();
             swMeta.WriteLine("meta.protocols = {}");

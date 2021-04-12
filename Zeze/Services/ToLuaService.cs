@@ -212,10 +212,13 @@ namespace Zeze.Services.ToLuaService
             public long KeyBeanTypeId { get; set; }
             public int Value { get; set; }
             public long ValueBeanTypeId { get; set; }
+            public string Name { get; set; }
+
+            public BeanMeta BeanMeta { get; set; }
 
             public override string ToString()
             {
-                return $"{{[{Id}]={{{Type},{TypeBeanTypeId},{Key},{KeyBeanTypeId},{Value},{ValueBeanTypeId}}}}}";
+                return $"{{[{Id}]={{{Type},{TypeBeanTypeId},{Key},{KeyBeanTypeId},{Value},{ValueBeanTypeId},\"{Name}\"}}}}";
             }
         }
 
@@ -226,7 +229,13 @@ namespace Zeze.Services.ToLuaService
             public bool IsRpc { get; set; } = false;
         };
 
-        private readonly Dictionary<long, List<VariableMeta>> BeanMetas = new Dictionary<long, List<VariableMeta>>(); // Bean.TypeId -> vars
+        class BeanMeta
+        {
+            public string Name { get; set; }
+            public List<VariableMeta> Variables { get; } = new List<VariableMeta>();
+        }
+
+        private readonly Dictionary<long, BeanMeta> BeanMetas = new Dictionary<long, BeanMeta>(); // Bean.TypeId -> vars
         private readonly Dictionary<int, ProtocolArgument> ProtocolMetas = new Dictionary<int, ProtocolArgument>(); // protocol.TypeId -> Bean.TypeId
 
         public void LoadMeta()
@@ -243,12 +252,20 @@ namespace Zeze.Services.ToLuaService
             while (Lua.Next(-2)) // -1 value of vars(table) -2 key of bean.TypeId
             {
                 long beanTypeId = Lua.ToInteger(-2);
-                List<VariableMeta> vars = new List<VariableMeta>();
+                var beanMeta = new BeanMeta();
                 Lua.PushNil();
                 while (Lua.Next(-2)) // -1 value of varmeta(table) -2 key of varid
                 {
-                    VariableMeta var = new VariableMeta();
-                    var.Id = (int)Lua.ToInteger(-2);
+                    var varId = (int)Lua.ToInteger(-2);
+                    if (0 == varId)
+                    {
+                        // bean full name
+                        beanMeta.Name = Lua.ToString(-1);
+                        Lua.Pop(1); // pop value XXX 忘了这里要不要Pop一次了。
+                        continue;
+                    }
+                    VariableMeta var = new VariableMeta() { BeanMeta = beanMeta };
+                    var.Id = varId;
                     Lua.PushNil();
                     while (Lua.Next(-2)) // -1 value of typetag -2 key of index
                     {
@@ -260,14 +277,15 @@ namespace Zeze.Services.ToLuaService
                             case 4: var.KeyBeanTypeId = Lua.ToInteger(-1); break;
                             case 5: var.Value = (int)Lua.ToInteger(-1); break;
                             case 6: var.ValueBeanTypeId = Lua.ToInteger(-1); break;
+                            case 7: var.Name = Lua.ToString(-1); break;
                             default: throw new Exception("error index for typetag");
                         }
                         Lua.Pop(1); // pop value
                     }
                     Lua.Pop(1); // pop value
-                    vars.Add(var);
+                    beanMeta.Variables.Add(var);
                 }
-                BeanMetas.Add(beanTypeId, vars);
+                BeanMetas.Add(beanTypeId, beanMeta);
                 Lua.Pop(1); // pop value
             }
             Lua.Pop(1);
@@ -473,12 +491,12 @@ namespace Zeze.Services.ToLuaService
                 bb.WriteInt(0);
                 return;
             }
-            if (false == BeanMetas.TryGetValue(beanTypeId, out var vars))
+            if (false == BeanMetas.TryGetValue(beanTypeId, out var beanMeta))
                 throw new Exception("bean not found in meta for beanTypeId=" + beanTypeId);
 
             // 先遍历一遍，得到填写了的var的数量
             int varsCount = 0;
-            foreach (var v in vars)
+            foreach (var v in beanMeta.Variables)
             {
                 Lua.PushInteger(v.Id);
                 Lua.GetTable(-2);
@@ -488,7 +506,7 @@ namespace Zeze.Services.ToLuaService
             }
             bb.WriteInt(varsCount);
 
-            foreach (var v in vars)
+            foreach (var v in beanMeta.Variables)
             {
                 Lua.PushInteger(v.Id);
                 Lua.GetTable(-2);
@@ -630,9 +648,21 @@ namespace Zeze.Services.ToLuaService
                             throw new Exception("'_TypeId_' not found. dynamic bean needed.");
                         long beanTypeId = Lua.ToInteger(-1);
                         Lua.Pop(1);
+
+                        var funcName = $"Zeze_GetRealBeanTypeIdFromSpecial_{v.BeanMeta.Name}_{v.Name}";
+                        if (LuaType.Function != this.Lua.GetGlobal(funcName)) // push func onto stack
+                        {
+                            Lua.Pop(1);
+                            throw new Exception($"{funcName} is not a function");
+                        }
+                        Lua.PushInteger(beanTypeId);
+                        Lua.Call(1, 1);
+                        var realBeanTypeId = Lua.ToInteger(-1);
+                        Lua.Pop(1);
+
                         _os_.WriteLong8(beanTypeId);
                         _os_.BeginWriteSegment(out var _state_);
-                        EncodeBean(_os_, beanTypeId);
+                        EncodeBean(_os_, realBeanTypeId);
                         _os_.EndWriteSegment(_state_);
                     }
                     break;
