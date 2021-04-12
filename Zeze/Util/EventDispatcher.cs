@@ -35,9 +35,8 @@ namespace Zeze.Util
             Handles.TryRemove(KeyValuePair.Create(name, handle));
         }
 
-        public void Dispatch(object sender, EventArgs args)
+        public void Dispatch(Application app, object sender, EventArgs args)
         {
-            var app = new Zeze.Application(null);
             foreach (var e in Handles)
             {
                 Zeze.Util.Task.Run(app.NewProcedure(() => e.Value(sender, args), e.Key));
