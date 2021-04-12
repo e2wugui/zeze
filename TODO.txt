@@ -11,12 +11,13 @@ Zeze
 	然后才启用。如果没有分配，相当于新增的gs，逻辑上是对的。这里有个极端情况是，已分配锁
 	的gs通知不到了，怎么处理，切换不切换。可靠点就不切换，导致服务停止，但不会出错。
 
-	EventHelper
 	打包和更新工具
 	每事务提交
 	async await?
 	GlobalTaskOneByOneByKey？？？
 	AsyncSocket.Connect Timeout 可配置，不是很有必要，外面需要同步等待时，可以设置自己的等待时间，不需要依赖Socket.Timeout。
+
+	lua beankey 问题。
 
 Game2
 	client: 可靠消息实现的错误检查。
@@ -28,5 +29,3 @@ ConfigEditor
 	更多自动完成？普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
 	增加一个工作线程，所有数据操作都放到这里面，和UI线程交互。看情况再决定做不做。
 	enum 现在不支持引用在其他文档定义的，有需要了再来加。
-
-DynamicBean 允许明确配置在所属的Bean内唯一的Id，和默认的Bean的TypeId分离。TODO lua
