@@ -29,6 +29,7 @@ namespace Net
         ToLua& operator=(const ToLua&) = delete;
 
     private:
+        class BeanMeta;
         class VariableMeta
         {
         public:
@@ -40,6 +41,11 @@ namespace Net
             long long KeyBeanTypeId = 0;
             int Value = 0;
             long long ValueBeanTypeId = 0;
+            std::string Name;
+
+            // 这个变量目前仅用于dynamic访问得到var所在bean的名字，
+            // 容器之类的不会直接包含dynamic，所以动态构造的var是没有初始化这个变量的。
+            BeanMeta* BeanMeta = NULL;
 
             VariableMeta()
             {
@@ -52,6 +58,12 @@ namespace Net
                 TypeBeanTypeId = typeBeanTypeId;
             }
         };
+        class BeanMeta
+        {
+        public:
+            std::string Name;
+            std::vector<VariableMeta> Variables;
+        };
 
         class ProtocolArgument
         {
@@ -61,7 +73,7 @@ namespace Net
             bool IsRpc = false;
         };
 
-        typedef std::unordered_map<long long, std::vector<VariableMeta>> BeanMetasMap;
+        typedef std::unordered_map<long long, BeanMeta> BeanMetasMap;
         typedef std::unordered_map<int, ProtocolArgument> ProtocolMetasMap;
 
         BeanMetasMap BeanMetas; // Bean.TypeId -> vars
@@ -87,12 +99,20 @@ namespace Net
             while (Lua.Next(-2)) // -1 value of vars(table) -2 key of bean.TypeId
             {
                 long long beanTypeId = Lua.ToInteger(-2);
-                std::vector<VariableMeta> & vars = BeanMetas[beanTypeId];
+                BeanMeta & beanMeta = BeanMetas[beanTypeId];
                 Lua.PushNil();
                 while (Lua.Next(-2)) // -1 value of varmeta(table) -2 key of varid
                 {
+                    int varId = (int)Lua.ToInteger(-2);
+                    if (0 == varId)
+                    {
+                        beanMeta.Name = Lua.ToString(-1);
+                        Lua.Pop(1);
+                        continue;
+                    }
                     VariableMeta var;
-                    var.Id = (int)Lua.ToInteger(-2);
+                    var.BeanMeta = &beanMeta;
+                    var.Id = varId;
                     Lua.PushNil();
                     while (Lua.Next(-2)) // -1 value of typetag -2 key of index
                     {
@@ -104,12 +124,13 @@ namespace Net
                             case 4: var.KeyBeanTypeId = Lua.ToInteger(-1); break;
                             case 5: var.Value = (int)Lua.ToInteger(-1); break;
                             case 6: var.ValueBeanTypeId = Lua.ToInteger(-1); break;
+                            case 7: var.Name = Lua.ToString(-1); break;
                             default: throw std::exception("error index for typetag");
                         }
                         Lua.Pop(1); // pop value
                     }
                     Lua.Pop(1); // pop value
-                    vars.push_back(var);
+                    beanMeta.Variables.push_back(var);
                 }
                 Lua.Pop(1); // pop value
             }
@@ -185,10 +206,10 @@ namespace Net
             if (bit == BeanMetas.end())
                 throw std::exception("bean not found in meta for beanTypeId=" + beanTypeId);
 
-            std::vector<VariableMeta>& vars = bit->second;
+            BeanMeta & beanMeta = bit->second;
             // 先遍历一遍，得到填写了的var的数量
             int varsCount = 0;
-            for (auto & v : vars)
+            for (auto & v : beanMeta.Variables)
             {
                 Lua.PushInteger(v.Id);
                 Lua.GetTable(-2);
@@ -198,7 +219,7 @@ namespace Net
             }
             bb.WriteInt(varsCount);
 
-            for (auto & v : vars)
+            for (auto & v : beanMeta.Variables)
             {
                 Lua.PushInteger(v.Id);
                 Lua.GetTable(-2);
@@ -344,10 +365,22 @@ namespace Net
                     throw std::exception("'_TypeId_' not found. dynamic bean needed.");
                 long long beanTypeId = Lua.ToInteger(-1);
                 Lua.Pop(1);
+
+                std::string funcName = "Zeze_GetRealBeanTypeIdFromSpecial_" + v.BeanMeta->Name + "_" + v.Name;
+                if (LuaHelper::LuaType::Function != Lua.GetGlobal(funcName.c_str())) // push func onto stack
+                {
+                    Lua.Pop(1);
+                    throw std::exception((funcName + " is not a function").c_str());
+                }
+                Lua.PushInteger(beanTypeId);
+                Lua.Call(1, 1);
+                long long realBeanTypeId = Lua.ToInteger(-1);
+                Lua.Pop(1);
+
                 _os_.WriteLong8(beanTypeId);
                 int outstate;
                 _os_.BeginWriteSegment(outstate);
-                EncodeBean(_os_, beanTypeId);
+                EncodeBean(_os_, realBeanTypeId);
                 _os_.EndWriteSegment(outstate);
                 break;
             }
