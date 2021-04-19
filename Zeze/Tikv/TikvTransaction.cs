@@ -37,7 +37,7 @@ namespace Zeze.Tikv
             }
             catch (Exception ex)
             {
-                // skip rollback error
+                // long rollback error only
                 logger.Error(ex, "TiKv Transaction Rollback");
             }
         }

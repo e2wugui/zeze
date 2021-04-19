@@ -72,22 +72,21 @@ namespace Zeze.Tikv
 
             public int ClearInUse(int localId, string global)
             {
-                throw new NotImplementedException();
+                return 0;
             }
 
             public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key)
             {
-                throw new NotImplementedException();
+                return (null, 0);
             }
 
             public bool SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, ref long version)
             {
-                throw new NotImplementedException();
+                return true;
             }
 
             public void SetInUse(int localId, string global)
             {
-                throw new NotImplementedException();
             }
         }
 

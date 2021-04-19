@@ -8,6 +8,8 @@ namespace Zeze.Tikv
 {
     public class TikvConnection : IDisposable
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public int ClientId { get; }
         public TikvTransaction Transaction { get; private set; }
 
@@ -30,7 +32,15 @@ namespace Zeze.Tikv
                 // TODO pool
                 Transaction = null;
             }
-            Tikv.CloseClient(ClientId);
+            try
+            {
+                Tikv.CloseClient(ClientId);
+            }
+            catch (Exception ex)
+            {
+                // log close error only.
+                logger.Error(ex, "Tikv Connection Close");
+            }
         }
 
         public TikvTransaction BeginTransaction()
