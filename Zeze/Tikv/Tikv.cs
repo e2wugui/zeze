@@ -55,6 +55,7 @@ namespace Zeze.Tikv
 
     public class Tikv
     {
+        // TODO 动态装贼dll，兼容linux so装载
         [DllImport("tikv.dll")]
         private static extern int NewClient(GoString pdAddrs, GoSlice outerr);
         [DllImport("tikv.dll")]
@@ -90,13 +91,12 @@ namespace Zeze.Tikv
             return rc;
         }
 
-        public static int CloseClient(int clientId)
+        public static void CloseClient(int clientId)
         {
             using var error = new GoSlice(1024);
             int rc = CloseClient(clientId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
-            return rc;
         }
 
         public static int Begin(int clientId)
@@ -108,25 +108,23 @@ namespace Zeze.Tikv
             return rc;
         }
 
-        public static int Commit(int txnId)
+        public static void Commit(int txnId)
         {
             using var error = new GoSlice(1024);
             int rc = Commit(txnId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
-            return rc;
         }
 
-        public static int Rollback(int txnId)
+        public static void Rollback(int txnId)
         {
             using var error = new GoSlice(1024);
             int rc = Rollback(txnId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
-            return rc;
         }
 
-        public static int Put(int txnId, Serialize.ByteBuffer key, Serialize.ByteBuffer value)
+        public static void Put(int txnId, Serialize.ByteBuffer key, Serialize.ByteBuffer value)
         {
             using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
             using var _value = new GoSlice(value.Bytes, value.ReadIndex, value.Size);
@@ -134,7 +132,6 @@ namespace Zeze.Tikv
             int rc = Put(txnId, _key, _value, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
-            return rc;
         }
 
         public static Serialize.ByteBuffer Get(int txnId, Serialize.ByteBuffer key)
@@ -167,14 +164,13 @@ namespace Zeze.Tikv
             }
         }
 
-        public static int Delete(int txnId, Serialize.ByteBuffer key)
+        public static void Delete(int txnId, Serialize.ByteBuffer key)
         {
             using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
             using var error = new GoSlice(1024);
             int rc = Delete(txnId, _key, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
-            return rc;
         }
 
         public static void Test()
@@ -197,10 +193,11 @@ namespace Zeze.Tikv
                     Delete(txnId, key);
                     outvalue = Get(txnId, key);
                     Console.WriteLine("3 " + outvalue);
+                    Commit(txnId);
                 }
                 finally
                 {
-                    Commit(txnId);
+                    Rollback(txnId);
                 }
             }
             finally
