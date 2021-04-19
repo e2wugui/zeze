@@ -15,7 +15,10 @@ namespace Zeze.Util
 
         public bool CompareAndExchange(bool expectedValue, bool newValue)
         {
-            return System.Threading.Interlocked.CompareExchange(ref _value, newValue ? 1 : 0, expectedValue ? 1 : 0) != 0;
+            int n = newValue ? 1 : 0;
+            int e = expectedValue ? 1 : 0;
+            int r = System.Threading.Interlocked.CompareExchange(ref _value, n, e);
+            return r != 0;
         }
 
         public bool Get()
