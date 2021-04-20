@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,10 +13,31 @@ namespace Zeze.Tikv
 
         public int ClientId { get; }
         public TikvTransaction Transaction { get; private set; }
+        public bool Disposed { get; private set; } = false;
+
+        public const int MinPoolSize = 16;
+        public const int MaxPoolSize = 256;
+
+        private static BlockingCollection<int> Pools = new BlockingCollection<int>();
+        public static Zeze.Util.AtomicLong UsingCount { get; } = new Util.AtomicLong();
 
         public TikvConnection(string databaseUrl)
         {
-            // TODO Client Pool ?
+            UsingCount.IncrementAndGet();
+            while (true)
+            {
+                if (false == Pools.TryTake(out var clientId))
+                    break;
+                ClientId = clientId;
+                if (ClientId >= 0)
+                    return;
+            }
+            while (UsingCount.Get() > MaxPoolSize)
+            {
+                ClientId = Pools.Take();
+                if (ClientId >= 0)
+                    return;
+            }
             ClientId = Tikv.Driver.NewClient(databaseUrl);
         }
 
@@ -26,12 +48,21 @@ namespace Zeze.Tikv
 
         public void Dispose()
         {
+            if (this.Disposed)
+                return;
+            this.Disposed = true;
+            UsingCount.AddAndGet(-1);
+
             // 没做事情或者事务成功时，保存到Pool中。其他情况都关闭连接。
-            if (null == Transaction || Transaction.CommitDone)
+            if ((null == Transaction || Transaction.CommitDone)
+                && Pools.Count < MinPoolSize)
             {
-                // TODO pool
-                Transaction = null;
+                Pools.Add(ClientId);
+                return;
             }
+            // 不加入池子也要添加一个id到Pools中，用于唤醒Take并进行UsingCount的判断。
+            // see 上面的构造函数。 
+            Pools.Add(-1);
             try
             {
                 Tikv.Driver.CloseClient(ClientId);
