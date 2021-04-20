@@ -17,7 +17,7 @@ namespace Zeze.Tikv
         internal TikvTransaction(TikvConnection conn)
         {
             Connection = conn;
-            TransactionId = Tikv.Begin(conn.ClientId);
+            TransactionId = Tikv.Driver.Begin(conn.ClientId);
         }
 
         public void Commit()
@@ -25,7 +25,7 @@ namespace Zeze.Tikv
             if (CommitDone)
                 return;
 
-            Tikv.Commit(TransactionId);
+            Tikv.Driver.Commit(TransactionId);
             CommitDone = true;
         }
 
@@ -33,7 +33,7 @@ namespace Zeze.Tikv
         {
             try
             {
-                Tikv.Rollback(TransactionId);
+                Tikv.Driver.Rollback(TransactionId);
             }
             catch (Exception ex)
             {

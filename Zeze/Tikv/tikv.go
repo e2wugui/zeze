@@ -198,5 +198,28 @@ func Delete(txnId int, key[] byte, outerr []byte) int {
 	return -copy(outerr, "TransactionId Not Exist!") 
 }
 
+func CheckError(rc int, err []byte) {
+	if rc < 0 {
+		var str = string(err[:-rc])
+		panic(str)
+	}
+}
+
+func Test() {
+	var outerr = []byte("1111111111111111111111111111111111111111111111111111111111111111111111111")
+	var clientId = NewClient("172.21.15.68:2379", outerr)
+	CheckError(clientId, outerr)
+	var transId = Begin(clientId, outerr)
+	CheckError(transId, outerr)
+	var rc int
+	rc = Put(transId, []byte("key"), []byte(""), outerr)
+	CheckError(rc, outerr)
+	rc = Commit(transId, outerr)
+	CheckError(rc, outerr)
+	rc = CloseClient(clientId, outerr)
+	CheckError(rc, outerr)
+}
+
 func main() {
+//	Test()
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -19,7 +20,7 @@ namespace Zeze.Tikv
             var key = Zeze.Serialize.ByteBuffer.Allocate(64);
             key.WriteString("key");
             var value = Zeze.Serialize.ByteBuffer.Allocate(64);
-            key.WriteString("value");
+            value.WriteString("value");
 
             var outvalue = table.Find(key);
             Console.WriteLine("Find1 " + outvalue);
@@ -41,39 +42,43 @@ namespace Zeze.Tikv
         {
             Console.WriteLine("RunBasic");
 
-            var clientId = Tikv.NewClient(URL);
+            var clientId = Tikv.Driver.NewClient(URL);
             try
             {
-                var txnId = Tikv.Begin(clientId);
+                var txnId = Tikv.Driver.Begin(clientId);
                 try
                 {
                     var key = Zeze.Serialize.ByteBuffer.Allocate(64);
                     key.WriteString("key");
-                    var outvalue = Tikv.Get(txnId, key);
+                    var outvalue = Tikv.Driver.Get(txnId, key);
                     Console.WriteLine("1 " + outvalue);
                     var value = Zeze.Serialize.ByteBuffer.Allocate(64);
                     value.WriteString("value");
-                    Tikv.Put(txnId, key, value);
-                    outvalue = Tikv.Get(txnId, key);
+                    Tikv.Driver.Put(txnId, key, value);
+                    outvalue = Tikv.Driver.Get(txnId, key);
                     Console.WriteLine("2 " + outvalue);
-                    Tikv.Delete(txnId, key);
-                    outvalue = Tikv.Get(txnId, key);
+                    Tikv.Driver.Delete(txnId, key);
+                    outvalue = Tikv.Driver.Get(txnId, key);
                     Console.WriteLine("3 " + outvalue);
-                    Tikv.Commit(txnId);
+                    Tikv.Driver.Commit(txnId);
                 }
                 catch (Exception)
                 {
-                    Tikv.Rollback(txnId);
+                    Tikv.Driver.Rollback(txnId);
                 }
             }
             finally
             {
-                Tikv.CloseClient(clientId);
+                Tikv.Driver.CloseClient(clientId);
             }
         }
 
         public static void Run()
         {
+            var ptr = Marshal.AllocHGlobal(0);
+            if (IntPtr.Zero == ptr)
+                Console.WriteLine("++++++++++++");
+            Marshal.FreeHGlobal(ptr);
             RunBasic();
             RunWrap();
         }

@@ -123,17 +123,17 @@ namespace Zeze.Tikv
                 using TikvConnection connection = new TikvConnection(Database.DatabaseUrl);
                 connection.Open();
                 TikvTransaction transaction = connection.BeginTransaction();
-                return Tikv.Get(transaction.TransactionId, WithKeyspace(key));
+                return Tikv.Driver.Get(transaction.TransactionId, WithKeyspace(key));
             }
 
             public void Remove(ByteBuffer key)
             {
-                Tikv.Delete(Database.CheckpointTikvConnection.Transaction.TransactionId, WithKeyspace(key));
+                Tikv.Driver.Delete(Database.CheckpointTikvConnection.Transaction.TransactionId, WithKeyspace(key));
             }
 
             public void Replace(ByteBuffer key, ByteBuffer value)
             {
-                Tikv.Put(Database.CheckpointTikvConnection.Transaction.TransactionId, WithKeyspace(key), value);
+                Tikv.Driver.Put(Database.CheckpointTikvConnection.Transaction.TransactionId, WithKeyspace(key), value);
             }
 
             public void Walk(Database.Table.IWalk iw)

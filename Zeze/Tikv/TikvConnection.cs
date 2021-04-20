@@ -16,7 +16,7 @@ namespace Zeze.Tikv
         public TikvConnection(string databaseUrl)
         {
             // TODO Client Pool ?
-            ClientId = Tikv.NewClient(databaseUrl);
+            ClientId = Tikv.Driver.NewClient(databaseUrl);
         }
 
         public void Open()
@@ -34,7 +34,7 @@ namespace Zeze.Tikv
             }
             try
             {
-                Tikv.CloseClient(ClientId);
+                Tikv.Driver.CloseClient(ClientId);
             }
             catch (Exception ex)
             {
