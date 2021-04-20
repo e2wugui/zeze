@@ -32,11 +32,11 @@ namespace Zeze.Tikv
         public long Len { get; set; }
         public long Cap { get; set; }
 
-        public GoSlice(byte[] bytes, int offset, int size, bool oneByte)
+        public GoSlice(byte[] bytes, int offset, int size, bool oneMoreByte)
         {
             // tikv不能设置长度为0的数组，多分配一个字节。用于Tikv.Put. Tikv.Get返回时去掉。
             var allocate = size;
-            if (oneByte)
+            if (oneMoreByte)
                 allocate++;
             Len = allocate;
             Cap = allocate;
