@@ -14,6 +14,7 @@ namespace Zeze
             Memory,
             MySql,
             SqlServer,
+            Tikv,
         }
 
         public int WorkerThreads { get; set; }
@@ -51,6 +52,8 @@ namespace Zeze
                     return new Transaction.DatabaseMySql(url);
                 case DbType.SqlServer:
                     return new Transaction.DatabaseSqlServer(url);
+                case DbType.Tikv:
+                    return new Tikv.DatabaseTikv(url);
 #endif
                 default:
                     throw new Exception("unknown database type.");
@@ -160,6 +163,7 @@ namespace Zeze
                     case "Memory": DatabaseType = DbType.Memory; break;
                     case "MySql": DatabaseType = DbType.MySql; break;
                     case "SqlServer": DatabaseType = DbType.SqlServer; break;
+                    case "Tikv": DatabaseType = DbType.Tikv; break;
                     default: throw new Exception("unknown database type.");
                 }
                 DatabaseUrl = self.GetAttribute("DatabaseUrl");

@@ -16,7 +16,7 @@ namespace Zeze.Transaction
         internal ReaderWriterLockSlim FlushReadWriteLock { get; } = new ReaderWriterLockSlim();
         public bool IsRunning { get; private set; }
         public int Period { get; private set; }
-        private Task RunningTask;
+        private Task RunningTask = null;
         private Util.SimpleThreadPool flushThreads;
 
         public Checkpoint()
@@ -68,7 +68,7 @@ namespace Zeze.Transaction
                 IsRunning = false;
                 Monitor.Pulse(this);
             }
-            RunningTask.Wait();
+            RunningTask?.Wait();
         }
 
         internal void RunOnce()

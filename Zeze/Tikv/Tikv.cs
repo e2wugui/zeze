@@ -55,23 +55,20 @@ namespace Zeze.Tikv
 
     public class Tikv
     {
-        // TODO 动态装贼dll，兼容linux so装载
-        [DllImport("tikv.dll")]
-        private static extern int NewClient(GoString pdAddrs, GoSlice outerr);
-        [DllImport("tikv.dll")]
-        private static extern int CloseClient(int clientId, GoSlice outerr);
-        [DllImport("tikv.dll")]
-        private static extern int Begin(int clientId, GoSlice outerr);
-        [DllImport("tikv.dll")]
-        private static extern int Commit(int txnId, GoSlice outerr);
-        [DllImport("tikv.dll")]
-        private static extern int Rollback(int txnId, GoSlice outerr);
-        [DllImport("tikv.dll")]
-        private static extern int Put(int txnId, GoSlice key, GoSlice value, GoSlice outerr);
-        [DllImport("tikv.dll")]
-        private static extern int Get(int txnId, GoSlice key, GoSlice outvalue, GoSlice outerr);
-        [DllImport("tikv.dll")]
-        private static extern int Delete(int txnId, GoSlice key, GoSlice outerr);
+        private static ITikv Create()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                return new TikvLinux();
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return new TikvWindows();
+            /*
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                return TikvLinux();
+            */
+            throw new Exception("unknown platform.");
+        }
+
+        public static readonly ITikv ITikv = Create();
 
         private static string GetErrorString(long rc, GoSlice outerr)
         {
@@ -85,7 +82,7 @@ namespace Zeze.Tikv
         {
             using var _pdAddrs = new GoString(pdAddrs);
             using var error = new GoSlice(1024);
-            int rc = NewClient(_pdAddrs, error);
+            int rc = ITikv._NewClient(_pdAddrs, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
             return rc;
@@ -94,7 +91,7 @@ namespace Zeze.Tikv
         public static void CloseClient(int clientId)
         {
             using var error = new GoSlice(1024);
-            int rc = CloseClient(clientId, error);
+            int rc = ITikv._CloseClient(clientId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
@@ -102,7 +99,7 @@ namespace Zeze.Tikv
         public static int Begin(int clientId)
         {
             using var error = new GoSlice(1024);
-            int rc = Begin(clientId, error);
+            int rc = ITikv._Begin(clientId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
             return rc;
@@ -111,7 +108,7 @@ namespace Zeze.Tikv
         public static void Commit(int txnId)
         {
             using var error = new GoSlice(1024);
-            int rc = Commit(txnId, error);
+            int rc = ITikv._Commit(txnId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
@@ -119,7 +116,7 @@ namespace Zeze.Tikv
         public static void Rollback(int txnId)
         {
             using var error = new GoSlice(1024);
-            int rc = Rollback(txnId, error);
+            int rc = ITikv._Rollback(txnId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
@@ -129,7 +126,7 @@ namespace Zeze.Tikv
             using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
             using var _value = new GoSlice(value.Bytes, value.ReadIndex, value.Size);
             using var error = new GoSlice(1024);
-            int rc = Put(txnId, _key, _value, error);
+            int rc = ITikv._Put(txnId, _key, _value, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
@@ -142,7 +139,7 @@ namespace Zeze.Tikv
                 using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
                 using var error = new GoSlice(1024);
                 using var outvalue = new GoSlice(outValueBufferLen);
-                int rc = Get(txnId, _key, outvalue, error);
+                int rc = ITikv._Get(txnId, _key, outvalue, error);
                 if (rc < 0)
                 {
                     var str = GetErrorString(rc, error);
@@ -168,42 +165,141 @@ namespace Zeze.Tikv
         {
             using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
             using var error = new GoSlice(1024);
-            int rc = Delete(txnId, _key, error);
+            int rc = ITikv._Delete(txnId, _key, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
+    }
 
-        public static void Test()
+    public interface ITikv
+    {
+        public int _NewClient(GoString pdAddrs, GoSlice outerr);
+        public int _CloseClient(int clientId, GoSlice outerr);
+        public int _Begin(int clientId, GoSlice outerr);
+        public int _Commit(int txnId, GoSlice outerr);
+        public int _Rollback(int txnId, GoSlice outerr);
+        public int _Put(int txnId, GoSlice key, GoSlice value, GoSlice outerr);
+        public int _Get(int txnId, GoSlice key, GoSlice outvalue, GoSlice outerr);
+        public int _Delete(int txnId, GoSlice key, GoSlice outerr);
+    }
+
+    public sealed class TikvWindows : ITikv
+    {
+        [DllImport("tikv.dll")]
+        private static extern int NewClient(GoString pdAddrs, GoSlice outerr);
+        [DllImport("tikv.dll")]
+        private static extern int CloseClient(int clientId, GoSlice outerr);
+        [DllImport("tikv.dll")]
+        private static extern int Begin(int clientId, GoSlice outerr);
+        [DllImport("tikv.dll")]
+        private static extern int Commit(int txnId, GoSlice outerr);
+        [DllImport("tikv.dll")]
+        private static extern int Rollback(int txnId, GoSlice outerr);
+        [DllImport("tikv.dll")]
+        private static extern int Put(int txnId, GoSlice key, GoSlice value, GoSlice outerr);
+        [DllImport("tikv.dll")]
+        private static extern int Get(int txnId, GoSlice key, GoSlice outvalue, GoSlice outerr);
+        [DllImport("tikv.dll")]
+        private static extern int Delete(int txnId, GoSlice key, GoSlice outerr);
+
+        public int _Begin(int clientId, GoSlice outerr)
         {
-            var clientId = NewClient("172.21.0.229:2379");
-            try
-            {
-                var txnId = Begin(clientId);
-                try
-                {
-                    var key = Zeze.Serialize.ByteBuffer.Allocate(64);
-                    key.WriteString("key");
-                    var outvalue = Get(txnId, key);
-                    Console.WriteLine("1 " + outvalue);
-                    var value = Zeze.Serialize.ByteBuffer.Allocate(64);
-                    value.WriteString("value");
-                    Put(txnId, key, value);
-                    outvalue = Get(txnId, key);
-                    Console.WriteLine("2 " + outvalue);
-                    Delete(txnId, key);
-                    outvalue = Get(txnId, key);
-                    Console.WriteLine("3 " + outvalue);
-                    Commit(txnId);
-                }
-                finally
-                {
-                    Rollback(txnId);
-                }
-            }
-            finally
-            {
-                CloseClient(clientId);
-            }
+            return Begin(clientId, outerr);
+        }
+
+        public int _CloseClient(int clientId, GoSlice outerr)
+        {
+            return CloseClient(clientId, outerr);
+        }
+
+        public int _Commit(int txnId, GoSlice outerr)
+        {
+            return Commit(txnId, outerr);
+        }
+
+        public int _Delete(int txnId, GoSlice key, GoSlice outerr)
+        {
+            return Delete(txnId, key, outerr);
+        }
+
+        public int _Get(int txnId, GoSlice key, GoSlice outvalue, GoSlice outerr)
+        {
+            return Get(txnId, key, outvalue, outerr);
+        }
+
+        public int _NewClient(GoString pdAddrs, GoSlice outerr)
+        {
+            return NewClient(pdAddrs, outerr);
+        }
+
+        public int _Put(int txnId, GoSlice key, GoSlice value, GoSlice outerr)
+        {
+            return Put(txnId, key, value, outerr);
+        }
+
+        public int _Rollback(int txnId, GoSlice outerr)
+        {
+            return Rollback(txnId, outerr);
+        }
+    }
+
+    public sealed class TikvLinux : ITikv
+    {
+        [DllImport("tikv.so")]
+        private static extern int NewClient(GoString pdAddrs, GoSlice outerr);
+        [DllImport("tikv.so")]
+        private static extern int CloseClient(int clientId, GoSlice outerr);
+        [DllImport("tikv.so")]
+        private static extern int Begin(int clientId, GoSlice outerr);
+        [DllImport("tikv.so")]
+        private static extern int Commit(int txnId, GoSlice outerr);
+        [DllImport("tikv.so")]
+        private static extern int Rollback(int txnId, GoSlice outerr);
+        [DllImport("tikv.so")]
+        private static extern int Put(int txnId, GoSlice key, GoSlice value, GoSlice outerr);
+        [DllImport("tikv.so")]
+        private static extern int Get(int txnId, GoSlice key, GoSlice outvalue, GoSlice outerr);
+        [DllImport("tikv.so")]
+        private static extern int Delete(int txnId, GoSlice key, GoSlice outerr);
+
+        public int _Begin(int clientId, GoSlice outerr)
+        {
+            return Begin(clientId, outerr);
+        }
+
+        public int _CloseClient(int clientId, GoSlice outerr)
+        {
+            return CloseClient(clientId, outerr);
+        }
+
+        public int _Commit(int txnId, GoSlice outerr)
+        {
+            return Commit(txnId, outerr);
+        }
+
+        public int _Delete(int txnId, GoSlice key, GoSlice outerr)
+        {
+            return Delete(txnId, key, outerr);
+        }
+
+        public int _Get(int txnId, GoSlice key, GoSlice outvalue, GoSlice outerr)
+        {
+            return Get(txnId, key, outvalue, outerr);
+        }
+
+        public int _NewClient(GoString pdAddrs, GoSlice outerr)
+        {
+            return NewClient(pdAddrs, outerr);
+        }
+
+        public int _Put(int txnId, GoSlice key, GoSlice value, GoSlice outerr)
+        {
+            return Put(txnId, key, value, outerr);
+        }
+
+        public int _Rollback(int txnId, GoSlice outerr)
+        {
+            return Rollback(txnId, outerr);
         }
     }
 }

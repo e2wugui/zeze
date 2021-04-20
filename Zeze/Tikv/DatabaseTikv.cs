@@ -75,6 +75,10 @@ namespace Zeze.Tikv
                 return 0;
             }
 
+            public void SetInUse(int localId, string global)
+            {
+            }
+
             public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key)
             {
                 return (null, 0);
@@ -83,10 +87,6 @@ namespace Zeze.Tikv
             public bool SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, ref long version)
             {
                 return true;
-            }
-
-            public void SetInUse(int localId, string global)
-            {
             }
         }
 
