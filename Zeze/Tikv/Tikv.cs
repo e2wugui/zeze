@@ -34,13 +34,12 @@ namespace Zeze.Tikv
 
         public GoSlice(byte[] bytes, int offset, int size, bool oneByte)
         {
-            Len = size;
-            Cap = size;
-
             // tikv不能设置长度为0的数组，多分配一个字节。用于Tikv.Put. Tikv.Get返回时去掉。
             var allocate = size;
             if (oneByte)
                 allocate++;
+            Len = allocate;
+            Cap = allocate;
 
             Data = Marshal.AllocHGlobal(allocate);
             Marshal.Copy(bytes, offset, Data, size);
