@@ -10,6 +10,7 @@
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 	<DatabaseConf Name="" DatabaseType="SqlServer" DatabaseUrl="Server=(localdb)\MSSQLLocalDB;Integrated Security=true"/>
 	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="server=localhost;database=devtest;uid=dev;pwd=devtest12345"/>
+	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="172.21.15.68:2379"/>
 	-->
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 
