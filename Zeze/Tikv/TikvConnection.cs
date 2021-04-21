@@ -34,9 +34,13 @@ namespace Zeze.Tikv
             }
             while (UsingCount.Get() > MaxPoolSize)
             {
-                ClientId = Pools.Take();
-                if (ClientId >= 0)
-                    return;
+                // 使用timeout，更可靠点。
+                if (Pools.TryTake(out var clientId, 1000))
+                {
+                    ClientId = clientId;
+                    if (ClientId >= 0)
+                        return;
+                }
             }
             ClientId = Tikv.Driver.NewClient(databaseUrl);
         }
