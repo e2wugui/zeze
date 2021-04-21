@@ -11,14 +11,14 @@ namespace Zeze.Tikv
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public int ClientId { get; }
+        public long ClientId { get; }
         public TikvTransaction Transaction { get; private set; }
         public bool Disposed { get; private set; } = false;
 
         public const int MinPoolSize = 16;
         public const int MaxPoolSize = 256;
 
-        private static BlockingCollection<int> Pools = new BlockingCollection<int>();
+        private static BlockingCollection<long> Pools = new BlockingCollection<long>();
         public static Zeze.Util.AtomicLong UsingCount { get; } = new Util.AtomicLong();
 
         public TikvConnection(string databaseUrl)

@@ -70,14 +70,14 @@ namespace Zeze.Tikv
             throw new Exception("unknown platform.");
         }
 
-        public abstract int NewClient(string pdAddrs);
-        public abstract void CloseClient(int clientId);
-        public abstract int Begin(int clientId);
-        public abstract void Commit(int txnId);
-        public abstract void Rollback(int txnId);
-        public abstract void Put(int txnId, Serialize.ByteBuffer key, Serialize.ByteBuffer value);
-        public abstract Serialize.ByteBuffer Get(int txnId, Serialize.ByteBuffer key);
-        public abstract void Delete(int txnId, Serialize.ByteBuffer key);
+        public abstract long NewClient(string pdAddrs);
+        public abstract void CloseClient(long clientId);
+        public abstract long Begin(long clientId);
+        public abstract void Commit(long txnId);
+        public abstract void Rollback(long txnId);
+        public abstract void Put(long txnId, Serialize.ByteBuffer key, Serialize.ByteBuffer value);
+        public abstract Serialize.ByteBuffer Get(long txnId, Serialize.ByteBuffer key);
+        public abstract void Delete(long txnId, Serialize.ByteBuffer key);
 
         protected string GetErrorString(long rc, GoSlice outerr)
         {
@@ -92,76 +92,76 @@ namespace Zeze.Tikv
     public sealed class TikvWindows : Tikv
     {
         [DllImport("tikv.dll")]
-        private static extern int NewClient(GoString pdAddrs, GoSlice outerr);
+        private static extern long NewClient(GoString pdAddrs, GoSlice outerr);
         [DllImport("tikv.dll")]
-        private static extern int CloseClient(int clientId, GoSlice outerr);
+        private static extern long CloseClient(long clientId, GoSlice outerr);
         [DllImport("tikv.dll")]
-        private static extern int Begin(int clientId, GoSlice outerr);
+        private static extern long Begin(long clientId, GoSlice outerr);
         [DllImport("tikv.dll")]
-        private static extern int Commit(int txnId, GoSlice outerr);
+        private static extern long Commit(long txnId, GoSlice outerr);
         [DllImport("tikv.dll")]
-        private static extern int Rollback(int txnId, GoSlice outerr);
+        private static extern long Rollback(long txnId, GoSlice outerr);
         [DllImport("tikv.dll")]
-        private static extern int Put(int txnId, GoSlice key, GoSlice value, GoSlice outerr);
+        private static extern long Put(long txnId, GoSlice key, GoSlice value, GoSlice outerr);
         [DllImport("tikv.dll")]
-        private static extern int Get(int txnId, GoSlice key, GoSlice outvalue, GoSlice outerr);
+        private static extern long Get(long txnId, GoSlice key, GoSlice outvalue, GoSlice outerr);
         [DllImport("tikv.dll")]
-        private static extern int Delete(int txnId, GoSlice key, GoSlice outerr);
+        private static extern long Delete(long txnId, GoSlice key, GoSlice outerr);
 
-        public override int NewClient(string pdAddrs)
+        public override long NewClient(string pdAddrs)
         {
             using var _pdAddrs = new GoString(pdAddrs);
             using var error = new GoSlice(1024);
-            int rc = NewClient(_pdAddrs, error);
+            long rc = NewClient(_pdAddrs, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
             return rc;
         }
 
-        public override void CloseClient(int clientId)
+        public override void CloseClient(long clientId)
         {
             using var error = new GoSlice(1024);
-            int rc = CloseClient(clientId, error);
+            long rc = CloseClient(clientId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
 
-        public override int Begin(int clientId)
+        public override long Begin(long clientId)
         {
             using var error = new GoSlice(1024);
-            int rc = Begin(clientId, error);
+            long rc = Begin(clientId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
             return rc;
         }
 
-        public override void Commit(int txnId)
+        public override void Commit(long txnId)
         {
             using var error = new GoSlice(1024);
-            int rc = Commit(txnId, error);
+            long rc = Commit(txnId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
 
-        public override void Rollback(int txnId)
+        public override void Rollback(long txnId)
         {
             using var error = new GoSlice(1024);
-            int rc = Rollback(txnId, error);
+            long rc = Rollback(txnId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
 
-        public override void Put(int txnId, Serialize.ByteBuffer key, Serialize.ByteBuffer value)
+        public override void Put(long txnId, Serialize.ByteBuffer key, Serialize.ByteBuffer value)
         {
             using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
             using var _value = new GoSlice(value.Bytes, value.ReadIndex, value.Size);
             using var error = new GoSlice(1024);
-            int rc = Put(txnId, _key, _value, error);
+            long rc = Put(txnId, _key, _value, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
 
-        public override Serialize.ByteBuffer Get(int txnId, Serialize.ByteBuffer key)
+        public override Serialize.ByteBuffer Get(long txnId, Serialize.ByteBuffer key)
         {
             int outValueBufferLen = 64 * 1024;
             while (true)
@@ -169,7 +169,7 @@ namespace Zeze.Tikv
                 using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
                 using var error = new GoSlice(1024);
                 using var outvalue = new GoSlice(outValueBufferLen);
-                int rc = Get(txnId, _key, outvalue, error);
+                long rc = Get(txnId, _key, outvalue, error);
                 if (rc < 0)
                 {
                     var str = GetErrorString(rc, error);
@@ -191,11 +191,11 @@ namespace Zeze.Tikv
             }
         }
 
-        public override void Delete(int txnId, Serialize.ByteBuffer key)
+        public override void Delete(long txnId, Serialize.ByteBuffer key)
         {
             using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
             using var error = new GoSlice(1024);
-            int rc = Delete(txnId, _key, error);
+            long rc = Delete(txnId, _key, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
@@ -204,76 +204,76 @@ namespace Zeze.Tikv
     public sealed class TikvLinux : Tikv
     {
         [DllImport("tikv.so")]
-        private static extern int NewClient(GoString pdAddrs, GoSlice outerr);
+        private static extern long NewClient(GoString pdAddrs, GoSlice outerr);
         [DllImport("tikv.so")]
-        private static extern int CloseClient(int clientId, GoSlice outerr);
+        private static extern long CloseClient(long clientId, GoSlice outerr);
         [DllImport("tikv.so")]
-        private static extern int Begin(int clientId, GoSlice outerr);
+        private static extern long Begin(long clientId, GoSlice outerr);
         [DllImport("tikv.so")]
-        private static extern int Commit(int txnId, GoSlice outerr);
+        private static extern long Commit(long txnId, GoSlice outerr);
         [DllImport("tikv.so")]
-        private static extern int Rollback(int txnId, GoSlice outerr);
+        private static extern long Rollback(long txnId, GoSlice outerr);
         [DllImport("tikv.so")]
-        private static extern int Put(int txnId, GoSlice key, GoSlice value, GoSlice outerr);
+        private static extern long Put(long txnId, GoSlice key, GoSlice value, GoSlice outerr);
         [DllImport("tikv.so")]
-        private static extern int Get(int txnId, GoSlice key, GoSlice outvalue, GoSlice outerr);
+        private static extern long Get(long txnId, GoSlice key, GoSlice outvalue, GoSlice outerr);
         [DllImport("tikv.so")]
-        private static extern int Delete(int txnId, GoSlice key, GoSlice outerr);
+        private static extern long Delete(long txnId, GoSlice key, GoSlice outerr);
 
-        public override int NewClient(string pdAddrs)
+        public override long NewClient(string pdAddrs)
         {
             using var _pdAddrs = new GoString(pdAddrs);
             using var error = new GoSlice(1024);
-            int rc = NewClient(_pdAddrs, error);
+            long rc = NewClient(_pdAddrs, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
             return rc;
         }
 
-        public override void CloseClient(int clientId)
+        public override void CloseClient(long clientId)
         {
             using var error = new GoSlice(1024);
-            int rc = CloseClient(clientId, error);
+            long rc = CloseClient(clientId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
 
-        public override int Begin(int clientId)
+        public override long Begin(long clientId)
         {
             using var error = new GoSlice(1024);
-            int rc = Begin(clientId, error);
+            long rc = Begin(clientId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
             return rc;
         }
 
-        public override void Commit(int txnId)
+        public override void Commit(long txnId)
         {
             using var error = new GoSlice(1024);
-            int rc = Commit(txnId, error);
+            long rc = Commit(txnId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
 
-        public override void Rollback(int txnId)
+        public override void Rollback(long txnId)
         {
             using var error = new GoSlice(1024);
-            int rc = Rollback(txnId, error);
+            long rc = Rollback(txnId, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
 
-        public override void Put(int txnId, Serialize.ByteBuffer key, Serialize.ByteBuffer value)
+        public override void Put(long txnId, Serialize.ByteBuffer key, Serialize.ByteBuffer value)
         {
             using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
             using var _value = new GoSlice(value.Bytes, value.ReadIndex, value.Size);
             using var error = new GoSlice(1024);
-            int rc = Put(txnId, _key, _value, error);
+            long rc = Put(txnId, _key, _value, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }
 
-        public override Serialize.ByteBuffer Get(int txnId, Serialize.ByteBuffer key)
+        public override Serialize.ByteBuffer Get(long txnId, Serialize.ByteBuffer key)
         {
             int outValueBufferLen = 64 * 1024;
             while (true)
@@ -281,7 +281,7 @@ namespace Zeze.Tikv
                 using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
                 using var error = new GoSlice(1024);
                 using var outvalue = new GoSlice(outValueBufferLen);
-                int rc = Get(txnId, _key, outvalue, error);
+                long rc = Get(txnId, _key, outvalue, error);
                 if (rc < 0)
                 {
                     var str = GetErrorString(rc, error);
@@ -303,11 +303,11 @@ namespace Zeze.Tikv
             }
         }
 
-        public override void Delete(int txnId, Serialize.ByteBuffer key)
+        public override void Delete(long txnId, Serialize.ByteBuffer key)
         {
             using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
             using var error = new GoSlice(1024);
-            int rc = Delete(txnId, _key, error);
+            long rc = Delete(txnId, _key, error);
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
         }

@@ -11,7 +11,7 @@ namespace Zeze.Tikv
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public TikvConnection Connection { get; }
-        public int TransactionId { get; }
+        public long TransactionId { get; }
         public bool CommitDone { get; private set; } = false;
 
         internal TikvTransaction(TikvConnection conn)
