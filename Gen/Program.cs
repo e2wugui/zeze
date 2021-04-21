@@ -7,7 +7,8 @@ namespace Gen
         public static void Main(string[] args)
         {
             Zeze.Gen.Program.Main(args);
-            //Zeze.Tikv.Test.Run();
+
+            //Zeze.Tikv.Test.Run(args[0]);
         }
     }
 }

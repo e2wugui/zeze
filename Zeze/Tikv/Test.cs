@@ -9,18 +9,16 @@ namespace Zeze.Tikv
 {
     public class Test
     {
-        public static readonly string URL = "172.21.15.68:2379";
-
-        public static void RunWrap()
+        public static void RunWrap(string url)
         {
             Console.WriteLine("RunWrap");
 
-            var tikvDb = new DatabaseTikv(URL);
+            var tikvDb = new DatabaseTikv(url);
             var table = tikvDb.OpenTable("_testtable_");
             var key = Zeze.Serialize.ByteBuffer.Allocate(64);
             key.WriteString("key");
             var value = Zeze.Serialize.ByteBuffer.Allocate(64);
-            value.WriteString("value");
+            //value.WriteString("value");
 
             var outvalue = table.Find(key);
             Console.WriteLine("Find1 " + outvalue);
@@ -38,11 +36,11 @@ namespace Zeze.Tikv
             Console.WriteLine("Find3 " + outvalue);
         }
 
-        public static void RunBasic()
+        public static void RunBasic(string url)
         {
             Console.WriteLine("RunBasic");
 
-            var clientId = Tikv.Driver.NewClient(URL);
+            var clientId = Tikv.Driver.NewClient(url);
             try
             {
                 var txnId = Tikv.Driver.Begin(clientId);
@@ -73,14 +71,14 @@ namespace Zeze.Tikv
             }
         }
 
-        public static void Run()
+        public static void Run(string url)
         {
             var ptr = Marshal.AllocHGlobal(0);
             if (IntPtr.Zero == ptr)
                 Console.WriteLine("++++++++++++");
             Marshal.FreeHGlobal(ptr);
-            RunBasic();
-            RunWrap();
+            RunBasic(url);
+            RunWrap(url);
         }
     }
 }

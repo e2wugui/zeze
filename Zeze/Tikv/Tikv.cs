@@ -32,19 +32,6 @@ namespace Zeze.Tikv
         public long Len { get; set; }
         public long Cap { get; set; }
 
-        public GoSlice(byte[] bytes, int offset, int size, bool oneMoreByte)
-        {
-            // tikv不能设置长度为0的数组，多分配一个字节。用于Tikv.Put. Tikv.Get返回时去掉。
-            var allocate = size;
-            if (oneMoreByte)
-                allocate++;
-            Len = allocate;
-            Cap = allocate;
-
-            Data = Marshal.AllocHGlobal(allocate);
-            Marshal.Copy(bytes, offset, Data, size);
-        }
-
         public GoSlice(byte [] bytes, int offset, int size)
         {
             Len = size;
@@ -167,8 +154,7 @@ namespace Zeze.Tikv
         public override void Put(int txnId, Serialize.ByteBuffer key, Serialize.ByteBuffer value)
         {
             using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
-            // tikv不能设置长度为0的数组
-            using var _value = new GoSlice(value.Bytes, value.ReadIndex, value.Size, true);
+            using var _value = new GoSlice(value.Bytes, value.ReadIndex, value.Size);
             using var error = new GoSlice(1024);
             int rc = Put(txnId, _key, _value, error);
             if (rc < 0)
@@ -199,8 +185,6 @@ namespace Zeze.Tikv
                     }
                     throw new Exception(str);
                 }
-                if (rc > 0) // tikv不能设置长度为0的数组。必须大于0. see Put. 这里判断一下吧。
-                    rc--;
                 byte[] rcvalue = new byte[rc];
                 Marshal.Copy(outvalue.Data, rcvalue, 0, rcvalue.Length);
                 return Serialize.ByteBuffer.Wrap(rcvalue);
@@ -282,8 +266,7 @@ namespace Zeze.Tikv
         public override void Put(int txnId, Serialize.ByteBuffer key, Serialize.ByteBuffer value)
         {
             using var _key = new GoSlice(key.Bytes, key.ReadIndex, key.Size);
-            // tikv不能设置长度为0的数组
-            using var _value = new GoSlice(value.Bytes, value.ReadIndex, value.Size, true);
+            using var _value = new GoSlice(value.Bytes, value.ReadIndex, value.Size);
             using var error = new GoSlice(1024);
             int rc = Put(txnId, _key, _value, error);
             if (rc < 0)
@@ -314,8 +297,6 @@ namespace Zeze.Tikv
                     }
                     throw new Exception(str);
                 }
-                if (rc > 0) // tikv不能设置长度为0的数组。必须大于0. see Put. 这里判断一下吧。
-                    rc--;
                 byte[] rcvalue = new byte[rc];
                 Marshal.Copy(outvalue.Data, rcvalue, 0, rcvalue.Length);
                 return Serialize.ByteBuffer.Wrap(rcvalue);
