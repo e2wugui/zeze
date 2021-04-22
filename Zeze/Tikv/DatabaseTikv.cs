@@ -122,8 +122,10 @@ namespace Zeze.Tikv
             {
                 using TikvConnection connection = new TikvConnection(Database.DatabaseUrl);
                 connection.Open();
-                TikvTransaction transaction = connection.BeginTransaction();
-                return Tikv.Driver.Get(transaction.TransactionId, WithKeyspace(key));
+                using TikvTransaction transaction = connection.BeginTransaction();
+                var result = Tikv.Driver.Get(transaction.TransactionId, WithKeyspace(key));
+                transaction.Commit();
+                return result;
             }
 
             public void Remove(ByteBuffer key)
@@ -136,9 +138,14 @@ namespace Zeze.Tikv
                 Tikv.Driver.Put(Database.CheckpointTikvConnection.Transaction.TransactionId, WithKeyspace(key), value);
             }
 
-            public void Walk(Database.Table.IWalk iw)
+            public long Walk(Func<byte[], byte[], bool> callback)
             {
-                // TODO scan tikv
+                using TikvConnection connection = new TikvConnection(Database.DatabaseUrl);
+                connection.Open();
+                using TikvTransaction transaction = connection.BeginTransaction();
+                long result = Tikv.Driver.Scan(transaction.TransactionId, KeyPrefix, callback);
+                transaction.Commit();
+                return result;
             }
         }
     }

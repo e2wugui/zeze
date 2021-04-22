@@ -1,28 +1,23 @@
 
 package main
 
+/*
+#include <stdlib.h>
+#include "tikvbridge.h"
+*/
 import "C"
-
 import (
 	"context"
 	"sync"
 	"strings"
 	"fmt"
+	"unsafe"
+	"bytes"
 
 	"github.com/tikv/client-go/config"
+	"github.com/tikv/client-go/key"
 	"github.com/tikv/client-go/txnkv"
 )
-
-/*
-func (c *SafeCounter) Value(key string) int {
-	c.mu.Lock()
-	// Lock so only one goroutine at a time can access the map c.v.
-	defer c.mu.Unlock()
-	return c.v[key]
-}
-sync/atomic
-func AddInt64(addr *int64, delta int64) (new int64)
-*/
 
 var ClientMutex sync.Mutex
 var ClientIdSeed int = 0
@@ -196,6 +191,50 @@ func Delete(txnId int, key[] byte, outerr []byte) int {
 		return 0
 	}
 	return -copy(outerr, "TransactionId Not Exist!") 
+}
+
+//export Scan
+func Scan(txnId int, keyprefix []byte, walker unsafe.Pointer, outerr []byte) int {
+	var _tx, exist = TransactionMap.Load(txnId)
+	if exist {
+		var tx = _tx.(*txnkv.Transaction)
+		var it, err = tx.Iter(context.TODO(), key.Key(keyprefix), nil)
+		if err != nil {
+			return -copy(outerr, err.Error())
+		}
+		defer it.Close()
+		var count int = 0
+
+		var zeroptr = C.malloc(1)
+		defer C.free(zeroptr)
+		for it.Valid() {
+			var _key = it.Key()
+			var _value = it.Value()
+			if !bytes.HasPrefix(_key, keyprefix) {
+				return count
+			}
+			count++
+			var keylen = len(_key)
+			var valuelen = len(_value)
+			var keyptr = zeroptr
+			if keylen > 0 {
+				keyptr = unsafe.Pointer(&_key[0])
+			}
+			var valueptr = zeroptr
+			if valuelen > 0 {
+				valueptr = unsafe.Pointer(&_value[0])
+			}
+			fmt.Println("keylen valuelen ", keylen, valuelen)
+
+			var rwalker = C.BridgeWalker(walker, keyptr, C.int(keylen), valueptr, C.int(valuelen))
+			if rwalker < 0 {
+				return count
+			}
+			it.Next(context.TODO())
+		}
+		return count
+	}
+	return -copy(outerr, "TransactionId Not Exist!")	
 }
 
 func CheckError(rc int, err []byte) {

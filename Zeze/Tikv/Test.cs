@@ -9,6 +9,34 @@ namespace Zeze.Tikv
 {
     public class Test
     {
+        public static void RunScan(string url)
+        {
+            Console.WriteLine("RunScan");
+
+            // for keyprefix
+            var tikvDb = new DatabaseTikv(url);
+            var table = tikvDb.OpenTable("_testtable_") as DatabaseTikv.TableTikv;
+
+            // prepare data
+            var key = Zeze.Serialize.ByteBuffer.Allocate(64);
+            key.WriteString("key");
+            var value = Zeze.Serialize.ByteBuffer.Allocate(64);
+            value.WriteString("value");
+            tikvDb.Flush(null, () =>
+            {
+                table.Replace(key, value);
+            });
+            var outvalue = table.Find(key);
+            Console.WriteLine("Scan Find1 " + outvalue);
+
+            // connect an begin transaction
+            table.Walk((key, value) =>
+            {
+                Console.WriteLine($"Scan Callback: {BitConverter.ToString(key)}=>{BitConverter.ToString(value)}");
+                return true;
+            });
+        }
+
         public static void RunWrap(string url)
         {
             Console.WriteLine("RunWrap");
@@ -79,6 +107,7 @@ namespace Zeze.Tikv
             Marshal.FreeHGlobal(ptr);
             RunBasic(url);
             RunWrap(url);
+            RunScan(url);
         }
     }
 }

@@ -78,6 +78,7 @@ namespace Zeze.Tikv
         public abstract void Put(long txnId, Serialize.ByteBuffer key, Serialize.ByteBuffer value);
         public abstract Serialize.ByteBuffer Get(long txnId, Serialize.ByteBuffer key);
         public abstract void Delete(long txnId, Serialize.ByteBuffer key);
+        public abstract long Scan(long txnId, Serialize.ByteBuffer keyprefix, Func<byte[], byte[], bool> callback);
 
         protected string GetErrorString(long rc, GoSlice outerr)
         {
@@ -107,6 +108,29 @@ namespace Zeze.Tikv
         private static extern long Get(long txnId, GoSlice key, GoSlice outvalue, GoSlice outerr);
         [DllImport("tikv.dll")]
         private static extern long Delete(long txnId, GoSlice key, GoSlice outerr);
+
+        [DllImport("tikv.dll")]
+        private static extern long Scan(long txnId, GoSlice keyprefix, MulticastDelegate walker, GoSlice outerr);
+        public delegate int Walker(IntPtr key, int keylen, IntPtr value, int valuelen);
+
+        public override long Scan(long txnId, Serialize.ByteBuffer keyprefix, Func<byte[], byte[], bool> callback)
+        {
+            using var _keyprefix = new GoSlice(keyprefix.Bytes, keyprefix.ReadIndex, keyprefix.Size);
+            using var error = new GoSlice(1024);
+            long rc = Scan(txnId, _keyprefix, new Walker((key, keylen, value, valuelen) =>
+            {
+                var _key = new byte[keylen];
+                var _value = new byte[valuelen];
+                Marshal.Copy(key, _key, 0, _key.Length);
+                Marshal.Copy(value, _value, 0, _value.Length);
+                return callback(_key, _value) ? 0 : -1;
+            }), error);
+
+            if (rc < 0)
+                throw new Exception(GetErrorString(rc, error));
+
+            return rc;
+        }
 
         public override long NewClient(string pdAddrs)
         {
@@ -219,6 +243,28 @@ namespace Zeze.Tikv
         private static extern long Get(long txnId, GoSlice key, GoSlice outvalue, GoSlice outerr);
         [DllImport("tikv.so")]
         private static extern long Delete(long txnId, GoSlice key, GoSlice outerr);
+        [DllImport("tikv.so")]
+        private static extern long Scan(long txnId, GoSlice keyprefix, MulticastDelegate walker, GoSlice outerr);
+        public delegate int Walker(IntPtr key, int keylen, IntPtr value, int valuelen);
+
+        public override long Scan(long txnId, Serialize.ByteBuffer keyprefix, Func<byte[], byte[], bool> callback)
+        {
+            using var _keyprefix = new GoSlice(keyprefix.Bytes, keyprefix.ReadIndex, keyprefix.Size);
+            using var error = new GoSlice(1024);
+            long rc = Scan(txnId, _keyprefix, new Walker((key, keylen, value, valuelen) =>
+            {
+                var _key = new byte[keylen];
+                var _value = new byte[valuelen];
+                Marshal.Copy(key, _key, 0, _key.Length);
+                Marshal.Copy(value, _value, 0, _value.Length);
+                return callback(_key, _value) ? 0 : -1;
+            }), error);
+
+            if (rc < 0)
+                throw new Exception(GetErrorString(rc, error));
+
+            return rc;
+        }
 
         public override long NewClient(string pdAddrs)
         {

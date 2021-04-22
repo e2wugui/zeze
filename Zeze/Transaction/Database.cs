@@ -132,13 +132,13 @@ namespace Zeze.Transaction
             public ByteBuffer Find(ByteBuffer key);
             public void Replace(ByteBuffer key, ByteBuffer value);
             public void Remove(ByteBuffer key);
-            public void Walk(IWalk iw);
+            /// <summary>
+            /// 每一条记录回调。回调返回true继续遍历，false中断遍历。
+            /// </summary>
+            /// <param name="callback"></param>
+            /// <returns>返回已经遍历的数量</returns>
+            public long Walk(Func<byte[], byte[], bool> callback);
             public void Close();
-
-            public interface IWalk
-            {
-                public bool OnRecord(byte[] key, byte[] value);
-            }
         }
 
         /// <summary>
@@ -603,7 +603,7 @@ namespace Zeze.Transaction
                 cmd.ExecuteNonQuery();
             }
 
-            public void Walk(Database.Table.IWalk iw)
+            public long Walk(Func<byte[], byte[], bool> callback)
             {
                 using MySqlConnection connection = new MySqlConnection(Database.DatabaseUrl);
                 connection.Open();
@@ -612,16 +612,19 @@ namespace Zeze.Transaction
                 MySqlCommand cmd = new MySqlCommand(sql, connection);
                 cmd.Prepare();
 
+                long count = 0;
                 using (MySqlDataReader reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
                     {
                         byte[] key = (byte[])reader[0];
                         byte[] value = (byte[])reader[1];
-                        if (false == iw.OnRecord(key, value))
+                        ++count;
+                        if (false == callback(key, value))
                             break;
                     }
                 }
+                return count;
             }
         }
     }
@@ -1029,7 +1032,7 @@ namespace Zeze.Transaction
                 cmd.ExecuteNonQuery();
             }
 
-            public void Walk(Database.Table.IWalk iw)
+            public long Walk(Func<byte[], byte[], bool> callback)
             {
                 using SqlConnection connection = new SqlConnection(Database.DatabaseUrl);
                 connection.Open();
@@ -1038,16 +1041,19 @@ namespace Zeze.Transaction
                 SqlCommand cmd = new SqlCommand(sql, connection);
                 cmd.Prepare();
 
+                long count = 0;
                 using (SqlDataReader reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
                     {
                         byte[] key = (byte[])reader[0];
                         byte[] value = (byte[])reader[1];
-                        if (false == iw.OnRecord(key, value))
+                        ++count;
+                        if (false == callback(key, value))
                             break;
                     }
                 }
+                return count;
             }
         }
     }
@@ -1179,16 +1185,19 @@ namespace Zeze.Transaction
                 Map[key.Copy()] = value.Copy();
             }
 
-            public void Walk(Database.Table.IWalk iw)
+            public long Walk(Func<byte[], byte[], bool> callback)
             {
                 lock (this)
                 {
                     // 不允许并发？
+                    long count = 0;
                     foreach (var e in Map)
                     {
-                        if (false == iw.OnRecord(e.Key, e.Value))
+                        ++count;
+                        if (false == callback(e.Key, e.Value))
                             break;
                     }
+                    return count;
                 }
             }
 

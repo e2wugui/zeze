@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Zeze.Tikv
 {
-    public class TikvTransaction
+    public class TikvTransaction : IDisposable
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
@@ -40,6 +40,13 @@ namespace Zeze.Tikv
                 // long rollback error only
                 logger.Error(ex, "TiKv Transaction Rollback");
             }
+        }
+
+        public void Dispose()
+        {
+            if (CommitDone)
+                return;
+            Rollback();
         }
     }
 }

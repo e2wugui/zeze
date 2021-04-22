@@ -30,9 +30,7 @@ namespace UnitTest.Zeze.Trans
                 }
             }
             );
-            Walker walker = new Walker();
-            table.Walk(walker);
-            Assert.AreEqual(0, walker.count);
+            Assert.AreEqual(0, table.Walk(PrintRecord));
             sqlserver.Flush(null, () =>
             {
                 {
@@ -67,23 +65,15 @@ namespace UnitTest.Zeze.Trans
                 Assert.AreEqual(2, value.ReadInt());
                 Assert.IsTrue(value.ReadIndex == value.WriteIndex);
             }
-            walker.count = 0;
-            table.Walk(walker);
-            Assert.AreEqual(2, walker.count);
+            Assert.AreEqual(2, table.Walk(PrintRecord));
         }
 
-        class Walker : Database.Table.IWalk
+        public bool PrintRecord(byte[] key, byte[] value)
         {
-            public int count = 0;
-
-            public bool OnRecord(byte[] key, byte[] value)
-            {
-                int ikey = ByteBuffer.Wrap(key).ReadInt();
-                int ivalue = ByteBuffer.Wrap(value).ReadInt();
-                Console.WriteLine($"key={ikey} value={ivalue}");
-                ++count;
-                return true;
-            }
+            int ikey = ByteBuffer.Wrap(key).ReadInt();
+            int ivalue = ByteBuffer.Wrap(value).ReadInt();
+            Console.WriteLine($"key={ikey} value={ivalue}");
+            return true;
         }
     }
 }
