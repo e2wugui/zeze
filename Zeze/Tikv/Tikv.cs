@@ -110,7 +110,7 @@ namespace Zeze.Tikv
         private static extern long Delete(long txnId, GoSlice key, GoSlice outerr);
 
         [DllImport("tikv.dll")]
-        private static extern long Scan(long txnId, GoSlice keyprefix, MulticastDelegate walker, GoSlice outerr);
+        private static extern long Scan(long txnId, GoSlice keyprefix, Walker walker, GoSlice outerr);
         public delegate int Walker(IntPtr key, int keylen, IntPtr value, int valuelen);
 
         public override long Scan(long txnId, Serialize.ByteBuffer keyprefix, Func<byte[], byte[], bool> callback)
@@ -244,7 +244,7 @@ namespace Zeze.Tikv
         [DllImport("tikv.so")]
         private static extern long Delete(long txnId, GoSlice key, GoSlice outerr);
         [DllImport("tikv.so")]
-        private static extern long Scan(long txnId, GoSlice keyprefix, MulticastDelegate walker, GoSlice outerr);
+        private static extern long Scan(long txnId, GoSlice keyprefix, Walker walker, GoSlice outerr);
         public delegate int Walker(IntPtr key, int keylen, IntPtr value, int valuelen);
 
         public override long Scan(long txnId, Serialize.ByteBuffer keyprefix, Func<byte[], byte[], bool> callback)

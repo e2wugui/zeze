@@ -6,9 +6,9 @@ namespace Gen
     {
         public static void Main(string[] args)
         {
-            //Zeze.Gen.Program.Main(args);
+            Zeze.Gen.Program.Main(args);
 
-            Zeze.Tikv.Test.Run(args[0]);
+            //Zeze.Tikv.Test.Run(args[0]);
         }
     }
 }
