@@ -278,9 +278,9 @@ namespace Zeze.Transaction
             this.agent = agent;
         }
 
-        public override void OnSocketConnected(AsyncSocket so)
+        public override void OnHandshakeDone(AsyncSocket so)
         {
-            base.OnSocketConnected(so);
+            base.OnHandshakeDone(so);
             var agent = so.UserState as GlobalAgent.Agent;
             if (agent.LoginedTimes.Get() > 1)
             {
