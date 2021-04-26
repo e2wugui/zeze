@@ -60,20 +60,48 @@ namespace Zeze.Services
         // ServiceInfo.Name -> ServiceState
         private ConcurrentDictionary<string, ServiceState> States = new ConcurrentDictionary<string, ServiceState>();
         public NetServer Server { get; private set; }
+
         public sealed class ServiceState
         {
-            public ConcurrentDictionary<string, ServiceInfo> ServiceInfos { get; }
-                = new ConcurrentDictionary<string, ServiceInfo>();
-            public ConcurrentDictionary<long, ServiceUser> SimpleUsers { get; }
-                = new ConcurrentDictionary<long, ServiceUser>();
-            public ConcurrentDictionary<long, ServiceUser> ReadyCommitUsers { get; }
-                = new ConcurrentDictionary<long, ServiceUser>();
+            // identity -> SessionServiceInfo
+            // 记录一下SessionId，方便以后找到服务所在的连接。
+            public ConcurrentDictionary<string, ServiceInfoWithSessionId> ServiceInfos { get; }
+                = new ConcurrentDictionary<string, ServiceInfoWithSessionId>();
+            public ConcurrentDictionary<long, Session> Simple { get; }
+                = new ConcurrentDictionary<long, Session>();
+            public ConcurrentDictionary<long, Session> ReadyCommit { get; }
+                = new ConcurrentDictionary<long, Session>();
         }
 
-        public sealed class ServiceUser
+        public sealed class ServiceInfoWithSessionId
+        {
+            public long SessionId { get; set; }
+            public ServiceInfo ServiceInfo { get; set; }
+        }
+
+        public sealed class Session
         {
             public long SessionId { get; set; }
             public bool Ready { get; set; } // ReadyCommit时才被使用。
+
+            // ServiceIndentity -> ServiceInfo: 会话注册的服务
+            public ConcurrentDictionary<string, ServiceInfo> ServiceInfos { get; }
+                = new ConcurrentDictionary<string, ServiceInfo>();
+            // ServiceName -> SubscribeInfo: 会话订阅的服务
+            public ConcurrentDictionary<string, SubscribeInfo> SubscribeInfos { get; }
+                = new ConcurrentDictionary<string, SubscribeInfo>();
+
+            public void OnClose()
+            {
+                foreach (var info in ServiceInfos.Values)
+                {
+                    ServiceManager.Instance.UnRegisterNow(SessionId, info);
+                }
+                foreach (var info in SubscribeInfos.Values)
+                {
+                    ServiceManager.Instance.UnSubscribeNow(SessionId, info);
+                }
+            }
         }
 
         private ServiceManager()
@@ -85,36 +113,125 @@ namespace Zeze.Services
         public static ServiceManager Instance { get; }
             = new ServiceManager();
 
-        private int ProcessRegisterService(Protocol p)
+        private int ProcessRegister(Protocol p)
         {
             var r = p as Register;
-            r.ResultCode = 0;
+            var session = r.Sender.UserState as Session;
+            var state = States.GetOrAdd(r.Argument.ServiceName, new ServiceState());
+            r.ResultCode = Register.DuplicateIndentity;
+            var registers = state.ServiceInfos.GetOrAdd(r.Argument.ServiceIdentity, (_) =>
+            {
+                // 外层加入成功，会话肯定也会成功。
+                session.ServiceInfos.TryAdd(r.Argument.ServiceIdentity, r.Argument);
+                r.ResultCode = Register.Success;
+                return new ServiceInfoWithSessionId()
+                {
+                    SessionId = r.Sender.SessionId,
+                    ServiceInfo = r.Argument,
+                };
+            });
             r.SendResult();
-            return Procedure.Success;
+            return r.ResultCode == Register.Success ? Procedure.Success : Procedure.LogicError;
         }
 
-        private int ProcessUnRegisterService(Protocol p)
+        internal bool UnRegisterNow(long sessionId, ServiceInfo info)
+        {
+            if (States.TryGetValue(info.ServiceName, out var state))
+            {
+                if (state.ServiceInfos.TryGetValue(info.ServiceIdentity, out var ssi))
+                {
+                    // 这里存在一个时间窗口，可能使得重复的注销会成功。注销一般比较特殊，忽略这个问题。
+                    if (sessionId == ssi.SessionId)
+                    {
+                        state.ServiceInfos.TryRemove(info.ServiceIdentity, out var _);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private int ProcessUnRegister(Protocol p)
         {
             var r = p as UnRegister;
-            r.ResultCode = 0;
-            r.SendResult();
-            return Procedure.Success;
+            var session = r.Sender.UserState as Session;
+            if (UnRegisterNow(r.Sender.SessionId, r.Argument))
+            {
+                // ignore TryRemove failed.
+                session.ServiceInfos.TryRemove(r.Argument.ServiceIdentity, out var _);
+                r.ResultCode = UnRegister.Success;
+                r.SendResult();
+                return Procedure.Success;
+            }
+
+            r.ResultCode = UnRegister.NotExist;
+            return Procedure.LogicError;
         }
 
-        private int ProcessUseService(Protocol p)
+        private int ProcessSubscribe(Protocol p)
         {
             var r = p as Subscribe;
-            r.ResultCode = 0;
+            var session = r.Sender.UserState as Session;
+            if (!session.SubscribeInfos.TryAdd(r.Argument.ServiceName, r.Argument))
+            {
+                r.ResultCode = Subscribe.DuplicateSubscribe;
+                r.SendResult();
+                return Procedure.LogicError;
+            }
+            var state = States.GetOrAdd(r.Argument.ServiceName, new ServiceState());
+            // session.SubscribeInfos.TryAdd 加入成功，下面TryAdd肯定也成功。
+            switch (r.Argument.SubscribeType)
+            {
+                case SubscribeInfo.SubscribeTypeSimple:
+                    state.Simple.TryAdd(r.Sender.SessionId, session);
+                    break;
+                case SubscribeInfo.SubscribeTypeReadyCommit:
+                    state.ReadyCommit.TryAdd(r.Sender.SessionId, session);
+                    break;
+                default:
+                    r.ResultCode = Subscribe.UnknownSubscribeType;
+                    r.SendResult();
+                    return Procedure.LogicError;
+            }
+            r.ResultCode = Subscribe.Success;
             r.SendResult();
             return Procedure.Success;
         }
 
-        private int ProcessUnUseService(Protocol p)
+        internal bool UnSubscribeNow(long sessionId, SubscribeInfo info)
+        {
+            if (States.TryGetValue(info.ServiceName, out var state))
+            {
+                switch (info.SubscribeType)
+                {
+                    case SubscribeInfo.SubscribeTypeSimple:
+                        return state.Simple.TryRemove(sessionId, out var _);
+
+                    case SubscribeInfo.SubscribeTypeReadyCommit:
+                        return state.ReadyCommit.TryRemove(sessionId, out var _);
+                }
+            }
+            return false;
+        }
+
+        private int ProcessUnSubscribe(Protocol p)
         {
             var r = p as UnSubscribe;
-            r.ResultCode = 0;
+            var session = r.Sender.UserState as Session;
+            if (session.SubscribeInfos.TryRemove(r.Argument.ServiceName, out var sub))
+            {
+                if (r.Argument.SubscribeType == sub.SubscribeType
+                    && UnSubscribeNow(r.Sender.SessionId, r.Argument))
+                {
+                    // ignore TryRemove faild
+                    r.ResultCode = UnSubscribe.Success;
+                    r.SendResult();
+                    return Procedure.Success;
+                }
+            }
+            r.ResultCode = UnSubscribe.NotExist;
             r.SendResult();
-            return Procedure.Success;
+            return Procedure.LogicError;
         }
 
         private int ProcessReadyServiceList(Protocol p)
@@ -137,25 +254,25 @@ namespace Zeze.Services
                 Server.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new Register(),
-                    Handle = ProcessRegisterService,
+                    Handle = ProcessRegister,
                 });
 
                 Server.AddFactoryHandle(new UnRegister().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new UnRegister(),
-                    Handle = ProcessUnRegisterService,
+                    Handle = ProcessUnRegister,
                 });
 
                 Server.AddFactoryHandle(new Subscribe().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new Subscribe(),
-                    Handle = ProcessUseService,
+                    Handle = ProcessSubscribe,
                 });
 
                 Server.AddFactoryHandle(new UnSubscribe().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new UnSubscribe(),
-                    Handle = ProcessUnUseService,
+                    Handle = ProcessUnSubscribe,
                 });
 
                 Server.AddFactoryHandle(new ReadyServiceList().TypeId, new Service.ProtocolFactoryHandle()
@@ -171,6 +288,19 @@ namespace Zeze.Services
             public NetServer(Config config) : base("RService", config)
             {
             }
+
+            public override void OnSocketAccept(AsyncSocket so)
+            {
+                so.UserState = new Session() { SessionId = so.SessionId };
+                base.OnSocketAccept(so);
+            }
+
+            public override void OnSocketClose(AsyncSocket so, Exception e)
+            {
+                var session = so.UserState as Session;
+                session?.OnClose();
+                base.OnSocketClose(so, e);
+            }
         }
 
         public sealed class ServiceInfo : Zeze.Transaction.Bean
@@ -178,13 +308,13 @@ namespace Zeze.Services
             /// <summary>
             /// 服务名，比如"GameServer"
             /// </summary>
-            public string Name { get; private set; }
+            public string ServiceName { get; private set; }
 
             /// <summary>
             /// 服务id，对于 Zeze.Application，一般就是 Config.AutoKeyLocalId.
             /// 这里使用类型 string 是为了更好的支持扩展。
             /// </summary>
-            public string Identity { get; private set; }
+            public string ServiceIdentity { get; private set; }
 
             /// <summary>
             /// 服务ip-port，如果没有，保持空和0.
@@ -207,8 +337,8 @@ namespace Zeze.Services
                 string ip, int port,
                 Dictionary<int, string> extrainfo)
             {
-                Name = name;
-                Identity = identity;
+                ServiceName = name;
+                ServiceIdentity = identity;
                 PassiveIp = ip;
                 PassivePort = port;
                 _ExtraInfo = extrainfo;
@@ -216,8 +346,8 @@ namespace Zeze.Services
 
             public override void Decode(ByteBuffer bb)
             {
-                Name = bb.ReadString();
-                Identity = bb.ReadString();
+                ServiceName = bb.ReadString();
+                ServiceIdentity = bb.ReadString();
                 PassiveIp = bb.ReadString();
                 PassivePort = bb.ReadInt();
                 for (int c = bb.ReadInt(); c > 0; --c)
@@ -230,8 +360,8 @@ namespace Zeze.Services
 
             public override void Encode(ByteBuffer bb)
             {
-                bb.WriteString(Name);
-                bb.WriteString(Identity);
+                bb.WriteString(ServiceName);
+                bb.WriteString(ServiceIdentity);
                 bb.WriteString(PassiveIp);
                 bb.WriteInt(PassivePort);
                 bb.WriteInt(ExtraInfo.Count);
@@ -253,6 +383,9 @@ namespace Zeze.Services
         /// </summary>
         public sealed class Register : Rpc<ServiceInfo, EmptyBean>
         {
+            public const int Success = 0;
+            public const int DuplicateIndentity = 1;
+
             public override int ModuleId => 0;
             public override int ProtocolId => 100;
 
@@ -264,6 +397,9 @@ namespace Zeze.Services
         /// </summary>
         public sealed class UnRegister : Rpc<ServiceInfo, EmptyBean>
         {
+            public const int Success = 0;
+            public const int NotExist = 1;
+
             public override int ModuleId => 0;
             public override int ProtocolId => 101;
         }
@@ -295,12 +431,19 @@ namespace Zeze.Services
         }
         public sealed class Subscribe : Rpc<SubscribeInfo, EmptyBean>
         {
+            public const int Success = 0;
+            public const int DuplicateSubscribe = 1;
+            public const int UnknownSubscribeType = 2;
+
             public override int ModuleId => 0;
             public override int ProtocolId => 102;
         }
 
         public sealed class UnSubscribe : Rpc<SubscribeInfo, EmptyBean>
         {
+            public const int Success = 0;
+            public const int NotExist = 1;
+
             public override int ModuleId => 0;
             public override int ProtocolId => 103;
         }
@@ -330,7 +473,7 @@ namespace Zeze.Services
                 {
                     var service = new ServiceInfo();
                     service.Decode(bb);
-                    _Services.Add(service.Identity, service);
+                    _Services.Add(service.ServiceIdentity, service);
                 }
             }
 
@@ -400,7 +543,7 @@ namespace Zeze.Services
                 {
                     foreach (var pending in ServiceInfosPending.Services.Values)
                     {
-                        if (!ServiceReadyStates.ContainsKey(pending.Identity))
+                        if (!ServiceReadyStates.ContainsKey(pending.ServiceIdentity))
                             return false;
                     }
                     var r = new ReadyServiceList() { Argument = ServiceInfosPending };
