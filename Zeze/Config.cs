@@ -282,7 +282,7 @@ namespace Zeze
                         if (ConnectDelay > 60000)
                             ConnectDelay = 60000;
                     }
-                    Util.Scheduler.Instance.Schedule( () => Connect(service), ConnectDelay); ;
+                    Util.Scheduler.Instance.Schedule((ThisTask) => Connect(service), ConnectDelay); ;
                 }
 
                 public void Connect(Service service)

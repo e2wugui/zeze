@@ -37,7 +37,7 @@ namespace Zeze.Net
             this.ResponseHandle = responseHandle;
             this.SessionId = so.Service.AddRpcContext(this);
 
-            global::Zeze.Util.Scheduler.Instance.Schedule(()=>
+            global::Zeze.Util.Scheduler.Instance.Schedule((ThisTask)=>
             {
                 if (null == so.Service)
                     return; // Socket closed.
@@ -48,7 +48,7 @@ namespace Zeze.Net
 
                 if (null != context.Future)
                 {
-                    context.Future.SetException(new RpcTimeoutException());
+                    context.Future.TrySetException(new RpcTimeoutException());
                     return;
                 }
                 context.IsTimeout = true;
@@ -63,6 +63,26 @@ namespace Zeze.Net
             Future = new TaskCompletionSource<TResult>();
             Send(so, null, millisecondsTimeout);
             return Future;
+        }
+
+        public void SendAndWaitCheckResultCode(AsyncSocket so, int millisecondsTimeout = 5000)
+        {
+            // 使用异步方式实现的同步等待版本
+            var tmpFuture = new TaskCompletionSource<int>();
+            Send(so, (_) =>
+            {
+                if (IsTimeout)
+                {
+                    tmpFuture.TrySetException(new RpcTimeoutException($"RpcTimeout {this}"));
+                }
+                else if (ResultCode != 0)
+                {
+                    tmpFuture.TrySetException(new Exception($"Rpc Invalid ResultCode={ResultCode} {this}"));
+                }
+                tmpFuture.SetResult(0);
+                return Zeze.Transaction.Procedure.Success;
+            }, millisecondsTimeout);
+            tmpFuture.Task.Wait();
         }
 
         public void SendResult()
@@ -142,6 +162,11 @@ namespace Zeze.Net
             {
                 Result.Encode(bb);
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{this.GetType().FullName} Argument={Argument} Result={Result}";
         }
     }
 }

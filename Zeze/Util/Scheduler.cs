@@ -32,7 +32,7 @@ namespace Zeze.Util
         /// <param name="initialDelay">the time to delay first execution. Milliseconds</param>
         /// <param name="period">the period between successive executions. Milliseconds</param>
         /// <returns></returns>
-        public SchedulerTask Schedule(Action action, long initialDelay, long period = -1)
+        public SchedulerTask Schedule(Action<SchedulerTask> action, long initialDelay, long period = -1)
         {
             lock (this)
             {
@@ -117,11 +117,11 @@ namespace Zeze.Util
         public long SequenceNumber { get; private set; }
 
         private volatile bool canceled;
-        private Action action;
+        private Action<SchedulerTask> action;
 
         private static AtomicLong sequencer = new AtomicLong();
 
-        internal SchedulerTask(Scheduler scheduler, Action action, long initialDelay, long period)
+        internal SchedulerTask(Scheduler scheduler, Action<SchedulerTask> action, long initialDelay, long period)
         {
             this.Scheduler = scheduler;
             this.action = action;
@@ -141,7 +141,8 @@ namespace Zeze.Util
             if (this.canceled)
                 return;
 
-            Zeze.Util.Task.Run(action, "SchedulerTask.Run"); // 派发出去运行，让系统管理大量任务的线程问题。
+            // 派发出去运行，让系统管理大量任务的线程问题。
+            Zeze.Util.Task.Run(() => action(this), "SchedulerTask.Run");
 
             if (this.Period > 0)
             {

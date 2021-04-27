@@ -55,7 +55,7 @@ namespace Zeze.Transaction
         */
 
 
-        public void CleanNow()
+        public void CleanNow(Zeze.Util.SchedulerTask ThisTask)
         {
             lock(this)
             {

@@ -40,7 +40,7 @@ namespace Zeze.Services
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public static GlobalCacheManager Instance { get; } = new GlobalCacheManager();
         public ServerService Server { get; private set; }
-        private AsyncSocket serverSocket;
+        private AsyncSocket ServerSocket;
 
         public const int DefaultConcurrencyLevel = 1024;
         public const int DefaultCapacity = 100000000; // 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
@@ -102,7 +102,7 @@ namespace Zeze.Services
                     Handle = ProcessCleanup,
                 });
 
-                serverSocket = Server.NewServerSocket(ipaddress, port);
+                ServerSocket = Server.NewServerSocket(ipaddress, port);
             }
         }
 
@@ -112,8 +112,8 @@ namespace Zeze.Services
             {
                 if (null == Server)
                     return;
-                serverSocket.Dispose();
-                serverSocket = null;
+                ServerSocket.Dispose();
+                ServerSocket = null;
                 Server.Close();
                 Server = null;
             }
@@ -154,7 +154,7 @@ namespace Zeze.Services
             // 还有更多的防止出错的手段吗？
 
             // XXX verify danger
-            Zeze.Util.Scheduler.Instance.Schedule(() =>
+            Zeze.Util.Scheduler.Instance.Schedule((ThisTask) =>
             {
                 foreach (var gkey in session.Acquired.Keys)
                 {

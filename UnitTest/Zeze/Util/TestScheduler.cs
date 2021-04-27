@@ -30,19 +30,19 @@ namespace UnitTest.Zeze.Util
             Assert.IsTrue(SchedulerRun1Count > 2);
         }
 
-        void SchedulerRun1()
+        void SchedulerRun1(SchedulerTask ThisTask)
         {
             //Console.WriteLine("SchedulerRun1 " + Time.NowMillis);
             SchedulerRun1Count++;
         }
 
-        void SchedulerRun2()
+        void SchedulerRun2(SchedulerTask ThisTask)
         {
             //Console.WriteLine("SchedulerRun2 " + Time.NowMillis);
             SchedulerRun2Count++;
         }
 
-        void SchedulerRun3()
+        void SchedulerRun3(SchedulerTask ThisTask)
         {
             //Console.WriteLine("SchedulerRun3 " + Time.NowMillis);
             SchedulerRun3Count++;
