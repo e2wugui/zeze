@@ -1,0 +1,28 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Zeze.Services;
+
+namespace UnitTest.Zeze.Misc
+{
+    [TestClass]
+    public class TestSequenceEqual
+    {
+        [TestMethod]
+        public void TestSequenceEqual1()
+        {
+            var infos1 = new Dictionary<string, ServiceManager.ServiceInfo>();
+            var info1 = new ServiceManager.ServiceInfo("gs", "1");
+            infos1.Add("1", info1);
+
+            var infos2 = new Dictionary<string, ServiceManager.ServiceInfo>();
+            var info2 = new ServiceManager.ServiceInfo("gs", "1");
+            infos2.Add("1", info2);
+
+            Assert.IsTrue(Enumerable.SequenceEqual(infos1.Values, infos2.Values));
+        }
+    }
+}

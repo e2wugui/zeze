@@ -688,8 +688,8 @@ namespace Zeze.Services
                 = new ConcurrentDictionary<string, ClientState>();
 
             public NetClient Client { get; private set; }
-            public Action RegisterAndSubscribe { get; private set; }
-            public Action<ClientState> OnServiceInfosCommit { get; private set; }
+            public Action OnConnected { get; private set; }
+            public Action<ClientState> OnChanged { get; private set; }
             public static Agent Instance { get; } = new Agent();
 
             public sealed class ClientState
@@ -719,6 +719,9 @@ namespace Zeze.Services
                 // NOT UNDER LOCK
                 private bool TrySendReadyServiceList()
                 {
+                    if (null == ServiceInfosPending)
+                        return false;
+
                     foreach (var pending in ServiceInfosPending.Services.Values)
                     {
                         if (!ServiceReadyStates.ContainsKey(pending.ServiceIdentity))
@@ -747,7 +750,7 @@ namespace Zeze.Services
                             case SubscribeInfo.SubscribeTypeSimple:
                                 ServiceInfos = infos;
                                 Committed = true;
-                                Agent.Instance.OnServiceInfosCommit(this);
+                                Agent.Instance.OnChanged(this);
                                 break;
 
                             case SubscribeInfo.SubscribeTypeReadyCommit:
@@ -772,7 +775,7 @@ namespace Zeze.Services
                         ServiceInfos = infos;
                         ServiceInfosPending = null;
                         Committed = true;
-                        Agent.Instance.OnServiceInfosCommit(this);
+                        Agent.Instance.OnChanged(this);
                     }
                 }
 
@@ -785,27 +788,41 @@ namespace Zeze.Services
                         Committed = true;
                         ServiceInfos = infos;
                         ServiceInfosPending = null;
-                        Agent.Instance.OnServiceInfosCommit(this);
+                        Agent.Instance.OnChanged(this);
                     }
                 }
             }
 
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-            public void RegisterService(ServiceInfo info)
+            public void RegisterService(string name, string identity, string ip = null, int port = 0, Dictionary<int, string> extrainfo = null)
+            {
+                RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
+            }
+
+            private void RegisterService(ServiceInfo info)
             {
                 var r = new Register() { Argument = info };
                 r.SendAndWaitCheckResultCode(Client.Socket);
             }
 
-            public void UnRegisterService(ServiceInfo info)
+            public void UnRegisterService(string name, string identity)
+            {
+                UnRegisterService(new ServiceInfo(name, identity));
+            }
+
+            private void UnRegisterService(ServiceInfo info)
             {
                 var r = new UnRegister() { Argument = info };
                 r.SendAndWaitCheckResultCode(Client.Socket);
             }
 
-            public void SubscribeService(SubscribeInfo info)
+            public void SubscribeService(string serviceName, int type)
             {
+                if (type != SubscribeInfo.SubscribeTypeSimple && type != SubscribeInfo.SubscribeTypeReadyCommit)
+                    throw new Exception("Unkown SubscribeType");
+
+                var info = new SubscribeInfo() { ServiceName = serviceName, SubscribeType = type };
                 var newState = new ClientState(info.ServiceName, info.SubscribeType);
                 if (!ServiceStates.TryAdd(info.ServiceName, newState))
                 {
@@ -816,8 +833,9 @@ namespace Zeze.Services
                 newState.InitCommit(r.Result);
             }
 
-            public void UnSubscribeService(SubscribeInfo info)
+            public void UnSubscribeService(string serviceName, int type)
             {
+                var info = new SubscribeInfo() { ServiceName = serviceName, SubscribeType = type };
                 if (!ServiceStates.TryRemove(info.ServiceName, out var state))
                     return;
 
@@ -878,9 +896,7 @@ namespace Zeze.Services
             /// 不使用配置启动网络 Agent.Client.NewClientSocket(...)，不会自动重连。
             /// </summary>
             /// <param name="config"></param>
-            public void Open(Config config,
-                Action RegisterAndSubscribeWhenConnected,
-                Action<ClientState> ServiceInfosCommit)
+            public void Open(Config config, Action onConnected, Action<ClientState> onChanged)
             {
                 lock (this)
                 {
@@ -891,8 +907,8 @@ namespace Zeze.Services
 
                     Client = new NetClient(config);
 
-                    RegisterAndSubscribe = RegisterAndSubscribeWhenConnected;
-                    OnServiceInfosCommit = ServiceInfosCommit;
+                    OnConnected = onConnected;
+                    OnChanged = onChanged;
 
                     Client.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
                     {
@@ -945,7 +961,7 @@ namespace Zeze.Services
                     if (null == Socket)
                     {
                         Socket = sender;
-                        Agent.Instance.RegisterAndSubscribe();
+                        Util.Task.Run(Agent.Instance.OnConnected, "ServiceManager.Agent.OnConnected");
                     }
                     else
                     {
