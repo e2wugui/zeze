@@ -29,4 +29,10 @@ ConfigEditor
 	增加一个工作线程，所有数据操作都放到这里面，和UI线程交互。看情况再决定做不做。
 	enum 现在不支持引用在其他文档定义的，有需要了再来加。
 
-GameServer.Module.ID
+ServiceNameStartsWith: GameServer.Module#ID
+Zeze.Config 动态扩展
+ServiceManager 延迟开始通告(StartNotify) 10秒
+Server 不一起记录register的serviceinfo到sessionid。以后需要了再说。
+ready 比较是否一致。不一致忽略。
+client pending记录确认是否有问题。
+这个要不要区分：special module config 需要readycommit模式。其他module，simple即可。

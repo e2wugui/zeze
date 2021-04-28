@@ -15,8 +15,8 @@ namespace Zeze.Tikv
         public TikvTransaction Transaction { get; private set; }
         public bool Disposed { get; private set; } = false;
 
-        public const int MinPoolSize = 16;
-        public const int MaxPoolSize = 256;
+        public const int MinPoolSize = 4;
+        public const int MaxPoolSize = 16;
 
         private static BlockingCollection<long> Pools = new BlockingCollection<long>();
         public static Zeze.Util.AtomicLong UsingCount { get; } = new Util.AtomicLong();

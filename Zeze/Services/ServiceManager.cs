@@ -11,12 +11,12 @@ using Zeze.Transaction;
 
 namespace Zeze.Services
 {
-    public sealed class ServiceManager
+    public sealed class ServiceManager : IDisposable
     {
         //////////////////////////////////////////////////////////////////////////////
-        /// 动态服务列表同步更新。
+        /// 服务管理：注册和订阅
         /// 【名词】
-        /// 动态服务器(gs)
+        /// 动态服务(gs)
         ///     动态服务器一般指启用cache-sync的逻辑服务器。比如gs。
         /// 注册服务器（ServiceManager）
         ///     支持更新服务器，这个服务一开始是为了启用cache-sync的服务器的查找。
@@ -51,6 +51,7 @@ namespace Zeze.Services
         ///       然后开启新的一轮NotifyServiceList，等待时间内没有再次注册的gs以后当作新的处理。
         ///    b) 启用raft的好处是raft的非master服务器会识别这种状态，并重定向请求到master，使得系统内只有一个master启用服务。
         ///       实际上raft不需要维护相同数据状态（gs-list），从空的开始即可，启用raft的话仅使用他的选举功能。
+        ///    #) 由于ServiceManager可以较快恢复，暂时不考虑使用Raft，实现无聊了再来加这个吧
         /// 5. ServiceManager开启一轮变更通告过程中，有新的gs启动停止，将开启新的通告(NotifyServiceList)。
         ///    ReadyServiceList时会检查ready中的列表是否和当前ServiceManagerlist一致，不一致直接忽略。
         ///    新的通告流程会促使linkd继续发送ready。
@@ -64,6 +65,9 @@ namespace Zeze.Services
 
         public sealed class ServerState
         {
+            public ServiceManager ServiceManager { get; }
+            public string ServiceName { get; }
+
             // identity -> SessionServiceInfo
             // 记录一下SessionId，方便以后找到服务所在的连接。
             public ConcurrentDictionary<string, ServiceInfoWithSessionId> ServiceInfos { get; }
@@ -73,11 +77,11 @@ namespace Zeze.Services
             public ConcurrentDictionary<long, Session> ReadyCommit { get; }
                 = new ConcurrentDictionary<long, Session>();
 
-            public string ServiceName { get; }
             private Zeze.Util.SchedulerTask NotifyTimeoutTask;
 
-            public ServerState(string serviceName)
+            public ServerState(ServiceManager sm, string serviceName)
             {
+                ServiceManager = sm;
                 ServiceName = serviceName;
             }
 
@@ -94,11 +98,11 @@ namespace Zeze.Services
 
                     foreach (var e in Simple)
                     {
-                        ServiceManager.Instance.Server.GetSocket(e.Key)?.Send(notifyBytes);
+                        ServiceManager.Server.GetSocket(e.Key)?.Send(notifyBytes);
                     }
                     foreach (var e in ReadyCommit)
                     {
-                        ServiceManager.Instance.Server.GetSocket(e.Key)?.Send(notifyBytes);
+                        ServiceManager.Server.GetSocket(e.Key)?.Send(notifyBytes);
                     }
                     if (ReadyCommit.Count > 0)
                     {
@@ -137,7 +141,7 @@ namespace Zeze.Services
                     };
                     foreach (var e in ReadyCommit)
                     {
-                        ServiceManager.Instance.Server.GetSocket(e.Key)?.Send(commit);
+                        ServiceManager.Server.GetSocket(e.Key)?.Send(commit);
                     }
                     NotifyTimeoutTask?.Cancel();
                     NotifyTimeoutTask = null;
@@ -182,9 +186,9 @@ namespace Zeze.Services
 
         public sealed class Session
         {
-            public long SessionId { get; set; }
+            public ServiceManager ServiceManager { get; }
+            public long SessionId { get; }
             public bool Ready { get; set; } // ReadyCommit时才被使用。
-
             // ServiceIndentity -> ServiceInfo: 会话注册的服务
             public ConcurrentDictionary<string, ServiceInfo> ServiceIdentityMap { get; }
                 = new ConcurrentDictionary<string, ServiceInfo>();
@@ -192,11 +196,17 @@ namespace Zeze.Services
             public ConcurrentDictionary<string, SubscribeInfo> ServiceNameToSubscribeInfo { get; }
                 = new ConcurrentDictionary<string, SubscribeInfo>();
 
+            public Session(ServiceManager sm, long ssid)
+            {
+                ServiceManager = sm;
+                SessionId = ssid;
+            }
+
             public void OnClose()
             {
                 foreach (var info in ServiceNameToSubscribeInfo.Values)
                 {
-                    ServiceManager.Instance.UnSubscribeNow(SessionId, info);
+                    ServiceManager.UnSubscribeNow(SessionId, info);
                 }
 
                 Dictionary<string, ServerState> changed
@@ -204,7 +214,7 @@ namespace Zeze.Services
 
                 foreach (var info in ServiceIdentityMap.Values)
                 {
-                    var state = ServiceManager.Instance.UnRegisterNow(SessionId, info);
+                    var state = ServiceManager.UnRegisterNow(SessionId, info);
                     if (null != state)
                     {
                         changed.TryAdd(state.ServiceName, state);
@@ -218,20 +228,13 @@ namespace Zeze.Services
             }
         }
 
-        private ServiceManager()
-        {
-
-        }
-
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        public static ServiceManager Instance { get; }
-            = new ServiceManager();
 
         private int ProcessRegister(Protocol p)
         {
             var r = p as Register;
             var session = r.Sender.UserState as Session;
-            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(name));
+            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
             r.ResultCode = Register.DuplicateIndentity;
             state.ServiceInfos.GetOrAdd(r.Argument.ServiceIdentity, (_) =>
             {
@@ -297,7 +300,7 @@ namespace Zeze.Services
                 r.SendResult();
                 return Procedure.LogicError;
             }
-            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(name));
+            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
             return state.SubscribeAndSend(r, session);
         }
 
@@ -347,7 +350,7 @@ namespace Zeze.Services
         {
             var r = p as ReadyServiceList;
             var session = r.Sender.UserState as Session;
-            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(name));
+            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
             if (state.ReadyCommit.TryGetValue(session.SessionId, out var sessionInMap))
             {
                 sessionInMap.Ready = true;
@@ -356,48 +359,48 @@ namespace Zeze.Services
             return Procedure.Success;
         }
 
-        public void Start(IPAddress ipaddress, int port, Config config = null)
+        public void Dispose()
         {
-            lock (this)
+            Stop();
+        }
+
+        public ServiceManager(IPAddress ipaddress, int port, Config config = null)
+        {
+            if (null == config)
+                config = Config.Load();
+            Server = new NetServer(this, config);
+
+            Server.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
             {
-                if (Server != null)
-                    return;
-                if (null == config)
-                    config = Config.Load();
-                Server = new NetServer(config);
+                Factory = () => new Register(),
+                Handle = ProcessRegister,
+            });
 
-                Server.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new Register(),
-                    Handle = ProcessRegister,
-                });
+            Server.AddFactoryHandle(new UnRegister().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new UnRegister(),
+                Handle = ProcessUnRegister,
+            });
 
-                Server.AddFactoryHandle(new UnRegister().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new UnRegister(),
-                    Handle = ProcessUnRegister,
-                });
+            Server.AddFactoryHandle(new Subscribe().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new Subscribe(),
+                Handle = ProcessSubscribe,
+            });
 
-                Server.AddFactoryHandle(new Subscribe().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new Subscribe(),
-                    Handle = ProcessSubscribe,
-                });
+            Server.AddFactoryHandle(new UnSubscribe().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new UnSubscribe(),
+                Handle = ProcessUnSubscribe,
+            });
 
-                Server.AddFactoryHandle(new UnSubscribe().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new UnSubscribe(),
-                    Handle = ProcessUnSubscribe,
-                });
+            Server.AddFactoryHandle(new ReadyServiceList().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new ReadyServiceList(),
+                Handle = ProcessReadyServiceList,
+            });
 
-                Server.AddFactoryHandle(new ReadyServiceList().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new ReadyServiceList(),
-                    Handle = ProcessReadyServiceList,
-                });
-
-                ServerSocket = Server.NewServerSocket(ipaddress, port);
-            }
+            ServerSocket = Server.NewServerSocket(ipaddress, port);
         }
 
         public void Stop()
@@ -414,13 +417,16 @@ namespace Zeze.Services
         }
         public sealed class NetServer : Net.Service
         {
-            public NetServer(Config config) : base("RService", config)
+            public ServiceManager ServiceManager { get; }
+
+            public NetServer(ServiceManager sm, Config config) : base("ServiceManager", config)
             {
+                ServiceManager = sm;
             }
 
             public override void OnSocketAccept(AsyncSocket so)
             {
-                so.UserState = new Session() { SessionId = so.SessionId };
+                so.UserState = new Session(ServiceManager, so.SessionId);
                 base.OnSocketAccept(so);
             }
 
@@ -682,18 +688,18 @@ namespace Zeze.Services
             public override int ProtocolId => 106;
         }
 
-        public sealed class Agent
+        public sealed class Agent : IDisposable
         {
             public ConcurrentDictionary<string, ClientState> ServiceStates { get; }
                 = new ConcurrentDictionary<string, ClientState>();
 
             public NetClient Client { get; private set; }
-            public Action OnConnected { get; private set; }
+            public Action<Agent> OnConnected { get; private set; }
             public Action<ClientState> OnChanged { get; private set; }
-            public static Agent Instance { get; } = new Agent();
 
             public sealed class ClientState
             {
+                public Agent Agent { get; }
                 public string ServiceName => ServiceInfos.ServiceName;
                 public int SubscribeType { get; }
 
@@ -710,8 +716,9 @@ namespace Zeze.Services
                 public ConcurrentDictionary<string, object> ServiceReadyStates { get; }
                     = new ConcurrentDictionary<string, object>();
 
-                public ClientState(string serviceName, int subscribeType)
+                public ClientState(Agent ag, string serviceName, int subscribeType)
                 {
+                    Agent = ag;
                     SubscribeType = subscribeType;
                     ServiceInfos = new ServiceInfos(serviceName);
                 }
@@ -728,7 +735,7 @@ namespace Zeze.Services
                             return false;
                     }
                     var r = new ReadyServiceList() { Argument = ServiceInfosPending };
-                    Agent.Instance.Client.Socket?.Send(r);
+                    Agent.Client.Socket?.Send(r);
                     return true;
                 }
 
@@ -750,7 +757,7 @@ namespace Zeze.Services
                             case SubscribeInfo.SubscribeTypeSimple:
                                 ServiceInfos = infos;
                                 Committed = true;
-                                Agent.Instance.OnChanged(this);
+                                Agent.OnChanged(this);
                                 break;
 
                             case SubscribeInfo.SubscribeTypeReadyCommit:
@@ -775,7 +782,7 @@ namespace Zeze.Services
                         ServiceInfos = infos;
                         ServiceInfosPending = null;
                         Committed = true;
-                        Agent.Instance.OnChanged(this);
+                        Agent.OnChanged(this);
                     }
                 }
 
@@ -788,7 +795,7 @@ namespace Zeze.Services
                         Committed = true;
                         ServiceInfos = infos;
                         ServiceInfosPending = null;
-                        Agent.Instance.OnChanged(this);
+                        Agent.OnChanged(this);
                     }
                 }
             }
@@ -823,7 +830,7 @@ namespace Zeze.Services
                     throw new Exception("Unkown SubscribeType");
 
                 var info = new SubscribeInfo() { ServiceName = serviceName, SubscribeType = type };
-                var newState = new ClientState(info.ServiceName, info.SubscribeType);
+                var newState = new ClientState(this, info.ServiceName, info.SubscribeType);
                 if (!ServiceStates.TryAdd(info.ServiceName, newState))
                 {
                     throw new Exception("SubscribeService Duplicate.");
@@ -885,74 +892,76 @@ namespace Zeze.Services
                 }
             }
 
-            private Agent()
-            {
-
-            }
-
             /// <summary>
             /// 使用Config配置连接信息，可以配置是否支持重连。
-            /// 使用配置启动网络 Agent.Client.Start()
-            /// 不使用配置启动网络 Agent.Client.NewClientSocket(...)，不会自动重连。
+            /// 用于测试：Agent.Client.NewClientSocket(...)，不会自动重连，不要和Config混用。
             /// </summary>
-            /// <param name="config"></param>
-            public void Open(Config config, Action onConnected, Action<ClientState> onChanged)
+            public Agent(Config config, Action<Agent> onConnected, Action<ClientState> onChanged, string netServiceName = null)
             {
-                lock (this)
+                if (null == config)
+                    throw new Exception("Config is null");
+
+                Client = string.IsNullOrEmpty(netServiceName)
+                    ? new NetClient(this, config) : new NetClient(this, config, netServiceName);
+
+                OnConnected = onConnected;
+                OnChanged = onChanged;
+
+                Client.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
                 {
-                    if (null != Client)
-                        return;
-                    if (null == config)
-                        throw new Exception("Config is null");
+                    Factory = () => new Register(),
+                });
 
-                    Client = new NetClient(config);
+                Client.AddFactoryHandle(new UnRegister().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new UnRegister(),
+                });
 
-                    OnConnected = onConnected;
-                    OnChanged = onChanged;
+                Client.AddFactoryHandle(new Subscribe().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new Subscribe(),
+                });
 
-                    Client.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
-                    {
-                        Factory = () => new Register(),
-                    });
+                Client.AddFactoryHandle(new UnSubscribe().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new UnSubscribe(),
+                });
 
-                    Client.AddFactoryHandle(new UnRegister().TypeId, new Service.ProtocolFactoryHandle()
-                    {
-                        Factory = () => new UnRegister(),
-                    });
+                Client.AddFactoryHandle(new NotifyServiceList().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new NotifyServiceList(),
+                    Handle = ProcessNotifyServiceList,
+                });
 
-                    Client.AddFactoryHandle(new Subscribe().TypeId, new Service.ProtocolFactoryHandle()
-                    {
-                        Factory = () => new Subscribe(),
-                    });
+                Client.AddFactoryHandle(new CommitServiceList().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new CommitServiceList(),
+                    Handle = ProcessCommitServiceList,
+                });
 
-                    Client.AddFactoryHandle(new UnSubscribe().TypeId, new Service.ProtocolFactoryHandle()
-                    {
-                        Factory = () => new UnSubscribe(),
-                    });
+                Client.Start();
+            }
 
-                    Client.AddFactoryHandle(new NotifyServiceList().TypeId, new Service.ProtocolFactoryHandle()
-                    {
-                        Factory = () => new NotifyServiceList(),
-                        Handle = ProcessNotifyServiceList,
-                    });
-
-                    Client.AddFactoryHandle(new CommitServiceList().TypeId, new Service.ProtocolFactoryHandle()
-                    {
-                        Factory = () => new CommitServiceList(),
-                        Handle = ProcessCommitServiceList,
-                    });
-                }
+            public void Dispose()
+            {
+                Stop();
             }
 
             public sealed class NetClient : Net.Service
             {
+                public Agent Agent { get; }
                 /// <summary>
                 /// 和注册服务器之间只保持一个连接。并且不处理任何协议状态。
                 /// </summary>
                 public AsyncSocket Socket { get; private set; }
 
-                public NetClient(Config config) : base("RService.Client", config)
+                public NetClient(Agent agent, Config config) : base("ServiceManager.Agent", config)
                 {
+                    Agent = agent;
+                }
+                public NetClient(Agent agent, Config config, string name) : base(name, config)
+                {
+                    Agent = agent;
                 }
 
                 public override void OnHandshakeDone(AsyncSocket sender)
@@ -961,7 +970,7 @@ namespace Zeze.Services
                     if (null == Socket)
                     {
                         Socket = sender;
-                        Util.Task.Run(Agent.Instance.OnConnected, "ServiceManager.Agent.OnConnected");
+                        Util.Task.Run(() => Agent.OnConnected(Agent), "ServiceManager.Agent.OnConnected");
                     }
                     else
                     {

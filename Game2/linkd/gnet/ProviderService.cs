@@ -80,7 +80,7 @@ namespace gnet
         {
             lock (LinkSessionIds)
             {
-                Load.Assign(load); // 复制一次吧。
+                Load = load.Copy(); // 复制一次吧。
             }
         }
 

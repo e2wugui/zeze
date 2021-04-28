@@ -20,7 +20,6 @@ namespace gnet.Provider
         /// </summary>
         public class Providers
         {
-            // HashSet改成List，新增的机器放在后面，负载均衡时，从后往前搜索，会更快一些。
             // 后台服务不会随便增删，不需要高效Add,Remove。
             private List<long> ProviderSessionIds { get; } = new List<long>();
             public int ChoiceType { get; }
@@ -63,7 +62,7 @@ namespace gnet.Provider
                 var all = new List<ProviderSession>(ProviderSessionIds.Count);
                 int TotalWeight = 0;
 
-                // 新的provider在后面，从后面开始搜索。
+                // 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
                 for (int i = ProviderSessionIds.Count - 1; i >= 0; --i)
                 {
                     var ps = App.Instance.ProviderService.GetSocket(ProviderSessionIds[i])?.UserState as ProviderSession;
@@ -169,6 +168,7 @@ namespace gnet.Provider
                     }
                     if (providers.Choice(out provider))
                     {
+                        // 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
                         var providerSocket = gnet.App.Instance.ProviderService.GetSocket(provider);
                         var providerSession = providerSocket.UserState as ProviderSession;
                         linkSession.Bind(link, providerSession.StaticBinds, providerSocket);

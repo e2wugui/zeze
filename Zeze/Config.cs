@@ -243,6 +243,7 @@ namespace Zeze
                 public int Port { get; set; } = 0;
                 public string HostNameOrAddress { get; set; }
                 public bool IsAutoReconnect { get; set; } = true;
+                public int MaxReconnectDelay { get; set; }
                 private int ConnectDelay;
 
                 public AsyncSocket Socket { get; set; }
@@ -260,6 +261,12 @@ namespace Zeze
                     attr = self.GetAttribute("IsAutoReconnect");
                     if (attr.Length > 0)
                         IsAutoReconnect = bool.Parse(attr);
+                    attr = self.GetAttribute("MaxReconnectDelay");
+                    if (attr.Length > 0)
+                        MaxReconnectDelay = int.Parse(attr) * 1000;
+                    if (MaxReconnectDelay < 8000)
+                        MaxReconnectDelay = 8000;
+
                     conf.Connectors.Add(this);
                 }
 
@@ -274,13 +281,13 @@ namespace Zeze
 
                     if (ConnectDelay == 0)
                     {
-                        ConnectDelay = 1000;
+                        ConnectDelay = 2000;
                     }
                     else
                     {
                         ConnectDelay *= 2;
-                        if (ConnectDelay > 60000)
-                            ConnectDelay = 60000;
+                        if (ConnectDelay > MaxReconnectDelay)
+                            ConnectDelay = MaxReconnectDelay;
                     }
                     Util.Scheduler.Instance.Schedule((ThisTask) => Connect(service), ConnectDelay); ;
                 }

@@ -21,14 +21,13 @@ namespace UnitTest.Zeze.Misc
             var config = global::Zeze.Config.Load();
             System.Net.IPAddress address = string.IsNullOrEmpty(ip)
                 ? System.Net.IPAddress.Any : System.Net.IPAddress.Parse(ip);
-            ServiceManager.Instance.Start(address, port, config);
+            using var sm = new ServiceManager(address, port, config);
             var serviceName = "TestServiceManager";
-            ServiceManager.Agent.Instance.Open(config,
-                () =>
+            using var agent = new ServiceManager.Agent(config,
+                (agent) =>
                 {
-                    ServiceManager.Agent.Instance.RegisterService(serviceName, "1");
-                    ServiceManager.Agent.Instance.SubscribeService(
-                        serviceName, ServiceManager.SubscribeInfo.SubscribeTypeSimple);
+                    agent.RegisterService(serviceName, "1");
+                    agent.SubscribeService(serviceName, ServiceManager.SubscribeInfo.SubscribeTypeSimple);
                 },
                 (state) =>
                 {
@@ -36,33 +35,28 @@ namespace UnitTest.Zeze.Misc
                 }
                 );
             Console.WriteLine("ConnectNow");
-            ServiceManager.Agent.Instance.Client.NewClientSocket(ip, port);
+            agent.Client.NewClientSocket(ip, port);
             Thread.Sleep(1000);
 
             Console.WriteLine("RegisterService 2");
-            ServiceManager.Agent.Instance.RegisterService(serviceName, "2");
+            agent.RegisterService(serviceName, "2");
             Thread.Sleep(1000);
 
             // 改变订阅类型
             Console.WriteLine("Change Subscribe type");
-            ServiceManager.Agent.Instance.UnSubscribeService(
-                serviceName, ServiceManager.SubscribeInfo.SubscribeTypeSimple);
-            ServiceManager.Agent.Instance.SubscribeService(
-                serviceName, ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit);
+            agent.UnSubscribeService(serviceName, ServiceManager.SubscribeInfo.SubscribeTypeSimple);
+            agent.SubscribeService(serviceName, ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit);
             Thread.Sleep(1000);
 
-            ServiceManager.Agent.Instance.ServiceStates.TryGetValue(serviceName, out var state);
+            agent.ServiceStates.TryGetValue(serviceName, out var state);
             object anyState = this;
             state.SetServiceReadyState("1", anyState);
             state.SetServiceReadyState("2", anyState);
             state.SetServiceReadyState("3", anyState);
 
             Console.WriteLine("RegisterService 3");
-            ServiceManager.Agent.Instance.RegisterService(serviceName, "3");
+            agent.RegisterService(serviceName, "3");
             Thread.Sleep(1000);
-
-            ServiceManager.Agent.Instance.Stop();
-            ServiceManager.Instance.Stop();
         }
     }
 }
