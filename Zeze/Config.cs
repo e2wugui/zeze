@@ -9,6 +9,12 @@ namespace Zeze
 {
     public sealed class Config
     {
+        public interface ICustomize
+        {
+            public string Name { get; }
+            public void Parse(XmlElement self);
+        }
+
         public enum DbType
         {
             Memory,
@@ -23,13 +29,38 @@ namespace Zeze
         public NLog.LogLevel ProcessReturnErrorLogLevel { get; set; } = NLog.LogLevel.Info;
         public int InternalThreadPoolWorkerCount { get; set; }
         public int AutoKeyLocalId { get; set; } = 0;
-        public int AutoKeyLocalStep { get; } = 4096;
+        public int AutoKeyLocalStep { get; private set; } = 4096;
         public string GlobalCacheManagerHostNameOrAddress { get; set; }
-        public int GlobalCacheManagerPort { get; }
+        public int GlobalCacheManagerPort { get; private set; }
         public Dictionary<string, TableConf> TableConfMap { get; } = new Dictionary<string, TableConf>();
         public TableConf DefaultTableConf { get; set; } = new TableConf();
         public bool AllowReadWhenRecoredNotAccessed { get; set; } = true;
         public bool AllowSchemasReuseVariableIdWithSameType { get; set; } = true;
+        public Dictionary<string, ICustomize> Customize { get; } = new Dictionary<string, ICustomize>();
+
+        /// <summary>
+        /// 根据自定义配置名字查找。
+        /// 因为外面需要通过AddCustomize注册进来，
+        /// 如果外面保存了配置引用，是不需要访问这个接口的。
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name"></param>
+        /// <param name="customize"></param>
+        public void GetCustomize<T>(out T customize) where T : ICustomize, new()
+        {
+            T forName = new T();
+            if (Customize.TryGetValue(forName.Name, out var _customize))
+            {
+                customize = (T)_customize;
+                return;
+            }
+            throw new Exception($"CustomizeConf for '{forName.Name}' Not Found");
+        }
+
+        public void AddCustomize(ICustomize c)
+        {
+            Customize.Add(c.Name, c);
+        }
 
         public TableConf GetTableConf(string name)
         {
@@ -79,7 +110,21 @@ namespace Zeze
             return DefaultServiceConf;
         }
 
+        /// <summary>
+        /// 由于这个方法没法加入Customize配置，为了兼容和内部测试保留，
+        /// 应用应该自己LoadAndParse。
+        /// var c = new Config();
+        /// c.AddCustomize(...);
+        /// c.LoadAndParse();
+        /// </summary>
+        /// <param name="xmlfile"></param>
+        /// <returns></returns>
         public static Config Load(string xmlfile = null)
+        {
+            return new Config().LoadAndParse(xmlfile);
+        }
+
+        public Config LoadAndParse(string xmlfile = null)
         {
             if (null == xmlfile)
             {
@@ -90,13 +135,13 @@ namespace Zeze
             {
                 XmlDocument doc = new XmlDocument();
                 doc.Load(xmlfile);
-                return new Config(doc.DocumentElement);
+                Parse(doc.DocumentElement);
             }
 
-            return new Config();
+            return this;
         }
 
-        public Config(XmlElement self)
+        public void Parse(XmlElement self)
         {
             if (false == self.Name.Equals("zeze"))
                 throw new Exception("is it a zeze config.");
@@ -135,10 +180,27 @@ namespace Zeze
                 XmlElement e = (XmlElement)node;
                 switch (e.Name)
                 {
-                    case "TableConf": new TableConf(this, e); break;
-                    case "DatabaseConf": new DatabaseConf(this, e); break;
-                    case "ServiceConf": new ServiceConf(this, e); break;
-                    default: throw new Exception("unknown node name: " + e.Name);
+                    case "TableConf":
+                        new TableConf(this, e);
+                        break;
+
+                    case "DatabaseConf":
+                        new DatabaseConf(this, e);
+                        break;
+
+                    case "ServiceConf":
+                        new ServiceConf(this, e);
+                        break;
+
+                    case "CustomizeConf":
+                        var cname = e.GetAttribute("Name");
+                        if (false == Customize.TryGetValue(cname, out var customizeConf))
+                            throw new Exception($"Unknown CustomizeConf Name='{cname}'");
+                        customizeConf.Parse(e);
+                        break;
+
+                    default:
+                        throw new Exception("unknown node name: " + e.Name);
                 }
             }
             if (DatabaseConfMap.Count == 0) // add default databaseconf.

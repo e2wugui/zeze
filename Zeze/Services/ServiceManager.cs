@@ -68,14 +68,14 @@ namespace Zeze.Services
             public ServiceManager ServiceManager { get; }
             public string ServiceName { get; }
 
-            // identity -> SessionServiceInfo
+            // identity ->
             // 记录一下SessionId，方便以后找到服务所在的连接。
-            public ConcurrentDictionary<string, ServiceInfoWithSessionId> ServiceInfos { get; }
-                = new ConcurrentDictionary<string, ServiceInfoWithSessionId>();
-            public ConcurrentDictionary<long, Session> Simple { get; }
-                = new ConcurrentDictionary<long, Session>();
-            public ConcurrentDictionary<long, Session> ReadyCommit { get; }
-                = new ConcurrentDictionary<long, Session>();
+            public ConcurrentDictionary<string, ServiceInfo> ServiceInfos { get; }
+                = new ConcurrentDictionary<string, ServiceInfo>();
+            public ConcurrentDictionary<long, SubscribeState> Simple { get; }
+                = new ConcurrentDictionary<long, SubscribeState>();
+            public ConcurrentDictionary<long, SubscribeState> ReadyCommit { get; }
+                = new ConcurrentDictionary<long, SubscribeState>();
 
             private Zeze.Util.SchedulerTask NotifyTimeoutTask;
 
@@ -160,10 +160,10 @@ namespace Zeze.Services
                     switch (r.Argument.SubscribeType)
                     {
                         case SubscribeInfo.SubscribeTypeSimple:
-                            Simple.TryAdd(r.Sender.SessionId, session);
+                            Simple.TryAdd(session.SessionId, new SubscribeState(session.SessionId));
                             break;
                         case SubscribeInfo.SubscribeTypeReadyCommit:
-                            ReadyCommit.TryAdd(r.Sender.SessionId, session);
+                            ReadyCommit.TryAdd(session.SessionId, new SubscribeState(session.SessionId));
                             break;
                         default:
                             r.ResultCode = Subscribe.UnknownSubscribeType;
@@ -176,12 +176,32 @@ namespace Zeze.Services
                     return Procedure.Success;
                 }
             }
+
+            public void SetReady(ReadyServiceList p, Session session)
+            {
+                lock(this)
+                {
+                    // 忽略旧的Ready。
+                    if (!Enumerable.SequenceEqual(ServiceInfos.Values, p.Argument.Services.Values))
+                        return;
+
+                    if (!ReadyCommit.TryGetValue(session.SessionId, out var subcribeState))
+                        return;
+
+                    subcribeState.Ready = true;
+                    TryCommit();
+                }
+            }
         }
 
-        public sealed class ServiceInfoWithSessionId
+        public sealed class SubscribeState
         {
-            public long SessionId { get; set; }
-            public ServiceInfo ServiceInfo { get; set; }
+            public long SessionId { get; }
+            public bool Ready { get; set; } // ReadyCommit时才被使用。
+            public SubscribeState(long ssid)
+            {
+                SessionId = ssid;
+            }
         }
 
         public sealed class Session
@@ -241,11 +261,14 @@ namespace Zeze.Services
                 // state.ServiceInfos加入成功，会话肯定也会成功。
                 session.ServiceIdentityMap.TryAdd(r.Argument.ServiceIdentity, r.Argument);
                 r.ResultCode = Register.Success;
-                return new ServiceInfoWithSessionId()
-                {
-                    SessionId = r.Sender.SessionId,
-                    ServiceInfo = r.Argument,
-                };
+                // 【警告】
+                // 为了简单，这里没有创建新的对象，直接修改并引用了r.Argument。
+                // 这个破坏了r.Argument只读的属性。另外引用同一个对象，也有点风险。
+                // 在目前没有问题，因为r.Argument主要记录在state.ServiceInfos中，
+                // 另外它也被Session引用（用于连接关闭时，自动注销）。
+                // 这是专用程序，不是一个库，以后有修改时，小心就是了。
+                r.Argument.SessionId = r.Sender.SessionId; // 这个变量实际没有发挥效用。
+                return r.Argument;
             });
             r.SendResult();
             if (r.ResultCode == Register.Success)
@@ -285,9 +308,13 @@ namespace Zeze.Services
                 r.SendResult();
                 return Procedure.Success;
             }
-
-            r.ResultCode = UnRegister.NotExist;
-            return Procedure.LogicError;
+            // 注销不存在也返回成功，否则Agent处理比较麻烦。
+            //r.ResultCode = UnRegister.NotExist;
+            //r.SendResult();
+            //return Procedure.LogicError;
+            r.ResultCode = UnRegister.Success;
+            r.SendResult();
+            return Procedure.Success;
         }
 
         private int ProcessSubscribe(Protocol p)
@@ -341,9 +368,13 @@ namespace Zeze.Services
                     }
                 }
             }
-            r.ResultCode = UnSubscribe.NotExist;
+            // 取消订阅不能存在返回成功。否则Agent比较麻烦。
+            //r.ResultCode = UnSubscribe.NotExist;
+            //r.SendResult();
+            //return Procedure.LogicError;
+            r.ResultCode = UnRegister.Success;
             r.SendResult();
-            return Procedure.LogicError;
+            return Procedure.Success;
         }
 
         private int ProcessReadyServiceList(Protocol p)
@@ -351,11 +382,7 @@ namespace Zeze.Services
             var r = p as ReadyServiceList;
             var session = r.Sender.UserState as Session;
             var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
-            if (state.ReadyCommit.TryGetValue(session.SessionId, out var sessionInMap))
-            {
-                sessionInMap.Ready = true;
-                state.TryCommit();
-            }
+            state?.SetReady(r, session);
             return Procedure.Success;
         }
 
@@ -415,6 +442,7 @@ namespace Zeze.Services
                 Server = null;
             }
         }
+
         public sealed class NetServer : Net.Service
         {
             public ServiceManager ServiceManager { get; }
@@ -462,6 +490,9 @@ namespace Zeze.Services
                 = new Dictionary<int, string>();
 
             public IReadOnlyDictionary<int, string> ExtraInfo => _ExtraInfo;
+
+            // ServiceManager 用来记录服务所在的连接ID，不是协议一部分，不会被系列化。
+            public long SessionId { get; set; }
 
             public ServiceInfo()
             { 
@@ -630,7 +661,7 @@ namespace Zeze.Services
                 ServiceName = serviceName;
                 foreach (var e in state.ServiceInfos)
                 {
-                    _Services.Add(e.Key, e.Value.ServiceInfo);
+                    _Services.Add(e.Key, e.Value);
                 }
             }
 
@@ -690,6 +721,7 @@ namespace Zeze.Services
 
         public sealed class Agent : IDisposable
         {
+            // ServiceName ->
             public ConcurrentDictionary<string, ClientState> ServiceStates { get; }
                 = new ConcurrentDictionary<string, ClientState>();
 
@@ -709,6 +741,7 @@ namespace Zeze.Services
                 /// <summary>
                 /// 刚初始化时为false，任何修改ServiceInfos都会设置成true。
                 /// 用来处理Subscribe返回的第一份数据和Commit可能乱序的问题。
+                /// 目前的实现不会发生乱序。
                 /// </summary>
                 public bool Committed { get; private set; } = false;
 
@@ -774,10 +807,9 @@ namespace Zeze.Services
                     {
                         // ServiceInfosPending 和 Commit.infos 应该一样，否则肯定哪里出错了。
                         // 这里总是使用最新的 Commit.infos，检查记录日志。
-                        if (!Enumerable.SequenceEqual(infos.Services.Values,
-                            ServiceInfosPending.Services.Values))
+                        if (!Enumerable.SequenceEqual(infos.Services.Values, ServiceInfosPending.Services.Values))
                         {
-                            Agent.logger.Error("OnCommit: ServiceInfosPending Miss Match.");
+                            Agent.logger.Warn("OnCommit: ServiceInfosPending Miss Match.");
                         }
                         ServiceInfos = infos;
                         ServiceInfosPending = null;
