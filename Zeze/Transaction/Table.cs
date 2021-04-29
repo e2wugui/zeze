@@ -367,11 +367,15 @@ namespace Zeze.Transaction
 
         internal TableCache<K, V> Cache { get; private set; }
 
-        /// <summary>
-        /// 开放出去仅仅为了测试。
-        /// </summary>
-        public Storage<K, V> Storage { get; private set; }
+        public Storage<K, V> GetStorageForTestOnly(string IAmSure)
+        {
+            if (!IAmSure.Equals("IKnownWhatIAmDoing"))
+                throw new Exception();
+            return Storage;
+        }
+
         private Database.Table OldTable;
+        internal Storage<K, V> Storage { get; private set; }
 
         internal override Storage Open(Application app, Database database)
         {

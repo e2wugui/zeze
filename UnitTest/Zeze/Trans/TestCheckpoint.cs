@@ -29,7 +29,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcChange, "ProcChange").Call() == Procedure.Success);
             demo.App.Instance.Zeze.CheckpointRun();
             demo.Module1.Table1 table = demo.App.Instance.demo_Module1.Table1;
-            ByteBuffer value = table.Storage.DatabaseTable.Find(table.EncodeKey(56));
+            ByteBuffer value = table.GetStorageForTestOnly("IKnownWhatIAmDoing").DatabaseTable.Find(table.EncodeKey(56));
             Assert.IsNotNull(value);
             Assert.AreEqual(value, bytesInTrans);
         }

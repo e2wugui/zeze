@@ -36,3 +36,4 @@ Server 不一起记录register的serviceinfo到sessionid。以后需要了再说。
 ready 比较是否一致。不一致忽略。
 client pending记录确认是否有问题。
 这个要不要区分：special module config 需要readycommit模式。其他module，simple即可。
+Agent 记住所有的 reg 和 sub，重连的时候自动发送一次？
