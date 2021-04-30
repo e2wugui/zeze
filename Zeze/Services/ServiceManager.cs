@@ -123,6 +123,7 @@ namespace Zeze.Services
                     }
                     foreach (var e in ReadyCommit)
                     {
+                        e.Value.Ready = false;
                         ServiceManager.Server.GetSocket(e.Key)?.Send(notifyBytes);
                     }
                     if (ReadyCommit.Count > 0)
@@ -779,6 +780,10 @@ namespace Zeze.Services
             public ConcurrentDictionary<string, SubscribeState> SubscribeStates { get; }
                 = new ConcurrentDictionary<string, SubscribeState>();
             public NetClient Client { get; private set; }
+            /// <summary>
+            /// 如果应用一开始就知道自己需要注册和订阅的服务，可以在这个回调里面集中处理。
+            /// 如果应用执行过程中动态注册和订阅，则可不处理，但是调用注册订阅的函数时要检查连接好了没。
+            /// </summary>
             public Action<Agent> OnConnected { get; private set; }
             public Action<SubscribeState> OnChanged { get; private set; }
 
