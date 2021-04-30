@@ -44,11 +44,11 @@ namespace UnitTest.Zeze.Misc
 
             // 改变订阅类型
             Console.WriteLine("Change Subscribe type");
-            agent.UnSubscribeService(serviceName, ServiceManager.SubscribeInfo.SubscribeTypeSimple);
+            agent.UnSubscribeService(serviceName);
             agent.SubscribeService(serviceName, ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit);
             Thread.Sleep(1000);
 
-            agent.ServiceStates.TryGetValue(serviceName, out var state);
+            agent.SubscribeStates.TryGetValue(serviceName, out var state);
             object anyState = this;
             state.SetServiceReadyState("1", anyState);
             state.SetServiceReadyState("2", anyState);

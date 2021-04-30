@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
@@ -62,6 +64,25 @@ namespace Zeze.Services
         private ConcurrentDictionary<string, ServerState> ServerStates = new ConcurrentDictionary<string, ServerState>();
         public NetServer Server { get; private set; }
         private AsyncSocket ServerSocket;
+
+        public sealed class Conf : Zeze.Config.ICustomize
+        {
+            public string Name => "Zeze.Services.ServiceManager";
+
+            public int KeepAlivePeriod { get; set; } = 300 * 1000; // 5 mins
+
+            public void Parse(XmlElement self)
+            {
+                string attr = self.GetAttribute("KeepAlivePeriod");
+                if (string.IsNullOrEmpty(attr))
+                    KeepAlivePeriod = int.Parse(attr);
+            }
+        }
+
+        /// <summary>
+        /// 需要从配置文件中读取，把这个引用加入： Zeze.Config.AddCustomize
+        /// </summary>
+        public Conf Config { get; } = new Conf();
 
         public sealed class ServerState
         {
@@ -208,31 +229,45 @@ namespace Zeze.Services
         {
             public ServiceManager ServiceManager { get; }
             public long SessionId { get; }
-            public bool Ready { get; set; } // ReadyCommit时才被使用。
-            // ServiceIndentity -> ServiceInfo: 会话注册的服务
-            public ConcurrentDictionary<string, ServiceInfo> ServiceIdentityMap { get; }
-                = new ConcurrentDictionary<string, ServiceInfo>();
-            // ServiceName -> SubscribeInfo: 会话订阅的服务
-            public ConcurrentDictionary<string, SubscribeInfo> ServiceNameToSubscribeInfo { get; }
+            public ConcurrentDictionary<ServiceInfo, ServiceInfo> Registers { get; }
+                = new ConcurrentDictionary<ServiceInfo, ServiceInfo>(new ServiceInfoComparer());
+            // key is ServiceName: 会话订阅
+            public ConcurrentDictionary<string, SubscribeInfo> Subscribes { get; }
                 = new ConcurrentDictionary<string, SubscribeInfo>();
 
             public Session(ServiceManager sm, long ssid)
             {
                 ServiceManager = sm;
                 SessionId = ssid;
+                Util.Scheduler.Instance.Schedule((ThisTask) =>
+                {
+                    try
+                    {
+                        var r = new Keepalive();
+                        var s = ServiceManager.Server.GetSocket(SessionId);
+                        r.SendAndWaitCheckResultCode(s);
+                    }
+                    catch (Exception ex)
+                    {
+                        ServiceManager.Server.GetSocket(SessionId)?.Dispose();
+                        logger.Error(ex, "ServiceManager.KeepAlive");
+                    }
+                },
+                Util.Random.Instance.Next(ServiceManager.Config.KeepAlivePeriod),
+                ServiceManager.Config.KeepAlivePeriod);
             }
 
             public void OnClose()
             {
-                foreach (var info in ServiceNameToSubscribeInfo.Values)
+                foreach (var info in Subscribes.Values)
                 {
                     ServiceManager.UnSubscribeNow(SessionId, info);
                 }
 
                 Dictionary<string, ServerState> changed
-                    = new Dictionary<string, ServerState>(ServiceIdentityMap.Count);
+                    = new Dictionary<string, ServerState>(Registers.Count);
 
-                foreach (var info in ServiceIdentityMap.Values)
+                foreach (var info in Registers.Values)
                 {
                     var state = ServiceManager.UnRegisterNow(SessionId, info);
                     if (null != state)
@@ -254,29 +289,26 @@ namespace Zeze.Services
         {
             var r = p as Register;
             var session = r.Sender.UserState as Session;
-            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
-            r.ResultCode = Register.DuplicateIndentity;
-            state.ServiceInfos.GetOrAdd(r.Argument.ServiceIdentity, (_) =>
+            if (false == session.Registers.TryAdd(r.Argument, r.Argument))
             {
-                // state.ServiceInfos加入成功，会话肯定也会成功。
-                session.ServiceIdentityMap.TryAdd(r.Argument.ServiceIdentity, r.Argument);
-                r.ResultCode = Register.Success;
-                // 【警告】
-                // 为了简单，这里没有创建新的对象，直接修改并引用了r.Argument。
-                // 这个破坏了r.Argument只读的属性。另外引用同一个对象，也有点风险。
-                // 在目前没有问题，因为r.Argument主要记录在state.ServiceInfos中，
-                // 另外它也被Session引用（用于连接关闭时，自动注销）。
-                // 这是专用程序，不是一个库，以后有修改时，小心就是了。
-                r.Argument.SessionId = r.Sender.SessionId; // 这个变量实际没有发挥效用。
-                return r.Argument;
-            });
-            r.SendResult();
-            if (r.ResultCode == Register.Success)
-            {
-                state.StartNotify();
-                return Procedure.Success;
+                r.SendResultCode(Register.DuplicateRegister);
+                return Procedure.LogicError;
             }
-            return Procedure.LogicError;
+            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
+
+            // 【警告】
+            // 为了简单，这里没有创建新的对象，直接修改并引用了r.Argument。
+            // 这个破坏了r.Argument只读的属性。另外引用同一个对象，也有点风险。
+            // 在目前没有问题，因为r.Argument主要记录在state.ServiceInfos中，
+            // 另外它也被Session引用（用于连接关闭时，自动注销）。
+            // 这是专用程序，不是一个库，以后有修改时，小心就是了。
+            r.Argument.SessionId = r.Sender.SessionId;
+
+            // AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
+            state.ServiceInfos.AddOrUpdate(r.Argument.ServiceIdentity, r.Argument, (key, value) => r.Argument);
+            r.SendResultCode(Register.Success);
+            state.StartNotify();
+            return Procedure.Success;
         }
 
         internal ServerState UnRegisterNow(long sessionId, ServiceInfo info)
@@ -288,6 +320,7 @@ namespace Zeze.Services
                     // 这里存在一个时间窗口，可能使得重复的注销会成功。注销一般比较特殊，忽略这个问题。
                     if (sessionId == ssi.SessionId)
                     {
+                        // 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
                         state.ServiceInfos.TryRemove(info.ServiceIdentity, out var _);
                         return state;
                     }
@@ -303,17 +336,12 @@ namespace Zeze.Services
             if (null != UnRegisterNow(r.Sender.SessionId, r.Argument))
             {
                 // ignore TryRemove failed.
-                session.ServiceIdentityMap.TryRemove(r.Argument.ServiceIdentity, out var _);
-                r.ResultCode = UnRegister.Success;
-                r.SendResult();
-                return Procedure.Success;
+                session.Registers.TryRemove(r.Argument, out var _);
+                //r.SendResultCode(UnRegister.Success);
+                //return Procedure.Success;
             }
             // 注销不存在也返回成功，否则Agent处理比较麻烦。
-            //r.ResultCode = UnRegister.NotExist;
-            //r.SendResult();
-            //return Procedure.LogicError;
-            r.ResultCode = UnRegister.Success;
-            r.SendResult();
+            r.SendResultCode(UnRegister.Success);
             return Procedure.Success;
         }
 
@@ -321,7 +349,7 @@ namespace Zeze.Services
         {
             var r = p as Subscribe;
             var session = r.Sender.UserState as Session;
-            if (!session.ServiceNameToSubscribeInfo.TryAdd(r.Argument.ServiceName, r.Argument))
+            if (!session.Subscribes.TryAdd(r.Argument.ServiceName, r.Argument))
             {
                 r.ResultCode = Subscribe.DuplicateSubscribe;
                 r.SendResult();
@@ -354,7 +382,7 @@ namespace Zeze.Services
         {
             var r = p as UnSubscribe;
             var session = r.Sender.UserState as Session;
-            if (session.ServiceNameToSubscribeInfo.TryRemove(r.Argument.ServiceName, out var sub))
+            if (session.Subscribes.TryRemove(r.Argument.ServiceName, out var sub))
             {
                 if (r.Argument.SubscribeType == sub.SubscribeType)
                 {
@@ -391,10 +419,8 @@ namespace Zeze.Services
             Stop();
         }
 
-        public ServiceManager(IPAddress ipaddress, int port, Config config = null)
+        public ServiceManager(IPAddress ipaddress, int port, Config config)
         {
-            if (null == config)
-                config = Config.Load();
             Server = new NetServer(this, config);
 
             Server.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
@@ -425,6 +451,11 @@ namespace Zeze.Services
             {
                 Factory = () => new ReadyServiceList(),
                 Handle = ProcessReadyServiceList,
+            });
+
+            Server.AddFactoryHandle(new Keepalive().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new Keepalive(),
             });
 
             ServerSocket = Server.NewServerSocket(ipaddress, port);
@@ -574,7 +605,7 @@ namespace Zeze.Services
         public sealed class Register : Rpc<ServiceInfo, EmptyBean>
         {
             public const int Success = 0;
-            public const int DuplicateIndentity = 1;
+            public const int DuplicateRegister = 1;
 
             public override int ModuleId => 0;
             public override int ProtocolId => 100;
@@ -719,21 +750,56 @@ namespace Zeze.Services
             public override int ProtocolId => 106;
         }
 
+        // 实际上可以不用这个类，为了保持以后ServiceInfo的比较可能改变，写一个这个类。
+        public sealed class ServiceInfoComparer : IEqualityComparer<ServiceInfo>
+        {
+            public bool Equals(ServiceInfo x, ServiceInfo y)
+            {
+                return x.Equals(y);
+            }
+
+            public int GetHashCode([DisallowNull] ServiceInfo obj)
+            {
+                return obj.GetHashCode();
+            }
+        }
+
+        public sealed class Keepalive : Rpc<EmptyBean, EmptyBean>
+        {
+            public const int Success = 0;
+
+            public override int ModuleId => 0;
+            public override int ProtocolId => 107;
+        }
+
         public sealed class Agent : IDisposable
         {
+            // key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
             // ServiceName ->
-            public ConcurrentDictionary<string, ClientState> ServiceStates { get; }
-                = new ConcurrentDictionary<string, ClientState>();
-
+            public ConcurrentDictionary<string, SubscribeState> SubscribeStates { get; }
+                = new ConcurrentDictionary<string, SubscribeState>();
             public NetClient Client { get; private set; }
             public Action<Agent> OnConnected { get; private set; }
-            public Action<ClientState> OnChanged { get; private set; }
+            public Action<SubscribeState> OnChanged { get; private set; }
 
-            public sealed class ClientState
+            // 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
+            // ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
+            public Action OnKeepAlive { get; set; }
+
+            // key is (ServiceName, ServideIdentity)
+            private ConcurrentDictionary<ServiceInfo, ServiceInfo> Registers { get; }
+                = new ConcurrentDictionary<ServiceInfo, ServiceInfo>(new ServiceInfoComparer());
+
+            // 【警告】
+            // 记住当前已经注册和订阅信息，当ServiceManager连接发生重连时，重新发送请求。
+            // 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。
+            // 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
+            public sealed class SubscribeState
             {
                 public Agent Agent { get; }
-                public string ServiceName => ServiceInfos.ServiceName;
-                public int SubscribeType { get; }
+                public SubscribeInfo SubscribeInfo { get; }
+                public int SubscribeType => SubscribeInfo.SubscribeType;
+                public string ServiceName => SubscribeInfo.ServiceName;
 
                 public ServiceInfos ServiceInfos { get; private set; }
                 public ServiceInfos ServiceInfosPending { get; private set; }
@@ -749,11 +815,11 @@ namespace Zeze.Services
                 public ConcurrentDictionary<string, object> ServiceReadyStates { get; }
                     = new ConcurrentDictionary<string, object>();
 
-                public ClientState(Agent ag, string serviceName, int subscribeType)
+                public SubscribeState(Agent ag, SubscribeInfo info)
                 {
                     Agent = ag;
-                    SubscribeType = subscribeType;
-                    ServiceInfos = new ServiceInfos(serviceName);
+                    SubscribeInfo = info;
+                    ServiceInfos = new ServiceInfos(info.ServiceName);
                 }
 
                 // NOT UNDER LOCK
@@ -841,8 +907,20 @@ namespace Zeze.Services
 
             private void RegisterService(ServiceInfo info)
             {
-                var r = new Register() { Argument = info };
-                r.SendAndWaitCheckResultCode(Client.Socket);
+                if (Registers.TryAdd(info, info))
+                {
+                    try
+                    {
+                        var r = new Register() { Argument = info };
+                        r.SendAndWaitCheckResultCode(Client.Socket);
+                    }
+                    catch (Exception)
+                    {
+                        Registers.TryRemove(info, out var _); // rollback
+                        throw;
+                    }
+                }
+                // else ignore TryAdd failed.
             }
 
             public void UnRegisterService(string name, string identity)
@@ -852,49 +930,73 @@ namespace Zeze.Services
 
             private void UnRegisterService(ServiceInfo info)
             {
-                var r = new UnRegister() { Argument = info };
-                r.SendAndWaitCheckResultCode(Client.Socket);
+                if (Registers.TryRemove(info, out var exist))
+                {
+                    try
+                    {
+                        var r = new UnRegister() { Argument = info };
+                        r.SendAndWaitCheckResultCode(Client.Socket);
+                    }
+                    catch (Exception)
+                    {
+                        Registers.TryAdd(exist, exist); // rollback
+                        throw;
+                    }
+                }
             }
 
             public void SubscribeService(string serviceName, int type)
             {
-                if (type != SubscribeInfo.SubscribeTypeSimple && type != SubscribeInfo.SubscribeTypeReadyCommit)
+                if (type != SubscribeInfo.SubscribeTypeSimple
+                    && type != SubscribeInfo.SubscribeTypeReadyCommit)
                     throw new Exception("Unkown SubscribeType");
 
-                var info = new SubscribeInfo() { ServiceName = serviceName, SubscribeType = type };
-                var newState = new ClientState(this, info.ServiceName, info.SubscribeType);
-                if (!ServiceStates.TryAdd(info.ServiceName, newState))
+                SubscribeService(new SubscribeInfo()
                 {
-                    throw new Exception("SubscribeService Duplicate.");
-                }
-                var r = new Subscribe() { Argument = info };
-                r.SendAndWaitCheckResultCode(Client.Socket);
-                newState.InitCommit(r.Result);
+                    ServiceName = serviceName,
+                    SubscribeType = type
+                });
             }
 
-            public void UnSubscribeService(string serviceName, int type)
+            private void SubscribeService(SubscribeInfo info)
             {
-                var info = new SubscribeInfo() { ServiceName = serviceName, SubscribeType = type };
-                if (!ServiceStates.TryRemove(info.ServiceName, out var state))
-                    return;
+                SubscribeStates.GetOrAdd(info.ServiceName, (_) =>
+                {
+                    var r = new Subscribe() { Argument = info };
+                    r.SendAndWaitCheckResultCode(Client.Socket);
+                    var state = new SubscribeState(this, info);
+                    state.InitCommit(r.Result);
+                    return state;
+                });
+            }
 
-                if (info.SubscribeType != state.SubscribeType)
-                    throw new Exception("UnSubscribeService SubscribeType Not Equals");
-
-                var r = new UnSubscribe() { Argument = info };
-                r.SendAndWaitCheckResultCode(Client.Socket);
+            public void UnSubscribeService(string serviceName)
+            {
+                if (SubscribeStates.TryRemove(serviceName, out var state))
+                {
+                    try
+                    {
+                        var r = new UnSubscribe() { Argument = state.SubscribeInfo };
+                        r.SendAndWaitCheckResultCode(Client.Socket);
+                    }
+                    catch (Exception)
+                    {
+                        SubscribeStates.TryAdd(serviceName, state); // rollback
+                        throw;
+                    }
+                }
             }
 
             private int ProcessNotifyServiceList(Protocol p)
             {
                 var r = p as NotifyServiceList;
-                if (ServiceStates.TryGetValue(r.Argument.ServiceName, out var state))
+                if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
                 {
                     state.OnNotify(r.Argument);
                 }
                 else
                 {
-                    Agent.logger.Warn("NotifyServiceList But Service Not Found.");
+                    Agent.logger.Warn("NotifyServiceList But SubscribeState Not Found.");
                 }
                 return Procedure.Success;
             }
@@ -902,14 +1004,22 @@ namespace Zeze.Services
             private int ProcessCommitServiceList(Protocol p)
             {
                 var r = p as CommitServiceList;
-                if (ServiceStates.TryGetValue(r.Argument.ServiceName, out var state))
+                if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
                 {
                     state.OnCommit(r.Argument);
                 }
                 else
                 {
-                    Agent.logger.Warn("CommitServiceList But Service Not Found.");
+                    Agent.logger.Warn("CommitServiceList But SubscribeState Not Found.");
                 }
+                return Procedure.Success;
+            }
+
+            private int ProcessKeepalive(Protocol p)
+            {
+                var r = p as Keepalive;
+                OnKeepAlive?.Invoke();
+                r.SendResultCode(Keepalive.Success);
                 return Procedure.Success;
             }
 
@@ -924,11 +1034,42 @@ namespace Zeze.Services
                 }
             }
 
+            internal void _OnConnected()
+            {
+                foreach (var e in Registers)
+                {
+                    try
+                    {
+                        var r = new Register() { Argument = e.Value };
+                        r.SendAndWaitCheckResultCode(Client.Socket);
+                    }
+                    catch (Exception)
+                    {
+                        // skip：忽略重连注册失败。
+                    }
+                }
+                foreach (var e in SubscribeStates)
+                {
+                    try
+                    {
+                        var r = new Subscribe() { Argument = e.Value.SubscribeInfo };
+                        r.SendAndWaitCheckResultCode(Client.Socket);
+                        var state = new SubscribeState(this, r.Argument);
+                        state.InitCommit(r.Result);
+                    }
+                    catch (Exception)
+                    {
+                        // skip：忽略重连订阅失败。
+                    }
+                }
+                OnConnected(this);
+            }
+
             /// <summary>
             /// 使用Config配置连接信息，可以配置是否支持重连。
             /// 用于测试：Agent.Client.NewClientSocket(...)，不会自动重连，不要和Config混用。
             /// </summary>
-            public Agent(Config config, Action<Agent> onConnected, Action<ClientState> onChanged, string netServiceName = null)
+            public Agent(Config config, Action<Agent> onConnected, Action<SubscribeState> onChanged, string netServiceName = null)
             {
                 if (null == config)
                     throw new Exception("Config is null");
@@ -971,6 +1112,12 @@ namespace Zeze.Services
                     Handle = ProcessCommitServiceList,
                 });
 
+                Client.AddFactoryHandle(new Keepalive().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new Keepalive(),
+                    Handle = ProcessKeepalive,
+                });
+
                 Client.Start();
             }
 
@@ -1002,7 +1149,7 @@ namespace Zeze.Services
                     if (null == Socket)
                     {
                         Socket = sender;
-                        Util.Task.Run(() => Agent.OnConnected(Agent), "ServiceManager.Agent.OnConnected");
+                        Util.Task.Run(Agent._OnConnected, "ServiceManager.Agent.DoConnected");
                     }
                     else
                     {
