@@ -81,7 +81,9 @@ namespace Zeze.Net
                 foreach (var a in Config.Acceptors)
                 {
                     a.Socket?.Dispose();
-                    a.Socket = a.Ip.Length > 0 ? NewServerSocket(a.Ip, a.Port) : NewServerSocket(System.Net.IPAddress.Any, a.Port);
+                    a.Socket = a.Ip.Length > 0
+                        ? NewServerSocket(a.Ip, a.Port)
+                        : NewServerSocket(System.Net.IPAddress.Any, a.Port);
                 }
                 foreach (var c in Config.Connectors)
                 {

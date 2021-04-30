@@ -25,7 +25,11 @@ namespace GlobalCacheManager
 
                 }
             }
-            System.Net.IPAddress address = ip != null ? System.Net.IPAddress.Parse(ip) : System.Net.IPAddress.Any;
+            System.Net.IPAddress address =
+                string.IsNullOrEmpty(ip)
+                ? System.Net.IPAddress.Any
+                : System.Net.IPAddress.Parse(ip);
+
             Zeze.Services.GlobalCacheManager.Instance.Start(address, port);
             //Console.WriteLine("Ok.");
             logger.Info("Started.");

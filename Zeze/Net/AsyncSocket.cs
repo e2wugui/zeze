@@ -229,6 +229,9 @@ namespace Zeze.Net
 
         private void OnAsyncIOCompleted(object sender, SocketAsyncEventArgs e)
         {
+            if (Socket == null) // async closed
+                return;
+
             try
             {
                 switch (e.LastOperation)
@@ -293,7 +296,7 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-                this.Service.OnSocketConnectError(this, e);
+                this.Service?.OnSocketConnectError(this, e);
                 Close(null);
             }
         }
@@ -310,7 +313,7 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-                this.Service.OnSocketConnectError(this, e);
+                this.Service?.OnSocketConnectError(this, e);
                 Close(null);
             }
         }

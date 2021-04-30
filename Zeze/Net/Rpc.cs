@@ -79,7 +79,10 @@ namespace Zeze.Net
                 {
                     tmpFuture.TrySetException(new Exception($"Rpc Invalid ResultCode={ResultCode} {this}"));
                 }
-                tmpFuture.SetResult(0);
+                else
+                {
+                    tmpFuture.SetResult(0);
+                }
                 return Zeze.Transaction.Procedure.Success;
             }, millisecondsTimeout);
             tmpFuture.Task.Wait();

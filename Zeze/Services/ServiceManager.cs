@@ -64,6 +64,7 @@ namespace Zeze.Services
         private ConcurrentDictionary<string, ServerState> ServerStates = new ConcurrentDictionary<string, ServerState>();
         public NetServer Server { get; private set; }
         private AsyncSocket ServerSocket;
+        private volatile Util.SchedulerTask StartNotifyDelayTask;
 
         public sealed class Conf : Zeze.Config.ICustomize
         {
@@ -71,11 +72,27 @@ namespace Zeze.Services
 
             public int KeepAlivePeriod { get; set; } = 300 * 1000; // 5 mins
 
+            /// <summary>
+            /// 启动以后接收注册和订阅，一段时间内不进行通知。
+            /// 用来处理ServiceManager异常重启导致服务列表重置的问题。
+            /// 在Delay时间内，希望所有的服务都重新连接上来并注册和订阅。
+            /// Delay到达时，全部通知一遍，以后正常工作。
+            /// </summary>
+            public int StartNotifyDelay { get; set; } = 12 * 1000; // 12s
+
+            public int RetryNotifyDelayWhenNotAllReady { get; set; } = 30 * 1000; // 30s
+
             public void Parse(XmlElement self)
             {
                 string attr = self.GetAttribute("KeepAlivePeriod");
-                if (string.IsNullOrEmpty(attr))
+                if (!string.IsNullOrEmpty(attr))
                     KeepAlivePeriod = int.Parse(attr);
+                attr = self.GetAttribute("StartNotifyDelay");
+                if (!string.IsNullOrEmpty(attr))
+                    StartNotifyDelay = int.Parse(attr);
+                attr = self.GetAttribute("RetryNotifyDelayWhenNotAllReady");
+                if (!string.IsNullOrEmpty(attr))
+                    RetryNotifyDelayWhenNotAllReady = int.Parse(attr);
             }
         }
 
@@ -110,6 +127,9 @@ namespace Zeze.Services
             {
                 lock (this)
                 {
+                    if (null != ServiceManager.StartNotifyDelayTask)
+                        return;
+
                     var notify = new NotifyServiceList()
                     {
                         Argument = new ServiceManager.ServiceInfos(ServiceName, this),
@@ -138,7 +158,7 @@ namespace Zeze.Services
                                 // 2. 启动了新的 Notify。
                                 StartNotify(); // restart
                             }
-                        }, 30000); // 30s
+                        }, ServiceManager.Config.RetryNotifyDelayWhenNotAllReady);
                     }
                 }
             }
@@ -192,9 +212,15 @@ namespace Zeze.Services
                             r.SendResult();
                             return Procedure.LogicError;
                     }
-                    r.ResultCode = Subscribe.Success;
-                    r.Result = new ServiceInfos(ServiceName, this);
-                    r.SendResult();
+                    r.SendResultCode(Subscribe.Success);
+                    if (null == ServiceManager.StartNotifyDelayTask)
+                    {
+                        new SubscribeFirstCommit()
+                        {
+                            Argument = new ServiceInfos(ServiceName, this)
+                        }
+                        .Send(r.Sender);
+                    }
                     return Procedure.Success;
                 }
             }
@@ -203,9 +229,20 @@ namespace Zeze.Services
             {
                 lock(this)
                 {
+                    var ordered = new ServiceInfos(ServiceName, this);
+
                     // 忽略旧的Ready。
-                    if (!Enumerable.SequenceEqual(ServiceInfos.Values, p.Argument.Services.Values))
+                    if (!Enumerable.SequenceEqual(ordered.Services.Values, p.Argument.Services.Values))
+                    {
+                        var sb = new StringBuilder();
+                        sb.Append("SequenceNotEqual:");
+                        sb.Append(" Current=");
+                        ByteBuffer.BuildString(sb, ordered.Services.Values);
+                        sb.Append(" Ready=");
+                        ByteBuffer.BuildString(sb, p.Argument.Services.Values);
+                        logger.Info(sb.ToString());
                         return;
+                    }
 
                     if (!ReadyCommit.TryGetValue(session.SessionId, out var subcribeState))
                         return;
@@ -420,8 +457,14 @@ namespace Zeze.Services
             Stop();
         }
 
-        public ServiceManager(IPAddress ipaddress, int port, Config config)
+        public ServiceManager(IPAddress ipaddress, int port, Config config, int startNotifyDelay = -1)
         {
+            if (config.GetCustomize<Conf>(out var tmpconf))
+                Config = tmpconf;
+
+            if (startNotifyDelay >= 0)
+                Config.StartNotifyDelay = startNotifyDelay;
+
             Server = new NetServer(this, config);
 
             Server.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
@@ -459,7 +502,24 @@ namespace Zeze.Services
                 Factory = () => new Keepalive(),
             });
 
+            if (Config.StartNotifyDelay > 0)
+            {
+                StartNotifyDelayTask = Util.Scheduler.Instance.Schedule(
+                    StartNotifyAll, Config.StartNotifyDelay);
+            }
+
+            // 允许配置多个acceptor，如果有冲突，通过日志查看。
             ServerSocket = Server.NewServerSocket(ipaddress, port);
+            Server.Start();
+        }
+
+        private void StartNotifyAll(Util.SchedulerTask ThisTask)
+        {
+            StartNotifyDelayTask = null;
+            foreach (var e in ServerStates)
+            {
+                e.Value.StartNotify();
+            }
         }
 
         public void Stop()
@@ -468,6 +528,7 @@ namespace Zeze.Services
             {
                 if (null == Server)
                     return;
+                StartNotifyDelayTask?.Cancel();
                 ServerSocket.Dispose();
                 ServerSocket = null;
                 Server.Close();
@@ -651,8 +712,14 @@ namespace Zeze.Services
             {
                 throw new NotImplementedException();
             }
+
+            public override string ToString()
+            {
+                return $"{ServiceName}:{SubscribeType}";
+            }
         }
-        public sealed class Subscribe : Rpc<SubscribeInfo, ServiceInfos>
+
+        public sealed class Subscribe : Rpc<SubscribeInfo, EmptyBean>
         {
             public const int Success = 0;
             public const int DuplicateSubscribe = 1;
@@ -676,8 +743,8 @@ namespace Zeze.Services
             // ServiceList maybe empty. need a ServiceName
             public string ServiceName { get; private set; }
             // ServiceIdentity -> ServiceInfo
-            private Dictionary<string, ServiceInfo> _Services { get; }
-                = new Dictionary<string, ServiceInfo>();
+            private SortedDictionary<string, ServiceInfo> _Services { get; }
+                = new SortedDictionary<string, ServiceInfo>();
             public IReadOnlyDictionary<string, ServiceInfo> Services => _Services;
 
             public ServiceInfos()
@@ -774,6 +841,12 @@ namespace Zeze.Services
             public override int ProtocolId => 107;
         }
 
+        public sealed class SubscribeFirstCommit : Protocol<ServiceInfos>
+        {
+            public override int ModuleId => 0;
+            public override int ProtocolId => 108;
+        }
+
         public sealed class Agent : IDisposable
         {
             // key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
@@ -815,7 +888,7 @@ namespace Zeze.Services
                 /// 用来处理Subscribe返回的第一份数据和Commit可能乱序的问题。
                 /// 目前的实现不会发生乱序。
                 /// </summary>
-                public bool Committed { get; private set; } = false;
+                public bool Committed { get; internal set; } = false;
 
                 // 服务准备好。
                 public ConcurrentDictionary<string, object> ServiceReadyStates { get; }
@@ -890,7 +963,7 @@ namespace Zeze.Services
                     }
                 }
 
-                internal void InitCommit(ServiceInfos infos)
+                internal void OnFirstCommit(ServiceInfos infos)
                 {
                     lock (this)
                     {
@@ -970,10 +1043,18 @@ namespace Zeze.Services
                 {
                     var r = new Subscribe() { Argument = info };
                     r.SendAndWaitCheckResultCode(Client.Socket);
-                    var state = new SubscribeState(this, info);
-                    state.InitCommit(r.Result);
-                    return state;
+                    return new SubscribeState(this, info);
                 });
+            }
+
+            private int ProcessSubscribeFirstCommit(Protocol p)
+            {
+                var r = p as SubscribeFirstCommit;
+                if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
+                {
+                    state.OnFirstCommit(r.Argument);
+                }
+                return Procedure.Success;
             }
 
             public void UnSubscribeService(string serviceName)
@@ -1049,23 +1130,22 @@ namespace Zeze.Services
                         var r = new Register() { Argument = e.Value };
                         r.SendAndWaitCheckResultCode(Client.Socket);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        // skip：忽略重连注册失败。
+                        logger.Debug(ex, $"_OnConnected.Register={e.Value}");
                     }
                 }
                 foreach (var e in SubscribeStates)
                 {
                     try
                     {
+                        e.Value.Committed = false;
                         var r = new Subscribe() { Argument = e.Value.SubscribeInfo };
                         r.SendAndWaitCheckResultCode(Client.Socket);
-                        var state = new SubscribeState(this, r.Argument);
-                        state.InitCommit(r.Result);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        // skip：忽略重连订阅失败。
+                        logger.Debug(ex, $"_OnConnected.Subscribe={e.Value.SubscribeInfo}");
                     }
                 }
                 OnConnected(this);
@@ -1124,6 +1204,12 @@ namespace Zeze.Services
                     Handle = ProcessKeepalive,
                 });
 
+                Client.AddFactoryHandle(new SubscribeFirstCommit().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new SubscribeFirstCommit(),
+                    Handle = ProcessSubscribeFirstCommit,
+                });
+
                 Client.Start();
             }
 
@@ -1156,7 +1242,7 @@ namespace Zeze.Services
                     if (null == Socket)
                     {
                         Socket = sender;
-                        Util.Task.Run(Agent._OnConnected, "ServiceManager.Agent.DoConnected");
+                        Util.Task.Run(Agent._OnConnected, "ServiceManager.Agent._OnConnected");
                     }
                     else
                     {
@@ -1166,9 +1252,9 @@ namespace Zeze.Services
 
                 public override void OnSocketClose(AsyncSocket so, Exception e)
                 {
-                    base.OnSocketClose(so, e);
                     if (Socket == so)
                         Socket = null;
+                    base.OnSocketClose(so, e);
                 }
             }
         }

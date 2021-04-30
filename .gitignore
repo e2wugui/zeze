@@ -48,3 +48,5 @@ TestResults
 /Game2/linkd/bin
 /Game2/linkd/obj
 /Game2/linkd/Gen
+/ServiceManager/obj
+/ServiceManager/bin

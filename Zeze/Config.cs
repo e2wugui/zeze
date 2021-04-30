@@ -46,15 +46,16 @@ namespace Zeze
         /// <typeparam name="T"></typeparam>
         /// <param name="name"></param>
         /// <param name="customize"></param>
-        public void GetCustomize<T>(out T customize) where T : ICustomize, new()
+        public bool GetCustomize<T>(out T customize) where T : ICustomize, new()
         {
             T forName = new T();
             if (Customize.TryGetValue(forName.Name, out var _customize))
             {
                 customize = (T)_customize;
-                return;
+                return true;
             }
-            throw new Exception($"CustomizeConf for '{forName.Name}' Not Found");
+            customize = default(T);
+            return false;
         }
 
         public void AddCustomize(ICustomize c)
