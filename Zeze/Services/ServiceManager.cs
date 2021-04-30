@@ -479,7 +479,8 @@ namespace Zeze.Services
         {
             public ServiceManager ServiceManager { get; }
 
-            public NetServer(ServiceManager sm, Config config) : base("ServiceManager", config)
+            public NetServer(ServiceManager sm, Config config)
+                : base("Zeze.Services.ServiceManager", config)
             {
                 ServiceManager = sm;
             }
@@ -1139,7 +1140,8 @@ namespace Zeze.Services
                 /// </summary>
                 public AsyncSocket Socket { get; private set; }
 
-                public NetClient(Agent agent, Config config) : base("ServiceManager.Agent", config)
+                public NetClient(Agent agent, Config config)
+                    : base("Zeze.Services.ServiceManager.Agent", config)
                 {
                     Agent = agent;
                 }

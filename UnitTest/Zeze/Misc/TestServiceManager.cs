@@ -12,6 +12,14 @@ namespace UnitTest.Zeze.Misc
     [TestClass]
     public class TestServiceManager
     {
+        ServiceManager ServiceManager;
+        [TestCleanup]
+        public void TestCleanup()
+        {
+            ServiceManager?.Dispose();
+        }
+        TaskCompletionSource<int> future;
+
         [TestMethod]
         public void Test1()
         {
@@ -19,10 +27,22 @@ namespace UnitTest.Zeze.Misc
             int port = 7601;
 
             var config = global::Zeze.Config.Load();
+            // for reconnect
+            var agentConf = new global::Zeze.Config.ServiceConf();
+            agentConf.Connectors.Add(new global::Zeze.Config.ServiceConf.Connector()
+            {
+                HostNameOrAddress = ip,
+                Port = port,
+            });
+            config.ServiceConfMap.Add("Zeze.Services.ServiceManager.Agent", agentConf);
+
+            future = new TaskCompletionSource<int>();
+
             System.Net.IPAddress address = string.IsNullOrEmpty(ip)
                 ? System.Net.IPAddress.Any : System.Net.IPAddress.Parse(ip);
-            using var sm = new ServiceManager(address, port, config);
+            ServiceManager = new ServiceManager(address, port, config); // 后面需要手动销毁再重建测试。不用using了。
             var serviceName = "TestServiceManager";
+
             using var agent = new ServiceManager.Agent(config,
                 (agent) =>
                 {
@@ -32,21 +52,25 @@ namespace UnitTest.Zeze.Misc
                 (state) =>
                 {
                     Console.WriteLine("OnChanged: " + state.ServiceInfos);
+                    this.future.SetResult(0);
                 }
                 );
             Console.WriteLine("ConnectNow");
-            agent.Client.NewClientSocket(ip, port);
-            Thread.Sleep(1000);
+            future = new TaskCompletionSource<int>();
+            agent.Client.Start();
+            future.Task.Wait();
 
             Console.WriteLine("RegisterService 2");
+            future = new TaskCompletionSource<int>();
             agent.RegisterService(serviceName, "2");
-            Thread.Sleep(1000);
+            future.Task.Wait();
 
             // 改变订阅类型
             Console.WriteLine("Change Subscribe type");
             agent.UnSubscribeService(serviceName);
+            future = new TaskCompletionSource<int>();
             agent.SubscribeService(serviceName, ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit);
-            Thread.Sleep(1000);
+            future.Task.Wait();
 
             agent.SubscribeStates.TryGetValue(serviceName, out var state);
             object anyState = this;
@@ -55,8 +79,15 @@ namespace UnitTest.Zeze.Misc
             state.SetServiceReadyState("3", anyState);
 
             Console.WriteLine("RegisterService 3");
+            future = new TaskCompletionSource<int>();
             agent.RegisterService(serviceName, "3");
-            Thread.Sleep(1000);
+            future.Task.Wait();
+
+            Console.WriteLine("Test Reconnect");
+            ServiceManager.Dispose();
+            future = new TaskCompletionSource<int>();
+            ServiceManager = new ServiceManager(address, port, config);
+            future.Task.Wait();
         }
     }
 }
