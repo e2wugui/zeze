@@ -49,7 +49,7 @@ namespace Zeze.Services
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public HandshakeServer(string name, Application app) : base(name, app)
+        private void AddFactoryHandle()
         {
             AddFactoryHandle(new Handshake.CHandshake().TypeId, new Service.ProtocolFactoryHandle()
             {
@@ -57,6 +57,16 @@ namespace Zeze.Services
                 Handle = ProcessCHandshake,
                 NoProcedure = true,
             });
+        }
+
+        public HandshakeServer(string name, Config config) : base(name, config)
+        {
+            AddFactoryHandle();
+        }
+
+        public HandshakeServer(string name, Application app) : base(name, app)
+        {
+            AddFactoryHandle();
         }
 
         public override void OnSocketAccept(AsyncSocket so)
@@ -109,7 +119,7 @@ namespace Zeze.Services
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public HandshakeClient(string name, Application app) : base(name, app)
+        private void AddFactoryHandle()
         {
             AddFactoryHandle(new Handshake.SHandshake().TypeId, new Service.ProtocolFactoryHandle()
             {
@@ -117,6 +127,16 @@ namespace Zeze.Services
                 Handle = ProcessSHandshake,
                 NoProcedure = true,
             });
+        }
+
+        public HandshakeClient(string name, Config config) : base(name, config)
+        {
+            AddFactoryHandle();
+        }
+
+        public HandshakeClient(string name, Application app) : base(name, app)
+        {
+            AddFactoryHandle();
         }
 
         private ConcurrentDictionary<long, BigInteger> DHContext = new ConcurrentDictionary<long, BigInteger>();

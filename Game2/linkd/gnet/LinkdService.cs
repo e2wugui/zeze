@@ -33,7 +33,7 @@ namespace gnet
                         break;
                 }
                 // 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
-                App.Instance.Scheduler.Schedule(() => this.GetSocket(linkSid)?.Dispose(), 2000);
+                App.Instance.Scheduler.Schedule((ThisTask) => this.GetSocket(linkSid)?.Dispose(), 2000);
             }
         }
 
@@ -206,7 +206,7 @@ namespace gnet
         public void KeepAlive()
         {
             KeepAliveTask?.Cancel();
-            KeepAliveTask = App.Instance.Scheduler.Schedule(() =>
+            KeepAliveTask = App.Instance.Scheduler.Schedule((ThisTask) =>
             {
                 App.Instance.LinkdService.GetSocket(SessionId)?.Close(null);
             }, 3000000);

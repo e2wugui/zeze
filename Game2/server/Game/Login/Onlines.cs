@@ -23,7 +23,7 @@ namespace Game.Login
             if (null != online)
                 online.State = BOnline.StateNetBroken;
 
-            App.Instance.Scheduler.Schedule(() =>
+            App.Instance.Scheduler.Schedule((ThisTask) =>
             {
                 App.Instance.Zeze.NewProcedure(() =>
                 {

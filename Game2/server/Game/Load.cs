@@ -25,7 +25,7 @@ namespace Game
 			Zeze.Util.Scheduler.Instance.Schedule(OnTimerTask, TimoutDelaySeconds * 1000);
 		}
 
-		private void OnTimerTask()
+		private void OnTimerTask(Zeze.Util.SchedulerTask ThisTask)
 		{
 			long login = LoginCount.Get();
 			long logout = LogoutCount.Get();

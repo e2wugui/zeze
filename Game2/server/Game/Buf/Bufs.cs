@@ -58,7 +58,7 @@ namespace Game.Buf
             // TODO config: conflict 等
             bean.Bufs[buf.Id] = buf.Bean;
 
-            Zeze.Util.Scheduler.Instance.Schedule(() => Detach(buf.Id), buf.ContinueTime);
+            Zeze.Util.Scheduler.Instance.Schedule((ThisTask) => Detach(buf.Id), buf.ContinueTime);
             Game.App.Instance.Game_Fight.StartCalculateFighter(RoleId);
         }
 

@@ -5,7 +5,7 @@ namespace Zeze.Services
 {
     public class ToTypeScriptService0 : HandshakeClient
     {
-        public ToTypeScriptService0(string name) : base(name, null)
+        public ToTypeScriptService0(string name) : base(name, (Zeze.Application)null)
         {
 
         }

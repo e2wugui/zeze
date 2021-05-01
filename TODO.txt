@@ -30,7 +30,7 @@ ConfigEditor
 	enum 现在不支持引用在其他文档定义的，有需要了再来加。
 
 
-ServiceManager 延迟开始通告(StartNotify) 
+
 这个要不要区分：special module config 需要readycommit模式。其他module，simple即可。
 
 ServiceNamePrefix: GameServer.Module#ID

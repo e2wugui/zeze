@@ -100,7 +100,6 @@ namespace Zeze.Services
         /// 需要从配置文件中读取，把这个引用加入： Zeze.Config.AddCustomize
         /// </summary>
         public Conf Config { get; } = new Conf();
-        public Util.AtomicLong NotifySerialIdGenerator { get; } = new Util.AtomicLong();
 
         public sealed class ServerState
         {
@@ -117,7 +116,7 @@ namespace Zeze.Services
                 = new ConcurrentDictionary<long, SubscribeState>();
 
             private Zeze.Util.SchedulerTask NotifyTimeoutTask;
-            private long LastNotifySerialId = 0;
+            private long SerialId;
 
             public ServerState(ServiceManager sm, string serviceName)
             {
@@ -131,12 +130,11 @@ namespace Zeze.Services
                 {
                     if (null != ServiceManager.StartNotifyDelayTask)
                         return;
-                    LastNotifySerialId = ServiceManager.NotifySerialIdGenerator.IncrementAndGet();
                     var notify = new NotifyServiceList()
                     {
-                        Argument = new ServiceManager.ServiceInfos(ServiceName, this, LastNotifySerialId),
+                        Argument = new ServiceManager.ServiceInfos(ServiceName, this, ++SerialId),
                     };
-                    logger.Info($"StartNotify {notify.Argument}");
+                    logger.Debug($"StartNotify {notify.Argument}");
                     var notifyBytes = notify.Encode();
 
                     foreach (var e in Simple)
@@ -217,8 +215,7 @@ namespace Zeze.Services
                     r.SendResultCode(Subscribe.Success);
                     if (null == ServiceManager.StartNotifyDelayTask)
                     {
-                        LastNotifySerialId = ServiceManager.NotifySerialIdGenerator.IncrementAndGet();
-                        var arg = new ServiceInfos(ServiceName, this, LastNotifySerialId);
+                        var arg = new ServiceInfos(ServiceName, this, ++SerialId);
                         new SubscribeFirstCommit() { Argument = arg }.Send(r.Sender);
                     }
                     return Procedure.Success;
@@ -229,9 +226,9 @@ namespace Zeze.Services
             {
                 lock(this)
                 {
-                    if (p.Argument.SerialId != LastNotifySerialId)
+                    if (p.Argument.SerialId != SerialId)
                     {
-                        logger.Debug("Not A Last Notify.");
+                        logger.Debug("Skip Ready: SerialId Not Equal.");
                         return;
                     }
                     var ordered = new ServiceInfos(ServiceName, this, 0);
@@ -541,7 +538,7 @@ namespace Zeze.Services
             }
         }
 
-        public sealed class NetServer : Net.Service
+        public sealed class NetServer : HandshakeServer
         {
             public ServiceManager ServiceManager { get; }
 
@@ -949,7 +946,7 @@ namespace Zeze.Services
 
                             case SubscribeInfo.SubscribeTypeReadyCommit:
                                 if (null == ServiceInfosPending
-                                    // 忽略过期的Notify，防止乱序。
+                                    // 忽略过期的Notify，防止乱序。long不可能溢出，不做回绕处理了。
                                     || infos.SerialId > ServiceInfosPending.SerialId
                                     )
                                 {
@@ -1233,7 +1230,7 @@ namespace Zeze.Services
                 Stop();
             }
 
-            public sealed class NetClient : Net.Service
+            public sealed class NetClient : HandshakeClient
             {
                 public Agent Agent { get; }
                 /// <summary>
