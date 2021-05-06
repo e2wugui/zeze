@@ -28,13 +28,9 @@ namespace UnitTest.Zeze.Misc
 
             var config = global::Zeze.Config.Load();
             // for reconnect
-            var agentConf = new global::Zeze.Config.ServiceConf();
-            agentConf.Connectors.Add(new global::Zeze.Config.ServiceConf.Connector()
-            {
-                HostNameOrAddress = ip,
-                Port = port,
-            });
-            config.ServiceConfMap.Add("Zeze.Services.ServiceManager.Agent", agentConf);
+            var agentConf = new global::Zeze.Net.ServiceConf();
+            agentConf.AddConnector(new global::Zeze.Net.Connector(ip, port));
+            config.ServiceConfMap.TryAdd("Zeze.Services.ServiceManager.Agent", agentConf);
 
             System.Net.IPAddress address =
                 string.IsNullOrEmpty(ip)

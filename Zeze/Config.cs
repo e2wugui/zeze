@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
@@ -32,11 +33,13 @@ namespace Zeze
         public int AutoKeyLocalStep { get; private set; } = 4096;
         public string GlobalCacheManagerHostNameOrAddress { get; set; }
         public int GlobalCacheManagerPort { get; private set; }
-        public Dictionary<string, TableConf> TableConfMap { get; } = new Dictionary<string, TableConf>();
+        public ConcurrentDictionary<string, TableConf> TableConfMap { get; }
+            = new ConcurrentDictionary<string, TableConf>();
         public TableConf DefaultTableConf { get; set; } = new TableConf();
         public bool AllowReadWhenRecoredNotAccessed { get; set; } = true;
         public bool AllowSchemasReuseVariableIdWithSameType { get; set; } = true;
-        public Dictionary<string, ICustomize> Customize { get; } = new Dictionary<string, ICustomize>();
+        public ConcurrentDictionary<string, ICustomize> Customize { get; }
+            = new ConcurrentDictionary<string, ICustomize>();
 
         /// <summary>
         /// 根据自定义配置名字查找。
@@ -60,7 +63,8 @@ namespace Zeze
 
         public void AddCustomize(ICustomize c)
         {
-            Customize.Add(c.Name, c);
+            if (!Customize.TryAdd(c.Name, c))
+                throw new Exception($"Duplicate Customize Config '{c.Name}'");
         }
 
         public TableConf GetTableConf(string name)
@@ -71,7 +75,9 @@ namespace Zeze
             }
             return DefaultTableConf;
         }
-        public Dictionary<string, DatabaseConf> DatabaseConfMap { get; } = new Dictionary<string, DatabaseConf>();
+
+        public ConcurrentDictionary<string, DatabaseConf> DatabaseConfMap { get; }
+            = new ConcurrentDictionary<string, DatabaseConf>();
 
         private Transaction.Database CreateDatabase(DbType dbType, string url)
         {
@@ -101,7 +107,9 @@ namespace Zeze
             }
         }
 
-        public Dictionary<string, ServiceConf> ServiceConfMap { get; } = new Dictionary<string, ServiceConf>();
+        public ConcurrentDictionary<string, ServiceConf> ServiceConfMap { get; }
+            = new ConcurrentDictionary<string, ServiceConf>();
+
         public ServiceConf DefaultServiceConf { get; set; } = new ServiceConf();
 
         public ServiceConf GetServiceConf(string name)
@@ -205,14 +213,19 @@ namespace Zeze
                 }
             }
             if (DatabaseConfMap.Count == 0) // add default databaseconf.
-                DatabaseConfMap.Add("", new DatabaseConf());
+            {
+                if (!DatabaseConfMap.TryAdd("", new DatabaseConf()))
+                {
+                    throw new Exception("Concurrent Add Default Database.");
+                }
+            }
         }
 
         public sealed class DatabaseConf
         {
-            public string Name { get; set; } = "";
-            public DbType DatabaseType { get; set; } = DbType.Memory;
-            public string DatabaseUrl { get; set; } = "";
+            public string Name { get; } = "";
+            public DbType DatabaseType { get; } = DbType.Memory;
+            public string DatabaseUrl { get; } = "";
 
             public DatabaseConf()
             { 
@@ -230,13 +243,14 @@ namespace Zeze
                     default: throw new Exception("unknown database type.");
                 }
                 DatabaseUrl = self.GetAttribute("DatabaseUrl");
-                conf.DatabaseConfMap.Add(Name, this);
+                if (!conf.DatabaseConfMap.TryAdd(Name, this))
+                    throw new Exception($"Duplicate Database '{Name}'");
             }
         }
 
         public sealed class TableConf
         {
-            public string Name { get; set; }
+            public string Name { get; }
             public int CacheCapaicty { get; set; } = 20000;
             public int CacheCleanPeriod { get; set; } = 3600 * 1000; // 毫秒，一小时
 
@@ -271,7 +285,10 @@ namespace Zeze
 
                 if (Name.Length > 0)
                 {
-                    conf.TableConfMap.Add(Name, this);
+                    if (!conf.TableConfMap.TryAdd(Name, this))
+                    {
+                        throw new Exception($"Duplicate Table '{Name}'");
+                    }
                 }
                 else
                 {

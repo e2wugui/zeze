@@ -142,9 +142,16 @@ namespace Zeze.Net
             if (attr.Length > 0) HandshakeOptions.DhGroup = byte.Parse(attr);
 
             if (Name.Length > 0)
-                conf.ServiceConfMap.Add(Name, this);
+            {
+                if (!conf.ServiceConfMap.TryAdd(Name, this))
+                {
+                    throw new Exception($"Duplicate ServiceConf '{Name}'");
+                }
+            }
             else
+            {
                 conf.DefaultServiceConf = this;
+            }
 
             // connection creator options
             XmlNodeList childNodes = self.ChildNodes;
