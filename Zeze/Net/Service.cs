@@ -18,7 +18,7 @@ namespace Zeze.Net
         /// 同一个 Service 下的所有连接都是用相同配置。
         /// </summary>
         public SocketOptions SocketOptions { get; private set; } = new SocketOptions();
-        public Config.ServiceConf Config { get; private set; }
+        public ServiceConf Config { get; private set; }
         public Application Zeze { get; }
         public string Name { get; }
 
@@ -43,7 +43,7 @@ namespace Zeze.Net
             }
             else
             {
-                Config = new Zeze.Config.ServiceConf();
+                Config = new ServiceConf();
             }
         }
 

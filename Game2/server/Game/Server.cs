@@ -48,6 +48,7 @@ namespace Game
                     continue;
                 if (Links.TryRemove(linkName, out var removed))
                 {
+                    Config.RemoveConnector(removed);
                     removed.Stop(this);
                 }
             }
