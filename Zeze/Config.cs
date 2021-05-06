@@ -285,96 +285,25 @@ namespace Zeze
             public string Name { get; }
             public Net.SocketOptions SocketOptions { get; set; } = new Net.SocketOptions();
             public Services.HandshakeOptions HandshakeOptions { get; set; } = new Services.HandshakeOptions();
-            public class Acceptor
-            {
-                public int Port { get; set; } = 0;
-                public string Ip { get; set; }
-                public AsyncSocket Socket { get; set; }
 
-                public Acceptor(ServiceConf conf, XmlElement self)
+            private List<Acceptor> Acceptors { get; } = new List<Acceptor>();
+            private List<Connector> Connectors { get; } = new List<Connector>();
+
+            public void AddConnector(Connector connector)
+            {
+                lock (Connectors)
                 {
-                    string attr = self.GetAttribute("Port");
-                    if (attr.Length > 0)
-                        Port = int.Parse(attr);
-                    Ip = self.GetAttribute("Ip");
-                    conf.Acceptors.Add(this);
+                    Connectors.Add(connector);
                 }
             }
-            public List<Acceptor> Acceptors { get; } = new List<Acceptor>();
-            public  class Connector
+
+            public Connector FindConnector(string host, int port)
             {
-                public int Port { get; set; } = 0;
-                public string HostNameOrAddress { get; set; }
-                public bool IsAutoReconnect { get; set; } = true;
-                public int MaxReconnectDelay { get; set; }
-                private int ConnectDelay;
-
-                public AsyncSocket Socket { get; set; }
-
-                public Connector()
-                { 
-                }
-
-                public Connector(ServiceConf conf, XmlElement self)
-                {
-                    string attr = self.GetAttribute("Port");
-                    if (attr.Length > 0)
-                        Port = int.Parse(attr);
-                    HostNameOrAddress = self.GetAttribute("HostNameOrAddress");
-                    attr = self.GetAttribute("IsAutoReconnect");
-                    if (attr.Length > 0)
-                        IsAutoReconnect = bool.Parse(attr);
-                    attr = self.GetAttribute("MaxReconnectDelay");
-                    if (attr.Length > 0)
-                        MaxReconnectDelay = int.Parse(attr) * 1000;
-                    if (MaxReconnectDelay < 8000)
-                        MaxReconnectDelay = 8000;
-
-                    conf.Connectors.Add(this);
-                }
-
-                public void OnSocketClose(Service service, AsyncSocket closed)
-                {
-                    if (Socket != closed)
-                        return;
-                    Socket = null;
-
-                    if (false == IsAutoReconnect)
-                        return;
-
-                    if (ConnectDelay == 0)
-                    {
-                        ConnectDelay = 2000;
-                    }
-                    else
-                    {
-                        ConnectDelay *= 2;
-                        if (ConnectDelay > MaxReconnectDelay)
-                            ConnectDelay = MaxReconnectDelay;
-                    }
-                    Util.Scheduler.Instance.Schedule((ThisTask) => Connect(service), ConnectDelay); ;
-                }
-
-                public void Connect(Service service)
-                {
-                    Socket?.Dispose();
-                    Socket = service.NewClientSocket(HostNameOrAddress, Port);
-                }
-
-                public void OnSocketConnected(Service service)
-                {
-                    ConnectDelay = 0;
-                }
-            }
-            public List<Connector> Connectors { get; } = new List<Connector>();
-
-            public Connector FindConnectorBySocket(AsyncSocket socket)
-            {
-                lock (this)
+                lock (Connectors)
                 {
                     foreach (var c in Connectors)
                     {
-                        if (c.Socket == socket)
+                        if (c.HostNameOrAddress.Equals(host) && c.Port.Equals(port))
                             return c;
                     }
                     return null;
@@ -383,16 +312,54 @@ namespace Zeze
 
             public Connector GetOrAddConnector(string host, int port, bool autoReconnect)
             {
-                lock (this)
+                lock (Connectors)
                 {
-                    foreach (var c in Connectors)
-                    {
-                        if (c.HostNameOrAddress.Equals(host) && c.Port.Equals(port))
-                            return c;
-                    }
-                    Connector add = new Connector() { HostNameOrAddress = host, Port = port, IsAutoReconnect = autoReconnect };
+                    var exist = FindConnector(host, port);
+                    if (null != exist)
+                        return exist;
+                    Connector add = new Connector(host, port, autoReconnect);
                     Connectors.Add(add);
                     return add;
+                }
+            }
+
+            public void RemoveConnector(Connector c)
+            {
+                lock (Connectors)
+                {
+                    Connectors.Remove(c);
+                }
+            }
+
+            public void ForEachConnector(Action<Connector> action)
+            {
+                lock (Connectors)
+                {
+                    Connectors.ForEach(action);
+                }
+            }
+
+            public void AddAcceptor(Acceptor a)
+            {
+                lock (Acceptors)
+                {
+                    Acceptors.Add(a);
+                }
+            }
+
+            public void RemoveAcceptor(Acceptor a)
+            {
+                lock (Acceptors)
+                {
+                    Acceptors.Remove(a);
+                }
+            }
+
+            public void ForEachAcceptor(Action<Acceptor> action)
+            {
+                lock (Acceptors)
+                {
+                    Acceptors.ForEach(action);
                 }
             }
 
@@ -462,11 +429,28 @@ namespace Zeze
                     XmlElement e = (XmlElement)node;
                     switch (e.Name)
                     {
-                        case "Acceptor": new Acceptor(this, e); break;
-                        case "Connector": new Connector(this, e); break;
+                        case "Acceptor": AddAcceptor(new Acceptor(e)); break;
+                        case "Connector": AddConnector(new Connector(e)); break;
                         default: throw new Exception("unknown node name: " + e.Name);
                     }
                 }
+            }
+
+            public void Start(Service service)
+            {
+                ForEachAcceptor((a) => a.Start(service));
+                ForEachConnector((c) => c.Start(service));
+            }
+
+            public void Stop(Service service)
+            {
+                ForEachAcceptor((a) => a.Stop(service));
+                ForEachConnector((c) => c.Stop(service));
+            }
+
+            public void StopListen(Service service)
+            {
+                ForEachAcceptor((a) => a.Stop(service));
             }
         }
 

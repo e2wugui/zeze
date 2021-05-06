@@ -342,7 +342,7 @@ namespace Zeze.Services
             // 在目前没有问题，因为r.Argument主要记录在state.ServiceInfos中，
             // 另外它也被Session引用（用于连接关闭时，自动注销）。
             // 这是专用程序，不是一个库，以后有修改时，小心就是了。
-            r.Argument.SessionId = r.Sender.SessionId;
+            r.Argument.LocalState = r.Sender.SessionId;
 
             // AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
             state.ServiceInfos.AddOrUpdate(r.Argument.ServiceIdentity, r.Argument, (key, value) => r.Argument);
@@ -355,10 +355,11 @@ namespace Zeze.Services
         {
             if (ServerStates.TryGetValue(info.ServiceName, out var state))
             {
-                if (state.ServiceInfos.TryGetValue(info.ServiceIdentity, out var ssi))
+                if (state.ServiceInfos.TryGetValue(info.ServiceIdentity, out var exist))
                 {
                     // 这里存在一个时间窗口，可能使得重复的注销会成功。注销一般比较特殊，忽略这个问题。
-                    if (sessionId == ssi.SessionId)
+                    long? existSessionId = exist.LocalState as long?;
+                    if (existSessionId == null || sessionId == existSessionId.Value)
                     {
                         // 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
                         state.ServiceInfos.TryRemove(info.ServiceIdentity, out var _);
@@ -587,8 +588,9 @@ namespace Zeze.Services
 
             public IReadOnlyDictionary<int, string> ExtraInfo => _ExtraInfo;
 
-            // ServiceManager 用来记录服务所在的连接ID，不是协议一部分，不会被系列化。
-            public long SessionId { get; set; }
+            // ServiceManager或者ServiceManager.Agent用来保存本地状态，不是协议一部分，不会被系列化。
+            // 算是一个简单的策略，不怎么优美。一般仅设置一次，线程保护由使用者自己管理。
+            public object LocalState { get; set; }
 
             public ServiceInfo()
             { 

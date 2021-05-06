@@ -75,57 +75,16 @@ namespace Zeze.Net
 
         public virtual void Start()
         {
-            if (null != Config)
-            {
-                // 这里不判断是否重复Start了。
-                foreach (var a in Config.Acceptors)
-                {
-                    a.Socket?.Dispose();
-                    a.Socket = a.Ip.Length > 0
-                        ? NewServerSocket(a.Ip, a.Port)
-                        : NewServerSocket(System.Net.IPAddress.Any, a.Port);
-                }
-                foreach (var c in Config.Connectors)
-                {
-                    c.Connect(this);
-                    //_asocketMap.TryAdd(c.Socket.SessionId, c.Socket); // 连接成功才加入map。
-                }
-            }
+            Config?.Start(this);
         }
 
         public virtual void Close()
         {
-            if (null != Config)
-            {
-                foreach (var a in Config.Acceptors)
-                {
-                    a.Socket?.Dispose();
-                    a.Socket = null;
-                }
-
-                foreach (var c in Config.Connectors)
-                {
-                    c.Socket?.Dispose();
-                    c.Socket = null;
-                }
-            }
+            Config?.Stop(this);
 
             foreach (var e in _asocketMap)
             {
                 e.Value.Dispose(); // remove in callback OnSocketClose
-            }
-        }
-
-        // 用于控制是否接受新连接
-        public virtual void StopListen()
-        {
-            if (null != Config)
-            {
-                foreach (var a in Config.Acceptors)
-                {
-                    a.Socket?.Dispose();
-                    a.Socket = null;
-                }
             }
         }
 
@@ -157,14 +116,6 @@ namespace Zeze.Net
         public virtual void OnSocketClose(AsyncSocket so, Exception e)
         {
             _asocketMap.TryRemove(so.SessionId, out var _);
-
-            if (null != Config)
-            {
-                foreach (var c in Config.Connectors)
-                {
-                    c.OnSocketClose(this, so);
-                }
-            }
 
             if (null != e)
                 logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketClose");

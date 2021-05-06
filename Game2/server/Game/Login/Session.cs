@@ -44,8 +44,11 @@ namespace Game.Login
             // 可能发生了重连，尝试再次查找发送。网络断开以后，已经不可靠了，先这样写着吧。
             if (Game.App.Instance.Server.Links.TryGetValue(LinkName, out var link))
             {
-                Link = link;
-                link.Send(send);
+                if (link.IsHandshakeDone)
+                {
+                    Link = link.Socket;
+                    link.Socket.Send(send);
+                }
             }
         }
 

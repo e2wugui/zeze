@@ -103,7 +103,7 @@ namespace Game
             {
                 FullName = self.GetAttribute("name");
                 ChoiceType = GetChoiceType(self);
-                ProviderModuleBinds.ToSet(self.GetAttribute("providers"), Providers);
+                ProviderModuleBinds.SplitIntoSet(self.GetAttribute("providers"), Providers);
             }
         }
 
@@ -133,7 +133,7 @@ namespace Game
                         break;
 
                     case "ProviderNoDefaultModule":
-                        ToSet(e.GetAttribute("providers"), ProviderNoDefaultModule);
+                        SplitIntoSet(e.GetAttribute("providers"), ProviderNoDefaultModule);
                         break;
 
                     default:
@@ -147,7 +147,7 @@ namespace Game
             Modules.Add(module.FullName, module);
         }
 
-        private static void ToSet(string providers, HashSet<int> set)
+        private static void SplitIntoSet(string providers, HashSet<int> set)
         {
             foreach (var provider in providers.Split(','))
                 set.Add(int.Parse(provider));

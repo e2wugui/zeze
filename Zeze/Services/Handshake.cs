@@ -143,9 +143,8 @@ namespace Zeze.Services
 
         public void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
         {
-            Config.ServiceConf.Connector c = Config.GetOrAddConnector(hostNameOrAddress, port, autoReconnect);
-            c.Socket?.Dispose();
-            c.Socket = this.NewClientSocket(hostNameOrAddress, port);
+            Connector c = Config.GetOrAddConnector(hostNameOrAddress, port, autoReconnect);
+            c.Start(this);
         }
 
         public override void OnSocketAccept(AsyncSocket so)
@@ -158,7 +157,6 @@ namespace Zeze.Services
         {
             // 重载这个方法，推迟OnHandshakeDone调用
             _asocketMap.TryAdd(so.SessionId, so);
-            Config.FindConnectorBySocket(so)?.OnSocketConnected(this);
 
             BigInteger dhRandom = Handshake.Helper.makeDHRandom();
             if (!DHContext.TryAdd(so.SessionId, dhRandom))

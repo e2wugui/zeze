@@ -10,16 +10,6 @@ namespace Game
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private Zeze.Config.ServiceConf.Connector FindConnector(AsyncSocket sender)
-        {
-            foreach (var connector in this.Config.Connectors)
-            {
-                if (connector.Socket == sender)
-                    return connector;
-            }
-            return null;
-        }
-
         /// <summary>
         /// 不使用 RemoteEndPoint 是怕有些系统返回 ipv6 有些 ipv4，造成不一致。
         /// 这里要求 linkName 在所有 provider 中都一样。
@@ -29,8 +19,38 @@ namespace Game
         /// <returns></returns>
         public string GetLinkName(AsyncSocket sender)
         {
-            var connector = FindConnector(sender);
-            return connector.HostNameOrAddress + " " + connector.Port;
+            return sender.Connector.Name;
+        }
+
+        public string GetLinkName(Zeze.Services.ServiceManager.ServiceInfo serviceInfo)
+        {
+            return serviceInfo.PassiveIp + ":" + serviceInfo.PassivePort;
+        }
+
+        public void ApplyLinksChanged(Zeze.Services.ServiceManager.ServiceInfos serviceInfos)
+        {
+            HashSet<string> current = new HashSet<string>();
+            foreach (var link in serviceInfos.Services.Values)
+            {
+                var linkName = GetLinkName(link);
+                current.Add(Links.GetOrAdd(linkName, (key) =>
+                {
+                    var connectorNew = new Connector(link.PassiveIp, link.PassivePort);
+                    Config.AddConnector(connectorNew);
+                    connectorNew.Start(this);
+                    return connectorNew;
+                }).Name);
+            }
+            // 删除多余的连接器。
+            foreach (var linkName in Links.Keys)
+            {
+                if (current.Contains(linkName))
+                    continue;
+                if (Links.TryRemove(linkName, out var removed))
+                {
+                    removed.Stop(this);
+                }
+            }
         }
 
         public class LinkSession
@@ -55,7 +75,8 @@ namespace Game
             }
         }
 
-        public ConcurrentDictionary<string, AsyncSocket> Links { get; } = new ConcurrentDictionary<string, AsyncSocket>();
+        public ConcurrentDictionary<string, Connector> Links { get; }
+            = new ConcurrentDictionary<string, Connector>();
 
         // 用来同步等待Provider的静态绑定完成。
         public System.Threading.ManualResetEvent ProviderStaticBindCompleted = new System.Threading.ManualResetEvent(false);
@@ -64,7 +85,6 @@ namespace Game
         {
             base.OnHandshakeDone(sender);
             var linkName = GetLinkName(sender);
-            Links[linkName] = sender;
             sender.UserState = new LinkSession(linkName, sender.SessionId);
 
             // static binds
@@ -104,7 +124,6 @@ namespace Game
         public override void OnSocketClose(AsyncSocket so, System.Exception e)
         {
             base.OnSocketClose(so, e);
-            Links.TryRemove(KeyValuePair.Create(GetLinkName(so), so)); // .NET 5.0
         }
 
         public void ReportLoad(int online, int proposeMaxOnline, int onlineNew)
@@ -117,7 +136,10 @@ namespace Game
 
             foreach (var link in Links.Values)
             {
-                link.Send(report);
+                if (link.IsHandshakeDone)
+                {
+                    link.Socket.Send(report);
+                }
             }
         }
     }

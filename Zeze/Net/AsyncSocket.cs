@@ -19,8 +19,10 @@ namespace Zeze.Net
         private int _outputBufferListCountSum = 0;
         private List<System.ArraySegment<byte>> _outputBufferListSending = null; // 正在发送的 buffers.
         private int _outputBufferListSendingCountSum = 0;
-
         public Service Service { get; private set; }
+        public Connector Connector { get; set; }
+        public Acceptor Acceptor { get; set; }
+
         public Exception LastException { get; private set; }
         public long SessionId { get; private set; }
         public Socket Socket { get; private set; } // 这个给出去真的好吗？
@@ -270,6 +272,7 @@ namespace Zeze.Net
                 try
                 {
                     accepted = new AsyncSocket(this.Service, e.AcceptSocket);
+                    accepted.Acceptor = this.Acceptor;
                     this.Service.OnSocketAccept(accepted);
                 }
                 catch (Exception ce)
@@ -306,6 +309,7 @@ namespace Zeze.Net
             try
             {
                 this.Socket.EndConnect(ar);
+                this.Connector?.OnSocketConnected(this);
                 this.Service.OnSocketConnected(this);
 
                 this._inputBuffer = new byte[Service.SocketOptions.InputBufferSize];
@@ -480,9 +484,14 @@ namespace Zeze.Net
             {
                 try
                 {
+                    Connector?.OnSocketClose(this);
                     Service?.OnSocketClose(this, this.LastException);
+
                     Socket?.Dispose();
+
                     Service = null;
+                    Connector = null;
+                    Acceptor = null;
                     Socket = null;
                 }
                 catch (Exception)

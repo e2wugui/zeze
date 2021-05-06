@@ -139,18 +139,24 @@ namespace Game.Login
                     continue;
                 }
 
-                if (false == Game.App.Instance.Server.Links.TryGetValue(online.LinkName, out var socket))
+                if (false == Game.App.Instance.Server.Links.TryGetValue(online.LinkName, out var connector))
                 {
                     groupNotOnline.Roles.TryAdd(roleId, new gnet.Provider.BTransmitContext());
                     continue;
                 }
 
+                if (false == connector.IsHandshakeDone)
+                {
+                    groupNotOnline.Roles.TryAdd(roleId, new gnet.Provider.BTransmitContext());
+                    continue;
+                }
+                // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
                 if (false == groups.TryGetValue(online.LinkName, out var group))
                 {
                     group = new RoleOnLink()
                     {
                         LinkName = online.LinkName,
-                        LinkSocket = socket,
+                        LinkSocket = connector.Socket,
                         ProviderId = online.ProviderId,
                         ProviderSessionId = online.ProviderSessionId,
                     };
@@ -285,19 +291,20 @@ namespace Game.Login
                     group.LinkSocket.Send(transmit);
                     continue;
                 }
-                
-                if (App.Instance.Server.Links.Count > 0)
+
+                // 对于不在线的角色，随机选择一个linkd转发。
+                List<AsyncSocket> readyLinks = new List<AsyncSocket>();
+                foreach (var link in App.Instance.Server.Links.Values)
                 {
-                    // 对于不在线的角色，随机选择一个linkd转发。
-                    // linkd将按 hash(roleId) 选择gs。对于相同的不在线role会被转发到同一台gs去。
-                    // 如果需要优化，可以在Links改变的时候，把Links.Values.CopyTo到数组中，一次随机得到。
-                    int randIndex = Zeze.Util.Random.Instance.Next(App.Instance.Server.Links.Count);
-                    var it = App.Instance.Server.Links.Values.GetEnumerator();
-                    for (int i = 0; i <= randIndex; ++i)
+                    if (link.IsHandshakeDone)
                     {
-                        it.MoveNext(); // must return true.
+                        readyLinks.Add(link.Socket);
                     }
-                    it.Current.Send(transmit);
+                }
+                if (readyLinks.Count > 0)
+                {
+                    var randLink = readyLinks[Zeze.Util.Random.Instance.Next(readyLinks.Count)];
+                    randLink.Send(transmit);
                 }
             }
         }
