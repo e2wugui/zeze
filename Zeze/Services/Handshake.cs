@@ -143,7 +143,7 @@ namespace Zeze.Services
 
         public void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
         {
-            Connector c = Config.GetOrAddConnector(hostNameOrAddress, port, autoReconnect);
+            Config.TryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, out var c);
             c.Start(this);
         }
 

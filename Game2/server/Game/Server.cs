@@ -27,18 +27,26 @@ namespace Game
             return serviceInfo.PassiveIp + ":" + serviceInfo.PassivePort;
         }
 
+        public override void Start()
+        {
+            // copy Config.Connector to Links
+            Config.ForEachConnector((c) => Links.TryAdd(c.Name, c));
+            base.Start();
+        }
+
         public void ApplyLinksChanged(Zeze.Services.ServiceManager.ServiceInfos serviceInfos)
         {
             HashSet<string> current = new HashSet<string>();
-            foreach (var link in serviceInfos.Services.Values)
+            foreach (var link in serviceInfos.SortedList)
             {
                 var linkName = GetLinkName(link);
                 current.Add(Links.GetOrAdd(linkName, (key) =>
                 {
-                    var connectorNew = new Connector(link.PassiveIp, link.PassivePort);
-                    Config.AddConnector(connectorNew);
-                    connectorNew.Start(this);
-                    return connectorNew;
+                    if (Config.TryGetOrAddConnector(link.PassiveIp, link.PassivePort, true, out var c))
+                    {
+                        c.Start(this);
+                    }
+                    return c;
                 }).Name);
             }
             // 删除多余的连接器。
@@ -120,11 +128,6 @@ namespace Game
             }
 
             base.DispatchProtocol(p, factoryHandle);
-        }
-
-        public override void OnSocketClose(AsyncSocket so, System.Exception e)
-        {
-            base.OnSocketClose(so, e);
         }
 
         public void ReportLoad(int online, int proposeMaxOnline, int onlineNew)

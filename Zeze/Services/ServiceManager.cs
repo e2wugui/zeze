@@ -234,14 +234,12 @@ namespace Zeze.Services
                     var ordered = new ServiceInfos(ServiceName, this, 0);
 
                     // 忽略旧的Ready。
-                    if (!Enumerable.SequenceEqual(ordered.Services.Values, p.Argument.Services.Values))
+                    if (!Enumerable.SequenceEqual(ordered.SortedList, p.Argument.SortedList))
                     {
                         var sb = new StringBuilder();
                         sb.Append("SequenceNotEqual:");
-                        sb.Append(" Current=");
-                        ByteBuffer.BuildString(sb, ordered.Services.Values);
-                        sb.Append(" Ready=");
-                        ByteBuffer.BuildString(sb, p.Argument.Services.Values);
+                        sb.Append(" Current=").Append(ordered);
+                        sb.Append(" Ready=").Append(p.Argument);
                         logger.Debug(sb.ToString());
                         return;
                     }
@@ -270,7 +268,7 @@ namespace Zeze.Services
             public ServiceManager ServiceManager { get; }
             public long SessionId { get; }
             public ConcurrentDictionary<ServiceInfo, ServiceInfo> Registers { get; }
-                = new ConcurrentDictionary<ServiceInfo, ServiceInfo>(new ServiceInfoComparer());
+                = new ConcurrentDictionary<ServiceInfo, ServiceInfo>(new ServiceInfoEqualityComparer());
             // key is ServiceName: 会话订阅
             public ConcurrentDictionary<string, SubscribeInfo> Subscribes { get; }
                 = new ConcurrentDictionary<string, SubscribeInfo>();
@@ -746,10 +744,9 @@ namespace Zeze.Services
         {
             // ServiceList maybe empty. need a ServiceName
             public string ServiceName { get; private set; }
-            // ServiceIdentity -> ServiceInfo
-            private SortedDictionary<string, ServiceInfo> _Services { get; }
-                = new SortedDictionary<string, ServiceInfo>();
-            public IReadOnlyDictionary<string, ServiceInfo> Services => _Services;
+            // sorted by ServiceIdentity
+            private List<ServiceInfo> _SortedList { get; } = new List<ServiceInfo>();
+            public IReadOnlyList<ServiceInfo> SortedList => _SortedList;
             public long SerialId { get; set; }
 
             public ServiceInfos()
@@ -766,20 +763,32 @@ namespace Zeze.Services
                 ServiceName = serviceName;
                 foreach (var e in state.ServiceInfos)
                 {
-                    _Services.Add(e.Key, e.Value);
+                    _SortedList.Add(e.Value);
                 }
                 SerialId = serialId;
             }
 
+            public bool TryGetServiceInfo(string identity, out ServiceInfo info)
+            {
+                var cur = new ServiceInfo(ServiceName, identity);
+                int index = _SortedList.BinarySearch(cur, new ServiceInfoIdentityComparer());
+                if (index >= 0)
+                {
+                    info = SortedList[index];
+                    return true;
+                }
+                info = null;
+                return false;
+            }
             public override void Decode(ByteBuffer bb)
             {
                 ServiceName = bb.ReadString();
-                _Services.Clear();
+                _SortedList.Clear();
                 for (int c = bb.ReadInt(); c > 0; --c)
                 {
                     var service = new ServiceInfo();
                     service.Decode(bb);
-                    _Services.Add(service.ServiceIdentity, service);
+                    _SortedList.Add(service);
                 }
                 SerialId = bb.ReadLong();
             }
@@ -787,8 +796,8 @@ namespace Zeze.Services
             public override void Encode(ByteBuffer bb)
             {
                 bb.WriteString(ServiceName);
-                bb.WriteInt(Services.Count);
-                foreach (var service in Services.Values)
+                bb.WriteInt(_SortedList.Count);
+                foreach (var service in _SortedList)
                 {
                     service.Encode(bb);
                 }
@@ -804,7 +813,13 @@ namespace Zeze.Services
             {
                 var sb = new StringBuilder();
                 sb.Append(ServiceName).Append("=");
-                ByteBuffer.BuildString(sb, Services.Keys);
+                sb.Append("[");
+                foreach (var e in SortedList)
+                {
+                    sb.Append(e.ServiceIdentity);
+                    sb.Append(",");
+                }
+                sb.Append("]");
                 return sb.ToString();
             }
         }
@@ -828,7 +843,7 @@ namespace Zeze.Services
         }
 
         // 实际上可以不用这个类，为了保持以后ServiceInfo的比较可能改变，写一个这个类。
-        public sealed class ServiceInfoComparer : IEqualityComparer<ServiceInfo>
+        public sealed class ServiceInfoEqualityComparer : IEqualityComparer<ServiceInfo>
         {
             public bool Equals(ServiceInfo x, ServiceInfo y)
             {
@@ -838,6 +853,14 @@ namespace Zeze.Services
             public int GetHashCode([DisallowNull] ServiceInfo obj)
             {
                 return obj.GetHashCode();
+            }
+        }
+
+        public sealed class ServiceInfoIdentityComparer : IComparer<ServiceInfo>
+        {
+            public int Compare(ServiceInfo x, ServiceInfo y)
+            {
+                return x.ServiceIdentity.CompareTo(y.ServiceIdentity);
             }
         }
 
@@ -875,7 +898,7 @@ namespace Zeze.Services
 
             // key is (ServiceName, ServideIdentity)
             private ConcurrentDictionary<ServiceInfo, ServiceInfo> Registers { get; }
-                = new ConcurrentDictionary<ServiceInfo, ServiceInfo>(new ServiceInfoComparer());
+                = new ConcurrentDictionary<ServiceInfo, ServiceInfo>(new ServiceInfoEqualityComparer());
 
             // 【警告】
             // 记住当前已经注册和订阅信息，当ServiceManager连接发生重连时，重新发送请求。
@@ -899,7 +922,7 @@ namespace Zeze.Services
                 public bool Committed { get; internal set; } = false;
 
                 // 服务准备好。
-                public ConcurrentDictionary<string, object> ServiceReadyStates { get; }
+                public ConcurrentDictionary<string, object> ServiceIdentityReadyStates { get; }
                     = new ConcurrentDictionary<string, object>();
 
                 public SubscribeState(Agent ag, SubscribeInfo info)
@@ -915,9 +938,9 @@ namespace Zeze.Services
                     if (null == ServiceInfosPending)
                         return false;
 
-                    foreach (var pending in ServiceInfosPending.Services.Values)
+                    foreach (var pending in ServiceInfosPending.SortedList)
                     {
-                        if (!ServiceReadyStates.ContainsKey(pending.ServiceIdentity))
+                        if (!ServiceIdentityReadyStates.ContainsKey(pending.ServiceIdentity))
                             return false;
                     }
                     var r = new ReadyServiceList() { Argument = ServiceInfosPending };
@@ -925,13 +948,31 @@ namespace Zeze.Services
                     return true;
                 }
 
-                public void SetServiceReadyState(string identity, object state)
+                public void SetServiceIdentityReadyState(string identity, object state)
                 {
-                    ServiceReadyStates[identity] = state;
+                    ServiceIdentityReadyStates[identity] = state;
                     lock (this)
                     {
+                        // 把 state 复制到当前版本的服务列表中。允许列表不变，服务状态改变。
+                        if (ServiceInfos != null && ServiceInfos.TryGetServiceInfo(identity, out var info))
+                        {
+                            info.LocalState = state;
+                        }
+                        // 尝试发送Ready，如果有pending.
                         TrySendReadyServiceList();
                     }
+                }
+
+                private void PrepareAndTriggerOnchanged()
+                {
+                    foreach (var info in ServiceInfos.SortedList)
+                    {
+                        if (ServiceIdentityReadyStates.TryGetValue(info.ServiceIdentity, out var state))
+                        {
+                            info.LocalState = state;
+                        }
+                    }
+                    Agent.OnChanged(this);
                 }
 
                 internal void OnNotify(ServiceInfos infos)
@@ -943,7 +984,7 @@ namespace Zeze.Services
                             case SubscribeInfo.SubscribeTypeSimple:
                                 ServiceInfos = infos;
                                 Committed = true;
-                                Agent.OnChanged(this);
+                                PrepareAndTriggerOnchanged();
                                 break;
 
                             case SubscribeInfo.SubscribeTypeReadyCommit:
@@ -966,14 +1007,14 @@ namespace Zeze.Services
                     {
                         // ServiceInfosPending 和 Commit.infos 应该一样，否则肯定哪里出错了。
                         // 这里总是使用最新的 Commit.infos，检查记录日志。
-                        if (!Enumerable.SequenceEqual(infos.Services.Values, ServiceInfosPending.Services.Values))
+                        if (!Enumerable.SequenceEqual(infos.SortedList, ServiceInfosPending.SortedList))
                         {
                             Agent.logger.Warn("OnCommit: ServiceInfosPending Miss Match.");
                         }
                         ServiceInfos = infos;
                         ServiceInfosPending = null;
                         Committed = true;
-                        Agent.OnChanged(this);
+                        PrepareAndTriggerOnchanged();
                     }
                 }
 
@@ -986,7 +1027,7 @@ namespace Zeze.Services
                         Committed = true;
                         ServiceInfos = infos;
                         ServiceInfosPending = null;
-                        Agent.OnChanged(this);
+                        PrepareAndTriggerOnchanged();
                     }
                 }
             }

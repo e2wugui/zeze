@@ -37,16 +37,24 @@ namespace Zeze.Net
             }
         }
 
-        public Connector GetOrAddConnector(string host, int port, bool autoReconnect)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="host"></param>
+        /// <param name="port"></param>
+        /// <param name="autoReconnect"></param>
+        /// <param name="getOrAdd"></param>
+        /// <returns>true if addNew</returns>
+        public bool TryGetOrAddConnector(string host, int port, bool autoReconnect, out Connector getOrAdd)
         {
             lock (Connectors)
             {
-                var exist = FindConnector(host, port);
-                if (null != exist)
-                    return exist;
-                Connector add = new Connector(host, port, autoReconnect);
-                Connectors.Add(add);
-                return add;
+                getOrAdd = FindConnector(host, port);
+                if (null != getOrAdd)
+                    return false;
+                getOrAdd = new Connector(host, port, autoReconnect);
+                Connectors.Add(getOrAdd);
+                return true;
             }
         }
 

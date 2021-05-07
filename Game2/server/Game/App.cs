@@ -8,7 +8,6 @@ namespace Game
 {
     public sealed partial class App
     {
-        public Zeze.Util.Scheduler Scheduler { get; } = new Zeze.Util.Scheduler();
         public Dictionary<int, gnet.Provider.BModule> StaticBinds { get; } = new Dictionary<int, gnet.Provider.BModule>();
         public ProviderModuleBinds ProviderModuleBinds { get; private set; }
 
@@ -20,7 +19,8 @@ namespace Game
         public Config Config { get; private set; }
         public Load Load { get; } = new Load();
         public Zeze.Services.ServiceManager.Agent ServiceManagerAgent { get; private set; }
-        public const string ServiceNamePrefix = "Game.Server.Module#";
+        public const string GameServerServiceNamePrefix = "Game.Server.Module#";
+        public const string GameLinkdServiceName = "Game.Linkd";
 
         private void LoadConfig()
         {
@@ -60,24 +60,23 @@ namespace Game
             ProviderModuleBinds = ProviderModuleBinds.Load();
             ProviderModuleBinds.BuildStaticBinds(Modules, Zeze.Config.AutoKeyLocalId, StaticBinds);
 
+            StartModules(); // 启动模块，装载配置什么的。
+            Zeze.Start(); // 启动数据库
+            StartService(); // 启动网络
             ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(config,
                 (agent) =>
                 {
                     foreach (var staticBind in StaticBinds)
                     {
-                        agent.RegisterService($"{ServiceNamePrefix}{staticBind.Key}",
+                        agent.RegisterService($"{GameServerServiceNamePrefix}{staticBind.Key}",
                             config.AutoKeyLocalId.ToString());
                     }
-                    agent.SubscribeService("Game.Linkd", global::Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeSimple);
+                    agent.SubscribeService(GameLinkdServiceName, global::Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeSimple);
                 },
                 (subscribeState) =>
                 {
                     Server.ApplyLinksChanged(subscribeState.ServiceInfos);
                 });
-
-            StartModules(); // 启动模块，装载配置什么的。
-            Zeze.Start(); // 启动数据库
-            StartService(); // 启动网络
             Load.StartTimerTask();
         }
 
