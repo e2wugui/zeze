@@ -66,6 +66,7 @@
 			*** 同一个moduleId不能既是静态绑定又是动态绑定。
 			-->
 			<variable name="linkSids" id="2" type="set" value="long"/>
+			<variable name="Indentity" id="3" type="string"/>
 
 			<enum name="ResultSuccess" value="0"/>
 			<enum name="ResultFaild"   value="1"/>

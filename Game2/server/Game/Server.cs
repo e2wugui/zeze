@@ -99,6 +99,7 @@ namespace Game
             // static binds
             var rpc = new gnet.Provider.Bind();
             rpc.Argument.Modules.AddRange(Game.App.Instance.StaticBinds);
+            rpc.Argument.Indentity = App.Instance.Zeze.Config.AutoKeyLocalId.ToString();
             rpc.Send(sender, (protocol) => { ProviderStaticBindCompleted.Set(); return 0; });
         }
 
