@@ -63,7 +63,8 @@ namespace Zeze.Net
                 if (ConnectDelay > MaxReconnectDelay)
                     ConnectDelay = MaxReconnectDelay;
             }
-            Util.Scheduler.Instance.Schedule((ThisTask) => Start(closed.Service), ConnectDelay); ;
+            var service = closed.Service;
+            Util.Scheduler.Instance.Schedule((ThisTask) => Start(service), ConnectDelay); ;
         }
 
         public void OnSocketConnected(AsyncSocket so)

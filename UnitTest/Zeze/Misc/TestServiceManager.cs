@@ -26,23 +26,22 @@ namespace UnitTest.Zeze.Misc
             string ip = "127.0.0.1";
             int port = 7601;
 
-            var config = global::Zeze.Config.Load();
-            // for reconnect
-            var agentConf = new global::Zeze.Net.ServiceConf();
-            agentConf.AddConnector(new global::Zeze.Net.Connector(ip, port));
-            config.ServiceConfMap.TryAdd("Zeze.Services.ServiceManager.Agent", agentConf);
-
             System.Net.IPAddress address =
                 string.IsNullOrEmpty(ip)
                 ? System.Net.IPAddress.Any
                 : System.Net.IPAddress.Parse(ip);
 
-            // 后面需要手动销毁再重建测试。不用using了，使用TestCleanup关闭最后的实例。
-            ServiceManager = new ServiceManager(address, port, config, 0);
+            // 后面需要手动销毁重建进行重连测试。不用using了，使用TestCleanup关闭最后的实例。
+            ServiceManager = new ServiceManager(address, port, global::Zeze.Config.Load(), 0);
             var serviceName = "TestServiceManager";
 
             future = new TaskCompletionSource<int>();
-            using var agent = new ServiceManager.Agent(config,
+            // for reconnect
+            var clientConfig = global::Zeze.Config.Load();
+            var agentConfig = new global::Zeze.Net.ServiceConf();
+            clientConfig.ServiceConfMap.TryAdd("Zeze.Services.ServiceManager.Agent", agentConfig);
+            agentConfig.AddConnector(new global::Zeze.Net.Connector(ip, port));
+            using var agent = new ServiceManager.Agent(clientConfig,
                 (agent) =>
                 {
                     agent.RegisterService(serviceName, "1");
@@ -83,7 +82,7 @@ namespace UnitTest.Zeze.Misc
             Console.WriteLine("Test Reconnect");
             ServiceManager.Dispose();
             future = new TaskCompletionSource<int>();
-            ServiceManager = new ServiceManager(address, port, config, 0);
+            ServiceManager = new ServiceManager(address, port, global::Zeze.Config.Load(), 0);
             future.Task.Wait();
         }
     }

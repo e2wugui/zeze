@@ -1053,12 +1053,17 @@ namespace Zeze.Services
 
             private void SubscribeService(SubscribeInfo info)
             {
+                bool newAdd = false;
                 SubscribeStates.GetOrAdd(info.ServiceName, (_) =>
+                {
+                    newAdd = true;
+                    return new SubscribeState(this, info);
+                });
+                if (newAdd)
                 {
                     var r = new Subscribe() { Argument = info };
                     r.SendAndWaitCheckResultCode(Client.Socket);
-                    return new SubscribeState(this, info);
-                });
+                }
             }
 
             private int ProcessSubscribeFirstCommit(Protocol p)
