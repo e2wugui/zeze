@@ -37,7 +37,7 @@ namespace Game
         public void ApplyLinksChanged(Zeze.Services.ServiceManager.ServiceInfos serviceInfos)
         {
             HashSet<string> current = new HashSet<string>();
-            foreach (var link in serviceInfos.SortedList)
+            foreach (var link in serviceInfos.ServiceInfoListSortedByIdentity)
             {
                 var linkName = GetLinkName(link);
                 current.Add(Links.GetOrAdd(linkName, (key) =>

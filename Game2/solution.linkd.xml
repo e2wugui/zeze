@@ -208,6 +208,8 @@
 
 			<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"
 			<variable name="Params"         id="5" type="binary"/>
+
+			<variable name="ServiceNamePrefix" id="6" type="string"/>
 		</bean>
 
 		<bean name="BModuleRedirectResult">
@@ -250,6 +252,8 @@
 
 			<variable name="MethodFullName"          id="6" type="string"/> format="ModuleFullName:MethodName"
 			<variable name="Params"                  id="7" type="binary"/>
+
+			<variable name="ServiceNamePrefix"       id="8" type="string"/>
 		</bean>
 
 		<bean name="BModuleRedirectAllHash">
@@ -286,6 +290,8 @@
 			<variable name="ActionName" id="1" type="string"/>
 			<variable name="Roles"      id="2" type="map" key="long" value="BTransmitContext"/> 查询目标角色。
 			<variable name="Sender"     id="3" type="long"/> 结果发送给Sender。
+
+			<variable name="ServiceNamePrefix" id="4" type="string"/>
 		</bean>
 
 		<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server,client"/> 默认不启用事务，由协议实现自己控制。

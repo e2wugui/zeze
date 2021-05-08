@@ -234,7 +234,7 @@ namespace Zeze.Services
                     var ordered = new ServiceInfos(ServiceName, this, 0);
 
                     // 忽略旧的Ready。
-                    if (!Enumerable.SequenceEqual(ordered.SortedList, p.Argument.SortedList))
+                    if (!Enumerable.SequenceEqual(ordered.ServiceInfoListSortedByIdentity, p.Argument.ServiceInfoListSortedByIdentity))
                     {
                         var sb = new StringBuilder();
                         sb.Append("SequenceNotEqual:");
@@ -588,7 +588,7 @@ namespace Zeze.Services
 
             // ServiceManager或者ServiceManager.Agent用来保存本地状态，不是协议一部分，不会被系列化。
             // 算是一个简单的策略，不怎么优美。一般仅设置一次，线程保护由使用者自己管理。
-            public object LocalState { get; set; }
+            public object LocalState { get; internal set; }
 
             public ServiceInfo()
             { 
@@ -697,6 +697,7 @@ namespace Zeze.Services
 
             public string ServiceName { get; set; }
             public int SubscribeType { get; set; }
+            public object LocalState { get; set; }
 
             public override void Decode(ByteBuffer bb)
             {
@@ -745,8 +746,8 @@ namespace Zeze.Services
             // ServiceList maybe empty. need a ServiceName
             public string ServiceName { get; private set; }
             // sorted by ServiceIdentity
-            private List<ServiceInfo> _SortedList { get; } = new List<ServiceInfo>();
-            public IReadOnlyList<ServiceInfo> SortedList => _SortedList;
+            private List<ServiceInfo> _ServiceInfoListSortedByIdentity { get; } = new List<ServiceInfo>();
+            public IReadOnlyList<ServiceInfo> ServiceInfoListSortedByIdentity => _ServiceInfoListSortedByIdentity;
             public long SerialId { get; set; }
 
             public ServiceInfos()
@@ -763,7 +764,7 @@ namespace Zeze.Services
                 ServiceName = serviceName;
                 foreach (var e in state.ServiceInfos)
                 {
-                    _SortedList.Add(e.Value);
+                    _ServiceInfoListSortedByIdentity.Add(e.Value);
                 }
                 SerialId = serialId;
             }
@@ -771,10 +772,10 @@ namespace Zeze.Services
             public bool TryGetServiceInfo(string identity, out ServiceInfo info)
             {
                 var cur = new ServiceInfo(ServiceName, identity);
-                int index = _SortedList.BinarySearch(cur, new ServiceInfoIdentityComparer());
+                int index = _ServiceInfoListSortedByIdentity.BinarySearch(cur, new ServiceInfoIdentityComparer());
                 if (index >= 0)
                 {
-                    info = SortedList[index];
+                    info = ServiceInfoListSortedByIdentity[index];
                     return true;
                 }
                 info = null;
@@ -783,12 +784,12 @@ namespace Zeze.Services
             public override void Decode(ByteBuffer bb)
             {
                 ServiceName = bb.ReadString();
-                _SortedList.Clear();
+                _ServiceInfoListSortedByIdentity.Clear();
                 for (int c = bb.ReadInt(); c > 0; --c)
                 {
                     var service = new ServiceInfo();
                     service.Decode(bb);
-                    _SortedList.Add(service);
+                    _ServiceInfoListSortedByIdentity.Add(service);
                 }
                 SerialId = bb.ReadLong();
             }
@@ -796,8 +797,8 @@ namespace Zeze.Services
             public override void Encode(ByteBuffer bb)
             {
                 bb.WriteString(ServiceName);
-                bb.WriteInt(_SortedList.Count);
-                foreach (var service in _SortedList)
+                bb.WriteInt(_ServiceInfoListSortedByIdentity.Count);
+                foreach (var service in _ServiceInfoListSortedByIdentity)
                 {
                     service.Encode(bb);
                 }
@@ -814,7 +815,7 @@ namespace Zeze.Services
                 var sb = new StringBuilder();
                 sb.Append(ServiceName).Append("=");
                 sb.Append("[");
-                foreach (var e in SortedList)
+                foreach (var e in ServiceInfoListSortedByIdentity)
                 {
                     sb.Append(e.ServiceIdentity);
                     sb.Append(",");
@@ -938,7 +939,7 @@ namespace Zeze.Services
                     if (null == ServiceInfosPending)
                         return false;
 
-                    foreach (var pending in ServiceInfosPending.SortedList)
+                    foreach (var pending in ServiceInfosPending.ServiceInfoListSortedByIdentity)
                     {
                         if (!ServiceIdentityReadyStates.ContainsKey(pending.ServiceIdentity))
                             return false;
@@ -950,7 +951,15 @@ namespace Zeze.Services
 
                 public void SetServiceIdentityReadyState(string identity, object state)
                 {
-                    ServiceIdentityReadyStates[identity] = state;
+                    if (null == state)
+                    {
+                        ServiceIdentityReadyStates.TryRemove(identity, out var _);
+                    }
+                    else
+                    {
+                        ServiceIdentityReadyStates[identity] = state;
+                    }
+
                     lock (this)
                     {
                         // 把 state 复制到当前版本的服务列表中。允许列表不变，服务状态改变。
@@ -965,7 +974,7 @@ namespace Zeze.Services
 
                 private void PrepareAndTriggerOnchanged()
                 {
-                    foreach (var info in ServiceInfos.SortedList)
+                    foreach (var info in ServiceInfos.ServiceInfoListSortedByIdentity)
                     {
                         if (ServiceIdentityReadyStates.TryGetValue(info.ServiceIdentity, out var state))
                         {
@@ -1007,7 +1016,7 @@ namespace Zeze.Services
                     {
                         // ServiceInfosPending 和 Commit.infos 应该一样，否则肯定哪里出错了。
                         // 这里总是使用最新的 Commit.infos，检查记录日志。
-                        if (!Enumerable.SequenceEqual(infos.SortedList, ServiceInfosPending.SortedList))
+                        if (!Enumerable.SequenceEqual(infos.ServiceInfoListSortedByIdentity, ServiceInfosPending.ServiceInfoListSortedByIdentity))
                         {
                             Agent.logger.Warn("OnCommit: ServiceInfosPending Miss Match.");
                         }
@@ -1085,7 +1094,7 @@ namespace Zeze.Services
                 }
             }
 
-            public SubscribeState SubscribeService(string serviceName, int type)
+            public SubscribeState SubscribeService(string serviceName, int type, object state = null)
             {
                 if (type != SubscribeInfo.SubscribeTypeSimple
                     && type != SubscribeInfo.SubscribeTypeReadyCommit)
@@ -1094,7 +1103,8 @@ namespace Zeze.Services
                 return SubscribeService(new SubscribeInfo()
                 {
                     ServiceName = serviceName,
-                    SubscribeType = type
+                    SubscribeType = type,
+                    LocalState = state,
                 });
             }
 

@@ -76,7 +76,7 @@ namespace gnet
         /// 多线程：这里面的数据访问都处于 lock (gnet.App.Instance.gnet_Provider_Module.StaticBinds) 下
         /// see gnet.Provider.ModuleProvider
         /// </summary>
-        public HashSet<int> StaticBinds { get; } = new HashSet<int>();
+        public ConcurrentDictionary<int, int> StaticBinds { get; } = new ConcurrentDictionary<int, int>();
         private Provider.BLoad Load { get; set; }
         public Provider.BAnnounceProviderInfo Info { get; set; }
         public int ProposeMaxOnline => Load.ProposeMaxOnline;

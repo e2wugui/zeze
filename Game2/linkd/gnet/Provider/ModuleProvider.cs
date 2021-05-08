@@ -1,5 +1,6 @@
 ﻿
 using System.Collections.Generic;
+using Zeze.Services;
 
 namespace gnet.Provider
 {
@@ -15,168 +16,130 @@ namespace gnet.Provider
         {
         }
 
-        /// <summary>
-        /// under lock (StaticBinds) or readonly
-        /// </summary>
-        public class Providers
+        private string MakeServiceName(string serviceNamePrefix, int moduleId)
         {
-            // 后台服务不会随便增删，不需要高效Add,Remove。
-            private List<long> ProviderSessionIds { get; } = new List<long>();
-            public int ChoiceType { get; }
-            public int ConfigType { get; }
+            return $"{serviceNamePrefix}{moduleId}";
+        }
 
-            public Providers DeepCopy()
+        public bool ChoiceHash(ServiceManager.Agent.SubscribeState providers,
+            int hash, out long provider)
+        {
+            provider = 0;
+
+            var list = providers.ServiceInfos.ServiceInfoListSortedByIdentity;
+            if (list.Count == 0)
+                return false;
+
+            var providerModuleState = list[hash % list.Count].LocalState as ProviderModuleState;
+            if (null == providerModuleState)
+                return false;
+
+            provider = providerModuleState.SessionId;
+            return true;
+        }
+
+        public bool ChoiceLoad(ServiceManager.Agent.SubscribeState providers, out long provider)
+        {
+            provider = 0;
+
+            var list = providers.ServiceInfos.ServiceInfoListSortedByIdentity;
+            var frees = new List<ProviderSession>(list.Count);
+            var all = new List<ProviderSession>(list.Count);
+            int TotalWeight = 0;
+
+            // 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
+            for (int i = list.Count - 1; i >= 0; --i)
             {
-                var copy = new Providers(ChoiceType, ConfigType);
-                copy.ProviderSessionIds.AddRange(ProviderSessionIds);
-                return copy;
+                var providerModuleState = list[i].LocalState as ProviderModuleState;
+                if (null == providerModuleState)
+                    continue;
+                var ps = App.Instance.ProviderService.GetSocket(providerModuleState.SessionId)?.UserState as ProviderSession;
+                if (null == ps)
+                    continue; // 这里发现关闭的服务，仅仅忽略.
+                all.Add(ps);
+                if (ps.OnlineNew > App.Instance.Config.MaxOnlineNew)
+                    continue;
+                int weight = ps.ProposeMaxOnline - ps.Online;
+                if (weight <= 0)
+                    continue;
+                frees.Add(ps);
+                TotalWeight += weight;
             }
-
-            public Providers(int choiceType, int configType)
+            if (TotalWeight > 0)
             {
-                ChoiceType = choiceType;
-                ConfigType = configType;
-            }
-
-            public void AddProvider(long provider)
-            {
-                if (ProviderSessionIds.Contains(provider))
-                    return;
-                ProviderSessionIds.Add(provider);
-            }
-
-            public int RemoveProvider(long provider)
-            {
-                ProviderSessionIds.Remove(provider);
-                return ProviderSessionIds.Count;
-            }
-
-            /// <summary>
-            /// 加权负载均衡
-            /// </summary>
-            /// <param name="provider"></param>
-            /// <returns></returns>
-            public bool Choice(out long provider)
-            {
-                var frees = new List<ProviderSession>(ProviderSessionIds.Count);
-                var all = new List<ProviderSession>(ProviderSessionIds.Count);
-                int TotalWeight = 0;
-
-                // 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
-                for (int i = ProviderSessionIds.Count - 1; i >= 0; --i)
+                int randweight = Zeze.Util.Random.Instance.Next(TotalWeight);
+                foreach (var ps in frees)
                 {
-                    var ps = App.Instance.ProviderService.GetSocket(ProviderSessionIds[i])?.UserState as ProviderSession;
-                    if (null == ps)
-                        continue; // 这里发现关闭的服务，仅仅忽略.
-                    all.Add(ps);
-                    if (ps.OnlineNew > App.Instance.Config.MaxOnlineNew)
-                        continue;
                     int weight = ps.ProposeMaxOnline - ps.Online;
-                    if (weight <= 0)
-                        continue;
-                    frees.Add(ps);
-                    TotalWeight += weight;
-                }
-                if (TotalWeight > 0)
-                {
-                    int randweight = Zeze.Util.Random.Instance.Next(TotalWeight);
-                    foreach (var ps in frees)
+                    if (randweight < weight)
                     {
-                        int weight = ps.ProposeMaxOnline - ps.Online;
-                        if (randweight < weight)
-                        {
-                            provider = ps.SessionId;
-                            return true;
-                        }
-                        randweight -= weight;
+                        provider = ps.SessionId;
+                        return true;
                     }
+                    randweight -= weight;
                 }
-                // 选择失败，一般是都满载了，随机选择一个。
-                if (all.Count > 0)
-                {
-                    provider = all[Zeze.Util.Random.Instance.Next(all.Count)].SessionId;
-                    return true;
-                }
-                // no providers
+            }
+            // 选择失败，一般是都满载了，随机选择一个。
+            if (all.Count > 0)
+            {
+                provider = all[Zeze.Util.Random.Instance.Next(all.Count)].SessionId;
+                return true;
+            }
+            // no providers
+            return false;
+        }
+
+        public bool ChoiceProvider(string serviceNamePrefix, int moduleId, int hash, out long provider)
+        {
+            var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
+            if (false == App.Instance.ServiceManagerAgent.SubscribeStates.TryGetValue(
+                serviceName, out var volatileProviders))
+            {
                 provider = 0;
                 return false;
             }
-
-            public bool Choice(int hash, out long provider)
-            {
-                if (ProviderSessionIds.Count == 0)
-                {
-                    provider = 0;
-                    return false;
-                }
-                provider = ProviderSessionIds[hash % ProviderSessionIds.Count];
-                return true;
-            }
-        }
-
-        private Dictionary<int, Providers> StaticBinds { get; } = new Dictionary<int, Providers>();
-        private volatile Dictionary<int, Providers> StaticBindsCopy = new Dictionary<int, Providers>();
-
-        // under lock (StaticBinds)
-        private void StaticBindsCopyNow()
-        {
-            var tmp = new Dictionary<int, Providers>();
-            foreach (var sb in StaticBinds)
-            {
-                tmp.Add(sb.Key, sb.Value.DeepCopy());
-            }
-            StaticBindsCopy = tmp;
-        }
-
-        public bool ChoiceProvider(int moduleId, int hash, out long provider)
-        {
-            // avoid lock
-            var tmp = StaticBindsCopy;
-            if (tmp.TryGetValue(moduleId, out var providers))
-            {
-                if (providers.Choice(hash, out provider))
-                {
-                    return true;
-                }
-            }
-            provider = 0;
-            return false;
+            return ChoiceHash(volatileProviders, hash, out provider);
         }
 
         public bool ChoiceProviderAndBind(int moduleId, Zeze.Net.AsyncSocket link, out long provider)
         {
+            var serviceName = MakeServiceName(GameServerServiceNamePrefix, moduleId);
             var linkSession = link.UserState as LinkSession;
-            lock (StaticBinds)
-            {
-                if (StaticBinds.TryGetValue(moduleId, out var providers))
-                {
-                    switch (providers.ChoiceType)
-                    {
-                        case BModule.ChoiceTypeHashUserId:
-                            return providers.Choice(Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.UserId), out provider);
 
-                        case BModule.ChoiceTypeHashRoleId:
-                            if (linkSession.UserStates.Count > 0)
-                            {
-                                return providers.Choice(Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.UserStates[0]), out provider);
-                            }
-                            else
-                            {
-                                provider = 0;
-                                return false;
-                            }
-                    }
-                    if (providers.Choice(out provider))
-                    {
-                        // 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
-                        var providerSocket = gnet.App.Instance.ProviderService.GetSocket(provider);
-                        var providerSession = providerSocket.UserState as ProviderSession;
-                        linkSession.Bind(link, providerSession.StaticBinds, providerSocket);
-                        return true;
-                    }
-                }
-            }
             provider = 0;
+            if (false == App.Instance.ServiceManagerAgent.SubscribeStates.TryGetValue(
+                serviceName, out var volatileProviders))
+                return false;
+
+            // 这里保存的 ProviderModuleState 是该moduleId的第一个bind请求去订阅时记录下来的，
+            // 这里仅使用里面的ChoiceType和ConfigType。这两个参数对于相同的moduleId都是一样的。
+            // 如果需要某个provider.SessionId，需要查询 ServiceInfoListSortedByIdentity 里的ServiceInfo.LocalState。
+            var providerModuleState = volatileProviders.SubscribeInfo.LocalState as ProviderModuleState;
+
+            switch (providerModuleState.ChoiceType)
+            {
+                case BModule.ChoiceTypeHashUserId:
+                    return ChoiceHash(volatileProviders, Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.UserId), out provider);
+
+                case BModule.ChoiceTypeHashRoleId:
+                    if (linkSession.UserStates.Count > 0)
+                    {
+                        return ChoiceHash(volatileProviders, Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.UserStates[0]), out provider);
+                    }
+                    else
+                    {
+                        return false;
+                    }
+            }
+            if (ChoiceLoad(volatileProviders, out provider))
+            {
+                // 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
+                var providerSocket = gnet.App.Instance.ProviderService.GetSocket(provider);
+                var providerSession = providerSocket.UserState as ProviderSession;
+                linkSession.Bind(link, providerSession.StaticBinds.Keys, providerSocket);
+                return true;
+            }
+
             return false;
         }
 
@@ -186,29 +149,26 @@ namespace gnet.Provider
             if (null == providerSession)
                 return;
 
-            lock (StaticBinds)
-            {
-                // unbind module
-                UnBindModules(provider, providerSession.StaticBinds, true);
-                providerSession.StaticBinds.Clear();
+            // unbind module
+            UnBindModules(provider, providerSession.StaticBinds.Keys, true);
+            providerSession.StaticBinds.Clear();
 
-                // unbind LinkSession
-                lock (providerSession.LinkSessionIds)
+            // unbind LinkSession
+            lock (providerSession.LinkSessionIds)
+            {
+                foreach (var e in providerSession.LinkSessionIds)
                 {
-                    foreach (var e in providerSession.LinkSessionIds)
+                    foreach (var linkSid in e.Value)
                     {
-                        foreach (var linkSid in e.Value)
+                        var link = App.Instance.LinkdService.GetSocket(linkSid);
+                        if (null != link)
                         {
-                            var link = App.Instance.LinkdService.GetSocket(linkSid);
-                            if (null != link)
-                            {
-                                var linkSession = link.UserState as LinkSession;
-                                linkSession?.UnBind(link, e.Key, provider, true);
-                            }
+                            var linkSession = link.UserState as LinkSession;
+                            linkSession?.UnBind(link, e.Key, provider, true);
                         }
                     }
-                    providerSession.LinkSessionIds.Clear();
                 }
+                providerSession.LinkSessionIds.Clear();
             }
         }
 
@@ -234,26 +194,23 @@ namespace gnet.Provider
         {
             if (rpc.Argument.LinkSids.Count == 0)
             {
-                lock (StaticBinds)
+                var providerSession = rpc.Sender.UserState as ProviderSession;
+                foreach (var module in rpc.Argument.Modules)
                 {
-                    var providerSession = rpc.Sender.UserState as ProviderSession;
-                    foreach (var module in rpc.Argument.Modules)
+                    if (FirstModuleWithConfigTypeDefault == 0
+                        && module.Value.ConfigType == BModule.ConfigTypeDefault)
                     {
-                        if (FirstModuleWithConfigTypeDefault == 0
-                            && module.Value.ConfigType == BModule.ConfigTypeDefault)
-                        {
-                            FirstModuleWithConfigTypeDefault = module.Value.ConfigType;
-                        }
-                        App.ServiceManagerAgent.SubscribeService("", Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit);
-                        providerSession.StaticBinds.Add(module.Key);
-                        if (false == StaticBinds.TryGetValue(module.Key, out var binds))
-                        {
-                            binds = new Providers(module.Value.ChoiceType, module.Value.ConfigType);
-                            StaticBinds.Add(module.Key, binds);
-                        }
-                        binds.AddProvider(rpc.Sender.SessionId);
+                        FirstModuleWithConfigTypeDefault = module.Value.ConfigType;
                     }
-                    StaticBindsCopyNow();
+                    var providerModuleState = new ProviderModuleState(providerSession.SessionId,
+                        module.Key, module.Value.ChoiceType, module.Value.ConfigType);
+                    var serviceName = MakeServiceName(providerSession.Info.ServiceNamePrefix, module.Key);
+                    var subState = App.ServiceManagerAgent.SubscribeService(serviceName,
+                        ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit,
+                        providerModuleState);
+                    // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
+                    subState.SetServiceIdentityReadyState(providerSession.Info.ServiceIndentity, providerModuleState);
+                    providerSession.StaticBinds.TryAdd(module.Key, module.Key);
                 }
             }
             else
@@ -275,20 +232,20 @@ namespace gnet.Provider
 
         private void UnBindModules(Zeze.Net.AsyncSocket provider, IEnumerable<int> modules, bool isOnProviderClose = false)
         {
-            lock (StaticBinds)
+            var providerSession = provider.UserState as ProviderSession;
+            foreach (var moduleId in modules)
             {
-                var providerSession = provider.UserState as ProviderSession;
-                foreach (var moduleId in modules)
+                if (false == isOnProviderClose)
+                    providerSession.StaticBinds.TryRemove(moduleId, out var _);
+                var serviceName = MakeServiceName(providerSession.Info.ServiceNamePrefix, moduleId);
+                if (false == App.Instance.ServiceManagerAgent.SubscribeStates.TryGetValue(
+                    serviceName, out var volatileProviders))
                 {
-                    if (false == isOnProviderClose)
-                        providerSession.StaticBinds.Remove(moduleId);
-                    if (StaticBinds.TryGetValue(moduleId, out var binds))
-                    {
-                        if (binds.RemoveProvider(provider.SessionId) == 0)
-                            StaticBinds.Remove(moduleId);
-                    }
+                    continue;
                 }
-                StaticBindsCopyNow();
+                // UnBind 不删除provider-list，这个总是通过ServiceManager通告更新。
+                // 这里仅仅设置该moduleId对应的服务的状态不可用。
+                volatileProviders.SetServiceIdentityReadyState(providerSession.Info.ServiceIndentity, null);
             }
         }
         public override int ProcessUnBindRequest(UnBind rpc)
@@ -366,7 +323,7 @@ namespace gnet.Provider
             long SourceProvider = rpc.Sender.SessionId;
             long provider;
 
-            if (ChoiceProvider(rpc.Argument.ModuleId, rpc.Argument.HashCode, out provider))
+            if (ChoiceProvider(rpc.Argument.ServiceNamePrefix, rpc.Argument.ModuleId, rpc.Argument.HashCode, out provider))
             {
                 rpc.Send(App.ProviderService.GetSocket(provider), (context) =>
                 {
@@ -401,7 +358,7 @@ namespace gnet.Provider
             for (int i = 0; i < protocol.Argument.HashCodeConcurrentLevel; ++i)
             {
                 long provider;
-                if (ChoiceProvider(protocol.Argument.ModuleId, i, out provider))
+                if (ChoiceProvider(protocol.Argument.ServiceNamePrefix, protocol.Argument.ModuleId, i, out provider))
                 {
                     if (false == transmits.TryGetValue(provider, out var exist))
                     {
@@ -488,6 +445,7 @@ namespace gnet.Provider
                         transmitHash = new Transmit();
                         transmitHash.Argument.ActionName = protocol.Argument.ActionName;
                         transmitHash.Argument.Sender = protocol.Argument.Sender;
+                        transmitHash.Argument.ServiceNamePrefix = protocol.Argument.ServiceNamePrefix;
                         transmitsHash.Add(hash, transmitHash);
                     }
                     transmitHash.Argument.Roles.Add(target.Key, target.Value);
@@ -498,6 +456,7 @@ namespace gnet.Provider
                     transmit = new Transmit();
                     transmit.Argument.ActionName = protocol.Argument.ActionName;
                     transmit.Argument.Sender = protocol.Argument.Sender;
+                    transmit.Argument.ServiceNamePrefix = protocol.Argument.ServiceNamePrefix;
                     transmits.Add(target.Value.ProviderSessionId, transmit);
                 }
                 transmit.Argument.Roles.Add(target.Key, target.Value);
@@ -512,7 +471,8 @@ namespace gnet.Provider
             // 会话不存在，根据hash选择Provider并转发，忽略连接查找错误。
             foreach (var transmitHash in transmitsHash)
             {
-                if (App.gnet_Provider.ChoiceProvider(FirstModuleWithConfigTypeDefault,
+                if (App.gnet_Provider.ChoiceProvider(
+                    protocol.Argument.ServiceNamePrefix, FirstModuleWithConfigTypeDefault,
                     transmitHash.Key, out var provider))
                 {
                     App.ProviderService.GetSocket(provider)?.Send(transmitHash.Value);
@@ -522,10 +482,17 @@ namespace gnet.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
+        // 用于客户端选择Provider，只支持一种Provider。如果要支持多种，需要客户端增加参数，这个不考虑了。
+        // 内部的ModuleRedirect ModuleRedirectAll Transmit都携带了ServiceNamePrefix参数，所以，
+        // 内部的Provider可以支持完全不同的solution，不过这个仅仅保留给未来扩展用，
+        // 不建议在一个项目里面使用多个Prefix。
+        public string GameServerServiceNamePrefix { get; private set; } = "";
+
         public override int ProcessAnnounceProviderInfo(AnnounceProviderInfo protocol)
         {
             var session = protocol.Sender.UserState as ProviderSession;
             session.Info = protocol.Argument;
+            GameServerServiceNamePrefix = protocol.Argument.ServiceNamePrefix;
             return Zeze.Transaction.Procedure.Success;
         }
     }
