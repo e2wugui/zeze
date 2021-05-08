@@ -180,18 +180,6 @@ namespace gnet.Provider
             return false;
         }
 
-        public int FirstStaticBindModuleId()
-        { 
-            lock (StaticBinds)
-            {
-                foreach (var moduleId in StaticBinds.Keys)
-                {
-                    return moduleId;
-                }
-                return 0;
-            }
-        }
-
         public void OnProviderClose(Zeze.Net.AsyncSocket provider)
         {
             ProviderSession providerSession = provider.UserState as ProviderSession;
@@ -226,6 +214,22 @@ namespace gnet.Provider
 
         public int FirstModuleWithConfigTypeDefault { get; private set; } = 0;
 
+        public sealed class ProviderModuleState
+        {
+            public long SessionId { get; }
+            public int ModuleId { get; }
+            public int ChoiceType { get; }
+            public int ConfigType { get; }
+
+            public ProviderModuleState(long sessionId, int moduleId, int choiceType, int configType)
+            {
+                SessionId = sessionId;
+                ModuleId = moduleId;
+                ChoiceType = choiceType;
+                ConfigType = configType;
+            }
+        }
+
         public override int ProcessBindRequest(Bind rpc)
         {
             if (rpc.Argument.LinkSids.Count == 0)
@@ -240,7 +244,7 @@ namespace gnet.Provider
                         {
                             FirstModuleWithConfigTypeDefault = module.Value.ConfigType;
                         }
-
+                        App.ServiceManagerAgent.SubscribeService("", Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit);
                         providerSession.StaticBinds.Add(module.Key);
                         if (false == StaticBinds.TryGetValue(module.Key, out var binds))
                         {
@@ -325,7 +329,7 @@ namespace gnet.Provider
 
         public override int ProcessBroadcast(Broadcast protocol)
         {
-            App.Instance.LinkdService.Foreach((socket)=>
+            App.Instance.LinkdService.Foreach((socket) =>
             {
                 // auth 通过就允许发送广播。
                 // 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
@@ -515,6 +519,13 @@ namespace gnet.Provider
                 }
             }
 
+            return Zeze.Transaction.Procedure.Success;
+        }
+
+        public override int ProcessAnnounceProviderInfo(AnnounceProviderInfo protocol)
+        {
+            var session = protocol.Sender.UserState as ProviderSession;
+            session.Info = protocol.Argument;
             return Zeze.Transaction.Procedure.Success;
         }
     }

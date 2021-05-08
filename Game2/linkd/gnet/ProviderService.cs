@@ -14,13 +14,25 @@ namespace gnet
         {
             if (null != factoryHandle.Handle)
             {
-                try
+                if (p.TypeId == gnet.Provider.Bind.TypeId_)
                 {
-                    factoryHandle.Handle(p); // 不启用新的Task，直接在io-thread里面执行。
+                    // Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
+                    // 不要直接在io-thread里面执行。
+                    global::Zeze.Util.Task.Run(() => factoryHandle.Handle(p), p);
                 }
-                catch (System.Exception ex)
+                else
                 {
-                    logger.Log(SocketOptions.SocketLogLevel, ex, "Protocol.Handle. {0}", p);
+                    // 不启用新的Task，直接在io-thread里面执行。因为其他协议都是立即处理的，
+                    // 直接执行，少一次线程切换。
+                    try
+                    {
+                        int result = factoryHandle.Handle(p); 
+                        global::Zeze.Util.Task.LogAndStatistics(result, p);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        logger.Log(SocketOptions.SocketLogLevel, ex, "Protocol.Handle. {0}", p);
+                    }
                 }
             }
             else
@@ -33,6 +45,7 @@ namespace gnet
         {
             base.OnHandshakeDone(sender);
             sender.UserState = new ProviderSession(sender.SessionId);
+
             var announce = new Provider.AnnounceLinkInfo();
             announce.Argument.LinkId = 0; // reserve
             announce.Argument.ProviderSessionId = sender.SessionId;
@@ -65,6 +78,7 @@ namespace gnet
         /// </summary>
         public HashSet<int> StaticBinds { get; } = new HashSet<int>();
         private Provider.BLoad Load { get; set; }
+        public Provider.BAnnounceProviderInfo Info { get; set; }
         public int ProposeMaxOnline => Load.ProposeMaxOnline;
         public int Online => Load.Online;
         public int OnlineNew => Load.OnlineNew;

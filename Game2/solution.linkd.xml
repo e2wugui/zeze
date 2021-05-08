@@ -66,7 +66,6 @@
 			*** 同一个moduleId不能既是静态绑定又是动态绑定。
 			-->
 			<variable name="linkSids" id="2" type="set" value="long"/>
-			<variable name="Indentity" id="3" type="string"/>
 
 			<enum name="ResultSuccess" value="0"/>
 			<enum name="ResultFaild"   value="1"/>
@@ -192,6 +191,14 @@
 			<variable name="ProviderSessionId" id="2" type="long"/>
 		</bean>
 		<protocol name="AnnounceLinkInfo" NoProcedure="true" argument="BAnnounceLinkInfo" handle="server"/>
+
+		<!-- gs to link -->
+		<bean name="BAnnounceProviderInfo">
+			<variable name="ServiceNamePrefix" id="1" type="string"/>
+			<variable name="ServiceIndentity"  id="2" type="string"/>
+		</bean>
+
+		<protocol name="AnnounceProviderInfo" NoProcedure="true" argument="BAnnounceProviderInfo" handle="client"/>
 
 		<!-- both: link, gs -->
 

@@ -96,10 +96,14 @@ namespace Game
             var linkName = GetLinkName(sender);
             sender.UserState = new LinkSession(linkName, sender.SessionId);
 
+            var announce = new gnet.Provider.AnnounceProviderInfo();
+            announce.Argument.ServiceNamePrefix = App.GameServerServiceNamePrefix;
+            announce.Argument.ServiceIndentity = Zeze.Config.AutoKeyLocalId.ToString();
+            announce.Send(sender);
+
             // static binds
             var rpc = new gnet.Provider.Bind();
             rpc.Argument.Modules.AddRange(Game.App.Instance.StaticBinds);
-            rpc.Argument.Indentity = App.Instance.Zeze.Config.AutoKeyLocalId.ToString();
             rpc.Send(sender, (protocol) => { ProviderStaticBindCompleted.Set(); return 0; });
         }
 

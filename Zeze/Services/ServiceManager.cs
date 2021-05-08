@@ -1034,14 +1034,20 @@ namespace Zeze.Services
 
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-            public void RegisterService(string name, string identity, string ip = null, int port = 0, Dictionary<int, string> extrainfo = null)
+            public ServiceInfo RegisterService(string name, string identity, string ip = null, int port = 0, Dictionary<int, string> extrainfo = null)
             {
-                RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
+                return RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
             }
 
-            private void RegisterService(ServiceInfo info)
+            private ServiceInfo RegisterService(ServiceInfo info)
             {
-                if (Registers.TryAdd(info, info))
+                bool regNew = false;
+                var regServInfo = Registers.GetOrAdd(info, (key) =>
+                {
+                    regNew = true;
+                    return info;
+                });
+                if (regNew)
                 {
                     try
                     {
@@ -1050,11 +1056,11 @@ namespace Zeze.Services
                     }
                     catch (Exception)
                     {
-                        Registers.TryRemove(info, out var _); // rollback
+                        Registers.TryRemove(KeyValuePair.Create(info, info)); // rollback
                         throw;
                     }
                 }
-                // else ignore TryAdd failed.
+                return regServInfo;
             }
 
             public void UnRegisterService(string name, string identity)
@@ -1079,23 +1085,23 @@ namespace Zeze.Services
                 }
             }
 
-            public void SubscribeService(string serviceName, int type)
+            public SubscribeState SubscribeService(string serviceName, int type)
             {
                 if (type != SubscribeInfo.SubscribeTypeSimple
                     && type != SubscribeInfo.SubscribeTypeReadyCommit)
                     throw new Exception("Unkown SubscribeType");
 
-                SubscribeService(new SubscribeInfo()
+                return SubscribeService(new SubscribeInfo()
                 {
                     ServiceName = serviceName,
                     SubscribeType = type
                 });
             }
 
-            private void SubscribeService(SubscribeInfo info)
+            private SubscribeState SubscribeService(SubscribeInfo info)
             {
                 bool newAdd = false;
-                SubscribeStates.GetOrAdd(info.ServiceName, (_) =>
+                var subState = SubscribeStates.GetOrAdd(info.ServiceName, (_) =>
                 {
                     newAdd = true;
                     return new SubscribeState(this, info);
@@ -1105,6 +1111,7 @@ namespace Zeze.Services
                     var r = new Subscribe() { Argument = info };
                     r.SendAndWaitCheckResultCode(Client.Socket);
                 }
+                return subState;
             }
 
             private int ProcessSubscribeFirstCommit(Protocol p)

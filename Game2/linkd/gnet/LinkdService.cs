@@ -89,7 +89,8 @@ namespace gnet
             {
                 try
                 {
-                    factoryHandle.Handle(p); // 不启用新的Task，直接在io-thread里面执行。
+                    int result = factoryHandle.Handle(p); // 不启用新的Task，直接在io-thread里面执行。
+                    global::Zeze.Util.Task.LogAndStatistics(result, p);
                 }
                 catch (System.Exception ex)
                 {
