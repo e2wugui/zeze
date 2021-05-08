@@ -15,4 +15,8 @@
 
 	<TableConf CacheCapaicty="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
 
+	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
+		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
+	</ServiceConf>
+
 </zeze>
