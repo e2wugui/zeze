@@ -310,10 +310,12 @@ namespace Zeze.Services.Handshake
         }
     }
 
-    public class CHandshake : Zeze.Net.Protocol<CHandshakeArgument>
+    public class CHandshake : Protocol<CHandshakeArgument>
     {
+        public readonly static int ProtocolId_ = Bean.Hash16(typeof(CHandshake).FullName);
+
         public override int ModuleId => 0;
-        public override int ProtocolId => 1;
+        public override int ProtocolId => ProtocolId_;
 
         public CHandshake()
         {
@@ -329,8 +331,10 @@ namespace Zeze.Services.Handshake
 
     public class SHandshake : Zeze.Net.Protocol<SHandshakeArgument>
     {
+        public readonly static int ProtocolId_ = Bean.Hash16(typeof(SHandshake).FullName);
+
         public override int ModuleId => 0;
-        public override int ProtocolId => 2;
+        public override int ProtocolId => ProtocolId_;
 
         public SHandshake()
         {

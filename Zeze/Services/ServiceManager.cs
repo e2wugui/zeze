@@ -669,11 +669,13 @@ namespace Zeze.Services
         /// </summary>
         public sealed class Register : Rpc<ServiceInfo, EmptyBean>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(Register).FullName);
+
             public const int Success = 0;
             public const int DuplicateRegister = 1;
 
             public override int ModuleId => 0;
-            public override int ProtocolId => 100;
+            public override int ProtocolId => ProtocolId_;
 
         }
 
@@ -683,11 +685,13 @@ namespace Zeze.Services
         /// </summary>
         public sealed class UnRegister : Rpc<ServiceInfo, EmptyBean>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(UnRegister).FullName);
+
             public const int Success = 0;
             public const int NotExist = 1;
 
             public override int ModuleId => 0;
-            public override int ProtocolId => 101;
+            public override int ProtocolId => ProtocolId_;
         }
 
         public sealed class SubscribeInfo : Bean
@@ -724,21 +728,25 @@ namespace Zeze.Services
 
         public sealed class Subscribe : Rpc<SubscribeInfo, EmptyBean>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(Subscribe).FullName);
+
             public const int Success = 0;
             public const int DuplicateSubscribe = 1;
             public const int UnknownSubscribeType = 2;
 
             public override int ModuleId => 0;
-            public override int ProtocolId => 102;
+            public override int ProtocolId => ProtocolId_;
         }
 
         public sealed class UnSubscribe : Rpc<SubscribeInfo, EmptyBean>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(UnSubscribe).FullName);
+
             public const int Success = 0;
             public const int NotExist = 1;
 
             public override int ModuleId => 0;
-            public override int ProtocolId => 103;
+            public override int ProtocolId => ProtocolId_;
         }
 
         public sealed class ServiceInfos : Bean
@@ -827,20 +835,26 @@ namespace Zeze.Services
 
         public sealed class NotifyServiceList : Protocol<ServiceInfos>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(NotifyServiceList).FullName);
+
             public override int ModuleId => 0;
-            public override int ProtocolId => 104;
+            public override int ProtocolId => ProtocolId_;
         }
 
         public sealed class ReadyServiceList : Protocol<ServiceInfos>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(ReadyServiceList).FullName);
+
             public override int ModuleId => 0;
-            public override int ProtocolId => 105;
+            public override int ProtocolId => ProtocolId_;
         }
 
         public sealed class CommitServiceList : Protocol<ServiceInfos>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(CommitServiceList).FullName);
+
             public override int ModuleId => 0;
-            public override int ProtocolId => 106;
+            public override int ProtocolId => ProtocolId_;
         }
 
         // 实际上可以不用这个类，为了保持以后ServiceInfo的比较可能改变，写一个这个类。
@@ -867,16 +881,20 @@ namespace Zeze.Services
 
         public sealed class Keepalive : Rpc<EmptyBean, EmptyBean>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(Keepalive).FullName);
+
             public const int Success = 0;
 
             public override int ModuleId => 0;
-            public override int ProtocolId => 107;
+            public override int ProtocolId => ProtocolId_;
         }
 
         public sealed class SubscribeFirstCommit : Protocol<ServiceInfos>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(SubscribeFirstCommit).FullName);
+
             public override int ModuleId => 0;
-            public override int ProtocolId => 108;
+            public override int ProtocolId => ProtocolId_;
         }
 
         public sealed class Agent : IDisposable

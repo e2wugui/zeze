@@ -737,8 +737,10 @@ namespace Zeze.Services
         }
         public sealed class Acquire : Zeze.Net.Rpc<Param, Param>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(Acquire).FullName);
+
             public override int ModuleId => 0;
-            public override int ProtocolId => 1;
+            public override int ProtocolId => ProtocolId_;
 
             public Acquire()
             {
@@ -753,8 +755,10 @@ namespace Zeze.Services
 
         public sealed class Reduce : Zeze.Net.Rpc<Param, Param>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(Reduce).FullName);
+
             public override int ModuleId => 0;
-            public override int ProtocolId => 2;
+            public override int ProtocolId => ProtocolId_;
 
             public Reduce()
             {
@@ -797,8 +801,10 @@ namespace Zeze.Services
 
         public sealed class Login : Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(Login).FullName);
+
             public override int ModuleId => 0;
-            public override int ProtocolId => 3;
+            public override int ProtocolId => ProtocolId_;
 
             public Login()
             {
@@ -812,8 +818,10 @@ namespace Zeze.Services
 
         public sealed class ReLogin : Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(ReLogin).FullName);
+
             public override int ModuleId => 0;
-            public override int ProtocolId => 4;
+            public override int ProtocolId => ProtocolId_;
 
             public ReLogin()
             {
@@ -827,8 +835,10 @@ namespace Zeze.Services
 
         public sealed class NormalClose : Zeze.Net.Rpc<Zeze.Transaction.EmptyBean, Zeze.Transaction.EmptyBean>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(NormalClose).FullName);
+
             public override int ModuleId => 0;
-            public override int ProtocolId => 5;
+            public override int ProtocolId => ProtocolId_;
         }
 
         public sealed class AchillesHeel : Zeze.Transaction.Bean
@@ -860,8 +870,10 @@ namespace Zeze.Services
 
         public sealed class Cleanup : Zeze.Net.Rpc<AchillesHeel, Zeze.Transaction.EmptyBean>
         {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(Cleanup).FullName);
+
             public override int ModuleId => 0;
-            public override int ProtocolId => 6;
+            public override int ProtocolId => ProtocolId_;
         }
 
         public sealed class ServerService : Zeze.Net.Service

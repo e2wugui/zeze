@@ -70,9 +70,9 @@ namespace UnitTest.Zeze.Misc
 
             agent.SubscribeStates.TryGetValue(serviceName, out var state);
             object anyState = this;
-            state.SetServiceReadyState("1", anyState);
-            state.SetServiceReadyState("2", anyState);
-            state.SetServiceReadyState("3", anyState);
+            state.SetServiceIdentityReadyState("1", anyState);
+            state.SetServiceIdentityReadyState("2", anyState);
+            state.SetServiceIdentityReadyState("3", anyState);
 
             Console.WriteLine("RegisterService 3");
             future = new TaskCompletionSource<int>();

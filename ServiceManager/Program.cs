@@ -40,7 +40,7 @@ namespace ServiceManager
 
         static void Main(string[] args)
         {
-            /*
+            //*
             var test = new UnitTest.Zeze.Misc.TestServiceManager();
             try
             {
@@ -50,8 +50,9 @@ namespace ServiceManager
             {
                 test.TestCleanup();
             }
-            */
+            /*/
             Run(args);
+            */
         }
     }
 }
