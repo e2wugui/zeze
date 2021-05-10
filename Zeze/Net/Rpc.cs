@@ -26,12 +26,12 @@ namespace Zeze.Net
             this.IsTimeout = false;
         }
 
-        public override void Send(AsyncSocket so)
+        public override bool Send(AsyncSocket so)
         {
-            Send(so, null);
+            return Send(so, null);
         }
 
-        public void Send(AsyncSocket so, Func<Protocol, int> responseHandle, int millisecondsTimeout = 5000)
+        public bool Send(AsyncSocket so, Func<Protocol, int> responseHandle, int millisecondsTimeout = 5000)
         {
             this.IsRequest = true;
             this.ResponseHandle = responseHandle;
@@ -55,36 +55,51 @@ namespace Zeze.Net
                 this.ResponseHandle?.Invoke(context);
             }, millisecondsTimeout, -1);
 
-            base.Send(so);
+            if (base.Send(so))
+                return true;
+
+            // 发送失败，一般是连接失效，此时删除上下文，但保持TimeoutTask。
+            // 【注意】当上下文已经其他并发过程删除（得到了处理），那么这里就返回成功。
+            // see OnSocketDisposed
+            // 这里返回 false 表示真的没有发送成功，外面根据自己需要决定是否重连并再次发送。
+            Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(this.SessionId);
+            return context == null;
         }
 
         public TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout = 5000)
         {
             Future = new TaskCompletionSource<TResult>();
-            Send(so, null, millisecondsTimeout);
+            if (false == Send(so, null, millisecondsTimeout))
+            {
+                Future.SetException(new Exception("Send Failed."));
+            }
             return Future;
         }
 
+        // 使用异步方式实现的同步等待版本
         public void SendAndWaitCheckResultCode(AsyncSocket so, int millisecondsTimeout = 5000)
         {
-            // 使用异步方式实现的同步等待版本
             var tmpFuture = new TaskCompletionSource<int>();
-            Send(so, (_) =>
+            if (false == Send(so, 
+                (_) =>
+                {
+                    if (IsTimeout)
+                    {
+                        tmpFuture.TrySetException(new RpcTimeoutException($"RpcTimeout {this}"));
+                    }
+                    else if (ResultCode != 0)
+                    {
+                        tmpFuture.TrySetException(new Exception($"Rpc Invalid ResultCode={ResultCode} {this}"));
+                    }
+                    else
+                    {
+                        tmpFuture.SetResult(0);
+                    }
+                    return Zeze.Transaction.Procedure.Success;
+                }, millisecondsTimeout))
             {
-                if (IsTimeout)
-                {
-                    tmpFuture.TrySetException(new RpcTimeoutException($"RpcTimeout {this}"));
-                }
-                else if (ResultCode != 0)
-                {
-                    tmpFuture.TrySetException(new Exception($"Rpc Invalid ResultCode={ResultCode} {this}"));
-                }
-                else
-                {
-                    tmpFuture.SetResult(0);
-                }
-                return Zeze.Transaction.Procedure.Success;
-            }, millisecondsTimeout);
+                throw new Exception("Send Failed.");
+            }
             tmpFuture.Task.Wait();
         }
 

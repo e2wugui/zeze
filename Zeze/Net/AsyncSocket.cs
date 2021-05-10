@@ -152,24 +152,24 @@ namespace Zeze.Net
             }
         }
 
-        public void Send(Protocol protocol)
+        public bool Send(Protocol protocol)
         {
-            Send(protocol.Encode());
+            return Send(protocol.Encode());
         }
 
-        public void Send(global::Zeze.Serialize.ByteBuffer bb)
+        public bool Send(global::Zeze.Serialize.ByteBuffer bb)
         {
-            Send(bb.Bytes, bb.ReadIndex, bb.Size);
+            return Send(bb.Bytes, bb.ReadIndex, bb.Size);
         }
 
-        public void Send(Binary binary)
+        public bool Send(Binary binary)
         {
-            Send(binary.Bytes, binary.Offset, binary.Count);
+            return Send(binary.Bytes, binary.Offset, binary.Count);
         }
 
-        public void Send(byte[] bytes)
+        public bool Send(byte[] bytes)
         {
-            Send(bytes, 0, bytes.Length);
+            return Send(bytes, 0, bytes.Length);
         }
 
         /// <summary>
@@ -178,12 +178,15 @@ namespace Zeze.Net
         /// <param name="bytes"></param>
         /// <param name="offset"></param>
         /// <param name="length"></param>
-        public void Send(byte[] bytes, int offset, int length)
+        public bool Send(byte[] bytes, int offset, int length)
         {
             global::Zeze.Serialize.ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
             lock (this)
             {
+                if (null == Socket)
+                    return false;
+
                 if (null != outputCodecChain)
                 {
                     // 压缩加密等 codec 链操作。
@@ -218,15 +221,16 @@ namespace Zeze.Net
                         eventArgsSend.Completed += OnAsyncIOCompleted;
                     }
                     eventArgsSend.BufferList = _outputBufferListSending;
-                    if (false == Socket?.SendAsync(eventArgsSend))
+                    if (false == Socket.SendAsync(eventArgsSend))
                         ProcessSend(eventArgsSend);
                 }
+                return true;
             }
         }
 
-        public void Send(string str)
+        public bool Send(string str)
         {
-            Send(Encoding.UTF8.GetBytes(str));
+            return Send(Encoding.UTF8.GetBytes(str));
         }
 
         private void OnAsyncIOCompleted(object sender, SocketAsyncEventArgs e)
@@ -480,8 +484,11 @@ namespace Zeze.Net
 
         public void Dispose()
         {
-            lock(this)
+            lock (this)
             {
+                if (Socket == null)
+                    return;
+
                 try
                 {
                     Connector?.OnSocketClose(this);
@@ -489,10 +496,22 @@ namespace Zeze.Net
 
                     Socket?.Dispose();
 
-                    Service = null;
                     Connector = null;
                     Acceptor = null;
                     Socket = null;
+                }
+                catch (Exception)
+                {
+                    // skip Dispose error
+                }
+            }
+
+            lock (this)
+            {
+                try
+                {
+                    Service?.OnSocketDisposed(this);
+                    Service = null;
                 }
                 catch (Exception)
                 {

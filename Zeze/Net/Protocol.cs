@@ -44,17 +44,18 @@ namespace Zeze.Net
 			return bb;
 		}
 
-		public virtual void Send(AsyncSocket so)
+		public virtual bool Send(AsyncSocket so)
 		{
 			Sender = so;
-			so.Send(Encode());
+			return so.Send(Encode());
 		}
 
-		public void Send(Service service)
+		public bool Send(Service service)
 		{
 			AsyncSocket so = service.GetSocket();
 			if (null != so)
-				Send(so);
+				return Send(so);
+			return false;
 		}
 
 		/// <summary>

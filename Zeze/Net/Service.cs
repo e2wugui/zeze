@@ -122,6 +122,18 @@ namespace Zeze.Net
         }
 
         /// <summary>
+        /// 可靠rpc调用：一般用于处理连接关闭，已经发送的没有返回的rpc。
+        /// 在 OnSocketClose 之后调用，此时外面【必须】拿不到此 AsyncSocket 了。
+        /// 当 OnSocketDisposed 调用发生时，AsyncSocket.Socket已经设为 null。
+        /// 对于那些在 AsyncSocket.Dispose 时已经得到的 AsyncSocket 引用，
+        /// 使用时判断返回值：主要是 Send 返回 false。
+        /// </summary>
+        /// <param name="so"></param>
+        public virtual void OnSocketDisposed(AsyncSocket so)
+        {
+        }
+
+        /// <summary>
         /// 服务器接受到新连接回调。
         /// </summary>
         /// <param name="so"></param>
