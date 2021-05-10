@@ -83,20 +83,21 @@ namespace Zeze.Transaction
                 {
                     var normalClose = new GlobalCacheManager.NormalClose();
                     var future = new TaskCompletionSource<int>();
-                    normalClose.Send(tmp, (_) =>
-                    {
-                        if (normalClose.IsTimeout)
+                    normalClose.Send(tmp,
+                        (_) =>
                         {
-                            future.SetResult(-100); // 关闭错误就不抛异常了。
-                        }
-                        else
-                        {
-                            future.SetResult(normalClose.ResultCode);
-                            if (normalClose.ResultCode != 0)
-                                logger.Error("GlobalAgent:NormalClose ResultCode={0}", normalClose.ResultCode);
-                        }
-                        return 0;
-                    });
+                            if (normalClose.IsTimeout)
+                            {
+                                future.SetResult(-100); // 关闭错误就不抛异常了。
+                            }
+                            else
+                            {
+                                future.SetResult(normalClose.ResultCode);
+                                if (normalClose.ResultCode != 0)
+                                    logger.Error("GlobalAgent:NormalClose ResultCode={0}", normalClose.ResultCode);
+                            }
+                            return 0;
+                        });
                     future.Task.Wait();
                 }
                 Logined.TrySetException(new Exception("GlobalAgent.Close")); // 这个，，，，
@@ -287,46 +288,48 @@ namespace Zeze.Transaction
                 var relogin = new GlobalCacheManager.ReLogin();
                 relogin.Argument.AutoKeyLocalId = Zeze.Config.AutoKeyLocalId;
                 relogin.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
-                relogin.Send(so, (_) =>
-                {
-                    if (relogin.IsTimeout)
+                relogin.Send(so,
+                    (_) =>
                     {
-                        agent.Logined.TrySetException(new Exception("GloalAgent.ReLogin Timeout")); ;
-                    }
-                    else if (relogin.ResultCode != 0)
-                    {
-                        agent.Logined.TrySetException(new Exception($"GlobalAgent.ReLogoin Error {relogin.ResultCode}"));
-                    }
-                    else
-                    {
-                        agent.LoginedTimes.IncrementAndGet();
-                        agent.Logined.SetResult(so);
-                    }
-                    return 0;
-                });
+                        if (relogin.IsTimeout)
+                        {
+                            agent.Logined.TrySetException(new Exception("GloalAgent.ReLogin Timeout")); ;
+                        }
+                        else if (relogin.ResultCode != 0)
+                        {
+                            agent.Logined.TrySetException(new Exception($"GlobalAgent.ReLogoin Error {relogin.ResultCode}"));
+                        }
+                        else
+                        {
+                            agent.LoginedTimes.IncrementAndGet();
+                            agent.Logined.SetResult(so);
+                        }
+                        return 0;
+                    });
             }
             else
             {
                 var login = new GlobalCacheManager.Login();
                 login.Argument.AutoKeyLocalId = Zeze.Config.AutoKeyLocalId;
                 login.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
-                login.Send(so, (_) =>
-                {
-                    if (login.IsTimeout)
+                login.Send(so,
+                    (_) =>
                     {
-                        agent.Logined.TrySetException(new Exception("GloalAgent.Login Timeout")); ;
-                    }
-                    else if (login.ResultCode != 0)
-                    {
-                        agent.Logined.TrySetException(new Exception($"GlobalAgent.Logoin Error {login.ResultCode}"));
-                    }
-                    else
-                    {
-                        agent.LoginedTimes.IncrementAndGet();
-                        agent.Logined.SetResult(so);
-                    }
-                    return 0;
-                });
+                        if (login.IsTimeout)
+                        {
+                            agent.Logined.TrySetException(new Exception("GloalAgent.Login Timeout")); ;
+                        }
+                        else if (login.ResultCode != 0)
+                        {
+                            agent.Logined.TrySetException(new Exception($"GlobalAgent.Logoin Error {login.ResultCode}"));
+                        }
+                        else
+                        {
+                            agent.LoginedTimes.IncrementAndGet();
+                            agent.Logined.SetResult(so);
+                        }
+                        return 0;
+                    });
             }
         }
 

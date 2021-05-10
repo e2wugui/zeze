@@ -581,10 +581,10 @@ namespace Zeze.Services
             public int PassivePort { get; private set; } = 0;
 
             // 服务扩展信息，可选。
-            private Dictionary<int, string> _ExtraInfo { get; }
-                = new Dictionary<int, string>();
+            private Dictionary<int, Binary> _ExtraInfo { get; }
+                = new Dictionary<int, Binary>();
 
-            public IReadOnlyDictionary<int, string> ExtraInfo => _ExtraInfo;
+            public IReadOnlyDictionary<int, Binary> ExtraInfo => _ExtraInfo;
 
             // ServiceManager或者ServiceManager.Agent用来保存本地状态，不是协议一部分，不会被系列化。
             // 算是一个简单的策略，不怎么优美。一般仅设置一次，线程保护由使用者自己管理。
@@ -597,7 +597,7 @@ namespace Zeze.Services
             public ServiceInfo(
                 string name, string identity,
                 string ip = null, int port = 0,
-                Dictionary<int, string> extrainfo = null)
+                Dictionary<int, Binary> extrainfo = null)
             {
                 ServiceName = name;
                 ServiceIdentity = identity;
@@ -617,7 +617,7 @@ namespace Zeze.Services
                 for (int c = bb.ReadInt(); c > 0; --c)
                 {
                     var extraKey = bb.ReadInt();
-                    var extraValue = bb.ReadString();
+                    var extraValue = bb.ReadBinary();
                     _ExtraInfo[extraKey] = extraValue;
                 }
             }
@@ -632,7 +632,7 @@ namespace Zeze.Services
                 foreach (var e in ExtraInfo)
                 {
                     bb.WriteInt(e.Key);
-                    bb.WriteString(e.Value);
+                    bb.WriteBinary(e.Value);
                 }
             }
 
@@ -1061,7 +1061,9 @@ namespace Zeze.Services
 
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-            public ServiceInfo RegisterService(string name, string identity, string ip = null, int port = 0, Dictionary<int, string> extrainfo = null)
+            public ServiceInfo RegisterService(string name, string identity,
+                string ip = null, int port = 0,
+                Dictionary<int, Binary> extrainfo = null)
             {
                 return RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
             }

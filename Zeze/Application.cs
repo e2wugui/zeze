@@ -243,9 +243,17 @@ namespace Zeze
 
                 case TransactionModes.ExecuteInAnotherThread:
                     if (null != oneByOneKey)
-                        TaskOneByOneByKey.Execute(oneByOneKey, () => future.SetResult(NewProcedure(func, actionName).Call()), actionName);
+                    {
+                        TaskOneByOneByKey.Execute(oneByOneKey,
+                            () => future.SetResult(NewProcedure(func, actionName).Call()),
+                            actionName);
+                    }
                     else
-                        Zeze.Util.Task.Run(() => future.SetResult(NewProcedure(func, actionName).Call()), actionName);
+                    {
+                        Zeze.Util.Task.Run(
+                            () => future.SetResult(NewProcedure(func, actionName).Call()),
+                            actionName);
+                    }
                     break;
             }
             return future;
