@@ -122,7 +122,7 @@ namespace Zeze.Net
         }
 
         /// <summary>
-        /// 可靠rpc调用：一般用于处理连接关闭，已经发送的没有返回的rpc。
+        /// 可靠rpc调用：一般用于重新发送没有返回结果的rpc。
         /// 在 OnSocketClose 之后调用，此时外面【必须】拿不到此 AsyncSocket 了。
         /// 当 OnSocketDisposed 调用发生时，AsyncSocket.Socket已经设为 null。
         /// 对于那些在 AsyncSocket.Dispose 时已经得到的 AsyncSocket 引用，
@@ -131,6 +131,42 @@ namespace Zeze.Net
         /// <param name="so"></param>
         public virtual void OnSocketDisposed(AsyncSocket so)
         {
+            // 一般实现：遍历RpcContexts，
+            /*
+            var ctxSends = GetRpcContextsToSender(so);
+            var ctxRemoved = RemoveRpcContets<Rpc<MyArgument, MyResult>>(ctxSends.Keys);
+            foreach (var ctx in ctxRemoved)
+            {
+                // process
+            }
+            */
+        }
+
+        public Dictionary<long, Protocol> GetRpcContextsToSender(AsyncSocket so)
+        {
+            var result = new Dictionary<long, Protocol>(RpcContexts.Count);
+            foreach (var ctx in RpcContexts)
+            {
+                if (ctx.Value.Sender == so)
+                {
+                    result.Add(ctx.Key, ctx.Value);
+                }
+            }
+            return result;
+        }
+
+        public ICollection<T> RemoveRpcContets<T>(ICollection<long> sids) where T : Protocol
+        {
+            var result = new List<T>(sids.Count);
+            foreach (var sid in sids)
+            {
+                var ctx = this.RemoveRpcContext<T>(sid);
+                if (null != ctx)
+                {
+                    result.Add((T)ctx);
+                }
+            }
+            return result;
         }
 
         /// <summary>
@@ -270,7 +306,9 @@ namespace Zeze.Net
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// Rpc Context. 模板不好放进去，使用基类 Protocol
         private Util.AtomicLong SessionIdGen = new Util.AtomicLong();
-        private readonly ConcurrentDictionary<long, Protocol> RpcContexts = new ConcurrentDictionary<long, Protocol>();
+        private readonly ConcurrentDictionary<long, Protocol> _RpcContexts
+            = new ConcurrentDictionary<long, Protocol>();
+        public IReadOnlyDictionary<long, Protocol> RpcContexts => _RpcContexts;
 
         public long NextSessionId()
         {
@@ -282,7 +320,7 @@ namespace Zeze.Net
             while (true)
             {
                 long sessionId = SessionIdGen.IncrementAndGet();
-                if (RpcContexts.TryAdd(sessionId, p))
+                if (_RpcContexts.TryAdd(sessionId, p))
                 {
                     return sessionId;
                 }
@@ -291,7 +329,7 @@ namespace Zeze.Net
 
         internal T RemoveRpcContext<T>(long sid) where T : Protocol
         {
-            if (RpcContexts.TryRemove(sid, out var p))
+            if (_RpcContexts.TryRemove(sid, out var p))
             {
                 return (T)p;
             }

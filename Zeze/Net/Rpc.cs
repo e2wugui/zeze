@@ -37,7 +37,7 @@ namespace Zeze.Net
             this.ResponseHandle = responseHandle;
             this.SessionId = so.Service.AddRpcContext(this);
 
-            global::Zeze.Util.Scheduler.Instance.Schedule((ThisTask)=>
+            var timeoutTask = global::Zeze.Util.Scheduler.Instance.Schedule((ThisTask)=>
             {
                 if (null == so.Service)
                     return; // Socket closed.
@@ -58,7 +58,10 @@ namespace Zeze.Net
             if (base.Send(so))
                 return true;
 
-            // 发送失败，一般是连接失效，此时删除上下文，但保持TimeoutTask。
+            // 发送失败，一般是连接失效，此时删除上下文。
+            // 其中rpc-trigger-result的原子性由RemoveRpcContext保证。
+            // Cancel不是必要的。
+            timeoutTask.Cancel(); 
             // 【注意】当上下文已经其他并发过程删除（得到了处理），那么这里就返回成功。
             // see OnSocketDisposed
             // 这里返回 false 表示真的没有发送成功，外面根据自己需要决定是否重连并再次发送。
