@@ -223,11 +223,17 @@ namespace Zeze.Net
         }
 
         // 用来派发异步rpc回调。
-        public virtual void DispatchRpcResponse(Protocol rpc, Func<Protocol, int> responseHandle, ProtocolFactoryHandle factoryHandle)
+        public virtual void DispatchRpcResponse(Protocol rpc,
+            Func<Protocol, int> responseHandle,
+            ProtocolFactoryHandle factoryHandle)
         {
             if (null != Zeze && false == factoryHandle.NoProcedure)
             {
-                global::Zeze.Util.Task.Run(Zeze.NewProcedure(() => responseHandle(rpc), rpc.GetType().FullName + ":Response", rpc.UserState));
+                global::Zeze.Util.Task.Run(
+                    Zeze.NewProcedure(
+                        () => responseHandle(rpc),
+                        rpc.GetType().FullName + ":Response",
+                        rpc.UserState));
             }
             else
             {
@@ -241,7 +247,11 @@ namespace Zeze.Net
             {
                 if (null != Zeze && false == factoryHandle.NoProcedure)
                 {
-                    global::Zeze.Util.Task.Run(Zeze.NewProcedure(() => factoryHandle.Handle(p), p.GetType().FullName, p.UserState));
+                    global::Zeze.Util.Task.Run(
+                        Zeze.NewProcedure(
+                            () => factoryHandle.Handle(p),
+                            p.GetType().FullName,
+                            p.UserState));
                 }
                 else
                 {
@@ -362,7 +372,9 @@ namespace Zeze.Net
                 if (ManualContexts.TryAdd(sessionId, context))
                 {
                     context.SessionId = sessionId;
-                    Util.Scheduler.Instance.Schedule((ThisTask) => TryRemoveManualContext<ManualContext>(sessionId)?.OnTimeout(), timeout);
+                    Util.Scheduler.Instance.Schedule(
+                        (ThisTask) => TryRemoveManualContext<ManualContext>(sessionId)?.OnTimeout(),
+                        timeout);
                     return sessionId;
                 }
             }

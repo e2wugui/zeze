@@ -73,17 +73,18 @@ namespace Zeze.Raft.StateMachines
         /// <returns></returns>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
-            return Map.GetOrAdd(key, (k) =>
-            {
-                V v = valueFactory(k);
-                long logindex = LogIndex.IncrementAndGet();
-                Logs.TryAdd(logindex, new Log(k, v, Operate.Add, null));
-                if (Snapshoting.Get())
+            return Map.GetOrAdd(key,
+                (k) =>
                 {
-                    SnapshotCopyOnWrite.TryAdd(key, new SnapshotValue(v, Operate.Add));
-                }
-                return v;
-            });
+                    V v = valueFactory(k);
+                    long logindex = LogIndex.IncrementAndGet();
+                    Logs.TryAdd(logindex, new Log(k, v, Operate.Add, null));
+                    if (Snapshoting.Get())
+                    {
+                        SnapshotCopyOnWrite.TryAdd(key, new SnapshotValue(v, Operate.Add));
+                    }
+                    return v;
+                });
         }
 
         /// <summary>
@@ -97,7 +98,8 @@ namespace Zeze.Raft.StateMachines
             // 只会在第一次修改时复制.
             if (Snapshoting.Get())
             {
-                SnapshotCopyOnWrite.GetOrAdd(k, (key) => new SnapshotValue(DeepCopyValueFunction(v), Operate.Update));
+                SnapshotCopyOnWrite.GetOrAdd(k,
+                    (key) => new SnapshotValue(DeepCopyValueFunction(v), Operate.Update));
             }
             updator(v);
             Logs.TryAdd(logindex, new Log(k, v, Operate.Update, updator));

@@ -154,15 +154,17 @@ namespace Zeze.Services
             // 还有更多的防止出错的手段吗？
 
             // XXX verify danger
-            Zeze.Util.Scheduler.Instance.Schedule((ThisTask) =>
-            {
-                foreach (var gkey in session.Acquired.Keys)
+            Zeze.Util.Scheduler.Instance.Schedule(
+                (ThisTask) =>
                 {
-                    // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                    Release(session, gkey);
-                }
-                rpc.SendResultCode(0);
-            }, 5 * 60 * 1000); // delay 5 mins
+                    foreach (var gkey in session.Acquired.Keys)
+                    {
+                        // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+                        Release(session, gkey);
+                    }
+                    rpc.SendResultCode(0);
+                },
+                5 * 60 * 1000); // delay 5 mins
 
             return 0;
         }
@@ -325,15 +327,17 @@ namespace Zeze.Services
                         }
 
                         int stateReduceResult = StateReduceException;
-                        Zeze.Util.Task.Run(() =>
-                        {
-                            stateReduceResult = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare);
-
-                            lock (cs)
+                        Zeze.Util.Task.Run(
+                            () =>
                             {
-                                Monitor.PulseAll(cs);
-                            }
-                        }, "GlobalCacheManager.AcquireShare.Reduce");
+                                stateReduceResult = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare);
+
+                                lock (cs)
+                                {
+                                    Monitor.PulseAll(cs);
+                                }
+                            },
+                            "GlobalCacheManager.AcquireShare.Reduce");
                         logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
 
@@ -432,14 +436,16 @@ namespace Zeze.Services
                         }
 
                         int stateReduceResult = StateReduceException;
-                        Zeze.Util.Task.Run(() =>
-                        {
-                            stateReduceResult = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
-                            lock (cs)
+                        Zeze.Util.Task.Run(
+                            () =>
                             {
-                                Monitor.PulseAll(cs);
-                            }
-                        }, "GlobalCacheManager.AcquireModify.Reduce");
+                                stateReduceResult = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
+                                lock (cs)
+                                {
+                                    Monitor.PulseAll(cs);
+                                }
+                            },
+                            "GlobalCacheManager.AcquireModify.Reduce");
                         logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
 
@@ -497,37 +503,39 @@ namespace Zeze.Services
                         }
                     }
 
-                    Zeze.Util.Task.Run(() =>
-                    {
-                        // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
-                        foreach (var reduce in reducePending)
+                    Zeze.Util.Task.Run(
+                        () =>
                         {
-                            try
+                            // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
+                            foreach (var reduce in reducePending)
                             {
-                                reduce.Value.Future.Task.Wait();
-                                if (reduce.Value.Result.State == StateInvalid)
+                                try
                                 {
-                                    // 后面还有个成功的处理循环，但是那里可能包含sender，在这里更新吧。
-                                    reduce.Key.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out var _);
-                                    reduceSuccessed.Add(reduce.Key);
+                                    reduce.Value.Future.Task.Wait();
+                                    if (reduce.Value.Result.State == StateInvalid)
+                                    {
+                                        // 后面还有个成功的处理循环，但是那里可能包含sender，在这里更新吧。
+                                        reduce.Key.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out var _);
+                                        reduceSuccessed.Add(reduce.Key);
+                                    }
+                                    else
+                                    {
+                                        reduce.Key.SetError();
+                                    }
                                 }
-                                else
+                                catch (Exception ex)
                                 {
                                     reduce.Key.SetError();
+                                    // 等待失败不再看作成功。这个以前已经处理了，但这个注释没有更新。
+                                    logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Value.Argument);
                                 }
                             }
-                            catch (Exception ex)
+                            lock (cs)
                             {
-                                reduce.Key.SetError();
-                                // 等待失败不再看作成功。这个以前已经处理了，但这个注释没有更新。
-                                logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Value.Argument);
+                                Monitor.PulseAll(cs); // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
                             }
-                        }
-                        lock (cs)
-                        {
-                            Monitor.PulseAll(cs); // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
-                        }
-                    }, "GlobalCacheManager.AcquireModify.WaitReduce");
+                        },
+                        "GlobalCacheManager.AcquireModify.WaitReduce");
                     logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     Monitor.Wait(cs);
 

@@ -149,16 +149,18 @@ namespace Zeze.Services
                     if (ReadyCommit.Count > 0)
                     {
                         // 只有两段公告模式需要回应处理。
-                        NotifyTimeoutTask = Zeze.Util.Scheduler.Instance.Schedule((ThisTask) =>
-                        {
-                            if (NotifyTimeoutTask == ThisTask)
+                        NotifyTimeoutTask = Zeze.Util.Scheduler.Instance.Schedule(
+                            (ThisTask) =>
                             {
-                                // NotifyTimeoutTask 会在下面两种情况下被修改：
-                                // 1. 在 Notify.ReadyCommit 完成以后会被清空。
-                                // 2. 启动了新的 Notify。
-                                StartNotify(); // restart
-                            }
-                        }, ServiceManager.Config.RetryNotifyDelayWhenNotAllReady);
+                                if (NotifyTimeoutTask == ThisTask)
+                                {
+                                    // NotifyTimeoutTask 会在下面两种情况下被修改：
+                                    // 1. 在 Notify.ReadyCommit 完成以后会被清空。
+                                    // 2. 启动了新的 Notify。
+                                    StartNotify(); // restart
+                                }
+                            },
+                            ServiceManager.Config.RetryNotifyDelayWhenNotAllReady);
                     }
                 }
             }
@@ -277,21 +279,22 @@ namespace Zeze.Services
             {
                 ServiceManager = sm;
                 SessionId = ssid;
-                Util.Scheduler.Instance.Schedule((ThisTask) =>
-                {
-                    try
+                Util.Scheduler.Instance.Schedule(
+                    (ThisTask) =>
                     {
-                        var r = new Keepalive();
-                        var s = ServiceManager.Server.GetSocket(SessionId);
-                        r.SendAndWaitCheckResultCode(s);
-                    }
-                    catch (Exception ex)
-                    {
-                        ServiceManager.Server.GetSocket(SessionId)?.Dispose();
-                        logger.Error(ex, "ServiceManager.KeepAlive");
-                    }
-                },
-                Util.Random.Instance.Next(ServiceManager.Config.KeepAlivePeriod),
+                        try
+                        {
+                            var r = new Keepalive();
+                            var s = ServiceManager.Server.GetSocket(SessionId);
+                            r.SendAndWaitCheckResultCode(s);
+                        }
+                        catch (Exception ex)
+                        {
+                            ServiceManager.Server.GetSocket(SessionId)?.Dispose();
+                            logger.Error(ex, "ServiceManager.KeepAlive");
+                        }
+                    },
+                    Util.Random.Instance.Next(ServiceManager.Config.KeepAlivePeriod),
                 ServiceManager.Config.KeepAlivePeriod);
             }
 
@@ -581,10 +584,7 @@ namespace Zeze.Services
             public int PassivePort { get; private set; } = 0;
 
             // 服务扩展信息，可选。
-            private Dictionary<int, Binary> _ExtraInfo { get; }
-                = new Dictionary<int, Binary>();
-
-            public IReadOnlyDictionary<int, Binary> ExtraInfo => _ExtraInfo;
+            public Binary ExtraInfo { get; private set; } = Binary.Empty;
 
             // ServiceManager或者ServiceManager.Agent用来保存本地状态，不是协议一部分，不会被系列化。
             // 算是一个简单的策略，不怎么优美。一般仅设置一次，线程保护由使用者自己管理。
@@ -597,7 +597,7 @@ namespace Zeze.Services
             public ServiceInfo(
                 string name, string identity,
                 string ip = null, int port = 0,
-                Dictionary<int, Binary> extrainfo = null)
+                Binary extrainfo = null)
             {
                 ServiceName = name;
                 ServiceIdentity = identity;
@@ -605,7 +605,7 @@ namespace Zeze.Services
                     PassiveIp = ip;
                 PassivePort = port;
                 if (extrainfo != null)
-                    _ExtraInfo = extrainfo;
+                    ExtraInfo = extrainfo;
             }
 
             public override void Decode(ByteBuffer bb)
@@ -614,12 +614,7 @@ namespace Zeze.Services
                 ServiceIdentity = bb.ReadString();
                 PassiveIp = bb.ReadString();
                 PassivePort = bb.ReadInt();
-                for (int c = bb.ReadInt(); c > 0; --c)
-                {
-                    var extraKey = bb.ReadInt();
-                    var extraValue = bb.ReadBinary();
-                    _ExtraInfo[extraKey] = extraValue;
-                }
+                ExtraInfo = bb.ReadBinary();
             }
 
             public override void Encode(ByteBuffer bb)
@@ -628,12 +623,7 @@ namespace Zeze.Services
                 bb.WriteString(ServiceIdentity);
                 bb.WriteString(PassiveIp);
                 bb.WriteInt(PassivePort);
-                bb.WriteInt(ExtraInfo.Count);
-                foreach (var e in ExtraInfo)
-                {
-                    bb.WriteInt(e.Key);
-                    bb.WriteBinary(e.Value);
-                }
+                bb.WriteBinary(ExtraInfo);
             }
 
             protected override void InitChildrenRootInfo(Record.RootInfo root)
@@ -1061,9 +1051,10 @@ namespace Zeze.Services
 
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-            public ServiceInfo RegisterService(string name, string identity,
+            public ServiceInfo RegisterService(
+                string name, string identity,
                 string ip = null, int port = 0,
-                Dictionary<int, Binary> extrainfo = null)
+                Binary extrainfo = null)
             {
                 return RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
             }
@@ -1071,11 +1062,13 @@ namespace Zeze.Services
             private ServiceInfo RegisterService(ServiceInfo info)
             {
                 bool regNew = false;
-                var regServInfo = Registers.GetOrAdd(info, (key) =>
-                {
-                    regNew = true;
-                    return info;
-                });
+                var regServInfo = Registers.GetOrAdd(info,
+                    (key) =>
+                    {
+                        regNew = true;
+                        return info;
+                    });
+
                 if (regNew)
                 {
                     try
@@ -1131,11 +1124,13 @@ namespace Zeze.Services
             private SubscribeState SubscribeService(SubscribeInfo info)
             {
                 bool newAdd = false;
-                var subState = SubscribeStates.GetOrAdd(info.ServiceName, (_) =>
-                {
-                    newAdd = true;
-                    return new SubscribeState(this, info);
-                });
+                var subState = SubscribeStates.GetOrAdd(info.ServiceName,
+                    (_) =>
+                    {
+                        newAdd = true;
+                        return new SubscribeState(this, info);
+                    });
+
                 if (newAdd)
                 {
                     var r = new Subscribe() { Argument = info };

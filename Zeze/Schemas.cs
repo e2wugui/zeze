@@ -148,12 +148,16 @@ namespace Zeze
                 // 当 this.Key == null && other.Key != null 在 Name 相同的情况下是不可能发生的。
                 if (null != Key)
                 {
-                    if (false == Key.IsCompatible(other.Key, context, (bean) =>
+                    if (false == Key.IsCompatible(other.Key, context,
+                        (bean) =>
+                        {
+                            KeyName = bean.Name;
+                            Key = bean;
+                        },
+                        UpdateVariable))
                     {
-                        KeyName = bean.Name;
-                        Key = bean;
-                    }, UpdateVariable))
                         return false;
+                    }
                 }
                 else if (other.Key != null)
                 {
@@ -162,12 +166,16 @@ namespace Zeze
 
                 if (null != Value)
                 {
-                    if (false == Value.IsCompatible(other.Value, context, (bean) =>
+                    if (false == Value.IsCompatible(other.Value, context,
+                        (bean) =>
+                        {
+                            ValueName = bean.Name;
+                            Value = bean;
+                        },
+                        UpdateVariable))
                     {
-                        ValueName = bean.Name;
-                        Value = bean;
-                    }, UpdateVariable))
                         return false;
+                    }
                 }
                 else if (other.Value != null)
                 {
@@ -209,16 +217,21 @@ namespace Zeze
 
             public virtual void TryCopyBeanIfRemoved(Context context, Action<Bean> Update, Action<Bean> UpdateVariable)
             {
-                Key?.TryCopyBeanIfRemoved(context, (bean) =>
-                {
-                    KeyName = bean.Name;
-                    Key = bean;
-                }, UpdateVariable);
-                Value?.TryCopyBeanIfRemoved(context, (bean) =>
-                {
-                    ValueName = bean.Name;
-                    Value = bean;
-                }, UpdateVariable);
+                Key?.TryCopyBeanIfRemoved(context,
+                    (bean) =>
+                    {
+                        KeyName = bean.Name;
+                        Key = bean;
+                    },
+                    UpdateVariable);
+
+                Value?.TryCopyBeanIfRemoved(context,
+                    (bean) =>
+                    {
+                        ValueName = bean.Name;
+                        Value = bean;
+                    },
+                    UpdateVariable);
             }
         }
 
@@ -259,16 +272,17 @@ namespace Zeze
 
             public bool IsCompatible(Variable other, Context context)
             {
-                return this.Type.IsCompatible(other.Type, context, (bean) =>
-                {
-                    TypeName = bean.Name;
-                    Type = bean;
-                },
-                (bean) =>
-                {
-                    KeyName = Type.KeyName;
-                    ValueName = Type.ValueName;
-                });
+                return this.Type.IsCompatible(other.Type, context,
+                    (bean) =>
+                    {
+                        TypeName = bean.Name;
+                        Type = bean;
+                    },
+                    (bean) =>
+                    {
+                        KeyName = Type.KeyName;
+                        ValueName = Type.ValueName;
+                    });
             }
 
             public void Update()
@@ -279,16 +293,17 @@ namespace Zeze
 
             public void TryCopyBeanIfRemoved(Context context)
             {
-                this.Type.TryCopyBeanIfRemoved(context, (bean) =>
-                {
-                    TypeName = bean.Name;
-                    Type = bean;
-                },
-                (bean)=>
-                {
-                    KeyName = Type.KeyName;
-                    ValueName = Type.ValueName;
-                });
+                this.Type.TryCopyBeanIfRemoved(context,
+                    (bean) =>
+                    {
+                        TypeName = bean.Name;
+                        Type = bean;
+                    },
+                    (bean)=>
+                    {
+                        KeyName = Type.KeyName;
+                        ValueName = Type.ValueName;
+                    });
             }
         }
 
@@ -536,16 +551,20 @@ namespace Zeze
             public bool IsCompatible(Table other, Context context)
             {
                 return Name.Equals(other.Name)
-                    && KeyType.IsCompatible(other.KeyType, context, (bean) =>
+                    && KeyType.IsCompatible(other.KeyType, context,
+                    (bean) =>
                     {
                         KeyName = bean.Name;
                         KeyType = bean;
-                    }, null)
-                    && ValueType.IsCompatible(other.ValueType, context, (bean) =>
+                    },
+                    null)
+                    && ValueType.IsCompatible(other.ValueType, context,
+                    (bean) =>
                     {
                         ValueName = bean.Name;
                         ValueType = bean;
-                    }, null);
+                    },
+                    null);
             }
 
             public void Compile(Schemas s)

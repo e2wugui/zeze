@@ -37,23 +37,26 @@ namespace Zeze.Net
             this.ResponseHandle = responseHandle;
             this.SessionId = so.Service.AddRpcContext(this);
 
-            var timeoutTask = global::Zeze.Util.Scheduler.Instance.Schedule((ThisTask)=>
-            {
-                if (null == so.Service)
-                    return; // Socket closed.
-
-                Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
-                if (null == context) // 一般来说，此时结果已经返回。
-                    return;
-
-                if (null != context.Future)
+            var timeoutTask = global::Zeze.Util.Scheduler.Instance.Schedule(
+                (ThisTask)=>
                 {
-                    context.Future.TrySetException(new RpcTimeoutException());
-                    return;
-                }
-                context.IsTimeout = true;
-                this.ResponseHandle?.Invoke(context);
-            }, millisecondsTimeout, -1);
+                    if (null == so.Service)
+                        return; // Socket closed.
+
+                    Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
+                    if (null == context) // 一般来说，此时结果已经返回。
+                        return;
+
+                    if (null != context.Future)
+                    {
+                        context.Future.TrySetException(new RpcTimeoutException());
+                        return;
+                    }
+                    context.IsTimeout = true;
+                    this.ResponseHandle?.Invoke(context);
+                },
+                millisecondsTimeout,
+                -1);
 
             if (base.Send(so))
                 return true;
@@ -99,7 +102,8 @@ namespace Zeze.Net
                         tmpFuture.SetResult(0);
                     }
                     return Zeze.Transaction.Procedure.Success;
-                }, millisecondsTimeout))
+                },
+                millisecondsTimeout))
             {
                 throw new Exception("Send Failed.");
             }

@@ -22,19 +22,22 @@ namespace Zeze.Tikv
             key.WriteString("key");
             var value = Zeze.Serialize.ByteBuffer.Allocate(64);
             value.WriteString("value");
-            tikvDb.Flush(null, () =>
-            {
-                table.Replace(key, value);
-            });
+            tikvDb.Flush(null,
+                () =>
+                {
+                    table.Replace(key, value);
+                });
+
             var outvalue = table.Find(key);
             Console.WriteLine("Scan Find1 " + outvalue);
 
             // connect an begin transaction
-            table.Walk((key, value) =>
-            {
-                Console.WriteLine($"Scan Callback: {BitConverter.ToString(key)}=>{BitConverter.ToString(value)}");
-                return true;
-            });
+            table.Walk(
+                (key, value) =>
+                {
+                    Console.WriteLine($"Scan Callback: {BitConverter.ToString(key)}=>{BitConverter.ToString(value)}");
+                    return true;
+                });
         }
 
         public static void RunWrap(string url)
@@ -50,16 +53,20 @@ namespace Zeze.Tikv
 
             var outvalue = table.Find(key);
             Console.WriteLine("Find1 " + outvalue);
-            tikvDb.Flush(null, () =>
-            {
-                table.Replace(key, value);
-            });
+            tikvDb.Flush(null,
+                () =>
+                {
+                    table.Replace(key, value);
+                });
+
             outvalue = table.Find(key);
             Console.WriteLine("Find2 " + outvalue);
-            tikvDb.Flush(null, () =>
-            {
-                table.Remove(key);
-            });
+            tikvDb.Flush(null,
+                () =>
+                {
+                    table.Remove(key);
+                });
+
             outvalue = table.Find(key);
             Console.WriteLine("Find3 " + outvalue);
         }

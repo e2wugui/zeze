@@ -16,38 +16,40 @@ namespace UnitTest.Zeze.Trans
             string url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
             DatabaseMySql sqlserver = new DatabaseMySql(url);
             Database.Table table = sqlserver.OpenTable("test_1");
-            sqlserver.Flush(null, () =>
-            {
+            sqlserver.Flush(null,
+                () =>
                 {
-                    ByteBuffer key = ByteBuffer.Allocate();
-                    key.WriteInt(1);
-                    table.Remove(key);
+                    {
+                        ByteBuffer key = ByteBuffer.Allocate();
+                        key.WriteInt(1);
+                        table.Remove(key);
+                    }
+                    {
+                        ByteBuffer key = ByteBuffer.Allocate();
+                        key.WriteInt(2);
+                        table.Remove(key);
+                    }
                 }
-                {
-                    ByteBuffer key = ByteBuffer.Allocate();
-                    key.WriteInt(2);
-                    table.Remove(key);
-                }
-            }
             );
             Assert.AreEqual(0, table.Walk(PrintRecord));
-            sqlserver.Flush(null, () =>
-            {
+            sqlserver.Flush(null,
+                () =>
                 {
-                    ByteBuffer key = ByteBuffer.Allocate();
-                    key.WriteInt(1);
-                    ByteBuffer value = ByteBuffer.Allocate();
-                    value.WriteInt(1);
-                    table.Replace(key, value);
+                    {
+                        ByteBuffer key = ByteBuffer.Allocate();
+                        key.WriteInt(1);
+                        ByteBuffer value = ByteBuffer.Allocate();
+                        value.WriteInt(1);
+                        table.Replace(key, value);
+                    }
+                    {
+                        ByteBuffer key = ByteBuffer.Allocate();
+                        key.WriteInt(2);
+                        ByteBuffer value = ByteBuffer.Allocate();
+                        value.WriteInt(2);
+                        table.Replace(key, value);
+                    }
                 }
-                {
-                    ByteBuffer key = ByteBuffer.Allocate();
-                    key.WriteInt(2);
-                    ByteBuffer value = ByteBuffer.Allocate();
-                    value.WriteInt(2);
-                    table.Replace(key, value);
-                }
-            }
             );
             {
                 ByteBuffer key = ByteBuffer.Allocate();

@@ -117,14 +117,17 @@ namespace Zeze.Tikv
         {
             using var _keyprefix = new GoSlice(keyprefix.Bytes, keyprefix.ReadIndex, keyprefix.Size);
             using var error = new GoSlice(1024);
-            long rc = Scan(txnId, _keyprefix, new Walker((key, keylen, value, valuelen) =>
-            {
-                var _key = new byte[keylen];
-                var _value = new byte[valuelen];
-                Marshal.Copy(key, _key, 0, _key.Length);
-                Marshal.Copy(value, _value, 0, _value.Length);
-                return callback(_key, _value) ? 0 : -1;
-            }), error);
+            long rc = Scan(txnId, _keyprefix,
+                new Walker(
+                    (key, keylen, value, valuelen) =>
+                    {
+                        var _key = new byte[keylen];
+                        var _value = new byte[valuelen];
+                        Marshal.Copy(key, _key, 0, _key.Length);
+                        Marshal.Copy(value, _value, 0, _value.Length);
+                        return callback(_key, _value) ? 0 : -1;
+                    }),
+                error);
 
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));
@@ -251,14 +254,17 @@ namespace Zeze.Tikv
         {
             using var _keyprefix = new GoSlice(keyprefix.Bytes, keyprefix.ReadIndex, keyprefix.Size);
             using var error = new GoSlice(1024);
-            long rc = Scan(txnId, _keyprefix, new Walker((key, keylen, value, valuelen) =>
-            {
-                var _key = new byte[keylen];
-                var _value = new byte[valuelen];
-                Marshal.Copy(key, _key, 0, _key.Length);
-                Marshal.Copy(value, _value, 0, _value.Length);
-                return callback(_key, _value) ? 0 : -1;
-            }), error);
+            long rc = Scan(txnId, _keyprefix,
+                new Walker(
+                    (key, keylen, value, valuelen) =>
+                    {
+                        var _key = new byte[keylen];
+                        var _value = new byte[valuelen];
+                        Marshal.Copy(key, _key, 0, _key.Length);
+                        Marshal.Copy(value, _value, 0, _value.Length);
+                        return callback(_key, _value) ? 0 : -1;
+                    }),
+                error);
 
             if (rc < 0)
                 throw new Exception(GetErrorString(rc, error));

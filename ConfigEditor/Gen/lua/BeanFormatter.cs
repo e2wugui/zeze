@@ -24,12 +24,13 @@ namespace ConfigEditor.Gen.lua
 
                 // gen enum
                 SortedDictionary<string, EnumDefine> enums = new SortedDictionary<string, EnumDefine>();
-                doc.BeanDefine.ForEach((BeanDefine bd) =>
-                {
-                    foreach (var e in bd.EnumDefines.Values)
-                        enums.Add(e.FullNamePinyin().Replace('.', '_'), e);
-                    return true;
-                });
+                doc.BeanDefine.ForEach(
+                    (BeanDefine bd) =>
+                    {
+                        foreach (var e in bd.EnumDefines.Values)
+                            enums.Add(e.FullNamePinyin().Replace('.', '_'), e);
+                        return true;
+                    });
                 sw.WriteLine($"Config.Enums = {{}}");
                 foreach (var e in enums)
                 {

@@ -542,7 +542,8 @@ namespace ConfigEditor
             {
                 // delete column
                 List<int> colDelete = new List<int>();
-                GridData.DoActionUntilBeanEnd(this, colBeanBegin, colListEnd, (int col) => colDelete.Add(col));
+                GridData.DoActionUntilBeanEnd(this, colBeanBegin, colListEnd,
+                    (int col) => colDelete.Add(col));
                 for (int i = colDelete.Count - 1; i >= 0; --i)
                     RemoveColumn(colDelete[i]);
                 colListEnd -= colDelete.Count;

@@ -15,24 +15,27 @@ namespace ConfigEditor.Gen.cs
             switch (flags)
             {
                 case Property.DataOutputFlags.Server:
-                    main.Documents.ForEachFile((Documents.File file) =>
-                    {
-                        progress.AppendLine($"生成cs服务器代码. {file.Document.RelateName}", Color.Black);
-                        BeanFormatter.Gen(main.ConfigProject.ServerSrcDirectory, file.Document, Property.DataOutputFlags.Server);
-                        return progress.Running;
-                    });
+                    main.Documents.ForEachFile(
+                        (Documents.File file) =>
+                        {
+                            progress.AppendLine($"生成cs服务器代码. {file.Document.RelateName}", Color.Black);
+                            BeanFormatter.Gen(main.ConfigProject.ServerSrcDirectory, file.Document, Property.DataOutputFlags.Server);
+                            return progress.Running;
+                        });
+
                     if (false == progress.Running)
                         return;
                     GenManager(main, main.ConfigProject.ServerSrcDirectory);
                     break;
 
                 case Property.DataOutputFlags.Client:
-                    main.Documents.ForEachFile((Documents.File file) =>
-                    {
-                        progress.AppendLine($"生成cs客户端代码. {file.Document.RelateName}", Color.Black);
-                        BeanFormatter.Gen(main.ConfigProject.ClientSrcDirectory, file.Document, Property.DataOutputFlags.Client);
-                        return progress.Running;
-                    });
+                    main.Documents.ForEachFile(
+                        (Documents.File file) =>
+                        {
+                            progress.AppendLine($"生成cs客户端代码. {file.Document.RelateName}", Color.Black);
+                            BeanFormatter.Gen(main.ConfigProject.ClientSrcDirectory, file.Document, Property.DataOutputFlags.Client);
+                            return progress.Running;
+                        });
                     if (false == progress.Running)
                         return;
                     GenManager(main, main.ConfigProject.ClientSrcDirectory);
@@ -63,49 +66,51 @@ namespace ConfigEditor.Gen.cs
                 if (false == main.PropertyManager.Properties.TryGetValue(Property.Id.PName, out var pid))
                     throw new Exception("Property.Id miss!");
 
-                main.Documents.ForEachFile((Documents.File fileForEach) =>
-                {
-                    var doc = fileForEach.Document;
-                    string varName = doc.RelateName.Replace('.', '_');
-                    sw.WriteLine($"        public static List<{doc.RelateName}> {varName} {{ get; }} = new List<{doc.RelateName}>();");
-
-                    foreach (var var in doc.BeanDefine.Variables)
+                main.Documents.ForEachFile(
+                    (Documents.File fileForEach) =>
                     {
-                        if (false == var.IsKeyable())
-                            continue;
+                        var doc = fileForEach.Document;
+                        string varName = doc.RelateName.Replace('.', '_');
+                        sw.WriteLine($"        public static List<{doc.RelateName}> {varName} {{ get; }} = new List<{doc.RelateName}>();");
 
-                        if (false == var.PropertiesList.Contains(pid))
-                            continue;
+                        foreach (var var in doc.BeanDefine.Variables)
+                        {
+                            if (false == var.IsKeyable())
+                                continue;
 
-                        sw.WriteLine($"        public static Dictionary<{TypeHelper.GetName(var)}, {doc.RelateName}> {varName}Map{var.Name} {{ get; }} = new Dictionary<{TypeHelper.GetName(var)}, {doc.RelateName}>();");
-                    }
-                    return true;
-                });
+                            if (false == var.PropertiesList.Contains(pid))
+                                continue;
+
+                            sw.WriteLine($"        public static Dictionary<{TypeHelper.GetName(var)}, {doc.RelateName}> {varName}Map{var.Name} {{ get; }} = new Dictionary<{TypeHelper.GetName(var)}, {doc.RelateName}>();");
+                        }
+                        return true;
+                    });
                 sw.WriteLine();
                 sw.WriteLine("        public static void Load(string home)");
                 sw.WriteLine("        {");
-                main.Documents.ForEachFile((Documents.File fileForEach) =>
-                {
-                    var doc = fileForEach.Document;
-                    string varName = doc.RelateName.Replace('.', '_');
-                    sw.WriteLine($"            {varName}.Clear();");
-                    sw.WriteLine($"            Load(home, \"{doc.RelateName}\", (XmlElement e) => ");
-                    sw.WriteLine($"            {{");
-                    sw.WriteLine($"                var bean = new {doc.RelateName}(e);");
-                    sw.WriteLine($"                {varName}.Add(bean);");
-                    foreach (var var in doc.BeanDefine.Variables)
+                main.Documents.ForEachFile(
+                    (Documents.File fileForEach) =>
                     {
-                        if (var.Type == VarDefine.EType.List)
-                            continue;
+                        var doc = fileForEach.Document;
+                        string varName = doc.RelateName.Replace('.', '_');
+                        sw.WriteLine($"            {varName}.Clear();");
+                        sw.WriteLine($"            Load(home, \"{doc.RelateName}\", (XmlElement e) => ");
+                        sw.WriteLine($"            {{");
+                        sw.WriteLine($"                var bean = new {doc.RelateName}(e);");
+                        sw.WriteLine($"                {varName}.Add(bean);");
+                        foreach (var var in doc.BeanDefine.Variables)
+                        {
+                            if (var.Type == VarDefine.EType.List)
+                                continue;
 
-                        if (false == var.PropertiesList.Contains(pid))
-                            continue;
+                            if (false == var.PropertiesList.Contains(pid))
+                                continue;
 
-                        sw.WriteLine($"                {varName}Map{var.Name}.Add(bean.V{var.Name}, bean);");
-                    }
-                    sw.WriteLine($"            }});");
-                    return true;
-                });
+                            sw.WriteLine($"                {varName}Map{var.Name}.Add(bean.V{var.Name}, bean);");
+                        }
+                        sw.WriteLine($"            }});");
+                        return true;
+                    });
                 sw.WriteLine("        }");
                 sw.WriteLine();
                 sw.WriteLine("        public static void Load(string home, string relate, Action<XmlElement> action)");

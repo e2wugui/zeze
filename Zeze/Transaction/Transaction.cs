@@ -266,13 +266,14 @@ namespace Zeze.Transaction
                         continue; // 特殊日志没有Bean。
 
                     // 写成回调是为了优化，仅在需要的时候才创建path。
-                    cc.CollectChanged(log.Bean.TableKey, (out List<Util.KV<Bean, int>> path, out ChangeNote note) =>
-                    {
-                        path = new List<Util.KV<Bean, int>>();
-                        note = null;
-                        path.Add(Util.KV.Create(log.Bean, log.VariableId));
-                        log.Bean.BuildChangeListenerPath(path);
-                    });
+                    cc.CollectChanged(log.Bean.TableKey,
+                        (out List<Util.KV<Bean, int>> path, out ChangeNote note) =>
+                        {
+                            path = new List<Util.KV<Bean, int>>();
+                            note = null;
+                            path.Add(Util.KV.Create(log.Bean, log.VariableId));
+                            log.Bean.BuildChangeListenerPath(path);
+                        });
                 }
                 foreach (ChangeNote cn in sp.ChangeNotes.Values)
                 {
@@ -280,13 +281,14 @@ namespace Zeze.Transaction
                         continue;
 
                     // 写成回调是为了优化，仅在需要的时候才创建path。
-                    cc.CollectChanged(cn.Bean.TableKey, (out List<Util.KV<Bean, int>> path, out ChangeNote note) =>
-                    {
-                        path = new List<Util.KV<Bean, int>>();
-                        note = cn;
-                        path.Add(Util.KV.Create(cn.Bean.Parent, cn.Bean.VariableId));
-                        cn.Bean.Parent.BuildChangeListenerPath(path);
-                    });
+                    cc.CollectChanged(cn.Bean.TableKey,
+                        (out List<Util.KV<Bean, int>> path, out ChangeNote note) =>
+                        {
+                            path = new List<Util.KV<Bean, int>>();
+                            note = cn;
+                            path.Add(Util.KV.Create(cn.Bean.Parent, cn.Bean.VariableId));
+                            cn.Bean.Parent.BuildChangeListenerPath(path);
+                        });
                 }
 
                 savepoints.Clear();

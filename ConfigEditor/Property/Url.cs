@@ -23,35 +23,36 @@ namespace ConfigEditor.Property
                 return;
             }
 
-            string error = await Task.Run<string>(() =>
-            {
-                try
+            string error = await Task.Run<string>(
+                () =>
                 {
-                    WebRequest req = WebRequest.Create(p.NewValue);
-                    using (WebResponse res = req.GetResponse())
+                    try
                     {
-                        if (res is HttpWebResponse httpres)
+                        WebRequest req = WebRequest.Create(p.NewValue);
+                        using (WebResponse res = req.GetResponse())
                         {
-                            if (httpres.StatusCode == HttpStatusCode.OK || httpres.StatusCode == HttpStatusCode.PartialContent)
-                                return null;
-                            return httpres.StatusDescription;
-                        }
-                        else
-                        {
-                            // 不是 http，尝试读取一下。
-                            byte[] buffer = new byte[256];
-                            int rc = res.GetResponseStream().Read(buffer, 0, buffer.Length);
-                            if (rc >= 0)
-                                return null;
-                            return "rc < 0?";
+                            if (res is HttpWebResponse httpres)
+                            {
+                                if (httpres.StatusCode == HttpStatusCode.OK || httpres.StatusCode == HttpStatusCode.PartialContent)
+                                    return null;
+                                return httpres.StatusDescription;
+                            }
+                            else
+                            {
+                                // 不是 http，尝试读取一下。
+                                byte[] buffer = new byte[256];
+                                int rc = res.GetResponseStream().Read(buffer, 0, buffer.Length);
+                                if (rc >= 0)
+                                    return null;
+                                return "rc < 0?";
+                            }
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    return ex.Message;
-                }
-            });
+                    catch (Exception ex)
+                    {
+                        return ex.Message;
+                    }
+                });
 
             if (null != error)
                 p.FormMain.FormError.AddError(p.Cell, this, ErrorLevel.Warn, error);

@@ -26,32 +26,36 @@ namespace UnitTest.Zeze.Trans
 
         private void Prepare()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.App.Instance.demo_Module1.Table1.Remove(1);
-                return Procedure.Success;
-            }, "TestChangeListener.Remove").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
+                {
+                    demo.App.Instance.demo_Module1.Table1.Remove(1);
+                    return Procedure.Success;
+                },
+                "TestChangeListener.Remove").Call());
 
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
-                value.Int1 = 123;
-                value.Long2 = 123;
-                value.String3 = "123";
-                value.Bool4 = true;
-                value.Short5 = 123;
-                value.Float6 = 123.0f;
-                value.Double7 = 123.0;
-                value.Bytes8 = Binary.Empty;
-                value.List9.Add(new demo.Bean1() { V1 = 1 }); value.List9.Add(new demo.Bean1() { V1 = 2 });
-                value.Set10.Add(123); value.Set10.Add(124);
-                value.Map11.Add(1, new demo.Module2.Value()); value.Map11.Add(2, new demo.Module2.Value());
-                value.Bean12.Int1 = 123;
-                value.Byte13 = 12;
-                value.Dynamic14_demo_Module1_Simple = new demo.Module1.Simple() { Int1 = 123 };
-                value.Map15.Add(1, 1); value.Map15.Add(2, 2);
-                return Procedure.Success;
-            }, "TestChangeListener.Prepare").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
+                {
+                    demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    value.Int1 = 123;
+                    value.Long2 = 123;
+                    value.String3 = "123";
+                    value.Bool4 = true;
+                    value.Short5 = 123;
+                    value.Float6 = 123.0f;
+                    value.Double7 = 123.0;
+                    value.Bytes8 = Binary.Empty;
+                    value.List9.Add(new demo.Bean1() { V1 = 1 }); value.List9.Add(new demo.Bean1() { V1 = 2 });
+                    value.Set10.Add(123); value.Set10.Add(124);
+                    value.Map11.Add(1, new demo.Module2.Value()); value.Map11.Add(2, new demo.Module2.Value());
+                    value.Bean12.Int1 = 123;
+                    value.Byte13 = 12;
+                    value.Dynamic14_demo_Module1_Simple = new demo.Module1.Simple() { Int1 = 123 };
+                    value.Map15.Add(1, 1); value.Map15.Add(2, 2);
+                    return Procedure.Success;
+                },
+                "TestChangeListener.Prepare").Call());
         }
 
         [TestMethod]
@@ -61,111 +65,127 @@ namespace UnitTest.Zeze.Trans
             AddListener();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
-                value.Int1 = 124;
-                value.Long2 = 124;
-                value.String3 = "124";
-                value.Bool4 = false;
-                value.Short5 = 124;
-                value.Float6 = 124.0f;
-                value.Double7 = 124.0;
-                value.Bytes8 = new Binary(new byte[4]);
-                value.List9.Add(new demo.Bean1() { V1 = 2 }); value.List9.Add(new demo.Bean1() { V1 = 3 });
-                value.Set10.Add(125); value.Set10.Add(126);
-                value.Map11.Add(3, new demo.Module2.Value()); value.Map11.Add(4, new demo.Module2.Value());
-                value.Bean12.Int1 = 124;
-                value.Byte13 = 13;
-                value.Dynamic14_demo_Module1_Simple = new demo.Module1.Simple() { Int1 = 124 };
-                value.Map15.Add(3, 3); value.Map15.Add(4, 4);
-                return Procedure.Success;
-            }, "TestChangeListener.Modify").Call());
-            Verify();
-
-            Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
-                value.Set10.Add(127); value.Set10.Remove(124);
-                value.Map11.Add(5, new demo.Module2.Value()); value.Map11.Add(6, new demo.Module2.Value());
-                value.Map11.Remove(1); value.Map11.Remove(2);
-                value.Map15.Add(5, 5); value.Map15.Add(6, 6);
-                value.Map15.Remove(1); value.Map15.Remove(2);
-                return Procedure.Success;
-            }, "TestChangeListener.ModifyCollections").Call());
-            Verify();
-
-            Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
-                List<int> except = new List<int>
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
                 {
-                    1,
-                    2
-                };
-                value.Set10.ExceptWith(except);
-                return Procedure.Success;
-            }, "TestChangeListener.ModifySetExcept").Call());
+                    demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    value.Int1 = 124;
+                    value.Long2 = 124;
+                    value.String3 = "124";
+                    value.Bool4 = false;
+                    value.Short5 = 124;
+                    value.Float6 = 124.0f;
+                    value.Double7 = 124.0;
+                    value.Bytes8 = new Binary(new byte[4]);
+                    value.List9.Add(new demo.Bean1() { V1 = 2 }); value.List9.Add(new demo.Bean1() { V1 = 3 });
+                    value.Set10.Add(125); value.Set10.Add(126);
+                    value.Map11.Add(3, new demo.Module2.Value()); value.Map11.Add(4, new demo.Module2.Value());
+                    value.Bean12.Int1 = 124;
+                    value.Byte13 = 13;
+                    value.Dynamic14_demo_Module1_Simple = new demo.Module1.Simple() { Int1 = 124 };
+                    value.Map15.Add(3, 3); value.Map15.Add(4, 4);
+                    return Procedure.Success;
+                },
+                "TestChangeListener.Modify").Call());
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
-                List<int> intersect = new List<int>
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
                 {
-                    123,
-                    126
-                };
-                value.Set10.IntersectWith(intersect);
-                return Procedure.Success;
-            }, "TestChangeListener.ModifySetIntersect").Call());
+                    demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    value.Set10.Add(127); value.Set10.Remove(124);
+                    value.Map11.Add(5, new demo.Module2.Value()); value.Map11.Add(6, new demo.Module2.Value());
+                    value.Map11.Remove(1); value.Map11.Remove(2);
+                    value.Map15.Add(5, 5); value.Map15.Add(6, 6);
+                    value.Map15.Remove(1); value.Map15.Remove(2);
+                    return Procedure.Success;
+                },
+                "TestChangeListener.ModifyCollections").Call());
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
-                List<int> SymmetricExcept = new List<int>
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
                 {
-                    123,
-                    140
-                };
-                value.Set10.SymmetricExceptWith(SymmetricExcept);
-                return Procedure.Success;
-            }, "TestChangeListener.ModifySetSymmetricExcept").Call());
+                    demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    List<int> except = new List<int>
+                    {
+                        1,
+                        2
+                    };
+                    value.Set10.ExceptWith(except);
+                    return Procedure.Success;
+                },
+                "TestChangeListener.ModifySetExcept").Call());
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
-                List<int> Union = new List<int>
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
                 {
-                    123,
-                    140
-                };
-                value.Set10.UnionWith(Union);
-                return Procedure.Success;
-            }, "TestChangeListener.ModifySetUnion").Call());
+                    demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    List<int> intersect = new List<int>
+                    {
+                        123,
+                        126
+                    };
+                    value.Set10.IntersectWith(intersect);
+                    return Procedure.Success;
+                },
+                "TestChangeListener.ModifySetIntersect").Call());
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.App.Instance.demo_Module1.Table1.Put(1, new demo.Module1.Value());
-                return Procedure.Success;
-            }, "TestChangeListener.PutRecord").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
+                {
+                    demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    List<int> SymmetricExcept = new List<int>
+                    {
+                        123,
+                        140
+                    };
+                    value.Set10.SymmetricExceptWith(SymmetricExcept);
+                    return Procedure.Success;
+                },
+                "TestChangeListener.ModifySetSymmetricExcept").Call());
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.App.Instance.demo_Module1.Table1.Remove(1);
-                return Procedure.Success;
-            }, "TestChangeListener.RemoveRecord").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
+                {
+                    demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    List<int> Union = new List<int>
+                    {
+                        123,
+                        140
+                    };
+                    value.Set10.UnionWith(Union);
+                    return Procedure.Success;
+                },
+                "TestChangeListener.ModifySetUnion").Call());
+            Verify();
+
+            Init();
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
+                {
+                    demo.App.Instance.demo_Module1.Table1.Put(1, new demo.Module1.Value());
+                    return Procedure.Success;
+                },
+                "TestChangeListener.PutRecord").Call());
+            Verify();
+
+            Init();
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
+                {
+                    demo.App.Instance.demo_Module1.Table1.Remove(1);
+                    return Procedure.Success;
+                },
+                "TestChangeListener.RemoveRecord").Call());
             Verify();
         }
 
@@ -173,12 +193,14 @@ namespace UnitTest.Zeze.Trans
 
         private void Init()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.Get(1);
-                localValue = value?.Copy();
-                return Procedure.Success;
-            }, "TestChangeListener.CopyLocal").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
+                {
+                    demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.Get(1);
+                    localValue = value?.Copy();
+                    return Procedure.Success;
+                },
+                "TestChangeListener.CopyLocal").Call());
 
 
             _CLInt1.Init(localValue);
@@ -200,12 +222,14 @@ namespace UnitTest.Zeze.Trans
 
         private void Verify()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(() =>
-            {
-                demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.Get(1);
-                localValue = value?.Copy();
-                return Procedure.Success;
-            }, "TestChangeListener.CopyLocal").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+                () =>
+                {
+                    demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.Get(1);
+                    localValue = value?.Copy();
+                    return Procedure.Success;
+                },
+                "TestChangeListener.CopyLocal").Call());
 
             _CLInt1.Verify(localValue);
             _ClLong2.Verify(localValue);

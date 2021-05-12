@@ -14,12 +14,13 @@ namespace ConfigEditor.Gen.ts
             switch (flags)
             {
                 case Property.DataOutputFlags.Client:
-                    main.Documents.ForEachFile((Documents.File file) =>
-                    {
-                        progress.AppendLine($"生成ts客户端代码. {file.Document.RelateName}", Color.Black);
-                        BeanFormatter.Gen(main.ConfigProject.ClientSrcDirectory, file.Document, Property.DataOutputFlags.Client);
-                        return progress.Running;
-                    });
+                    main.Documents.ForEachFile(
+                        (Documents.File file) =>
+                        {
+                            progress.AppendLine($"生成ts客户端代码. {file.Document.RelateName}", Color.Black);
+                            BeanFormatter.Gen(main.ConfigProject.ClientSrcDirectory, file.Document, Property.DataOutputFlags.Client);
+                            return progress.Running;
+                        });
                     break;
                 default:
                     throw new Exception("Ts. Client Only");

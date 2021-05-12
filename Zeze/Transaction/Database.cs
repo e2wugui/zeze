@@ -103,15 +103,16 @@ namespace Zeze.Transaction
 
         internal void Flush(Checkpoint sync)
         {
-            Flush(sync, () =>
-            {
-                int countFlush = 0;
-                foreach (Storage storage in storages)
+            Flush(sync,
+                () =>
                 {
-                    countFlush += storage.Flush();
-                }
-                //logger.Info("Checkpoint Flush count={0}", countFlush);
-            });
+                    int countFlush = 0;
+                    foreach (Storage storage in storages)
+                    {
+                        countFlush += storage.Flush();
+                    }
+                    //logger.Info("Checkpoint Flush count={0}", countFlush);
+                });
         }
 
         internal void Cleanup()
@@ -1151,7 +1152,9 @@ namespace Zeze.Transaction
   
         public override Database.Table OpenTable(string name)
         {
-            var tables = databaseTables.GetOrAdd(DatabaseUrl, (urlnotused) => new ConcurrentDictionary<string, TableMemory>());
+            var tables = databaseTables.GetOrAdd(DatabaseUrl,
+                (urlnotused) => new ConcurrentDictionary<string, TableMemory>());
+
             return tables.GetOrAdd(name, (tablenamenotused) => new TableMemory(name));
         }
 
