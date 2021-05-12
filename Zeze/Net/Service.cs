@@ -7,6 +7,8 @@ using Zeze.Serialize;
 using System.Collections.Concurrent;
 using Zeze.Transaction;
 using System.Net;
+using System.Net.Sockets;
+using System.Net.NetworkInformation;
 
 namespace Zeze.Net
 {
@@ -404,6 +406,75 @@ namespace Zeze.Net
             {
                 action(socket);
             }
+        }
+
+        public string GetOneNetworkInterfaceIpAddress(AddressFamily family = AddressFamily.Unspecified)
+        {
+            foreach (NetworkInterface neti in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (neti.NetworkInterfaceType == NetworkInterfaceType.Loopback)
+                    continue;
+
+                IPInterfaceProperties property = neti.GetIPProperties();
+                foreach (UnicastIPAddressInformation ip in property.UnicastAddresses)
+                {
+                    switch (ip.Address.AddressFamily)
+                    {
+                        case AddressFamily.InterNetworkV6:
+                        case AddressFamily.InterNetwork:
+                            if (family == AddressFamily.Unspecified
+                                || family == ip.Address.AddressFamily)
+                            {
+                                return ip.Address.ToString();
+                            }
+                            continue;
+                    }
+                }
+            }
+            return null;
+        }
+
+        public (string, int) GetOneAcceptorAddress()
+        {
+            string ip = string.Empty;
+            int port = 0;
+
+            Config.ForEachAcceptor(
+                (a) =>
+                {
+                    if (false == string.IsNullOrEmpty(a.Ip) && a.Port != 0)
+                    {
+                        // 找到ip，port都配置成明确地址的。
+                        ip = a.Ip;
+                        port = a.Port;
+                        return false;
+                    }
+                    // 获得最后一个配置的port。允许返回(null, port)。
+                    port = a.Port;
+                    return true;
+                });
+
+            return (ip, port);
+        }
+
+        public (string, int) GetOnePassiveAddress()
+        {
+            var (ip, port) = GetOneAcceptorAddress();
+            if (port == 0)
+                throw new Exception("Acceptor: No Config.");
+
+            if (string.IsNullOrEmpty(ip))
+            {
+                // 可能绑定在任意地址上。尝试获得网卡的地址。
+                ip = GetOneNetworkInterfaceIpAddress();
+                if (string.IsNullOrEmpty(ip))
+                {
+                    // 实在找不到ip地址，就设置成loopback。
+                    logger.Warn("PassiveAddress No Config. set ip to 127.0.0.1");
+                    ip = "127.0.0.1";
+                }
+            }
+            return (ip, port);
         }
     }
 }

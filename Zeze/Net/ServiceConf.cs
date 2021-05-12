@@ -74,6 +74,19 @@ namespace Zeze.Net
             }
         }
 
+        public bool ForEachConnector(Func<Connector, bool> func)
+        {
+            lock (Connectors)
+            {
+                foreach (var c in Connectors)
+                {
+                    if (false == func(c))
+                        return false;
+                }
+                return true;
+            }
+        }
+
         public void AddAcceptor(Acceptor a)
         {
             lock (Acceptors)
@@ -95,6 +108,19 @@ namespace Zeze.Net
             lock (Acceptors)
             {
                 Acceptors.ForEach(action);
+            }
+        }
+
+        public bool ForEachAcceptor(Func<Acceptor, bool> func)
+        {
+            lock (Acceptors)
+            {
+                foreach (var a in Acceptors)
+                {
+                    if (false == func(a))
+                        return false;
+                }
+                return true;
             }
         }
 
