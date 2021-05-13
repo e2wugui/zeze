@@ -8,7 +8,8 @@ namespace Zeze.Raft
 {
     public abstract class StateMachine
     {
+        public Raft Raft { get; internal set; }
+
         public abstract void Snapshot();
-        public abstract void ApplyLog(Log log);
     }
 }

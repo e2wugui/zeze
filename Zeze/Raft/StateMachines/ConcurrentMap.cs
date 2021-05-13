@@ -8,7 +8,14 @@ using Zeze.Util;
 
 namespace Zeze.Raft.StateMachines
 {
-    public class ConcurrentMap<K, V>
+    public interface Copyable<T>
+    {
+        public T Copy();
+    }
+
+    public abstract class ConcurrentMap<K, V>
+        : StateMachine
+        where V : Copyable<V>
     {
         public enum Operate
         {
@@ -20,11 +27,12 @@ namespace Zeze.Raft.StateMachines
         class SnapshotValue
         {
             public V Value { get; }
-            public Operate State { get; }
-            public SnapshotValue(V value, Operate state)
+            public Operate Operate { get; }
+
+            public SnapshotValue(V value, Operate operate)
             {
                 Value = value;
-                State = state;
+                Operate = operate;
             }
         }
 
@@ -50,18 +58,12 @@ namespace Zeze.Raft.StateMachines
         // 这个保护snapshot的开始结束等，没想好，直接想到方法是读写锁。
         // 读锁用于正常的数据操作，允许并发，
         // 写锁用于snapshot（仅设置标志，copytostream仍然在锁外）。
-        // 并发的需求：正常操作能并发，snapshot可以仅一个线程操作。
+        // 并发的需求：正常操作能并发，snapshot仅一个线程操作?
         private AtomicBool Snapshoting = new AtomicBool();
 
         // Log 也没完全想好。
         private AtomicLong LogIndex = new AtomicLong();
         private ConcurrentDictionary<long, Log> Logs = new ConcurrentDictionary<long, Log>();
-        public Func<V, V> DeepCopyValueFunction { get; }
-
-        public ConcurrentMap(Func<V, V> deepCopyFunction)
-        {
-            DeepCopyValueFunction = deepCopyFunction;
-        }
 
         /// <summary>
         /// 并发的得到一条记录引用。
@@ -99,7 +101,7 @@ namespace Zeze.Raft.StateMachines
             if (Snapshoting.Get())
             {
                 SnapshotCopyOnWrite.GetOrAdd(k,
-                    (key) => new SnapshotValue(DeepCopyValueFunction(v), Operate.Update));
+                    (key) => new SnapshotValue(v.Copy(), Operate.Update));
             }
             updator(v);
             Logs.TryAdd(logindex, new Log(k, v, Operate.Update, updator));
@@ -120,13 +122,13 @@ namespace Zeze.Raft.StateMachines
             }
         }
 
-        public long Snapshot()
+        public override void Snapshot()
         {
             Snapshoting.GetAndSet(true);
             SnapshotCopyOnWrite.Clear();
             long logindex = LogIndex.Get();
             Logs.Clear();
-            return logindex;
+            //return logindex;
         }
 
         public void SnapshotCopyToStream()
@@ -135,7 +137,7 @@ namespace Zeze.Raft.StateMachines
             {
                 if (SnapshotCopyOnWrite.TryGetValue(cur.Key, out var changed))
                 {
-                    switch (changed.State)
+                    switch (changed.Operate)
                     {
                         case Operate.Add:
                             // skip

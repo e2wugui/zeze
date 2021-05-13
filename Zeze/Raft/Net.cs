@@ -8,6 +8,25 @@ using Zeze.Transaction;
 
 namespace Zeze.Raft
 {
+    public sealed class Net : Zeze.Net.Service
+    {
+        public Raft Raft { get; }
+
+        // 多个Raft实例才需要自定义配置名字，否则使用默认名字就可以了。
+        /*
+        public Net(Raft raft, string name, Zeze.Config config) : base(name, config)
+        {
+            Raft = raft;
+        }
+        */
+
+        public Net(Raft raft, Zeze.Config config) : base("Zeze.Raft.Net", config)
+        {
+            Raft = raft;
+        }
+
+    }
+
     public sealed class RequestVoteArgument : Zeze.Transaction.Bean
     {
         public long Term { get; set; }
@@ -74,7 +93,7 @@ namespace Zeze.Raft
         public string LeaderId { get; set; } // Ip:Port
         public long PrevLogIndex { get; set; }
         public long PrevLogTerm { get; set; }
-        public List<Zeze.Net.Binary> Entries { get; } = new List<Net.Binary>();
+        public List<Zeze.Net.Binary> Entries { get; } = new List<Zeze.Net.Binary>();
         public long LeaderCommit { get; set; }
 
         public override void Decode(ByteBuffer bb)

@@ -74,6 +74,14 @@ namespace Zeze.Net
             }
         }
 
+        public int ConnectorCount()
+        {
+            lock (Connectors)
+            {
+                return Connectors.Count;
+            }
+        }
+
         public bool ForEachConnector(Func<Connector, bool> func)
         {
             lock (Connectors)
@@ -121,6 +129,14 @@ namespace Zeze.Net
                         return false;
                 }
                 return true;
+            }
+        }
+
+        public int AcceptorCount()
+        { 
+            lock (Acceptors)
+            {
+                return Acceptors.Count;
             }
         }
 
