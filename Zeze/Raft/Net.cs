@@ -90,6 +90,44 @@ namespace Zeze.Raft
 
             raftconf.Name = ""; // Agent 需要连所有的Node，自己不会是Server。
             Server.CreateConnector(Net, raftconf);
+            Net.Config.ForEachConnector((c) => RaftNodes.TryAdd(c.Name, c));
+
+            Net.AddFactoryHandle(new LeaderIs().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new LeaderIs(),
+                Handle = ProcessLeaderIs,
+            });
+        }
+
+        private int ProcessLeaderIs(Protocol p)
+        {
+            var r = p as LeaderIs;
+
+            if (false == RaftNodes.TryGetValue(r.Argument.LeaderId, out var nodeConnector))
+            {
+                // 当前 Agent 没有 Leader 的配置，创建一个。
+                // 由于 Agent 在新增 node 时也会得到新配置广播，一般不会发生这种情况。
+                var address = r.Argument.LeaderId.Split(':');
+                if (Net.Config.TryGetOrAddConnector(
+                    address[0], int.Parse(address[1]), true, out nodeConnector))
+                {
+                    RaftNodes.TryAdd(nodeConnector.Name, nodeConnector);
+                }
+            }
+
+            ReplaceLeaderMaybe(nodeConnector);
+
+            r.SendResultCode(0);
+            return Procedure.Success;
+        }
+
+        internal void ReplaceLeaderMaybe(Connector newr)
+        {
+            lock (this)
+            {
+                // ReSendPending TODO
+                LeaderMaybe = newr;
+            }
         }
 
         internal void SetLeaderMaybe(Connector equalThis, Connector newset)
@@ -105,6 +143,8 @@ namespace Zeze.Raft
 
         public sealed class NetClient : Service
         {
+            private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
             public Agent Agent { get; }
 
             public NetClient(Agent agent, string name, Zeze.Config config)
@@ -351,5 +391,41 @@ namespace Zeze.Raft
         public override int ProtocolId => ProtocolId_;
     }
 
+    /// <summary>
+    /// 下面是非标准的Raft-Rpc，辅助Agent用的。
+    /// </summary>
+    public sealed class LeaderIsArgument : Bean
+    {
+        public string LeaderId { get; set; }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            LeaderId = bb.ReadString();
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteString(LeaderId);
+        }
+
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// LeaderIs 的发送时机
+    /// 0. Agent 刚连上来时，如果Node是当前Leader，它马上这个Rpc给Agent。
+    /// 1. Node 收到应用请求时，发现自己不是Leader，发送重定向。此时Node不处理请求（也不返回结果）。
+    /// 2. 选举结束时也给Agent广播选举结果。TOTO 实现选举时再考虑细节。
+    /// </summary>
+    public sealed class LeaderIs : Rpc<LeaderIsArgument, EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash16(typeof(LeaderIs).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+    }
 
 }

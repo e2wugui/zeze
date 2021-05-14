@@ -19,7 +19,6 @@ namespace Zeze.Raft
         internal ConcurrentDictionary<string, Node> Nodes { get; }
             = new ConcurrentDictionary<string, Node>();
 
-        // 如果重用一个配置文件，这个参数需要通过启动参数覆盖。
         // 【这个参数不保存】
         public string Name { get; internal set; }
 

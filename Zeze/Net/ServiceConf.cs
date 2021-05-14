@@ -38,7 +38,7 @@ namespace Zeze.Net
         }
 
         /// <summary>
-        /// 
+        /// 查找，不存在则创建。
         /// </summary>
         /// <param name="host"></param>
         /// <param name="port"></param>
