@@ -57,7 +57,7 @@ namespace Zeze.Raft
         {
             Term = bb.ReadLong();
             Index = bb.ReadLong();
-            int logTypeId = bb.ReadInt();
+            int logTypeId = bb.ReadInt4();
             Log = LogFactory(logTypeId);
             Log.Decode(bb);
         }
@@ -66,7 +66,7 @@ namespace Zeze.Raft
         {
             bb.WriteLong(Term);
             bb.WriteLong(Index);
-            bb.WriteInt(Log.TypeId);
+            bb.WriteInt4(Log.TypeId);
             Log.Encode(bb);
         }
     }

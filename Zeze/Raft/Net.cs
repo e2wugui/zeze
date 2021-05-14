@@ -8,23 +8,50 @@ using Zeze.Transaction;
 
 namespace Zeze.Raft
 {
-    public sealed class Net : Zeze.Net.Service
+    /// <summary>
+    /// 同时配置 Acceptor 和 Connector。
+    /// 逻辑上主要使用 Connector。
+    /// 两个Raft之间会有两个连接。
+    /// 【注意】
+    /// 为了简化配置，应用可以注册协议到Server，使用同一个Acceptor进行连接。
+    /// </summary>
+    public sealed class Server : Zeze.Net.Service
     {
         public Raft Raft { get; }
 
         // 多个Raft实例才需要自定义配置名字，否则使用默认名字就可以了。
         /*
-        public Net(Raft raft, string name, Zeze.Config config) : base(name, config)
+        public Server(Raft raft, string name, Zeze.Config config) : base(name, config)
         {
             Raft = raft;
         }
         */
 
-        public Net(Raft raft, Zeze.Config config) : base("Zeze.Raft.Net", config)
+        public Server(Raft raft, Zeze.Config config) : base("Zeze.Raft.Server", config)
         {
             Raft = raft;
         }
 
+    }
+
+    public sealed class Agent
+    {
+        public sealed class NetClient : Zeze.Net.Service
+        {
+            public Config RaftConfig { get; }
+
+            public NetClient(Config raftconf, Zeze.Config config)
+                : base("Zeze.Raft.Agent", config)
+            {
+                RaftConfig = raftconf;
+            }
+
+            public NetClient(string name, Config raftconf, Zeze.Config config)
+                : base(name, config)
+            {
+                RaftConfig = raftconf;
+            }
+        }
     }
 
     public sealed class RequestVoteArgument : Zeze.Transaction.Bean

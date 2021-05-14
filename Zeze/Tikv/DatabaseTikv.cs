@@ -9,7 +9,7 @@ using Zeze.Transaction;
 
 namespace Zeze.Tikv
 {
-    public sealed class DatabaseTikv : Zeze.Transaction.Database
+    public sealed class DatabaseTikv : Database
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         internal TikvConnection CheckpointTikvConnection { get; private set; }
@@ -63,7 +63,7 @@ namespace Zeze.Tikv
             return new TableTikv(this, name);
         }
 
-        public sealed class OperatesTikv : Zeze.Transaction.Database.Operates
+        public sealed class OperatesTikv : Operates
         {
             public OperatesTikv(DatabaseTikv tikv)
             {
