@@ -128,18 +128,13 @@ namespace Zeze
         /// </summary>
         /// <param name="xmlfile"></param>
         /// <returns></returns>
-        public static Config Load(string xmlfile = null)
+        public static Config Load(string xmlfile = "zeze.xml")
         {
             return new Config().LoadAndParse(xmlfile);
         }
 
-        public Config LoadAndParse(string xmlfile = null)
+        public Config LoadAndParse(string xmlfile = "zeze.xml")
         {
-            if (null == xmlfile)
-            {
-                xmlfile = "zeze.xml";
-            }
-
             if (System.IO.File.Exists(xmlfile))
             {
                 XmlDocument doc = new XmlDocument();

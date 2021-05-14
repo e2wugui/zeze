@@ -15,9 +15,11 @@ namespace Zeze.Net
         public TResult Result { get; set; } = new TResult();
 
         public bool IsRequest { get; private set; }
-        public Func<Protocol, int> ResponseHandle;
         public bool IsTimeout { get; private set; }
         public long SessionId { get; private set; }
+
+        public Func<Protocol, int> ResponseHandle { get; set; }
+        public int Timeout { get; set; } = 5000;
 
         public TaskCompletionSource<TResult> Future { get; private set; }
 
@@ -26,16 +28,23 @@ namespace Zeze.Net
             this.IsTimeout = false;
         }
 
+        /// <summary>
+        /// 使用当前 rpc 中设置的参数发送。
+        /// </summary>
+        /// <param name="so"></param>
+        /// <returns></returns>
         public override bool Send(AsyncSocket so)
         {
-            return Send(so, null);
+            return Send(so, ResponseHandle, Timeout);
         }
 
         public bool Send(AsyncSocket so, Func<Protocol, int> responseHandle, int millisecondsTimeout = 5000)
         {
             this.IsRequest = true;
             this.ResponseHandle = responseHandle;
-            this.SessionId = so.Service.AddRpcContext(this);
+            this.Timeout = millisecondsTimeout;
+
+            var sessionId = so.Service.AddRpcContext(this);
 
             var timeoutTask = global::Zeze.Util.Scheduler.Instance.Schedule(
                 (ThisTask)=>
@@ -43,7 +52,7 @@ namespace Zeze.Net
                     if (null == so.Service)
                         return; // Socket closed.
 
-                    Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
+                    Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
                     if (null == context) // 一般来说，此时结果已经返回。
                         return;
 
@@ -57,6 +66,8 @@ namespace Zeze.Net
                 },
                 millisecondsTimeout,
                 -1);
+
+            this.SessionId = sessionId;
 
             if (base.Send(so))
                 return true;

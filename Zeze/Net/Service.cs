@@ -136,7 +136,7 @@ namespace Zeze.Net
             // 一般实现：遍历RpcContexts，
             /*
             var ctxSends = GetRpcContextsToSender(so);
-            var ctxRemoved = RemoveRpcContets<Rpc<MyArgument, MyResult>>(ctxSends.Keys);
+            var ctxPending = RemoveRpcContets(ctxSends.Keys);
             foreach (var ctx in ctxRemoved)
             {
                 // process
@@ -157,15 +157,15 @@ namespace Zeze.Net
             return result;
         }
 
-        public ICollection<T> RemoveRpcContets<T>(ICollection<long> sids) where T : Protocol
+        public ICollection<Protocol> RemoveRpcContets(ICollection<long> sids)
         {
-            var result = new List<T>(sids.Count);
+            var result = new List<Protocol>(sids.Count);
             foreach (var sid in sids)
             {
-                var ctx = this.RemoveRpcContext<T>(sid);
+                var ctx = this.RemoveRpcContext<Protocol>(sid);
                 if (null != ctx)
                 {
-                    result.Add((T)ctx);
+                    result.Add(ctx);
                 }
             }
             return result;
