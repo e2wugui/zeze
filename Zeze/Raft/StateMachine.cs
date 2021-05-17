@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Net;
 
 namespace Zeze.Raft
 {
@@ -10,6 +11,8 @@ namespace Zeze.Raft
     {
         public Raft Raft { get; internal set; }
 
-        public abstract void Snapshot();
+        public abstract Log LogFactory(int logTypeId);
+
+        public abstract void Snapshot(AsyncSocket node);
     }
 }

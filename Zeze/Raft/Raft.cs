@@ -13,18 +13,18 @@ namespace Zeze.Raft
     /// </summary>
     public sealed class Raft
     {
-        public Server Server { get; }
-        public StateMachine StateMachine { get; }
-        public Config RaftConfig { get; }
+        public string Name => RaftConfig.Name;
+        public RaftConfig RaftConfig { get; }
+        public LogSequence LogSequence { get; }
 
-        public void AppendLog(Log log)
-        {
-            // 构建RaftLog；加到队列中并广播；等待多数确认；提交
-        }
+        public Server Server { get; }
+
+        public StateMachine StateMachine { get; }
 
         private int ProcessRequestVote(Protocol p)
         {
             var r = p as RequestVote;
+            RaftConfig.TrySetTerm(r.Argument.Term);
             r.SendResultCode(0);
             return Procedure.Success;
         }
@@ -32,29 +32,31 @@ namespace Zeze.Raft
         private int ProcessAppendEntries(Protocol p)
         {
             var r = p as AppendEntries;
-            r.SendResultCode(0);
-            return Procedure.Success;
+            RaftConfig.TrySetTerm(r.Argument.Term);
+            return LogSequence.FollowerOnAppendEntries(r);
         }
 
         private int ProcessInstallSnapshot(Protocol p)
         {
             var r = p as InstallSnapshot;
+            RaftConfig.TrySetTerm(r.Argument.Term);
             r.SendResultCode(0);
             return Procedure.Success;
         }
 
         public Raft(StateMachine sm,
-            Config raftconf = null,
+            RaftConfig raftconf = null,
             Zeze.Config config = null,
             string name = "Zeze.Raft.Server")
         {
             if (null == raftconf)
-                raftconf = Config.Load();
+                raftconf = RaftConfig.Load();
 
             if (null == config)
                 config = Zeze.Config.Load();
 
             Server = new Server(this, name, config);
+            LogSequence = new LogSequence(this);
 
             if (Server.Config.AcceptorCount() != 0)
                 throw new Exception("Acceptor Found!");
@@ -65,9 +67,12 @@ namespace Zeze.Raft
             RaftConfig = raftconf;
             Server.CreateAcceptor(Server, raftconf);
             Server.CreateConnector(Server, raftconf);
+
             sm.Raft = this;
             StateMachine = sm;
             RegisterInternalRpc();
+
+            // TODO vote now
         }
 
         private void RegisterInternalRpc()

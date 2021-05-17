@@ -9,7 +9,7 @@ using System.Xml;
 
 namespace Zeze.Raft
 {
-    public sealed class Config
+    public sealed class RaftConfig
     {
         private XmlDocument XmlDocument { get; }
 
@@ -21,8 +21,11 @@ namespace Zeze.Raft
 
         // 【这个参数不保存】
         public string Name { get; internal set; }
+        // 多数确认时：大于等于这个即可，因为还有自己(Leader)。
+        public int HalfCount => Nodes.Count / 2;
+        public long Term { get; private set; }
 
-        private Config(XmlDocument xml, string filename, XmlElement self)
+        private RaftConfig(XmlDocument xml, string filename, XmlElement self)
         {
             XmlDocument = xml;
             XmlFileName = filename;
@@ -46,6 +49,14 @@ namespace Zeze.Raft
             }
         }
 
+        internal void TrySetTerm(long term)
+        {
+            lock (this)
+            {
+                if (term > Term)
+                    Term = term;
+            }
+        }
         internal void Save()
         { 
             // TODO other elements
@@ -61,13 +72,13 @@ namespace Zeze.Raft
             }
         }
 
-        public static Config Load(string xmlfile = "raft.xml")
+        public static RaftConfig Load(string xmlfile = "raft.xml")
         {
             if (File.Exists(xmlfile))
             {
                 XmlDocument doc = new XmlDocument();
                 doc.Load(xmlfile);
-                return new Config(doc, xmlfile, doc.DocumentElement);
+                return new RaftConfig(doc, xmlfile, doc.DocumentElement);
             }
 
             throw new Exception($"Raft.Config: '{xmlfile}' not exists.");

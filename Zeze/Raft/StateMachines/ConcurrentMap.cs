@@ -13,9 +13,7 @@ namespace Zeze.Raft.StateMachines
         public T Copy();
     }
 
-    public abstract class ConcurrentMap<K, V>
-        : StateMachine
-        where V : Copyable<V>
+    public abstract class ConcurrentMap<K, V> where V : Copyable<V>
     {
         public enum Operate
         {
@@ -122,7 +120,7 @@ namespace Zeze.Raft.StateMachines
             }
         }
 
-        public override void Snapshot()
+        public void Snapshot()
         {
             Snapshoting.GetAndSet(true);
             SnapshotCopyOnWrite.Clear();

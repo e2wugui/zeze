@@ -44,6 +44,9 @@ namespace Zeze.Net
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
 
+            if (so == null)
+                return false;
+
             var sessionId = so.Service.AddRpcContext(this);
 
             var timeoutTask = global::Zeze.Util.Scheduler.Instance.Schedule(

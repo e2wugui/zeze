@@ -27,7 +27,7 @@ namespace Zeze.Raft
             Raft = raft;
         }
 
-        public static void CreateConnector(Service service, Config raftconf)
+        public static void CreateConnector(Service service, RaftConfig raftconf)
         {
             foreach (var node in raftconf.Nodes.Values)
             {
@@ -37,7 +37,7 @@ namespace Zeze.Raft
             }
         }
 
-        public static void CreateAcceptor(Service service, Config raftconf)
+        public static void CreateAcceptor(Service service, RaftConfig raftconf)
         {
             if (false == raftconf.Nodes.TryGetValue(raftconf.Name, out var node))
                 throw new Exception("raft Name Not In Node");
@@ -47,7 +47,7 @@ namespace Zeze.Raft
 
     public sealed class Agent
     {
-        public Config RaftConfig { get; }
+        public RaftConfig RaftConfig { get; }
         public NetClient Net { get; }
         public string Name => Net.Name;
 
@@ -68,12 +68,12 @@ namespace Zeze.Raft
         }
 
         public Agent(
-            Config raftconf = null,
+            RaftConfig raftconf = null,
             Zeze.Config config = null,
             string name = "Zeze.Raft.Agent")
         {
             if (null == raftconf)
-                raftconf = Config.Load();
+                raftconf = RaftConfig.Load();
 
             RaftConfig = raftconf;
 
