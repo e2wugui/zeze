@@ -190,6 +190,7 @@ namespace Zeze.Net
         public virtual void OnHandshakeDone(AsyncSocket sender)
         {
             sender.IsHandshakeDone = true;
+            sender.Connector?.OnSocketHandshakeDone(sender);
         }
 
         /// <summary>

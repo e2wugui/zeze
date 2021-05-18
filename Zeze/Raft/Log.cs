@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Zeze.Serialize;
 using Zeze.Transaction;
@@ -30,6 +31,18 @@ namespace Zeze.Raft
         /// </summary>
         /// <param name="stateMachine"></param>
         public abstract void Apply(StateMachine stateMachine);
+        internal ManualResetEvent ApplyEvent { get; set; }
+
+        public virtual bool WaitAndApply(Raft raft, int millisecondsTimeout = -1)
+        {
+            if (ApplyEvent.WaitOne(millisecondsTimeout))
+            {
+                Apply(raft.StateMachine);
+                ApplyEvent = null; // release trigger once.
+                return true;
+            }
+            return false;
+        }
 
         public abstract void Decode(ByteBuffer bb);
         public abstract void Encode(ByteBuffer bb);
@@ -58,27 +71,6 @@ namespace Zeze.Raft
 
         // 不会被系列化。Local Only.
         public Func<int, Log> LogFactory { get; }
-
-        // 仅用于Leader。
-        public ConcurrentDictionary<Zeze.Net.Connector, int> SuccessFollowers { get; }
-            = new ConcurrentDictionary<Net.Connector, int>();
-
-        // 对于Leader
-        // 0. 初始WaitMajorityConfirmation，
-        // 1. 多数确认以后Committable，
-        // 2. 提交以后设置为Commtted
-        //
-        // 对于Follower
-        // 1. 处理AppendEntries时返回Success时即设为Committable，以后等待Leader推进CommitIndex。
-        // 2. 提交以后设置为Commtted
-        public enum State
-        {
-            WaitMajorityConfirmation,
-            Committable,
-            Commtted,
-        }
-        // 线程，under lock(LogSequence)
-        public State LogState { get; set; } = State.WaitMajorityConfirmation;
 
         public RaftLog(long term, long index, Log log)
         {
@@ -129,25 +121,16 @@ namespace Zeze.Raft
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public Raft Raft { get; }
+
         public long Term => Raft.RaftConfig.Term;
         public long Index { get; private set; }
 
         public long CommitIndex { get; private set; }
+        public long LastApplied { get; private set; }
 
         private List<RaftLog> Logs { get; } = new List<RaftLog>();
 
-        /// <summary>
-        /// 复制日志超时，以及发送失败重试超时。
-        /// </summary>
-        public const int AppendEntriesTimeout = 5000;
-        // 不精确 Heartbeat Idle 算法：
-        // 如果 AppendLogActive 则设为 false，然后等待下一次timer。
-        // 否则发送 AppendLog。
-        public const int LeaderHeartbeatTimer = 6000;
-        // > LeaderHeartbeatTimer + AppendEntriesTimeout
-        public const int LeaderLostTimeout = 12000; 
-
-        public bool AppendLogActive = false;
+        private bool AppendLogActive = false;
 
         public LogSequence(Raft raft)
         {
@@ -160,205 +143,233 @@ namespace Zeze.Raft
                         AppendLogActive = false;
                         return;
                     }
-                    AppendLog(new HeartbeatLog());
+                    AppendLog(new HeartbeatLog(), false);
                 },
-                LeaderHeartbeatTimer, LeaderHeartbeatTimer);
+                Raft.RaftConfig.LeaderHeartbeatTimer,
+                Raft.RaftConfig.LeaderHeartbeatTimer);
         }
 
-        /// <summary>
-        /// 从 last 开始往前查找最早的未提交的日志。
-        /// 如果中间发现WaitMajorityConfirmation返回-1。
-        /// 由于tcp流以及日志Append模式，这里一般只需要回溯一次，然后直接返回last。
-        /// 只有在异常的情况下，可能返回前一个（上一次Term中后来多数确认成功的一个，共2个）。
-        /// </summary>
-        /// <param name="current"></param>
-        /// <returns></returns>
-        private int FindFirstCommittableIndex(int current)
+        private int FindMaxMajority(int startArrayIndex)
         {
-            for (int i = current; i >= 0; --i)
+            int lastMajorityArrayIndex = -1;
+            for (int i = startArrayIndex; i < Logs.Count; ++i)
             {
-                switch (Logs[i].LogState)
-                {
-                    case RaftLog.State.Committable:
-                        continue;
-
-                    case RaftLog.State.Commtted:
-                        if (Logs[i].Index != CommitIndex)
+                var log = Logs[i];
+                int MajorityCount = 0;
+                Raft.Server.Config.ForEachConnector(
+                    (c) =>
+                    {
+                        var cex = c as Server.ConnectorEx;
+                        if (cex.MatchIndex >= log.Index)
                         {
-                            // 原则上不可能，加上这个检查纠错。
-                            logger.Fatal("RaftLog.Committed but Index Is Not CommitIndex.");
+                            ++MajorityCount;
                         }
-                        return i + 1;
+                    });
 
-                    case RaftLog.State.WaitMajorityConfirmation:
-                        return -1;
-                }
+                if (MajorityCount <= Raft.RaftConfig.HalfCount)
+                    break; // 没有达成多数派，中断搜索。
+
+                lastMajorityArrayIndex = i;
             }
-            return 0;
+            return lastMajorityArrayIndex;
         }
 
-        private int FindLastCommittableIndex(int current)
-        {
-            for (int i = current; i < Logs.Count; ++i)
-            {
-                switch (Logs[i].LogState)
-                {
-                    case RaftLog.State.Committable:
-                        continue;
-
-                    case RaftLog.State.Commtted:
-                        // 原则上不可能。
-                        // 已经记过logger，这个发生了，应该停止服务吧。
-                        logger.Fatal("RaftLog.Committed Found After Committable.");
-                        Environment.Exit(101010);
-                        return -1;
-
-                    case RaftLog.State.WaitMajorityConfirmation:
-                        return i - 1;
-                }
-            }
-            return Logs.Count - 1;
-        }
-
-        private void TryCommit(int index)
+        private void TryCommit(AppendEntries rpc, Server.ConnectorEx connector)
         {
             lock (this)
             {
-                var raftLog = Logs[index];
-                if (raftLog.LogState == RaftLog.State.Commtted)
-                {
-                    return; // 已经提交（多数确认过的）日志，不需要额外处理。
-                }
+                connector.NextIndex = rpc.Argument.LastEntryIndex + 1;
+                connector.MatchIndex = rpc.Argument.LastEntryIndex;
 
-                raftLog.LogState = RaftLog.State.Committable;
+                // Rules for Servers
+                // If there exists an N such that N > commitIndex, a majority
+                // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
+                // set commitIndex = N(§5.3, §5.4).
 
-                if (raftLog.SuccessFollowers.Count < Raft.RaftConfig.HalfCount)
-                {
-                    return; // 没有达到多数确认。
-                }
+                long majorityIndex = CommitIndex + 1;
+                var majorityArrayIndex = ReverseFind(majorityIndex);
+                if (majorityArrayIndex < 0 || majorityArrayIndex >= Logs.Count)
+                    return;
 
+                var maxMajorityArrayIndex = FindMaxMajority(majorityArrayIndex);
+                if (maxMajorityArrayIndex < 0)
+                    return; // 一个多数派都没有找到。
+
+                var raftLog = Logs[maxMajorityArrayIndex];
                 if (raftLog.Term != Term)
                 {
                     // 如果是上一个 Term 未提交的日志，不自动提交。
                     // 总是等待当前 Term 推进时，随便提交它。
                     return;
                 }
-
-                var tryCommitIndex = raftLog.Index;
-                var firstArrayIndex = FindFirstCommittableIndex(index);
-                if (firstArrayIndex < 0)
-                    return;
-                var lastArrayIndex = FindLastCommittableIndex(index);
-                if (lastArrayIndex < 0)
-                    return; // 这种情况发生，会导致程序退出。
-
-                for (int i = firstArrayIndex; i <= lastArrayIndex; ++i)
-                {
-                    var log = Logs[i];
-                    log.Log.Apply(Raft.StateMachine);
-                    log.LogState = RaftLog.State.Commtted;
-                }
-
-                CommitIndex = Logs[lastArrayIndex].Index;
-                // Leader只管自己推进CommitIndex。
-                // 不需要广播一次让followers推进CommitIndex。
-                // 持续的日志复制会导致followers推进CommitIndex。
-                // 日志复制停止以后，心跳会导致followers推进最后一条的CommitIndex.
+                CommitIndex = raftLog.Index;
+                TryApply(maxMajorityArrayIndex);
             }
         }
 
-        private (RaftLog, AppendEntriesArgument, int) AppendLogAtomic(Log log)
+        private void TryApply(int lastApplyArrayIndex)
         {
-            var arg = new AppendEntriesArgument();
+            // 不考虑效率，实现持久化后再来调整。
             lock (this)
             {
-                arg.Term = Term;
-                arg.LeaderId = Raft.Name;
+                var applyArrayIndexStart = ReverseFind(LastApplied);
+                if (applyArrayIndexStart >= Logs.Count)
+                    return;
 
-                arg.PrevLogIndex = Index;
-                // TODO 第一个Log的前一个Term写什么？
-                arg.PrevLogTerm = Logs.Count == 0 ? Term : Logs[Logs.Count - 1].Term;
+                if (applyArrayIndexStart < 0)
+                    applyArrayIndexStart = 0;
 
+                for (int i = applyArrayIndexStart; i <= lastApplyArrayIndex; ++i)
+                {
+                    var log = Logs[i];
+                    if (null != log.Log.ApplyEvent)
+                    {
+                        log.Log.ApplyEvent.Set();
+                    }
+                    else
+                    {
+                        log.Log.Apply(Raft.StateMachine);
+                    }
+                }
+                LastApplied = Logs[lastApplyArrayIndex].Index;
+            }
+        }
+
+        public Log AppendLog(Log log, bool ApplyMyself = true)
+        {
+            if (ApplyMyself)
+            {
+                if (null != log.ApplyEvent)
+                    throw new Exception("Not A Fresh Log.");
+                log.ApplyEvent = new ManualResetEvent(false);
+            }
+
+            lock (this)
+            {
                 ++Index;
                 var raftLog = new RaftLog(Term, Index, log);
                 Logs.Add(raftLog);
-
-                arg.Entries.Add(raftLog.Encode());
-                arg.LeaderCommit = CommitIndex;
-
-                return (raftLog, arg, Logs.Count - 1);
             }
-        }
 
-        public void AppendLog(Log log)
-        {
-            var (raftLog, arg, index) = AppendLogAtomic(log);
             // 广播给followers并异步等待多数确认
             Raft.Server.Config.ForEachConnector(
-                (c) =>
-                {
-                    if (raftLog.SuccessFollowers.TryGetValue(c, out var _))
-                    {
-                        // 已经复制成功过。忽略。
-                        // 由于RaftNodes.Count不会很多，现在保存复制成功过的。
-                        // 使用循环检测方式，没有成功的持续广播等待确认。
-                        // 这种方式，当 RaftNodes.Count 发生变更时，可以继续通知新的node。
-                        // TODO，Count变更时，需要确认这样做是否正确。
-                        return;
-                    }
-                    SendAppendEntries(raftLog, index, arg, c);
-                });
+                (connector) => TrySendAppendEntries(connector as Server.ConnectorEx));
+
+            return log;
         }
 
-        private void SendAppendEntries(RaftLog raftLog, int index,
-            AppendEntriesArgument arg, Zeze.Net.Connector connector)
+        // LogIndex To ArrayIndex。
+        // 以后持久化再来调整。
+        private int ReverseFind(long nextIndex)
         {
-            // 按理说，多个Follower设置一次就够了，这里就不做这个处理了。
-            AppendLogActive = true;
+            int i = Logs.Count - 1;
+            for (; i >= 0; --i)
+            {
+                // 3 4 5 7+
+                var log = Logs[i];
+                if (log.Index < nextIndex)
+                    break;
+            }
+            var n = i + 1;
+            if (n >= Logs.Count)
+            {
+                // 如果是最后一个日志，检查一下是否刚好是要找的。
+                if (Logs[^1].Index == nextIndex)
+                    return i;
+                return n; // UpperOutOfIndex。外面需要检查。
+            }
+            var logNext = Logs[n];
+            if (logNext.Index == nextIndex)
+                return n;
+            if (i >= 0)
+                return i;
+            return -1; // LowerOutOfIndex。外面需要检查。
+        }
 
+        private void TrySendAppendEntries(Server.ConnectorEx connector)
+        {
             if (false == connector.IsHandshakeDone)
             {
                 Zeze.Util.Scheduler.Instance.Schedule(
-                    (ThisTask) => SendAppendEntries(raftLog, index, arg, connector),
-                    AppendEntriesTimeout);
+                    (ThisTask) => TrySendAppendEntries(connector),
+                    Raft.RaftConfig.AppendEntriesTimeout);
+                return;
             }
 
-            var sendResultLocal = new AppendEntries() { Argument = arg }.Send(connector.Socket,
+            var rpc = new AppendEntries();
+            var nextIndex = connector.NextIndex;
+
+            lock (this)
+            {
+                var nextArrayIndex = ReverseFind(nextIndex);
+                if (nextArrayIndex >= Logs.Count)
+                {
+                    return; // 没有日志需要同步。
+                }
+
+                if (nextArrayIndex < 0)
+                {
+                    // TODO LowerOutOfIndex Start InstallSnapshot
+                    return;
+                }
+                rpc.Argument.Term = Term;
+                rpc.Argument.LeaderId = Raft.Name;
+                rpc.Argument.LeaderCommit = CommitIndex;
+
+                // TODO 第一个Log的前一个Term写什么？
+                // raft.pdf好像是在系统初始化时自动添加一条Index=0的日志。
+                // 以后（包括Snapshot，会保留最后一个日志）都不会找不到prev。
+                var logPrev = Logs[nextArrayIndex - 1];
+                rpc.Argument.PrevLogIndex = logPrev.Index;
+                rpc.Argument.PrevLogTerm = logPrev.Term;
+
+                // TODO 限制一次发送的日志数量。
+                for (int i = nextArrayIndex; i < Logs.Count; ++i)
+                {
+                    rpc.Argument.Entries.Add(Logs[i].Encode());
+                }
+                rpc.Argument.LastEntryIndex = Logs[^1].Index;
+            }
+
+            var sendResultLocal = rpc.Send(connector.Socket,
                 (p) =>
                 {
                     var r = p as AppendEntries;
                     if (r.IsTimeout)
                     {
-                        SendAppendEntries(raftLog, index, arg, connector);  //resend
+                        TrySendAppendEntries(connector);  //resend
                     }
                     else if (r.Result.Success)
                     {
-                        if (raftLog.SuccessFollowers.TryAdd(connector, 1))
-                        {
-                            TryCommit(index);
-                        }
-                        else
-                        {
-                            logger.Fatal("RaftLog.SuccessFollowers.TryAdd false. Imposible!");
-                        }
-                        // TODO
-                        // r.Result.Term 这个拿来干嘛用
+                        TryCommit(r, connector);
                     }
                     else
                     {
-                        SendAppendEntries(raftLog, index, arg, connector);  //resend
+                        ReduceNextIndexAndTrySendAppendEntries(r.Result.Term, connector);
                     }
                     return Procedure.Success;
                 },
-                AppendEntriesTimeout);
+                Raft.RaftConfig.AppendEntriesTimeout);
+
+            // 按理说，多个Follower设置一次就够了，这里就不做这个处理了。
+            AppendLogActive = sendResultLocal;
 
             if (false == sendResultLocal)
             {
                 Zeze.Util.Scheduler.Instance.Schedule(
-                    (ThisTask) => SendAppendEntries(raftLog, index, arg, connector),
-                    AppendEntriesTimeout);
+                    (ThisTask) => TrySendAppendEntries(connector),
+                    Raft.RaftConfig.AppendEntriesTimeout);
                 return;
             }
+        }
+
+        private void ReduceNextIndexAndTrySendAppendEntries(long resultTerm, Server.ConnectorEx connector)
+        {
+            lock (this)
+            {
+                connector.NextIndex--;
+            }
+            TrySendAppendEntries(connector);  //resend
         }
 
         private (RaftLog, int) FindPrevLog(long prevTerm, long prevIndex)
@@ -374,23 +385,26 @@ namespace Zeze.Raft
 
         internal int FollowerOnAppendEntries(AppendEntries r)
         {
+            r.Result.Term = r.Argument.Term;
+            r.Result.Success = false; // set default false
+
             if (r.Argument.Term < Term)
             {
                 // 1. Reply false if term < currentTerm (§5.1)
-                r.Result.Success = false;
                 r.SendResult();
                 return Procedure.LogicError;
             }
 
             lock (this)
             {
-                var (prevLog, prevIndex) = FindPrevLog(r.Argument.PrevLogTerm, r.Argument.PrevLogIndex);
+                var (prevLog, prevIndex) = FindPrevLog(
+                    r.Argument.PrevLogTerm, r.Argument.PrevLogIndex);
+
                 if (prevLog == null)
                 {
                     // 2. Reply false if log doesn’t contain an entry
                     // at prevLogIndex whose term matches prevLogTerm(§5.3)
                     // TODO 初始化系统或者snapshot以后，此时prev肯定找不到，怎么允许。
-                    r.Result.Success = false;
                     r.SendResult();
                     return Procedure.LogicError;
                 }
@@ -400,7 +414,6 @@ namespace Zeze.Raft
                 foreach (var raftLogData in r.Argument.Entries)
                 {
                     var raftLog = RaftLog.Decode(raftLogData, Raft.StateMachine.LogFactory);
-                    raftLog.LogState = RaftLog.State.Committable;
 
                     for (int i = Logs.Count - 1; i > prevIndex; --i)
                     {
@@ -416,33 +429,12 @@ namespace Zeze.Raft
                 }
                 // 5. If leaderCommit > commitIndex,
                 // set commitIndex = min(leaderCommit, index of last new entry)
-                CommitIndex = Math.Min(
-                    r.Argument.LeaderCommit,
-                    Logs[Logs.Count - 1].Index);
-                var currentArrayIndex = FindCurrentCommitIndex(CommitIndex);
-                if (currentArrayIndex >= 0)
-                {
-                    var firstIndex = FindFirstCommittableIndex(currentArrayIndex);
-                    for (int i = firstIndex; i < currentArrayIndex; ++i)
-                    {
-                        var log = Logs[i];
-                        log.Log.Apply(Raft.StateMachine);
-                        log.LogState = RaftLog.State.Commtted;
-                    }
-                }
+                CommitIndex = Math.Min(r.Argument.LeaderCommit,Logs[^1].Index);
+                TryApply(ReverseFind(CommitIndex));
             }
+            r.Result.Success = true;
             r.SendResultCode(0);
             return Procedure.Success;
-        }
-
-        private int FindCurrentCommitIndex(long commitIndex)
-        {
-            for (int i = Logs.Count - 1; i >= 0; --i)
-            {
-                if (Logs[i].Index == commitIndex)
-                    return i;
-            }
-            return -1;
         }
     }
 }

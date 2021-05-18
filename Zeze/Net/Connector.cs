@@ -7,6 +7,14 @@ using System.Xml;
 
 namespace Zeze.Net
 {
+    /// <summary>
+    /// 连接器：建立并保持一个连接，可以设置自动重连及相关参数。
+    /// 可以继承并重载相关事件函数。重载实现里面需要调用 base.OnXXX。
+    /// 继承是为了给链接扩充状态，比如：应用的连接需要login，可以维护额外的状态。
+    /// 继承类启用方式：
+    /// 1. 在配置中通过 class="FullClassName" 的。
+    /// 2. 动态创建并加入Service
+    /// </summary>
     public class Connector
     {
         public string HostNameOrAddress { get; }
@@ -27,6 +35,14 @@ namespace Zeze.Net
             IsAutoReconnect = autoReconnect;
         }
 
+        public static Connector Create(XmlElement e)
+        {
+            var className = e.GetAttribute("Class");
+            return string.IsNullOrEmpty(className)
+                    ? new Connector(e)
+                    : (Connector)Activator.CreateInstance(Type.GetType(className), e);
+        }
+
         public Connector(XmlElement self)
         {
             string attr = self.GetAttribute("Port");
@@ -43,7 +59,7 @@ namespace Zeze.Net
                 MaxReconnectDelay = 8000;
         }
 
-        public void OnSocketClose(AsyncSocket closed)
+        public virtual void OnSocketClose(AsyncSocket closed)
         {
             if (Socket != closed)
                 return;
@@ -67,13 +83,17 @@ namespace Zeze.Net
             Util.Scheduler.Instance.Schedule((ThisTask) => Start(service), ConnectDelay); ;
         }
 
-        public void OnSocketConnected(AsyncSocket so)
+        public virtual void OnSocketConnected(AsyncSocket so)
         {
             ConnectDelay = 0;
             IsConnected = true;
         }
 
-        public void Start(Service service)
+        public virtual void OnSocketHandshakeDone(AsyncSocket so)
+        {
+        }
+
+        public virtual void Start(Service service)
         {
             Socket?.Dispose();
             IsConnected = false;
@@ -81,7 +101,7 @@ namespace Zeze.Net
             Socket.Connector = this;
         }
 
-        public void Stop(Service service)
+        public virtual void Stop(Service service)
         {
             Socket?.Dispose();
             Socket = null;

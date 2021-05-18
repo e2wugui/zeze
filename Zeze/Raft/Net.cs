@@ -27,13 +27,39 @@ namespace Zeze.Raft
             Raft = raft;
         }
 
+        public class ConnectorEx : Connector
+        {
+            public ConnectorEx(string host, int port)
+                : base(host, port)
+            {
+
+            }
+
+            ////////////////////////////////////////////////
+            // Volatile state on leaders:
+            // (Reinitialized after election)
+            /// <summary>
+            /// for each server, index of the next log entry
+            /// to send to that server(initialized to leader
+            /// last log index + 1)
+            /// </summary>
+            public long NextIndex { get; set; }
+
+            /// <summary>
+            /// for each server, index of highest log entry
+            /// known to be replicated on server
+            /// (initialized to 0, increases monotonically)
+            /// </summary>
+            public long MatchIndex { get; set; }
+        }
+
         public static void CreateConnector(Service service, RaftConfig raftconf)
         {
             foreach (var node in raftconf.Nodes.Values)
             {
                 if (raftconf.Name.Equals(node.Name))
                     continue; // skip self.
-                service.Config.AddConnector(new Connector(node.HostNameOrAddress, node.Port));
+                service.Config.AddConnector(new ConnectorEx(node.Host, node.Port));
             }
         }
 
@@ -41,7 +67,7 @@ namespace Zeze.Raft
         {
             if (false == raftconf.Nodes.TryGetValue(raftconf.Name, out var node))
                 throw new Exception("raft Name Not In Node");
-            service.Config.AddAcceptor(new Acceptor(node.Port, node.HostNameOrAddress));
+            service.Config.AddAcceptor(new Acceptor(node.Port, node.Host));
         }
     }
 
@@ -67,6 +93,14 @@ namespace Zeze.Raft
             rpc.Send(LeaderMaybe.Socket, handle, timeout);
         }
 
+        public class ConnectorEx : Connector
+        {
+            public ConnectorEx(string host, int port = 0)
+                : base(host, port)
+            {
+            }
+        }
+
         public Agent(
             RaftConfig raftconf = null,
             Zeze.Config config = null,
@@ -88,8 +122,10 @@ namespace Zeze.Raft
             if (Net.Config.ConnectorCount() != 0)
                 throw new Exception("Connector Found!");
 
-            raftconf.Name = ""; // Agent 需要连所有的Node，自己不会是Server。
-            Server.CreateConnector(Net, raftconf);
+            foreach (var node in RaftConfig.Nodes.Values)
+            {
+                Net.Config.AddConnector(new ConnectorEx(node.Host, node.Port));
+            }
             Net.Config.ForEachConnector((c) => RaftNodes.TryAdd(c.Name, c));
 
             Net.AddFactoryHandle(new LeaderIs().TypeId, new Service.ProtocolFactoryHandle()
@@ -248,6 +284,10 @@ namespace Zeze.Raft
         public long PrevLogTerm { get; set; }
         public List<Binary> Entries { get; } = new List<Binary>();
         public long LeaderCommit { get; set; }
+
+        // Leader发送AppendEntries时，从这里快速得到Entries的最后一个日志的Index
+        // 不会系列化。
+        public long LastEntryIndex { get; set; }
 
         public override void Decode(ByteBuffer bb)
         {

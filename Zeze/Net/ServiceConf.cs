@@ -214,7 +214,7 @@ namespace Zeze.Net
                 switch (e.Name)
                 {
                     case "Acceptor": AddAcceptor(new Acceptor(e)); break;
-                    case "Connector": AddConnector(new Connector(e)); break;
+                    case "Connector": AddConnector(Connector.Create(e)); break;
                     default: throw new Exception("unknown node name: " + e.Name);
                 }
             }
