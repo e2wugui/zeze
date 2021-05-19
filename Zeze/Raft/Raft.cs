@@ -26,10 +26,6 @@ namespace Zeze.Raft
         public bool HasLeader => false == string.IsNullOrEmpty(LeaderId);
         public Server Server { get; }
 
-        // TODO
-        public ConcurrentDictionary<long, ManualResetEvent> LogApplyOutside { get; }
-            = new ConcurrentDictionary<long, ManualResetEvent>();
-
         public StateMachine StateMachine { get; }
 
         private int ProcessAppendEntries(Protocol p)

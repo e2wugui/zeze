@@ -34,18 +34,6 @@ namespace Zeze.Raft
         /// </summary>
         /// <param name="stateMachine"></param>
         public abstract void Apply(StateMachine stateMachine);
-        internal ManualResetEvent ApplyEvent { get; set; }
-
-        public virtual bool WaitAndApply(Raft raft, int millisecondsTimeout = -1)
-        {
-            if (ApplyEvent.WaitOne(millisecondsTimeout))
-            {
-                Apply(raft.StateMachine);
-                ApplyEvent = null; // release trigger once.
-                return true;
-            }
-            return false;
-        }
 
         public abstract void Decode(ByteBuffer bb);
         public abstract void Encode(ByteBuffer bb);
@@ -388,9 +376,9 @@ namespace Zeze.Raft
 
                     index = raftLog.Index + 1;
 
-                    if (null != raftLog.Log.ApplyEvent)
+                    if (ApplySyncEvents.TryRemove(raftLog.Index, out var Event))
                     {
-                        raftLog.Log.ApplyEvent.Set();
+                        Event.Set();
                     }
                     else
                     {
@@ -401,27 +389,35 @@ namespace Zeze.Raft
             }
         }
 
-        public Log AppendLog(Log log, bool ApplyMyself = true)
-        {
-            if (ApplyMyself)
-            {
-                if (null != log.ApplyEvent)
-                    throw new Exception("Not A Fresh Log.");
-                log.ApplyEvent = new ManualResetEvent(false);
-            }
+        internal ConcurrentDictionary<long, ManualResetEvent> ApplySyncEvents { get; }
+            = new ConcurrentDictionary<long, ManualResetEvent>();
 
+        public void AppendLog(Log log, bool ApplySync = true)
+        {
+            ManualResetEvent ApplySyncEvent = null;
             lock (this)
             {
                 ++Index;
                 var raftLog = new RaftLog(Term, Index, log);
                 SaveLog(raftLog);
+
+                if (ApplySync)
+                {
+                    ApplySyncEvent = new ManualResetEvent(false);
+                    if (ApplySyncEvents.TryAdd(raftLog.Index, ApplySyncEvent))
+                        throw new Exception("Impossible");
+                }
             }
 
             // 广播给followers并异步等待多数确认
             Raft.Server.Config.ForEachConnector(
                 (connector) => TrySendAppendEntries(connector as Server.ConnectorEx));
 
-            return log;
+            if (ApplySync)
+            {
+                ApplySyncEvent.WaitOne();
+                log.Apply(Raft.StateMachine);
+            }
         }
 
         /// <summary>
