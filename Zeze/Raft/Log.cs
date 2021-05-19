@@ -512,57 +512,76 @@ namespace Zeze.Raft
             return ReadLog(Index);
         }
 
+        private void RemoveLogToEnd(long startIndex, long prevIndex)
+        {
+            for (long index = startIndex; index <= Index; ++index)
+            {
+                var key = ByteBuffer.Allocate();
+                key.WriteLong8(index);
+                Logs.Remove(key.Bytes, key.Size);
+            }
+            Index = prevIndex;
+        }
+
         internal int FollowerOnAppendEntries(AppendEntries r)
         {
-            LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
-            r.Result.Term = r.Argument.Term;
-            r.Result.Success = false; // set default false
-
-            if (r.Argument.Term < Term)
-            {
-                // 1. Reply false if term < currentTerm (§5.1)
-                r.SendResult();
-                return Procedure.LogicError;
-            }
-
             lock (this)
             {
-                var prevLog = ReadLog(r.Argument.PrevLogIndex);
-                if (prevLog == null || prevLog.Term != r.Argument.PrevLogTerm)
+                LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
+                r.Result.Term = Term;
+                r.Result.Success = false; // set default false
+
+                if (r.Argument.Term < Term)
                 {
-                    // 2. Reply false if log doesn’t contain an entry
-                    // at prevLogIndex whose term matches prevLogTerm(§5.3)
+                    // 1. Reply false if term < currentTerm (§5.1)
                     r.SendResult();
                     return Procedure.LogicError;
                 }
 
-                // 【确认】Raft 协议描述允许一次发送多个日志，
-                // 协议中的关于3、4的说明应该是针对每一个日志的。
-                foreach (var raftLogData in r.Argument.Entries)
+                lock (this)
                 {
-                    var raftLog = RaftLog.Decode(raftLogData, Raft.StateMachine.LogFactory);
-                    /*
-                    for (int i = Logs.Count - 1; i > prevIndex; --i)
+                    var prevLog = ReadLog(r.Argument.PrevLogIndex);
+                    if (prevLog == null || prevLog.Term != r.Argument.PrevLogTerm)
                     {
-                        // 3. If an existing entry conflicts
-                        // with a new one (same index but different terms),
-                        // delete the existing entry and all that follow it(§5.3)
-                        // raft.pdf 5.3
-                        // TODO 先简单删除之后所有的。这是错误的！！！
-                        Logs.RemoveAt(i);
+                        // 2. Reply false if log doesn’t contain an entry
+                        // at prevLogIndex whose term matches prevLogTerm(§5.3)
+                        r.SendResult();
+                        return Procedure.LogicError;
                     }
-                    // 4. Append any new entries not already in the log
-                    Logs.Add(raftLog);
-                    */
+
+                    foreach (var raftLogData in r.Argument.Entries)
+                    {
+                        var copyLog = RaftLog.Decode(raftLogData, Raft.StateMachine.LogFactory);
+                        var conflictCheck = ReadLog(copyLog.Index);
+                        if (null != conflictCheck)
+                        {
+                            if (conflictCheck.Term != copyLog.Term)
+                            {
+                                // 3. If an existing entry conflicts
+                                // with a new one (same index but different terms),
+                                // delete the existing entry and all that follow it(§5.3)
+                                // raft.pdf 5.3
+                                RemoveLogToEnd(conflictCheck.Index, prevLog.Index);
+                            }
+                        }
+                        else
+                        {
+                            // 4. Append any new entries not already in the log
+                            SaveLog(copyLog);
+                        }
+                        // 复用这个变量。当冲突需要删除时，精确指到前一个日志。
+                        // RemoveLogToEnd
+                        prevLog = copyLog;
+                    }
+                    // 5. If leaderCommit > commitIndex,
+                    // set commitIndex = min(leaderCommit, index of last new entry)
+                    CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLog().Index);
+                    TryApply(ReadLog(CommitIndex));
                 }
-                // 5. If leaderCommit > commitIndex,
-                // set commitIndex = min(leaderCommit, index of last new entry)
-                CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLog().Index);
-                TryApply(ReadLog(CommitIndex));
+                r.Result.Success = true;
+                r.SendResultCode(0);
+                return Procedure.Success;
             }
-            r.Result.Success = true;
-            r.SendResultCode(0);
-            return Procedure.Success;
         }
     }
 }
