@@ -23,7 +23,7 @@ namespace Zeze.Raft
         public string Name { get; internal set; }
         // 多数确认时：大于等于这个即可，因为还有自己(Leader)。
         public int HalfCount => Nodes.Count / 2;
-        public long Term { get; private set; }
+        public string DbHome { get; }
 
         /// <summary>
         /// 复制日志超时，以及发送失败重试超时。
@@ -48,9 +48,11 @@ namespace Zeze.Raft
             Self = self;
 
             Name = self.GetAttribute("Name");
-            var attr = self.GetAttribute("Term");
-            Term = string.IsNullOrEmpty(attr) ? 0 : long.Parse(attr);
-            attr = self.GetAttribute("AppendEntriesTimeout");
+            DbHome = self.GetAttribute("DbHome");
+            if (string.IsNullOrEmpty(DbHome))
+                DbHome = ".";
+
+            var attr = self.GetAttribute("AppendEntriesTimeout");
             AppendEntriesTimeout = string.IsNullOrEmpty(attr) ? 5000 : int.Parse(attr);
             attr = self.GetAttribute("LeaderHeartbeatTimer");
             LeaderHeartbeatTimer = string.IsNullOrEmpty(attr) ? 6000 : int.Parse(attr);
@@ -81,18 +83,6 @@ namespace Zeze.Raft
             }
         }
 
-        internal bool TrySetTerm(long term)
-        {
-            lock (this)
-            {
-                if (term > Term)
-                {
-                    Term = term;
-                    return true;
-                }
-                return false;
-            }
-        }
         internal void Save()
         { 
             // TODO other elements

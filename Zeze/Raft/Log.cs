@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Zeze.Serialize;
 using Zeze.Transaction;
+using RocksDbSharp;
+using Zeze.Net;
 
 namespace Zeze.Raft
 {
@@ -101,14 +104,14 @@ namespace Zeze.Raft
             Log.Encode(bb);
         }
 
-        public Zeze.Net.Binary Encode()
+        public ByteBuffer Encode()
         {
             var bb = ByteBuffer.Allocate();
             Encode(bb);
-            return new Zeze.Net.Binary(bb);
+            return bb;
         }
 
-        public static RaftLog Decode(Zeze.Net.Binary data, Func<int, Log> logFactory)
+        public static RaftLog Decode(Binary data, Func<int, Log> logFactory)
         {
             var raftLog = new RaftLog(logFactory);
             data.Decode(raftLog);
@@ -122,47 +125,187 @@ namespace Zeze.Raft
 
         public Raft Raft { get; }
 
-        public long Term => Raft.RaftConfig.Term;
+        public long Term { get; private set; }
         public long Index { get; private set; }
-
+        // 用来处理NextIndex回溯时限制搜索。snapshot需要修订这个值。
+        public long FirstIndex { get; private set; }
         public long CommitIndex { get; private set; }
         public long LastApplied { get; private set; }
 
-        private List<RaftLog> Logs { get; } = new List<RaftLog>();
+        // 这个不是日志需要的，因为持久化，所以就定义在这里吧。
+        private string VoteFor { get; set; }
 
         // Leader
         public bool AppendLogActive { get; internal set; } = false;
         // Follower
         public long LeaderActiveTime { get; private set; } = Zeze.Util.Time.NowUnixMillis;
 
+        private RocksDb Logs;
+        private RocksDb Rafts;
+
         public LogSequence(Raft raft)
         {
             Raft = raft;
+            var options = new DbOptions().SetCreateIfMissing(true);
+
+            Rafts = RocksDb.Open(options, Path.Combine(Raft.RaftConfig.DbHome, "rafts"));
+            {
+                // Read Term
+                var termKey = ByteBuffer.Allocate();
+                termKey.WriteInt(0);
+                RaftsTermKey = termKey.Copy();
+                var termValue = Rafts.Get(RaftsTermKey);
+                if (null != termValue)
+                {
+                    var bb = ByteBuffer.Wrap(termValue);
+                    Term = bb.ReadLong();
+                }
+                else
+                {
+                    Term = 0;
+                }
+                // Read VoteFor
+                var voteForKey = ByteBuffer.Allocate();
+                voteForKey.WriteInt(1);
+                RaftsVoteForKey = voteForKey.Copy();
+                var voteForvalue = Rafts.Get(RaftsVoteForKey);
+                if (null != voteForvalue)
+                {
+                    var bb = ByteBuffer.Wrap(voteForvalue);
+                    VoteFor = bb.ReadString();
+                }
+                else
+                {
+                    VoteFor = string.Empty;
+                }
+            }
+
+
+            Logs = RocksDb.Open(options, Path.Combine(Raft.RaftConfig.DbHome, "logs"));
+            {
+                // Read Last Log Index
+                var it = Logs.NewIterator();
+                it.SeekToLast();
+                if (it.Valid())
+                {
+                    Index = RaftLog.Decode(
+                        new Binary(it.Value()),
+                        Raft.StateMachine.LogFactory
+                        ).Index;
+                }
+                else
+                {
+                    // empty. add one for prev.
+                    SaveLog(new RaftLog(Term, 0, new HeartbeatLog()));
+                    Index = 0;
+                }
+
+                it.SeekToFirst();
+                FirstIndex = RaftLog.Decode(
+                    new Binary(it.Value()),
+                    Raft.StateMachine.LogFactory
+                    ).Index;
+            }
         }
 
-        private int FindMaxMajority(int startArrayIndex)
+        private byte[] RaftsTermKey;
+        private byte[] RaftsVoteForKey;
+
+        private void SaveLog(RaftLog log)
         {
-            int lastMajorityArrayIndex = -1;
-            for (int i = startArrayIndex; i < Logs.Count; ++i)
+            Index = log.Index; // 记住最后一个Index，用来下一次生成。
+
+            var key = ByteBuffer.Allocate();
+            key.WriteLong8(log.Index);
+            var value = log.Encode();
+
+            // key,value offset must 0
+            Logs.Put(key.Bytes, key.Size, value.Bytes, value.Size);
+        }
+
+        private RaftLog ReadLog(long index)
+        {
+            var key = ByteBuffer.Allocate();
+            key.WriteLong8(index);
+            var value = Logs.Get(key.Bytes, key.Size);
+            if (null == value)
+                return null;
+            return RaftLog.Decode(new Binary(value), Raft.StateMachine.LogFactory);
+        }
+
+        internal bool TrySetTerm(long term)
+        {
+            lock (this)
             {
-                var log = Logs[i];
+                if (term > Term)
+                {
+                    Term = term;
+                    var termValue = ByteBuffer.Allocate();
+                    termValue.WriteLong(term);
+                    Rafts.Put(RaftsTermKey, RaftsTermKey.Length, termValue.Bytes, termValue.Size);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        internal bool CanVoteFor(string voteFor)
+        {
+            lock (this)
+            {
+                return string.IsNullOrEmpty(VoteFor) || VoteFor.Equals(voteFor);
+            }
+        }
+
+        internal void SetVoteFor(string voteFor)
+        {
+            lock (this)
+            {
+                VoteFor = voteFor;
+                var voteForValue = ByteBuffer.Allocate();
+                voteForValue.WriteString(voteFor);
+                Rafts.Put(RaftsVoteForKey, RaftsVoteForKey.Length, voteForValue.Bytes, voteForValue.Size);
+            }
+        }
+
+        private RaftLog ReadLogStart(long startIndex)
+        {
+            for (long index = startIndex; index <= Index; ++index)
+            {
+                var raftLog = ReadLog(index);
+                if (null != raftLog)
+                    return raftLog;
+            }
+            return null;
+        }
+
+        private RaftLog FindMaxMajorityLog(long startIndex)
+        {
+            RaftLog lastMajorityLog = null;
+            for (long index = startIndex; index <= Index; /**/)
+            {
+                var raftLog = ReadLogStart(index);
+                if (null == raftLog)
+                    break;
+                index = raftLog.Index + 1;
+
                 int MajorityCount = 0;
                 Raft.Server.Config.ForEachConnector(
                     (c) =>
                     {
                         var cex = c as Server.ConnectorEx;
-                        if (cex.MatchIndex >= log.Index)
+                        if (cex.MatchIndex >= raftLog.Index)
                         {
                             ++MajorityCount;
                         }
                     });
 
-                if (MajorityCount <= Raft.RaftConfig.HalfCount)
-                    break; // 没有达成多数派，中断搜索。
-
-                lastMajorityArrayIndex = i;
+                // 没有达成多数派，中断循环。后面返回上一个majority，仍可能为null。
+                // 等于的时候加上自己就是多数派了。
+                if (MajorityCount < Raft.RaftConfig.HalfCount)
+                    break;
             }
-            return lastMajorityArrayIndex;
+            return lastMajorityLog;
         }
 
         private void TryCommit(AppendEntries rpc, Server.ConnectorEx connector)
@@ -177,52 +320,52 @@ namespace Zeze.Raft
                 // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
                 // set commitIndex = N(§5.3, §5.4).
 
-                long majorityIndex = CommitIndex + 1;
-                var majorityArrayIndex = ReverseFind(majorityIndex);
-                if (majorityArrayIndex < 0 || majorityArrayIndex >= Logs.Count)
-                    return;
-
-                var maxMajorityArrayIndex = FindMaxMajority(majorityArrayIndex);
-                if (maxMajorityArrayIndex < 0)
+                // TODO 对于 Leader CommitIndex 初始化问题。
+                var raftLog = FindMaxMajorityLog(CommitIndex + 1);
+                if (null == raftLog)
                     return; // 一个多数派都没有找到。
 
-                var raftLog = Logs[maxMajorityArrayIndex];
                 if (raftLog.Term != Term)
                 {
-                    // 如果是上一个 Term 未提交的日志，不自动提交。
-                    // 总是等待当前 Term 推进时，随便提交它。
+                    // 如果是上一个 Term 未提交的日志在这一次形成的多数派，
+                    // 不自动提交。
+                    // 总是等待当前 Term 推进时，顺便提交它。
                     return;
                 }
                 CommitIndex = raftLog.Index;
-                TryApply(maxMajorityArrayIndex);
+                TryApply(raftLog);
             }
         }
 
-        private void TryApply(int lastApplyArrayIndex)
+        private void TryApply(RaftLog lastApplyableLog)
         {
-            // 不考虑效率，实现持久化后再来调整。
+            if (null == lastApplyableLog)
+            {
+                logger.Error("lastApplyableLog is null.");
+                return;
+            }
             lock (this)
             {
-                var applyArrayIndexStart = ReverseFind(LastApplied);
-                if (applyArrayIndexStart >= Logs.Count)
-                    return;
-
-                if (applyArrayIndexStart < 0)
-                    applyArrayIndexStart = 0;
-
-                for (int i = applyArrayIndexStart; i <= lastApplyArrayIndex; ++i)
+                for (long index = LastApplied + 1;
+                    index <= lastApplyableLog.Index;
+                    /**/)
                 {
-                    var log = Logs[i];
-                    if (null != log.Log.ApplyEvent)
+                    var raftLog = ReadLogStart(index);
+                    if (null == raftLog)
+                        return; // end?
+
+                    index = raftLog.Index + 1;
+
+                    if (null != raftLog.Log.ApplyEvent)
                     {
-                        log.Log.ApplyEvent.Set();
+                        raftLog.Log.ApplyEvent.Set();
                     }
                     else
                     {
-                        log.Log.Apply(Raft.StateMachine);
+                        raftLog.Log.Apply(Raft.StateMachine);
                     }
+                    LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
                 }
-                LastApplied = Logs[lastApplyArrayIndex].Index;
             }
         }
 
@@ -239,7 +382,7 @@ namespace Zeze.Raft
             {
                 ++Index;
                 var raftLog = new RaftLog(Term, Index, log);
-                Logs.Add(raftLog);
+                SaveLog(raftLog);
             }
 
             // 广播给followers并异步等待多数确认
@@ -249,34 +392,17 @@ namespace Zeze.Raft
             return log;
         }
 
-        // LogIndex To ArrayIndex。
-        // 以后持久化再来调整。
-        private int ReverseFind(long nextIndex)
+        private RaftLog ReadLogReverse(long startIndex)
         {
-            int i = Logs.Count - 1;
-            for (; i >= 0; --i)
+            for (long index = startIndex; index >= FirstIndex; /**/)
             {
-                // 3 4 5 7+
-                var log = Logs[i];
-                if (log.Index < nextIndex)
-                    break;
+                var raftLog = ReadLog(index);
+                if (null != raftLog)
+                    return raftLog;
             }
-            var n = i + 1;
-            if (n >= Logs.Count)
-            {
-                // 如果是最后一个日志，检查一下是否刚好是要找的。
-                if (Logs[^1].Index == nextIndex)
-                    return i;
-                return n; // UpperOutOfIndex。外面需要检查。
-            }
-            var logNext = Logs[n];
-            if (logNext.Index == nextIndex)
-                return n;
-            if (i >= 0)
-                return i;
-            return -1; // LowerOutOfIndex。外面需要检查。
+            logger.Error($"impossible"); // 日志肯定不会为空。
+            return null;
         }
-
         private void TrySendAppendEntries(Server.ConnectorEx connector)
         {
             if (false == connector.IsHandshakeDone)
@@ -288,38 +414,42 @@ namespace Zeze.Raft
             }
 
             var rpc = new AppendEntries();
-            var nextIndex = connector.NextIndex;
-
             lock (this)
             {
-                var nextArrayIndex = ReverseFind(nextIndex);
-                if (nextArrayIndex >= Logs.Count)
-                {
-                    return; // 没有日志需要同步。
-                }
+                var nextLog = ReadLogReverse(connector.NextIndex);
+                if (null == nextLog)
+                    return; // impossible
 
-                if (nextArrayIndex < 0)
+                if (nextLog.Index == FirstIndex)
                 {
-                    // TODO LowerOutOfIndex Start InstallSnapshot
+                    // 此时，没有了prev，而日志已经最老，无法安全复制日志。
+                    // TODO start InstallSnapshot
                     return;
                 }
+
+                // 现在Index总是递增，但没有确认步长总是为1，这样能处理不为1的情况。
+                connector.NextIndex = nextLog.Index;
+
                 rpc.Argument.Term = Term;
                 rpc.Argument.LeaderId = Raft.Name;
                 rpc.Argument.LeaderCommit = CommitIndex;
 
-                // TODO 第一个Log的前一个Term写什么？
-                // raft.pdf好像是在系统初始化时自动添加一条Index=0的日志。
-                // 以后（包括Snapshot，会保留最后一个日志）都不会找不到prev。
-                var logPrev = Logs[nextArrayIndex - 1];
-                rpc.Argument.PrevLogIndex = logPrev.Index;
-                rpc.Argument.PrevLogTerm = logPrev.Term;
+                // 肯定能找到的。
+                var prevLog = ReadLogReverse(nextLog.Index);
+                rpc.Argument.PrevLogIndex = prevLog.Index;
+                rpc.Argument.PrevLogTerm = prevLog.Term;
 
                 // TODO 限制一次发送的日志数量。
-                for (int i = nextArrayIndex; i < Logs.Count; ++i)
+                RaftLog lastCopyLog = nextLog;
+                for (var copyLog = nextLog;
+                    null != copyLog && copyLog.Index <= Index;
+                    copyLog = ReadLogStart(copyLog.Index + 1)
+                    )
                 {
-                    rpc.Argument.Entries.Add(Logs[i].Encode());
+                    lastCopyLog = copyLog;
+                    rpc.Argument.Entries.Add(new Binary(copyLog.Encode()));
                 }
-                rpc.Argument.LastEntryIndex = Logs[^1].Index;
+                rpc.Argument.LastEntryIndex = lastCopyLog.Index;
             }
 
             var sendResultLocal = rpc.Send(connector.Socket,
@@ -332,7 +462,7 @@ namespace Zeze.Raft
                     }
                     else
                     {
-                        if (Raft.RaftConfig.TrySetTerm(r.Result.Term))
+                        if (Raft.LogSequence.TrySetTerm(r.Result.Term))
                         {
                             lock (Raft)
                             {
@@ -377,24 +507,11 @@ namespace Zeze.Raft
             TrySendAppendEntries(connector);  //resend
         }
 
-        private (RaftLog, int) FindPrevLog(long prevTerm, long prevIndex)
-        {
-            for (int i = Logs.Count - 1; i >= 0; --i)
-            {
-                var log = Logs[i];
-                if (log.Term == prevTerm && log.Index == prevIndex)
-                    return (log, i);
-            }
-            return (null, -1);
-        }
-
         internal RaftLog LastRaftLog()
         {
-            lock (this)
-            {
-                return Logs[^1]; // TODO empty check
-            }
+            return ReadLog(Index);
         }
+
         internal int FollowerOnAppendEntries(AppendEntries r)
         {
             LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
@@ -410,14 +527,11 @@ namespace Zeze.Raft
 
             lock (this)
             {
-                var (prevLog, prevIndex) = FindPrevLog(
-                    r.Argument.PrevLogTerm, r.Argument.PrevLogIndex);
-
-                if (prevLog == null)
+                var prevLog = ReadLog(r.Argument.PrevLogIndex);
+                if (prevLog == null || prevLog.Term != r.Argument.PrevLogTerm)
                 {
                     // 2. Reply false if log doesn’t contain an entry
                     // at prevLogIndex whose term matches prevLogTerm(§5.3)
-                    // TODO 初始化系统或者snapshot以后，此时prev肯定找不到，怎么允许。
                     r.SendResult();
                     return Procedure.LogicError;
                 }
@@ -427,7 +541,7 @@ namespace Zeze.Raft
                 foreach (var raftLogData in r.Argument.Entries)
                 {
                     var raftLog = RaftLog.Decode(raftLogData, Raft.StateMachine.LogFactory);
-
+                    /*
                     for (int i = Logs.Count - 1; i > prevIndex; --i)
                     {
                         // 3. If an existing entry conflicts
@@ -439,11 +553,12 @@ namespace Zeze.Raft
                     }
                     // 4. Append any new entries not already in the log
                     Logs.Add(raftLog);
+                    */
                 }
                 // 5. If leaderCommit > commitIndex,
                 // set commitIndex = min(leaderCommit, index of last new entry)
-                CommitIndex = Math.Min(r.Argument.LeaderCommit,Logs[^1].Index);
-                TryApply(ReverseFind(CommitIndex));
+                CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLog().Index);
+                TryApply(ReadLog(CommitIndex));
             }
             r.Result.Success = true;
             r.SendResultCode(0);

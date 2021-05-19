@@ -30,7 +30,7 @@ namespace Zeze.Raft
         private int ProcessAppendEntries(Protocol p)
         {
             var r = p as AppendEntries;
-            RaftConfig.TrySetTerm(r.Argument.Term);
+            LogSequence.TrySetTerm(r.Argument.Term);
             // 只有Leader会发送AppendEntries，总是转到Follower，不管当前状态。
             // raft.pdf 文档描述仅在 Candidate 才转。
             ConvertStateTo(RaftState.Follower);
@@ -43,7 +43,7 @@ namespace Zeze.Raft
             var r = p as InstallSnapshot;
             lock (this)
             {
-                if (RaftConfig.TrySetTerm(r.Argument.Term))
+                if (LogSequence.TrySetTerm(r.Argument.Term))
                 {
                     LeaderId = r.Argument.LeaderId;
                     // new term found.
@@ -109,8 +109,6 @@ namespace Zeze.Raft
         // Follower
         private SchedulerTask LeaderLostTimerTask;
 
-        private string VoteFor;
-
         // Must IsLeader
         internal void RunWhenLeaderReady(Action action)
         {
@@ -142,7 +140,7 @@ namespace Zeze.Raft
             lock (this)
             {
                 var r = p as RequestVote;
-                if (RaftConfig.TrySetTerm(r.Argument.Term))
+                if (LogSequence.TrySetTerm(r.Argument.Term))
                 {
                     // new term found.
                     ConvertStateTo(RaftState.Follower);
@@ -155,11 +153,11 @@ namespace Zeze.Raft
                 // 1.Reply false if term < currentTerm(§5.1)
                 // 2.If votedFor is null or candidateId, and candidate’s log is at
                 // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
-                r.Result.VoteGranted = (r.Argument.Term >= RaftConfig.Term)
-                    && (string.IsNullOrEmpty(VoteFor) || VoteFor.Equals(r.Argument.CandidateId))
+                r.Result.VoteGranted = (r.Argument.Term >= LogSequence.Term)
+                    && LogSequence.CanVoteFor(r.Argument.CandidateId)
                     && IsLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
                 if (r.Result.VoteGranted)
-                    VoteFor = r.Argument.CandidateId;
+                    LogSequence.SetVoteFor(r.Argument.CandidateId);
                 r.SendResultCode(0);
                 return Procedure.Success;
             }
@@ -171,8 +169,9 @@ namespace Zeze.Raft
             {
                 var arg = new RequestVoteArgument();
 
-                arg.Term = RaftConfig.Term;
+                arg.Term = LogSequence.Term;
                 arg.CandidateId = Name;
+                LogSequence.SetVoteFor(Name);
                 var log = LogSequence.LastRaftLog();
                 arg.LastLogIndex = log.Index;
                 arg.LastLogTerm = log.Term;
@@ -234,6 +233,7 @@ namespace Zeze.Raft
                     logger.Info("RaftState: Candidate->Follower");
                     State = RaftState.Follower;
 
+                    LogSequence.SetVoteFor(string.Empty);
                     StartRequestVoteDelayTask?.Cancel();
                     StartRequestVoteDelayTask = null;
                     WaitMajorityVoteTimoutTask?.Cancel();
@@ -257,6 +257,8 @@ namespace Zeze.Raft
 
                     logger.Info("RaftState: Candidate->Leader");
                     State = RaftState.Leader;
+                    LogSequence.SetVoteFor(string.Empty);
+
                     // (Reinitialized after election)
                     var nextIndex = LogSequence.LastRaftLog().Index + 1;
                     Server.Config.ForEachConnector(
@@ -353,7 +355,7 @@ namespace Zeze.Raft
             if (null != StartRequestVoteDelayTask)
                 return;
             LeaderId = string.Empty;
-            RaftConfig.TrySetTerm(RaftConfig.Term + 1);
+            LogSequence.TrySetTerm(LogSequence.Term + 1);
             WaitMajorityVoteTimoutTask?.Cancel();
             WaitMajorityVoteTimoutTask = null;
             StartRequestVoteDelayTask = Scheduler.Instance.Schedule(
