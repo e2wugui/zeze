@@ -69,6 +69,37 @@ namespace Zeze.Raft
                 throw new Exception("raft Name Not In Node");
             service.Config.AddAcceptor(new Acceptor(node.Port, node.Host));
         }
+
+        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        {
+            if (p.TypeId == RequestVote.ProtocolId_
+                || p.TypeId == AppendEntries.ProtocolId_
+                || p.TypeId == InstallSnapshot.ProtocolId_
+                || p.TypeId == LeaderIs.ProtocolId_)
+            {
+                // Raft Rpc
+                base.DispatchProtocol(p, factoryHandle);
+                return;
+            }
+            // User Request
+
+            if (Raft.IsLeader)
+            {
+                Raft.RunWhenLeaderReady(() => base.DispatchProtocol(p, factoryHandle));                ;
+                return;
+            }
+
+            if (Raft.HasLeader)
+            {
+                var redirect = new LeaderIs();
+                redirect.Argument.LeaderId = Raft.LeaderId;
+                redirect.Send(p.Sender); // ignore response
+                // skip request.
+                return;
+            }
+            
+            // 选举中
+        }
     }
 
     public sealed class Agent
@@ -219,14 +250,14 @@ namespace Zeze.Raft
     public sealed class RequestVoteArgument : Zeze.Transaction.Bean
     {
         public long Term { get; set; }
-        public long CandidateId { get; set; }
+        public string CandidateId { get; set; }
         public long LastLogIndex { get; set; }
         public long LastLogTerm { get; set; }
 
         public override void Decode(ByteBuffer bb)
         {
             Term = bb.ReadLong();
-            CandidateId = bb.ReadLong();
+            CandidateId = bb.ReadString();
             LastLogIndex = bb.ReadLong();
             LastLogTerm = bb.ReadLong();
         }
@@ -234,7 +265,7 @@ namespace Zeze.Raft
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteLong(Term);
-            bb.WriteLong(CandidateId);
+            bb.WriteString(CandidateId);
             bb.WriteLong(LastLogIndex);
             bb.WriteLong(LastLogTerm);
         }

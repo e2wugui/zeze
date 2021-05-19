@@ -81,12 +81,16 @@ namespace Zeze.Raft
             }
         }
 
-        internal void TrySetTerm(long term)
+        internal bool TrySetTerm(long term)
         {
             lock (this)
             {
                 if (term > Term)
+                {
                     Term = term;
+                    return true;
+                }
+                return false;
             }
         }
         internal void Save()

@@ -36,6 +36,9 @@ namespace Zeze.Util
         {
             lock (this)
             {
+                if (initialDelay < 0)
+                    throw new ArgumentException();
+
                 SchedulerTask t = new SchedulerTask(this, action, initialDelay, period);
                 scheduled.Add(t, t);
                 System.Threading.Monitor.Pulse(this);

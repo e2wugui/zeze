@@ -130,23 +130,14 @@ namespace Zeze.Raft
 
         private List<RaftLog> Logs { get; } = new List<RaftLog>();
 
-        private bool AppendLogActive = false;
+        // Leader
+        public bool AppendLogActive { get; internal set; } = false;
+        // Follower
+        public long LeaderActiveTime { get; private set; } = Zeze.Util.Time.NowUnixMillis;
 
         public LogSequence(Raft raft)
         {
             Raft = raft;
-            Zeze.Util.Scheduler.Instance.Schedule(
-                (ThisTask) =>
-                {
-                    if (AppendLogActive)
-                    {
-                        AppendLogActive = false;
-                        return;
-                    }
-                    AppendLog(new HeartbeatLog(), false);
-                },
-                Raft.RaftConfig.LeaderHeartbeatTimer,
-                Raft.RaftConfig.LeaderHeartbeatTimer);
         }
 
         private int FindMaxMajority(int startArrayIndex)
@@ -339,13 +330,26 @@ namespace Zeze.Raft
                     {
                         TrySendAppendEntries(connector);  //resend
                     }
-                    else if (r.Result.Success)
-                    {
-                        TryCommit(r, connector);
-                    }
                     else
                     {
-                        ReduceNextIndexAndTrySendAppendEntries(r.Result.Term, connector);
+                        if (Raft.RaftConfig.TrySetTerm(r.Result.Term))
+                        {
+                            lock (Raft)
+                            {
+                                Raft.LeaderId = string.Empty; // 此时不知道谁是Leader。
+                                // new term found.
+                                Raft.ConvertStateTo(Raft.RaftState.Follower);
+                            }
+                        }
+                        // 这里直接else吧？发现新的 Term，不能继续处理了。
+                        else if (r.Result.Success)
+                        {
+                            TryCommit(r, connector);
+                        }
+                        else
+                        {
+                            ReduceNextIndexAndTrySendAppendEntries(r.Result.Term, connector);
+                        }
                     }
                     return Procedure.Success;
                 },
@@ -368,6 +372,7 @@ namespace Zeze.Raft
             lock (this)
             {
                 connector.NextIndex--;
+                // TODO 不能是Logs里面的第一个日志。Prev需要。
             }
             TrySendAppendEntries(connector);  //resend
         }
@@ -383,8 +388,16 @@ namespace Zeze.Raft
             return (null, -1);
         }
 
+        internal RaftLog LastRaftLog()
+        {
+            lock (this)
+            {
+                return Logs[^1]; // TODO empty check
+            }
+        }
         internal int FollowerOnAppendEntries(AppendEntries r)
         {
+            LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
             r.Result.Term = r.Argument.Term;
             r.Result.Success = false; // set default false
 
