@@ -84,8 +84,10 @@ namespace Zeze.Raft
         }
 
         internal void Save()
-        { 
-            // TODO other elements
+        {
+            Self.SetAttribute("AppendEntriesTimeout", AppendEntriesTimeout.ToString());
+            Self.SetAttribute("LeaderHeartbeatTimer", LeaderHeartbeatTimer.ToString());
+            Self.SetAttribute("LeaderLostTimeout", LeaderLostTimeout.ToString());
 
             foreach (var node in Nodes)
             {
