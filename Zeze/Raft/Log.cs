@@ -53,16 +53,36 @@ namespace Zeze.Raft
 
     public sealed class HeartbeatLog : Log
     {
+        public const int SetLeaderReadyEvent = 1;
+
+        public int Operate { get; private set; }
+
+        public HeartbeatLog(int operate = 0)
+        {
+            Operate = operate;
+        }
+
         public override void Apply(StateMachine stateMachine)
         {
+            switch (Operate)
+            {
+                case SetLeaderReadyEvent:
+                    if (stateMachine.Raft.IsLeader)
+                    {
+                        stateMachine.Raft.LeaderReadyEvent.Set();
+                    }
+                    break;
+            }
         }
 
         public override void Decode(ByteBuffer bb)
         {
+            Operate = bb.ReadInt();
         }
 
         public override void Encode(ByteBuffer bb)
         {
+            bb.WriteInt(Operate);
         }
     }
 
@@ -205,6 +225,10 @@ namespace Zeze.Raft
                     new Binary(it.Value()),
                     Raft.StateMachine.LogFactory
                     ).Index;
+
+                // 【注意】snapshot 以后 FirstIndex 会推进，不再是从0开始。
+                LastApplied = FirstIndex;
+                CommitIndex = FirstIndex;
             }
         }
 
@@ -268,6 +292,14 @@ namespace Zeze.Raft
             }
         }
 
+        /// <summary>
+        /// 从startIndex开始，直到找到一个存在的日志。
+        /// 最多找到结束Index。这是为了能处理Index不连续。
+        /// 虽然算法上不可能，但花几行代码这样处理一下吧。
+        /// 这个方法看起来也有可能返回null，实际上应该不会发生。
+        /// </summary>
+        /// <param name="startIndex"></param>
+        /// <returns></returns>
         private RaftLog ReadLogStart(long startIndex)
         {
             for (long index = startIndex; index <= Index; ++index)
@@ -392,15 +424,20 @@ namespace Zeze.Raft
             return log;
         }
 
+        /// <summary>
+        /// see ReadLogStart
+        /// </summary>
+        /// <param name="startIndex"></param>
+        /// <returns></returns>
         private RaftLog ReadLogReverse(long startIndex)
         {
-            for (long index = startIndex; index >= FirstIndex; /**/)
+            for (long index = startIndex; index >= FirstIndex; --index)
             {
                 var raftLog = ReadLog(index);
                 if (null != raftLog)
                     return raftLog;
             }
-            logger.Error($"impossible"); // 日志肯定不会为空。
+            logger.Error($"impossible"); // 日志列表肯定不会为空。
             return null;
         }
         private void TrySendAppendEntries(Server.ConnectorEx connector)

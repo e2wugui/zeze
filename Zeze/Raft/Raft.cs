@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,6 +25,10 @@ namespace Zeze.Raft
         public bool IsLeader => LeaderId.Equals(Name);
         public bool HasLeader => false == string.IsNullOrEmpty(LeaderId);
         public Server Server { get; }
+
+        // TODO
+        public ConcurrentDictionary<long, ManualResetEvent> LogApplyOutside { get; }
+            = new ConcurrentDictionary<long, ManualResetEvent>();
 
         public StateMachine StateMachine { get; }
 
@@ -105,7 +110,7 @@ namespace Zeze.Raft
         private SchedulerTask WaitMajorityVoteTimoutTask;
         // Leader
         private SchedulerTask HearbeatTimerTask;
-        private ManualResetEvent LeaderReadyEvent = new ManualResetEvent(false);
+        internal ManualResetEvent LeaderReadyEvent = new ManualResetEvent(false);
         // Follower
         private SchedulerTask LeaderLostTimerTask;
 
@@ -272,9 +277,7 @@ namespace Zeze.Raft
                     // send initial empty AppendEntries RPCs
                     // (heartbeat)to each server; repeat during
                     // idle periods to prevent election timeouts(§5.2)
-                    LogSequence.AppendLog(new HeartbeatLog(), false);
-                    // TODO 要设置一个Event，用来等待这个Heartbeat提交，
-                    // 之后才允许接受应用服务。
+                    LogSequence.AppendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent), false);
                     HearbeatTimerTask = Scheduler.Instance.Schedule(
                         (ThisTask) =>
                         {
