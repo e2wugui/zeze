@@ -4,16 +4,59 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Serialize;
 using Zeze.Util;
 
 namespace Zeze.Raft.StateMachines
 {
-    public interface Copyable<T>
+    // 并发说明
+    // 如果你的数据可以用 ConcurrentDictionary 管理，并且只使用下面的方法：
+    // 1. value = GetOrAdd
+    // 2. lock (value) { read_write_value; }
+    // 3. Remove
+    // 没有单独的 TryAdd 操作。多个不同的项的访问是并发的。
+    // 此时可以使用下面的 ConcurrentMap。它使用 copy-on-write 的机制
+    // 实现并发的Raft要求的Snapshot。
+    //
+    // 【注意】GetOrAdd 和 lock(value) 之间存在时间窗口，使得可能拿到被删除的项。
+    // 这种情况一般都是有问题的，此时需要自己在 value 里面设置标志并检查。
+    // 伪码如下：
+    // void SomeRemove()
+    // {
+    //      var value = map.GetOrAdd(key);
+    //      lock (value)
+    //      {
+    //          if (checkAndNeedRemove())
+    //          {
+    //              value.State = Removed; // last State
+    //              map.Remove(key); // real remove。safe。
+    //          }
+    //      }
+    // }
+    // 
+    // void SomeProcess()
+    // {
+    //      while (true)
+    //      {
+    //          var value = map.GetOrAdd(key);
+    //          lock (value)
+    //          {
+    //              if (value.State == Removed)
+    //                  continue; // GetOrAdd again
+    //              normal_process;
+    //              return; // end of process
+    //          }
+    //      }
+    // }
+
+    public interface Copyable<T> : Zeze.Serialize.Serializable
     {
         public T Copy();
     }
 
-    public abstract class ConcurrentMap<K, V> where V : Copyable<V>
+    public class ConcurrentMap<K, V>
+        where K : Zeze.Serialize.Serializable, new()
+        where V : Copyable<V>, new()
     {
         public enum Operate
         {
@@ -50,87 +93,108 @@ namespace Zeze.Raft.StateMachines
             }
         }
 
-        private ConcurrentDictionary<K, V> Map = new ConcurrentDictionary<K, V>();
-        private ConcurrentDictionary<K, SnapshotValue> SnapshotCopyOnWrite = new ConcurrentDictionary<K, SnapshotValue>();
+        private ConcurrentDictionary<K, V> Map
+            = new ConcurrentDictionary<K, V>();
 
-        // 这个保护snapshot的开始结束等，没想好，直接想到方法是读写锁。
-        // 读锁用于正常的数据操作，允许并发，
-        // 写锁用于snapshot（仅设置标志，copytostream仍然在锁外）。
-        // 并发的需求：正常操作能并发，snapshot仅一个线程操作?
-        private AtomicBool Snapshoting = new AtomicBool();
+        private ConcurrentDictionary<K, SnapshotValue> SnapshotCopyOnWrite
+            = new ConcurrentDictionary<K, SnapshotValue>();
 
-        // Log 也没完全想好。
-        private AtomicLong LogIndex = new AtomicLong();
-        private ConcurrentDictionary<long, Log> Logs = new ConcurrentDictionary<long, Log>();
+        // 需要外面更大锁来保护。Raft.StateMachine 的子类内加锁。
+        private bool Snapshoting = false;
 
-        /// <summary>
-        /// 并发的得到一条记录引用。
-        /// 需要lock(v)进一步实现记录级别互斥。
-        /// 由于并发删除（Remove），还需要处理得到v在lock之前被删除的情况。
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="valueFactory"></param>
-        /// <returns></returns>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             return Map.GetOrAdd(key,
                 (k) =>
                 {
                     V v = valueFactory(k);
-                    long logindex = LogIndex.IncrementAndGet();
-                    Logs.TryAdd(logindex, new Log(k, v, Operate.Add, null));
-                    if (Snapshoting.Get())
+                    if (Snapshoting)
                     {
-                        SnapshotCopyOnWrite.TryAdd(key, new SnapshotValue(v, Operate.Add));
+                        SnapshotCopyOnWrite.TryAdd(key,
+                            new SnapshotValue(v, Operate.Add));
                     }
                     return v;
                 });
         }
 
-        /// <summary>
-        /// MUST IN lock(v)
-        /// </summary>
-        /// <param name="v"></param>
-        /// <param name="updator"></param>
         public void Update(K k, V v, Action<V> updator)
         {
-            long logindex = LogIndex.IncrementAndGet();
-            // 只会在第一次修改时复制.
-            if (Snapshoting.Get())
+            if (Snapshoting)
             {
+                // 只会在第一次修改时复制.
                 SnapshotCopyOnWrite.GetOrAdd(k,
                     (key) => new SnapshotValue(v.Copy(), Operate.Update));
             }
             updator(v);
-            Logs.TryAdd(logindex, new Log(k, v, Operate.Update, updator));
         }
 
         public void Remove(K k)
         {
-            long logindex = LogIndex.IncrementAndGet();
             if (Map.TryRemove(k, out var removed))
             {
-                // Remove After Add Or Remove After Update 不需要记录。
-                if (Snapshoting.Get())
+                if (Snapshoting)
                 {
-                    SnapshotCopyOnWrite.TryAdd(k, new SnapshotValue(removed, Operate.Remove));
+                    // Remove After Add Or Remove After Update 不需要记录。
+                    SnapshotCopyOnWrite.TryAdd(k,
+                        new SnapshotValue(removed, Operate.Remove));
                 }
-                // removed 对于log应该是不需要的。
-                Logs.TryAdd(logindex, new Log(k, default(V), Operate.Remove, null));
             }
         }
 
-        public void Snapshot()
+        // 线程不安全，需要外面更大的锁来保护。
+        public bool StartSerialize()
         {
-            Snapshoting.GetAndSet(true);
+            if (Snapshoting)
+                return false;
+            Snapshoting = true;
             SnapshotCopyOnWrite.Clear();
-            long logindex = LogIndex.Get();
-            Logs.Clear();
-            //return logindex;
+            return true;
         }
 
-        public void SnapshotCopyToStream()
+        // 线程不安全，需要外面更大的锁来保护。
+        public void EndSerialize()
         {
+            Snapshoting = false;
+            SnapshotCopyOnWrite.Clear();
+        }
+
+        private void WriteTo(System.IO.Stream stream, K k, V v)
+        {
+            // 外面使用 Update 修改记录，所以这个 lock 不是必要的。
+            lock (v)
+            {
+                var bb = ByteBuffer.Allocate();
+                bb.BeginWriteWithSize4(out var state);
+                k.Encode(bb);
+                v.Encode(bb);
+                bb.EndWriteWithSize4(state);
+                stream.Write(bb.Bytes, bb.ReadIndex, bb.Size);
+            }
+        }
+
+        private long WriteInt4To(System.IO.Stream stream, int i, long offset = -1)
+        {
+            if (offset >= 0)
+                stream.Seek(offset, System.IO.SeekOrigin.Begin);
+            var position = stream.Position;
+            stream.Write(BitConverter.GetBytes(i));
+            if (offset >= 0)
+                stream.Seek(0, System.IO.SeekOrigin.End);
+            return position;
+        }
+
+        private int ReadInt4From(System.IO.Stream stream)
+        {
+            var bytes = new byte[4];
+            stream.Read(bytes);
+            return BitConverter.ToInt32(bytes);
+        }
+
+        public void ConcurrentSerializeTo(System.IO.Stream stream)
+        {
+            var position = WriteInt4To(stream, Map.Count);
+
+            int SnapshotCount = 0;
             foreach (var cur in Map)
             {
                 if (SnapshotCopyOnWrite.TryGetValue(cur.Key, out var changed))
@@ -138,23 +202,48 @@ namespace Zeze.Raft.StateMachines
                     switch (changed.Operate)
                     {
                         case Operate.Add:
-                            // skip
-                            break;
+                            // 新增的记录不需要写出去。
+                            continue;
                         case Operate.Remove:
-                            // copy to stream
+                            // changed 里面保存的是删除前的项。
+                            WriteTo(stream, cur.Key, changed.Value);
                             break;
                         case Operate.Update:
-                            // copy to stream.
+                            // changed 里面保存的是Update前的项。
+                            WriteTo(stream, cur.Key, changed.Value);
                             break;
                     }
                 }
+                else
+                {
+                    WriteTo(stream, cur.Key, cur.Value);
+                }
+                ++SnapshotCount;
+            }
+            WriteInt4To(stream, SnapshotCount, position);
+            stream.Seek(0, System.IO.SeekOrigin.End);
+        }
+
+        // 线程不安全，需要外面更大的锁保护。
+        public void UnSerializeFrom(System.IO.Stream stream)
+        {
+            if (Snapshoting)
+                throw new Exception("Coucurrent Error: In Snapshoting");
+
+            Map.Clear();
+            for (int count = ReadInt4From(stream); count > 0; --count)
+            {
+                int kvsize = ReadInt4From(stream);
+                var kvbytes = new byte[kvsize];
+                stream.Read(kvbytes);
+                var bb = ByteBuffer.Wrap(kvbytes);
+                K key = new K();
+                V value = new V();
+                key.Decode(bb);
+                value.Decode(bb);
+                Map.TryAdd(key, value); // ignore result
             }
         }
 
-        public void SnapshotEnd()
-        {
-            Snapshoting.CompareAndExchange(true, false);
-            SnapshotCopyOnWrite.Clear();
-        }
     }
 }

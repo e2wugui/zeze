@@ -54,7 +54,8 @@ namespace Zeze.Raft
         /// {
         ///     LastIncludedIndex = Raft.LogSequence.Index;
         ///     LastIncludedTerm = Raft.LogSequence.Term;
-        ///     // 设置状态，如果限制只允许一个snapshot进行。怎么处理比较好？
+        ///     // 设置状态，如果限制只允许一个snapshot进行，
+        ///     // 新进的snapshot调用返回false。
         ///     MyData.StartSerializeToFile();
         /// }
         /// MyData.ConcurrentSerializeToFile(path);
@@ -63,10 +64,11 @@ namespace Zeze.Raft
         ///     // 清理一些状态。
         ///     MyData.EndSerializeToFile();
         /// }
-        /// 这样在保存到文件的过程中，服务可以继续进行。
+        /// return true;
+        /// 这样在保存数据到文件的过程中，服务可以继续进行。
         /// </summary>
         /// <param name="path"></param>
-        public abstract void Snapshot(string path, out long LastIncludedIndex, out long LastIncludedTerm);
+        public abstract bool Snapshot(string path, out long LastIncludedIndex, out long LastIncludedTerm);
 
         /// <summary>
         /// 从上一个快照中重建 StateMachine。
