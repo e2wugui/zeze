@@ -49,7 +49,7 @@ namespace Zeze.Raft.StateMachines
     //      }
     // }
 
-    public interface Copyable<T> : Zeze.Serialize.Serializable
+    public interface Copyable<T> : Serializable
     {
         public T Copy();
     }
@@ -74,22 +74,6 @@ namespace Zeze.Raft.StateMachines
             {
                 Value = value;
                 Operate = operate;
-            }
-        }
-
-        class Log
-        {
-            public K Key { get; }
-            public V Value { get; }
-            public Operate State { get; }
-            public Action<V> Updator { get; }
-
-            public Log(K key, V value, Operate state, Action<V> updator)
-            {
-                Key = key;
-                Value = value;
-                State = state;
-                Updator = updator;
             }
         }
 
@@ -245,5 +229,53 @@ namespace Zeze.Raft.StateMachines
             }
         }
 
+    }
+
+    public sealed class Int : Serializable
+    {
+        public int Value { get; private set; }
+
+        public Int()
+        {
+        }
+
+        public Int(int value)
+        {
+            Value = value;
+        }
+
+        public void Decode(ByteBuffer bb)
+        {
+            Value = bb.ReadInt();
+        }
+
+        public void Encode(ByteBuffer bb)
+        {
+            bb.WriteInt(Value);
+        }
+    }
+
+    public sealed class Long : Serializable
+    {
+        public long Value { get; private set; }
+
+        public Long()
+        {
+        }
+
+        public Long(long value)
+        {
+            Value = value;
+        }
+
+        public void Decode(ByteBuffer bb)
+        {
+            Value = bb.ReadLong();
+        }
+
+        public void Encode(ByteBuffer bb)
+        {
+            bb.WriteLong(Value);
+        }
     }
 }

@@ -10,66 +10,6 @@ namespace Zeze.Raft.StateMachines
     // 这个是 GlobalCacheManager 的 StateMachine 实现。
     // 作为第一个 Raft 用例，放在，也作为一个例子。
 
-    public sealed class CacheState : Copyable<CacheState>
-    {
-        public CacheState Copy()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Decode(ByteBuffer bb)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Encode(ByteBuffer bb)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public sealed class CacheHolder : Copyable<CacheHolder>
-    {
-        public CacheHolder Copy()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Decode(ByteBuffer bb)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Encode(ByteBuffer bb)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public sealed class Int : Serializable
-    {
-        public int Value { get; private set; }
-
-        public Int()
-        { 
-        }
-
-        public Int(int value)
-        {
-            Value = value;
-        }
-
-        public void Decode(ByteBuffer bb)
-        {
-            Value = bb.ReadInt();
-        }
-
-        public void Encode(ByteBuffer bb)
-        {
-            bb.WriteInt(Value);
-        }
-    }
-
     public class GlobalCacheManagerStateMachine : StateMachine
     {
         public ConcurrentMap<Services.GlobalCacheManager.GlobalTableKey, CacheState> Global { get; }
@@ -108,6 +48,42 @@ namespace Zeze.Raft.StateMachines
                 Sessions.EndSerialize();
             }
             return true;
+        }
+    }
+
+    public sealed class CacheState : Copyable<CacheState>
+    {
+        public CacheState Copy()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Decode(ByteBuffer bb)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Encode(ByteBuffer bb)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public sealed class CacheHolder : Copyable<CacheHolder>
+    {
+        public CacheHolder Copy()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Decode(ByteBuffer bb)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Encode(ByteBuffer bb)
+        {
+            throw new NotImplementedException();
         }
     }
 }
