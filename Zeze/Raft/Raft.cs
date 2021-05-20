@@ -28,31 +28,9 @@ namespace Zeze.Raft
 
         public StateMachine StateMachine { get; }
 
-        private int ProcessAppendEntries(Protocol p)
+        public void AppendLog(Log log, bool ApplySync = true)
         {
-            var r = p as AppendEntries;
-            LogSequence.TrySetTerm(r.Argument.Term);
-            // 只有Leader会发送AppendEntries，总是转到Follower，不管当前状态。
-            // raft.pdf 文档描述仅在 Candidate 才转。
-            ConvertStateTo(RaftState.Follower);
-            LeaderId = r.Argument.LeaderId; // always replace
-            return LogSequence.FollowerOnAppendEntries(r);
-        }
-
-        private int ProcessInstallSnapshot(Protocol p)
-        {
-            var r = p as InstallSnapshot;
-            lock (this)
-            {
-                if (LogSequence.TrySetTerm(r.Argument.Term))
-                {
-                    LeaderId = r.Argument.LeaderId;
-                    // new term found.
-                    ConvertStateTo(RaftState.Follower);
-                }
-            }
-            r.SendResultCode(0);
-            return Procedure.Success;
+            LogSequence.AppendLog(log, ApplySync);
         }
 
         public Raft(StateMachine sm,
@@ -87,9 +65,38 @@ namespace Zeze.Raft
             RegisterInternalRpc();
 
             // 刚启动时，马上开始一次选举，里面有随机延迟。
-            // 这里不是等待LeaderLostTimeout，如果已经存在Leader，
-            // Leader会拒绝并 TODO “声明自己”。
+            // 这里不等待LeaderLostTimeout，如果已经存在Leader，
             ConvertStateTo(RaftState.Candidate);
+        }
+
+        private int ProcessAppendEntries(Protocol p)
+        {
+            var r = p as AppendEntries;
+            lock (this)
+            {
+                LogSequence.TrySetTerm(r.Argument.Term);
+                // 只有Leader会发送AppendEntries，总是转到Follower，不管当前状态。
+                // raft.pdf 文档描述仅在 Candidate 才转。
+                ConvertStateTo(RaftState.Follower);
+                LeaderId = r.Argument.LeaderId; // always replace
+                return LogSequence.FollowerOnAppendEntries(r);
+            }
+        }
+
+        private int ProcessInstallSnapshot(Protocol p)
+        {
+            var r = p as InstallSnapshot;
+            lock (this)
+            {
+                if (LogSequence.TrySetTerm(r.Argument.Term))
+                {
+                    LeaderId = r.Argument.LeaderId;
+                    // new term found.
+                    ConvertStateTo(RaftState.Follower);
+                }
+            }
+            r.SendResultCode(0);
+            return Procedure.Success;
         }
 
         public enum RaftState
@@ -104,6 +111,8 @@ namespace Zeze.Raft
         // Candidate
         private SchedulerTask StartRequestVoteDelayTask;
         private SchedulerTask WaitMajorityVoteTimoutTask;
+        private ConcurrentDictionary<string, Connector> VoteSuccess
+            = new ConcurrentDictionary<string, Connector>();
         // Leader
         private SchedulerTask HearbeatTimerTask;
         internal ManualResetEvent LeaderReadyEvent = new ManualResetEvent(false);
@@ -154,14 +163,62 @@ namespace Zeze.Raft
                 // 1.Reply false if term < currentTerm(§5.1)
                 // 2.If votedFor is null or candidateId, and candidate’s log is at
                 // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
-                r.Result.VoteGranted = (r.Argument.Term >= LogSequence.Term)
+                r.Result.VoteGranted = (false == IsLeader) // 这个检查必须的。
+                    && (r.Argument.Term >= LogSequence.Term)
                     && LogSequence.CanVoteFor(r.Argument.CandidateId)
                     && IsLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
                 if (r.Result.VoteGranted)
                     LogSequence.SetVoteFor(r.Argument.CandidateId);
                 r.SendResultCode(0);
+
+                if (IsLeader)
+                {
+                    // 如果Leader还活着，马上通告一次。这个比Hearbeat快。
+                    var leaderIs = new LeaderIs();
+                    leaderIs.Argument.LeaderId = LeaderId;
+                    leaderIs.Send(r.Sender); // skip response.
+                }
                 return Procedure.Success;
             }
+        }
+
+        private int ProcessLeaderIs(Protocol p)
+        {
+            var r = p as LeaderIs;
+
+            lock (this)
+            {
+                LeaderId = r.Argument.LeaderId;
+                ConvertStateTo(RaftState.Follower);
+            }
+
+            return Procedure.Success;
+        }
+
+        private int ProcessRequestVoteResult(RequestVote rpc, Connector c)
+        {
+            lock (this)
+            {
+                if (LogSequence.TrySetTerm(rpc.Result.Term))
+                {
+                    // new term found
+                    ConvertStateTo(RaftState.Follower);
+                    return Procedure.Success;
+                }
+            }
+
+            if (rpc.Result.VoteGranted && VoteSuccess.TryAdd(c.Name, c))
+            {
+                lock (this)
+                {
+                    if (VoteSuccess.Count >= RaftConfig.HalfCount)
+                    {
+                        // 加上自己就是多数派了。
+                        ConvertStateTo(RaftState.Leader);
+                    }
+                }
+            }
+            return Procedure.Success;
         }
 
         private void SendRequestVote(SchedulerTask ThisTask)
@@ -180,16 +237,11 @@ namespace Zeze.Raft
                 Server.Config.ForEachConnector(
                     (c) =>
                     {
-                        if (c.IsHandshakeDone)
-                        {
-                            var rpc = new RequestVote() { Argument = arg };
-                            rpc.Send(c.Socket,
-                                (p) =>
-                                {
-                                // TODO VoteFor?
-                                return Procedure.Success;
-                                });
-                        }
+                        if (false == c.IsHandshakeDone)
+                            return;
+
+                        var rpc = new RequestVote() { Argument = arg };
+                        rpc.Send(c.Socket, (p) => ProcessRequestVoteResult(rpc, c));
                     });
 
                 // 定时，如果超时选举还未完成，再次发起选举。
@@ -197,8 +249,11 @@ namespace Zeze.Raft
                 WaitMajorityVoteTimoutTask = Scheduler.Instance.Schedule(
                     (ThisTask) =>
                     {
-                        StartRequestVoteDelayTask = null;
-                        ConvertStateTo(RaftState.Candidate);
+                        lock (this)
+                        {
+                            StartRequestVoteDelayTask = null;
+                            ConvertStateTo(RaftState.Candidate);
+                        }
                     },
                     RaftConfig.AppendEntriesTimeout + 1000);
             }
@@ -233,6 +288,7 @@ namespace Zeze.Raft
                 case RaftState.Follower:
                     logger.Info("RaftState: Candidate->Follower");
                     State = RaftState.Follower;
+                    VoteSuccess.Clear(); // 选举结束清除。
 
                     LogSequence.SetVoteFor(string.Empty);
                     StartRequestVoteDelayTask?.Cancel();
@@ -255,10 +311,12 @@ namespace Zeze.Raft
                     StartRequestVoteDelayTask = null;
                     WaitMajorityVoteTimoutTask?.Cancel();
                     WaitMajorityVoteTimoutTask = null;
+                    VoteSuccess.Clear(); // 选举结束清除。
 
                     logger.Info("RaftState: Candidate->Leader");
                     State = RaftState.Leader;
                     LogSequence.SetVoteFor(string.Empty);
+                    LeaderId = Name; // set to self
 
                     // (Reinitialized after election)
                     var nextIndex = LogSequence.LastRaftLog().Index + 1;
@@ -269,6 +327,7 @@ namespace Zeze.Raft
                             cex.NextIndex = nextIndex;
                             cex.MatchIndex = 0;
                         });
+
                     // Upon election:
                     // send initial empty AppendEntries RPCs
                     // (heartbeat)to each server; repeat during
@@ -329,23 +388,20 @@ namespace Zeze.Raft
 
         internal void ConvertStateTo(RaftState newState)
         {
-            lock (this)
+            // 按真值表处理所有情况。
+            switch (State)
             {
-                // 按真值表处理所有情况。
-                switch (State)
-                {
-                    case RaftState.Follower:
-                        ConvertStateFromFollwerTo(newState);
-                        return;
+                case RaftState.Follower:
+                    ConvertStateFromFollwerTo(newState);
+                    return;
 
-                    case RaftState.Candidate:
-                        ConvertStateFromCandidateTo(newState);
-                        return;
+                case RaftState.Candidate:
+                    ConvertStateFromCandidateTo(newState);
+                    return;
 
-                    case RaftState.Leader:
-                        ConvertStateFromLeaderTo(newState);
-                        return;
-                }
+                case RaftState.Leader:
+                    ConvertStateFromLeaderTo(newState);
+                    return;
             }
         }
 
@@ -353,6 +409,9 @@ namespace Zeze.Raft
         {
             if (null != StartRequestVoteDelayTask)
                 return;
+
+            VoteSuccess.Clear(); // 每次选举开始清除。
+
             LeaderId = string.Empty;
             LogSequence.TrySetTerm(LogSequence.Term + 1);
             WaitMajorityVoteTimoutTask?.Cancel();
@@ -385,6 +444,14 @@ namespace Zeze.Raft
                 {
                     Factory = () => new InstallSnapshot(),
                     Handle = ProcessInstallSnapshot,
+                });
+
+            Server.AddFactoryHandle(
+                new LeaderIs().TypeId,
+                new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new LeaderIs(),
+                    Handle = ProcessLeaderIs,
                 });
         }
 

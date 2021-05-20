@@ -247,37 +247,28 @@ namespace Zeze.Raft
 
         internal bool TrySetTerm(long term)
         {
-            lock (this)
+            if (term > Term)
             {
-                if (term > Term)
-                {
-                    Term = term;
-                    var termValue = ByteBuffer.Allocate();
-                    termValue.WriteLong(term);
-                    Rafts.Put(RaftsTermKey, RaftsTermKey.Length, termValue.Bytes, termValue.Size);
-                    return true;
-                }
-                return false;
+                Term = term;
+                var termValue = ByteBuffer.Allocate();
+                termValue.WriteLong(term);
+                Rafts.Put(RaftsTermKey, RaftsTermKey.Length, termValue.Bytes, termValue.Size);
+                return true;
             }
+            return false;
         }
 
         internal bool CanVoteFor(string voteFor)
         {
-            lock (this)
-            {
-                return string.IsNullOrEmpty(VoteFor) || VoteFor.Equals(voteFor);
-            }
+            return string.IsNullOrEmpty(VoteFor) || VoteFor.Equals(voteFor);
         }
 
         internal void SetVoteFor(string voteFor)
         {
-            lock (this)
-            {
-                VoteFor = voteFor;
-                var voteForValue = ByteBuffer.Allocate();
-                voteForValue.WriteString(voteFor);
-                Rafts.Put(RaftsVoteForKey, RaftsVoteForKey.Length, voteForValue.Bytes, voteForValue.Size);
-            }
+            VoteFor = voteFor;
+            var voteForValue = ByteBuffer.Allocate();
+            voteForValue.WriteString(voteFor);
+            Rafts.Put(RaftsVoteForKey, RaftsVoteForKey.Length, voteForValue.Bytes, voteForValue.Size);
         }
 
         /// <summary>
@@ -330,31 +321,28 @@ namespace Zeze.Raft
 
         private void TryCommit(AppendEntries rpc, Server.ConnectorEx connector)
         {
-            lock (this)
+            connector.NextIndex = rpc.Argument.LastEntryIndex + 1;
+            connector.MatchIndex = rpc.Argument.LastEntryIndex;
+
+            // Rules for Servers
+            // If there exists an N such that N > commitIndex, a majority
+            // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
+            // set commitIndex = N(§5.3, §5.4).
+
+            // TODO 对于 Leader CommitIndex 初始化问题。
+            var raftLog = FindMaxMajorityLog(CommitIndex + 1);
+            if (null == raftLog)
+                return; // 一个多数派都没有找到。
+
+            if (raftLog.Term != Term)
             {
-                connector.NextIndex = rpc.Argument.LastEntryIndex + 1;
-                connector.MatchIndex = rpc.Argument.LastEntryIndex;
-
-                // Rules for Servers
-                // If there exists an N such that N > commitIndex, a majority
-                // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
-                // set commitIndex = N(§5.3, §5.4).
-
-                // TODO 对于 Leader CommitIndex 初始化问题。
-                var raftLog = FindMaxMajorityLog(CommitIndex + 1);
-                if (null == raftLog)
-                    return; // 一个多数派都没有找到。
-
-                if (raftLog.Term != Term)
-                {
-                    // 如果是上一个 Term 未提交的日志在这一次形成的多数派，
-                    // 不自动提交。
-                    // 总是等待当前 Term 推进时，顺便提交它。
-                    return;
-                }
-                CommitIndex = raftLog.Index;
-                TryApply(raftLog);
+                // 如果是上一个 Term 未提交的日志在这一次形成的多数派，
+                // 不自动提交。
+                // 总是等待当前 Term 推进时，顺便提交它。
+                return;
             }
+            CommitIndex = raftLog.Index;
+            TryApply(raftLog);
         }
 
         private void TryApply(RaftLog lastApplyableLog)
@@ -364,28 +352,25 @@ namespace Zeze.Raft
                 logger.Error("lastApplyableLog is null.");
                 return;
             }
-            lock (this)
+            for (long index = LastApplied + 1;
+                index <= lastApplyableLog.Index;
+                /**/)
             {
-                for (long index = LastApplied + 1;
-                    index <= lastApplyableLog.Index;
-                    /**/)
+                var raftLog = ReadLogStart(index);
+                if (null == raftLog)
+                    return; // end?
+
+                index = raftLog.Index + 1;
+
+                if (ApplySyncEvents.TryRemove(raftLog.Index, out var Event))
                 {
-                    var raftLog = ReadLogStart(index);
-                    if (null == raftLog)
-                        return; // end?
-
-                    index = raftLog.Index + 1;
-
-                    if (ApplySyncEvents.TryRemove(raftLog.Index, out var Event))
-                    {
-                        Event.Set();
-                    }
-                    else
-                    {
-                        raftLog.Log.Apply(Raft.StateMachine);
-                    }
-                    LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
+                    Event.Set();
                 }
+                else
+                {
+                    raftLog.Log.Apply(Raft.StateMachine);
+                }
+                LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
             }
         }
 
@@ -395,18 +380,17 @@ namespace Zeze.Raft
         public void AppendLog(Log log, bool ApplySync = true)
         {
             ManualResetEvent ApplySyncEvent = null;
-            lock (this)
+            lock (Raft)
             {
                 ++Index;
                 var raftLog = new RaftLog(Term, Index, log);
-                SaveLog(raftLog);
-
                 if (ApplySync)
                 {
                     ApplySyncEvent = new ManualResetEvent(false);
                     if (ApplySyncEvents.TryAdd(raftLog.Index, ApplySyncEvent))
                         throw new Exception("Impossible");
                 }
+                SaveLog(raftLog);
             }
 
             // 广播给followers并异步等待多数确认
@@ -436,6 +420,7 @@ namespace Zeze.Raft
             logger.Error($"impossible"); // 日志列表肯定不会为空。
             return null;
         }
+
         private void TrySendAppendEntries(Server.ConnectorEx connector)
         {
             if (false == connector.IsHandshakeDone)
@@ -447,7 +432,7 @@ namespace Zeze.Raft
             }
 
             var rpc = new AppendEntries();
-            lock (this)
+            lock (Raft)
             {
                 var nextLog = ReadLogReverse(connector.NextIndex);
                 if (null == nextLog)
@@ -472,11 +457,12 @@ namespace Zeze.Raft
                 rpc.Argument.PrevLogIndex = prevLog.Index;
                 rpc.Argument.PrevLogTerm = prevLog.Term;
 
-                // TODO 限制一次发送的日志数量。
+                // 限制一次发送的日志数量，【注意】这个不是raft要求的。
+                int maxCount = Raft.RaftConfig.MaxAppendEntiresCount;
                 RaftLog lastCopyLog = nextLog;
                 for (var copyLog = nextLog;
-                    null != copyLog && copyLog.Index <= Index;
-                    copyLog = ReadLogStart(copyLog.Index + 1)
+                    maxCount > 0 && null != copyLog && copyLog.Index <= Index;
+                    copyLog = ReadLogStart(copyLog.Index + 1), --maxCount
                     )
                 {
                     lastCopyLog = copyLog;
@@ -492,29 +478,42 @@ namespace Zeze.Raft
                     if (r.IsTimeout)
                     {
                         TrySendAppendEntries(connector);  //resend
+                        return Procedure.Success;
                     }
-                    else
+
+                    lock (Raft)
                     {
                         if (Raft.LogSequence.TrySetTerm(r.Result.Term))
                         {
-                            lock (Raft)
-                            {
-                                Raft.LeaderId = string.Empty; // 此时不知道谁是Leader。
-                                // new term found.
-                                Raft.ConvertStateTo(Raft.RaftState.Follower);
-                            }
+                            Raft.LeaderId = string.Empty; // 此时不知道谁是Leader。
+                                                          // new term found.
+                            Raft.ConvertStateTo(Raft.RaftState.Follower);
+                            // 发现新的 Term，已经不是Leader，不能继续处理了。
+                            // 直接返回。
+                            return Procedure.Success;
                         }
-                        // 这里直接else吧？发现新的 Term，不能继续处理了。
-                        else if (r.Result.Success)
+                    }
+
+                    if (r.Result.Success)
+                    {
+                        lock (Raft)
                         {
                             TryCommit(r, connector);
                         }
-                        else
-                        {
-                            ReduceNextIndexAndTrySendAppendEntries(r.Result.Term, connector);
-                        }
+                        // TryCommit 推进了NextIndex，可能一次日志没有复制完。
+                        // 尝试继续复制日志。see TrySendAppendEntries 内的
+                        // “限制一次发送的日志数量”
+                        TrySendAppendEntries(connector);
+                        return Procedure.Success;
                     }
-                    return Procedure.Success;
+
+                    lock (Raft)
+                    {
+                        // TODO raft.pdf 提到一个优化
+                        connector.NextIndex--;
+                        TrySendAppendEntries(connector);  //resend
+                        return Procedure.Success;
+                    }
                 },
                 Raft.RaftConfig.AppendEntriesTimeout);
 
@@ -530,22 +529,12 @@ namespace Zeze.Raft
             }
         }
 
-        private void ReduceNextIndexAndTrySendAppendEntries(long resultTerm, Server.ConnectorEx connector)
-        {
-            lock (this)
-            {
-                connector.NextIndex--;
-                // TODO 不能是Logs里面的第一个日志。Prev需要。
-            }
-            TrySendAppendEntries(connector);  //resend
-        }
-
         internal RaftLog LastRaftLog()
         {
             return ReadLog(Index);
         }
 
-        private void RemoveLogToEnd(long startIndex, long prevIndex)
+        private void RemoveLogUntilEnd(long startIndex, long prevIndex)
         {
             for (long index = startIndex; index <= Index; ++index)
             {
@@ -558,63 +547,58 @@ namespace Zeze.Raft
 
         internal int FollowerOnAppendEntries(AppendEntries r)
         {
-            lock (this)
+            LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
+            r.Result.Term = Term;
+            r.Result.Success = false; // set default false
+
+            if (r.Argument.Term < Term)
             {
-                LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
-                r.Result.Term = Term;
-                r.Result.Success = false; // set default false
-
-                if (r.Argument.Term < Term)
-                {
-                    // 1. Reply false if term < currentTerm (§5.1)
-                    r.SendResult();
-                    return Procedure.LogicError;
-                }
-
-                lock (this)
-                {
-                    var prevLog = ReadLog(r.Argument.PrevLogIndex);
-                    if (prevLog == null || prevLog.Term != r.Argument.PrevLogTerm)
-                    {
-                        // 2. Reply false if log doesn’t contain an entry
-                        // at prevLogIndex whose term matches prevLogTerm(§5.3)
-                        r.SendResult();
-                        return Procedure.LogicError;
-                    }
-
-                    foreach (var raftLogData in r.Argument.Entries)
-                    {
-                        var copyLog = RaftLog.Decode(raftLogData, Raft.StateMachine.LogFactory);
-                        var conflictCheck = ReadLog(copyLog.Index);
-                        if (null != conflictCheck)
-                        {
-                            if (conflictCheck.Term != copyLog.Term)
-                            {
-                                // 3. If an existing entry conflicts
-                                // with a new one (same index but different terms),
-                                // delete the existing entry and all that follow it(§5.3)
-                                // raft.pdf 5.3
-                                RemoveLogToEnd(conflictCheck.Index, prevLog.Index);
-                            }
-                        }
-                        else
-                        {
-                            // 4. Append any new entries not already in the log
-                            SaveLog(copyLog);
-                        }
-                        // 复用这个变量。当冲突需要删除时，精确指到前一个日志。
-                        // RemoveLogToEnd
-                        prevLog = copyLog;
-                    }
-                    // 5. If leaderCommit > commitIndex,
-                    // set commitIndex = min(leaderCommit, index of last new entry)
-                    CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLog().Index);
-                    TryApply(ReadLog(CommitIndex));
-                }
-                r.Result.Success = true;
-                r.SendResultCode(0);
-                return Procedure.Success;
+                // 1. Reply false if term < currentTerm (§5.1)
+                r.SendResult();
+                return Procedure.LogicError;
             }
+
+            var prevLog = ReadLog(r.Argument.PrevLogIndex);
+            if (prevLog == null || prevLog.Term != r.Argument.PrevLogTerm)
+            {
+                // 2. Reply false if log doesn’t contain an entry
+                // at prevLogIndex whose term matches prevLogTerm(§5.3)
+                r.SendResult();
+                return Procedure.LogicError;
+            }
+
+            foreach (var raftLogData in r.Argument.Entries)
+            {
+                var copyLog = RaftLog.Decode(raftLogData, Raft.StateMachine.LogFactory);
+                var conflictCheck = ReadLog(copyLog.Index);
+                if (null != conflictCheck)
+                {
+                    if (conflictCheck.Term != copyLog.Term)
+                    {
+                        // 3. If an existing entry conflicts
+                        // with a new one (same index but different terms),
+                        // delete the existing entry and all that follow it(§5.3)
+                        // raft.pdf 5.3
+                        RemoveLogUntilEnd(conflictCheck.Index, prevLog.Index);
+                    }
+                }
+                else
+                {
+                    // 4. Append any new entries not already in the log
+                    SaveLog(copyLog);
+                }
+                // 复用这个变量。当冲突需要删除时，精确指到前一个日志。
+                // RemoveLogToEnd
+                prevLog = copyLog;
+            }
+            // 5. If leaderCommit > commitIndex,
+            // set commitIndex = min(leaderCommit, index of last new entry)
+            CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLog().Index);
+            TryApply(ReadLog(CommitIndex));
+
+            r.Result.Success = true;
+            r.SendResultCode(0);
+            return Procedure.Success;
         }
     }
 }

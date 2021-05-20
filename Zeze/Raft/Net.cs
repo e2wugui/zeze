@@ -91,14 +91,16 @@ namespace Zeze.Raft
 
             if (Raft.HasLeader)
             {
+                // redirect
                 var redirect = new LeaderIs();
                 redirect.Argument.LeaderId = Raft.LeaderId;
                 redirect.Send(p.Sender); // ignore response
-                // skip request.
+                // DONOT process application request.
                 return;
             }
-            
+
             // 选举中
+            // DONOT process application request.
         }
     }
 

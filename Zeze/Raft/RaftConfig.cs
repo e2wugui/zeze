@@ -41,6 +41,11 @@ namespace Zeze.Raft
         /// </summary>
         public int LeaderLostTimeout { get; set; }
 
+        /// <summary>
+        /// 限制每次复制日志时打包的最大数量。
+        /// </summary>
+        public int MaxAppendEntiresCount { get; set; } = 500;
+
         private RaftConfig(XmlDocument xml, string filename, XmlElement self)
         {
             XmlDocument = xml;
@@ -58,6 +63,8 @@ namespace Zeze.Raft
             LeaderHeartbeatTimer = string.IsNullOrEmpty(attr) ? 6000 : int.Parse(attr);
             attr = self.GetAttribute("LeaderLostTimeout");
             LeaderLostTimeout = string.IsNullOrEmpty(attr) ? 12000 : int.Parse(attr);
+            attr = self.GetAttribute("MaxAppendEntiresCount");
+            MaxAppendEntiresCount = string.IsNullOrEmpty(attr) ? 500 : int.Parse(attr);
 
             // check and reset params
             if (AppendEntriesTimeout < 1000)
@@ -66,6 +73,9 @@ namespace Zeze.Raft
                 AppendEntriesTimeout = AppendEntriesTimeout + 1000;
             if (LeaderLostTimeout < AppendEntriesTimeout + LeaderHeartbeatTimer + 1000)
                 LeaderLostTimeout = AppendEntriesTimeout + LeaderHeartbeatTimer + 1000;
+
+            if (MaxAppendEntiresCount < 100)
+                MaxAppendEntiresCount = 100;
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
@@ -88,6 +98,7 @@ namespace Zeze.Raft
             Self.SetAttribute("AppendEntriesTimeout", AppendEntriesTimeout.ToString());
             Self.SetAttribute("LeaderHeartbeatTimer", LeaderHeartbeatTimer.ToString());
             Self.SetAttribute("LeaderLostTimeout", LeaderLostTimeout.ToString());
+            Self.SetAttribute("MaxAppendEntiresCount", MaxAppendEntiresCount.ToString());
 
             foreach (var node in Nodes)
             {
