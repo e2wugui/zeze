@@ -362,32 +362,28 @@ namespace Zeze.Raft
 
                 index = raftLog.Index + 1;
 
-                if (ApplySyncEvents.TryRemove(raftLog.Index, out var Event))
-                {
-                    Event.Set();
-                }
-                else
-                {
-                    raftLog.Log.Apply(Raft.StateMachine);
-                }
+                raftLog.Log.Apply(Raft.StateMachine);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
+
+                if (WaitApplyEvents.TryRemove(raftLog.Index, out var Event))
+                    Event.Set();
             }
         }
 
-        internal ConcurrentDictionary<long, ManualResetEvent> ApplySyncEvents { get; }
+        internal ConcurrentDictionary<long, ManualResetEvent> WaitApplyEvents { get; }
             = new ConcurrentDictionary<long, ManualResetEvent>();
 
-        public void AppendLog(Log log, bool ApplySync = true)
+        public void AppendLog(Log log, bool WaitApply = true)
         {
-            ManualResetEvent ApplySyncEvent = null;
+            ManualResetEvent WaitApplyEvent = null;
             lock (Raft)
             {
                 ++Index;
                 var raftLog = new RaftLog(Term, Index, log);
-                if (ApplySync)
+                if (WaitApply)
                 {
-                    ApplySyncEvent = new ManualResetEvent(false);
-                    if (ApplySyncEvents.TryAdd(raftLog.Index, ApplySyncEvent))
+                    WaitApplyEvent = new ManualResetEvent(false);
+                    if (WaitApplyEvents.TryAdd(raftLog.Index, WaitApplyEvent))
                         throw new Exception("Impossible");
                 }
                 SaveLog(raftLog);
@@ -397,10 +393,9 @@ namespace Zeze.Raft
             Raft.Server.Config.ForEachConnector(
                 (connector) => TrySendAppendEntries(connector as Server.ConnectorEx));
 
-            if (ApplySync)
+            if (WaitApply)
             {
-                ApplySyncEvent.WaitOne();
-                log.Apply(Raft.StateMachine);
+                WaitApplyEvent.WaitOne();
             }
         }
 
