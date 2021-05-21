@@ -77,6 +77,7 @@ namespace Zeze.Raft
                 || p.TypeId == InstallSnapshot.ProtocolId_
                 || p.TypeId == LeaderIs.ProtocolId_)
             {
+                // TODO Handshake Protocol
                 // Raft Rpc
                 base.DispatchProtocol(p, factoryHandle);
                 return;

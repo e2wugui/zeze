@@ -119,6 +119,26 @@ namespace Zeze.Raft
         // Follower
         private SchedulerTask LeaderLostTimerTask;
 
+        internal void SetLeaderReady()
+        {
+            if (IsLeader)
+            {
+                LeaderReadyEvent.Set();
+                Server.Foreach(
+                    (allsocket) =>
+                    {
+                        // 本来这个通告发给Agent(client)即可，
+                        // 但是现在没有区分是来自Raft的连接还是来自Agent，
+                        // 全部发送。
+                        // 另外Raft之间有两个连接，会收到多次，Raft不处理这个通告。
+                        // 由于Raft数量不多，不会造成大的浪费，不做处理了。
+                        var r = new LeaderIs();
+                        r.Argument.LeaderId = LeaderId;
+                        r.Send(allsocket); // skip response.
+                    });
+            }
+        }
+
         // Must IsLeader
         internal void RunWhenLeaderReady(Action action)
         {
@@ -135,14 +155,14 @@ namespace Zeze.Raft
                 }, "Zeze.Raft.DispatchUserProtocol");
         }
 
-        private bool IsLogUpToDate(long term, long index)
+        private bool IsLastLogUpToDate(long lastTerm, long lastIndex)
         {
             var last = LogSequence.LastRaftLog();
-            if (term > last.Term)
+            if (lastTerm > last.Term)
                 return true;
-            if (term < last.Term)
+            if (lastTerm < last.Term)
                 return false;
-            return index >= last.Index;
+            return lastIndex >= last.Index;
         }
 
         private int ProcessRequestVote(Protocol p)
@@ -163,21 +183,13 @@ namespace Zeze.Raft
                 // 1.Reply false if term < currentTerm(§5.1)
                 // 2.If votedFor is null or candidateId, and candidate’s log is at
                 // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
-                r.Result.VoteGranted = (false == IsLeader) // 这个检查必须的。
-                    && (r.Argument.Term >= LogSequence.Term)
+                r.Result.VoteGranted = (r.Argument.Term >= LogSequence.Term)
                     && LogSequence.CanVoteFor(r.Argument.CandidateId)
-                    && IsLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
+                    && IsLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
                 if (r.Result.VoteGranted)
                     LogSequence.SetVoteFor(r.Argument.CandidateId);
                 r.SendResultCode(0);
 
-                if (IsLeader)
-                {
-                    // 如果Leader还活着，马上通告一次。这个比Hearbeat快。
-                    var leaderIs = new LeaderIs();
-                    leaderIs.Argument.LeaderId = LeaderId;
-                    leaderIs.Send(r.Sender); // skip response.
-                }
                 return Procedure.Success;
             }
         }
@@ -186,11 +198,10 @@ namespace Zeze.Raft
         {
             var r = p as LeaderIs;
 
-            lock (this)
-            {
-                LeaderId = r.Argument.LeaderId;
-                ConvertStateTo(RaftState.Follower);
-            }
+            // 这个协议是发送给Agent(Client)的，
+            // 为了简单，不做区分。
+            // Raft也会收到，忽略。
+            r.SendResultCode(0);
 
             return Procedure.Success;
         }

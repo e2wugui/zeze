@@ -55,10 +55,7 @@ namespace Zeze.Raft
             switch (Operate)
             {
                 case SetLeaderReadyEvent:
-                    if (stateMachine.Raft.IsLeader)
-                    {
-                        stateMachine.Raft.LeaderReadyEvent.Set();
-                    }
+                    stateMachine.Raft.SetLeaderReady();
                     break;
             }
         }
