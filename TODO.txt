@@ -34,3 +34,5 @@ ConfigEditor
 这个要不要区分：special module config 需要readycommit模式。其他module，simple即可。
 
 ServiceNamePrefix: GameServer.Module#ID
+
+senderIsShare 优化。

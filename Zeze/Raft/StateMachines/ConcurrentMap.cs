@@ -55,7 +55,6 @@ namespace Zeze.Raft.StateMachines
     }
 
     public class ConcurrentMap<K, V>
-        where K : Zeze.Serialize.Serializable, new()
         where V : Copyable<V>, new()
     {
         public enum Operate
@@ -77,13 +76,30 @@ namespace Zeze.Raft.StateMachines
             }
         }
 
-        private ConcurrentDictionary<K, V> Map = new ConcurrentDictionary<K, V>();
+        private ConcurrentDictionary<K, V> Map;
 
         private ConcurrentDictionary<K, SnapshotValue> SnapshotCopyOnWrite
             = new ConcurrentDictionary<K, SnapshotValue>();
 
+        public int Count => Map.Count;
+
         // 需要外面更大锁来保护。Raft.StateMachine 的子类内加锁。
         private bool Snapshoting = false;
+
+        public ConcurrentMap()
+        { 
+            Map = new ConcurrentDictionary<K, V>();
+        }
+
+        public ConcurrentMap(int concurrentLevel, int defaultCapacity)
+        {
+            Map = new ConcurrentDictionary<K, V>(concurrentLevel, defaultCapacity);
+        }
+
+        public V GetOrAdd(K key)
+        {
+            return GetOrAdd(key, (_) => new V());
+        }
 
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
@@ -98,6 +114,11 @@ namespace Zeze.Raft.StateMachines
                     }
                     return v;
                 });
+        }
+
+        public void Update(K k, Action<V> updator)
+        {
+            Update(k, GetOrAdd(k), updator);
         }
 
         public void Update(K k, V v, Action<V> updator)
@@ -143,14 +164,16 @@ namespace Zeze.Raft.StateMachines
 
         private void WriteTo(System.IO.Stream stream, K k, V v)
         {
-            // 外面使用 Update 修改记录，所以这个 lock 不是必要的。
+            // 外面使用 Update 修改记录，第一次修改时会复制，所以这个 lock 不是必要的。
             lock (v)
             {
                 var bb = ByteBuffer.Allocate();
+
                 bb.BeginWriteWithSize4(out var state);
-                k.Encode(bb);
+                SerializeHelper<K>.Encode(bb, k);
                 v.Encode(bb);
                 bb.EndWriteWithSize4(state);
+
                 stream.Write(bb.Bytes, bb.ReadIndex, bb.Size);
             }
         }
@@ -219,10 +242,11 @@ namespace Zeze.Raft.StateMachines
                 int kvsize = ReadInt4From(stream);
                 var kvbytes = new byte[kvsize];
                 stream.Read(kvbytes);
+
                 var bb = ByteBuffer.Wrap(kvbytes);
-                K key = new K();
+
+                K key = SerializeHelper<K>.Decode(bb);
                 V value = new V();
-                key.Decode(bb);
                 value.Decode(bb);
                 Map.TryAdd(key, value); // ignore result
             }
@@ -230,6 +254,7 @@ namespace Zeze.Raft.StateMachines
 
     }
 
+    /*
     public sealed class IntKey : Serializable
     {
         public int Value { get; private set; }
@@ -381,4 +406,5 @@ namespace Zeze.Raft.StateMachines
             return false;
         }
     }
+    */
 }

@@ -41,6 +41,7 @@ namespace ServiceManager
 
         static void Main(string[] args)
         {
+            /*
             string temp = System.IO.Path.GetTempPath();
             var options = new RocksDbSharp.DbOptions().SetCreateIfMissing(true);
             using (var db = RocksDbSharp.RocksDb.Open(options,
@@ -84,6 +85,7 @@ namespace ServiceManager
             }
             if (args.Length == 0)
                 return;
+            */
             /*
             var test = new UnitTest.Zeze.Misc.TestServiceManager();
             try

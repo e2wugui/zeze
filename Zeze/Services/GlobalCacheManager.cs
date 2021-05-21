@@ -43,20 +43,26 @@ namespace Zeze.Services
         private AsyncSocket ServerSocket;
 
         public const int DefaultConcurrencyLevel = 1024;
-        public const int DefaultCapacity = 100000000; // 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
+        // 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
+        public const int DefaultCapacity = 100000000;
 
         private ConcurrentDictionary<GlobalTableKey, CacheState> global
-            = new ConcurrentDictionary<GlobalTableKey, CacheState>(DefaultConcurrencyLevel, DefaultCapacity);
+            = new ConcurrentDictionary<GlobalTableKey, CacheState>
+            (DefaultConcurrencyLevel, DefaultCapacity);
 
         /*
          * 会话。
-         * key是 LogicServer.Id，现在的实现就是Zeze.Config.AutoKeyLocalId。在连接建立后收到的Login Or Relogin 中设置。
+         * key是 LogicServer.Id，现在的实现就是Zeze.Config.AutoKeyLocalId。
+         * 在连接建立后收到的Login Or Relogin 中设置。
          * 每个会话记住分配给自己的GlobalTableKey，用来在正常退出的时候释放。
          * 每个会话还需要记录该会话的Socket.SessionId。在连接重新建立时更新。
-         * 总是GetOrAdd，不删除。按现在的cache-sync设计，AutoKeyLocalId是及其有限的。不会一直增长。简化。
+         * 总是GetOrAdd，不删除。按现在的cache-sync设计，
+         * AutoKeyLocalId是及其有限的。不会一直增长。
+         * 简化实现。
          */
-        private ConcurrentDictionary<int, CacheHolder> sessions
-            = new ConcurrentDictionary<int, CacheHolder>(DefaultConcurrencyLevel, 4096);
+        private ConcurrentDictionary<int, CacheHolder> Sessions
+            = new ConcurrentDictionary<int, CacheHolder>
+            (DefaultConcurrencyLevel, 4096);
 
         private GlobalCacheManager()
         { 
@@ -71,36 +77,54 @@ namespace Zeze.Services
                 if (null == config)
                     config = Config.Load();
                 Server = new ServerService(config);
-                Server.AddFactoryHandle(new Acquire().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new Acquire(),
-                    Handle = ProcessAcquireRequest,
-                });
-                Server.AddFactoryHandle(new Reduce().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new Reduce(),
-                });
-                Server.AddFactoryHandle(new Login().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new Login(),
-                    Handle = ProcessLogin,
-                });
-                Server.AddFactoryHandle(new ReLogin().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new ReLogin(),
-                    Handle = ProcessReLogin,
-                });
-                Server.AddFactoryHandle(new NormalClose().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new NormalClose(),
-                    Handle = ProcessNormalClose,
-                });
+
+                Server.AddFactoryHandle(
+                    new Acquire().TypeId,
+                    new Service.ProtocolFactoryHandle()
+                    {
+                        Factory = () => new Acquire(),
+                        Handle = ProcessAcquireRequest,
+                    });
+
+                Server.AddFactoryHandle(
+                    new Reduce().TypeId,
+                    new Service.ProtocolFactoryHandle()
+                    {
+                        Factory = () => new Reduce(),
+                    });
+
+                Server.AddFactoryHandle(
+                    new Login().TypeId,
+                    new Service.ProtocolFactoryHandle()
+                    {
+                        Factory = () => new Login(),
+                        Handle = ProcessLogin,
+                    });
+
+                Server.AddFactoryHandle(
+                    new ReLogin().TypeId,
+                    new Service.ProtocolFactoryHandle()
+                    {
+                        Factory = () => new ReLogin(),
+                        Handle = ProcessReLogin,
+                    });
+
+                Server.AddFactoryHandle(
+                    new NormalClose().TypeId,
+                    new Service.ProtocolFactoryHandle()
+                    {
+                        Factory = () => new NormalClose(),
+                        Handle = ProcessNormalClose,
+                    });
+
                 // 临时注册到这里，安全起见应该起一个新的Service，并且仅绑定到 localhost。
-                Server.AddFactoryHandle(new Cleanup().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new Cleanup(),
-                    Handle = ProcessCleanup,
-                });
+                Server.AddFactoryHandle(
+                    new Cleanup().TypeId,
+                    new Service.ProtocolFactoryHandle()
+                    {
+                        Factory = () => new Cleanup(),
+                        Handle = ProcessCleanup,
+                    });
 
                 ServerSocket = Server.NewServerSocket(ipaddress, port);
             }
@@ -120,8 +144,8 @@ namespace Zeze.Services
         }
 
         /// <summary>
-        /// 报告错误的时候把相关信息（包括GlobalCacheManager和LogicServer等等）编码，手动Cleanup时，
-        /// 解码并连接正确的服务器执行。降低手动风险。
+        /// 报告错误的时候带上相关信息（包括GlobalCacheManager和LogicServer等等）
+        /// 手动Cleanup时，连接正确的服务器执行。
         /// </summary>
         /// <param name="p"></param>
         /// <returns></returns>
@@ -136,7 +160,7 @@ namespace Zeze.Services
                 return 0;
             }
 
-            var session = sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (key) => new CacheHolder());
+            var session = Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (key) => new CacheHolder());
             if (session.GlobalCacheManagerHashIndex != rpc.Argument.GlobalCacheManagerHashIndex)
             {
                 // 多点验证
@@ -172,7 +196,7 @@ namespace Zeze.Services
         private int ProcessLogin(Zeze.Net.Protocol p)
         {
             var rpc = p as Login;
-            var session = sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (_) => new CacheHolder());
+            var session = Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (_) => new CacheHolder());
             if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
                 rpc.SendResultCode(-1);
@@ -191,7 +215,7 @@ namespace Zeze.Services
         private int ProcessReLogin(Zeze.Net.Protocol p)
         {
             var rpc = p as ReLogin;
-            var session = sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (_) => new CacheHolder());
+            var session = Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (_) => new CacheHolder());
             if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
                 rpc.SendResultCode(-1);
@@ -263,7 +287,9 @@ namespace Zeze.Services
                     cs.Modify = null;
                 cs.Share.Remove(holder); // always try remove
 
-                if (cs.Modify == null && cs.Share.Count == 0 && cs.AcquireStatePending == StateInvalid)
+                if (cs.Modify == null
+                    && cs.Share.Count == 0
+                    && cs.AcquireStatePending == StateInvalid)
                 {
                     // 安全的从global中删除，没有并发问题。
                     cs.AcquireStatePending = StateRemoved;
@@ -279,7 +305,8 @@ namespace Zeze.Services
             rpc.Result = rpc.Argument;
             while (true)
             {
-                CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
+                CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey,
+                    (tabkeKeyNotUsed) => new CacheState());
                 lock (cs)
                 {
                     if (cs.AcquireStatePending == StateRemoved)
@@ -320,7 +347,8 @@ namespace Zeze.Services
                             cs.AcquireStatePending = StateInvalid;
                             logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
                             rpc.Result.State = StateModify;
-                            // 已经是Modify又申请，可能是sender异常关闭，又重启连上。更新一下。应该是不需要的。
+                            // 已经是Modify又申请，可能是sender异常关闭，
+                            // 又重启连上。更新一下。应该是不需要的。
                             sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
                             rpc.SendResultCode(AcquireShareAlreadyIsModify);
                             return 0;
@@ -345,7 +373,8 @@ namespace Zeze.Services
                         {
                             case StateShare:
                                 cs.Modify.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
-                                cs.Share.Add(cs.Modify); // 降级成功，有可能降到 Invalid，此时就不需要加入 Share 了。
+                                cs.Share.Add(cs.Modify);
+                                // 降级成功，有可能降到 Invalid，此时就不需要加入 Share 了。
                                 break;
 
                             default:
@@ -428,7 +457,8 @@ namespace Zeze.Services
                         if (cs.Modify == sender)
                         {
                             logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                            // 已经是Modify又申请，可能是sender异常关闭，又重启连上。更新一下。应该是不需要的。
+                            // 已经是Modify又申请，可能是sender异常关闭，又重启连上。
+                            // 更新一下。应该是不需要的。
                             sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
                             rpc.SendResultCode(AcquireModifyAlreadyIsModify);
                             cs.AcquireStatePending = StateInvalid;
@@ -478,7 +508,8 @@ namespace Zeze.Services
                         return 0;
                     }
 
-                    List<Util.KV<CacheHolder, Reduce >> reducePending = new List<Util.KV<CacheHolder, Reduce>>();
+                    List<Util.KV<CacheHolder, Reduce >> reducePending
+                        = new List<Util.KV<CacheHolder, Reduce>>();
                     HashSet<CacheHolder> reduceSuccessed = new HashSet<CacheHolder>();
                     bool senderIsShare = false;
                     // 先把降级请求全部发送给出去。
@@ -506,7 +537,8 @@ namespace Zeze.Services
                     Zeze.Util.Task.Run(
                         () =>
                         {
-                            // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，应该也会等待所有任务结束（包括错误）。
+                            // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
+                            // 应该也会等待所有任务结束（包括错误）。
                             foreach (var reduce in reducePending)
                             {
                                 try
@@ -514,7 +546,8 @@ namespace Zeze.Services
                                     reduce.Value.Future.Task.Wait();
                                     if (reduce.Value.Result.State == StateInvalid)
                                     {
-                                        // 后面还有个成功的处理循环，但是那里可能包含sender，在这里更新吧。
+                                        // 后面还有个成功的处理循环，但是那里可能包含sender，
+                                        // 在这里更新吧。
                                         reduce.Key.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out var _);
                                         reduceSuccessed.Add(reduce.Key);
                                     }
@@ -526,13 +559,14 @@ namespace Zeze.Services
                                 catch (Exception ex)
                                 {
                                     reduce.Key.SetError();
-                                    // 等待失败不再看作成功。这个以前已经处理了，但这个注释没有更新。
+                                    // 等待失败不再看作成功。
                                     logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Value.Argument);
                                 }
                             }
                             lock (cs)
                             {
-                                Monitor.PulseAll(cs); // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
+                                // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
+                                Monitor.PulseAll(cs);
                             }
                         },
                         "GlobalCacheManager.AcquireModify.WaitReduce");
@@ -559,8 +593,9 @@ namespace Zeze.Services
                     else
                     {
                         // senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
+                        // 失败了，要把原来是share的sender恢复。先这样吧。
                         if (senderIsShare)
-                            cs.Share.Add(sender); // 失败了，要把原来是share的sender恢复。先这样吧。
+                            cs.Share.Add(sender);
 
                         cs.AcquireStatePending = StateInvalid;
                         Monitor.Pulse(cs); // Pending 结束，唤醒一个进来就可以了。
@@ -570,7 +605,8 @@ namespace Zeze.Services
                         rpc.Result.State = StateInvalid;
                         rpc.SendResultCode(AcquireModifyFaild);
                     }
-                    // 很好，网络失败不再看成成功，发现除了加break，其他处理已经能包容这个改动，都不用动。
+                    // 很好，网络失败不再看成成功，发现除了加break，
+                    // 其他处理已经能包容这个改动，都不用动。
                     return 0;
                 }
             }
@@ -596,9 +632,13 @@ namespace Zeze.Services
             public long SessionId { get; private set; }
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
-            // 记住分配给该会话的GlobalTableKey。这里本来用Set即可，为了线程安全和并发，用ConcurrentDictionary，顺便记住分配的State。
-            public ConcurrentDictionary<GlobalTableKey, int> Acquired { get; }
-                = new ConcurrentDictionary<GlobalTableKey, int>(GlobalCacheManager.DefaultConcurrencyLevel, 1000000);
+            public ConcurrentDictionary<GlobalTableKey, int>
+                Acquired { get; }
+                = new ConcurrentDictionary<GlobalTableKey, int>
+                (
+                    GlobalCacheManager.DefaultConcurrencyLevel,
+                    1000000
+                );
 
             public bool TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
             {
