@@ -7,7 +7,7 @@ namespace Zeze.Net
     // Bean 类型 binary 的辅助类。
     // 构造之后就是只读的。
     // byte[] bytes 参数传入以后，就不能再修改了。
-    public class Binary
+    public sealed class Binary
     {
         private byte[] _Bytes;
 

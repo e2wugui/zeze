@@ -8,15 +8,15 @@ using Zeze.Serialize;
 namespace Zeze.Raft.StateMachines
 {
     // 这个是 GlobalCacheManager 的 StateMachine 实现。
-    // 作为第一个 Raft 用例，放在，也作为一个例子。
+    // 第一个采用Raft的服务，把代码放在这里，作为一个例子。
 
     public class GlobalCacheManagerStateMachine : StateMachine
     {
         public ConcurrentMap<Services.GlobalCacheManager.GlobalTableKey, CacheState> Global { get; }
             = new ConcurrentMap<Services.GlobalCacheManager.GlobalTableKey, CacheState>();
 
-        public ConcurrentMap<Int, CacheHolder> Sessions { get; }
-            = new ConcurrentMap<Int, CacheHolder>();
+        public ConcurrentMap<IntKey, CacheHolder> Sessions { get; }
+            = new ConcurrentMap<IntKey, CacheHolder>();
 
         public override void LoadFromSnapshot(string path)
         {

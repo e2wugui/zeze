@@ -77,8 +77,7 @@ namespace Zeze.Raft.StateMachines
             }
         }
 
-        private ConcurrentDictionary<K, V> Map
-            = new ConcurrentDictionary<K, V>();
+        private ConcurrentDictionary<K, V> Map = new ConcurrentDictionary<K, V>();
 
         private ConcurrentDictionary<K, SnapshotValue> SnapshotCopyOnWrite
             = new ConcurrentDictionary<K, SnapshotValue>();
@@ -231,15 +230,15 @@ namespace Zeze.Raft.StateMachines
 
     }
 
-    public sealed class Int : Serializable
+    public sealed class IntKey : Serializable
     {
         public int Value { get; private set; }
 
-        public Int()
+        public IntKey()
         {
         }
 
-        public Int(int value)
+        public IntKey(int value)
         {
             Value = value;
         }
@@ -253,17 +252,31 @@ namespace Zeze.Raft.StateMachines
         {
             bb.WriteInt(Value);
         }
+
+        public override int GetHashCode()
+        {
+            return Value.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == this)
+                return true;
+            if (obj is IntKey other)
+                return Value.Equals(other.Value);
+            return false;
+        }
     }
 
-    public sealed class Long : Serializable
+    public sealed class LongKey : Serializable
     {
         public long Value { get; private set; }
 
-        public Long()
+        public LongKey()
         {
         }
 
-        public Long(long value)
+        public LongKey(long value)
         {
             Value = value;
         }
@@ -276,6 +289,96 @@ namespace Zeze.Raft.StateMachines
         public void Encode(ByteBuffer bb)
         {
             bb.WriteLong(Value);
+        }
+
+        public override int GetHashCode()
+        {
+            return Value.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == this)
+                return true;
+            if (obj is LongKey other)
+                return Value.Equals(other.Value);
+            return false;
+        }
+    }
+
+    public sealed class StringKey : Serializable
+    {
+        public string Value { get; private set; }
+
+        public StringKey()
+        {
+        }
+
+        public StringKey(string value)
+        {
+            Value = value;
+        }
+
+        public void Decode(ByteBuffer bb)
+        {
+            Value = bb.ReadString();
+        }
+
+        public void Encode(ByteBuffer bb)
+        {
+            bb.WriteString(Value);
+        }
+
+        public override int GetHashCode()
+        {
+            return Value.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == this)
+                return true;
+            if (obj is StringKey other)
+                return Value.Equals(other.Value);
+            return false;
+        }
+    }
+
+    public sealed class BinaryKey : Serializable
+    {
+        public Zeze.Net.Binary Value { get; private set; }
+
+        public BinaryKey()
+        {
+        }
+
+        public BinaryKey(Zeze.Net.Binary value)
+        {
+            Value = value;
+        }
+
+        public void Decode(ByteBuffer bb)
+        {
+            Value = bb.ReadBinary();
+        }
+
+        public void Encode(ByteBuffer bb)
+        {
+            bb.WriteBinary(Value);
+        }
+
+        public override int GetHashCode()
+        {
+            return Value.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == this)
+                return true;
+            if (obj is BinaryKey other)
+                return Value.Equals(other.Value);
+            return false;
         }
     }
 }
