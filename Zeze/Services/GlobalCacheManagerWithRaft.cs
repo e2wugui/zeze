@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Threading;
 using System.Text;
-using Zeze.Raft.StateMachines;
+using Zeze.Raft;
 
 namespace Zeze.Services
 {
@@ -17,7 +17,7 @@ namespace Zeze.Services
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public static GlobalCacheManagerWithRaft Instance { get; } = new GlobalCacheManagerWithRaft();
         public Zeze.Raft.Raft Raft { get; private set; }
-        public GlobalCacheManagerStateMachine StateMachine { get; private set; }
+        public RaftDatas RaftData => (RaftDatas)Raft.StateMachine;
 
         private GlobalCacheManagerWithRaft()
         { 
@@ -33,8 +33,7 @@ namespace Zeze.Services
                 if (null == config)
                     config = Config.Load();
 
-                StateMachine = new GlobalCacheManagerStateMachine();
-                Raft = new Zeze.Raft.Raft(StateMachine, raftconfig, config);
+                Raft = new Zeze.Raft.Raft(new RaftDatas(), raftconfig, config);
 
                 Raft.Server.AddFactoryHandle(
                     new GlobalCacheManager.Acquire().TypeId,
@@ -84,6 +83,14 @@ namespace Zeze.Services
                         Handle = ProcessCleanup,
                     });
 
+                OperateFactory.Add(new AddCacheStateShare().TypeId, () => new AddCacheStateShare());
+                OperateFactory.Add(new PutCacheHolderAcquired().TypeId, () => new PutCacheHolderAcquired());
+                OperateFactory.Add(new RemoveCacheHolderAcquired().TypeId, () => new RemoveCacheHolderAcquired());
+                OperateFactory.Add(new RemoveCacheState().TypeId, () => new RemoveCacheState());
+                OperateFactory.Add(new RemoveCacheStateShare().TypeId, () => new RemoveCacheStateShare());
+                OperateFactory.Add(new SetCacheStateAcquireStatePending().TypeId, () => new SetCacheStateAcquireStatePending());
+                OperateFactory.Add(new SetCacheStateModify().TypeId, () => new SetCacheStateModify());
+
                 Raft.Server.Start();
             }
         }
@@ -116,7 +123,7 @@ namespace Zeze.Services
                 return 0;
             }
 
-            var session = StateMachine.Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId);
+            var session = RaftData.Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId);
             if (session.GlobalCacheManagerHashIndex != rpc.Argument.GlobalCacheManagerHashIndex)
             {
                 // 多点验证
@@ -152,8 +159,10 @@ namespace Zeze.Services
         private int ProcessLogin(Zeze.Net.Protocol p)
         {
             var rpc = p as GlobalCacheManager.Login;
-            var session = StateMachine.Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId);
-            if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
+            var session = RaftData.Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId);
+            if (false == session.TryBindSocket(
+                p.Sender,
+                rpc.Argument.GlobalCacheManagerHashIndex))
             {
                 rpc.SendResultCode(-1);
                 return 0;
@@ -171,7 +180,7 @@ namespace Zeze.Services
         private int ProcessReLogin(Zeze.Net.Protocol p)
         {
             var rpc = p as GlobalCacheManager.ReLogin;
-            var session = StateMachine.Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId);
+            var session = RaftData.Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId);
             if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
                 rpc.SendResultCode(-1);
@@ -184,7 +193,7 @@ namespace Zeze.Services
         private int ProcessNormalClose(Zeze.Net.Protocol p)
         {
             var rpc = p as GlobalCacheManager.NormalClose;
-            var session = rpc.Sender.UserState as GlobalCacheManagerStateMachine.CacheHolder;
+            var session = rpc.Sender.UserState as CacheHolder;
             if (null == session)
             {
                 rpc.SendResultCode(GlobalCacheManager.AcquireNotLogin);
@@ -201,7 +210,7 @@ namespace Zeze.Services
                 Release(session, gkey);
             }
             rpc.SendResultCode(0);
-            logger.Debug("After NormalClose global.Count={0}", StateMachine.Global.Count);
+            logger.Debug("After NormalClose global.Count={0}", RaftData.Global.Count);
             return 0;
         }
 
@@ -216,7 +225,7 @@ namespace Zeze.Services
             switch (rpc.Argument.State)
             {
                 case GlobalCacheManager.StateInvalid: // realease
-                    var session = rpc.Sender.UserState as GlobalCacheManagerStateMachine.CacheHolder;
+                    var session = rpc.Sender.UserState as CacheHolder;
                     Release(session, rpc.Argument.GlobalTableKey);
                     rpc.Result = rpc.Argument;
                     rpc.SendResult();
@@ -236,57 +245,57 @@ namespace Zeze.Services
         }
 
         private void Release(
-            GlobalCacheManagerStateMachine.CacheHolder holder,
+            CacheHolder holder,
             GlobalCacheManager.GlobalTableKey gkey)
         {
-            var cs = StateMachine.Global.GetOrAdd(gkey);
+            var cs = RaftData.Global.GetOrAdd(gkey);
             lock (cs)
             {
-                var log = new GlobalCacheManagerStateMachine.OperatesLog();
+                var log = new OperatesLog();
                 if (cs.Modify == holder.Id)
                 {
-                    log.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateModify()
+                    log.Operates.Add(new SetCacheStateModify()
                     {
                         Key = gkey,
                         Modify = -1
                     });
                 }
                 // always try remove
-                log.Operates.Add(new GlobalCacheManagerStateMachine.RemoveCacheStateShare()
+                log.Operates.Add(new RemoveCacheStateShare()
                 {
                     Key = gkey,
                     Share = holder.Id
                 });
                 Raft.AppendLog(log);
 
-                var log2 = new GlobalCacheManagerStateMachine.OperatesLog();
+                var log2 = new OperatesLog();
                 if (cs.Modify == -1
                     && cs.Share.Count == 0
                     && cs.AcquireStatePending == GlobalCacheManager.StateInvalid)
                 {
                     // 安全的从global中删除，没有并发问题。
-                    log2.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                    log2.Operates.Add(new SetCacheStateAcquireStatePending()
                     {
                         Key = gkey,
                         AcquireStatePending = GlobalCacheManager.StateRemoved
                     });
-                    log2.Operates.Add(new GlobalCacheManagerStateMachine.RemoveCacheState()
+                    log2.Operates.Add(new RemoveCacheState()
                     {
                         Key = gkey
                     });
                 }
-                log2.Operates.Add(new GlobalCacheManagerStateMachine.RemoveCacheHolderAcquired() { Id = holder.Id, Key = gkey });
+                log2.Operates.Add(new RemoveCacheHolderAcquired() { Id = holder.Id, Key = gkey });
                 Raft.AppendLog(log2);
             }
         }
 
         private int AcquireShare(GlobalCacheManager.Acquire rpc)
         {
-            var sender = rpc.Sender.UserState as GlobalCacheManagerStateMachine.CacheHolder;
+            var sender = rpc.Sender.UserState as CacheHolder;
             rpc.Result = rpc.Argument;
             while (true)
             {
-                var cs = StateMachine.Global.GetOrAdd(rpc.Argument.GlobalTableKey);
+                var cs = RaftData.Global.GetOrAdd(rpc.Argument.GlobalTableKey);
                 lock (cs)
                 {
                     if (cs.AcquireStatePending == GlobalCacheManager.StateRemoved)
@@ -318,8 +327,8 @@ namespace Zeze.Services
                         logger.Debug("3 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
                     }
-                    var log0 = new GlobalCacheManagerStateMachine.OperatesLog();
-                    log0.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                    var log0 = new OperatesLog();
+                    log0.Operates.Add(new SetCacheStateAcquireStatePending()
                     {
                         Key = rpc.Argument.GlobalTableKey,
                         AcquireStatePending = GlobalCacheManager.StateShare,
@@ -334,14 +343,14 @@ namespace Zeze.Services
                             logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
                             rpc.Result.State = GlobalCacheManager.StateModify;
                             // 已经是Modify又申请，可能是sender异常关闭，又重启连上。更新一下。应该是不需要的。
-                            var log1 = new GlobalCacheManagerStateMachine.OperatesLog();
-                            log1.Operates.Add(new GlobalCacheManagerStateMachine.PutCacheHolderAcquired()
+                            var log1 = new OperatesLog();
+                            log1.Operates.Add(new PutCacheHolderAcquired()
                             {
                                 Id = sender.Id,
                                 Key = rpc.Argument.GlobalTableKey,
                                 AcquireState = GlobalCacheManager.StateModify,
                             });
-                            log1.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                            log1.Operates.Add(new SetCacheStateAcquireStatePending()
                             {
                                 Key = rpc.Argument.GlobalTableKey,
                                 AcquireStatePending = GlobalCacheManager.StateInvalid,
@@ -353,7 +362,7 @@ namespace Zeze.Services
                         }
 
                         int stateReduceResult = GlobalCacheManager.StateReduceException;
-                        var modifyHolder = StateMachine.Sessions.GetOrAdd(cs.Modify);
+                        var modifyHolder = RaftData.Sessions.GetOrAdd(cs.Modify);
                         Zeze.Util.Task.Run(
                             () =>
                             {
@@ -370,11 +379,11 @@ namespace Zeze.Services
                         logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
 
-                        var log2 = new GlobalCacheManagerStateMachine.OperatesLog();
+                        var log2 = new OperatesLog();
                         switch (stateReduceResult)
                         {
                             case GlobalCacheManager.StateShare:
-                                log2.Operates.Add(new GlobalCacheManagerStateMachine.PutCacheHolderAcquired()
+                                log2.Operates.Add(new PutCacheHolderAcquired()
                                 {
                                     Id = cs.Modify,
                                     Key = rpc.Argument.GlobalTableKey,
@@ -382,7 +391,7 @@ namespace Zeze.Services
                                 });
                                 //cs.Modify.Acquired[rpc.Argument.GlobalTableKey] = GlobalCacheManager.StateShare;
                                 // 降级成功，有可能降到 Invalid，此时就不需要加入 Share 了。
-                                log2.Operates.Add(new GlobalCacheManagerStateMachine.AddCacheStateShare()
+                                log2.Operates.Add(new AddCacheStateShare()
                                 {
                                     Key = rpc.Argument.GlobalTableKey,
                                     Share = cs.Modify
@@ -395,7 +404,7 @@ namespace Zeze.Services
                                 // case StateReduceRpcTimeout:
                                 // case StateReduceException:
                                 // case StateReduceNetError:
-                                log2.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                                log2.Operates.Add(new SetCacheStateAcquireStatePending()
                                 {
                                     Key = rpc.Argument.GlobalTableKey,
                                     AcquireStatePending = GlobalCacheManager.StateInvalid,
@@ -410,26 +419,26 @@ namespace Zeze.Services
                                 return 0;
                         }
 
-                        log2.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateModify()
+                        log2.Operates.Add(new SetCacheStateModify()
                         {
                             Key = rpc.Argument.GlobalTableKey,
                             Modify = -1,
                         });
                         //cs.Modify = null;
-                        log2.Operates.Add(new GlobalCacheManagerStateMachine.PutCacheHolderAcquired()
+                        log2.Operates.Add(new PutCacheHolderAcquired()
                         {
                             Id = sender.Id,
                             Key = rpc.Argument.GlobalTableKey,
                             AcquireState = GlobalCacheManager.StateShare,
                         });
                         //sender.Acquired[rpc.Argument.GlobalTableKey] = GlobalCacheManager.StateShare;
-                        log2.Operates.Add(new GlobalCacheManagerStateMachine.AddCacheStateShare()
+                        log2.Operates.Add(new AddCacheStateShare()
                         {
                             Key = rpc.Argument.GlobalTableKey,
                             Share = sender.Id,
                         });
                         //cs.Share.Add(sender);
-                        log2.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                        log2.Operates.Add(new SetCacheStateAcquireStatePending()
                         {
                             Key = rpc.Argument.GlobalTableKey,
                             AcquireStatePending = GlobalCacheManager.StateInvalid,
@@ -443,21 +452,21 @@ namespace Zeze.Services
                         return 0;
                     }
 
-                    var log3 = new GlobalCacheManagerStateMachine.OperatesLog();
-                    log3.Operates.Add(new GlobalCacheManagerStateMachine.PutCacheHolderAcquired()
+                    var log3 = new OperatesLog();
+                    log3.Operates.Add(new PutCacheHolderAcquired()
                     {
                         Id = sender.Id,
                         Key = rpc.Argument.GlobalTableKey,
                         AcquireState = GlobalCacheManager.StateShare,
                     });
                     //sender.Acquired[rpc.Argument.GlobalTableKey] = GlobalCacheManager.StateShare;
-                    log3.Operates.Add(new GlobalCacheManagerStateMachine.AddCacheStateShare()
+                    log3.Operates.Add(new AddCacheStateShare()
                     {
                         Key = rpc.Argument.GlobalTableKey,
                         Share = sender.Id,
                     });
                     //cs.Share.Add(sender);
-                    log3.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                    log3.Operates.Add(new SetCacheStateAcquireStatePending()
                     {
                         Key = rpc.Argument.GlobalTableKey,
                         AcquireStatePending = GlobalCacheManager.StateInvalid,
@@ -473,12 +482,12 @@ namespace Zeze.Services
 
         private int AcquireModify(GlobalCacheManager.Acquire rpc)
         {
-            var sender = rpc.Sender.UserState as GlobalCacheManagerStateMachine.CacheHolder;
+            var sender = rpc.Sender.UserState as CacheHolder;
             rpc.Result = rpc.Argument;
 
             while (true)
             {
-                var cs = StateMachine.Global.GetOrAdd(rpc.Argument.GlobalTableKey);
+                var cs = RaftData.Global.GetOrAdd(rpc.Argument.GlobalTableKey);
                 lock (cs)
                 {
                     if (cs.AcquireStatePending == GlobalCacheManager.StateRemoved)
@@ -510,8 +519,8 @@ namespace Zeze.Services
                         logger.Debug("3 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
                     }
-                    var log0 = new GlobalCacheManagerStateMachine.OperatesLog();
-                    log0.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                    var log0 = new OperatesLog();
+                    log0.Operates.Add(new SetCacheStateAcquireStatePending()
                     {
                         Key = rpc.Argument.GlobalTableKey,
                         AcquireStatePending = GlobalCacheManager.StateModify,
@@ -525,15 +534,15 @@ namespace Zeze.Services
                         {
                             logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
                             // 已经是Modify又申请，可能是sender异常关闭，又重启连上。更新一下。应该是不需要的。
-                            var log1 = new GlobalCacheManagerStateMachine.OperatesLog();
-                            log1.Operates.Add(new GlobalCacheManagerStateMachine.PutCacheHolderAcquired()
+                            var log1 = new OperatesLog();
+                            log1.Operates.Add(new PutCacheHolderAcquired()
                             {
                                 Id = sender.Id,
                                 Key = rpc.Argument.GlobalTableKey,
                                 AcquireState = GlobalCacheManager.StateModify,
                             });
                             //sender.Acquired[rpc.Argument.GlobalTableKey] = GlobalCacheManager.StateModify;
-                            log1.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                            log1.Operates.Add(new SetCacheStateAcquireStatePending()
                             {
                                 Key = rpc.Argument.GlobalTableKey,
                                 AcquireStatePending = GlobalCacheManager.StateInvalid,
@@ -545,7 +554,7 @@ namespace Zeze.Services
                         }
 
                         int stateReduceResult = GlobalCacheManager.StateReduceException;
-                        var modifyHolder = StateMachine.Sessions.GetOrAdd(cs.Modify);
+                        var modifyHolder = RaftData.Sessions.GetOrAdd(cs.Modify);
                         Zeze.Util.Task.Run(
                             () =>
                             {
@@ -561,12 +570,12 @@ namespace Zeze.Services
                         logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
 
-                        var log2 = new GlobalCacheManagerStateMachine.OperatesLog();
+                        var log2 = new OperatesLog();
 
                         switch (stateReduceResult)
                         {
                             case GlobalCacheManager.StateInvalid:
-                                log2.Operates.Add(new GlobalCacheManagerStateMachine.RemoveCacheHolderAcquired()
+                                log2.Operates.Add(new RemoveCacheHolderAcquired()
                                 {
                                     Id = cs.Modify,
                                     Key = rpc.Argument.GlobalTableKey,
@@ -578,7 +587,7 @@ namespace Zeze.Services
                                 // case StateReduceRpcTimeout:
                                 // case StateReduceException:
                                 // case StateReduceNetError:
-                                log2.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                                log2.Operates.Add(new SetCacheStateAcquireStatePending()
                                 {
                                     Key = rpc.Argument.GlobalTableKey,
                                     AcquireStatePending = GlobalCacheManager.StateInvalid,
@@ -596,14 +605,14 @@ namespace Zeze.Services
 
                         cs.Modify = sender.Id;
 
-                        log2.Operates.Add(new GlobalCacheManagerStateMachine.PutCacheHolderAcquired()
+                        log2.Operates.Add(new PutCacheHolderAcquired()
                         {
                             Id = sender.Id,
                             Key = rpc.Argument.GlobalTableKey,
                             AcquireState = GlobalCacheManager.StateModify,
                         });
                         //sender.Acquired[rpc.Argument.GlobalTableKey] = GlobalCacheManager.StateModify;
-                        log2.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                        log2.Operates.Add(new SetCacheStateAcquireStatePending()
                         {
                             Key = rpc.Argument.GlobalTableKey,
                             AcquireStatePending = GlobalCacheManager.StateInvalid,
@@ -618,9 +627,9 @@ namespace Zeze.Services
                         return 0;
                     }
 
-                    List<Util.KV<GlobalCacheManagerStateMachine.CacheHolder, GlobalCacheManager.Reduce >> reducePending
-                        = new List<Util.KV<GlobalCacheManagerStateMachine.CacheHolder, GlobalCacheManager.Reduce>>();
-                    HashSet<GlobalCacheManagerStateMachine.CacheHolder> reduceSuccessed = new HashSet<GlobalCacheManagerStateMachine.CacheHolder>();
+                    List<Util.KV<CacheHolder, GlobalCacheManager.Reduce >> reducePending
+                        = new List<Util.KV<CacheHolder, GlobalCacheManager.Reduce>>();
+                    HashSet<CacheHolder> reduceSuccessed = new HashSet<CacheHolder>();
                     bool senderIsShare = false;
                     // 先把降级请求全部发送给出去。
                     foreach (var c in cs.Share)
@@ -631,7 +640,7 @@ namespace Zeze.Services
                             reduceSuccessed.Add(sender);
                             continue;
                         }
-                        var shareHolder = StateMachine.Sessions.GetOrAdd(c);
+                        var shareHolder = RaftData.Sessions.GetOrAdd(c);
                         var reduce = shareHolder.ReduceWaitLater(
                             rpc.Argument.GlobalTableKey,
                             GlobalCacheManager.StateInvalid);
@@ -647,7 +656,7 @@ namespace Zeze.Services
                         }
                     }
 
-                    var log3 = new GlobalCacheManagerStateMachine.OperatesLog();
+                    var log3 = new OperatesLog();
                     Zeze.Util.Task.Run(
                         () =>
                         {
@@ -661,7 +670,7 @@ namespace Zeze.Services
                                     if (reduce.Value.Result.State == GlobalCacheManager.StateInvalid)
                                     {
                                         // 后面还有个成功的处理循环，但是那里可能包含sender，在这里更新吧。
-                                        log3.Operates.Add(new GlobalCacheManagerStateMachine.RemoveCacheHolderAcquired()
+                                        log3.Operates.Add(new RemoveCacheHolderAcquired()
                                         {
                                             Id = reduce.Key.Id,
                                             Key = rpc.Argument.GlobalTableKey,
@@ -691,9 +700,9 @@ namespace Zeze.Services
                     Monitor.Wait(cs);
 
                     // 移除成功的。
-                    foreach (GlobalCacheManagerStateMachine.CacheHolder successed in reduceSuccessed)
+                    foreach (CacheHolder successed in reduceSuccessed)
                     {
-                        log3.Operates.Add(new GlobalCacheManagerStateMachine.RemoveCacheStateShare()
+                        log3.Operates.Add(new RemoveCacheStateShare()
                         {
                             Key = rpc.Argument.GlobalTableKey,
                             Share = successed.Id,
@@ -706,21 +715,21 @@ namespace Zeze.Services
                     // 如果前面降级发生中断(break)，这里不会为0。
                     if (cs.Share.Count == 0)
                     {
-                        var log4 = new GlobalCacheManagerStateMachine.OperatesLog();
-                        log4.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateModify()
+                        var log4 = new OperatesLog();
+                        log4.Operates.Add(new SetCacheStateModify()
                         {
                             Key = rpc.Argument.GlobalTableKey,
                             Modify = sender.Id,
                         });
                         //cs.Modify = sender.Id;
-                        log4.Operates.Add(new GlobalCacheManagerStateMachine.PutCacheHolderAcquired()
+                        log4.Operates.Add(new PutCacheHolderAcquired()
                         {
                             Id = sender.Id,
                             Key = rpc.Argument.GlobalTableKey,
                             AcquireState = GlobalCacheManager.StateModify,
                         });
                         //sender.Acquired[rpc.Argument.GlobalTableKey] = GlobalCacheManager.StateModify;
-                        log4.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                        log4.Operates.Add(new SetCacheStateAcquireStatePending()
                         {
                             Key = rpc.Argument.GlobalTableKey,
                             AcquireStatePending = GlobalCacheManager.StateInvalid,
@@ -736,11 +745,11 @@ namespace Zeze.Services
                     }
                     else
                     {
-                        var log5 = new GlobalCacheManagerStateMachine.OperatesLog();
+                        var log5 = new OperatesLog();
                         // senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
                         if (senderIsShare)
                         {
-                            log5.Operates.Add(new GlobalCacheManagerStateMachine.AddCacheStateShare()
+                            log5.Operates.Add(new AddCacheStateShare()
                             {
                                 Key = rpc.Argument.GlobalTableKey,
                                 Share = sender.Id,
@@ -749,7 +758,7 @@ namespace Zeze.Services
                             // 失败了，要把原来是share的sender恢复。先这样吧。
                         }
 
-                        log5.Operates.Add(new GlobalCacheManagerStateMachine.SetCacheStateAcquireStatePending()
+                        log5.Operates.Add(new SetCacheStateAcquireStatePending()
                         {
                             Key = rpc.Argument.GlobalTableKey,
                             AcquireStatePending = GlobalCacheManager.StateInvalid,
@@ -772,41 +781,372 @@ namespace Zeze.Services
             }
         }
 
-        /*
-        public sealed class CacheState
+        public class RaftDatas : Zeze.Raft.StateMachine
         {
-            internal CacheHolder Modify { get; set; }
-            internal int AcquireStatePending { get; set; } = GlobalCacheManager.StateInvalid;
-            internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
+            public ConcurrentMap<GlobalCacheManager.GlobalTableKey, CacheState>
+                Global
+            { get; }
+                = new ConcurrentMap<GlobalCacheManager.GlobalTableKey, CacheState>
+                (
+                    GlobalCacheManager.DefaultConcurrencyLevel,
+                    GlobalCacheManager.DefaultCapacity
+                );
+
+            public ConcurrentMap<int, CacheHolder>
+                Sessions
+            { get; }
+                = new ConcurrentMap<int, CacheHolder>
+                (
+                    Services.GlobalCacheManager.DefaultConcurrencyLevel,
+                    4096
+                );
+
+            public override void LoadFromSnapshot(string path)
+            {
+                lock (Raft)
+                {
+                    using var file = new System.IO.FileStream(path, System.IO.FileMode.Open);
+                    Global.UnSerializeFrom(file);
+                    Sessions.UnSerializeFrom(file);
+                }
+            }
+
+            public override bool Snapshot(string path, out long LastIncludedIndex, out long LastIncludedTerm)
+            {
+                using var file = new System.IO.FileStream(path, System.IO.FileMode.Create);
+                lock (Raft)
+                {
+                    LastIncludedIndex = Raft.LogSequence.Index;
+                    LastIncludedTerm = Raft.LogSequence.Term;
+                    if (!Global.StartSerialize())
+                        return false;
+                    if (!Sessions.StartSerialize())
+                        return false;
+                }
+                Global.ConcurrentSerializeTo(file);
+                Sessions.ConcurrentSerializeTo(file);
+                lock (Raft)
+                {
+                    Global.EndSerialize();
+                    Sessions.EndSerialize();
+                }
+                return true;
+            }
+
+        }
+        /// <summary>
+        /// 【优化】按顺序记录多个修改数据的操作，减少提交给Raft的日志数量。
+        /// </summary>
+        public sealed class OperatesLog : Log
+        {
+            public List<Operate> Operates { get; } = new List<Operate>();
+
+            public override void Apply(Zeze.Raft.StateMachine stateMachine)
+            {
+                var sm = stateMachine as RaftDatas;
+                foreach (var op in Operates)
+                {
+                    op.Apply(sm);
+                }
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                for (int count = bb.ReadInt(); count > 0; --count)
+                {
+                    var opid = bb.ReadInt();
+                    if (Instance.OperateFactory.TryGetValue(opid, out var factory))
+                    {
+                        Operate op = factory();
+                        op.Decode(bb);
+                    }
+                    else
+                    {
+                        throw new Exception($"Unknown Operate With Id={opid}");
+                    }
+                }
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                bb.WriteInt(Operates.Count);
+                foreach (var op in Operates)
+                {
+                    bb.WriteInt(op.TypeId);
+                    op.Encode(bb);
+                }
+            }
+        }
+
+        private Dictionary<int, Func<Operate>> OperateFactory { get; }
+            = new Dictionary<int, Func<Operate>>();
+
+        public abstract class Operate : Serializable
+        {
+            public virtual int TypeId => (int)Zeze.Transaction.Bean.Hash32(GetType().FullName);
+            // 这里不管多线程，由调用者决定并发。
+            public abstract void Apply(RaftDatas sm);
+            public abstract void Encode(ByteBuffer bb);
+            public abstract void Decode(ByteBuffer bb);
+        }
+
+        public sealed class PutCacheHolderAcquired : Operate
+        {
+            public int Id { get; set; }
+            public GlobalCacheManager.GlobalTableKey Key { get; set; }
+            public int AcquireState { get; set; }
+
+            public override void Apply(RaftDatas sm)
+            {
+                sm.Sessions.Update(Id, (v) => v.Acquired[Key] = AcquireState);
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                Id = bb.ReadInt();
+                Key = new Services.GlobalCacheManager.GlobalTableKey();
+                Key.Decode(bb);
+                AcquireState = bb.ReadInt();
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                bb.WriteInt(Id);
+                Key.Encode(bb);
+                bb.WriteInt(AcquireState);
+            }
+        }
+
+        public sealed class RemoveCacheHolderAcquired : Operate
+        {
+            public int Id { get; set; }
+            public GlobalCacheManager.GlobalTableKey Key { get; set; }
+
+            public override void Apply(RaftDatas sm)
+            {
+                sm.Sessions.Update(Id, (v) => v.Acquired.TryRemove(Key, out var _));
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                Id = bb.ReadInt();
+                Key = new Services.GlobalCacheManager.GlobalTableKey();
+                Key.Decode(bb);
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                bb.WriteInt(Id);
+                Key.Encode(bb);
+            }
+        }
+
+        public sealed class RemoveCacheState : Operate
+        {
+            public GlobalCacheManager.GlobalTableKey Key { get; set; }
+
+            public override void Apply(RaftDatas sm)
+            {
+                sm.Global.Remove(Key);
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                Key = new Services.GlobalCacheManager.GlobalTableKey();
+                Key.Decode(bb);
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                Key.Encode(bb);
+            }
+        }
+
+        public sealed class SetCacheStateAcquireStatePending : Operate
+        {
+            public GlobalCacheManager.GlobalTableKey Key { get; set; }
+            public int AcquireStatePending { get; set; }
+
+            public override void Apply(RaftDatas sm)
+            {
+                sm.Global.Update(Key, (v) => v.AcquireStatePending = AcquireStatePending);
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                Key = new Services.GlobalCacheManager.GlobalTableKey();
+                Key.Decode(bb);
+                AcquireStatePending = bb.ReadInt();
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                Key.Encode(bb);
+                bb.WriteInt(AcquireStatePending);
+            }
+        }
+
+        public sealed class SetCacheStateModify : Operate
+        {
+            public GlobalCacheManager.GlobalTableKey Key { get; set; }
+            public int Modify { get; set; }
+
+            public override void Apply(RaftDatas sm)
+            {
+                sm.Global.Update(Key, (v) => v.Modify = Modify);
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                Key = new Services.GlobalCacheManager.GlobalTableKey();
+                Key.Decode(bb);
+                Modify = bb.ReadInt();
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                Key.Encode(bb);
+                bb.WriteInt(Modify);
+            }
+        }
+
+        public sealed class AddCacheStateShare : Operate
+        {
+            public Services.GlobalCacheManager.GlobalTableKey Key { get; set; }
+            public int Share { get; set; }
+
+            public override void Apply(RaftDatas sm)
+            {
+                sm.Global.Update(Key, (v) => v.Share.Add(Share));
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                Key = new Services.GlobalCacheManager.GlobalTableKey();
+                Key.Decode(bb);
+                Share = bb.ReadInt();
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                Key.Encode(bb);
+                bb.WriteInt(Share);
+            }
+        }
+
+        public sealed class RemoveCacheStateShare : Operate
+        {
+            public Services.GlobalCacheManager.GlobalTableKey Key { get; set; }
+            public int Share { get; set; }
+
+            public override void Apply(RaftDatas sm)
+            {
+                sm.Global.Update(Key, (v) => v.Share.Remove(Share));
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                Key = new Services.GlobalCacheManager.GlobalTableKey();
+                Key.Decode(bb);
+                Share = bb.ReadInt();
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                Key.Encode(bb);
+                bb.WriteInt(Share);
+            }
+        }
+
+        public sealed class CacheState : Copyable<CacheState>
+        {
+            internal int AcquireStatePending { get; set; } = Services.GlobalCacheManager.StateInvalid;
+            internal int Modify { get; set; } // AutoKeyLocalId
+            internal HashSet<int> Share { get; } = new HashSet<int>(); // AutoKeyLocalIds
+
             public override string ToString()
             {
                 StringBuilder sb = new StringBuilder();
                 ByteBuffer.BuildString(sb, Share);
                 return $"P{AcquireStatePending} M{Modify} S{sb}";
             }
+
+            public CacheState()
+            {
+            }
+
+            private CacheState(CacheState other)
+            {
+                AcquireStatePending = other.AcquireStatePending;
+                Modify = other.Modify;
+                foreach (var e in other.Share)
+                {
+                    Share.Add(e);
+                }
+            }
+
+            public CacheState Copy()
+            {
+                return new CacheState(this);
+            }
+
+            public void Decode(ByteBuffer bb)
+            {
+                AcquireStatePending = bb.ReadInt();
+                Modify = bb.ReadInt();
+                Share.Clear();
+                for (int count = bb.ReadInt(); count > 0; --count)
+                {
+                    Share.Add(bb.ReadInt());
+                }
+            }
+
+            public void Encode(ByteBuffer bb)
+            {
+                bb.WriteInt(AcquireStatePending);
+                bb.WriteInt(Modify);
+                bb.WriteInt(Share.Count);
+                foreach (var e in Share)
+                {
+                    bb.WriteInt(e);
+                }
+            }
         }
 
-        public sealed class CacheHolder
+        public sealed class CacheHolder : Copyable<CacheHolder>
         {
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
+            // local only. 每一个Raft服务器独立设置。【不会系列化】。
             public long SessionId { get; private set; }
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
-            // 记住分配给该会话的GlobalTableKey。这里本来用Set即可，为了线程安全和并发，用ConcurrentDictionary，顺便记住分配的State。
-            public ConcurrentDictionary<GlobalCacheManager.GlobalTableKey, int>
-                Acquired { get; }
-                = new ConcurrentDictionary<GlobalCacheManager.GlobalTableKey, int>
-                (GlobalCacheManager.DefaultConcurrencyLevel, 1000000);
+            // 已分配给这个cache的记录。【需要系列化】。
+            public ConcurrentDictionary<Services.GlobalCacheManager.GlobalTableKey, int>
+                Acquired
+            { get; }
+                = new ConcurrentDictionary<Services.GlobalCacheManager.GlobalTableKey, int>
+                (
+                    Services.GlobalCacheManager.DefaultConcurrencyLevel,
+                    1000000
+                );
 
-            public bool TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
+            public int Id { get; }
+
+            public CacheHolder(int key)
+            {
+                Id = key;
+            }
+
+            public bool TryBindSocket(Zeze.Net.AsyncSocket newSocket,
+                int _GlobalCacheManagerHashIndex)
             {
                 lock (this)
                 {
                     if (newSocket.UserState != null)
                         return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
 
-                    var socket = GlobalCacheManager.Instance.Server.GetSocket(SessionId);
+                    var socket = Services.GlobalCacheManagerWithRaft.Instance.Raft.Server.GetSocket(SessionId);
                     if (null == socket)
                     {
                         // old socket not exist or has lost.
@@ -820,7 +1160,7 @@ namespace Zeze.Services
                 }
             }
 
-            public bool TryUnBindSocket(AsyncSocket oldSocket)
+            public bool TryUnBindSocket(Zeze.Net.AsyncSocket oldSocket)
             {
                 lock (this)
                 {
@@ -829,7 +1169,7 @@ namespace Zeze.Services
                     if (oldSocket.UserState != this)
                         return false; // not bind to this
 
-                    var socket = GlobalCacheManager.Instance.Server.GetSocket(SessionId);
+                    var socket = Services.GlobalCacheManagerWithRaft.Instance.Raft.Server.GetSocket(SessionId);
                     if (socket != oldSocket)
                         return false; // not same socket
 
@@ -855,21 +1195,21 @@ namespace Zeze.Services
                     }
                     return GlobalCacheManager.StateReduceNetError;
                 }
-                catch (RpcTimeoutException timeoutex)
+                catch (Zeze.Net.RpcTimeoutException timeoutex)
                 {
                     // 等待超时，应该报告错误。
                     logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1}", state, SessionId);
-                    return GlobalCacheManager.StateReduceRpcTimeout;
+                    return Services.GlobalCacheManager.StateReduceRpcTimeout;
                 }
                 catch (Exception ex)
                 {
                     logger.Error(ex, "Reduce Exception {0} target={1}", state, SessionId);
-                    return GlobalCacheManager.StateReduceException;
+                    return Services.GlobalCacheManager.StateReduceException;
                 }
             }
 
             public const long ForbitPeriod = 10 * 1000; // 10 seconds
-            private long LastErrorTime = 0;
+            private long LastErrorTime = 0; // 本地变量，【不会系列化】。
 
             public void SetError()
             {
@@ -896,10 +1236,10 @@ namespace Zeze.Services
                         if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbitPeriod)
                             return null;
                     }
-                    AsyncSocket peer = GlobalCacheManager.Instance.Server.GetSocket(SessionId);
+                    Zeze.Net.AsyncSocket peer = Services.GlobalCacheManagerWithRaft.Instance.Raft.Server.GetSocket(SessionId);
                     if (null != peer)
                     {
-                        var reduce = new GlobalCacheManager.Reduce(gkey, state);
+                        var reduce = new Services.GlobalCacheManager.Reduce(gkey, state);
                         reduce.SendForWait(peer, 10000);
                         return reduce;
                     }
@@ -912,7 +1252,47 @@ namespace Zeze.Services
                 SetError();
                 return null;
             }
+
+            public CacheHolder()
+            {
+            }
+
+            private CacheHolder(CacheHolder other)
+            {
+                SessionId = other.SessionId;
+                GlobalCacheManagerHashIndex = other.GlobalCacheManagerHashIndex;
+                foreach (var e in other.Acquired)
+                {
+                    Acquired.TryAdd(e.Key, e.Value);
+                }
+            }
+
+            public CacheHolder Copy()
+            {
+                return new CacheHolder(this);
+            }
+
+            public void Decode(ByteBuffer bb)
+            {
+                Acquired.Clear();
+                for (int count = bb.ReadInt(); count > 0; --count)
+                {
+                    var key = new Services.GlobalCacheManager.GlobalTableKey();
+                    key.Decode(bb);
+                    int value = bb.ReadInt();
+                    Acquired.TryAdd(key, value);
+                }
+            }
+
+            public void Encode(ByteBuffer bb)
+            {
+                bb.WriteInt(Acquired.Count);
+                foreach (var e in Acquired)
+                {
+                    e.Key.Encode(bb);
+                    bb.WriteInt(e.Value);
+                }
+            }
         }
-        */
     }
 }

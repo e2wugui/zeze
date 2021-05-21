@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Zeze.Serialize;
 using Zeze.Util;
 
-namespace Zeze.Raft.StateMachines
+namespace Zeze.Raft
 {
     // 并发说明
     // 如果你的数据可以用 ConcurrentDictionary 管理，并且只使用下面的方法：
