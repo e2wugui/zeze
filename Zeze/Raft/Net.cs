@@ -250,7 +250,7 @@ namespace Zeze.Raft
         }
     }
 
-    public sealed class RequestVoteArgument : Zeze.Transaction.Bean
+    public sealed class RequestVoteArgument : Bean
     {
         public long Term { get; set; }
         public string CandidateId { get; set; }
@@ -279,7 +279,7 @@ namespace Zeze.Raft
         }
     }
 
-    public sealed class RequestVoteResult : Zeze.Transaction.Bean
+    public sealed class RequestVoteResult : Bean
     { 
         public long Term { get; set; }
         public bool VoteGranted { get; set; }
@@ -310,7 +310,7 @@ namespace Zeze.Raft
         public override int ProtocolId => ProtocolId_;
     }
 
-    public sealed class AppendEntriesArgument : Zeze.Transaction.Bean
+    public sealed class AppendEntriesArgument : Bean
     {
         public long Term { get; set; }
         public string LeaderId { get; set; } // Ip:Port
@@ -361,7 +361,7 @@ namespace Zeze.Raft
         }
     }
 
-    public sealed class AppendEntriesResult : Zeze.Transaction.Bean
+    public sealed class AppendEntriesResult : Bean
     {
         public long Term { get; set; }
         public bool Success { get; set; }
@@ -392,20 +392,13 @@ namespace Zeze.Raft
         public override int ProtocolId => ProtocolId_;
     }
 
-    public sealed class InstallSnapshotArgument : Zeze.Transaction.Bean
+    public sealed class InstallSnapshotArgument : Bean
     {
         public long Term { get; set; }
         public string LeaderId { get; set; } // Ip:Port
         public long LastIncludedIndex { get; set; }
         public long LastIncludedTerm { get; set; }
-
-        /// <summary>
-        /// Raft 文档的Snapshot描述是基于文件流传输的。
-        /// 这里使用Binary，也是基于流传输，但内容为自定义格式。
-        /// 需要自己解析和处理，不仅限于文件传输。
-        /// 【注意】跟Raft文档相比，这里去掉Offset。
-        /// 当Leader发送最后一个Trunk时设置Done为true。
-        /// </summary>
+        public long Offset { get; set; }
         public Binary Trunk { get; set; }
         public bool Done { get; set; }
 
@@ -416,6 +409,7 @@ namespace Zeze.Raft
             LastIncludedIndex = bb.ReadLong();
             LastIncludedTerm = bb.ReadLong();
 
+            Offset = bb.ReadLong();
             Trunk = bb.ReadBinary();
             Done = bb.ReadBool();
         }
@@ -427,6 +421,7 @@ namespace Zeze.Raft
             bb.WriteLong(LastIncludedIndex);
             bb.WriteLong(LastIncludedTerm);
 
+            bb.WriteLong(Offset);
             bb.WriteBinary(Trunk);
             bb.WriteBool(Done);
         }
@@ -437,7 +432,7 @@ namespace Zeze.Raft
         }
     }
 
-    public sealed class InstallSnapshotResult : Zeze.Transaction.Bean
+    public sealed class InstallSnapshotResult : Bean
     {
         public long Term { get; set; }
 
@@ -492,7 +487,7 @@ namespace Zeze.Raft
     /// LeaderIs 的发送时机
     /// 0. Agent 刚连上来时，如果Node是当前Leader，它马上这个Rpc给Agent。
     /// 1. Node 收到应用请求时，发现自己不是Leader，发送重定向。此时Node不处理请求（也不返回结果）。
-    /// 2. 选举结束时也给Agent广播选举结果。TOTO 实现选举时再考虑细节。
+    /// 2. 选举结束时也给Agent广播选举结果。
     /// </summary>
     public sealed class LeaderIs : Rpc<LeaderIsArgument, EmptyBean>
     {

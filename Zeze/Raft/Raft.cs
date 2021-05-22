@@ -22,7 +22,7 @@ namespace Zeze.Raft
         public string LeaderId { get; internal set; }
         public RaftConfig RaftConfig { get; }
         public LogSequence LogSequence { get; }
-        public bool IsLeader => LeaderId.Equals(Name);
+        public bool IsLeader => this.State == RaftState.Leader;
         public bool HasLeader => false == string.IsNullOrEmpty(LeaderId);
         public Server Server { get; }
 
@@ -63,10 +63,6 @@ namespace Zeze.Raft
             sm.Raft = this;
             StateMachine = sm;
             RegisterInternalRpc();
-
-            // 刚启动时，马上开始一次选举，里面有随机延迟。
-            // 这里不等待LeaderLostTimeout，如果已经存在Leader，
-            ConvertStateTo(RaftState.Candidate);
         }
 
         private int ProcessAppendEntries(Protocol p)
@@ -187,7 +183,9 @@ namespace Zeze.Raft
                     && LogSequence.CanVoteFor(r.Argument.CandidateId)
                     && IsLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
                 if (r.Result.VoteGranted)
+                {
                     LogSequence.SetVoteFor(r.Argument.CandidateId);
+                }
                 r.SendResultCode(0);
 
                 return Procedure.Success;
