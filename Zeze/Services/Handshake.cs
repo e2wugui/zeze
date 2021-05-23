@@ -49,9 +49,18 @@ namespace Zeze.Services
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
+        private HashSet<int> HandshakeProtocols = new HashSet<int>();
+
+        public bool IsHandshakeProtocol(int typeId)
+        {
+            return HandshakeProtocols.Contains(typeId);
+        }
+
         private void AddFactoryHandle()
         {
-            AddFactoryHandle(new Handshake.CHandshake().TypeId, new Service.ProtocolFactoryHandle()
+            var tmp = new Handshake.CHandshake();
+            HandshakeProtocols.Add(tmp.TypeId);
+            AddFactoryHandle(tmp.TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Handshake.CHandshake(),
                 Handle = ProcessCHandshake,

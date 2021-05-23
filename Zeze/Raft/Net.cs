@@ -17,7 +17,7 @@ namespace Zeze.Raft
     /// 【注意】
     /// 为了简化配置，应用可以注册协议到Server，使用同一个Acceptor进行连接。
     /// </summary>
-    public sealed class Server : Service
+    public sealed class Server : Services.HandshakeServer
     {
         public Raft Raft { get; }
 
@@ -72,13 +72,13 @@ namespace Zeze.Raft
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            if (p.TypeId == RequestVote.ProtocolId_
+            if (IsHandshakeProtocol(p.TypeId)
+                || p.TypeId == RequestVote.ProtocolId_
                 || p.TypeId == AppendEntries.ProtocolId_
                 || p.TypeId == InstallSnapshot.ProtocolId_
                 || p.TypeId == LeaderIs.ProtocolId_)
             {
-                // TODO Handshake Protocol
-                // Raft Rpc
+                // HandshakeProtocol || RaftProtocol
                 base.DispatchProtocol(p, factoryHandle);
                 return;
             }
@@ -211,7 +211,7 @@ namespace Zeze.Raft
             }
         }
 
-        public sealed class NetClient : Service
+        public sealed class NetClient : Services.HandshakeServer
         {
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
