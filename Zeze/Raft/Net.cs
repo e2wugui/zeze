@@ -51,6 +51,12 @@ namespace Zeze.Raft
             /// (initialized to 0, increases monotonically)
             /// </summary>
             public long MatchIndex { get; set; }
+
+            /// <summary>
+            /// 正在安装Snapshot，用来阻止新的安装。
+            /// 安装完成一次以后才能再启动新的就够了。
+            /// </summary>
+            public bool InstallSnapshotting { get; set; }
         }
 
         public static void CreateConnector(Service service, RaftConfig raftconf)

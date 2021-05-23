@@ -140,6 +140,38 @@ namespace Zeze.Raft
         // 这个不是日志需要的，因为持久化，所以就定义在这里吧。
         private string VoteFor { get; set; }
 
+        // 初始化的时候会加入一条日志(Index=0，不需要真正apply)，
+        // 以后Snapshot时，会保留LastApplied的。
+        // 所以下面方法不会返回空。
+        // 除非什么例外发生。那就抛空指针异常吧。
+        public RaftLog LastAppliedLog()
+        {
+            return ReadLog(LastApplied);
+        }
+
+        public void RemoveLogBefore(long LastIncludedIndex)
+        {
+            if (LastIncludedIndex < FirstIndex)
+                throw new Exception("Error LastIncludedIndex < FirstIndex.");
+            if (LastIncludedIndex < CommitIndex)
+                throw new Exception("Error LastIncludedIndex < CommitIndex.");
+            if (LastIncludedIndex < LastApplied)
+                throw new Exception("Error LastIncludedIndex < LastApplied.");
+
+            for (var index = LastIncludedIndex - 1; index >= FirstIndex; --index)
+            {
+                var key = ByteBuffer.Allocate();
+                key.WriteLong8(index);
+                Logs.Remove(key.Bytes, key.Size);
+            }
+
+            // 只有这个变量赋值需要保护。意思一下。
+            lock (Raft)
+            {
+                FirstIndex = LastIncludedIndex;
+            }
+        }
+
         // Leader
         public bool AppendLogActive { get; internal set; } = false;
         // Follower

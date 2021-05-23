@@ -44,16 +44,20 @@ namespace Zeze.Raft
         /// 原子性建议伪码如下：
         /// lock (Raft) // 这会阻止对 StateMachine 的写请求。
         /// {
-        ///     LastIncludedIndex = Raft.LogSequence.Index;
-        ///     LastIncludedTerm = Raft.LogSequence.Term;
+        ///     var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
+        ///     LastIncludedIndex = lastAppliedLog.Index;
+        ///     LastIncludedTerm = lastAppliedLog.Term;
         ///     MyData.SerializeToFile(path);
         /// }
+        /// Raft.LogSequence.RemoveLogBefore(LastIncludedIndex);
+        ///
         /// 上面的问题是，数据很大时，SerializeToFile时间比较长。
         /// 这时候需要自己优化并发。如下：
         /// lock (Raft)
         /// {
-        ///     LastIncludedIndex = Raft.LogSequence.Index;
-        ///     LastIncludedTerm = Raft.LogSequence.Term;
+        ///     var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
+        ///     LastIncludedIndex = lastAppliedLog.Index;
+        ///     LastIncludedTerm = lastAppliedLog.Term;
         ///     // 设置状态，如果限制只允许一个snapshot进行，
         ///     // 新进的snapshot调用返回false。
         ///     MyData.StartSerializeToFile();
@@ -64,7 +68,10 @@ namespace Zeze.Raft
         ///     // 清理一些状态。
         ///     MyData.EndSerializeToFile();
         /// }
+        /// Raft.LogSequence.RemoveLogBefore(LastIncludedIndex);
+        ///
         /// return true;
+        ///
         /// 这样在保存数据到文件的过程中，服务可以继续进行。
         /// </summary>
         /// <param name="path"></param>

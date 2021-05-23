@@ -699,13 +699,17 @@ namespace Zeze.Services
                 }
             }
 
-            public override bool Snapshot(string path, out long LastIncludedIndex, out long LastIncludedTerm)
+            public override bool Snapshot(
+                string path,
+                out long LastIncludedIndex,
+                out long LastIncludedTerm)
             {
                 using var file = new System.IO.FileStream(path, System.IO.FileMode.Create);
                 lock (Raft)
                 {
-                    LastIncludedIndex = Raft.LogSequence.Index;
-                    LastIncludedTerm = Raft.LogSequence.Term;
+                    var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
+                    LastIncludedIndex = lastAppliedLog.Index;
+                    LastIncludedTerm = lastAppliedLog.Term;
                     if (!Global.StartSerialize())
                         return false;
                     if (!Sessions.StartSerialize())
@@ -718,6 +722,7 @@ namespace Zeze.Services
                     Global.EndSerialize();
                     Sessions.EndSerialize();
                 }
+                Raft.LogSequence.RemoveLogBefore(LastIncludedIndex);
                 return true;
             }
 
