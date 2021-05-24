@@ -35,12 +35,16 @@ namespace Zeze.Raft
         }
 
         public Raft(StateMachine sm,
+            string RaftName = null,
             RaftConfig raftconf = null,
             Zeze.Config config = null,
             string name = "Zeze.Raft.Server")
         {
             if (null == raftconf)
                 raftconf = RaftConfig.Load();
+
+            if (false == string.IsNullOrEmpty(RaftName))
+                raftconf.Name = RaftName;
 
             if (null == config)
                 config = Zeze.Config.Load();

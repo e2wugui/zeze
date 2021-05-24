@@ -13,13 +13,13 @@ namespace Zeze.Raft
     {
         private XmlDocument XmlDocument { get; }
 
-        private string XmlFileName { get; }
+        public string XmlFileName { get; }
         private XmlElement Self { get; }
 
         internal ConcurrentDictionary<string, Node> Nodes { get; }
             = new ConcurrentDictionary<string, Node>();
 
-        // 【这个参数不保存】
+        // 【这个参数不保存】可以在启动的时候从参数读取并设置。
         public string Name { get; internal set; }
         // 多数确认时：大于等于这个即可，因为还有自己(Leader)。
         public int HalfCount => Nodes.Count / 2;

@@ -33,7 +33,7 @@ namespace Zeze.Services
                 if (null == config)
                     config = Config.Load();
 
-                Raft = new Zeze.Raft.Raft(new RaftDatas(), raftconfig, config);
+                Raft = new Zeze.Raft.Raft(new RaftDatas(), raftconfig.Name, raftconfig, config);
 
                 Raft.Server.AddFactoryHandle(
                     new GlobalCacheManager.Acquire().TypeId,
@@ -726,6 +726,10 @@ namespace Zeze.Services
                 return true;
             }
 
+            public RaftDatas()
+            {
+                AddFactory(new OperatesLog().TypeId, () => new OperatesLog());
+            }
         }
         /// <summary>
         /// 【优化】按顺序记录多个修改数据的操作，减少提交给Raft的日志数量。
