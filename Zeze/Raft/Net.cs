@@ -420,6 +420,9 @@ namespace Zeze.Raft
         public Binary Data { get; set; }
         public bool Done { get; set; }
 
+        // 当Done为true时，把LastIncludedLog放到这里，Follower需要至少一个日志。
+        public Binary LastIncludedLog { get; set; } = Binary.Empty;
+
         public override void Decode(ByteBuffer bb)
         {
             Term = bb.ReadLong();
@@ -430,6 +433,8 @@ namespace Zeze.Raft
             Offset = bb.ReadLong();
             Data = bb.ReadBinary();
             Done = bb.ReadBool();
+
+            LastIncludedLog = bb.ReadBinary();
         }
 
         public override void Encode(ByteBuffer bb)
@@ -442,6 +447,8 @@ namespace Zeze.Raft
             bb.WriteLong(Offset);
             bb.WriteBinary(Data);
             bb.WriteBool(Done);
+
+            bb.WriteBinary(LastIncludedLog);
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)

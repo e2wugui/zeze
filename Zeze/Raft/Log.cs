@@ -131,7 +131,7 @@ namespace Zeze.Raft
         public Raft Raft { get; }
 
         public long Term { get; private set; }
-        public long Index { get; private set; }
+        public long LastIndex { get; private set; }
         // 用来处理NextIndex回溯时限制搜索。snapshot需要修订这个值。
         public long FirstIndex { get; private set; }
         public long CommitIndex { get; private set; }
@@ -225,7 +225,7 @@ namespace Zeze.Raft
                 it.SeekToLast();
                 if (it.Valid())
                 {
-                    Index = RaftLog.Decode(
+                    LastIndex = RaftLog.Decode(
                         new Binary(it.Value()),
                         Raft.StateMachine.LogFactory
                         ).Index;
@@ -234,7 +234,7 @@ namespace Zeze.Raft
                 {
                     // empty. add one for prev.
                     SaveLog(new RaftLog(Term, 0, new HeartbeatLog()));
-                    Index = 0;
+                    LastIndex = 0;
                 }
 
                 it.SeekToFirst();
@@ -254,7 +254,7 @@ namespace Zeze.Raft
 
         private void SaveLog(RaftLog log)
         {
-            Index = log.Index; // 记住最后一个Index，用来下一次生成。
+            LastIndex = log.Index; // 记住最后一个Index，用来下一次生成。
 
             var key = ByteBuffer.Allocate();
             key.WriteLong8(log.Index);
@@ -310,7 +310,7 @@ namespace Zeze.Raft
         /// <returns></returns>
         private RaftLog ReadLogStart(long startIndex)
         {
-            for (long index = startIndex; index <= Index; ++index)
+            for (long index = startIndex; index <= LastIndex; ++index)
             {
                 var raftLog = ReadLog(index);
                 if (null != raftLog)
@@ -322,7 +322,7 @@ namespace Zeze.Raft
         private RaftLog FindMaxMajorityLog(long startIndex)
         {
             RaftLog lastMajorityLog = null;
-            for (long index = startIndex; index <= Index; /**/)
+            for (long index = startIndex; index <= LastIndex; /**/)
             {
                 var raftLog = ReadLogStart(index);
                 if (null == raftLog)
@@ -407,8 +407,8 @@ namespace Zeze.Raft
             ManualResetEvent WaitApplyEvent = null;
             lock (Raft)
             {
-                ++Index;
-                var raftLog = new RaftLog(Term, Index, log);
+                ++LastIndex;
+                var raftLog = new RaftLog(Term, LastIndex, log);
                 if (WaitApply)
                 {
                     WaitApplyEvent = new ManualResetEvent(false);
@@ -493,13 +493,22 @@ namespace Zeze.Raft
                 var last = ReadLog(r.Argument.LastIncludedIndex);
                 if (null != last && last.Term == r.Argument.LastIncludedTerm)
                 {
-                    RemoveLogBefore(r.Argument.LastIncludedTerm);
+                    // 这里全部保留更简单吧，否则如果没有applied，那不就糟了吗？
+                    // RemoveLogBefore(r.Argument.LastIncludedTerm);
                     return;
                 }
                 // 7. Discard the entire log
-                // TODO 整个删除，那么下一次AppendEnties又会找不到prev。不就xxx了吗?
+                // 整个删除，那么下一次AppendEnties又会找不到prev。不就xxx了吗?
                 // 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
                 // 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
+                // 【除了快照最后包含的日志，其他都删除。】
+                var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
+                SaveLog(lastIncludedLog);
+                RemoveLogBefore(lastIncludedLog.Index);
+                RemoveLogUntilEnd(lastIncludedLog.Index + 1, lastIncludedLog.Index);
+                CommitIndex = FirstIndex;
+                LastApplied = FirstIndex;
+
                 // 8. Reset state machine using snapshot contents (and load
                 // snapshot’s cluster configuration)
                 Raft.StateMachine.LoadFromSnapshot(s.Name);
@@ -565,7 +574,10 @@ namespace Zeze.Raft
                         trunkArg.Done = rc < buffer.Length;
                     }
                     offset += rc;
-
+                    if (trunkArg.Done)
+                    {
+                        trunkArg.LastIncludedLog = new Binary(FirstLog.Encode());
+                    }
                     while (true)
                     {
                         var future = new TaskCompletionSource<int>();
@@ -596,6 +608,10 @@ namespace Zeze.Raft
                 lock (Raft)
                 {
                     connector.InstallSnapshotting = false;
+                    // 安装完成，重新初始化，使得以后的AppendEnties能继续工作。
+                    // = FirstIndex + 1，防止Index跳着分配，使用ReadLogStart。
+                    var next = ReadLogStart(FirstIndex + 1);
+                    connector.NextIndex = next == null ? FirstIndex + 1 : next.Index;
                     InstallSnapshotting.Remove(connector.Name);
                 }
             }
@@ -674,7 +690,7 @@ namespace Zeze.Raft
                 int maxCount = Raft.RaftConfig.MaxAppendEntiresCount;
                 RaftLog lastCopyLog = nextLog;
                 for (var copyLog = nextLog;
-                    maxCount > 0 && null != copyLog && copyLog.Index <= Index;
+                    maxCount > 0 && null != copyLog && copyLog.Index <= LastIndex;
                     copyLog = ReadLogStart(copyLog.Index + 1), --maxCount
                     )
                 {
@@ -744,18 +760,18 @@ namespace Zeze.Raft
 
         internal RaftLog LastRaftLog()
         {
-            return ReadLog(Index);
+            return ReadLog(LastIndex);
         }
 
         private void RemoveLogUntilEnd(long startIndex, long prevIndex)
         {
-            for (long index = startIndex; index <= Index; ++index)
+            for (long index = startIndex; index <= LastIndex; ++index)
             {
                 var key = ByteBuffer.Allocate();
                 key.WriteLong8(index);
                 Logs.Remove(key.Bytes, key.Size);
             }
-            Index = prevIndex;
+            LastIndex = prevIndex;
         }
 
         internal int FollowerOnAppendEntries(AppendEntries r)

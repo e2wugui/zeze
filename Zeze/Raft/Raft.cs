@@ -390,7 +390,7 @@ namespace Zeze.Raft
                     LeaderId = Name; // set to self
 
                     // (Reinitialized after election)
-                    var nextIndex = LogSequence.LastRaftLog().Index + 1;
+                    var nextIndex = LogSequence.LastIndex + 1;
                     Server.Config.ForEachConnector(
                         (c) =>
                         {
