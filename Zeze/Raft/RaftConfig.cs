@@ -46,6 +46,22 @@ namespace Zeze.Raft
         /// </summary>
         public int MaxAppendEntiresCount { get; set; } = 500;
 
+        /// <summary>
+        /// 创建snapshot最小的日志数量。如果少于这个数，不会创建新的snapshot。
+        /// 当然实在需要的时候可以创建。see LogSequence.StartSnapshot
+        /// </summary>
+        public int SnapshotMinLogCount { get; set; } = 10000;
+
+        /// <summary>
+        /// 每天创建 snapshot 的时间，一般负载每天有个低估，
+        /// 在这个时候创建snapshot是比较合适的。
+        /// 如果需要其他定时模式，自己创建定时器，
+        /// 并调用LogSequence.StartSnapshot();
+        /// 同时把 SnapshotHourOfDay 配置成-1，关闭默认的定时器。
+        /// </summary>
+        public int SnapshotHourOfDay { get; set; } = 6;
+        public int SnapshotMinute { get; set; } = 0;
+
         private RaftConfig(XmlDocument xml, string filename, XmlElement self)
         {
             XmlDocument = xml;
@@ -65,6 +81,12 @@ namespace Zeze.Raft
             LeaderLostTimeout = string.IsNullOrEmpty(attr) ? 12000 : int.Parse(attr);
             attr = self.GetAttribute("MaxAppendEntiresCount");
             MaxAppendEntiresCount = string.IsNullOrEmpty(attr) ? 500 : int.Parse(attr);
+            attr = self.GetAttribute("SnapshotMinLogCount");
+            SnapshotMinLogCount = string.IsNullOrEmpty(attr) ? 10000 : int.Parse(attr);
+            attr = self.GetAttribute("SnapshotHourOfDay");
+            SnapshotHourOfDay = string.IsNullOrEmpty(attr) ? 6 : int.Parse(attr);
+            attr = self.GetAttribute("SnapshotMinute");
+            SnapshotMinute = string.IsNullOrEmpty(attr) ? 0 : int.Parse(attr);
 
             // check and reset params
             if (AppendEntriesTimeout < 1000)
@@ -76,6 +98,11 @@ namespace Zeze.Raft
 
             if (MaxAppendEntiresCount < 100)
                 MaxAppendEntiresCount = 100;
+
+            if (SnapshotMinute < 0)
+                SnapshotMinute = 0;
+            else if (SnapshotMinute > 59)
+                SnapshotMinute = 59;
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
@@ -99,6 +126,9 @@ namespace Zeze.Raft
             Self.SetAttribute("LeaderHeartbeatTimer", LeaderHeartbeatTimer.ToString());
             Self.SetAttribute("LeaderLostTimeout", LeaderLostTimeout.ToString());
             Self.SetAttribute("MaxAppendEntiresCount", MaxAppendEntiresCount.ToString());
+            Self.SetAttribute("SnapshotMinLogCount", SnapshotMinLogCount.ToString());
+            Self.SetAttribute("SnapshotHourOfDay", SnapshotHourOfDay.ToString());
+            Self.SetAttribute("SnapshotMinute", SnapshotMinute.ToString());
 
             foreach (var node in Nodes)
             {

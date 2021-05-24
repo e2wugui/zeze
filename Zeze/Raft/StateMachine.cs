@@ -51,7 +51,7 @@ namespace Zeze.Raft
         /// }
         /// Raft.LogSequence.RemoveLogBefore(LastIncludedIndex);
         ///
-        /// 上面的问题是，数据很大时，SerializeToFile时间比较长。
+        /// 上面的问题是，数据很大时，SerializeToFile时间比较长，会导致服务不可用。
         /// 这时候需要自己优化并发。如下：
         /// lock (Raft)
         /// {

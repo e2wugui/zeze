@@ -54,9 +54,21 @@ namespace Zeze.Raft
 
             /// <summary>
             /// 正在安装Snapshot，用来阻止新的安装。
-            /// 安装完成一次以后才能再启动新的就够了。
             /// </summary>
             public bool InstallSnapshotting { get; set; }
+
+            public override void OnSocketClose(AsyncSocket closed)
+            {
+                var server = closed.Service as Server;
+                lock (server.Raft)
+                {
+                    // 安装快照没有续传能力，网络断开以后，重置状态。
+                    // 以后需要的时候，再次启动新的安装流程。
+                    InstallSnapshotting = false;
+                    server.Raft.LogSequence.InstallSnapshotting.Remove(Name);
+                }
+                base.OnSocketClose(closed);
+            }
         }
 
         public static void CreateConnector(Service service, RaftConfig raftconf)
@@ -405,7 +417,7 @@ namespace Zeze.Raft
         public long LastIncludedIndex { get; set; }
         public long LastIncludedTerm { get; set; }
         public long Offset { get; set; }
-        public Binary Trunk { get; set; }
+        public Binary Data { get; set; }
         public bool Done { get; set; }
 
         public override void Decode(ByteBuffer bb)
@@ -416,7 +428,7 @@ namespace Zeze.Raft
             LastIncludedTerm = bb.ReadLong();
 
             Offset = bb.ReadLong();
-            Trunk = bb.ReadBinary();
+            Data = bb.ReadBinary();
             Done = bb.ReadBool();
         }
 
@@ -428,7 +440,7 @@ namespace Zeze.Raft
             bb.WriteLong(LastIncludedTerm);
 
             bb.WriteLong(Offset);
-            bb.WriteBinary(Trunk);
+            bb.WriteBinary(Data);
             bb.WriteBool(Done);
         }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -63,6 +64,8 @@ namespace Zeze.Raft
             sm.Raft = this;
             StateMachine = sm;
             RegisterInternalRpc();
+
+            LogSequence.StartSnapshotPerDayTimer();
         }
 
         private int ProcessAppendEntries(Protocol p)
@@ -79,6 +82,9 @@ namespace Zeze.Raft
             }
         }
 
+        private ConcurrentDictionary<long, FileStream> ReceiveSnapshotting
+            = new ConcurrentDictionary<long, FileStream>();
+
         private int ProcessInstallSnapshot(Protocol p)
         {
             var r = p as InstallSnapshot;
@@ -90,6 +96,62 @@ namespace Zeze.Raft
                     // new term found.
                     ConvertStateTo(RaftState.Follower);
                 }
+            }
+            r.Result.Term = LogSequence.Term;
+            if (r.Argument.Term < LogSequence.Term)
+            {
+                // 1. Reply immediately if term < currentTerm
+                r.SendResultCode(0);
+                return Procedure.LogicError;
+            }
+
+            // 2. Create new snapshot file if first chunk(offset is 0)
+            // 把 LastIncludedIndex 放到文件名中，
+            // 新的InstallSnapshot不覆盖原来进行中或中断的。
+            var path = Path.Combine(RaftConfig.DbHome,
+                $"{LogSequence.SnapshotFileName}.{r.Argument.LastIncludedIndex}");
+
+            FileStream outputFileStream = null;
+            if (r.Argument.Offset == 0)
+            {
+                // GetOrAdd 允许重新开始。
+                outputFileStream = ReceiveSnapshotting.GetOrAdd(
+                    r.Argument.LastIncludedIndex,
+                    (_) => new FileStream(path, FileMode.Create));
+            }
+            else
+            {
+                // ignore return of TryGetValue here.
+                ReceiveSnapshotting.TryGetValue(r.Argument.LastIncludedIndex, out outputFileStream);
+            }
+
+            if (null == outputFileStream)
+            {
+                r.SendResultCode(0); // 肯定是旧的被丢弃的安装，Discard And Ignore。
+                return Procedure.Success;
+            }
+
+            // 3. Write data into snapshot file at given offset
+            outputFileStream.Seek(r.Argument.Offset, SeekOrigin.Begin);
+            outputFileStream.Write(r.Argument.Data.Bytes, r.Argument.Data.Offset, r.Argument.Data.Count);
+
+            // 4. Reply and wait for more data chunks if done is false
+            if (r.Argument.Done)
+            {
+                // 5. Save snapshot file, discard any existing or partial snapshot with a smaller index
+                outputFileStream.Close();
+                foreach (var e in ReceiveSnapshotting)
+                {
+                    if (e.Key < r.Argument.LastIncludedIndex)
+                    {
+                        e.Value.Close();
+                        var pathDelete = Path.Combine(RaftConfig.DbHome, $"{LogSequence.SnapshotFileName}.{e.Key}");
+                        File.Delete(path);
+                        ReceiveSnapshotting.TryRemove(e.Key, out var _);
+                    }
+                }
+                // 剩下的处理流程在下面的函数里面。
+                LogSequence.EndReceiveInstallSnapshot(outputFileStream, r);
             }
             r.SendResultCode(0);
             return Procedure.Success;

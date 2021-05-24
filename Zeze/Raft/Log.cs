@@ -445,6 +445,187 @@ namespace Zeze.Raft
             return null;
         }
 
+        // 是否正在创建Snapshot过程中，用来阻止新的创建请求。
+        private bool Snapshotting { get; set; } = false;
+        // 是否有安装进程正在进行中，用来阻止新的创建请求。
+        internal Dictionary<string, Server.ConnectorEx> InstallSnapshotting { get; }
+            = new Dictionary<string, Server.ConnectorEx>();
+
+        public const string SnapshotFileName = "snapshot";
+        private Util.SchedulerTask SnapshotTimer;
+
+        public void StopSnapshotPerDayTimer()
+        { 
+            lock (Raft)
+            {
+                SnapshotTimer?.Cancel();
+                SnapshotTimer = null;
+            }
+        }
+
+        public void StartSnapshotPerDayTimer()
+        {
+            lock (Raft)
+            {
+                if (null != SnapshotTimer)
+                    return;
+
+                if (Raft.RaftConfig.SnapshotHourOfDay >= 0 && Raft.RaftConfig.SnapshotHourOfDay < 24)
+                {
+                    var now = DateTime.Now;
+                    var firstTime = new DateTime(now.Year, now.Month, now.Day,
+                        Raft.RaftConfig.SnapshotHourOfDay, Raft.RaftConfig.SnapshotMinute, 0);
+                    if (firstTime.CompareTo(now) < 0)
+                        firstTime.AddDays(1);
+                    var delay = firstTime.Millisecond - now.Millisecond;
+                    SnapshotTimer = Zeze.Util.Scheduler.Instance.Schedule(
+                        (ThisTask) => StartSnapshot(false), delay, 20 * 3600 * 1000);
+                }
+            }
+        }
+
+        public void EndReceiveInstallSnapshot(FileStream s, InstallSnapshot r)
+        { 
+            lock (Raft)
+            {
+                // 6. If existing log entry has same index and term as snapshot’s
+                // last included entry, retain log entries following it and reply
+                var last = ReadLog(r.Argument.LastIncludedIndex);
+                if (null != last && last.Term == r.Argument.LastIncludedTerm)
+                {
+                    RemoveLogBefore(r.Argument.LastIncludedTerm);
+                    return;
+                }
+                // 7. Discard the entire log
+                // TODO 整个删除，那么下一次AppendEnties又会找不到prev。不就xxx了吗?
+                // 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
+                // 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
+                // 8. Reset state machine using snapshot contents (and load
+                // snapshot’s cluster configuration)
+                Raft.StateMachine.LoadFromSnapshot(s.Name);
+            }
+        }
+
+        public void StartSnapshot(bool NeedNow = false)
+        {
+            lock (Raft)
+            {
+                if (Snapshotting || InstallSnapshotting.Count > 0)
+                {
+                    return;
+                }
+
+                if (LastApplied - FirstIndex < Raft.RaftConfig.SnapshotMinLogCount && false == NeedNow)
+                {
+                    return;
+                }
+
+                Snapshotting = true;
+            }
+            try
+            {
+                long LastIncludedIndex;
+                long LastIncludedTerm;
+                var path = Path.Combine(Raft.RaftConfig.DbHome, SnapshotFileName);
+
+                // 忽略Snapshot返回结果。肯定是重复调用导致的。
+                // out 结果这里没有使用，定义在参数里面用来表示这个很重要。
+                // LastIncludedIndex 在Snapshot内部用于调用 Raft.LogSequence.RemoveLogBefore。
+                Raft.StateMachine.Snapshot(path, out LastIncludedIndex, out LastIncludedTerm);
+            }
+            finally
+            {
+                lock (Raft)
+                {
+                    Snapshotting = false;
+                }
+            }
+        }
+
+        private void InstallSnapshot(string path, Server.ConnectorEx connector)
+        {
+            try
+            {
+                var snapshotFile = new FileStream(path, FileMode.Open);
+                long offset = 0;
+                var FirstLog = ReadLog(FirstIndex);
+                var buffer = new byte[32 * 1024];
+                while (true)
+                {
+                    int rc = snapshotFile.Read(buffer);
+                    var trunkArg = new InstallSnapshotArgument();
+                    lock (Raft)
+                    {
+                        trunkArg.Term = Term;
+                        trunkArg.LeaderId = Raft.LeaderId;
+                        trunkArg.LastIncludedIndex = FirstLog.Index;
+                        trunkArg.LastIncludedTerm = FirstLog.Term;
+                        trunkArg.Offset = offset;
+                        trunkArg.Data = new Binary(buffer, 0, rc);
+                        trunkArg.Done = rc < buffer.Length;
+                    }
+                    offset += rc;
+
+                    while (true)
+                    {
+                        var future = new TaskCompletionSource<int>();
+                        var r = new InstallSnapshot() { Argument = trunkArg };
+                        r.Send(connector.Socket, (_) => { future.SetResult(0); return Procedure.Success; });
+                        future.Task.Wait();
+                        if (r.IsTimeout)
+                        {
+                            continue; // timeout resend
+                        }
+                        lock (Raft)
+                        {
+                            if (this.TrySetTerm(r.Result.Term))
+                            {
+                                // new term found.
+                                Raft.ConvertStateTo(Raft.RaftState.Follower);
+                                return;
+                            }
+                        }
+                        break;
+                    }
+                    if (trunkArg.Done)
+                        break;
+                }
+            }
+            finally
+            {
+                lock (Raft)
+                {
+                    connector.InstallSnapshotting = false;
+                    InstallSnapshotting.Remove(connector.Name);
+                }
+            }
+        }
+
+        private void StartInstallSnapshot(Server.ConnectorEx connector)
+        {
+            if (connector.InstallSnapshotting)
+            {
+                return;
+            }
+            var path = Path.Combine(Raft.RaftConfig.DbHome, SnapshotFileName);
+            // 如果 Snapshotting，此时不启动安装。
+            // 以后重试 AppendEntries 时会重新尝试 Install.
+            if (File.Exists(path) && false == Snapshotting)
+            {
+                connector.InstallSnapshotting = true;
+                InstallSnapshotting[connector.Name] = connector;
+                Zeze.Util.Task.Run(() => InstallSnapshot(path, connector),
+                    $"InstallSnapshot To '{connector.Name}'");
+            }
+            else
+            {
+                // 这一般的情况是snapshot文件被删除了。
+                // 【注意】这种情况也许报错更好？
+                // 内部会判断，不会启动多个snapshot。
+                StartSnapshot(true);
+            }
+        }
+
         private void TrySendAppendEntries(Server.ConnectorEx connector)
         {
             if (false == connector.IsHandshakeDone)
@@ -458,14 +639,22 @@ namespace Zeze.Raft
             var rpc = new AppendEntries();
             lock (Raft)
             {
+                // 【注意】
+                // 正在安装Snapshot，此时不复制日志，肯定失败。
+                // 不做这个判断也是可以工作的，算是优化。
+                if (connector.InstallSnapshotting)
+                    return;
+
                 var nextLog = ReadLogReverse(connector.NextIndex);
                 if (null == nextLog)
                     return; // impossible
-
+                
                 if (nextLog.Index == FirstIndex)
                 {
-                    // 此时，没有了prev，而日志已经最老，无法安全复制日志。
-                    // TODO start InstallSnapshot
+                    // 已经到了日志开头，此时不会有prev-log，无法复制日志了。
+                    // 这一般发生在Leader进行了Snapshot，但是Follower的日志还更老。
+                    // 新起的Follower也一样。
+                    StartInstallSnapshot(connector);
                     return;
                 }
 
