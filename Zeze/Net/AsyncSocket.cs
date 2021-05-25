@@ -493,11 +493,7 @@ namespace Zeze.Net
                 {
                     Connector?.OnSocketClose(this);
                     Service?.OnSocketClose(this, this.LastException);
-
                     Socket?.Dispose();
-
-                    Connector = null;
-                    Acceptor = null;
                     Socket = null;
                 }
                 catch (Exception)

@@ -30,6 +30,10 @@ namespace Zeze.Net
 
         /// <summary>
         /// 使用当前 rpc 中设置的参数发送。
+        /// 总是建立上下文，总是返回true。
+        /// 这个方法是 Protocol 的重载。
+        /// 用于不需要处理结果的请求
+        /// 或者重新发送已经设置过 ResponseHandle 等的请求。
         /// </summary>
         /// <param name="so"></param>
         /// <returns></returns>
@@ -38,24 +42,12 @@ namespace Zeze.Net
             return Send(so, ResponseHandle, Timeout);
         }
 
-        public bool Send(AsyncSocket so, Func<Protocol, int> responseHandle, int millisecondsTimeout = 5000)
+        private Util.SchedulerTask Schedule(Service service, long sessionId, int millisecondsTimeout)
         {
-            this.IsRequest = true;
-            this.ResponseHandle = responseHandle;
-            this.Timeout = millisecondsTimeout;
-
-            if (so == null)
-                return false;
-
-            var sessionId = so.Service.AddRpcContext(this);
-
-            var timeoutTask = global::Zeze.Util.Scheduler.Instance.Schedule(
-                (ThisTask)=>
+            return global::Zeze.Util.Scheduler.Instance.Schedule(
+                (ThisTask) =>
                 {
-                    if (null == so.Service)
-                        return; // Socket closed.
-
-                    Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
+                    Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
                     if (null == context) // 一般来说，此时结果已经返回。
                         return;
 
@@ -69,8 +61,27 @@ namespace Zeze.Net
                 },
                 millisecondsTimeout,
                 -1);
+        }
 
-            this.SessionId = sessionId;
+        /// <summary>
+        /// 异步发送rpc请求。
+        /// 1. 如果返回true，表示请求已经发送，并且建立好了上下文。
+        /// 2. 如果返回false，请求没有发送成功，上下文也没有保留。
+        /// </summary>
+        /// <param name="so"></param>
+        /// <param name="responseHandle"></param>
+        /// <param name="millisecondsTimeout"></param>
+        /// <returns></returns>
+        public bool Send(AsyncSocket so, Func<Protocol, int> responseHandle, int millisecondsTimeout = 5000)
+        {
+            if (so == null)
+                return false;
+
+            this.IsRequest = true;
+            this.ResponseHandle = responseHandle;
+            this.Timeout = millisecondsTimeout;
+            this.SessionId = so.Service.AddRpcContext(this);
+            var timeoutTask = Schedule(so.Service, SessionId, millisecondsTimeout);
 
             if (base.Send(so))
                 return true;

@@ -186,6 +186,7 @@ namespace Zeze.Raft
             if (IsLeader)
             {
                 LeaderReadyEvent.Set();
+
                 Server.Foreach(
                     (allsocket) =>
                     {

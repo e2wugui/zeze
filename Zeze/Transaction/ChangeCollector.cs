@@ -246,7 +246,7 @@ namespace Zeze.Transaction
 				// Value 不是 Bean 的 Map 不会走到这里。
 				Bean value = path[path.Count - 1].Key;
 				if (!changedValue.ContainsKey(value))
-					changedValue.Add(value, value);
+					changedValue.TryAdd(value, value);
             }
 		}
 

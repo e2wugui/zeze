@@ -46,6 +46,8 @@ namespace Zeze.Net
 
 		public virtual bool Send(AsyncSocket so)
 		{
+			if (null == so)
+				return false;
 			Sender = so;
 			return so.Send(Encode());
 		}

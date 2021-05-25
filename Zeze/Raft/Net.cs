@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Serialize;
@@ -121,28 +122,84 @@ namespace Zeze.Raft
             // 选举中
             // DONOT process application request.
         }
+
+        public override void OnHandshakeDone(AsyncSocket so)
+        {
+            base.OnHandshakeDone(so);
+
+            // 没有判断是否和其他Raft-Node的连接。
+            if (Raft.IsLeader && Raft.LeaderReadyEvent.WaitOne(0))
+            {
+                var r = new LeaderIs();
+                r.Argument.LeaderId = Raft.LeaderId;
+                r.Send(so); // skip result
+            }
+        }
     }
 
     public sealed class Agent
     {
         public RaftConfig RaftConfig { get; }
-        public NetClient Net { get; }
-        public string Name => Net.Name;
+        public NetClient NetService { get; }
+        public string Name => NetService.Name;
 
-        public ConcurrentDictionary<string, Connector> RaftNodes { get; }
+        private ConcurrentDictionary<string, Connector> RaftNodes { get; }
             = new ConcurrentDictionary<string, Connector>();
 
-        private Connector LeaderMaybe;
+        public ConnectorEx Leader => _Leader;
 
-        public void SendRpc<TArgument, TResult>(
+        private volatile ConnectorEx _Leader;
+
+        private Util.IdentityHashMap<Protocol, Protocol> NotAutoResend { get; }
+            = new Util.IdentityHashMap<Protocol, Protocol>();
+
+        private Util.IdentityHashMap<Protocol, Protocol> Pending { get; }
+            = new Util.IdentityHashMap<Protocol, Protocol>();
+
+        public Action<Agent, Action> OnLeaderChanged { get; }
+
+        /// <summary>
+        /// 发送Rpc请求。
+        /// 如果 autoResend == true，那么总是返回成功。内部会处理请求在需要的时候重发。
+        /// 如果 autoResend == false，那么结果表示是否成功。
+        /// </summary>
+        /// <typeparam name="TArgument"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="rpc"></param>
+        /// <param name="handle"></param>
+        /// <param name="autoResend"></param>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
+        public bool SendRpc<TArgument, TResult>(
             Rpc<TArgument, TResult> rpc,
             Func<Protocol, int> handle,
+            bool autoResend = true,
             int timeout = 30000)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
-            // TODO 检查并等待Node的连接，等待Leader，发送，
-            rpc.Send(LeaderMaybe.Socket, handle, timeout);
+            if (autoResend)
+            {
+                var tmp = _Leader;
+                if (null != tmp
+                    && tmp.IsHandshakeDone
+                    && rpc.Send(tmp.Socket, handle, timeout))
+                    return true;
+
+                rpc.ResponseHandle = handle;
+                rpc.Timeout = timeout;
+                Pending.TryAdd(rpc, rpc);
+                return true;
+            }
+
+            // 记录不要自动发送的请求。
+            NotAutoResend[rpc] = rpc;
+            return rpc.Send(_Leader?.Socket, (p) =>
+            {
+                NotAutoResend.TryRemove(p, out var _);
+                return handle(p);
+            },
+            timeout);
         }
 
         public class ConnectorEx : Connector
@@ -153,11 +210,21 @@ namespace Zeze.Raft
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="raftconf"></param>
+        /// <param name="config"></param>
+        /// <param name="onLeaderChanged"></param>
+        /// <param name="name"></param>
         public Agent(
             RaftConfig raftconf = null,
             Zeze.Config config = null,
+            Action<Agent, Action> onLeaderChanged = null,
             string name = "Zeze.Raft.Agent")
         {
+            OnLeaderChanged = onLeaderChanged;
+
             if (null == raftconf)
                 raftconf = RaftConfig.Load();
 
@@ -166,21 +233,21 @@ namespace Zeze.Raft
             if (null == config)
                 config = Zeze.Config.Load();
 
-            Net = new NetClient(this, name, config);
+            NetService = new NetClient(this, name, config);
 
-            if (Net.Config.AcceptorCount() != 0)
+            if (NetService.Config.AcceptorCount() != 0)
                 throw new Exception("Acceptor Found!");
 
-            if (Net.Config.ConnectorCount() != 0)
+            if (NetService.Config.ConnectorCount() != 0)
                 throw new Exception("Connector Found!");
 
             foreach (var node in RaftConfig.Nodes.Values)
             {
-                Net.Config.AddConnector(new ConnectorEx(node.Host, node.Port));
+                NetService.Config.AddConnector(new ConnectorEx(node.Host, node.Port));
             }
-            Net.Config.ForEachConnector((c) => RaftNodes.TryAdd(c.Name, c));
+            NetService.Config.ForEachConnector((c) => RaftNodes.TryAdd(c.Name, c as ConnectorEx));
 
-            Net.AddFactoryHandle(new LeaderIs().TypeId, new Service.ProtocolFactoryHandle()
+            NetService.AddFactoryHandle(new LeaderIs().TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new LeaderIs(),
                 Handle = ProcessLeaderIs,
@@ -191,41 +258,79 @@ namespace Zeze.Raft
         {
             var r = p as LeaderIs;
 
-            if (false == RaftNodes.TryGetValue(r.Argument.LeaderId, out var nodeConnector))
+            if (false == RaftNodes.TryGetValue(r.Argument.LeaderId, out var node))
             {
                 // 当前 Agent 没有 Leader 的配置，创建一个。
-                // 由于 Agent 在新增 node 时也会得到新配置广播，一般不会发生这种情况。
+                // 由于 Agent 在新增 node 时也会得到新配置广播，
+                // 一般不会发生这种情况。
                 var address = r.Argument.LeaderId.Split(':');
-                if (Net.Config.TryGetOrAddConnector(
-                    address[0], int.Parse(address[1]), true, out nodeConnector))
+                if (NetService.Config.TryGetOrAddConnector(
+                    address[0], int.Parse(address[1]), true, out node))
                 {
-                    RaftNodes.TryAdd(nodeConnector.Name, nodeConnector);
+                    RaftNodes.TryAdd(node.Name, node);
+                    node.Start(NetService);
                 }
             }
 
-            ReplaceLeaderMaybe(nodeConnector);
+            SetLeader(node);
+
+            if (r.Sender.Connector.Name.Equals(r.Argument.LeaderId))
+            {
+                // 来自 Leader 的公告。
+                if (null != OnLeaderChanged)
+                {
+                    OnLeaderChanged(this, SetReady);
+                }
+                else
+                {
+                    SetReady();
+                }
+            }
+            // else
+            // 从 Follower 得到的重定向，不需要处理。
+            // 等待 Leader 的通告。
+            // 【需要仔细考虑一下，通告是否会丢失】
 
             r.SendResultCode(0);
             return Procedure.Success;
         }
 
-        internal void ReplaceLeaderMaybe(Connector newr)
+        private void SetReady()
         {
-            lock (this)
+            // ReSendPendingRpc
+            foreach (var rpc in Pending.Values)
             {
-                // ReSendPending TODO
-                LeaderMaybe = newr;
+                if (NotAutoResend.ContainsKey(rpc))
+                    continue;
+
+                if (rpc.Send(_Leader?.Socket))
+                {
+                    // 这里发送失败，等待新的 LeaderIs 通告再继续。
+                    Pending.TryRemove(rpc, out var _);
+                }
             }
         }
 
-        internal void SetLeaderMaybe(Connector equalThis, Connector newset)
+        internal void CollectPendingRpc(AsyncSocket so)
+        {
+            var ctxSends = NetService.GetRpcContextsToSender(so);
+            var ctxPending = NetService.RemoveRpcContets(ctxSends.Keys);
+            foreach (var rpc in ctxPending)
+            {
+                Pending.TryAdd(rpc, rpc);
+            }
+        }
+
+        internal void SetLeader(Connector newLeader)
         {
             lock (this)
             {
-                if (LeaderMaybe == equalThis)
+                if (_Leader != null)
                 {
-                    LeaderMaybe = newset;
+                    // 把旧的_Leader的没有返回结果的请求收集起来，准备重新发送。
+                    CollectPendingRpc(_Leader.Socket);
                 }
+                _Leader = newLeader as ConnectorEx;
             }
         }
 
@@ -241,29 +346,10 @@ namespace Zeze.Raft
                 Agent = agent;
             }
 
-            public override void OnHandshakeDone(AsyncSocket sender)
-            {
-                base.OnHandshakeDone(sender);
-
-                // 首先尝试使用第一个连上的Node。
-                Agent.SetLeaderMaybe(null, sender.Connector);
-            }
-
-            public override void OnSocketClose(AsyncSocket so, Exception e)
-            {
-                base.OnSocketClose(so, e);
-                Agent.SetLeaderMaybe(so.Connector, null);
-            }
-
             public override void OnSocketDisposed(AsyncSocket so)
             {
                 base.OnSocketDisposed(so);
-                var ctxSends = GetRpcContextsToSender(so);
-                var ctxPending = RemoveRpcContets(ctxSends.Keys);
-                foreach (var rpc in ctxPending)
-                {
-                    rpc.Send(Agent.LeaderMaybe.Socket); // TODO
-                }
+                Agent.CollectPendingRpc(so);
             }
         }
     }
