@@ -45,18 +45,30 @@ namespace Zeze.Services
         }
     }
 
-    public class HandshakeServer : Service
+    public class HandshakeBase : Service
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         private HashSet<int> HandshakeProtocols = new HashSet<int>();
+
+        // For Client Only
+        private ConcurrentDictionary<long, BigInteger> DHContext
+            = new ConcurrentDictionary<long, BigInteger>();
+
+        public HandshakeBase(string name, Zeze.Config config) : base(name, config)
+        { 
+        }
+
+        public HandshakeBase(string name, Zeze.Application app) : base(name, app)
+        {
+        }
 
         public bool IsHandshakeProtocol(int typeId)
         {
             return HandshakeProtocols.Contains(typeId);
         }
 
-        private void AddFactoryHandle()
+        protected void AddHandshakeServerFactoryHandle()
         {
             var tmp = new Handshake.CHandshake();
             HandshakeProtocols.Add(tmp.TypeId);
@@ -66,28 +78,6 @@ namespace Zeze.Services
                 Handle = ProcessCHandshake,
                 NoProcedure = true,
             });
-        }
-
-        public HandshakeServer(string name, Config config) : base(name, config)
-        {
-            AddFactoryHandle();
-        }
-
-        public HandshakeServer(string name, Application app) : base(name, app)
-        {
-            AddFactoryHandle();
-        }
-
-        public override void OnSocketAccept(AsyncSocket so)
-        {
-            // 重载这个方法，推迟OnHandshakeDone调用
-            _asocketMap.TryAdd(so.SessionId, so);
-        }
-
-        public override void OnSocketConnected(AsyncSocket so)
-        {
-            // 重载这个方法，推迟OnHandshakeDone调用
-            _asocketMap.TryAdd(so.SessionId, so);
         }
 
         private int ProcessCHandshake(Protocol _p)
@@ -104,17 +94,23 @@ namespace Zeze.Services
             BigInteger rand = Handshake.Helper.makeDHRandom();
             byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
             Array.Reverse(material);
-            System.Net.IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
+            System.Net.IPAddress ipaddress =
+                ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
             //logger.Debug(ipaddress);
             if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
-            byte[] key = Config.HandshakeOptions.SecureIp != null ? Config.HandshakeOptions.SecureIp : ipaddress.GetAddressBytes();
+            byte[] key = Config.HandshakeOptions.SecureIp != null
+                ? Config.HandshakeOptions.SecureIp
+                : ipaddress.GetAddressBytes();
             logger.Debug($"{p.Sender.SessionId} localip={BitConverter.ToString(key)}");
             int half = material.Length / 2;
             byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
             p.Sender.SetInputSecurityCodec(hmacMd5, Config.HandshakeOptions.C2sNeedCompress);
             byte[] response = Handshake.Helper.generateDHResponse(group, rand).ToByteArray();
             Array.Reverse(response);
-            new Handshake.SHandshake(response, Config.HandshakeOptions.S2cNeedCompress, Config.HandshakeOptions.C2sNeedCompress).Send(p.Sender);
+            new Handshake.SHandshake(response,
+                Config.HandshakeOptions.S2cNeedCompress,
+                Config.HandshakeOptions.C2sNeedCompress)
+                .Send(p.Sender);
             hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
             p.Sender.SetOutputSecurityCodec(hmacMd5, Config.HandshakeOptions.S2cNeedCompress);
 
@@ -122,57 +118,17 @@ namespace Zeze.Services
 
             return 0;
         }
-    }
 
-    public class HandshakeClient : Service
-    {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
-        private void AddFactoryHandle()
+        protected void AddHandshakeClientFactoryHandle()
         {
-            AddFactoryHandle(new Handshake.SHandshake().TypeId, new Service.ProtocolFactoryHandle()
+            var tmp = new Handshake.SHandshake();
+            HandshakeProtocols.Add(tmp.TypeId);
+            AddFactoryHandle(tmp.TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Handshake.SHandshake(),
                 Handle = ProcessSHandshake,
                 NoProcedure = true,
             });
-        }
-
-        public HandshakeClient(string name, Config config) : base(name, config)
-        {
-            AddFactoryHandle();
-        }
-
-        public HandshakeClient(string name, Application app) : base(name, app)
-        {
-            AddFactoryHandle();
-        }
-
-        private ConcurrentDictionary<long, BigInteger> DHContext = new ConcurrentDictionary<long, BigInteger>();
-
-        public void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
-        {
-            Config.TryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, out var c);
-            c.Start(this);
-        }
-
-        public override void OnSocketAccept(AsyncSocket so)
-        {
-            // 重载这个方法，推迟OnHandshakeDone调用
-            _asocketMap.TryAdd(so.SessionId, so);
-        }
-
-        public override void OnSocketConnected(AsyncSocket so)
-        {
-            // 重载这个方法，推迟OnHandshakeDone调用
-            _asocketMap.TryAdd(so.SessionId, so);
-
-            BigInteger dhRandom = Handshake.Helper.makeDHRandom();
-            if (!DHContext.TryAdd(so.SessionId, dhRandom))
-                throw new Exception("handshake duplicate context for same session.");
-            byte[] response = Handshake.Helper.generateDHResponse(Config.HandshakeOptions.DhGroup, dhRandom).ToByteArray();
-            Array.Reverse(response);
-            new Handshake.CHandshake(Config.HandshakeOptions.DhGroup, response).Send(so);
         }
 
         private int ProcessSHandshake(Protocol _p)
@@ -181,9 +137,13 @@ namespace Zeze.Services
             if (DHContext.TryGetValue(p.Sender.SessionId, out var dhRandom))
             {
                 Array.Reverse(p.Argument.dh_data);
-                byte[] material = Handshake.Helper.computeDHKey(Config.HandshakeOptions.DhGroup, new BigInteger(p.Argument.dh_data), dhRandom).ToByteArray();
+                byte[] material = Handshake.Helper.computeDHKey(
+                    Config.HandshakeOptions.DhGroup,
+                    new BigInteger(p.Argument.dh_data),
+                    dhRandom).ToByteArray();
                 Array.Reverse(material);
-                System.Net.IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
+                System.Net.IPAddress ipaddress =
+                    ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
                 if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
                 byte[] key = ipaddress.GetAddressBytes();
                 logger.Debug($"{p.Sender.SessionId} remoteip={BitConverter.ToString(key)}");
@@ -199,6 +159,90 @@ namespace Zeze.Services
                 return 0;
             }
             throw new Exception("handshake lost context.");
+        }
+
+        protected void StartHandshake(AsyncSocket so)
+        {
+            BigInteger dhRandom = Handshake.Helper.makeDHRandom();
+            if (!DHContext.TryAdd(so.SessionId, dhRandom))
+                throw new Exception("handshake duplicate context for same session.");
+            byte[] response = Handshake.Helper.generateDHResponse(
+                Config.HandshakeOptions.DhGroup, dhRandom).ToByteArray();
+            Array.Reverse(response);
+            new Handshake.CHandshake(Config.HandshakeOptions.DhGroup, response).Send(so);
+        }
+    }
+
+    public class HandshakeServer : HandshakeBase
+    {
+        public HandshakeServer(string name, Config config) : base(name, config)
+        {
+            AddHandshakeServerFactoryHandle();
+        }
+
+        public HandshakeServer(string name, Application app) : base(name, app)
+        {
+            AddHandshakeServerFactoryHandle();
+        }
+
+        public override void OnSocketAccept(AsyncSocket so)
+        {
+            // 重载这个方法，推迟OnHandshakeDone调用
+            _asocketMap.TryAdd(so.SessionId, so);
+        }
+    }
+
+    public class HandshakeClient : HandshakeBase
+    {
+        public HandshakeClient(string name, Config config) : base(name, config)
+        {
+            AddHandshakeClientFactoryHandle();
+        }
+
+        public HandshakeClient(string name, Application app) : base(name, app)
+        {
+            AddHandshakeClientFactoryHandle();
+        }
+
+        public void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
+        {
+            Config.TryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, out var c);
+            c.Start(this);
+        }
+
+        public override void OnSocketConnected(AsyncSocket so)
+        {
+            // 重载这个方法，推迟OnHandshakeDone调用
+            _asocketMap.TryAdd(so.SessionId, so);
+            StartHandshake(so);
+        }
+    }
+
+    public class HandshakeBoth : HandshakeBase
+    {
+        public HandshakeBoth(string name, Config config) : base(name, config)
+        {
+            AddHandshakeClientFactoryHandle();
+            AddHandshakeServerFactoryHandle();
+        }
+
+        public HandshakeBoth(string name, Application app) : base(name, app)
+        {
+            AddHandshakeClientFactoryHandle();
+            AddHandshakeServerFactoryHandle();
+        }
+
+        public override void OnSocketAccept(AsyncSocket so)
+        {
+            // 重载这个方法，推迟OnHandshakeDone调用
+            _asocketMap.TryAdd(so.SessionId, so);
+        }
+
+        public override void OnSocketConnected(AsyncSocket so)
+        {
+            // 重载这个方法，推迟OnHandshakeDone调用
+            _asocketMap.TryAdd(so.SessionId, so);
+            StartHandshake(so);
         }
     }
 }

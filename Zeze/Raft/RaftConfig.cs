@@ -23,7 +23,7 @@ namespace Zeze.Raft
         public string Name { get; internal set; }
         // 多数确认时：大于等于这个即可，因为还有自己(Leader)。
         public int HalfCount => Nodes.Count / 2;
-        public string DbHome { get; }
+        public string DbHome { get; set; } = "./";
 
         /// <summary>
         /// 复制日志超时，以及发送失败重试超时。

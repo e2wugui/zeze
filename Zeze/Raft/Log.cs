@@ -138,7 +138,7 @@ namespace Zeze.Raft
         public long LastApplied { get; private set; }
 
         // 这个不是日志需要的，因为持久化，所以就定义在这里吧。
-        private string VoteFor { get; set; }
+        internal string VoteFor { get; set; }
 
         // 初始化的时候会加入一条日志(Index=0，不需要真正apply)，
         // 以后Snapshot时，会保留LastApplied的。
@@ -226,12 +226,12 @@ namespace Zeze.Raft
             Logs = RocksDb.Open(options, Path.Combine(Raft.RaftConfig.DbHome, "logs"));
             {
                 // Read Last Log Index
-                var it = Logs.NewIterator();
-                it.SeekToLast();
-                if (it.Valid())
+                using var itLast = Logs.NewIterator();
+                itLast.SeekToLast();
+                if (itLast.Valid())
                 {
                     LastIndex = RaftLog.Decode(
-                        new Binary(it.Value()),
+                        new Binary(itLast.Value()),
                         Raft.StateMachine.LogFactory
                         ).Index;
                 }
@@ -242,12 +242,12 @@ namespace Zeze.Raft
                     LastIndex = 0;
                 }
 
-                it.SeekToFirst();
+                using var itFirst = Logs.NewIterator();
+                itFirst.SeekToFirst();
                 FirstIndex = RaftLog.Decode(
-                    new Binary(it.Value()),
+                    new Binary(itFirst.Value()),
                     Raft.StateMachine.LogFactory
                     ).Index;
-
                 // 【注意】snapshot 以后 FirstIndex 会推进，不再是从0开始。
                 LastApplied = FirstIndex;
                 CommitIndex = FirstIndex;
@@ -333,7 +333,7 @@ namespace Zeze.Raft
                 if (null == raftLog)
                     break;
                 index = raftLog.Index + 1;
-
+                lastMajorityLog = raftLog;
                 int MajorityCount = 0;
                 Raft.Server.Config.ForEachConnector(
                     (c) =>
@@ -481,8 +481,8 @@ namespace Zeze.Raft
                     var firstTime = new DateTime(now.Year, now.Month, now.Day,
                         Raft.RaftConfig.SnapshotHourOfDay, Raft.RaftConfig.SnapshotMinute, 0);
                     if (firstTime.CompareTo(now) < 0)
-                        firstTime.AddDays(1);
-                    var delay = firstTime.Millisecond - now.Millisecond;
+                        firstTime = firstTime.AddDays(1);
+                    var delay = Util.Time.DateTimeToUnixMillis(firstTime) - Util.Time.DateTimeToUnixMillis(now);
                     SnapshotTimer = Zeze.Util.Scheduler.Instance.Schedule(
                         (ThisTask) => StartSnapshot(false), delay, 20 * 3600 * 1000);
                 }
@@ -670,9 +670,6 @@ namespace Zeze.Raft
                     return;
 
                 var nextLog = ReadLogReverse(connector.NextIndex);
-                if (null == nextLog)
-                    return; // impossible
-                
                 if (nextLog.Index == FirstIndex)
                 {
                     // 已经到了日志开头，此时不会有prev-log，无法复制日志了。
@@ -690,7 +687,7 @@ namespace Zeze.Raft
                 rpc.Argument.LeaderCommit = CommitIndex;
 
                 // 肯定能找到的。
-                var prevLog = ReadLogReverse(nextLog.Index);
+                var prevLog = ReadLogReverse(nextLog.Index - 1);
                 rpc.Argument.PrevLogIndex = prevLog.Index;
                 rpc.Argument.PrevLogTerm = prevLog.Term;
 
@@ -830,10 +827,13 @@ namespace Zeze.Raft
             }
             // 5. If leaderCommit > commitIndex,
             // set commitIndex = min(leaderCommit, index of last new entry)
-            CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLog().Index);
-            TryApply(ReadLog(CommitIndex));
-
+            if (r.Argument.LeaderCommit > CommitIndex)
+            {
+                CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLog().Index);
+                TryApply(ReadLog(CommitIndex));
+            }
             r.Result.Success = true;
+            logger.Debug($"{Raft.Name}: {r}");
             r.SendResultCode(0);
             return Procedure.Success;
         }

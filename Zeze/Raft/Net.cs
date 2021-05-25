@@ -18,7 +18,7 @@ namespace Zeze.Raft
     /// 【注意】
     /// 为了简化配置，应用可以注册协议到Server，使用同一个Acceptor进行连接。
     /// </summary>
-    public sealed class Server : Services.HandshakeServer
+    public sealed class Server : Services.HandshakeBoth
     {
         public Raft Raft { get; }
 
@@ -97,6 +97,7 @@ namespace Zeze.Raft
                 || p.TypeId == InstallSnapshot.ProtocolId_
                 || p.TypeId == LeaderIs.ProtocolId_)
             {
+                Console.WriteLine($"DispatchProtocol {p}");
                 // HandshakeProtocol || RaftProtocol
                 base.DispatchProtocol(p, factoryHandle);
                 return;
@@ -381,6 +382,11 @@ namespace Zeze.Raft
         {
             throw new NotImplementedException();
         }
+
+        public override string ToString()
+        {
+            return $"(Term={Term} CandidateId={CandidateId} LastLogIndex={LastLogIndex} LastLogTerm={LastLogTerm})";
+        }
     }
 
     public sealed class RequestVoteResult : Bean
@@ -403,6 +409,11 @@ namespace Zeze.Raft
         protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
             throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            return $"(Term={Term} VoteGranted={VoteGranted})";
         }
     }
 
@@ -463,6 +474,11 @@ namespace Zeze.Raft
         {
             throw new NotImplementedException();
         }
+
+        public override string ToString()
+        {
+            return $"(Term={Term} LeaderId={LeaderId} PrevLogIndex={PrevLogIndex} PrevLogTerm={PrevLogTerm} LeaderCommit={LeaderCommit})";
+        }
     }
 
     public sealed class AppendEntriesResult : Bean
@@ -485,6 +501,11 @@ namespace Zeze.Raft
         protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
             throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            return $"(Term={Term} Success={Success})";
         }
     }
 
@@ -541,6 +562,11 @@ namespace Zeze.Raft
         {
             throw new NotImplementedException();
         }
+
+        public override string ToString()
+        {
+            return $"(Term={Term} LeaderId={LeaderId} LastIncludedIndex={LastIncludedIndex} LastIncludedTerm={LastIncludedTerm} Offset={Offset} Done={Done})";
+        }
     }
 
     public sealed class InstallSnapshotResult : Bean
@@ -560,6 +586,11 @@ namespace Zeze.Raft
         protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
             throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            return $"(Term={Term})";
         }
     }
 
@@ -591,6 +622,11 @@ namespace Zeze.Raft
         protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
             throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            return $"(LeaderId={LeaderId})";
         }
     }
 

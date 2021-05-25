@@ -313,8 +313,8 @@ namespace Zeze.Net
             try
             {
                 this.Socket.EndConnect(ar);
-                this.Connector?.OnSocketConnected(this);
                 this.Service.OnSocketConnected(this);
+                this.Connector?.OnSocketConnected(this);
 
                 this._inputBuffer = new byte[Service.SocketOptions.InputBufferSize];
                 BeginReceiveAsync();

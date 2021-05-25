@@ -42,6 +42,9 @@ namespace Zeze.Raft
         {
             if (null == raftconf)
                 raftconf = RaftConfig.Load();
+            RaftConfig = raftconf;
+            sm.Raft = this;
+            StateMachine = sm;
 
             if (false == string.IsNullOrEmpty(RaftName))
                 raftconf.Name = RaftName;
@@ -50,25 +53,20 @@ namespace Zeze.Raft
                 config = Zeze.Config.Load();
 
             Server = new Server(this, name, config);
-            LogSequence = new LogSequence(this);
-
             if (Server.Config.AcceptorCount() != 0)
                 throw new Exception("Acceptor Found!");
-
             if (Server.Config.ConnectorCount() != 0)
                 throw new Exception("Connector Found!");
-
-            RaftConfig = raftconf;
             if (RaftConfig.Nodes.Count < 3)
                 throw new Exception("Startup Nodes.Count Must >= 3.");
 
             Server.CreateAcceptor(Server, raftconf);
             Server.CreateConnector(Server, raftconf);
 
-            sm.Raft = this;
-            StateMachine = sm;
-            RegisterInternalRpc();
+            LogSequence = new LogSequence(this);
 
+            RegisterInternalRpc();
+            StartLeaderLostTimerTask();
             LogSequence.StartSnapshotPerDayTimer();
         }
 
@@ -253,6 +251,7 @@ namespace Zeze.Raft
                 {
                     LogSequence.SetVoteFor(r.Argument.CandidateId);
                 }
+                logger.Debug($"{Name}: VoteFor={LogSequence.VoteFor} Rpc={r}");
                 r.SendResultCode(0);
 
                 return Procedure.Success;
@@ -287,9 +286,13 @@ namespace Zeze.Raft
             {
                 lock (this)
                 {
-                    if (VoteSuccess.Count >= RaftConfig.HalfCount)
-                    {
+                    if (
+                        // 确保当前状态是选举中。没有判断这个，
+                        // 后面 ConvertStateTo 也会忽略不正确的状态转换。
+                        State == RaftState.Candidate
                         // 加上自己就是多数派了。
+                        && VoteSuccess.Count >= RaftConfig.HalfCount)
+                    {
                         ConvertStateTo(RaftState.Leader);
                     }
                 }
@@ -305,7 +308,6 @@ namespace Zeze.Raft
 
                 arg.Term = LogSequence.Term;
                 arg.CandidateId = Name;
-                LogSequence.SetVoteFor(Name);
                 var log = LogSequence.LastRaftLog();
                 arg.LastLogIndex = log.Index;
                 arg.LastLogTerm = log.Term;
@@ -340,21 +342,39 @@ namespace Zeze.Raft
             switch (newState)
             {
                 case RaftState.Follower:
-                    logger.Info("RaftState: Follower->Follower");
+                    logger.Info($"RaftState {Name}: Follower->Follower");
                     return;
 
                 case RaftState.Candidate:
-                    logger.Info("RaftState: Follower->Candidate");
+                    logger.Info($"RaftState {Name}: Follower->Candidate");
                     State = RaftState.Candidate;
                     LeaderLostTimerTask?.Cancel();
                     LeaderLostTimerTask = null;
+                    LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
                     StartRequestVote();
                     return;
 
                 case RaftState.Leader:
-                    logger.Error("RaftState Impossible! Follower->Leader");
+                    logger.Info($"RaftState {Name} Impossible! Follower->Leader");
                     return;
             }
+        }
+
+        private void StartLeaderLostTimerTask()
+        {
+            // 每次LeaderActive启动一个Timer会很精确，但需要创建很多Task。
+            // 下面这种定时检测的方法在精度方面也可以。只是需要定时check。
+            LeaderLostTimerTask = Scheduler.Instance.Schedule(
+                (ThisTask) =>
+                {
+                    var elapse = Time.NowUnixMillis - LogSequence.LeaderActiveTime;
+                    if (elapse > RaftConfig.LeaderLostTimeout)
+                    {
+                        ConvertStateTo(RaftState.Candidate);
+                    }
+                },
+                Util.Random.Instance.Next(1000),
+                1000);
         }
 
         private void ConvertStateFromCandidateTo(RaftState newState)
@@ -362,7 +382,7 @@ namespace Zeze.Raft
             switch (newState)
             {
                 case RaftState.Follower:
-                    logger.Info("RaftState: Candidate->Follower");
+                    logger.Info($"RaftState {Name}: Candidate->Follower");
                     State = RaftState.Follower;
                     VoteSuccess.Clear(); // 选举结束清除。
 
@@ -371,6 +391,7 @@ namespace Zeze.Raft
                     StartRequestVoteDelayTask = null;
                     WaitMajorityVoteTimoutTask?.Cancel();
                     WaitMajorityVoteTimoutTask = null;
+                    StartLeaderLostTimerTask();
                     return;
 
                 case RaftState.Candidate:
@@ -378,7 +399,8 @@ namespace Zeze.Raft
                     // 如果确实需要重启，需要在调用前：
                     // StartRequestVoteDelayTask = null;
                     // 否则不会真正开始新的选举。
-                    logger.Info("RaftState: Candidate->Candidate");
+                    logger.Info($"RaftState {Name}: Candidate->Candidate");
+                    LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
                     StartRequestVote();
                     return;
 
@@ -389,7 +411,7 @@ namespace Zeze.Raft
                     WaitMajorityVoteTimoutTask = null;
                     VoteSuccess.Clear(); // 选举结束清除。
 
-                    logger.Info("RaftState: Candidate->Leader");
+                    logger.Info($"RaftState {Name}: Candidate->Leader");
                     State = RaftState.Leader;
                     LogSequence.SetVoteFor(string.Empty);
                     LeaderId = Name; // set to self
@@ -430,34 +452,22 @@ namespace Zeze.Raft
             switch (newState)
             {
                 case RaftState.Follower:
-                    logger.Info("RaftState: Leader->Follower");
+                    logger.Info($"RaftState {Name}: Leader->Follower");
                     State = RaftState.Follower;
                     LeaderReadyEvent.Reset();
 
                     HearbeatTimerTask?.Cancel();
                     HearbeatTimerTask = null;
 
-                    // 每次LeaderActive启动一个Timer会很精确，但需要创建很多Task。
-                    // 下面这种定时检测的方法在精度方面也可以。只是需要定时check。
-                    LeaderLostTimerTask = Scheduler.Instance.Schedule(
-                        (ThisTask) =>
-                        {
-                            var elapse = Time.NowUnixMillis - LogSequence.LeaderActiveTime;
-                            if (elapse > RaftConfig.LeaderLostTimeout)
-                            {
-                                ConvertStateTo(RaftState.Candidate);
-                            }
-                        },
-                        2000,
-                        2000);
+                    StartLeaderLostTimerTask();
                     return;
 
                 case RaftState.Candidate:
-                    logger.Error("RaftState Impossible! Leader->Candidate");
+                    logger.Error($"RaftState {Name} Impossible! Leader->Candidate");
                     return;
 
                 case RaftState.Leader:
-                    logger.Error("RaftState Impossible! Leader->Leader");
+                    logger.Error($"RaftState {Name} Impossible! Leader->Leader");
                     return;
             }
         }
@@ -489,6 +499,7 @@ namespace Zeze.Raft
             VoteSuccess.Clear(); // 每次选举开始清除。
 
             LeaderId = string.Empty;
+            LogSequence.SetVoteFor(string.Empty); // SendRequestVote 才开始真正选举。
             LogSequence.TrySetTerm(LogSequence.Term + 1);
             WaitMajorityVoteTimoutTask?.Cancel();
             WaitMajorityVoteTimoutTask = null;

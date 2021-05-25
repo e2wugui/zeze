@@ -10,7 +10,7 @@ namespace ServiceManager
         {
             //Run(args);
 
-            Zeze.Raft.Test.Run(args); if (args.Length >= 0) return;
+            new Zeze.Raft.Test(args).Run(); if (args.Length >= 0) return;
             //TestRocksDb(); if (args.Length >= 0) return;
             //TestServiceManager(); if (args.Length >- 0) return;
         }

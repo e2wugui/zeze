@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,43 +12,29 @@ namespace Zeze.Raft
 {
     public class Test
     {
-        public enum Mode
-        {
-            Trace,
-            Batch,
-        }
-
+        public enum Mode { Trace, Net, Restart, Full, }
         public Mode TestMode { get; set; } = Mode.Trace;
-        public int BatchCount { get; set; } = 1000000;
-        public string RaftConfigFileName { get; set; }
+        public int Count { get; set; } = 2000;
+        public string RaftConfigFileName { get; set; } = "raft.xml";
+        public int RaftFailPercent { get; set; } = 10;
 
-        private void SetMode(string mode)
-        {
-            switch (mode.ToLower())
-            {
-                case "trace":
-                    TestMode = Mode.Trace;
-                    break;
-
-                case "batch":
-                    TestMode = Mode.Batch;
-                    break;
-            }
+        public Test()
+        { 
         }
 
         public Test(string[] args)
         {
-            Console.WriteLine("-mode [trace|batch] -BatchCount [1000000]");
+            Console.WriteLine("-mode [Trace|Net|Restart|Full] -Count [2000]");
             for (int i = 0; i < args.Length; ++i)
             {
                 switch (args[i])
                 {
                     case "-mode":
-                        SetMode(args[++i]);
+                        TestMode = (Mode)Enum.Parse(typeof(Mode), args[++i]);
                         break;
 
-                    case "-BatchCount":
-                        BatchCount = int.Parse(args[++i]);
+                    case "-Count":
+                        Count = int.Parse(args[++i]);
                         break;
 
                     case "-RaftConfig":
@@ -57,16 +44,14 @@ namespace Zeze.Raft
             }
         }
 
-        public static void Run(string [] args)
-        {
-            new Test(args).Run();
-        }
-
         private ConcurrentDictionary<string, TestRaft> Rafts { get; }
             = new ConcurrentDictionary<string, TestRaft>();
 
+        private Agent Agent { get; set; }
+
         public void Run()
         {
+            logger.Debug("Start.");
             var raftConfigStart = RaftConfig.Load(RaftConfigFileName);
             foreach (var node in raftConfigStart.Nodes)
             {
@@ -81,29 +66,62 @@ namespace Zeze.Raft
                 raft.Raft.Server.Start();
             }
 
+            Agent = new Agent(raftConfigStart);
+            Agent.NetService.Start();
+
             switch (TestMode)
             {
                 case Mode.Trace:
                     RunTrace();
                     break;
 
-                case Mode.Batch:
+                default:
                     RunBatch();
                     break;
             }
+
+            Agent.NetService.Close();
+            foreach (var raft in Rafts.Values)
+            {
+                raft.Raft.Server.Close();
+            }
+            logger.Debug("End.");
         }
 
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public void RunTrace()
-        { 
+        {
+            var f1 = new TaskCompletionSource<int>();
+            Agent.SendRpc(new AddCount(), (p) => { f1.SetResult(0); return Procedure.Success; });
+            f1.Task.Wait();
+
+            var f2 = new TaskCompletionSource<int>();
+            Agent.SendRpc(new GetCount(), (p) =>
+            {
+                var r = p as GetCount;
+                logger.Fatal($"Count={r.ResultCode}");
+                f2.SetResult(0);
+                return Procedure.Success;
+            });
+            f2.Task.Wait();
         }
 
         public void RunBatch()
         { 
         }
 
-        public sealed class SetCount : Zeze.Net.Rpc<EmptyBean, EmptyBean>
+        public sealed class AddCount : Zeze.Net.Rpc<EmptyBean, EmptyBean>
         {
-            public readonly static int ProtocolId_ = Bean.Hash16(typeof(SetCount).FullName);
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(AddCount).FullName);
+
+            public override int ModuleId => 0;
+            public override int ProtocolId => ProtocolId_;
+        }
+
+        public sealed class GetCount : Zeze.Net.Rpc<EmptyBean, EmptyBean>
+        {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(GetCount).FullName);
 
             public override int ModuleId => 0;
             public override int ProtocolId => ProtocolId_;
@@ -113,28 +131,24 @@ namespace Zeze.Raft
         {
             public int Count { get; set; }
 
-            public void SetCountAndWait(int count)
+            public void AddCountAndWait(int count)
             {
-                Raft.AppendLog(new SetCount() { Count = count });
+                Raft.AppendLog(new AddCount());
             }
 
-            public sealed class SetCount : Log
+            public sealed class AddCount : Log
             {
-                public int Count { get; set; }
-
                 public override void Apply(StateMachine stateMachine)
                 {
-                    (stateMachine as TestStateMachine).Count = Count;
+                    (stateMachine as TestStateMachine).Count += 1;
                 }
 
                 public override void Decode(ByteBuffer bb)
                 {
-                    Count = bb.ReadInt();
                 }
 
                 public override void Encode(ByteBuffer bb)
                 {
-                    bb.WriteInt(Count);
                 }
             }
 
@@ -171,7 +185,7 @@ namespace Zeze.Raft
 
             public TestStateMachine()
             {
-                AddFactory(new SetCount().TypeId, () => new SetCount());
+                AddFactory(new AddCount().TypeId, () => new AddCount());
             }
         }
 
@@ -183,22 +197,52 @@ namespace Zeze.Raft
             public TestRaft(string RaftName, string RaftConfigFileName)
             {
                 StateMachine = new TestStateMachine();
-                Raft = new Raft(StateMachine, RaftName, RaftConfig.Load(RaftConfigFileName));
 
+                var raftConfig = RaftConfig.Load(RaftConfigFileName);
+                raftConfig.AppendEntriesTimeout = 1000;
+                raftConfig.LeaderHeartbeatTimer = 2000;
+                raftConfig.LeaderLostTimeout = 4000;
+                raftConfig.DbHome = Path.Combine(".", ((uint)RaftName.GetHashCode()).ToString());
+                if (Directory.Exists(raftConfig.DbHome))
+                    Directory.Delete(raftConfig.DbHome, true);
+                Directory.CreateDirectory(raftConfig.DbHome);
+
+                Raft = new Raft(StateMachine, RaftName, raftConfig);
                 Raft.Server.AddFactoryHandle(
-                    new SetCount().TypeId,
+                    new AddCount().TypeId,
                     new Net.Service.ProtocolFactoryHandle()
                     {
-                        Factory = () => new SetCount(),
-                        Handle = ProcessSetCount,
+                        Factory = () => new AddCount(),
+                        Handle = ProcessAddCount,
+                    });
+
+                Raft.Server.AddFactoryHandle(
+                    new GetCount().TypeId,
+                    new Net.Service.ProtocolFactoryHandle()
+                    {
+                        Factory = () => new GetCount(),
+                        Handle = ProcessGetCount,
                     });
             }
 
-            private int ProcessSetCount(Zeze.Net.Protocol p)
+            private int ProcessAddCount(Zeze.Net.Protocol p)
             {
-                var r = p as SetCount;
-                StateMachine.SetCountAndWait(r.ResultCode);
-                r.SendResultCode(r.ResultCode);
+                var r = p as AddCount;
+                lock (StateMachine)
+                {
+                    StateMachine.AddCountAndWait(r.ResultCode);
+                    r.SendResultCode(StateMachine.Count);
+                }
+                return Procedure.Success;
+            }
+
+            private int ProcessGetCount(Zeze.Net.Protocol p)
+            {
+                var r = p as GetCount;
+                lock (StateMachine)
+                {
+                    r.SendResultCode(StateMachine.Count);
+                }
                 return Procedure.Success;
             }
         }
