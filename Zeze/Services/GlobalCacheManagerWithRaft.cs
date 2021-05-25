@@ -717,12 +717,18 @@ namespace Zeze.Services
                 }
                 Global.ConcurrentSerializeTo(file);
                 Sessions.ConcurrentSerializeTo(file);
+                long oldFirstIndex = 0;
                 lock (Raft)
                 {
                     Global.EndSerialize();
                     Sessions.EndSerialize();
+                    // 先关闭文件，结束Snapshot。
+                    // 马上调整FirstIndex允许请求在新的状态上工作。
+                    // 然后在锁外，慢慢删除旧的日志。
+                    file.Close();
+                    oldFirstIndex = Raft.LogSequence.GetAndSetFirstIndex(LastIncludedIndex);
                 }
-                Raft.LogSequence.RemoveLogBefore(LastIncludedIndex);
+                Raft.LogSequence.RemoveLogBeforeLastApplied(oldFirstIndex);
                 return true;
             }
 

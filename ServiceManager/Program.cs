@@ -4,9 +4,18 @@ using System.Threading;
 
 namespace ServiceManager
 {
-    class Program
+    public class Program
     {
-        static void Run(string[] args)
+        public static void Main(string[] args)
+        {
+            //Run(args);
+
+            Zeze.Raft.Test.Run(args); if (args.Length >= 0) return;
+            //TestRocksDb(); if (args.Length >= 0) return;
+            //TestServiceManager(); if (args.Length >- 0) return;
+        }
+
+        public static void Run(string[] args)
         {
             string ip = null;
             int port = 5001;
@@ -39,9 +48,21 @@ namespace ServiceManager
             }
         }
 
-        static void Main(string[] args)
+        public static void TestServiceManager()
         {
-            /*
+            var test = new UnitTest.Zeze.Misc.TestServiceManager();
+            try
+            {
+                test.Test1();
+            }
+            finally
+            {
+                test.TestCleanup();
+            }
+        }
+
+        public static void TestRocksDb()
+        {
             string temp = System.IO.Path.GetTempPath();
             var options = new RocksDbSharp.DbOptions().SetCreateIfMissing(true);
             using (var db = RocksDbSharp.RocksDb.Open(options,
@@ -83,22 +104,7 @@ namespace ServiceManager
                 db.Remove(key1);
                 db.Remove(key2);
             }
-            if (args.Length == 0)
-                return;
-            */
-            /*
-            var test = new UnitTest.Zeze.Misc.TestServiceManager();
-            try
-            {
-                test.Test1();
-            }
-            finally
-            {
-                test.TestCleanup();
-            }
-            /*/
-            Run(args);
-            //*/
         }
     }
+
 }

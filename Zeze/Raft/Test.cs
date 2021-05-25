@@ -153,6 +153,7 @@ namespace Zeze.Raft
             public override bool Snapshot(string path, out long LastIncludedIndex, out long LastIncludedTerm)
             {
                 using var file = new System.IO.FileStream(path, System.IO.FileMode.Create);
+                long oldFirstIndex = 0;
                 lock (Raft)
                 {
                     var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
@@ -161,8 +162,10 @@ namespace Zeze.Raft
                     var bb = ByteBuffer.Allocate();
                     bb.WriteInt(Count);
                     file.Write(bb.Bytes, bb.ReadIndex, bb.Size);
+                    file.Close();
+                    oldFirstIndex = Raft.LogSequence.GetAndSetFirstIndex(LastIncludedIndex);
                 }
-                Raft.LogSequence.RemoveLogBefore(LastIncludedIndex);
+                Raft.LogSequence.RemoveLogBeforeLastApplied(oldFirstIndex);
                 return true;
             }
 

@@ -149,26 +149,31 @@ namespace Zeze.Raft
             return ReadLog(LastApplied);
         }
 
-        public void RemoveLogBefore(long LastIncludedIndex)
+        public long GetAndSetFirstIndex(long newFirstIndex)
         {
-            if (LastIncludedIndex < FirstIndex)
-                throw new Exception("Error LastIncludedIndex < FirstIndex.");
-            if (LastIncludedIndex < CommitIndex)
-                throw new Exception("Error LastIncludedIndex < CommitIndex.");
-            if (LastIncludedIndex < LastApplied)
-                throw new Exception("Error LastIncludedIndex < LastApplied.");
+            lock (Raft)
+            {
+                long tmp = FirstIndex;
+                FirstIndex = newFirstIndex;
+                return tmp;
+            }
+        }
 
-            for (var index = LastIncludedIndex - 1; index >= FirstIndex; --index)
+        public void RemoveLogBeforeLastApplied(long oldFirstIndex)
+        {
+            RemoveLogReverse(LastApplied - 1, oldFirstIndex);
+        }
+
+        private void RemoveLogReverse(long startIndex, long firstIndex)
+        {
+            if (startIndex >= LastApplied)
+                throw new Exception("Error At Least Retain One Applied Log");
+
+            for (var index = startIndex; index >= firstIndex; --index)
             {
                 var key = ByteBuffer.Allocate();
                 key.WriteLong8(index);
                 Logs.Remove(key.Bytes, key.Size);
-            }
-
-            // 只有这个变量赋值需要保护。意思一下。
-            lock (Raft)
-            {
-                FirstIndex = LastIncludedIndex;
             }
         }
 
@@ -485,7 +490,7 @@ namespace Zeze.Raft
         }
 
         public void EndReceiveInstallSnapshot(FileStream s, InstallSnapshot r)
-        { 
+        {
             lock (Raft)
             {
                 // 6. If existing log entry has same index and term as snapshot’s
@@ -494,7 +499,7 @@ namespace Zeze.Raft
                 if (null != last && last.Term == r.Argument.LastIncludedTerm)
                 {
                     // 这里全部保留更简单吧，否则如果没有applied，那不就糟了吗？
-                    // RemoveLogBefore(r.Argument.LastIncludedTerm);
+                    // RemoveLogReverse(r.Argument.LastIncludedIndex - 1);
                     return;
                 }
                 // 7. Discard the entire log
@@ -504,8 +509,11 @@ namespace Zeze.Raft
                 // 【除了快照最后包含的日志，其他都删除。】
                 var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
                 SaveLog(lastIncludedLog);
-                RemoveLogBefore(lastIncludedLog.Index);
-                RemoveLogUntilEnd(lastIncludedLog.Index + 1, lastIncludedLog.Index);
+                // follower 没有并发请求需要处理，在锁内删除。
+                RemoveLogReverse(lastIncludedLog.Index - 1, FirstIndex);
+                RemoveLogStart(lastIncludedLog.Index + 1, LastIndex);
+                LastIndex = lastIncludedLog.Index;
+                FirstIndex = lastIncludedLog.Index;
                 CommitIndex = FirstIndex;
                 LastApplied = FirstIndex;
 
@@ -763,15 +771,14 @@ namespace Zeze.Raft
             return ReadLog(LastIndex);
         }
 
-        private void RemoveLogUntilEnd(long startIndex, long prevIndex)
+        private void RemoveLogStart(long startIndex, long endIndex)
         {
-            for (long index = startIndex; index <= LastIndex; ++index)
+            for (long index = startIndex; index <= endIndex; ++index)
             {
                 var key = ByteBuffer.Allocate();
                 key.WriteLong8(index);
                 Logs.Remove(key.Bytes, key.Size);
             }
-            LastIndex = prevIndex;
         }
 
         internal int FollowerOnAppendEntries(AppendEntries r)
@@ -808,7 +815,8 @@ namespace Zeze.Raft
                         // with a new one (same index but different terms),
                         // delete the existing entry and all that follow it(§5.3)
                         // raft.pdf 5.3
-                        RemoveLogUntilEnd(conflictCheck.Index, prevLog.Index);
+                        RemoveLogStart(conflictCheck.Index, LastIndex);
+                        LastIndex = prevLog.Index;
                     }
                 }
                 else
