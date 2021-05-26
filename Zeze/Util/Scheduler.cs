@@ -15,7 +15,7 @@ namespace Zeze.Util
         private System.Threading.Thread thread;
         private volatile bool isRunning;
 
-        public static Scheduler Instance => new Scheduler();
+        public static Scheduler Instance { get; } = new Scheduler();
 
         public Scheduler()
         {

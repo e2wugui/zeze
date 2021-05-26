@@ -358,6 +358,11 @@ namespace Zeze.Raft
             connector.NextIndex = rpc.Argument.LastEntryIndex + 1;
             connector.MatchIndex = rpc.Argument.LastEntryIndex;
 
+            // 已经提交的，旧的 AppendEntries 的结果，不用继续处理了。
+            // 【注意】这个不是必要的，是一个小优化。
+            if (rpc.Argument.LastEntryIndex <= CommitIndex)
+                return;
+
             // Rules for Servers
             // If there exists an N such that N > commitIndex, a majority
             // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
@@ -671,6 +676,12 @@ namespace Zeze.Raft
                     connector.Pending = null;
                     return Procedure.Success;
                 }
+
+                if (Raft.State != Raft.RaftState.Leader)
+                {
+                    connector.Pending = null;
+                    return Procedure.Success;
+                }
             }
 
             if (r.Result.Success)
@@ -679,8 +690,10 @@ namespace Zeze.Raft
                 {
                     TryCommit(r, connector);
                 }
-                // TryCommit 推进了NextIndex，可能一次日志没有复制完。
-                // 尝试继续复制日志。see TrySendAppendEntries 内的
+                // TryCommit 推进了NextIndex，
+                // 可能日志没有复制完或者有新的AppendLog。
+                // 尝试继续复制日志。
+                // see TrySendAppendEntries 内的
                 // “限制一次发送的日志数量”
                 TrySendAppendEntries(connector, r);
                 return Procedure.Success;

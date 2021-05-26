@@ -94,16 +94,45 @@ namespace Zeze.Raft
             service.Config.AddAcceptor(new Acceptor(node.Port, node.Host));
         }
 
+        private bool IsImportantProtocol(int typeId)
+        {
+            return IsHandshakeProtocol(typeId)
+                || typeId == RequestVote.ProtocolId_
+                || typeId == AppendEntries.ProtocolId_
+                || typeId == InstallSnapshot.ProtocolId_
+                || typeId == LeaderIs.ProtocolId_;
+        }
+
+        public override void DispatchRpcResponse(Protocol p,
+            Func<Protocol, int> responseHandle,
+            ProtocolFactoryHandle factoryHandle)
+        {
+            if (IsImportantProtocol(p.TypeId))
+            {
+                // 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
+                Raft.ImportantThreadPool.QueueUserWorkItem(
+                    () =>
+                    {
+                        var result = responseHandle(p);
+                        Util.Task.LogAndStatistics(result, p);
+                    });
+                return;
+            }
+
+            base.DispatchRpcResponse(p, responseHandle, factoryHandle);
+        }
+
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            if (IsHandshakeProtocol(p.TypeId)
-                || p.TypeId == RequestVote.ProtocolId_
-                || p.TypeId == AppendEntries.ProtocolId_
-                || p.TypeId == InstallSnapshot.ProtocolId_
-                || p.TypeId == LeaderIs.ProtocolId_)
+            if (IsImportantProtocol(p.TypeId))
             {
-                // HandshakeProtocol || RaftProtocol
-                base.DispatchProtocol(p, factoryHandle);
+                // 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
+                Raft.ImportantThreadPool.QueueUserWorkItem(
+                    () =>
+                    {
+                        var result = factoryHandle.Handle(p);
+                        Util.Task.LogAndStatistics(result, p);
+                    });
                 return;
             }
             // User Request
@@ -145,11 +174,8 @@ namespace Zeze.Raft
     public sealed class Agent
     {
         public RaftConfig RaftConfig { get; }
-        public NetClient NetService { get; }
-        public string Name => NetService.Name;
-
-        private ConcurrentDictionary<string, Connector> RaftNodes { get; }
-            = new ConcurrentDictionary<string, Connector>();
+        public NetClient Client { get; }
+        public string Name => Client.Name;
 
         public ConnectorEx Leader => _Leader;
 
@@ -165,8 +191,8 @@ namespace Zeze.Raft
 
         /// <summary>
         /// 发送Rpc请求。
-        /// 如果 autoResend == true，那么总是返回成功。内部会处理请求在需要的时候重发。
-        /// 如果 autoResend == false，那么结果表示是否成功。
+        /// 如果 autoResend == true，那么总是返回成功。内部会在需要的时候重发请求。
+        /// 如果 autoResend == false，那么返回结果表示是否成功。
         /// </summary>
         /// <typeparam name="TArgument"></typeparam>
         /// <typeparam name="TResult"></typeparam>
@@ -175,7 +201,7 @@ namespace Zeze.Raft
         /// <param name="autoResend"></param>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public bool SendRpc<TArgument, TResult>(
+        public bool Send<TArgument, TResult>(
             Rpc<TArgument, TResult> rpc,
             Func<Protocol, int> handle,
             bool autoResend = true,
@@ -205,6 +231,60 @@ namespace Zeze.Raft
                 return handle(p);
             },
             timeout);
+        }
+
+        private int SendForWaitHandle<TArgument, TResult>(
+            TaskCompletionSource<Rpc<TArgument, TResult>> future,
+            Rpc<TArgument, TResult> rpc)
+            where TArgument : Bean, new()
+            where TResult : Bean, new()
+        {
+            if (rpc.IsTimeout)
+            {
+                future.TrySetException(new Exception("Timeout"));
+            }
+            else
+            {
+                future.SetResult(rpc);
+            }
+            return Procedure.Success;
+        }
+
+        public TaskCompletionSource<Rpc<TArgument, TResult>> SendForWait<TArgument, TResult>(
+            Rpc<TArgument, TResult> rpc,
+            bool autoResend = true,
+            int timeout = 30000)
+            where TArgument : Bean, new()
+            where TResult : Bean, new()
+        {
+            var future = new TaskCompletionSource<Rpc<TArgument, TResult>>();
+            if (autoResend)
+            {
+                var tmp = _Leader;
+                if (null != tmp
+                    && tmp.IsHandshakeDone
+                    && rpc.Send(tmp.Socket, (p) => SendForWaitHandle(future, rpc), timeout))
+                    return future;
+
+                rpc.ResponseHandle = (p) => SendForWaitHandle(future, rpc);
+                rpc.Timeout = timeout;
+                Pending.TryAdd(rpc, rpc);
+                return future;
+            }
+
+            // 记录不要自动发送的请求。
+            NotAutoResend[rpc] = rpc;
+            if (false == rpc.Send(_Leader?.Socket,
+                (p) =>
+                {
+                    NotAutoResend.TryRemove(p, out var _);
+                    return SendForWaitHandle(future, rpc);
+                },
+                timeout))
+            {
+                future.TrySetException(new Exception("Send Failed."));
+            };
+            return future;
         }
 
         public class ConnectorEx : Connector
@@ -238,21 +318,20 @@ namespace Zeze.Raft
             if (null == config)
                 config = Zeze.Config.Load();
 
-            NetService = new NetClient(this, name, config);
+            Client = new NetClient(this, name, config);
 
-            if (NetService.Config.AcceptorCount() != 0)
+            if (Client.Config.AcceptorCount() != 0)
                 throw new Exception("Acceptor Found!");
 
-            if (NetService.Config.ConnectorCount() != 0)
+            if (Client.Config.ConnectorCount() != 0)
                 throw new Exception("Connector Found!");
 
             foreach (var node in RaftConfig.Nodes.Values)
             {
-                NetService.Config.AddConnector(new ConnectorEx(node.Host, node.Port));
+                Client.Config.AddConnector(new ConnectorEx(node.Host, node.Port));
             }
-            NetService.Config.ForEachConnector((c) => RaftNodes.TryAdd(c.Name, c as ConnectorEx));
 
-            NetService.AddFactoryHandle(new LeaderIs().TypeId, new Service.ProtocolFactoryHandle()
+            Client.AddFactoryHandle(new LeaderIs().TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new LeaderIs(),
                 Handle = ProcessLeaderIs,
@@ -263,17 +342,17 @@ namespace Zeze.Raft
         {
             var r = p as LeaderIs;
 
-            if (false == RaftNodes.TryGetValue(r.Argument.LeaderId, out var node))
+            var node = Client.Config.FindConnector(r.Argument.LeaderId);
+            if (null == node)
             {
                 // 当前 Agent 没有 Leader 的配置，创建一个。
                 // 由于 Agent 在新增 node 时也会得到新配置广播，
                 // 一般不会发生这种情况。
                 var address = r.Argument.LeaderId.Split(':');
-                if (NetService.Config.TryGetOrAddConnector(
+                if (Client.Config.TryGetOrAddConnector(
                     address[0], int.Parse(address[1]), true, out node))
                 {
-                    RaftNodes.TryAdd(node.Name, node);
-                    node.Start(NetService);
+                    node.Start(Client);
                 }
             }
 
@@ -318,8 +397,8 @@ namespace Zeze.Raft
 
         internal void CollectPendingRpc(AsyncSocket so)
         {
-            var ctxSends = NetService.GetRpcContextsToSender(so);
-            var ctxPending = NetService.RemoveRpcContets(ctxSends.Keys);
+            var ctxSends = Client.GetRpcContextsToSender(so);
+            var ctxPending = Client.RemoveRpcContets(ctxSends.Keys);
             foreach (var rpc in ctxPending)
             {
                 Pending.TryAdd(rpc, rpc);

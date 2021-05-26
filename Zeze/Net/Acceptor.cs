@@ -10,8 +10,9 @@ namespace Zeze.Net
     public class Acceptor
     {
         public int Port { get; } = 0;
-        public string Ip { get; }
+        public string Ip { get; } = string.Empty;
         public AsyncSocket Socket { get; private set; }
+        public string Name => $"{Ip}:{Port}";
 
         public Acceptor(int port, string ip)
         {

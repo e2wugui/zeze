@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Collections.Concurrent;
 
 namespace Zeze.Net
 {
@@ -13,28 +14,29 @@ namespace Zeze.Net
         public Net.SocketOptions SocketOptions { get; set; } = new Net.SocketOptions();
         public Services.HandshakeOptions HandshakeOptions { get; set; } = new Services.HandshakeOptions();
 
-        private List<Acceptor> Acceptors { get; } = new List<Acceptor>();
-        private List<Connector> Connectors { get; } = new List<Connector>();
+        private ConcurrentDictionary<string, Acceptor> Acceptors { get; }
+            = new ConcurrentDictionary<string, Acceptor>();
+        private ConcurrentDictionary<string, Connector> Connectors { get; }
+            = new ConcurrentDictionary<string, Connector>();
 
         public void AddConnector(Connector connector)
         {
-            lock (Connectors)
+            if (!Connectors.TryAdd(connector.Name, connector))
+                throw new Exception($"Duplicate Connector={connector.Name}");
+        }
+
+        public Connector FindConnector(string name)
+        {
+            if (Connectors.TryGetValue(name, out var exist))
             {
-                Connectors.Add(connector);
+                return exist;
             }
+            return null;
         }
 
         public Connector FindConnector(string host, int port)
         {
-            lock (Connectors)
-            {
-                foreach (var c in Connectors)
-                {
-                    if (c.HostNameOrAddress.Equals(host) && c.Port.Equals(port))
-                        return c;
-                }
-                return null;
-            }
+            return FindConnector($"{host}:{port}");
         }
 
         /// <summary>
@@ -47,97 +49,76 @@ namespace Zeze.Net
         /// <returns>true if addNew</returns>
         public bool TryGetOrAddConnector(string host, int port, bool autoReconnect, out Connector getOrAdd)
         {
-            lock (Connectors)
+            var name = $"{host}:{port}";
+            var addNew = false;
+            getOrAdd = Connectors.GetOrAdd(name, (_) =>
             {
-                getOrAdd = FindConnector(host, port);
-                if (null != getOrAdd)
-                    return false;
-                getOrAdd = new Connector(host, port, autoReconnect);
-                Connectors.Add(getOrAdd);
-                return true;
-            }
+                addNew = true;
+                return new Connector(host, port, autoReconnect);
+            });
+            return addNew;
         }
 
         public void RemoveConnector(Connector c)
         {
-            lock (Connectors)
-            {
-                Connectors.Remove(c);
-            }
+            Connectors.TryRemove(c.Name, out var _);
         }
 
         public void ForEachConnector(Action<Connector> action)
         {
-            lock (Connectors)
+            foreach (var c in Connectors.Values)
             {
-                Connectors.ForEach(action);
+                action(c);
             }
         }
 
         public int ConnectorCount()
         {
-            lock (Connectors)
-            {
-                return Connectors.Count;
-            }
+            return Connectors.Count;
         }
 
         public bool ForEachConnector(Func<Connector, bool> func)
         {
-            lock (Connectors)
+            foreach (var c in Connectors.Values)
             {
-                foreach (var c in Connectors)
-                {
-                    if (false == func(c))
-                        return false;
-                }
-                return true;
+                if (false == func(c))
+                    return false;
             }
+            return true;
         }
 
         public void AddAcceptor(Acceptor a)
         {
-            lock (Acceptors)
-            {
-                Acceptors.Add(a);
-            }
+            if (!Acceptors.TryAdd(a.Name, a))
+                throw new Exception($"Duplicate Acceptor={a.Name}");
         }
 
         public void RemoveAcceptor(Acceptor a)
         {
-            lock (Acceptors)
-            {
-                Acceptors.Remove(a);
-            }
+            Acceptors.TryRemove(a.Name, out var _);
         }
 
         public void ForEachAcceptor(Action<Acceptor> action)
         {
-            lock (Acceptors)
+            foreach (var a in Acceptors.Values)
             {
-                Acceptors.ForEach(action);
+                action(a);
             }
         }
 
         public bool ForEachAcceptor(Func<Acceptor, bool> func)
         {
-            lock (Acceptors)
+            foreach (var a in Acceptors.Values)
             {
-                foreach (var a in Acceptors)
-                {
-                    if (false == func(a))
-                        return false;
-                }
-                return true;
+                if (false == func(a))
+                    return false;
             }
+            return true;
         }
 
         public int AcceptorCount()
-        { 
-            lock (Acceptors)
-            {
-                return Acceptors.Count;
-            }
+        {
+            return Acceptors.Count;
         }
 
         public ServiceConf()

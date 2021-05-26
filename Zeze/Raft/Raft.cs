@@ -27,6 +27,8 @@ namespace Zeze.Raft
         public bool HasLeader => false == string.IsNullOrEmpty(LeaderId);
         public Server Server { get; }
 
+        internal SimpleThreadPool ImportantThreadPool { get; }
+
         public StateMachine StateMachine { get; }
 
         public void AppendLog(Log log, bool ApplySync = true)
@@ -62,6 +64,7 @@ namespace Zeze.Raft
             if (RaftConfig.Nodes.Count < 3)
                 throw new Exception("Startup Nodes.Count Must >= 3.");
 
+            ImportantThreadPool = new SimpleThreadPool(5, $"Raft.{Name}");
             Server.CreateAcceptor(Server, raftconf);
             Server.CreateConnector(Server, raftconf);
 

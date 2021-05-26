@@ -48,7 +48,8 @@ namespace Zeze
             Config = config;
             if (null == Config)
                 Config = Config.Load();
-            InternalThreadPool = new Util.SimpleThreadPool(Config.InternalThreadPoolWorkerCount);
+            InternalThreadPool = new Util.SimpleThreadPool(
+                Config.InternalThreadPoolWorkerCount, "ZezeSpecialThreadPool");
 
             int workerThreads, completionPortThreads;
             ThreadPool.GetMinThreads(out workerThreads, out completionPortThreads);

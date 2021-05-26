@@ -67,19 +67,19 @@ namespace Zeze.Raft
             }
 
             Agent = new Agent(raftConfigStart);
-            Agent.NetService.AddFactoryHandle(
+            Agent.Client.AddFactoryHandle(
                 new AddCount().TypeId,
                 new Net.Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new AddCount(),
                 });
-            Agent.NetService.AddFactoryHandle(
+            Agent.Client.AddFactoryHandle(
                 new GetCount().TypeId,
                 new Net.Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new GetCount(),
                 });
-            Agent.NetService.Start();
+            Agent.Client.Start();
 
             switch (TestMode)
             {
@@ -92,7 +92,7 @@ namespace Zeze.Raft
                     break;
             }
 
-            Agent.NetService.Close();
+            Agent.Client.Close();
             foreach (var raft in Rafts.Values)
             {
                 raft.Raft.Server.Close();
@@ -102,21 +102,24 @@ namespace Zeze.Raft
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
+        private int GetCurrentCount()
+        {
+            var r = new GetCount();
+            Agent.SendForWait(r).Task.Wait();
+            return r.ResultCode;
+        }
+
         public void RunTrace()
         {
-            var f1 = new TaskCompletionSource<int>();
-            Agent.SendRpc(new AddCount(), (p) => { f1.SetResult(0); return Procedure.Success; });
-            f1.Task.Wait();
-
-            var f2 = new TaskCompletionSource<int>();
-            Agent.SendRpc(new GetCount(), (p) =>
+            Agent.SendForWait(new AddCount()).Task.Wait();
+            logger.Debug($"#### Count={GetCurrentCount()} ####");
+            Task[] tasks = new Task[1000];
+            for (int i = 0; i < tasks.Length; ++i)
             {
-                var r = p as GetCount;
-                logger.Fatal($"Count={r.ResultCode}");
-                f2.SetResult(0);
-                return Procedure.Success;
-            });
-            f2.Task.Wait();
+                tasks[i] = Agent.SendForWait(new AddCount()).Task;
+            }
+            Task.WaitAll(tasks);
+            logger.Debug($"#### Count={GetCurrentCount()} ####");
         }
 
         public void RunBatch()

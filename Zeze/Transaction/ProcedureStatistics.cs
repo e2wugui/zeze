@@ -12,7 +12,7 @@ namespace Zeze.Transaction
     /// </summary>
     public class ProcedureStatistics
     {
-        public static ProcedureStatistics Instance = new ProcedureStatistics();
+        public static ProcedureStatistics Instance { get; } = new ProcedureStatistics();
 
         public ConcurrentDictionary<string, Statistics> Procedures { get; } = new ConcurrentDictionary<string, Statistics>();
 

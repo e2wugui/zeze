@@ -9,7 +9,7 @@ namespace Zeze.Transaction
     {
         // 为了使用的地方可以方便访问，定义成全局的。
         // 这里的tableId也是全局分配的，即时起多个Zeze.Application，也是没问题的。see Table.cs
-        public static TableStatistics Instance = new TableStatistics();
+        public static TableStatistics Instance { get; } = new TableStatistics();
 
         public ConcurrentDictionary<int, Statistics> Tables { get; } = new ConcurrentDictionary<int, Statistics>();
 

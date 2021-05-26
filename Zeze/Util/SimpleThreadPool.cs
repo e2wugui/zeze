@@ -12,6 +12,7 @@ namespace Zeze.Util
 
         private BlockingCollection<Action> taskQueue = new BlockingCollection<Action>();
         private List<Thread> workers = new List<Thread>();
+        public string Name { get; }
 
         public bool QueueUserWorkItem(Action action)
         {
@@ -19,13 +20,15 @@ namespace Zeze.Util
             return true;
         }
 
-        public SimpleThreadPool(int workerThreads)
+        public SimpleThreadPool(int workerThreads, string poolName)
         {
+            Name = poolName;
+
             for (int i = 0; i < workerThreads; ++i)
             {
                 workers.Add(new Thread(MainRun)
                 {
-                    Name = "SimpleThreadPool.Worker." + i,
+                    Name = $"{Name}.{i}",
                     IsBackground = true
                 });
             }
