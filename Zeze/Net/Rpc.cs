@@ -72,7 +72,9 @@ namespace Zeze.Net
         /// <param name="responseHandle"></param>
         /// <param name="millisecondsTimeout"></param>
         /// <returns></returns>
-        public bool Send(AsyncSocket so, Func<Protocol, int> responseHandle, int millisecondsTimeout = 5000)
+        public bool Send(AsyncSocket so,
+            Func<Protocol, int> responseHandle,
+            int millisecondsTimeout = 5000)
         {
             if (so == null)
                 return false;
@@ -95,6 +97,29 @@ namespace Zeze.Net
             // 这里返回 false 表示真的没有发送成功，外面根据自己需要决定是否重连并再次发送。
             Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(this.SessionId);
             return context == null;
+        }
+
+        /// <summary>
+        /// 不管发送是否成功，总是建立RpcContext。
+        /// 连接(so)可以为null，此时Rpc请求将在Timeout后回调。
+        /// </summary>
+        /// <param name="service"></param>
+        /// <param name="so"></param>
+        /// <param name="responseHandle"></param>
+        /// <param name="millisecondsTimeout"></param>
+        public void SendReturnVoid(Service service, AsyncSocket so,
+            Func<Protocol, int> responseHandle,
+            int millisecondsTimeout = 5000)
+        {
+            if (so?.Service != service)
+                throw new Exception("so?.Service != service");
+
+            this.IsRequest = true;
+            this.ResponseHandle = responseHandle;
+            this.Timeout = millisecondsTimeout;
+            this.SessionId = service.AddRpcContext(this);
+            Schedule(service, SessionId, millisecondsTimeout);
+            base.Send(so);
         }
 
         public TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout = 5000)
@@ -178,7 +203,7 @@ namespace Zeze.Net
             context.IsTimeout = false; // not need
             if (null != context.ResponseHandle)
             {
-                service.DispatchRpcResponse(this, context.ResponseHandle, factoryHandle);
+                service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
             }
         }
 

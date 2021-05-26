@@ -14,7 +14,7 @@ namespace Zeze.Net
 
 		public static int GetModuleId(int type)
         {
-			return type >> 16 & 0xffff;
+			return (int)((uint)type >> 16 & 0xffff);
         }
 
 		public static int GetProtocolId(int type)

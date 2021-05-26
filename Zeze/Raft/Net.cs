@@ -44,19 +44,24 @@ namespace Zeze.Raft
             /// to send to that server(initialized to leader
             /// last log index + 1)
             /// </summary>
-            public long NextIndex { get; set; }
+            internal long NextIndex { get; set; }
 
             /// <summary>
             /// for each server, index of highest log entry
             /// known to be replicated on server
             /// (initialized to 0, increases monotonically)
             /// </summary>
-            public long MatchIndex { get; set; }
+            internal long MatchIndex { get; set; }
 
             /// <summary>
             /// 正在安装Snapshot，用来阻止新的安装。
             /// </summary>
-            public bool InstallSnapshotting { get; set; }
+            internal bool InstallSnapshotting { get; set; }
+
+            /// <summary>
+            /// 每个连接只允许存在一个AppendEntries。
+            /// </summary>
+            internal AppendEntries Pending { get; set; }
 
             public override void OnSocketClose(AsyncSocket closed)
             {
@@ -97,7 +102,6 @@ namespace Zeze.Raft
                 || p.TypeId == InstallSnapshot.ProtocolId_
                 || p.TypeId == LeaderIs.ProtocolId_)
             {
-                Console.WriteLine($"DispatchProtocol {p}");
                 // HandshakeProtocol || RaftProtocol
                 base.DispatchProtocol(p, factoryHandle);
                 return;

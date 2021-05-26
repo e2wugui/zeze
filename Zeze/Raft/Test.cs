@@ -67,6 +67,18 @@ namespace Zeze.Raft
             }
 
             Agent = new Agent(raftConfigStart);
+            Agent.NetService.AddFactoryHandle(
+                new AddCount().TypeId,
+                new Net.Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new AddCount(),
+                });
+            Agent.NetService.AddFactoryHandle(
+                new GetCount().TypeId,
+                new Net.Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new GetCount(),
+                });
             Agent.NetService.Start();
 
             switch (TestMode)
@@ -131,7 +143,7 @@ namespace Zeze.Raft
         {
             public int Count { get; set; }
 
-            public void AddCountAndWait(int count)
+            public void AddCountAndWait()
             {
                 Raft.AppendLog(new AddCount());
             }
@@ -230,7 +242,7 @@ namespace Zeze.Raft
                 var r = p as AddCount;
                 lock (StateMachine)
                 {
-                    StateMachine.AddCountAndWait(r.ResultCode);
+                    StateMachine.AddCountAndWait();
                     r.SendResultCode(StateMachine.Count);
                 }
                 return Procedure.Success;

@@ -138,6 +138,11 @@ namespace Zeze.Transaction
         public const long TYPEID = 0; // 用0，而不是Bean.Hash("")，可能0更好吧。
 
         public override long TypeId => TYPEID;
+
+        public override string ToString()
+        {
+            return "()";
+        }
     }
 
     public interface DynamicBeanReadOnly

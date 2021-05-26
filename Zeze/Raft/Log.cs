@@ -178,7 +178,7 @@ namespace Zeze.Raft
         }
 
         // Leader
-        public bool AppendLogActive { get; internal set; } = false;
+        public long AppendLogActiveTime { get; internal set; } = Zeze.Util.Time.NowUnixMillis;
         // Follower
         public long LeaderActiveTime { get; private set; } = Zeze.Util.Time.NowUnixMillis;
 
@@ -417,7 +417,7 @@ namespace Zeze.Raft
                 if (WaitApply)
                 {
                     WaitApplyEvent = new ManualResetEvent(false);
-                    if (WaitApplyEvents.TryAdd(raftLog.Index, WaitApplyEvent))
+                    if (false == WaitApplyEvents.TryAdd(raftLog.Index, WaitApplyEvent))
                         throw new Exception("Impossible");
                 }
                 SaveLog(raftLog);
@@ -425,7 +425,7 @@ namespace Zeze.Raft
 
             // 广播给followers并异步等待多数确认
             Raft.Server.Config.ForEachConnector(
-                (connector) => TrySendAppendEntries(connector as Server.ConnectorEx));
+                (connector) => TrySendAppendEntries(connector as Server.ConnectorEx, null));
 
             if (WaitApply)
             {
@@ -650,23 +650,76 @@ namespace Zeze.Raft
             }
         }
 
-        private void TrySendAppendEntries(Server.ConnectorEx connector)
+        private int ProcessAppendEntriesResult(Server.ConnectorEx connector, Protocol p)
         {
-            if (false == connector.IsHandshakeDone)
+            var r = p as AppendEntries;
+            if (r.IsTimeout)
             {
-                Zeze.Util.Scheduler.Instance.Schedule(
-                    (ThisTask) => TrySendAppendEntries(connector),
-                    Raft.RaftConfig.AppendEntriesTimeout);
-                return;
+                TrySendAppendEntries(connector, r);  //resend
+                return Procedure.Success;
             }
 
-            var rpc = new AppendEntries();
             lock (Raft)
             {
+                if (Raft.LogSequence.TrySetTerm(r.Result.Term))
+                {
+                    Raft.LeaderId = string.Empty; // 此时不知道谁是Leader。
+                                                  // new term found.
+                    Raft.ConvertStateTo(Raft.RaftState.Follower);
+                    // 发现新的 Term，已经不是Leader，不能继续处理了。
+                    // 直接返回。
+                    connector.Pending = null;
+                    return Procedure.Success;
+                }
+            }
+
+            if (r.Result.Success)
+            {
+                lock (Raft)
+                {
+                    TryCommit(r, connector);
+                }
+                // TryCommit 推进了NextIndex，可能一次日志没有复制完。
+                // 尝试继续复制日志。see TrySendAppendEntries 内的
+                // “限制一次发送的日志数量”
+                TrySendAppendEntries(connector, r);
+                return Procedure.Success;
+            }
+
+            lock (Raft)
+            {
+                // TODO raft.pdf 提到一个优化
+                connector.NextIndex--;
+                TrySendAppendEntries(connector, r);  //resend. use new NextIndex。
+                return Procedure.Success;
+            }
+        }
+
+        private void TrySendAppendEntries(Server.ConnectorEx connector, AppendEntries pending)
+        {
+            lock (Raft)
+            {
+                // 按理说，多个Follower设置一次就够了，这里就不做这个处理了。
+                AppendLogActiveTime = Util.Time.NowUnixMillis;
+
+                if (connector.Pending != pending)
+                    return;
+
+                // 先清除，下面中断(return)不用每次自己清除。
+                connector.Pending = null;
+                if (false == connector.IsHandshakeDone)
+                {
+                    // Hearbeat Will Retry
+                    return;
+                }
+
                 // 【注意】
                 // 正在安装Snapshot，此时不复制日志，肯定失败。
                 // 不做这个判断也是可以工作的，算是优化。
                 if (connector.InstallSnapshotting)
+                    return;
+
+                if (connector.NextIndex > LastIndex)
                     return;
 
                 var nextLog = ReadLogReverse(connector.NextIndex);
@@ -682,14 +735,15 @@ namespace Zeze.Raft
                 // 现在Index总是递增，但没有确认步长总是为1，这样能处理不为1的情况。
                 connector.NextIndex = nextLog.Index;
 
-                rpc.Argument.Term = Term;
-                rpc.Argument.LeaderId = Raft.Name;
-                rpc.Argument.LeaderCommit = CommitIndex;
+                connector.Pending = new AppendEntries();
+                connector.Pending.Argument.Term = Term;
+                connector.Pending.Argument.LeaderId = Raft.Name;
+                connector.Pending.Argument.LeaderCommit = CommitIndex;
 
                 // 肯定能找到的。
                 var prevLog = ReadLogReverse(nextLog.Index - 1);
-                rpc.Argument.PrevLogIndex = prevLog.Index;
-                rpc.Argument.PrevLogTerm = prevLog.Term;
+                connector.Pending.Argument.PrevLogIndex = prevLog.Index;
+                connector.Pending.Argument.PrevLogTerm = prevLog.Term;
 
                 // 限制一次发送的日志数量，【注意】这个不是raft要求的。
                 int maxCount = Raft.RaftConfig.MaxAppendEntiresCount;
@@ -700,66 +754,17 @@ namespace Zeze.Raft
                     )
                 {
                     lastCopyLog = copyLog;
-                    rpc.Argument.Entries.Add(new Binary(copyLog.Encode()));
+                    connector.Pending.Argument.Entries.Add(new Binary(copyLog.Encode()));
                 }
-                rpc.Argument.LastEntryIndex = lastCopyLog.Index;
-            }
-
-            var sendResultLocal = rpc.Send(connector.Socket,
-                (p) =>
+                connector.Pending.Argument.LastEntryIndex = lastCopyLog.Index;
+                if (false == connector.Pending.Send(
+                    connector.Socket,
+                    (p) => ProcessAppendEntriesResult(connector, p),
+                    Raft.RaftConfig.AppendEntriesTimeout))
                 {
-                    var r = p as AppendEntries;
-                    if (r.IsTimeout)
-                    {
-                        TrySendAppendEntries(connector);  //resend
-                        return Procedure.Success;
-                    }
-
-                    lock (Raft)
-                    {
-                        if (Raft.LogSequence.TrySetTerm(r.Result.Term))
-                        {
-                            Raft.LeaderId = string.Empty; // 此时不知道谁是Leader。
-                                                          // new term found.
-                            Raft.ConvertStateTo(Raft.RaftState.Follower);
-                            // 发现新的 Term，已经不是Leader，不能继续处理了。
-                            // 直接返回。
-                            return Procedure.Success;
-                        }
-                    }
-
-                    if (r.Result.Success)
-                    {
-                        lock (Raft)
-                        {
-                            TryCommit(r, connector);
-                        }
-                        // TryCommit 推进了NextIndex，可能一次日志没有复制完。
-                        // 尝试继续复制日志。see TrySendAppendEntries 内的
-                        // “限制一次发送的日志数量”
-                        TrySendAppendEntries(connector);
-                        return Procedure.Success;
-                    }
-
-                    lock (Raft)
-                    {
-                        // TODO raft.pdf 提到一个优化
-                        connector.NextIndex--;
-                        TrySendAppendEntries(connector);  //resend
-                        return Procedure.Success;
-                    }
-                },
-                Raft.RaftConfig.AppendEntriesTimeout);
-
-            // 按理说，多个Follower设置一次就够了，这里就不做这个处理了。
-            AppendLogActive = sendResultLocal;
-
-            if (false == sendResultLocal)
-            {
-                Zeze.Util.Scheduler.Instance.Schedule(
-                    (ThisTask) => TrySendAppendEntries(connector),
-                    Raft.RaftConfig.AppendEntriesTimeout);
-                return;
+                    connector.Pending = null;
+                    // Hearbeat Will Retry
+                }
             }
         }
 
@@ -833,7 +838,7 @@ namespace Zeze.Raft
                 TryApply(ReadLog(CommitIndex));
             }
             r.Result.Success = true;
-            logger.Debug($"{Raft.Name}: {r}");
+            //logger.Debug($"{Raft.Name}: {r}");
             r.SendResultCode(0);
             return Procedure.Success;
         }

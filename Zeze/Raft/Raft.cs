@@ -42,6 +42,8 @@ namespace Zeze.Raft
         {
             if (null == raftconf)
                 raftconf = RaftConfig.Load();
+            raftconf.Verify();
+
             RaftConfig = raftconf;
             sm.Raft = this;
             StateMachine = sm;
@@ -76,9 +78,10 @@ namespace Zeze.Raft
             lock (this)
             {
                 LogSequence.TrySetTerm(r.Argument.Term);
-                // 只有Leader会发送AppendEntries，总是转到Follower，不管当前状态。
+                // 【注意】只有Leader会发送AppendEntries，总是转到Follower，不管当前状态。
                 // raft.pdf 文档描述仅在 Candidate 才转。
-                ConvertStateTo(RaftState.Follower);
+                if (State != RaftState.Follower)
+                    ConvertStateTo(RaftState.Follower);
                 LeaderId = r.Argument.LeaderId; // always replace
                 return LogSequence.FollowerOnAppendEntries(r);
             }
@@ -355,6 +358,8 @@ namespace Zeze.Raft
                     return;
 
                 case RaftState.Leader:
+                    // 并发的RequestVote的结果如果没有判断当前状态，可能会到达这里。
+                    // 不是什么大问题。see ProcessRequestVoteResult
                     logger.Info($"RaftState {Name} Impossible! Follower->Leader");
                     return;
             }
@@ -434,15 +439,14 @@ namespace Zeze.Raft
                     HearbeatTimerTask = Scheduler.Instance.Schedule(
                         (ThisTask) =>
                         {
-                            if (LogSequence.AppendLogActive)
+                            var elapse = Util.Time.NowUnixMillis - LogSequence.AppendLogActiveTime;
+                            if (elapse < RaftConfig.LeaderHeartbeatTimer)
                             {
-                                LogSequence.AppendLogActive = false;
-                                return;
+                                LogSequence.AppendLog(new HeartbeatLog(), false);
                             }
-                            LogSequence.AppendLog(new HeartbeatLog(), false);
                         },
-                        RaftConfig.LeaderHeartbeatTimer,
-                        RaftConfig.LeaderHeartbeatTimer);
+                        1000,
+                        1000);
                     return;
             }
         }

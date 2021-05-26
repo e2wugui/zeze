@@ -88,22 +88,6 @@ namespace Zeze.Raft
             attr = self.GetAttribute("SnapshotMinute");
             SnapshotMinute = string.IsNullOrEmpty(attr) ? 0 : int.Parse(attr);
 
-            // check and reset params
-            if (AppendEntriesTimeout < 1000)
-                AppendEntriesTimeout = 1000;
-            if (LeaderHeartbeatTimer < AppendEntriesTimeout + 1000)
-                AppendEntriesTimeout = AppendEntriesTimeout + 1000;
-            if (LeaderLostTimeout < AppendEntriesTimeout + LeaderHeartbeatTimer + 1000)
-                LeaderLostTimeout = AppendEntriesTimeout + LeaderHeartbeatTimer + 1000;
-
-            if (MaxAppendEntiresCount < 100)
-                MaxAppendEntiresCount = 100;
-
-            if (SnapshotMinute < 0)
-                SnapshotMinute = 0;
-            else if (SnapshotMinute > 59)
-                SnapshotMinute = 59;
-
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
             {
@@ -118,6 +102,24 @@ namespace Zeze.Raft
                         break;
                 }
             }
+        }
+
+        public void Verify()
+        {
+            if (AppendEntriesTimeout < 0)
+                throw new Exception("AppendEntriesTimeout < 0");
+            if (LeaderHeartbeatTimer < AppendEntriesTimeout + 100)
+                throw new Exception("LeaderHeartbeatTimer < AppendEntriesTimeout + 100");
+            if (LeaderLostTimeout < AppendEntriesTimeout + LeaderHeartbeatTimer + 200)
+                throw new Exception("LeaderLostTimeout < AppendEntriesTimeout + LeaderHeartbeatTimer + 200");
+
+            if (MaxAppendEntiresCount < 100)
+                MaxAppendEntiresCount = 100;
+
+            if (SnapshotMinute < 0)
+                SnapshotMinute = 0;
+            else if (SnapshotMinute > 59)
+                SnapshotMinute = 59;
         }
 
         internal void Save()
