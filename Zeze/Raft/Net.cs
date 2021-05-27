@@ -356,7 +356,7 @@ namespace Zeze.Raft
                 }
             }
 
-            SetLeader(node);
+            SetLeader(node as ConnectorEx);
 
             if (r.Sender.Connector.Name.Equals(r.Argument.LeaderId))
             {
@@ -405,7 +405,7 @@ namespace Zeze.Raft
             }
         }
 
-        internal void SetLeader(Connector newLeader)
+        internal void SetLeader(ConnectorEx newLeader)
         {
             lock (this)
             {
@@ -414,11 +414,20 @@ namespace Zeze.Raft
                     // 把旧的_Leader的没有返回结果的请求收集起来，准备重新发送。
                     CollectPendingRpc(_Leader.Socket);
                 }
-                _Leader = newLeader as ConnectorEx;
+                _Leader = newLeader;
             }
         }
 
-        public sealed class NetClient : Services.HandshakeServer
+        internal void TryClearLeader(ConnectorEx oldLeader)
+        {
+            lock (this)
+            {
+                if (_Leader == oldLeader)
+                    SetLeader(null);
+            }
+        }
+
+        public sealed class NetClient : Services.HandshakeClient
         {
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
@@ -428,6 +437,13 @@ namespace Zeze.Raft
                 : base(name, config)
             {
                 Agent = agent;
+            }
+
+            public override void OnSocketClose(AsyncSocket so, Exception e)
+            {
+                Agent.TryClearLeader(so.Connector as ConnectorEx);
+
+                base.OnSocketClose(so, e);
             }
 
             public override void OnSocketDisposed(AsyncSocket so)

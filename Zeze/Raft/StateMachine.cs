@@ -42,17 +42,20 @@ namespace Zeze.Raft
         /// 把 StateMachine 里面的数据系列化到 path 指定的文件中。
         /// 需要自己访问的并发特性。返回快照建立时的Raft.LogSequence.Index。
         /// 原子性建议伪码如下：
+        /// long oldFirstIndex = 0;
         /// lock (Raft) // 这会阻止对 StateMachine 的写请求。
         /// {
         ///     var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
         ///     LastIncludedIndex = lastAppliedLog.Index;
         ///     LastIncludedTerm = lastAppliedLog.Term;
         ///     MyData.SerializeToFile(path);
+        ///     oldFirstIndex = Raft.LogSequence.GetAndSetFirstIndex(LastIncludedIndex);
         /// }
-        /// Raft.LogSequence.RemoveLogBefore(LastIncludedIndex);
+        /// Raft.LogSequence.RemoveLogBeforeLastApplied(oldFirstIndex);
         ///
         /// 上面的问题是，数据很大时，SerializeToFile时间比较长，会导致服务不可用。
         /// 这时候需要自己优化并发。如下：
+        /// long oldFirstIndex = 0;
         /// lock (Raft)
         /// {
         ///     var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
@@ -67,8 +70,9 @@ namespace Zeze.Raft
         /// {
         ///     // 清理一些状态。
         ///     MyData.EndSerializeToFile();
+        ///     oldFirstIndex = Raft.LogSequence.GetAndSetFirstIndex(LastIncludedIndex);
         /// }
-        /// Raft.LogSequence.RemoveLogBefore(LastIncludedIndex);
+        /// Raft.LogSequence.RemoveLogBeforeLastApplied(oldFirstIndex);
         ///
         /// return true;
         ///

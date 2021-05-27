@@ -404,25 +404,25 @@ namespace Zeze.Raft
                 raftLog.Log.Apply(Raft.StateMachine);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
 
-                if (WaitApplyEvents.TryRemove(raftLog.Index, out var Event))
-                    Event.Set();
+                if (WaitApplyFutures.TryRemove(raftLog.Index, out var future))
+                    future.SetResult(0);
             }
         }
 
-        internal ConcurrentDictionary<long, ManualResetEvent> WaitApplyEvents { get; }
-            = new ConcurrentDictionary<long, ManualResetEvent>();
+        internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }
+            = new ConcurrentDictionary<long, TaskCompletionSource<int>>();
 
         public void AppendLog(Log log, bool WaitApply = true)
         {
-            ManualResetEvent WaitApplyEvent = null;
+            TaskCompletionSource<int> future = null;
             lock (Raft)
             {
                 ++LastIndex;
                 var raftLog = new RaftLog(Term, LastIndex, log);
                 if (WaitApply)
                 {
-                    WaitApplyEvent = new ManualResetEvent(false);
-                    if (false == WaitApplyEvents.TryAdd(raftLog.Index, WaitApplyEvent))
+                    future = new TaskCompletionSource<int>();
+                    if (false == WaitApplyFutures.TryAdd(raftLog.Index, future))
                         throw new Exception("Impossible");
                 }
                 SaveLog(raftLog);
@@ -434,7 +434,7 @@ namespace Zeze.Raft
 
             if (WaitApply)
             {
-                WaitApplyEvent.WaitOne();
+                future.Task.Wait();
             }
         }
 
@@ -516,7 +516,7 @@ namespace Zeze.Raft
                 SaveLog(lastIncludedLog);
                 // follower 没有并发请求需要处理，在锁内删除。
                 RemoveLogReverse(lastIncludedLog.Index - 1, FirstIndex);
-                RemoveLogStart(lastIncludedLog.Index + 1, LastIndex);
+                RemoveLogAndCancelStart(lastIncludedLog.Index + 1, LastIndex);
                 LastIndex = lastIncludedLog.Index;
                 FirstIndex = lastIncludedLog.Index;
                 CommitIndex = FirstIndex;
@@ -552,7 +552,6 @@ namespace Zeze.Raft
 
                 // 忽略Snapshot返回结果。肯定是重复调用导致的。
                 // out 结果这里没有使用，定义在参数里面用来表示这个很重要。
-                // LastIncludedIndex 在Snapshot内部用于调用 Raft.LogSequence.RemoveLogBefore。
                 Raft.StateMachine.Snapshot(path, out LastIncludedIndex, out LastIncludedTerm);
             }
             finally
@@ -811,10 +810,20 @@ namespace Zeze.Raft
             return ReadLog(LastIndex);
         }
 
-        private void RemoveLogStart(long startIndex, long endIndex)
+        private void RemoveLogAndCancelStart(long startIndex, long endIndex)
         {
             for (long index = startIndex; index <= endIndex; ++index)
             {
+                if (index > LastApplied && WaitApplyFutures.TryRemove(index, out var future))
+                {
+                    // 还没有applied的日志被删除，
+                    // 当发生在重新选举，但是旧的leader上还有一些没有提交的请求时，
+                    // 需要取消。
+                    // 其中判断：index > LastApplied 不是必要的。
+                    // Apply的时候已经TryRemove了，仅会成功一次。
+                    future.SetCanceled();
+                }
+
                 var key = ByteBuffer.Allocate();
                 key.WriteLong8(index);
                 Logs.Remove(key.Bytes, key.Size);
@@ -855,7 +864,7 @@ namespace Zeze.Raft
                         // with a new one (same index but different terms),
                         // delete the existing entry and all that follow it(§5.3)
                         // raft.pdf 5.3
-                        RemoveLogStart(conflictCheck.Index, LastIndex);
+                        RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
                         LastIndex = prevLog.Index;
                     }
                 }
@@ -865,7 +874,6 @@ namespace Zeze.Raft
                     SaveLog(copyLog);
                 }
                 // 复用这个变量。当冲突需要删除时，精确指到前一个日志。
-                // RemoveLogToEnd
                 prevLog = copyLog;
             }
             // 5. If leaderCommit > commitIndex,
