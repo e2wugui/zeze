@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Zeze.Transaction
 {
@@ -17,6 +18,7 @@ namespace Zeze.Transaction
         public const int AbortException = -8;
         public const int ProviderNotExist = -9;
         public const int Timeout = -10;
+        public const int CancelExcption = -11;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -105,6 +107,15 @@ namespace Zeze.Transaction
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(RedoAndRelease).IncrementAndGet();
 #endif
                 throw;
+            }
+            catch (TaskCanceledException ce)
+            {
+                currentT.Rollback();
+                logger.Error(ce, "Procedure {0} Exception UserState={1}", ToString(), UserState);
+#if ENABLE_STATISTICS
+                ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(Excption).IncrementAndGet();
+#endif
+                return CancelExcption;
             }
             catch (Exception e)
             {

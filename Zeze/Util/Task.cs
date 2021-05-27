@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Threading.Tasks;
 
 namespace Zeze.Util
 {
@@ -52,9 +53,17 @@ namespace Zeze.Util
             {
                 int result = func();
                 LogAndStatistics(result, p);
+                if (result != 0)
+                    p.SendResultCode(result);
+            }
+            catch (TaskCanceledException cancelex)
+            {
+                p.SendResultCode(Transaction.Procedure.CancelExcption);
+                logger.Error(cancelex, "Task {0} TaskCanceledException UserState={1}", p.GetType().FullName, p.UserState);
             }
             catch (Exception ex)
             {
+                p.SendResultCode(Transaction.Procedure.Excption);
                 logger.Error(ex, "Task {0} Exception UserState={1}", p.GetType().FullName, p.UserState);
             }
         }
@@ -64,13 +73,15 @@ namespace Zeze.Util
             return System.Threading.Tasks.Task.Run(() => Call(func, p));
         }
 
-        public static void Call(Zeze.Transaction.Procedure procdure)
+        public static void Call(Zeze.Transaction.Procedure procdure, Net.Protocol from = null)
         {
             try
             {
                 // 日志在Call里面记录。因为要支持嵌套。
                 // 统计在Call里面实现。
-                procdure.Call();
+                int result = procdure.Call();
+                if (result != 0 && null != from)
+                    from.SendResultCode(result);
             }
             catch (Exception ex)
             {
@@ -79,9 +90,11 @@ namespace Zeze.Util
             }
         }
 
-        public static System.Threading.Tasks.Task Run(Zeze.Transaction.Procedure procdure)
+        public static System.Threading.Tasks.Task Run(
+            Zeze.Transaction.Procedure procdure,
+            Net.Protocol from = null)
         {
-            return System.Threading.Tasks.Task.Run(() => Call(procdure));
+            return System.Threading.Tasks.Task.Run(() => Call(procdure, from));
         }
     }
 }

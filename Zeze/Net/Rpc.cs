@@ -160,14 +160,24 @@ namespace Zeze.Net
             tmpFuture.Task.Wait();
         }
 
+        private bool SendResultDone = false; // XXX ugly
+
         public void SendResult()
         {
+            if (SendResultDone)
+                return;
+            SendResultDone = true;
+
             IsRequest = false;
             base.Send(Sender);
         }
 
-        public void SendResultCode(int code)
+        public override void SendResultCode(int code)
         {
+            if (SendResultDone)
+                return;
+            SendResultDone = true;
+
             ResultCode = code;
             IsRequest = false;
             base.Send(Sender);

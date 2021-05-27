@@ -52,13 +52,19 @@ namespace Zeze.Net
 			return so.Send(Encode());
 		}
 
-		public bool Send(Service service)
+		public virtual bool Send(Service service)
 		{
 			AsyncSocket so = service.GetSocket();
 			if (null != so)
 				return Send(so);
 			return false;
 		}
+
+		// 用于Rpc自动发送结果。
+		// Rpc会重载实现。
+		public virtual void SendResultCode(int code)
+        {
+        }
 
 		/// <summary>
 		/// Id + size + protocol.bytes

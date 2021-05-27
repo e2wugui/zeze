@@ -254,7 +254,7 @@ namespace Zeze.Net
                         Zeze.NewProcedure(
                             () => factoryHandle.Handle(p),
                             p.GetType().FullName,
-                            p.UserState));
+                            p.UserState), p);
                 }
                 else
                 {
