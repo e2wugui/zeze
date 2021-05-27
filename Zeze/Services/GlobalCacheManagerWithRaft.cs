@@ -111,7 +111,7 @@ namespace Zeze.Services
             {
                 if (null == Raft)
                     return;
-                Raft.Server.Close();
+                Raft.Server.Stop();
                 Raft = null;
             }
         }

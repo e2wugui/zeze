@@ -109,7 +109,7 @@ namespace Zeze.Raft
             if (r.Argument.Term < LogSequence.Term)
             {
                 // 1. Reply immediately if term < currentTerm
-                r.SendResultCode(0);
+                r.SendResultCode(InstallSnapshot.ResultCodeTermError);
                 return Procedure.LogicError;
             }
 
@@ -125,7 +125,8 @@ namespace Zeze.Raft
                 // GetOrAdd 允许重新开始。
                 outputFileStream = ReceiveSnapshotting.GetOrAdd(
                     r.Argument.LastIncludedIndex,
-                    (_) => new FileStream(path, FileMode.Create));
+                    (_) => new FileStream(path, FileMode.OpenOrCreate));
+                outputFileStream.Seek(0, SeekOrigin.End);
             }
             else
             {
@@ -135,13 +136,39 @@ namespace Zeze.Raft
 
             if (null == outputFileStream)
             {
-                r.SendResultCode(0); // 肯定是旧的被丢弃的安装，Discard And Ignore。
+                // 肯定是旧的被丢弃的安装，Discard And Ignore。
+                r.SendResultCode(InstallSnapshot.ResultCodeOldInstall);
                 return Procedure.Success;
             }
 
-            // 3. Write data into snapshot file at given offset
-            outputFileStream.Seek(r.Argument.Offset, SeekOrigin.Begin);
-            outputFileStream.Write(r.Argument.Data.Bytes, r.Argument.Data.Offset, r.Argument.Data.Count);
+            r.Result.Offset = -1; // 默认让Leader继续传输，不用重新定位。
+            if (r.Argument.Offset > outputFileStream.Length)
+            {
+                // 数据块超出当前已经接收到的数据。
+                // 填写当前长度，让Leader从该位置开始重新传输。
+                r.Result.Offset = outputFileStream.Length;
+                r.SendResultCode(InstallSnapshot.ResultCodeNewOffset);
+                return Procedure.Success;
+            }
+            
+            if (r.Argument.Offset == outputFileStream.Length)
+            {
+                // 正常的Append流程，直接写入。
+                // 3. Write data into snapshot file at given offset
+                outputFileStream.Write(r.Argument.Data.Bytes, r.Argument.Data.Offset, r.Argument.Data.Count);
+            }
+            else
+            {
+                // 数据块开始位置小于当前长度。
+                var newEndPosition = r.Argument.Offset + r.Argument.Data.Count;
+                if (newEndPosition > outputFileStream.Length)
+                {
+                    // 有新的数据需要写入文件。
+                    outputFileStream.Seek(r.Argument.Offset, SeekOrigin.Begin);
+                    outputFileStream.Write(r.Argument.Data.Bytes, r.Argument.Data.Offset, r.Argument.Data.Count);
+                }
+                r.Result.Offset = outputFileStream.Length;
+            }
 
             // 4. Reply and wait for more data chunks if done is false
             if (r.Argument.Done)
@@ -310,8 +337,15 @@ namespace Zeze.Raft
         {
             lock (this)
             {
-                var arg = new RequestVoteArgument();
+                VoteSuccess.Clear(); // 每次选举开始清除。
 
+                LeaderId = string.Empty;
+                LogSequence.SetVoteFor(string.Empty); // SendRequestVote 才开始真正选举。
+                LogSequence.TrySetTerm(LogSequence.Term + 1);
+                WaitMajorityVoteTimoutTask?.Cancel();
+                WaitMajorityVoteTimoutTask = null;
+
+                var arg = new RequestVoteArgument();
                 arg.Term = LogSequence.Term;
                 arg.CandidateId = Name;
                 var log = LogSequence.LastRaftLog();
@@ -329,7 +363,6 @@ namespace Zeze.Raft
                     });
 
                 // 定时，如果超时选举还未完成，再次发起选举。
-                WaitMajorityVoteTimoutTask?.Cancel();
                 WaitMajorityVoteTimoutTask = Scheduler.Instance.Schedule(
                     (ThisTask) =>
                     {
@@ -503,13 +536,6 @@ namespace Zeze.Raft
             if (null != StartRequestVoteDelayTask)
                 return;
 
-            VoteSuccess.Clear(); // 每次选举开始清除。
-
-            LeaderId = string.Empty;
-            LogSequence.SetVoteFor(string.Empty); // SendRequestVote 才开始真正选举。
-            LogSequence.TrySetTerm(LogSequence.Term + 1);
-            WaitMajorityVoteTimoutTask?.Cancel();
-            WaitMajorityVoteTimoutTask = null;
             StartRequestVoteDelayTask = Scheduler.Instance.Schedule(
                 SendRequestVote, Util.Random.Instance.Next(2000));
         }

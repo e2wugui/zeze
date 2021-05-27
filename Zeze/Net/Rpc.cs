@@ -241,7 +241,7 @@ namespace Zeze.Net
 
         public override string ToString()
         {
-            return $"{this.GetType().FullName} Argument={Argument} Result={Result}";
+            return $"{GetType().FullName}{Environment.NewLine}\tArgument={Argument}{Environment.NewLine}\tResult={Result}";
         }
     }
 }

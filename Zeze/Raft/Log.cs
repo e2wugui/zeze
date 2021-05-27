@@ -566,41 +566,43 @@ namespace Zeze.Raft
 
         private void InstallSnapshot(string path, Server.ConnectorEx connector)
         {
+            // 整个安装成功结束时设置。中间Break(return)不设置。
+            // 后面 finally 里面使用这个标志
+            bool InstallSuccess = false;
             try
             {
                 var snapshotFile = new FileStream(path, FileMode.Open);
                 long offset = 0;
-                var FirstLog = ReadLog(FirstIndex);
                 var buffer = new byte[32 * 1024];
-                while (true)
+                var FirstLog = ReadLog(FirstIndex);
+                var trunkArg = new InstallSnapshotArgument();
+                trunkArg.Term = Term;
+                trunkArg.LeaderId = Raft.LeaderId;
+                trunkArg.LastIncludedIndex = FirstLog.Index;
+                trunkArg.LastIncludedTerm = FirstLog.Term;
+
+                while (!trunkArg.Done && Raft.IsLeader)
                 {
                     int rc = snapshotFile.Read(buffer);
-                    var trunkArg = new InstallSnapshotArgument();
-                    lock (Raft)
-                    {
-                        trunkArg.Term = Term;
-                        trunkArg.LeaderId = Raft.LeaderId;
-                        trunkArg.LastIncludedIndex = FirstLog.Index;
-                        trunkArg.LastIncludedTerm = FirstLog.Term;
-                        trunkArg.Offset = offset;
-                        trunkArg.Data = new Binary(buffer, 0, rc);
-                        trunkArg.Done = rc < buffer.Length;
-                    }
+                    trunkArg.Offset = offset;
+                    trunkArg.Data = new Binary(buffer, 0, rc);
+                    trunkArg.Done = rc < buffer.Length;
                     offset += rc;
+
                     if (trunkArg.Done)
-                    {
                         trunkArg.LastIncludedLog = new Binary(FirstLog.Encode());
-                    }
+
                     while (true)
                     {
+                        connector.HandshakeDoneEvent.WaitOne();
                         var future = new TaskCompletionSource<int>();
                         var r = new InstallSnapshot() { Argument = trunkArg };
-                        r.Send(connector.Socket, (_) => { future.SetResult(0); return Procedure.Success; });
+                        if (!r.Send(connector.Socket, (_) => { future.SetResult(0); return Procedure.Success; }))
+                            continue;
                         future.Task.Wait();
                         if (r.IsTimeout)
-                        {
-                            continue; // timeout resend
-                        }
+                            continue;
+
                         lock (Raft)
                         {
                             if (this.TrySetTerm(r.Result.Term))
@@ -610,22 +612,45 @@ namespace Zeze.Raft
                                 return;
                             }
                         }
+
+                        switch (r.ResultCode)
+                        {
+                            case global::Zeze.Raft.InstallSnapshot.ResultCodeNewOffset:
+                                break;
+
+                            default:
+                                logger.Warn($"InstallSnapshot Break ResultCode={r.ResultCode}");
+                                return;
+                        }
+
+                        if (r.Result.Offset >= 0)
+                        {
+                            if (r.Result.Offset > snapshotFile.Length)
+                            {
+                                logger.Error($"InstallSnapshot.Result.Offset Too Big.{r.Result.Offset}/{snapshotFile.Length}");
+                                return; // 中断安装。
+                            }
+                            offset = r.Result.Offset;
+                            snapshotFile.Seek(offset, SeekOrigin.Begin);
+                        }
                         break;
                     }
-                    if (trunkArg.Done)
-                        break;
                 }
+                InstallSuccess = true;
             }
             finally
             {
                 lock (Raft)
                 {
                     connector.InstallSnapshotting = false;
-                    // 安装完成，重新初始化，使得以后的AppendEnties能继续工作。
-                    // = FirstIndex + 1，防止Index跳着分配，使用ReadLogStart。
-                    var next = ReadLogStart(FirstIndex + 1);
-                    connector.NextIndex = next == null ? FirstIndex + 1 : next.Index;
                     InstallSnapshotting.Remove(connector.Name);
+                    if (InstallSuccess)
+                    {
+                        // 安装完成，重新初始化，使得以后的AppendEnties能继续工作。
+                        // = FirstIndex + 1，防止Index跳着分配，使用ReadLogStart。
+                        var next = ReadLogStart(FirstIndex + 1);
+                        connector.NextIndex = next == null ? FirstIndex + 1 : next.Index;
+                    }
                 }
             }
         }

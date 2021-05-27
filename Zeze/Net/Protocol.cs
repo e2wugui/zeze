@@ -94,7 +94,10 @@ namespace Zeze.Net
                 {
 					// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
 					if (size > service.SocketOptions.InputBufferMaxProtocolSize)
-						throw new Exception("Decode InputBufferMaxProtocolSize" + service.SocketOptions.InputBufferMaxProtocolSize);
+                    {
+						var pName = service.FindProtocolFactoryHandle(type)?.Factory().GetType().FullName;
+						throw new Exception($"Decode InputBufferMaxProtocolSize '{service.Name}' p='{pName}' type={type} size={size}");
+					}
 
 					// not enough data. try next time.
 					bb.ReadIndex = readIndexSaved;
@@ -149,5 +152,10 @@ namespace Zeze.Net
 			bb.WriteInt(ResultCode);
 			Argument.Encode(bb);
 		}
+
+        public override string ToString()
+        {
+            return $"{GetType().FullName}{Environment.NewLine}\tArgument={Argument}";
+        }
     }
 }

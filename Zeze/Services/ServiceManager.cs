@@ -535,7 +535,7 @@ namespace Zeze.Services
                 StartNotifyDelayTask?.Cancel();
                 ServerSocket.Dispose();
                 ServerSocket = null;
-                Server.Close();
+                Server.Stop();
                 Server = null;
             }
         }
@@ -1208,7 +1208,7 @@ namespace Zeze.Services
                 {
                     if (null == Client)
                         return;
-                    Client.Close();
+                    Client.Stop();
                     Client = null;
                 }
             }

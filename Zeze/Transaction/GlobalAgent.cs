@@ -264,7 +264,7 @@ namespace Zeze.Transaction
                     agent.Close();
                 }
 
-                Client.Close();
+                Client.Stop();
                 Client = null;
             }
         }

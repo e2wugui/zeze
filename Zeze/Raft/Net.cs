@@ -655,15 +655,21 @@ namespace Zeze.Raft
     public sealed class InstallSnapshotResult : Bean
     {
         public long Term { get; set; }
+        // 非标准Raft协议参数：用来支持续传。
+        // >=0 : 让Leader从该位置继续传输数据。
+        // -1  : 让Leader按自己顺序传输数据。
+        public long Offset { get; set; } = -1;
 
         public override void Decode(ByteBuffer bb)
         {
             Term = bb.ReadLong();
+            Offset = bb.ReadLong();
         }
 
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteLong(Term);
+            bb.WriteLong(Offset);
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
@@ -673,7 +679,7 @@ namespace Zeze.Raft
 
         public override string ToString()
         {
-            return $"(Term={Term})";
+            return $"(Term={Term} Offset={Offset})";
         }
     }
 
@@ -683,6 +689,10 @@ namespace Zeze.Raft
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
+
+        public const int ResultCodeTermError = 1;
+        public const int ResultCodeOldInstall = 2;
+        public const int ResultCodeNewOffset = 3;
     }
 
     /// <summary>

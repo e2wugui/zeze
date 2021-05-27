@@ -80,7 +80,7 @@ namespace Zeze.Net
             Config?.Start(this);
         }
 
-        public virtual void Close()
+        public virtual void Stop()
         {
             Config?.Stop(this);
 

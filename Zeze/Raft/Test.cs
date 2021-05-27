@@ -12,36 +12,10 @@ namespace Zeze.Raft
 {
     public class Test
     {
-        public enum Mode { Trace, Net, Restart, Full, }
-        public Mode TestMode { get; set; } = Mode.Trace;
-        public int Count { get; set; } = 2000;
         public string RaftConfigFileName { get; set; } = "raft.xml";
-        public int RaftFailPercent { get; set; } = 10;
 
         public Test()
         { 
-        }
-
-        public Test(string[] args)
-        {
-            Console.WriteLine("-mode [Trace|Net|Restart|Full] -Count [2000]");
-            for (int i = 0; i < args.Length; ++i)
-            {
-                switch (args[i])
-                {
-                    case "-mode":
-                        TestMode = (Mode)Enum.Parse(typeof(Mode), args[++i]);
-                        break;
-
-                    case "-Count":
-                        Count = int.Parse(args[++i]);
-                        break;
-
-                    case "-RaftConfig":
-                        RaftConfigFileName = args[++i];
-                        break;
-                }
-            }
         }
 
         private ConcurrentDictionary<string, TestRaft> Rafts { get; }
@@ -80,22 +54,11 @@ namespace Zeze.Raft
                     Factory = () => new GetCount(),
                 });
             Agent.Client.Start();
-
-            switch (TestMode)
-            {
-                case Mode.Trace:
-                    RunTrace();
-                    break;
-
-                default:
-                    RunBatch();
-                    break;
-            }
-
-            Agent.Client.Close();
+            RunTrace();
+            Agent.Client.Stop();
             foreach (var raft in Rafts.Values)
             {
-                raft.Raft.Server.Close();
+                raft.Raft.Server.Stop();
             }
             logger.Debug("End.");
         }
@@ -109,21 +72,49 @@ namespace Zeze.Raft
             return r.ResultCode;
         }
 
-        public void RunTrace()
+        private int CurrentCount;
+        private void CheckCurrentCount(string stepName, int hope)
         {
-            Agent.SendForWait(new AddCount()).Task.Wait();
-            logger.Debug($"#### Count={GetCurrentCount()} ####");
-            Task[] tasks = new Task[1000];
+            var before = CurrentCount;
+            CurrentCount = GetCurrentCount();
+            var diff = CurrentCount - before;
+            if (diff != hope)
+            {
+                logger.Fatal($"############{stepName}############# Hope={hope} But={diff}");
+            }
+        }
+
+        private void ConcrrentAddCount(string stepName, int concurrent)
+        {
+            Task[] tasks = new Task[concurrent];
             for (int i = 0; i < tasks.Length; ++i)
             {
                 tasks[i] = Agent.SendForWait(new AddCount()).Task;
             }
             Task.WaitAll(tasks);
-            logger.Debug($"#### Count={GetCurrentCount()} ####");
+            CheckCurrentCount(stepName, concurrent);
         }
 
-        public void RunBatch()
-        { 
+        public void RunTrace()
+        {
+            Agent.SendForWait(new AddCount()).Task.Wait();
+            CheckCurrentCount("FirstAddCount", 1);
+
+            ConcrrentAddCount("SimpleConcurrent", 200);
+            for (int i = 0; i < 20; ++i)
+            {
+                RandomRaft().RestartNet();
+                ConcrrentAddCount($"RestartNetConcurrent_{i}", 200);
+            }
+            // RandomRaft().RestarRaft();
+            // InstallSnapshot;
+        }
+
+        private TestRaft RandomRaft()
+        {
+            var rands = Rafts.Values.ToArray();
+            var rand = Util.Random.Instance.Next(rands.Length);
+            return rands[rand];
         }
 
         public sealed class AddCount : Zeze.Net.Rpc<EmptyBean, EmptyBean>
@@ -206,11 +197,21 @@ namespace Zeze.Raft
 
         public class TestRaft
         {
-            public Raft Raft { get; }
-            public TestStateMachine StateMachine { get; }
+            public Raft Raft { get; private set; }
+            public TestStateMachine StateMachine { get; private set; }
+            public string RaftConfigFileName { get; }
+            public string RaftName { get; }
 
-            public TestRaft(string RaftName, string RaftConfigFileName)
+            public void RestartNet()
             {
+                Raft.Server.Stop();
+                Raft.Server.Start();
+            }
+
+            public void RestartRaft()
+            {
+                Raft?.Server.Stop();
+
                 StateMachine = new TestStateMachine();
 
                 var raftConfig = RaftConfig.Load(RaftConfigFileName);
@@ -238,6 +239,13 @@ namespace Zeze.Raft
                         Factory = () => new GetCount(),
                         Handle = ProcessGetCount,
                     });
+            }
+
+            public TestRaft(string raftName, string raftConfigFileName)
+            {
+                RaftName = raftName;
+                RaftConfigFileName = raftConfigFileName;
+                RestartRaft();
             }
 
             private int ProcessAddCount(Zeze.Net.Protocol p)

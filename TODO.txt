@@ -30,3 +30,6 @@ ConfigEditor
 	enum 现在不支持引用在其他文档定义的，有需要了再来加。
 
 senderIsShare 优化。
+InstallSnapshot （断点续传）
+	发送检测Leader，忽略网络错误，持续发送。
+	结果增加重新定位Offset的能力。

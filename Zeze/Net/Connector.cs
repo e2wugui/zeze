@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 
@@ -23,7 +24,8 @@ namespace Zeze.Net
         public int MaxReconnectDelay { get; set; }
         public bool IsConnected { get; private set; } = false;
         private int ConnectDelay;
-        public bool IsHandshakeDone => Socket != null && Socket.IsHandshakeDone;
+        public bool IsHandshakeDone => HandshakeDoneEvent.WaitOne(0);
+        public ManualResetEvent HandshakeDoneEvent { get; } = new ManualResetEvent(false);
         public string Name => $"{HostNameOrAddress}:{Port}";
 
         public AsyncSocket Socket { get; private set; }
@@ -65,13 +67,14 @@ namespace Zeze.Net
                 return;
 
             Socket = null;
+            HandshakeDoneEvent.Reset();
 
             if (false == IsAutoReconnect)
                 return;
 
             if (ConnectDelay == 0)
             {
-                ConnectDelay = 2000;
+                ConnectDelay = 1000;
             }
             else
             {
@@ -91,18 +94,21 @@ namespace Zeze.Net
 
         public virtual void OnSocketHandshakeDone(AsyncSocket so)
         {
+            HandshakeDoneEvent.Set();
         }
 
         public virtual void Start(Service service)
         {
             Socket?.Dispose();
             IsConnected = false;
+            HandshakeDoneEvent.Reset();
             Socket = service.NewClientSocket(HostNameOrAddress, Port);
             Socket.Connector = this;
         }
 
         public virtual void Stop(Service service)
         {
+            HandshakeDoneEvent.Reset();
             Socket?.Dispose();
             Socket = null;
         }

@@ -138,7 +138,7 @@ namespace Zeze.Services
                     return;
                 ServerSocket.Dispose();
                 ServerSocket = null;
-                Server.Close();
+                Server.Stop();
                 Server = null;
             }
         }
