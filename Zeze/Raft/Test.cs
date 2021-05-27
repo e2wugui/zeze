@@ -218,7 +218,7 @@ namespace Zeze.Raft
                 raftConfig.AppendEntriesTimeout = 1000;
                 raftConfig.LeaderHeartbeatTimer = 2000;
                 raftConfig.LeaderLostTimeout = 4000;
-                raftConfig.DbHome = Path.Combine(".", ((uint)RaftName.GetHashCode()).ToString());
+                raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
                 if (Directory.Exists(raftConfig.DbHome))
                     Directory.Delete(raftConfig.DbHome, true);
                 Directory.CreateDirectory(raftConfig.DbHome);

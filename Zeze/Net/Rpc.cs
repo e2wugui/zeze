@@ -76,7 +76,7 @@ namespace Zeze.Net
             Func<Protocol, int> responseHandle,
             int millisecondsTimeout = 5000)
         {
-            if (so == null)
+            if (so == null || so.Service == null)
                 return false;
 
             this.IsRequest = true;
