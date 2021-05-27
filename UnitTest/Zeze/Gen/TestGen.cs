@@ -9,6 +9,8 @@ namespace UnitTest.Zeze.Gen
     [TestClass]
     public class TestGen
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         [TestMethod]
         public void TestMain()
         {
@@ -21,6 +23,19 @@ namespace UnitTest.Zeze.Gen
             System.IO.File.Copy(path, pathcur);
             */
             //Program.Main(new string[]{ "solution.xml" });
+            try
+            {
+                throw1();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "msg");
+            }
+        }
+
+        private void throw1()
+        {
+            throw new Exception("exp");
         }
     }
 }
