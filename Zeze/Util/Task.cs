@@ -53,17 +53,9 @@ namespace Zeze.Util
             {
                 int result = func();
                 LogAndStatistics(result, p);
-                if (result != 0)
-                    p.SendResultCode(result);
-            }
-            catch (TaskCanceledException cancelex)
-            {
-                p.SendResultCode(Transaction.Procedure.CancelExcption);
-                logger.Error(cancelex, "Task {0} TaskCanceledException UserState={1}", p.GetType().FullName, p.UserState);
             }
             catch (Exception ex)
             {
-                p.SendResultCode(Transaction.Procedure.Excption);
                 logger.Error(ex, "Task {0} Exception UserState={1}", p.GetType().FullName, p.UserState);
             }
         }
