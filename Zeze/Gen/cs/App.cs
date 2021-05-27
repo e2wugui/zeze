@@ -139,7 +139,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            {");
             foreach (Service m in project.Services.Values)
             {
-                sw.WriteLine("                " + m.Name + ".Close();");
+                sw.WriteLine("                " + m.Name + ".Stop();");
             }
             sw.WriteLine("            }");
             sw.WriteLine("        }");
