@@ -66,6 +66,9 @@ namespace Zeze.Net
         {
         }
 
+		// always true for Protocol, Rpc Will override
+		public virtual bool IsRequest => true;
+
 		/// <summary>
 		/// Id + size + protocol.bytes
 		/// </summary>

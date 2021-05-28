@@ -172,11 +172,15 @@ namespace Zeze.Transaction
                     foreach (var db in databases)
                     {
                         TaskCompletionSource<bool> future = new TaskCompletionSource<bool>();
-                        flushThreads.QueueUserWorkItem(() =>
-                        {
-                            db.Flush(this);
-                            future.SetResult(true);
-                        });
+                        flushThreads.QueueUserWorkItem(
+                            () =>
+                            Util.Task.Call(() =>
+                            {
+                                db.Flush(this);
+                                future.SetResult(true);
+                            },
+                            "Zeze.Checkpoint.Flush"
+                            ));
                         flushTasks[i++] = future.Task;
                     }
                     Task.WaitAll(flushTasks);

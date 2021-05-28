@@ -111,11 +111,7 @@ namespace Zeze.Raft
             {
                 // 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
                 Raft.ImportantThreadPool.QueueUserWorkItem(
-                    () =>
-                    {
-                        var result = responseHandle(p);
-                        Util.Task.LogAndStatistics(result, p);
-                    });
+                    () => Util.Task.Call(() => responseHandle(p), p));
                 return;
             }
 
@@ -128,11 +124,7 @@ namespace Zeze.Raft
             {
                 // 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
                 Raft.ImportantThreadPool.QueueUserWorkItem(
-                    () =>
-                    {
-                        var result = factoryHandle.Handle(p);
-                        Util.Task.LogAndStatistics(result, p);
-                    });
+                    () => Util.Task.Call(() => factoryHandle.Handle(p), p));
                 return;
             }
             // User Request

@@ -347,7 +347,8 @@ namespace Zeze.Transaction
             // Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
             if (null != factoryHandle.Handle)
             {
-                agent.Zeze.InternalThreadPool.QueueUserWorkItem(() => factoryHandle.Handle(p));
+                agent.Zeze.InternalThreadPool.QueueUserWorkItem(
+                    () => Util.Task.Call(() => factoryHandle.Handle(p), p));
             }
         }
 

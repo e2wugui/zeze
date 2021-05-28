@@ -28,6 +28,9 @@ namespace Zeze.Util
         public static void LogAndStatistics(int result, Net.Protocol p)
         {
             var actionName = p.GetType().FullName;
+            if (p.IsRequest == false)
+                actionName = actionName + ":Response";
+
             if (result != 0)
             {
                 var logLevel = (null != p.Service.Zeze)
