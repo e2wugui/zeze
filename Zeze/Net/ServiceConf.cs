@@ -189,7 +189,11 @@ namespace Zeze.Net
             attr = self.GetAttribute("DhGroup");
             if (attr.Length > 0) HandshakeOptions.DhGroup = byte.Parse(attr);
 
-            if (!conf.ServiceConfMap.TryAdd(Name, this))
+            if (string.IsNullOrEmpty(Name))
+            {
+                conf.DefaultServiceConf = this;
+            }
+            else if (!conf.ServiceConfMap.TryAdd(Name, this))
             {
                 throw new Exception($"Duplicate ServiceConf '{Name}'");
             }

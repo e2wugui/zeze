@@ -26,33 +26,35 @@ namespace Zeze.Net
 
         protected readonly ConcurrentDictionary<long, AsyncSocket> _asocketMap = new ConcurrentDictionary<long, AsyncSocket>();
 
+        private void InitConfig(Config config)
+        {
+            Config = config?.GetServiceConf(Name);
+            if (null == Config)
+            {
+                // setup program default
+                Config = new ServiceConf();
+                if (null != config)
+                {
+                    // reference to config default
+                    Config.SocketOptions = config.DefaultServiceConf.SocketOptions;
+                    Config.HandshakeOptions = config.DefaultServiceConf.HandshakeOptions;
+                }
+            }
+            Config.SetService(this);
+            SocketOptions = Config.SocketOptions;
+        }
+
         public Service(string name, Config config)
         {
             Name = name;
-            Config = config.GetServiceConf(name);
-            if (null == Config)
-                Config = new ServiceConf();
-            Config.SetService(this);
-            SocketOptions = Config.SocketOptions;
+            InitConfig(config);
         }
 
         public Service(string name, Application app)
         {
             Name = name;
             Zeze = app;
-
-            if (null != app)
-            {
-                Config = app.Config.GetServiceConf(name);
-                if (null == Config)
-                    Config = new ServiceConf();
-                Config.SetService(this);
-                SocketOptions = Config.SocketOptions;
-            }
-            else
-            {
-                Config = new ServiceConf();
-            }
+            InitConfig(app?.Config);
         }
 
         public Service(string name)

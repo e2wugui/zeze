@@ -109,6 +109,7 @@ namespace Zeze
 
         public ConcurrentDictionary<string, ServiceConf> ServiceConfMap { get; }
             = new ConcurrentDictionary<string, ServiceConf>();
+        public ServiceConf DefaultServiceConf { get; internal set; } = new ServiceConf();
 
         public ServiceConf GetServiceConf(string name)
         {
