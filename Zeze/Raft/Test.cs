@@ -73,25 +73,41 @@ namespace Zeze.Raft
         }
 
         private int CurrentCount;
-        private void CheckCurrentCount(string stepName, int hope)
+        private int AddErrorCount;
+        private int AddTimeoutCount;
+
+        private void CheckCurrentCount(string stepName, int expect)
         {
             var before = CurrentCount;
             CurrentCount = GetCurrentCount();
             var diff = CurrentCount - before;
-            if (diff != hope)
+            if (diff != expect)
             {
-                logger.Fatal($"############{stepName}############# Hope={hope} But={diff}");
+                logger.Fatal($"#### {stepName} Expect={expect} Now={diff},Error={AddErrorCount},Timeout={AddTimeoutCount}");
             }
         }
 
-        private void ConcrrentAddCount(string stepName, int concurrent)
+        private void ConcurrentAddCount(string stepName, int concurrent)
         {
+            AddTimeoutCount = 0;
+            AddErrorCount = 0;
+            var requests = new List<AddCount>();
+            for (int i = 0; i < concurrent; ++i)
+                requests.Add(new AddCount());
+
             Task[] tasks = new Task[concurrent];
-            for (int i = 0; i < tasks.Length; ++i)
+            for (int i = 0; i < requests.Count; ++i)
             {
-                tasks[i] = Agent.SendForWait(new AddCount()).Task;
+                tasks[i] = Agent.SendForWait(requests[i]).Task;
             }
             Task.WaitAll(tasks);
+            foreach (var request in requests)
+            {
+                if (request.IsTimeout)
+                    AddTimeoutCount++;
+                else if (request.ResultCode != 0)
+                    AddErrorCount++;
+            }
             CheckCurrentCount(stepName, concurrent);
         }
 
@@ -100,11 +116,11 @@ namespace Zeze.Raft
             Agent.SendForWait(new AddCount()).Task.Wait();
             CheckCurrentCount("FirstAddCount", 1);
 
-            ConcrrentAddCount("SimpleConcurrent", 200);
+            ConcurrentAddCount("SimpleConcurrent", 200);
             for (int i = 0; i < 20; ++i)
             {
                 RandomRaft().RestartNet();
-                ConcrrentAddCount($"RestartNetConcurrent_{i}", 200);
+                ConcurrentAddCount($"RestartNetConcurrent_{i}", 1);
             }
             // RandomRaft().RestarRaft();
             // InstallSnapshot;
@@ -254,7 +270,7 @@ namespace Zeze.Raft
                 lock (StateMachine)
                 {
                     StateMachine.AddCountAndWait();
-                    r.SendResultCode(StateMachine.Count);
+                    r.SendResultCode(0);
                 }
                 return Procedure.Success;
             }

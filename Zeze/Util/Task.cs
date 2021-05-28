@@ -50,22 +50,39 @@ namespace Zeze.Util
 #endif
         }
 
-        public static void Call(Func<int> func, Net.Protocol p)
+        public static void Call(Func<int> func, Net.Protocol p, bool sendResultCodeWhenError = false)
         {
             try
             {
                 int result = func();
+                if (sendResultCodeWhenError
+                    && result != 0
+                    && p.IsRequest)
+                {
+                    p.SendResultCode(result);
+                }
                 LogAndStatistics(result, p);
+            }
+            catch (TaskCanceledException cex)
+            {
+                if (p.IsRequest)
+                    p.SendResultCode(Transaction.Procedure.CancelExcption);
+                logger.Error(cex, "Task {0} TaskCanceledException UserState={1}",
+                    p.GetType().FullName, p.UserState);
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Task {0} Exception UserState={1}", p.GetType().FullName, p.UserState);
+                if (p.IsRequest)
+                    p.SendResultCode(Transaction.Procedure.Excption);
+                logger.Error(ex, "Task {0} Exception UserState={1}",
+                    p.GetType().FullName, p.UserState);
             }
         }
 
-        public static System.Threading.Tasks.Task Run(Func<int> func, Zeze.Net.Protocol p)
+        public static System.Threading.Tasks.Task Run(Func<int> func, Zeze.Net.Protocol p
+            , bool sendResultCodeWhenError = false)
         {
-            return System.Threading.Tasks.Task.Run(() => Call(func, p));
+            return System.Threading.Tasks.Task.Run(() => Call(func, p, sendResultCodeWhenError));
         }
 
         public static void Call(Zeze.Transaction.Procedure procdure, Net.Protocol from = null)
@@ -75,7 +92,7 @@ namespace Zeze.Util
                 // 日志在Call里面记录。因为要支持嵌套。
                 // 统计在Call里面实现。
                 int result = procdure.Call();
-                if (result != 0 && null != from)
+                if (result != 0 && null != from && from.IsRequest)
                     from.SendResultCode(result);
             }
             catch (Exception ex)

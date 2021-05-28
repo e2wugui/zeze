@@ -198,7 +198,7 @@ namespace Zeze.Transaction
                 if (null != Client)
                     return;
 
-                Client = new GlobalClient(this, Zeze);
+                Client = new GlobalClient(this, Zeze.Config);
                 Client.AddFactoryHandle(new GlobalCacheManager.Reduce().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new GlobalCacheManager.Reduce(),
@@ -274,7 +274,7 @@ namespace Zeze.Transaction
     {
         GlobalAgent agent;
 
-        public GlobalClient(GlobalAgent agent, Application app) : base("GlobalClient", app)
+        public GlobalClient(GlobalAgent agent, Config conf) : base("GlobalClient", conf)
         {
             this.agent = agent;
         }

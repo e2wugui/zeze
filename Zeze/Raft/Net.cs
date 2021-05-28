@@ -131,7 +131,8 @@ namespace Zeze.Raft
 
             if (Raft.IsLeader)
             {
-                Raft.RunWhenLeaderReady(() => base.DispatchProtocol(p, factoryHandle));                ;
+                Raft.RunWhenLeaderReady(
+                    () => Util.Task.Run(() => factoryHandle.Handle(p), p, true));
                 return;
             }
 

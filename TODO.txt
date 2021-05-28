@@ -29,4 +29,6 @@ ConfigEditor
 	增加一个工作线程，所有数据操作都放到这里面，和UI线程交互。看情况再决定做不做。
 	enum 现在不支持引用在其他文档定义的，有需要了再来加。
 
-senderIsShare 优化。
+GlobalCacheManagerWithRaft
+	优化。改成一次AppendLog。
+	关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。

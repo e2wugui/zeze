@@ -119,9 +119,9 @@ namespace Zeze.Net
             if (null != service.SocketOptions.NoDelay)
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
-            System.Net.Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
-
             this.SessionId = SessionIdGen.IncrementAndGet();
+
+            System.Net.Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
         }
 
         public void SetOutputSecurityCodec(byte[] key, bool compress)
@@ -132,7 +132,7 @@ namespace Zeze.Net
                 if (null != key)
                     chain = new Encrypt(chain, key);
                 if (compress)
-                    chain = new Compress(chain); 
+                    chain = new Compress(chain);
                 outputCodecChain?.Dispose();
                 outputCodecChain = chain;
             }
@@ -493,7 +493,7 @@ namespace Zeze.Net
                 {
                     Connector?.OnSocketClose(this);
                     Service.OnSocketClose(this, this.LastException);
-                    Socket.Dispose();
+                    Socket?.Dispose();
                     Socket = null;
                 }
                 catch (Exception)
