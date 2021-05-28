@@ -298,11 +298,11 @@
 	</module>
 
 	<project name="linkd" gendir="." platform="cs">
-		<service name="LinkdService" handle="server" base="Zeze.Services.HandshakeClient">
+		<service name="LinkdService" handle="server" base="Zeze.Services.HandshakeServer">
 			<module ref="Linkd"/>
 		</service>
 
-		<service name="ProviderService" handle="client">
+		<service name="ProviderService" handle="client"  base="Zeze.Services.HandshakeServer">
 			<module ref="Provider"/>
 		</service>
 	</project>

@@ -120,6 +120,10 @@ namespace Zeze.Raft
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
+            // 防止Client不进入加密，直接发送用户协议。
+            if (false == IsHandshakeProtocol(p.TypeId))
+                p.Sender.VerifySecurity();
+
             if (IsImportantProtocol(p.TypeId))
             {
                 // 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。

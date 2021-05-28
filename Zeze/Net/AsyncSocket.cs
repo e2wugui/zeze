@@ -135,7 +135,18 @@ namespace Zeze.Net
                     chain = new Compress(chain);
                 outputCodecChain?.Dispose();
                 outputCodecChain = chain;
+                IsOutputSecurity = true;
             }
+        }
+
+        public bool IsInputSecurity { get; private set; }
+        public bool IsOutputSecurity { get; private set; }
+        public bool IsSecurity => IsInputSecurity && IsOutputSecurity;
+
+        public void VerifySecurity()
+        {
+            if (!IsSecurity)
+                throw new Exception($"{Service.Name} !IsSecurity");
         }
 
         public void SetInputSecurityCodec(byte[] key, bool compress)
@@ -149,6 +160,7 @@ namespace Zeze.Net
                     chain = new Decrypt(chain, key);
                 inputCodecChain?.Dispose();
                 inputCodecChain = chain;
+                IsInputSecurity = true;
             }
         }
 

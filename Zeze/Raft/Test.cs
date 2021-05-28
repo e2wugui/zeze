@@ -117,6 +117,7 @@ namespace Zeze.Raft
             CheckCurrentCount("FirstAddCount", 1);
 
             ConcurrentAddCount("SimpleConcurrent", 200);
+            // 改成真正并发：测试rpc可靠性（重发，重定向）。
             for (int i = 0; i < 20; ++i)
             {
                 RandomRaft().RestartNet();

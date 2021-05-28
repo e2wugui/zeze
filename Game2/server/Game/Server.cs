@@ -44,7 +44,7 @@ namespace Game
                 {
                     if (Config.TryGetOrAddConnector(link.PassiveIp, link.PassivePort, true, out var c))
                     {
-                        c.Start(this);
+                        c.Start();
                     }
                     return c;
                 }).Name);
@@ -57,7 +57,7 @@ namespace Game
                 if (Links.TryRemove(linkName, out var removed))
                 {
                     Config.RemoveConnector(removed);
-                    removed.Stop(this);
+                    removed.Stop();
                 }
             }
         }
@@ -109,6 +109,10 @@ namespace Game
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
+            // 防止Client不进入加密，直接发送用户协议。
+            if (false == IsHandshakeProtocol(p.TypeId))
+                p.Sender.VerifySecurity();
+
             if (p.TypeId == gnet.Provider.ModuleRedirect.TypeId_)
             {
                 if (null != factoryHandle.Handle)

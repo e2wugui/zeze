@@ -213,6 +213,15 @@ namespace Zeze.Services
             // 重载这个方法，推迟OnHandshakeDone调用
             _asocketMap.TryAdd(so.SessionId, so);
         }
+
+        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        {
+            // 防止Client不进入加密，直接发送用户协议。
+            if (false == IsHandshakeProtocol(p.TypeId))
+                p.Sender.VerifySecurity();
+
+            base.DispatchProtocol(p, factoryHandle);
+        }
     }
 
     public class HandshakeClient : HandshakeBase
@@ -238,6 +247,15 @@ namespace Zeze.Services
             // 重载这个方法，推迟OnHandshakeDone调用
             _asocketMap.TryAdd(so.SessionId, so);
             StartHandshake(so);
+        }
+
+        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        {
+            // 防止Client不进入加密，直接发送用户协议。
+            if (false == IsHandshakeProtocol(p.TypeId))
+                p.Sender.VerifySecurity();
+
+            base.DispatchProtocol(p, factoryHandle);
         }
     }
 
@@ -266,6 +284,15 @@ namespace Zeze.Services
             // 重载这个方法，推迟OnHandshakeDone调用
             _asocketMap.TryAdd(so.SessionId, so);
             StartHandshake(so);
+        }
+
+        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        {
+            // 防止Client不进入加密，直接发送用户协议。
+            if (false == IsHandshakeProtocol(p.TypeId))
+                p.Sender.VerifySecurity();
+
+            base.DispatchProtocol(p, factoryHandle);
         }
     }
 }
