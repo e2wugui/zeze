@@ -27,6 +27,8 @@ namespace Zeze.Net
                 if (Service != null)
                     throw new Exception($"ServiceConf of '{Name}' Service != null");
                 Service = service;
+                ForEachAcceptor((a) => a.SetService(service));
+                ForEachConnector((c) => c.SetService(service));
             }
         }
 
