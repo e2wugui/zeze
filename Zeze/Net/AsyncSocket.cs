@@ -303,7 +303,7 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-                this.Service?.OnSocketConnectError(this, e);
+                this.Service.OnSocketConnectError(this, e);
                 Close(null);
             }
         }
@@ -313,15 +313,15 @@ namespace Zeze.Net
             try
             {
                 this.Socket.EndConnect(ar);
-                this.Service.OnSocketConnected(this);
                 this.Connector?.OnSocketConnected(this);
+                this.Service.OnSocketConnected(this);
 
                 this._inputBuffer = new byte[Service.SocketOptions.InputBufferSize];
                 BeginReceiveAsync();
             }
             catch (Exception e)
             {
-                this.Service?.OnSocketConnectError(this, e);
+                this.Service.OnSocketConnectError(this, e);
                 Close(null);
             }
         }
@@ -492,8 +492,8 @@ namespace Zeze.Net
                 try
                 {
                     Connector?.OnSocketClose(this);
-                    Service?.OnSocketClose(this, this.LastException);
-                    Socket?.Dispose();
+                    Service.OnSocketClose(this, this.LastException);
+                    Socket.Dispose();
                     Socket = null;
                 }
                 catch (Exception)
@@ -506,8 +506,7 @@ namespace Zeze.Net
             {
                 try
                 {
-                    Service?.OnSocketDisposed(this);
-                    Service = null;
+                    Service.OnSocketDisposed(this);
                 }
                 catch (Exception)
                 {

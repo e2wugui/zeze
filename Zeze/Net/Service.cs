@@ -30,6 +30,9 @@ namespace Zeze.Net
         {
             Name = name;
             Config = config.GetServiceConf(name);
+            if (null == Config)
+                Config = new ServiceConf();
+            Config.SetService(this);
             SocketOptions = Config.SocketOptions;
         }
 
@@ -41,6 +44,9 @@ namespace Zeze.Net
             if (null != app)
             {
                 Config = app.Config.GetServiceConf(name);
+                if (null == Config)
+                    Config = new ServiceConf();
+                Config.SetService(this);
                 SocketOptions = Config.SocketOptions;
             }
             else
@@ -77,12 +83,12 @@ namespace Zeze.Net
 
         public virtual void Start()
         {
-            Config?.Start(this);
+            Config?.Start();
         }
 
         public virtual void Stop()
         {
-            Config?.Stop(this);
+            Config?.Stop();
 
             foreach (var e in _asocketMap)
             {

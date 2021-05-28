@@ -9,6 +9,7 @@ namespace Zeze.Net
 {
     public class Acceptor
     {
+        public Service Service { get; private set; }
         public int Port { get; } = 0;
         public string Ip { get; } = string.Empty;
         public AsyncSocket Socket { get; private set; }
@@ -28,19 +29,37 @@ namespace Zeze.Net
             Ip = self.GetAttribute("Ip");
         }
 
-        public void Start(Service service)
+        internal void SetService(Service service)
         {
-            Socket?.Dispose();
-            Socket = Ip.Length > 0
-                ? service.NewServerSocket(Ip, Port)
-                : service.NewServerSocket(System.Net.IPAddress.Any, Port);
-            Socket.Acceptor = this;
+            lock (this)
+            {
+                if (Service != null)
+                    throw new Exception($"Acceptor of '{Name}' Service != null");
+                Service = service;
+            }
         }
 
-        public void Stop(Service service)
+        public void Start()
         {
-            Socket?.Dispose();
-            Socket = null;
+            lock (this)
+            {
+                if (null != Socket)
+                    return;
+
+                Socket = Ip.Length > 0
+                    ? Service.NewServerSocket(Ip, Port)
+                    : Service.NewServerSocket(System.Net.IPAddress.Any, Port);
+                Socket.Acceptor = this;
+            }
+        }
+
+        public void Stop()
+        {
+            lock (this)
+            {
+                Socket?.Dispose();
+                Socket = null;
+            }
         }
     }
 }

@@ -110,13 +110,11 @@ namespace Zeze
         public ConcurrentDictionary<string, ServiceConf> ServiceConfMap { get; }
             = new ConcurrentDictionary<string, ServiceConf>();
 
-        public ServiceConf DefaultServiceConf { get; set; } = new ServiceConf();
-
         public ServiceConf GetServiceConf(string name)
         {
             if (ServiceConfMap.TryGetValue(name, out var serviceConf))
                 return serviceConf;
-            return DefaultServiceConf;
+            return null;
         }
 
         /// <summary>

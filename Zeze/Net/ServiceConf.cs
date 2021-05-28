@@ -10,6 +10,7 @@ namespace Zeze.Net
 {
     public sealed class ServiceConf
     {
+        public Service Service { get; private set; }
         public string Name { get; }
         public Net.SocketOptions SocketOptions { get; set; } = new Net.SocketOptions();
         public Services.HandshakeOptions HandshakeOptions { get; set; } = new Services.HandshakeOptions();
@@ -19,10 +20,21 @@ namespace Zeze.Net
         private ConcurrentDictionary<string, Connector> Connectors { get; }
             = new ConcurrentDictionary<string, Connector>();
 
+        internal void SetService(Service service)
+        {
+            lock (this)
+            {
+                if (Service != null)
+                    throw new Exception($"ServiceConf of '{Name}' Service != null");
+                Service = service;
+            }
+        }
+
         public void AddConnector(Connector connector)
         {
             if (!Connectors.TryAdd(connector.Name, connector))
                 throw new Exception($"Duplicate Connector={connector.Name}");
+            connector.SetService(Service);
         }
 
         public Connector FindConnector(string name)
@@ -50,13 +62,15 @@ namespace Zeze.Net
         public bool TryGetOrAddConnector(string host, int port, bool autoReconnect, out Connector getOrAdd)
         {
             var name = $"{host}:{port}";
-            var addNew = false;
+            Connector addNew = null;
             getOrAdd = Connectors.GetOrAdd(name, (_) =>
             {
-                addNew = true;
-                return new Connector(host, port, autoReconnect);
+                addNew = new Connector(host, port, autoReconnect);
+                return addNew;
             });
-            return addNew;
+            addNew?.SetService(Service);
+
+            return addNew != null;
         }
 
         public void RemoveConnector(Connector c)
@@ -91,6 +105,7 @@ namespace Zeze.Net
         {
             if (!Acceptors.TryAdd(a.Name, a))
                 throw new Exception($"Duplicate Acceptor={a.Name}");
+            a.SetService(Service);
         }
 
         public void RemoveAcceptor(Acceptor a)
@@ -172,16 +187,9 @@ namespace Zeze.Net
             attr = self.GetAttribute("DhGroup");
             if (attr.Length > 0) HandshakeOptions.DhGroup = byte.Parse(attr);
 
-            if (Name.Length > 0)
+            if (!conf.ServiceConfMap.TryAdd(Name, this))
             {
-                if (!conf.ServiceConfMap.TryAdd(Name, this))
-                {
-                    throw new Exception($"Duplicate ServiceConf '{Name}'");
-                }
-            }
-            else
-            {
-                conf.DefaultServiceConf = this;
+                throw new Exception($"Duplicate ServiceConf '{Name}'");
             }
 
             // connection creator options
@@ -201,21 +209,21 @@ namespace Zeze.Net
             }
         }
 
-        public void Start(Service service)
+        public void Start()
         {
-            ForEachAcceptor((a) => a.Start(service));
-            ForEachConnector((c) => c.Start(service));
+            ForEachAcceptor((a) => a.Start());
+            ForEachConnector((c) => c.Start());
         }
 
-        public void Stop(Service service)
+        public void Stop()
         {
-            ForEachAcceptor((a) => a.Stop(service));
-            ForEachConnector((c) => c.Stop(service));
+            ForEachAcceptor((a) => a.Stop());
+            ForEachConnector((c) => c.Stop());
         }
 
-        public void StopListen(Service service)
+        public void StopListen()
         {
-            ForEachAcceptor((a) => a.Stop(service));
+            ForEachAcceptor((a) => a.Stop());
         }
     }
 }

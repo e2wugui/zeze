@@ -928,12 +928,12 @@ namespace Zeze.Serialize
         public static void VerifyArrayIndex(byte[] bytes, int offset, int length)
         {
             if (offset < 0 || offset > bytes.Length)
-                throw new Exception();
+                throw new Exception($"{bytes.Length},{offset},{length}");
             int endindex = offset + length;
             if (endindex < 0 || endindex > bytes.Length)
-                throw new Exception();
+                throw new Exception($"{bytes.Length},{offset},{length}");
             if (offset > endindex)
-                throw new Exception();
+                throw new Exception($"{bytes.Length},{offset},{length}");
         }
 
         public static ByteBuffer Encode(Serializable sa)

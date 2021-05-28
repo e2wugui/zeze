@@ -70,14 +70,32 @@ namespace Zeze.Services
 
         protected void AddHandshakeServerFactoryHandle()
         {
-            var tmp = new Handshake.CHandshake();
-            HandshakeProtocols.Add(tmp.TypeId);
-            AddFactoryHandle(tmp.TypeId, new Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Handshake.CHandshake(),
-                Handle = ProcessCHandshake,
-                NoProcedure = true,
-            });
+                var tmp = new Handshake.CHandshake();
+                HandshakeProtocols.Add(tmp.TypeId);
+                AddFactoryHandle(tmp.TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new Handshake.CHandshake(),
+                    Handle = ProcessCHandshake,
+                    NoProcedure = true,
+                });
+            }
+            {
+                var tmp = new Handshake.CHandshakeDone();
+                HandshakeProtocols.Add(tmp.TypeId);
+                AddFactoryHandle(tmp.TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new Handshake.CHandshakeDone(),
+                    Handle = ProcessCHandshakeDone,
+                    NoProcedure = true,
+                });
+            }
+        }
+
+        private int ProcessCHandshakeDone(Protocol p)
+        {
+            OnHandshakeDone(p.Sender);
+            return 0;
         }
 
         private int ProcessCHandshake(Protocol _p)
@@ -114,7 +132,11 @@ namespace Zeze.Services
             hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
             p.Sender.SetOutputSecurityCodec(hmacMd5, Config.HandshakeOptions.S2cNeedCompress);
 
-            OnHandshakeDone(p.Sender);
+            // 为了防止服务器在Handshake以后马上发送数据，
+            // 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
+            // 这个本质上是协议相关的问题：就是前面一个协议的处理结果影响后面数据处理。
+            // 所以增加CHandshakeDone协议，在Client进入加密以后发送给Server。
+            // OnHandshakeDone(p.Sender);
 
             return 0;
         }
@@ -155,6 +177,7 @@ namespace Zeze.Services
                 p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
 
                 DHContext.TryRemove(p.Sender.SessionId, out var _);
+                new Handshake.CHandshakeDone().Send(p.Sender);
                 OnHandshakeDone(p.Sender);
                 return 0;
             }
@@ -207,7 +230,7 @@ namespace Zeze.Services
         public void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
         {
             Config.TryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, out var c);
-            c.Start(this);
+            c.Start();
         }
 
         public override void OnSocketConnected(AsyncSocket so)
@@ -316,7 +339,7 @@ namespace Zeze.Services.Handshake
         }
     }
 
-    public class CHandshakeArgument : Zeze.Transaction.Bean
+    public sealed class CHandshakeArgument : Zeze.Transaction.Bean
     {
         public byte dh_group;
         public byte[] dh_data;
@@ -338,7 +361,7 @@ namespace Zeze.Services.Handshake
         }
     }
 
-    public class SHandshakeArgument : Zeze.Transaction.Bean
+    public sealed class SHandshakeArgument : Zeze.Transaction.Bean
     {
         public byte[] dh_data;
         public bool s2cneedcompress;
@@ -363,7 +386,7 @@ namespace Zeze.Services.Handshake
         }
     }
 
-    public class CHandshake : Protocol<CHandshakeArgument>
+    public sealed class CHandshake : Protocol<CHandshakeArgument>
     {
         public readonly static int ProtocolId_ = Bean.Hash16(typeof(CHandshake).FullName);
 
@@ -382,7 +405,7 @@ namespace Zeze.Services.Handshake
         }
     }
 
-    public class SHandshake : Zeze.Net.Protocol<SHandshakeArgument>
+    public sealed class SHandshake : Zeze.Net.Protocol<SHandshakeArgument>
     {
         public readonly static int ProtocolId_ = Bean.Hash16(typeof(SHandshake).FullName);
 
@@ -399,5 +422,13 @@ namespace Zeze.Services.Handshake
             Argument.s2cneedcompress = s2cneedcompress;
             Argument.c2sneedcompress = c2sneedcompress;
         }
+    }
+
+    public sealed class CHandshakeDone : Protocol<EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash16(typeof(CHandshakeDone).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
     }
 }

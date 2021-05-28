@@ -352,7 +352,7 @@ namespace Zeze.Raft
                 if (Client.Config.TryGetOrAddConnector(
                     address[0], int.Parse(address[1]), true, out node))
                 {
-                    node.Start(Client);
+                    node.Start();
                 }
             }
 

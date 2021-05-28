@@ -18,6 +18,8 @@ namespace Zeze.Net
     /// </summary>
     public class Connector
     {
+        public Service Service { get; private set; }
+
         public string HostNameOrAddress { get; }
         public int Port { get; } = 0;
         public bool IsAutoReconnect { get; } = true;
@@ -61,35 +63,49 @@ namespace Zeze.Net
                 MaxReconnectDelay = 8000;
         }
 
+        internal void SetService(Service service)
+        {
+            lock (this)
+            {
+                if (Service != null)
+                    throw new Exception($"Connector of '{Name}' Service != null");
+                Service = service;
+            }
+        }
+
         public virtual void OnSocketClose(AsyncSocket closed)
         {
-            if (Socket != closed)
-                return;
-
-            Socket = null;
-            HandshakeDoneEvent.Reset();
-
-            if (false == IsAutoReconnect)
-                return;
-
-            if (ConnectDelay == 0)
+            lock (this)
             {
-                ConnectDelay = 1000;
+                if (Socket != closed)
+                    return;
+
+                Stop();
+
+                if (false == IsAutoReconnect)
+                    return;
+
+                if (ConnectDelay <= 0)
+                {
+                    ConnectDelay = 1000;
+                }
+                else
+                {
+                    ConnectDelay *= 2;
+                    if (ConnectDelay > MaxReconnectDelay)
+                        ConnectDelay = MaxReconnectDelay;
+                }
+                Util.Scheduler.Instance.Schedule((ThisTask) => Start(), ConnectDelay); ;
             }
-            else
-            {
-                ConnectDelay *= 2;
-                if (ConnectDelay > MaxReconnectDelay)
-                    ConnectDelay = MaxReconnectDelay;
-            }
-            var service = closed.Service;
-            Util.Scheduler.Instance.Schedule((ThisTask) => Start(service), ConnectDelay); ;
         }
 
         public virtual void OnSocketConnected(AsyncSocket so)
         {
-            ConnectDelay = 0;
-            IsConnected = true;
+            lock (this)
+            {
+                ConnectDelay = 0;
+                IsConnected = true;
+            }
         }
 
         public virtual void OnSocketHandshakeDone(AsyncSocket so)
@@ -97,20 +113,32 @@ namespace Zeze.Net
             HandshakeDoneEvent.Set();
         }
 
-        public virtual void Start(Service service)
+        public virtual void Start()
         {
-            Socket?.Dispose();
-            IsConnected = false;
-            HandshakeDoneEvent.Reset();
-            Socket = service.NewClientSocket(HostNameOrAddress, Port);
-            Socket.Connector = this;
+            lock (this)
+            {
+                if (null != Socket)
+                    return;
+
+                IsConnected = false;
+                HandshakeDoneEvent.Reset();
+                Socket = Service.NewClientSocket(HostNameOrAddress, Port);
+                Socket.Connector = this;
+            }
         }
 
-        public virtual void Stop(Service service)
+        public virtual void Stop()
         {
-            HandshakeDoneEvent.Reset();
-            Socket?.Dispose();
-            Socket = null;
+            lock (this)
+            {
+                if (null == Socket)
+                    return;
+                HandshakeDoneEvent.Reset();
+                var tmp = Socket;
+                Socket = null; // 阻止重连
+                tmp.Dispose();
+                IsConnected = false;
+            }
         }
     }
 }
