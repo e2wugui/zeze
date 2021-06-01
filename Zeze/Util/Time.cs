@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace Zeze.Util
@@ -19,6 +20,33 @@ namespace Zeze.Util
             DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
             TimeSpan diff = time.ToUniversalTime() - origin;
             return (long)diff.TotalMilliseconds;
+        }
+
+        public static int GetWeekOfYear(DateTime time)
+        {
+            // Gets the Calendar instance associated with a CultureInfo.
+            CultureInfo myCI = CultureInfo.CurrentCulture;
+            // 在这里国际化不是很关键，只要能区分不同时段即可。
+            Calendar myCal = myCI.Calendar;
+            // Gets the DTFI properties required by GetWeekOfYear.
+            CalendarWeekRule myCWR = myCI.DateTimeFormat.CalendarWeekRule;
+            DayOfWeek myFirstDOW = myCI.DateTimeFormat.FirstDayOfWeek;
+            return myCal.GetWeekOfYear(time, myCWR, myFirstDOW);
+        }
+
+        /// <summary>
+        /// 没有国际化，没有考虑南半球。
+        /// </summary>
+        /// <param name="time"></param>
+        /// <returns></returns>
+        public static int GetSimpleChineseSeason(DateTime time)
+        {
+            var month = time.Month;
+            if (month < 3) return 4; // 12,1,2
+            if (month < 6) return 1; // 3,4,5
+            if (month < 9) return 2; // 6,7,8
+            if (month < 12) return 3; // 9,10,11
+            return 4; // 12,1,2
         }
     }
 }

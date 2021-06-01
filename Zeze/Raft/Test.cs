@@ -84,13 +84,13 @@ namespace Zeze.Raft
             if (diff != expect)
             {
                 logger.Fatal($"#### {stepName} Expect={expect} Now={diff},Error={AddErrorCount},Timeout={AddTimeoutCount}");
+                AddTimeoutCount = 0;
+                AddErrorCount = 0;
             }
         }
 
         private void ConcurrentAddCount(string stepName, int concurrent)
         {
-            AddTimeoutCount = 0;
-            AddErrorCount = 0;
             var requests = new List<AddCount>();
             for (int i = 0; i < concurrent; ++i)
                 requests.Add(new AddCount());
@@ -125,6 +125,26 @@ namespace Zeze.Raft
             }
             // RandomRaft().RestarRaft();
             // InstallSnapshot;
+        }
+
+        private TestRaft GetLeader()
+        { 
+            foreach (var raft in Rafts.Values)
+            {
+                if (raft.Raft.IsLeader)
+                    return raft;
+            }
+            return null;
+        }
+
+        private TestRaft GetNodeNotLeader()
+        {
+            foreach (var raft in Rafts.Values)
+            {
+                if (!raft.Raft.IsLeader)
+                    return raft;
+            }
+            return null;
         }
 
         private TestRaft RandomRaft()
@@ -221,14 +241,23 @@ namespace Zeze.Raft
 
             public void RestartNet()
             {
+                logger.Debug($"Raft.Net {RaftName} Restart ...");
                 Raft.Server.Stop();
                 Raft.Server.Start();
             }
 
-            public void RestartRaft()
+            public void StopRaft()
             {
+                logger.Debug($"Raft {RaftName} Stop ...");
                 Raft?.Server.Stop();
+                Raft = null;
+            }
 
+            public void StartRaft()
+            {
+                if (null != Raft)
+                    throw new Exception($"Raft {RaftName} Has Started.");
+                logger.Debug($"Raft {RaftName} Start ...");
                 StateMachine = new TestStateMachine();
 
                 var raftConfig = RaftConfig.Load(RaftConfigFileName);
@@ -256,13 +285,14 @@ namespace Zeze.Raft
                         Factory = () => new GetCount(),
                         Handle = ProcessGetCount,
                     });
+                Raft.Server.Start();
             }
 
             public TestRaft(string raftName, string raftConfigFileName)
             {
                 RaftName = raftName;
                 RaftConfigFileName = raftConfigFileName;
-                RestartRaft();
+                StartRaft();
             }
 
             private int ProcessAddCount(Zeze.Net.Protocol p)

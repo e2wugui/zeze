@@ -110,8 +110,8 @@ namespace Zeze.Raft
                 throw new Exception("AppendEntriesTimeout < 0");
             if (LeaderHeartbeatTimer < AppendEntriesTimeout + 100)
                 throw new Exception("LeaderHeartbeatTimer < AppendEntriesTimeout + 100");
-            if (LeaderLostTimeout < AppendEntriesTimeout + LeaderHeartbeatTimer + 200)
-                throw new Exception("LeaderLostTimeout < AppendEntriesTimeout + LeaderHeartbeatTimer + 200");
+            if (LeaderLostTimeout < LeaderHeartbeatTimer + 100)
+                throw new Exception("LeaderLostTimeout < LeaderHeartbeatTimer + 100");
 
             if (MaxAppendEntiresCount < 100)
                 MaxAppendEntiresCount = 100;

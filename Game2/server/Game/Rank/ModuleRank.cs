@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 using Zeze.Transaction;
 using static gnet.Provider.ModuleProvider;
@@ -32,12 +33,15 @@ namespace Game.Rank
         /// <param name="roleId"></param>
         /// <param name="value"></param>
         /// <returns>Procudure.Success...</returns>
-        protected int UpdateRank(int hash, int rankType, long roleId, long value, Zeze.Net.Binary valueEx)
+        protected int UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
         {
-            int concurrentLevel = GetConcurrentLevel(rankType);
-            int maxCount = GetRankComputeCount(rankType);
+            int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
+            int maxCount = GetRankComputeCount(keyHint.RankType);
 
-            var concurrentKey = new BConcurrentKey(rankType, hash % concurrentLevel);
+            var concurrentKey = new BConcurrentKey(
+                keyHint.RankType, hash % concurrentLevel,
+                keyHint.TimeType, keyHint.Year, keyHint.Offset);
+
             var rank = _trank.GetOrAdd(concurrentKey);
             // remove if role exist. 看看有没有更快的算法。
             bool found = false;
@@ -77,7 +81,7 @@ namespace Game.Rank
             public BRankList TableValue { get; set; }
         }
 
-        ConcurrentDictionary<int, Rank> Ranks = new ConcurrentDictionary<int, Rank>();
+        ConcurrentDictionary<BConcurrentKey, Rank> Ranks = new ConcurrentDictionary<BConcurrentKey, Rank>();
         public const long RebuildTime = 5 * 60 * 1000; // 5 min
 
         private BRankList Merge(BRankList left, BRankList right)
@@ -118,9 +122,9 @@ namespace Game.Rank
             return result;
         }
 
-        private Rank GetRank(int rankType)
+        private Rank GetRank(BConcurrentKey keyHint)
         {
-            var Rank = Ranks.GetOrAdd(rankType, (key) => new Rank());
+            var Rank = Ranks.GetOrAdd(keyHint, (key) => new Rank());
             lock (Rank)
             {
                 long now = Zeze.Util.Time.NowUnixMillis;
@@ -130,14 +134,16 @@ namespace Game.Rank
                 }
                 // rebuild
                 List<BRankList> datas = new List<BRankList>();
-                int cocurrentLevel = GetConcurrentLevel(rankType);
+                int cocurrentLevel = GetConcurrentLevel(keyHint.RankType);
                 for (int i = 0; i < cocurrentLevel; ++i)
                 {
-                    var concurrentKey = new BConcurrentKey(rankType, i);
+                    var concurrentKey = new BConcurrentKey(
+                        keyHint.RankType, i,
+                        keyHint.TimeType, keyHint.Year, keyHint.Offset);
                     var rank = _trank.GetOrAdd(concurrentKey);
                     datas.Add(rank);
                 }
-                int countNeed = GetRankCount(rankType);
+                int countNeed = GetRankCount(keyHint.RankType);
                 switch (datas.Count)
                 {
                     case 0:
@@ -184,22 +190,32 @@ namespace Game.Rank
         /// <param name="value"></param>
         /// <param name="valueEx">只保存，不参与比较。如果需要参与比较，需要另行实现自己的Update和Get。</param>
         [ModuleRedirect()]
-        public virtual void RunUpdateRank(int rankType, long roleId, long value, Zeze.Net.Binary valueEx)
+        public virtual void RunUpdateRank(
+            BConcurrentKey keyHint,
+            long roleId, long value, Zeze.Net.Binary valueEx)
         {
             int hash = Game.ModuleRedirect.GetChoiceHashCode();
-            App.Zeze.Run(() => UpdateRank(hash, rankType, roleId, value, valueEx), nameof(RunUpdateRank), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+            App.Zeze.Run(() => UpdateRank(hash, keyHint, roleId, value, valueEx),
+                nameof(RunUpdateRank), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
         }
 
         // 名字必须和RunUpdateRankWithHash匹配，内部使用一样的实现。
-        protected int UpdateRankWithHash(int hash, int rankType, long roleId, long value, Zeze.Net.Binary valueEx)
+        protected int UpdateRankWithHash(
+            int hash, BConcurrentKey keyHint,
+            long roleId, long value, Zeze.Net.Binary valueEx)
         {
-            return UpdateRank(hash, rankType, roleId, value, valueEx);
+            return UpdateRank(hash, keyHint, roleId, value, valueEx);
         }
 
         [ModuleRedirectWithHash()]
-        public virtual void RunUpdateRankWithHash(int hash, int rankType, long roleId, long value, Zeze.Net.Binary valueEx)
+        public virtual void RunUpdateRankWithHash(
+            int hash, BConcurrentKey keyHint,
+            long roleId, long value, Zeze.Net.Binary valueEx)
         {
-            App.Zeze.Run(() => UpdateRankWithHash(hash, rankType, roleId, value, valueEx), nameof(RunUpdateRankWithHash), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+            App.Zeze.Run(() => UpdateRankWithHash(
+                hash, keyHint, roleId, value, valueEx),
+                nameof(RunUpdateRankWithHash),
+                Zeze.TransactionModes.ExecuteInAnotherThread, hash);
         }
 
         /// <summary>
@@ -213,26 +229,28 @@ namespace Game.Rank
         ///    c) 第三个参数是returnCode，
         ///    d) 剩下的是自定义参数。
         /// </summary>
-        protected int GetRank(long sessionId, int hash, int rankType,
+        protected int GetRank(long sessionId, int hash, BConcurrentKey keyHint,
             System.Action<long, int, int, BRankList> onHashResult)
         {
             // 根据hash获取分组rank。
-            int concurrentLevel = GetConcurrentLevel(rankType);
-            var concurrentKey = new BConcurrentKey(rankType, hash % concurrentLevel);
+            int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
+            var concurrentKey = new BConcurrentKey(
+                keyHint.RankType, hash % concurrentLevel,
+                keyHint.TimeType, keyHint.Year, keyHint.Offset);
             onHashResult(sessionId, hash, Procedure.Success, _trank.GetOrAdd(concurrentKey));
             return Procedure.Success;
         }
 
         // 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
         // 需要注意在子类上下文中可以编译通过。可以是常量。
-        [ModuleRedirectAll("GetConcurrentLevel(rankType)")]
-        public virtual void RunGetRank(int rankType,
+        [ModuleRedirectAll("GetConcurrentLevel(keyHint.RankType)")]
+        public virtual void RunGetRank(BConcurrentKey keyHint,
             System.Action<long, int, int, BRankList> onHashResult,
             Action<ModuleRedirectAllContext> onHashEnd
             )
         {
             // 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
-            int concurrentLevel = GetConcurrentLevel(rankType);
+            int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
             var ctx = new ModuleRedirectAllContext(concurrentLevel, $"{FullName}:{nameof(RunGetRank)}")
             {
                 OnHashEnd = onHashEnd,
@@ -240,14 +258,14 @@ namespace Game.Rank
             long sessionId = App.Server.AddManualContextWithTimeout(ctx); // 处理hash分组结果需要一个上下文保存收集的结果。
             for (int i = 0; i < concurrentLevel; ++i)
             {
-                GetRank(sessionId, i, rankType, onHashResult);
+                GetRank(sessionId, i, keyHint, onHashResult);
             }
         }
 
         // 使用异步方案构建rank。
-        private void GetRankAsync(int rankType, System.Action<Rank> callback)
+        private void GetRankAsync(BConcurrentKey keyHint, System.Action<Rank> callback)
         {
-            if (Ranks.TryGetValue(rankType, out var rank))
+            if (Ranks.TryGetValue(keyHint, out var rank))
             {
                 long now = Zeze.Util.Time.NowUnixMillis;
                 if (now - rank.BuildTime < RebuildTime)
@@ -257,9 +275,9 @@ namespace Game.Rank
                 }
             }
             // 异步方式没法锁住Rank，所以并发的情况下，可能多次去获取数据，多次构建，多次覆盖Ranks的cache。
-            int countNeed = GetRankCount(rankType);
-            int concurrentLevel = GetConcurrentLevel(rankType);
-            RunGetRank(rankType,
+            int countNeed = GetRankCount(keyHint.RankType);
+            int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
+            RunGetRank(keyHint,
                 // Action OnHashResult
                 (sessionId, hash, returnCode, BRankList) =>
                 {
@@ -288,7 +306,7 @@ namespace Game.Rank
 
                     var rank = context.UserState as Rank;
                     rank.BuildTime = Zeze.Util.Time.NowUnixMillis;
-                    Ranks[rankType] = rank; // 覆盖最新的数据到缓存里面。
+                    Ranks[keyHint] = rank; // 覆盖最新的数据到缓存里面。
                     callback(rank);
                 }
             );
@@ -349,10 +367,52 @@ namespace Game.Rank
             });
             /*/
             // 同步方式获取rank
-            result.Argument.RankList.AddRange(GetRank(protocol.Argument.RankType).TableValue.RankList);
+            result.Argument.RankList.AddRange(GetRank(
+                NewRankKey(protocol.Argument.RankType, protocol.Argument.TimeType)
+                ).TableValue.RankList);
             session.SendResponse(result);
             // */
             return Procedure.Success;
+        }
+
+        public BConcurrentKey NewRankKey(int rankType, int timeType, int customizeId = 0)
+        {
+            var now = DateTime.Now;
+            var year = now.Year; // 后面根据TimeType可能覆盖这个值。
+            int offset;
+
+            switch (timeType)
+            {
+                case BConcurrentKey.TimeTypeTotal:
+                    year = 0;
+                    offset = 0;
+                    break;
+
+                case BConcurrentKey.TimeTypeDay:
+                    offset = now.DayOfYear;
+                    break;
+
+                case BConcurrentKey.TimeTypeWeek:
+                    offset = Zeze.Util.Time.GetWeekOfYear(now);
+                    break;
+
+                case BConcurrentKey.TimeTypeSeason:
+                    offset = Zeze.Util.Time.GetSimpleChineseSeason(now);
+                    break;
+
+                case BConcurrentKey.TimeTypeYear:
+                    offset = 0;
+                    break;
+
+                case BConcurrentKey.TimeTypeCustomize:
+                    year = 0;
+                    offset = customizeId;
+                    break;
+
+                default:
+                    throw new Exception($"Unsupport TimeType={timeType}");
+            }
+            return new BConcurrentKey(rankType, 0, timeType, year, offset);
         }
 
         /******************************** ModuleRedirect 测试 *****************************************/
