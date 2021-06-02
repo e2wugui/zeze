@@ -22,6 +22,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             sw.WriteLine("using Zeze.Serialize;");
+            sw.WriteLine("using System;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine("");
             sw.WriteLine("namespace " + bean.Space.Path());

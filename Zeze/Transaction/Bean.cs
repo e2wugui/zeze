@@ -76,6 +76,10 @@ namespace Zeze.Transaction
         {
             throw new NotImplementedException();
         }
+        public virtual void BuildString(System.Text.StringBuilder sb, int level)
+        {
+            sb.Append(new string(' ', level)).Append("{}").Append(System.Environment.NewLine);
+        }
 
         // Bean的类型Id，替换 ClassName，提高效率和存储空间
         // 用来支持 dynamic 类型，或者以后的扩展。

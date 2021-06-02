@@ -347,6 +347,32 @@ namespace Game.Rank
             };
         }
 
+        public long GetCounter(long roleId, BConcurrentKey keyHint)
+        {
+            var counters = _trankcounters.GetOrAdd(roleId);
+            if (false == counters.Counters.TryGetValue(keyHint, out var counter))
+                return 0;
+
+            return counter.Value;
+        }
+
+        public void AddCounterAndUpdateRank(long roleId, int delta,
+            BConcurrentKey keyHint, Zeze.Net.Binary valueEx = null)
+        {
+            var counters = _trankcounters.GetOrAdd(roleId);
+            if (false == counters.Counters.TryGetValue(keyHint, out var counter))
+            {
+                counter = new BRankCounter();
+                counters.Counters.Add(keyHint, counter);
+            }
+            counter.Value += delta;
+
+            if (null == valueEx)
+                valueEx = Zeze.Net.Binary.Empty;
+
+            RunUpdateRank(keyHint, roleId, counter.Value, valueEx);
+        }
+
         public override int ProcessCGetRankList(CGetRankList protocol)
         {
             Login.Session session = Login.Session.Get(protocol);
