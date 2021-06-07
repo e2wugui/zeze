@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Threading.Tasks;
+using Zeze.Transaction;
 
 namespace Zeze.Util
 {
@@ -52,28 +53,32 @@ namespace Zeze.Util
 
         public static void Call(Func<int> func, Net.Protocol p, bool sendResultCodeWhenError = false)
         {
+            bool IsRequestSaved = p.IsRequest; // 记住这个，以后可能会被改变。
             try
             {
                 int result = func();
                 if (sendResultCodeWhenError
                     && result != 0
-                    && p.IsRequest)
+                    && IsRequestSaved)
                 {
                     p.SendResultCode(result);
                 }
                 LogAndStatistics(result, p);
             }
-            catch (TaskCanceledException cex)
-            {
-                if (p.IsRequest)
-                    p.SendResultCode(Transaction.Procedure.CancelExcption);
-                logger.Error(cex, "Task {0} TaskCanceledException UserState={1}",
-                    p.GetType().FullName, p.UserState);
-            }
             catch (Exception ex)
             {
-                if (p.IsRequest)
-                    p.SendResultCode(Transaction.Procedure.Excption);
+                while (ex is AggregateException)
+                    ex = ex.InnerException;
+
+                var errorCode = ex is TaskCanceledException
+                    ? Procedure.CancelExcption
+                    : Procedure.Excption;
+
+                if (sendResultCodeWhenError && IsRequestSaved)
+                    p.SendResultCode(errorCode);
+
+                LogAndStatistics(errorCode, p);
+                // 使用 InnerException
                 logger.Error(ex, "Task {0} Exception UserState={1}",
                     p.GetType().FullName, p.UserState);
             }

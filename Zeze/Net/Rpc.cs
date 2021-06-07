@@ -253,7 +253,7 @@ namespace Zeze.Net
 
         public override string ToString()
         {
-            return $"{GetType().FullName}{Environment.NewLine}\tArgument={Argument}{Environment.NewLine}\tResult={Result}";
+            return $"{GetType().FullName}{Environment.NewLine}\tResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}{Environment.NewLine}\tResult={Result}";
         }
     }
 }

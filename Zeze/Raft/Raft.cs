@@ -352,7 +352,7 @@ namespace Zeze.Raft
                 VoteSuccess.Clear(); // 每次选举开始清除。
 
                 LeaderId = string.Empty;
-                LogSequence.SetVoteFor(string.Empty); // SendRequestVote 才开始真正选举。
+                LogSequence.SetVoteFor(Name); // Vote Self First.
                 LogSequence.TrySetTerm(LogSequence.Term + 1);
                 WaitMajorityVoteTimoutTask?.Cancel();
                 WaitMajorityVoteTimoutTask = null;
@@ -369,9 +369,9 @@ namespace Zeze.Raft
                     {
                         if (false == c.IsHandshakeDone)
                             return;
-
                         var rpc = new RequestVote() { Argument = arg };
                         rpc.Send(c.Socket, (p) => ProcessRequestVoteResult(rpc, c));
+                        logger.Debug("{0}: SendRequestVote {1}", Name, rpc);
                     });
 
                 // 定时，如果超时选举还未完成，再次发起选举。
@@ -448,10 +448,6 @@ namespace Zeze.Raft
                     return;
 
                 case RaftState.Candidate:
-                    // Normal: Vote Timeout. Restart.
-                    // 如果确实需要重启，需要在调用前：
-                    // StartRequestVoteDelayTask = null;
-                    // 否则不会真正开始新的选举。
                     logger.Info($"RaftState {Name}: Candidate->Candidate");
                     LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
                     StartRequestVote();

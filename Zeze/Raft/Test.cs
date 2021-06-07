@@ -83,7 +83,10 @@ namespace Zeze.Raft
             var diff = CurrentCount - before;
             if (diff != expect)
             {
-                logger.Warn($"#### {stepName} Expect={expect} Now={diff},Error={AddErrorCount},Timeout={AddTimeoutCount}");
+                if (diff + AddErrorCount + AddTimeoutCount != expect)
+                    logger.Fatal($"================== {stepName} Expect={expect} Now={diff},Error={AddErrorCount},Timeout={AddTimeoutCount} ==================");
+                else
+                    logger.Info($"################## {stepName} Expect={expect} Now={diff},Error={AddErrorCount},Timeout={AddTimeoutCount} ##################");
             }
         }
 
@@ -105,19 +108,28 @@ namespace Zeze.Raft
                     AddTimeoutCount++;
                 else if (request.ResultCode != 0)
                     AddErrorCount++;
+                else
+                    logger.Debug("+++++++++++++ {0} {1}", stepName, request);
             }
         }
 
         private void SetLogLevel(NLog.LogLevel level)
         {
+            NLog.LogManager.GlobalThreshold = level;
+            /*
             foreach (var rule in NLog.LogManager.Configuration.LoggingRules)
             {
-                rule.SetLoggingLevels(level, NLog.LogLevel.Fatal);
+                //Console.WriteLine($"================ SetLoggingLevels {rule.RuleName}");
+                rule.DisableLoggingForLevels(NLog.LogLevel.Trace, NLog.LogLevel.Fatal);
+                rule.EnableLoggingForLevels(level, NLog.LogLevel.Fatal);
+                //rule.SetLoggingLevels(level, NLog.LogLevel.Fatal);
             }
+            */
         }
 
         private void TestConcurrent(string testname, int count)
         {
+            logger.Debug("+++++++++ {0} count={1}", testname, count);
             AddTimeoutCount = 0;
             AddErrorCount = 0;
             ConcurrentAddCount(testname, count);
@@ -134,8 +146,9 @@ namespace Zeze.Raft
             SetLogLevel(NLog.LogLevel.Info);
             TestConcurrent("TestConcurrent", 200);
 
-            // 普通节点重启网络一。
             SetLogLevel(NLog.LogLevel.Trace);
+
+            // 普通节点重启网络一。
             var NotLeaders = GetNodeNotLeaders();
             if (NotLeaders.Count > 0)
             {
@@ -159,8 +172,35 @@ namespace Zeze.Raft
             var leader = GetLeader();
             leader.Raft.Server.Stop();
             Util.Scheduler.Instance.Schedule((ThisTask) => leader.Raft.Server.Start(),
-                leader.Raft.RaftConfig.LeaderHeartbeatTimer + 200);
+                leader.Raft.RaftConfig.LeaderLostTimeout + 2000);
             TestConcurrent("TestLeaderNodeRestartNet_NewVote", 1);
+
+            // 普通节点重启一。
+            NotLeaders = GetNodeNotLeaders();
+            if (NotLeaders.Count > 0)
+            {
+                NotLeaders[0].StopRaft();
+                NotLeaders[0].StartRaft();
+            }
+            TestConcurrent("TestNormalNodeRestartRaft1", 1);
+
+            // 普通节点重启网络二。
+            if (NotLeaders.Count > 1)
+            {
+                NotLeaders[0].StopRaft();
+                NotLeaders[1].StopRaft();
+
+                NotLeaders[0].StartRaft();
+                NotLeaders[1].StartRaft();
+            }
+            TestConcurrent("TestNormalNodeRestartRaft2", 1);
+
+            // Leader节点重启。
+            leader = GetLeader();
+            leader.StopRaft();
+            Util.Scheduler.Instance.Schedule((ThisTask) => leader.StartRaft(),
+                leader.Raft.RaftConfig.LeaderLostTimeout + 2000);
+            TestConcurrent("TestLeaderNodeRestartRaft", 1);
 
             // RandomRaft().RestarRaft();
             // InstallSnapshot;

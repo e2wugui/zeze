@@ -127,8 +127,9 @@ namespace Zeze.Raft
             if (IsImportantProtocol(p.TypeId))
             {
                 // 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
+                // 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
                 Raft.ImportantThreadPool.QueueUserWorkItem(
-                    () => Util.Task.Call(() => factoryHandle.Handle(p), p));
+                    () => Util.Task.Call(() => factoryHandle.Handle(p), p, false));
                 return;
             }
             // User Request
@@ -249,7 +250,8 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
-        public TaskCompletionSource<Rpc<TArgument, TResult>> SendForWait<TArgument, TResult>(
+        public TaskCompletionSource<Rpc<TArgument, TResult>>
+            SendForWait<TArgument, TResult>(
             Rpc<TArgument, TResult> rpc,
             bool autoResend = true,
             int timeout = 30000)
