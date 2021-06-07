@@ -284,7 +284,7 @@
 			<variable id="1" name="RoleId"     type="long"/>
 			<variable id="2" name="Value"      type="long"/> 含义由 BConcurrentKey.RankType 决定
 			<variable id="3" name="ValueEx"    type="binary"/> 排名更多自定义数据。
-			<variable id="4" name="AwardTaken" type="bool"/> 奖励已经获取
+			<variable id="4" name="AwardTaken" type="bool"/> 奖励已经获取。当开始领奖时，榜单不能再更新。这个变量可用于有时效的排行榜。
 		</bean>
 
 		<bean name="BRankList">

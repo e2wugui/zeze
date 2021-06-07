@@ -77,7 +77,7 @@ namespace Zeze.Transaction
                 return state; // 不支持内存表cache同步。
 
             GlobalCacheManager.GlobalTableKey gkey = new GlobalCacheManager.GlobalTableKey(Table.Name, Table.EncodeKey(Key));
-            logger.Debug($"Acquire NewState={state} {this}");
+            logger.Debug("Acquire NewState={0} {1}", state, this);
 #if ENABLE_STATISTICS
             var stat = TableStatistics.Instance.GetOrAdd(Table.Id);
             switch (state)

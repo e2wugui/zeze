@@ -36,6 +36,17 @@ namespace Zeze.Raft
             LogSequence.AppendLog(log, ApplySync);
         }
 
+        public void Close()
+        {
+            Server.Stop();
+            LogSequence.Close();
+        }
+
+        private void ProcessExit(object sender, EventArgs e)
+        {
+            Close();
+        }
+
         public Raft(StateMachine sm,
             string RaftName = null,
             RaftConfig raftconf = null,
@@ -73,6 +84,7 @@ namespace Zeze.Raft
             RegisterInternalRpc();
             StartLeaderLostTimerTask();
             LogSequence.StartSnapshotPerDayTimer();
+            AppDomain.CurrentDomain.ProcessExit += ProcessExit;
         }
 
         private int ProcessAppendEntries(Protocol p)
@@ -284,7 +296,7 @@ namespace Zeze.Raft
                 {
                     LogSequence.SetVoteFor(r.Argument.CandidateId);
                 }
-                logger.Debug($"{Name}: VoteFor={LogSequence.VoteFor} Rpc={r}");
+                logger.Debug("{0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
                 r.SendResultCode(0);
 
                 return Procedure.Success;

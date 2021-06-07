@@ -24,7 +24,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             sw.WriteLine(prefix + "public override void BuildString(System.Text.StringBuilder sb, int level)");
 			sw.WriteLine(prefix + "{");
-            sw.WriteLine($"{prefix}    sb.Append(new string(' ', level)).Append(\"{bean.FullName}: {{\").Append(Environment.NewLine);");
+            sw.WriteLine($"{prefix}    sb.Append(new string(' ', level * 4)).Append(\"{bean.FullName}: {{\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + "    level++;");
             for (int i = 0; i < bean.Variables.Count; ++i)
             {
@@ -49,7 +49,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             sw.WriteLine(prefix + "public void BuildString(System.Text.StringBuilder sb, int level)");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine($"{prefix}    sb.Append(new string(' ', level)).Append(\"{bean.FullName}: {{\").Append(Environment.NewLine);");
+            sw.WriteLine($"{prefix}    sb.Append(new string(' ', level * 4)).Append(\"{bean.FullName}: {{\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + "    level++;");
             for (int i = 0; i < bean.Variables.Count; ++i)
             {
@@ -72,80 +72,80 @@ namespace Zeze.Gen.cs
 
         void Visitor.Visit(Bean type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + var + ".BuildString(sb, level + 1);");
             sw.WriteLine(prefix + $"sb.Append(\"{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(BeanKey type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + var + ".BuildString(sb, level + 1);");
             sw.WriteLine(prefix + $"sb.Append(\"{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeByte type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeDouble type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeInt type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeLong type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeBool type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeBinary type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeString type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeList type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + "level++;");
             sw.WriteLine(prefix + $"foreach (var Item in {var})");
             sw.WriteLine(prefix + "{");
             type.ValueType.Accept(new Tostring(sw, "Item", prefix + "    ", ","));
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "level--;");
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"]{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"]{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeSet type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + "level++;");
             sw.WriteLine(prefix + $"foreach (var Item in {var})");
             sw.WriteLine(prefix + "{");
             type.ValueType.Accept(new Tostring(sw, "Item", prefix + "    ", ","));
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "level--;");
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"]{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"]{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeMap type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + "level++;");
             sw.WriteLine(prefix + $"foreach (var _kv_ in {var})");
             sw.WriteLine(prefix + "{");
@@ -157,22 +157,22 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    sb.Append(\")\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "level--;");
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"]{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"]{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeFloat type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeShort type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append({var}).Append(\"{sep}\").Append(Environment.NewLine);");
         }
 
         void Visitor.Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + $"sb.Append(new string(' ', level)).Append(\"{var}\").Append(\"=\").Append(Environment.NewLine);");
+            sw.WriteLine(prefix + $"sb.Append(new string(' ', level * 4)).Append(\"{var}\").Append(\"=\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + var + ".Bean.BuildString(sb, level + 1);");
             sw.WriteLine(prefix + $"sb.Append(\"{sep}\").Append(Environment.NewLine);");
         }

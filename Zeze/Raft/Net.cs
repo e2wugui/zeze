@@ -170,6 +170,8 @@ namespace Zeze.Raft
 
     public sealed class Agent
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public RaftConfig RaftConfig { get; }
         public NetClient Client { get; }
         public string Name => Client.Name;
@@ -338,6 +340,7 @@ namespace Zeze.Raft
         private int ProcessLeaderIs(Protocol p)
         {
             var r = p as LeaderIs;
+            logger.Debug("{0}: {1}", Name, r);
 
             var node = Client.Config.FindConnector(r.Argument.LeaderId);
             if (null == node)

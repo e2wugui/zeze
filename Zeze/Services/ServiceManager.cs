@@ -134,7 +134,7 @@ namespace Zeze.Services
                     {
                         Argument = new ServiceManager.ServiceInfos(ServiceName, this, ++SerialId),
                     };
-                    logger.Debug($"StartNotify {notify.Argument}");
+                    logger.Debug("StartNotify {0}", notify.Argument);
                     var notifyBytes = notify.Encode();
 
                     foreach (var e in Simple)
@@ -1224,7 +1224,7 @@ namespace Zeze.Services
                     }
                     catch (Exception ex)
                     {
-                        logger.Debug(ex, $"_OnConnected.Register={e.Value}");
+                        logger.Debug(ex, "_OnConnected.Register={0}", e.Value);
                     }
                 }
                 foreach (var e in SubscribeStates)
@@ -1237,7 +1237,7 @@ namespace Zeze.Services
                     }
                     catch (Exception ex)
                     {
-                        logger.Debug(ex, $"_OnConnected.Subscribe={e.Value.SubscribeInfo}");
+                        logger.Debug(ex, "_OnConnected.Subscribe={0}", e.Value.SubscribeInfo);
                     }
                 }
                 OnConnected(this);

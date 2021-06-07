@@ -83,9 +83,7 @@ namespace Zeze.Raft
             var diff = CurrentCount - before;
             if (diff != expect)
             {
-                logger.Fatal($"#### {stepName} Expect={expect} Now={diff},Error={AddErrorCount},Timeout={AddTimeoutCount}");
-                AddTimeoutCount = 0;
-                AddErrorCount = 0;
+                logger.Warn($"#### {stepName} Expect={expect} Now={diff},Error={AddErrorCount},Timeout={AddTimeoutCount}");
             }
         }
 
@@ -108,23 +106,66 @@ namespace Zeze.Raft
                 else if (request.ResultCode != 0)
                     AddErrorCount++;
             }
-            CheckCurrentCount(stepName, concurrent);
+        }
+
+        private void SetLogLevel(NLog.LogLevel level)
+        {
+            foreach (var rule in NLog.LogManager.Configuration.LoggingRules)
+            {
+                rule.SetLoggingLevels(level, NLog.LogLevel.Fatal);
+            }
+        }
+
+        private void TestConcurrent(string testname, int count)
+        {
+            AddTimeoutCount = 0;
+            AddErrorCount = 0;
+            ConcurrentAddCount(testname, count);
+            CheckCurrentCount(testname, count);
         }
 
         public void RunTrace()
         {
+            // 基本测试
             Agent.SendForWait(new AddCount()).Task.Wait();
-            CheckCurrentCount("FirstAddCount", 1);
+            CheckCurrentCount("TestAddCount", 1);
 
-            ConcurrentAddCount("SimpleConcurrent", 200);
-            // 改成真正并发：测试rpc可靠性（重发，重定向）。
-            for (int i = 0; i < 20; ++i)
+            // 基本并发请求
+            SetLogLevel(NLog.LogLevel.Info);
+            TestConcurrent("TestConcurrent", 200);
+
+            // 普通节点重启网络一。
+            SetLogLevel(NLog.LogLevel.Trace);
+            var NotLeaders = GetNodeNotLeaders();
+            if (NotLeaders.Count > 0)
             {
-                RandomRaft().RestartNet();
-                ConcurrentAddCount($"RestartNetConcurrent_{i}", 1);
+                NotLeaders[0].RestartNet();
             }
+            TestConcurrent("TestNormalNodeRestartNet1", 1);
+
+            // 普通节点重启网络二。
+            if (NotLeaders.Count > 1)
+            {
+                NotLeaders[0].RestartNet();
+                NotLeaders[1].RestartNet();
+            }
+            TestConcurrent("TestNormalNodeRestartNet2", 1);
+
+            // Leader节点重启网络。
+            GetLeader().RestartNet();
+            TestConcurrent("TestLeaderNodeRestartNet", 1);
+
+            // Leader节点重启网络，【选举】。
+            var leader = GetLeader();
+            leader.Raft.Server.Stop();
+            Util.Scheduler.Instance.Schedule((ThisTask) => leader.Raft.Server.Start(),
+                leader.Raft.RaftConfig.LeaderHeartbeatTimer + 200);
+            TestConcurrent("TestLeaderNodeRestartNet_NewVote", 1);
+
             // RandomRaft().RestarRaft();
             // InstallSnapshot;
+
+            SetLogLevel(NLog.LogLevel.Info);
         }
 
         private TestRaft GetLeader()
@@ -137,14 +178,15 @@ namespace Zeze.Raft
             return null;
         }
 
-        private TestRaft GetNodeNotLeader()
+        private List<TestRaft> GetNodeNotLeaders()
         {
+            var NotLeader = new List<TestRaft>();
             foreach (var raft in Rafts.Values)
             {
                 if (!raft.Raft.IsLeader)
-                    return raft;
+                    NotLeader.Add(raft);
             }
-            return null;
+            return NotLeader;
         }
 
         private TestRaft RandomRaft()
@@ -241,15 +283,19 @@ namespace Zeze.Raft
 
             public void RestartNet()
             {
-                logger.Debug($"Raft.Net {RaftName} Restart ...");
+                logger.Debug("Raft.Net {0} Restart ...", RaftName);
                 Raft.Server.Stop();
                 Raft.Server.Start();
             }
 
             public void StopRaft()
             {
-                logger.Debug($"Raft {RaftName} Stop ...");
+                logger.Debug("Raft {0} Stop ...", RaftName);
                 Raft?.Server.Stop();
+
+                // 在同一个进程中，没法模拟进程退出，
+                // 此时RocksDb应该需要关闭，否则重启回失败吧。
+                Raft?.Close();
                 Raft = null;
             }
 
@@ -257,13 +303,13 @@ namespace Zeze.Raft
             {
                 if (null != Raft)
                     throw new Exception($"Raft {RaftName} Has Started.");
-                logger.Debug($"Raft {RaftName} Start ...");
+                logger.Debug("Raft {0} Start ...", RaftName);
                 StateMachine = new TestStateMachine();
 
                 var raftConfig = RaftConfig.Load(RaftConfigFileName);
                 raftConfig.AppendEntriesTimeout = 1000;
-                raftConfig.LeaderHeartbeatTimer = 2000;
-                raftConfig.LeaderLostTimeout = 4000;
+                raftConfig.LeaderHeartbeatTimer = 1500;
+                raftConfig.LeaderLostTimeout = 2000;
                 raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
                 if (Directory.Exists(raftConfig.DbHome))
                     Directory.Delete(raftConfig.DbHome, true);

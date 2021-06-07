@@ -119,7 +119,7 @@ namespace Zeze.Services
             byte[] key = Config.HandshakeOptions.SecureIp != null
                 ? Config.HandshakeOptions.SecureIp
                 : ipaddress.GetAddressBytes();
-            logger.Debug($"{p.Sender.SessionId} localip={BitConverter.ToString(key)}");
+            logger.Debug("{0} localip={1}", p.Sender.SessionId, BitConverter.ToString(key));
             int half = material.Length / 2;
             byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
             p.Sender.SetInputSecurityCodec(hmacMd5, Config.HandshakeOptions.C2sNeedCompress);
@@ -168,7 +168,7 @@ namespace Zeze.Services
                     ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
                 if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
                 byte[] key = ipaddress.GetAddressBytes();
-                logger.Debug($"{p.Sender.SessionId} remoteip={BitConverter.ToString(key)}");
+                logger.Debug("{0} remoteip={1}", p.Sender.SessionId, BitConverter.ToString(key));
 
                 int half = material.Length / 2;
                 byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);

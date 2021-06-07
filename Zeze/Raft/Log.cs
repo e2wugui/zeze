@@ -185,6 +185,17 @@ namespace Zeze.Raft
         private RocksDb Logs;
         private RocksDb Rafts;
 
+        internal void Close()
+        {
+            lock (Raft)
+            {
+                Logs?.Dispose();
+                Logs = null;
+                Rafts?.Dispose();
+                Rafts = null;
+            }
+        }
+
         public LogSequence(Raft raft)
         {
             Raft = raft;
@@ -525,6 +536,7 @@ namespace Zeze.Raft
                 // 8. Reset state machine using snapshot contents (and load
                 // snapshot’s cluster configuration)
                 Raft.StateMachine.LoadFromSnapshot(s.Name);
+                logger.Debug("{0} EndReceiveInstallSnapshot Path={1}", Raft.Name, s.Name);
             }
         }
 
@@ -553,6 +565,8 @@ namespace Zeze.Raft
                 // 忽略Snapshot返回结果。肯定是重复调用导致的。
                 // out 结果这里没有使用，定义在参数里面用来表示这个很重要。
                 Raft.StateMachine.Snapshot(path, out LastIncludedIndex, out LastIncludedTerm);
+                logger.Debug("{0} Snapshot Path={1} LastIndex={2} LastTerm={3}",
+                    Raft.Name, path, LastIncludedIndex, LastIncludedTerm);
             }
             finally
             {
@@ -568,6 +582,8 @@ namespace Zeze.Raft
             // 整个安装成功结束时设置。中间Break(return)不设置。
             // 后面 finally 里面使用这个标志
             bool InstallSuccess = false;
+            logger.Debug("{0} InstallSnapshot Start... Path={1} ToConnector={2}",
+                Raft.Name, path, connector.Name);
             try
             {
                 var snapshotFile = new FileStream(path, FileMode.Open);
@@ -636,6 +652,8 @@ namespace Zeze.Raft
                     }
                 }
                 InstallSuccess = true;
+                logger.Debug("{0} InstallSnapshot [SUCCESS] Path={1} ToConnector={2}",
+                    Raft.Name, path, connector.Name);
             }
             finally
             {
@@ -884,7 +902,7 @@ namespace Zeze.Raft
                 TryApply(ReadLog(CommitIndex));
             }
             r.Result.Success = true;
-            //logger.Debug($"{Raft.Name}: {r}");
+            logger.Debug("{0}: {1}", Raft.Name, r);
             r.SendResultCode(0);
             return Procedure.Success;
         }

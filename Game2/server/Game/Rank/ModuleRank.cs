@@ -44,13 +44,14 @@ namespace Game.Rank
 
             var rank = _trank.GetOrAdd(concurrentKey);
             // remove if role exist. 看看有没有更快的算法。
-            bool found = false;
+            BRankValue exist = null;
             for (int i = 0; i < rank.RankList.Count; ++i)
             {
-                if (rank.RankList[i].RoleId == roleId)
+                var rankValue = rank.RankList[i];
+                if (rankValue.RoleId == roleId)
                 {
+                    exist = rankValue;
                     rank.RankList.RemoveAt(i);
-                    found = true;
                     break;
                 }
             }
@@ -59,7 +60,13 @@ namespace Game.Rank
             {
                 if (rank.RankList[i].Value < value)
                 {
-                    rank.RankList.Insert(i, new BRankValue() { RoleId = roleId, Value = value, ValueEx = valueEx });
+                    rank.RankList.Insert(i, new BRankValue()
+                    {
+                        RoleId = roleId,
+                        Value = value,
+                        ValueEx = valueEx,
+                        AwardTaken = null == exist ? false : exist.AwardTaken
+                    });
                     if (rank.RankList.Count > maxCount)
                     {
                         rank.RankList.RemoveAt(rank.RankList.Count - 1);
@@ -67,10 +74,19 @@ namespace Game.Rank
                     return Procedure.Success;
                 }
             }
-            // try append. 原来进榜，又排到了队尾，此时可能在未进榜的数据中存在比当前大的，所以不要放进去。
-            if (rank.RankList.Count < maxCount && false == found)
+            // A: 如果排行的Value可能减少，那么当它原来存在，但现在处于队尾时，不要再进榜。
+            // 因为此时可能存在未进榜但比它大的Value。
+            // B: 但是在进榜玩家比榜单数量少的时候，如果不进榜，队尾的玩家更新还在队尾就会消失。
+            if (rank.RankList.Count < GetRankCount(keyHint.RankType) // B:
+                || (rank.RankList.Count < maxCount && null == exist) // A:
+                )
             {
-                rank.RankList.Add(new BRankValue() { RoleId = roleId, Value = value, ValueEx = valueEx });
+                rank.RankList.Add(new BRankValue()
+                {
+                    RoleId = roleId, 
+                    Value = value, 
+                    ValueEx = valueEx 
+                });
             }
             return Procedure.Success;
         }
@@ -403,8 +419,12 @@ namespace Game.Rank
 
         public BConcurrentKey NewRankKey(int rankType, int timeType, int customizeId = 0)
         {
-            var now = DateTime.Now;
-            var year = now.Year; // 后面根据TimeType可能覆盖这个值。
+            return NewRankKey(DateTime.Now, rankType, timeType, customizeId);
+        }
+
+        public BConcurrentKey NewRankKey(DateTime time, int rankType, int timeType, int customizeId = 0)
+        {
+            var year = time.Year; // 后面根据TimeType可能覆盖这个值。
             int offset;
 
             switch (timeType)
@@ -415,15 +435,15 @@ namespace Game.Rank
                     break;
 
                 case BConcurrentKey.TimeTypeDay:
-                    offset = now.DayOfYear;
+                    offset = time.DayOfYear;
                     break;
 
                 case BConcurrentKey.TimeTypeWeek:
-                    offset = Zeze.Util.Time.GetWeekOfYear(now);
+                    offset = Zeze.Util.Time.GetWeekOfYear(time);
                     break;
 
                 case BConcurrentKey.TimeTypeSeason:
-                    offset = Zeze.Util.Time.GetSimpleChineseSeason(now);
+                    offset = Zeze.Util.Time.GetSimpleChineseSeason(time);
                     break;
 
                 case BConcurrentKey.TimeTypeYear:

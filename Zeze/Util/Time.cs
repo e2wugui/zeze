@@ -26,7 +26,7 @@ namespace Zeze.Util
         {
             // Gets the Calendar instance associated with a CultureInfo.
             CultureInfo myCI = CultureInfo.CurrentCulture;
-            // 在这里国际化不是很关键，只要能区分不同时段即可。
+            // FirstDayOfWeek在中国是周一，所以程序需要配置CurrentCulture。
             Calendar myCal = myCI.Calendar;
             // Gets the DTFI properties required by GetWeekOfYear.
             CalendarWeekRule myCWR = myCI.DateTimeFormat.CalendarWeekRule;

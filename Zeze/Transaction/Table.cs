@@ -111,7 +111,7 @@ namespace Zeze.Transaction
                                 r.Value.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
                             }
                         }
-                        logger.Debug($"FindInCacheOrStorage {r}");
+                        logger.Debug("FindInCacheOrStorage {0}", r);
                     }
                     return r;
                 }
@@ -127,7 +127,7 @@ namespace Zeze.Transaction
             rpc.Result = rpc.Argument;
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
-            //logger.Debug($"Reduce NewState={rpc.Argument.State}");
+            //logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
             TableKey tkey = new TableKey(Id, key);
             Lockey lockey = Locks.Instance.Get(tkey);
@@ -136,7 +136,7 @@ namespace Zeze.Transaction
             try
             {
                 r = Cache.Get(key);
-                logger.Debug($"Reduce NewState={rpc.Argument.State} {r}");
+                logger.Debug("Reduce NewState={0} {1}", rpc.Argument.State, r);
                 if (null == r)
                 {
                     rpc.Result.State = GlobalCacheManager.StateInvalid;
@@ -148,7 +148,7 @@ namespace Zeze.Transaction
                 {
                     case GlobalCacheManager.StateInvalid:
                         rpc.Result.State = GlobalCacheManager.StateInvalid;
-                        logger.Debug("Reduce SendResult 2{0}", r);
+                        logger.Debug("Reduce SendResult 2 {0}", r);
                         rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsInvalid);
                         return 0;
 
@@ -170,7 +170,11 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateShare;
-            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r);  rpc.SendResult(); });
+            Zeze.Checkpoint.AddActionAndPulse(() =>
+            {
+                logger.Debug("Reduce SendResult 4 {0}", r);
+                rpc.SendResult();
+            });
             //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
@@ -180,7 +184,7 @@ namespace Zeze.Transaction
             rpc.Result = rpc.Argument;
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
-            //logger.Debug($"Reduce NewState={rpc.Argument.State}");
+            //logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
             TableKey tkey = new TableKey(Id, key);
             Lockey lockey = Locks.Instance.Get(tkey);
@@ -189,7 +193,7 @@ namespace Zeze.Transaction
             try
             {
                 r = Cache.Get(key);
-                logger.Debug($"Reduce NewState={rpc.Argument.State} {r}");
+                logger.Debug("Reduce NewState={0} {1}", rpc.Argument.State, r);
                 if (null == r)
                 {
                     rpc.Result.State = GlobalCacheManager.StateInvalid;
@@ -225,7 +229,11 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateInvalid;
-            Zeze.Checkpoint.AddActionAndPulse(() => { logger.Debug("Reduce SendResult 4 {0}", r); rpc.SendResult(); });
+            Zeze.Checkpoint.AddActionAndPulse(() =>
+            {
+                logger.Debug("Reduce SendResult 4 {0}", r);
+                rpc.SendResult();
+            });
             //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
