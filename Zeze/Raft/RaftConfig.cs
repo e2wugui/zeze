@@ -24,6 +24,7 @@ namespace Zeze.Raft
         // 多数确认时：大于等于这个即可，因为还有自己(Leader)。
         public int HalfCount => Nodes.Count / 2;
         public string DbHome { get; set; } = "./";
+        public int AutoKeyLocalStep { get; set; }
 
         /// <summary>
         /// 复制日志超时，以及发送失败重试超时。
@@ -87,6 +88,9 @@ namespace Zeze.Raft
             SnapshotHourOfDay = string.IsNullOrEmpty(attr) ? 6 : int.Parse(attr);
             attr = self.GetAttribute("SnapshotMinute");
             SnapshotMinute = string.IsNullOrEmpty(attr) ? 0 : int.Parse(attr);
+
+            attr = self.GetAttribute("AutoKeyLocalStep");
+            AutoKeyLocalStep = string.IsNullOrEmpty(attr) ? 0 : int.Parse(attr);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

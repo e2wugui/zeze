@@ -29,14 +29,33 @@ namespace Zeze.Raft
         /// </summary>
         public virtual int TypeId => (int)Bean.Hash32(GetType().FullName);
 
+        // 当前这个Log是哪个应用的Rpc请求引起的。
+        // 【Raft用来检测重复的请求】。
+        // RaftConfig里面配置AutoKeyLocalStep开启这个功能。
+        // 启用这个功能要求应用的RpcSessionId持久化，并且全局唯一，对每个AutoKeyLocalStep递增。
+        // 【注意】应用生成的Id必须大于0；0保留给内部；小于0未使用。
+        public long AppRpcSessionId { get; set; }
+
+        public Log(long sessionId)
+        {
+            AppRpcSessionId = sessionId;
+        }
+
         /// <summary>
         /// 最主要的实现接口。
         /// </summary>
         /// <param name="stateMachine"></param>
         public abstract void Apply(StateMachine stateMachine);
 
-        public abstract void Decode(ByteBuffer bb);
-        public abstract void Encode(ByteBuffer bb);
+        public virtual void Decode(ByteBuffer bb)
+        {
+            AppRpcSessionId = bb.ReadLong();
+        }
+
+        public virtual void Encode(ByteBuffer bb)
+        {
+            bb.WriteLong(AppRpcSessionId);
+        }
     }
 
     public sealed class HeartbeatLog : Log
@@ -45,7 +64,7 @@ namespace Zeze.Raft
 
         public int Operate { get; private set; }
 
-        public HeartbeatLog(int operate = 0)
+        public HeartbeatLog(int operate = 0) : base(0)
         {
             Operate = operate;
         }
@@ -62,11 +81,13 @@ namespace Zeze.Raft
 
         public override void Decode(ByteBuffer bb)
         {
+            base.Decode(bb);
             Operate = bb.ReadInt();
         }
 
         public override void Encode(ByteBuffer bb)
         {
+            base.Encode(bb);
             bb.WriteInt(Operate);
         }
     }
@@ -182,8 +203,8 @@ namespace Zeze.Raft
         // Follower
         public long LeaderActiveTime { get; private set; } = Zeze.Util.Time.NowUnixMillis;
 
-        private RocksDb Logs;
-        private RocksDb Rafts;
+        private RocksDb Logs { get; set; }
+        private RocksDb Rafts { get; set; }
 
         internal void Close()
         {
@@ -412,6 +433,22 @@ namespace Zeze.Raft
 
                 index = raftLog.Index + 1;
 
+                if (Raft.RaftConfig.AutoKeyLocalStep > 0
+                    && raftLog.Log.AppRpcSessionId > 0)
+                {
+                    // 这是防止请求重复执行用的。
+                    // 【只能防君子】。
+                    // 因为是在收到请求的时候检查的，如果并发的两个请求使用相同的sid，
+                    // 在apply前都能通过检查并且最终得到apply。
+                    // 【如果要严格检查】
+                    // 应该在这里检查请求是否重复，并且取消掉重复的请求（不apply）。
+                    // 这样处理的话，要求每个rpc请求只能对应一个log，
+                    // 并且还需要考虑是否破坏log的redo（重启以后的重建StateMachine）。
+                    // 【总结】
+                    // 先防君子。
+                    var appInstance = raftLog.Log.AppRpcSessionId % Raft.RaftConfig.AutoKeyLocalStep;
+                    LastAppliedAppRpcSessionId[appInstance] = raftLog.Log.AppRpcSessionId;
+                }
                 raftLog.Log.Apply(Raft.StateMachine);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
 
@@ -419,6 +456,9 @@ namespace Zeze.Raft
                     future.SetResult(0);
             }
         }
+
+        public ConcurrentDictionary<long, long> LastAppliedAppRpcSessionId { get; }
+            = new ConcurrentDictionary<long, long>();
 
         internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }
             = new ConcurrentDictionary<long, TaskCompletionSource<int>>();

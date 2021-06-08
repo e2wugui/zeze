@@ -54,6 +54,8 @@ namespace Zeze.Net
         {
             Name = name;
             Zeze = app;
+            // Zeze-App 自动启用持久化的全局唯一的Rpc.SessionId生成器。
+            SessionIdGenerator = Zeze.TableSys.AutoKeys.GetAutoKey(Name).Next;
             InitConfig(app?.Config);
         }
 
@@ -326,21 +328,25 @@ namespace Zeze.Net
 
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// Rpc Context. 模板不好放进去，使用基类 Protocol
-        private Util.AtomicLong SessionIdGen = new Util.AtomicLong();
+        private static Util.AtomicLong StaticSessionIdAtomicLong { get; } = new Util.AtomicLong();
+        public Func<long> SessionIdGenerator { get; set; }
+
         private readonly ConcurrentDictionary<long, Protocol> _RpcContexts
             = new ConcurrentDictionary<long, Protocol>();
         public IReadOnlyDictionary<long, Protocol> RpcContexts => _RpcContexts;
 
         public long NextSessionId()
         {
-            return SessionIdGen.IncrementAndGet();
+            if (null != SessionIdGenerator)
+                return SessionIdGenerator();
+            return StaticSessionIdAtomicLong.IncrementAndGet();
         }
 
         internal long AddRpcContext(Protocol p)
         {
             while (true)
             {
-                long sessionId = SessionIdGen.IncrementAndGet();
+                long sessionId = NextSessionId();
                 if (_RpcContexts.TryAdd(sessionId, p))
                 {
                     return sessionId;
@@ -379,7 +385,7 @@ namespace Zeze.Net
         {
             while (true)
             {
-                long sessionId = SessionIdGen.IncrementAndGet();
+                long sessionId = NextSessionId();
                 if (ManualContexts.TryAdd(sessionId, context))
                 {
                     context.SessionId = sessionId;

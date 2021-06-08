@@ -136,6 +136,21 @@ namespace Zeze.Raft
 
             if (Raft.IsLeader)
             {
+                if (/*p.IsRequest NOT NEED && */
+                    p.SessionId > 0
+                    && Raft.RaftConfig.AutoKeyLocalStep > 0)
+                {
+                    //【防君子】see Log.cs::LogSequence.TryApply
+                    var appInstance = p.SessionId % Raft.RaftConfig.AutoKeyLocalStep;
+                    if (Raft.LogSequence.LastAppliedAppRpcSessionId.TryGetValue(appInstance, out var exist))
+                    {
+                        if (p.SessionId <= exist)
+                        {
+                            p.SendResultCode(Procedure.DuplicateRpcRequest);
+                            return;
+                        }
+                    }
+                }
                 Raft.RunWhenLeaderReady(
                     () => Util.Task.Run(() => factoryHandle.Handle(p), p, true));
                 return;
@@ -145,6 +160,7 @@ namespace Zeze.Raft
             {
                 // redirect
                 var redirect = new LeaderIs();
+                redirect.Argument.Term = Raft.LogSequence.Term;
                 redirect.Argument.LeaderId = Raft.LeaderId;
                 redirect.Send(p.Sender); // ignore response
                 // DONOT process application request.
@@ -163,6 +179,7 @@ namespace Zeze.Raft
             if (Raft.IsLeader && Raft.LeaderReadyEvent.WaitOne(0))
             {
                 var r = new LeaderIs();
+                r.Argument.Term = Raft.LogSequence.Term;
                 r.Argument.LeaderId = Raft.LeaderId;
                 r.Send(so); // skip result
             }
@@ -176,6 +193,7 @@ namespace Zeze.Raft
         public RaftConfig RaftConfig { get; }
         public NetClient Client { get; }
         public string Name => Client.Name;
+        public long Term { get; private set; }
 
         public ConnectorEx Leader => _Leader;
 
@@ -358,25 +376,37 @@ namespace Zeze.Raft
                 }
             }
 
-            SetLeader(node as ConnectorEx);
-
-            if (r.Sender.Connector.Name.Equals(r.Argument.LeaderId))
+            if (TrySetLeader(r, node as ConnectorEx))
             {
-                // 来自 Leader 的公告。
-                if (null != OnLeaderChanged)
+                if (r.Sender.Connector.Name.Equals(r.Argument.LeaderId))
                 {
-                    OnLeaderChanged(this, SetReady);
+                    // 来自 Leader 的公告。
+                    if (null != OnLeaderChanged)
+                    {
+                        OnLeaderChanged(this, SetReady);
+                    }
+                    else
+                    {
+                        SetReady();
+                    }
                 }
                 else
                 {
-                    SetReady();
+                    // 从 Follower 得到的重定向，原则上不需要处理。
+                    // 等待 LeaderIs 的通告即可。但是为了防止LeaderIs丢失，就处理一下吧。
+                    // 【实际上和上面的处理逻辑一样】。
+                    // 此时Leader可能没有准备好，但是提前给Leader发送请求是可以的。
+                    if (null != OnLeaderChanged)
+                    {
+                        OnLeaderChanged(this, SetReady);
+                    }
+                    else
+                    {
+                        SetReady();
+                    }
                 }
-            }
-            // else
-            // 从 Follower 得到的重定向，不需要处理。
-            // 等待 Leader 的通告。
-            // 【需要仔细考虑一下，通告是否会丢失】
 
+            }
             r.SendResultCode(0);
             return Procedure.Success;
         }
@@ -407,25 +437,38 @@ namespace Zeze.Raft
             }
         }
 
-        internal void SetLeader(ConnectorEx newLeader)
+        internal bool TrySetLeader(LeaderIs r, ConnectorEx newLeader)
         {
             lock (this)
             {
+                if (r.Argument.Term < Term)
+                {
+                    logger.Warn("{0} Skip LeaderIs {1}", Name, r);
+                    return false;
+                }
                 if (_Leader != null)
                 {
                     // 把旧的_Leader的没有返回结果的请求收集起来，准备重新发送。
                     CollectPendingRpc(_Leader.Socket);
                 }
+                Term = r.Argument.Term;
                 _Leader = newLeader;
+                return true;
             }
         }
 
-        internal void TryClearLeader(ConnectorEx oldLeader)
+        internal bool TryClearLeader(ConnectorEx oldLeader)
         {
             lock (this)
             {
                 if (_Leader == oldLeader)
-                    SetLeader(null);
+                {
+                    if (_Leader != null)
+                        CollectPendingRpc(_Leader.Socket);
+                    _Leader = null;
+                    return true;
+                }
+                return false;
             }
         }
 
@@ -718,15 +761,18 @@ namespace Zeze.Raft
     /// </summary>
     public sealed class LeaderIsArgument : Bean
     {
+        public long Term { get; set; }
         public string LeaderId { get; set; }
 
         public override void Decode(ByteBuffer bb)
         {
+            Term = bb.ReadLong();
             LeaderId = bb.ReadString();
         }
 
         public override void Encode(ByteBuffer bb)
         {
+            bb.WriteLong(Term);
             bb.WriteString(LeaderId);
         }
 
@@ -737,7 +783,7 @@ namespace Zeze.Raft
 
         public override string ToString()
         {
-            return $"(LeaderId={LeaderId})";
+            return $"(Term={Term} LeaderId={LeaderId})";
         }
     }
 

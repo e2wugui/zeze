@@ -95,9 +95,11 @@ namespace Zeze.Transaction
 
 		public long Next()
         {
+			// 允许在非事务中使用。
+			/*
 			if (Transaction.Current == null)
 				throw new Exception("Not in transaction");
-
+			*/
 			lock (this)
             {
 				long tmp = Current + LocalStep;

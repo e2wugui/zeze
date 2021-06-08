@@ -99,17 +99,17 @@ namespace Zeze.Raft
             Task[] tasks = new Task[concurrent];
             for (int i = 0; i < requests.Count; ++i)
             {
+                logger.Debug("+++++++++ REQUEST {0} {1}", stepName, requests[i]);
                 tasks[i] = Agent.SendForWait(requests[i]).Task;
             }
             Task.WaitAll(tasks);
             foreach (var request in requests)
             {
+                logger.Debug("+++++++++++++ RESPONSE {0} {1}", stepName, request);
                 if (request.IsTimeout)
                     AddTimeoutCount++;
                 else if (request.ResultCode != 0)
                     AddErrorCount++;
-                else
-                    logger.Debug("+++++++++++++ {0} {1}", stepName, request);
             }
         }
 
@@ -129,7 +129,6 @@ namespace Zeze.Raft
 
         private void TestConcurrent(string testname, int count)
         {
-            logger.Debug("+++++++++ {0} count={1}", testname, count);
             AddTimeoutCount = 0;
             AddErrorCount = 0;
             ConcurrentAddCount(testname, count);
@@ -256,13 +255,17 @@ namespace Zeze.Raft
         {
             public int Count { get; set; }
 
-            public void AddCountAndWait()
+            public void AddCountAndWait(long ssid)
             {
-                Raft.AppendLog(new AddCount());
+                Raft.AppendLog(new AddCount(ssid));
             }
 
             public sealed class AddCount : Log
             {
+                public AddCount(long ssid) : base(ssid)
+                {
+
+                }
                 public override void Apply(StateMachine stateMachine)
                 {
                     (stateMachine as TestStateMachine).Count += 1;
@@ -270,10 +273,12 @@ namespace Zeze.Raft
 
                 public override void Decode(ByteBuffer bb)
                 {
+                    base.Decode(bb);
                 }
 
                 public override void Encode(ByteBuffer bb)
                 {
+                    base.Encode(bb);
                 }
             }
 
@@ -310,7 +315,7 @@ namespace Zeze.Raft
 
             public TestStateMachine()
             {
-                AddFactory(new AddCount().TypeId, () => new AddCount());
+                AddFactory(new AddCount(0).TypeId, () => new AddCount(0));
             }
         }
 
@@ -386,7 +391,7 @@ namespace Zeze.Raft
                 var r = p as AddCount;
                 lock (StateMachine)
                 {
-                    StateMachine.AddCountAndWait();
+                    StateMachine.AddCountAndWait(r.SessionId);
                     r.SendResultCode(0);
                 }
                 return Procedure.Success;

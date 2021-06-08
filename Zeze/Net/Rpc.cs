@@ -18,7 +18,8 @@ namespace Zeze.Net
         private bool _IsRequest;
 
         public bool IsTimeout { get; private set; }
-        public long SessionId { get; private set; }
+        public override long SessionId => _SessionId;
+        private long _SessionId;
 
         public Func<Protocol, int> ResponseHandle { get; set; }
         public int Timeout { get; set; } = 5000;
@@ -84,7 +85,7 @@ namespace Zeze.Net
             this._IsRequest = true;
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
-            this.SessionId = so.Service.AddRpcContext(this);
+            this._SessionId = so.Service.AddRpcContext(this);
             var timeoutTask = Schedule(so.Service, SessionId, millisecondsTimeout);
 
             if (base.Send(so))
@@ -119,7 +120,7 @@ namespace Zeze.Net
             this._IsRequest = true;
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
-            this.SessionId = service.AddRpcContext(this);
+            this._SessionId = service.AddRpcContext(this);
             Schedule(service, SessionId, millisecondsTimeout);
             base.Send(so);
         }
@@ -222,7 +223,7 @@ namespace Zeze.Net
         public override void Decode(ByteBuffer bb)
         {
             _IsRequest = bb.ReadBool();
-            SessionId = bb.ReadLong();
+            _SessionId = bb.ReadLong();
             ResultCode = bb.ReadInt();
 
             if (IsRequest)
@@ -253,7 +254,7 @@ namespace Zeze.Net
 
         public override string ToString()
         {
-            return $"{GetType().FullName}{Environment.NewLine}\tResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}{Environment.NewLine}\tResult={Result}";
+            return $"{GetType().FullName} SessionId={SessionId} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}{Environment.NewLine}\tResult={Result}";
         }
     }
 }

@@ -68,7 +68,7 @@ namespace Zeze.Net
 
 		// always true for Protocol, Rpc Will override
 		public virtual bool IsRequest => true;
-
+		public virtual long SessionId => 0;
 		/// <summary>
 		/// Id + size + protocol.bytes
 		/// </summary>
@@ -164,7 +164,7 @@ namespace Zeze.Net
 
         public override string ToString()
         {
-            return $"{GetType().FullName}{Environment.NewLine}\tResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}";
+            return $"{GetType().FullName} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}";
         }
     }
 }
