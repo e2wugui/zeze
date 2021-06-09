@@ -19,7 +19,7 @@ namespace Zeze.Transaction
         public const int ProviderNotExist = -9;
         public const int Timeout = -10;
         public const int CancelExcption = -11;
-        public const int DuplicateRpcRequest = -12;
+        public const int DuplicateRequest = -12;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();

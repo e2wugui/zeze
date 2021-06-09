@@ -18,8 +18,7 @@ namespace Zeze.Net
         private bool _IsRequest;
 
         public bool IsTimeout { get; private set; }
-        public override long SessionId => _SessionId;
-        private long _SessionId;
+        public long SessionId { get; private set; }
 
         public Func<Protocol, int> ResponseHandle { get; set; }
         public int Timeout { get; set; } = 5000;
@@ -85,7 +84,9 @@ namespace Zeze.Net
             this._IsRequest = true;
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
-            this._SessionId = so.Service.AddRpcContext(this);
+            this.SessionId = so.Service.AddRpcContext(this);
+            if (base.UniqueRequestId == 0)
+                base.UniqueRequestId = this.SessionId;
             var timeoutTask = Schedule(so.Service, SessionId, millisecondsTimeout);
 
             if (base.Send(so))
@@ -120,7 +121,9 @@ namespace Zeze.Net
             this._IsRequest = true;
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
-            this._SessionId = service.AddRpcContext(this);
+            this.SessionId = service.AddRpcContext(this);
+            if (base.UniqueRequestId == 0)
+                base.UniqueRequestId = this.SessionId;
             Schedule(service, SessionId, millisecondsTimeout);
             base.Send(so);
         }
@@ -223,8 +226,9 @@ namespace Zeze.Net
         public override void Decode(ByteBuffer bb)
         {
             _IsRequest = bb.ReadBool();
-            _SessionId = bb.ReadLong();
+            SessionId = bb.ReadLong();
             ResultCode = bb.ReadInt();
+            UniqueRequestId = bb.ReadLong();
 
             if (IsRequest)
             {
@@ -241,6 +245,7 @@ namespace Zeze.Net
             bb.WriteBool(IsRequest);
             bb.WriteLong(SessionId);
             bb.WriteInt(ResultCode);
+            bb.WriteLong(UniqueRequestId);
 
             if (_IsRequest)
             {
@@ -254,7 +259,7 @@ namespace Zeze.Net
 
         public override string ToString()
         {
-            return $"{GetType().FullName} SessionId={SessionId} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}{Environment.NewLine}\tResult={Result}";
+            return $"{GetType().FullName} SessionId={SessionId} UniqueRequestId={UniqueRequestId} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}{Environment.NewLine}\tResult={Result}";
         }
     }
 }

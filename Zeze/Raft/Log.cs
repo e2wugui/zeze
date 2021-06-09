@@ -27,18 +27,20 @@ namespace Zeze.Raft
         /// 如果实现类的FullName发生了改变，需要更新所有的Raft-Node。
         /// 如果不想跟名字相关，重载并提供一个编号。
         /// </summary>
-        public virtual int TypeId => (int)Bean.Hash32(GetType().FullName);
+        private int _TypeId;
+        public virtual int TypeId => _TypeId;
 
         // 当前这个Log是哪个应用的Rpc请求引起的。
         // 【Raft用来检测重复的请求】。
         // RaftConfig里面配置AutoKeyLocalStep开启这个功能。
         // 启用这个功能要求应用的RpcSessionId持久化，并且全局唯一，对每个AutoKeyLocalStep递增。
         // 【注意】应用生成的Id必须大于0；0保留给内部；小于0未使用。
-        public long AppRpcSessionId { get; set; }
+        public long UniqueRequestId { get; set; }
 
-        public Log(long sessionId)
+        public Log(long requestId)
         {
-            AppRpcSessionId = sessionId;
+            UniqueRequestId = requestId;
+            _TypeId = (int)Bean.Hash32(GetType().FullName);
         }
 
         /// <summary>
@@ -49,12 +51,12 @@ namespace Zeze.Raft
 
         public virtual void Decode(ByteBuffer bb)
         {
-            AppRpcSessionId = bb.ReadLong();
+            UniqueRequestId = bb.ReadLong();
         }
 
         public virtual void Encode(ByteBuffer bb)
         {
-            bb.WriteLong(AppRpcSessionId);
+            bb.WriteLong(UniqueRequestId);
         }
     }
 
@@ -433,21 +435,13 @@ namespace Zeze.Raft
 
                 index = raftLog.Index + 1;
 
-                if (Raft.RaftConfig.AutoKeyLocalStep > 0
-                    && raftLog.Log.AppRpcSessionId > 0)
+                if (Raft.RaftConfig.AutoKeyLocalStep > 0 && raftLog.Log.UniqueRequestId > 0)
                 {
                     // 这是防止请求重复执行用的。
-                    // 【只能防君子】。
-                    // 因为是在收到请求的时候检查的，如果并发的两个请求使用相同的sid，
-                    // 在apply前都能通过检查并且最终得到apply。
-                    // 【如果要严格检查】
-                    // 应该在这里检查请求是否重复，并且取消掉重复的请求（不apply）。
-                    // 这样处理的话，要求每个rpc请求只能对应一个log，
-                    // 并且还需要考虑是否破坏log的redo（重启以后的重建StateMachine）。
-                    // 【总结】
-                    // 先防君子。
-                    var appInstance = raftLog.Log.AppRpcSessionId % Raft.RaftConfig.AutoKeyLocalStep;
-                    LastAppliedAppRpcSessionId[appInstance] = raftLog.Log.AppRpcSessionId;
+                    // 需要对每个Raft.Agent的请求排队处理。
+                    // see Net.cs Server.DispatchProtocol
+                    var appInstance = raftLog.Log.UniqueRequestId % Raft.RaftConfig.AutoKeyLocalStep;
+                    LastAppliedAppRpcSessionId[appInstance] = raftLog.Log.UniqueRequestId;
                 }
                 raftLog.Log.Apply(Raft.StateMachine);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。

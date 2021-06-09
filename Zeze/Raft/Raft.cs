@@ -38,7 +38,24 @@ namespace Zeze.Raft
 
         public void Close()
         {
+            // 1. close network first.
             Server.Stop();
+
+            // 2. clear pending task if is leader
+            lock (this)
+            {
+                if (IsLeader)
+                {
+                    Server.TaskOneByOne.Clear();
+                    // this will wakeup Running-Task in TaskOneByOne
+                    // see WaitLeaderReady.
+                    // 这里只用使用状态改变，不直接想办法唤醒等待的任务，
+                    // 可以避免状态设置对不对的问题。关闭时转换成Follower也是对的。
+                    ConvertStateTo(RaftState.Follower);
+                }
+            }
+
+            // 3. close LogSequence (rocksdb)
             LogSequence.Close();
         }
 
@@ -220,15 +237,35 @@ namespace Zeze.Raft
             = new ConcurrentDictionary<string, Connector>();
         // Leader
         private SchedulerTask HearbeatTimerTask;
-        internal ManualResetEvent LeaderReadyEvent = new ManualResetEvent(false);
+        internal ManualResetEvent LeaderReadyEvent { get; } = new ManualResetEvent(false);
         // Follower
         private SchedulerTask LeaderLostTimerTask;
+
+        /// <summary>
+        /// true，IsLeader && LeaderReady;
+        /// false, !IsLeader
+        /// </summary>
+        /// <returns></returns>
+        internal bool WaitLeaderReady()
+        {
+            lock (this)
+            {
+                while (IsLeader)
+                {
+                    if (LeaderReadyEvent.WaitOne(0))
+                        return true;
+                    Monitor.Wait(this);
+                }
+                return false;
+            }
+        }
 
         internal void SetLeaderReady()
         {
             if (IsLeader)
             {
                 LeaderReadyEvent.Set();
+                Monitor.PulseAll(this);
 
                 Server.Foreach(
                     (allsocket) =>
@@ -244,22 +281,6 @@ namespace Zeze.Raft
                         r.Send(allsocket); // skip response.
                     });
             }
-        }
-
-        // Must IsLeader
-        internal void RunWhenLeaderReady(Action action)
-        {
-            if (LeaderReadyEvent.WaitOne(0))
-            {
-                action();
-                return;
-            }
-            Util.Task.Run(
-                () =>
-                {
-                    LeaderReadyEvent.WaitOne();
-                    action();
-                }, "Zeze.Raft.DispatchUserProtocol");
         }
 
         private bool IsLastLogUpToDate(long lastTerm, long lastIndex)
@@ -504,6 +525,7 @@ namespace Zeze.Raft
                     logger.Info($"RaftState {Name}: Leader->Follower");
                     State = RaftState.Follower;
                     LeaderReadyEvent.Reset();
+                    Monitor.PulseAll(this);
 
                     HearbeatTimerTask?.Cancel();
                     HearbeatTimerTask = null;
@@ -546,7 +568,8 @@ namespace Zeze.Raft
                 return;
 
             StartRequestVoteDelayTask = Scheduler.Instance.Schedule(
-                SendRequestVote, Util.Random.Instance.Next(2000));
+                SendRequestVote,
+                Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout + 1000));
         }
 
         private void RegisterInternalRpc()

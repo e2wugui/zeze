@@ -24,14 +24,5 @@ GlobalCacheManagerWithRaft
 	优化。改成一次AppendLog。
 	关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 
-状态转变的时候，报告不是LeaderIs？
-LeaderIs增加Term。
-请求的SessionId加到Log中。
-请求AppendEntries失败，Redirect。
 vote问题？
 Agent的请求lost context，但是Task.Wait怎么返回的。
-
-0  1  2  3  4
-5  6  7  8  9  % step
-10 11 12 13 14 % step
-15 16 17 18 19 % step

@@ -40,7 +40,7 @@ namespace Zeze.Raft
                 raft.Raft.Server.Start();
             }
 
-            Agent = new Agent(raftConfigStart);
+            Agent = new Agent("Zeze.Raft.Agent.Test", raftConfigStart);
             Agent.Client.AddFactoryHandle(
                 new AddCount().TypeId,
                 new Net.Service.ProtocolFactoryHandle()
@@ -72,21 +72,20 @@ namespace Zeze.Raft
             return r.ResultCode;
         }
 
-        private int CurrentCount;
-        private int AddErrorCount;
-        private int AddTimeoutCount;
+        private int ExpectCount { get; set; }
+        private int AddErrorCount { get; set; }
+        private int AddTimeoutCount { get; set; }
 
-        private void CheckCurrentCount(string stepName, int expect)
+        private void CheckCurrentCount(string stepName)
         {
-            var before = CurrentCount;
-            CurrentCount = GetCurrentCount();
-            var diff = CurrentCount - before;
-            if (diff != expect)
+            var CurrentCount = GetCurrentCount();
+            if (CurrentCount != ExpectCount)
             {
-                if (diff + AddErrorCount + AddTimeoutCount != expect)
-                    logger.Fatal($"================== {stepName} Expect={expect} Now={diff},Error={AddErrorCount},Timeout={AddTimeoutCount} ==================");
+                if (CurrentCount + AddErrorCount + AddTimeoutCount != ExpectCount)
+                    logger.Fatal($"================== {stepName} Expect={ExpectCount} Now={CurrentCount},Error={AddErrorCount},Timeout={AddTimeoutCount} ==================");
                 else
-                    logger.Info($"################## {stepName} Expect={expect} Now={diff},Error={AddErrorCount},Timeout={AddTimeoutCount} ##################");
+                    logger.Info($"################## {stepName} Expect={ExpectCount} Now={CurrentCount},Error={AddErrorCount},Timeout={AddTimeoutCount} ##################");
+                ExpectCount = CurrentCount; // 下一个测试重新开始。
             }
         }
 
@@ -132,14 +131,16 @@ namespace Zeze.Raft
             AddTimeoutCount = 0;
             AddErrorCount = 0;
             ConcurrentAddCount(testname, count);
-            CheckCurrentCount(testname, count);
+            ExpectCount += count;
+            CheckCurrentCount(testname);
         }
 
         public void RunTrace()
         {
             // 基本测试
             Agent.SendForWait(new AddCount()).Task.Wait();
-            CheckCurrentCount("TestAddCount", 1);
+            ExpectCount += 1;
+            CheckCurrentCount("TestAddCount");
 
             // 基本并发请求
             SetLogLevel(NLog.LogLevel.Info);
@@ -255,14 +256,14 @@ namespace Zeze.Raft
         {
             public int Count { get; set; }
 
-            public void AddCountAndWait(long ssid)
+            public void AddCountAndWait(long requestId)
             {
-                Raft.AppendLog(new AddCount(ssid));
+                Raft.AppendLog(new AddCount(requestId));
             }
 
             public sealed class AddCount : Log
             {
-                public AddCount(long ssid) : base(ssid)
+                public AddCount(long requestId) : base(requestId)
                 {
 
                 }
@@ -391,7 +392,7 @@ namespace Zeze.Raft
                 var r = p as AddCount;
                 lock (StateMachine)
                 {
-                    StateMachine.AddCountAndWait(r.SessionId);
+                    StateMachine.AddCountAndWait(r.UniqueRequestId);
                     r.SendResultCode(0);
                 }
                 return Procedure.Success;

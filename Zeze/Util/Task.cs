@@ -26,10 +26,10 @@ namespace Zeze.Util
             return System.Threading.Tasks.Task.Run(() => Call(action, actionName));
         }
 
-        public static void LogAndStatistics(int result, Net.Protocol p)
+        public static void LogAndStatistics(int result, Net.Protocol p, bool IsRequestSaved)
         {
             var actionName = p.GetType().FullName;
-            if (p.IsRequest == false)
+            if (IsRequestSaved == false)
                 actionName = actionName + ":Response";
 
             if (result != 0)
@@ -47,7 +47,7 @@ namespace Zeze.Util
                     p.UserState);
             }
 #if ENABLE_STATISTICS
-            Zeze.Transaction.ProcedureStatistics.Instance.GetOrAdd(actionName).GetOrAdd(result).IncrementAndGet();
+            ProcedureStatistics.Instance.GetOrAdd(actionName).GetOrAdd(result).IncrementAndGet();
 #endif
         }
 
@@ -63,7 +63,7 @@ namespace Zeze.Util
                 {
                     p.SendResultCode(result);
                 }
-                LogAndStatistics(result, p);
+                LogAndStatistics(result, p, IsRequestSaved);
             }
             catch (Exception ex)
             {
@@ -77,7 +77,7 @@ namespace Zeze.Util
                 if (sendResultCodeWhenError && IsRequestSaved)
                     p.SendResultCode(errorCode);
 
-                LogAndStatistics(errorCode, p);
+                LogAndStatistics(errorCode, p, IsRequestSaved);
                 // 使用 InnerException
                 logger.Error(ex, "Task {0} Exception UserState={1}",
                     p.GetType().FullName, p.UserState);

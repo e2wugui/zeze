@@ -118,6 +118,29 @@ namespace Zeze.Raft
             base.DispatchRpcResponse(p, responseHandle, factoryHandle);
         }
 
+        public Util.TaskOneByOneByKey TaskOneByOne { get; } = new Util.TaskOneByOneByKey();
+
+        private void ProcessRequest(long appInstance, Protocol p, ProtocolFactoryHandle factoryHandle)
+        {
+            Util.Task.Call(() =>
+            {
+                if (Raft.WaitLeaderReady())
+                {
+                    if (Raft.LogSequence.LastAppliedAppRpcSessionId.TryGetValue(appInstance, out var exist))
+                    {
+                        if (p.UniqueRequestId <= exist)
+                        {
+                            p.SendResultCode(Procedure.DuplicateRequest);
+                            return Procedure.DuplicateRequest;
+                        }
+                    }
+                    return factoryHandle.Handle(p);
+                }
+                TrySendLeaderIs(p.Sender);
+                return Procedure.LogicError;
+            }, p, true);
+        }
+
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             // 防止Client不进入加密，直接发送用户协议。
@@ -136,39 +159,35 @@ namespace Zeze.Raft
 
             if (Raft.IsLeader)
             {
-                if (/*p.IsRequest NOT NEED && */
-                    p.SessionId > 0
-                    && Raft.RaftConfig.AutoKeyLocalStep > 0)
-                {
-                    //【防君子】see Log.cs::LogSequence.TryApply
-                    var appInstance = p.SessionId % Raft.RaftConfig.AutoKeyLocalStep;
-                    if (Raft.LogSequence.LastAppliedAppRpcSessionId.TryGetValue(appInstance, out var exist))
-                    {
-                        if (p.SessionId <= exist)
-                        {
-                            p.SendResultCode(Procedure.DuplicateRpcRequest);
-                            return;
-                        }
-                    }
-                }
-                Raft.RunWhenLeaderReady(
-                    () => Util.Task.Run(() => factoryHandle.Handle(p), p, true));
+                // 默认0，如果没有配置多实例客户端，所有得请求都排一个队列，因为并发有风险。
+                long appInstance = 0;
+                //【防止重复的请求】
+                // see Log.cs::LogSequence.TryApply
+                if (p.UniqueRequestId > 0 && Raft.RaftConfig.AutoKeyLocalStep > 0)
+                    appInstance = p.UniqueRequestId % Raft.RaftConfig.AutoKeyLocalStep;
+
+                TaskOneByOne.Execute(appInstance, () => ProcessRequest(appInstance, p, factoryHandle));
                 return;
             }
 
+            TrySendLeaderIs(p.Sender);
+
+            // 选举中
+            // DONOT process application request.
+        }
+
+        private void TrySendLeaderIs(AsyncSocket sender)
+        {
             if (Raft.HasLeader)
             {
                 // redirect
                 var redirect = new LeaderIs();
                 redirect.Argument.Term = Raft.LogSequence.Term;
                 redirect.Argument.LeaderId = Raft.LeaderId;
-                redirect.Send(p.Sender); // ignore response
+                redirect.Send(sender); // ignore response
                 // DONOT process application request.
                 return;
             }
-
-            // 选举中
-            // DONOT process application request.
         }
 
         public override void OnHandshakeDone(AsyncSocket so)
@@ -190,8 +209,8 @@ namespace Zeze.Raft
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public RaftConfig RaftConfig { get; }
-        public NetClient Client { get; }
+        public RaftConfig RaftConfig { get; private set; }
+        public NetClient Client { get; private set; }
         public string Name => Client.Name;
         public long Term { get; private set; }
 
@@ -205,7 +224,7 @@ namespace Zeze.Raft
         private Util.IdentityHashMap<Protocol, Protocol> Pending { get; }
             = new Util.IdentityHashMap<Protocol, Protocol>();
 
-        public Action<Agent, Action> OnLeaderChanged { get; }
+        public Action<Agent, Action> OnLeaderChanged { get; private set; }
 
         /// <summary>
         /// 发送Rpc请求。
@@ -314,6 +333,16 @@ namespace Zeze.Raft
             }
         }
 
+        public Agent(
+            string name,
+            Application zeze,
+            RaftConfig raftconf = null,
+            Action<Agent, Action> onLeaderChanged = null
+            )
+        {
+            Init(new NetClient(this, name, zeze), raftconf, onLeaderChanged);
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -322,10 +351,19 @@ namespace Zeze.Raft
         /// <param name="onLeaderChanged"></param>
         /// <param name="name"></param>
         public Agent(
+            string name,
             RaftConfig raftconf = null,
             Zeze.Config config = null,
-            Action<Agent, Action> onLeaderChanged = null,
-            string name = "Zeze.Raft.Agent")
+            Action<Agent, Action> onLeaderChanged = null
+            )
+        {
+            if (null == config)
+                config = Config.Load();
+
+            Init(new NetClient(this, name, config), raftconf, onLeaderChanged);
+        }
+
+        private void Init(NetClient client, RaftConfig raftconf, Action<Agent, Action> onLeaderChanged)
         {
             OnLeaderChanged = onLeaderChanged;
 
@@ -333,11 +371,7 @@ namespace Zeze.Raft
                 raftconf = RaftConfig.Load();
 
             RaftConfig = raftconf;
-
-            if (null == config)
-                config = Zeze.Config.Load();
-
-            Client = new NetClient(this, name, config);
+            Client = client;
 
             if (Client.Config.AcceptorCount() != 0)
                 throw new Exception("Acceptor Found!");
@@ -477,6 +511,12 @@ namespace Zeze.Raft
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
             public Agent Agent { get; }
+
+            public NetClient(Agent agent, string name, Application zeze)
+                : base(name, zeze)
+            {
+                Agent = agent;
+            }
 
             public NetClient(Agent agent, string name, Zeze.Config config)
                 : base(name, config)

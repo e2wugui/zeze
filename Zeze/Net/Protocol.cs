@@ -49,6 +49,8 @@ namespace Zeze.Net
 			if (null == so)
 				return false;
 			Sender = so;
+			if (UniqueRequestId == 0)
+				UniqueRequestId = so.Service.NextSessionId();
 			return so.Send(Encode());
 		}
 
@@ -68,7 +70,13 @@ namespace Zeze.Net
 
 		// always true for Protocol, Rpc Will override
 		public virtual bool IsRequest => true;
-		public virtual long SessionId => 0;
+
+		/// <summary>
+		/// 唯一的请求编号，重发时保持不变。
+		/// 第一次发送的时候用Service.SessionIdGenerator生成。
+		/// </summary>
+		public long UniqueRequestId { get; protected set; }
+
 		/// <summary>
 		/// Id + size + protocol.bytes
 		/// </summary>
@@ -141,7 +149,7 @@ namespace Zeze.Net
 
 		public override string ToString()
         {
-			return $"{GetType().FullName}({ModuleId},{ProtocolId})";
+			return $"{GetType().FullName}({ModuleId},{ProtocolId} UniqueRequestId={UniqueRequestId})";
         }
     }
 
@@ -153,18 +161,20 @@ namespace Zeze.Net
 		public override void Decode(ByteBuffer bb)
         {
 			ResultCode = bb.ReadInt();
+			UniqueRequestId = bb.ReadLong();
 			Argument.Decode(bb);
 		}
 
 		public override void Encode(ByteBuffer bb)
         {
 			bb.WriteInt(ResultCode);
+			bb.WriteLong(UniqueRequestId);
 			Argument.Encode(bb);
 		}
 
         public override string ToString()
         {
-            return $"{GetType().FullName} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}";
+            return $"{GetType().FullName} UniqueRequestId={UniqueRequestId} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}";
         }
     }
 }

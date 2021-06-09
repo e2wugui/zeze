@@ -68,6 +68,14 @@ namespace Zeze.Util
 			concurrency[index].Execute(procedure.Call, procedure.ActionName);
 		}
 
+		public void Clear()
+        {
+			foreach (var ts in concurrency)
+            {
+				ts.Clear();
+            }
+        }
+
 		/**
 		 * Applies a supplemental hash function to a given hashCode, which defends
 		 * against poor quality hash functions. This is critical because HashMap uses
@@ -91,6 +99,14 @@ namespace Zeze.Util
 		internal class TaskOneByOne
 		{
 			LinkedList<(Action, string)> queue = new LinkedList<(Action, string)>();
+
+			public void Clear()
+            {
+				lock (this)
+                {
+					queue.Clear();
+                }
+            }
 
             public TaskOneByOne()
             {
@@ -146,8 +162,10 @@ namespace Zeze.Util
 			{
 				lock (this)
 				{
-					queue.RemoveFirst();
-
+					if (queue.Count > 0)
+					{
+						queue.RemoveFirst();
+					}
 					if (queue.Count > 0)
 					{
 						Zeze.Util.Task.Run(queue.First.Value.Item1, queue.First.Value.Item2);
