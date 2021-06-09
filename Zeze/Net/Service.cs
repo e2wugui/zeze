@@ -98,6 +98,11 @@ namespace Zeze.Net
             {
                 e.Value.Dispose(); // remove in callback OnSocketClose
             }
+
+            // 先不清除，让Rpc的TimerTask仍然在超时以后触发回调。
+            // 【考虑一下】也许在服务停止时马上触发回调并且清除上下文比较好。
+            // 【注意】直接清除会导致同步等待的操作无法继续。异步只会没有回调，没问题。
+            // _RpcContexts.Clear();
         }
 
         public AsyncSocket NewServerSocket(string ipaddress, int port)

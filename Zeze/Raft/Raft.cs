@@ -44,15 +44,15 @@ namespace Zeze.Raft
             // 2. clear pending task if is leader
             lock (this)
             {
-                if (IsLeader)
-                {
-                    Server.TaskOneByOne.Clear();
-                    // this will wakeup Running-Task in TaskOneByOne
-                    // see WaitLeaderReady.
-                    // 这里只用使用状态改变，不直接想办法唤醒等待的任务，
-                    // 可以避免状态设置对不对的问题。关闭时转换成Follower也是对的。
-                    ConvertStateTo(RaftState.Follower);
-                }
+                Server.TaskOneByOne.Clear(); // Only Leader Has Task
+                // this will wakeup Running-Task in TaskOneByOne
+                // see WaitLeaderReady.
+                // 这里只用使用状态改变，不直接想办法唤醒等待的任务，
+                // 可以避免状态设置对不对的问题。关闭时转换成Follower也是对的。
+                ConvertStateTo(RaftState.Follower);
+                // Cancel Follower TimerTask
+                LeaderLostTimerTask?.Cancel();
+                LeaderLostTimerTask = null;
             }
 
             // 3. close LogSequence (rocksdb)

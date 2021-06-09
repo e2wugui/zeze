@@ -58,7 +58,7 @@ namespace Zeze.Raft
             Agent.Client.Stop();
             foreach (var raft in Rafts.Values)
             {
-                raft.Raft.Server.Stop();
+                raft.StopRaft();
             }
             logger.Debug("End.");
         }
@@ -82,9 +82,9 @@ namespace Zeze.Raft
             if (CurrentCount != ExpectCount)
             {
                 if (CurrentCount + AddErrorCount + AddTimeoutCount != ExpectCount)
-                    logger.Fatal($"================== {stepName} Expect={ExpectCount} Now={CurrentCount},Error={AddErrorCount},Timeout={AddTimeoutCount} ==================");
+                    logger.Fatal($"%%%%%%%%%%%%% {stepName} Expect={ExpectCount} Now={CurrentCount},Error={AddErrorCount},Timeout={AddTimeoutCount} %%%%%%%%%%%%%");
                 else
-                    logger.Info($"################## {stepName} Expect={ExpectCount} Now={CurrentCount},Error={AddErrorCount},Timeout={AddTimeoutCount} ##################");
+                    logger.Info($"@@@@@@@@@@@@@ {stepName} Expect={ExpectCount} Now={CurrentCount},Error={AddErrorCount},Timeout={AddTimeoutCount} @@@@@@@@@@@@@");
                 ExpectCount = CurrentCount; // 下一个测试重新开始。
             }
         }
@@ -98,13 +98,13 @@ namespace Zeze.Raft
             Task[] tasks = new Task[concurrent];
             for (int i = 0; i < requests.Count; ++i)
             {
-                logger.Debug("+++++++++ REQUEST {0} {1}", stepName, requests[i]);
                 tasks[i] = Agent.SendForWait(requests[i]).Task;
+                logger.Debug("+++++++++ REQUEST {0} {1}", stepName, requests[i]);
             }
             Task.WaitAll(tasks);
             foreach (var request in requests)
             {
-                logger.Debug("+++++++++++++ RESPONSE {0} {1}", stepName, request);
+                logger.Debug("--------- RESPONSE {0} {1}", stepName, request);
                 if (request.IsTimeout)
                     AddTimeoutCount++;
                 else if (request.ResultCode != 0)
@@ -197,9 +197,9 @@ namespace Zeze.Raft
 
             // Leader节点重启。
             leader = GetLeader();
+            var StartDely = leader.Raft.RaftConfig.LeaderLostTimeout + 2000;
             leader.StopRaft();
-            Util.Scheduler.Instance.Schedule((ThisTask) => leader.StartRaft(),
-                leader.Raft.RaftConfig.LeaderLostTimeout + 2000);
+            Util.Scheduler.Instance.Schedule((ThisTask) => leader.StartRaft(), StartDely);
             TestConcurrent("TestLeaderNodeRestartRaft", 1);
 
             // RandomRaft().RestarRaft();
