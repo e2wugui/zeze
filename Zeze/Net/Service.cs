@@ -86,7 +86,8 @@ namespace Zeze.Net
         public virtual void Start()
         {
             // Zeze-App 自动启用持久化的全局唯一的Rpc.SessionId生成器。
-            SessionIdGenerator = Zeze.TableSys.AutoKeys.GetAutoKey(Name).Next;
+            if (null != Zeze)
+                SessionIdGenerator = Zeze.TableSys.AutoKeys.GetAutoKey(Name).Next;
 
             Config?.Start();
         }
