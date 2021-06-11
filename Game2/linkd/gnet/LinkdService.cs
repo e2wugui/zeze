@@ -89,8 +89,9 @@ namespace gnet
             {
                 try
                 {
+                    var isRequestSaved = p.IsRequest;
                     int result = factoryHandle.Handle(p); // 不启用新的Task，直接在io-thread里面执行。
-                    global::Zeze.Util.Task.LogAndStatistics(result, p);
+                    global::Zeze.Util.Task.LogAndStatistics(result, p, isRequestSaved);
                 }
                 catch (System.Exception ex)
                 {

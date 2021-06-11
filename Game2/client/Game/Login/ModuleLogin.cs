@@ -18,41 +18,6 @@ namespace Game.Login
         {
         }
 
-        public override int ProcessSCreateRole(SCreateRole protocol)
-        {
-            return Zeze.Transaction.Procedure.NotImplement;
-        }
-
-        public override int ProcessSGetRoleList(SGetRoleList protocol)
-        {
-            return Zeze.Transaction.Procedure.NotImplement;
-        }
-
-        public override int ProcessSLogin(SLogin protocol)
-        {
-            if (protocol.ResultCode != BLogin.ResultCodeSuccess)
-            {
-                // TODO error process.
-                // 失败。退出登录。
-            }
-            return Zeze.Transaction.Procedure.Success;
-        }
-
-        public override int ProcessSReLogin(SReLogin protocol)
-        {
-            if (protocol.ResultCode != BLogin.ResultCodeSuccess)
-            {
-                // TODO error process.
-                // ReLogin失败可能是超时了，或者同步数据失败，可以重新走一次完整的登录。CLogin。
-            }
-            return Zeze.Transaction.Procedure.Success;
-        }
-
-        public override int ProcessSLogout(SLogout protocol)
-        {
-            return Zeze.Transaction.Procedure.Success;
-        }
-
         // 没有考虑线程问题
         private long ReliableNotifyTotalCount;
         private Dictionary<int, IReliableNotify> ReliableNotifyMap { get; } = new Dictionary<int, IReliableNotify>();
@@ -90,21 +55,13 @@ namespace Game.Login
             }
 
             // 马上确认。可以考虑达到一定数量或者定时。
-            var confirm = new CReliableNotifyConfirm();
+            var confirm = new ReliableNotifyConfirm();
             confirm.Argument.ReliableNotifyConfirmCount = ReliableNotifyTotalCount;
             protocol.Sender.Send(confirm);
+            // process rpc result
+            // TODO 同步队列确认失败，应该重新开始一次完成的登录流程。
 
             return Zeze.Transaction.Procedure.Success;
         }
-
-        public override int ProcessSReliableNotifyConfirm(SReliableNotifyConfirm protocol)
-        {
-            if (protocol.ResultCode != BLogin.ResultCodeSuccess)
-            {
-                // TODO 同步队列确认失败，应该重新开始一次完成的登录流程。
-            }
-            return Zeze.Transaction.Procedure.Success;
-        }
-
     }
 }

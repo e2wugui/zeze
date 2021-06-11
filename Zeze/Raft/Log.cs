@@ -641,13 +641,20 @@ namespace Zeze.Raft
                     if (trunkArg.Done)
                         trunkArg.LastIncludedLog = new Binary(FirstLog.Encode());
 
-                    while (true)
+                    while (Raft.IsLeader)
                     {
                         connector.HandshakeDoneEvent.WaitOne();
                         var future = new TaskCompletionSource<int>();
                         var r = new InstallSnapshot() { Argument = trunkArg };
-                        if (!r.Send(connector.Socket, (_) => { future.SetResult(0); return Procedure.Success; }))
+                        if (!r.Send(connector.Socket,
+                            (_) =>
+                            {
+                                future.SetResult(0);
+                                return Procedure.Success;
+                            }))
+                        {
                             continue;
+                        }
                         future.Task.Wait();
                         if (r.IsTimeout)
                             continue;
@@ -685,7 +692,7 @@ namespace Zeze.Raft
                         break;
                     }
                 }
-                InstallSuccess = true;
+                InstallSuccess = Raft.IsLeader;
                 logger.Debug("{0} InstallSnapshot [SUCCESS] Path={1} ToConnector={2}",
                     Raft.Name, path, connector.Name);
             }
@@ -733,6 +740,9 @@ namespace Zeze.Raft
 
         private int ProcessAppendEntriesResult(Server.ConnectorEx connector, Protocol p)
         {
+            if (false == Raft.IsLeader)
+                return Procedure.Success; // maybe close
+
             var r = p as AppendEntries;
             if (r.IsTimeout)
             {

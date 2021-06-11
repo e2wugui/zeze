@@ -26,8 +26,9 @@ namespace gnet
                     // 直接执行，少一次线程切换。
                     try
                     {
+                        var isReqeustSaved = p.IsRequest;
                         int result = factoryHandle.Handle(p); 
-                        global::Zeze.Util.Task.LogAndStatistics(result, p);
+                        global::Zeze.Util.Task.LogAndStatistics(result, p, isReqeustSaved);
                     }
                     catch (System.Exception ex)
                     {

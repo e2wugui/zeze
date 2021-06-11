@@ -4,6 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using Microsoft.VisualBasic.CompilerServices;
+using Zeze.Transaction;
+using Zeze.Transaction.Collections;
 
 namespace Game.Bag
 {
@@ -217,18 +219,18 @@ namespace Game.Bag
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <param name="number">-1 表示尽量移动所有的</param>
-        public void Move(int from, int to, int number)
+        public int Move(int from, int to, int number)
         {
-            BItem itemFrom;
-            if (false == bag.Items.TryGetValue(from, out itemFrom))
-                return;
-
             // validate parameter
             if (from < 0 || from >= bag.Capacity)
-                return;
+                return ModuleBag.ResultCodeFromInvalid;
 
             if (to < 0 || to >= bag.Capacity)
-                return;
+                return ModuleBag.ResultCodeToInvalid;
+
+            BItem itemFrom;
+            if (false == bag.Items.TryGetValue(from, out itemFrom))
+                return ModuleBag.ResultCodeFromNotExsit;
 
             if (number < 0 || number > itemFrom.Number)
                 number = itemFrom.Number; // move all
@@ -239,10 +241,12 @@ namespace Game.Bag
                 if (itemFrom.Id != itemTo.Id)
                 {
                     if (number < itemFrom.Number)
-                        return; // 试图拆分，但是目标已经存在不同物品
+                        // 试图拆分，但是目标已经存在不同物品
+                        return ModuleBag.ResultCodeTrySplitButTargetExsitDifferenceItem;
+
                     // 交换
                     BItem.Swap(itemFrom, itemTo);
-                    return;
+                    return 0;
                 }
                 // 叠加（或拆分）
                 int numberToWill = itemTo.Number + number;
@@ -256,7 +260,7 @@ namespace Game.Bag
                     itemTo.Number = numberToWill;
                     bag.Items.Remove(from);
                 }
-                return;
+                return 0;
             }
             // 移动（或拆分）
             BItem itemNew = itemFrom.Copy(); // 先复制一份再设置成目标数量。
@@ -266,16 +270,18 @@ namespace Game.Bag
                 // 移动
                 bag.Items.Remove(from);
                 bag.Items.Add(to, itemNew);
-                return;
+                return 0;
             }
             // 拆分
             itemFrom.Number -= number;
             bag.Items.Add(to, itemNew);
+            return 0;
         }
 
-        public void Destory(int from)
+        public int Destory(int from)
         {
             bag.Items.Remove(from);
+            return 0;
         }
 
         public void Sort()
@@ -297,18 +303,18 @@ namespace Game.Bag
         }
 
         // warning. 暴露了内部数据。可以用来实现一些不是通用的方法。
-        public Zeze.Transaction.Collections.PMap2<int, Game.Bag.BItem> Items => bag.Items;
+        public PMap2<int, Game.Bag.BItem> Items => bag.Items;
 
-        public void ToProtocol(SGetBag p)
+        public void ToProtocol(BBag b)
         {
-            ToProtocol(bag, p);
+            ToProtocol(bag, b);
         }
 
-        public static void ToProtocol(BBag bag, SGetBag p)
+        public static void ToProtocol(BBag bag, BBag b)
         {
-            p.Argument.Money = bag.Money;
-            p.Argument.Capacity = bag.Capacity;
-            p.Argument.Items.AddRange(bag.Items); // 只能临时引用一下。发完协议就丢弃，不能保存。
+            b.Money = bag.Money;
+            b.Capacity = bag.Capacity;
+            b.Items.AddRange(bag.Items); // 只能临时引用一下。发完协议就丢弃，不能保存。
         }
 
         public Game.Item.Item GetItem(int position)

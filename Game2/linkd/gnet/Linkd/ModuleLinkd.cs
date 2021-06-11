@@ -11,10 +11,8 @@ namespace gnet.Linkd
         {
         }
 
-        public override int ProcessCAuth(CAuth protocol)
+        public override int ProcessAuthRequest(Auth rpc)
         {
-            SAuth result = new SAuth();
-            result.Argument.Account = protocol.Argument.Account;
             /*
             BAccount account = _taccount.Get(protocol.Argument.Account);
             if (null == account || false == account.Token.Equals(protocol.Argument.Token))
@@ -26,11 +24,10 @@ namespace gnet.Linkd
             Game.App.Instance.LinkdService.GetSocket(account.SocketSessionId)?.Dispose(); // kick, 最好发个协议再踢。如果允许多个连接，去掉这行。
             account.SocketSessionId = protocol.Sender.SessionId;
             */
-            result.ResultCode = SAuth.ResultSuccess;
-            result.Send(protocol.Sender);
+            var linkSession = rpc.Sender.UserState as LinkSession;
+            linkSession.UserId = rpc.Argument.Account;
+            rpc.SendResultCode(Auth.Success);
 
-            var linkSession = protocol.Sender.UserState as LinkSession;
-            linkSession.UserId = protocol.Argument.Account;
             return Zeze.Transaction.Procedure.Success;
         }
 

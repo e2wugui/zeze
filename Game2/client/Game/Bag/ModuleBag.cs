@@ -6,7 +6,7 @@ namespace Game.Bag
         public void Start(Game.App app)
         {
             Game.App.Instance.Game_Login.RegisterReliableNotify(SChanged.TypeId_, this);
-            Game.App.Instance.Game_Login.RegisterReliableNotify(SGetBag.TypeId_, this); // 记录整个变更用这个通告
+            Game.App.Instance.Game_Login.RegisterReliableNotify(SBag.TypeId_, this); // 记录整个变更用这个通告
         }
 
         public void Stop(Game.App app)
@@ -20,8 +20,8 @@ namespace Game.Bag
                 case SChanged.TypeId_:
                     ProcessSChanged((SChanged)p);
                     break;
-                case SGetBag.TypeId_:
-                    ProcessSGetBag((SGetBag)p);
+                case SBag.TypeId_:
+                    ProcessSBag(p as SBag);
                     break;
             }
         }
@@ -32,7 +32,7 @@ namespace Game.Bag
             {
                 case BChangedResult.ChangeTagRecordChanged:
                     // 记录改变还需要更新money,capacity。但是listener只监听了items。
-                    // server 在发现整个记录变更时，发送了SGetBag。不会发这个改变。see server::Game.Bag.Module。
+                    // server 在发现整个记录变更时，发送了SBag。不会发这个改变。see server::Game.Bag.Module。
                     /*
                     bag.Items.Clear();
                     bag.Items.SetItems(protocol.Argument.ItemsReplace);
@@ -51,10 +51,11 @@ namespace Game.Bag
         }
 
         private BBag bag;
-        public override int ProcessSGetBag(SGetBag protocol)
+
+        public override int ProcessSBag(SBag protocol)
         {
             bag = protocol.Argument;
-            return Zeze.Transaction.Procedure.Success;
+            return 0;
         }
     }
 }

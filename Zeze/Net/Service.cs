@@ -54,8 +54,6 @@ namespace Zeze.Net
         {
             Name = name;
             Zeze = app;
-            // Zeze-App 自动启用持久化的全局唯一的Rpc.SessionId生成器。
-            SessionIdGenerator = Zeze.TableSys.AutoKeys.GetAutoKey(Name).Next;
             InitConfig(app?.Config);
         }
 
@@ -87,6 +85,9 @@ namespace Zeze.Net
 
         public virtual void Start()
         {
+            // Zeze-App 自动启用持久化的全局唯一的Rpc.SessionId生成器。
+            SessionIdGenerator = Zeze.TableSys.AutoKeys.GetAutoKey(Name).Next;
+
             Config?.Start();
         }
 

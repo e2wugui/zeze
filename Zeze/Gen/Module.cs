@@ -10,6 +10,7 @@ namespace Zeze.Gen
     {
         public Service ReferenceService => _ReferenceService;
         private Service _ReferenceService;
+
         public void SetReferenceService(Service service)
         {
             _ReferenceService = service;
@@ -36,6 +37,9 @@ namespace Zeze.Gen
                 XmlElement e = (XmlElement)node;
                 switch (e.Name)
                 {
+                    case "enum":
+                        Add(new Types.Enum(e));
+                        break;
                     case "bean":
                         new Types.Bean(this, e);
                         break;

@@ -16,7 +16,7 @@ namespace Game.Equip
         {
         }
 
-        class ItemsChangeListener : Zeze.Transaction.ChangeListener
+        class ItemsChangeListener : ChangeListener
         {
             public static string Name { get; } = "Game.Equip.Items";
 
@@ -67,16 +67,16 @@ namespace Game.Equip
         }
         // 装备只有装上取下两个操作，没有公开的需求，先不提供包装类了。
 
-        public override int ProcessCEquipement(CEquipement protocol)
+        public override int ProcessEquipementRequest(Equipement rpc)
         {
-            Login.Session session = Login.Session.Get(protocol);
+            Login.Session session = Login.Session.Get(rpc);
 
             Bag.Bag bag = App.Instance.Game_Bag.GetBag(session.RoleId.Value);
-            if (bag.Items.TryGetValue(protocol.Argument.BagPos, out var bItem))
+            if (bag.Items.TryGetValue(rpc.Argument.BagPos, out var bItem))
             {
                 int equipPos = GetEquipPosition(bItem.Id);
                 if (equipPos < 0)
-                    return Zeze.Transaction.Procedure.LogicError;
+                    return ReturnCode(ResultCodeCannotEquip);
 
                 BEquips equips = _tequip.GetOrAdd(session.RoleId.Value);
                 Game.Bag.BItem bEquipAdd;
@@ -85,9 +85,9 @@ namespace Game.Equip
                     // 装备目标位置已经存在装备，交换。
                     // 先都删除，这样就能在原位置上交换的装备，否则对于包裹可能加到其他位置。
                     equips.Items.Remove(equipPos);
-                    bag.Remove(protocol.Argument.BagPos, bItem.Id, 1);
+                    bag.Remove(rpc.Argument.BagPos, bItem.Id, 1);
 
-                    bag.Add(protocol.Argument.BagPos, new Bag.BItem() {
+                    bag.Add(rpc.Argument.BagPos, new Bag.BItem() {
                         Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = eItem.Extra_Game_Equip_BEquipExtra.Copy() }
                         );
 
@@ -97,31 +97,33 @@ namespace Game.Equip
                 else
                 {
                     // 装备目标位置为空
-                    bag.Remove(protocol.Argument.BagPos, bItem.Id, 1);
+                    bag.Remove(rpc.Argument.BagPos, bItem.Id, 1);
                     bEquipAdd = new Game.Bag.BItem() { Id = bItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = bItem.Extra_Game_Equip_BEquipExtra.Copy() };
                     equips.Items.Add(equipPos, bEquipAdd);
                 }
-                return Zeze.Transaction.Procedure.Success;
+                session.SendResponse(rpc);
+                return Procedure.Success;
             }
-            return Zeze.Transaction.Procedure.LogicError;
+            return ReturnCode(ResultCodeItemNotFound);
         }
 
-        public override int ProcessCUnequipement(CUnequipement protocol)
+        public override int ProcessUnequipementRequest(Unequipement rpc)
         {
-            Login.Session session = Login.Session.Get(protocol);
+            Login.Session session = Login.Session.Get(rpc);
 
             BEquips equips = _tequip.GetOrAdd(session.RoleId.Value);
-            if (equips.Items.TryGetValue(protocol.Argument.EquipPos, out var eItem))
+            if (equips.Items.TryGetValue(rpc.Argument.EquipPos, out var eItem))
             {
-                equips.Items.Remove(protocol.Argument.EquipPos);
+                equips.Items.Remove(rpc.Argument.EquipPos);
                 Bag.Bag bag = App.Instance.Game_Bag.GetBag(session.RoleId.Value);
                 Bag.BItem bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() };
                 if (0 != bag.Add(-1, bItemAdd))
-                    return Zeze.Transaction.Procedure.LogicError; // bag is full
-                return Zeze.Transaction.Procedure.Success;
+                    return ReturnCode(ResultCodeBagIsFull); // bag is full
+                session.SendResponse(rpc);
+                return Procedure.Success;
             }
 
-            return Zeze.Transaction.Procedure.LogicError;
+            return ReturnCode(ResultCodeEquipNotFound);
         }
 
         public Game.Item.Item GetEquipItem(long roleId, int position)

@@ -8,24 +8,48 @@ namespace Game.Bag
         public void Start(Game.App app)
         {
             _tbag.ChangeListenerMap.AddListener(tbag.VAR_Items, new ItemsChangeListener());
+            _tbag.ChangeListenerMap.AddListener(tbag.VAR_All, new BagChangeListener());
         }
 
         public void Stop(Game.App app)
         {
         }
 
-        class ItemsChangeListener : Zeze.Transaction.ChangeListener
+        class BagChangeListener : ChangeListener
         {
-            public static string Name { get; } = "Game.Bag.Items";
+            public static string Name { get; } = "Game.Bag";
 
-            void ChangeListener.OnChanged(object key, Bean value)
+            public void OnChanged(object key, Bean value)
             {
                 // 记录改变，通知全部。
                 BBag bbag = (BBag)value;
-                var bag = new SGetBag();
-                Bag.ToProtocol(bbag, bag);
+                var sbag = new SBag();
+                Bag.ToProtocol(bbag, sbag.Argument);
 
-                Game.App.Instance.Game_Login.Onlines.SendReliableNotify((long)key, Name, bag);
+                Game.App.Instance.Game_Login.Onlines.SendReliableNotify((long)key, Name, sbag);
+            }
+
+            public void OnChanged(object key, Bean value, ChangeNote note)
+            {
+                // 整个记录改变没有 note，只有Map,Set才有note。
+                OnChanged(key, value);
+            }
+
+            public void OnRemoved(object key)
+            {
+                SChanged changed = new SChanged();
+                changed.Argument.ChangeTag = BChangedResult.ChangeTagRecordIsRemoved;
+                Game.App.Instance.Game_Login.Onlines.SendReliableNotify((long)key, Name, changed);
+            }
+        }
+
+        class ItemsChangeListener : ChangeListener
+        {
+            public string Name => BagChangeListener.Name;
+
+            void ChangeListener.OnChanged(object key, Bean value)
+            {
+                // 整个记录改变，由 BagChangeListener 处理。发送包含 Money, Capacity.
             }
 
             void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
@@ -47,44 +71,53 @@ namespace Game.Bag
 
             void ChangeListener.OnRemoved(object key)
             {
-                SChanged changed = new SChanged();
-                changed.Argument.ChangeTag = BChangedResult.ChangeTagRecordIsRemoved;
-                Game.App.Instance.Game_Login.Onlines.SendReliableNotify((long)key, Name, changed);
+                // 整个记录删除，由 BagChangeListener 处理。
             }
         }
+
         // protocol handles
-        public override int ProcessCMove(CMove protocol)
+        public override int ProcessMoveRequest(Move rpc)
         {
-            Login.Session session = Login.Session.Get(protocol);
+            Login.Session session = Login.Session.Get(rpc);
             // throw exception if not login
-            GetBag(session.RoleId.Value).Move(protocol.Argument.PositionFrom, protocol.Argument.PositionTo, protocol.Argument.Number);
-            return Zeze.Transaction.Procedure.Success;
+            var moduleCode = GetBag(session.RoleId.Value).Move(
+                rpc.Argument.PositionFrom,
+                rpc.Argument.PositionTo,
+                rpc.Argument.Number);
+            if (moduleCode != 0)
+                return ReturnCode((ushort)moduleCode);
+            session.SendResponse(rpc);
+            return 0;
         }
 
-        public override int ProcessCDestroy(CDestroy protocol)
+        public override int ProcessDestroyRequest(Destroy rpc)
         {
-            Login.Session session = Login.Session.Get(protocol);
-            GetBag(session.RoleId.Value).Destory(protocol.Argument.Position);
-            return Zeze.Transaction.Procedure.Success;
+            Login.Session session = Login.Session.Get(rpc);
+            var moduleCode = GetBag(session.RoleId.Value).Destory(rpc.Argument.Position);
+            if (0 != moduleCode)
+                return ReturnCode((ushort)moduleCode);
+            session.SendResponse(rpc);
+            return 0;
         }
 
-        public override int ProcessCSort(CSort protocol)
+        public override int ProcessSortRequest(Sort rpc)
         {
-            Login.Session session = Login.Session.Get(protocol);
+            Login.Session session = Login.Session.Get(rpc);
             Bag bag = GetBag(session.RoleId.Value);
             bag.Sort();
-            return Zeze.Transaction.Procedure.Success;
+            session.SendResponse(rpc);
+            return Procedure.Success;
         }
 
-        public override int ProcessCGetBag(CGetBag protocol)
+        public override int ProcessGetBagRequest(GetBag rpc)
         {
-            Login.Session session = Login.Session.Get(protocol);
+            Login.Session session = Login.Session.Get(rpc);
 
-            SGetBag result = new SGetBag();
-            GetBag(session.RoleId.Value).ToProtocol(result);
-            session.SendResponse(result);
-            Game.App.Instance.Game_Login.Onlines.AddReliableNotifyMark(session.RoleId.Value, ItemsChangeListener.Name);
-            return Zeze.Transaction.Procedure.Success;
+            GetBag(session.RoleId.Value).ToProtocol(rpc.Result);
+            session.SendResponse(rpc);
+            Game.App.Instance.Game_Login.Onlines.AddReliableNotifyMark(
+                session.RoleId.Value, BagChangeListener.Name);
+            return Procedure.Success;
         }
 
         // for other module

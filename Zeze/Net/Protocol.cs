@@ -66,16 +66,19 @@ namespace Zeze.Net
 		// Rpc会重载实现。
 		public virtual void SendResultCode(int code)
         {
-        }
+			ResultCode = code;
+		}
 
 		// always true for Protocol, Rpc Will override
-		public virtual bool IsRequest => true;
+		public bool IsRequest { get; set; } = true;
 
 		/// <summary>
 		/// 唯一的请求编号，重发时保持不变。
 		/// 第一次发送的时候用Service.SessionIdGenerator生成。
 		/// </summary>
 		public long UniqueRequestId { get; protected set; }
+
+		public int ResultCode { get; set; }
 
 		/// <summary>
 		/// Id + size + protocol.bytes
@@ -156,7 +159,6 @@ namespace Zeze.Net
     public abstract class Protocol<TArgument> : Protocol where TArgument : global::Zeze.Transaction.Bean, new()
     {
         public TArgument Argument { get; set; } = new TArgument();
-		public int ResultCode { get; set; }
 
 		public override void Decode(ByteBuffer bb)
         {

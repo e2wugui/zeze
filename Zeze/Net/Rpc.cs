@@ -14,9 +14,6 @@ namespace Zeze.Net
 
         public TResult Result { get; set; } = new TResult();
 
-        public override bool IsRequest => _IsRequest;
-        private bool _IsRequest;
-
         public bool IsTimeout { get; private set; }
         public long SessionId { get; private set; }
 
@@ -81,7 +78,7 @@ namespace Zeze.Net
             if (so == null || so.Service == null)
                 return false;
 
-            this._IsRequest = true;
+            this.IsRequest = true;
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
             this.SessionId = so.Service.AddRpcContext(this);
@@ -118,7 +115,7 @@ namespace Zeze.Net
             if (so?.Service != service)
                 throw new Exception("so?.Service != service");
 
-            this._IsRequest = true;
+            this.IsRequest = true;
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
             this.SessionId = service.AddRpcContext(this);
@@ -174,7 +171,7 @@ namespace Zeze.Net
                 return;
             SendResultDone = true;
 
-            _IsRequest = false;
+            IsRequest = false;
             base.Send(Sender);
         }
 
@@ -185,7 +182,7 @@ namespace Zeze.Net
             SendResultDone = true;
 
             ResultCode = code;
-            _IsRequest = false;
+            IsRequest = false;
             base.Send(Sender);
         }
 
@@ -205,7 +202,7 @@ namespace Zeze.Net
                 return;
             }
 
-            context._IsRequest = false;
+            context.IsRequest = false;
             context.Result = Result;
             context.Sender = Sender;
             context.ResultCode = ResultCode;
@@ -225,7 +222,7 @@ namespace Zeze.Net
 
         public override void Decode(ByteBuffer bb)
         {
-            _IsRequest = bb.ReadBool();
+            IsRequest = bb.ReadBool();
             SessionId = bb.ReadLong();
             ResultCode = bb.ReadInt();
             UniqueRequestId = bb.ReadLong();
@@ -247,7 +244,7 @@ namespace Zeze.Net
             bb.WriteInt(ResultCode);
             bb.WriteLong(UniqueRequestId);
 
-            if (_IsRequest)
+            if (IsRequest)
             {
                 Argument.Encode(bb);
             }

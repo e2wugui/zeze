@@ -4,6 +4,17 @@
 	<import file="solution.linkd.xml"/>
 
 	<module name="Login" id="1">
+		<enum name="ResultCodeSuccess" value="0"/>
+
+		<enum name="ResultCodeCreateRoleDuplicateRoleName" value="1"/>
+
+		<enum name="ResultCodeAccountNotExist"    value="2"/>
+		<enum name="ResultCodeRoleNotExist"       value="3"/>
+		<enum name="ResultCodeNotLastLoginRoleId" value="4"/>
+		<enum name="ResultCodeOnlineDataNotFound" value="5"/>
+		<enum name="ResultCodeReliableNotifyConfirmCountOutOfRange" value="6"/>
+		<enum name="ResultCodeNotLogin"           value="7"/>
+
 		<bean name="BRole">
 			<variable id="1" name="Id" type="long"/>
 			<variable id="2" name="Name" type="string"/>
@@ -14,14 +25,6 @@
 		</bean>
 
 		<bean name="BLogin">
-			<enum name="ResultCodeSuccess"            value="0"/>
-			<enum name="ResultCodeAccountNotExist"    value="1"/>
-			<enum name="ResultCodeRoleNotExist"       value="2"/>
-			<enum name="ResultCodeNotLastLoginRoleId" value="3"/>
-			<enum name="ResultCodeOnlineDataNotFound" value="4"/>
-			<enum name="ResultCodeReliableNotifyConfirmCountOutOfRange" value="5"/>
-			<enum name="ResultCodeNotLogin"           value="6"/>
-
 			<variable id="1" name="RoleId" type="long"/>
 		</bean>
 
@@ -34,25 +37,13 @@
 			<variable id="2" name="ReliableNotifyConfirmCount" type="long"/>
 		</bean>
 
-		<protocol name="CCreateRole" argument="BRole" handle="server"/>
-		<protocol name="SCreateRole" argument="BRole" handle="client">
-			<enum name="ResultSuccess" value="0"/>
-			<enum name="ResultFaild"   value="1"/>
-		</protocol>
+		<rpc name="CreateRole" argument="BRole" handle="server"/>
+		<rpc name="GetRoleList" result="BRoles" handle="server"/>
+		<rpc name="Login"   argument="BLogin"   handle="server"/> 登录角色
+		<rpc name="ReLogin" argument="BReLogin" handle="server"/> 网络断开重新登录（数据无法同步时会失败，此时客户端应该重新走完整的登录流程-装载数据。）
 
-		<protocol name="CGetRoleList" handle="server"/>
-		<protocol name="SGetRoleList" argument="BRoles" handle="client"/>
-
-		<protocol name="CLogin"   argument="BLogin" handle="server"/> 登录角色
-		<protocol name="SLogin"   argument="BLogin" handle="client"/> CLogin 的结果，错误码在ResultCode里面。
-		<protocol name="CReLogin" argument="BReLogin" handle="server"/> 网络断开重新登录（数据无法同步时会失败，此时客户端应该重新走完整的登录流程-装载数据。）
-		<protocol name="SReLogin" argument="BLogin" handle="client"/> CReLogin 的结果，错误码在ResultCode里面。
-
-		<protocol name="CLogout" handle="server"/> 登出
-		<protocol name="SLogout" handle="client"/> 登出结果
-
-		<protocol name="CReliableNotifyConfirm" argument="BReliableNotifyConfirm" handle="server"/>
-		<protocol name="SReliableNotifyConfirm" handle="client"/>
+		<rpc name="Logout" handle="server"/> 登出
+		<rpc name="ReliableNotifyConfirm" argument="BReliableNotifyConfirm" handle="server"/>
 
 		<bean name="BReliableNotify">
 			<variable id="1" name="Notifies" type="list" value="binary"/> full encoded protocol list
@@ -93,6 +84,7 @@
 			<variable id="2" name="Roles" type="list" value="long"/> roleid list
 			<variable id="3" name="LastLoginRoleId" type="long"/>
 		</bean>
+
 		<table name="taccount" key="string" value="BAccount"/>
 		<table name="trole" key="long" value="BRoleData" autokey="true"/>
 		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
@@ -100,6 +92,12 @@
 	</module>
 
 	<module name="Bag" id="2">
+		<enum name="ResultCodeFromInvalid"  value="1"/>
+		<enum name="ResultCodeToInvalid"    value="2"/>
+		<enum name="ResultCodeFromNotExsit" value="3"/>
+
+		<enum name="ResultCodeTrySplitButTargetExsitDifferenceItem" value="4"/>
+
 		<bean name="BMove">
 			<variable id="1" name="PositionFrom" type="int"/>
 			<variable id="2" name="PositionTo" type="int"/>
@@ -121,12 +119,14 @@
 			<variable id="1" name="Position" type="int"/>
 		</bean>
 
-		<protocol name="CMove" argument="BMove" handle="server"/>
-		<protocol name="CDestroy" argument="BDestroy" handle="server"/>
-		<protocol name="CSort" handle="server"/>
+		<rpc name="Move" argument="BMove" handle="server"/>
+		<rpc name="Destroy" argument="BDestroy" handle="server"/>
+		<rpc name="Sort" handle="server"/>
+		<rpc name="GetBag" result="BBag" handle="server"/>
+
 		<protocol name="SChanged" argument="BChangedResult" handle="client"/> 所有的包裹改变都通过这个协议发送。
-		<protocol name="CGetBag" handle="server"/>
-		<protocol name="SGetBag" argument="BBag" handle="client"/>
+		<protocol name="SBag" argument="BBag" handle="client"/> 包裹全部改变时发送这个协议。在可靠消息框架内使用。不直接处理。
+
 		<protocol name="CUse" argument="BUse" handle="server"/> 没有结果，bag变更自动发送，使用效果在具体的物品使用时设置和发送结果（如果需要）
 
 		<bean name="BItem">
@@ -136,11 +136,13 @@
 				<value bean="Game.Equip.BEquipExtra"/> 少量的动态bean可以声明在 Attribute.value 中，更多的可以声明在这里。
 			</variable>
 		</bean>
+
 		<bean name="BBag">
 			<variable id="1" name="Money" type="long"/>
 			<variable id="2" name="Capacity" type="int"/>
 			<variable id="3" name="Items" type="map" key="int" value="BItem"/> key is bag position
 		</bean>
+
 		<table name="tbag" key="long" value="BBag"/>
 	</module>
 
@@ -217,10 +219,16 @@
 			<variable id="2" name="Remove" type="set" value="int"/> key is bufId
 			<variable id="3" name="ChangeTag" type="int"/>
 		</bean>
+
 		<protocol name="SChanged" argument="BBufChanged" handle="client"/> 所有的buf改变都通过这个协议发送，通过ChangeListener订阅。
 	</module>
 
 	<module name="Equip" id="7">
+		<enum name="ResultCodeCannotEquip"   value="1"/>
+		<enum name="ResultCodeItemNotFound"  value="2"/>
+		<enum name="ResultCodeBagIsFull"     value="3"/>
+		<enum name="ResultCodeEquipNotFound" value="4"/>
+
 		<bean name="BEquipement"> 穿上装备
 			<variable id="1" name="BagPos" type="int"/>
 		</bean>
@@ -228,8 +236,9 @@
 			<variable id="1" name="EquipPos" type="int"/>
 		</bean>
 
-		<protocol name="CEquipement" argument="BEquipement" handle="server"/>
-		<protocol name="CUnequipement" argument="BUnequipement" handle="server"/>
+		<rpc name="Equipement" argument="BEquipement" handle="server"/>
+		<rpc name="Unequipement" argument="BUnequipement" handle="server"/>
+
 		<protocol name="SEquipement" argument="Game.Bag.BChangedResult" handle="client"/>
 
 		<bean name="BEquipExtra">

@@ -1,5 +1,6 @@
 ﻿
 using System.Collections.Generic;
+using Zeze.Transaction;
 
 namespace Game.Login
 {
@@ -16,25 +17,18 @@ namespace Game.Login
 
         public Onlines Onlines { get; private set; }
 
-        public override int ProcessCCreateRole(CCreateRole protocol)
+        public override int ProcessCreateRoleRequest(CreateRole rpc)
         {
-            Session session = Session.Get(protocol);
-
-            SCreateRole result = new SCreateRole();
-            result.Argument.Name = protocol.Argument.Name;
+            Session session = Session.Get(rpc);
 
             long roleid = _trole.Insert(new BRoleData()
             {
-                Name = protocol.Argument.Name
+                Name = rpc.Argument.Name
             });
 
             // duplicate name check
-            if (false == _trolename.TryAdd(protocol.Argument.Name, new BRoleId() { Id = roleid }))
-            {
-                result.ResultCode = SCreateRole.ResultFaild;
-                session.SendResponse(result);
-                return Zeze.Transaction.Procedure.LogicError;
-            }
+            if (false == _trolename.TryAdd(rpc.Argument.Name, new BRoleId() { Id = roleid }))
+                return ReturnCode(ResultCodeCreateRoleDuplicateRoleName);
 
             var account = _taccount.GetOrAdd(session.Account);
             account.Roles.Add(roleid);
@@ -42,17 +36,14 @@ namespace Game.Login
             // initialize role data
             Game.App.Instance.Game_Bag.GetBag(roleid).SetCapacity(50);
 
-            result.Argument.Id = roleid;
-            result.ResultCode = SCreateRole.ResultSuccess;
-            session.SendResponse(result);
-            return Zeze.Transaction.Procedure.Success;
+            session.SendResponse(rpc);
+            return Procedure.Success;
         }
 
-        public override int ProcessCGetRoleList(CGetRoleList protocol)
+        public override int ProcessGetRoleListRequest(GetRoleList rpc)
         {
-            Session session = Session.Get(protocol);
+            Session session = Session.Get(rpc);
 
-            SGetRoleList result = new SGetRoleList();
             BAccount account = _taccount.Get(session.Account);
             if (null != account)
             {
@@ -60,39 +51,35 @@ namespace Game.Login
                 {
                     BRoleData roleData = _trole.Get(roleId);
                     if (null != roleData)
-                        result.Argument.RoleList.Add(new BRole() { Id = roleId, Name = roleData.Name });
+                    {
+                        rpc.Result.RoleList.Add(new BRole()
+                        {
+                            Id = roleId,
+                            Name = roleData.Name
+                        });
+                    }
                 }
-                result.Argument.LastLoginRoleId = account.LastLoginRoleId;
+                rpc.Result.LastLoginRoleId = account.LastLoginRoleId;
             }
 
-            session.SendResponse(result);
-            return Zeze.Transaction.Procedure.Success;
+            session.SendResponse(rpc);
+            return Procedure.Success;
         }
 
-        public override int ProcessCLogin(CLogin protocol)
+        public override int ProcessLoginRequest(Login rpc)
         {
-            Session session = Session.Get(protocol);
-
-            SLogin result = new SLogin();
-            result.Argument.RoleId = protocol.Argument.RoleId;
+            Session session = Session.Get(rpc);
 
             BAccount account = _taccount.Get(session.Account);
             if (null == account)
-            {
-                result.ResultCode = BLogin.ResultCodeAccountNotExist;
-                session.SendResponse(result);
-                return Zeze.Transaction.Procedure.LogicError;
-            }
-            account.LastLoginRoleId = protocol.Argument.RoleId;
-            BRoleData role = _trole.Get(protocol.Argument.RoleId);
-            if (null == role)
-            {
-                result.ResultCode = BLogin.ResultCodeRoleNotExist;
-                session.SendResponse(result);
-                return Zeze.Transaction.Procedure.LogicError;
-            }
+                return ReturnCode(ResultCodeAccountNotExist);
 
-            BOnline online = _tonline.GetOrAdd(protocol.Argument.RoleId);
+            account.LastLoginRoleId = rpc.Argument.RoleId;
+            BRoleData role = _trole.Get(rpc.Argument.RoleId);
+            if (null == role)
+                return ReturnCode(ResultCodeRoleNotExist);
+
+            BOnline online = _tonline.GetOrAdd(rpc.Argument.RoleId);
             online.LinkName = session.LinkName;
             online.LinkSid = session.SessionId;
             online.State = BOnline.StateOnline;
@@ -106,77 +93,63 @@ namespace Game.Login
             online.ProviderId = App.Zeze.Config.AutoKeyLocalId;
             online.ProviderSessionId = linkSession.ProviderSessionId;
 
-            // 先提交结果再设置状态。see linkd::gnet.Provider.ModuleProvider。ProcessBroadcast
-            session.SendResponseWhileCommit(result); 
-
-            Zeze.Transaction.Transaction.Current.RunWhileCommit(() =>
+            // 先提交结果再设置状态。
+            // see linkd::gnet.Provider.ModuleProvider。ProcessBroadcast
+            session.SendResponseWhileCommit(rpc); 
+            Transaction.Current.RunWhileCommit(() =>
             {
                 var setUserState = new gnet.Provider.SetUserState();
                 setUserState.Argument.LinkSid = session.SessionId;
-                setUserState.Argument.States.Add(protocol.Argument.RoleId);
-                protocol.Sender.Send(setUserState); // 直接使用link连接。
+                setUserState.Argument.States.Add(rpc.Argument.RoleId);
+                rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
             App.Load.LoginCount.IncrementAndGet();
-            return Zeze.Transaction.Procedure.Success;
+            return Procedure.Success;
         }
 
-        public override int ProcessCReLogin(CReLogin protocol)
+        public override int ProcessReLoginRequest(ReLogin rpc)
         {
-            Session session = Session.Get(protocol);
-
-            SLogin result = new SLogin();
-            result.Argument.RoleId = protocol.Argument.RoleId;
+            Session session = Session.Get(rpc);
 
             BAccount account = _taccount.Get(session.Account);
             if (null == account)
-            {
-                result.ResultCode = BLogin.ResultCodeAccountNotExist;
-                session.SendResponse(result);
-                return Zeze.Transaction.Procedure.LogicError;
-            }
-            if (account.LastLoginRoleId != protocol.Argument.RoleId)
-            {
-                result.ResultCode = BLogin.ResultCodeNotLastLoginRoleId;
-                session.SendResponse(result);
-                return Zeze.Transaction.Procedure.LogicError;
-            }
-            BRoleData role = _trole.Get(protocol.Argument.RoleId);
-            if (null == role)
-            {
-                result.ResultCode = BLogin.ResultCodeRoleNotExist;
-                session.SendResponse(result);
-                return Zeze.Transaction.Procedure.LogicError;
-            }
+                return ReturnCode(ResultCodeAccountNotExist);
 
-            BOnline online = _tonline.Get(protocol.Argument.RoleId);
+            if (account.LastLoginRoleId != rpc.Argument.RoleId)
+                return ReturnCode(ResultCodeNotLastLoginRoleId);
+
+            BRoleData role = _trole.Get(rpc.Argument.RoleId);
+            if (null == role)
+                return ReturnCode(ResultCodeRoleNotExist);
+
+            BOnline online = _tonline.Get(rpc.Argument.RoleId);
             if (null == online)
-            {
-                result.ResultCode = BLogin.ResultCodeOnlineDataNotFound;
-                session.SendResponse(result);
-                return Zeze.Transaction.Procedure.LogicError;
-            }
+                return ReturnCode(ResultCodeOnlineDataNotFound);
 
             online.LinkName = session.LinkName;
             online.LinkSid = session.SessionId;
             online.State = BOnline.StateOnline;
 
-            session.SendResponseWhileCommit(result); // 先发结果，再发送同步数据。
-            Zeze.Transaction.Transaction.Current.RunWhileCommit(() =>
+            // 先发结果，再发送同步数据（ReliableNotifySync）。
+            // 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
+            session.SendResponseWhileCommit(rpc);
+            Transaction.Current.RunWhileCommit(() =>
             {
                 var setUserState = new gnet.Provider.SetUserState();
                 setUserState.Argument.LinkSid = session.SessionId;
-                setUserState.Argument.States.Add(protocol.Argument.RoleId);
-                protocol.Sender.Send(setUserState); // 直接使用link连接。
+                setUserState.Argument.States.Add(rpc.Argument.RoleId);
+                rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
 
-            result.ResultCode = ReliableNotifySync(session, protocol.Argument.ReliableNotifyConfirmCount, online);
-            if (BLogin.ResultCodeSuccess != result.ResultCode)
-            {
-                session.SendResponse(result);
-                return Zeze.Transaction.Procedure.LogicError;
-            }
+            var syncResultCode = ReliableNotifySync(
+                session, rpc.Argument.ReliableNotifyConfirmCount,
+                online);
+
+            if (syncResultCode != ResultCodeSuccess)
+                return ReturnCode((ushort)syncResultCode);
+
             App.Load.LoginCount.IncrementAndGet();
-            return Zeze.Transaction.Procedure.Success;
+            return Procedure.Success;
         }
 
         private int ReliableNotifySync(Session session, long ReliableNotifyConfirmCount, BOnline online, bool sync = true)
@@ -185,7 +158,7 @@ namespace Game.Login
                 || ReliableNotifyConfirmCount > online.ReliableNotifyTotalCount
                 || ReliableNotifyConfirmCount - online.ReliableNotifyConfirmCount > online.ReliableNotifyQueue.Count)
             {
-                return BLogin.ResultCodeReliableNotifyConfirmCountOutOfRange;
+                return ResultCodeReliableNotifyConfirmCountOutOfRange;
             }
 
             int confirmCount = (int)(ReliableNotifyConfirmCount - online.ReliableNotifyConfirmCount);
@@ -200,56 +173,50 @@ namespace Game.Login
             }
             online.ReliableNotifyQueue.RemoveRange(0, confirmCount);
             online.ReliableNotifyConfirmCount = ReliableNotifyConfirmCount;
-            return BLogin.ResultCodeSuccess;
+            return ResultCodeSuccess;
         }
 
-        public override int ProcessCReliableNotifyConfirm(CReliableNotifyConfirm protocol)
+        public override int ProcessReliableNotifyConfirmRequest(ReliableNotifyConfirm rpc)
         {
-            Session session = Session.Get(protocol);
+            Session session = Session.Get(rpc);
 
-            var result = new SReliableNotifyConfirm();
             BOnline online = _tonline.Get(session.RoleId.Value);
             if (null == online || online.State == BOnline.StateOffline)
-            {
-                result.ResultCode = BLogin.ResultCodeOnlineDataNotFound;
-                session.SendResponse(result);
-                return Zeze.Transaction.Procedure.LogicError;
-            }
-            session.SendResponseWhileCommit(result); // 同步前提交。
-            result.ResultCode = ReliableNotifySync(session, protocol.Argument.ReliableNotifyConfirmCount, online, false);
-            if (BLogin.ResultCodeSuccess != result.ResultCode)
-            {
-                session.SendResponse(result);
-                return Zeze.Transaction.Procedure.LogicError;
-            }
-            return Zeze.Transaction.Procedure.Success;
+                return ReturnCode(ResultCodeOnlineDataNotFound);
+
+            session.SendResponseWhileCommit(rpc); // 同步前提交。
+            var syncResultCode = ReliableNotifySync(
+                session,
+                rpc.Argument.ReliableNotifyConfirmCount,
+                online,
+                false);
+
+            if (ResultCodeSuccess != syncResultCode)
+                return ReturnCode((ushort)syncResultCode);
+
+            return Procedure.Success;
         }
 
-        public override int ProcessCLogout(CLogout protocol)
+        public override int ProcessLogoutRequest(Logout rpc)
         {
-            Session session = Session.Get(protocol);
+            Session session = Session.Get(rpc);
 
-            SLogout result = new SLogout();
             if (session.RoleId == null)
-            {
-                result.ResultCode = BLogin.ResultCodeNotLogin;
-                session.SendResponse(result);
-                return Zeze.Transaction.Procedure.LogicError;
-            }
+                return ReturnCode(ResultCodeNotLogin);
 
             _tonline.Remove(session.RoleId.Value);
 
-            // 先设置状态，再发送CLogout结果。
-            Zeze.Transaction.Transaction.Current.RunWhileCommit(() =>
+            // 先设置状态，再发送Logout结果。
+            Transaction.Current.RunWhileCommit(() =>
             {
                 var setUserState = new gnet.Provider.SetUserState();
                 setUserState.Argument.LinkSid = session.SessionId;
-                protocol.Sender.Send(setUserState); // 直接使用link连接。
+                rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
-            result.ResultCode = BLogin.ResultCodeSuccess;
-            session.SendResponseWhileCommit(result);
-            // App.Load.LogoutCount.IncrementAndGet(); // 处理异常关闭，在离线（Offline）里面计数。
-            return Zeze.Transaction.Procedure.Success;
+            session.SendResponseWhileCommit(rpc);
+            // 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
+            // App.Load.LogoutCount.IncrementAndGet();
+            return Procedure.Success;
         }
     }
 }

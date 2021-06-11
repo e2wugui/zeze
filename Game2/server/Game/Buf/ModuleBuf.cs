@@ -15,7 +15,7 @@ namespace Game.Buf
         {
         }
 
-        class BufChangeListener : Zeze.Transaction.ChangeListener
+        class BufChangeListener : ChangeListener
         {
             public string Name { get; }
 
@@ -60,7 +60,9 @@ namespace Game.Buf
             }
         }
 
-        // TODO 如果宠物什么的如果也有buf，看情况处理：统一存到一个表格中（使用BFighetId），或者分开存储。
+        // 如果宠物什么的如果也有buf，看情况处理：
+        // 统一存到一个表格中（使用BFighetId），或者分开存储。
+        // 【建议分开处理】。
         public Bufs GetBufs(long roleId)
         {
             return new Bufs(roleId, _tbufs.GetOrAdd(roleId));

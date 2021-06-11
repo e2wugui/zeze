@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Zeze.Net;
+using Zeze.Transaction;
 
 namespace Game.Login
 {
@@ -54,37 +55,39 @@ namespace Game.Login
 
         public void SendResponse(Protocol p)
         {
+            p.IsRequest = false;
             SendResponse(p.TypeId, new Zeze.Net.Binary(p.Encode()));
         }
 
-        public void SendResponseWhileCommit(int typeId, Zeze.Net.Binary fullEncodedProtocol)
+        public void SendResponseWhileCommit(int typeId, Binary fullEncodedProtocol)
         {
-            Zeze.Transaction.Transaction.Current.RunWhileCommit(() => SendResponse(typeId, fullEncodedProtocol));
+            Transaction.Current.RunWhileCommit(() => SendResponse(typeId, fullEncodedProtocol));
         }
 
-        public void SendResponseWhileCommit(Zeze.Net.Binary fullEncodedProtocol)
+        public void SendResponseWhileCommit(Binary fullEncodedProtocol)
         {
-            Zeze.Transaction.Transaction.Current.RunWhileCommit(() => SendResponse(fullEncodedProtocol));
+            Transaction.Current.RunWhileCommit(() => SendResponse(fullEncodedProtocol));
         }
 
         public void SendResponseWhileCommit(Protocol p)
         {
-            Zeze.Transaction.Transaction.Current.RunWhileCommit(() => SendResponse(p));
+            Transaction.Current.RunWhileCommit(() => SendResponse(p));
         }
 
-        public void SendResponseWhileRollback(int typeId, Zeze.Net.Binary fullEncodedProtocol)
+        // 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
+        private void SendResponseWhileRollback(int typeId, Binary fullEncodedProtocol)
         {
-            Zeze.Transaction.Transaction.Current.RunWhileRollback(() => SendResponse(typeId, fullEncodedProtocol));
+            Transaction.Current.RunWhileRollback(() => SendResponse(typeId, fullEncodedProtocol));
         }
 
-        public void SendResponseWhileRollback(Zeze.Net.Binary fullEncodedProtocol)
+        private void SendResponseWhileRollback(Binary fullEncodedProtocol)
         {
-            Zeze.Transaction.Transaction.Current.RunWhileRollback(() => SendResponse(fullEncodedProtocol));
+            Transaction.Current.RunWhileRollback(() => SendResponse(fullEncodedProtocol));
         }
 
         public void SendResponseWhileRollback(Protocol p)
         {
-            Zeze.Transaction.Transaction.Current.RunWhileRollback(() => SendResponse(p));
+            Transaction.Current.RunWhileRollback(() => SendResponse(p));
         }
 
         public static Session Get(Protocol context)

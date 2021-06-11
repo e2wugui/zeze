@@ -1,4 +1,6 @@
 ﻿
+using Zeze.Transaction;
+
 namespace Game.Map
 {
     public sealed partial class ModuleMap : AbstractModule
@@ -16,7 +18,7 @@ namespace Game.Map
             Game.Login.Session session = Game.Login.Session.Get(protocol);
             if (null == session.RoleId)
             {
-                return Zeze.Transaction.Procedure.LogicError;
+                return Procedure.LogicError;
             }
 
             // TODO map

@@ -20,11 +20,5 @@ namespace gnet.Linkd
         {
             return Zeze.Transaction.Procedure.NotImplement;
         }
-
-        public override int ProcessSAuth(SAuth protocol)
-        {
-            return Zeze.Transaction.Procedure.NotImplement;
-        }
-
     }
 }

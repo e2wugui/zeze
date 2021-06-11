@@ -120,13 +120,27 @@ namespace Game
                     var modureRecirect = p as gnet.Provider.ModuleRedirect;
                     if (null != Zeze && false == factoryHandle.NoProcedure)
                     {
-                        Zeze.TaskOneByOneByKey.Execute(modureRecirect.Argument.HashCode,
-                            Zeze.NewProcedure(() => factoryHandle.Handle(p), p.GetType().FullName, p.UserState));
+                        Zeze.TaskOneByOneByKey.Execute(
+                            modureRecirect.Argument.HashCode,
+                            () => global::Zeze.Util.Task.Call(
+                                Zeze.NewProcedure(
+                                    () => factoryHandle.Handle(p),
+                                    p.GetType().FullName,
+                                    p.UserState),
+                                p,
+                                (p, code) => p.SendResultCode(code)
+                                )
+                            );
                     }
                     else
                     {
                         Zeze.TaskOneByOneByKey.Execute(modureRecirect.Argument.HashCode,
-                            () => factoryHandle.Handle(p), p.GetType().FullName);
+                            () => global::Zeze.Util.Task.Call(
+                                () => factoryHandle.Handle(p),
+                                p,
+                                (p, code) => p.SendResultCode(code)
+                                )
+                            );
                     }
                 }
                 else

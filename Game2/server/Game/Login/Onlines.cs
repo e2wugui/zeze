@@ -85,34 +85,38 @@ namespace Game.Login
         /// <param name="roleId"></param>
         /// <param name="listenerName"></param>
         /// <param name="fullEncodedProtocol">协议必须先编码，因为会跨事务。</param>
-        public void SendReliableNotify(long roleId, string listenerName, int typeId, Zeze.Net.Binary fullEncodedProtocol)
+        public void SendReliableNotify(long roleId, string listenerName, int typeId, Binary fullEncodedProtocol)
         {
-            Game.App.Instance.Zeze.TaskOneByOneByKey.Execute(listenerName, Game.App.Instance.Zeze.NewProcedure(() =>
-            {
-                BOnline online = table.Get(roleId);
-                if (null == online || online.State == BOnline.StateOffline)
+            Game.App.Instance.Zeze.TaskOneByOneByKey.Execute(
+                listenerName,
+                Game.App.Instance.Zeze.NewProcedure(() =>
                 {
+                    BOnline online = table.Get(roleId);
+                    if (null == online || online.State == BOnline.StateOffline)
+                    {
+                        return Procedure.Success;
+                    }
+                    if (false == online.ReliableNotifyMark.Contains(listenerName))
+                    {
+                        return Procedure.Success; // 相关数据装载的时候要同步设置这个。
+                    }
+
+                    // 先保存在再发送，然后客户端还会确认。
+                    // see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
+                    online.ReliableNotifyQueue.Add(fullEncodedProtocol);
+                    if (online.State == BOnline.StateOnline)
+                    {
+                        var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
+                        notify.Argument.ReliableNotifyTotalCountStart = online.ReliableNotifyTotalCount;
+                        notify.Argument.Notifies.Add(fullEncodedProtocol);
+
+                        SendInProcedure(new List<long>() { roleId }, notify.TypeId, new Zeze.Net.Binary(notify.Encode()));
+                    }
+                    online.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
                     return Procedure.Success;
-                }
-                if (false == online.ReliableNotifyMark.Contains(listenerName))
-                {
-                    return Procedure.Success; // 相关数据装载的时候要同步设置这个。
-                }
-
-                // 先保存在再发送，然后客户端还会确认。
-                // see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
-                online.ReliableNotifyQueue.Add(fullEncodedProtocol);
-                if (online.State == BOnline.StateOnline)
-                {
-                    var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
-                    notify.Argument.ReliableNotifyTotalCountStart = online.ReliableNotifyTotalCount;
-                    notify.Argument.Notifies.Add(fullEncodedProtocol);
-
-                    SendInProcedure(new List<long>() { roleId }, notify.TypeId, new Zeze.Net.Binary(notify.Encode()));
-                }
-                online.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
-                return Zeze.Transaction.Procedure.Success;
-            }, "SendReliableNotify." + listenerName));
+                },
+                "SendReliableNotify." + listenerName
+                ));
         }
 
         public class RoleOnLink
@@ -197,7 +201,7 @@ namespace Game.Login
             Zeze.Util.Task.Run(Game.App.Instance.Zeze.NewProcedure(() =>
             {
                 SendInProcedure(roleIds, typeId, fullEncodedProtocol);
-                return Zeze.Transaction.Procedure.Success;
+                return Procedure.Success;
             }, "Onlines.Send"));
         }
 
@@ -319,7 +323,7 @@ namespace Game.Login
             Zeze.Util.Task.Run(Game.App.Instance.Zeze.NewProcedure(() =>
             {
                 TransmitInProcedure(sender, actionName, roleIds);
-                return Zeze.Transaction.Procedure.Success;
+                return Procedure.Success;
             }, "Onlines.Transmit"));
         }
 

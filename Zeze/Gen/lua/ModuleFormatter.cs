@@ -42,6 +42,13 @@ namespace Zeze.Gen.lua
             sw.WriteLine("local " + module.Name + " = {}");
             //sw.WriteLine("" + module.Name + ".ModuleId = " + module.Id);
             sw.WriteLine();
+            // declare enums
+            sw.WriteLine($"{module.Name}.ResultCode = {{");
+            foreach (Types.Enum e in module.Enums)
+            {
+                sw.WriteLine($"    {e.Name} = {e.Value}, --{e.Comment}");
+            }
+            sw.WriteLine($"}}");
             foreach (var b in module.BeanKeys.Values)
             {
                 BeanFormatter.Make(module.Name, b.Name, b.TypeId, b.Variables, b.Enums, sw);

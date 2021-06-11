@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using static Zeze.Net.Service;
+using Zeze.Transaction;
 
 namespace gnet.Provider
 {
@@ -34,29 +35,48 @@ namespace gnet.Provider
                 if (null == factoryHandle)
                 {
                     SendKick(p.Sender, p.Argument.LinkSid, BKick.ErrorProtocolUnkown, "unknown protocol");
-                    return Zeze.Transaction.Procedure.LogicError;
+                    return Procedure.LogicError;
                 }
                 var p2 = factoryHandle.Factory();
                 p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.ProtocolData));
                 p2.Sender = p.Sender;
                 
-                p2.UserState = new Game.Login.Session(p.Argument.UserId, p.Argument.States, p.Sender, p.Argument.LinkSid);
-                if (Zeze.Transaction.Transaction.Current != null)
+                var session = new Game.Login.Session(
+                    p.Argument.UserId,
+                    p.Argument.States,
+                    p.Sender,
+                    p.Argument.LinkSid);
+
+                p2.UserState = session;
+                if (Transaction.Current != null)
                 {
                     // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
-                    Zeze.Transaction.Transaction.Current.TopProcedure.ActionName = p2.GetType().FullName;
-                    Zeze.Transaction.Transaction.Current.TopProcedure.UserState = p2.UserState;
-                    return factoryHandle.Handle(p2);
+                    Transaction.Current.TopProcedure.ActionName = p2.GetType().FullName;
+                    Transaction.Current.TopProcedure.UserState = p2.UserState;
+                    return Zeze.Util.Task.Call(
+                        () => factoryHandle.Handle(p2),
+                        p2,
+                        (p, code) => { p.ResultCode = code; session.SendResponse(p); });
                 }
 
                 if (p2.Sender.Service.Zeze == null || factoryHandle.NoProcedure)
                 {
                     // 应用框架不支持事务或者协议配置了“不需要事务”
-                    return factoryHandle.Handle(p2);
+                    return Zeze.Util.Task.Call(
+                        () => factoryHandle.Handle(p2),
+                        p2,
+                        (p, code) => { p.ResultCode = code; session.SendResponse(p); });
                 }
 
                 // 创建存储过程并且在当前线程中调用。
-                return p2.Sender.Service.Zeze.NewProcedure(() => factoryHandle.Handle(p2), p2.GetType().FullName, p2.UserState).Call();
+                return Zeze.Util.Task.Call(
+                    p2.Sender.Service.Zeze.NewProcedure(
+                        () => factoryHandle.Handle(p2),
+                        p2.GetType().FullName,
+                        p2.UserState),
+                    p2,
+                    (p, code) => { p.ResultCode = code; session.SendResponse(p); }
+                    );
             }
             catch (Exception ex)
             {
@@ -73,7 +93,7 @@ namespace gnet.Provider
                 var roleId = protocol.Argument.States[0];
                 Game.App.Instance.Game_Login.Onlines.OnLinkBroken(roleId);
             }
-            return Zeze.Transaction.Procedure.Success;
+            return Procedure.Success;
         }
 
         public override int ProcessModuleRedirectRequest(ModuleRedirect rpc)
@@ -81,18 +101,18 @@ namespace gnet.Provider
             try
             {
                 // replace RootProcedure.ActionName. 为了统计和日志输出。
-                Zeze.Transaction.Transaction.Current.TopProcedure.ActionName = rpc.Argument.MethodFullName;
+                Transaction.Current.TopProcedure.ActionName = rpc.Argument.MethodFullName;
 
                 rpc.Result.ModuleId = rpc.Argument.ModuleId;
                 rpc.Result.AutoKeyLocalId = App.Zeze.Config.AutoKeyLocalId;
                 if (false == Game.ModuleRedirect.Instance.Handles.TryGetValue(rpc.Argument.MethodFullName, out var handle))
                 {
                     rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
-                    return Zeze.Transaction.Procedure.LogicError;
+                    return Procedure.LogicError;
                 }
                 var (ReturnCode, Params) = handle(rpc.SessionId, rpc.Argument.HashCode, rpc.Argument.Params, rpc.Result.Actions);
                 rpc.Result.ReturnCode = ReturnCode;
-                if (ReturnCode == Zeze.Transaction.Procedure.Success)
+                if (ReturnCode == Procedure.Success)
                 {
                     rpc.Result.Params = Params;
                 }
@@ -131,7 +151,7 @@ namespace gnet.Provider
             try
             {
                 // replace RootProcedure.ActionName. 为了统计和日志输出。
-                Zeze.Transaction.Transaction.Current.TopProcedure.ActionName = protocol.Argument.MethodFullName;
+                Transaction.Current.TopProcedure.ActionName = protocol.Argument.MethodFullName;
 
                 // common parameters for result
                 result.Argument.ModuleId = protocol.Argument.ModuleId;
@@ -149,11 +169,11 @@ namespace gnet.Provider
                     {
                         result.Argument.Hashs.Add(hash, new BModuleRedirectAllHash()
                         {
-                            ReturnCode = Zeze.Transaction.Procedure.NotImplement
+                            ReturnCode = Procedure.NotImplement
                         });
                     }
                     result.Send(protocol.Sender);
-                    return Zeze.Transaction.Procedure.LogicError;
+                    return Procedure.LogicError;
                 }
                 result.ResultCode = ModuleRedirect.ResultCodeSuccess;
 
@@ -167,10 +187,10 @@ namespace gnet.Provider
                         var (_ReturnCode, _Params) = handle(protocol.Argument.SessionId, hash, protocol.Argument.Params, hashResult.Actions);
                         Params = _Params;
                         return _ReturnCode;
-                    }, Zeze.Transaction.Transaction.Current.TopProcedure.ActionName).Call();
+                    }, Transaction.Current.TopProcedure.ActionName).Call();
 
                     // 单个分组处理失败继续执行。XXX
-                    if (hashResult.ReturnCode == Zeze.Transaction.Procedure.Success)
+                    if (hashResult.ReturnCode == Procedure.Success)
                     {
                         hashResult.Params = Params;
                     }
@@ -183,7 +203,7 @@ namespace gnet.Provider
                 {
                     result.Send(protocol.Sender);
                 }
-                return Zeze.Transaction.Procedure.Success;
+                return Procedure.Success;
             }
             catch (Exception)
             {
@@ -257,30 +277,30 @@ namespace gnet.Provider
             // 生成代码实现。see Game.ModuleRedirect.cs
             public virtual int ProcessHashResult(int _hash_, int _returnCode_, Zeze.Net.Binary _params, IList<gnet.Provider.BActionParam> _actions_)
             {
-                return Zeze.Transaction.Procedure.NotImplement;
+                return Procedure.NotImplement;
             }
         }
 
         public override int ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol)
         {
             // replace RootProcedure.ActionName. 为了统计和日志输出。
-            Zeze.Transaction.Transaction.Current.TopProcedure.ActionName = protocol.Argument.MethodFullName;
+            Transaction.Current.TopProcedure.ActionName = protocol.Argument.MethodFullName;
             App.Server.TryGetManualContext<ModuleRedirectAllContext>(protocol.Argument.SessionId)?.ProcessResult(protocol);
-            return Zeze.Transaction.Procedure.Success;
+            return Procedure.Success;
         }
 
         public override int ProcessTransmit(Transmit protocol)
         {
             App.Game_Login.Onlines.ProcessTransmit(protocol.Argument.Sender,
                 protocol.Argument.ActionName, protocol.Argument.Roles.Keys);
-            return Zeze.Transaction.Procedure.Success;
+            return Procedure.Success;
         }
 
         public override int ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol)
         {
             var linkSession = protocol.Sender.UserState as Game.Server.LinkSession;
             linkSession.Setup(protocol.Argument.LinkId, protocol.Argument.ProviderSessionId);
-            return Zeze.Transaction.Procedure.Success;
+            return Procedure.Success;
         }
     }
 }

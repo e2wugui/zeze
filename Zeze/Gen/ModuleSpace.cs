@@ -92,6 +92,13 @@ namespace Zeze.Gen
         public SortedDictionary<string, Protocol> Protocols { get; private set; } = new SortedDictionary<string, Protocol>();
         public SortedDictionary<string, Table> Tables { get; private set; } = new SortedDictionary<string, Table>();
 
+        public List<Types.Enum> Enums { get; private set; } = new List<Types.Enum>();
+
+        public void Add(Types.Enum e)
+        {
+            Enums.Add(e); // check duplicate
+        }
+
         public void Add(Types.Bean bean)
         {
             Program.AddNamedObject(Path(".", bean.Name), bean);

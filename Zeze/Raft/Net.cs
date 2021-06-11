@@ -120,9 +120,9 @@ namespace Zeze.Raft
 
         public Util.TaskOneByOneByKey TaskOneByOne { get; } = new Util.TaskOneByOneByKey();
 
-        private void ProcessRequest(long appInstance, Protocol p, ProtocolFactoryHandle factoryHandle)
+        private int ProcessRequest(long appInstance, Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            Util.Task.Call(() =>
+            return Util.Task.Call(() =>
             {
                 if (Raft.WaitLeaderReady())
                 {
@@ -138,7 +138,10 @@ namespace Zeze.Raft
                 }
                 TrySendLeaderIs(p.Sender);
                 return Procedure.LogicError;
-            }, p, true);
+            },
+            p,
+            (p, code) => p.SendResultCode(code)
+            );
         }
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
@@ -152,7 +155,7 @@ namespace Zeze.Raft
                 // 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
                 // 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
                 Raft.ImportantThreadPool.QueueUserWorkItem(
-                    () => Util.Task.Call(() => factoryHandle.Handle(p), p, false));
+                    () => Util.Task.Call(() => factoryHandle.Handle(p), p, null));
                 return;
             }
             // User Request

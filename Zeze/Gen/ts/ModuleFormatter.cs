@@ -20,6 +20,8 @@ namespace Zeze.Gen.ts
 
         private const string ChunkNameRegisterProtocol = "REGISTER PROTOCOL";
         private const string ChunkNameImport = "IMPORT GEN";
+        private const string ChunkNameModuleEnums = "MODULE ENUMS";
+
         private void GenChunkByName(System.IO.StreamWriter writer, Zeze.Util.FileChunkGen.Chunk chunk)
         {
             switch (chunk.Name)
@@ -29,6 +31,9 @@ namespace Zeze.Gen.ts
                     break;
                 case ChunkNameImport:
                     Import(writer);
+                    break;
+                case ChunkNameModuleEnums:
+                    PrintModuleEnums(writer);
                     break;
                 default:
                     throw new Exception("unknown Chunk.Name=" + chunk.Name);
@@ -100,6 +105,19 @@ namespace Zeze.Gen.ts
                 }
             }
         }
+
+        private void PrintModuleEnums(System.IO.StreamWriter sw)
+        {
+            foreach (Types.Enum e in module.Enums)
+            {
+                sw.WriteLine($"    static readonly {e.Name} = {e.Value}; {e.Comment}");
+            }
+            if (module.Enums.Count > 0 )
+            {
+                sw.WriteLine();
+            }
+        }
+
         public void Make()
         {
             Zeze.Util.FileChunkGen fcg = new Util.FileChunkGen();
@@ -120,6 +138,9 @@ namespace Zeze.Gen.ts
                 sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);
                 sw.WriteLine();
                 sw.WriteLine("export class " + module.Path("_") + " {");
+                sw.WriteLine("        " + fcg.ChunkStartTag + " " + ChunkNameModuleEnums);
+                PrintModuleEnums(sw);
+                sw.WriteLine("        " + fcg.ChunkEndTag + " " + ChunkNameModuleEnums);
                 sw.WriteLine("    public constructor(app: " + module.Solution.Name + "_App) {");
                 sw.WriteLine("        " + fcg.ChunkStartTag + " " + ChunkNameRegisterProtocol);
                 RegisterProtocol(sw);

@@ -184,6 +184,16 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"        public override string FullName => \"{module.Path()}\";");
             sw.WriteLine($"        public override string Name => \"{module.Name}\";");
             sw.WriteLine($"        public override int Id => {module.Id};");
+            sw.WriteLine("");
+            // declare enums
+            foreach (Types.Enum e in module.Enums)
+            {
+                sw.WriteLine("        public const int " + e.Name + " = " + e.Value + ";" + e.Comment);
+            }
+            if (module.Enums.Count > 0)
+            {
+                sw.WriteLine("");
+            }
 
             if (module.ReferenceService != null)
             {

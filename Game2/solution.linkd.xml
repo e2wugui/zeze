@@ -7,16 +7,11 @@
 			<variable id="1" name="Account" type="string"/>
 			<variable id="2" name="Token" type="string"/> security. maybe password
 		</bean>
-		<protocol name="CAuth" argument="BAuth" handle="server"/>
 
-		<bean name="BAuthResult">
-			<variable id="1" name="Account" type="string"/>
-		</bean>
-
-		<protocol name="SAuth" argument="BAuthResult" handle="client">
-			<enum name="ResultSuccess" value="0"/>
-			<enum name="ResultFaild" value="1"/>
-		</protocol>
+		<rpc name="Auth" argument="BAuth" handle="server">
+			<enum name="Success" value="0"/>
+			<enum name="Error"   value="1"/>
+		</rpc>
 
 		<bean name="BReportError">
 			<enum name="FromLink"     value="0"/>
