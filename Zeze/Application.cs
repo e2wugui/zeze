@@ -127,11 +127,6 @@ namespace Zeze
                     return;
                 IsStart = true;
 
-                if (Config.GlobalCacheManagerHostNameOrAddress.Length > 0)
-                {
-                    GlobalAgent.Start(Config.GlobalCacheManagerHostNameOrAddress, Config.GlobalCacheManagerPort);
-                }
-
                 // 由于 AutoKey，TableSys需要先打开。TableSys肯定在defaultDb中。并且要在其他database都初始化table后再加入。
                 TableSys = new TableSys();
                 Database defaultDb = GetDatabase("");
@@ -141,6 +136,12 @@ namespace Zeze
                     db.Open(this);
                 }
                 defaultDb.AddTable(TableSys);
+
+                if (Config.GlobalCacheManagerHostNameOrAddress.Length > 0)
+                {
+                    GlobalAgent.Start(Config.GlobalCacheManagerHostNameOrAddress, Config.GlobalCacheManagerPort);
+                }
+
                 Checkpoint.Start(Config.CheckpointPeriod);
 
                 /////////////////////////////////////////////////////

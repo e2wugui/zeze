@@ -11,7 +11,7 @@ namespace Zeze.Transaction
     public sealed class GlobalAgent
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        private GlobalClient Client { get; set; } // 未启用cache-sync时为空。
+        public GlobalClient Client { get; private set; } // 未启用cache-sync时为空。
 
         public class Agent
         {
@@ -199,6 +199,9 @@ namespace Zeze.Transaction
                     return;
 
                 Client = new GlobalClient(this, Zeze);
+                // Zeze-App 自动启用持久化的全局唯一的Rpc.SessionId生成器。
+                Client.SessionIdGenerator = Zeze.TableSys.AutoKeys.GetAutoKey(Client.Name).Next;
+
                 Client.AddFactoryHandle(new GlobalCacheManager.Reduce().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new GlobalCacheManager.Reduce(),
