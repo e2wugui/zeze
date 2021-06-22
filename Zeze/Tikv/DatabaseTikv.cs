@@ -65,9 +65,11 @@ namespace Zeze.Tikv
 
         public sealed class OperatesTikv : Operates
         {
+            public DatabaseTikv Database { get; }
+
             public OperatesTikv(DatabaseTikv tikv)
             {
-
+                Database = tikv;
             }
 
             public int ClearInUse(int localId, string global)

@@ -10,6 +10,7 @@ using System.Data;
 #endif
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Zeze.Transaction
 {
@@ -1055,6 +1056,162 @@ namespace Zeze.Transaction
                     }
                 }
                 return count;
+            }
+        }
+    }
+
+    public class DatabaseRocksDb : Database
+    {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+        public DatabaseRocksDb(string url) : base(url)
+        {
+            DirectOperates = new OperatesRocksDb(this);
+        }
+
+        public override void Flush(Checkpoint sync, Action flushAction)
+        {
+            // ColumnFamilyHandle: 默认cf支持多表原子Flush吗。
+            // TODO 以后再详细看文档。
+            try
+            {
+                for (int i = 0; i < 60; ++i)
+                {
+                    try
+                    {
+                        flushAction();
+                        if (null != sync) // null for test
+                        {
+                            CommitReady.Set();
+                            sync.WaitAllReady();
+                        }
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Warn(ex, "Checkpoint error.");
+                    }
+                    Thread.Sleep(1000);
+                }
+                logger.Fatal("Checkpoint too many try.");
+                Environment.Exit(54321);
+            }
+            finally
+            {
+            }
+        }
+
+        public override Table OpenTable(string name)
+        {
+            return new TableRocksDb(this, name);
+        }
+
+        public sealed class TableRocksDb : Database.Table
+        {
+            public DatabaseRocksDb Database { get; }
+            public string Name { get; }
+            private RocksDbSharp.RocksDb RocksDb { get; set; }
+
+            public TableRocksDb(DatabaseRocksDb database, string name)
+            {
+                Database = database;
+                Name = name;
+
+                var options = new RocksDbSharp.DbOptions().SetCreateIfMissing(true);
+                var path = Path.Combine(Database.DatabaseUrl, name);
+                RocksDb = RocksDbSharp.RocksDb.Open(options, path);
+            }
+
+            public void Close()
+            {
+                lock (this)
+                {
+                    RocksDb?.Dispose();
+                    RocksDb = null;
+                }
+            }
+
+            private (byte[], int) GetBytes(ByteBuffer bb)
+            {
+                byte[] bytes;
+                int byteslen;
+                if (bb.ReadIndex == 0)
+                {
+                    bytes = bb.Bytes;
+                    byteslen = bb.Size;
+                }
+                else
+                {
+                    bytes = bb.Copy();
+                    byteslen = bytes.Length;
+                }
+                return (bytes, byteslen);
+            }
+
+            public ByteBuffer Find(ByteBuffer _key)
+            {
+                var (key, keylen) = GetBytes(_key);
+                byte[] value = RocksDb.Get(key, keylen);
+                if (null == value)
+                    return null;
+                return ByteBuffer.Wrap(value);
+            }
+
+            public void Remove(ByteBuffer _key)
+            {
+                var (key, keylen) = GetBytes(_key);
+                RocksDb.Remove(key, keylen);
+            }
+
+            public void Replace(ByteBuffer _key, ByteBuffer _value)
+            {
+                var (key, keylen) = GetBytes(_key);
+                var (value, valuelen) = GetBytes(_value);
+                RocksDb.Put(key, keylen, value, valuelen);
+            }
+
+            public long Walk(Func<byte[], byte[], bool> callback)
+            {
+                long countWalked = 0;
+                using var it = RocksDb.NewIterator();
+                it.SeekToFirst();
+                while (it.Valid())
+                {
+                    ++countWalked;
+                    if (false == callback(it.Key(), it.Value()))
+                        return countWalked;
+                    it.Next();
+                }
+                return countWalked;
+            }
+        }
+
+        public sealed class OperatesRocksDb : Operates
+        {
+            public DatabaseRocksDb Database { get; }
+
+            public OperatesRocksDb(DatabaseRocksDb database)
+            {
+                Database = database;
+            }
+
+            public int ClearInUse(int localId, string global)
+            {
+                return 0;
+            }
+
+            public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key)
+            {
+                return (null, 0);
+            }
+
+            public bool SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, ref long version)
+            {
+                return true;
+            }
+
+            public void SetInUse(int localId, string global)
+            {
             }
         }
     }
