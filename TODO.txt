@@ -32,5 +32,5 @@ DatabaseRocksDb
 DatabaseTikv
 	OperatesTikv
 
-Raft.RocksDb.Put 加 WriteOptions.Sync。
-Agent.CollectPendingRpc 更加明确和安全。
+Raft.Agent
+	重发现在在收到LeaderIs时马上重新发送。改成延迟？

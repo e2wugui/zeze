@@ -31,6 +31,7 @@ namespace Zeze.Net
         public string Name => $"{HostNameOrAddress}:{Port}";
 
         public AsyncSocket Socket { get; private set; }
+        public Util.SchedulerTask ReconnectTask { get; private set; }
 
         public Connector(string host, int port = 0, bool autoReconnect = true)
         {
@@ -100,26 +101,36 @@ namespace Zeze.Net
 
         public virtual void TryReconnect()
         {
-            if (false == IsAutoReconnect)
-                return;
+            lock (this)
+            {
+                if (false == IsAutoReconnect
+                    || null != Socket
+                    || null != ReconnectTask)
+                {
+                    return;
+                }
 
-            if (ConnectDelay <= 0)
-            {
-                ConnectDelay = 1000;
+                if (ConnectDelay <= 0)
+                {
+                    ConnectDelay = 1000;
+                }
+                else
+                {
+                    ConnectDelay *= 2;
+                    if (ConnectDelay > MaxReconnectDelay)
+                        ConnectDelay = MaxReconnectDelay;
+                }
+                ReconnectTask = Util.Scheduler.Instance.Schedule((ThisTask) => Start(), ConnectDelay); ;
             }
-            else
-            {
-                ConnectDelay *= 2;
-                if (ConnectDelay > MaxReconnectDelay)
-                    ConnectDelay = MaxReconnectDelay;
-            }
-            Util.Scheduler.Instance.Schedule((ThisTask) => Start(), ConnectDelay); ;
         }
 
         public virtual void Start()
         {
             lock (this)
             {
+                ReconnectTask?.Cancel();
+                ReconnectTask = null;
+
                 if (null != Socket)
                     return;
 
