@@ -215,7 +215,6 @@ namespace Zeze.Raft
         public RaftConfig RaftConfig { get; private set; }
         public NetClient Client { get; private set; }
         public string Name => Client.Name;
-        public long Term { get; private set; }
 
         public ConnectorEx Leader => _Leader;
 
@@ -330,9 +329,19 @@ namespace Zeze.Raft
 
         public class ConnectorEx : Connector
         {
+            public long Term { get; internal set; }
+
             public ConnectorEx(string host, int port = 0)
                 : base(host, port)
             {
+            }
+
+            public override void OnSocketClose(AsyncSocket closed)
+            {
+                // 先关闭重连，防止后面重发收集前又连上。
+                // see Agent.NetClient
+                base.IsAutoReconnect = false;
+                base.OnSocketClose(closed);
             }
         }
 
@@ -464,13 +473,18 @@ namespace Zeze.Raft
             }
         }
 
-        internal void CollectPendingRpc(AsyncSocket so)
+        private void CollectPendingRpc(ConnectorEx oldLeader, AsyncSocket oldSocket)
         {
-            var ctxSends = Client.GetRpcContextsToSender(so);
-            var ctxPending = Client.RemoveRpcContets(ctxSends.Keys);
-            foreach (var rpc in ctxPending)
+            if (null != oldLeader)
             {
-                Pending.TryAdd(rpc, rpc);
+                // 再 Rpc.UserState 里面记录发送目的的ConnectorEx，然后这里严格判断？
+                // 由于一个时候只有Leader，所以直接使用Sender也足够了吧。
+                var ctxSends = Client.GetRpcContextsToSender(oldSocket);
+                var ctxPending = Client.RemoveRpcContets(ctxSends.Keys);
+                foreach (var rpc in ctxPending)
+                {
+                    Pending.TryAdd(rpc, rpc);
+                }
             }
         }
 
@@ -478,30 +492,29 @@ namespace Zeze.Raft
         {
             lock (this)
             {
-                if (r.Argument.Term < Term)
+                if (r.Argument.Term < newLeader.Term)
                 {
                     logger.Warn("{0} Skip LeaderIs {1}", Name, r);
                     return false;
                 }
-                if (_Leader != null)
+                if (_Leader != newLeader)
                 {
                     // 把旧的_Leader的没有返回结果的请求收集起来，准备重新发送。
-                    CollectPendingRpc(_Leader.Socket);
+                    CollectPendingRpc(_Leader, _Leader?.Socket);
                 }
-                Term = r.Argument.Term;
+                newLeader.Term = r.Argument.Term;
                 _Leader = newLeader;
                 return true;
             }
         }
 
-        internal bool TryClearLeader(ConnectorEx oldLeader)
+        internal bool TryClearLeader(ConnectorEx oldLeader, AsyncSocket oldSocket)
         {
             lock (this)
             {
                 if (_Leader == oldLeader)
                 {
-                    if (_Leader != null)
-                        CollectPendingRpc(_Leader.Socket);
+                    CollectPendingRpc(_Leader, oldSocket);
                     _Leader = null;
                     return true;
                 }
@@ -527,17 +540,13 @@ namespace Zeze.Raft
                 Agent = agent;
             }
 
-            public override void OnSocketClose(AsyncSocket so, Exception e)
-            {
-                Agent.TryClearLeader(so.Connector as ConnectorEx);
-
-                base.OnSocketClose(so, e);
-            }
-
             public override void OnSocketDisposed(AsyncSocket so)
             {
+                var connector = so.Connector as ConnectorEx;
+                Agent.TryClearLeader(connector, so);
                 base.OnSocketDisposed(so);
-                Agent.CollectPendingRpc(so);
+                connector.IsAutoReconnect = true;
+                connector.TryReconnect();
             }
         }
     }
@@ -827,6 +836,26 @@ namespace Zeze.Raft
         public override string ToString()
         {
             return $"(Term={Term} LeaderId={LeaderId})";
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == this)
+                return true;
+            if (obj is LeaderIsArgument other)
+            {
+                return Term == other.Term && LeaderId.Equals(other.LeaderId);
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            const int _prime_ = 31;
+            int _h_ = 0;
+            _h_ = _h_ * _prime_ + Term.GetHashCode();
+            _h_ = _h_ * _prime_ + LeaderId.GetHashCode();
+            return _h_;
         }
     }
 

@@ -22,7 +22,7 @@ namespace Zeze.Net
 
         public string HostNameOrAddress { get; }
         public int Port { get; } = 0;
-        public bool IsAutoReconnect { get; } = true;
+        public bool IsAutoReconnect { get; set; } = true;
         public int MaxReconnectDelay { get; set; }
         public bool IsConnected { get; private set; } = false;
         private int ConnectDelay;
@@ -79,23 +79,8 @@ namespace Zeze.Net
             {
                 if (Socket != closed)
                     return;
-
                 Stop();
-
-                if (false == IsAutoReconnect)
-                    return;
-
-                if (ConnectDelay <= 0)
-                {
-                    ConnectDelay = 1000;
-                }
-                else
-                {
-                    ConnectDelay *= 2;
-                    if (ConnectDelay > MaxReconnectDelay)
-                        ConnectDelay = MaxReconnectDelay;
-                }
-                Util.Scheduler.Instance.Schedule((ThisTask) => Start(), ConnectDelay); ;
+                TryReconnect();
             }
         }
 
@@ -111,6 +96,24 @@ namespace Zeze.Net
         public virtual void OnSocketHandshakeDone(AsyncSocket so)
         {
             HandshakeDoneEvent.Set();
+        }
+
+        public virtual void TryReconnect()
+        {
+            if (false == IsAutoReconnect)
+                return;
+
+            if (ConnectDelay <= 0)
+            {
+                ConnectDelay = 1000;
+            }
+            else
+            {
+                ConnectDelay *= 2;
+                if (ConnectDelay > MaxReconnectDelay)
+                    ConnectDelay = MaxReconnectDelay;
+            }
+            Util.Scheduler.Instance.Schedule((ThisTask) => Start(), ConnectDelay); ;
         }
 
         public virtual void Start()
@@ -135,7 +138,7 @@ namespace Zeze.Net
                     return;
                 HandshakeDoneEvent.Reset();
                 var tmp = Socket;
-                Socket = null; // 阻止重连
+                Socket = null;
                 tmp.Dispose();
                 IsConnected = false;
             }

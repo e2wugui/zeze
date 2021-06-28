@@ -300,7 +300,11 @@ namespace Zeze.Raft
             var value = log.Encode();
 
             // key,value offset must 0
-            Logs.Put(key.Bytes, key.Size, value.Bytes, value.Size);
+            Logs.Put(
+                key.Bytes, key.Size,
+                value.Bytes, value.Size,
+                null, new WriteOptions().SetSync(true)
+                );
         }
 
         private RaftLog ReadLog(long index)
@@ -320,7 +324,11 @@ namespace Zeze.Raft
                 Term = term;
                 var termValue = ByteBuffer.Allocate();
                 termValue.WriteLong(term);
-                Rafts.Put(RaftsTermKey, RaftsTermKey.Length, termValue.Bytes, termValue.Size);
+                Rafts.Put(
+                    RaftsTermKey, RaftsTermKey.Length,
+                    termValue.Bytes, termValue.Size,
+                    null, new WriteOptions().SetSync(true)
+                    );
                 return true;
             }
             return false;
@@ -336,7 +344,11 @@ namespace Zeze.Raft
             VoteFor = voteFor;
             var voteForValue = ByteBuffer.Allocate();
             voteForValue.WriteString(voteFor);
-            Rafts.Put(RaftsVoteForKey, RaftsVoteForKey.Length, voteForValue.Bytes, voteForValue.Size);
+            Rafts.Put(
+                RaftsVoteForKey, RaftsVoteForKey.Length,
+                voteForValue.Bytes, voteForValue.Size,
+                null, new WriteOptions().SetSync(true)
+                );
         }
 
         /// <summary>

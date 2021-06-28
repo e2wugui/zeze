@@ -31,3 +31,6 @@ DatabaseRocksDb
 	atomic flush
 DatabaseTikv
 	OperatesTikv
+
+Raft.RocksDb.Put 加 WriteOptions.Sync。
+Agent.CollectPendingRpc 更加明确和安全。
