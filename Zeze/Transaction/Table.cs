@@ -79,8 +79,11 @@ namespace Zeze.Transaction
                         if (r.State == GlobalCacheManager.StateRemoved)
                             continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
 
-                        if (r.State == GlobalCacheManager.StateShare || r.State == GlobalCacheManager.StateModify)
+                        if (r.State == GlobalCacheManager.StateShare
+                            || r.State == GlobalCacheManager.StateModify)
+                        {
                             return r;
+                        }
 
                         r.State = r.Acquire(GlobalCacheManager.StateShare);
                         if (r.State == GlobalCacheManager.StateInvalid)
@@ -453,12 +456,20 @@ namespace Zeze.Transaction
                     try
                     {
                         Record<K, V> r = Cache.Get(k);
-                        if (null != r)
+                        if (null != r && r.State != GlobalCacheManager.StateRemoved)
                         {
-                            if (r.Value == null)
-                                return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-                            return callback(r.Key, r.ValueTyped);
+                            if (r.State == GlobalCacheManager.StateShare
+                                || r.State == GlobalCacheManager.StateModify)
+                            {
+                                // 拥有正确的状态：
+                                if (r.Value == null)
+                                    return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+                                return callback(r.Key, r.ValueTyped);
+                            }
+                            // else GlobalCacheManager.StateInvalid
+                            // 继续后面的处理：使用数据库中的数据。
                         }
+                        // 缓存中不存在或者正在被删除，使用数据库中的数据。
                         V v = DecodeValue(ByteBuffer.Wrap(value));
                         return callback(k, v);
                     }
