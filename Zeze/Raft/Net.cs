@@ -244,10 +244,13 @@ namespace Zeze.Raft
             Rpc<TArgument, TResult> rpc,
             Func<Protocol, int> handle,
             bool autoResend = true,
-            int timeout = 30000)
+            int timeout = -1)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
+            if (timeout < 0)
+                timeout = RaftConfig.AppendEntriesTimeout + 1000;
+
             if (autoResend)
             {
                 var tmp = _Leader;
@@ -293,10 +296,13 @@ namespace Zeze.Raft
             SendForWait<TArgument, TResult>(
             Rpc<TArgument, TResult> rpc,
             bool autoResend = true,
-            int timeout = 30000)
+            int timeout = -1)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
+            if (timeout < 0)
+                timeout = RaftConfig.AppendEntriesTimeout + 1000;
+
             var future = new TaskCompletionSource<Rpc<TArgument, TResult>>();
             if (autoResend)
             {

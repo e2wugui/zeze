@@ -433,5 +433,68 @@ namespace Zeze.Transaction
             value.Decode(bb);
             return value;
         }
+
+        /// <summary>
+        /// 遍历表格。能看到记录的最新数据。
+        /// 【注意】这里看不到新增的但没有提交(checkpoint)的记录。实现这个有点麻烦。
+        /// 【并发】每个记录回调时加读锁，回调完成马上释放。
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        public long Walk(Func<K, V, bool> callback)
+        {
+            return Storage.DatabaseTable.Walk(
+                (key, value) =>
+                {
+                    K k = DecodeKey(ByteBuffer.Wrap(key));
+                    TableKey tkey = new TableKey(Id, k);
+                    Lockey lockey = Locks.Instance.Get(tkey);
+                    lockey.EnterReadLock();
+                    try
+                    {
+                        Record<K, V> r = Cache.Get(k);
+                        if (null != r)
+                        {
+                            if (r.Value == null)
+                                return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+                            return callback(r.Key, r.ValueTyped);
+                        }
+                        V v = DecodeValue(ByteBuffer.Wrap(value));
+                        return callback(k, v);
+                    }
+                    finally
+                    {
+                        lockey.ExitReadLock();
+                    }
+                });
+        }
+
+        /// <summary>
+        /// 遍历数据库中的表。看不到本地缓存中的数据。
+        /// 【并发】后台数据库处理并发。
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        public long WalkDatabase(Func<byte[], byte[], bool> callback)
+        {
+            return Storage.DatabaseTable.Walk(callback);
+        }
+
+        /// <summary>
+        /// 遍历数据库中的表。看不到本地缓存中的数据。
+        /// 【并发】后台数据库处理并发。
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        public long WalkDatabase(Func<K, V, bool> callback)
+        {
+            return Storage.DatabaseTable.Walk(
+                (key, value) =>
+                {
+                    K k = DecodeKey(ByteBuffer.Wrap(key));
+                    V v = DecodeValue(ByteBuffer.Wrap(value));
+                    return callback(k, v);
+                });
+        }
     }
 }
