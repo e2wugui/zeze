@@ -73,19 +73,47 @@ namespace Zeze.Raft
         }
 
         private int ExpectCount { get; set; }
-        private int AddErrorCount { get; set; }
-        private int AddTimeoutCount { get; set; }
+        private Dictionary<int, int> Errors { get; } = new Dictionary<int, int>();
+
+        private void ErrorsAdd(int resultCode)
+        {
+            if (0 == resultCode)
+                return;
+            if (Errors.ContainsKey(resultCode))
+                Errors[resultCode] = Errors[resultCode] + 1;
+            else
+                Errors[resultCode] = 1;
+        }
+
+        private int ErrorsSum()
+        {
+            int sum = 0;
+            foreach (var e in Errors.Values)
+            {
+                sum += e;
+            }
+            return sum;
+        }
 
         private void CheckCurrentCount(string stepName)
         {
             var CurrentCount = GetCurrentCount();
             if (CurrentCount != ExpectCount)
             {
-                if (CurrentCount + AddErrorCount + AddTimeoutCount != ExpectCount)
-                    logger.Fatal($"%%%%%%%%%%%%% {stepName} Expect={ExpectCount} Now={CurrentCount},Error={AddErrorCount},Timeout={AddTimeoutCount} %%%%%%%%%%%%%");
-                else
-                    logger.Info($"@@@@@@@@@@@@@ {stepName} Expect={ExpectCount} Now={CurrentCount},Error={AddErrorCount},Timeout={AddTimeoutCount} @@@@@@@@@@@@@");
+                var report = new StringBuilder();
+                var level = ExpectCount != CurrentCount + ErrorsSum()
+                    ? "FATAL" : "HAS ERROR";
+                report.Append($"{Environment.NewLine}_______________{level}____________________________");
+                report.Append($"{Environment.NewLine}{stepName},");
+                report.Append($"Expect={ExpectCount},");
+                report.Append($"Now={CurrentCount},");
+                report.Append($"Errors=");
+                ByteBuffer.BuildString(report, Errors);
+                report.Append($"{Environment.NewLine}_______________{level}____________________________");
+                logger.Fatal(report.ToString());
+
                 ExpectCount = CurrentCount; // 下一个测试重新开始。
+                Errors.Clear();
             }
         }
 
@@ -99,16 +127,16 @@ namespace Zeze.Raft
             for (int i = 0; i < requests.Count; ++i)
             {
                 tasks[i] = Agent.SendForWait(requests[i]).Task;
-                logger.Debug("+++++++++ REQUEST {0} {1}", stepName, requests[i]);
+                //logger.Debug("+++++++++ REQUEST {0} {1}", stepName, requests[i]);
             }
             Task.WaitAll(tasks);
             foreach (var request in requests)
             {
-                logger.Debug("--------- RESPONSE {0} {1}", stepName, request);
+                //logger.Debug("--------- RESPONSE {0} {1}", stepName, request);
                 if (request.IsTimeout)
-                    AddTimeoutCount++;
-                else if (request.ResultCode != 0)
-                    AddErrorCount++;
+                    ErrorsAdd(Procedure.Timeout);
+                else
+                    ErrorsAdd(request.ResultCode);
             }
         }
 
@@ -128,8 +156,6 @@ namespace Zeze.Raft
 
         private void TestConcurrent(string testname, int count)
         {
-            AddTimeoutCount = 0;
-            AddErrorCount = 0;
             ConcurrentAddCount(testname, count);
             ExpectCount += count;
             CheckCurrentCount(testname);
@@ -345,7 +371,7 @@ namespace Zeze.Raft
                 Raft = null;
             }
 
-            public void StartRaft()
+            public void StartRaft(bool resetLog = false)
             {
                 if (null != Raft)
                     throw new Exception($"Raft {RaftName} Has Started.");
@@ -357,8 +383,11 @@ namespace Zeze.Raft
                 raftConfig.LeaderHeartbeatTimer = 1500;
                 raftConfig.LeaderLostTimeout = 2000;
                 raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
-                if (Directory.Exists(raftConfig.DbHome))
-                    Directory.Delete(raftConfig.DbHome, true);
+                if (resetLog)
+                {
+                    if (Directory.Exists(raftConfig.DbHome))
+                        Directory.Delete(raftConfig.DbHome, true);
+                }
                 Directory.CreateDirectory(raftConfig.DbHome);
 
                 Raft = new Raft(StateMachine, RaftName, raftConfig);
@@ -384,7 +413,7 @@ namespace Zeze.Raft
             {
                 RaftName = raftName;
                 RaftConfigFileName = raftConfigFileName;
-                StartRaft();
+                StartRaft(true);
             }
 
             private int ProcessAddCount(Zeze.Net.Protocol p)
