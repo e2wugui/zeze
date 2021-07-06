@@ -13,8 +13,6 @@ namespace Zeze.Util
     {
         public class ObjectId : Comparer<ObjectId>
         {
-            public static readonly int TypeRole = 0;
-
             public int Type { get; set; }
             public int ConfigId { get; set; }
             public long InstanceId { get; set; }
@@ -34,8 +32,8 @@ namespace Zeze.Util
             {
                 const int prime = 31;
                 int result = 17;
-                result = prime * result + Type;
-                result = prime * result + ConfigId;
+                result = prime * result + Type.GetHashCode();
+                result = prime * result + ConfigId.GetHashCode();
                 result = prime * result + InstanceId.GetHashCode();
                 return result;
             }
@@ -60,69 +58,9 @@ namespace Zeze.Util
         {
             public HashSet<ObjectId> ObjectIds { get; } = new HashSet<ObjectId>();
         }
-        class Index<T>
-        {
-            public int Start { get; set; }
-            public int Count { get; private set; }
-            public T[] Elements { get; private set; } = Array.Empty<T>();
 
-            private static int ToPower2(int needSize)
-            {
-                int size = 128;
-                while (size < needSize)
-                    size <<= 1;
-                return size;
-            }
-
-            private bool EnsureSize(int size, int offset)
-            {
-                if (size > Elements.Length)
-                {
-                    int newsize = ToPower2(size);
-                    T[] newArray = new T[newsize];
-                    Array.Copy(Elements, 0, newArray, offset, Count);
-                    Elements = newArray;
-                    Count = size;
-                    return true;
-                }
-                return false;
-            }
-
-            public T GetOrAdd(int index, Func<T> factory)
-            {
-                if (index < Start)
-                {
-                    int offset = Start - index;
-                    if (false == EnsureSize(Count + offset, offset))
-                    {
-                        Buffer.BlockCopy(Elements, 0, Elements, offset, Count);
-                        Count += offset;
-                    }
-                    Start = index;
-                }
-                else
-                {
-                    EnsureSize(index - Start + 1, 0);
-                }
-                int realIndex = index - Start;
-                T e = Elements[realIndex];
-                if (null != e)
-                    return e;
-                e = factory();
-                Elements[realIndex] = e;
-                return e;
-            }
-
-            public T Get(int index)
-            {
-                if (index < Start)
-                    return default(T);
-                if (index - Start + 1 > Elements.Length)
-                    return default(T);
-                return Elements[index - Start];
-            }
-        }
-        Index<Index<Index<Cube>>> IndexX;
+        private HugeArray<HugeArray<HugeArray<Cube>>> IndexX
+            = new HugeArray<HugeArray<HugeArray<Cube>>>();
 
         private int CubeSizeX;
         private int CubeSizeY;
@@ -149,13 +87,13 @@ namespace Zeze.Util
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <param name="z"></param>
-        public void OnEnter(ObjectId objId, float x, float y, float z)
+        public void OnEnter(ObjectId objId, double dx, double dy, double dz)
         {
-            int ix = (int)x / CubeSizeX;
-            int iy = (int)y / CubeSizeY;
-            int iz = (int)z / CubeSizeZ;
+            long x = (long)(dx / CubeSizeX);
+            long y = (long)(dy / CubeSizeY);
+            long z = (long)(dz / CubeSizeZ);
 
-            GetOrAdd(ix, iy, iz).ObjectIds.Add(objId);
+            GetOrAdd(x, y, z).ObjectIds.Add(objId);
         }
 
         /// <summary>
@@ -168,21 +106,23 @@ namespace Zeze.Util
         /// <param name="newx"></param>
         /// <param name="newy"></param>
         /// <param name="newz"></param>
-        public void OnMove(ObjectId objId, float oldx, float oldy, float oldz, float newx, float newy, float newz)
+        public void OnMove(ObjectId objId,
+            double oldx, double oldy, double oldz,
+            double newx, double newy, double newz)
         {
-            int iox = (int)oldx / CubeSizeX;
-            int ioy = (int)oldy / CubeSizeY;
-            int ioz = (int)oldz / CubeSizeZ;
+            long ox = (long)(oldx / CubeSizeX);
+            long oy = (long)(oldy / CubeSizeY);
+            long oz = (long)(oldz / CubeSizeZ);
 
-            int inx = (int)newx / CubeSizeX;
-            int iny = (int)newy / CubeSizeY;
-            int inz = (int)newz / CubeSizeZ;
+            long nx = (long)(newx / CubeSizeX);
+            long ny = (long)(newy / CubeSizeY);
+            long nz = (long)(newz / CubeSizeZ);
 
-            if (iox == inx && ioy == iny && ioz == inz)
+            if (ox == nx && oy == ny && oz == nz)
                 return;
 
-            Get(iox, ioy, ioz)?.ObjectIds.Remove(objId);
-            GetOrAdd(inx, iny, inz).ObjectIds.Add(objId);
+            Get(ox, oy, oz)?.ObjectIds.Remove(objId);
+            GetOrAdd(nx, ny, nz).ObjectIds.Add(objId);
         }
 
         /// <summary>
@@ -192,11 +132,11 @@ namespace Zeze.Util
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <param name="z"></param>
-        public void OnLeave(ObjectId objId, float x, float y, float z)
+        public void OnLeave(ObjectId objId, double x, double y, double z)
         {
-            int ix = (int)x / CubeSizeX;
-            int iy = (int)y / CubeSizeY;
-            int iz = (int)z / CubeSizeZ;
+            long ix = (long)(x / CubeSizeX);
+            long iy = (long)(y / CubeSizeY);
+            long iz = (long)(z / CubeSizeZ);
 
             Get(ix, iy, iz)?.ObjectIds.Remove(objId);
         }
@@ -210,18 +150,20 @@ namespace Zeze.Util
         /// <param name="centerZ"></param>
         /// <param name="range">周围cube数</param>
         /// <returns></returns>
-        public List<Cube> GetCubes(float centerX, float centerY, float centerZ, int range = 2)
+        public List<Cube> GetCubes(
+            double centerX, double centerY, double centerZ,
+            int rangeX = 4, int rangeY = 4, int rangeZ = 4)
         {
-            int ix = (int)centerX / CubeSizeX;
-            int iy = (int)centerY / CubeSizeY;
-            int iz = (int)centerZ / CubeSizeZ;
+            long ix = (long)(centerX / CubeSizeX);
+            long iy = (long)(centerY / CubeSizeY);
+            long iz = (long)(centerZ / CubeSizeZ);
 
             List<Cube> result = new List<Cube>();
-            for (int i = ix - range; i <= ix + range; ++i)
+            for (long i = ix - rangeX; i <= ix + rangeX; ++i)
             {
-                for (int j = iy - range; j <= iy + range; ++j)
+                for (long j = iy - rangeY; j <= iy + rangeY; ++j)
                 {
-                    for (int k = iz - range; k <= iz + range; ++k)
+                    for (long k = iz - rangeZ; k <= iz + rangeZ; ++k)
                     {
                         Cube cube = Get(i, j, k);
                         if (cube != null)
@@ -232,28 +174,24 @@ namespace Zeze.Util
             return result;
         }
 
-        private Cube GetOrAdd(int ix, int iy, int iz)
+        private Cube GetOrAdd(long ix, long iy, long iz)
         {
-            if (IndexX == null)
-                IndexX = new Index<Index<Index<Cube>>>() { Start = ix };
-            Index<Index<Cube>> IndexY = IndexX.GetOrAdd(ix, () => new Index<Index<Cube>>() { Start = iy });
-            Index<Cube> IndexZ = IndexY.GetOrAdd(iy, () => new Index<Cube>() { Start = iz });
-            Cube cube = IndexZ.GetOrAdd(iz, () => new Cube());
+            var IndexY = IndexX.GetOrAdd(ix, () => new HugeArray<HugeArray<Cube>>());
+            var IndexZ = IndexY.GetOrAdd(iy, () => new HugeArray<Cube>());
+            var cube   = IndexZ.GetOrAdd(iz, () => new Cube());
             return cube;
         }
 
 
-        private Cube Get(int ix, int iy, int iz)
+        private Cube Get(long x, long y, long z)
         {
-            if (IndexX == null)
-                return null;
-            Index<Index<Cube>> IndexY = IndexX.Get(ix);
+            var IndexY = IndexX[x];
             if (IndexY == null)
                 return null;
-            Index<Cube> IndexZ = IndexY.Get(iy);
+            var IndexZ = IndexY[y];
             if (IndexZ == null)
                 return null;
-            return IndexZ.Get(iz);
+            return IndexZ[z];
         }
     }
 }
