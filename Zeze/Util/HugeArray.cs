@@ -8,8 +8,16 @@ namespace Zeze.Util
 {
     public class HugeArray<T> where T : class
     {
-        private List<List<T>> GetArrays(ref long index)
+        private List<List<T>> GetArrays(ref long index, bool forSet)
         {
+            if (forSet)
+            {
+                if (index > MaxIndex)
+                    MaxIndex = index;
+                else if (index < MinIndex)
+                    MinIndex = index;
+            }
+
             if (index >= 0)
                 return Arrays;
             index = -index - 1;
@@ -20,7 +28,7 @@ namespace Zeze.Util
         {
             get
             {
-                var arrays = GetArrays(ref index);
+                var arrays = GetArrays(ref index, false);
                 var (block, offset) = ToBlock(index);
                 if (block >= arrays.Count)
                     return default(T);
@@ -33,7 +41,7 @@ namespace Zeze.Util
             }
             set
             {
-                var arrays = GetArrays(ref index);
+                var arrays = GetArrays(ref index, true);
                 var (block, offset) = ToBlock(index);
                 EnsureBlock(arrays, block, offset)[offset] = value;
             }
@@ -48,7 +56,7 @@ namespace Zeze.Util
 
         public T GetOrAdd(long index, Func<T> factory)
         {
-            var arrays = GetArrays(ref index);
+            var arrays = GetArrays(ref index, true);
             var (block, offset) = ToBlock(index);
             if (block >= arrays.Count)
                 return NewAndSet(arrays, block, offset, factory);
@@ -66,6 +74,7 @@ namespace Zeze.Util
             return e;
         }
 
+        /*
         private long GetArraysElementsCount(List<List<T>> arrays)
         {
             if (arrays.Count == 0)
@@ -75,8 +84,13 @@ namespace Zeze.Util
             count += arrays[^1].Count;
             return count;
         }
+        */
 
-        public long Count => GetArraysElementsCount(Arrays) + GetArraysElementsCount(ArraysNegative);
+        public long MinIndex { get; private set; } = 0;
+        public long MaxIndex { get; private set; } = -1;
+
+        public long Count => MaxIndex + 1 - MinIndex;
+        // => GetArraysElementsCount(Arrays) + GetArraysElementsCount(ArraysNegative);
 
         public long BlockCount => Arrays.Count + ArraysNegative.Count;
 
