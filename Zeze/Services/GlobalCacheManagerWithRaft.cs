@@ -134,7 +134,7 @@ namespace Zeze.Services
             // 安全性以后加强。
             if (false == rpc.Argument.SecureKey.Equals("Ok! verify secure."))
             {
-                rpc.SendResultCode(-1);
+                rpc.SendResultCode(GlobalCacheManager.CleanupErrorSecureKey);
                 return 0;
             }
 
@@ -142,14 +142,14 @@ namespace Zeze.Services
             if (session.GlobalCacheManagerHashIndex != rpc.Argument.GlobalCacheManagerHashIndex)
             {
                 // 多点验证
-                rpc.SendResultCode(-2);
+                rpc.SendResultCode(GlobalCacheManager.CleanupErrorGlobalCacheManagerHashIndex);
                 return 0;
             }
 
             if (this.Raft.Server.GetSocket(session.SessionId) != null)
             {
                 // 连接存在，禁止cleanup。
-                rpc.SendResultCode(-3);
+                rpc.SendResultCode(GlobalCacheManager.CleanupErrorHasConnection);
                 return 0;
             }
 
@@ -179,7 +179,7 @@ namespace Zeze.Services
                 p.Sender,
                 rpc.Argument.GlobalCacheManagerHashIndex))
             {
-                rpc.SendResultCode(-1);
+                rpc.SendResultCode(GlobalCacheManager.LoginBindSocketFail);
                 return 0;
             }
             // new login, 比如逻辑服务器重启。release old acquired.
@@ -198,7 +198,7 @@ namespace Zeze.Services
             var session = GetSession(rpc.Argument.AutoKeyLocalId);
             if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
-                rpc.SendResultCode(-1);
+                rpc.SendResultCode(GlobalCacheManager.ReLoginBindSocketFail);
                 return 0;
             }
             rpc.SendResultCode(0);
@@ -216,7 +216,7 @@ namespace Zeze.Services
             }
             if (false == session.TryUnBindSocket(p.Sender))
             {
-                rpc.SendResultCode(-2);
+                rpc.SendResultCode(GlobalCacheManager.NormalCloseUnbindFail);
                 return 0;
             }
             foreach (var gkey in session.Acquired.Keys)

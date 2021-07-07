@@ -37,6 +37,16 @@ namespace Zeze.Services
 
         public const int AcquireNotLogin = 20;
 
+        public const int CleanupErrorSecureKey = 30;
+        public const int CleanupErrorGlobalCacheManagerHashIndex = 31;
+        public const int CleanupErrorHasConnection = 32;
+
+        public const int ReLoginBindSocketFail = 40;
+
+        public const int NormalCloseUnbindFail = 50;
+
+        public const int LoginBindSocketFail = 60;
+
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public static GlobalCacheManager Instance { get; } = new GlobalCacheManager();
         public ServerService Server { get; private set; }
@@ -156,7 +166,7 @@ namespace Zeze.Services
             // 安全性以后加强。
             if (false == rpc.Argument.SecureKey.Equals("Ok! verify secure."))
             {
-                rpc.SendResultCode(-1);
+                rpc.SendResultCode(CleanupErrorSecureKey);
                 return 0;
             }
 
@@ -164,14 +174,14 @@ namespace Zeze.Services
             if (session.GlobalCacheManagerHashIndex != rpc.Argument.GlobalCacheManagerHashIndex)
             {
                 // 多点验证
-                rpc.SendResultCode(-2);
+                rpc.SendResultCode(CleanupErrorGlobalCacheManagerHashIndex);
                 return 0;
             }
 
             if (this.Server.GetSocket(session.SessionId) != null)
             {
                 // 连接存在，禁止cleanup。
-                rpc.SendResultCode(-3);
+                rpc.SendResultCode(CleanupErrorHasConnection);
                 return 0;
             }
 
@@ -199,7 +209,7 @@ namespace Zeze.Services
             var session = Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (_) => new CacheHolder());
             if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
-                rpc.SendResultCode(-1);
+                rpc.SendResultCode(LoginBindSocketFail);
                 return 0;
             }
             // new login, 比如逻辑服务器重启。release old acquired.
@@ -218,7 +228,7 @@ namespace Zeze.Services
             var session = Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (_) => new CacheHolder());
             if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
-                rpc.SendResultCode(-1);
+                rpc.SendResultCode(ReLoginBindSocketFail);
                 return 0;
             }
             rpc.SendResultCode(0);
@@ -236,7 +246,7 @@ namespace Zeze.Services
             }
             if (false == session.TryUnBindSocket(p.Sender))
             {
-                rpc.SendResultCode(-2);
+                rpc.SendResultCode(NormalCloseUnbindFail);
                 return 0;
             }
             foreach (var gkey in session.Acquired.Keys)
