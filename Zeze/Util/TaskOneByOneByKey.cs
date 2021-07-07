@@ -44,9 +44,6 @@ namespace Zeze.Util
 			if (null == action)
 				throw new ArgumentNullException();
 
-			if (IsShutdown)
-				cancel?.Invoke();
-
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
 			concurrency[index].Execute(action, actionName, cancel);
@@ -58,9 +55,6 @@ namespace Zeze.Util
 			if (null == action)
 				throw new ArgumentNullException();
 
-			if (IsShutdown)
-				cancel?.Invoke();
-
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
 			concurrency[index].Execute(action, actionName, cancel);
@@ -71,23 +65,13 @@ namespace Zeze.Util
 			if (null == procedure)
 				throw new ArgumentNullException();
 
-			if (IsShutdown)
-				cancel?.Invoke();
-
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
 			concurrency[index].Execute(procedure.Call, procedure.ActionName, cancel);
 		}
 
-		public bool IsShutdown { get; private set; }
 		public void Shutdown()
         {
-			lock (this)
-            {
-				if (IsShutdown)
-					return;
-				IsShutdown = true;
-			}
 			foreach (var ts in concurrency)
             {
 				ts.Shutdown();
@@ -118,11 +102,16 @@ namespace Zeze.Util
 		{
 			LinkedList<(Action, string, Action)> queue = new LinkedList<(Action, string, Action)>();
 
+			bool IsShutdown = false;
+
 			public void Shutdown()
             {
 				var tmp = queue;
 				lock (this)
                 {
+					if (IsShutdown)
+						return;
+					IsShutdown = true;
 					queue = new LinkedList<(Action, string, Action)>(); // clear
                 }
 				bool first = true;
@@ -152,6 +141,12 @@ namespace Zeze.Util
             {
 				lock (this)
                 {
+					if (IsShutdown)
+                    {
+						cancel?.Invoke();
+						return;
+					}
+
 					queue.AddLast((() =>
 					{
 						try
@@ -175,6 +170,12 @@ namespace Zeze.Util
 			{
 				lock (this)
 				{
+					if (IsShutdown)
+					{
+						cancel?.Invoke();
+						return;
+					}
+
 					queue.AddLast((() =>
 					{
 						try

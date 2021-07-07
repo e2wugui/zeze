@@ -51,6 +51,8 @@ namespace Zeze.Net
                         return;
 
                     context.IsTimeout = true;
+                    context.ResultCode = Zeze.Transaction.Procedure.Timeout;
+
                     if (null != context.Future)
                         context.Future.TrySetException(new RpcTimeoutException());
                     else
