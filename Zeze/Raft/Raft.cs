@@ -38,13 +38,15 @@ namespace Zeze.Raft
 
         public void Close()
         {
+            // 0 Cancel Task. Only Leader Has Task
+            Server.TaskOneByOne.Shutdown(); 
+
             // 1. close network first.
             Server.Stop();
 
             // 2. clear pending task if is leader
             lock (this)
             {
-                Server.TaskOneByOne.Clear(); // Only Leader Has Task
                 // this will wakeup Running-Task in TaskOneByOne
                 // see WaitLeaderReady.
                 // 这里只用使用状态改变，不直接想办法唤醒等待的任务，

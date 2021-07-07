@@ -18,6 +18,8 @@ namespace Zeze.Util
 	/// </summary>
 	public sealed class TaskOneByOneByKey
     {
+		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
 		private TaskOneByOne[] concurrency;
 
 		public TaskOneByOneByKey() : this(1024)
@@ -37,42 +39,58 @@ namespace Zeze.Util
 				this.concurrency[i] = new TaskOneByOne();
 		}
 
-		public void Execute(object key, Action action, string actionName = null)
+		public void Execute(object key, Action action, string actionName = null, Action cancel = null)
         {
 			if (null == action)
 				throw new ArgumentNullException();
 
+			if (IsShutdown)
+				cancel?.Invoke();
+
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
-			concurrency[index].Execute(action, actionName);
+			concurrency[index].Execute(action, actionName, cancel);
         }
 
 
-		public void Execute(object key, Func<int> action, string actionName = null)
+		public void Execute(object key, Func<int> action, string actionName = null, Action cancel = null)
 		{
 			if (null == action)
 				throw new ArgumentNullException();
 
+			if (IsShutdown)
+				cancel?.Invoke();
+
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
-			concurrency[index].Execute(action, actionName);
+			concurrency[index].Execute(action, actionName, cancel);
 		}
 
-		public void Execute(object key, Zeze.Transaction.Procedure procedure)
+		public void Execute(object key, Zeze.Transaction.Procedure procedure, Action cancel = null)
 		{
 			if (null == procedure)
 				throw new ArgumentNullException();
 
+			if (IsShutdown)
+				cancel?.Invoke();
+
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
-			concurrency[index].Execute(procedure.Call, procedure.ActionName);
+			concurrency[index].Execute(procedure.Call, procedure.ActionName, cancel);
 		}
 
-		public void Clear()
+		public bool IsShutdown { get; private set; }
+		public void Shutdown()
         {
+			lock (this)
+            {
+				if (IsShutdown)
+					return;
+				IsShutdown = true;
+			}
 			foreach (var ts in concurrency)
             {
-				ts.Clear();
+				ts.Shutdown();
             }
         }
 
@@ -98,13 +116,31 @@ namespace Zeze.Util
 
 		internal class TaskOneByOne
 		{
-			LinkedList<(Action, string)> queue = new LinkedList<(Action, string)>();
+			LinkedList<(Action, string, Action)> queue = new LinkedList<(Action, string, Action)>();
 
-			public void Clear()
+			public void Shutdown()
             {
+				var tmp = queue;
 				lock (this)
                 {
-					queue.Clear();
+					queue = new LinkedList<(Action, string, Action)>(); // clear
+                }
+				bool first = true;
+				foreach (var e in tmp)
+                {
+					if (first)
+                    {
+						first = false;
+						continue;
+                    }
+                    try
+                    {
+						e.Item3?.Invoke();
+                    }
+					catch (Exception ex)
+                    {
+						logger.Error(ex, $"CancelAction={e.Item2}");
+                    }
                 }
             }
 
@@ -112,7 +148,7 @@ namespace Zeze.Util
             {
             }
 
-			internal void Execute(Action action, string actionName)
+			internal void Execute(Action action, string actionName, Action cancel)
             {
 				lock (this)
                 {
@@ -126,7 +162,7 @@ namespace Zeze.Util
 						{
 							RunNext();
 						}
-					}, actionName));
+					}, actionName, cancel));
 
 					if (queue.Count == 1)
                     {
@@ -135,7 +171,7 @@ namespace Zeze.Util
 				}
 			}
 
-			internal void Execute(Func<int> action, string actionName)
+			internal void Execute(Func<int> action, string actionName, Action cancel)
 			{
 				lock (this)
 				{
@@ -149,7 +185,7 @@ namespace Zeze.Util
 						{
 							RunNext();
 						}
-					}, actionName));
+					}, actionName, cancel));
 
 					if (queue.Count == 1)
 					{

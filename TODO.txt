@@ -24,7 +24,6 @@ GlobalCacheManagerWithRaft
 	优化。改成一次AppendLog。
 	关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 
-vote问题？
 Agent的请求lost context，但是Task.Wait怎么返回的。
 DatabaseRocksDb
 	OperatesRocksDb
@@ -34,3 +33,8 @@ DatabaseTikv
 
 Raft.Agent
 	重发现在在收到LeaderIs时马上重新发送。改成延迟？
+
+Raft CheckLeader，马上报错
+	执行任务
+	AppendLog
+	取消任务

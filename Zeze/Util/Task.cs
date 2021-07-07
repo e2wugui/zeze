@@ -98,9 +98,9 @@ namespace Zeze.Util
             Net.Protocol from = null,
             Action<Net.Protocol, int> actionWhenError = null)
         {
+            bool? isRequestSaved = from?.IsRequest;
             try
             {
-                bool? isRequestSaved = from?.IsRequest;
                 // 日志在Call里面记录。因为要支持嵌套。
                 // 统计在Call里面实现。
                 int result = procdure.Call();
@@ -113,7 +113,10 @@ namespace Zeze.Util
             catch (Exception ex)
             {
                 // Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
-                // 这里不回调 actionWhenError
+                if (null != isRequestSaved && isRequestSaved.Value)
+                {
+                    actionWhenError?.Invoke(from, Procedure.Excption);
+                }
                 logger.Error(ex, procdure.ActionName);
                 return Procedure.Excption;
             }

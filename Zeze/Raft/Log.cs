@@ -471,6 +471,9 @@ namespace Zeze.Raft
 
         public void AppendLog(Log log, bool WaitApply = true)
         {
+            if (false == Raft.IsLeader)
+                throw new TaskCanceledException(); // 快速失败
+
             TaskCompletionSource<int> future = null;
             lock (Raft)
             {

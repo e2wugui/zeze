@@ -169,7 +169,11 @@ namespace Zeze.Raft
                 if (p.UniqueRequestId > 0 && Raft.RaftConfig.AutoKeyLocalStep > 0)
                     appInstance = p.UniqueRequestId % Raft.RaftConfig.AutoKeyLocalStep;
 
-                TaskOneByOne.Execute(appInstance, () => ProcessRequest(appInstance, p, factoryHandle));
+                TaskOneByOne.Execute(appInstance,
+                    () => ProcessRequest(appInstance, p, factoryHandle),
+                    p.GetType().FullName,
+                    () => p.SendResultCode(Procedure.CancelExcption)
+                    );
                 return;
             }
 
@@ -283,7 +287,7 @@ namespace Zeze.Raft
         {
             if (rpc.IsTimeout)
             {
-                future.TrySetException(new Exception("Timeout"));
+                future.TrySetException(new RpcTimeoutException("RaftRpcTimeout"));
             }
             else
             {

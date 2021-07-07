@@ -50,13 +50,11 @@ namespace Zeze.Net
                     if (null == context) // 一般来说，此时结果已经返回。
                         return;
 
-                    if (null != context.Future)
-                    {
-                        context.Future.TrySetException(new RpcTimeoutException());
-                        return;
-                    }
                     context.IsTimeout = true;
-                    this.ResponseHandle?.Invoke(context);
+                    if (null != context.Future)
+                        context.Future.TrySetException(new RpcTimeoutException());
+                    else
+                        this.ResponseHandle?.Invoke(context);
                 },
                 millisecondsTimeout,
                 -1);

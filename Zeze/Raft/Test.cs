@@ -68,8 +68,17 @@ namespace Zeze.Raft
         private int GetCurrentCount()
         {
             var r = new GetCount();
-            Agent.SendForWait(r).Task.Wait();
-            return r.ResultCode;
+            while (true)
+            {
+                try
+                {
+                    Agent.SendForWait(r).Task.Wait();
+                    return r.ResultCode;
+                }
+                catch (Exception _)
+                {
+                }
+            }
         }
 
         private int ExpectCount { get; set; }
@@ -95,26 +104,28 @@ namespace Zeze.Raft
             return sum;
         }
 
-        private void CheckCurrentCount(string stepName)
+        private bool CheckCurrentCount(string stepName)
         {
             var CurrentCount = GetCurrentCount();
             if (CurrentCount != ExpectCount)
             {
                 var report = new StringBuilder();
                 var level = ExpectCount != CurrentCount + ErrorsSum()
-                    ? "FATAL" : "HAS ERROR";
-                report.Append($"{Environment.NewLine}_______________{level}____________________________");
+                    ? NLog.LogLevel.Fatal : NLog.LogLevel.Info;
+                report.Append($"{Environment.NewLine}-------------------------------------------");
                 report.Append($"{Environment.NewLine}{stepName},");
                 report.Append($"Expect={ExpectCount},");
                 report.Append($"Now={CurrentCount},");
                 report.Append($"Errors=");
                 ByteBuffer.BuildString(report, Errors);
-                report.Append($"{Environment.NewLine}_______________{level}____________________________");
-                logger.Fatal(report.ToString());
+                report.Append($"{Environment.NewLine}-------------------------------------------");
+                logger.Log(level, report.ToString());
 
                 ExpectCount = CurrentCount; // 下一个测试重新开始。
                 Errors.Clear();
+                return level == NLog.LogLevel.Info;
             }
+            return true;
         }
 
         private void ConcurrentAddCount(string stepName, int concurrent)
@@ -129,7 +140,16 @@ namespace Zeze.Raft
                 tasks[i] = Agent.SendForWait(requests[i]).Task;
                 //logger.Debug("+++++++++ REQUEST {0} {1}", stepName, requests[i]);
             }
-            Task.WaitAll(tasks);
+            try
+            {
+                Task.WaitAll(tasks);
+            }
+            catch (AggregateException _)
+            {
+                // 这里只会发生超时错误RpcTimeoutException。
+                // 后面会处理每个requests，这里不做处理了。
+                // logger.Warn(ex);
+            }
             foreach (var request in requests)
             {
                 //logger.Debug("--------- RESPONSE {0} {1}", stepName, request);
@@ -210,7 +230,7 @@ namespace Zeze.Raft
             }
             TestConcurrent("TestNormalNodeRestartRaft1", 1);
 
-            // 普通节点重启网络二。
+            // 普通节点重启二。
             if (NotLeaders.Count > 1)
             {
                 NotLeaders[0].StopRaft();
@@ -228,10 +248,190 @@ namespace Zeze.Raft
             Util.Scheduler.Instance.Schedule((ThisTask) => leader.StartRaft(), StartDely);
             TestConcurrent("TestLeaderNodeRestartRaft", 1);
 
-            // RandomRaft().RestarRaft();
             // InstallSnapshot;
 
+            logger.Fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+            logger.Fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+            logger.Fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+
             SetLogLevel(NLog.LogLevel.Info);
+
+            FailActions.Add(new FailAction()
+            {
+                Name = "RestartNet1",
+                Action = () =>
+                {
+                    var rafts = ShuffleRafts();
+                    rafts[0].RestartNet();
+                    WaitExpectCountGrow();
+                }
+            });
+            FailActions.Add(new FailAction()
+            {
+                Name = "RestartNet2",
+                Action = () =>
+                {
+                    var rafts = ShuffleRafts();
+                    rafts[0].RestartNet();
+                    rafts[1].RestartNet();
+                    WaitExpectCountGrow();
+                }
+            });
+            FailActions.Add(new FailAction()
+            {
+                Name = "RestartNet3",
+                Action = () =>
+                {
+                    var rafts = ShuffleRafts();
+                    rafts[0].RestartNet();
+                    rafts[1].RestartNet();
+                    rafts[2].RestartNet();
+                    WaitExpectCountGrow();
+                }
+            });
+            FailActions.Add(new FailAction()
+            {
+                Name = "RestartLeaderNetForVote",
+                Action = () =>
+                {
+                    while (true)
+                    {
+                        var leader = GetLeader();
+                        if (leader == null)
+                        {
+                            System.Threading.Thread.Sleep(10); // wait a Leader
+                            continue;
+                        }
+                        leader.Raft.Server.Stop();
+                        // delay for vote
+                        System.Threading.Thread.Sleep(leader.Raft.RaftConfig.LeaderLostTimeout + 2000);
+                        leader.Raft.Server.Start();
+                        WaitExpectCountGrow();
+                        break;
+                    }
+                }
+            });
+            FailActions.Add(new FailAction()
+            {
+                Name = "RestartRaft1",
+                Action = () =>
+                {
+                    var rafts = ShuffleRafts();
+                    rafts[0].StopRaft();
+                    rafts[0].StartRaft();
+                    WaitExpectCountGrow();
+                }
+            });
+            FailActions.Add(new FailAction()
+            {
+                Name = "RestartRaft2",
+                Action = () =>
+                {
+                    var rafts = ShuffleRafts();
+                    rafts[0].StopRaft();
+                    rafts[1].StopRaft();
+
+                    rafts[0].StartRaft();
+                    rafts[1].StartRaft();
+                    WaitExpectCountGrow();
+                }
+            });
+            FailActions.Add(new FailAction()
+            {
+                Name = "RestartRaft3",
+                Action = () =>
+                {
+                    var rafts = ShuffleRafts();
+                    rafts[0].StopRaft();
+                    rafts[1].StopRaft();
+                    rafts[2].StopRaft();
+
+                    rafts[0].StartRaft();
+                    rafts[1].StartRaft();
+                    rafts[2].StartRaft();
+                    WaitExpectCountGrow();
+                }
+            });
+            FailActions.Add(new FailAction()
+            {
+                Name = "RestartLeaderRaftForVote",
+                Action = () =>
+                {
+                    while (true)
+                    {
+                        var leader = GetLeader();
+                        if (leader == null)
+                        {
+                            System.Threading.Thread.Sleep(10); // wait a Leader
+                            continue;
+                        }
+                        leader.StopRaft();
+                        // delay for vote
+                        System.Threading.Thread.Sleep(leader.Raft.RaftConfig.LeaderLostTimeout + 2000);
+                        leader.StartRaft();
+                        WaitExpectCountGrow();
+                        break;
+                    }
+                }
+            });
+
+            // Start Background FailActions
+            Util.Task.Run(RandomTriggerFailActions, "RandomTriggerFailActions");
+            var testname = "RealConcurrentDoRequest";
+            int lastExpectCount = ExpectCount;
+            while (false == Console.KeyAvailable)
+            {
+                int count = 5;
+                ConcurrentAddCount(testname, count);
+                ExpectCount += count;
+                if (ExpectCount - lastExpectCount > count * 10)
+                {
+                    lastExpectCount = ExpectCount;
+                    var check = CheckCurrentCount(testname);
+                    logger.Info($"Check={check} ExpectCount={ExpectCount}");
+                    if (false == check)
+                    {
+                        break;
+                    }
+                }
+            }
+            Running = false;
+            SetLogLevel(NLog.LogLevel.Debug);
+            CheckCurrentCount("Final Check!!!");
+        }
+
+        class FailAction
+        {
+            public string Name { get; set; }
+            public Action Action { get; set; }
+            public long Count { get; set; }
+        }
+        private List<FailAction> FailActions { get; } = new List<FailAction>();
+
+        private void WaitExpectCountGrow(long growing = 20)
+        {
+            long oldTaskCount = ExpectCount;
+            while (true)
+            {
+                System.Threading.Thread.Sleep(10);
+                if (ExpectCount - oldTaskCount > growing)
+                    break;
+            }
+        }
+
+
+        private bool Running { get; set; } = true;
+
+        private void RandomTriggerFailActions()
+        {
+            int LoopDelay = 10; // ms
+            while (Running)
+            {
+                var fa = FailActions[Util.Random.Instance.Next(FailActions.Count)];
+                fa.Action();
+                fa.Count++;
+                System.Threading.Thread.Sleep(LoopDelay);
+            }
         }
 
         private TestRaft GetLeader()
@@ -255,11 +455,10 @@ namespace Zeze.Raft
             return NotLeader;
         }
 
-        private TestRaft RandomRaft()
+        
+        private TestRaft[] ShuffleRafts()
         {
-            var rands = Rafts.Values.ToArray();
-            var rand = Util.Random.Instance.Next(rands.Length);
-            return rands[rand];
+            return Util.Random.Shuffle(Rafts.Values.ToArray());
         }
 
         public sealed class AddCount : Zeze.Net.Rpc<EmptyBean, EmptyBean>
@@ -362,51 +561,57 @@ namespace Zeze.Raft
 
             public void StopRaft()
             {
-                logger.Debug("Raft {0} Stop ...", RaftName);
-                Raft?.Server.Stop();
+                lock (this)
+                {
+                    logger.Debug("Raft {0} Stop ...", RaftName);
+                    Raft?.Server.Stop();
 
-                // 在同一个进程中，没法模拟进程退出，
-                // 此时RocksDb应该需要关闭，否则重启回失败吧。
-                Raft?.Close();
-                Raft = null;
+                    // 在同一个进程中，没法模拟进程退出，
+                    // 此时RocksDb应该需要关闭，否则重启回失败吧。
+                    Raft?.Close();
+                    Raft = null;
+                }
             }
 
             public void StartRaft(bool resetLog = false)
             {
-                if (null != Raft)
-                    throw new Exception($"Raft {RaftName} Has Started.");
-                logger.Debug("Raft {0} Start ...", RaftName);
-                StateMachine = new TestStateMachine();
-
-                var raftConfig = RaftConfig.Load(RaftConfigFileName);
-                raftConfig.AppendEntriesTimeout = 1000;
-                raftConfig.LeaderHeartbeatTimer = 1500;
-                raftConfig.LeaderLostTimeout = 2000;
-                raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
-                if (resetLog)
+                lock (this)
                 {
-                    if (Directory.Exists(raftConfig.DbHome))
-                        Directory.Delete(raftConfig.DbHome, true);
+                    if (null != Raft)
+                        return;
+                    logger.Debug("Raft {0} Start ...", RaftName);
+                    StateMachine = new TestStateMachine();
+
+                    var raftConfig = RaftConfig.Load(RaftConfigFileName);
+                    raftConfig.AppendEntriesTimeout = 1000;
+                    raftConfig.LeaderHeartbeatTimer = 1500;
+                    raftConfig.LeaderLostTimeout = 2000;
+                    raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
+                    if (resetLog)
+                    {
+                        if (Directory.Exists(raftConfig.DbHome))
+                            Directory.Delete(raftConfig.DbHome, true);
+                    }
+                    Directory.CreateDirectory(raftConfig.DbHome);
+
+                    Raft = new Raft(StateMachine, RaftName, raftConfig);
+                    Raft.Server.AddFactoryHandle(
+                        new AddCount().TypeId,
+                        new Net.Service.ProtocolFactoryHandle()
+                        {
+                            Factory = () => new AddCount(),
+                            Handle = ProcessAddCount,
+                        });
+
+                    Raft.Server.AddFactoryHandle(
+                        new GetCount().TypeId,
+                        new Net.Service.ProtocolFactoryHandle()
+                        {
+                            Factory = () => new GetCount(),
+                            Handle = ProcessGetCount,
+                        });
+                    Raft.Server.Start();
                 }
-                Directory.CreateDirectory(raftConfig.DbHome);
-
-                Raft = new Raft(StateMachine, RaftName, raftConfig);
-                Raft.Server.AddFactoryHandle(
-                    new AddCount().TypeId,
-                    new Net.Service.ProtocolFactoryHandle()
-                    {
-                        Factory = () => new AddCount(),
-                        Handle = ProcessAddCount,
-                    });
-
-                Raft.Server.AddFactoryHandle(
-                    new GetCount().TypeId,
-                    new Net.Service.ProtocolFactoryHandle()
-                    {
-                        Factory = () => new GetCount(),
-                        Handle = ProcessGetCount,
-                    });
-                Raft.Server.Start();
             }
 
             public TestRaft(string raftName, string raftConfigFileName)
