@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Zeze.Util
 {
@@ -70,12 +71,16 @@ namespace Zeze.Util
 			concurrency[index].Execute(procedure.Call, procedure.ActionName, cancel);
 		}
 
-		public void Shutdown()
+		public void Shutdown(bool cancel = true)
         {
 			foreach (var ts in concurrency)
             {
-				ts.Shutdown();
+				ts.Shutdown(cancel);
             }
+			foreach (var ts in concurrency)
+            {
+				ts.WaitComplete();
+			}
         }
 
 		/**
@@ -104,21 +109,30 @@ namespace Zeze.Util
 
 			bool IsShutdown = false;
 
-			public void Shutdown()
+			internal void Shutdown(bool cancel)
             {
-				var tmp = queue;
+				LinkedList<(Action, string, Action)> tmp = null;
 				lock (this)
                 {
 					if (IsShutdown)
 						return;
 					IsShutdown = true;
-					queue = new LinkedList<(Action, string, Action)>(); // clear
-                }
+					if (cancel)
+                    {
+						tmp = queue;
+						queue = new LinkedList<(Action, string, Action)>(); // clear
+						if (tmp.Count > 0)
+							queue.AddLast(tmp.First); // put running task back.
+					}
+				}
+				if (tmp == null)
+					return;
+
 				bool first = true;
 				foreach (var e in tmp)
                 {
-					if (first)
-                    {
+					if (first) // first is running task
+					{
 						first = false;
 						continue;
                     }
@@ -133,7 +147,19 @@ namespace Zeze.Util
                 }
             }
 
-            public TaskOneByOne()
+			internal void WaitComplete()
+            {
+				lock (this)
+				{
+					// wait running task.
+					while (queue.Count > 0)
+					{
+						Monitor.Wait(this);
+					}
+				}
+			}
+
+			public TaskOneByOne()
             {
             }
 
@@ -202,6 +228,12 @@ namespace Zeze.Util
 					if (queue.Count > 0)
 					{
 						queue.RemoveFirst();
+
+						if (IsShutdown && queue.Count == 0)
+                        {
+							Monitor.PulseAll(this);
+							return;
+                        }
 					}
 					if (queue.Count > 0)
 					{

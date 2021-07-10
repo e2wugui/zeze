@@ -40,14 +40,22 @@ namespace Zeze.Raft
         {
             // 0 Cancel Task. Only Leader Has Task
             Server.TaskOneByOne.Shutdown(); 
-
+            if (!IsLeader)
+            {
+                // 如果是 Leader，那么 Shutdown 用户请求任务队列 Server.TaskOneByOne 即可。
+                // 用户请求处理依赖 ImportantThreadPool。
+                // 如果是 Follower，那么安全关闭 ImportantThreadPool，
+                // 但是Follower的请求是来自 Leader，需要考虑一下拒绝方式：
+                // 目前考虑是ImportantThreadPool.Shutdown后，直接丢掉来自 Leader的请求。
+                // 此时认为 Follower 不再能响应了。
+                ImportantThreadPool.Shutdown();
+            }
             // 1. close network first.
             Server.Stop();
 
             // 2. clear pending task if is leader
             lock (this)
             {
-                // this will wakeup Running-Task in TaskOneByOne
                 // see WaitLeaderReady.
                 // 这里只用使用状态改变，不直接想办法唤醒等待的任务，
                 // 可以避免状态设置对不对的问题。关闭时转换成Follower也是对的。
@@ -259,6 +267,15 @@ namespace Zeze.Raft
                     Monitor.Wait(this);
                 }
                 return false;
+            }
+        }
+
+        internal void ResetLeaderReadyAfterChangeState()
+        { 
+            lock (this)
+            {
+                LeaderReadyEvent.Reset();
+                Monitor.PulseAll(this);
             }
         }
 
@@ -526,7 +543,7 @@ namespace Zeze.Raft
                 case RaftState.Follower:
                     logger.Info($"RaftState {Name}: Leader->Follower");
                     State = RaftState.Follower;
-                    LeaderReadyEvent.Reset();
+                    ResetLeaderReadyAfterChangeState();
                     Monitor.PulseAll(this);
 
                     HearbeatTimerTask?.Cancel();

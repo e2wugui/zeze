@@ -263,7 +263,6 @@ namespace Zeze.Raft
                 {
                     var rafts = ShuffleRafts();
                     rafts[0].RestartNet();
-                    WaitExpectCountGrow();
                 }
             });
             FailActions.Add(new FailAction()
@@ -274,7 +273,6 @@ namespace Zeze.Raft
                     var rafts = ShuffleRafts();
                     rafts[0].RestartNet();
                     rafts[1].RestartNet();
-                    WaitExpectCountGrow();
                 }
             });
             FailActions.Add(new FailAction()
@@ -286,7 +284,6 @@ namespace Zeze.Raft
                     rafts[0].RestartNet();
                     rafts[1].RestartNet();
                     rafts[2].RestartNet();
-                    WaitExpectCountGrow();
                 }
             });
             FailActions.Add(new FailAction()
@@ -306,7 +303,6 @@ namespace Zeze.Raft
                         // delay for vote
                         System.Threading.Thread.Sleep(leader.Raft.RaftConfig.LeaderLostTimeout + 2000);
                         leader.Raft.Server.Start();
-                        WaitExpectCountGrow();
                         break;
                     }
                 }
@@ -319,7 +315,6 @@ namespace Zeze.Raft
                     var rafts = ShuffleRafts();
                     rafts[0].StopRaft();
                     rafts[0].StartRaft();
-                    WaitExpectCountGrow();
                 }
             });
             FailActions.Add(new FailAction()
@@ -333,7 +328,6 @@ namespace Zeze.Raft
 
                     rafts[0].StartRaft();
                     rafts[1].StartRaft();
-                    WaitExpectCountGrow();
                 }
             });
             FailActions.Add(new FailAction()
@@ -349,7 +343,6 @@ namespace Zeze.Raft
                     rafts[0].StartRaft();
                     rafts[1].StartRaft();
                     rafts[2].StartRaft();
-                    WaitExpectCountGrow();
                 }
             });
             FailActions.Add(new FailAction()
@@ -369,7 +362,6 @@ namespace Zeze.Raft
                         // delay for vote
                         System.Threading.Thread.Sleep(leader.Raft.RaftConfig.LeaderLostTimeout + 2000);
                         leader.StartRaft();
-                        WaitExpectCountGrow();
                         break;
                     }
                 }
@@ -424,13 +416,14 @@ namespace Zeze.Raft
 
         private void RandomTriggerFailActions()
         {
-            int LoopDelay = 10; // ms
             while (Running)
             {
                 var fa = FailActions[Util.Random.Instance.Next(FailActions.Count)];
                 fa.Action();
                 fa.Count++;
-                System.Threading.Thread.Sleep(LoopDelay);
+                // 等待失败的节点恢复正常并且服务了一些请求。
+                // 由于一个follower失败时，请求处理是能持续进行的，这个等待可能不够。
+                WaitExpectCountGrow(200);
             }
         }
 
@@ -492,6 +485,7 @@ namespace Zeze.Raft
                 {
 
                 }
+
                 public override void Apply(StateMachine stateMachine)
                 {
                     (stateMachine as TestStateMachine).Count += 1;
@@ -623,6 +617,9 @@ namespace Zeze.Raft
 
             private int ProcessAddCount(Zeze.Net.Protocol p)
             {
+                if (false == Raft.IsLeader)
+                    return Procedure.CancelExcption; // fast fail
+
                 var r = p as AddCount;
                 lock (StateMachine)
                 {

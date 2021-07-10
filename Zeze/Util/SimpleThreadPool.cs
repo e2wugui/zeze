@@ -16,8 +16,23 @@ namespace Zeze.Util
 
         public bool QueueUserWorkItem(Action action)
         {
-            taskQueue.Add(action);
+            if (false == taskQueue.IsAddingCompleted)
+                taskQueue.Add(action);
+            // skip task
             return true;
+        }
+
+        public void Shutdown()
+        {
+            taskQueue.CompleteAdding();
+
+            lock (this)
+            {
+                while (taskQueue.IsCompleted == false)
+                {
+                    Monitor.Wait(this);
+                }
+            }
         }
 
         public SimpleThreadPool(int workerThreads, string poolName)
@@ -47,10 +62,22 @@ namespace Zeze.Util
                 Action action = null;
                 try
                 {
+                    if (taskQueue.IsCompleted)
+                    {
+                        lock (this)
+                        {
+                            Monitor.PulseAll(this);
+                        }
+                        break;
+                    }
                     action = taskQueue.Take();
                     if (null == action)
                         break;
                     action();
+                }
+                catch (OperationCanceledException)
+                {
+                    // skip
                 }
                 catch (Exception ex)
                 {

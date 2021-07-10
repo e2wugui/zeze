@@ -33,8 +33,3 @@ DatabaseTikv
 
 Raft.Agent
 	重发现在在收到LeaderIs时马上重新发送。改成延迟？
-
-Raft CheckLeader，马上报错
-	执行任务
-	AppendLog
-	取消任务
