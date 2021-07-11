@@ -67,18 +67,20 @@ namespace Zeze.Util
                         lock (this)
                         {
                             Monitor.PulseAll(this);
+                            break;
                         }
-                        break;
                     }
                     action = taskQueue.Take();
                     if (null == action)
                         break;
                     action();
                 }
+                /*
                 catch (OperationCanceledException)
                 {
                     // skip
                 }
+                */
                 catch (Exception ex)
                 {
                     logger.Error(ex, "SimpleThreadPool.MainRun {0}", action);

@@ -36,8 +36,12 @@ namespace Zeze.Raft
             LogSequence.AppendLog(log, ApplySync);
         }
 
-        public void Close()
+        public bool IsShutdown { get; private set; }
+
+        public void Shutdown()
         {
+            IsShutdown = true;
+
             // 0 Cancel Task. Only Leader Has Task
             Server.TaskOneByOne.Shutdown(); 
             if (!IsLeader)
@@ -71,7 +75,7 @@ namespace Zeze.Raft
 
         private void ProcessExit(object sender, EventArgs e)
         {
-            Close();
+            Shutdown();
         }
 
         public Raft(StateMachine sm,

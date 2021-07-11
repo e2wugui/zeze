@@ -419,11 +419,18 @@ namespace Zeze.Raft
             while (Running)
             {
                 var fa = FailActions[Util.Random.Instance.Next(FailActions.Count)];
-                fa.Action();
-                fa.Count++;
+                try
+                {
+                    fa.Action();
+                    fa.Count++;
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "FailAction {0}", fa.Name);
+                }
                 // 等待失败的节点恢复正常并且服务了一些请求。
                 // 由于一个follower失败时，请求处理是能持续进行的，这个等待可能不够。
-                WaitExpectCountGrow(200);
+                WaitExpectCountGrow(100);
             }
         }
 
@@ -549,8 +556,8 @@ namespace Zeze.Raft
             public void RestartNet()
             {
                 logger.Debug("Raft.Net {0} Restart ...", RaftName);
-                Raft.Server.Stop();
-                Raft.Server.Start();
+                Raft?.Server.Stop();
+                Raft?.Server.Start();
             }
 
             public void StopRaft()
@@ -562,7 +569,7 @@ namespace Zeze.Raft
 
                     // 在同一个进程中，没法模拟进程退出，
                     // 此时RocksDb应该需要关闭，否则重启回失败吧。
-                    Raft?.Close();
+                    Raft?.Shutdown();
                     Raft = null;
                 }
             }
