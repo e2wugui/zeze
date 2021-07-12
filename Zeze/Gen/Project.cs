@@ -96,42 +96,47 @@ namespace Zeze.Gen
         }
 
         /// setup in make
-        public HashSet<Module> AllModules { get; private set; }
-        public HashSet<Protocol> AllProtocols { get; private set; }
-        public HashSet<Table> AllTables { get; private set; }
-        public HashSet<Types.Bean> AllBeans { get; private set; }
-        public HashSet<Types.BeanKey> AllBeanKeys { get; private set; }
+        public SortedDictionary<string, Module> AllModules { get; } = new SortedDictionary<string, Module>();
+        public SortedDictionary<string, Protocol> AllProtocols { get; } = new SortedDictionary<string, Protocol>();
+        public SortedDictionary<string, Table> AllTables { get; } = new SortedDictionary<string, Table>();
+        public SortedDictionary<string, Types.Bean> AllBeans { get; } = new SortedDictionary<string, Types.Bean>();
+        public SortedDictionary<string, Types.BeanKey> AllBeanKeys { get; } = new SortedDictionary<string, Types.BeanKey>();
 
         public void Make()
         {
-            AllModules = GetAllModules();
+            foreach (var m in GetAllModules())
+                AllModules[m.FullName] = m;
 
-            AllProtocols = new HashSet<Protocol>();
-            foreach (Module mod in AllModules) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
+            var _AllProtocols = new HashSet<Protocol>();
+            foreach (Module mod in AllModules.Values) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
             {
-                mod.Depends(AllProtocols);
+                mod.Depends(_AllProtocols);
             }
+            foreach (var p in _AllProtocols)
+                AllProtocols[p.FullName] = p;
 
-            AllTables = new HashSet<Table>();
-            foreach (Module mod in AllModules) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
+            var _AllTables = new HashSet<Table>();
+            foreach (Module mod in AllModules.Values) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
             {
-                mod.Depends(AllTables);
+                mod.Depends(_AllTables);
             }
+            foreach (var t in _AllTables)
+                AllTables[t.FullName] = t;
 
-            AllBeans = new HashSet<Types.Bean>();
-            AllBeanKeys = new HashSet<Types.BeanKey>();
+            var _AllBeans = new HashSet<Types.Bean>();
+            var _AllBeanKeys = new HashSet<Types.BeanKey>();
             {
                 HashSet<Types.Type> depends = new HashSet<Types.Type>();
-                foreach (Protocol protocol in AllProtocols)
+                foreach (Protocol protocol in AllProtocols.Values)
                 {
                     protocol.Depends(depends);
                 }
-                foreach (Table table in AllTables)
+                foreach (Table table in AllTables.Values)
                 {
                     table.Depends(depends);
                 }
                 // 加入模块中定义的所有bean和beankey。
-                foreach (Module mod in AllModules)
+                foreach (Module mod in AllModules.Values)
                 {
                     foreach (var b in mod.BeanKeys.Values)
                         depends.Add(b);
@@ -152,12 +157,16 @@ namespace Zeze.Gen
                     if (type.IsBean)
                     {
                         if (type.IsKeyable)
-                            AllBeanKeys.Add(type as Types.BeanKey);
+                            _AllBeanKeys.Add(type as Types.BeanKey);
                         else
-                            AllBeans.Add(type as Types.Bean);
+                            _AllBeans.Add(type as Types.Bean);
                     }
                 }
             }
+            foreach (var b in _AllBeans)
+                AllBeans[b.FullName] = b;
+            foreach (var b in _AllBeanKeys)
+                AllBeanKeys[b.FullName] = b;
 
             if (Platform.Length == 0)
                 Platform = "cs";

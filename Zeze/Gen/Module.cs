@@ -20,6 +20,8 @@ namespace Zeze.Gen
             }
         }
 
+        public string FullName => Path();
+
         public Module(ModuleSpace space, XmlElement self) : base(space, self, true)
         {
             if (space.Modules.ContainsKey(Name))

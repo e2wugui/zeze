@@ -42,7 +42,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public Dictionary<string, Zeze.IModule> Modules { get; } = new Dictionary<string, Zeze.IModule>();");
             sw.WriteLine("");
 
-            foreach (Module m in project.AllModules)
+            foreach (Module m in project.AllModules.Values)
             {
                 var fullname = m.Path("_");
                 sw.WriteLine($"        public {m.Path(".", $"Module{m.Name}")} {fullname} {{ get; set; }}");
@@ -69,7 +69,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("                " + m.Name + " = new " + m.FullName + "(Zeze);");
             }
             sw.WriteLine("");
-            foreach (Module m in project.AllModules)
+            foreach (Module m in project.AllModules.Values)
             {
                 var fullname = m.Path("_");
                 sw.WriteLine("                " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
@@ -85,7 +85,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
-            foreach (Module m in project.AllModules)
+            foreach (Module m in project.AllModules.Values)
             {
                 var fullname = m.Path("_");
                 sw.WriteLine("                " + fullname + " = null;");
@@ -103,7 +103,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
-            foreach (Module m in project.AllModules)
+            foreach (Module m in project.AllModules.Values)
             {
                 sw.WriteLine("                " + m.Path("_") + ".Start(this);");
             }
@@ -115,7 +115,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
-            foreach (Module m in project.AllModules)
+            foreach (Module m in project.AllModules.Values)
             {
                 sw.WriteLine("                " + m.Path("_") + ".Stop(this);");
             }

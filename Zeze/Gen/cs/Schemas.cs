@@ -15,7 +15,7 @@ namespace Zeze.Gen.cs
             Project = prj;
             GenDir = gendir;
 
-            foreach (Table table in Project.AllTables)
+            foreach (Table table in Project.AllTables.Values)
             {
                 if (Project.GenTables.Contains(table.Gen))
                     table.Depends(Depends);
@@ -45,7 +45,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public Schemas()");
             sw.WriteLine("        {");
 
-            foreach (var table in Project.AllTables)
+            foreach (var table in Project.AllTables.Values)
             {
                 sw.WriteLine("            base.AddTable(new Zeze.Schemas.Table()");
                 sw.WriteLine("            {");

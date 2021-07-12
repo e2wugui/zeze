@@ -16,6 +16,7 @@ namespace Zeze.Gen
         public int HandleFlags { get; }
         public bool NoProcedure { get; }
         public List<Types.Enum> Enums { get; private set; } = new List<Types.Enum>();
+        public string FullName => Space.Path(".", Name);
 
         // setup in compile
         public Types.Type ArgumentType { get; private set; }

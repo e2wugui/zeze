@@ -25,15 +25,15 @@ namespace Zeze.Gen.ts
             sw.WriteLine("");
             sw.WriteLine("import { Zeze } from \"zeze\"");
             sw.WriteLine("");
-            foreach (Types.Bean bean in Project.AllBeans)
+            foreach (Types.Bean bean in Project.AllBeans.Values)
             {
                 new BeanFormatter(bean).Make(sw);
             }
-            foreach (Types.BeanKey beanKey in Project.AllBeanKeys)
+            foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
             {
                 new BeanKeyFormatter(beanKey).Make(sw);
             }
-            foreach (Protocol protocol in Project.AllProtocols)
+            foreach (Protocol protocol in Project.AllProtocols.Values)
             {
                 if (protocol is Rpc rpc)
                 {
@@ -42,7 +42,7 @@ namespace Zeze.Gen.ts
                 else
                     new ProtocolFormatter(protocol).Make(sw);
             }
-            foreach (Module mod in Project.AllModules)
+            foreach (Module mod in Project.AllModules.Values)
             {
                 new ModuleFormatter(Project, mod, genDir).Make();
             }

@@ -34,7 +34,7 @@ namespace Zeze.Gen.lua
                 System.IO.Directory.Delete(genDir, true);
 
             HashSet<ModuleSpace> allRefModules = new HashSet<ModuleSpace>();
-            foreach (Module mod in Project.AllModules)
+            foreach (Module mod in Project.AllModules.Values)
                 allRefModules.Add(mod);
 
             System.IO.Directory.CreateDirectory(genDir);
@@ -44,13 +44,13 @@ namespace Zeze.Gen.lua
             swMeta.WriteLine("-- auto-generated");
             swMeta.WriteLine("local meta = {}");
             swMeta.WriteLine("meta.beans = {}");
-            foreach (Types.BeanKey beanKey in Project.AllBeanKeys)
+            foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
             {
                 allRefModules.Add(beanKey.Space);
                 BeanFormatter.MakeMeta(beanKey.Space.PathPinyin("_", beanKey.NamePinyin),
                     beanKey.TypeId, beanKey.Variables, swMeta);
             }
-            foreach (Types.Bean bean in Project.AllBeans)
+            foreach (Types.Bean bean in Project.AllBeans.Values)
             {
                 allRefModules.Add(bean.Space);
                 BeanFormatter.MakeMeta(bean.Space.PathPinyin("_", bean.NamePinyin), 
@@ -58,7 +58,7 @@ namespace Zeze.Gen.lua
             }
             swMeta.WriteLine();
             swMeta.WriteLine("meta.protocols = {}");
-            foreach (Protocol protocol in Project.AllProtocols)
+            foreach (Protocol protocol in Project.AllProtocols.Values)
             {
                 allRefModules.Add(protocol.Space);
                 if (protocol is Rpc rpc)

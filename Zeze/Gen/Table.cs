@@ -18,6 +18,7 @@ namespace Zeze.Gen
         // setup in compile
         public Types.Type KeyType { get; private set; }
         public Types.Type ValueType { get; private set; }
+        public string FullName => Space.Path(".", Name);
 
         public Table(ModuleSpace space, XmlElement self)
         {

@@ -24,22 +24,22 @@ namespace Zeze.Gen.cs
             if (System.IO.Directory.Exists(genDir))
                 System.IO.Directory.Delete(genDir, true);
 
-            foreach (Types.Bean bean in Project.AllBeans)
+            foreach (Types.Bean bean in Project.AllBeans.Values)
             {
                 new BeanFormatter(bean).Make(genDir);
             }
-            foreach (Types.BeanKey beanKey in Project.AllBeanKeys)
+            foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
             {
                 new BeanKeyFormatter(beanKey).Make(genDir);
             }
-            foreach (Protocol protocol in Project.AllProtocols)
+            foreach (Protocol protocol in Project.AllProtocols.Values)
             {
                 if (protocol is Rpc rpc)
                     new RpcFormatter(rpc).Make(genDir);
                 else
                     new ProtocolFormatter(protocol).Make(genDir);
             }
-            foreach (Module mod in Project.AllModules)
+            foreach (Module mod in Project.AllModules.Values)
             {
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
             }
@@ -47,7 +47,7 @@ namespace Zeze.Gen.cs
             {
                 new ServiceFormatter(ma, genDir, srcDir).Make();
             }
-            foreach (Table table in Project.AllTables)
+            foreach (Table table in Project.AllTables.Values)
             {
                 if (Project.GenTables.Contains(table.Gen))
                     new TableFormatter(table, genDir).Make();
