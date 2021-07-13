@@ -44,7 +44,7 @@ namespace Zeze.Gen
         {
             string lower = fullName.ToLower();
 
-            object value = null;
+            object value;
             if (NamedObjects.TryGetValue(lower, out value))
             {
                 if (value is T)
@@ -151,9 +151,9 @@ namespace Zeze.Gen
             return fullNames;
         }
 
-        public static ICollection<String> Refs(XmlElement self, String nodename, String refName)
+        public static List<string> Refs(XmlElement self, String nodename, String refName)
         {
-            HashSet<String> refs = new HashSet<String>();
+            var refs = new List<string>();
             XmlNodeList childnodes = self.ChildNodes;
             foreach (XmlNode node in childnodes)
             {
@@ -163,10 +163,12 @@ namespace Zeze.Gen
                 XmlElement e = (XmlElement)node;
                 if (e.Name.Equals(nodename))
                 {
-                    if (false == refs.Add(e.GetAttribute(refName)))
+                    var attr = e.GetAttribute(refName);
+                    if (false == refs.Contains(attr))
                     {
                         throw new Exception("duplicate ref name " );
                     }
+                    refs.Add(attr);
                 }
             }
             return refs;
@@ -236,5 +238,15 @@ namespace Zeze.Gen
             }
             return sb.ToString();
         }
+
+        public static string FullModuleNameToFullClassName(string name)
+        {
+            var index = name.LastIndexOf('.');
+            if (index == -1)
+                return name + ".Module" + name;
+            string lastname = name.Substring(index + 1);
+            return name + ".Module" + lastname;
+        }
+
     }
 }

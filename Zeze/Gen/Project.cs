@@ -75,19 +75,30 @@ namespace Zeze.Gen
                     case "service":
                         new Service(this, e);
                         break;
+                    case "ModuleStartOrder":
+                        var refs = Program.Refs(e, "start", "module");
+                        List<string> refFulNames = Program.ToFullNameIfNot(Solution.Name, refs);
+                        for (int i = 0; i < refFulNames.Count; ++i)
+                            ModuleStartOrderNames.Add(Program.FullModuleNameToFullClassName(refFulNames[i]));
+                        break;
                     default:
                         throw new Exception("unkown element name: " + e.Name);
                 }
             }
         }
 
+        public List<string> ModuleStartOrderNames { get; private set; } = new List<string>();
+        public List<Module> ModuleStartOrder { get; private set; }
+
         public void Compile()
         {
             ICollection<string> refs = Program.Refs(self, "module");
-            List<string> refFulNames = Program.ToFullNameIfNot(Solution.Name, refs);
+            List<string> refFulNames = Program.ToFullNameIfNot(Solution.Name, refs);            
             for (int i = 0; i < refFulNames.Count; ++i)
-                refFulNames[i] = refFulNames[i] + ".Module";
+                refFulNames[i] = Program.FullModuleNameToFullClassName(refFulNames[i]);
+
             Modules = Program.CompileModuleRef(refFulNames);
+            ModuleStartOrder = Program.CompileModuleRef(ModuleStartOrderNames);
 
             foreach (Service service in Services.Values)
             {

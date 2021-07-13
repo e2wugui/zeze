@@ -103,8 +103,14 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
+            foreach (var m in project.ModuleStartOrder)
+            {
+                sw.WriteLine("                " + m.Path("_") + ".Start(this);");
+            }
             foreach (Module m in project.AllModules.Values)
             {
+                if (project.ModuleStartOrder.Contains(m))
+                    continue;
                 sw.WriteLine("                " + m.Path("_") + ".Start(this);");
             }
             sw.WriteLine("");

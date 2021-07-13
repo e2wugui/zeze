@@ -78,21 +78,12 @@ namespace Zeze.Gen
             */
         }
 
-        private string FullModuleNameToClassName(string name)
-        {
-            var index = name.LastIndexOf('.');
-            if (index == -1)
-                return name + ".Module" + name;
-            string lastname = name.Substring(index + 1);
-            return name + ".Module" + lastname;
-        }
-
         public void Compile()
         {
             ICollection<string> refs = Program.Refs(self, "module");
             List<string> refFulNames = Program.ToFullNameIfNot(Project.Solution.Name, refs);
             for (int i = 0; i < refFulNames.Count; ++i)
-                refFulNames[i] = FullModuleNameToClassName(refFulNames[i]);
+                refFulNames[i] = Program.FullModuleNameToFullClassName(refFulNames[i]);
             Modules = Program.CompileModuleRef(refFulNames);
         }
 

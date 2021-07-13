@@ -78,8 +78,14 @@ namespace Zeze.Gen.ts
 
         private void StartGen(System.IO.StreamWriter sw)
         {
+            foreach (var m in project.ModuleStartOrder)
+            {
+                sw.WriteLine("        this." + m.Path("_") + ".Start(this);");
+            }
             foreach (Module m in project.AllModules.Values)
             {
+                if (project.ModuleStartOrder.Contains(m))
+                    continue;
                 sw.WriteLine("        this." + m.Path("_") + ".Start(this);");
             }
         }
