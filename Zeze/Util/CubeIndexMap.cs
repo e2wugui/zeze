@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Collections.Concurrent;
 
 namespace Zeze.Util
 {
@@ -59,8 +60,8 @@ namespace Zeze.Util
             public HashSet<ObjectId> ObjectIds { get; } = new HashSet<ObjectId>();
         }
 
-        private HugeArray<HugeArray<HugeArray<Cube>>> IndexX
-            = new HugeArray<HugeArray<HugeArray<Cube>>>();
+        private ConcurrentDictionary<long, ConcurrentDictionary<long, ConcurrentDictionary<long, Cube>>> IndexX
+            = new ConcurrentDictionary<long, ConcurrentDictionary<long, ConcurrentDictionary<long, Cube>>>();
 
         private int CubeSizeX;
         private int CubeSizeY;
@@ -176,22 +177,22 @@ namespace Zeze.Util
 
         private Cube GetOrAdd(long ix, long iy, long iz)
         {
-            var IndexY = IndexX.GetOrAdd(ix, () => new HugeArray<HugeArray<Cube>>());
-            var IndexZ = IndexY.GetOrAdd(iy, () => new HugeArray<Cube>());
-            var cube   = IndexZ.GetOrAdd(iz, () => new Cube());
+            var IndexY = IndexX.GetOrAdd(ix, (_) => new ConcurrentDictionary<long, ConcurrentDictionary<long, Cube>>());
+            var IndexZ = IndexY.GetOrAdd(iy, (_) => new ConcurrentDictionary<long, Cube>());
+            var cube   = IndexZ.GetOrAdd(iz, (_) => new Cube());
             return cube;
         }
 
 
         private Cube Get(long x, long y, long z)
         {
-            var IndexY = IndexX[x];
-            if (IndexY == null)
+            if (!IndexX.TryGetValue(x, out var IndexY))
                 return null;
-            var IndexZ = IndexY[y];
-            if (IndexZ == null)
+            if (!IndexY.TryGetValue(y, out var IndexZ))
                 return null;
-            return IndexZ[z];
+            if (!IndexZ.TryGetValue(z, out var cube))
+                return null;
+            return cube;
         }
     }
 }

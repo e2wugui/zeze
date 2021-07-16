@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace Zeze.Util
 {
+    /// <summary>
+    /// 这个类没啥用。先留着吧。
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class HugeArray<T> where T : class
     {
         private List<List<T>> GetArrays(ref long index, bool forSet)
