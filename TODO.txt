@@ -33,3 +33,5 @@ DatabaseTikv
 
 Raft.Agent
 	重发现在在收到LeaderIs时马上重新发送。改成延迟？
+
+Game2 根据新的 solution-name 拷贝并替换代码中Game的名字空间。

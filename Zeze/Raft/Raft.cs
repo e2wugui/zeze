@@ -42,9 +42,12 @@ namespace Zeze.Raft
         {
             IsShutdown = true;
 
-            // 0 Cancel Task. Only Leader Has Task
-            Server.TaskOneByOne.Shutdown(); 
-            if (!IsLeader)
+            // 0 clear pending task if is leader
+            if (IsLeader)
+            {
+                Server.TaskOneByOne.Shutdown();
+            }
+            else
             {
                 // 如果是 Leader，那么 Shutdown 用户请求任务队列 Server.TaskOneByOne 即可。
                 // 用户请求处理依赖 ImportantThreadPool。
@@ -54,15 +57,15 @@ namespace Zeze.Raft
                 // 此时认为 Follower 不再能响应了。
                 ImportantThreadPool.Shutdown();
             }
-            // 1. close network first.
+
+            // 1. close network.
             Server.Stop();
 
             // 2. clear pending task if is leader
             lock (this)
             {
                 // see WaitLeaderReady.
-                // 这里只用使用状态改变，不直接想办法唤醒等待的任务，
-                // 可以避免状态设置对不对的问题。关闭时转换成Follower也是对的。
+                // 可以避免状态设置不对的问题。关闭时转换成Follower也是对的。
                 ConvertStateTo(RaftState.Follower);
                 // Cancel Follower TimerTask
                 LeaderLostTimerTask?.Cancel();

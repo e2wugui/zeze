@@ -443,16 +443,25 @@ namespace Zeze.Raft
             {
                 var raftLog = ReadLogStart(index);
                 if (null == raftLog)
+                {
+                    logger.Warn("What Happened! index={0} lastApplyable={1} LastApplied={2}",
+                        index, lastApplyableLog.Index, LastApplied);
                     return; // end?
+                }
 
                 index = raftLog.Index + 1;
 
-                if (Raft.RaftConfig.AutoKeyLocalStep > 0 && raftLog.Log.UniqueRequestId > 0)
+                if (raftLog.Log.UniqueRequestId > 0)
                 {
                     // 这是防止请求重复执行用的。
                     // 需要对每个Raft.Agent的请求排队处理。
                     // see Net.cs Server.DispatchProtocol
-                    var appInstance = raftLog.Log.UniqueRequestId % Raft.RaftConfig.AutoKeyLocalStep;
+
+                    long appInstance = 0;
+                    if (Raft.RaftConfig.AutoKeyLocalStep > 0)
+                        appInstance = raftLog.Log.UniqueRequestId % Raft.RaftConfig.AutoKeyLocalStep;
+                    // 这里不需要递增判断：由于请求是按网络传过来的顺序处理的，到达这里肯定是递增的。
+                    // 如果来自客户端的请求Id不是递增的，在 Net.cs::Server 处理时会拒绝掉。
                     LastAppliedAppRpcSessionId[appInstance] = raftLog.Log.UniqueRequestId;
                 }
                 raftLog.Log.Apply(Raft.StateMachine);
@@ -755,8 +764,10 @@ namespace Zeze.Raft
 
         private int ProcessAppendEntriesResult(Server.ConnectorEx connector, Protocol p)
         {
+            // 这个rpc处理流程总是返回 Success，需要统计观察不同的分支的发生情况，再来定义不同的返回值。
+
             if (false == Raft.IsLeader)
-                return Procedure.Success; // maybe close
+                return Procedure.Success; // maybe close.
 
             var r = p as AppendEntries;
             if (r.IsTimeout)
@@ -800,6 +811,7 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
+            // 日志同步失败，调整NextIndex，再次尝试。
             lock (Raft)
             {
                 // TODO raft.pdf 提到一个优化
