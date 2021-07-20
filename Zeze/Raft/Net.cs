@@ -126,9 +126,9 @@ namespace Zeze.Raft
             {
                 if (Raft.WaitLeaderReady())
                 {
-                    if (Raft.LogSequence.LastAppliedAppRpcSessionId.TryGetValue(appInstance, out var exist))
+                    if (Raft.LogSequence.LastAppliedAppRpcUniqueRequestId.TryGetValue(appInstance, out var max))
                     {
-                        if (p.UniqueRequestId <= exist)
+                        if (p.UniqueRequestId <= max)
                         {
                             p.SendResultCode(Procedure.DuplicateRequest);
                             return Procedure.DuplicateRequest;
@@ -162,11 +162,17 @@ namespace Zeze.Raft
 
             if (Raft.IsLeader)
             {
+                if (p.UniqueRequestId <= 0)
+                {
+                    p.SendResultCode(Procedure.ErrorRequestId);
+                    return;
+                }
+
                 // 默认0，如果没有配置多实例客户端，所有得请求都排一个队列，因为并发有风险。
                 long appInstance = 0;
                 //【防止重复的请求】
                 // see Log.cs::LogSequence.TryApply
-                if (p.UniqueRequestId > 0 && Raft.RaftConfig.AutoKeyLocalStep > 0)
+                if (Raft.RaftConfig.AutoKeyLocalStep > 0)
                     appInstance = p.UniqueRequestId % Raft.RaftConfig.AutoKeyLocalStep;
 
                 TaskOneByOne.Execute(appInstance,

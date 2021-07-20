@@ -379,7 +379,6 @@ namespace Zeze.Raft
                 if (null == raftLog)
                     break;
                 index = raftLog.Index + 1;
-                lastMajorityLog = raftLog;
                 int MajorityCount = 0;
                 Raft.Server.Config.ForEachConnector(
                     (c) =>
@@ -390,11 +389,11 @@ namespace Zeze.Raft
                             ++MajorityCount;
                         }
                     });
-
                 // 没有达成多数派，中断循环。后面返回上一个majority，仍可能为null。
                 // 等于的时候加上自己就是多数派了。
                 if (MajorityCount < Raft.RaftConfig.HalfCount)
                     break;
+                lastMajorityLog = raftLog;
             }
             return lastMajorityLog;
         }
@@ -462,7 +461,7 @@ namespace Zeze.Raft
                         appInstance = raftLog.Log.UniqueRequestId % Raft.RaftConfig.AutoKeyLocalStep;
                     // 这里不需要递增判断：由于请求是按网络传过来的顺序处理的，到达这里肯定是递增的。
                     // 如果来自客户端的请求Id不是递增的，在 Net.cs::Server 处理时会拒绝掉。
-                    LastAppliedAppRpcSessionId[appInstance] = raftLog.Log.UniqueRequestId;
+                    LastAppliedAppRpcUniqueRequestId[appInstance] = raftLog.Log.UniqueRequestId;
                 }
                 raftLog.Log.Apply(Raft.StateMachine);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
@@ -472,7 +471,7 @@ namespace Zeze.Raft
             }
         }
 
-        public ConcurrentDictionary<long, long> LastAppliedAppRpcSessionId { get; }
+        public ConcurrentDictionary<long, long> LastAppliedAppRpcUniqueRequestId { get; }
             = new ConcurrentDictionary<long, long>();
 
         internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }
