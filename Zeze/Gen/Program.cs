@@ -164,9 +164,9 @@ namespace Zeze.Gen
                 if (e.Name.Equals(nodename))
                 {
                     var attr = e.GetAttribute(refName);
-                    if (false == refs.Contains(attr))
+                    if (refs.Contains(attr))
                     {
-                        throw new Exception("duplicate ref name " );
+                        throw new Exception("duplicate ref name " + attr);
                     }
                     refs.Add(attr);
                 }

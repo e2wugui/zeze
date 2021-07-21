@@ -125,7 +125,8 @@ namespace Game.Login
             public AsyncSocket LinkSocket { get; set; } // null if not online
             public int ProviderId { get; set; } = -1;
             public long ProviderSessionId { get; set; }
-            public Dictionary<long, gnet.Provider.BTransmitContext> Roles { get; } = new Dictionary<long, gnet.Provider.BTransmitContext>();
+            public Dictionary<long, Zezex.Provider.BTransmitContext> Roles { get; }
+                = new Dictionary<long, Zezex.Provider.BTransmitContext>();
         }
 
         public ICollection<RoleOnLink> GroupByLink(ICollection<long> roleIds)
@@ -139,19 +140,19 @@ namespace Game.Login
                 var online = table.Get(roleId);
                 if (null == online || online.State != BOnline.StateOnline)
                 {
-                    groupNotOnline.Roles.TryAdd(roleId, new gnet.Provider.BTransmitContext());
+                    groupNotOnline.Roles.TryAdd(roleId, new Zezex.Provider.BTransmitContext());
                     continue;
                 }
 
                 if (false == Game.App.Instance.Server.Links.TryGetValue(online.LinkName, out var connector))
                 {
-                    groupNotOnline.Roles.TryAdd(roleId, new gnet.Provider.BTransmitContext());
+                    groupNotOnline.Roles.TryAdd(roleId, new Zezex.Provider.BTransmitContext());
                     continue;
                 }
 
                 if (false == connector.IsHandshakeDone)
                 {
-                    groupNotOnline.Roles.TryAdd(roleId, new gnet.Provider.BTransmitContext());
+                    groupNotOnline.Roles.TryAdd(roleId, new Zezex.Provider.BTransmitContext());
                     continue;
                 }
                 // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
@@ -166,7 +167,7 @@ namespace Game.Login
                     };
                     groups.Add(group.LinkName, group);
                 }
-                group.Roles.TryAdd(roleId, new gnet.Provider.BTransmitContext()
+                group.Roles.TryAdd(roleId, new Zezex.Provider.BTransmitContext()
                 {
                     LinkSid = online.LinkSid,
                     ProviderId = online.ProviderId,
@@ -184,7 +185,7 @@ namespace Game.Login
                 if (group.LinkSocket == null)
                     continue; // skip not online
 
-                var send = new gnet.Provider.Send();
+                var send = new Zezex.Provider.Send();
                 send.Argument.ProtocolType = typeId;
                 send.Argument.ProtocolWholeData = fullEncodedProtocol;
                 foreach (var ctx in group.Roles.Values)
@@ -285,7 +286,7 @@ namespace Game.Login
                     ProcessTransmit(sender, actionName, group.Roles.Keys);
                     continue;
                 }
-                var transmit = new gnet.Provider.Transmit();
+                var transmit = new Zezex.Provider.Transmit();
                 transmit.Argument.ActionName = actionName;
                 transmit.Argument.Sender = sender;
                 transmit.Argument.ServiceNamePrefix = App.GameServerServiceNamePrefix;

@@ -1,13 +1,13 @@
 ﻿
-namespace gnet.Linkd
+namespace Zezex.Linkd
 {
     public sealed partial class ModuleLinkd : AbstractModule
     {
-        public void Start(gnet.App app)
+        public void Start(Zezex.App app)
         {
         }
 
-        public void Stop(gnet.App app)
+        public void Stop(Zezex.App app)
         {
         }
 

@@ -8,7 +8,7 @@ namespace linkd
         public static void Main(string[] args)
         {
             Zeze.Serialize.ByteBuffer.BinaryNoCopy = true;
-            gnet.App.Instance.Start();
+            Zezex.App.Instance.Start();
             try
             {
                 while (true)
@@ -18,7 +18,7 @@ namespace linkd
             }
             finally
             {
-                gnet.App.Instance.Stop();
+                Zezex.App.Instance.Stop();
             }
         }
     }

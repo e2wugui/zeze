@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using static Zeze.Net.Service;
 using Zeze.Transaction;
 
-namespace gnet.Provider
+namespace Zezex.Provider
 {
     public sealed partial class ModuleProvider : AbstractModule
     {
@@ -275,7 +275,11 @@ namespace gnet.Provider
             }
 
             // 生成代码实现。see Game.ModuleRedirect.cs
-            public virtual int ProcessHashResult(int _hash_, int _returnCode_, Zeze.Net.Binary _params, IList<gnet.Provider.BActionParam> _actions_)
+            public virtual int ProcessHashResult(
+                int _hash_,
+                int _returnCode_,
+                Zeze.Net.Binary _params,
+                IList<Zezex.Provider.BActionParam> _actions_)
             {
                 return Procedure.NotImplement;
             }

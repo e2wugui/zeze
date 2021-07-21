@@ -9,7 +9,7 @@ namespace Game
     public sealed partial class App
     {
         public Dictionary<int, Zezex.Provider.BModule> StaticBinds { get; } = new Dictionary<int, Zezex.Provider.BModule>();
-        public ProviderModuleBinds ProviderModuleBinds { get; private set; }
+        public Zezex.ProviderModuleBinds ProviderModuleBinds { get; private set; }
 
         public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
         {
@@ -57,7 +57,7 @@ namespace Game
                 config.AutoKeyLocalId = AutoKeyLocalId; // replace from args
             Create(config);
 
-            ProviderModuleBinds = ProviderModuleBinds.Load();
+            ProviderModuleBinds = Zezex.ProviderModuleBinds.Load();
             ProviderModuleBinds.BuildStaticBinds(Modules, Zeze.Config.AutoKeyLocalId, StaticBinds);
 
             StartModules(); // 启动模块，装载配置什么的。

@@ -3,7 +3,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace gnet
+namespace Zezex
 {
     public sealed partial class ProviderService
     {
@@ -14,7 +14,7 @@ namespace gnet
         {
             if (null != factoryHandle.Handle)
             {
-                if (p.TypeId == gnet.Provider.Bind.TypeId_)
+                if (p.TypeId == Zezex.Provider.Bind.TypeId_)
                 {
                     // Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
                     // 不要直接在io-thread里面执行。
@@ -56,7 +56,7 @@ namespace gnet
         public override void OnSocketClose(Zeze.Net.AsyncSocket so, System.Exception e)
         {
             // 先unbind。这样避免有时间窗口。
-            gnet.App.Instance.gnet_Provider.OnProviderClose(so);
+            Zezex.App.Instance.Zezex_Provider.OnProviderClose(so);
             base.OnSocketClose(so, e);
         }
     }

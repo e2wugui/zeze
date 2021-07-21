@@ -4,7 +4,7 @@ using System.Net.NetworkInformation;
 using System.Text;
 using System.Text.Json;
 
-namespace gnet
+namespace Zezex
 {
     public sealed partial class App
     {

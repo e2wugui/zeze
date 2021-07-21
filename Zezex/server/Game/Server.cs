@@ -96,13 +96,13 @@ namespace Game
             var linkName = GetLinkName(sender);
             sender.UserState = new LinkSession(linkName, sender.SessionId);
 
-            var announce = new gnet.Provider.AnnounceProviderInfo();
+            var announce = new Zezex.Provider.AnnounceProviderInfo();
             announce.Argument.ServiceNamePrefix = App.GameServerServiceNamePrefix;
             announce.Argument.ServiceIndentity = Zeze.Config.AutoKeyLocalId.ToString();
             announce.Send(sender);
 
             // static binds
-            var rpc = new gnet.Provider.Bind();
+            var rpc = new Zezex.Provider.Bind();
             rpc.Argument.Modules.AddRange(Game.App.Instance.StaticBinds);
             rpc.Send(sender, (protocol) => { ProviderStaticBindCompleted.Set(); return 0; });
         }
@@ -113,11 +113,11 @@ namespace Game
             if (false == IsHandshakeProtocol(p.TypeId))
                 p.Sender.VerifySecurity();
 
-            if (p.TypeId == gnet.Provider.ModuleRedirect.TypeId_)
+            if (p.TypeId == Zezex.Provider.ModuleRedirect.TypeId_)
             {
                 if (null != factoryHandle.Handle)
                 {
-                    var modureRecirect = p as gnet.Provider.ModuleRedirect;
+                    var modureRecirect = p as Zezex.Provider.ModuleRedirect;
                     if (null != Zeze && false == factoryHandle.NoProcedure)
                     {
                         Zeze.TaskOneByOneByKey.Execute(
@@ -155,7 +155,7 @@ namespace Game
 
         public void ReportLoad(int online, int proposeMaxOnline, int onlineNew)
         {
-            var report = new gnet.Provider.ReportLoad();
+            var report = new Zezex.Provider.ReportLoad();
 
             report.Argument.Online = online;
             report.Argument.ProposeMaxOnline = proposeMaxOnline;

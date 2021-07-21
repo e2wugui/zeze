@@ -2,17 +2,17 @@
 using System.Collections.Generic;
 using Zeze.Services;
 
-namespace gnet.Provider
+namespace Zezex.Provider
 {
     public sealed partial class ModuleProvider : AbstractModule
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public void Start(gnet.App app)
+        public void Start(Zezex.App app)
         {
         }
 
-        public void Stop(gnet.App app)
+        public void Stop(Zezex.App app)
         {
         }
 
@@ -134,7 +134,7 @@ namespace gnet.Provider
             if (ChoiceLoad(volatileProviders, out provider))
             {
                 // 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
-                var providerSocket = gnet.App.Instance.ProviderService.GetSocket(provider);
+                var providerSocket = Zezex.App.Instance.ProviderService.GetSocket(provider);
                 var providerSession = providerSocket.UserState as ProviderSession;
                 linkSession.Bind(link, providerSession.StaticBinds.Keys, providerSocket);
                 return true;
@@ -471,7 +471,7 @@ namespace gnet.Provider
             // 会话不存在，根据hash选择Provider并转发，忽略连接查找错误。
             foreach (var transmitHash in transmitsHash)
             {
-                if (App.gnet_Provider.ChoiceProvider(
+                if (App.Zezex_Provider.ChoiceProvider(
                     protocol.Argument.ServiceNamePrefix, FirstModuleWithConfigTypeDefault,
                     transmitHash.Key, out var provider))
                 {

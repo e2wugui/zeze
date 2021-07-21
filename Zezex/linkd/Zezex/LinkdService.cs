@@ -1,7 +1,7 @@
 ﻿
 using System.Collections.Generic;
 
-namespace gnet
+namespace Zezex
 {
     public sealed partial class LinkdService
     {
@@ -69,7 +69,7 @@ namespace gnet
                 //linkSession.UnBind(so, moduleId, null);
             }
 
-            if (App.Instance.gnet_Provider.ChoiceProviderAndBind(moduleId, so, out provider))
+            if (App.Instance.Zezex_Provider.ChoiceProviderAndBind(moduleId, so, out provider))
             {
                 var providerSocket = App.Instance.ProviderService.GetSocket(provider);
                 if (null != providerSocket)
@@ -231,7 +231,7 @@ namespace gnet
                 Binds = new Dictionary<int, long>();
             }
 
-            var linkBroken = new gnet.Provider.LinkBroken();
+            var linkBroken = new Zezex.Provider.LinkBroken();
             linkBroken.Argument.UserId = UserId;
             linkBroken.Argument.LinkSid = SessionId;
             linkBroken.Argument.States.AddRange(UserStates);

@@ -32,7 +32,7 @@ namespace Game.Login
 
         public void SendResponse(int typeId, Zeze.Net.Binary fullEncodedProtocol)
         {
-            var send = new gnet.Provider.Send();
+            var send = new Zezex.Provider.Send();
             send.Argument.LinkSids.Add(SessionId);
             send.Argument.ProtocolType = typeId;
             send.Argument.ProtocolWholeData = fullEncodedProtocol;

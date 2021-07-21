@@ -433,7 +433,7 @@ namespace Game
         {
             if (GenericArguments.Length != 1)
                 return false;
-            if (GenericArguments[0] != typeof(gnet.Provider.ModuleProvider.ModuleRedirectAllContext))
+            if (GenericArguments[0] != typeof(Zezex.Provider.ModuleProvider.ModuleRedirectAllContext))
                 return false;
             return true;
         }

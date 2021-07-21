@@ -50,3 +50,12 @@ TestResults
 /Game2/linkd/Gen
 /ServiceManager/obj
 /ServiceManager/bin
+/Zezex/client/Gen
+/Zezex/client/bin
+/Zezex/client/obj
+/Zezex/linkd/bin
+/Zezex/linkd/Gen
+/Zezex/linkd/obj
+/Zezex/server/obj
+/Zezex/server/Gen
+/Zezex/server/bin

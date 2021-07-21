@@ -98,7 +98,7 @@ namespace Game.Login
             session.SendResponseWhileCommit(rpc); 
             Transaction.Current.RunWhileCommit(() =>
             {
-                var setUserState = new gnet.Provider.SetUserState();
+                var setUserState = new Zezex.Provider.SetUserState();
                 setUserState.Argument.LinkSid = session.SessionId;
                 setUserState.Argument.States.Add(rpc.Argument.RoleId);
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
@@ -135,7 +135,7 @@ namespace Game.Login
             session.SendResponseWhileCommit(rpc);
             Transaction.Current.RunWhileCommit(() =>
             {
-                var setUserState = new gnet.Provider.SetUserState();
+                var setUserState = new Zezex.Provider.SetUserState();
                 setUserState.Argument.LinkSid = session.SessionId;
                 setUserState.Argument.States.Add(rpc.Argument.RoleId);
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
@@ -209,7 +209,7 @@ namespace Game.Login
             // 先设置状态，再发送Logout结果。
             Transaction.Current.RunWhileCommit(() =>
             {
-                var setUserState = new gnet.Provider.SetUserState();
+                var setUserState = new Zezex.Provider.SetUserState();
                 setUserState.Argument.LinkSid = session.SessionId;
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
