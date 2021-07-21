@@ -37,14 +37,12 @@ namespace Zeze.Util
                 var logLevel = (null != p.Service.Zeze)
                     ? p.Service.Zeze.Config.ProcessReturnErrorLogLevel
                     : NLog.LogLevel.Info;
-
+                var module = "";
+                if (result > 0)
+                    module = "@" + Net.Protocol.GetModuleId(result) + ":" + Net.Protocol.GetProtocolId(result);
                 logger.Log(logLevel,
-                    "Task {0} Return={1}@{2}:{3} UserState={4}",
-                    actionName,
-                    result,
-                    Zeze.Net.Protocol.GetModuleId(result),
-                    Zeze.Net.Protocol.GetProtocolId(result),
-                    p.UserState);
+                    "Task {0} Return={1}{2} UserState={3}",
+                    actionName, result, module, p.UserState);
             }
 #if ENABLE_STATISTICS
             ProcedureStatistics.Instance.GetOrAdd(actionName).GetOrAdd(result).IncrementAndGet();

@@ -165,7 +165,7 @@
 	    比如, Login.Session.SetLastError("detail");
 	    这样写的时候只需要返回错误，不用每个地方自己记录日志。
 
-	14) 协议存储过程处理结果返回值规划建议
+	14) 协议和存储过程处理结果返回值规划建议
 	    0  Success
 	    <0 Used By Zeze 
 	    >0 User Defined. 自定义错误码时可以这样 (Module.Id << 16) | CodeInModule。
@@ -190,6 +190,15 @@
 	16) Zeze.Util.Task
 	    这个辅助类提供执行并记录日志和统计的功能。
 	    如果需要创建自己的Task，建议使用。
+
+	17) 一些建议
+	    a) 定义模块级别的枚举(see Zezex/solutions.xml)。
+	    一般用于模块处理构造全局唯一错误码。可以使用辅助函数Zeze.IModule.ReturnCode构造。
+	    b) 客户端通讯尽可能使用Rpc。
+	    框架在处理返回错误的时候自动发送Rpc的结果（rpc.SendResultCode(rc);）
+	    异常的时候也会返回错误码（系统保留的负数的错误码）。
+	    所以一般处理流程只需要在正常的时候设置自定义rpc的正常结果参数并调用rpc.SendResult()；
+	    错误的时候直接return errorcode即可。基本没有需求需要catch。
 
 #### 更多说明
 
