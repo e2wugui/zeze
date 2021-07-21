@@ -346,7 +346,7 @@
 			<module ref="Buf"/>
 			<module ref="Equip"/>
 			<module ref="Map" dynamic="true"/> 地图模块动态绑定。
-			<module ref="gnet.Provider" dynamic="true"/>
+			<module ref="Zezex.Provider" dynamic="true"/>
 			<module ref="Rank"/>
 		</service>
 	</project>
@@ -355,7 +355,7 @@
 		<service name="Client" handle="client" base="Zeze.Services.HandshakeClient">
 			<module ref="Login"/>
 			<module ref="Bag"/>
-			<module ref="gnet.Linkd"/>
+			<module ref="Zezex.Linkd"/>
 		</service>
 	</project>
 

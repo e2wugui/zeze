@@ -1,5 +1,5 @@
 ﻿
-namespace gnet.Linkd
+namespace Zezex.Linkd
 {
     public sealed partial class ModuleLinkd : AbstractModule
     {

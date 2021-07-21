@@ -153,7 +153,7 @@
 
 		2）一般linkd实现：
 		linkd在负载均衡选择gs时，会忽略掉 (Online > ProposeMaxOnline || OnlineNew > ConfigMaxOnlineNew)的gs。
-		详细实现参见 linkd/gnet.Provider.ModuleProvider.Providers
+		详细实现参见 linkd/Zezex.Provider.ModuleProvider.Providers
 		-->
 		<protocol name="ReportLoad" argument="BLoad" handle="client"/>
 

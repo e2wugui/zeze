@@ -38,11 +38,11 @@ namespace Game
             {
                 return m.ChoiceType;
             }
-            return gnet.Provider.BModule.ChoiceTypeDefault;
+            return Zezex.Provider.BModule.ChoiceTypeDefault;
         }
 
         public void BuildStaticBinds(Dictionary<string, Zeze.IModule> AllModules,
-            int AutoKeyLocalId, Dictionary<int, gnet.Provider.BModule> modules)
+            int AutoKeyLocalId, Dictionary<int, Zezex.Provider.BModule> modules)
         {
             Dictionary<string, int> binds = new Dictionary<string, int>();
 
@@ -50,7 +50,7 @@ namespace Game
             foreach (var m in Modules.Values)
             {
                 if (m.Providers.Contains(AutoKeyLocalId))
-                    binds.Add(m.FullName, gnet.Provider.BModule.ConfigTypeSpecial);
+                    binds.Add(m.FullName, Zezex.Provider.BModule.ConfigTypeSpecial);
             }
 
             // default binds
@@ -62,7 +62,7 @@ namespace Game
                         continue; // 忽略动态注册的模块。
                     if (Modules.ContainsKey(m.FullName))
                         continue; // 忽略已经有特别配置的模块
-                    binds.Add(m.FullName, gnet.Provider.BModule.ConfigTypeDefault);
+                    binds.Add(m.FullName, Zezex.Provider.BModule.ConfigTypeDefault);
                 }
             }
 
@@ -70,7 +70,7 @@ namespace Game
             foreach (var bind in binds)
             {
                 if (AllModules.TryGetValue(bind.Key, out var m))
-                    modules.Add(m.Id, new gnet.Provider.BModule()
+                    modules.Add(m.Id, new Zezex.Provider.BModule()
                     {
                         ChoiceType = GetModuleChoiceType(bind.Key),
                         ConfigType = bind.Value,
@@ -89,13 +89,13 @@ namespace Game
                 switch (self.GetAttribute("ChoiceType"))
                 {
                     case "ChoiceTypeHashUserId":
-                        return gnet.Provider.BModule.ChoiceTypeHashUserId;
+                        return Zezex.Provider.BModule.ChoiceTypeHashUserId;
 
                     case "ChoiceTypeHashRoleId":
-                        return gnet.Provider.BModule.ChoiceTypeHashRoleId;
+                        return Zezex.Provider.BModule.ChoiceTypeHashRoleId;
 
                     default:
-                        return gnet.Provider.BModule.ChoiceTypeDefault;
+                        return Zezex.Provider.BModule.ChoiceTypeDefault;
                 }
             }
 

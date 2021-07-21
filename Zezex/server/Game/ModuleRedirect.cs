@@ -24,7 +24,7 @@ namespace Game
     public class ModuleRedirect
     {
         // 本应用：hash分组的一些配置。
-        public const int ChoiceType = gnet.Provider.BModule.ChoiceTypeHashUserId;
+        public const int ChoiceType = Zezex.Provider.BModule.ChoiceTypeHashUserId;
         public static int GetChoiceHashCode()
         {
             string userid = GetLoginSession().Account;
@@ -262,9 +262,9 @@ namespace Game
         /// 4) (int ReturnCode, Zeze.Net.Binary encoded-parameters) [return]
         ///     Func不能使用ref，而Zeze.Net.Binary是只读的。就这样吧。
         /// </summary>
-        public Dictionary<string, Func<long, int, Zeze.Net.Binary, IList<gnet.Provider.BActionParam>,
+        public Dictionary<string, Func<long, int, Zeze.Net.Binary, IList<Zezex.Provider.BActionParam>,
             (int, Zeze.Net.Binary)>> Handles { get; }
-            = new Dictionary<string, Func<long, int, Zeze.Net.Binary, IList<gnet.Provider.BActionParam>, (int, Zeze.Net.Binary)>>();
+            = new Dictionary<string, Func<long, int, Zeze.Net.Binary, IList<Zezex.Provider.BActionParam>, (int, Zeze.Net.Binary)>>();
 
         enum ReturnType
         {

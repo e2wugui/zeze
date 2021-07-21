@@ -8,7 +8,7 @@ namespace Game
 {
     public sealed partial class App
     {
-        public Dictionary<int, gnet.Provider.BModule> StaticBinds { get; } = new Dictionary<int, gnet.Provider.BModule>();
+        public Dictionary<int, Zezex.Provider.BModule> StaticBinds { get; } = new Dictionary<int, Zezex.Provider.BModule>();
         public ProviderModuleBinds ProviderModuleBinds { get; private set; }
 
         public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
