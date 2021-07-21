@@ -928,7 +928,8 @@ namespace Zeze.Raft
             {
                 // 1. Reply false if term < currentTerm (§5.1)
                 r.SendResult();
-                return Procedure.LogicError;
+                logger.Info("this={0} Leader={1} Index={2} term < currentTerm", Raft.Name, r.Argument.LeaderId, r.Argument.LastEntryIndex);
+                return Procedure.Success;
             }
 
             var prevLog = ReadLog(r.Argument.PrevLogIndex);
@@ -937,7 +938,8 @@ namespace Zeze.Raft
                 // 2. Reply false if log doesn’t contain an entry
                 // at prevLogIndex whose term matches prevLogTerm(§5.3)
                 r.SendResult();
-                return Procedure.LogicError;
+                logger.Info("this={0} Leader={1} Index={2} prevLog mismatch", Raft.Name, r.Argument.LeaderId, r.Argument.LastEntryIndex);
+                return Procedure.Success;
             }
 
             foreach (var raftLogData in r.Argument.Entries)

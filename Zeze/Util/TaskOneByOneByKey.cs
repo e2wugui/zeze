@@ -122,7 +122,7 @@ namespace Zeze.Util
 						tmp = queue;
 						queue = new LinkedList<(Action, string, Action)>(); // clear
 						if (tmp.Count > 0)
-							queue.AddLast(tmp.First); // put running task back.
+							queue.AddLast(tmp.First.Value); // put back running task back.
 					}
 				}
 				if (tmp == null)

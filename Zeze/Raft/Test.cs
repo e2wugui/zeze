@@ -427,6 +427,12 @@ namespace Zeze.Raft
                 catch (Exception ex)
                 {
                     logger.Error(ex, "FailAction {0}", fa.Name);
+                    /*
+                    foreach (var raft in Rafts.Values)
+                    {
+                        raft.StartRaft(); // error recover
+                    }
+                    // */
                 }
                 // 等待失败的节点恢复正常并且服务了一些请求。
                 // 由于一个follower失败时，请求处理是能持续进行的，这个等待可能不够。
@@ -579,7 +585,10 @@ namespace Zeze.Raft
                 lock (this)
                 {
                     if (null != Raft)
+                    {
+                        Raft.Server.Start();
                         return;
+                    }
                     logger.Debug("Raft {0} Start ...", RaftName);
                     StateMachine = new TestStateMachine();
 
@@ -590,6 +599,9 @@ namespace Zeze.Raft
                     raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
                     if (resetLog)
                     {
+                        logger.Warn("------------------------------------------------");
+                        logger.Warn("--------------- Reset Log ----------------------");
+                        logger.Warn("------------------------------------------------");
                         if (Directory.Exists(raftConfig.DbHome))
                             Directory.Delete(raftConfig.DbHome, true);
                     }

@@ -83,7 +83,7 @@ namespace Zeze.Util
                 */
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "SimpleThreadPool.MainRun {0}", action);
+                    logger.Error(ex, "SimpleThreadPool {0}", action);
                 }
             }
         }
