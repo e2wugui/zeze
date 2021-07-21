@@ -3,7 +3,6 @@
 
 Zeze
 	打包和更新工具
-	每事务提交
 	async await?
 	GlobalTaskOneByOneByKey？？？
 	AsyncSocket.Connect Timeout 可配置，不是很有必要，外面需要同步等待时，可以设置自己的等待时间，不需要依赖Socket.Timeout。
@@ -34,4 +33,8 @@ DatabaseTikv
 Raft.Agent
 	重发现在在收到LeaderIs时马上重新发送。改成延迟？
 
-Game2 根据新的 solution-name 拷贝并替换代码中Game的名字空间。
+Zezex 根据新的 solution-name 拷贝并替换代码中Game的名字空间。
+	麻烦的地方：根据客户端是否脚本需要替换协议中的handle：client->clientscript。
+
+每事务提交：后端是集群 支持大量写入时 直接并发写 或者批量单线程写入 或者可以配置写入线程数量
+	每事务提交以后，GlobalCacheManager.Reduce的处理不再需要等待，只需要获得写锁，然后修改状态即可。
