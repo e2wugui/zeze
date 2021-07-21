@@ -53,7 +53,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("");
                 sw.WriteLine("        public void ProviderStaticBind(Zeze.Net.AsyncSocket socket)");
                 sw.WriteLine("        {");
-                sw.WriteLine("            var rpc = new gnet.Provider.Bind();");
+                sw.WriteLine("            var rpc = new Zezex.Provider.Bind();");
                 foreach (var module in service.Modules)
                 {
                     var fullName = module.Path();

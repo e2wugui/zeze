@@ -258,7 +258,7 @@ namespace Game
         /// 0) long [in] sessionid
         /// 1) int [in] hash
         /// 2) Zeze.Net.Binary [in] encoded parameters
-        /// 3) List<gnet.Provider.BActionParam> [result] result for callback. avoid copy.
+        /// 3) List<Zezex.Provider.BActionParam> [result] result for callback. avoid copy.
         /// 4) (int ReturnCode, Zeze.Net.Binary encoded-parameters) [return]
         ///     Func不能使用ref，而Zeze.Net.Binary是只读的。就这样吧。
         /// </summary>
@@ -388,7 +388,7 @@ namespace Game
                 {
                     sb.AppendLine($"{prefix}    var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
                     GenEncode(sb, prefix + "    ");
-                    sb.AppendLine($"{prefix}    _actions_.Add(new gnet.Provider.BActionParam() {{ Name = \"{VarName}\", Params = new Zeze.Net.Binary(_bb_) }});");
+                    sb.AppendLine($"{prefix}    _actions_.Add(new Zezex.Provider.BActionParam() {{ Name = \"{VarName}\", Params = new Zeze.Net.Binary(_bb_) }});");
                 }
                 sb.AppendLine($"{prefix}}};");
             }
@@ -541,7 +541,7 @@ namespace Game
                     continue;
                 }
                 string rpcVarName = "tmp" + TmpVarNameId.IncrementAndGet();
-                sb.AppendLine($"        var {rpcVarName} = new gnet.Provider.ModuleRedirect();");
+                sb.AppendLine($"        var {rpcVarName} = new Zezex.Provider.ModuleRedirect();");
                 sb.AppendLine($"        {rpcVarName}.Argument.ModuleId = {module.Id};");
                 sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {methodOverride.GetChoiceHashCodeSource()};");
                 sb.AppendLine($"        {rpcVarName}.Argument.MethodFullName = \"{module.FullName}:{methodOverride.Method.Name}\";");
@@ -573,7 +573,7 @@ namespace Game
                 sb.AppendLine($"            {{");
                 sb.AppendLine($"                {futureVarName}.SetException(new System.Exception(\"{module.FullName}:{methodOverride.Method.Name} Rpc Timeout.\"));");
                 sb.AppendLine($"            }}");
-                sb.AppendLine($"            else if (gnet.Provider.ModuleRedirect.ResultCodeSuccess != {rpcVarName}.ResultCode)");
+                sb.AppendLine($"            else if (Zezex.Provider.ModuleRedirect.ResultCodeSuccess != {rpcVarName}.ResultCode)");
                 sb.AppendLine($"            {{");
                 sb.AppendLine($"                {futureVarName}.SetException(new System.Exception($\"{module.FullName}:{methodOverride.Method.Name} Rpc Error {{{rpcVarName}.ResultCode}}.\"));");
                 sb.AppendLine($"            }}");
@@ -627,7 +627,7 @@ namespace Game
                 sb.AppendLine($"    }}");
                 sb.AppendLine($"");
 
-                sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<gnet.Provider.BActionParam> _actions_) =>");
+                sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_) =>");
                 sbHandles.AppendLine($"        {{");
                 sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
                 for (int i = 0; i < methodOverride.ParametersNormal.Count; ++i)
@@ -678,7 +678,7 @@ namespace Game
         void GenRedirectAll(StringBuilder sb, StringBuilder sbHandles, Zeze.IModule module, MethodOverride methodOverride, List<ActionGen> actions)
         {
             string reqVarName = "tmp" + TmpVarNameId.IncrementAndGet();
-            sb.AppendLine($"        var {reqVarName} = new gnet.Provider.ModuleRedirectAllRequest();");
+            sb.AppendLine($"        var {reqVarName} = new Zezex.Provider.ModuleRedirectAllRequest();");
             sb.AppendLine($"        {reqVarName}.Argument.ModuleId = {module.Id};");
             sb.AppendLine($"        {reqVarName}.Argument.HashCodeConcurrentLevel = {methodOverride.GetConcurrentLevelSource()};");
             sb.AppendLine($"        // {reqVarName}.Argument.HashCodes = // setup in linkd;");
@@ -723,7 +723,7 @@ namespace Game
             sb.AppendLine($"");
 
             // handles
-            sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<gnet.Provider.BActionParam> _actions_) =>");
+            sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_) =>");
             sbHandles.AppendLine($"        {{");
             sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
             for (int i = 0; i < methodOverride.ParametersNormal.Count; ++i)
@@ -767,7 +767,7 @@ namespace Game
 
         void GenRedirectAllContext(StringBuilder sb, MethodOverride methodOverride, List<ActionGen> actions)
         {
-            sb.AppendLine($"    public class Context{methodOverride.Method.Name} : gnet.Provider.ModuleProvider.ModuleRedirectAllContext");
+            sb.AppendLine($"    public class Context{methodOverride.Method.Name} : Zezex.Provider.ModuleProvider.ModuleRedirectAllContext");
             sb.AppendLine($"    {{");
             foreach (var action in actions)
             {
@@ -800,7 +800,7 @@ namespace Game
             }
             sb.AppendLine($"        }}");
             sb.AppendLine($"");
-            sb.AppendLine($"        public override int ProcessHashResult(int _hash_, int _returnCode_, Zeze.Net.Binary _params, System.Collections.Generic.IList<gnet.Provider.BActionParam> _actions_)");
+            sb.AppendLine($"        public override int ProcessHashResult(int _hash_, int _returnCode_, Zeze.Net.Binary _params, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_)");
             sb.AppendLine($"        {{");
             if (actionCountSkipOnHashEnd > 0)
             {

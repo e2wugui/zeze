@@ -15,6 +15,7 @@ namespace Game.Rank
     /// 然后在数据变化时调用 RunUpdateRank 方法更行排行榜。
     public partial class ModuleRank : AbstractModule
     {
+
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public void Start(Game.App app)

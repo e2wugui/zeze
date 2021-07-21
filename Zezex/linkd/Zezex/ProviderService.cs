@@ -74,8 +74,8 @@ namespace Zezex
         /// <summary>
         /// 维护此Provider上绑定的StaticBinds，用来在Provider关闭的时候，进行 UnBind。
         /// 同时，当此Provider第一次被选中时，所有的StaticBinds都会一起被绑定到LinkSession上，
-        /// 多线程：这里面的数据访问都处于 lock (gnet.App.Instance.gnet_Provider_Module.StaticBinds) 下
-        /// see gnet.Provider.ModuleProvider
+        /// 多线程：这里面的数据访问都处于 lock (Zezex.App.Instance.gnet_Provider_Module.StaticBinds) 下
+        /// see Zezex.Provider.ModuleProvider
         /// </summary>
         public ConcurrentDictionary<int, int> StaticBinds { get; } = new ConcurrentDictionary<int, int>();
         private Provider.BLoad Load { get; set; }
