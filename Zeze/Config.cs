@@ -35,7 +35,7 @@ namespace Zeze
         public int GlobalCacheManagerPort { get; private set; }
         public ConcurrentDictionary<string, TableConf> TableConfMap { get; }
             = new ConcurrentDictionary<string, TableConf>();
-        public TableConf DefaultTableConf { get; set; } = new TableConf();
+        public TableConf DefaultTableConf { get; set; }
         public bool AllowReadWhenRecoredNotAccessed { get; set; } = true;
         public bool AllowSchemasReuseVariableIdWithSameType { get; set; } = true;
         public ConcurrentDictionary<string, ICustomize> Customize { get; }
@@ -206,6 +206,8 @@ namespace Zeze
                         throw new Exception("unknown node name: " + e.Name);
                 }
             }
+            if (null == DefaultTableConf)
+                DefaultTableConf = new TableConf();
             if (DatabaseConfMap.Count == 0) // add default databaseconf.
             {
                 if (!DatabaseConfMap.TryAdd("", new DatabaseConf()))
@@ -284,10 +286,12 @@ namespace Zeze
                         throw new Exception($"Duplicate Table '{Name}'");
                     }
                 }
-                else
+                else if (conf.DefaultTableConf == null)
                 {
                     conf.DefaultTableConf = this;
                 }
+                else
+                    throw new Exception("too many DefaultTableConf.");
             }
         }
 

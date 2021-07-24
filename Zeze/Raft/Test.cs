@@ -397,6 +397,10 @@ namespace Zeze.Raft
             public string Name { get; set; }
             public Action Action { get; set; }
             public long Count { get; set; }
+            public override string ToString()
+            {
+                return Name + "=" + Count;
+            }
         }
         private List<FailAction> FailActions { get; } = new List<FailAction>();
 
@@ -438,6 +442,9 @@ namespace Zeze.Raft
                 // 由于一个follower失败时，请求处理是能持续进行的，这个等待可能不够。
                 WaitExpectCountGrow(100);
             }
+            var sb = new StringBuilder();
+            ByteBuffer.BuildString(sb, FailActions);
+            logger.Fatal(sb.ToString());
         }
 
         private TestRaft GetLeader()
