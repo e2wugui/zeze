@@ -34,6 +34,9 @@ namespace Zeze.Transaction
         internal Bean Value { get; set; }
         internal int State { get; set; }
         internal Zeze.Util.AtomicLong AccessTimeTicks = new Zeze.Util.AtomicLong();
+        public abstract Table Table { get; }
+        // 总是存在所属对象，有点浪费内存，但是可以避免并发的时候值在被修改中，会不会产生null的问题。
+        internal RelativeRecordSet RelativeRecordSet { get; set; } = new RelativeRecordSet();
 
         public Record(Bean value)
         {
@@ -50,36 +53,44 @@ namespace Zeze.Transaction
         internal abstract void Commit(Transaction.RecordAccessed accessed);
 
         internal abstract int Acquire(int state);
+
+        internal abstract void Encode0();
+        internal abstract bool Flush(Database.Table table, Database.Transaction t);
+        internal abstract void Cleanup();
+
+        internal Database.Transaction DatabaseTransactionTmp { get; set; }
     }
 
     public class Record<K, V> : Record where V : Bean, new()
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public K Key { get; }
-        public Table<K, V> Table { get;  }
+        public Table<K, V> TTable { get;  }
+        public override Table Table => TTable;
+
         public V ValueTyped => (V)Value;
    
         public Record(Table<K, V> table, K key, V value) : base(value)
         {
-            this.Table = table;
+            this.TTable = table;
             this.Key = key;
         }
 
         public override string ToString()
         {
-            return $"T {Table.Id}:{Table.Name} K {Key} S {State} T {Timestamp}";// V {Value}";
+            return $"T {TTable.Id}:{TTable.Name} K {Key} S {State} T {Timestamp}";// V {Value}";
             // 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
         }
 
         internal override int Acquire(int state)
         {
-            if (null == Table.Storage)
+            if (null == TTable.TStorage)
                 return state; // 不支持内存表cache同步。
 
-            GlobalCacheManager.GlobalTableKey gkey = new GlobalCacheManager.GlobalTableKey(Table.Name, Table.EncodeKey(Key));
+            GlobalCacheManager.GlobalTableKey gkey = new GlobalCacheManager.GlobalTableKey(TTable.Name, TTable.EncodeKey(Key));
             logger.Debug("Acquire NewState={0} {1}", state, this);
 #if ENABLE_STATISTICS
-            var stat = TableStatistics.Instance.GetOrAdd(Table.Id);
+            var stat = TableStatistics.Instance.GetOrAdd(TTable.Id);
             switch (state)
             {
                 case GlobalCacheManager.StateInvalid:
@@ -95,7 +106,7 @@ namespace Zeze.Transaction
                     break;
             }
 #endif
-            return Table.Zeze.GlobalAgent.Acquire(gkey, state);
+            return TTable.Zeze.GlobalAgent.Acquire(gkey, state);
         }
 
         // XXX 临时写个实现，以后调整。
@@ -106,7 +117,7 @@ namespace Zeze.Transaction
                 Value = accessed.CommittedPutLog.Value;
             }
             Timestamp = NextTimestamp; // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
-            Table.Storage?.OnRecordChanged(this);
+            TTable.TStorage?.OnRecordChanged(this);
         }
 
         private ByteBuffer snapshotKey;
@@ -114,7 +125,7 @@ namespace Zeze.Transaction
 
         internal bool TryEncodeN(ConcurrentDictionary<K, Record<K, V>> changed, ConcurrentDictionary<K, Record<K, V>> encoded)
         {
-            Lockey lockey = Locks.Instance.Get(new TableKey(Table.Id, Key));
+            Lockey lockey = Locks.Instance.Get(new TableKey(TTable.Id, Key));
             if (false == lockey.TryEnterReadLock(0))
                 return false;
             try
@@ -130,10 +141,10 @@ namespace Zeze.Transaction
             }
         }
 
-        internal void Encode0()
+        internal override void Encode0()
         {
-            snapshotKey = Table.EncodeKey(Key);
-            snapshotValue = Value != null ? Table.EncodeValue(ValueTyped) : null;
+            snapshotKey = TTable.EncodeKey(Key);
+            snapshotValue = Value != null ? TTable.EncodeValue(ValueTyped) : null;
         }
 
         /*
@@ -143,20 +154,20 @@ namespace Zeze.Transaction
         }
         */
 
-        internal bool Flush(Storage<K, V> storage)
+        internal override bool Flush(Database.Table table, Database.Transaction t)
         {
             if (null != snapshotValue)
             {
-                storage.DatabaseTable.Replace(snapshotKey, snapshotValue);
+                table.Replace(t, snapshotKey, snapshotValue);
             }
             else
             {
-                storage.DatabaseTable.Remove(snapshotKey);
+                table.Remove(t, snapshotKey);
             }
             return true;
         }
 
-        internal void Cleanup()
+        internal override void Cleanup()
         {
             snapshotKey = null;
             snapshotValue = null;

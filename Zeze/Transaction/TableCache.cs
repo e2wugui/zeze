@@ -19,12 +19,11 @@ namespace Zeze.Transaction
         public TableCache(Application app, Table<K, V> table)
         {
             this.Table = table;
-            Config.TableConf tableConf = app.Config.GetTableConf(table.Name);
-            this.Capacity = tableConf.CacheCapaicty;
+            this.Capacity = table.TableConf.CacheCapaicty;
             if (Capacity < 0)
                 throw new ArgumentException();
 
-            int delay = tableConf.CacheCleanPeriod;
+            int delay = table.TableConf.CacheCleanPeriod;
             // 为了使清除任务不会集中在某个时间点执行，简单处理一下：随机初始化延迟时间。（不算什么好方法）
             int initialDelay = Util.Random.Instance.Next(delay);
             Util.Scheduler.Instance.Schedule(CleanNow, initialDelay, delay);
@@ -128,7 +127,7 @@ namespace Zeze.Transaction
             }
             try
             {
-                var storage = Table.Storage;
+                var storage = Table.TStorage;
                 if (null == storage)
                 {
                     /* 不支持内存表cache同步。

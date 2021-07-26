@@ -200,6 +200,34 @@
 	    所以一般处理流程只需要在正常的时候设置自定义rpc的正常结果参数并调用rpc.SendResult()；
 	    错误的时候直接return errorcode即可。基本没有需求需要catch。
 
+	18) 事务提交模式
+	    a) CheckpointMode = Period
+	    定时批量提交。可以缓存多次修改，一次提交。事务并发只依赖记录锁。
+	    b) CheckpointMode = Immediately
+	    每事务提交。事务执行完毕返回时，就意味着数据已经提交到后端存储数据库了。
+	    重要应用可能需要这种模式。事务并发只依赖记录锁。
+	    c) CheckpointMode = Table
+	    可以在Table中启用选项 CheckpointWhenCommit="true"
+	    当事务访问的记录启用上面的选项（根据所属的Table得到配置）以后，按 Immediately 提交，否则按 Period 提交。
+	    事务并发：执行逻辑的时候依赖记录锁，Commit的时候需要锁记录所属的改名记录集合。并发性有一定降低。
+	    这个模式比较灵活，适用面更广点。
+	    d) CheckpointMode = PeriodNoFlushLock
+	    定时批量提交。不需要FlushReadWriteLock。采用Table模式的实现方法，去掉全局FlushReadWriteLock。
+	    它相当于配成Table模式，然后所有的Table都配置CheckpointWhenCommit="false"(默认）。 
+	    这个模式单独配置没有什么意义，写在这里仅仅为了说明。
+	    *)
+	    配置
+	    zeze.xml::CheckpointMode zeze.xml::CheckpointPeriod
+	    性能考量
+	    由于zeze的数据存储在后端数据库采用KV存储，一个记录只变了一部分，也需要整体写入，如果每次写入，存在一定浪费（流量，io）。
+	    后端数据库支持的写入量。Period模式可以大大降低后端数据库需要支持的写入量。也使得浪费降低。
+	    【注意】
+	    选择不同模式应该主要根据需求来决定。
+	    但是也要注意性能考量。
+	    当在一个进程中同时运行多个Zeze.Application，并且运行同时访问多个App的事务时，
+	    需要每个Application.Config.CheckpointMode 一致，这个目前没有很有效的检测手段，
+	    所以是没有检查的。
+
 #### 更多说明
 
 	【不要捕捉异常】

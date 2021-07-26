@@ -4,6 +4,7 @@ using System.Dynamic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace Zeze.Transaction
 {
@@ -13,19 +14,35 @@ namespace Zeze.Transaction
 
         private HashSet<Database> databases = new HashSet<Database>();
 
-        internal ReaderWriterLockSlim FlushReadWriteLock { get; } = new ReaderWriterLockSlim();
+        private ReaderWriterLockSlim FlushReadWriteLock { get; } = new ReaderWriterLockSlim();
+
         public bool IsRunning { get; private set; }
         public int Period { get; private set; }
         private Task RunningTask = null;
         private Util.SimpleThreadPool flushThreads;
+        public CheckpointMode CheckpointMode { get; }
 
-        public Checkpoint()
+        public Checkpoint(CheckpointMode mode)
         {
+            CheckpointMode = mode;
         }
 
-        public Checkpoint(IEnumerable<Database> dbs)
+        public Checkpoint(CheckpointMode mode, IEnumerable<Database> dbs)
         {
+            CheckpointMode = mode;
             Add(dbs);
+        }
+
+        internal void EnterFlushReadLock()
+        {
+            if (CheckpointMode == CheckpointMode.Period)
+                FlushReadWriteLock.EnterReadLock();
+        }
+
+        internal void ExitFlushReadLock()
+        {
+            if (CheckpointMode == CheckpointMode.Period)
+                FlushReadWriteLock.ExitReadLock();
         }
 
         public Checkpoint Add(IEnumerable<Database> databases)
@@ -74,29 +91,62 @@ namespace Zeze.Transaction
 
         internal void RunOnce()
         {
-            TaskCompletionSource<int> source = new TaskCompletionSource<int>();
-            AddActionAndPulse(() => source.SetResult(0));
-            source.Task.Wait();
+            switch (CheckpointMode)
+            {
+                case CheckpointMode.Immediately:
+                    break;
+
+                case CheckpointMode.Period:
+                    TaskCompletionSource<int> source = new TaskCompletionSource<int>();
+                    AddActionAndPulse(() => source.SetResult(0));
+                    source.Task.Wait();
+                    break;
+
+                case CheckpointMode.Table:
+                    RelativeRecordSet.FlushRelativeRecordSets(this);
+                    break;
+            }
         }
 
         private void Run()
         {
             while (IsRunning)
             {
-                DoCheckpoint();
-                foreach (Action action in actionCurrent)
+                switch (CheckpointMode)
                 {
-                    action();
+                    case CheckpointMode.Period:
+                        CheckpointPeriod();
+                        foreach (Action action in actionCurrent)
+                        {
+                            action();
+                        }
+                        lock (this)
+                        {
+                            if (actionPending.Count > 0)
+                                continue; // 如果有未决的任务，马上开始下一次 DoCheckpoint。
+                        }
+                        break;
+
+                    case CheckpointMode.Table:
+                        RelativeRecordSet.FlushRelativeRecordSets(this);
+                        break;
                 }
                 lock (this)
                 {
-                    if (actionPending.Count > 0)
-                        continue; // 如果有未决的任务，马上开始下一次 DoCheckpoint。
                     Monitor.Wait(this, Period);
                 }
             }
             logger.Fatal("final checkpoint start.");
-            DoCheckpoint();
+            switch (CheckpointMode)
+            {
+                case CheckpointMode.Period:
+                    CheckpointPeriod();
+                    break;
+
+                case CheckpointMode.Table:
+                    RelativeRecordSet.FlushRelativeRecordSets(this);
+                    break;
+            }
             logger.Fatal("final checkpoint end.");
         }
 
@@ -130,7 +180,7 @@ namespace Zeze.Transaction
             WaitHandle.WaitAll(readys);
         }
 
-        private void DoCheckpoint()
+        private void CheckpointPeriod()
         {
             // encodeN
             foreach (var db in databases)
@@ -199,6 +249,73 @@ namespace Zeze.Transaction
             foreach (var db in databases)
             {
                 db.Cleanup();
+            }
+        }
+
+        internal void Flush(Transaction trans)
+        {
+            Flush(from ra in trans.AccessedRecords.Values where ra.Dirty select ra.OriginRecord);
+        }
+
+        internal void Flush(IEnumerable<Record> rs)
+        {
+            var dts = new Dictionary<Database, Database.Transaction>();
+            // prepare: 编码并且为每一个数据库创建一个数据库事务。
+            foreach (var r in rs)
+            {
+                Database database = r.Table.Storage.DatabaseTable.Database;
+                if (false == dts.TryGetValue(database, out var t))
+                {
+                    t = database.BeginTransaction();
+                    dts.Add(database, t);
+                }
+                r.DatabaseTransactionTmp = t;
+            }
+            try
+            {
+                // 编码
+                foreach (var r in rs)
+                {
+                    r.Encode0();
+                }
+                // 保存到数据库中
+                foreach (var r in rs)
+                {
+                    r.Flush(r.Table.Storage.DatabaseTable, r.DatabaseTransactionTmp);
+                }
+                // 清除编码状态
+                foreach (var r in rs)
+                {
+                    r.Cleanup();
+                }
+                // 提交。
+                foreach (var t in dts.Values)
+                {
+                    t.Commit();
+                }
+            }
+            catch (Exception)
+            {
+                foreach (var t in dts.Values)
+                {
+                    t.Rollback();
+                }
+                throw;
+            }
+            finally
+            {
+                foreach (var t in dts.Values)
+                {
+                    t.Dispose();
+                }
+            }
+        }
+
+        internal void Flush(RelativeRecordSet rs)
+        {
+            if (rs.RecordSet != null)
+            {
+                Flush(from r in rs.RecordSet select r);
             }
         }
     }

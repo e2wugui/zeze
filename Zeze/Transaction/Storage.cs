@@ -6,27 +6,26 @@ using Zeze.Serialize;
 
 namespace Zeze.Transaction
 {
-    public interface Storage
+    public abstract class Storage
     {
-		public Database.Table DatabaseTable { get; }
+		public Database.Table DatabaseTable { get; protected set; }
 
-		public int EncodeN();
+        public abstract int EncodeN();
 
-		public int Encode0();
+		public abstract int Encode0();
 
-		public int Snapshot();
+		public abstract int Snapshot();
 
-		public int Flush();
+		public abstract int Flush(Database.Transaction t);
 
-		public void Cleanup();
+		public abstract void Cleanup();
 
-        public void Close();
+        public abstract void Close();
 	}
 
     public sealed class Storage<K, V> : Storage where V : Bean, new()
     {
         public Table Table { get; }
-        public Database.Table DatabaseTable { get; }
 
         public Storage(Table<K, V> table, Database database, string tableName)
         {
@@ -58,7 +57,7 @@ namespace Zeze.Transaction
         /// 没有得到任何锁。
         /// </summary>
         /// <returns></returns>
-        public int EncodeN()
+        public override int EncodeN()
         {
             int c = 0;
             foreach (var e in changed)
@@ -73,7 +72,7 @@ namespace Zeze.Transaction
         /// 仅在 Checkpoint 中调用，在 flushWriteLock 下执行。
         /// </summary>
         /// <returns></returns>
-        public int Encode0()
+        public override int Encode0()
         {
             foreach (var e in changed)
             {
@@ -89,7 +88,7 @@ namespace Zeze.Transaction
         /// 仅在 Checkpoint 中调用，在 flushWriteLock 下执行。
         /// </summary>
         /// <returns></returns>
-        public int Snapshot()
+        public override int Snapshot()
         {
             var tmp = snapshot;
             snapshot = encoded;
@@ -109,12 +108,12 @@ namespace Zeze.Transaction
         /// 没有拥有任何锁。
         /// </summary>
         /// <returns></returns>
-        public int Flush()
+        public override int Flush(Database.Transaction t)
         {
             int count = 0;
             foreach (var e in snapshot)
             {
-                if (e.Value.Flush(this))
+                if (e.Value.Flush(this.DatabaseTable, t))
                 {
                     ++count;
                 }
@@ -126,7 +125,7 @@ namespace Zeze.Transaction
         /// 仅在 Checkpoint 中调用。
         /// 没有拥有任何锁。
         /// </summary>
-        public void Cleanup()
+        public override void Cleanup()
         {
             ConcurrentDictionary<K, Record<K, V>> tmp = null;
             snapshotLock.EnterWriteLock();
@@ -175,7 +174,7 @@ namespace Zeze.Transaction
             return null != value ? table.DecodeValue(value) : null;
         }
 
-        public void Close()
+        public override void Close()
         {
             DatabaseTable.Close();
         }

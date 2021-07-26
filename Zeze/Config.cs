@@ -27,6 +27,9 @@ namespace Zeze
         public int WorkerThreads { get; set; }
         public int CompletionPortThreads { get; set; }
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
+        public Transaction.CheckpointMode CheckpointMode { get; set; }
+            = Transaction.CheckpointMode.Period;
+
         public NLog.LogLevel ProcessReturnErrorLogLevel { get; set; } = NLog.LogLevel.Info;
         public int InternalThreadPoolWorkerCount { get; set; }
         public int AutoKeyLocalId { get; set; } = 0;
@@ -174,6 +177,10 @@ namespace Zeze
             attr = self.GetAttribute("AllowSchemasReuseVariableIdWithSameType");
             AllowSchemasReuseVariableIdWithSameType = attr.Length > 0 ? bool.Parse(attr) : true;
 
+            attr = self.GetAttribute("CheckpointMode");
+            if (attr.Length > 0)
+                CheckpointMode = (Transaction.CheckpointMode)Enum.Parse(typeof(Transaction.CheckpointMode), attr);
+
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
             {
@@ -249,6 +256,7 @@ namespace Zeze
             public string Name { get; }
             public int CacheCapaicty { get; set; } = 20000;
             public int CacheCleanPeriod { get; set; } = 3600 * 1000; // 毫秒，一小时
+            public bool CheckpointWhenCommit { get; set; } = false;
 
             // 自动倒库，当新库(DatabaseName)没有找到记录时，从旧库(DatabaseOldName)中读取，
             // Open 的时候找到旧库并打开Database.Table用来读取。
@@ -278,6 +286,9 @@ namespace Zeze
                 DatabaseOldName = self.GetAttribute("DatabaseOldName");
                 attr = self.GetAttribute("DatabaseOldMode");
                 DatabaseOldMode = attr.Length > 0 ? int.Parse(attr) : 0;
+                attr = self.GetAttribute("CheckpointWhenCommit");
+                if (attr.Length > 0)
+                    CheckpointWhenCommit = bool.Parse(attr);
 
                 if (Name.Length > 0)
                 {

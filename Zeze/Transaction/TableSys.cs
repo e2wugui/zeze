@@ -7,13 +7,14 @@ namespace Zeze.Transaction
 {
     public sealed class TableSys : Table
     {
-        private StorageSys storage;
+        private StorageSys TStorage;
+        public override Storage Storage => TStorage;
 
         public override bool IsMemory => false;
 
         internal override void Close()
         {
-            storage = null;
+            TStorage = null;
         }
 
         internal TableSys() : base("_sys_")
@@ -26,16 +27,16 @@ namespace Zeze.Transaction
             throw new NotImplementedException();
         }
 
-        public AutoKeys AutoKeys => storage.AutoKeys;
+        public AutoKeys AutoKeys => TStorage.AutoKeys;
         public Application Zeze { get; private set; }
 
         internal override Storage Open(Application app, Database database)
         {
-            if (null != storage)
+            if (null != TStorage)
                 throw new Exception("tablesys has opened");
             Zeze = app;
-            storage = new StorageSys(app, database);
-            return storage;
+            TStorage = new StorageSys(app, database);
+            return TStorage;
         }
 
         internal override void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
@@ -63,19 +64,17 @@ namespace Zeze.Transaction
                 AutoKeys = new AutoKeys(DatabaseTable.Find(keyOfAutoKeys), localInitValue, localStep);
             }
 
-            public Database.Table DatabaseTable { get; }
-
-            public void Close()
+            public override void Close()
             {
                 DatabaseTable.Close();
             }
 
-            public int EncodeN()
+            public override int EncodeN()
             {
                 return 0;
             }
 
-            public int Encode0()
+            public override int Encode0()
             {
                 snapshotOfAutoKeys = AutoKeys.Encode();
                 int c = 0;
@@ -84,7 +83,7 @@ namespace Zeze.Transaction
                 return c;
             }
 
-            public int Snapshot()
+            public override int Snapshot()
             {
                 int c = 0;
                 if (null != snapshotOfAutoKeys)
@@ -92,18 +91,18 @@ namespace Zeze.Transaction
                 return c;
             }
 
-            public int Flush()
+            public override int Flush(Database.Transaction t)
             {
                 int c = 0;
                 if (null != snapshotOfAutoKeys)
                 {
-                    DatabaseTable.Replace(keyOfAutoKeys, snapshotOfAutoKeys);
+                    DatabaseTable.Replace(t, keyOfAutoKeys, snapshotOfAutoKeys);
                     ++c;
                 }
                 return c;
             }
 
-            public void Cleanup()
+            public override void Cleanup()
             {
                 snapshotOfAutoKeys = null;
             }

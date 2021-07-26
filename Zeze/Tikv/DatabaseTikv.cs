@@ -12,50 +12,72 @@ namespace Zeze.Tikv
     public sealed class DatabaseTikv : Database
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        internal TikvConnection CheckpointTikvConnection { get; private set; }
-        //internal TikvTransaction Transaction { get; private set; }
 
         public DatabaseTikv(string databaseUrl) : base(databaseUrl)
         {
             DirectOperates = new OperatesTikv(this);
         }
 
-        public override void Flush(Checkpoint sync, Action flushAction)
+        public class TikvTrans : Database.Transaction
         {
-            try
+            public TikvConnection Connection { get; }
+            public TikvTransaction Transaction { get; }
+
+            public TikvTrans(string DatabaseUrl)
             {
-                for (int i = 0; i < 60; ++i)
+                Connection = new TikvConnection(DatabaseUrl);
+                Connection.Open();
+                Transaction = Connection.BeginTransaction();
+            }
+
+            public void Dispose()
+            {
+                Connection.Dispose();
+            }
+
+
+            public void Commit()
+            {
+                Transaction.Commit();
+            }
+
+            public void Rollback()
+            {
+                Transaction.Rollback();
+            }
+        }
+
+        public override Transaction BeginTransaction()
+        {
+            return new TikvTrans(DatabaseUrl);
+        }
+
+        public override void Flush(Checkpoint sync, Action<Transaction> flushAction)
+        {
+            for (int i = 0; i < 60; ++i)
+            {
+                using var trans = new TikvTrans(DatabaseUrl);
+                try
                 {
-                    using TikvConnection connection = new TikvConnection(DatabaseUrl);
-                    connection.Open();
-                    CheckpointTikvConnection = connection;
-                    var Transaction = connection.BeginTransaction();
-                    try
+                    flushAction(trans);
+                    if (null != sync) // null for test
                     {
-                        flushAction();
-                        if (null != sync) // null for test
-                        {
-                            CommitReady.Set();
-                            sync.WaitAllReady();
-                        }
-                        Transaction.Commit();
-                        return;
+                        CommitReady.Set();
+                        sync.WaitAllReady();
                     }
-                    catch (Exception ex)
-                    {
-                        CommitReady.Reset();
-                        Transaction.Rollback();
-                        logger.Warn(ex, "Checkpoint error.");
-                    }
-                    Thread.Sleep(1000);
+                    trans.Commit();
+                    return;
                 }
-                logger.Fatal("Checkpoint too many try.");
-                Environment.Exit(54321);
+                catch (Exception ex)
+                {
+                    CommitReady.Reset();
+                    trans.Rollback();
+                    logger.Warn(ex, "Checkpoint error.");
+                }
+                Thread.Sleep(1000);
             }
-            finally
-            {
-                CheckpointTikvConnection = null;
-            }
+            logger.Fatal("Checkpoint too many try.");
+            Environment.Exit(54321);
         }
 
         public override Table OpenTable(string name)
@@ -94,13 +116,14 @@ namespace Zeze.Tikv
 
         public sealed class TableTikv : Database.Table
         {
-            public DatabaseTikv Database { get; }
+            public DatabaseTikv DatabaseReal { get; }
+            public Database Database => DatabaseReal;
             public string Name { get; }
             public ByteBuffer KeyPrefix { get; }
 
             public TableTikv(DatabaseTikv database, string name)
             {
-                Database = database;
+                DatabaseReal = database;
                 Name = name;
                 var nameutf8 = Encoding.UTF8.GetBytes(name);
                 KeyPrefix = ByteBuffer.Allocate(nameutf8.Length + 1);
@@ -122,7 +145,7 @@ namespace Zeze.Tikv
 
             public ByteBuffer Find(ByteBuffer key)
             {
-                using TikvConnection connection = new TikvConnection(Database.DatabaseUrl);
+                using TikvConnection connection = new TikvConnection(DatabaseReal.DatabaseUrl);
                 connection.Open();
                 using TikvTransaction transaction = connection.BeginTransaction();
                 var result = Tikv.Driver.Get(transaction.TransactionId, WithKeyspace(key));
@@ -130,19 +153,21 @@ namespace Zeze.Tikv
                 return result;
             }
 
-            public void Remove(ByteBuffer key)
+            public void Remove(Transaction t, ByteBuffer key)
             {
-                Tikv.Driver.Delete(Database.CheckpointTikvConnection.Transaction.TransactionId, WithKeyspace(key));
+                var my = t as TikvTrans;
+                Tikv.Driver.Delete(my.Connection.Transaction.TransactionId, WithKeyspace(key));
             }
 
-            public void Replace(ByteBuffer key, ByteBuffer value)
+            public void Replace(Transaction t, ByteBuffer key, ByteBuffer value)
             {
-                Tikv.Driver.Put(Database.CheckpointTikvConnection.Transaction.TransactionId, WithKeyspace(key), value);
+                var my = t as TikvTrans;
+                Tikv.Driver.Put(my.Connection.Transaction.TransactionId, WithKeyspace(key), value);
             }
 
             public long Walk(Func<byte[], byte[], bool> callback)
             {
-                using TikvConnection connection = new TikvConnection(Database.DatabaseUrl);
+                using TikvConnection connection = new TikvConnection(DatabaseReal.DatabaseUrl);
                 connection.Open();
                 using TikvTransaction transaction = connection.BeginTransaction();
                 long result = Tikv.Driver.Scan(transaction.TransactionId, KeyPrefix, callback);

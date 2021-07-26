@@ -120,7 +120,8 @@ namespace Zeze.Transaction
                     try
                     {
                         // 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
-                        procedure.Zeze.Checkpoint.FlushReadWriteLock.EnterReadLock();
+
+                        procedure.Zeze.Checkpoint.EnterFlushReadLock();
                         for (/* out loop */; tryCount < 256; ++tryCount) // 最多尝试次数
                         {
                             CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
@@ -203,7 +204,7 @@ namespace Zeze.Transaction
                                     holdLocks.Clear();
                                 }
                                 // retry 可能保持已有的锁，清除记录和保存点。
-                                accessedRecords.Clear();
+                                AccessedRecords.Clear();
                                 savepoints.Clear();
                             }
                             if (checkResult == CheckResult.RedoAndReleaseLock)
@@ -215,7 +216,7 @@ namespace Zeze.Transaction
                     }
                     finally
                     {
-                        procedure.Zeze.Checkpoint.FlushReadWriteLock.ExitReadLock();
+                        procedure.Zeze.Checkpoint.ExitFlushReadLock();
                     }
                     //logger.Debug("Checkpoint.WaitRun {0}", procedure);
                     procedure.Zeze.Checkpoint.WaitRun();
@@ -234,29 +235,8 @@ namespace Zeze.Transaction
             }
         }
 
-        private void _final_commit_(Procedure procedure)
+        private void _notify_listener_(ChangeCollector cc)
         {
-            // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
-            // 可以在最终提交里可以实现每事务checkpoint。
-            ChangeCollector cc = new ChangeCollector();
-            try
-            {
-                savepoints[savepoints.Count - 1].Commit();
-                foreach (var e in accessedRecords)
-                {
-                    if (e.Value.Dirty)
-                    {
-                        e.Value.OriginRecord.Commit(e.Value);
-                        cc.BuildCollect(e.Key, e.Value); // 首先对脏记录创建Table,Record相关Collector。
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Transaction._final_commit_ {0}", procedure);
-                Environment.Exit(54321);
-            }
-
             try
             {
                 Savepoint sp = savepoints[savepoints.Count - 1];
@@ -294,20 +274,16 @@ namespace Zeze.Transaction
                 savepoints.Clear();
                 //accessedRecords.Clear(); // 事务内访问过的记录保留，这样在Listener中可以读取。
 
-                // 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
-                // 不再支持在回调中再次执行事务。
-                IsCompleted = true; // 在Notify之前设置的。
                 cc.Notify();
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "ChangeListener Collect And Notify");
             }
-            finally
-            {
-                IsCompleted = true; // 懒得判断什么时候设置这个合适了，防止ChangListener触发异常，没有设置，再设置一遍。
-            }
+        }
 
+        private void _trigger_commit_actions_(Procedure procedure)
+        {
             foreach (Action action in CommitActions)
             {
                 try
@@ -320,6 +296,40 @@ namespace Zeze.Transaction
                 }
             }
             CommitActions.Clear();
+        }
+
+        private void _final_commit_(Procedure procedure)
+        {
+            // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
+            // 可以在最终提交里可以实现每事务checkpoint。
+            ChangeCollector cc = new ChangeCollector();
+
+            RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () =>
+            {
+                try
+                {
+                    savepoints[savepoints.Count - 1].Commit();
+                    foreach (var e in AccessedRecords)
+                    {
+                        if (e.Value.Dirty)
+                        {
+                            e.Value.OriginRecord.Commit(e.Value);
+                            cc.BuildCollect(e.Key, e.Value); // 首先对脏记录创建Table,Record相关Collector。
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e, "Transaction._final_commit_ {0}", procedure);
+                    Environment.Exit(54321);
+                }
+            });
+
+            // 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
+            // 不再支持在回调中再次执行事务。
+            IsCompleted = true; // 在Notify之前设置的。
+            _notify_listener_(cc);
+            _trigger_commit_actions_(procedure);
         }
 
         private void _final_rollback_(Procedure procedure)
@@ -402,7 +412,8 @@ namespace Zeze.Transaction
             }
         }
 
-        private readonly SortedDictionary<TableKey, RecordAccessed> accessedRecords = new SortedDictionary<TableKey, RecordAccessed>();
+        internal SortedDictionary<TableKey, RecordAccessed> AccessedRecords { get; }
+            = new SortedDictionary<TableKey, RecordAccessed>();
         private readonly List<Savepoint> savepoints = new List<Savepoint>();
 
         public bool IsCompleted { get; private set; } = false;
@@ -418,7 +429,7 @@ namespace Zeze.Transaction
                 throw new Exception("Transaction Is Completed");
 
             r.InitRootInfo(root, null);
-            accessedRecords.Add(root.TableKey, r);
+            AccessedRecords.Add(root.TableKey, r);
         }
 
         internal RecordAccessed GetRecordAccessed(TableKey key)
@@ -427,7 +438,7 @@ namespace Zeze.Transaction
             //if (IsCompleted)
             //    throw new Exception("Transaction Is Completed");
 
-            if (accessedRecords.TryGetValue(key, out var record))
+            if (AccessedRecords.TryGetValue(key, out var record))
             {
                 return record;
             }
@@ -512,7 +523,7 @@ namespace Zeze.Transaction
                         continue; // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。现在不会有这种情况，保留给未来扩展需要。
 
                     TableKey tkey = log.Bean.TableKey;
-                    if (accessedRecords.TryGetValue(tkey, out var record))
+                    if (AccessedRecords.TryGetValue(tkey, out var record))
                     {
                         record.Dirty = true;
                     }
@@ -526,7 +537,7 @@ namespace Zeze.Transaction
             bool conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
             if (holdLocks.Count == 0)
             {
-                foreach (var e in accessedRecords)
+                foreach (var e in AccessedRecords)
                 {
                     switch (_lock_and_check_(e))
                     {
@@ -540,7 +551,7 @@ namespace Zeze.Transaction
 
             int index = 0;
             int n = holdLocks.Count;
-            foreach (var e in accessedRecords)
+            foreach (var e in AccessedRecords)
             {
                 // 如果 holdLocks 全部被对比完毕，直接锁定它
                 if (index >= n)

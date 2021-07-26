@@ -61,7 +61,7 @@ namespace Zeze
 
             Config.CreateDatabase(Databases);
             GlobalAgent = new GlobalAgent(this);
-            _checkpoint = new Checkpoint(Databases.Values);
+            _checkpoint = new Checkpoint(Config.CheckpointMode, Databases.Values);
         }
 
         public void AddTable(string dbName, Transaction.Table table)
@@ -117,7 +117,7 @@ namespace Zeze
         {
             lock (this)
             {
-                //ClearInUseAndIAmSureAppStopped();
+                ClearInUseAndIAmSureAppStopped();
                 foreach (var db in Databases.Values)
                 {
                     db.DirectOperates.SetInUse(Config.AutoKeyLocalId, Config.GlobalCacheManagerHostNameOrAddress);

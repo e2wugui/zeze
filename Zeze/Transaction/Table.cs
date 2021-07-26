@@ -28,6 +28,8 @@ namespace Zeze.Transaction
         public virtual bool IsMemory => true;
         public virtual bool IsAutoKey => false;
 
+        public Config.TableConf TableConf { get; protected set; }
+
         internal abstract Storage Open(Application app, Database database);
         internal abstract void Close();
 
@@ -49,6 +51,8 @@ namespace Zeze.Transaction
         public ChangeListenerMap ChangeListenerMap { get; } = new ChangeListenerMap();
 
         public abstract ChangeVariableCollector CreateChangeVariableCollector(int variableId);
+
+        public abstract Storage Storage { get; }
     }
 
     public abstract class Table<K, V> : Table where V : Bean, new()
@@ -94,19 +98,19 @@ namespace Zeze.Transaction
 
                         r.Timestamp = Record.NextTimestamp;
 
-                        if (null != Storage)
+                        if (null != TStorage)
                         {
 #if ENABLE_STATISTICS
                             TableStatistics.Instance.GetOrAdd(Id).StorageFindCount.IncrementAndGet();
 #endif
-                            r.Value = Storage.Find(key, this); // r.Value still maybe null
+                            r.Value = TStorage.Find(key, this); // r.Value still maybe null
                             if (null == r.Value && null != OldTable)
                             {
                                 ByteBuffer old = OldTable.Find(EncodeKey(key));
                                 if (null != old)
                                 {
                                     r.Value = DecodeValue(old);
-                                    Storage.OnRecordChanged(r);
+                                    TStorage.OnRecordChanged(r);
                                 }
                             }
                             if (null != r.Value)
@@ -173,13 +177,31 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateShare;
-            Zeze.Checkpoint.AddActionAndPulse(() =>
+            FlushWhenReduce(r, () =>
             {
                 logger.Debug("Reduce SendResult 4 {0}", r);
                 rpc.SendResult();
             });
             //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
+        }
+
+        private void FlushWhenReduce(Record r, Action after)
+        {
+            switch (Zeze.Config.CheckpointMode)
+            {
+                case CheckpointMode.Period:
+                    Zeze.Checkpoint.AddActionAndPulse(after);
+                    break;
+
+                case CheckpointMode.Immediately:
+                    after();
+                    break;
+
+                case CheckpointMode.Table:
+                    RelativeRecordSet.FlushWhenReduce(r.RelativeRecordSet, Zeze.Checkpoint, after);
+                    break;
+            }
         }
 
         internal override int ReduceInvalid(GlobalCacheManager.Reduce rpc)
@@ -232,7 +254,7 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManager.StateInvalid;
-            Zeze.Checkpoint.AddActionAndPulse(() =>
+            FlushWhenReduce(r, () =>
             {
                 logger.Debug("Reduce SendResult 4 {0}", r);
                 rpc.SendResult();
@@ -382,31 +404,34 @@ namespace Zeze.Transaction
         {
             if (!IAmSure.Equals("IKnownWhatIAmDoing"))
                 throw new Exception();
-            return Storage;
+            return TStorage;
         }
 
         private Database.Table OldTable;
-        internal Storage<K, V> Storage { get; private set; }
+        internal Storage<K, V> TStorage { get; private set; }
+        public override Storage Storage => TStorage;
 
         internal override Storage Open(Application app, Database database)
         {
-            if (null != Storage)
+            if (null != TStorage)
                 throw new Exception("table has opened." + Name);
             Zeze = app;
             if (this.IsAutoKey)
                 AutoKey = app.TableSys.AutoKeys.GetAutoKey(Name);
+
+            base.TableConf = app.Config.GetTableConf(Name);
             Cache = new TableCache<K, V>(app, this);
 
-            Storage = IsMemory ? null : new Storage<K, V>(this, database, Name);
-            Config.TableConf tableConf = app.Config.GetTableConf(Name);
-            OldTable = tableConf.DatabaseOldMode == 1 ? app.GetDatabase(tableConf.DatabaseOldName).OpenTable(Name) : null;
-            return Storage;
+            TStorage = IsMemory ? null : new Storage<K, V>(this, database, Name);
+            OldTable = TableConf.DatabaseOldMode == 1
+                ? app.GetDatabase(TableConf.DatabaseOldName).OpenTable(Name) : null;
+            return TStorage;
         }
 
         internal override void Close()
         {
-            Storage?.Close();
-            Storage = null;
+            TStorage?.Close();
+            TStorage = null;
         }
 
         // Key 都是简单变量，系列化方法都不一样，需要生成。
@@ -446,7 +471,7 @@ namespace Zeze.Transaction
         /// <returns></returns>
         public long Walk(Func<K, V, bool> callback)
         {
-            return Storage.DatabaseTable.Walk(
+            return TStorage.DatabaseTable.Walk(
                 (key, value) =>
                 {
                     K k = DecodeKey(ByteBuffer.Wrap(key));
@@ -488,7 +513,7 @@ namespace Zeze.Transaction
         /// <returns></returns>
         public long WalkDatabase(Func<byte[], byte[], bool> callback)
         {
-            return Storage.DatabaseTable.Walk(callback);
+            return TStorage.DatabaseTable.Walk(callback);
         }
 
         /// <summary>
@@ -499,7 +524,7 @@ namespace Zeze.Transaction
         /// <returns></returns>
         public long WalkDatabase(Func<K, V, bool> callback)
         {
-            return Storage.DatabaseTable.Walk(
+            return TStorage.DatabaseTable.Walk(
                 (key, value) =>
                 {
                     K k = DecodeKey(ByteBuffer.Wrap(key));

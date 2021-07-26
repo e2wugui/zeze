@@ -23,9 +23,9 @@ namespace Zeze.Tikv
             var value = Zeze.Serialize.ByteBuffer.Allocate(64);
             value.WriteString("value");
             tikvDb.Flush(null,
-                () =>
+                (trans) =>
                 {
-                    table.Replace(key, value);
+                    table.Replace(trans, key, value);
                 });
 
             var outvalue = table.Find(key);
@@ -54,17 +54,17 @@ namespace Zeze.Tikv
             var outvalue = table.Find(key);
             Console.WriteLine("Find1 " + outvalue);
             tikvDb.Flush(null,
-                () =>
+                (trans) =>
                 {
-                    table.Replace(key, value);
+                    table.Replace(trans, key, value);
                 });
 
             outvalue = table.Find(key);
             Console.WriteLine("Find2 " + outvalue);
             tikvDb.Flush(null,
-                () =>
+                (trans) =>
                 {
-                    table.Remove(key);
+                    table.Remove(trans, key);
                 });
 
             outvalue = table.Find(key);
