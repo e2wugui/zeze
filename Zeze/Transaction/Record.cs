@@ -35,7 +35,7 @@ namespace Zeze.Transaction
         internal int State { get; set; }
         internal Zeze.Util.AtomicLong AccessTimeTicks = new Zeze.Util.AtomicLong();
         public abstract Table Table { get; }
-        // 总是存在所属对象，有点浪费内存，但是可以避免并发的时候值在被修改中，会不会产生null的问题。
+
         internal RelativeRecordSet RelativeRecordSet { get; set; } = new RelativeRecordSet();
 
         public Record(Bean value)
