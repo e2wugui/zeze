@@ -157,43 +157,43 @@ namespace Zeze.Transaction
                 _lock_(LockedRelativeRecordSets, RelativeRecordSets);
                 if (LockedRelativeRecordSets.Count > 0)
                 {
-                    // Merge
-                    // find largest
-                    RelativeRecordSet largestCountSet = LockedRelativeRecordSets[0];
-                    for (int index = 0; index < LockedRelativeRecordSets.Count; ++index)
-                    {
-                        var r = LockedRelativeRecordSets[index];
-                        var cur = largestCountSet.RecordSet == null ? 0 : largestCountSet.RecordSet.Count;
-                        if (r.RecordSet != null && r.RecordSet.Count > cur)
-                        {
-                            largestCountSet = r;
-                        }
-                    }
-                    // merge all other set to largest
-                    foreach (var r in LockedRelativeRecordSets)
-                    {
-                        if (r == largestCountSet)
-                            continue; // skip self
-                        largestCountSet.Merge(r);
-                    }
-                    // 合并当前事务中访问的孤立记录。
-                    // 孤立的记录上面没有特殊处理，在Merge函数中判断rrs.ResetSet==null忽略。
-                    // 所以可能需要单独合并。
+                    /*
+                    // 锁住以后重新检查是否可以不用合并，直接提交。
+                    //【这个算优化吗？】效果应该不明显，而且正确性还要仔细分析，先不实现了。
+                    var allCheckpointWhenCommit2 = true;
                     foreach (var ar in trans.AccessedRecords.Values)
                     {
-                        // 记录访问 已经存在关联集合 需要额外合并记录
-                        // 读取     不存在          不需要（仅仅读取孤立记录，不需要加入关联集合）
-                        // 读取     存在（已有修改） 不需要（存在的集合前面合并了）
-                        // 修改     不存在（第一次） 【需要】
-                        // 修改     存在（继续修改） 不需要（存在的集合前面合并了）
-                        if (ar.Dirty && ar.OriginRecord.RelativeRecordSet.RecordSet == null)
-                            largestCountSet.Merge(ar.OriginRecord);
+                        // CheckpointWhenCommit Dirty Isolated NeedMerge
+                        // false                false false    Yes
+                        // false                false true     No
+                        // false                true  false    Yes
+                        // false                true  true     No
+                        // true                 false false!   No !马上提交的记录不会有关联集合
+                        // true                 false true     No
+                        // true                 true  false!   No !马上提交的记录不会有关联集合
+                        // true                 true  true     No
+                        if (false == ar.OriginRecord.Table.TableConf.CheckpointWhenCommit
+                            && ar.OriginRecord.RelativeRecordSet.RecordSet != null)
+                        {
+                            allCheckpointWhenCommit2 = false;
+                            break;
+                        }
                     }
+                    if (allCheckpointWhenCommit2)
+                    {
+                        commit();
+                        procedure.Zeze.Checkpoint.Flush(trans);
+                        // 这种情况下 RelativeRecordSet 都是空的。
+                        //logger.Debug($"allCheckpointWhenCommit2 AccessedCount={trans.AccessedRecords.Count}");
+                        return;
+                    }
+                    */
+                    var mergedSet = _merge_(LockedRelativeRecordSets, trans);
                     commit(); // 必须在锁获得并且合并完集合以后才提交修改。
                     if (needFlushNow)
                     {
-                        procedure.Zeze.Checkpoint.Flush(largestCountSet);
-                        largestCountSet.Delete();
+                        procedure.Zeze.Checkpoint.Flush(mergedSet);
+                        mergedSet.Delete();
                         //logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
                     }
                     // else
@@ -209,6 +209,45 @@ namespace Zeze.Transaction
                     relative.UnLock();
                 }
             }
+        }
+
+        private static RelativeRecordSet _merge_(
+            List<RelativeRecordSet> LockedRelativeRecordSets,
+            Transaction trans)
+        {
+            // find largest
+            RelativeRecordSet largestCountSet = LockedRelativeRecordSets[0];
+            for (int index = 1; index < LockedRelativeRecordSets.Count; ++index)
+            {
+                var r = LockedRelativeRecordSets[index];
+                var cur = largestCountSet.RecordSet == null
+                    ? 0 : largestCountSet.RecordSet.Count;
+                if (r.RecordSet != null && r.RecordSet.Count > cur)
+                {
+                    largestCountSet = r;
+                }
+            }
+            // merge all other set to largest
+            foreach (var r in LockedRelativeRecordSets)
+            {
+                if (r == largestCountSet)
+                    continue; // skip self
+                largestCountSet.Merge(r);
+            }
+            // 合并当前事务中访问的孤立记录。
+            // 孤立的记录上面没有特殊处理，在Merge函数中判断rrs.ResetSet==null忽略。
+            // 所以可能需要单独合并。
+            foreach (var ar in trans.AccessedRecords.Values)
+            {
+                // 记录访问 已经存在关联集合 需要额外合并记录
+                // 读取     不存在          不需要（仅仅读取孤立记录，不需要加入关联集合）
+                // 读取     存在（已有修改） 不需要（存在的集合前面合并了）
+                // 修改     不存在（第一次） 【需要】
+                // 修改     存在（继续修改） 不需要（存在的集合前面合并了）
+                if (ar.Dirty && ar.OriginRecord.RelativeRecordSet.RecordSet == null)
+                    largestCountSet.Merge(ar.OriginRecord);
+            }
+            return largestCountSet;
         }
 
         private static void _lock_(
@@ -237,10 +276,17 @@ namespace Zeze.Transaction
                     }
                     if (c < 0)
                     {
-                        // 这种情况是不可能出现的。
-                        // 因为已经锁住的集合不会发生变化：不会被合并到其他地方；不会被删除；
-                        // 不可能变没掉。
-                        logger.Error("TryUpdateAndCheckpoint.Lock Impossible");
+                        // 释放掉不需要的锁（已经被Delete了，Has Flush）。
+                        int unlockEndIndex = index;
+                        for (;
+                            unlockEndIndex < n
+                            && LockedRelativeRecordSets[unlockEndIndex].Id.CompareTo(r.Id) < 0;
+                            ++unlockEndIndex)
+                        {
+                            LockedRelativeRecordSets[unlockEndIndex].UnLock();
+                        }
+                        LockedRelativeRecordSets.RemoveRange(index, unlockEndIndex - index);
+                        n = LockedRelativeRecordSets.Count;
                         continue;
                     }
                     // RelativeRecordSets发生了变化，并且出现排在当前已经锁住对象前面的集合。
@@ -266,9 +312,10 @@ namespace Zeze.Transaction
                 r.UnLock();
 
                 if (r.MergeTo == r)
-                    throw new Exception("???"); // TODO 需要确认
+                    throw new Exception("Impossible!");
                 rrs.Remove(r.Id);
-                rrs.Add(r.MergeTo.Id, r.MergeTo);
+                if (r.MergeTo != Deleted) // skip deleted set
+                    rrs.Add(r.MergeTo.Id, r.MergeTo);
                 return false;
             }
             locked.Add(r);

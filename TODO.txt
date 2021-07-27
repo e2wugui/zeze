@@ -12,6 +12,8 @@ Zeze
 Zezex
 	client: 可靠消息实现的错误检查。
 	Bag里面的Money移走。
+	根据新的 solution-name 拷贝并替换代码中Game的名字空间。
+	麻烦的地方：根据客户端是否脚本需要替换协议中的handle：client->clientscript。
 
 ConfigEditor
 	自动完成: Foreign
@@ -24,7 +26,6 @@ GlobalCacheManagerWithRaft
 	优化。改成一次AppendLog。
 	关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 
-Agent的请求lost context，但是Task.Wait怎么返回的。
 DatabaseRocksDb
 	OperatesRocksDb
 	atomic flush
@@ -33,39 +34,6 @@ DatabaseTikv
 
 Raft.Agent
 	重发现在在收到LeaderIs时马上重新发送。改成延迟？
+	Agent的请求lost context，但是Task.Wait怎么返回的。
 
-Zezex 根据新的 solution-name 拷贝并替换代码中Game的名字空间。
-	麻烦的地方：根据客户端是否脚本需要替换协议中的handle：client->clientscript。
 
-每事务提交
-	后端是集群 支持大量写入时 直接并发写；其他方式(暂不考虑)，感觉没啥用：或者批量单线程写入 或者可以配置写入线程数量
-	每事务提交以后，GlobalCacheManager.Reduce的处理不再需要等待，只需要获得写锁，然后修改状态即可。
-	需要考虑autokey。
-	表级持久化策略DurationPolicy。选择部分表是关键的，涉及到关键表的事务每事务提交（注意，此时可能需要提交本来可以定时提交的事务）。
-	Table.List
-
-	Transaction.Commit()
-	{
-		bool hasCheckpointWhenCommit = false;
-		foreach (var table in SortedAccessedTable)
-		{
-			table.List.Lock();
-			if (table.CheckpointWhenCommit)
-				hasCheckpointWhenCommit = true;
-		}
-		foreach (var table in SortedAccessedTable)
-		{
-			table.List.Add(this); // or new a TransactionStateObject
-		}
-
-		if (GlobalCheckpointWhenCommit)
-		{
-			Checkpoint.Flush(this);
-			return;
-		}
-
-		if (hasCheckpointWhenCommit)
-		{
-			Checkpoint.Flush(SortedAccessedTable);
-		}
-	}

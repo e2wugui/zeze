@@ -49,7 +49,7 @@ namespace UnitTest.Zeze.Trans
 
             int sum = 0;
             {
-                Task[] tasks = new Task[10];
+                Task[] tasks = new Task[500];
                 for (int i = 0; i < tasks.Length; ++i)
                 {
                     tasks[i] = global::Zeze.Util.Task.Run(
@@ -61,7 +61,7 @@ namespace UnitTest.Zeze.Trans
             }
 
             {
-                Task[] tasks = new Task[10];
+                Task[] tasks = new Task[500];
                 for (int i = 0; i < tasks.Length; ++i)
                 {
                     tasks[i] = global::Zeze.Util.Task.Run(
