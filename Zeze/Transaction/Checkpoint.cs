@@ -103,7 +103,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Table:
-                    RelativeRecordSet.FlushRelativeRecordSets(this);
+                    RelativeRecordSet.FlushWhenCheckpoint(this);
                     break;
             }
         }
@@ -128,7 +128,7 @@ namespace Zeze.Transaction
                         break;
 
                     case CheckpointMode.Table:
-                        RelativeRecordSet.FlushRelativeRecordSets(this);
+                        RelativeRecordSet.FlushWhenCheckpoint(this);
                         break;
                 }
                 lock (this)
@@ -144,7 +144,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Table:
-                    RelativeRecordSet.FlushRelativeRecordSets(this);
+                    RelativeRecordSet.FlushWhenCheckpoint(this);
                     break;
             }
             logger.Fatal("final checkpoint end.");
@@ -313,6 +313,7 @@ namespace Zeze.Transaction
 
         internal void Flush(RelativeRecordSet rs)
         {
+            // rs.MergeTo == null &&  check outside
             if (rs.RecordSet != null)
             {
                 Flush(from r in rs.RecordSet select r);

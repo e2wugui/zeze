@@ -117,7 +117,7 @@ namespace Zeze
         {
             lock (this)
             {
-                Config?.ClearInUseAndIAmSureAppStopped(Database); // XXX REMOVE ME!
+                Config?.ClearInUseAndIAmSureAppStopped(Databases); // XXX REMOVE ME!
                 foreach (var db in Databases.Values)
                 {
                     db.DirectOperates.SetInUse(Config.AutoKeyLocalId, Config.GlobalCacheManagerHostNameOrAddress);
@@ -182,7 +182,7 @@ namespace Zeze
             {
                 if (false == IsStart)
                     return;
-                Config?.ClearInUseAndIAmSureAppStopped(Database);
+                Config?.ClearInUseAndIAmSureAppStopped(Databases);
 
                 IsStart = false;
                 Checkpoint?.StopAndJoin();

@@ -199,7 +199,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Table:
-                    RelativeRecordSet.FlushWhenReduce(r.RelativeRecordSet, Zeze.Checkpoint, after);
+                    RelativeRecordSet.FlushWhenReduce(r, Zeze.Checkpoint, after);
                     break;
             }
         }
