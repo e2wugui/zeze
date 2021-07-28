@@ -110,6 +110,21 @@ namespace Zeze
             }
         }
 
+        public void ClearInUseAndIAmSureAppStopped(
+            Dictionary<string, Transaction.Database> databases = null)
+        {
+            if (null == databases)
+            {
+                databases = new Dictionary<string, Transaction.Database>();
+                CreateDatabase(databases);
+            }
+            foreach (var db in databases.Values)
+            {
+                db.DirectOperates.ClearInUse(AutoKeyLocalId, GlobalCacheManagerHostNameOrAddress);
+            }
+        }
+
+
         public ConcurrentDictionary<string, ServiceConf> ServiceConfMap { get; }
             = new ConcurrentDictionary<string, ServiceConf>();
         public ServiceConf DefaultServiceConf { get; internal set; } = new ServiceConf();
