@@ -37,3 +37,6 @@ Raft.Agent
 	Agent的请求lost context，但是Task.Wait怎么返回的。
 
 
+FindInCacheOrStorage::lockey.EnterReadLock();
+Transaction.UpgradeToWriteLock
+死锁？

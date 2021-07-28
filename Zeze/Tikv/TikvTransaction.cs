@@ -12,7 +12,7 @@ namespace Zeze.Tikv
 
         public TikvConnection Connection { get; }
         public long TransactionId { get; }
-        public bool CommitDone { get; private set; } = false;
+        public int FinishState { get; private set; }
 
         internal TikvTransaction(TikvConnection conn)
         {
@@ -22,15 +22,19 @@ namespace Zeze.Tikv
 
         public void Commit()
         {
-            if (CommitDone)
+            if (FinishState != 0)
                 return;
 
+            FinishState = 1;
             Tikv.Driver.Commit(TransactionId);
-            CommitDone = true;
         }
 
         public void Rollback()
         {
+            if (FinishState != 0)
+                return;
+
+            FinishState = 2;
             try
             {
                 Tikv.Driver.Rollback(TransactionId);
@@ -44,8 +48,6 @@ namespace Zeze.Tikv
 
         public void Dispose()
         {
-            if (CommitDone)
-                return;
             Rollback();
         }
     }

@@ -236,6 +236,7 @@ namespace Zeze.Transaction
 
             public void Dispose()
             {
+                Transaction.Dispose();
                 Connection.Dispose();
             }
 
@@ -685,6 +686,7 @@ namespace Zeze.Transaction
 
             public void Dispose()
             {
+                Transaction.Dispose();
                 Connection.Dispose();
             }
 

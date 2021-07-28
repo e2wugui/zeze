@@ -32,6 +32,7 @@ namespace Zeze.Tikv
 
             public void Dispose()
             {
+                Transaction.Dispose();
                 Connection.Dispose();
             }
 

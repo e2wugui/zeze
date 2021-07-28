@@ -70,9 +70,12 @@ namespace Zeze.Transaction
             TableKey tkey = new TableKey(Id, key);
             Lockey lockey = Locks.Instance.Get(tkey);
             lockey.EnterReadLock();
-            // 严格来说，这里应该是WriteLock,但是这会涉及Transaction持有的锁的升级问题，而且这里只是临时锁一下也会和持有冲突。
-            // 由于装载仅在StateInvalid或者第一次载入的时候发生，还有lock(r)限制线程的重入，所以这里仅加个读锁限制一下state的修改，
-            // 防止和Reduce冲突（由于StateInvalid才会申请权限和从storage装载，应该是不会发生Reduce的，加这个锁为了保险起见）。
+            // 严格来说，这里应该是WriteLock,但是这会涉及Transaction持有的锁的升级问题，
+            // 而且这里只是临时锁一下也会和持有冲突。
+            // 由于装载仅在StateInvalid或者第一次载入的时候发生，
+            // 还有lock(r)限制线程的重入，所以这里仅加个读锁限制一下state的修改，
+            // 防止和Reduce冲突（由于StateInvalid才会申请权限和从storage装载，
+            // 应该是不会发生Reduce的，加这个锁为了保险起见）。
             try
             {
                 while (true)
