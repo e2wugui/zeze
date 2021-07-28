@@ -54,29 +54,44 @@ namespace Game.Login
             table.Get(roleId)?.ReliableNotifyMark.Remove(listenerName);
         }
 
-        public void SendReliableNotifyWhileCommit(long roleId, string listenerName, Protocol p)
+        public void SendReliableNotifyWhileCommit(
+            long roleId, string listenerName, Protocol p, bool WaitConfirm = false)
         {
-            Transaction.Current.RunWhileCommit(() => SendReliableNotify(roleId, listenerName, p));
+            Transaction.Current.RunWhileCommit(
+                () => SendReliableNotify(roleId, listenerName, p, WaitConfirm)
+                );
         }
 
-        public void SendReliableNotifyWhileCommit(long roleId, string listenerName, int typeId, Zeze.Net.Binary fullEncodedProtocol)
+        public void SendReliableNotifyWhileCommit(
+            long roleId, string listenerName, int typeId, Binary fullEncodedProtocol,
+            bool WaitConfirm = false)
         {
-            Transaction.Current.RunWhileCommit(() => SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
+            Transaction.Current.RunWhileCommit(
+                () => SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm)
+                );
         }
 
-        public void SendReliableNotifyWhileRollback(long roleId, string listenerName, Protocol p)
+        public void SendReliableNotifyWhileRollback(
+            long roleId, string listenerName, Protocol p,
+            bool WaitConfirm = false)
         {
-            Transaction.Current.RunWhileRollback(() => SendReliableNotify(roleId, listenerName, p));
+            Transaction.Current.RunWhileRollback(
+                () => SendReliableNotify(roleId, listenerName, p, WaitConfirm)
+                );
         }
 
-        public void SendReliableNotifyWhileRollback(long roleId, string listenerName, int typeId, Zeze.Net.Binary fullEncodedProtocol)
+        public void SendReliableNotifyWhileRollback(
+            long roleId, string listenerName, int typeId, Binary fullEncodedProtocol,
+            bool WaitConfirm = false)
         {
-            Transaction.Current.RunWhileRollback(() => SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
+            Transaction.Current.RunWhileRollback(
+                () => SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm)
+                );
         }
 
-        public void SendReliableNotify(long roleId, string listenerName, Protocol p)
+        public void SendReliableNotify(long roleId, string listenerName, Protocol p, bool WaitConfirm = false)
         {
-            SendReliableNotify(roleId, listenerName, p.TypeId, new Zeze.Net.Binary(p.Encode()));
+            SendReliableNotify(roleId, listenerName, p.TypeId, new Binary(p.Encode()), WaitConfirm);
         }
 
         /// <summary>
@@ -85,11 +100,18 @@ namespace Game.Login
         /// <param name="roleId"></param>
         /// <param name="listenerName"></param>
         /// <param name="fullEncodedProtocol">协议必须先编码，因为会跨事务。</param>
-        public void SendReliableNotify(long roleId, string listenerName, int typeId, Binary fullEncodedProtocol)
+        public void SendReliableNotify(
+            long roleId, string listenerName, int typeId, Binary fullEncodedProtocol,
+            bool WaitConfirm = false)
         {
-            Game.App.Instance.Zeze.TaskOneByOneByKey.Execute(
+            TaskCompletionSource<long> future = null;
+
+            if (WaitConfirm)
+                future = new TaskCompletionSource<long>();
+
+            App.Instance.Zeze.TaskOneByOneByKey.Execute(
                 listenerName,
-                Game.App.Instance.Zeze.NewProcedure(() =>
+                App.Instance.Zeze.NewProcedure(() =>
                 {
                     BOnline online = table.Get(roleId);
                     if (null == online || online.State == BOnline.StateOffline)
@@ -110,13 +132,17 @@ namespace Game.Login
                         notify.Argument.ReliableNotifyTotalCountStart = online.ReliableNotifyTotalCount;
                         notify.Argument.Notifies.Add(fullEncodedProtocol);
 
-                        SendInProcedure(new List<long>() { roleId }, notify.TypeId, new Zeze.Net.Binary(notify.Encode()));
+                        SendInProcedure(new List<long>() { roleId },
+                            notify.TypeId, new Binary(notify.Encode()),
+                            future);
                     }
                     online.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
                     return Procedure.Success;
                 },
                 "SendReliableNotify." + listenerName
                 ));
+
+            future?.Task.Wait();
         }
 
         public class RoleOnLink
@@ -177,9 +203,27 @@ namespace Game.Login
             return groups.Values;
         }
 
-        private void SendInProcedure(ICollection<long> roleIds, int typeId, Zeze.Net.Binary fullEncodedProtocol)
+        private void SendInProcedure(
+            ICollection<long> roleIds, int typeId, Binary fullEncodedProtocol,
+            TaskCompletionSource<long> future)
         {
             var groups = GroupByLink(roleIds);
+            long serialId = 0;
+            if (null != future)
+            {
+                var confrmContext = new ConfirmContext(future);
+                // 必须在真正发送前全部加入，否则要是发生结果很快返回，
+                // 导致异步问题：错误的认为所有 Confirm 都收到。
+                foreach (var group in groups)
+                {
+                    if (group.LinkSocket == null)
+                        continue; // skip not online
+
+                    confrmContext.LinkNames.Add(group.LinkName);
+                }
+                serialId = App.Instance.Server.AddManualContextWithTimeout(confrmContext, 5000);
+            }
+
             foreach (var group in groups)
             {
                 if (group.LinkSocket == null)
@@ -188,6 +232,8 @@ namespace Game.Login
                 var send = new Zezex.Provider.Send();
                 send.Argument.ProtocolType = typeId;
                 send.Argument.ProtocolWholeData = fullEncodedProtocol;
+                send.Argument.ConfirmSerialId = serialId;
+
                 foreach (var ctx in group.Roles.Values)
                 {
                     send.Argument.LinkSids.Add(ctx.LinkSid);
@@ -196,44 +242,53 @@ namespace Game.Login
             }
         }
 
-        private void Send(ICollection<long> roleIds, int typeId, Zeze.Net.Binary fullEncodedProtocol)
+        private void Send(
+            ICollection<long> roleIds, int typeId, Binary fullEncodedProtocol,
+            bool WaitConfirm)
         {
+            TaskCompletionSource<long> future = null;
+
+            if (WaitConfirm)
+                future = new TaskCompletionSource<long>();
+
             // 发送协议请求在另外的事务中执行。
             Zeze.Util.Task.Run(Game.App.Instance.Zeze.NewProcedure(() =>
             {
-                SendInProcedure(roleIds, typeId, fullEncodedProtocol);
+                SendInProcedure(roleIds, typeId, fullEncodedProtocol, future);
                 return Procedure.Success;
             }, "Onlines.Send"));
+
+            future?.Task.Wait();
         }
 
-        public void Send(long roleId, Protocol p)
+        public void Send(long roleId, Protocol p, bool WaitConfirm = false)
         {
-            Send(new List<long>() { roleId }, p.TypeId, new Zeze.Net.Binary(p.Encode()));
+            Send(new List<long>() { roleId }, p.TypeId, new Binary(p.Encode()), WaitConfirm);
         }
 
-        public void Send(ICollection<long> roleIds, Protocol p)
+        public void Send(ICollection<long> roleIds, Protocol p, bool WaitConfirm = false)
         {
-            Send(roleIds, p.TypeId, new Zeze.Net.Binary(p.Encode()));
+            Send(roleIds, p.TypeId, new Binary(p.Encode()), WaitConfirm);
         }
 
-        public void SendWhileCommit(long roleId, Protocol p)
+        public void SendWhileCommit(long roleId, Protocol p, bool WaitConfirm = false)
         {
-            Transaction.Current.RunWhileCommit(() => Send(roleId, p));
+            Transaction.Current.RunWhileCommit(() => Send(roleId, p, WaitConfirm));
         }
 
-        public void SendWhileCommit(ICollection<long> roleIds, Protocol p)
+        public void SendWhileCommit(ICollection<long> roleIds, Protocol p, bool WaitConfirm = false)
         {
-            Transaction.Current.RunWhileCommit(() => Send(roleIds, p));
+            Transaction.Current.RunWhileCommit(() => Send(roleIds, p, WaitConfirm));
         }
 
-        public void SendWhileRollback(long roleId, Protocol p)
+        public void SendWhileRollback(long roleId, Protocol p, bool WaitConfirm = false)
         {
-            Transaction.Current.RunWhileRollback(() => Send(roleId, p));
+            Transaction.Current.RunWhileRollback(() => Send(roleId, p, WaitConfirm));
         }
 
-        public void SendWhileRollback(ICollection<long> roleIds, Protocol p)
+        public void SendWhileRollback(ICollection<long> roleIds, Protocol p, bool WaitConfirm = false)
         {
-            Transaction.Current.RunWhileRollback(() => Send(roleIds, p));
+            Transaction.Current.RunWhileRollback(() => Send(roleIds, p, WaitConfirm));
         }
 
         /// <summary>
@@ -354,6 +409,73 @@ namespace Game.Login
             if (false == TransmitActions.ContainsKey(actionName))
                 throw new Exception("Unkown Action Name: " + actionName);
             Transaction.Current.RunWhileRollback(() => Transmit(sender, actionName, roleIds));
+        }
+
+        public class ConfirmContext : Service.ManualContext
+        {
+            public HashSet<string> LinkNames { get; } = new HashSet<string>();
+            public TaskCompletionSource<long> Future { get; }
+
+            public ConfirmContext(TaskCompletionSource<long> future)
+            {
+                Future = future;
+            }
+
+            public override void OnRemoved()
+            {
+                lock (this)
+                {
+                    Future.SetResult(base.SessionId);
+                }
+            }
+
+            public int ProcessLinkConfirm(string linkName)
+            {
+                lock (this)
+                {
+                    LinkNames.Remove(linkName);
+                    if (LinkNames.Count == 0)
+                    {
+                        App.Instance.Server.TryRemoveManualContext<ConfirmContext>(SessionId);
+                    }
+                    return Procedure.Success;
+                }
+            }
+        }
+
+        private void Broadcast(int typeId, Binary fullEncodedProtocol, int time, bool WaitConfirm)
+        {
+            TaskCompletionSource<long> future = null;
+            long serialId = 0;
+            if (WaitConfirm)
+            {
+                future = new TaskCompletionSource<long>();
+                var confirmContext = new ConfirmContext(future);
+                foreach (var link in App.Instance.Server.Links.Values)
+                {
+                    if (link.Socket != null)
+                        confirmContext.LinkNames.Add(link.Name);
+                }
+                serialId = App.Instance.Server.AddManualContextWithTimeout(confirmContext, 5000);
+            }
+
+            var broadcast = new Zezex.Provider.Broadcast();
+            broadcast.Argument.ProtocolType = typeId;
+            broadcast.Argument.ProtocolWholeData = fullEncodedProtocol;
+            broadcast.Argument.ConfirmSerialId = serialId;
+            broadcast.Argument.Time = time;
+
+            foreach (var link in App.Instance.Server.Links.Values)
+            {
+                link.Socket?.Send(broadcast);
+            }
+
+            future?.Task.Wait();
+        }
+
+        public void Broadcast(Protocol p, int time = 60 * 1000, bool WaitConfirm = false)
+        {
+            Broadcast(p.TypeId, new Binary(p.Encode()), time, WaitConfirm);
         }
     }
 }

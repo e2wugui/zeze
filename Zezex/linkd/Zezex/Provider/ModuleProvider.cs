@@ -273,6 +273,15 @@ namespace Zezex.Provider
 
         public override int ProcessSend(Send protocol)
         {
+            // 这个是拿来处理乱序问题的：多个逻辑服务器之间，给客户端发送协议排队。
+            // 所以不用等待真正发送给客户端，收到就可以发送结果。
+            if (protocol.Argument.ConfirmSerialId != 0)
+            {
+                var confirm = new SendConfirm();
+                confirm.Argument.ConfirmSerialId = protocol.Argument.ConfirmSerialId;
+                protocol.Sender.Send(confirm);
+            }
+
             foreach (var linkSid in protocol.Argument.LinkSids)
             {
                 var link = App.Instance.LinkdService.GetSocket(linkSid);
@@ -286,6 +295,13 @@ namespace Zezex.Provider
 
         public override int ProcessBroadcast(Broadcast protocol)
         {
+            if (protocol.Argument.ConfirmSerialId != 0)
+            {
+                var confirm = new SendConfirm();
+                confirm.Argument.ConfirmSerialId = protocol.Argument.ConfirmSerialId;
+                protocol.Sender.Send(confirm);
+            }
+
             App.Instance.LinkdService.Foreach((socket) =>
             {
                 // auth 通过就允许发送广播。

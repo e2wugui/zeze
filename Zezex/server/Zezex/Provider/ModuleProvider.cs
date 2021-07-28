@@ -231,6 +231,7 @@ namespace Zezex.Provider
                 lock (this)
                 {
                     OnHashEnd?.Invoke(this);
+                    OnHashEnd = null;
                 }
             }
 
@@ -289,7 +290,8 @@ namespace Zezex.Provider
         {
             // replace RootProcedure.ActionName. 为了统计和日志输出。
             Transaction.Current.TopProcedure.ActionName = protocol.Argument.MethodFullName;
-            App.Server.TryGetManualContext<ModuleRedirectAllContext>(protocol.Argument.SessionId)?.ProcessResult(protocol);
+            App.Server.TryGetManualContext<ModuleRedirectAllContext>(
+                protocol.Argument.SessionId)?.ProcessResult(protocol);
             return Procedure.Success;
         }
 
@@ -304,6 +306,15 @@ namespace Zezex.Provider
         {
             var linkSession = protocol.Sender.UserState as Game.Server.LinkSession;
             linkSession.Setup(protocol.Argument.LinkId, protocol.Argument.ProviderSessionId);
+            return Procedure.Success;
+        }
+
+        public override int ProcessSendConfirm(SendConfirm protocol)
+        {
+            var linkSession = protocol.Sender.UserState as Game.Server.LinkSession;
+            App.Server.TryGetManualContext<Game.Login.Onlines.ConfirmContext>(
+                protocol.Argument.ConfirmSerialId)?.ProcessLinkConfirm(linkSession.Name);
+            // linkName 也可以从 protocol.Sender.Connector.Name 获取。
             return Procedure.Success;
         }
     }
