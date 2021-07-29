@@ -58,7 +58,7 @@ namespace Zeze.Tikv
             UsingCount.AddAndGet(-1);
 
             // 没做事情或者事务成功时，保存到Pool中。其他情况都关闭连接。
-            if ((null == Transaction || Transaction.CommitDone)
+            if ((null == Transaction || Transaction.FinishState == 1)
                 && Pools.Count < MinPoolSize)
             {
                 Pools.Add(ClientId);

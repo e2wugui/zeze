@@ -60,8 +60,8 @@ namespace Game
             ProviderModuleBinds = Zezex.ProviderModuleBinds.Load();
             ProviderModuleBinds.BuildStaticBinds(Modules, Zeze.Config.AutoKeyLocalId, StaticBinds);
 
-            StartModules(); // 启动模块，装载配置什么的。
             Zeze.Start(); // 启动数据库
+            StartModules(); // 启动模块，装载配置什么的。
             StartService(); // 启动网络
             ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(config,
                 (agent) =>
@@ -83,8 +83,8 @@ namespace Game
         public void Stop()
         {
             StopService(); // 关闭网络
-            Zeze.Stop(); // 关闭数据库
             StopModules(); // 关闭模块,，卸载配置什么的。
+            Zeze.Stop(); // 关闭数据库
             Destroy();
         }
     }

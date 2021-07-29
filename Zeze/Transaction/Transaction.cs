@@ -516,11 +516,14 @@ namespace Zeze.Transaction
         {
             if (savepoints.Count > 0)
             {
-                // 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；其他情况属于Begin,Commit,Rollback不匹配。外面检查。
+                // 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；
+                // 其他情况属于Begin,Commit,Rollback不匹配。外面检查。
                 foreach (var log in savepoints[savepoints.Count - 1].Logs.Values)
                 {
+                    // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
+                    // 现在不会有这种情况，保留给未来扩展需要。
                     if (log.Bean == null)
-                        continue; // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。现在不会有这种情况，保留给未来扩展需要。
+                        continue;
 
                     TableKey tkey = log.Bean.TableKey;
                     if (AccessedRecords.TryGetValue(tkey, out var record))
@@ -528,8 +531,9 @@ namespace Zeze.Transaction
                         record.Dirty = true;
                     }
                     else
-                    { 
-                        logger.Fatal("impossible! record not found."); // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
+                    {
+                        // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
+                        logger.Fatal("impossible! record not found."); 
                     }
                 }
             }

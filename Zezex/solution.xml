@@ -280,13 +280,13 @@
 			<enum name="TimeTypeWeek"      value="2"/> 每周：Year为当前时间的年份，Offset为周
 			<enum name="TimeTypeSeason"    value="3"/> 每季：Year为当前时间的年份，Offset为季
 			<enum name="TimeTypeYear"      value="4"/> 每年：Year为当前时间的年份，Offset为0
-			<enum name="TimeTypeCustomize" value="5"/> 自定义：此时Offset是自定义Id，Year为0（以后Offset不够用可以继续用Year）。需要自己维护Id的更新。
+			<enum name="TimeTypeCustomize" value="5"/> 自定义：此时Offset是自定义Id，Year为0
 
 			<variable id="1" name="RankType"     type="int"/>
 			<variable id="2" name="ConcurrentId" type="int"/> = hash % ConcurrentLevel
 			<variable id="3" name="TimeType"     type="int"/>
 			<variable id="4" name="Year"         type="int"/>
-			<variable id="5" name="Offset"       type="int"/> 根据TimeType，含义不同
+			<variable id="5" name="Offset"       type="long"/> 根据TimeType，含义不同
 		</beankey>
 
 		<bean name="BRankValue">

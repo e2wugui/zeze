@@ -418,15 +418,15 @@ namespace Game.Rank
             return Procedure.Success;
         }
 
-        public BConcurrentKey NewRankKey(int rankType, int timeType, int customizeId = 0)
+        public BConcurrentKey NewRankKey(int rankType, int timeType, long customizeId = 0)
         {
             return NewRankKey(DateTime.Now, rankType, timeType, customizeId);
         }
 
-        public BConcurrentKey NewRankKey(DateTime time, int rankType, int timeType, int customizeId = 0)
+        public BConcurrentKey NewRankKey(DateTime time, int rankType, int timeType, long customizeId = 0)
         {
             var year = time.Year; // 后面根据TimeType可能覆盖这个值。
-            int offset;
+            long offset;
 
             switch (timeType)
             {
