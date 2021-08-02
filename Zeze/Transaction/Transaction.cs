@@ -579,16 +579,20 @@ namespace Zeze.Transaction
                     // 这里可能发生读写锁提升
                     if (e.Value.Dirty && false == curLock.isWriteLockHeld())
                     {
-                        curLock.EnterLock(true);
-                        switch (_check_(true, e.Value))
+                        // 必须先全部释放，再升级当前记录锁，再锁后面的记录。
+                        // 直接 unlockRead，lockWrite会死锁。
+                        n = _unlock_start_(index, n);
+                        switch (_lock_and_check_(e))
                         {
                             case CheckResult.Success: break;
                             case CheckResult.Redo: conflict = true; break; // continue lock
                             case CheckResult.RedoAndReleaseLock: return CheckResult.RedoAndReleaseLock;
                         }
+                        // 从当前index之后都是新加锁，并且index和n都不会再发生变化。
+                        continue;
                     }
-                    // else 已经持有读锁，不可能被修改也不可能降级(reduce)，所以不做检测了。
-                    // 已经锁定了，跳过
+                    // else 已经持有读锁，不可能被修改也不可能降级(reduce)，所以不做检测了。                    
+                    // 已经锁定了，跳过当前锁，比较下一个。
                     ++index;
                     continue;
                 }
@@ -611,15 +615,20 @@ namespace Zeze.Transaction
                 // holdlocks a  c  ...
                 // needlocks a  b  ...
                 // 为了不违背锁序，释放从当前锁开始的所有锁
-                for (int i = index; i < n; ++i)
-                {
-                    var toUnlockLocker = holdLocks[i];
-                    toUnlockLocker.ExitLock();
-                }
-                holdLocks.RemoveRange(index, n - index);
-                n = holdLocks.Count;
+                n = _unlock_start_(index, n);
             }
             return conflict ? CheckResult.Redo : CheckResult.Success;
+        }
+
+        private int _unlock_start_(int index, int nLast)
+        {
+            for (int i = index; i < nLast; ++i)
+            {
+                var toUnlockLocker = holdLocks[i];
+                toUnlockLocker.ExitLock();
+            }
+            holdLocks.RemoveRange(index, nLast - index);
+            return holdLocks.Count;
         }
     }
 }
