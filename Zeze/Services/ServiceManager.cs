@@ -124,6 +124,12 @@ namespace Zeze.Services
                 ServiceName = serviceName;
             }
 
+            public void Close()
+            {
+                NotifyTimeoutTask?.Cancel();
+                NotifyTimeoutTask = null;
+            }
+
             public void StartNotify()
             {
                 lock (this)
@@ -274,12 +280,13 @@ namespace Zeze.Services
             // key is ServiceName: 会话订阅
             public ConcurrentDictionary<string, SubscribeInfo> Subscribes { get; }
                 = new ConcurrentDictionary<string, SubscribeInfo>();
+            private Util.SchedulerTask KeepAliveTimerTask;
 
             public Session(ServiceManager sm, long ssid)
             {
                 ServiceManager = sm;
                 SessionId = ssid;
-                Util.Scheduler.Instance.Schedule(
+                KeepAliveTimerTask = Util.Scheduler.Instance.Schedule(
                     (ThisTask) =>
                     {
                         try
@@ -300,6 +307,9 @@ namespace Zeze.Services
 
             public void OnClose()
             {
+                KeepAliveTimerTask?.Cancel();
+                KeepAliveTimerTask = null;
+
                 foreach (var info in Subscribes.Values)
                 {
                     ServiceManager.UnSubscribeNow(SessionId, info);
@@ -537,6 +547,11 @@ namespace Zeze.Services
                 ServerSocket = null;
                 Server.Stop();
                 Server = null;
+
+                foreach (var ss in ServerStates.Values)
+                {
+                    ss.Close();
+                }
             }
         }
 

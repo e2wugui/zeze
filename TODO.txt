@@ -6,7 +6,6 @@ Zeze
 	async await?
 	GlobalTaskOneByOneByKey？？？
 	AsyncSocket.Connect Timeout 可配置，不是很有必要，外面需要同步等待时，可以设置自己的等待时间，不需要依赖Socket.Timeout。
-
 	lua beankey 问题。
 
 Zezex

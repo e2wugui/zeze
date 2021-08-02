@@ -85,13 +85,14 @@ namespace Zeze.Transaction
                     return Success;
                 }
                 currentT.Rollback();
+
+                var module = "";
+                if (result > 0)
+                    module = "@" + Net.Protocol.GetModuleId(result)
+                        + ":" + Net.Protocol.GetProtocolId(result);
                 logger.Log(Zeze.Config.ProcessReturnErrorLogLevel,
-                    "Procedure {0} Return{1}@{2}:{3} UserState={4}",
-                    ToString(),
-                    result,
-                    global::Zeze.Net.Protocol.GetModuleId(result),
-                    global::Zeze.Net.Protocol.GetProtocolId(result),
-                    UserState);
+                    "Procedure {0} Return{1}@{2} UserState={3}",
+                    ToString(), result, module, UserState);
 #if ENABLE_STATISTICS
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(result).IncrementAndGet();
 #endif
@@ -100,7 +101,7 @@ namespace Zeze.Transaction
             catch (AbortException)
             {
                 currentT.Rollback();
-                throw;
+                throw; // 抛出这个异常，中断事务，跳过所有嵌套过程直到最外面。
             }
             catch (RedoAndReleaseLockException)
             {
@@ -108,7 +109,7 @@ namespace Zeze.Transaction
 #if ENABLE_STATISTICS
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(RedoAndRelease).IncrementAndGet();
 #endif
-                throw;
+                throw; // 抛出这个异常，打断事务，跳过所有嵌套过程直到最外面。会重做。
             }
             catch (TaskCanceledException ce)
             {
@@ -117,7 +118,7 @@ namespace Zeze.Transaction
 #if ENABLE_STATISTICS
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(Excption).IncrementAndGet();
 #endif
-                return CancelExcption;
+                return CancelExcption; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
             }
             catch (Exception e)
             {
@@ -133,7 +134,7 @@ namespace Zeze.Transaction
                     throw;
                 }
 #endif
-                return Excption;
+                return Excption; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
             }
             finally
             {
