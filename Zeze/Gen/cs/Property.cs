@@ -62,9 +62,9 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        }");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
             sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this);");
-            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
-            sw.WriteLine(prefix + "        if (log == null && " + var.NamePrivate + ".Equals(value)) return;");
-            sw.WriteLine(prefix + "        if (log != null && log.Value.Equals(value)) return;");
+            //sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
+            //sw.WriteLine(prefix + "        if (log == null && " + var.NamePrivate + ".Equals(value)) return;");
+            //sw.WriteLine(prefix + "        if (log != null && log.Value.Equals(value)) return;");
             sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");

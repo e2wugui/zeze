@@ -143,7 +143,7 @@ namespace Zeze.Transaction
                                         _final_commit_(procedure);
 #if ENABLE_STATISTICS
                                         // 正常一次成功的不统计，用来观察redo多不多。
-                                        // 另外失败在 Procedure.cs 中的统计。
+                                        // 失败在 Procedure.cs 中的统计。
                                         if (tryCount > 0)
                                             ProcedureStatistics.Instance.GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).IncrementAndGet();
 #endif
