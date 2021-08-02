@@ -34,8 +34,3 @@ DatabaseTikv
 Raft.Agent
 	重发现在在收到LeaderIs时马上重新发送。改成延迟？
 	Agent的请求lost context，但是Task.Wait怎么返回的。
-
-
-FindInCacheOrStorage::lockey.EnterReadLock();
-Transaction.UpgradeToWriteLock
-死锁？
