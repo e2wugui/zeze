@@ -7,27 +7,57 @@ using System.Collections.Concurrent;
 namespace Zeze.Util
 {
     /// <summary>
-    /// 把三维空间划分成一个个相邻的Cube。地图中的玩家或者物品Id记录在所在的Cube中。
+    /// 把三维空间划分成一个个相邻的Cube。
+    /// 地图中的玩家或者物品Id记录在所在的Cube中。
     /// 用来快速找到某个坐标周围的玩家或物体。
     /// </summary>
     public class CubeIndexMap
     {
-        public class ObjectId : Comparer<ObjectId>
+        public class Index : IComparable<Index>
+        {
+            public long X { get; set; }
+            public long Y { get; set; }
+            public long Z { get; set; }
+
+            public override int GetHashCode()
+            {
+                const int prime = 31;
+                int result = 17;
+                result = prime * result + X.GetHashCode();
+                result = prime * result + Y.GetHashCode();
+                result = prime * result + Z.GetHashCode();
+                return result;
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj == this)
+                    return true;
+
+                if (obj is Index other)
+                {
+                    return X == other.X && Y == other.Y && Z == other.Z;
+                }
+                return false;
+            }
+
+            public int CompareTo(Index other)
+            {
+                int c = X.CompareTo(other.X);
+                if (c != 0)
+                    return c;
+                c = Y.CompareTo(other.Y);
+                if (c != 0)
+                    return c;
+                return Z.CompareTo(other.Z);
+            }
+        }
+
+        public class ObjectId : IComparable<ObjectId>
         {
             public int Type { get; set; }
             public int ConfigId { get; set; }
             public long InstanceId { get; set; }
-
-            public override int Compare(ObjectId x, ObjectId y)
-            {
-                int c = Type.CompareTo(x.Type);
-                if (c != 0)
-                    return c;
-                c = ConfigId.CompareTo(x.ConfigId);
-                if (c != 0)
-                    return c;
-                return InstanceId.CompareTo(x.InstanceId);
-            }
 
             public override int GetHashCode()
             {
@@ -53,19 +83,53 @@ namespace Zeze.Util
                 }
                 return false;
             }
+
+            public int CompareTo(ObjectId x)
+            {
+                int c = Type.CompareTo(x.Type);
+                if (c != 0)
+                    return c;
+                c = ConfigId.CompareTo(x.ConfigId);
+                if (c != 0)
+                    return c;
+                return InstanceId.CompareTo(x.InstanceId);
+            }
         }
 
         public class Cube
         {
+            public const int StateRemoved = -1;
+
+            public int State { get; set; }
+
             public HashSet<ObjectId> ObjectIds { get; } = new HashSet<ObjectId>();
+
+            public virtual void Add(Index index, ObjectId obj)
+            {
+                ObjectIds.Add(obj);
+            }
+
+            public virtual void Remove(Index index, ObjectId obj)
+            {
+                ObjectIds.Remove(obj);
+            }
         }
 
-        private ConcurrentDictionary<long, ConcurrentDictionary<long, ConcurrentDictionary<long, Cube>>> IndexX
-            = new ConcurrentDictionary<long, ConcurrentDictionary<long, ConcurrentDictionary<long, Cube>>>();
+        private ConcurrentDictionary<Index, Cube> Cubes = new ConcurrentDictionary<Index, Cube>();
 
-        private int CubeSizeX;
-        private int CubeSizeY;
-        private int CubeSizeZ;
+        public int CubeSizeX { get; }
+        public int CubeSizeY { get; }
+        public int CubeSizeZ { get; }
+
+        public Index ToIndex(double x, double y, double z)
+        {
+            return new Index()
+            {
+                X = (long)(x / CubeSizeX),
+                Y = (long)(y / CubeSizeY),
+                Z = (long)(z / CubeSizeZ),
+            };
+        }
 
         public CubeIndexMap(int cubeSizeX = 256, int cubeSizeY = 256, int cubeSizeZ = 256)
         {
@@ -82,19 +146,61 @@ namespace Zeze.Util
         }
 
         /// <summary>
+        /// 可以重载，提供Cube的子类进行扩展。
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public virtual Cube CreateCubeFactory(Index index)
+        {
+            return new Cube();
+        }
+
+        /// <summary>
+        /// perfrom action if cube exist.
+        /// under lock (cube)
+        /// </summary>
+        public void TryPerfrom(Index index, Action<Index, Cube> action)
+        {
+            if (Cubes.TryGetValue(index, out var cube))
+            {
+                lock (cube)
+                {
+                    if (cube.State != Cube.StateRemoved)
+                    {
+                        action(index, cube);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// perfrom action for Cubes.GetOrAdd.
+        /// under lock (cube)
+        /// </summary>
+        public void Perform(Index index, Action<Index, Cube> action)
+        {
+            while (true)
+            {
+                var cube = Cubes.GetOrAdd(index, CreateCubeFactory);
+                lock (cube)
+                {
+                    if (cube.State == Cube.StateRemoved)
+                        continue;
+                    action(index, cube);
+                }
+            }
+        }
+
+        /// <summary>
         /// 角色进入地图时
         /// </summary>
         /// <param name="objId"></param>
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <param name="z"></param>
-        public void OnEnter(ObjectId objId, double dx, double dy, double dz)
+        public void OnEnter(ObjectId objId, double x, double y, double z)
         {
-            long x = (long)(dx / CubeSizeX);
-            long y = (long)(dy / CubeSizeY);
-            long z = (long)(dz / CubeSizeZ);
-
-            GetOrAdd(x, y, z).ObjectIds.Add(objId);
+            Perform(ToIndex(x, y, z), (index, cube) => cube.Add(index, objId));
         }
 
         /// <summary>
@@ -111,19 +217,24 @@ namespace Zeze.Util
             double oldx, double oldy, double oldz,
             double newx, double newy, double newz)
         {
-            long ox = (long)(oldx / CubeSizeX);
-            long oy = (long)(oldy / CubeSizeY);
-            long oz = (long)(oldz / CubeSizeZ);
+            var oIndex = ToIndex(oldx, oldy, oldz);
+            var nIndex = ToIndex(newx, newy, newz);
 
-            long nx = (long)(newx / CubeSizeX);
-            long ny = (long)(newy / CubeSizeY);
-            long nz = (long)(newz / CubeSizeZ);
-
-            if (ox == nx && oy == ny && oz == nz)
+            if (oIndex.Equals(nIndex))
                 return;
 
-            Get(ox, oy, oz)?.ObjectIds.Remove(objId);
-            GetOrAdd(nx, ny, nz).ObjectIds.Add(objId);
+            TryPerfrom(oIndex, (index, cube) => RemoveObject(index, cube, objId));
+            Perform(nIndex, (index, cube) => cube.Add(index, objId));
+        }
+
+        private void RemoveObject(Index index, Cube cube, ObjectId obj)
+        {
+            cube.Remove(index, obj);
+            if (cube.ObjectIds.Count == 0)
+            {
+                cube.State = Cube.StateRemoved;
+                Cubes.TryRemove(index, out var _);
+            }
         }
 
         /// <summary>
@@ -135,11 +246,7 @@ namespace Zeze.Util
         /// <param name="z"></param>
         public void OnLeave(ObjectId objId, double x, double y, double z)
         {
-            long ix = (long)(x / CubeSizeX);
-            long iy = (long)(y / CubeSizeY);
-            long iz = (long)(z / CubeSizeZ);
-
-            Get(ix, iy, iz)?.ObjectIds.Remove(objId);
+            TryPerfrom(ToIndex(x, y, z), (index, cube) => RemoveObject(index, cube, objId));
         }
 
         /// <summary>
@@ -155,44 +262,22 @@ namespace Zeze.Util
             double centerX, double centerY, double centerZ,
             int rangeX = 4, int rangeY = 4, int rangeZ = 4)
         {
-            long ix = (long)(centerX / CubeSizeX);
-            long iy = (long)(centerY / CubeSizeY);
-            long iz = (long)(centerZ / CubeSizeZ);
+            var center = ToIndex(centerX, centerY, centerZ);
 
             List<Cube> result = new List<Cube>();
-            for (long i = ix - rangeX; i <= ix + rangeX; ++i)
+            for (long i = center.X - rangeX; i <= center.X + rangeX; ++i)
             {
-                for (long j = iy - rangeY; j <= iy + rangeY; ++j)
+                for (long j = center.Y - rangeY; j <= center.Y + rangeY; ++j)
                 {
-                    for (long k = iz - rangeZ; k <= iz + rangeZ; ++k)
+                    for (long k = center.Z - rangeZ; k <= center.Z + rangeZ; ++k)
                     {
-                        Cube cube = Get(i, j, k);
-                        if (cube != null)
+                        var index = new Index() { X = i, Y = j, Z = k };
+                        if (Cubes.TryGetValue(index, out var cube))
                             result.Add(cube);
                     }
                 }
             }
             return result;
-        }
-
-        private Cube GetOrAdd(long ix, long iy, long iz)
-        {
-            var IndexY = IndexX.GetOrAdd(ix, (_) => new ConcurrentDictionary<long, ConcurrentDictionary<long, Cube>>());
-            var IndexZ = IndexY.GetOrAdd(iy, (_) => new ConcurrentDictionary<long, Cube>());
-            var cube   = IndexZ.GetOrAdd(iz, (_) => new Cube());
-            return cube;
-        }
-
-
-        private Cube Get(long x, long y, long z)
-        {
-            if (!IndexX.TryGetValue(x, out var IndexY))
-                return null;
-            if (!IndexY.TryGetValue(y, out var IndexZ))
-                return null;
-            if (!IndexZ.TryGetValue(z, out var cube))
-                return null;
-            return cube;
         }
     }
 }

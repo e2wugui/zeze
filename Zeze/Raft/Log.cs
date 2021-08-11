@@ -27,7 +27,7 @@ namespace Zeze.Raft
         /// 如果实现类的FullName发生了改变，需要更新所有的Raft-Node。
         /// 如果不想跟名字相关，重载并提供一个编号。
         /// </summary>
-        private int _TypeId;
+        private readonly int _TypeId;
         public virtual int TypeId => _TypeId;
 
         // 当前这个Log是哪个应用的Rpc请求引起的。
@@ -288,8 +288,8 @@ namespace Zeze.Raft
             }
         }
 
-        private byte[] RaftsTermKey;
-        private byte[] RaftsVoteForKey;
+        private readonly byte[] RaftsTermKey;
+        private readonly byte[] RaftsVoteForKey;
 
         private void SaveLog(RaftLog log)
         {
@@ -341,14 +341,17 @@ namespace Zeze.Raft
 
         internal void SetVoteFor(string voteFor)
         {
-            VoteFor = voteFor;
-            var voteForValue = ByteBuffer.Allocate();
-            voteForValue.WriteString(voteFor);
-            Rafts.Put(
-                RaftsVoteForKey, RaftsVoteForKey.Length,
-                voteForValue.Bytes, voteForValue.Size,
-                null, new WriteOptions().SetSync(true)
-                );
+            if (false == VoteFor.Equals(voteFor))
+            {
+                VoteFor = voteFor;
+                var voteForValue = ByteBuffer.Allocate();
+                voteForValue.WriteString(voteFor);
+                Rafts.Put(
+                    RaftsVoteForKey, RaftsVoteForKey.Length,
+                    voteForValue.Bytes, voteForValue.Size,
+                    null, new WriteOptions().SetSync(true)
+                    );
+            }
         }
 
         /// <summary>
@@ -460,7 +463,7 @@ namespace Zeze.Raft
                     if (Raft.RaftConfig.AutoKeyLocalStep > 0)
                         appInstance = raftLog.Log.UniqueRequestId % Raft.RaftConfig.AutoKeyLocalStep;
                     // 这里不需要递增判断：由于请求是按网络传过来的顺序处理的，到达这里肯定是递增的。
-                    // 如果来自客户端的请求Id不是递增的，在 Net.cs::Server 处理时会拒绝掉。
+                    // 如果来自客户端的请求Id不是增长的，在 Net.cs::Server 处理时会拒绝掉。
                     LastAppliedAppRpcUniqueRequestId[appInstance] = raftLog.Log.UniqueRequestId;
                 }
                 raftLog.Log.Apply(Raft.StateMachine);
@@ -976,6 +979,11 @@ namespace Zeze.Raft
             r.Result.Success = true;
             logger.Debug("{0}: {1}", Raft.Name, r);
             r.SendResultCode(0);
+
+            // 有Leader，清除一下上一次选举的投票。要不然可能下一次选举无法给别人投票。
+            // 这个不是必要的：因为要进行选举的时候，自己肯定也会尝试选自己，会重置，
+            // 但是清除一下，可以让选举更快进行。不用等待选举TimerTask。
+            SetVoteFor(string.Empty);
             return Procedure.Success;
         }
     }

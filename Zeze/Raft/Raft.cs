@@ -36,11 +36,11 @@ namespace Zeze.Raft
             LogSequence.AppendLog(log, ApplySync);
         }
 
-        public bool IsShutdown { get; private set; }
+        //public bool IsShutdown { get; private set; }
 
         public void Shutdown()
         {
-            IsShutdown = true;
+            //IsShutdown = true;
 
             // 0 clear pending task if is leader
             if (IsLeader)
@@ -61,7 +61,6 @@ namespace Zeze.Raft
             // 1. close network.
             Server.Stop();
 
-            // 2. clear pending task if is leader
             lock (this)
             {
                 // see WaitLeaderReady.
