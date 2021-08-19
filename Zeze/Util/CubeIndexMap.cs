@@ -49,6 +49,7 @@ namespace Zeze.Util
 
     public abstract class Cube<TObject>
     {
+        public const int StateNormal = 0;
         public const int StateRemoved = -1;
 
         /// <summary>
@@ -56,10 +57,12 @@ namespace Zeze.Util
         /// </summary>
         public int State { get; set; }
 
+        // under lock(cube)
         public abstract void Add(CubeIndex index, TObject obj);
 
         /// <summary>
-        /// 返回 True 表示 Cube 可以删除。这是为了回收内存。
+        /// 返回 True 表示 Cube 可以删除。这是为了回收内存，如果不需要回收，永远返回false即可。
+        /// under lock(cube)
         /// </summary>
         /// <param name="index"></param>
         /// <param name="obj"></param>
@@ -110,7 +113,7 @@ namespace Zeze.Util
                 Z = (long)(z / CubeSizeZ),
             };
         }
-        public CubeIndexMap(int cubeSizeX = 256, int cubeSizeY = 256, int cubeSizeZ = 256)
+        public CubeIndexMap(int cubeSizeX, int cubeSizeY, int cubeSizeZ)
         {
             if (cubeSizeX <= 0)
                 throw new ArgumentException("cubeSizeX <= 0");
@@ -178,6 +181,10 @@ namespace Zeze.Util
             Perform(ToIndex(x, y, z), (index, cube) => cube.Add(index, obj));
         }
 
+        public void OnEnter(TObject obj, CubeIndex index)
+        {
+            Perform(index, (index, cube) => cube.Add(index, obj));
+        }
         private void RemoveObject(CubeIndex index, TCube cube, TObject obj)
         {
             if (cube.Remove(index, obj))
@@ -187,39 +194,48 @@ namespace Zeze.Util
             }
         }
 
-        private void OnMove(CubeIndex oIndex, CubeIndex nIndex, TObject obj)
+        private bool OnMove(CubeIndex oIndex, CubeIndex nIndex, TObject obj)
         {
             if (oIndex.Equals(nIndex))
-                return;
+                return false;
 
             TryPerfrom(oIndex, (index, cube) => RemoveObject(index, cube, obj));
             Perform(nIndex, (index, cube) => cube.Add(index, obj));
+            return true;
         }
 
         /// <summary>
-        /// 角色位置变化时
+        /// 角色位置变化时，
+        /// return true 如果cube发生了变化。
+        /// return false 还在原来的cube中。
         /// </summary>
-        public void OnMove(TObject obj,
+        public bool OnMove(TObject obj,
             double oldx, double oldy, double oldz,
             double newx, double newy, double newz)
         {
-            OnMove(ToIndex(oldx, oldy, oldz), ToIndex(newx, newy, newz), obj);
+            return OnMove(ToIndex(oldx, oldy, oldz), ToIndex(newx, newy, newz), obj);
         }
 
-        public void OnMove(TObject obj,
+        public bool OnMove(TObject obj,
             float oldx, float oldy, float oldz,
             float newx, float newy, float newz)
         {
-            OnMove(ToIndex(oldx, oldy, oldz), ToIndex(newx, newy, newz), obj);
+            return OnMove(ToIndex(oldx, oldy, oldz), ToIndex(newx, newy, newz), obj);
         }
 
-        public void OnMove(TObject obj,
+        public bool OnMove(TObject obj,
             long oldx, long oldy, long oldz,
             long newx, long newy, long newz)
         {
-            OnMove(ToIndex(oldx, oldy, oldz), ToIndex(newx, newy, newz), obj);
+            return OnMove(ToIndex(oldx, oldy, oldz), ToIndex(newx, newy, newz), obj);
         }
 
+        public bool OnMove(TObject obj,
+            CubeIndex oldIndex,
+            CubeIndex newIndex)
+        {
+            return OnMove(oldIndex, newIndex, obj);
+        }
         /// <summary>
         /// 角色离开地图时
         /// </summary>
@@ -236,6 +252,11 @@ namespace Zeze.Util
         public void OnLeave(TObject obj, long x, long y, long z)
         {
             TryPerfrom(ToIndex(x, y, z), (index, cube) => RemoveObject(index, cube, obj));
+        }
+
+        public void OnLeave(TObject obj, CubeIndex index)
+        {
+            TryPerfrom(index, (index, cube) => RemoveObject(index, cube, obj));
         }
 
         public List<TCube> GetCubes(CubeIndex center, int rangeX, int rangeY, int rangeZ)
@@ -335,6 +356,7 @@ namespace Zeze.Util
 
         public override void Add(CubeIndex index, GameObjectId obj)
         {
+            // under lock(cube)
             ObjectIds = ObjectIds.Add(obj);
         }
 
@@ -346,6 +368,7 @@ namespace Zeze.Util
         /// <returns></returns>
         public override bool Remove(CubeIndex index, GameObjectId obj)
         {
+            // under lock(cube)
             ObjectIds = ObjectIds.Remove(obj);
             return ObjectIds.Count == 0;
         }
@@ -354,5 +377,10 @@ namespace Zeze.Util
 
     public class GameMap : CubeIndexMap<GameCube, GameObjectId>
     {
+        public GameMap(int cubeSizeX = 256, int cubeSizeY = 256, int cubeSizeZ = 256)
+            : base(cubeSizeX, cubeSizeY, cubeSizeZ)
+        {
+
+        }
     }
 }

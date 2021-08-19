@@ -243,6 +243,12 @@ namespace Zeze.Serialize
             ReadIndex = saveState;
         }
 
+        /// <summary>
+        /// 这个方法把剩余可用数据移到buffer开头。
+        /// 【注意】这个方法会修改ReadIndex，WriteIndex。
+        /// 最好仅在全部读取写入处理完成以后调用处理一次，
+        /// 为下一次写入读取做准备。
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Campact()
         {
@@ -293,9 +299,9 @@ namespace Zeze.Serialize
             if (newSize > Capacity)
             {
                 byte[] newBytes = new byte[ToPower2(newSize)];
-                WriteIndex -= ReadIndex;
-                Buffer.BlockCopy(Bytes, ReadIndex, newBytes, 0, WriteIndex);
-                ReadIndex = 0;
+                // 拷贝所有数据。不再仅仅拷贝可用数据，这样避免修改 ReadIndex 和 WriteIndex。
+                // 因为 BeginWriteXXX 方法需要记住位置，修改位置会导致 EndWriteXXX 处理错误。
+                Buffer.BlockCopy(Bytes, 0, newBytes, 0, WriteIndex);
                 Bytes = newBytes;
             }
         }

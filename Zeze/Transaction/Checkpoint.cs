@@ -136,7 +136,7 @@ namespace Zeze.Transaction
                     Monitor.Wait(this, Period);
                 }
             }
-            logger.Fatal("final checkpoint start.");
+            //logger.Fatal("final checkpoint start.");
             switch (CheckpointMode)
             {
                 case CheckpointMode.Period:
