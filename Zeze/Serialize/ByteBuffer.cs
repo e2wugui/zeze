@@ -106,7 +106,7 @@ namespace Zeze.Serialize
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void BeginWriteWithSize4(out int state)
         {
-            state = WriteIndex;
+            state = Size;
             EnsureWrite(4);
             WriteIndex += 4;
         }
@@ -114,7 +114,8 @@ namespace Zeze.Serialize
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EndWriteWithSize4(int state)
         {
-            Replace(state, BitConverter.GetBytes(WriteIndex - state - 4));
+            var oldWriteIndex = state + ReadIndex;
+            Replace(state, BitConverter.GetBytes(WriteIndex - oldWriteIndex - 4));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -299,9 +300,9 @@ namespace Zeze.Serialize
             if (newSize > Capacity)
             {
                 byte[] newBytes = new byte[ToPower2(newSize)];
-                // 拷贝所有数据。不再仅仅拷贝可用数据，这样避免修改 ReadIndex 和 WriteIndex。
-                // 因为 BeginWriteXXX 方法需要记住位置，修改位置会导致 EndWriteXXX 处理错误。
-                Buffer.BlockCopy(Bytes, 0, newBytes, 0, WriteIndex);
+                WriteIndex -= ReadIndex;
+                Buffer.BlockCopy(Bytes, ReadIndex, newBytes, 0, WriteIndex);
+                ReadIndex = 0;
                 Bytes = newBytes;
             }
         }
