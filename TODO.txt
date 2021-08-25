@@ -35,3 +35,7 @@ Raft.Agent
 	重发现在在收到LeaderIs时马上重新发送。改成延迟？
 	Agent的请求lost context，但是Task.Wait怎么返回的。
 
+WebView
+	IOS: What do you mean by this? Chrome on iOS is just a wrapper around Apple's UIWebView. You might as well just use UIWebView directly in your iOS application.
+	Andriod: android.webkit.WebView
+
