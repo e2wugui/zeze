@@ -339,8 +339,8 @@ namespace Game.Rank
         {
             return rankType switch
             {
-                BConcurrentKey.RankTypeGold => 1024,
-                _ => 1024, // default
+                BConcurrentKey.RankTypeGold => 128,
+                _ => 128, // default
             };
         }
 
