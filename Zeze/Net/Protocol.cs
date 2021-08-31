@@ -124,15 +124,19 @@ namespace Zeze.Net
 					return;
 				}
 
-				// 直接使用os，可以少创建对象，否则 Wrap 一个更安全：
-				// ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size)
-				// 使用Wrap的话，记得手动增加: os.ReadIndex += size;
 				Service.ProtocolFactoryHandle factoryHandle = service.FindProtocolFactoryHandle(type);
 				if (null != factoryHandle)
 				{
+					var pBuffer = ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size);
+					os.ReadIndex += size;
+
 					Protocol p = factoryHandle.Factory();
 					p.Service = service;
-					p.Decode(os);
+					p.Decode(pBuffer);
+					if (pBuffer.ReadIndex != pBuffer.WriteIndex)
+                    {
+						throw new Exception($"type={type} size={size} too many data");
+                    }
 					p.Sender = so;
 					p.UserState = so.UserState;
 					p.Dispatch(service, factoryHandle);
