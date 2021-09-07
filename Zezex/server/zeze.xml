@@ -19,4 +19,8 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 		-->
 		<Connector Ip="localhost" Port="20000"/>
 	</ServiceConf>
+
+	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
+		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
+	</ServiceConf>
 </zeze>
