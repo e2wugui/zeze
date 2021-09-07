@@ -98,6 +98,7 @@ namespace Zeze.Gen
                 else
                 {
                     Console.WriteLine(xmlDefault + " not found");
+                    return;
                 }
             }
             foreach (string file in xmlFileList)

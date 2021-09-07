@@ -6,9 +6,32 @@ namespace Gen
     {
         public static void Main(string[] args)
         {
-            Zeze.Gen.Program.Main(args);
+            string command = "gen";
+            for (int i = 0; i < args.Length; ++i)
+            {
+                if (args[i].Equals("-c"))
+                    command = args[++i];
+            }
 
-            //Zeze.Tikv.Test.Run(args[0]);
+            switch (command)
+            {
+                case "gen":
+                    Zeze.Gen.Program.Main(args);
+                    break;
+
+                case "zezex":
+                    Zeze.Util.Zezex.Main(args);
+                    break;
+
+                case "TikvTest":
+                    Zeze.Tikv.Test.Run(args[0]);
+                    break;
+
+                case "RaftTest":
+                    new Zeze.Raft.Test().Run();
+                    break;
+            }
+
         }
     }
 }

@@ -8,8 +8,7 @@ namespace ServiceManager
     {
         public static void Main(string[] args)
         {
-            //Run(args);
-            new Zeze.Raft.Test().Run();
+            Run(args);
             //TestRocksDb();
             //TestServiceManager();
         }
