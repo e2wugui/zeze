@@ -120,7 +120,7 @@ namespace Zeze.Util
             }
         }
 
-        private void UpdateProtocolClientHandle(XmlElement self, string clientHandle)
+        private void UpdateProtocolClientHandle(XmlElement self)
         {
             foreach (XmlNode n in self.ChildNodes)
             {
@@ -132,14 +132,14 @@ namespace Zeze.Util
                 {
                     case "protocol":
                     case "rpc":
-                        var newHandle = e.GetAttribute("handle").Replace("client", clientHandle);
+                        var newHandle = e.GetAttribute("handle").Replace("client", ClientHandle);
                         e.SetAttribute("handle", newHandle);
                         break;
                 }
             }
         }
 
-        private void UpdateClientServiceHandleName(XmlElement self, string clientHandle)
+        private void UpdateClientServiceHandleName(XmlElement self)
         {
             foreach (XmlNode n in self.ChildNodes)
             {
@@ -152,20 +152,57 @@ namespace Zeze.Util
                     case "service":
                         if (e.GetAttribute("name").Equals("Client"))
                         {
-                            e.SetAttribute("handle", clientHandle);
+                            e.SetAttribute("handle", ClientHandle);
                         }
                         break;
                 }
             }
         }
 
-        private void UpdateProject(XmlElement e, string clientHandle)
+        private void RemoveServiceRef(XmlElement project, String skipRef)
+        {
+            for (int i = project.ChildNodes.Count - 1; i >= 0; --i)
+            {
+                XmlNode node = project.ChildNodes[i];
+                if (XmlNodeType.Element != node.NodeType)
+                    continue;
+
+                XmlElement e = (XmlElement)node;
+                switch (e.Name)
+                {
+                    case "service":
+                        for (int j = e.ChildNodes.Count - 1; j >= 0; --j)
+                        {
+                            XmlNode noderef = e.ChildNodes[j];
+                            if (XmlNodeType.Element != noderef.NodeType)
+                                continue;
+
+                            XmlElement eref = (XmlElement)noderef;
+                            switch (eref.Name)
+                            {
+                                case "module":
+                                    var refName = eref.GetAttribute("ref");
+                                    if (false == ModulesExported.Contains(refName)
+                                        && false == refName.Equals(skipRef))
+                                    {
+                                        e.RemoveChild(eref);
+                                    }
+                                    break;
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        private void UpdateProject(XmlElement e)
         {
             switch (e.GetAttribute("name"))
             {
                 case "server":
                     if (false == string.IsNullOrEmpty(ServerProjectName))
                         e.SetAttribute("name", ServerProjectName);
+                    RemoveServiceRef(e, "Zezex.Provider");
                     break;
 
                 case "client":
@@ -173,8 +210,9 @@ namespace Zeze.Util
                     // 以后实际使用的时候再支持。
                     if (false == string.IsNullOrEmpty(ClientProjectName))
                         e.SetAttribute("name", ClientProjectName);
-                    if (false == string.IsNullOrEmpty(clientHandle))
-                        UpdateClientServiceHandleName(e, clientHandle);
+                    if (false == string.IsNullOrEmpty(ClientHandle))
+                        UpdateClientServiceHandleName(e);
+                    RemoveServiceRef(e, "Zezex.Linkd");
                     break;
 
                 default:
@@ -183,10 +221,11 @@ namespace Zeze.Util
             }
         }
 
+        private HashSet<string> ModulesExported = new HashSet<string>();
+        private string ClientHandle = null;
+
         private void ExportModules()
         {
-            var exportModules = new HashSet<string>();
-
             foreach (var m in modules.Split(","))
             {
                 if (m.Equals("all") || m.Equals("none"))
@@ -197,7 +236,7 @@ namespace Zeze.Util
                 }
                 else if (false == string.IsNullOrEmpty(m))
                 {
-                    exportModules.Add(m);
+                    ModulesExported.Add(m);
                 }
             }
 
@@ -214,12 +253,12 @@ namespace Zeze.Util
 
             if (ModuleExportType.Equals("all"))
             {
-                if (exportModules.Count > 0)
+                if (ModulesExported.Count > 0)
                     throw new Exception("-modules all must present along.");
             }
 
             // update document.
-            var clientHandle = GetClientHandleByClientLang();
+            ClientHandle = GetClientHandleByClientLang();
             for (int i = self.ChildNodes.Count - 1; i >= 0; --i)
             {
                 XmlNode child = self.ChildNodes[i];
@@ -232,18 +271,18 @@ namespace Zeze.Util
                 {
                     case "module":
                         if (false == ModuleExportType.Equals("all")
-                            && false == exportModules.Contains(e.GetAttribute("name")))
+                            && false == ModulesExported.Contains(e.GetAttribute("name")))
                         {
                             self.RemoveChild(child);
                         }
-                        else if (false == string.IsNullOrEmpty(clientHandle))
+                        else if (false == string.IsNullOrEmpty(ClientHandle))
                         {
-                            UpdateProtocolClientHandle(e, clientHandle);
+                            UpdateProtocolClientHandle(e);
                         }
                         break;
 
                     case "project":
-                        UpdateProject(e, clientHandle);
+                        UpdateProject(e);
                         break;
                 }
             }
