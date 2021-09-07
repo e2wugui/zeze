@@ -22,6 +22,15 @@ namespace Zeze.Util
 
         public static void CopyFileOrDirectory(string src, string dst, bool overwrite)
         {
+            CopyFileOrDirectory(src, dst,
+                (srcFile, dstFileName) =>
+                {
+                    srcFile.CopyTo(dstFileName, overwrite);
+                });
+        }
+
+        public static void CopyFileOrDirectory(string src, string dst, Action<FileInfo, string> copyAction)
+        {
             if (IsDirectory(src))
             {
                 // 拷贝目录到目标目录下。
@@ -29,7 +38,7 @@ namespace Zeze.Util
                     throw new Exception("Dest directory does not exist");
                 dst = Path.Combine(dst, Path.GetFileName(src));
                 Directory.CreateDirectory(dst);
-                CopyDirectory(src, dst, true, overwrite);
+                CopyDirectory(src, dst, true, copyAction);
             }
             else
             {
@@ -37,11 +46,12 @@ namespace Zeze.Util
                 // 拷贝文件到目标文件（Rename）或者目标目录下。
                 if (Directory.Exists(dst))
                     dst = Path.Combine(dst, Path.GetFileName(src));
-                File.Copy(src, dst, overwrite);
+                copyAction(new FileInfo(src), dst);
             }
         }
 
-        public static void CopyDirectory(string sourceDirName, string destDirName, bool copySubDirs, bool overwrite)
+        public static void CopyDirectory(string sourceDirName, string destDirName, bool copySubDirs,
+            Action<FileInfo, string> copyAction)
         {
             DirectoryInfo dir = new DirectoryInfo(sourceDirName);
             if (!dir.Exists)
@@ -53,16 +63,25 @@ namespace Zeze.Util
             Directory.CreateDirectory(destDirName);
             foreach (FileInfo file in dir.GetFiles())
             {
-                file.CopyTo(Path.Combine(destDirName, file.Name), overwrite);
+                copyAction(file, Path.Combine(destDirName, file.Name));
             }
 
             if (copySubDirs)
             {
                 foreach (DirectoryInfo subdir in dir.GetDirectories())
                 {
-                    CopyDirectory(subdir.FullName, Path.Combine(destDirName, subdir.Name), copySubDirs, overwrite);
+                    CopyDirectory(subdir.FullName, Path.Combine(destDirName, subdir.Name), copySubDirs, copyAction);
                 }
             }
+        }
+
+        public static void CopyDirectory(string sourceDirName, string destDirName, bool copySubDirs, bool overwrite)
+        {
+            CopyDirectory(sourceDirName, destDirName, copySubDirs,
+                (srcFile, dstFileName) =>
+                {
+                    srcFile.CopyTo(dstFileName, overwrite);
+                });
         }
     }
 }

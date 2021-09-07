@@ -14,11 +14,11 @@ namespace Zeze.Util
         private bool linkd = true;
 
         private string SolutionName = null;
-        private string ServerProjectName = null;
-        private string ClientProjectName = null;
-        private string ClientLang = null;
+        private string ServerProjectName = "server";
+        private string ClientProjectName = "client";
+        private string ClientPlatform = null;
         private string ExportDirectory = "../../";
-        private string ZezexDirectory = "./";
+        private readonly string ZezexDirectory = "./";
 
         private Zezex(string [] args)
         {
@@ -31,7 +31,7 @@ namespace Zeze.Util
                     case "-ZezexDirectory": ZezexDirectory = args[++i]; break;
                     case "-ServerProjectName": ServerProjectName = args[++i]; break;
                     case "-ClientProjectName": ClientProjectName = args[++i]; break;
-                    case "-ClientLang": ClientLang = args[++i]; break;
+                    case "-ClientPlatform": ClientPlatform = args[++i]; break;
                     case "-nolinkd": linkd = false; break;
                     case "-modules": modules = args[++i]; break;
                 }
@@ -45,11 +45,11 @@ namespace Zeze.Util
             Console.WriteLine("    [-SolutionName Game] Must Present");
             Console.WriteLine("    [-ExportDirectory Path] default='../../'");
             Console.WriteLine("    [-ZezexDirectory Path] default='./'");
-            Console.WriteLine("    [-ServerProjectName server] no change if not present");
-            Console.WriteLine("    [-ClientLang cs|ts|lua] no change if not present");
+            Console.WriteLine("    [-ServerProjectName server] default='server'");
+            Console.WriteLine("    [-ClientPlatform cs|...] no change if not present");
 
             Console.WriteLine("    [-nolinkd] do not export linkd");
-            Console.WriteLine("    [-modules ModuleNameA,ModuleNameB] default='login'");
+            Console.WriteLine("    [-modules ma,mb] default='login'");
             Console.WriteLine("    [-modules all] export all modules");
             Console.WriteLine("    [-modules none] export none module");
         }
@@ -102,21 +102,44 @@ namespace Zeze.Util
                 ExportLinkd();
 
             ExportModules();
+
+            // 最后输出。
+            ExportClient();
+        }
+
+        private void ExportClient()
+        {
+            switch (ClientPlatform)
+            {
+                default:
+                    Console.WriteLine("ClientPlatform TODO prepare all");
+                    break;
+            }
         }
 
         private string ModuleExportType = "";
 
         private string GetClientHandleByClientLang()
         {
-            if (string.IsNullOrEmpty(ClientLang))
+            if (string.IsNullOrEmpty(ClientPlatform))
                 return null;
 
-            switch (ClientLang)
+            // see Zeze.Gen.Project.cs
+            switch (ClientPlatform)
             {
                 case "cs":
                     return "client";
-                default:
+
+                case "lua":
+                case "cs+lua":
+                case "cxx+lua":
+                case "ts":
+                case "cs+ts":
+                case "cxx+ts":
                     return "clientscript";
+
+                default:
+                    throw new Exception($"unknown ClientPlatform={ClientPlatform}");
             }
         }
 
@@ -153,6 +176,8 @@ namespace Zeze.Util
                         if (e.GetAttribute("name").Equals("Client"))
                         {
                             e.SetAttribute("handle", ClientHandle);
+                            // TODO more params
+                            e.SetAttribute("platform", ClientPlatform);
                         }
                         break;
                 }
@@ -200,19 +225,16 @@ namespace Zeze.Util
             switch (e.GetAttribute("name"))
             {
                 case "server":
-                    if (false == string.IsNullOrEmpty(ServerProjectName))
-                        e.SetAttribute("name", ServerProjectName);
+                    e.SetAttribute("name", ServerProjectName);
                     RemoveServiceRef(e, "Zezex.Provider");
                     break;
 
                 case "client":
-                    // 需要更多参数，client采用脚本的话，目录组织可能很不一样。
-                    // 以后实际使用的时候再支持。
-                    if (false == string.IsNullOrEmpty(ClientProjectName))
-                        e.SetAttribute("name", ClientProjectName);
+                    e.SetAttribute("name", ClientProjectName);
                     if (false == string.IsNullOrEmpty(ClientHandle))
                         UpdateClientServiceHandleName(e);
                     RemoveServiceRef(e, "Zezex.Linkd");
+                    e.ParentNode.RemoveChild(e); // TODO 实现Client时，去掉这一行。
                     break;
 
                 default:
@@ -240,8 +262,11 @@ namespace Zeze.Util
                 }
             }
 
-            if (ModuleExportType.Equals("none"))
-                return;
+            if (ModulesExported.Count > 0)
+            {
+                if (ModuleExportType.Equals("none") || ModuleExportType.Equals("all"))
+                    throw new Exception("-modules none|all|ma,mb,mc");
+            }
 
             var solutionXmlFile = "solution.xml";
             XmlDocument doc = new XmlDocument();
@@ -250,12 +275,6 @@ namespace Zeze.Util
 
             XmlElement self = doc.DocumentElement;
             self.SetAttribute("name", SolutionName);
-
-            if (ModuleExportType.Equals("all"))
-            {
-                if (ModulesExported.Count > 0)
-                    throw new Exception("-modules all must present along.");
-            }
 
             // update document.
             ClientHandle = GetClientHandleByClientLang();
@@ -293,6 +312,61 @@ namespace Zeze.Util
             {
                 doc.Save(sw);
             }
+
+            CopyModulesSource();
+        }
+
+        private string GetServerProjectName()
+        {
+            return string.IsNullOrEmpty(ServerProjectName) ? "server" : ServerProjectName;
+        }
+
+        private void CopyModulesSource()
+        {
+            ReplaceAndCopyTo("gen.bat", ExportDirectory);
+
+            var serverName = GetServerProjectName();
+            var serverDir = Path.Combine(ExportDirectory, serverName);
+            Directory.CreateDirectory(serverDir);
+
+            ReplaceAndCopyTo("server/Program.cs", serverDir);
+            ReplaceAndCopyTo("server/server.csproj", Path.Combine(serverDir, $"{serverName}.csproj"));
+            CopyTo("server/zeze.xml", serverDir);
+
+            ReplaceAndCopyTo("server/Zezex", serverDir);
+
+            var moduleBasedir = Path.Combine(serverDir, SolutionName);
+            Directory.CreateDirectory(moduleBasedir);
+
+            ReplaceAndCopyTo($"server/Game/App.cs", moduleBasedir);
+            ReplaceAndCopyTo($"server/Game/Config.cs", moduleBasedir);
+            ReplaceAndCopyTo($"server/Game/Load.cs", moduleBasedir);
+            ReplaceAndCopyTo($"server/Game/Server.cs", moduleBasedir);
+
+            foreach (var m in ModulesExported)
+            {
+                ReplaceAndCopyTo($"server/Game/{m}", moduleBasedir);
+            }
+        }
+
+        private void ReplaceAndCopyTo(string relativePath, string destDir)
+        {
+            var src = Path.Combine(ZezexDirectory, relativePath);
+            FileSystem.CopyFileOrDirectory(src, destDir, 
+                (srcFile, dstFileName) =>
+                {
+                    var source = File.ReadAllText(srcFile.FullName, Encoding.UTF8);
+
+                    source = source.Replace("namespace server", $"namespace {GetServerProjectName()}");
+                    source = source.Replace("namespace Game", $"namespace {SolutionName}");
+                    source = source.Replace("Game.", $"{SolutionName}.");
+                    source = source.Replace("Game_", $"{SolutionName}_");
+
+                    source = source.Replace("Include=\"..\\..\\Zeze\\Zeze.csproj\"", "Include=\"..\\..\\zeze\\Zeze\\Zeze.csproj\"");
+                    source = source.Replace("..\\Gen\\bin\\", "..\\zeze\\Gen\\bin\\");
+
+                    File.WriteAllText(dstFileName, source, Encoding.UTF8);
+                });
         }
 
         private void ExportLinkd()

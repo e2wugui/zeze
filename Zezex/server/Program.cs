@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 
-namespace gsd
+namespace server
 {
     class Program
     {

@@ -19,7 +19,7 @@ namespace Gen
                     Zeze.Gen.Program.Main(args);
                     break;
 
-                case "zezex":
+                case "ExportZezex":
                     Zeze.Util.Zezex.Main(args);
                     break;
 
