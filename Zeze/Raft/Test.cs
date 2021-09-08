@@ -494,14 +494,14 @@ namespace Zeze.Raft
         {
             public int Count { get; set; }
 
-            public void AddCountAndWait(long requestId)
+            public void AddCountAndWait(string appInstance, long requestId)
             {
-                Raft.AppendLog(new AddCount(requestId));
+                Raft.AppendLog(new AddCount(appInstance, requestId));
             }
 
             public sealed class AddCount : Log
             {
-                public AddCount(long requestId) : base(requestId)
+                public AddCount(string appInstance, long requestId) : base(appInstance, requestId)
                 {
 
                 }
@@ -555,7 +555,7 @@ namespace Zeze.Raft
 
             public TestStateMachine()
             {
-                AddFactory(new AddCount(0).TypeId, () => new AddCount(0));
+                AddFactory(new AddCount("", 0).TypeId, () => new AddCount("", 0));
             }
         }
 
@@ -649,7 +649,7 @@ namespace Zeze.Raft
                 var r = p as AddCount;
                 lock (StateMachine)
                 {
-                    StateMachine.AddCountAndWait(r.UniqueRequestId);
+                    StateMachine.AddCountAndWait(r.Sender.RemoteAddress, r.UniqueRequestId);
                     r.SendResultCode(0);
                 }
                 return Procedure.Success;

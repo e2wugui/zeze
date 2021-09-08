@@ -290,7 +290,7 @@ namespace Zeze.Transaction
             if (agent.LoginedTimes.Get() > 1)
             {
                 var relogin = new GlobalCacheManager.ReLogin();
-                relogin.Argument.AutoKeyLocalId = Zeze.Config.AutoKeyLocalId;
+                relogin.Argument.ServerId = Zeze.Config.ServerId;
                 relogin.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
                 relogin.Send(so,
                     (_) =>
@@ -314,7 +314,7 @@ namespace Zeze.Transaction
             else
             {
                 var login = new GlobalCacheManager.Login();
-                login.Argument.AutoKeyLocalId = Zeze.Config.AutoKeyLocalId;
+                login.Argument.ServerId = Zeze.Config.ServerId;
                 login.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
                 login.Send(so,
                     (_) =>

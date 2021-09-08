@@ -36,9 +36,11 @@ namespace Zeze.Raft
         // 启用这个功能要求应用的RpcSessionId持久化，并且全局唯一，对每个AutoKeyLocalStep递增。
         // 【注意】应用生成的Id必须大于0；0保留给内部；小于0未使用。
         public long UniqueRequestId { get; set; }
+        public string AppInstance { get; set; }
 
-        public Log(long requestId)
+        public Log(string appInstance, long requestId)
         {
+            AppInstance = appInstance;
             UniqueRequestId = requestId;
             _TypeId = (int)Bean.Hash32(GetType().FullName);
         }
@@ -52,11 +54,13 @@ namespace Zeze.Raft
         public virtual void Decode(ByteBuffer bb)
         {
             UniqueRequestId = bb.ReadLong();
+            AppInstance = bb.ReadString();
         }
 
         public virtual void Encode(ByteBuffer bb)
         {
             bb.WriteLong(UniqueRequestId);
+            bb.WriteString(AppInstance);
         }
     }
 
@@ -66,7 +70,7 @@ namespace Zeze.Raft
 
         public int Operate { get; private set; }
 
-        public HeartbeatLog(int operate = 0) : base(0)
+        public HeartbeatLog(int operate = 0) : base("", 0)
         {
             Operate = operate;
         }
@@ -459,12 +463,10 @@ namespace Zeze.Raft
                     // 需要对每个Raft.Agent的请求排队处理。
                     // see Net.cs Server.DispatchProtocol
 
-                    long appInstance = 0;
-                    if (Raft.RaftConfig.AutoKeyLocalStep > 0)
-                        appInstance = raftLog.Log.UniqueRequestId % Raft.RaftConfig.AutoKeyLocalStep;
                     // 这里不需要递增判断：由于请求是按网络传过来的顺序处理的，到达这里肯定是递增的。
                     // 如果来自客户端的请求Id不是增长的，在 Net.cs::Server 处理时会拒绝掉。
-                    LastAppliedAppRpcUniqueRequestId[appInstance] = raftLog.Log.UniqueRequestId;
+                    LastAppliedAppRpcUniqueRequestId[raftLog.Log.AppInstance]
+                        = raftLog.Log.UniqueRequestId;
                 }
                 raftLog.Log.Apply(Raft.StateMachine);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
@@ -474,8 +476,8 @@ namespace Zeze.Raft
             }
         }
 
-        public ConcurrentDictionary<long, long> LastAppliedAppRpcUniqueRequestId { get; }
-            = new ConcurrentDictionary<long, long>();
+        public ConcurrentDictionary<string, long> LastAppliedAppRpcUniqueRequestId { get; }
+            = new ConcurrentDictionary<string, long>();
 
         internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }
             = new ConcurrentDictionary<long, TaskCompletionSource<int>>();

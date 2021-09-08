@@ -84,6 +84,7 @@ namespace Zeze.Net
             this.SessionId = so.Service.AddRpcContext(this);
             if (base.UniqueRequestId == 0)
                 base.UniqueRequestId = this.SessionId;
+
             var timeoutTask = Schedule(so.Service, SessionId, millisecondsTimeout);
 
             if (base.Send(so))
@@ -112,8 +113,8 @@ namespace Zeze.Net
             Func<Protocol, int> responseHandle,
             int millisecondsTimeout = 5000)
         {
-            if (so?.Service != service)
-                throw new Exception("so?.Service != service");
+            if (null != so && so.Service != service)
+                throw new Exception("so.Service != service");
 
             this.IsRequest = true;
             this.ResponseHandle = responseHandle;

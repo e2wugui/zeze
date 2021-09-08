@@ -120,7 +120,7 @@ namespace Zeze
                 Config?.ClearInUseAndIAmSureAppStopped(Databases); // XXX REMOVE ME!
                 foreach (var db in Databases.Values)
                 {
-                    db.DirectOperates.SetInUse(Config.AutoKeyLocalId, Config.GlobalCacheManagerHostNameOrAddress);
+                    db.DirectOperates.SetInUse(Config.ServerId, Config.GlobalCacheManagerHostNameOrAddress);
                 }
 
                 if (IsStart)
@@ -159,7 +159,7 @@ namespace Zeze
                 /// Schemas Check
                 Schemas.Compile();
                 var keyOfSchemas = Zeze.Serialize.ByteBuffer.Allocate();
-                keyOfSchemas.WriteString("zeze.Schemas." + Config.AutoKeyLocalId);
+                keyOfSchemas.WriteString("zeze.Schemas." + Config.ServerId);
                 while (true)
                 {
                     var (data, version) = defaultDb.DirectOperates.GetDataWithVersion(keyOfSchemas);

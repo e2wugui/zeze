@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -120,13 +121,14 @@ namespace Zeze.Raft
 
         public Util.TaskOneByOneByKey TaskOneByOne { get; } = new Util.TaskOneByOneByKey();
 
-        private int ProcessRequest(long appInstance, Protocol p, ProtocolFactoryHandle factoryHandle)
+        private int ProcessRequest(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             return Util.Task.Call(() =>
             {
                 if (Raft.WaitLeaderReady())
                 {
-                    if (Raft.LogSequence.LastAppliedAppRpcUniqueRequestId.TryGetValue(appInstance, out var max))
+                    if (Raft.LogSequence.LastAppliedAppRpcUniqueRequestId.TryGetValue(
+                        p.Sender.RemoteAddress, out var max))
                     {
                         if (p.UniqueRequestId <= max)
                         {
@@ -168,15 +170,13 @@ namespace Zeze.Raft
                     return;
                 }
 
-                // 默认0，如果没有配置多实例客户端，所有得请求都排一个队列，因为并发有风险。
-                long appInstance = 0;
+                // 默认0，每个远程ip地址允许并发。
+                // 不直接包含port信息，client.port容易改变。
+
                 //【防止重复的请求】
                 // see Log.cs::LogSequence.TryApply
-                if (Raft.RaftConfig.AutoKeyLocalStep > 0)
-                    appInstance = p.UniqueRequestId % Raft.RaftConfig.AutoKeyLocalStep;
-
-                TaskOneByOne.Execute(appInstance,
-                    () => ProcessRequest(appInstance, p, factoryHandle),
+                TaskOneByOne.Execute(p.Sender.RemoteAddress,
+                    () => ProcessRequest(p, factoryHandle),
                     p.GetType().FullName,
                     () => p.SendResultCode(Procedure.CancelExcption)
                     );

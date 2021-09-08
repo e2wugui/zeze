@@ -32,8 +32,7 @@ namespace Zeze
 
         public NLog.LogLevel ProcessReturnErrorLogLevel { get; set; } = NLog.LogLevel.Info;
         public int InternalThreadPoolWorkerCount { get; set; }
-        public int AutoKeyLocalId { get; set; } = 0;
-        public int AutoKeyLocalStep { get; private set; } = 4096;
+        public int ServerId { get; set; }
         public string GlobalCacheManagerHostNameOrAddress { get; set; }
         public int GlobalCacheManagerPort { get; private set; }
         public ConcurrentDictionary<string, TableConf> TableConfMap { get; }
@@ -120,7 +119,7 @@ namespace Zeze
             }
             foreach (var db in databases.Values)
             {
-                db.DirectOperates.ClearInUse(AutoKeyLocalId, GlobalCacheManagerHostNameOrAddress);
+                db.DirectOperates.ClearInUse(ServerId, GlobalCacheManagerHostNameOrAddress);
             }
         }
 
@@ -168,8 +167,8 @@ namespace Zeze
                 throw new Exception("is it a zeze config.");
 
             CheckpointPeriod = int.Parse(self.GetAttribute("CheckpointPeriod"));
-            AutoKeyLocalId = int.Parse(self.GetAttribute("AutoKeyLocalId"));
-            AutoKeyLocalStep = int.Parse(self.GetAttribute("AutoKeyLocalStep"));
+            ServerId = int.Parse(self.GetAttribute("ServerId"));
+
             GlobalCacheManagerHostNameOrAddress = self.GetAttribute("GlobalCacheManagerHostNameOrAddress");
             string attr = self.GetAttribute("GlobalCacheManagerPort");
             GlobalCacheManagerPort = attr.Length > 0 ? int.Parse(attr) : 0;

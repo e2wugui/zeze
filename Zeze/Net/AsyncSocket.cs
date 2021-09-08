@@ -5,6 +5,7 @@ using System.Text;
 using System.Net.Sockets;
 using System.Diagnostics;
 using Zeze.Serialize;
+using System.Net;
 
 namespace Zeze.Net
 {
@@ -46,6 +47,8 @@ namespace Zeze.Net
 
         private Codec inputCodecChain;
         private Codec outputCodecChain;
+
+        public string RemoteAddress { get; private set; }
 
         /// <summary>
         /// for server socket
@@ -96,6 +99,10 @@ namespace Zeze.Net
             this.SessionId = SessionIdGen.IncrementAndGet();
 
             this._inputBuffer = new byte[service.SocketOptions.InputBufferSize];
+
+            var remoteIp = Socket.RemoteEndPoint as IPEndPoint;
+            RemoteAddress = remoteIp.Address.GetAddressBytes().ToString();
+
             BeginReceiveAsync();
         }
 

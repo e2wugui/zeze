@@ -206,7 +206,7 @@ namespace Zeze.Services
         private int ProcessLogin(Zeze.Net.Protocol p)
         {
             var rpc = p as Login;
-            var session = Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (_) => new CacheHolder());
+            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder());
             if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
                 rpc.SendResultCode(LoginBindSocketFail);
@@ -225,7 +225,7 @@ namespace Zeze.Services
         private int ProcessReLogin(Zeze.Net.Protocol p)
         {
             var rpc = p as ReLogin;
-            var session = Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (_) => new CacheHolder());
+            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder());
             if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
                 rpc.SendResultCode(ReLoginBindSocketFail);
@@ -831,7 +831,7 @@ namespace Zeze.Services
 
         public sealed class LoginParam : Zeze.Transaction.Bean
         {
-            public int AutoKeyLocalId { get; set; }
+            public int ServerId { get; set; }
 
             // GlobalCacheManager 本身没有编号。
             // 启用多个进程，使用 GlobalTableKey.GetHashCode() 分配负载后，报告错误需要这个来识别哪个进程。
@@ -841,13 +841,13 @@ namespace Zeze.Services
 
             public override void Decode(ByteBuffer bb)
             {
-                AutoKeyLocalId = bb.ReadInt();
+                ServerId = bb.ReadInt();
                 GlobalCacheManagerHashIndex = bb.ReadInt();
             }
 
             public override void Encode(ByteBuffer bb)
             {
-                bb.WriteInt(AutoKeyLocalId);
+                bb.WriteInt(ServerId);
                 bb.WriteInt(GlobalCacheManagerHashIndex);
             }
 
@@ -870,7 +870,7 @@ namespace Zeze.Services
 
             public Login(int id)
             {
-                Argument.AutoKeyLocalId = id;
+                Argument.ServerId = id;
             }
         }
 
@@ -887,7 +887,7 @@ namespace Zeze.Services
 
             public ReLogin(int id)
             {
-                Argument.AutoKeyLocalId = id;
+                Argument.ServerId = id;
             }
         }
 

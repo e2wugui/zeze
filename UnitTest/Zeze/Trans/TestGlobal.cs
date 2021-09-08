@@ -70,7 +70,7 @@ namespace UnitTest.Zeze.Trans
             demo.App app2 = new demo.App();
             var config1 = global::Zeze.Config.Load();
             var config2 = global::Zeze.Config.Load();
-            config2.AutoKeyLocalId = config1.AutoKeyLocalId + 1;
+            config2.ServerId = config1.ServerId + 1;
 
             app1.Start(config1);
             app2.Start(config2);

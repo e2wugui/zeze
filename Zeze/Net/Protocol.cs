@@ -23,6 +23,7 @@ namespace Zeze.Net
 		}
 
 		public AsyncSocket Sender { get; set; }
+
 		public object UserState { get; set; }
 
 		internal virtual void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
@@ -75,6 +76,7 @@ namespace Zeze.Net
 		/// <summary>
 		/// 唯一的请求编号，重发时保持不变。
 		/// 第一次发送的时候用Service.SessionIdGenerator生成。
+		/// Rpc才会实际使用这个。
 		/// </summary>
 		public long UniqueRequestId { get; protected set; }
 
@@ -156,7 +158,7 @@ namespace Zeze.Net
 
 		public override string ToString()
         {
-			return $"{GetType().FullName}({ModuleId},{ProtocolId} UniqueRequestId={UniqueRequestId})";
+			return $"{GetType().FullName}({ModuleId},{ProtocolId},{UniqueRequestId})";
         }
     }
 
