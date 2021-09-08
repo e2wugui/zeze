@@ -217,7 +217,7 @@
 
 		<bean name="BModuleRedirectResult">
 			<variable name="ModuleId"       id="1" type="int"/>
-			<variable name="AutoKeyLocalId" id="2" type="int"/> 目标server的id。
+			<variable name="ServerId" id="2" type="int"/> 目标server的id。
 			<!-- 上面两个参数用来调试，不是必要的。 -->
 
 			<!--
@@ -267,7 +267,7 @@
 
 		<bean name="BModuleRedirectAllResult">
 			<variable name="ModuleId"       id="1" type="int"/>
-			<variable name="AutoKeyLocalId" id="2" type="int"/> 目标server的id。
+			<variable name="ServerId" id="2" type="int"/> 目标server的id。
 			<!-- 上面两个参数用来调试，不是必要的。 -->
 			<variable name="SourceProvider" id="3" type="long"/> 从BModuleRedirectAllRequest里面得到。
 			<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"

@@ -62,7 +62,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("                if (null != Zeze)");
             sw.WriteLine("                    return;");
             sw.WriteLine("");
-            sw.WriteLine("                Zeze = new Zeze.Application(config);");
+            sw.WriteLine($"                Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
             sw.WriteLine("");
             foreach (Service m in project.Services.Values)
             {

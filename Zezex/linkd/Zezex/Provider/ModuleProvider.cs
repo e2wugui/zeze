@@ -368,7 +368,7 @@ namespace Zezex.Provider
             miss.Argument.MethodFullName = protocol.Argument.MethodFullName;
             miss.Argument.SourceProvider = protocol.Sender.SessionId; // not used
             miss.Argument.SessionId = protocol.Argument.SessionId;
-            miss.Argument.AutoKeyLocalId = 0; // 在这里没法知道逻辑服务器id，错误报告就不提供这个了。
+            miss.Argument.ServerId = 0; // 在这里没法知道逻辑服务器id，错误报告就不提供这个了。
             miss.ResultCode = ModuleRedirect.ResultCodeLinkdNoProvider;
 
             for (int i = 0; i < protocol.Argument.HashCodeConcurrentLevel; ++i)

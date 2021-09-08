@@ -335,7 +335,7 @@ namespace Game.Login
             var groups = GroupByLink(roleIds);
             foreach (var group in groups)
             {
-                if (group.ProviderId == App.Instance.Zeze.Config.AutoKeyLocalId)
+                if (group.ProviderId == App.Instance.Zeze.Config.ServerId)
                 {
                     // loopback 就是当前gs.
                     ProcessTransmit(sender, actionName, group.Roles.Keys);

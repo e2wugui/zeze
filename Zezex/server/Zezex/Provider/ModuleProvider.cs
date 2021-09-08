@@ -104,7 +104,7 @@ namespace Zezex.Provider
                 Transaction.Current.TopProcedure.ActionName = rpc.Argument.MethodFullName;
 
                 rpc.Result.ModuleId = rpc.Argument.ModuleId;
-                rpc.Result.AutoKeyLocalId = App.Zeze.Config.AutoKeyLocalId;
+                rpc.Result.ServerId = App.Zeze.Config.ServerId;
                 if (false == Game.ModuleRedirect.Instance.Handles.TryGetValue(rpc.Argument.MethodFullName, out var handle))
                 {
                     rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
@@ -155,7 +155,7 @@ namespace Zezex.Provider
 
                 // common parameters for result
                 result.Argument.ModuleId = protocol.Argument.ModuleId;
-                result.Argument.AutoKeyLocalId = App.Zeze.Config.AutoKeyLocalId;
+                result.Argument.ServerId = App.Zeze.Config.ServerId;
                 result.Argument.SourceProvider = protocol.Argument.SourceProvider;
                 result.Argument.SessionId = protocol.Argument.SessionId;
                 result.Argument.MethodFullName = protocol.Argument.MethodFullName;

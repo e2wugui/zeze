@@ -834,7 +834,7 @@ namespace Game
         {
             if (Game.App.Instance.ProviderModuleBinds.Modules.TryGetValue(moduleName, out var module))
             {
-                return module.Providers.Contains(Game.App.Instance.Zeze.Config.AutoKeyLocalId);
+                return module.Providers.Contains(Game.App.Instance.Zeze.Config.ServerId);
             }
             return false;
         }

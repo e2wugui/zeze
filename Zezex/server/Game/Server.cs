@@ -98,7 +98,7 @@ namespace Game
 
             var announce = new Zezex.Provider.AnnounceProviderInfo();
             announce.Argument.ServiceNamePrefix = App.GameServerServiceNamePrefix;
-            announce.Argument.ServiceIndentity = Zeze.Config.AutoKeyLocalId.ToString();
+            announce.Argument.ServiceIndentity = Zeze.Config.ServerId.ToString();
             announce.Send(sender);
 
             // static binds

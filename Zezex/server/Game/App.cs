@@ -40,25 +40,25 @@ namespace Game
 
         public void Start(string[] args)
         {
-            int AutoKeyLocalId = -1;
+            int ServerId = -1;
             for (int i = 0; i < args.Length; ++i)
             {
                 switch (args[i])
                 {
-                    case "-AutoKeyLocalId":
-                        AutoKeyLocalId = int.Parse(args[++i]);
+                    case "-ServerId":
+                        ServerId = int.Parse(args[++i]);
                         break;
                 }
             }
 
             LoadConfig();
             var config = global::Zeze.Config.Load();
-            if (AutoKeyLocalId != -1)
-                config.AutoKeyLocalId = AutoKeyLocalId; // replace from args
+            if (ServerId != -1)
+                config.ServerId = ServerId; // replace from args
             Create(config);
 
             ProviderModuleBinds = Zezex.ProviderModuleBinds.Load();
-            ProviderModuleBinds.BuildStaticBinds(Modules, Zeze.Config.AutoKeyLocalId, StaticBinds);
+            ProviderModuleBinds.BuildStaticBinds(Modules, Zeze.Config.ServerId, StaticBinds);
 
             // 这里有点问题，ServiceManager 增加了 AutoKey 功能，这个可能被广泛使用，需要先初始化。
             // 但是连接成功后，服务就被注册到 ServiceManager 中，而此时本服务还没启动完成。
@@ -69,7 +69,7 @@ namespace Game
                     foreach (var staticBind in StaticBinds)
                     {
                         agent.RegisterService($"{GameServerServiceNamePrefix}{staticBind.Key}",
-                            config.AutoKeyLocalId.ToString());
+                            config.ServerId.ToString());
                     }
                     agent.SubscribeService(GameLinkdServiceName, global::Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeSimple);
                 },

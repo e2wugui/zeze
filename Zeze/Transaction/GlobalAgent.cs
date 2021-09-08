@@ -278,7 +278,7 @@ namespace Zeze.Transaction
         GlobalAgent agent;
 
         public GlobalClient(GlobalAgent agent, Application zeze)
-            : base("GlobalClient", zeze)
+            : base($"{agent.Zeze.SolutionName}.GlobalClient", zeze)
         {
             this.agent = agent;
         }

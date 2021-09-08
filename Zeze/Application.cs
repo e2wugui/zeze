@@ -42,9 +42,12 @@ namespace Zeze
         }
 
         public Schemas Schemas { get; set; } // no thread protected
+        public string SolutionName { get; }
 
-        public Application(Config config = null)
+        public Application(string solutionName, Config config = null)
         {
+            SolutionName = solutionName;
+
             Config = config;
             if (null == Config)
                 Config = Config.Load();
