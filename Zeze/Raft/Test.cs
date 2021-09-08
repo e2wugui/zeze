@@ -75,7 +75,7 @@ namespace Zeze.Raft
                     Agent.SendForWait(r).Task.Wait();
                     return r.ResultCode;
                 }
-                catch (Exception _)
+                catch (Exception)
                 {
                 }
             }
@@ -144,7 +144,7 @@ namespace Zeze.Raft
             {
                 Task.WaitAll(tasks);
             }
-            catch (AggregateException _)
+            catch (AggregateException)
             {
                 // 这里只会发生超时错误RpcTimeoutException。
                 // 后面会处理每个requests，这里不做处理了。

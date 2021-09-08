@@ -15,7 +15,7 @@ namespace Zeze
         public Dictionary<string, Database> Databases { get; private set; } = new Dictionary<string, Database>();
         public Config Config { get; }
         public bool IsStart { get; private set; }
-        internal TableSys TableSys { get; private set; }
+        public Services.ServiceManager.Agent ServiceManagerAgent { get; set; }
         internal GlobalAgent GlobalAgent { get; }
 
         // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
@@ -127,22 +127,33 @@ namespace Zeze
                     return;
                 IsStart = true;
 
-                // 由于 AutoKey，TableSys需要先打开。TableSys肯定在defaultDb中。并且要在其他database都初始化table后再加入。
-                TableSys = new TableSys();
+                if (null == ServiceManagerAgent)
+                {
+                    // 应用没有使用服务注册，默认启动一个，用来支持 AutoKey.
+                    ServiceManagerAgent = new Services.ServiceManager.Agent(Config,
+                        (agent) =>
+                        {
+                        },
+                        (subscribeState) =>
+                        {
+                        });
+                }
+
+                ServiceManagerAgent.Client.Config.ForEachConnector(
+                    (connector) => connector.HandshakeDoneEvent.WaitOne());
+
                 Database defaultDb = GetDatabase("");
-                defaultDb.storages.Add(TableSys.Open(this, defaultDb));
                 foreach (var db in Databases.Values)
                 {
                     db.Open(this);
                 }
-                defaultDb.AddTable(TableSys);
 
                 if (Config.GlobalCacheManagerHostNameOrAddress.Length > 0)
                 {
                     GlobalAgent.Start(Config.GlobalCacheManagerHostNameOrAddress, Config.GlobalCacheManagerPort);
                 }
 
-                Checkpoint.Start(Config.CheckpointPeriod);
+                Checkpoint.Start(Config.CheckpointPeriod); // 定时模式可以和其他模式混用。
 
                 /////////////////////////////////////////////////////
                 /// Schemas Check
@@ -180,18 +191,18 @@ namespace Zeze
         {
             lock (this)
             {
+                GlobalAgent?.Stop(); // 关闭时需要生成新的SessionId，这个现在使用AutoKey，需要事务支持。
+
                 if (false == IsStart)
                     return;
                 Config?.ClearInUseAndIAmSureAppStopped(Databases);
-
                 IsStart = false;
+
                 Checkpoint?.StopAndJoin();
-                GlobalAgent?.Stop();
                 foreach (var db in Databases.Values)
                 {
                     db.Close();
                 }
-                TableSys = null;
                 Databases.Clear();
             }
         }

@@ -1,7 +1,9 @@
-﻿using System;
+﻿using RocksDbSharp;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -81,6 +83,7 @@ namespace Zeze.Services
             public int StartNotifyDelay { get; set; } = 12 * 1000; // 12s
 
             public int RetryNotifyDelayWhenNotAllReady { get; set; } = 30 * 1000; // 30s
+            public string DbHome { get; private set; } = ".";
 
             public void Parse(XmlElement self)
             {
@@ -93,6 +96,9 @@ namespace Zeze.Services
                 attr = self.GetAttribute("RetryNotifyDelayWhenNotAllReady");
                 if (!string.IsNullOrEmpty(attr))
                     RetryNotifyDelayWhenNotAllReady = int.Parse(attr);
+                DbHome = self.GetAttribute("DbHome");
+                if (string.IsNullOrEmpty(DbHome))
+                    DbHome = ".";
             }
         }
 
@@ -516,15 +522,86 @@ namespace Zeze.Services
                 Factory = () => new Keepalive(),
             });
 
+            Server.AddFactoryHandle(new AllocateId().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new AllocateId(),
+                Handle = ProcessAllocateId,
+            });
+
             if (Config.StartNotifyDelay > 0)
             {
                 StartNotifyDelayTask = Util.Scheduler.Instance.Schedule(
                     StartNotifyAll, Config.StartNotifyDelay);
             }
 
+            var options = new DbOptions().SetCreateIfMissing(true);
+            AutoKeysDb = RocksDb.Open(options, Path.Combine(Config.DbHome, "autokeys"));
+
             // 允许配置多个acceptor，如果有冲突，通过日志查看。
             ServerSocket = Server.NewServerSocket(ipaddress, port);
             Server.Start();
+        }
+
+        private RocksDb AutoKeysDb;
+        private ConcurrentDictionary<string, AutoKey> AutoKeys { get; }
+            = new ConcurrentDictionary<string, AutoKey>();
+
+        public sealed class AutoKey
+        {
+            public string Name { get; }
+            public RocksDb Db { get; }
+            private byte[] Key { get; }
+            private long Current { get; set; }
+
+            public AutoKey(string name, RocksDbSharp.RocksDb db)
+            {
+                Name = name;
+                Db = db;
+                {
+                    var bb = ByteBuffer.Allocate();
+                    bb.WriteString(Name);
+                    Key = bb.Copy();
+                }
+                var value = Db.Get(Key);
+                if (null != value)
+                {
+                    var bb = ByteBuffer.Wrap(value);
+                    Current = bb.ReadLong();
+                }
+            }
+
+            public void Allocate(AllocateId rpc)
+            {
+                lock (this)
+                {
+                    rpc.Result.StartId = Current;
+
+                    var count = rpc.Argument.Count;
+
+                    // 随便修正一下分配数量。
+                    if (count < 256)
+                        count = 256;
+                    else if (count > 10000)
+                        count = 10000;
+
+                    Current += count;
+                    var bb = ByteBuffer.Allocate();
+                    bb.WriteLong(Current);
+                    Db.Put(Key, Key.Length, bb.Bytes, bb.Size, null, new WriteOptions().SetSync(true));
+
+                    rpc.Result.Count = count;
+                }
+            }
+        }
+
+        private int ProcessAllocateId(Protocol p)
+        {
+            var r = p as AllocateId;
+            var n = r.Argument.Name;
+            r.Result.Name = n;
+            AutoKeys.GetOrAdd(n, (_) => new AutoKey(n, AutoKeysDb)).Allocate(r);
+            r.SendResult();
+            return 0;
         }
 
         private void StartNotifyAll(Util.SchedulerTask ThisTask)
@@ -552,6 +629,7 @@ namespace Zeze.Services
                 {
                     ss.Close();
                 }
+                AutoKeysDb?.Dispose();
             }
         }
 
@@ -902,6 +980,63 @@ namespace Zeze.Services
             public override int ProtocolId => ProtocolId_;
         }
 
+        public sealed class AllocateIdArgument : Bean
+        {
+            public string Name { get; set; }
+            public int Count { get; set; }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                Name = bb.ReadString();
+                Count = bb.ReadInt();
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                bb.WriteString(Name);
+                bb.WriteInt(Count);
+            }
+
+            protected override void InitChildrenRootInfo(Record.RootInfo root)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public sealed class AllocateIdResult : Bean
+        {
+            public string Name { get; set; }
+            public long StartId { get; set; }
+            public int Count { get; set; }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                Name = bb.ReadString();
+                StartId = bb.ReadLong();
+                Count = bb.ReadInt();
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                bb.WriteString(Name);
+                bb.WriteLong(StartId);
+                bb.WriteInt(Count);
+            }
+
+            protected override void InitChildrenRootInfo(Record.RootInfo root)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public sealed class AllocateId : Rpc<AllocateIdArgument, AllocateIdResult>
+        {
+            public readonly static int ProtocolId_ = Bean.Hash16(typeof(AllocateId).FullName);
+
+            public override int ModuleId => 0;
+            public override int ProtocolId => ProtocolId_;
+        }
+
         public sealed class Agent : IDisposable
         {
             // key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
@@ -1217,6 +1352,56 @@ namespace Zeze.Services
                 return Procedure.Success;
             }
 
+            public sealed class AutoKey
+            {
+                public string Name { get; }
+                public long Current { get; private set; }
+                public int Count { get; private set; }
+                public Agent Agent { get; }
+
+                internal AutoKey(string name, Agent agent)
+                {
+                    Name = name;
+                    Agent = agent;
+                    Allocate();
+                }
+
+                public long Next()
+                {
+                    lock (this)
+                    {
+                        if (Count <= 0)
+                            Allocate();
+
+                        if (Count <= 0)
+                            throw new Exception($"AllocateId failed for {Name}");
+
+                        var tmp = Current;
+                        --Count;
+                        ++Current;
+                        return tmp;
+                    }
+                }
+
+                private void Allocate()
+                {
+                    var r = new AllocateId();
+                    r.Argument.Name = Name;
+                    r.Argument.Count = 1024;
+                    r.SendAndWaitCheckResultCode(Agent.Client.Socket);
+                    Current = r.Result.StartId;
+                    Count = r.Result.Count;
+                }
+            }
+
+            private ConcurrentDictionary<string, AutoKey> AutoKeys { get; }
+                = new ConcurrentDictionary<string, AutoKey>();
+
+            public AutoKey GetAutoKey(string name)
+            {
+                return AutoKeys.GetOrAdd(name, (k) => new AutoKey(k, this));
+            }
+
             public void Stop()
             {
                 lock(this)
@@ -1315,6 +1500,11 @@ namespace Zeze.Services
                 {
                     Factory = () => new SubscribeFirstCommit(),
                     Handle = ProcessSubscribeFirstCommit,
+                });
+
+                Client.AddFactoryHandle(new AllocateId().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new AllocateId(),
                 });
 
                 Client.Start();

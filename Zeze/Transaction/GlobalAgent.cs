@@ -200,7 +200,7 @@ namespace Zeze.Transaction
 
                 Client = new GlobalClient(this, Zeze);
                 // Zeze-App 自动启用持久化的全局唯一的Rpc.SessionId生成器。
-                Client.SessionIdGenerator = Zeze.TableSys.AutoKeys.GetAutoKey(Client.Name).Next;
+                Client.SessionIdGenerator = Zeze.ServiceManagerAgent.GetAutoKey(Client.Name).Next;
 
                 Client.AddFactoryHandle(new GlobalCacheManager.Reduce().TypeId, new Service.ProtocolFactoryHandle()
                 {

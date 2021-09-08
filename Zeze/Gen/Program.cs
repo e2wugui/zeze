@@ -13,7 +13,7 @@ namespace Zeze.Gen
         public static void CheckReserveName(string name)
         {
             if (name.StartsWith("_"))
-                throw new Exception("Name Can Not Starts With '_'.");
+                throw new Exception($"Name Can Not Starts With '_' name={name}");
         }
 
         public static string GenUniqVarName()

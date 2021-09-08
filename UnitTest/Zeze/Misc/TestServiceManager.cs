@@ -39,7 +39,7 @@ namespace UnitTest.Zeze.Misc
             // for reconnect
             var clientConfig = global::Zeze.Config.Load();
             var agentConfig = new global::Zeze.Net.ServiceConf();
-            clientConfig.ServiceConfMap.TryAdd("Zeze.Services.ServiceManager.Agent", agentConfig);
+            clientConfig.ServiceConfMap.TryAdd("Zeze.Services.ServiceManager.Agent.Test", agentConfig);
             agentConfig.AddConnector(new global::Zeze.Net.Connector(ip, port));
             using var agent = new ServiceManager.Agent(clientConfig,
                 (agent) =>
@@ -51,7 +51,8 @@ namespace UnitTest.Zeze.Misc
                 {
                     Console.WriteLine("OnChanged: " + state.ServiceInfos);
                     this.future.SetResult(0);
-                }
+                },
+                "Zeze.Services.ServiceManager.Agent.Test"
                 );
             Console.WriteLine("ConnectNow");
             future.Task.Wait();

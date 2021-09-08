@@ -63,7 +63,7 @@ namespace Zeze.Transaction
         }
         public Application Zeze { get; private set; }
 
-        protected AutoKey AutoKey { get; private set;  }
+        protected ServiceManager.Agent.AutoKey AutoKey { get; private set;  }
 
         private Record<K, V> FindInCacheOrStorage(K key)
         {
@@ -345,9 +345,6 @@ namespace Zeze.Transaction
             if (null != Get(key))
                 return false;
 
-            if (key is long longkey)
-                AutoKey?.Accept(longkey);
-
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Id, key);
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
@@ -374,8 +371,6 @@ namespace Zeze.Transaction
                 cr.Put(currentT, value);
                 return;
             }
-            if (key is long longkey)
-                AutoKey?.Accept(longkey);
             Record<K, V> r = FindInCacheOrStorage(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, value);
@@ -420,7 +415,7 @@ namespace Zeze.Transaction
                 throw new Exception("table has opened." + Name);
             Zeze = app;
             if (this.IsAutoKey)
-                AutoKey = app.TableSys.AutoKeys.GetAutoKey(Name);
+                AutoKey = app.ServiceManagerAgent.GetAutoKey(Name);
 
             base.TableConf = app.Config.GetTableConf(Name);
             Cache = new TableCache<K, V>(app, this);

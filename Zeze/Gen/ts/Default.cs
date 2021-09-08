@@ -54,7 +54,7 @@ namespace Zeze.Gen.ts
 
         void Visitor.Visit(TypeLong type)
         {
-            SetDefaultValue("0");
+            SetDefaultValue("0n");
         }
 
         void Visitor.Visit(TypeBool type)

@@ -18,7 +18,7 @@ namespace Game
 
         public Config Config { get; private set; }
         public Load Load { get; } = new Load();
-        public Zeze.Services.ServiceManager.Agent ServiceManagerAgent { get; private set; }
+
         public const string GameServerServiceNamePrefix = "Game.Server.Module#";
         public const string GameLinkdServiceName = "Game.Linkd";
 
@@ -60,10 +60,10 @@ namespace Game
             ProviderModuleBinds = Zezex.ProviderModuleBinds.Load();
             ProviderModuleBinds.BuildStaticBinds(Modules, Zeze.Config.AutoKeyLocalId, StaticBinds);
 
-            Zeze.Start(); // 启动数据库
-            StartModules(); // 启动模块，装载配置什么的。
-            StartService(); // 启动网络
-            ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(config,
+            // 这里有点问题，ServiceManager 增加了 AutoKey 功能，这个可能被广泛使用，需要先初始化。
+            // 但是连接成功后，服务就被注册到 ServiceManager 中，而此时本服务还没启动完成。
+            // 可能会造成服务临时性不可用。XXX 以后再考虑解决这个问题。
+            Zeze.ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(config,
                 (agent) =>
                 {
                     foreach (var staticBind in StaticBinds)
@@ -77,6 +77,10 @@ namespace Game
                 {
                     Server.ApplyLinksChanged(subscribeState.ServiceInfos);
                 });
+
+            Zeze.Start(); // 启动数据库
+            StartModules(); // 启动模块，装载配置什么的。
+            StartService(); // 启动网络
             Load.StartTimerTask();
         }
 

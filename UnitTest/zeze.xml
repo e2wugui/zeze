@@ -21,4 +21,8 @@
 		<Acceptor Ip="127.0.0.1" Port="9999"/>
 		<Acceptor Ip="::1" Port="9999"/>
 	</ServiceConf>
+
+	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
+		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
+	</ServiceConf>
 </zeze>

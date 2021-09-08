@@ -24,6 +24,7 @@ namespace Zeze.Gen
         {
             Space = space;
             Name = self.GetAttribute("name").Trim();
+            Program.CheckReserveName(Name);
             space.Add(this);
 
             Key = self.GetAttribute("key");
