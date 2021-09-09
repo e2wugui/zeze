@@ -41,19 +41,14 @@ namespace UnitTest.Zeze.Misc
             var agentConfig = new global::Zeze.Net.ServiceConf();
             clientConfig.ServiceConfMap.TryAdd("Zeze.Services.ServiceManager.Agent.Test", agentConfig);
             agentConfig.AddConnector(new global::Zeze.Net.Connector(ip, port));
-            using var agent = new ServiceManager.Agent(clientConfig,
-                (agent) =>
-                {
-                    agent.RegisterService(serviceName, "1");
-                    agent.SubscribeService(serviceName, ServiceManager.SubscribeInfo.SubscribeTypeSimple);
-                },
-                (state) =>
-                {
-                    Console.WriteLine("OnChanged: " + state.ServiceInfos);
-                    this.future.SetResult(0);
-                },
-                "Zeze.Services.ServiceManager.Agent.Test"
-                );
+            using var agent = new ServiceManager.Agent(clientConfig, "Zeze.Services.ServiceManager.Agent.Test");
+            agent.RegisterService(serviceName, "1");
+            agent.OnChanged = (state) =>
+            {
+                Console.WriteLine("OnChanged: " + state.ServiceInfos);
+                this.future.SetResult(0);
+            };
+            agent.SubscribeService(serviceName, ServiceManager.SubscribeInfo.SubscribeTypeSimple);
             Console.WriteLine("ConnectNow");
             future.Task.Wait();
 

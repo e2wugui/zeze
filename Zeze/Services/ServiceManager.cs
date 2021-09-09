@@ -1044,12 +1044,12 @@ namespace Zeze.Services
             public ConcurrentDictionary<string, SubscribeState> SubscribeStates { get; }
                 = new ConcurrentDictionary<string, SubscribeState>();
             public NetClient Client { get; private set; }
+
             /// <summary>
-            /// 如果应用一开始就知道自己需要注册和订阅的服务，可以在这个回调里面集中处理。
-            /// 如果应用执行过程中动态注册和订阅，则可不处理，但是调用注册订阅的函数时要检查连接好了没。
+            /// 订阅服务状态发生变化时回调。
+            /// 如果需要处理这个事件，请在订阅前设置回调。
             /// </summary>
-            public Action<Agent> OnConnected { get; private set; }
-            public Action<SubscribeState> OnChanged { get; private set; }
+            public Action<SubscribeState> OnChanged { get; set; }
 
             // 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
             // ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -1139,7 +1139,7 @@ namespace Zeze.Services
                             info.LocalState = state;
                         }
                     }
-                    Agent.OnChanged(this);
+                    Agent.OnChanged?.Invoke(this);
                 }
 
                 internal void OnNotify(ServiceInfos infos)
@@ -1209,8 +1209,16 @@ namespace Zeze.Services
                 return RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
             }
 
+            public void WaitConnectorReady()
+            {
+                // 实际上只有一个连接，这样就不用查找了。
+                Client.Config.ForEachConnector((c) => c.WaitReady());
+            }
+
             private ServiceInfo RegisterService(ServiceInfo info)
             {
+                WaitConnectorReady();
+
                 bool regNew = false;
                 var regServInfo = Registers.GetOrAdd(info,
                     (key) =>
@@ -1242,6 +1250,8 @@ namespace Zeze.Services
 
             private void UnRegisterService(ServiceInfo info)
             {
+                WaitConnectorReady();
+
                 if (Registers.TryRemove(info, out var exist))
                 {
                     try
@@ -1273,6 +1283,8 @@ namespace Zeze.Services
 
             private SubscribeState SubscribeService(SubscribeInfo info)
             {
+                WaitConnectorReady();
+
                 bool newAdd = false;
                 var subState = SubscribeStates.GetOrAdd(info.ServiceName,
                     (_) =>
@@ -1301,6 +1313,8 @@ namespace Zeze.Services
 
             public void UnSubscribeService(string serviceName)
             {
+                WaitConnectorReady();
+
                 if (SubscribeStates.TryRemove(serviceName, out var state))
                 {
                     try
@@ -1363,7 +1377,6 @@ namespace Zeze.Services
                 {
                     Name = name;
                     Agent = agent;
-                    Allocate();
                 }
 
                 public long Next()
@@ -1413,7 +1426,7 @@ namespace Zeze.Services
                 }
             }
 
-            internal void _OnConnected()
+            internal void OnConnected()
             {
                 foreach (var e in Registers)
                 {
@@ -1424,7 +1437,7 @@ namespace Zeze.Services
                     }
                     catch (Exception ex)
                     {
-                        logger.Debug(ex, "_OnConnected.Register={0}", e.Value);
+                        logger.Debug(ex, "OnConnected.Register={0}", e.Value);
                     }
                 }
                 foreach (var e in SubscribeStates)
@@ -1437,26 +1450,22 @@ namespace Zeze.Services
                     }
                     catch (Exception ex)
                     {
-                        logger.Debug(ex, "_OnConnected.Subscribe={0}", e.Value.SubscribeInfo);
+                        logger.Debug(ex, "OnConnected.Subscribe={0}", e.Value.SubscribeInfo);
                     }
                 }
-                OnConnected(this);
             }
 
             /// <summary>
             /// 使用Config配置连接信息，可以配置是否支持重连。
             /// 用于测试：Agent.Client.NewClientSocket(...)，不会自动重连，不要和Config混用。
             /// </summary>
-            public Agent(Config config, Action<Agent> onConnected, Action<SubscribeState> onChanged, string netServiceName = null)
+            public Agent(Config config, string netServiceName = null)
             {
                 if (null == config)
                     throw new Exception("Config is null");
 
                 Client = string.IsNullOrEmpty(netServiceName)
                     ? new NetClient(this, config) : new NetClient(this, config, netServiceName);
-
-                OnConnected = onConnected;
-                OnChanged = onChanged;
 
                 Client.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
                 {
@@ -1539,7 +1548,7 @@ namespace Zeze.Services
                     if (null == Socket)
                     {
                         Socket = sender;
-                        Util.Task.Run(Agent._OnConnected, "ServiceManager.Agent._OnConnected");
+                        Util.Task.Run(Agent.OnConnected, "ServiceManager.Agent.OnConnected");
                     }
                     else
                     {

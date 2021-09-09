@@ -74,6 +74,14 @@ namespace Zeze.Net
             }
         }
 
+        // 允许子类重新定义Ready.
+        public virtual void WaitReady(int timeout = 5000)
+        {
+            if (HandshakeDoneEvent.WaitOne(timeout))
+                return;
+            throw new Exception($"Connnector.WaitReady fail. {Name}");
+        }
+
         public virtual void OnSocketClose(AsyncSocket closed)
         {
             lock (this)

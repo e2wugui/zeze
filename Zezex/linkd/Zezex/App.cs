@@ -51,17 +51,10 @@ namespace Zezex
             ProviderServicePassiveIp = ip;
             ProviderServicePasivePort = port;
 
-            ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(Zeze.Config,
-                (agent) =>
-                {
-                    agent.RegisterService(GameLinkdServiceName,
-                        $"{ProviderServicePassiveIp}:{ProviderServicePasivePort}",
-                        ProviderServicePassiveIp, ProviderServicePasivePort);
-                },
-                (subscribeState) =>
-                {
-                    // 不需要做任何操作，直接使用得到的服务列表。
-                });
+            ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(Zeze.Config);
+            ServiceManagerAgent.RegisterService(GameLinkdServiceName,
+                $"{ProviderServicePassiveIp}:{ProviderServicePasivePort}",
+                ProviderServicePassiveIp, ProviderServicePasivePort);
         }
 
         public void Stop()

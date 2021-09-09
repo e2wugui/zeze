@@ -15,7 +15,7 @@ namespace Zeze
         public Dictionary<string, Database> Databases { get; private set; } = new Dictionary<string, Database>();
         public Config Config { get; }
         public bool IsStart { get; private set; }
-        public Services.ServiceManager.Agent ServiceManagerAgent { get; set; }
+        public Services.ServiceManager.Agent ServiceManagerAgent { get; private set; }
         internal GlobalAgent GlobalAgent { get; }
 
         // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
@@ -130,20 +130,8 @@ namespace Zeze
                     return;
                 IsStart = true;
 
-                if (null == ServiceManagerAgent)
-                {
-                    // 应用没有使用服务注册，默认启动一个，用来支持 AutoKey.
-                    ServiceManagerAgent = new Services.ServiceManager.Agent(Config,
-                        (agent) =>
-                        {
-                        },
-                        (subscribeState) =>
-                        {
-                        });
-                }
-
-                ServiceManagerAgent.Client.Config.ForEachConnector(
-                    (connector) => connector.HandshakeDoneEvent.WaitOne());
+                ServiceManagerAgent = new Services.ServiceManager.Agent(Config);
+                ServiceManagerAgent.WaitConnectorReady();
 
                 Database defaultDb = GetDatabase("");
                 foreach (var db in Databases.Values)
@@ -207,6 +195,7 @@ namespace Zeze
                     db.Close();
                 }
                 Databases.Clear();
+                ServiceManagerAgent.Stop();
             }
         }
  
