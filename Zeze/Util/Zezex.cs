@@ -110,28 +110,34 @@ namespace Zeze.Util
         public void Export()
         {
             // prepare
-            Directory.CreateDirectory(ExportDirectory);
+            try
+            {
+                Directory.CreateDirectory(ExportDirectory);
 
-            GitCheckout(""); // NewestRelease
-            ParseModulesAndTryExportSolutionXml();
+                GitCheckout(""); // NewestRelease
+                ParseModulesAndTryExportSolutionXml();
 
-            // phase 1
-            IsNewest = true;
-            ExportLinkd();
-            CopyModulesSource();
-            CopyClientSource(); // 最后输出。
+                // phase 1
+                IsNewest = true;
+                ExportLinkd();
+                CopyModulesSource();
+                CopyClientSource(); // 最后输出。
 
-            GitCheckout(FirstExportVersion);
+                GitCheckout(FirstExportVersion);
 
-            // phase 2
-            IsNewest = false;
-            ExportLinkd();
-            CopyModulesSource();            
-            CopyClientSource(); // 最后输出。
+                // phase 2
+                IsNewest = false;
+                ExportLinkd();
+                CopyModulesSource();
+                CopyClientSource(); // 最后输出。
 
-            // end
-            SaveFilesNow();
-            GitCheckout("master");
+                // end
+                SaveFilesNow();
+            }
+            finally
+            {
+                GitCheckout("master");
+            }
         }
 
         private void CopyClientSource()
