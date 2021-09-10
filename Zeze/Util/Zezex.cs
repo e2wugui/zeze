@@ -567,7 +567,7 @@ namespace Zeze.Util
             FileSystem.CopyFileOrDirectory(src, destDirName,
                 (srcFile, dstFileName) =>
                 {
-                    var srcText = File.ReadAllText(src, Encoding.UTF8);
+                    var srcText = File.ReadAllText(srcFile.FullName, Encoding.UTF8);
                     AddOrUpdateFileCopings(relativePath, srcText, destDirName);
                 });
         }
