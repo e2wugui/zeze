@@ -404,7 +404,7 @@ namespace Zeze.Util
                     source = source.Replace("Include=\"..\\..\\Zeze\\Zeze.csproj\"", "Include=\"..\\..\\zeze\\Zeze\\Zeze.csproj\"");
                     source = source.Replace("..\\Gen\\bin\\", "..\\zeze\\Gen\\bin\\");
 
-                    AddOrUpdateFileCopings(relativePath, source, destDir);
+                    AddOrUpdateFileCopings(Path.Combine(relativePath, srcFile.Name), source, destDir);
                 });
         }
 
@@ -574,7 +574,7 @@ namespace Zeze.Util
                 (srcFile, dstFileName) =>
                 {
                     var srcText = File.ReadAllText(srcFile.FullName, Encoding.UTF8);
-                    AddOrUpdateFileCopings(relativePath, srcText, destDirName);
+                    AddOrUpdateFileCopings(Path.Combine(relativePath, srcFile.Name), srcText, destDirName);
                 });
         }
     }
