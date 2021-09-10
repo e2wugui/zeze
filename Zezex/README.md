@@ -103,3 +103,5 @@
   尽量采用 rpc？
 
 . map 动态绑定
+
+test git tag and checkout
