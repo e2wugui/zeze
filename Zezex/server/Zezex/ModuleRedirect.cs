@@ -545,7 +545,7 @@ namespace Game
                 sb.AppendLine($"        {rpcVarName}.Argument.ModuleId = {module.Id};");
                 sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {methodOverride.GetChoiceHashCodeSource()};");
                 sb.AppendLine($"        {rpcVarName}.Argument.MethodFullName = \"{module.FullName}:{methodOverride.Method.Name}\";");
-                sb.AppendLine($"        {rpcVarName}.Argument.ServiceNamePrefix = Game.App.GameServerServiceNamePrefix;");
+                sb.AppendLine($"        {rpcVarName}.Argument.ServiceNamePrefix = Game.App.ServerServiceNamePrefix;");
                 if (methodOverride.ParametersNormal.Count > 0)
                 {
                     // normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
@@ -683,7 +683,7 @@ namespace Game
             sb.AppendLine($"        {reqVarName}.Argument.HashCodeConcurrentLevel = {methodOverride.GetConcurrentLevelSource()};");
             sb.AppendLine($"        // {reqVarName}.Argument.HashCodes = // setup in linkd;");
             sb.AppendLine($"        {reqVarName}.Argument.MethodFullName = \"{module.FullName}:{methodOverride.Method.Name}\";");
-            sb.AppendLine($"        {reqVarName}.Argument.ServiceNamePrefix = Game.App.GameServerServiceNamePrefix;");
+            sb.AppendLine($"        {reqVarName}.Argument.ServiceNamePrefix = Game.App.ServerServiceNamePrefix;");
 
             int actionCountSkipOnHashEnd = GetActionCountSkipOnHashEnd(actions);
             string initOnHashEnd = "";

@@ -97,7 +97,7 @@ namespace Game
             sender.UserState = new LinkSession(linkName, sender.SessionId);
 
             var announce = new Zezex.Provider.AnnounceProviderInfo();
-            announce.Argument.ServiceNamePrefix = App.GameServerServiceNamePrefix;
+            announce.Argument.ServiceNamePrefix = App.ServerServiceNamePrefix;
             announce.Argument.ServiceIndentity = Zeze.Config.ServerId.ToString();
             announce.Send(sender);
 

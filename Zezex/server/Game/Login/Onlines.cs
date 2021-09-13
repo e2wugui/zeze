@@ -344,7 +344,7 @@ namespace Game.Login
                 var transmit = new Zezex.Provider.Transmit();
                 transmit.Argument.ActionName = actionName;
                 transmit.Argument.Sender = sender;
-                transmit.Argument.ServiceNamePrefix = App.GameServerServiceNamePrefix;
+                transmit.Argument.ServiceNamePrefix = App.ServerServiceNamePrefix;
                 transmit.Argument.Roles.AddRange(group.Roles);
 
                 if (null != group.LinkSocket)

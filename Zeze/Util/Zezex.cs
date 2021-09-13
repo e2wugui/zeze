@@ -376,7 +376,7 @@ namespace Zeze.Util
 
             ReplaceAndCopyTo("server/Program.cs", serverDir);
             ReplaceAndCopyTo("server/server.csproj", Path.Combine(serverDir, $"{serverName}.csproj"));
-            CopyTo("server/zeze.xml", serverDir);
+            ReplaceAndCopyTo("server/zeze.xml", serverDir);
 
             ReplaceAndCopyTo("server/Zezex", serverDir);
 
@@ -416,15 +416,15 @@ namespace Zeze.Util
 
         private void ExportLinkd()
         {
-            CopyTo("solution.linkd.xml", ExportDirectory);
+            ReplaceAndCopyTo("solution.linkd.xml", ExportDirectory);
 
             var linkdDir = Path.Combine(ExportDirectory, "linkd");
             Directory.CreateDirectory(linkdDir);
-            CopyTo("linkd/Zezex", linkdDir);
+            ReplaceAndCopyTo("linkd/Zezex", linkdDir);
 
             ReplaceAndCopyTo("linkd/linkd.csproj", linkdDir);
-            CopyTo("linkd/Program.cs", linkdDir);
-            CopyTo("linkd/zeze.xml", linkdDir);
+            ReplaceAndCopyTo("linkd/Program.cs", linkdDir);
+            ReplaceAndCopyTo("linkd/zeze.xml", linkdDir);
         }
 
         /// <summary>
@@ -585,6 +585,7 @@ namespace Zeze.Util
             }
         }
 
+        /*
         private void CopyTo(string relativePath, string destDirName)
         {
             var src = Path.Combine(ZezexDirectory, relativePath);
@@ -595,5 +596,6 @@ namespace Zeze.Util
                     AddOrUpdateFileCopings(srcText, srcFile, dstFileName);
                 });
         }
+        */
     }
 }

@@ -103,7 +103,7 @@ namespace Zezex.Provider
 
         public bool ChoiceProviderAndBind(int moduleId, Zeze.Net.AsyncSocket link, out long provider)
         {
-            var serviceName = MakeServiceName(GameServerServiceNamePrefix, moduleId);
+            var serviceName = MakeServiceName(ServerServiceNamePrefix, moduleId);
             var linkSession = link.UserState as LinkSession;
 
             provider = 0;
@@ -502,13 +502,13 @@ namespace Zezex.Provider
         // 内部的ModuleRedirect ModuleRedirectAll Transmit都携带了ServiceNamePrefix参数，所以，
         // 内部的Provider可以支持完全不同的solution，不过这个仅仅保留给未来扩展用，
         // 不建议在一个项目里面使用多个Prefix。
-        public string GameServerServiceNamePrefix { get; private set; } = "";
+        public string ServerServiceNamePrefix { get; private set; } = "";
 
         public override int ProcessAnnounceProviderInfo(AnnounceProviderInfo protocol)
         {
             var session = protocol.Sender.UserState as ProviderSession;
             session.Info = protocol.Argument;
-            GameServerServiceNamePrefix = protocol.Argument.ServiceNamePrefix;
+            ServerServiceNamePrefix = protocol.Argument.ServiceNamePrefix;
             return Zeze.Transaction.Procedure.Success;
         }
     }

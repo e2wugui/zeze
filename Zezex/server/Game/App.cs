@@ -19,14 +19,14 @@ namespace Game
         public Config Config { get; private set; }
         public Load Load { get; } = new Load();
 
-        public const string GameServerServiceNamePrefix = "Game.Server.Module#";
-        public const string GameLinkdServiceName = "Game.Linkd";
+        public const string ServerServiceNamePrefix = "Game.Server.Module#";
+        public const string LinkdServiceName = "Game.Linkd";
 
         private void LoadConfig()
         {
             try
             {
-                string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes("game.json"));
+                string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes("Game.json"));
                 Config = JsonSerializer.Deserialize<Config>(json);
             }
             catch (Exception)
@@ -73,10 +73,10 @@ namespace Game
             // 服务准备好以后才注册和订阅。
             foreach (var staticBind in StaticBinds)
             {
-                Zeze.ServiceManagerAgent.RegisterService($"{GameServerServiceNamePrefix}{staticBind.Key}",
+                Zeze.ServiceManagerAgent.RegisterService($"{ServerServiceNamePrefix}{staticBind.Key}",
                     config.ServerId.ToString());
             }
-            Zeze.ServiceManagerAgent.SubscribeService(GameLinkdServiceName,
+            Zeze.ServiceManagerAgent.SubscribeService(LinkdServiceName,
                 global::Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeSimple);
         }
 

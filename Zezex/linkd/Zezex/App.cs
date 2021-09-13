@@ -18,8 +18,8 @@ namespace Zezex
 
         public Config Config { get; private set; }
         public Zeze.Services.ServiceManager.Agent ServiceManagerAgent { get; private set; }
-        public const string GameServerServiceNamePrefix = "Game.Server.Module#";
-        public const string GameLinkdServiceName = "Game.Linkd";
+        public const string ServerServiceNamePrefix = "Game.Server.Module#";
+        public const string LinkdServiceName = "Game.Linkd";
 
         private void LoadConfig()
         {
@@ -52,7 +52,7 @@ namespace Zezex
             ProviderServicePasivePort = port;
 
             ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(Zeze.Config);
-            ServiceManagerAgent.RegisterService(GameLinkdServiceName,
+            ServiceManagerAgent.RegisterService(LinkdServiceName,
                 $"{ProviderServicePassiveIp}:{ProviderServicePasivePort}",
                 ProviderServicePassiveIp, ProviderServicePasivePort);
         }
