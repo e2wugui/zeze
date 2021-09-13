@@ -12,7 +12,7 @@ namespace Zeze.Util
     public class Zezex
     {
         private string modules = "Login";
-        private bool linkd = true;
+        private Encoding utf8NoBom = new UTF8Encoding(false);
 
         private string SolutionName = null;
         private string ServerProjectName = "server";
@@ -33,7 +33,6 @@ namespace Zeze.Util
                     case "-ServerProjectName": ServerProjectName = args[++i]; break;
                     case "-ClientProjectName": ClientProjectName = args[++i]; break;
                     case "-ClientPlatform": ClientPlatform = args[++i]; break;
-                    case "-nolinkd": linkd = false; break;
                     case "-modules": modules = args[++i]; break;
                 }
             }
@@ -49,7 +48,6 @@ namespace Zeze.Util
             Console.WriteLine("    [-ServerProjectName server] default='server'");
             Console.WriteLine("    [-ClientPlatform cs|...] no change if not present");
 
-            Console.WriteLine("    [-nolinkd] do not export linkd");
             Console.WriteLine("    [-modules ma,mb] default='login'");
             Console.WriteLine("    [-modules all] export all modules");
             Console.WriteLine("    [-modules none] export none module");
@@ -356,7 +354,7 @@ namespace Zeze.Util
             {
                 using (TextWriter sw = new StreamWriter(
                     targetXmlFile,
-                    false, Encoding.UTF8))
+                    false, utf8NoBom))
                 {
                     doc.Save(sw);
                 }
@@ -424,7 +422,7 @@ namespace Zeze.Util
             Directory.CreateDirectory(linkdDir);
             CopyTo("linkd/Zezex", linkdDir);
 
-            CopyTo("linkd/linkd.csproj", linkdDir);
+            ReplaceAndCopyTo("linkd/linkd.csproj", linkdDir);
             CopyTo("linkd/Program.cs", linkdDir);
             CopyTo("linkd/zeze.xml", linkdDir);
         }
@@ -483,22 +481,28 @@ namespace Zeze.Util
             {
                 var msg = file.FirstExport.Equals(file.NewestRelease)
                     ? "NewExport Or Restore" : "Update Need But Deleted";
-                File.WriteAllText(dstFileName, file.NewestRelease, Encoding.UTF8);
-                Console.WriteLine($"TryUpdate '{file.RelativeDstFile}'. Ok. {msg}");
+                File.WriteAllText(dstFileName, file.NewestRelease, utf8NoBom);
+                Console.WriteLine($"TryUpdate [Ok] '{file.RelativeDstFile}'. {msg}");
                 return;
             }
 
             var dstText = File.ReadAllText(dstFileName, Encoding.UTF8);
             if (file.FirstExport.Equals(dstText))
             {
-                File.WriteAllText(dstFileName, file.NewestRelease, Encoding.UTF8);
-                Console.WriteLine($"TryUpdate '{file.RelativeDstFile}'. Ok.");
+                File.WriteAllText(dstFileName, file.NewestRelease, utf8NoBom);
+                Console.WriteLine($"TryUpdate [Ok] '{file.RelativeDstFile}'.");
+                return;
+            }
+
+            if (file.FirstExport.Equals(file.NewestRelease))
+            {
+                Console.WriteLine($"TryUpdate [Ok] '{file.RelativeDstFile}'. Changed Since FirstExport But Export Do Not Change.");
                 return;
             }
 
             var newpath = dstFileName + ".TryUpdateButChanged";
-            File.WriteAllText(newpath, file.NewestRelease, Encoding.UTF8);
-            Console.WriteLine($"TryUpdate '{file.RelativeDstFile}'. Changed. SaveAs={newpath}");
+            File.WriteAllText(newpath, file.NewestRelease, utf8NoBom);
+            Console.WriteLine($"TryUpdate [Changed] '{file.RelativeDstFile}'. SaveAs={newpath}");
         }
 
         private void TryNew(FileCoping file)
@@ -506,14 +510,14 @@ namespace Zeze.Util
             var dstFileName = Path.Combine(ExportDirectory, file.RelativeDstFile);
             if (false == File.Exists(dstFileName))
             {
-                File.WriteAllText(dstFileName, file.NewestRelease, Encoding.UTF8);
-                Console.WriteLine($"TryNew '{file.RelativeDstFile}'. Ok.");
+                File.WriteAllText(dstFileName, file.NewestRelease, utf8NoBom);
+                Console.WriteLine($"TryNew [Ok] '{file.RelativeDstFile}'.");
                 return;
             }
 
             var newpath = dstFileName + ".TryNew";
-            File.WriteAllText(newpath, file.NewestRelease, Encoding.UTF8);
-            Console.WriteLine($"TryNew '{file.RelativeDstFile}'. ExistAndSaveAs={newpath}");
+            File.WriteAllText(newpath, file.NewestRelease, utf8NoBom);
+            Console.WriteLine($"TryNew [Exist] '{file.RelativeDstFile}'. SaveAs={newpath}");
         }
 
         private void TryDelete(FileCoping file)
@@ -521,7 +525,7 @@ namespace Zeze.Util
             var dstFileName = Path.Combine(ExportDirectory, file.RelativeDstFile);
             if (false == File.Exists(dstFileName))
             {
-                Console.WriteLine($"TryDelete '{file.RelativeDstFile}'. Deleted.");
+                Console.WriteLine($"TryDelete [Has Deleted] '{file.RelativeDstFile}'.");
                 return;
             }
 
@@ -530,11 +534,11 @@ namespace Zeze.Util
             {
                 // delete
                 File.Delete(dstText);
-                Console.WriteLine($"TryDelete '{file.RelativeDstFile}'. Ok.");
+                Console.WriteLine($"TryDelete [Ok] '{file.RelativeDstFile}'.");
                 return;
             }
 
-            Console.WriteLine($"TryDelete '{file.RelativeDstFile}'. Changed Since FirstExport.");
+            Console.WriteLine($"TryDelete [Changed] '{file.RelativeDstFile}'. Changed Since FirstExport.");
         }
 
         bool IsNewest;

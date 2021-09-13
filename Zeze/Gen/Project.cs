@@ -81,6 +81,10 @@ namespace Zeze.Gen
                         for (int i = 0; i < refFulNames.Count; ++i)
                             ModuleStartOrderNames.Add(Program.FullModuleNameToFullClassName(refFulNames[i]));
                         break;
+                    case "bean":
+                    case "beankey":
+                        // Make 的时候解析。
+                        break;
                     default:
                         throw new Exception("unkown element name: " + e.Name);
                 }
