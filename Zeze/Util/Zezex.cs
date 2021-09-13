@@ -500,6 +500,12 @@ namespace Zeze.Util
                 return;
             }
 
+            if (dstText.Equals(file.NewestRelease))
+            {
+                Console.WriteLine($"TryUpdate [Ok] '{file.RelativeDstFile}'. DstFile.Equals(NewestRelease).");
+                return;
+            }
+
             var newpath = dstFileName + ".TryUpdateButChanged";
             File.WriteAllText(newpath, file.NewestRelease, utf8NoBom);
             Console.WriteLine($"TryUpdate [Changed] '{file.RelativeDstFile}'. SaveAs={newpath}");
