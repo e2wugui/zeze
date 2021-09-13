@@ -60,6 +60,13 @@ namespace Zeze.Gen
                     case "beankey":
                         new BeanKey(this, e);
                         break;
+                    case "protocolref":
+                        // delay parse
+                        // 引进其他模块定义的协议。由于引入的协议Id对一个进程不能重复。
+                        // 所以再次没法引入本Project.Service中已经包含的协议。
+                        // 这个功能用来引入在其他Project.Module中定义的协议。
+                        // 【注意】引入的协议保留原来的moduleid，逻辑如果需要判断moduleid的话自己特殊处理。
+                        break;
                     default:
                         throw new Exception("unknown nodename=" + e.Name + " in module=" + Path());
                 }

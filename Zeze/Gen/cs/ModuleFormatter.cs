@@ -64,7 +64,7 @@ namespace Zeze.Gen.cs
                         sw.WriteLine("            {");
                         sw.WriteLine($"                Factory = () => new {rpc.Space.Path(".", rpc.Name)}(),");
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
-                            sw.WriteLine($"                Handle = Zeze.Net.Service.MakeHandle<{rpc.Name}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Request))),");
+                            sw.WriteLine($"                Handle = Zeze.Net.Service.MakeHandle<{rpc.ShortNameIf(module)}>(this, GetType().GetMethod(nameof(Process{rpc.Name}Request))),");
                         if (p.NoProcedure)
                             sw.WriteLine($"                NoProcedure = true,");
                         sw.WriteLine("            });");
@@ -75,7 +75,7 @@ namespace Zeze.Gen.cs
                         sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({p.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
                         sw.WriteLine( "            {");
                         sw.WriteLine($"                Factory = () => new {p.Space.Path(".", p.Name)}(),");
-                        sw.WriteLine($"                Handle = Zeze.Net.Service.MakeHandle<{p.Name}>(this, GetType().GetMethod(nameof(Process{p.Name}))),");
+                        sw.WriteLine($"                Handle = Zeze.Net.Service.MakeHandle<{p.ShortNameIf(module)}>(this, GetType().GetMethod(nameof(Process{p.Name}))),");
                         if (p.NoProcedure)
                             sw.WriteLine($"                NoProcedure = true,");
                         sw.WriteLine( "            });");
@@ -149,7 +149,7 @@ namespace Zeze.Gen.cs
                     {
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
-                            sw.WriteLine("        public override int Process" + rpc.Name + "Request(" + rpc.Name + " rpc)");
+                            sw.WriteLine("        public override int Process" + rpc.Name + "Request(" + rpc.ShortNameIf(module) + " rpc)");
                             sw.WriteLine("        {");
                             sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("        }");
@@ -159,7 +159,7 @@ namespace Zeze.Gen.cs
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine("        public override int Process" + p.Name + "(" + p.Name + " protocol)");
+                        sw.WriteLine("        public override int Process" + p.Name + "(" + p.ShortNameIf(module) + " protocol)");
                         sw.WriteLine("        {");
                         sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                         sw.WriteLine("        }");
@@ -204,14 +204,14 @@ namespace Zeze.Gen.cs
                     {
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
-                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Request(" + rpc.Name + " rpc);");
+                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Request(" + rpc.ShortNameIf(module) + " rpc);");
                             sw.WriteLine("");
                         }
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine("        public abstract int Process" + p.Name + "(" + p.Name + " protocol);");
+                        sw.WriteLine("        public abstract int Process" + p.Name + "(" + p.ShortNameIf(module) + " protocol);");
                         sw.WriteLine("");
                     }
                 }

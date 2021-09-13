@@ -124,11 +124,19 @@ namespace Zeze.Gen
             Console.WriteLine(obj);
         }
 
-        public static List<Module> CompileModuleRef(List<string> fullNames)
+        public static List<Module> CompileModuleRef(ICollection<string> fullNames)
         {
             List<Module> result = new List<Module>();
             foreach (string fullName in fullNames)
                 result.Add(GetNamedObject<Module>(fullName));
+            return result;
+        }
+
+        public static List<Protocol> CompileProtocolRef(ICollection<string> fullNames)
+        {
+            List<Protocol> result = new List<Protocol>();
+            foreach (string fullName in fullNames)
+                result.Add(GetNamedObject<Protocol>(fullName));
             return result;
         }
 

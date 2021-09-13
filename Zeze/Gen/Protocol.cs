@@ -9,6 +9,12 @@ namespace Zeze.Gen
     {
         public ModuleSpace Space { get; private set; }
         public string Name { get; private set; }
+
+        public string ShortNameIf(ModuleSpace holder)
+        {
+            return holder == Space ? Name : FullName;
+        }
+
         public ushort Id { get; private set; }
         public int TypeId => ((int)Space.Id << 16) | ((int)Id & 0xffff);
         public string Argument { get; private set; }

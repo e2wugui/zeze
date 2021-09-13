@@ -13,6 +13,8 @@ namespace Zeze.Gen
         public global::Zeze.Util.Ranges ProtocolIdRanges { get; } = new global::Zeze.Util.Ranges();
         public short Id { get; }
 
+        public XmlElement Self { get; }
+
         public ModuleSpace GetRootModuleSpace()
         {
             ModuleSpace last = this;
@@ -124,6 +126,8 @@ namespace Zeze.Gen
 
         public ModuleSpace(ModuleSpace parent, XmlElement self, bool hasId = false)
         {
+            Self = self;
+
             Parent = parent;
             Name = self.GetAttribute("name").Trim();
             Program.CheckReserveName(Name);
@@ -160,6 +164,11 @@ namespace Zeze.Gen
             foreach (Module module in Modules.Values)
             {
                 module.Compile();
+            }
+            foreach (var p in Program.CompileProtocolRef(Program.Refs(Self, "protocolref")))
+            {
+                ProtocolIdRanges.CheckAdd(p.Id);
+                Protocols.Add(p.Name, p);
             }
         }
     }

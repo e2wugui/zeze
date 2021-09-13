@@ -15,7 +15,7 @@ namespace Zeze.Net
         public TResult Result { get; set; } = new TResult();
 
         public bool IsTimeout { get; private set; }
-        public long SessionId { get; private set; }
+        public long SessionId { get; set; }
 
         public Func<Protocol, int> ResponseHandle { get; set; }
         public int Timeout { get; set; } = 5000;
