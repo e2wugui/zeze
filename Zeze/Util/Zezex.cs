@@ -99,12 +99,14 @@ namespace Zeze.Util
         private void GitCheckout(string tag)
         {
             Process proc = new Process();
-            proc.StartInfo.FileName = Path.Combine(ZezexDirectory, "gitcheckout.bat");
+            proc.StartInfo.FileName = Path.Combine(ZezexDirectory, "gitcheckout.20210913.tmp.bat");
             proc.StartInfo.Arguments = $"\"{ZezexDirectory}\" \"{tag}\"";
             proc.StartInfo.UseShellExecute = false;
             proc.StartInfo.CreateNoWindow = true;
             proc.Start();
             proc.WaitForExit();
+            if (proc.ExitCode != 0)
+                throw new Exception("gitcheckout.bat ExitCode != 0");
         }
 
         public void Export()
@@ -114,29 +116,35 @@ namespace Zeze.Util
             {
                 Directory.CreateDirectory(ExportDirectory);
 
-                GitCheckout(""); // NewestRelease
+                // phase 0
+                File.Copy("gitcheckout.bat", "gitcheckout.20210913.tmp.bat", true);
                 ParseModulesAndTryExportSolutionXml();
 
                 // phase 1
+                GitCheckout(""); // NewestRelease
                 IsNewest = true;
                 ExportLinkd();
                 CopyModulesSource();
                 CopyClientSource(); // 最后输出。
 
-                GitCheckout(FirstExportVersion);
-
                 // phase 2
-                IsNewest = false;
-                ExportLinkd();
-                CopyModulesSource();
-                CopyClientSource(); // 最后输出。
+                if (!string.IsNullOrEmpty(FirstExportVersion))
+                {
+                    GitCheckout(FirstExportVersion);
+                    IsNewest = false;
+                    ExportLinkd();
+                    CopyModulesSource();
+                    CopyClientSource(); // 最后输出。
+                }
 
-                // end
+                // phase end
                 SaveFilesNow();
             }
             finally
             {
+                // restore git
                 GitCheckout("master");
+                File.Delete("gitcheckout.20210913.tmp.bat");
             }
         }
 
@@ -404,8 +412,7 @@ namespace Zeze.Util
                     source = source.Replace("Include=\"..\\..\\Zeze\\Zeze.csproj\"", "Include=\"..\\..\\zeze\\Zeze\\Zeze.csproj\"");
                     source = source.Replace("..\\Gen\\bin\\", "..\\zeze\\Gen\\bin\\");
 
-                    var relativeFile = Path.GetRelativePath(ZezexDirectory, srcFile.FullName);
-                    AddOrUpdateFileCopings(relativeFile, source, destDir);
+                    AddOrUpdateFileCopings(source, srcFile, dstFileName);
                 });
         }
 
@@ -433,8 +440,8 @@ namespace Zeze.Util
             public string NewestRelease { get; set; }
             // 第一次导出时的版本内容
             public string FirstExport { get; set; }
-            // 目标文件当前的内容
-            public string TargetCurrent { get; set; }
+            // 目标文件相对ExportDirectory的名字。
+            public string RelativeDstFile { get; set; }
         }
 
         private void SaveFilesNow()
@@ -455,115 +462,121 @@ namespace Zeze.Util
                         throw new Exception("Impossible!");
 
                     case 1:
-                        TryDelete(e.Key, e.Value);
+                        TryDelete(e.Value);
                         break;
 
                     case 2:
-                        TryNew(e.Key, e.Value);
+                        TryNew(e.Value);
                         break;
 
                     case 3:
-                        TryUpdate(e.Key, e.Value);
+                        TryUpdate(e.Value);
                         break;
                 }
             }
         }
 
-        private void TryUpdate(string relativePath, FileCoping file)
+        private void TryUpdate(FileCoping file)
         {
-            if (null == file.TargetCurrent)
+            var dstFileName = Path.Combine(ExportDirectory, file.RelativeDstFile);
+            if (false == File.Exists(dstFileName))
             {
-                var newpath = relativePath + ".TryUpdateButDeleted";
-                var dstFileName = Path.Combine(ExportDirectory, newpath);
+                var msg = file.FirstExport.Equals(file.NewestRelease)
+                    ? "NewExport Or Restore" : "Update Need But Deleted";
                 File.WriteAllText(dstFileName, file.NewestRelease, Encoding.UTF8);
-                Console.WriteLine($"TryUpdate '{relativePath}'. Not Exist. SaveAs={newpath}");
+                Console.WriteLine($"TryUpdate '{file.RelativeDstFile}'. Ok. {msg}");
+                return;
             }
-            else if (file.FirstExport.Equals(file.TargetCurrent))
+
+            var dstText = File.ReadAllText(dstFileName, Encoding.UTF8);
+            if (file.FirstExport.Equals(dstText))
             {
-                var dstFileName = Path.Combine(ExportDirectory, relativePath);
                 File.WriteAllText(dstFileName, file.NewestRelease, Encoding.UTF8);
-                Console.WriteLine($"TryUpdate '{relativePath}'. Ok.");
+                Console.WriteLine($"TryUpdate '{file.RelativeDstFile}'. Ok.");
+                return;
             }
-            else
-            {
-                var newpath = relativePath + ".TryUpdateButChanged";
-                var dstFileName = Path.Combine(ExportDirectory, newpath);
-                File.WriteAllText(dstFileName, file.NewestRelease, Encoding.UTF8);
-                Console.WriteLine($"TryUpdate '{relativePath}'. Has Changed. SaveAs={newpath}");
-            }
+
+            var newpath = dstFileName + ".TryUpdateButChanged";
+            File.WriteAllText(newpath, file.NewestRelease, Encoding.UTF8);
+            Console.WriteLine($"TryUpdate '{file.RelativeDstFile}'. Changed. SaveAs={newpath}");
         }
 
-        private void TryNew(string relativePath, FileCoping file)
+        private void TryNew(FileCoping file)
         {
-            if (null == file.TargetCurrent)
+            var dstFileName = Path.Combine(ExportDirectory, file.RelativeDstFile);
+            if (false == File.Exists(dstFileName))
             {
-                var dstFileName = Path.Combine(ExportDirectory, relativePath);
                 File.WriteAllText(dstFileName, file.NewestRelease, Encoding.UTF8);
-                Console.WriteLine($"TryNew '{relativePath}'. Ok.");
+                Console.WriteLine($"TryNew '{file.RelativeDstFile}'. Ok.");
+                return;
             }
-            else
-            {
-                var newpath = relativePath + ".TryNew";
-                var dstFileName = Path.Combine(ExportDirectory, newpath);
-                File.WriteAllText(dstFileName, file.NewestRelease, Encoding.UTF8);
-                Console.WriteLine($"TryNew '{relativePath}'. Has Exist. SaveAs={newpath}");
-            }
+
+            var newpath = dstFileName + ".TryNew";
+            File.WriteAllText(newpath, file.NewestRelease, Encoding.UTF8);
+            Console.WriteLine($"TryNew '{file.RelativeDstFile}'. ExistAndSaveAs={newpath}");
         }
 
-        private void TryDelete(string relativePath, FileCoping file)
+        private void TryDelete(FileCoping file)
         {
-            if (null == file.TargetCurrent)
+            var dstFileName = Path.Combine(ExportDirectory, file.RelativeDstFile);
+            if (false == File.Exists(dstFileName))
             {
-                Console.WriteLine($"TryDelete '{relativePath}'. Has Deleted.");
+                Console.WriteLine($"TryDelete '{file.RelativeDstFile}'. Deleted.");
+                return;
             }
-            else if (file.FirstExport.Equals(file.TargetCurrent))
+
+            var dstText = File.ReadAllText(dstFileName, Encoding.UTF8);
+            if (file.FirstExport.Equals(dstText))
             {
                 // delete
-                File.Delete(Path.Combine(ExportDirectory, relativePath));
-                Console.WriteLine($"TryDelete '{relativePath}'. Ok.");
+                File.Delete(dstText);
+                Console.WriteLine($"TryDelete '{file.RelativeDstFile}'. Ok.");
+                return;
             }
-            else
-            {
-                Console.WriteLine($"TryDelete '{relativePath}'. But Is Has Changed Since First Export.");
-            }
+
+            Console.WriteLine($"TryDelete '{file.RelativeDstFile}'. Changed Since FirstExport.");
         }
 
         bool IsNewest;
 
         Dictionary<string, FileCoping> FileCopings = new Dictionary<string, FileCoping>();
 
-        private FileCoping AddToFileCopings(bool isNewest, string relativePath, string srcText, string destDirName)
+        private FileCoping AddToFileCopings(bool isNewest, string srcText,
+            string relativeSrcFile, string relativeDstFileName)
         {
-            var targetFile = Path.Combine(destDirName, relativePath);
-            var targetText = File.Exists(targetFile)
-                ? File.ReadAllText(targetFile, Encoding.UTF8)
-                : null;
+            var fc = new FileCoping();
+            if (isNewest)
+                fc.NewestRelease = srcText;
+            else
+                fc.FirstExport = srcText;
 
-            var fc = isNewest
-                ? new FileCoping() { NewestRelease = srcText, TargetCurrent = targetText, }
-                : new FileCoping() { FirstExport = srcText, TargetCurrent = targetText, };
+            if (null == fc.RelativeDstFile) // 新旧版本的目标文件应该是一样的。这样写只是保险。
+                fc.RelativeDstFile = relativeDstFileName;
 
-            FileCopings.Add(relativePath, fc);
+            FileCopings.Add(relativeSrcFile, fc);
             return fc;
         }
 
-        private void AddOrUpdateFileCopings(string relativePath, string srcText, string destDirName)
+        private void AddOrUpdateFileCopings(string srcText, FileInfo srcFile, string dstFileName)
         {
+            var relativeSrcFile = Path.GetRelativePath(ZezexDirectory, srcFile.FullName);
+            var relativeDstFile = Path.GetRelativePath(ExportDirectory, dstFileName);
+
             // 下面的分支按处理步骤走，不要首先根据FileCopings.TryGetValue的结果。
             if (IsNewest)
             {
-                AddToFileCopings(true, relativePath, srcText, destDirName);
+                AddToFileCopings(true, srcText, relativeSrcFile, relativeDstFile);
             }
             else
             {
-                if (FileCopings.TryGetValue(relativePath, out var exist))
+                if (FileCopings.TryGetValue(relativeSrcFile, out var exist))
                 {
                     exist.FirstExport = srcText;
                 }
                 else
                 {
                     // 第一次输出时存在这个文件，但是最新版本里面没有这个文件。
-                    AddToFileCopings(false, relativePath, srcText, destDirName);
+                    AddToFileCopings(false, srcText, relativeSrcFile, relativeDstFile);
                 }
             }
         }
@@ -575,8 +588,7 @@ namespace Zeze.Util
                 (srcFile, dstFileName) =>
                 {
                     var srcText = File.ReadAllText(srcFile.FullName, Encoding.UTF8);
-                    var relativeFile = Path.GetRelativePath(ZezexDirectory, srcFile.FullName);
-                    AddOrUpdateFileCopings(relativeFile, srcText, destDirName);
+                    AddOrUpdateFileCopings(srcText, srcFile, dstFileName);
                 });
         }
     }
