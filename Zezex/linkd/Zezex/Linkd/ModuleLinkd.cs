@@ -25,7 +25,7 @@ namespace Zezex.Linkd
             account.SocketSessionId = protocol.Sender.SessionId;
             */
             var linkSession = rpc.Sender.UserState as LinkSession;
-            linkSession.UserId = rpc.Argument.Account;
+            linkSession.Account = rpc.Argument.Account;
             rpc.SendResultCode(Auth.Success);
 
             return Zeze.Transaction.Procedure.Success;

@@ -88,8 +88,8 @@ namespace Zezex
             {
                 switch (self.GetAttribute("ChoiceType"))
                 {
-                    case "ChoiceTypeHashUserId":
-                        return Zezex.Provider.BModule.ChoiceTypeHashUserId;
+                    case "ChoiceTypeHashAccount":
+                        return Zezex.Provider.BModule.ChoiceTypeHashAccount;
 
                     case "ChoiceTypeHashRoleId":
                         return Zezex.Provider.BModule.ChoiceTypeHashRoleId;

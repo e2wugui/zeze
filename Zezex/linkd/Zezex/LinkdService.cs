@@ -40,7 +40,7 @@ namespace Zezex
         public override void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int type, Zeze.Serialize.ByteBuffer data)
         {
             var linkSession = so.UserState as LinkSession;
-            if (null == linkSession || null == linkSession.UserId)
+            if (null == linkSession || null == linkSession.Account)
             {
                 ReportError(so.SessionId, Linkd.BReportError.FromLink, Linkd.BReportError.CodeNotAuthed, "not authed.");
                 return;
@@ -49,7 +49,7 @@ namespace Zezex
             var moduleId = global::Zeze.Net.Protocol.GetModuleId(type);
             var dispatch = new Provider.Dispatch();
             dispatch.Argument.LinkSid = so.SessionId;
-            dispatch.Argument.UserId = linkSession.UserId;
+            dispatch.Argument.Account = linkSession.Account;
             dispatch.Argument.ProtocolType = type;
             dispatch.Argument.ProtocolData = new Zeze.Net.Binary(data);
             dispatch.Argument.States.AddRange(linkSession.UserStates);
@@ -123,7 +123,7 @@ namespace Zezex
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public string UserId { get; set; } // 为了接入更广泛的用户系统，使用string。
+        public string Account { get; set; } // 为了接入更广泛的用户系统，使用string。
         public List<long> UserStates { get; } = new List<long>();
         public Zeze.Net.Binary UserStatex { get; private set; } = Zeze.Net.Binary.Empty;
 
@@ -218,7 +218,7 @@ namespace Zezex
         {
             KeepAliveTask?.Cancel();
 
-            if (null == UserId)
+            if (null == Account)
             {
                 // 未验证通过的不通告。此时Binds肯定是空的。
                 return;
@@ -232,7 +232,7 @@ namespace Zezex
             }
 
             var linkBroken = new Zezex.Provider.LinkBroken();
-            linkBroken.Argument.UserId = UserId;
+            linkBroken.Argument.Account = Account;
             linkBroken.Argument.LinkSid = SessionId;
             linkBroken.Argument.States.AddRange(UserStates);
             linkBroken.Argument.Statex = UserStatex;

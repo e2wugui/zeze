@@ -7,7 +7,7 @@
 	name
 		必须是全名。
 	ChoiceType
-		ChoiceTypeHashUserId，ChoiceTypeHashRoleId，【ChoiceTypeDefault】
+		ChoiceTypeHashAccount，ChoiceTypeHashRoleId，【ChoiceTypeDefault】
 		用于linkd转发client的协议时，怎么选择provider。
 
 	2. Module ConfigType 怎么决定的。
@@ -19,7 +19,7 @@
 	a) Transamit Client Request
 		根据 ChoiceType 选择 Provider。
 	b) ModuleRedirect
-		肯定使用 hash-choice，实际上hash由请求着计算。默认使用 ChoiceTypeHashUserId。
+		肯定使用 hash-choice，实际上hash由请求着计算。默认使用 ChoiceTypeHashAccount。
 		ModuleRedirectAll 不计算hash，直接从0~HashCodeConcurrentLevel进行hash-choice。
 
 	4. ServiceManager SubcribeType

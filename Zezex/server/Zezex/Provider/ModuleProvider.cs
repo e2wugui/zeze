@@ -42,7 +42,7 @@ namespace Zezex.Provider
                 p2.Sender = p.Sender;
                 
                 var session = new Game.Login.Session(
-                    p.Argument.UserId,
+                    p.Argument.Account,
                     p.Argument.States,
                     p.Sender,
                     p.Argument.LinkSid);

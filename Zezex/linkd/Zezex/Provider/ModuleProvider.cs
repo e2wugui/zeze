@@ -118,8 +118,8 @@ namespace Zezex.Provider
 
             switch (providerModuleState.ChoiceType)
             {
-                case BModule.ChoiceTypeHashUserId:
-                    return ChoiceHash(volatileProviders, Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.UserId), out provider);
+                case BModule.ChoiceTypeHashAccount:
+                    return ChoiceHash(volatileProviders, Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.Account), out provider);
 
                 case BModule.ChoiceTypeHashRoleId:
                     if (linkSession.UserStates.Count > 0)
@@ -308,7 +308,7 @@ namespace Zezex.Provider
                 // 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
                 // 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。
                 var linkSession = socket.UserState as LinkSession;
-                if (null != linkSession && null != linkSession.UserId
+                if (null != linkSession && null != linkSession.Account
                     // 这个状态是内部服务在CLogin的时候设置的，判断一下，可能可以简化客户端实现。
                     // 当然这个定义不是很好。但比较符合一般的使用。
                     && linkSession.UserStates.Count > 0

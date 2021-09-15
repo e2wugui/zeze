@@ -24,11 +24,11 @@ namespace Game
     public class ModuleRedirect
     {
         // 本应用：hash分组的一些配置。
-        public const int ChoiceType = Zezex.Provider.BModule.ChoiceTypeHashUserId;
+        public const int ChoiceType = Zezex.Provider.BModule.ChoiceTypeHashAccount;
         public static int GetChoiceHashCode()
         {
-            string userid = GetLoginSession().Account;
-            return Zeze.Serialize.ByteBuffer.calc_hashnr(userid);
+            string account = GetLoginSession().Account;
+            return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
         }
 
         public static Login.Session GetLoginSession()
