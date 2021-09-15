@@ -168,7 +168,7 @@
 		<!-- link to gs -->
 		<bean name="BDispatch">
 			<variable name="linkSid"      id="1" type="long"/>
-			<variable name="account"       id="2" type="string"/>
+			<variable name="account"      id="2" type="string"/>
 			<variable name="protocolType" id="3" type="int"/>
 			<variable name="protocolData" id="4" type="binary"/> 协议打包，不包括 type, size
 			<variable name="states"       id="5" type="list" value="long"/> SetUserState

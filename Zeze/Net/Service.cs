@@ -263,6 +263,35 @@ namespace Zeze.Net
             }
         }
 
+        public void DispatchProtocol2(object key, Protocol p, ProtocolFactoryHandle factoryHandle)
+        {
+            if (null != factoryHandle.Handle)
+            {
+                if (null != Zeze && false == factoryHandle.NoProcedure)
+                {
+                    Zeze.TaskOneByOneByKey.Execute(key,
+                        () => global::Zeze.Util.Task.Call(Zeze.NewProcedure(
+                            () => factoryHandle.Handle(p), p.GetType().FullName, p.UserState),
+                            p,
+                            (p, code) => p.SendResultCode(code))
+                        );
+                }
+                else
+                {
+                    Zeze.TaskOneByOneByKey.Execute(key,
+                        () => global::Zeze.Util.Task.Call(
+                            () => factoryHandle.Handle(p),
+                            p,
+                            (p, code) => p.SendResultCode(code))
+                        );
+                }
+            }
+            else
+            {
+                logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}", p);
+            }
+        }
+
         public virtual void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             if (null != factoryHandle.Handle)
