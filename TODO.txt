@@ -48,3 +48,8 @@ Record.State
 	xdb 旧版的状态看来需要恢复。
 	这是为了优化这种情况： add, 并且在 checkpoint 之前就 remove.
 	此时应该不需要调用 db.remove。严格的状态可以优化掉所有的不必要的对db的操作。
+
+Raft
+  增加ConcurrentMapOnRocksDb
+GlobalCacheManagerWithRaft
+  改成ConcurrentMapOnRocksDb

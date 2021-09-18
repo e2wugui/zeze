@@ -66,7 +66,7 @@ namespace Zeze.Raft
             Remove,
         }
 
-        class SnapshotValue
+        public class SnapshotValue
         {
             public V Value { get; }
             public Operate Operate { get; }
@@ -78,9 +78,9 @@ namespace Zeze.Raft
             }
         }
 
-        private ConcurrentDictionary<K, V> Map;
+        private ConcurrentDictionary<K, V> Map { get; }
 
-        private ConcurrentDictionary<K, SnapshotValue> SnapshotCopyOnWrite
+        private ConcurrentDictionary<K, SnapshotValue> SnapshotCopyOnWrite { get; }
             = new ConcurrentDictionary<K, SnapshotValue>();
 
         public int Count => Map.Count;
@@ -255,158 +255,4 @@ namespace Zeze.Raft
         }
 
     }
-
-    /*
-    public sealed class IntKey : Serializable
-    {
-        public int Value { get; private set; }
-
-        public IntKey()
-        {
-        }
-
-        public IntKey(int value)
-        {
-            Value = value;
-        }
-
-        public void Decode(ByteBuffer bb)
-        {
-            Value = bb.ReadInt();
-        }
-
-        public void Encode(ByteBuffer bb)
-        {
-            bb.WriteInt(Value);
-        }
-
-        public override int GetHashCode()
-        {
-            return Value.GetHashCode();
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (obj == this)
-                return true;
-            if (obj is IntKey other)
-                return Value.Equals(other.Value);
-            return false;
-        }
-    }
-
-    public sealed class LongKey : Serializable
-    {
-        public long Value { get; private set; }
-
-        public LongKey()
-        {
-        }
-
-        public LongKey(long value)
-        {
-            Value = value;
-        }
-
-        public void Decode(ByteBuffer bb)
-        {
-            Value = bb.ReadLong();
-        }
-
-        public void Encode(ByteBuffer bb)
-        {
-            bb.WriteLong(Value);
-        }
-
-        public override int GetHashCode()
-        {
-            return Value.GetHashCode();
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (obj == this)
-                return true;
-            if (obj is LongKey other)
-                return Value.Equals(other.Value);
-            return false;
-        }
-    }
-
-    public sealed class StringKey : Serializable
-    {
-        public string Value { get; private set; }
-
-        public StringKey()
-        {
-        }
-
-        public StringKey(string value)
-        {
-            Value = value;
-        }
-
-        public void Decode(ByteBuffer bb)
-        {
-            Value = bb.ReadString();
-        }
-
-        public void Encode(ByteBuffer bb)
-        {
-            bb.WriteString(Value);
-        }
-
-        public override int GetHashCode()
-        {
-            return Value.GetHashCode();
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (obj == this)
-                return true;
-            if (obj is StringKey other)
-                return Value.Equals(other.Value);
-            return false;
-        }
-    }
-
-    public sealed class BinaryKey : Serializable
-    {
-        public Zeze.Net.Binary Value { get; private set; }
-
-        public BinaryKey()
-        {
-        }
-
-        public BinaryKey(Zeze.Net.Binary value)
-        {
-            Value = value;
-        }
-
-        public void Decode(ByteBuffer bb)
-        {
-            Value = bb.ReadBinary();
-        }
-
-        public void Encode(ByteBuffer bb)
-        {
-            bb.WriteBinary(Value);
-        }
-
-        public override int GetHashCode()
-        {
-            return Value.GetHashCode();
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (obj == this)
-                return true;
-            if (obj is BinaryKey other)
-                return Value.Equals(other.Value);
-            return false;
-        }
-    }
-    */
 }

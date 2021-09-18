@@ -9,6 +9,8 @@ using System.Net;
 using System.Threading;
 using System.Text;
 using Zeze.Transaction;
+using System.Xml;
+using System.Collections;
 
 namespace Zeze.Services
 {
@@ -51,32 +53,58 @@ namespace Zeze.Services
         public static GlobalCacheManager Instance { get; } = new GlobalCacheManager();
         public ServerService Server { get; private set; }
         private AsyncSocket ServerSocket;
-
-        public const int DefaultConcurrencyLevel = 1024;
-        // 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
-        public const int DefaultCapacity = 100000000;
-
-        private ConcurrentDictionary<GlobalTableKey, CacheState> global
-            = new ConcurrentDictionary<GlobalTableKey, CacheState>
-            (DefaultConcurrencyLevel, DefaultCapacity);
-
+        private Util.HugeConcurrentDictionary<GlobalTableKey, CacheState> global;
         /*
          * 会话。
-         * key是 LogicServer.Id，现在的实现就是Zeze.Config.AutoKeyLocalId。
+         * key是 LogicServer.Id，现在的实现就是Zeze.Config.ServerId。
          * 在连接建立后收到的Login Or Relogin 中设置。
          * 每个会话记住分配给自己的GlobalTableKey，用来在正常退出的时候释放。
          * 每个会话还需要记录该会话的Socket.SessionId。在连接重新建立时更新。
          * 总是GetOrAdd，不删除。按现在的cache-sync设计，
-         * AutoKeyLocalId是及其有限的。不会一直增长。
+         * ServerId 是及其有限的。不会一直增长。
          * 简化实现。
          */
-        private ConcurrentDictionary<int, CacheHolder> Sessions
-            = new ConcurrentDictionary<int, CacheHolder>
-            (DefaultConcurrencyLevel, 4096);
+        private ConcurrentDictionary<int, CacheHolder> Sessions;
 
         private GlobalCacheManager()
         { 
         }
+
+        public class GCMConfig : Config.ICustomize
+        {
+            public string Name => "GlobalCacheManager";
+
+            public int ConcurrencyLevel { get; set; } = 1024;
+            // 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
+            // 尽量不重新调整ConcurrentDictionary。
+            public long InitialCapacity { get; set; } = 100000000;
+            public int GCMCount { get; set; } = 16;
+
+            public void Parse(XmlElement self)
+            {
+                string attr;
+
+                attr = self.GetAttribute("ConcurrencyLevel");
+                if (attr.Length > 0)
+                    ConcurrencyLevel = int.Parse(attr);
+                if (ConcurrencyLevel < Environment.ProcessorCount)
+                    ConcurrencyLevel = Environment.ProcessorCount;
+
+                attr = self.GetAttribute("InitialCapacity");
+                if (attr.Length > 0)
+                    InitialCapacity = long.Parse(attr);
+                if (InitialCapacity < 31)
+                    InitialCapacity = 31;
+
+                attr = self.GetAttribute("GCMCount");
+                if (attr.Length > 0)
+                    GCMCount = int.Parse(attr);
+                if (GCMCount < 1)
+                    GCMCount = 1;
+            }
+        }
+
+        public GCMConfig Config { get; } = new GCMConfig();
 
         public void Start(IPAddress ipaddress, int port, Config config = null)
         {
@@ -84,8 +112,17 @@ namespace Zeze.Services
             {
                 if (Server != null)
                     return;
+
                 if (null == config)
-                    config = Config.Load();
+                {
+                    config = new Config();
+                    config.AddCustomize(Config);
+                    config.LoadAndParse();
+                }
+                Sessions = new ConcurrentDictionary<int, CacheHolder>(Config.ConcurrencyLevel, 4096);
+                global = new Util.HugeConcurrentDictionary<GlobalTableKey, CacheState>
+                    (Config.GCMCount, Config.ConcurrencyLevel, Config.InitialCapacity);
+
                 Server = new ServerService(config);
 
                 Server.AddFactoryHandle(
@@ -170,7 +207,7 @@ namespace Zeze.Services
                 return 0;
             }
 
-            var session = Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (key) => new CacheHolder());
+            var session = Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (key) => new CacheHolder(Config));
             if (session.GlobalCacheManagerHashIndex != rpc.Argument.GlobalCacheManagerHashIndex)
             {
                 // 多点验证
@@ -206,7 +243,7 @@ namespace Zeze.Services
         private int ProcessLogin(Zeze.Net.Protocol p)
         {
             var rpc = p as Login;
-            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder());
+            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
             if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
                 rpc.SendResultCode(LoginBindSocketFail);
@@ -225,7 +262,7 @@ namespace Zeze.Services
         private int ProcessReLogin(Zeze.Net.Protocol p)
         {
             var rpc = p as ReLogin;
-            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder());
+            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
             if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
                 rpc.SendResultCode(ReLoginBindSocketFail);
@@ -642,13 +679,13 @@ namespace Zeze.Services
             public long SessionId { get; private set; }
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
-            public ConcurrentDictionary<GlobalTableKey, int>
-                Acquired { get; }
-                = new ConcurrentDictionary<GlobalTableKey, int>
-                (
-                    GlobalCacheManager.DefaultConcurrencyLevel,
-                    1000000
-                );
+            public Util.HugeConcurrentDictionary<GlobalTableKey, int> Acquired { get; }
+
+            public CacheHolder(GCMConfig config)
+            {
+                Acquired = new Util.HugeConcurrentDictionary<GlobalTableKey, int>(
+                    config.GCMCount, config.ConcurrencyLevel, config.InitialCapacity);
+            }
 
             public bool TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
             {

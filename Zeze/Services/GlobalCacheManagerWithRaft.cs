@@ -23,6 +23,8 @@ namespace Zeze.Services
         { 
         }
 
+        public GlobalCacheManager.GCMConfig Config { get; } = new GlobalCacheManager.GCMConfig();
+
         public void Start(Zeze.Raft.RaftConfig raftconfig, Config config = null)
         {
             lock (this)
@@ -31,9 +33,13 @@ namespace Zeze.Services
                     return;
 
                 if (null == config)
-                    config = Config.Load();
+                {
+                    config = new Config();
+                    config.AddCustomize(Config);
+                    config.LoadAndParse();
+                }
 
-                Raft = new Zeze.Raft.Raft(new RaftDatas(), raftconfig.Name, raftconfig, config);
+                Raft = new Zeze.Raft.Raft(new RaftDatas(Config), raftconfig.Name, raftconfig, config);
 
                 Raft.Server.AddFactoryHandle(
                     new GlobalCacheManager.Acquire().TypeId,
@@ -673,23 +679,17 @@ namespace Zeze.Services
 
         public class RaftDatas : Zeze.Raft.StateMachine
         {
-            public ConcurrentMap<GlobalCacheManager.GlobalTableKey, CacheState>
-                Global
-            { get; }
-                = new ConcurrentMap<GlobalCacheManager.GlobalTableKey, CacheState>
-                (
-                    GlobalCacheManager.DefaultConcurrencyLevel,
-                    GlobalCacheManager.DefaultCapacity
-                );
+            public ConcurrentMap<GlobalCacheManager.GlobalTableKey, CacheState> Global { get; }
 
-            public ConcurrentMap<int, CacheHolder>
-                Sessions
-            { get; }
-                = new ConcurrentMap<int, CacheHolder>
-                (
-                    Services.GlobalCacheManager.DefaultConcurrencyLevel,
-                    4096
-                );
+            public ConcurrentMap<int, CacheHolder> Sessions { get; }
+
+            public RaftDatas(GlobalCacheManager.GCMConfig config)
+            {
+                Global = new ConcurrentMap<GlobalCacheManager.GlobalTableKey, CacheState>
+                    (config.ConcurrencyLevel, (int)config.InitialCapacity);
+                Sessions = new ConcurrentMap<int, CacheHolder>(config.ConcurrencyLevel, 4096);
+                AddFactory(new OperatesLog("", 0).TypeId, () => new OperatesLog("", 0));
+            }
 
             public override void LoadFromSnapshot(string path)
             {
@@ -732,11 +732,6 @@ namespace Zeze.Services
                 }
                 Raft.LogSequence.RemoveLogBeforeLastApplied(oldFirstIndex);
                 return true;
-            }
-
-            public RaftDatas()
-            {
-                AddFactory(new OperatesLog("", 0).TypeId, () => new OperatesLog("", 0));
             }
         }
         /// <summary>
@@ -1101,15 +1096,13 @@ namespace Zeze.Services
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
             // 已分配给这个cache的记录。【需要系列化】。
-            public ConcurrentDictionary<GlobalCacheManager.GlobalTableKey, int>
-                Acquired
-            { get; }
-                = new ConcurrentDictionary<GlobalCacheManager.GlobalTableKey, int>
-                (
-                    Services.GlobalCacheManager.DefaultConcurrencyLevel,
-                    1000000
-                );
-
+            public ConcurrentDictionary<GlobalCacheManager.GlobalTableKey, int> Acquired { get; }
+                
+            public CacheHolder(GlobalCacheManager.GCMConfig config)
+            {
+                Acquired = new ConcurrentDictionary<GlobalCacheManager.GlobalTableKey, int>
+                    (config.ConcurrencyLevel, (int)config.InitialCapacity);
+            }
             // 【需要系列化】。
             public int Id { get; private set; }
 
