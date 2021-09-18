@@ -30,6 +30,17 @@ namespace Zeze.Transaction
         }
 
         internal long Timestamp { get; set; }
+
+        /// <summary>
+        /// Record.Dirty 的问题
+        /// 对于新的CheckpointMode，需要实现新的Dirty。
+        /// CheckpointMode.Period
+        /// Snapshot时记住timestamp，Cleanup的时候ClearDirty(snapshot_timestamp)，需要记录锁。
+        /// CheckpointMode.Immediately
+        /// Commit完成以后马上进行不需要锁的ClearDirty. (实际实现为根本不修改Dirty)
+        /// CheckpointMode.Table
+        /// Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
+        /// </summary>
         internal bool Dirty { get; set; } = false;
 
         internal long SavedTimestampForCheckpointPeriod;
@@ -206,11 +217,6 @@ namespace Zeze.Transaction
             snapshotValue = null;
 
             ClearDirty(SavedTimestampForCheckpointPeriod);
-        }
-
-        internal ByteBuffer FindSnapshot()
-        {
-            return snapshotValue;
         }
 
         public ConcurrentDictionary<K, Record<K, V>> LruNode { get; set; }

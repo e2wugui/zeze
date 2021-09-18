@@ -85,8 +85,7 @@ namespace Zeze.Transaction
                 (k) =>
                 {
                     var r = valueFactory(k);
-                    if (false == LruHot.TryAdd(k, r))
-                        throw new Exception("Impossible!");
+                    LruHot[k] = r; // replace: add or update see this.Remove
                     r.LruNode = LruHot;
                     isNew = true;
                     return r;
@@ -100,12 +99,15 @@ namespace Zeze.Transaction
                     result.LruNode = LruHot;
                 }
                 // else maybe fail in concurrent access.
+                // 并发访问导致重复的TryAdd，这里先这样写吧。可能会快点。
+                // LruHot[key] = result;
+                // result.LruNode = LruHot;
             }
             return result;
         }
 
         /// <summary>
-        /// 内部特殊使用，不调整AccessList。
+        /// 内部特殊使用，不调整 Lru。
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
@@ -117,7 +119,7 @@ namespace Zeze.Transaction
 
         }
 
-        // 考虑不再提供单个删除，由 Cleaner 集中清理。
+        // 不再提供删除，由 Cleaner 集中清理。
         // under lockey.writelock
         /*
         internal void Remove(K key)
@@ -174,6 +176,9 @@ namespace Zeze.Transaction
         {
             if (DataMap.TryRemove(p.Key, out var e))
             {
+                // 这里有个时间窗口：先删除DataMap再去掉Lru引用，
+                // 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
+                // see GetOrAdd
                 p.Value.State = GlobalCacheManager.StateRemoved;
                 e.LruNode.TryRemove(p.Key, out var _);
                 return true;

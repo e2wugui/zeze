@@ -36,13 +36,14 @@ namespace Zeze.Transaction
         private ConcurrentDictionary<K, Record<K, V>> changed = new ConcurrentDictionary<K, Record<K, V>>();
         private ConcurrentDictionary<K, Record<K, V>> encoded = new ConcurrentDictionary<K, Record<K, V>>();
         private ConcurrentDictionary<K, Record<K, V>> snapshot = new ConcurrentDictionary<K, Record<K, V>>();
-        private System.Threading.ReaderWriterLockSlim snapshotLock = new System.Threading.ReaderWriterLockSlim();
 
         internal void OnRecordChanged(Record<K, V> r)
         {
             changed[r.Key] = r;
         }
 
+        /*
+         * Not Need Now. See Record.Dirty
         internal bool IsRecordChanged(K key)
         {
             if (changed.TryGetValue(key, out var _))
@@ -51,6 +52,7 @@ namespace Zeze.Transaction
                 return true;
             return false;
         }
+        */
 
         /// <summary>
         /// 仅在 Checkpoint 中调用，同时只有一个线程执行。
@@ -125,50 +127,16 @@ namespace Zeze.Transaction
         /// </summary>
         public override void Cleanup()
         {
-            ConcurrentDictionary<K, Record<K, V>> tmp = null;
-            snapshotLock.EnterWriteLock();
-            try
-            {
-                tmp = snapshot;
-                snapshot = new ConcurrentDictionary<K, Record<K, V>>();
-            }
-            finally
-            {
-                snapshotLock.ExitWriteLock();
-            }
-
-            foreach (var e in tmp)
+            foreach (var e in snapshot)
             {
                 e.Value.Cleanup();
             }
+            snapshot.Clear();
         }
 
         public V Find(K key, Table<K, V> table)
         {
-            ByteBuffer value = null;
-            bool foundInSnapshot = false;
-
-            snapshotLock.EnterReadLock();
-            try
-            {
-                Record<K, V> r;
-                foundInSnapshot = snapshot.TryGetValue(key, out r);
-                if (foundInSnapshot)
-                {
-                    value = r.FindSnapshot();
-                }
-            }
-            finally
-            {
-                snapshotLock.ExitReadLock();
-            }
-
-            if (foundInSnapshot)
-            {
-                return null != value ? table.DecodeValue(value) : null;
-            }
-
-            value = DatabaseTable.Find(table.EncodeKey(key));
+            ByteBuffer value = DatabaseTable.Find(table.EncodeKey(key));
             return null != value ? table.DecodeValue(value) : null;
         }
 

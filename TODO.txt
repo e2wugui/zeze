@@ -44,15 +44,6 @@ war？
 Connector.WaitReady
 	GlobalAgent 重构？
 
-Record.Dirty 的问题
-	对于新的CheckpointMode，需要实现新的Dirty。
-	CheckpointMode.Period
-		Snapshot时记住timestamp，Cleanup的时候ClearDirty(snapshot_timestamp)，需要记录锁。
-	CheckpointMode.Immediately
-		Commit完成以后马上进行不需要锁的ClearDirty. (实际实现为根本不修改Dirty)
-	CheckpointMode.Table
-		Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
-
 Record.State
 	xdb 旧版的状态看来需要恢复。
 	这是为了优化这种情况： add, 并且在 checkpoint 之前就 remove.
