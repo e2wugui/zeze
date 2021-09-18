@@ -172,9 +172,10 @@ namespace Zeze.Transaction
         // under lockey.writelock
         private bool Remove(KeyValuePair<K, Record<K, V>> p)
         {
-            if (DataMap.TryRemove(p.Key, out var _))
+            if (DataMap.TryRemove(p.Key, out var e))
             {
                 p.Value.State = GlobalCacheManager.StateRemoved;
+                e.LruNode.TryRemove(p.Key, out var _);
                 return true;
             }
             return false;
@@ -199,6 +200,16 @@ namespace Zeze.Transaction
                     */
                     return Remove(p);
                 }
+
+                // 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
+                // case CheckpointMode.Immediately
+                // 永远不会为false。记录Commit的时候就Flush到数据库。
+                // case CheckpointMode.Period
+                // 修改的时候需要记录锁（lockey）。
+                // 这里只是读取，就不加锁了。
+                // case CheckpointMode.Table 修改的时候需要RelativeRecordSet锁。
+                // （修改为true的时也在记录锁（lockey）下）。
+                // 这里只是读取，就不加锁了。
 
                 if (p.Value.Dirty)
                     return false;

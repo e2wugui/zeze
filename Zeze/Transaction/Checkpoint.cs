@@ -311,12 +311,17 @@ namespace Zeze.Transaction
             }
         }
 
+        // under lock(rs)
         internal void Flush(RelativeRecordSet rs)
         {
             // rs.MergeTo == null &&  check outside
             if (rs.RecordSet != null)
             {
                 Flush(from r in rs.RecordSet select r);
+                foreach (var r in rs.RecordSet)
+                {
+                    r.Dirty = false;
+                }
             }
         }
     }

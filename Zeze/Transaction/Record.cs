@@ -32,9 +32,13 @@ namespace Zeze.Transaction
         internal long Timestamp { get; set; }
         internal bool Dirty { get; set; } = false;
 
+        internal long SavedTimestampForCheckpointPeriod;
+
+        internal abstract void ClearDirty(long timestamp);
+
         internal Bean Value { get; set; }
         internal int State { get; set; }
-        internal Zeze.Util.AtomicLong AccessTimeTicks = new Zeze.Util.AtomicLong();
+
         public abstract Table Table { get; }
 
         internal RelativeRecordSet RelativeRecordSet { get; set; } = new RelativeRecordSet();
@@ -110,7 +114,22 @@ namespace Zeze.Transaction
             return TTable.Zeze.GlobalAgent.Acquire(gkey, state);
         }
 
-        // XXX 临时写个实现，以后调整。
+        internal override void ClearDirty(long timestamp)
+        {
+            TableKey tkey = new TableKey(Table.Id, Key);
+            Lockey lockey = Locks.Instance.Get(tkey);
+            lockey.EnterWriteLock();
+            try
+            {
+                if (timestamp == Timestamp)
+                    Dirty = false;
+            }
+            finally
+            {
+                lockey.ExitWriteLock();
+            }
+        }
+
         internal override void Commit(Transaction.RecordAccessed accessed)
         {
             if (null != accessed.CommittedPutLog)
@@ -118,9 +137,20 @@ namespace Zeze.Transaction
                 Value = accessed.CommittedPutLog.Value;
             }
             Timestamp = NextTimestamp; // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
-            Dirty = true;
-            if (TTable.Zeze.Checkpoint.CheckpointMode == CheckpointMode.Period)
-                TTable.TStorage?.OnRecordChanged(this);
+
+            switch (TTable.Zeze.Checkpoint.CheckpointMode)
+            {
+                case CheckpointMode.Period:
+                    Dirty = true;
+                    TTable.TStorage?.OnRecordChanged(this);
+                    break;
+                case CheckpointMode.Table:
+                    Dirty = true;
+                    break;
+                case CheckpointMode.Immediately:
+                    // do nothing
+                    break;
+            }
         }
 
         private ByteBuffer snapshotKey;
@@ -174,6 +204,8 @@ namespace Zeze.Transaction
         {
             snapshotKey = null;
             snapshotValue = null;
+
+            ClearDirty(SavedTimestampForCheckpointPeriod);
         }
 
         internal ByteBuffer FindSnapshot()

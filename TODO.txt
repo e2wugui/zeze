@@ -49,7 +49,7 @@ Record.Dirty 的问题
 	CheckpointMode.Period
 		Snapshot时记住timestamp，Cleanup的时候ClearDirty(snapshot_timestamp)，需要记录锁。
 	CheckpointMode.Immediately
-		Commit完成以后马上进行不需要锁的ClearDirty
+		Commit完成以后马上进行不需要锁的ClearDirty. (实际实现为根本不修改Dirty)
 	CheckpointMode.Table
 		Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
 
