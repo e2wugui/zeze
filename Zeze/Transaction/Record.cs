@@ -30,6 +30,7 @@ namespace Zeze.Transaction
         }
 
         internal long Timestamp { get; set; }
+        internal bool Dirty { get; set; } = false;
 
         internal Bean Value { get; set; }
         internal int State { get; set; }
@@ -117,7 +118,9 @@ namespace Zeze.Transaction
                 Value = accessed.CommittedPutLog.Value;
             }
             Timestamp = NextTimestamp; // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
-            TTable.TStorage?.OnRecordChanged(this);
+            Dirty = true;
+            if (TTable.Zeze.Checkpoint.CheckpointMode == CheckpointMode.Period)
+                TTable.TStorage?.OnRecordChanged(this);
         }
 
         private ByteBuffer snapshotKey;
@@ -177,5 +180,7 @@ namespace Zeze.Transaction
         {
             return snapshotValue;
         }
+
+        public ConcurrentDictionary<K, Record<K, V>> LruNode { get; set; }
     }
 }

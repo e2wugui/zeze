@@ -268,7 +268,7 @@ namespace Zeze.Transaction
 
         internal override void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
         {
-            foreach (var e in Cache.map)
+            foreach (var e in Cache.DataMap)
             {
                 var gkey = new GlobalCacheManager.GlobalTableKey(Name, EncodeKey(e.Key));
                 if (Zeze.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)

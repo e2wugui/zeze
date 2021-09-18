@@ -9,36 +9,109 @@ using Zeze.Services;
 // MESI？
 namespace Zeze.Transaction
 {
-    public sealed class TableCache<K, V> where V : Bean, new()
+    /// <summary>
+    /// ConcurrentLruLike
+	/// 普通Lru一般把最新访问的放在列表一端，这直接导致并发上不去。
+	/// 基本思路是按块（用ConcurrentDictionary）保存最近访问。
+    /// 定时添加新块。
+	/// 访问需要访问1 ~3次ConcurrentDictionary。
+    /// 
+    /// 通用类的写法需要在V外面包装一层。这里直接使用Record来达到这个目的。
+    /// 这样，这个类就不通用了。通用类需要包装，多创建一个对象，还需要包装接口。
+    /// 
+    /// </summary>
+    /// <typeparam name="K"></typeparam>
+    /// <typeparam name="V"></typeparam>
+    public class TableCache<K, V> where V : Bean, new()
     {
-        public Table<K, V> Table { get; }
-        public int Capacity { get; set; } // 不加锁了
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        internal readonly ConcurrentDictionary<K, Record<K, V>> map = new ConcurrentDictionary<K, Record<K, V>>();
+        internal ConcurrentDictionary<K, Record<K, V>> DataMap { get; }
+
+        private ConcurrentQueue<ConcurrentDictionary<K, Record<K, V>>> LruQueue { get; }
+            = new ConcurrentQueue<ConcurrentDictionary<K, Record<K, V>>>();
+
+        private ConcurrentDictionary<K, Record<K, V>> LruHot { get; set; }
+
+        public Table<K, V> Table { get; }
 
         public TableCache(Application app, Table<K, V> table)
         {
             this.Table = table;
-            this.Capacity = table.TableConf.CacheCapaicty;
-            if (Capacity < 0)
-                throw new ArgumentException();
+            DataMap = new ConcurrentDictionary<K, Record<K, V>>(GetCacheConcurrencyLevel(), GetCacheInitialCapaicty());
+            NewLruHot();
+            Util.Scheduler.Instance.Schedule((task) =>
+            {
+                // 访问很少的时候不创建新的热点。这个选项没什么意思。
+                if (LruHot.Count > table.TableConf.CacheNewAccessHotThreshold)
+                {
+                    NewLruHot();
+                }
+            }, table.TableConf.CacheNewLruHotPeriod, table.TableConf.CacheNewLruHotPeriod);
+            Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
+        }
 
-            int delay = table.TableConf.CacheCleanPeriod;
-            // 为了使清除任务不会集中在某个时间点执行，简单处理一下：随机初始化延迟时间。（不算什么好方法）
-            int initialDelay = Util.Random.Instance.Next(delay);
-            Util.Scheduler.Instance.Schedule(CleanNow, initialDelay, delay);
+        private int GetCacheConcurrencyLevel()
+        {
+            // 这样写，当配置修改，可以使用的时候马上生效。
+            return Table.TableConf.CacheConcurrencyLevel > Environment.ProcessorCount
+                ? Table.TableConf.CacheConcurrencyLevel : Environment.ProcessorCount;
+        }
+
+        private int GetCacheInitialCapaicty()
+        {
+            // 31 from c# document
+            // 这样写，当配置修改，可以使用的时候马上生效。
+            return Table.TableConf.CacheInitialCapaicty < 31
+                ? 31 : Table.TableConf.CacheInitialCapaicty;
+        }
+
+        private int GetLruInitialCapaicty()
+        {
+            int c = (int)(GetCacheInitialCapaicty() * 0.2);
+            return c < 31 ? 31 : c;
+        }
+
+        private void NewLruHot()
+        {
+            LruHot = new ConcurrentDictionary<K, Record<K, V>>(GetCacheConcurrencyLevel(), GetLruInitialCapaicty());
+            LruQueue.Enqueue(LruHot);
         }
 
         public Record<K, V> GetOrAdd(K key, Func<K, Record<K, V>> valueFactory)
         {
-            Record<K, V> exist = map.GetOrAdd(key, valueFactory);
-            exist.AccessTimeTicks.GetAndSet(DateTime.Now.Ticks);
-            return exist;
+            bool isNew = false;
+            Record<K, V> result = DataMap.GetOrAdd(key,
+                (k) =>
+                {
+                    var r = valueFactory(k);
+                    if (false == LruHot.TryAdd(k, r))
+                        throw new Exception("Impossible!");
+                    r.LruNode = LruHot;
+                    isNew = true;
+                    return r;
+                });
+
+            if (false == isNew && result.LruNode != LruHot)
+            {
+                result.LruNode.TryRemove(key, out var _);
+                if (LruHot.TryAdd(key, result))
+                {
+                    result.LruNode = LruHot;
+                }
+                // else maybe fail in concurrent access.
+            }
+            return result;
         }
 
+        /// <summary>
+        /// 内部特殊使用，不调整AccessList。
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
         internal Record<K, V> Get(K key)
         {
-            if (map.TryGetValue(key, out var r))
+            if (DataMap.TryGetValue(key, out var r))
                 return r;
             return null;
 
@@ -53,69 +126,59 @@ namespace Zeze.Transaction
         }
         */
 
-
         public void CleanNow(Zeze.Util.SchedulerTask ThisTask)
         {
-            lock(this)
+            // 这个任务的执行时间可能很长，
+            // 不直接使用 Scheduler 的定时任务，
+            // 每次执行完重新调度。
+
+            if (Table.TableConf.CacheCapaicty <= 0)
             {
-                if (Capacity <= 0)
-                    return; // 容量不限
-
-                int size = map.Count;
-                if (size <= Capacity)
-                    return; // 容量足够
-
-                List<AccessTimeRecord> sorted = new List<AccessTimeRecord>(size);
-                foreach (var p in map)
-                {
-                    sorted.Add(new AccessTimeRecord(p));
-                }
-                sorted.Sort();
-
-                // 每次多回收 255个
-                int nclean = size - Capacity + 255;
-                foreach (var r in sorted)
-                {
-                    if (nclean <= 0)
-                        break;
-
-                    if (r.p.Value.AccessTimeTicks.Get() != r.accessTimeTicks)
-                        continue; // 排序后，记录时戳发生了更新，直接跳过。
-
-                    if (TryRemoveRecord(r.p))
-                    {
-                        --nclean;
-                    }
-                    // 运行的不频繁：不管删除是否成功，都继续循环。
-                }
+                Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
+                return; // 容量不限
             }
+
+            while (DataMap.Count > Table.TableConf.CacheCapaicty) // 超出容量，循环尝试
+            {
+                if (false == LruQueue.TryPeek(out var node))
+                    break;
+
+                if (node == LruHot) // 热点。不回收。
+                    break;
+
+                foreach (var e in node)
+                {
+                    if (false == TryRemoveRecord(e))
+                    {
+                        // 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
+                        Table.Zeze.CheckpointRun();
+                    }
+                }
+                if (node.Count == 0)
+                {
+                    LruQueue.TryDequeue(out var _);
+                }
+                else
+                {
+                    logger.Warn($"remain record when clean oldest lrunode.");
+                }
+
+                if (Table.TableConf.CacheCleanPeriodWhenExceedCapacity > 0)
+                    System.Threading.Thread.Sleep(Table.TableConf.CacheCleanPeriodWhenExceedCapacity);
+            }
+            Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
         }
 
         // under lockey.writelock
         private bool Remove(KeyValuePair<K, Record<K, V>> p)
         {
-            if (map.TryRemove(p.Key, out var _))
+            if (DataMap.TryRemove(p.Key, out var _))
             {
                 p.Value.State = GlobalCacheManager.StateRemoved;
                 return true;
             }
             return false;
         }
-
-        // under lockey.writelock
-        /*
-        internal bool RemoeIfNotDirty(K key)
-        {
-            var storage = Table.Storage;
-            if (null == storage)
-                return false; // 内存表不该发生Reduce.
-
-            if (storage.IsRecordChanged(key)) // 在记录里面维持一个 Dirty 标志是可行的，但是由于 Cache.CleanNow 执行的不频繁，无所谓了。
-                return false;
-
-            return map.TryRemove(key, out var _);
-        }
-        */
 
         private bool TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)
         {
@@ -137,36 +200,22 @@ namespace Zeze.Transaction
                     return Remove(p);
                 }
 
-                if (storage.IsRecordChanged(p.Key)) // 在记录里面维持一个 Dirty 标志是可行的，但是由于 Cache.CleanNow 执行的不频繁，无所谓了。
+                if (p.Value.Dirty)
                     return false;
 
                 if (p.Value.State != GlobalCacheManager.StateInvalid)
                 {
-                    if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
+                    if (p.Value.Acquire(GlobalCacheManager.StateInvalid)
+                        != GlobalCacheManager.StateInvalid)
+                    {
                         return false;
+                    }
                 }
                 return Remove(p);
             }
             finally
             {
                 lockey.ExitWriteLock();
-            }
-        }
-
-        class AccessTimeRecord : System.IComparable<AccessTimeRecord>
-        {
-            internal long accessTimeTicks;
-            internal KeyValuePair<K, Record<K, V>> p;
-
-            internal AccessTimeRecord(KeyValuePair<K, Record<K, V>> p)
-            {
-                this.accessTimeTicks = p.Value.AccessTimeTicks.Get(); // 易变的，拷贝一份.
-                this.p = p;
-            }
-
-            public int CompareTo(AccessTimeRecord other)
-            {
-                return accessTimeTicks.CompareTo(other.accessTimeTicks);
             }
         }
     }

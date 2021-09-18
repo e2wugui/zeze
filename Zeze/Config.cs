@@ -269,7 +269,12 @@ namespace Zeze
         {
             public string Name { get; }
             public int CacheCapaicty { get; set; } = 20000;
-            public int CacheCleanPeriod { get; set; } = 3600 * 1000; // 毫秒，一小时
+            public int CacheConcurrencyLevel { get; set; }
+            public int CacheInitialCapaicty { get; set; }
+            public int CacheNewAccessHotThreshold { get; set; }
+            public int CacheCleanPeriod { get; set; } = 2000;
+            public int CacheNewLruHotPeriod { get; set; } = 200;
+            public int CacheCleanPeriodWhenExceedCapacity { get; set; }
             public bool CheckpointWhenCommit { get; set; } = false;
 
             // 自动倒库，当新库(DatabaseName)没有找到记录时，从旧库(DatabaseOldName)中读取，
@@ -303,6 +308,18 @@ namespace Zeze
                 attr = self.GetAttribute("CheckpointWhenCommit");
                 if (attr.Length > 0)
                     CheckpointWhenCommit = bool.Parse(attr);
+                attr = self.GetAttribute("CacheConcurrencyLevel");
+                if (attr.Length > 0)
+                    CacheConcurrencyLevel = int.Parse(attr);
+                attr = self.GetAttribute("CacheInitialCapaicty");
+                if (attr.Length > 0)
+                    CacheInitialCapaicty = int.Parse(attr);
+                attr = self.GetAttribute("CacheNewAccessHotThreshold");
+                if (attr.Length > 0)
+                    CacheNewAccessHotThreshold = int.Parse(attr);
+                attr = self.GetAttribute("CacheCleanPeriodWhenExceedCapacity");
+                if (attr.Length > 0)
+                    CacheCleanPeriodWhenExceedCapacity = int.Parse(attr);
 
                 if (Name.Length > 0)
                 {
