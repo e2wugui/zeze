@@ -17,26 +17,26 @@ namespace Zeze.Util
         public HugeConcurrentDictionary(int buckets, int concurrencyLevel, long capacity)
         {
             Buckets = new ConcurrentDictionary<K, V>[buckets];
-            long ic = capacity / Buckets.Length;
-            if (ic > int.MaxValue)
+            long bucketsCapacity = capacity / Buckets.Length;
+            if (bucketsCapacity > int.MaxValue)
                 throw new Exception("capacity / buckets > int.MaxValue. Please Increace buckets.");
             for (int i = 0; i < Buckets.Length; ++i)
             {
-                Buckets[i] = new ConcurrentDictionary<K, V>(concurrencyLevel, (int)ic);
+                Buckets[i] = new ConcurrentDictionary<K, V>(concurrencyLevel, (int)bucketsCapacity);
             }
         }
 
         public V GetOrAdd(K key, Func<K, V> factory)
         {
-            int hash = key.GetHashCode();
-            int i = hash % Buckets.Length;
+            uint hash = (uint)key.GetHashCode();
+            uint i = hash % (uint)Buckets.Length;
             return Buckets[i].GetOrAdd(key, factory);
         }
 
         public bool TryRemove(K key, out V r)
         {
-            int hash = key.GetHashCode();
-            int i = hash % Buckets.Length;
+            uint hash = (uint)key.GetHashCode();
+            uint i = hash % (uint)Buckets.Length;
             return Buckets[i].TryRemove(key, out r);
         }
 
@@ -44,14 +44,14 @@ namespace Zeze.Util
         {
             get
             {
-                int hash = key.GetHashCode();
-                int i = hash % Buckets.Length;
+                uint hash = (uint)key.GetHashCode();
+                uint i = hash % (uint)Buckets.Length;
                 return Buckets[i][key];
             }
             set
             {
-                int hash = key.GetHashCode();
-                int i = hash % Buckets.Length;
+                uint hash = (uint)key.GetHashCode();
+                uint i = hash % (uint)Buckets.Length;
                 Buckets[i][key] = value;
             }
         }

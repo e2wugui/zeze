@@ -11,8 +11,6 @@ Zeze
 Zezex
 	client: 可靠消息实现的错误检查。
 	Bag里面的Money移走。
-	根据新的 solution-name 拷贝并替换代码中Game的名字空间。
-	麻烦的地方：根据客户端是否脚本需要替换协议中的handle：client->clientscript。
 
 ConfigEditor
 	自动完成: Foreign
@@ -53,3 +51,6 @@ Raft
   增加ConcurrentMapOnRocksDb
 GlobalCacheManagerWithRaft
   改成ConcurrentMapOnRocksDb
+
+ServiceManager.Test
+  注册发现重复。测试案例的问题?
