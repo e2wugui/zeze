@@ -206,8 +206,21 @@ namespace Zeze.Transaction
             {
                 if (SavedTimestampForCheckpointPeriod == base.Timestamp)
                     Dirty = false;
-                // 总是修改一次。严格判断条件，可以仅在需要时修改。只是修改简单变量，这样更快？
-                ExistInBackDatabase = null != snapshotValue;
+
+                // ExistInBackDatabase = null != snapshotValue;
+                // 修改很少，下面这样会更快？
+                if (null != snapshotValue)
+                {
+                    // replace
+                    if (false == ExistInBackDatabase)
+                        ExistInBackDatabase = true;
+                }
+                else
+                {
+                    // remove
+                    if (ExistInBackDatabase)
+                        ExistInBackDatabase = false;
+                }
             }
             finally
             {
