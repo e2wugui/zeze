@@ -283,15 +283,15 @@ namespace Zeze.Transaction
                 {
                     r.Flush(r.Table.Storage.DatabaseTable, r.DatabaseTransactionTmp);
                 }
-                // 清除编码状态
-                foreach (var r in rs)
-                {
-                    r.Cleanup();
-                }
                 // 提交。
                 foreach (var t in dts.Values)
                 {
                     t.Commit();
+                }
+                // 清除编码状态
+                foreach (var r in rs)
+                {
+                    r.Cleanup();
                 }
             }
             catch (Exception)

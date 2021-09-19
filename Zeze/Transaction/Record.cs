@@ -43,10 +43,6 @@ namespace Zeze.Transaction
         /// </summary>
         internal bool Dirty { get; set; } = false;
 
-        internal long SavedTimestampForCheckpointPeriod;
-
-        internal abstract void ClearDirty(long timestamp);
-
         internal Bean Value { get; set; }
         internal int State { get; set; }
 
@@ -125,21 +121,8 @@ namespace Zeze.Transaction
             return TTable.Zeze.GlobalAgent.Acquire(gkey, state);
         }
 
-        internal override void ClearDirty(long timestamp)
-        {
-            TableKey tkey = new TableKey(Table.Id, Key);
-            Lockey lockey = Locks.Instance.Get(tkey);
-            lockey.EnterWriteLock();
-            try
-            {
-                if (timestamp == Timestamp)
-                    Dirty = false;
-            }
-            finally
-            {
-                lockey.ExitWriteLock();
-            }
-        }
+        internal long SavedTimestampForCheckpointPeriod { get; set; }
+        internal bool ExistInBackDatabase { get; set; }
 
         internal override void Commit(Transaction.RecordAccessed accessed)
         {
@@ -202,21 +185,37 @@ namespace Zeze.Transaction
         {
             if (null != snapshotValue)
             {
+                // changed
                 table.Replace(t, snapshotKey, snapshotValue);
             }
             else
             {
-                table.Remove(t, snapshotKey);
+                // removed
+                if (ExistInBackDatabase) // 优化，仅在后台db存在时才去删除。
+                    table.Remove(t, snapshotKey);
             }
             return true;
         }
 
         internal override void Cleanup()
         {
+            TableKey tkey = new TableKey(Table.Id, Key);
+            Lockey lockey = Locks.Instance.Get(tkey);
+            lockey.EnterWriteLock();
+            try
+            {
+                if (SavedTimestampForCheckpointPeriod == base.Timestamp)
+                    Dirty = false;
+                // 总是修改一次。严格判断条件，可以仅在需要时修改。只是修改简单变量，这样更快？
+                ExistInBackDatabase = null != snapshotValue;
+            }
+            finally
+            {
+                lockey.ExitWriteLock();
+            }
+
             snapshotKey = null;
             snapshotValue = null;
-
-            ClearDirty(SavedTimestampForCheckpointPeriod);
         }
 
         public ConcurrentDictionary<K, Record<K, V>> LruNode { get; set; }
