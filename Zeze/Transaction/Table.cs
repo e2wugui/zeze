@@ -111,7 +111,7 @@ namespace Zeze.Transaction
                             // 【注意】这个变量不管 OldTable 中是否存在的情况。
                             r.ExistInBackDatabase = null != r.Value;
 
-                            // 【BUG】当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
+                            // 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
                             if (null == r.Value && null != OldTable)
                             {
                                 ByteBuffer old = OldTable.Find(EncodeKey(key));
@@ -410,7 +410,7 @@ namespace Zeze.Transaction
             return TStorage;
         }
 
-        private Database.Table OldTable;
+        internal Database.Table OldTable { get; private set; }
         internal Storage<K, V> TStorage { get; private set; }
         public override Storage Storage => TStorage;
 

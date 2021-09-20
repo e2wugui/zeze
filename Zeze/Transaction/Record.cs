@@ -193,12 +193,21 @@ namespace Zeze.Transaction
                 // removed
                 if (ExistInBackDatabase) // 优化，仅在后台db存在时才去删除。
                     table.Remove(t, snapshotKey);
+
+                // 需要同步删除OldTable，否则下一次查找又会找到。
+                // 这个违背了OldTable不修改的原则，但没办法了。
+                // 现在有个问题，提交的时候，后台数据库的事务是没有包括OldTable.Database的。
+                // 简单的实现是让 Remove 支持参数 t 为 null，就是不需要事务的删除。
+                // 改动也挺多，但不影响结构。
+                //TTable.OldTable?.Remove(null, snapshotKey);
             }
             return true;
         }
 
         internal override void Cleanup()
         {
+            this.DatabaseTransactionTmp = null;
+
             TableKey tkey = new TableKey(Table.Id, Key);
             Lockey lockey = Locks.Instance.Get(tkey);
             lockey.EnterWriteLock();
