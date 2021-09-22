@@ -717,8 +717,8 @@ namespace Zeze.Services
                     if (!Sessions.StartSerialize())
                         return false;
                 }
-                Global.ConcurrentSerializeTo(file);
-                Sessions.ConcurrentSerializeTo(file);
+                Global.SerializeTo(file);
+                Sessions.SerializeTo(file);
                 long oldFirstIndex = 0;
                 lock (Raft)
                 {

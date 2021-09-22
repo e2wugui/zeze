@@ -237,7 +237,14 @@ namespace Zeze.Raft
             return BitConverter.ToInt64(bytes);
         }
 
-        public void ConcurrentSerializeTo(System.IO.Stream stream)
+        private int ReadInt4From(System.IO.Stream stream)
+        {
+            var bytes = new byte[4];
+            stream.Read(bytes);
+            return BitConverter.ToInt32(bytes);
+        }
+
+        public void SerializeTo(System.IO.Stream stream)
         {
             var position = WriteLong8To(stream, Map.Count);
 
@@ -288,7 +295,7 @@ namespace Zeze.Raft
             Map.Clear();
             for (long count = ReadLong8From(stream); count > 0; --count)
             {
-                long kvsize = ReadLong8From(stream);
+                int kvsize = ReadInt4From(stream);
                 var kvbytes = new byte[kvsize];
                 stream.Read(kvbytes);
 
@@ -300,6 +307,5 @@ namespace Zeze.Raft
                 Map[key] = value; // ignore result
             }
         }
-
     }
 }
