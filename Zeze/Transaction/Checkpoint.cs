@@ -12,14 +12,14 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private HashSet<Database> databases = new HashSet<Database>();
+        private HashSet<Database> Databases { get; } = new HashSet<Database>();
 
         private ReaderWriterLockSlim FlushReadWriteLock { get; } = new ReaderWriterLockSlim();
 
         public bool IsRunning { get; private set; }
         public int Period { get; private set; }
         private Task RunningTask = null;
-        private Util.SimpleThreadPool flushThreads;
+
         public CheckpointMode CheckpointMode { get; }
 
         public Checkpoint(CheckpointMode mode)
@@ -49,12 +49,10 @@ namespace Zeze.Transaction
         {
             foreach (var db in databases)
             {
-                this.databases.Add(db);
+                this.Databases.Add(db);
             }
             return this;
         }
-
-        private ManualResetEvent[] readys;
 
         internal void WaitRun()
         {
@@ -73,8 +71,6 @@ namespace Zeze.Transaction
 
                 IsRunning = true;
                 Period = period;
-                flushThreads = new Util.SimpleThreadPool(
-                    databases.Count, "ZezeDatabaseFlushThreadPool");
                 RunningTask = Zeze.Util.Task.Run(Run, "Checkpoint.Run");
             }
         }
@@ -175,15 +171,10 @@ namespace Zeze.Transaction
             }
         }
 
-        internal void WaitAllReady()
-        {
-            WaitHandle.WaitAll(readys);
-        }
-
         private void CheckpointPeriod()
         {
             // encodeN
-            foreach (var db in databases)
+            foreach (var db in Databases)
             {
                 db.EncodeN();
             }
@@ -194,7 +185,7 @@ namespace Zeze.Transaction
                 {
                     actionCurrent = actionPending;
                     actionPending = new List<Action>();
-                    foreach (var db in databases)
+                    foreach (var db in Databases)
                     {
                         db.Snapshot();
                     }
@@ -205,48 +196,21 @@ namespace Zeze.Transaction
                 }
             }
             // flush
+            var dts = new Dictionary<Database, Database.Transaction>();
+            foreach (var db in Databases)
             {
-                readys = new ManualResetEvent[databases.Count];
-                int i = 0;
-                foreach (var v in databases)
-                {
-                    v.CommitReady.Reset();
-                    readys[i++] = v.CommitReady;
-                }
-                if (databases.Count > 1)
-                {
-                    i = 0;
-                    Task[] flushTasks = new Task[databases.Count];
-                    // 多数据库时，必须把flush放在线程中执行，db.Flush内部需要回调this.WaitAll。
-                    // flush 必须都能得到执行，flushThreads的数量必须足够。
-                    foreach (var db in databases)
-                    {
-                        TaskCompletionSource<bool> future = new TaskCompletionSource<bool>();
-                        flushThreads.QueueUserWorkItem(
-                            () =>
-                            Util.Task.Call(() =>
-                            {
-                                db.Flush(this);
-                                future.SetResult(true);
-                            },
-                            "Zeze.Checkpoint.Flush"
-                            ));
-                        flushTasks[i++] = future.Task;
-                    }
-                    Task.WaitAll(flushTasks);
-                }
-                else
-                {
-                    // 只有一个Database。同步执行。
-                    foreach (var db in databases)
-                    {
-                        db.Flush(this);
-                    }
-                }
-                readys = null;
+                dts[db] = db.BeginTransaction();
+            }
+            foreach (var e in dts)
+            {
+                e.Key.Flush(e.Value);
+            }
+            foreach (var e in dts)
+            {
+                e.Value.Commit();
             }
             // cleanup
-            foreach (var db in databases)
+            foreach (var db in Databases)
             {
                 db.Cleanup();
             }

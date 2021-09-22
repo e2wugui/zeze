@@ -53,34 +53,6 @@ namespace Zeze.Tikv
             return new TikvTrans(DatabaseUrl);
         }
 
-        public override void Flush(Checkpoint sync, Action<Transaction> flushAction)
-        {
-            for (int i = 0; i < 60; ++i)
-            {
-                using var trans = new TikvTrans(DatabaseUrl);
-                try
-                {
-                    flushAction(trans);
-                    if (null != sync) // null for test
-                    {
-                        CommitReady.Set();
-                        sync.WaitAllReady();
-                    }
-                    trans.Commit();
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    CommitReady.Reset();
-                    trans.Rollback();
-                    logger.Warn(ex, "Checkpoint error.");
-                }
-                Thread.Sleep(1000);
-            }
-            logger.Fatal("Checkpoint too many try.");
-            Environment.Exit(54321);
-        }
-
         public override Table OpenTable(string name)
         {
             return new TableTikv(this, name);

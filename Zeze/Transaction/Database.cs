@@ -104,18 +104,14 @@ namespace Zeze.Transaction
             //logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
         }
 
-        internal void Flush(Checkpoint sync)
+        internal void Flush(Transaction trans)
         {
-            Flush(sync,
-                (trans) =>
-                {
-                    int countFlush = 0;
-                    foreach (Storage storage in storages)
-                    {
-                        countFlush += storage.Flush(trans);
-                    }
-                    //logger.Info("Checkpoint Flush count={0}", countFlush);
-                });
+            int countFlush = 0;
+            foreach (Storage storage in storages)
+            {
+                countFlush += storage.Flush(trans);
+            }
+            logger.Info("Checkpoint Flush count={0}", countFlush);
         }
 
         internal void Cleanup()
@@ -126,9 +122,6 @@ namespace Zeze.Transaction
             }
         }
 
-        internal ManualResetEvent CommitReady { get; } = new ManualResetEvent(false);
-
-        public abstract void Flush(Checkpoint sync, Action<Transaction> flushAction);
         public abstract Database.Table OpenTable(string name);
 
         public interface Transaction : IDisposable
@@ -254,34 +247,6 @@ namespace Zeze.Transaction
         public override Transaction BeginTransaction()
         {
             return new MySqlTrans(DatabaseUrl);
-        }
-
-        public override void Flush(Checkpoint sync, Action<Transaction> flushAction)
-        {
-            for (int i = 0; i < 60; ++i)
-            {
-                using var trans = new MySqlTrans(DatabaseUrl);
-                try
-                {
-                    flushAction(trans);
-                    if (null != sync) // null for test
-                    {
-                        CommitReady.Set();
-                        sync.WaitAllReady();
-                    }
-                    trans.Commit();
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    CommitReady.Reset();
-                    trans.Rollback();
-                    logger.Warn(ex, "Checkpoint error.");
-                }
-                Thread.Sleep(1000);
-            }
-            logger.Fatal("Checkpoint too many try.");
-            Environment.Exit(54321);
         }
 
         public override Database.Table OpenTable(string name)
@@ -706,35 +671,6 @@ namespace Zeze.Transaction
             return new SqlTrans(DatabaseUrl);
         }
 
-
-        public override void Flush(Checkpoint sync, Action<Transaction> flushAction)
-        {
-            for (int i = 0; i < 60; ++i)
-            {
-                using var trans = new SqlTrans(DatabaseUrl);
-                try
-                {
-                    flushAction(trans);
-                    if (null != sync) // null for test
-                    {
-                        CommitReady.Set();
-                        sync.WaitAllReady();
-                    }
-                    trans.Commit();
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    CommitReady.Reset();
-                    trans.Rollback();
-                    logger.Warn(ex, "Checkpoint error.");
-                }
-                Thread.Sleep(1000);
-            }
-            logger.Fatal("Checkpoint too many try.");
-            Environment.Exit(54321);
-        }
-
         public override Database.Table OpenTable(string name)
         {
             return new TableSqlServer(this, name);
@@ -1151,39 +1087,6 @@ namespace Zeze.Transaction
             return new RockdsDbTrans(DatabaseUrl);
         }
 
-        public override void Flush(Checkpoint sync, Action<Transaction> flushAction)
-        {
-            // ColumnFamilyHandle: 默认cf支持多表原子Flush吗。
-            // TODO 以后再详细看文档。
-            try
-            {
-                for (int i = 0; i < 60; ++i)
-                {
-                    var trans = new RockdsDbTrans(DatabaseUrl);
-                    try
-                    {
-                        flushAction(trans);
-                        if (null != sync) // null for test
-                        {
-                            CommitReady.Set();
-                            sync.WaitAllReady();
-                        }
-                        return;
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Warn(ex, "Checkpoint error.");
-                    }
-                    Thread.Sleep(1000);
-                }
-                logger.Fatal("Checkpoint too many try.");
-                Environment.Exit(54321);
-            }
-            finally
-            {
-            }
-        }
-
         public override Table OpenTable(string name)
         {
             return new TableRocksDb(this, name);
@@ -1406,17 +1309,6 @@ namespace Zeze.Transaction
         public override Transaction BeginTransaction()
         {
             return new MemTrans(DatabaseUrl);
-        }
-
-        public override void Flush(Checkpoint sync, Action<Transaction> flushAction)
-        {
-            using var trans = new MemTrans(DatabaseUrl);
-            flushAction(trans);
-            if (null != sync) // null for test
-            {
-                CommitReady.Set();
-                sync.WaitAllReady();
-            }
         }
 
         private static ConcurrentDictionary<string, ConcurrentDictionary<string, TableMemory>> databaseTables

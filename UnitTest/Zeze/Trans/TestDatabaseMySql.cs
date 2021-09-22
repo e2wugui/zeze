@@ -16,41 +16,39 @@ namespace UnitTest.Zeze.Trans
             string url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
             DatabaseMySql sqlserver = new DatabaseMySql(url);
             Database.Table table = sqlserver.OpenTable("test_1");
-            sqlserver.Flush(null,
-                (trans) =>
+            {
+                var trans = sqlserver.BeginTransaction();
                 {
-                    {
-                        ByteBuffer key = ByteBuffer.Allocate();
-                        key.WriteInt(1);
-                        table.Remove(trans, key);
-                    }
-                    {
-                        ByteBuffer key = ByteBuffer.Allocate();
-                        key.WriteInt(2);
-                        table.Remove(trans, key);
-                    }
+                    ByteBuffer key = ByteBuffer.Allocate();
+                    key.WriteInt(1);
+                    table.Remove(trans, key);
                 }
-            );
+                {
+                    ByteBuffer key = ByteBuffer.Allocate();
+                    key.WriteInt(2);
+                    table.Remove(trans, key);
+                }
+                trans.Commit();
+            }
             Assert.AreEqual(0, table.Walk(PrintRecord));
-            sqlserver.Flush(null,
-                (trans) =>
+            {
+                var trans = sqlserver.BeginTransaction();
                 {
-                    {
-                        ByteBuffer key = ByteBuffer.Allocate();
-                        key.WriteInt(1);
-                        ByteBuffer value = ByteBuffer.Allocate();
-                        value.WriteInt(1);
-                        table.Replace(trans, key, value);
-                    }
-                    {
-                        ByteBuffer key = ByteBuffer.Allocate();
-                        key.WriteInt(2);
-                        ByteBuffer value = ByteBuffer.Allocate();
-                        value.WriteInt(2);
-                        table.Replace(trans, key, value);
-                    }
+                    ByteBuffer key = ByteBuffer.Allocate();
+                    key.WriteInt(1);
+                    ByteBuffer value = ByteBuffer.Allocate();
+                    value.WriteInt(1);
+                    table.Replace(trans, key, value);
                 }
-            );
+                {
+                    ByteBuffer key = ByteBuffer.Allocate();
+                    key.WriteInt(2);
+                    ByteBuffer value = ByteBuffer.Allocate();
+                    value.WriteInt(2);
+                    table.Replace(trans, key, value);
+                }
+                trans.Commit();
+            }
             {
                 ByteBuffer key = ByteBuffer.Allocate();
                 key.WriteInt(1);
