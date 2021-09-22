@@ -113,7 +113,7 @@ namespace Zeze.Transaction
             int count = 0;
             foreach (var e in snapshot)
             {
-                if (e.Value.Flush(this.DatabaseTable, t))
+                if (e.Value.Flush(t))
                 {
                     ++count;
                 }

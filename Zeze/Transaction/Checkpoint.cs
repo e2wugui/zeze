@@ -245,7 +245,7 @@ namespace Zeze.Transaction
                 // 保存到数据库中
                 foreach (var r in rs)
                 {
-                    r.Flush(r.Table.Storage.DatabaseTable, r.DatabaseTransactionTmp);
+                    r.Flush(r.DatabaseTransactionTmp);
                 }
                 // 提交。
                 foreach (var t in dts.Values)

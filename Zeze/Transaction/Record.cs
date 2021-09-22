@@ -67,7 +67,7 @@ namespace Zeze.Transaction
         internal abstract int Acquire(int state);
 
         internal abstract void Encode0();
-        internal abstract bool Flush(Database.Table table, Database.Transaction t);
+        internal abstract bool Flush(Database.Transaction t);
         internal abstract void Cleanup();
 
         internal Database.Transaction DatabaseTransactionTmp { get; set; }
@@ -181,25 +181,29 @@ namespace Zeze.Transaction
         }
         */
 
-        internal override bool Flush(Database.Table table, Database.Transaction t)
+        internal override bool Flush(Database.Transaction t)
         {
             if (null != snapshotValue)
             {
                 // changed
-                table.Replace(t, snapshotKey, snapshotValue);
+                Table.Storage?.DatabaseTable.Replace(t, snapshotKey, snapshotValue);
             }
             else
             {
                 // removed
                 if (ExistInBackDatabase) // 优化，仅在后台db存在时才去删除。
-                    table.Remove(t, snapshotKey);
+                    Table.Storage?.DatabaseTable.Remove(t, snapshotKey);
 
                 // 需要同步删除OldTable，否则下一次查找又会找到。
                 // 这个违背了OldTable不修改的原则，但没办法了。
-                // 现在有个问题，提交的时候，后台数据库的事务是没有包括OldTable.Database的。
-                // 简单的实现是让 Remove 支持参数 t 为 null，就是不需要事务的删除。
-                // 改动也挺多，但不影响结构。
-                //TTable.OldTable?.Remove(null, snapshotKey);
+                // XXX 从旧表中删除，使用独立临时事务。
+                // 如果要纳入完整事务，有点麻烦。这里反正是个例外，那就再例外一次了。
+                if (null != TTable.OldTable)
+                {
+                    var transTmp = TTable.OldTable.Database.BeginTransaction();
+                    TTable.OldTable.Remove(transTmp, snapshotKey);
+                    transTmp.Commit();
+                }
             }
             return true;
         }
