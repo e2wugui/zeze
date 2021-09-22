@@ -10,7 +10,7 @@ namespace Zeze.Util
 {
     // 使用哈希到多个ConcurrentDictionary的方式支持巨大内存。
     // 先不实现 IDictionary，要了再来添加。
-    public class HugeConcurrentDictionary<K, V> : IEnumerable<K> // 只支持遍历Keys
+    public class HugeConcurrentDictionary<K, V> : IEnumerable<KeyValuePair<K, V>>
     {
         private ConcurrentDictionary<K, V>[] Buckets { get; }
 
@@ -23,6 +23,14 @@ namespace Zeze.Util
             for (int i = 0; i < Buckets.Length; ++i)
             {
                 Buckets[i] = new ConcurrentDictionary<K, V>(concurrencyLevel, (int)bucketsCapacity);
+            }
+        }
+
+        public void Clear()
+        {
+            foreach (var b in Buckets)
+            {
+                b.Clear();
             }
         }
 
@@ -69,42 +77,40 @@ namespace Zeze.Util
             }
         }
 
-        public IEnumerator<K> GetEnumerator()
+        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
-            return new KeysEnumerator(this);
+            return new Enumerator(this);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return new KeysEnumerator(this);
+            return new Enumerator(this);
         }
 
-        public HugeConcurrentDictionary<K, V> Keys => this;
-
-        private class KeysEnumerator : IEnumerator<K>
+        private class Enumerator : IEnumerator<KeyValuePair<K, V>>
         {
-            private IEnumerator<K>[] Keys { get; }
+            private IEnumerator<KeyValuePair<K, V>>[] Entrys { get; }
             private int Index { get; set; }
 
-            private K _Current;
-            public K Current => _Current;
+            private KeyValuePair<K, V> _Current;
+            public KeyValuePair<K, V> Current => _Current;
 
             object IEnumerator.Current => _Current;
 
-            public KeysEnumerator(HugeConcurrentDictionary<K, V> huge)
+            public Enumerator(HugeConcurrentDictionary<K, V> huge)
             {
-                Keys = new IEnumerator<K>[huge.Buckets.Length];
-                for (int i = 0; i < Keys.Length; ++i)
+                Entrys = new IEnumerator<KeyValuePair<K, V>>[huge.Buckets.Length];
+                for (int i = 0; i < Entrys.Length; ++i)
                 {
-                    Keys[i] = huge.Buckets[i].Keys.GetEnumerator();
+                    Entrys[i] = huge.Buckets[i].GetEnumerator();
                 }
             }
 
             public bool MoveNext()
             {
-                while (Index < Keys.Length)
+                while (Index < Entrys.Length)
                 {
-                    var e = Keys[Index];
+                    var e = Entrys[Index];
                     if (e.MoveNext())
                     {
                         _Current = e.Current;
@@ -117,18 +123,18 @@ namespace Zeze.Util
 
             public void Reset()
             {
-                foreach (var key in Keys)
+                foreach (var e in Entrys)
                 {
-                    key.Reset();
+                    e.Reset();
                 }
                 Index = 0;
             }
 
             public void Dispose()
             {
-                foreach (var key in Keys)
+                foreach (var e in Entrys)
                 {
-                    key.Dispose();
+                    e.Dispose();
                 }
             }
         }

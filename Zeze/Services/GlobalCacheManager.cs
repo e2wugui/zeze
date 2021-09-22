@@ -228,10 +228,10 @@ namespace Zeze.Services
             Zeze.Util.Scheduler.Instance.Schedule(
                 (ThisTask) =>
                 {
-                    foreach (var gkey in session.Acquired.Keys)
+                    foreach (var e in session.Acquired)
                     {
                         // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                        Release(session, gkey);
+                        Release(session, e.Key);
                     }
                     rpc.SendResultCode(0);
                 },
@@ -250,10 +250,10 @@ namespace Zeze.Services
                 return 0;
             }
             // new login, 比如逻辑服务器重启。release old acquired.
-            foreach (var gkey in session.Acquired.Keys)
+            foreach (var e in session.Acquired)
             {
                 // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                Release(session, gkey);
+                Release(session, e.Key);
             }
             rpc.SendResultCode(0);
             return 0;
@@ -286,10 +286,10 @@ namespace Zeze.Services
                 rpc.SendResultCode(NormalCloseUnbindFail);
                 return 0;
             }
-            foreach (var gkey in session.Acquired.Keys)
+            foreach (var e in session.Acquired)
             {
                 // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                Release(session, gkey);
+                Release(session, e.Key);
             }
             rpc.SendResultCode(0);
             logger.Debug("After NormalClose global.Count={0}", global.Count);

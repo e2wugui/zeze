@@ -59,43 +59,95 @@ namespace Zeze.Raft
     public class ConcurrentMap<K, V>
         where V : Copyable<V>, new()
     {
-        public enum Operate
+        private HugeConcurrentDictionary<K, V> Map { get; }
+
+        enum SnapshotState
         {
-            Update,
+            Zero,
             Add,
+            Update,
             Remove,
         }
-
-        public class SnapshotValue
+        class SnapshotValue
         {
-            public V Value { get; }
-            public Operate Operate { get; }
+            internal V Value { get; set; }
+            internal SnapshotState State { get; set; } = SnapshotState.Zero;
+        }
 
-            public SnapshotValue(V value, Operate operate)
+        private ConcurrentDictionary<K, SnapshotValue> SnapshotLogs { get; }
+            = new ConcurrentDictionary<K, SnapshotValue>();
+        /// <summary>
+        /// 【Snapshot状态和操作】
+        /// State | add remove update
+        /// Zero  | Add Remove Update
+        /// Add   | _   _      _
+        /// Update| x   Remove _
+        /// Remove| _   _      _   (x: Error _: No Change)
+        /// 
+        /// Zero:
+        /// 1. SnapshotValue第一次创建时：根据操作设置对应状态。
+        /// 2. Add再Remove时设置成这个状态：此时只会发生新的Add操作。
+        /// Add 和 Remove:
+        /// 黑洞，一旦进入就不会再改变。
+        /// </summary>
+        private void SnapshotLog(SnapshotState op, K k, V value)
+        {
+            if (false == Snapshoting)
+                return;
+
+            var ss = SnapshotLogs.GetOrAdd(k, (_) => new SnapshotValue());
+            lock (ss)
             {
-                Value = value;
-                Operate = operate;
+                switch (ss.State)
+                {
+                    case SnapshotState.Zero:
+                        switch (op)
+                        {
+                            case SnapshotState.Add:
+                                ss.State = SnapshotState.Add;
+                                ss.Value = value;
+                                break;
+                            case SnapshotState.Update:
+                                ss.State = SnapshotState.Update;
+                                ss.Value = value.Copy();
+                                break;
+                            case SnapshotState.Remove:
+                                ss.State = SnapshotState.Remove;
+                                ss.Value = value;
+                                break;
+                        }
+                        break;
+                    case SnapshotState.Add:
+                        // all no change
+                        break;
+                    case SnapshotState.Update:
+                        switch (op)
+                        {
+                            case SnapshotState.Add:
+                                throw new Exception("Update->Add Impossible");
+                            case SnapshotState.Update:
+                                break; // no change
+                            case SnapshotState.Remove:
+                                // Value no change
+                                ss.State = SnapshotState.Remove;
+                                break;
+                        }
+                        break;
+                    case SnapshotState.Remove:
+                        // all no change
+                        break;
+                }
             }
         }
 
-        private ConcurrentDictionary<K, V> Map { get; }
-
-        private ConcurrentDictionary<K, SnapshotValue> SnapshotCopyOnWrite { get; }
-            = new ConcurrentDictionary<K, SnapshotValue>();
-
-        public int Count => Map.Count;
+        public long Count => Map.Count;
 
         // 需要外面更大锁来保护。Raft.StateMachine 的子类内加锁。
         private bool Snapshoting = false;
 
-        public ConcurrentMap()
+        public ConcurrentMap(int buckets = 16, int concurrencyLevel = 1024, long initialCapacity = 1000000)
         { 
-            Map = new ConcurrentDictionary<K, V>();
-        }
-
-        public ConcurrentMap(int concurrentLevel, int defaultCapacity)
-        {
-            Map = new ConcurrentDictionary<K, V>(concurrentLevel, defaultCapacity);
+            Map = new HugeConcurrentDictionary<K, V>(buckets, concurrencyLevel, initialCapacity);
         }
 
         public V GetOrAdd(K key)
@@ -109,11 +161,7 @@ namespace Zeze.Raft
                 (k) =>
                 {
                     V v = valueFactory(k);
-                    if (Snapshoting)
-                    {
-                        SnapshotCopyOnWrite.TryAdd(key,
-                            new SnapshotValue(v, Operate.Add));
-                    }
+                    SnapshotLog(SnapshotState.Add, k, v);
                     return v;
                 });
         }
@@ -125,12 +173,8 @@ namespace Zeze.Raft
 
         public void Update(K k, V v, Action<V> updator)
         {
-            if (Snapshoting)
-            {
-                // 只会在第一次修改时复制.
-                SnapshotCopyOnWrite.GetOrAdd(k,
-                    (key) => new SnapshotValue(v.Copy(), Operate.Update));
-            }
+            SnapshotLog(SnapshotState.Update, k, v);
+            // log before real update
             updator(v);
         }
 
@@ -138,12 +182,7 @@ namespace Zeze.Raft
         {
             if (Map.TryRemove(k, out var removed))
             {
-                if (Snapshoting)
-                {
-                    // Remove After Add Or Remove After Update 不需要记录。
-                    SnapshotCopyOnWrite.TryAdd(k,
-                        new SnapshotValue(removed, Operate.Remove));
-                }
+                SnapshotLog(SnapshotState.Remove, k, removed);
             }
         }
 
@@ -153,7 +192,7 @@ namespace Zeze.Raft
             if (Snapshoting)
                 return false;
             Snapshoting = true;
-            SnapshotCopyOnWrite.Clear();
+            SnapshotLogs.Clear();
             return true;
         }
 
@@ -161,7 +200,7 @@ namespace Zeze.Raft
         public void EndSerialize()
         {
             Snapshoting = false;
-            SnapshotCopyOnWrite.Clear();
+            SnapshotLogs.Clear();
         }
 
         private void WriteTo(System.IO.Stream stream, K k, V v)
@@ -180,7 +219,7 @@ namespace Zeze.Raft
             }
         }
 
-        private long WriteInt4To(System.IO.Stream stream, int i, long offset = -1)
+        private long WriteLong8To(System.IO.Stream stream, long i, long offset = -1)
         {
             if (offset >= 0)
                 stream.Seek(offset, System.IO.SeekOrigin.Begin);
@@ -191,34 +230,33 @@ namespace Zeze.Raft
             return position;
         }
 
-        private int ReadInt4From(System.IO.Stream stream)
+        private long ReadLong8From(System.IO.Stream stream)
         {
-            var bytes = new byte[4];
+            var bytes = new byte[8];
             stream.Read(bytes);
-            return BitConverter.ToInt32(bytes);
+            return BitConverter.ToInt64(bytes);
         }
 
         public void ConcurrentSerializeTo(System.IO.Stream stream)
         {
-            var position = WriteInt4To(stream, Map.Count);
+            var position = WriteLong8To(stream, Map.Count);
 
-            int SnapshotCount = 0;
+            long SnapshotCount = 0;
             foreach (var cur in Map)
             {
-                if (SnapshotCopyOnWrite.TryGetValue(cur.Key, out var changed))
+                if (SnapshotLogs.TryGetValue(cur.Key, out var log))
                 {
-                    switch (changed.Operate)
+                    switch (log.State)
                     {
-                        case Operate.Add:
+                        case SnapshotState.Add:
                             // 新增的记录不需要写出去。
                             continue;
-                        case Operate.Remove:
-                            // changed 里面保存的是删除前的项。
-                            WriteTo(stream, cur.Key, changed.Value);
+                        case SnapshotState.Remove:
+                            // Remove状态后面统一处理
                             break;
-                        case Operate.Update:
+                        case SnapshotState.Update:
                             // changed 里面保存的是Update前的项。
-                            WriteTo(stream, cur.Key, changed.Value);
+                            WriteTo(stream, cur.Key, log.Value);
                             break;
                     }
                 }
@@ -228,7 +266,16 @@ namespace Zeze.Raft
                 }
                 ++SnapshotCount;
             }
-            WriteInt4To(stream, SnapshotCount, position);
+            foreach (var e in SnapshotLogs)
+            {
+                if (e.Value.State == SnapshotState.Remove)
+                {
+                    // 删除前的项。
+                    WriteTo(stream, e.Key, e.Value.Value);
+                    ++SnapshotCount;
+                }
+            }
+            WriteLong8To(stream, SnapshotCount, position);
             stream.Seek(0, System.IO.SeekOrigin.End);
         }
 
@@ -239,9 +286,9 @@ namespace Zeze.Raft
                 throw new Exception("Coucurrent Error: In Snapshoting");
 
             Map.Clear();
-            for (int count = ReadInt4From(stream); count > 0; --count)
+            for (long count = ReadLong8From(stream); count > 0; --count)
             {
-                int kvsize = ReadInt4From(stream);
+                long kvsize = ReadLong8From(stream);
                 var kvbytes = new byte[kvsize];
                 stream.Read(kvbytes);
 
@@ -250,7 +297,7 @@ namespace Zeze.Raft
                 K key = SerializeHelper<K>.Decode(bb);
                 V value = new V();
                 value.Decode(bb);
-                Map.TryAdd(key, value); // ignore result
+                Map[key] = value; // ignore result
             }
         }
 
