@@ -268,11 +268,12 @@ namespace Zeze
         public sealed class TableConf
         {
             public string Name { get; }
-            public int CacheCapaicty { get; set; } = 20000;
+            public long CacheCapacity { get; set; } = 20000;
             public int CacheConcurrencyLevel { get; set; }
-            public int CacheInitialCapaicty { get; set; }
+            public long CacheInitialCapaicty { get; set; }
             public int CacheNewAccessHotThreshold { get; set; }
             public int CacheCleanPeriod { get; set; } = 2000;
+            public int CacheBuckets { get; set; } = 16;
             public int CacheNewLruHotPeriod { get; set; } = 200;
             public int CacheCleanPeriodWhenExceedCapacity { get; set; }
             public bool CheckpointWhenCommit { get; set; } = false;
@@ -294,9 +295,9 @@ namespace Zeze
             {
                 Name = self.GetAttribute("Name");
 
-                string attr = self.GetAttribute("CacheCapaicty");
+                string attr = self.GetAttribute("CacheCapacity");
                 if (attr.Length > 0)
-                    CacheCapaicty = int.Parse(attr);
+                    CacheCapacity = long.Parse(attr);
 
                 attr = self.GetAttribute("CacheCleanPeriod");
                 if (attr.Length > 0)
@@ -313,13 +314,16 @@ namespace Zeze
                     CacheConcurrencyLevel = int.Parse(attr);
                 attr = self.GetAttribute("CacheInitialCapaicty");
                 if (attr.Length > 0)
-                    CacheInitialCapaicty = int.Parse(attr);
+                    CacheInitialCapaicty = long.Parse(attr);
                 attr = self.GetAttribute("CacheNewAccessHotThreshold");
                 if (attr.Length > 0)
                     CacheNewAccessHotThreshold = int.Parse(attr);
                 attr = self.GetAttribute("CacheCleanPeriodWhenExceedCapacity");
                 if (attr.Length > 0)
                     CacheCleanPeriodWhenExceedCapacity = int.Parse(attr);
+                attr = self.GetAttribute("CacheBuckets");
+                if (attr.Length > 0)
+                    CacheBuckets = int.Parse(attr);
 
                 if (Name.Length > 0)
                 {

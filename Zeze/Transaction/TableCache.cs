@@ -26,19 +26,20 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        internal ConcurrentDictionary<K, Record<K, V>> DataMap { get; }
+        internal Util.HugeConcurrentDictionary<K, Record<K, V>> DataMap { get; }
 
-        private ConcurrentQueue<ConcurrentDictionary<K, Record<K, V>>> LruQueue { get; }
-            = new ConcurrentQueue<ConcurrentDictionary<K, Record<K, V>>>();
+        private ConcurrentQueue<Util.HugeConcurrentDictionary<K, Record<K, V>>> LruQueue { get; }
+            = new ConcurrentQueue<Util.HugeConcurrentDictionary<K, Record<K, V>>>();
 
-        private ConcurrentDictionary<K, Record<K, V>> LruHot { get; set; }
+        private Util.HugeConcurrentDictionary<K, Record<K, V>> LruHot { get; set; }
 
         public Table<K, V> Table { get; }
 
         public TableCache(Application app, Table<K, V> table)
         {
             this.Table = table;
-            DataMap = new ConcurrentDictionary<K, Record<K, V>>(GetCacheConcurrencyLevel(), GetCacheInitialCapaicty());
+            DataMap = new Util.HugeConcurrentDictionary<K, Record<K, V>>(
+                GetCacheBuckets(), GetCacheConcurrencyLevel(), GetCacheInitialCapaicty());
             NewLruHot();
             Util.Scheduler.Instance.Schedule((task) =>
             {
@@ -51,6 +52,11 @@ namespace Zeze.Transaction
             Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
         }
 
+        private int GetCacheBuckets()
+        {
+            return Table.TableConf.CacheBuckets < 16 ? 16 : Table.TableConf.CacheBuckets;
+        }
+
         private int GetCacheConcurrencyLevel()
         {
             // 这样写，当配置修改，可以使用的时候马上生效。
@@ -58,7 +64,7 @@ namespace Zeze.Transaction
                 ? Table.TableConf.CacheConcurrencyLevel : Environment.ProcessorCount;
         }
 
-        private int GetCacheInitialCapaicty()
+        private long GetCacheInitialCapaicty()
         {
             // 31 from c# document
             // 这样写，当配置修改，可以使用的时候马上生效。
@@ -66,15 +72,16 @@ namespace Zeze.Transaction
                 ? 31 : Table.TableConf.CacheInitialCapaicty;
         }
 
-        private int GetLruInitialCapaicty()
+        private long GetLruInitialCapaicty()
         {
-            int c = (int)(GetCacheInitialCapaicty() * 0.2);
+            long c = (long)(GetCacheInitialCapaicty() * 0.2);
             return c < 31 ? 31 : c;
         }
 
         private void NewLruHot()
         {
-            LruHot = new ConcurrentDictionary<K, Record<K, V>>(GetCacheConcurrencyLevel(), GetLruInitialCapaicty());
+            LruHot = new Util.HugeConcurrentDictionary<K, Record<K, V>>(
+                GetCacheBuckets(), GetCacheConcurrencyLevel(), GetLruInitialCapaicty());
             LruQueue.Enqueue(LruHot);
         }
 
@@ -116,7 +123,6 @@ namespace Zeze.Transaction
             if (DataMap.TryGetValue(key, out var r))
                 return r;
             return null;
-
         }
 
         // 不再提供删除，由 Cleaner 集中清理。
@@ -134,13 +140,13 @@ namespace Zeze.Transaction
             // 不直接使用 Scheduler 的定时任务，
             // 每次执行完重新调度。
 
-            if (Table.TableConf.CacheCapaicty <= 0)
+            if (Table.TableConf.CacheCapacity <= 0)
             {
                 Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
                 return; // 容量不限
             }
 
-            while (DataMap.Count > Table.TableConf.CacheCapaicty) // 超出容量，循环尝试
+            while (DataMap.Count > Table.TableConf.CacheCapacity) // 超出容量，循环尝试
             {
                 if (false == LruQueue.TryPeek(out var node))
                     break;
@@ -180,7 +186,8 @@ namespace Zeze.Transaction
                 // 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
                 // see GetOrAdd
                 p.Value.State = GlobalCacheManager.StateRemoved;
-                e.LruNode.TryRemove(p.Key, out var _);
+                // 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
+                e.LruNode.TryRemove(p);
                 return true;
             }
             return false;

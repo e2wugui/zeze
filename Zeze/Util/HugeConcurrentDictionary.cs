@@ -14,8 +14,16 @@ namespace Zeze.Util
     {
         private ConcurrentDictionary<K, V>[] Buckets { get; }
 
+        public int BucketCount { get; }
+        public int ConcurrencyLevel { get; }
+        public long InitialCapacity { get; }
+
         public HugeConcurrentDictionary(int buckets, int concurrencyLevel, long capacity)
         {
+            BucketCount = buckets;
+            ConcurrencyLevel = concurrencyLevel;
+            InitialCapacity = capacity;
+
             Buckets = new ConcurrentDictionary<K, V>[buckets];
             long bucketsCapacity = capacity / Buckets.Length;
             if (bucketsCapacity > int.MaxValue)
@@ -34,11 +42,32 @@ namespace Zeze.Util
             }
         }
 
+        public bool TryGetValue(K key, out V value)
+        {
+            uint hash = (uint)key.GetHashCode();
+            uint i = hash % (uint)Buckets.Length;
+            return Buckets[i].TryGetValue(key, out value);
+        }
+
+        public bool TryAdd(K key, V value)
+        {
+            uint hash = (uint)key.GetHashCode();
+            uint i = hash % (uint)Buckets.Length;
+            return Buckets[i].TryAdd(key, value);
+        }
+
         public V GetOrAdd(K key, Func<K, V> factory)
         {
             uint hash = (uint)key.GetHashCode();
             uint i = hash % (uint)Buckets.Length;
             return Buckets[i].GetOrAdd(key, factory);
+        }
+
+        public bool TryRemove(KeyValuePair<K, V> pair)
+        {
+            uint hash = (uint)pair.Key.GetHashCode();
+            uint i = hash % (uint)Buckets.Length;
+            return Buckets[i].TryRemove(pair);
         }
 
         public bool TryRemove(K key, out V r)

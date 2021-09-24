@@ -244,6 +244,6 @@ namespace Zeze.Transaction
             snapshotValue = null;
         }
 
-        public ConcurrentDictionary<K, Record<K, V>> LruNode { get; set; }
+        public Util.HugeConcurrentDictionary<K, Record<K, V>> LruNode { get; set; }
     }
 }

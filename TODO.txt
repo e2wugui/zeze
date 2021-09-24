@@ -109,42 +109,9 @@ int main()
 	delete backup_engine; 
 }
 
-sadd supdate sremove    operate
-                     add remove update
-0    0       0       100 001    010
-0    0       1       001 _      _
-0    1       0       _   001*   010
-0    1       1       x   x      x
-1    0       0       _   000    100
-1    0       1       x   x      x
-1    1       0       x   x      x
-1    1       1       x   x      x
+ConcurrentMap ²¢·¢
+	1. lock(value)
+	2. duplicate key
 
-foreach (var cur in Map)
-{
-	switch (state)
-	{
-	case 000:
-		write(cur);
-		break;
-	case 001:
-		throw;
-	case 010:
-		write(snapshot);
-		break;
-	case 011:
-		throw;
-	case 100:
-		continue; // add. skip.
-	case 101:
-		throw;
-	case 110:
-		throw;
-	case 111:
-		throw;
-	}
-}
-foreach (var rm in SnapshotRemove)
-{
-	write(rm.Value); // old value
-}
+zzuser
+	BDepartmentTreeNode ·Ö¿é´æ´¢
