@@ -73,25 +73,43 @@ namespace Zeze.Util
                 V value = factory(k);
                 isNew = true;
                 var lruItem = new LruItem(value, LruHot);
-                LruHot[k] = lruItem;
+                LruHot[k] = lruItem; // MUST replace
                 return lruItem;
             });
 
-            if (false == isNew && lruItem.LruNode != LruHot)
+            if (false == isNew)
             {
-                lruItem.LruNode.TryRemove(k, out var _);
-                if (LruHot.TryAdd(k, lruItem))
-                {
-                    lruItem.LruNode = LruHot;
-                }
+                AdjustLru(k, lruItem);
             }
             return lruItem.Value;
         }
 
-        public bool TryGetValue(K key, out V value)
+        private void AdjustLru(K key, LruItem lruItem)
+        {
+            if (lruItem.LruNode != LruHot)
+            {
+                // compare key and value
+                lruItem.LruNode.TryRemove(KeyValuePair.Create(key, lruItem));
+                if (LruHot.TryAdd(key, lruItem)) // maybe fail
+                {
+                    lruItem.LruNode = LruHot;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        /// <param name="adjustLru"> 是否调整lru </param>
+        /// <returns></returns>
+        public bool TryGetValue(K key, out V value, bool adjustLru = true)
         {
             if (DataMap.TryGetValue(key, out var lruItem))
             {
+                if (adjustLru)
+                    AdjustLru(key, lruItem);
                 value = lruItem.Value;
                 return true;
             }
@@ -112,15 +130,15 @@ namespace Zeze.Util
             LruQueue.Enqueue(LruHot);
         }
 
-        // 自定义删除时，需要注意并发问题。
+        // 自定义TryRemoveCallback时，需要调用这个方法真正删除。
         public bool TryRemove(K key, out V value)
         {
             if (DataMap.TryRemove(key, out var e))
             {
                 // 这里有个时间窗口：先删除DataMap再去掉Lru引用，
                 // 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
-                // see GetOrAdd
-                // 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
+                // 1. GetOrAdd 需要 replace 更新
+                // 2. 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
                 e.LruNode.TryRemove(KeyValuePair.Create(key, e));
                 value = e.Value;
                 return true;

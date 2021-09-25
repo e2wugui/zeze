@@ -100,7 +100,7 @@ namespace Zeze.Transaction
 
             if (false == isNew && result.LruNode != LruHot)
             {
-                result.LruNode.TryRemove(key, out var _);
+                result.LruNode.TryRemove(KeyValuePair.Create(key, result));
                 if (LruHot.TryAdd(key, result))
                 {
                     result.LruNode = LruHot;
