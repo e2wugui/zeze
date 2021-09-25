@@ -24,7 +24,10 @@ namespace Zeze.Net
         public Application Zeze { get; }
         public string Name { get; }
 
-        protected readonly ConcurrentDictionary<long, AsyncSocket> _asocketMap = new ConcurrentDictionary<long, AsyncSocket>();
+        protected ConcurrentDictionary<long, AsyncSocket> SocketMap { get; }
+            = new ConcurrentDictionary<long, AsyncSocket>();
+
+        internal ConcurrentDictionary<long, AsyncSocket> SocketMapInternal => SocketMap;
 
         private void InitConfig(Config config)
         {
@@ -69,14 +72,14 @@ namespace Zeze.Net
         /// <returns></returns>
         public virtual AsyncSocket GetSocket(long serialNo)
         {
-            if (_asocketMap.TryGetValue(serialNo, out var value))
+            if (SocketMap.TryGetValue(serialNo, out var value))
                 return value;
             return null;
         }
 
         public virtual AsyncSocket GetSocket()
         {
-            foreach (var e in _asocketMap)
+            foreach (var e in SocketMap)
             {
                 return e.Value;
             }
@@ -92,7 +95,7 @@ namespace Zeze.Net
         {
             Config?.Stop();
 
-            foreach (var e in _asocketMap)
+            foreach (var e in SocketMap)
             {
                 e.Value.Dispose(); // remove in callback OnSocketClose
             }
@@ -130,7 +133,7 @@ namespace Zeze.Net
         /// <param name="e"></param>
         public virtual void OnSocketClose(AsyncSocket so, Exception e)
         {
-            _asocketMap.TryRemove(so.SessionId, out var _);
+            SocketMap.TryRemove(so.SessionId, out var _);
 
             if (null != e)
                 logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketClose");
@@ -196,7 +199,7 @@ namespace Zeze.Net
         /// <param name="so"></param>
         public virtual void OnSocketAccept(AsyncSocket so)
         {
-            _asocketMap.TryAdd(so.SessionId, so);
+            SocketMap.TryAdd(so.SessionId, so);
             OnHandshakeDone(so);
         }
 
@@ -219,7 +222,7 @@ namespace Zeze.Net
         /// <param name="e"></param>
         public virtual void OnSocketConnectError(AsyncSocket so, Exception e)
         {
-            _asocketMap.TryRemove(so.SessionId, out var _);
+            SocketMap.TryRemove(so.SessionId, out var _);
             logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketConnectError");
         }
 
@@ -229,7 +232,7 @@ namespace Zeze.Net
         /// <param name="so"></param>
         public virtual void OnSocketConnected(AsyncSocket so)
         {
-            _asocketMap.TryAdd(so.SessionId, so);
+            SocketMap.TryAdd(so.SessionId, so);
             OnHandshakeDone(so);
         }
 
@@ -455,7 +458,7 @@ namespace Zeze.Net
         // 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
         public void Foreach(Action<AsyncSocket> action)
         {
-            foreach (var socket in _asocketMap.Values)
+            foreach (var socket in SocketMap.Values)
             {
                 action(socket);
             }

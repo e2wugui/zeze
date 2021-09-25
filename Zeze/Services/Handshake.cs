@@ -211,7 +211,7 @@ namespace Zeze.Services
         public override void OnSocketAccept(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
-            _asocketMap.TryAdd(so.SessionId, so);
+            SocketMap.TryAdd(so.SessionId, so);
         }
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
@@ -245,7 +245,7 @@ namespace Zeze.Services
         public override void OnSocketConnected(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
-            _asocketMap.TryAdd(so.SessionId, so);
+            SocketMap.TryAdd(so.SessionId, so);
             StartHandshake(so);
         }
 
@@ -276,13 +276,13 @@ namespace Zeze.Services
         public override void OnSocketAccept(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
-            _asocketMap.TryAdd(so.SessionId, so);
+            SocketMap.TryAdd(so.SessionId, so);
         }
 
         public override void OnSocketConnected(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
-            _asocketMap.TryAdd(so.SessionId, so);
+            SocketMap.TryAdd(so.SessionId, so);
             StartHandshake(so);
         }
 

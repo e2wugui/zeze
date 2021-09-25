@@ -533,5 +533,23 @@ namespace Zeze.Net
                 }
             }
         }
+
+        public void SetSessionId(long newSessionId)
+        {
+            if (Service.SocketMapInternal.TryRemove(KeyValuePair.Create(SessionId, this)))
+            {
+                if (!Service.SocketMapInternal.TryAdd(newSessionId, this))
+                {
+                    Service.SocketMapInternal.TryAdd(SessionId, this); // rollback
+                    throw new Exception($"duplicate sessionid {this}");
+                }
+                SessionId = newSessionId;
+            }
+            else
+            {
+                // 为了简化并发问题，只能加入Service以后的Socket的SessionId。
+                throw new Exception($"Not Exist In Service {this}");
+            }
+        }
     }
 }
