@@ -29,9 +29,10 @@ namespace Zeze.Util
         private HugeConcurrentDictionary<K, LruItem> LruHot { get; set; }
 
         public long Capacity { get; set; }
+        public long MaxLruInitialCapaicty { get; set; } = 100000;
 
-        public long NewLruHotPeriod { get; set; } = 200;
-        public long CleanPeriod { get; set; } = 2000;
+        public long NewLruHotPeriod { get; set; } = 1000;
+        public long CleanPeriod { get; set; } = 1000;
 
         public int CleanPeriodWhenExceedCapacity { get; set; } = 0;
         public bool ContinueWhenTryRemoveCallbackFail { get; set; } = true;
@@ -120,7 +121,8 @@ namespace Zeze.Util
         private long GetLruInitialCapaicty()
         {
             long lruInitialCapacity = (long)(DataMap.InitialCapacity * 0.2);
-            return lruInitialCapacity < 31 ? 31 : lruInitialCapacity;
+            return lruInitialCapacity < MaxLruInitialCapaicty
+                ? lruInitialCapacity : MaxLruInitialCapaicty;
         }
 
         private void NewLruHot()

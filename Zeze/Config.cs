@@ -272,9 +272,10 @@ namespace Zeze
             public int CacheConcurrencyLevel { get; set; }
             public long CacheInitialCapaicty { get; set; }
             public int CacheNewAccessHotThreshold { get; set; }
-            public int CacheCleanPeriod { get; set; } = 2000;
+            public int CacheCleanPeriod { get; set; } = 1000;
             public int CacheBuckets { get; set; } = 16;
-            public int CacheNewLruHotPeriod { get; set; } = 200;
+            public int CacheNewLruHotPeriod { get; set; } = 1000;
+            public int CacheMaxLruInitialCapaicty { get; set; } = 100000;
             public int CacheCleanPeriodWhenExceedCapacity { get; set; }
             public bool CheckpointWhenCommit { get; set; } = false;
 
@@ -324,6 +325,9 @@ namespace Zeze
                 attr = self.GetAttribute("CacheBuckets");
                 if (attr.Length > 0)
                     CacheBuckets = int.Parse(attr);
+                attr = self.GetAttribute("CacheMaxLruInitialCapaicty");
+                if (attr.Length > 0)
+                    CacheMaxLruInitialCapaicty = int.Parse(attr);
 
                 if (Name.Length > 0)
                 {

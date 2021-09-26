@@ -75,7 +75,8 @@ namespace Zeze.Transaction
         private long GetLruInitialCapaicty()
         {
             long c = (long)(GetCacheInitialCapaicty() * 0.2);
-            return c < 31 ? 31 : c;
+            return c < Table.TableConf.CacheMaxLruInitialCapaicty
+                ? c : Table.TableConf.CacheMaxLruInitialCapaicty;
         }
 
         private void NewLruHot()
