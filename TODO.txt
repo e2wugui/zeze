@@ -115,3 +115,6 @@ ConcurrentMap 并发
 
 zzuser
 	BDepartmentTreeNode 分块存储
+
+Socket async surpport
+	用来给纯转发服务器用，可以避免使用多线程。

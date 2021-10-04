@@ -65,13 +65,13 @@ namespace Zeze.Transaction
 
         protected ServiceManager.Agent.AutoKey AutoKey { get; private set;  }
 
-        private Record<K, V> FindInCacheOrStorage(K key)
+        private Record<K, V> FindInCacheOrStorage(K key, Action<V> copy = null)
         {
             TableKey tkey = new TableKey(Id, key);
             Lockey lockey = Locks.Instance.Get(tkey);
             lockey.EnterReadLock();
             // 严格来说，这里应该是WriteLock,但是这会涉及Transaction持有的锁的升级问题，
-            // 而且这里只是临时锁一下也会和持有冲突。
+            // 虽然这里只是临时锁一下也会和持有冲突。
             // 由于装载仅在StateInvalid或者第一次载入的时候发生，
             // 还有lock(r)限制线程的重入，所以这里仅加个读锁限制一下state的修改，
             // 防止和Reduce冲突（由于StateInvalid才会申请权限和从storage装载，
@@ -80,7 +80,8 @@ namespace Zeze.Transaction
             {
                 while (true)
                 {
-                    Record<K, V> r = Cache.GetOrAdd(key, (key) => new Record<K, V>(this, key, null));
+                    Record<K, V> r = Cache.GetOrAdd(key,
+                        (key) => new Record<K, V>(this, key, null));
                     lock (r) // 如果外面是 WriteLock 就不需要这个了。
                     {
                         if (r.State == GlobalCacheManager.StateRemoved)
@@ -118,7 +119,9 @@ namespace Zeze.Transaction
                                 if (null != old)
                                 {
                                     r.Value = DecodeValue(old);
-                                    TStorage.OnRecordChanged(r);
+                                    // 从旧表装载时，马上设为脏，使得可以写入新表。
+                                    // TODO CheckpointMode.Immediately 需要特殊处理。
+                                    r.SetDirty();
                                 }
                             }
                             if (null != r.Value)
@@ -128,6 +131,7 @@ namespace Zeze.Transaction
                         }
                         logger.Debug("FindInCacheOrStorage {0}", r);
                     }
+                    copy?.Invoke(r.ValueTyped);
                     return r;
                 }
             }
@@ -534,6 +538,22 @@ namespace Zeze.Transaction
                     V v = DecodeValue(ByteBuffer.Wrap(value));
                     return callback(k, v);
                 });
+        }
+
+        /// <summary>
+        /// 获得记录的深拷贝。必须在事务外使用。
+        /// 得到的结果一般不用于修改，应用传递时可以使用ReadOnly接口修饰保护一下。
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public V GetCopyOutofTransaction(K key)
+        {
+            if (Transaction.Current != null)
+                throw new Exception("Can Not Select In Transaction.");
+
+            Bean copy = null;
+            FindInCacheOrStorage(key, (v) => copy = v?.CopyBean());
+            return (V)copy;
         }
     }
 }

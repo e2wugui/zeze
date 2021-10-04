@@ -71,6 +71,7 @@ namespace Zeze.Transaction
         internal abstract void Cleanup();
 
         internal Database.Transaction DatabaseTransactionTmp { get; set; }
+        internal abstract void SetDirty();
     }
 
     public class Record<K, V> : Record where V : Bean, new()
@@ -131,7 +132,11 @@ namespace Zeze.Transaction
                 Value = accessed.CommittedPutLog.Value;
             }
             Timestamp = NextTimestamp; // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
+            SetDirty();
+        }
 
+        internal override void SetDirty()
+        {
             switch (TTable.Zeze.Checkpoint.CheckpointMode)
             {
                 case CheckpointMode.Period:
