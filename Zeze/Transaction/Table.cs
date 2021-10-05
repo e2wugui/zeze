@@ -546,7 +546,7 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public V GetCopyOutofTransaction(K key)
+        public V SelectCopyOutofTransaction(K key)
         {
             if (Transaction.Current != null)
                 throw new Exception("Can Not Select In Transaction.");
