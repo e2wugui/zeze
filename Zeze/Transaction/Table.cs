@@ -541,15 +541,27 @@ namespace Zeze.Transaction
         }
 
         /// <summary>
-        /// 获得记录的深拷贝。必须在事务外使用。
-        /// 得到的结果一般不用于修改，应用传递时可以使用ReadOnly接口修饰保护一下。
+        /// 获得记录的拷贝。
+        /// 1. 一般在事务外使用。
+        /// 2. 如果在事务内使用：
+        ///    a)已经访问过的记录，得到最新值的拷贝。
+        ///    b)没有访问过的记录，从后台查询并拷贝，但不会加入RecordAccessed。
+        /// 3. 得到的结果一般不用于修改，应用传递时可以使用ReadOnly接口修饰保护一下。
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public V SelectCopyOutofTransaction(K key)
+        public V SelectCopy(K key)
         {
-            if (Transaction.Current != null)
-                throw new Exception("Can Not Select In Transaction.");
+            Transaction currentT = Transaction.Current;
+            if (null != currentT)
+            {
+                TableKey tkey = new TableKey(Id, key);
+                Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+                if (null != cr)
+                {
+                    return (V)cr.NewestValue()?.CopyBean();
+                }
+            }
 
             Bean copy = null;
             FindInCacheOrStorage(key, (v) => copy = v?.CopyBean());
