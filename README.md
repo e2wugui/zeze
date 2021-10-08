@@ -50,7 +50,7 @@
 	2) 缓存同步
 	   参考了CPU缓存同步算法（MESI），使用了其中3个状态：Modify,Share,Invalid。
 	   当主逻辑服务器需要访问或修改数据时，向全局权限分配服务器（GlobalCacheManager）申请M或S权限。
-	   GlobalCacheManager直到所有记录的权限的分布状态。它根据申请权的限，向现权限拥有者发送降级请求，
+	   GlobalCacheManager知道所有记录的权限的分布状态。它根据申请的权限，向现拥有者发送降级请求，
 	   然后给申请者返回合适结果。
 	   核心算法：
 	   Zeze/Services/GlobalCacheManager.cs -> AcquireModify, AcquireShare
@@ -58,9 +58,9 @@
 	   当主逻辑服务器收到降级请求时，会把相关记录保存到后端数据库以后才给GlobalCacheManager返回结果。see 下面的持久化模式。
 
 	3) 持久化模式
-	   Period 定时保存事务到后端数据库，如果保存前进程异常退出，修改会丢失，相当于上一次提交以来的所有事务回滚，数据不会被破坏。
+	   Period 定时保存修改到后端数据库，如果保存前进程异常退出，修改会丢失，相当于上一次保存以来的所有事务回滚，数据不会被破坏。
            Immediately 事务提交的时候马上保存到后端数据库。
-           Table 可以选择部份表，当事务包含这些表时，事务被马上保存，否则按Period保存。这个模式适用范围比较管。
+           Table 可以选择部份表，当事务包含这些表时，事务被马上保存，否则按Period保存。这个模式适用范围比较广。
 	   核心算法：
 	   Zeze/Transaction/Checkpoint.cs
 	   Zeze/Transaction/RelativeRecordSet.cs
