@@ -2,7 +2,7 @@
 
 	0) 尽可能减少实现业务逻辑时需要的技术手段。降低应用开发难度。降低成本。
 	   让实现代码离业务逻辑尽可能近，几乎能对照起来。
-	1) 尽可能严格保护数据不损坏。
+	1) 严格保护数据不损坏。
 	2) 解决扩容问题，可以很容易构建成千上万台机器集群的服务。
 	3) 解决高可用性问题，达到7x24小时不间断工作。
 	4) 简单直接的编程接口，直接融入编程语言。
@@ -39,6 +39,31 @@
 
 	4) Raft
 	   用来支持高可靠性。
+
+#### 实现导读
+
+	1) 事务和乐观锁
+	   存储过程执行过程中不加锁，所有修改仅当前事务可见。
+	   提交的时候对所有访问的记录排序并且加锁并进行冲突检查。
+	   核心算法：Zeze/Transaction/Transaction.cs -> _lock_and_check_()
+
+	2) 缓存同步
+	   参考了CPU缓存同步算法（MESI），使用了其中3个状态：Modify,Share,Invalid。
+	   当主逻辑服务器需要访问或修改数据时，向全局权限分配服务器（GlobalCacheManager）申请M或S权限。
+	   GlobalCacheManager直到所有记录的权限的分布状态。它根据申请权的限，向现权限拥有者发送降级请求，
+	   然后给申请者返回合适结果。
+	   核心算法：
+	   Zeze/Services/GlobalCacheManager.cs -> AcquireModify, AcquireShare
+	   Zeze/Transaction/Table.cs -> ReduceShare, ReduceInvalid
+	   当主逻辑服务器收到降级请求时，会把相关记录保存到后端数据库以后才给GlobalCacheManager返回结果。see 下面的持久化模式。
+
+	3) 持久化模式
+	   Period 定时保存事务到后端数据库，如果保存前进程异常退出，修改会丢失，相当于上一次提交以来的所有事务回滚，数据不会被破坏。
+           Immediately 事务提交的时候马上保存到后端数据库。
+           Table 可以选择部份表，当事务包含这些表时，事务被马上保存，否则按Period保存。这个模式适用范围比较管。
+	   核心算法：
+	   Zeze/Transaction/Checkpoint.cs
+	   Zeze/Transaction/RelativeRecordSet.cs
 
 #### 安装教程
 
