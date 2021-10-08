@@ -349,11 +349,11 @@
 	9) 缓存同步 More
 	   【Zeze 的性能来自缓存的命中率。】
 	   当启用缓存同步以后，如果由于不同服务实例之间不停争抢数据，可能会造成命中率下降。
-	   这时候需要做一定的规划。Game2 提供了 ModuleRedirect 和 Transmit 支持用于提高命中率。
+	   这时候需要做一定的规划。Zezex 提供了 ModuleRedirect 和 Transmit 支持用于提高命中率。
 	   详细请阅读下面的文档或者代码。
-	   a) Game2\linkd.provider.txt
-	   b) Game2\README.md 
-	   c) Game2\server\Game\Login\Onlines.cs
+	   a) Zezex\linkd.provider.txt
+	   b) Zezex\README.md 
+	   c) Zezex\server\Game\Login\Onlines.cs
 
 	【不要捕捉异常】
 	如果你需要处理错误，捕捉处理完以后，再次抛出。
