@@ -60,7 +60,7 @@
 	3) 持久化模式
 	   Period 定时保存修改到后端数据库，如果保存前进程异常退出，修改会丢失，相当于上一次保存以来的所有事务回滚，数据不会被破坏。
            Immediately 事务提交的时候马上保存到后端数据库。
-           Table 可以选择部份表，当事务包含这些表时，事务被马上保存，否则按Period保存。这个模式适用范围比较广。
+           Table 可以选择部份表，当事务包含这些表时会马上保存，否则定时保存。这个模式适用范围比较广。
 	   核心算法：
 	   Zeze/Transaction/Checkpoint.cs
 	   Zeze/Transaction/RelativeRecordSet.cs

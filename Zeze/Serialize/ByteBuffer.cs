@@ -115,7 +115,7 @@ namespace Zeze.Serialize
         public void EndWriteWithSize4(int state)
         {
             var oldWriteIndex = state + ReadIndex;
-            Replace(state, BitConverter.GetBytes(WriteIndex - oldWriteIndex - 4));
+            Replace(oldWriteIndex, BitConverter.GetBytes(WriteIndex - oldWriteIndex - 4));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
