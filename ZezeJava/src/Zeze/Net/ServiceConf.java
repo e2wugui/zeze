@@ -1,6 +1,8 @@
 package Zeze.Net;
 
 import Zeze.*;
+
+import java.net.InetAddress;
 import java.util.*;
 
 import org.apache.logging.log4j.Level;
@@ -205,7 +207,12 @@ public final class ServiceConf {
 		}
 		attr = self.getAttribute("SecureIp");
 		if (attr.length() > 0) {
-			getHandshakeOptions().setSecureIp(System.Net.IPAddress.Parse(attr).GetAddressBytes());
+			try {
+				getHandshakeOptions().setSecureIp(InetAddress.getByName(attr).getAddress());
+			}
+			catch (Throwable ex) {
+				throw new RuntimeException(ex);
+			}
 		}
 		attr = self.getAttribute("S2cNeedCompress");
 		if (attr.length() > 0) {
@@ -244,7 +251,7 @@ public final class ServiceConf {
 					AddConnector(Connector.Create(e));
 					break;
 				default:
-					throw new RuntimeException("unknown node name: " + e.Name);
+					throw new RuntimeException("unknown node name: " + e.getNodeName());
 			}
 		}
 	}

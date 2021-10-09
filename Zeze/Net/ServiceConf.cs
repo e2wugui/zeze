@@ -64,20 +64,23 @@ namespace Zeze.Net
         public bool TryGetOrAddConnector(string host, int port, bool autoReconnect, out Connector getOrAdd)
         {
             var name = $"{host}:{port}";
-            Connector addNew = null;
+
+            bool addNew = false;
+
             getOrAdd = Connectors.GetOrAdd(name, (_) =>
             {
-                addNew = new Connector(host, port, autoReconnect);
-                return addNew;
+                Connector add = new Connector(host, port, autoReconnect);
+                add.SetService(Service);
+                addNew = true;
+                return add;
             });
-            addNew?.SetService(Service);
 
-            return addNew != null;
+            return addNew;
         }
 
         public void RemoveConnector(Connector c)
         {
-            Connectors.TryRemove(c.Name, out var _);
+            Connectors.TryRemove(KeyValuePair.Create(c.Name, c));
         }
 
         public void ForEachConnector(Action<Connector> action)
@@ -112,7 +115,7 @@ namespace Zeze.Net
 
         public void RemoveAcceptor(Acceptor a)
         {
-            Acceptors.TryRemove(a.Name, out var _);
+            Acceptors.TryRemove(KeyValuePair.Create(a.Name, a));
         }
 
         public void ForEachAcceptor(Action<Acceptor> action)
