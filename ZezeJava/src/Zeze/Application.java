@@ -74,8 +74,6 @@ public final class Application {
 		this(solutionName, null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public Application(string solutionName, Config config = null)
 	public Application(String solutionName, Config config) {
 		SolutionName = solutionName;
 
@@ -85,39 +83,17 @@ public final class Application {
 		}
 		InternalThreadPool = new Zeze.Util.SimpleThreadPool(getConfig().getInternalThreadPoolWorkerCount(), "ZezeSpecialThreadPool");
 
-		int workerThreads, completionPortThreads;
-		tangible.OutObject<Integer> tempOut_workerThreads = new tangible.OutObject<Integer>();
-		tangible.OutObject<Integer> tempOut_completionPortThreads = new tangible.OutObject<Integer>();
-		ThreadPool.GetMinThreads(tempOut_workerThreads, tempOut_completionPortThreads);
-	completionPortThreads = tempOut_completionPortThreads.outArgValue;
-	workerThreads = tempOut_workerThreads.outArgValue;
-		if (getConfig().getWorkerThreads() > 0) {
-			workerThreads = getConfig().getWorkerThreads();
-		}
-		if (getConfig().getCompletionPortThreads() > 0) {
-			completionPortThreads = getConfig().getCompletionPortThreads();
-		}
-		ThreadPool.SetMinThreads(workerThreads, completionPortThreads);
-
 		getConfig().CreateDatabase(getDatabases());
 		GlobalAgent = new GlobalAgent(this);
 		_checkpoint = new Checkpoint(getConfig().getCheckpointMode(), getDatabases().values());
 	}
 
 	public void AddTable(String dbName, Table table) {
-		if (getDatabases().containsKey(dbName) && (var db = getDatabases().get(dbName)) == var db) {
-			db.AddTable(table);
-			return;
-		}
-		throw new RuntimeException(String.format("database not found dbName=%1$s", dbName));
+		GetDatabase(dbName).AddTable(table);
 	}
 
 	public void RemoveTable(String dbName, Table table) {
-		if (getDatabases().containsKey(dbName) && (var db = getDatabases().get(dbName)) == var db) {
-			db.RemoveTable(table);
-			return;
-		}
-		throw new RuntimeException(String.format("database not found dbName=%1$s", dbName));
+		GetDatabase(dbName).RemoveTable(table);
 	}
 
 	public Table GetTable(String name) {
@@ -131,19 +107,18 @@ public final class Application {
 	}
 
 	public Database GetDatabase(String name) {
-		if (getDatabases().containsKey(name) && (var exist = getDatabases().get(name)) == var exist) {
-			return exist;
+		var db = getDatabases().get(name);
+		if (null != db) {
+			return db;
 		}
 		throw new RuntimeException(String.format("database not exist name=%1$s", name));
 	}
 
 
-	public Procedure NewProcedure(Func<Integer> action, String actionName) {
+	public Procedure NewProcedure(tangible.Func0Param<Integer> action, String actionName) {
 		return NewProcedure(action, actionName, null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public Procedure NewProcedure(Func<int> action, string actionName, object userState = null)
 	public Procedure NewProcedure(tangible.Func0Param<Integer> action, String actionName, Object userState) {
 		if (isStart()) {
 			return new Procedure(this, action, actionName, userState);
@@ -157,13 +132,14 @@ public final class Application {
 				getConfig().ClearInUseAndIAmSureAppStopped(getDatabases());
 			}
 			for (var db : getDatabases().values()) {
-				db.DirectOperates.SetInUse(getConfig().getServerId(), getConfig().getGlobalCacheManagerHostNameOrAddress());
+				db.getDirectOperates().SetInUse(getConfig().getServerId(), getConfig().getGlobalCacheManagerHostNameOrAddress());
 			}
 
 			if (isStart()) {
 				return;
 			}
 			setStart(true);
+			Zeze.Util.Task.tryInitThreadPool(this, null);
 
 			setServiceManagerAgent(new Zeze.Services.ServiceManager.Agent(getConfig()));
 			getServiceManagerAgent().WaitConnectorReady();

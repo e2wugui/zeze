@@ -18,13 +18,13 @@ public class Task implements Runnable {
 	}
 
 	private static Object lock = new Object();
-	private static java.util.concurrent.ThreadPoolExecutor threadPool;
+	private static java.util.concurrent.ScheduledThreadPoolExecutor threadPool;
 
-	public java.util.concurrent.ThreadPoolExecutor getThreadPool() {
+	public static java.util.concurrent.ScheduledThreadPoolExecutor getThreadPool() {
 		return threadPool;
 	}
 
-	public void initThreadPool(java.util.concurrent.ThreadPoolExecutor pool) {
+	public static void initThreadPool(java.util.concurrent.ScheduledThreadPoolExecutor pool) {
 		synchronized (lock) {
 			if (null != threadPool)
 				throw new RuntimeException("ThreadPool Has Inited.");
@@ -32,11 +32,20 @@ public class Task implements Runnable {
 		}
 	}
 
-	public boolean tryInitThreadPool(java.util.concurrent.ThreadPoolExecutor pool) {
+	public static boolean tryInitThreadPool(Zeze.Application app,
+			java.util.concurrent.ScheduledThreadPoolExecutor pool) {
 		synchronized (lock) {
 			if (null != threadPool)
 				return false;
-			threadPool = pool;
+			if (null == pool) {
+				int workerThreads = app.getConfig().getWorkerThreads() > 0
+						? app.getConfig().getWorkerThreads()
+						: Runtime.getRuntime().availableProcessors() * 30;
+				threadPool = new java.util.concurrent.ScheduledThreadPoolExecutor(workerThreads);
+			}
+			else {
+				threadPool = pool;
+			}
 			return true;
 		}
 	}

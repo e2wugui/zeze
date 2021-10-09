@@ -3,6 +3,9 @@ package Zeze;
 import Zeze.Serialize.*;
 import java.util.*;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /** 
  1 启动数据库时，用来判断当前代码的数据定义结构是否和当前数据库的定义结构兼容。
    当前包含以下兼容检测。
@@ -40,8 +43,8 @@ public class Schemas implements Serializable {
 		public int hashCode() {
 			final int _prime_ = 31;
 			int _h_ = 0;
-			_h_ = _h_ * _prime_ + getPrevious().getName().hashCode();
-			_h_ = _h_ * _prime_ + getCurrent().getName().hashCode();
+			_h_ = _h_ * _prime_ + getPrevious().Name.hashCode();
+			_h_ = _h_ * _prime_ + getCurrent().Name.hashCode();
 			return _h_;
 		}
 
@@ -89,6 +92,7 @@ public class Schemas implements Serializable {
 			}
 		}
 	}
+	
 	public static class Context {
 		private Schemas Current;
 		public final Schemas getCurrent() {
@@ -121,31 +125,27 @@ public class Schemas implements Serializable {
 		}
 
 		public final CheckResult GetCheckResult(Bean previous, Bean current) {
-			Schemas.Checked tempVar = new Schemas.Checked(), out var exist));
+			Schemas.Checked tempVar = new Schemas.Checked();
 			tempVar.setPrevious(previous);
 			tempVar.setCurrent(current);
-			if (getChecked().containsKey(tempVar) && (var exist = getChecked().get(tempVar)) == var exist) {
-				return exist;
-			}
-			return null;
+			return getChecked().get(tempVar);
 		}
 
 		public final void AddCheckResult(Bean previous, Bean current, CheckResult result) {
-			Schemas.Checked tempVar = new Schemas.Checked(), result);
+			Schemas.Checked tempVar = new Schemas.Checked();
 			tempVar.setPrevious(previous);
 			tempVar.setCurrent(current);
-			getChecked().put(tempVar, result);
+			if (null != getChecked().put(tempVar, result))
+				throw new RuntimeException("duplicate var in Checked Map");
 		}
 
 		public final CheckResult GetCopyBeanIfRemovedResult(Bean bean) {
-			if (getCopyBeanIfRemoved().containsKey(bean) && (var exist = getCopyBeanIfRemoved().get(bean)) == var exist) {
-				return exist;
-			}
-			return null;
+			return getCopyBeanIfRemoved().get(bean);
 		}
 
 		public final void AddCopyBeanIfRemovedResult(Bean bean, CheckResult result) {
-			getCopyBeanIfRemoved().put(bean, result);
+			if (null != getCopyBeanIfRemoved().put(bean, result))
+				throw new RuntimeException("duplicate bean in CopyBeanIfRemoved Map");
 		}
 
 		public final void Update() {
@@ -166,43 +166,15 @@ public class Schemas implements Serializable {
 	}
 
 	public static class Type implements Serializable {
-		private String Name;
-		public final String getName() {
-			return Name;
-		}
-		public final void setName(String value) {
-			Name = value;
-		}
-		private String KeyName = "";
-		public final String getKeyName() {
-			return KeyName;
-		}
-		public final void setKeyName(String value) {
-			KeyName = value;
-		}
-		private String ValueName = "";
-		public final String getValueName() {
-			return ValueName;
-		}
-		public final void setValueName(String value) {
-			ValueName = value;
-		}
-		private Type Key;
-		public final Type getKey() {
-			return Key;
-		}
-		private void setKey(Type value) {
-			Key = value;
-		}
-		private Type Value;
-		public final Type getValue() {
-			return Value;
-		}
-		private void setValue(Type value) {
-			Value = value;
-		}
+		public String Name;
+		public String KeyName = "";
+		public String ValueName = "";
+		public Type Key;
+		public Type Value;
 
-		public boolean IsCompatible(Type other, Context context, tangible.Action1Param<Bean> Update, tangible.Action1Param<Bean> UpdateVariable) {
+		public boolean IsCompatible(Type other, Context context,
+				tangible.Action1Param<Bean> Update,
+				tangible.Action1Param<Bean> UpdateVariable) {
 			if (other == this) {
 				return true;
 			}
@@ -211,35 +183,532 @@ public class Schemas implements Serializable {
 				return false;
 			}
 
-			if (false == getName().equals(other.getName())) {
+			if (false == Name.equals(other.Name)) {
 				return false;
 			}
 
 			// Name 相同的情况下，下面的 Key Value 仅在 Collection 时有值。
 			// 当 this.Key == null && other.Key != null 在 Name 相同的情况下是不可能发生的。
-			if (null != getKey()) {
-				if (false == getKey().IsCompatible(other.getKey(), context, (bean) -> {
-					setKeyName(bean.Name);
-					setKey(bean);
-				}, UpdateVariable)) {
+			if (null != Key) {
+				if (false == Key.IsCompatible(other.Key, context,
+						(bean) -> {
+							KeyName = bean.Name;
+							Key = bean;
+						}, UpdateVariable)) {
 					return false;
 				}
 			}
-			else if (other.getKey() != null) {
+			else if (other.Key != null) {
 				throw new RuntimeException("(this.Key == null && other.Key != null) Imposible!");
 			}
 
-			if (null != getValue()) {
-				if (false == getValue().IsCompatible(other.getValue(), context, (bean) -> {
-					setValueName(bean.Name);
-					setValue(bean);
-				}, UpdateVariable)) {
+			if (null != Value) {
+				if (false == Value.IsCompatible(other.Value, context,
+						(bean) -> {
+							ValueName = bean.Name;
+							Value = bean;
+						}, UpdateVariable)) {
 					return false;
 				}
 			}
-			else if (other.getValue() != null) {
+			else if (other.Value != null) {
 				throw new RuntimeException("(this.Value == null && other.Value != null) Imposible!");
 			}
 
 			return true;
 		}
+
+		@Override
+        public void Decode(ByteBuffer bb) {
+            Name = bb.ReadString();
+            KeyName = bb.ReadString();
+            ValueName = bb.ReadString();
+        }
+
+		@Override
+        public void Encode(ByteBuffer bb) {
+            bb.WriteString(Name);
+            bb.WriteString(KeyName);
+            bb.WriteString(ValueName);
+        }
+
+        public void Compile(Schemas s) {
+            Key = s.Compile(KeyName, "", "");
+            if (null != Key && Key instanceof Bean)
+            {
+                ((Bean)Key).KeyRefCount++;
+            }
+
+            Value = s.Compile(ValueName, "", "");
+            if (null != Value)
+            {
+                if (Name.equals("set") && Value instanceof Bean)
+                    ((Bean)Value).KeyRefCount++;
+            }
+        }
+
+        public void TryCopyBeanIfRemoved(Context context,
+        		tangible.Action1Param<Bean> Update,
+        		tangible.Action1Param<Bean> UpdateVariable) {
+        	if (null != Key)
+	            Key.TryCopyBeanIfRemoved(context,
+	                (bean) ->
+	                {
+	                    KeyName = bean.Name;
+	                    Key = bean;
+	                },
+	                UpdateVariable);
+
+        	if (null != Value)
+	            Value.TryCopyBeanIfRemoved(context,
+	                (bean) ->
+	                {
+	                    ValueName = bean.Name;
+	                    Value = bean;
+	                },
+	                UpdateVariable);
+        }
+	}
+
+    public static class Variable implements Serializable
+    {
+        public int Id;
+        public String Name;
+        public String TypeName;
+        public String KeyName = "";
+        public String ValueName = "";
+        public Type Type;
+        public boolean Deleted = false;
+
+        @Override
+        public void Decode(ByteBuffer bb) {
+            Id = bb.ReadInt();
+            Name = bb.ReadString();
+            TypeName = bb.ReadString();
+            KeyName = bb.ReadString();
+            ValueName = bb.ReadString();
+            Deleted = bb.ReadBool();
+        }
+
+        @Override
+        public void Encode(ByteBuffer bb) {
+            bb.WriteInt(Id);
+            bb.WriteString(Name);
+            bb.WriteString(TypeName);
+            bb.WriteString(KeyName);
+            bb.WriteString(ValueName);
+            bb.WriteBool(Deleted);
+        }
+
+        public void Compile(Schemas s) {
+            Type = s.Compile(TypeName, KeyName, ValueName);
+        }
+
+        public boolean IsCompatible(Variable other, Context context) {
+            return this.Type.IsCompatible(other.Type, context,
+                (bean) ->
+                {
+                    TypeName = bean.Name;
+                    Type = bean;
+                },
+                (bean) ->
+                {
+                    KeyName = Type.KeyName;
+                    ValueName = Type.ValueName;
+                });
+        }
+
+        public final void Update() {
+			KeyName = this.Type.KeyName;
+			ValueName = this.Type.ValueName;
+		}
+
+		public final void TryCopyBeanIfRemoved(Context context) {
+			this.Type.TryCopyBeanIfRemoved(context, (bean) -> {
+						TypeName = bean.Name;
+						Type = bean;
+			}, (bean)-> {
+						KeyName = Type.KeyName;
+						ValueName = Type.ValueName;
+					});
+		}
+	}
+
+	public static class Bean extends Type {
+		private static final Logger logger = LogManager.getLogger(Bean.class);
+
+		private HashMap<Integer, Variable> Variables = new HashMap<Integer, Variable> ();
+		public final HashMap<Integer, Variable> getVariables() {
+			return Variables;
+		}
+		private boolean IsBeanKey = false;
+		private int KeyRefCount = 0;
+		public final int getKeyRefCount() {
+			return KeyRefCount;
+		}
+		public final void setKeyRefCount(int value) {
+			KeyRefCount = value;
+		}
+		// 这个变量当前是不需要的，作为额外的属性记录下来，以后可能要用。
+		private boolean Deleted = false;
+		public final boolean getDeleted() {
+			return Deleted;
+		}
+		private void setDeleted(boolean value) {
+			Deleted = value;
+		}
+		// 这里记录在当前版本Schemas中Bean的实际名字，只有生成的bean包含这个。
+		private String RealName = "";
+		public final String getRealName() {
+			return RealName;
+		}
+		private void setRealName(String value) {
+			RealName = value;
+		}
+
+		/** 
+		 var可能增加，也可能删除，所以兼容仅判断var.id相同的。
+		 并且和谁比较谁没有关系。
+		 
+		 @param other
+		 @return 
+		*/
+		@Override
+		public boolean IsCompatible(Type other, Context context, tangible.Action1Param<Bean> Update, tangible.Action1Param<Bean> UpdateVariable) {
+			if (other == null) {
+				return false;
+			}
+
+			if (false == (other instanceof Bean))
+				return false;
+
+			Bean beanOther = (Bean)other;
+
+			CheckResult result = context.GetCheckResult(beanOther, this);
+			if (null != result) {
+				result.AddUpdate(Update, UpdateVariable);
+				return true;
+			}
+			result = new CheckResult(); // result在后面可能被更新。
+			result.setBean(this);
+			context.AddCheckResult(beanOther, this, result);
+
+			ArrayList<Variable> Deleteds = new ArrayList<Variable>();
+			for (var vOther : beanOther.getVariables().values()) {
+				var vThis = getVariables().get(vOther.Id);
+				if (null != vThis) {
+					if (vThis.Deleted) {
+						// bean 可能被多个地方使用，前面比较的时候，创建或者复制了被删除的变量。
+						// 所以可能存在已经被删除var，这个时候忽略比较就行了。
+						continue;
+					}
+					if (vOther.Deleted) {
+						if (context.getConfig().getAllowSchemasReuseVariableIdWithSameType() && vThis.IsCompatible(vOther, context)) {
+							// 反悔
+							continue;
+						}
+						// 重用了已经被删除的var。此时vOther.Type也是null。
+						logger.error("Not Compatible. bean={} variable={} Can Not Reuse Deleted Variable.Id", Name, vThis.Name);
+						return false;
+					}
+					if (false == vThis.IsCompatible(vOther, context)) {
+						logger.error("Not Compatible. bean={} variable={}", Name, vOther.Name);
+						return false;
+					}
+				}
+				else {
+					// 新删除或以前删除的都创建一个新的。
+					Variable tempVar2 = new Variable();
+					tempVar2.Id = vOther.Id;
+					tempVar2.Name = vOther.Name;
+					tempVar2.TypeName = vOther.TypeName;
+					tempVar2.KeyName = vOther.KeyName;
+					tempVar2.ValueName = vOther.ValueName;
+					tempVar2.Type = vOther.Type;
+					tempVar2.Deleted = true;
+					Deleteds.add(tempVar2);
+				}
+			}
+			// 限制beankey的var只能增加，不能减少。
+			// 如果发生了Bean和BeanKey改变，忽略这个检查。
+			// 如果没有被真正当作Key，忽略这个检查。
+			if (IsBeanKey && getKeyRefCount() > 0 && beanOther.IsBeanKey && beanOther.getKeyRefCount() > 0) {
+				if (getVariables().size() < beanOther.getVariables().size()) {
+					logger.error("Not Compatible. beankey={} Variables.Count < DB.Variables.Count,Must Be Reduced", Name);
+					return false;
+				}
+				for (var vOther : beanOther.getVariables().values()) {
+					if (vOther.Deleted) {
+						// 当作Key前允许删除变量，所以可能存在已经被删除的变量。
+						continue;
+					}
+					if (false == getVariables().containsKey(vOther.Id)) {
+						// 被当作Key以后就不能再删除变量了。
+						logger.error("Not Compatible. beankey={} variable={} Not Exist", Name, vOther.Name);
+						return false;
+					}
+				}
+			}
+
+			if (!Deleteds.isEmpty()) {
+				Bean newBean = ShadowCopy(context);
+				context.getCurrent().AddBean(newBean);
+				result.setBean(newBean);
+				result.AddUpdate(Update, UpdateVariable);
+				for (var vDelete : Deleteds) {
+					vDelete.TryCopyBeanIfRemoved(context);
+					newBean.getVariables().put(vDelete.Id, vDelete);
+				}
+			}
+			return true;
+		}
+
+		@Override
+		public void TryCopyBeanIfRemoved(Context context,
+				tangible.Action1Param<Bean> Update,
+				tangible.Action1Param<Bean> UpdateVariable) {
+			CheckResult result = context.GetCopyBeanIfRemovedResult(this);
+			if (null != result) {
+				result.AddUpdate(Update, UpdateVariable);
+				return;
+			}
+			result = new CheckResult();
+			result.setBean(this);
+			context.AddCopyBeanIfRemovedResult(this, result);
+
+			if (Name.startsWith("_")) {
+				// bean 是内部创建的，可能是原来删除的，也可能是合并改名引起的。
+				if (context.getCurrent().Beans.containsKey(getRealName())) {
+					return;
+				}
+
+				var newb = ShadowCopy(context);
+				newb.setRealName(getRealName()); // 原来是新建的Bean，要使用这个。
+				context.getCurrent().AddBean(newb);
+				result.setBean(newb);
+				result.AddUpdate(Update, UpdateVariable);
+				return;
+			}
+
+			// 通过查找当前Schemas来发现RefZero。
+			if (context.getCurrent().Beans.containsKey(Name)) {
+				return;
+			}
+
+			var newb2 = ShadowCopy(context);
+			newb2.setDeleted(true);
+			context.getCurrent().AddBean(newb2);
+			result.setBean(newb2);
+			result.AddUpdate(Update, UpdateVariable);
+
+			for (var v : getVariables().values()) {
+				v.TryCopyBeanIfRemoved(context);
+			}
+		}
+
+		private Bean ShadowCopy(Context context) {
+			var newBean = new Bean();
+			newBean.Name = context.GenerateUniqueName();
+			newBean.IsBeanKey = this.IsBeanKey;
+			newBean.KeyRefCount = this.getKeyRefCount();
+			newBean.RealName = this.Name;
+			newBean.Deleted = this.Deleted;
+			for (var v : getVariables().values()) {
+				newBean.getVariables().put(v.Id, v);
+			}
+			return newBean;
+		}
+
+		@Override
+		public void Decode(ByteBuffer bb) {
+			Name = bb.ReadString();
+			IsBeanKey = bb.ReadBool();
+			Deleted = bb.ReadBool();
+			RealName = bb.ReadString();
+			for (int count = bb.ReadInt(); count > 0; --count) {
+				var v = new Variable();
+				v.Decode(bb);
+				getVariables().put(v.Id, v);
+			}
+		}
+
+		@Override
+		public void Encode(ByteBuffer bb) {
+			bb.WriteString(Name);
+			bb.WriteBool(IsBeanKey);
+			bb.WriteBool(Deleted);
+			bb.WriteString(RealName);
+			bb.WriteInt(getVariables().size());
+			for (var v : getVariables().values()) {
+				v.Encode(bb);
+			}
+		}
+
+		@Override
+		public void Compile(Schemas s) {
+			for (var v : getVariables().values()) {
+				v.Compile(s);
+			}
+		}
+
+		public final void AddVariable(Variable var) {
+			getVariables().put(var.Id, var);
+		}
+	}
+	
+    public static class Table implements Serializable
+    {
+        public String Name; // FullName, sample: demo_Module1_Table1
+        public String KeyName;
+        public String ValueName;
+        public Type KeyType;
+        public Type ValueType;
+
+        @Override
+        public void Decode(ByteBuffer bb) {
+            Name = bb.ReadString();
+            KeyName = bb.ReadString();
+            ValueName = bb.ReadString();
+        }
+
+        @Override
+        public void Encode(ByteBuffer bb) {
+            bb.WriteString(Name);
+            bb.WriteString(KeyName);
+            bb.WriteString(ValueName);
+        }
+
+        public boolean IsCompatible(Table other, Context context) {
+            return Name.equals(other.Name)
+                && KeyType.IsCompatible(other.KeyType, context,
+                (bean) ->
+                {
+                    KeyName = bean.Name;
+                    KeyType = bean;
+                },
+                null)
+                && ValueType.IsCompatible(other.ValueType, context,
+                (bean) ->
+                {
+                    ValueName = bean.Name;
+                    ValueType = bean;
+                },
+                null);
+        }
+
+        public void Compile(Schemas s) {
+            KeyType = s.Compile(KeyName, "", "");
+            if (KeyType instanceof Bean) {
+                ((Bean)KeyType).KeyRefCount++;
+            }
+            ValueType = s.Compile(ValueName, "", "");
+        }
+    }
+
+    public HashMap<String, Table> Tables = new HashMap<String, Table>();
+    public HashMap<String, Bean> Beans = new HashMap<String, Bean>();
+
+    private static Logger logger = LogManager.getLogger(Table.class);
+
+    public boolean IsCompatible(Schemas other, Config config) {
+        if (null == other)
+            return true;
+
+        var context = new Context();
+        {
+            context.setCurrent(this);
+            context.setPrevious(other);
+            context.setConfig(config);
+        };
+
+        for (var table : Tables.values()) {
+        	var otherTable = other.Tables.get(table.Name);
+        	if (null != otherTable) {
+                if (false == table.IsCompatible(otherTable, context)) {
+                    logger.error("Not Compatible. table={}", table.Name);
+                    return false;
+                }
+            }
+        }
+        context.Update();
+        return true;
+    }
+
+    @Override
+    public void Decode(ByteBuffer bb) {
+        for (int count = bb.ReadInt(); count > 0; --count)
+        {
+            var table = new Table();
+            table.Decode(bb);
+            if (null != Tables.put(table.Name, table))
+            	throw new RuntimeException("duplicate table=" + table.Name);
+        }
+        for (int count = bb.ReadInt(); count > 0; --count) {
+            var bean = new Bean();
+            bean.Decode(bb);
+            if (null != Beans.put(bean.Name, bean))
+            	throw new RuntimeException("duplicate bean=" + bean.Name);
+        }
+    }
+
+    @Override
+    public void Encode(ByteBuffer bb) {
+        bb.WriteInt(Tables.size());
+        for (var table : Tables.values())
+        {
+            table.Encode(bb);
+        }
+        bb.WriteInt(Beans.size());
+        for (var bean : Beans.values()) {
+            bean.Encode(bb);
+        }
+    }
+
+    public void Compile()
+    {
+        for (var table : Tables.values()) {
+            table.Compile(this);
+        }
+        for (var bean : Beans.values()) {
+            bean.Compile(this);
+        }
+    }
+
+    private HashMap<String, Type> BasicTypes = new HashMap<String, Type>();
+
+    public Type Compile(String type, String key, String value) {
+        if (null == type || type.isEmpty())
+            return null;
+
+        var beanExist = Beans.get(type);
+        if (null != beanExist)
+        	return beanExist;
+
+        var fullTypeName = type + ":" + key + ":" + value;
+        
+        // 除了Bean，其他基本类型和容器类型都动态创建。
+        var typeExist = BasicTypes.get(fullTypeName);
+        if (null != typeExist)
+        	return typeExist;
+
+        var n = new Type();
+        {
+            n.Name = type;
+            n.KeyName = key;
+            n.ValueName = value;
+        };
+        BasicTypes.put(fullTypeName, n);
+        n.Compile(this); // 容器需要编译。这里的时机不是太好。
+        return n;
+    }
+
+    public void AddBean(Bean bean) {
+        if (null != Beans.put(bean.Name, bean))
+        	throw new RuntimeException("AddBean duplicate=" + bean.Name);
+    }
+
+    public void AddTable(Table table) {
+        if (null != Tables.put(table.Name, table))
+        	throw new RuntimeException("AddTable duplicate=" + table.Name);
+    }
+}
