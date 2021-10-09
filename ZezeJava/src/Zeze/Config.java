@@ -3,14 +3,20 @@ package Zeze;
 import Zeze.Net.*;
 import java.util.*;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.apache.logging.log4j.Level;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import java.io.*;
 
 public final class Config {
 	public interface ICustomize {
 		public String getName();
-		public void Parse(XmlElement self);
+		public void Parse(Element self);
 	}
 
 	public enum DbType {
@@ -133,43 +139,21 @@ public final class Config {
 	 @param name
 	 @param customize
 	*/
-//C# TO JAVA CONVERTER TODO TASK: The C# 'new()' constraint has no equivalent in Java:
-//ORIGINAL LINE: public bool GetCustomize<T>(out T customize) where T : ICustomize, new()
-	public <T extends ICustomize> boolean GetCustomize(tangible.OutObject<T> customize) {
-		T forName = new T();
-		TValue _customize;
-		tangible.OutObject<TValue> tempOut__customize = new tangible.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (getCustomize().TryGetValue(forName.getName(), tempOut__customize)) {
-		_customize = tempOut__customize.outArgValue;
-			customize.outArgValue = (T)_customize;
-			return true;
-		}
-	else {
-		_customize = tempOut__customize.outArgValue;
-	}
-		customize.outArgValue = null;
-		return false;
+	@SuppressWarnings("unchecked")
+	public <T extends ICustomize> T GetCustomize(T customize) {
+		return (T)(getCustomize().get(customize.getName()));
 	}
 
 	public void AddCustomize(ICustomize c) {
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (!getCustomize().TryAdd(c.getName(), c)) {
+		if (null != getCustomize().putIfAbsent(c.getName(), c)) {
 			throw new RuntimeException(String.format("Duplicate Customize Config '%1$s'", c.getName()));
 		}
 	}
 
 	public TableConf GetTableConf(String name) {
-		TValue tableConf;
-		tangible.OutObject<TValue> tempOut_tableConf = new tangible.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (getTableConfMap().TryGetValue(name, tempOut_tableConf)) {
-		tableConf = tempOut_tableConf.outArgValue;
+		var tableConf = getTableConfMap().get(name);
+		if (null != tableConf)
 			return tableConf;
-		}
-	else {
-		tableConf = tempOut_tableConf.outArgValue;
-	}
 		return getDefaultTableConf();
 	}
 
@@ -182,15 +166,12 @@ public final class Config {
 		switch (dbType) {
 			case Memory:
 				return new Zeze.Transaction.DatabaseMemory(url);
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-//#if USE_DATABASE
 			case MySql:
 				return new Zeze.Transaction.DatabaseMySql(url);
 			case SqlServer:
 				return new Zeze.Transaction.DatabaseSqlServer(url);
 			case Tikv:
 				return new Zeze.Tikv.DatabaseTikv(url);
-//#endif
 			default:
 				throw new RuntimeException("unknown database type.");
 		}
@@ -208,15 +189,13 @@ public final class Config {
 		ClearInUseAndIAmSureAppStopped(null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void ClearInUseAndIAmSureAppStopped(Dictionary<string, Transaction.Database> databases = null)
 	public void ClearInUseAndIAmSureAppStopped(HashMap<String, Zeze.Transaction.Database> databases) {
 		if (null == databases) {
 			databases = new HashMap<String, Zeze.Transaction.Database>();
 			CreateDatabase(databases);
 		}
 		for (var db : databases.values()) {
-			db.DirectOperates.ClearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
+			db.getDirectOperates().ClearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
 		}
 	}
 
@@ -234,16 +213,10 @@ public final class Config {
 	}
 
 	public ServiceConf GetServiceConf(String name) {
-		TValue serviceConf;
-		tangible.OutObject<TValue> tempOut_serviceConf = new tangible.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (getServiceConfMap().TryGetValue(name, tempOut_serviceConf)) {
-		serviceConf = tempOut_serviceConf.outArgValue;
+		var serviceConf = getServiceConfMap().get(name);
+		if (null != serviceConf)
 			return serviceConf;
-		}
-	else {
-		serviceConf = tempOut_serviceConf.outArgValue;
-	}
+
 		return null;
 	}
 
@@ -262,8 +235,6 @@ public final class Config {
 		return Load("zeze.xml");
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public static Config Load(string xmlfile = "zeze.xml")
 	public static Config Load(String xmlfile) {
 		return (new Config()).LoadAndParse(xmlfile);
 	}
@@ -273,62 +244,68 @@ public final class Config {
 		return LoadAndParse("zeze.xml");
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public Config LoadAndParse(string xmlfile = "zeze.xml")
 	public Config LoadAndParse(String xmlfile) {
 		if ((new File(xmlfile)).isFile()) {
-			XmlDocument doc = new XmlDocument();
-			doc.Load(xmlfile);
-			Parse(doc.DocumentElement);
+			DocumentBuilderFactory db = DocumentBuilderFactory.newInstance();
+			db.setXIncludeAware(true);	
+			db.setNamespaceAware(true);
+			try {
+				Document doc = db.newDocumentBuilder().parse(xmlfile);
+				Parse(doc.getDocumentElement());
+			}
+			catch (Exception ex) {
+				throw new RuntimeException(ex);
+			}
 		}
 
 		return this;
 	}
 
-	public void Parse(XmlElement self) {
-		if (false == self.Name.equals("zeze")) {
+	public void Parse(Element self) {
+		if (false == self.getNodeName().equals("zeze")) {
 			throw new RuntimeException("is it a zeze config.");
 		}
 
-		setCheckpointPeriod(Integer.parseInt(self.GetAttribute("CheckpointPeriod")));
-		setServerId(Integer.parseInt(self.GetAttribute("ServerId")));
+		setCheckpointPeriod(Integer.parseInt(self.getAttribute("CheckpointPeriod")));
+		setServerId(Integer.parseInt(self.getAttribute("ServerId")));
 
-		setGlobalCacheManagerHostNameOrAddress(self.GetAttribute("GlobalCacheManagerHostNameOrAddress"));
-		String attr = self.GetAttribute("GlobalCacheManagerPort");
+		setGlobalCacheManagerHostNameOrAddress(self.getAttribute("GlobalCacheManagerHostNameOrAddress"));
+		String attr = self.getAttribute("GlobalCacheManagerPort");
 		setGlobalCacheManagerPort(attr.length() > 0 ? Integer.parseInt(attr) : 0);
 
-		attr = self.GetAttribute("ProcessReturnErrorLogLevel");
+		attr = self.getAttribute("ProcessReturnErrorLogLevel");
 		if (attr.length() > 0) {
-			setProcessReturnErrorLogLevel(NLog.LogLevel.FromString(attr));
+			setProcessReturnErrorLogLevel(Level.toLevel(attr));
 		}
 
-		attr = self.GetAttribute("InternalThreadPoolWorkerCount");
+		attr = self.getAttribute("InternalThreadPoolWorkerCount");
 		setInternalThreadPoolWorkerCount(attr.length() > 0 ? Integer.parseInt(attr) : 10);
 
-		attr = self.GetAttribute("WorkerThreads");
+		attr = self.getAttribute("WorkerThreads");
 		setWorkerThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);
 
-		attr = self.GetAttribute("CompletionPortThreads");
+		attr = self.getAttribute("CompletionPortThreads");
 		setCompletionPortThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);
 
-		attr = self.GetAttribute("AllowReadWhenRecoredNotAccessed");
+		attr = self.getAttribute("AllowReadWhenRecoredNotAccessed");
 		setAllowReadWhenRecoredNotAccessed(attr.length() > 0 ? Boolean.parseBoolean(attr) : true);
-		attr = self.GetAttribute("AllowSchemasReuseVariableIdWithSameType");
+		attr = self.getAttribute("AllowSchemasReuseVariableIdWithSameType");
 		setAllowSchemasReuseVariableIdWithSameType(attr.length() > 0 ? Boolean.parseBoolean(attr) : true);
 
-		attr = self.GetAttribute("CheckpointMode");
+		attr = self.getAttribute("CheckpointMode");
 		if (attr.length() > 0) {
-			setCheckpointMode(Transaction.CheckpointMode.valueOf(attr));
+			setCheckpointMode(Zeze.Transaction.CheckpointMode.valueOf(attr));
 		}
 
-		XmlNodeList childNodes = self.ChildNodes;
-		for (XmlNode node : childNodes) {
-			if (XmlNodeType.Element != node.NodeType) {
+		NodeList childnodes = self.getChildNodes();
+		for (int i = 0; i < childnodes.getLength(); ++i) {
+			Node node = childnodes.item(i);
+			if (Node.ELEMENT_NODE != node.getNodeType()) {
 				continue;
 			}
 
-			XmlElement e = (XmlElement)node;
-			switch (e.Name) {
+			Element e = (Element) node;
+			switch (e.getNodeName()) {
 				case "TableConf":
 					new TableConf(this, e);
 					break;
@@ -342,17 +319,11 @@ public final class Config {
 					break;
 
 				case "CustomizeConf":
-					var cname = e.GetAttribute("Name");
-					TValue customizeConf;
-					tangible.OutObject<TValue> tempOut_customizeConf = new tangible.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-					if (false == getCustomize().TryGetValue(cname, tempOut_customizeConf)) {
-					customizeConf = tempOut_customizeConf.outArgValue;
+					var cname = e.getAttribute("Name");
+					var customizeConf = getCustomize().get(cname);
+					if (null == customizeConf)
 						throw new RuntimeException(String.format("Unknown CustomizeConf Name='%1$s'", cname));
-					}
-				else {
-					customizeConf = tempOut_customizeConf.outArgValue;
-				}
+
 					customizeConf.Parse(e);
 					break;
 
@@ -364,8 +335,8 @@ public final class Config {
 			setDefaultTableConf(new TableConf());
 		}
 		if (getDatabaseConfMap().isEmpty()) { // add default databaseconf.
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-			if (!getDatabaseConfMap().TryAdd("", new DatabaseConf())) {
+
+			if (null != getDatabaseConfMap().putIfAbsent("", new DatabaseConf())) {
 				throw new RuntimeException("Concurrent Add Default Database.");
 			}
 		}
@@ -388,9 +359,9 @@ public final class Config {
 		public DatabaseConf() {
 		}
 
-		public DatabaseConf(Config conf, XmlElement self) {
-			Name = self.GetAttribute("Name");
-			switch (self.GetAttribute("DatabaseType")) {
+		public DatabaseConf(Config conf, Element self) {
+			Name = self.getAttribute("Name");
+			switch (self.getAttribute("DatabaseType")) {
 				case "Memory":
 					DatabaseType = DbType.Memory;
 					break;
@@ -406,9 +377,8 @@ public final class Config {
 				default:
 					throw new RuntimeException("unknown database type.");
 			}
-			DatabaseUrl = self.GetAttribute("DatabaseUrl");
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-			if (!conf.getDatabaseConfMap().TryAdd(getName(), this)) {
+			DatabaseUrl = self.getAttribute("DatabaseUrl");
+			if (null != conf.getDatabaseConfMap().putIfAbsent(getName(), this)) {
 				throw new RuntimeException(String.format("Duplicate Database '%1$s'", getName()));
 			}
 		}
@@ -511,54 +481,53 @@ public final class Config {
 
 		}
 
-		public TableConf(Config conf, XmlElement self) {
-			Name = self.GetAttribute("Name");
+		public TableConf(Config conf, Element self) {
+			Name = self.getAttribute("Name");
 
-			String attr = self.GetAttribute("CacheCapacity");
+			String attr = self.getAttribute("CacheCapacity");
 			if (attr.length() > 0) {
 				setCacheCapacity(Long.parseLong(attr));
 			}
 
-			attr = self.GetAttribute("CacheCleanPeriod");
+			attr = self.getAttribute("CacheCleanPeriod");
 			if (attr.length() > 0) {
 				setCacheCleanPeriod(Integer.parseInt(attr));
 			}
-			DatabaseName = self.GetAttribute("DatabaseName");
-			DatabaseOldName = self.GetAttribute("DatabaseOldName");
-			attr = self.GetAttribute("DatabaseOldMode");
+			DatabaseName = self.getAttribute("DatabaseName");
+			DatabaseOldName = self.getAttribute("DatabaseOldName");
+			attr = self.getAttribute("DatabaseOldMode");
 			DatabaseOldMode = attr.length() > 0 ? Integer.parseInt(attr) : 0;
-			attr = self.GetAttribute("CheckpointWhenCommit");
+			attr = self.getAttribute("CheckpointWhenCommit");
 			if (attr.length() > 0) {
 				setCheckpointWhenCommit(Boolean.parseBoolean(attr));
 			}
-			attr = self.GetAttribute("CacheConcurrencyLevel");
+			attr = self.getAttribute("CacheConcurrencyLevel");
 			if (attr.length() > 0) {
 				setCacheConcurrencyLevel(Integer.parseInt(attr));
 			}
-			attr = self.GetAttribute("CacheInitialCapaicty");
+			attr = self.getAttribute("CacheInitialCapaicty");
 			if (attr.length() > 0) {
 				setCacheInitialCapaicty(Long.parseLong(attr));
 			}
-			attr = self.GetAttribute("CacheNewAccessHotThreshold");
+			attr = self.getAttribute("CacheNewAccessHotThreshold");
 			if (attr.length() > 0) {
 				setCacheNewAccessHotThreshold(Integer.parseInt(attr));
 			}
-			attr = self.GetAttribute("CacheCleanPeriodWhenExceedCapacity");
+			attr = self.getAttribute("CacheCleanPeriodWhenExceedCapacity");
 			if (attr.length() > 0) {
 				setCacheCleanPeriodWhenExceedCapacity(Integer.parseInt(attr));
 			}
-			attr = self.GetAttribute("CacheBuckets");
+			attr = self.getAttribute("CacheBuckets");
 			if (attr.length() > 0) {
 				setCacheBuckets(Integer.parseInt(attr));
 			}
-			attr = self.GetAttribute("CacheMaxLruInitialCapaicty");
+			attr = self.getAttribute("CacheMaxLruInitialCapaicty");
 			if (attr.length() > 0) {
 				setCacheMaxLruInitialCapaicty(Integer.parseInt(attr));
 			}
 
 			if (getName().length() > 0) {
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-				if (!conf.getTableConfMap().TryAdd(getName(), this)) {
+				if (null != conf.getTableConfMap().putIfAbsent(getName(), this)) {
 					throw new RuntimeException(String.format("Duplicate Table '%1$s'", getName()));
 				}
 			}

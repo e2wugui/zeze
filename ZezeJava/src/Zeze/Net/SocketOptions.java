@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import org.apache.logging.log4j.Level;
+
 import Zeze.*;
 
 public final class SocketOptions {
@@ -62,11 +64,11 @@ public final class SocketOptions {
 	}
 
 	// 其他杂项
-	private NLog.LogLevel SocketLogLevel;
-	public NLog.LogLevel getSocketLogLevel() {
+	private Level SocketLogLevel;
+	public Level getSocketLogLevel() {
 		return SocketLogLevel;
 	}
-	public void setSocketLogLevel(NLog.LogLevel value) {
+	public void setSocketLogLevel(Level value) {
 		SocketLogLevel = value;
 	}
 

@@ -2,6 +2,9 @@ package Zeze.Net;
 
 import Zeze.Serialize.*;
 import Zeze.Transaction.*;
+
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.*;
 import Zeze.*;
 
@@ -115,14 +118,14 @@ public class Service {
 	}
 
 	public final AsyncSocket NewServerSocket(String ipaddress, int port) {
-		return NewServerSocket(IPAddress.Parse(ipaddress), port);
+		return NewServerSocket(InetAddress.getByName(ipaddress), port);
 	}
 
-	public final AsyncSocket NewServerSocket(IPAddress ipaddress, int port) {
-		return NewServerSocket(new IPEndPoint(ipaddress, port));
+	public final AsyncSocket NewServerSocket(InetAddress ipaddress, int port) {
+		return NewServerSocket(new InetSocketAddress(ipaddress, port));
 	}
 
-	public final AsyncSocket NewServerSocket(EndPoint localEP) {
+	public final AsyncSocket NewServerSocket(InetSocketAddress localEP) {
 		return new AsyncSocket(this, localEP);
 	}
 

@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import org.w3c.dom.Element;
+
 import Zeze.*;
 
 /** 
@@ -52,8 +54,8 @@ public class Connector {
 	public final boolean isHandshakeDone() {
 		return getHandshakeDoneEvent().WaitOne(0);
 	}
-	private ManualResetEvent HandshakeDoneEvent = new ManualResetEvent(false);
-	public final ManualResetEvent getHandshakeDoneEvent() {
+	private Zeze.Util.ManualResetEvent HandshakeDoneEvent = new Zeze.Util.ManualResetEvent(false);
+	public final Zeze.Util.ManualResetEvent getHandshakeDoneEvent() {
 		return HandshakeDoneEvent;
 	}
 	public final String getName() {
@@ -67,11 +69,11 @@ public class Connector {
 	private void setSocket(AsyncSocket value) {
 		Socket = value;
 	}
-	private Util.SchedulerTask ReconnectTask;
-	public final Util.SchedulerTask getReconnectTask() {
+	private Zeze.Util.SchedulerTask ReconnectTask;
+	public final Zeze.Util.SchedulerTask getReconnectTask() {
 		return ReconnectTask;
 	}
-	private void setReconnectTask(Util.SchedulerTask value) {
+	private void setReconnectTask(Zeze.Util.SchedulerTask value) {
 		ReconnectTask = value;
 	}
 
@@ -84,30 +86,36 @@ public class Connector {
 		this(host, 0, true);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public Connector(string host, int port = 0, bool autoReconnect = true)
 	public Connector(String host, int port, boolean autoReconnect) {
 		HostNameOrAddress = host;
 		Port = port;
 		setAutoReconnect(autoReconnect);
 	}
 
-	public static Connector Create(XmlElement e) {
-		var className = e.GetAttribute("Class");
-		return tangible.StringHelper.isNullOrEmpty(className) ? new Connector(e) : (Connector)System.Activator.CreateInstance(java.lang.Class.forName(className), e);
+	public static Connector Create(Element e) {
+		var className = e.getAttribute("Class");
+		if (tangible.StringHelper.isNullOrEmpty(className))
+			return new Connector(e);
+		try {
+			Class<?> ccls = java.lang.Class.forName(className);
+			return (Connector)ccls.getConstructor(Element.class).newInstance(e);
+		}
+		catch (Throwable ex) {
+			throw new RuntimeException(ex);
+		}
 	}
 
-	public Connector(XmlElement self) {
-		String attr = self.GetAttribute("Port");
+	public Connector(Element self) {
+		String attr = self.getAttribute("Port");
 		if (attr.length() > 0) {
 			Port = Integer.parseInt(attr);
 		}
-		HostNameOrAddress = self.GetAttribute("HostNameOrAddress");
-		attr = self.GetAttribute("IsAutoReconnect");
+		HostNameOrAddress = self.getAttribute("HostNameOrAddress");
+		attr = self.getAttribute("IsAutoReconnect");
 		if (attr.length() > 0) {
 			setAutoReconnect(Boolean.parseBoolean(attr));
 		}
-		attr = self.GetAttribute("MaxReconnectDelay");
+		attr = self.getAttribute("MaxReconnectDelay");
 		if (attr.length() > 0) {
 			setMaxReconnectDelay(Integer.parseInt(attr) * 1000);
 		}
@@ -126,13 +134,10 @@ public class Connector {
 	}
 
 	// 允许子类重新定义Ready.
-
 	public void WaitReady() {
 		WaitReady(5000);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public virtual void WaitReady(int timeout = 5000)
 	public void WaitReady(int timeout) {
 		if (getHandshakeDoneEvent().WaitOne(timeout)) {
 			return;
@@ -176,7 +181,7 @@ public class Connector {
 					ConnectDelay = getMaxReconnectDelay();
 				}
 			}
-			setReconnectTask(Util.Scheduler.getInstance().Schedule((ThisTask) -> Start(), ConnectDelay, -1));
+			setReconnectTask(Zeze.Util.Scheduler.getInstance().Schedule((ThisTask) -> Start(), ConnectDelay, -1));
 			;
 		}
 	}

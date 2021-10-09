@@ -1,6 +1,7 @@
 package Zeze.Net;
 
-import Zeze.*;
+import java.net.InetSocketAddress;
+import org.w3c.dom.Element;
 
 public class Acceptor {
 	private Service Service;
@@ -34,12 +35,12 @@ public class Acceptor {
 		Ip = ip;
 	}
 
-	public Acceptor(XmlElement self) {
-		String attr = self.GetAttribute("Port");
+	public Acceptor(Element self) {
+		String attr = self.getAttribute("Port");
 		if (attr.length() > 0) {
 			Port = Integer.parseInt(attr);
 		}
-		Ip = self.GetAttribute("Ip");
+		Ip = self.getAttribute("Ip");
 	}
 
 	public final void SetService(Service service) {
@@ -57,7 +58,9 @@ public class Acceptor {
 				return;
 			}
 
-			setSocket(getIp().length() > 0 ? getService().NewServerSocket(getIp(), getPort()) : getService().NewServerSocket(System.Net.IPAddress.Any, getPort()));
+			setSocket(getIp().length() > 0
+					? getService().NewServerSocket(getIp(), getPort())
+					: getService().NewServerSocket(new InetSocketAddress(0).getAddress(), getPort()));
 			getSocket().setAcceptor(this);
 		}
 	}

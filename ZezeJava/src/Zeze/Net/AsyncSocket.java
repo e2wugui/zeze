@@ -576,41 +576,46 @@ public final class AsyncSocket implements Closeable {
 		close();
 	}
 
-	public void close() throws IOException {
-		synchronized (this) {
-			if (getSocket() == null) {
-				return;
+	public void close() {
+		try {
+			synchronized (this) {
+				if (getSocket() == null) {
+					return;
+				}
+
+				try {
+					if (getConnector() != null) {
+						getConnector().OnSocketClose(this);
+					}
+					getService().OnSocketClose(this, this.getLastException());
+					if (getSocket() != null) {
+						getSocket().Dispose();
+					}
+					setSocket(null);
+				}
+				catch (RuntimeException e) {
+					// skip Dispose error
+				}
 			}
 
-			try {
-				if (getConnector() != null) {
-					getConnector().OnSocketClose(this);
+			synchronized (this) {
+				try {
+					getService().OnSocketDisposed(this);
 				}
-				getService().OnSocketClose(this, this.getLastException());
-				if (getSocket() != null) {
-					getSocket().Dispose();
+				catch (RuntimeException e2) {
+					// skip Dispose error
 				}
-				setSocket(null);
-			}
-			catch (RuntimeException e) {
-				// skip Dispose error
 			}
 		}
-
-		synchronized (this) {
-			try {
-				getService().OnSocketDisposed(this);
-			}
-			catch (RuntimeException e2) {
-				// skip Dispose error
-			}
+		catch (Throwable ex) {
+			throw new RuntimeException(ex); // TODO skip close exception?
 		}
 	}
 
 	public void SetSessionId(long newSessionId) {
-		if (getService().SocketMapInternal.TryRemove(KeyValuePair.Create(getSessionId(), this))) {
-			if (!getService().SocketMapInternal.TryAdd(newSessionId, this)) {
-				getService().SocketMapInternal.TryAdd(getSessionId(), this); // rollback
+		if (getService().getSocketMapInternal().remove(getSessionId(), this)) {
+			if (null != getService().getSocketMapInternal().putIfAbsent(newSessionId, this)) {
+				getService().getSocketMapInternal().putIfAbsent(getSessionId(), this); // rollback
 				throw new RuntimeException(String.format("duplicate sessionid %1$s", this));
 			}
 			setSessionId(newSessionId);
