@@ -65,8 +65,13 @@ namespace Zeze.Util
             }
             catch (Exception ex)
             {
-                while (ex is AggregateException)
-                    ex = ex.InnerException;
+                while (true)
+                {
+                    var inner = ex.InnerException;
+                    if (null == inner)
+                        break;
+                    ex = inner;
+                }
 
                 var errorCode = ex is TaskCanceledException
                     ? Procedure.CancelExcption
