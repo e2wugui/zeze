@@ -607,14 +607,15 @@ export module Zeze {
 		}
 
 		public BeginWriteWithSize4(): number {
-			var state = this.WriteIndex;
+			var state = this.Size();
 			this.EnsureWrite(4);
 			this.WriteIndex += 4;
 			return state;
 		}
 
 		public EndWriteWithSize4(state: number): void {
-			this.View.setInt32(state, this.WriteIndex - state - 4, true);
+			var oldWriteIndex = state + this.ReadIndex;
+			this.View.setInt32(oldWriteIndex, this.WriteIndex - oldWriteIndex - 4, true);
 		}
 
 		public BeginWriteSegment(): number {

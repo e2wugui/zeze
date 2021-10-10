@@ -328,7 +328,7 @@ public final class Config {
 					break;
 
 				default:
-					throw new RuntimeException("unknown node name: " + e.Name);
+					throw new RuntimeException("unknown node name: " + e.getNodeName());
 			}
 		}
 		if (null == getDefaultTableConf()) {

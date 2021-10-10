@@ -1,51 +1,24 @@
 package Zeze.Serialize;
 
-import Zeze.*;
 import java.util.*;
 
 public final class ByteBuffer {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private byte[] Bytes;
-	private byte[] Bytes;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public byte[] getBytes()
-	public byte[] getBytes() {
-		return Bytes;
-	}
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private void setBytes(byte[] value)
-	private void setBytes(byte[] value) {
-		Bytes = value;
-	}
-	private int ReadIndex;
-	public int getReadIndex() {
-		return ReadIndex;
-	}
-	public void setReadIndex(int value) {
-		ReadIndex = value;
-	}
-	private int WriteIndex;
-	public int getWriteIndex() {
-		return WriteIndex;
-	}
-	public void setWriteIndex(int value) {
-		WriteIndex = value;
-	}
-	public int getCapacity() {
-		return getBytes().length;
-	}
-	public int getSize() {
-		return getWriteIndex() - getReadIndex();
+	public byte[] Bytes;
+	public int ReadIndex;
+	public int WriteIndex;
+
+	public int Capacity() {
+		return Bytes.length;
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static ByteBuffer Wrap(byte[] bytes)
+	public int Size() {
+		return WriteIndex - ReadIndex;
+	}
+
 	public static ByteBuffer Wrap(byte[] bytes) {
 		return new ByteBuffer(bytes, 0, bytes.length);
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static ByteBuffer Wrap(byte[] bytes, int offset, int length)
 	public static ByteBuffer Wrap(byte[] bytes, int offset, int length) {
 		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 		return new ByteBuffer(bytes, offset, offset + length);
@@ -70,238 +43,215 @@ public final class ByteBuffer {
 	}
 
 	private ByteBuffer(int capacity) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: this.Bytes = new byte[ToPower2(capacity)];
-		this.setBytes(new byte[ToPower2(capacity)]);
-		this.setReadIndex(0);
-		this.setWriteIndex(0);
+		this.Bytes = new byte[ToPower2(capacity)];
+		this.ReadIndex = 0;
+		this.WriteIndex = 0;
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private ByteBuffer(byte[] bytes, int readIndex, int writeIndex)
 	private ByteBuffer(byte[] bytes, int readIndex, int writeIndex) {
-		this.setBytes(bytes);
-		this.setReadIndex(readIndex);
-		this.setWriteIndex(writeIndex);
+		this.Bytes = bytes;
+		this.ReadIndex = readIndex;
+		this.WriteIndex = writeIndex;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void FreeInternalBuffer()
+	public static final byte[] Empty = new byte[0];
+
 	public void FreeInternalBuffer() {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes = Array.Empty<byte>();
-		setBytes(Array.<Byte>Empty());
+		Bytes = Empty;
 		Reset();
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Append(byte b)
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Append(byte b)
 	public void Append(byte b) {
 		EnsureWrite(1);
-		getBytes()[getWriteIndex()] = b;
-		setWriteIndex(getWriteIndex() + 1);
+		Bytes[WriteIndex] = b;
+		WriteIndex += 1;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Append(byte[] bs)
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Append(byte[] bs)
 	public void Append(byte[] bs) {
 		Append(bs, 0, bs.length);
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Append(byte[] bs, int offset, int len)
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Append(byte[] bs, int offset, int len)
 	public void Append(byte[] bs, int offset, int len) {
 		EnsureWrite(len);
-		Buffer.BlockCopy(bs, offset, getBytes(), getWriteIndex(), len);
-		setWriteIndex(getWriteIndex() + len);
+		System.arraycopy(bs, offset, Bytes, WriteIndex, len);
+		WriteIndex += len;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Replace(int writeIndex, byte[] src)
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Replace(int writeIndex, byte[] src)
 	public void Replace(int writeIndex, byte[] src) {
 		Replace(writeIndex, src, 0, src.length);
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Replace(int writeIndex, byte[] src, int offset, int len)
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Replace(int writeIndex, byte[] src, int offset, int len)
 	public void Replace(int writeIndex, byte[] src, int offset, int len) {
-		if (writeIndex < this.getReadIndex() || writeIndex + len > this.getWriteIndex()) {
+		if (writeIndex < this.ReadIndex || writeIndex + len > this.WriteIndex) {
 			throw new RuntimeException();
 		}
-		Buffer.BlockCopy(src, offset, this.getBytes(), writeIndex, len);
+		System.arraycopy(src, offset, Bytes, writeIndex, len);
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void BeginWriteWithSize4(out int state)
-	public void BeginWriteWithSize4(tangible.OutObject<Integer> state) {
-		state.outArgValue = getSize();
+	public int BeginWriteWithSize4() {
+		int saveSize = Size();
 		EnsureWrite(4);
-		setWriteIndex(getWriteIndex() + 4);
+		WriteIndex += 4;
+		return saveSize;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void EndWriteWithSize4(int state)
+	public static byte[] ToBytes(int i) {
+		var bb = java.nio.ByteBuffer.allocate(4);
+		bb.putInt(i);
+		return bb.array();
+	}
+
+	public static int ToInt(byte[] bytes, int offset, int len) {
+		var bb = java.nio.ByteBuffer.wrap(bytes, offset, len);
+		return bb.getInt();
+	}
+
+	public static byte[] ToBytes(long l) {
+		var bb = java.nio.ByteBuffer.allocate(8);
+		bb.putLong(l);
+		return bb.array();
+	}
+
+	public static long ToLong(byte[] bytes, int offset, int len) {
+		var bb = java.nio.ByteBuffer.wrap(bytes, offset, len);
+		return bb.getLong();
+	}
+
+	public static byte[] ToBytes(float i) {
+		var bb = java.nio.ByteBuffer.allocate(4);
+		bb.putFloat(i);
+		return bb.array();
+	}
+
+	public static float ToFloat(byte[] bytes, int offset, int len) {
+		var bb = java.nio.ByteBuffer.wrap(bytes, offset, len);
+		return bb.getFloat();
+	}
+
+	public static byte[] ToBytes(double i) {
+		var bb = java.nio.ByteBuffer.allocate(4);
+		bb.putDouble(i);
+		return bb.array();
+	}
+
+	public static double ToDouble(byte[] bytes, int offset, int len) {
+		var bb = java.nio.ByteBuffer.wrap(bytes, offset, len);
+		return bb.getDouble();
+	}
+
 	public void EndWriteWithSize4(int state) {
-		var oldWriteIndex = state + getReadIndex();
-		Replace(oldWriteIndex, BitConverter.GetBytes(getWriteIndex() - oldWriteIndex - 4));
+		var oldWriteIndex = state + ReadIndex;
+		Replace(oldWriteIndex, ToBytes(WriteIndex - oldWriteIndex - 4));
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void BeginWriteSegment(out int oldSize)
-	public void BeginWriteSegment(tangible.OutObject<Integer> oldSize) {
-		oldSize.outArgValue = getSize();
+	public int BeginWriteSegment() {
+		int oldSize = Size();
 		EnsureWrite(1);
-		setWriteIndex(getWriteIndex() + 1);
+		WriteIndex += 1;
+		return oldSize;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void EndWriteSegment(int oldSize)
 	public void EndWriteSegment(int oldSize) {
-		int startPos = getReadIndex() + oldSize;
-		int segmentSize = getWriteIndex() - startPos - 1;
+		int startPos = ReadIndex + oldSize;
+		int segmentSize = WriteIndex - startPos - 1;
 
 		// 0 111 1111
 		if (segmentSize < 0x80) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[startPos] = (byte)segmentSize;
-			getBytes()[startPos] = (byte)segmentSize;
+			Bytes[startPos] = (byte)segmentSize;
 		}
 		else if (segmentSize < 0x4000) { // 10 11 1111, -
 			EnsureWrite(1);
-			getBytes()[getWriteIndex()] = getBytes()[startPos + 1];
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[startPos + 1] = (byte)segmentSize;
-			getBytes()[startPos + 1] = (byte)segmentSize;
+			Bytes[WriteIndex] = Bytes[startPos + 1];
+			Bytes[startPos + 1] = (byte)segmentSize;
 
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[startPos] = (byte)((segmentSize >> 8) | 0x80);
-			getBytes()[startPos] = (byte)((segmentSize >> 8) | 0x80);
-			setWriteIndex(getWriteIndex() + 1);
+			Bytes[startPos] = (byte)((segmentSize >>> 8) | 0x80);
+			WriteIndex += 1;
 		}
 		else if (segmentSize < 0x200000) { // 110 1 1111, -,-
 			EnsureWrite(2);
-			getBytes()[getWriteIndex() + 1] = getBytes()[startPos + 2];
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[startPos + 2] = (byte)segmentSize;
-			getBytes()[startPos + 2] = (byte)segmentSize;
+			Bytes[WriteIndex + 1] = Bytes[startPos + 2];
+			Bytes[startPos + 2] = (byte)segmentSize;
 
-			getBytes()[getWriteIndex()] = getBytes()[startPos + 1];
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[startPos + 1] = (byte)(segmentSize >> 8);
-			getBytes()[startPos + 1] = (byte)(segmentSize >> 8);
+			Bytes[WriteIndex] = Bytes[startPos + 1];
+			Bytes[startPos + 1] = (byte)(segmentSize >>> 8);
 
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[startPos] = (byte)((segmentSize >> 16) | 0xc0);
-			getBytes()[startPos] = (byte)((segmentSize >> 16) | 0xc0);
-			setWriteIndex(getWriteIndex() + 2);
+			Bytes[startPos] = (byte)((segmentSize >>> 16) | 0xc0);
+			WriteIndex += 2;
 		}
 		else if (segmentSize < 0x10000000) { // 1110 1111,-,-,-
 			EnsureWrite(3);
-			getBytes()[getWriteIndex() + 2] = getBytes()[startPos + 3];
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[startPos + 3] = (byte)segmentSize;
-			getBytes()[startPos + 3] = (byte)segmentSize;
+			Bytes[WriteIndex + 2] = Bytes[startPos + 3];
+			Bytes[startPos + 3] = (byte)segmentSize;
 
-			getBytes()[getWriteIndex() + 1] = getBytes()[startPos + 2];
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[startPos + 2] = (byte)(segmentSize >> 8);
-			getBytes()[startPos + 2] = (byte)(segmentSize >> 8);
+			Bytes[WriteIndex + 1] = Bytes[startPos + 2];
+			Bytes[startPos + 2] = (byte)(segmentSize >>> 8);
 
-			getBytes()[getWriteIndex()] = getBytes()[startPos + 1];
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[startPos + 1] = (byte)(segmentSize >> 16);
-			getBytes()[startPos + 1] = (byte)(segmentSize >> 16);
+			Bytes[WriteIndex] = Bytes[startPos + 1];
+			Bytes[startPos + 1] = (byte)(segmentSize >>> 16);
 
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[startPos] = (byte)((segmentSize >> 24) | 0xe0);
-			getBytes()[startPos] = (byte)((segmentSize >> 24) | 0xe0);
-			setWriteIndex(getWriteIndex() + 3);
+			Bytes[startPos] = (byte)((segmentSize >>> 24) | 0xe0);
+			WriteIndex += 3;
 		}
 		else {
 			throw new RuntimeException("exceed max segment size");
 		}
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] private void ReadSegment(out int startIndex, out int segmentSize)
-	private void ReadSegment(tangible.OutObject<Integer> startIndex, tangible.OutObject<Integer> segmentSize) {
+	private int ReadSegment() {
 		EnsureRead(1);
-		int h = getBytes()[getReadIndex()];
-	setReadIndex(getReadIndex() + 1);
+		int h = Bytes[ReadIndex];
+		ReadIndex += 1;
 
-		startIndex.outArgValue = getReadIndex();
+		int segmentSize = 0;
+		int startPos = ReadIndex;
 
 		if (h < 0x80) {
-			segmentSize.outArgValue = h;
-			setReadIndex(getReadIndex() + segmentSize.outArgValue);
+			segmentSize = h;
+			ReadIndex += segmentSize;
 		}
 		else if (h < 0xc0) {
 			EnsureRead(1);
-			segmentSize.outArgValue = ((h & 0x3f) << 8) | getBytes()[getReadIndex()];
-			int endPos = getReadIndex() + segmentSize.outArgValue;
-			getBytes()[getReadIndex()] = getBytes()[endPos];
-			setReadIndex(getReadIndex() + segmentSize.outArgValue + 1);
+			segmentSize = ((h & 0x3f) << 8) | (Bytes[ReadIndex] & 0xff);
+			int endPos = ReadIndex + segmentSize;
+			Bytes[ReadIndex] = Bytes[endPos];
+			ReadIndex += segmentSize + 1;
 		}
 		else if (h < 0xe0) {
 			EnsureRead(2);
-			segmentSize.outArgValue = ((h & 0x1f) << 16) | ((int)getBytes()[getReadIndex()] << 8) | getBytes()[getReadIndex() + 1];
-			int endPos = getReadIndex() + segmentSize.outArgValue;
-			getBytes()[getReadIndex()] = getBytes()[endPos];
-			getBytes()[getReadIndex() + 1] = getBytes()[endPos + 1];
-			setReadIndex(getReadIndex() + segmentSize.outArgValue + 2);
+			segmentSize = ((h & 0x1f) << 16) | ((Bytes[ReadIndex] & 0xff) << 8) | (Bytes[ReadIndex + 1] & 0xff);
+			int endPos = ReadIndex + segmentSize;
+			Bytes[ReadIndex] = Bytes[endPos];
+			Bytes[ReadIndex + 1] = Bytes[endPos + 1];
+			ReadIndex += segmentSize + 2;
 		}
 		else if (h < 0xf0) {
 			EnsureRead(3);
-			segmentSize.outArgValue = ((h & 0x0f) << 24) | ((int)getBytes()[getReadIndex()] << 16) | ((int)getBytes()[getReadIndex() + 1] << 8) | getBytes()[getReadIndex() + 2];
-			int endPos = getReadIndex() + segmentSize.outArgValue;
-			getBytes()[getReadIndex()] = getBytes()[endPos];
-			getBytes()[getReadIndex() + 1] = getBytes()[endPos + 1];
-			getBytes()[getReadIndex() + 2] = getBytes()[endPos + 2];
-			setReadIndex(getReadIndex() + segmentSize.outArgValue + 3);
+			segmentSize = ((h & 0x0f) << 24) | ((Bytes[ReadIndex] & 0xff) << 16)
+					| ((Bytes[ReadIndex + 1] & 0xff) << 8) | (Bytes[ReadIndex + 2] & 0xff);
+			int endPos = ReadIndex + segmentSize;
+			Bytes[ReadIndex] = Bytes[endPos];
+			Bytes[ReadIndex + 1] = Bytes[endPos + 1];
+			Bytes[ReadIndex + 2] = Bytes[endPos + 2];
+			ReadIndex += segmentSize + 3;
 		}
 		else {
 			throw new RuntimeException("exceed max size");
 		}
-		if (getReadIndex() > getWriteIndex()) {
+		if (ReadIndex > WriteIndex) {
 			throw new RuntimeException("segment data not enough");
 		}
+		return startPos;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void BeginReadSegment(out int saveState)
-	public void BeginReadSegment(tangible.OutObject<Integer> saveState) {
-		int startPos;
-		tangible.OutObject<Integer> tempOut_startPos = new tangible.OutObject<Integer>();
-		int _;
-		tangible.OutObject<Integer> tempOut__ = new tangible.OutObject<Integer>();
-		ReadSegment(tempOut_startPos, tempOut__);
-	_ = tempOut__.outArgValue;
-	startPos = tempOut_startPos.outArgValue;
-
-		saveState.outArgValue = getReadIndex();
-		setReadIndex(startPos);
+	public int BeginReadSegment() {
+		int startPos = ReadSegment();
+		int saveState = ReadIndex;
+		ReadIndex = startPos;
+		return saveState;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void EndReadSegment(int saveState)
 	public void EndReadSegment(int saveState) {
-		setReadIndex(saveState);
+		ReadIndex = saveState;
 	}
 
 	/** 
@@ -310,15 +260,13 @@ public final class ByteBuffer {
 	 最好仅在全部读取写入处理完成以后调用处理一次，
 	 为下一次写入读取做准备。
 	*/
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Campact()
 	public void Campact() {
-		int size = this.getSize();
+		int size = this.Size();
 		if (size > 0) {
-			if (getReadIndex() > 0) {
-				Buffer.BlockCopy(getBytes(), getReadIndex(), getBytes(), 0, size);
-				setReadIndex(0);
-				setWriteIndex(size);
+			if (ReadIndex > 0) {
+				System.arraycopy(Bytes, ReadIndex, Bytes, 0, size);
+				ReadIndex =0;
+				WriteIndex = size;
 			}
 		}
 		else {
@@ -326,27 +274,18 @@ public final class ByteBuffer {
 		}
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public byte[] Copy()
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public byte[] Copy()
 	public byte[] Copy() {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] copy = new byte[Size];
-		byte[] copy = new byte[getSize()];
-		Buffer.BlockCopy(getBytes(), getReadIndex(), copy, 0, getSize());
+		int size = Size();
+		byte[] copy = new byte[size];
+		System.arraycopy(Bytes, ReadIndex, copy, 0, size);
 		return copy;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void Reset()
 	public void Reset() {
-		setWriteIndex(0);
-		setReadIndex(getWriteIndex());
+		ReadIndex = 0;
+		WriteIndex = 0;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] private static int ToPower2(int needSize)
 	private static int ToPower2(int needSize) {
 		int size = 1024;
 		while (size < needSize) {
@@ -355,671 +294,404 @@ public final class ByteBuffer {
 		return size;
 	}
 
-
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void EnsureWrite(int size)
 	public void EnsureWrite(int size) {
-		int newSize = getWriteIndex() + size;
-		if (newSize > getCapacity()) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] newBytes = new byte[ToPower2(newSize)];
+		int newSize = WriteIndex + size;
+		if (newSize > Capacity()) {
 			byte[] newBytes = new byte[ToPower2(newSize)];
-			setWriteIndex(getWriteIndex() - getReadIndex());
-			Buffer.BlockCopy(getBytes(), getReadIndex(), newBytes, 0, getWriteIndex());
-			setReadIndex(0);
-			setBytes(newBytes);
+			WriteIndex = WriteIndex - ReadIndex;
+			System.arraycopy(Bytes, ReadIndex, newBytes, 0, WriteIndex);
+			ReadIndex = 0;
+			Bytes = newBytes;
 		}
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] private void EnsureRead(int size)
 	private void EnsureRead(int size) {
-		if (getReadIndex() + size > getWriteIndex()) {
+		if (ReadIndex + size > WriteIndex) {
 			 throw new RuntimeException("EnsureRead " + size);
 		}
 	}
 
 	public void WriteBool(boolean b) {
 		EnsureWrite(1);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex++] = (byte)(b ? 1 : 0);
-		getBytes()[getWriteIndex()] = (byte)(b ? 1 : 0);
-	setWriteIndex(getWriteIndex() + 1);
+		Bytes[WriteIndex] = (byte)(b ? 1 : 0);
+		WriteIndex += 1;
 	}
 
 	public boolean ReadBool() {
 		EnsureRead(1);
-		var tempVar = getBytes()[getReadIndex()] != 0;
-	setReadIndex(getReadIndex() + 1);
-	return tempVar;
+		var tempVar = Bytes[ReadIndex] != 0;
+		ReadIndex += 1;
+		return tempVar;
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void WriteByte(byte x)
 	public void WriteByte(byte x) {
 		EnsureWrite(1);
-		getBytes()[getWriteIndex()] = x;
-	setWriteIndex(getWriteIndex() + 1);
+		Bytes[WriteIndex] = x;
+		WriteIndex += 1;
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public byte ReadByte()
 	public byte ReadByte() {
 		EnsureRead(1);
-		var tempVar = getBytes()[getReadIndex()];
-	setReadIndex(getReadIndex() + 1);
-	return tempVar;
+		var tempVar = Bytes[ReadIndex];
+		ReadIndex += 1;
+		return tempVar;
 	}
 
 	public void WriteShort(short x) {
 		if (x >= 0) {
 			if (x < 0x80) {
 				EnsureWrite(1);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex++] = (byte)x;
-				getBytes()[getWriteIndex()] = (byte)x;
-			setWriteIndex(getWriteIndex() + 1);
+				Bytes[WriteIndex] = (byte)x;
+				WriteIndex += 1;
 				return;
 			}
 
 			if (x < 0x4000) {
 				EnsureWrite(2);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)x;
-				getBytes()[getWriteIndex() + 1] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = (byte)((x >> 8) | 0x80);
-				getBytes()[getWriteIndex()] = (byte)((x >> 8) | 0x80);
-				setWriteIndex(getWriteIndex() + 2);
+				Bytes[WriteIndex + 1] = (byte)x;
+				Bytes[WriteIndex] = (byte)((x >>> 8) | 0x80);
+				WriteIndex += 2;
 				return;
 			}
 		}
 		EnsureWrite(3);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = 0xff;
-		getBytes()[getWriteIndex()] = (byte)0xff;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 2] = (byte)x;
-		getBytes()[getWriteIndex() + 2] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)(x >> 8);
-		getBytes()[getWriteIndex() + 1] = (byte)(x >> 8);
-		setWriteIndex(getWriteIndex() + 3);
+		Bytes[WriteIndex] = (byte)0xff;
+		Bytes[WriteIndex + 2] = (byte)x;
+		Bytes[WriteIndex + 1] = (byte)(x >>> 8);
+		WriteIndex += 3;
 	}
 
 	public short ReadShort() {
 		EnsureRead(1);
-		int h = getBytes()[getReadIndex()];
+		int h = Bytes[ReadIndex];
+		h = h & 0xff;
 		if (h < 0x80) {
-			setReadIndex(getReadIndex() + 1);
+			ReadIndex += 1;
 			return (short)h;
 		}
 		if (h < 0xc0) {
 			EnsureRead(2);
-			int x = ((h & 0x3f) << 8) | getBytes()[getReadIndex() + 1];
-			setReadIndex(getReadIndex() + 2);
+			int x = ((h & 0x3f) << 8) | (Bytes[ReadIndex + 1] & 0xff);
+			ReadIndex += 2;
 			return (short)x;
 		}
 		if ((h == 0xff)) {
 			EnsureRead(3);
-			int x = (getBytes()[getReadIndex() + 1] << 8) | getBytes()[getReadIndex() + 2];
-			setReadIndex(getReadIndex() + 3);
+			int x = ((Bytes[ReadIndex + 1] & 0xff) << 8) | (Bytes[ReadIndex + 2] & 0xff);
+			ReadIndex += 3;
 			return (short)x;
 		}
 		throw new RuntimeException();
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteInt4(int x)
 	public void WriteInt4(int x) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] bs = BitConverter.GetBytes(x);
-		byte[] bs = BitConverter.GetBytes(x);
-		//if (false == BitConverter.IsLittleEndian)
-		//    Array.Reverse(bs);
-		Append(bs);
+		Append(ToBytes(x));
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public int ReadInt4()
 	public int ReadInt4() {
 		EnsureRead(4);
-		int x = BitConverter.ToInt32(getBytes(), getReadIndex());
-		setReadIndex(getReadIndex() + 4);
+		int x = ToInt(Bytes, ReadIndex, 4);
+		ReadIndex += 4;
 		return x;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteLong8(long x)
 	public void WriteLong8(long x) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] bs = BitConverter.GetBytes(x);
-		byte[] bs = BitConverter.GetBytes(x);
-		//if (false == BitConverter.IsLittleEndian)
-		//    Array.Reverse(bs);
-		Append(bs);
+		Append(ToBytes(x));
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public long ReadLong8()
 	public long ReadLong8() {
 		EnsureRead(8);
-		long x = BitConverter.ToInt64(getBytes(), getReadIndex());
-		setReadIndex(getReadIndex() + 8);
+		long x = ToLong(Bytes, ReadIndex, 8);
+		ReadIndex += 8;
 		return x;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteInt(int x)
 	public void WriteInt(int x) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: WriteUint((uint)x);
-		WriteUint((int)x);
+		if (x >= 0) {
+			// 0 111 1111
+			if (x < 0x80) {
+				EnsureWrite(1);
+				Bytes[WriteIndex] = (byte)x;
+				WriteIndex += 1;
+				return;
+			}
+
+			if (x < 0x4000) { // 10 11 1111, -
+				EnsureWrite(2);
+				Bytes[WriteIndex + 1] = (byte)x;
+				Bytes[WriteIndex] = (byte)((x >>> 8) | 0x80);
+				WriteIndex += 2;
+				return;
+			}
+
+			if (x < 0x200000) { // 110 1 1111, -,-
+				EnsureWrite(3);
+				Bytes[WriteIndex + 2] = (byte)x;
+				Bytes[WriteIndex + 1] = (byte)(x >>> 8);
+				Bytes[WriteIndex] = (byte)((x >>> 16) | 0xc0);
+				WriteIndex += 3;
+				return;
+			}
+			
+			//if (x < 0x10000000) { // 1110 1111,-,-,-
+			EnsureWrite(4);
+			Bytes[WriteIndex + 3] = (byte)x;
+			Bytes[WriteIndex + 2] = (byte)(x >>> 8);
+			Bytes[WriteIndex + 1] = (byte)(x >>> 16);
+			Bytes[WriteIndex] = (byte)((x >>> 24) | 0xe0);
+			WriteIndex += 4;
+			return;
+		}
+
+		EnsureWrite(5);
+		Bytes[WriteIndex] = (byte)0xf0;
+		Bytes[WriteIndex + 4] = (byte)x;
+		Bytes[WriteIndex + 3] = (byte)(x >>> 8);
+		Bytes[WriteIndex + 2] = (byte)(x >>> 16);
+		Bytes[WriteIndex + 1] = (byte)(x >>> 24);
+		WriteIndex += 5;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public int ReadInt()
 	public int ReadInt() {
-		return (int)ReadUint();
-	}
-
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void WriteUint(uint x)
-	public void WriteUint(int x) {
-		// 0 111 1111
-		if (x < 0x80) {
-			EnsureWrite(1);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex++] = (byte)x;
-			getBytes()[getWriteIndex()] = (byte)x;
-		setWriteIndex(getWriteIndex() + 1);
-		}
-		else if (x < 0x4000) { // 10 11 1111, -
-			EnsureWrite(2);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)x;
-			getBytes()[getWriteIndex() + 1] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = (byte)((x >> 8) | 0x80);
-			getBytes()[getWriteIndex()] = (byte)((x >>> 8) | 0x80);
-			setWriteIndex(getWriteIndex() + 2);
-		}
-		else if (x < 0x200000) { // 110 1 1111, -,-
-			EnsureWrite(3);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 2] = (byte)x;
-			getBytes()[getWriteIndex() + 2] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)(x >> 8);
-			getBytes()[getWriteIndex() + 1] = (byte)(x >>> 8);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = (byte)((x >> 16) | 0xc0);
-			getBytes()[getWriteIndex()] = (byte)((x >>> 16) | 0xc0);
-			setWriteIndex(getWriteIndex() + 3);
-		}
-		else if (x < 0x10000000) { // 1110 1111,-,-,-
-			EnsureWrite(4);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 3] = (byte)x;
-			getBytes()[getWriteIndex() + 3] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 2] = (byte)(x >> 8);
-			getBytes()[getWriteIndex() + 2] = (byte)(x >>> 8);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)(x >> 16);
-			getBytes()[getWriteIndex() + 1] = (byte)(x >>> 16);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = (byte)((x >> 24) | 0xe0);
-			getBytes()[getWriteIndex()] = (byte)((x >>> 24) | 0xe0);
-			setWriteIndex(getWriteIndex() + 4);
-		}
-		else {
-			EnsureWrite(5);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = 0xf0;
-			getBytes()[getWriteIndex()] = (byte)0xf0;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 4] = (byte)x;
-			getBytes()[getWriteIndex() + 4] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 3] = (byte)(x >> 8);
-			getBytes()[getWriteIndex() + 3] = (byte)(x >>> 8);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 2] = (byte)(x >> 16);
-			getBytes()[getWriteIndex() + 2] = (byte)(x >>> 16);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)(x >> 24);
-			getBytes()[getWriteIndex() + 1] = (byte)(x >>> 24);
-			setWriteIndex(getWriteIndex() + 5);
-		}
-	}
-
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public uint ReadUint()
-	public int ReadUint() {
 		EnsureRead(1);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint h = Bytes[ReadIndex];
-		int h = getBytes()[getReadIndex()];
+		int h = Bytes[ReadIndex];
+		h = h & 0xff;
 		if (h < 0x80) {
-			setReadIndex(getReadIndex() + 1);
+			ReadIndex += 1;
 			return h;
 		}
-		else if (h < 0xc0) {
+		
+		if (h < 0xc0) {
 			EnsureRead(2);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint x = ((h & 0x3f) << 8) | Bytes[ReadIndex + 1];
-			int x = ((h & 0x3f) << 8) | getBytes()[getReadIndex() + 1];
-			setReadIndex(getReadIndex() + 2);
+			int x = ((h & 0x3f) << 8) | (Bytes[ReadIndex + 1] & 0xff);
+			ReadIndex += 2;
 			return x;
 		}
-		else if (h < 0xe0) {
-			EnsureRead(3);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint x = ((h & 0x1f) << 16) | ((uint)Bytes[ReadIndex + 1] << 8) | Bytes[ReadIndex + 2];
-			int x = ((h & 0x1f) << 16) | ((int)getBytes()[getReadIndex() + 1] << 8) | getBytes()[getReadIndex() + 2];
-			setReadIndex(getReadIndex() + 3);
-			return x;
-		}
-		else if (h < 0xf0) {
 
+		if (h < 0xe0) {
+			EnsureRead(3);
+			int x = ((h & 0x1f) << 16) | ((Bytes[ReadIndex + 1] & 0xff) << 8) | (Bytes[ReadIndex + 2] & 0xff);
+			ReadIndex += 3;
+			return x;
+		}
+		
+		if (h < 0xf0) {
 			EnsureRead(4);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint x = ((h & 0x0f) << 24) | ((uint)Bytes[ReadIndex + 1] << 16) | ((uint)Bytes[ReadIndex + 2] << 8) | Bytes[ReadIndex + 3];
-			int x = ((h & 0x0f) << 24) | ((int)getBytes()[getReadIndex() + 1] << 16) | ((int)getBytes()[getReadIndex() + 2] << 8) | getBytes()[getReadIndex() + 3];
-			setReadIndex(getReadIndex() + 4);
+			int x = ((h & 0x0f) << 24) | ((Bytes[ReadIndex + 1] & 0xff) << 16)
+					| ((Bytes[ReadIndex + 2] & 0xff) << 8) | (Bytes[ReadIndex + 3] & 0xff);
+			ReadIndex += 4;
 			return x;
 		}
-		else {
-			EnsureRead(5);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint x = ((uint)Bytes[ReadIndex + 1] << 24) | ((uint)(Bytes[ReadIndex + 2] << 16)) | ((uint)Bytes[ReadIndex + 3] << 8) | Bytes[ReadIndex + 4];
-			int x = ((int)getBytes()[getReadIndex() + 1] << 24) | ((int)(getBytes()[getReadIndex() + 2] << 16)) | ((int)getBytes()[getReadIndex() + 3] << 8) | getBytes()[getReadIndex() + 4];
-			setReadIndex(getReadIndex() + 5);
-			return x;
-		}
+
+		EnsureRead(5);
+		int x = ((Bytes[ReadIndex + 1] & 0xff) << 24)
+				| (((Bytes[ReadIndex + 2] & 0xff) << 16))
+				| ((Bytes[ReadIndex + 3] & 0xff) << 8)
+				| (Bytes[ReadIndex + 4] & 0xff);
+		ReadIndex += 5;
+		return x;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteLong(long x)
 	public void WriteLong(long x) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: WriteUlong((ulong)x);
-		WriteUlong((long)x);
-	}
+		if (x >= 0) {
+			// 0 111 1111
+			if (x < 0x80L) {
+				EnsureWrite(1);
+				Bytes[WriteIndex] = (byte)x;
+				WriteIndex += 1;
+				return;
+			}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public long ReadLong()
-	public long ReadLong() {
-		return (long)ReadUlong();
-	}
+			if (x < 0x4000L) { // 10 11 1111, -
+				EnsureWrite(2);
+				Bytes[WriteIndex + 1] = (byte)x;
+				Bytes[WriteIndex] = (byte)((x >>> 8) | 0x80);
+				WriteIndex += 2;
+				return;
+			}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void WriteUlong(ulong x)
-	public void WriteUlong(long x) {
-		// 0 111 1111
-		if (x < 0x80L) {
-			EnsureWrite(1);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex++] = (byte)x;
-			getBytes()[getWriteIndex()] = (byte)x;
-		setWriteIndex(getWriteIndex() + 1);
-		}
-		else if (x < 0x4000L) { // 10 11 1111, -
-			EnsureWrite(2);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)x;
-			getBytes()[getWriteIndex() + 1] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = (byte)((x >> 8) | 0x80);
-			getBytes()[getWriteIndex()] = (byte)((x >>> 8) | 0x80);
-			setWriteIndex(getWriteIndex() + 2);
-		}
-		else if (x < 0x200000L) { // 110 1 1111, -,-
-			EnsureWrite(3);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 2] = (byte)x;
-			getBytes()[getWriteIndex() + 2] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)(x >> 8);
-			getBytes()[getWriteIndex() + 1] = (byte)(x >>> 8);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = (byte)((x >> 16) | 0xc0);
-			getBytes()[getWriteIndex()] = (byte)((x >>> 16) | 0xc0);
-			setWriteIndex(getWriteIndex() + 3);
-		}
-		else if (x < 0x10000000L) { // 1110 1111,-,-,-
-			EnsureWrite(4);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 3] = (byte)x;
-			getBytes()[getWriteIndex() + 3] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 2] = (byte)(x >> 8);
-			getBytes()[getWriteIndex() + 2] = (byte)(x >>> 8);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)(x >> 16);
-			getBytes()[getWriteIndex() + 1] = (byte)(x >>> 16);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = (byte)((x >> 24) | 0xe0);
-			getBytes()[getWriteIndex()] = (byte)((x >>> 24) | 0xe0);
-			setWriteIndex(getWriteIndex() + 4);
-		}
-		else if (x < 0x800000000L) { // 1111 0xxx,-,-,-,-
-			EnsureWrite(5);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 4] = (byte)x;
-			getBytes()[getWriteIndex() + 4] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 3] = (byte)(x >> 8);
-			getBytes()[getWriteIndex() + 3] = (byte)(x >>> 8);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 2] = (byte)(x >> 16);
-			getBytes()[getWriteIndex() + 2] = (byte)(x >>> 16);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)(x >> 24);
-			getBytes()[getWriteIndex() + 1] = (byte)(x >>> 24);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = (byte)((x >> 32) | 0xf0);
-			getBytes()[getWriteIndex()] = (byte)((x >>> 32) | 0xf0);
-			setWriteIndex(getWriteIndex() + 5);
-		}
-		else if (x < 0x40000000000L) { // 1111 10xx,
-			EnsureWrite(6);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 5] = (byte)x;
-			getBytes()[getWriteIndex() + 5] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 4] = (byte)(x >> 8);
-			getBytes()[getWriteIndex() + 4] = (byte)(x >>> 8);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 3] = (byte)(x >> 16);
-			getBytes()[getWriteIndex() + 3] = (byte)(x >>> 16);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 2] = (byte)(x >> 24);
-			getBytes()[getWriteIndex() + 2] = (byte)(x >>> 24);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)(x >> 32);
-			getBytes()[getWriteIndex() + 1] = (byte)(x >>> 32);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = (byte)((x >> 40) | 0xf8);
-			getBytes()[getWriteIndex()] = (byte)((x >>> 40) | 0xf8);
-			setWriteIndex(getWriteIndex() + 6);
-		}
-		else if (x < 0x200000000000L) { // 1111 110x,
-			EnsureWrite(7);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 6] = (byte)x;
-			getBytes()[getWriteIndex() + 6] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 5] = (byte)(x >> 8);
-			getBytes()[getWriteIndex() + 5] = (byte)(x >>> 8);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 4] = (byte)(x >> 16);
-			getBytes()[getWriteIndex() + 4] = (byte)(x >>> 16);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 3] = (byte)(x >> 24);
-			getBytes()[getWriteIndex() + 3] = (byte)(x >>> 24);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 2] = (byte)(x >> 32);
-			getBytes()[getWriteIndex() + 2] = (byte)(x >>> 32);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)(x >> 40);
-			getBytes()[getWriteIndex() + 1] = (byte)(x >>> 40);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = (byte)((x >> 48) | 0xfc);
-			getBytes()[getWriteIndex()] = (byte)((x >>> 48) | 0xfc);
-			setWriteIndex(getWriteIndex() + 7);
-		}
-		else if (x < 0x100000000000000L) { // 1111 1110
+			if (x < 0x200000L) { // 110 1 1111, -,-
+				EnsureWrite(3);
+				Bytes[WriteIndex + 2] = (byte)x;
+				Bytes[WriteIndex + 1] = (byte)(x >>> 8);
+				Bytes[WriteIndex] = (byte)((x >>> 16) | 0xc0);
+				WriteIndex += 3;
+				return;
+			}
+			
+			if (x < 0x10000000L) { // 1110 1111,-,-,-
+				EnsureWrite(4);
+				Bytes[WriteIndex + 3] = (byte)x;
+				Bytes[WriteIndex + 2] = (byte)(x >>> 8);
+				Bytes[WriteIndex + 1] = (byte)(x >>> 16);
+				Bytes[WriteIndex] = (byte)((x >>> 24) | 0xe0);
+				WriteIndex += 4;
+				return;
+			}
+			
+			if (x < 0x800000000L) { // 1111 0xxx,-,-,-,-
+				EnsureWrite(5);
+				Bytes[WriteIndex + 4] = (byte)x;
+				Bytes[WriteIndex + 3] = (byte)(x >>> 8);
+				Bytes[WriteIndex + 2] = (byte)(x >>> 16);
+				Bytes[WriteIndex + 1] = (byte)(x >>> 24);
+				Bytes[WriteIndex] = (byte)((x >>> 32) | 0xf0);
+				WriteIndex += 5;
+				return;
+			}
+
+			if (x < 0x40000000000L) { // 1111 10xx,
+				EnsureWrite(6);
+				Bytes[WriteIndex + 5] = (byte)x;
+				Bytes[WriteIndex + 4] = (byte)(x >>> 8);
+				Bytes[WriteIndex + 3] = (byte)(x >>> 16);
+				Bytes[WriteIndex + 2] = (byte)(x >>> 24);
+				Bytes[WriteIndex + 1] = (byte)(x >>> 32);
+				Bytes[WriteIndex] = (byte)((x >>> 40) | 0xf8);
+				WriteIndex += 6;
+				return;
+			}
+			
+			if (x < 0x200000000000L) { // 1111 110x,
+				EnsureWrite(7);
+				Bytes[WriteIndex + 6] = (byte)x;
+				Bytes[WriteIndex + 5] = (byte)(x >>> 8);
+				Bytes[WriteIndex + 4] = (byte)(x >>> 16);
+				Bytes[WriteIndex + 3] = (byte)(x >>> 24);
+				Bytes[WriteIndex + 2] = (byte)(x >>> 32);
+				Bytes[WriteIndex + 1] = (byte)(x >>> 40);
+				Bytes[WriteIndex] = (byte)((x >>> 48) | 0xfc);
+				WriteIndex += 7;
+				return;
+			}
+			
+			//if (x < 0x100000000000000L) { // 1111 1110
 			EnsureWrite(8);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 7] = (byte)x;
-			getBytes()[getWriteIndex() + 7] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 6] = (byte)(x >> 8);
-			getBytes()[getWriteIndex() + 6] = (byte)(x >>> 8);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 5] = (byte)(x >> 16);
-			getBytes()[getWriteIndex() + 5] = (byte)(x >>> 16);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 4] = (byte)(x >> 24);
-			getBytes()[getWriteIndex() + 4] = (byte)(x >>> 24);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 3] = (byte)(x >> 32);
-			getBytes()[getWriteIndex() + 3] = (byte)(x >>> 32);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 2] = (byte)(x >> 40);
-			getBytes()[getWriteIndex() + 2] = (byte)(x >>> 40);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)(x >> 48);
-			getBytes()[getWriteIndex() + 1] = (byte)(x >>> 48);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = 0xfe;
-			getBytes()[getWriteIndex()] = (byte)0xfe;
-			setWriteIndex(getWriteIndex() + 8);
+			Bytes[WriteIndex + 7] = (byte)x;
+			Bytes[WriteIndex + 6] = (byte)(x >>> 8);
+			Bytes[WriteIndex + 5] = (byte)(x >>> 16);
+			Bytes[WriteIndex + 4] = (byte)(x >>> 24);
+			Bytes[WriteIndex + 3] = (byte)(x >>> 32);
+			Bytes[WriteIndex + 2] = (byte)(x >>> 40);
+			Bytes[WriteIndex + 1] = (byte)(x >>> 48);
+			Bytes[WriteIndex] = (byte)0xfe;
+			WriteIndex += 8;
+			return;
 		}
-		else { // 1111 1111
-			EnsureWrite(9);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex] = 0xff;
-			getBytes()[getWriteIndex()] = (byte)0xff;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 8] = (byte)x;
-			getBytes()[getWriteIndex() + 8] = (byte)x;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 7] = (byte)(x >> 8);
-			getBytes()[getWriteIndex() + 7] = (byte)(x >>> 8);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 6] = (byte)(x >> 16);
-			getBytes()[getWriteIndex() + 6] = (byte)(x >>> 16);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 5] = (byte)(x >> 24);
-			getBytes()[getWriteIndex() + 5] = (byte)(x >>> 24);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 4] = (byte)(x >> 32);
-			getBytes()[getWriteIndex() + 4] = (byte)(x >>> 32);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 3] = (byte)(x >> 40);
-			getBytes()[getWriteIndex() + 3] = (byte)(x >>> 40);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 2] = (byte)(x >> 48);
-			getBytes()[getWriteIndex() + 2] = (byte)(x >>> 48);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: Bytes[WriteIndex + 1] = (byte)(x >> 56);
-			getBytes()[getWriteIndex() + 1] = (byte)(x >>> 56);
-			setWriteIndex(getWriteIndex() + 9);
-		}
+		
+		// 1111 1111
+		EnsureWrite(9);
+		Bytes[WriteIndex] = (byte)0xff;
+		Bytes[WriteIndex + 8] = (byte)x;
+		Bytes[WriteIndex + 7] = (byte)(x >>> 8);
+		Bytes[WriteIndex + 6] = (byte)(x >>> 16);
+		Bytes[WriteIndex + 5] = (byte)(x >>> 24);
+		Bytes[WriteIndex + 4] = (byte)(x >>> 32);
+		Bytes[WriteIndex + 3] = (byte)(x >>> 40);
+		Bytes[WriteIndex + 2] = (byte)(x >>> 48);
+		Bytes[WriteIndex + 1] = (byte)(x >>> 56);
+		WriteIndex += 9;
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public ulong ReadUlong()
-	public long ReadUlong() {
+	public long ReadLong() {
 		EnsureRead(1);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint h = Bytes[ReadIndex];
-		int h = getBytes()[getReadIndex()];
+		int h = Bytes[ReadIndex];
+		h = h & 0xff;
 		if (h < 0x80) {
-			setReadIndex(getReadIndex() + 1);
+			ReadIndex += 1;
 			return h;
 		}
-		else if (h < 0xc0) {
+		
+		if (h < 0xc0) {
 			EnsureRead(2);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint x = ((h & 0x3f) << 8) | Bytes[ReadIndex + 1];
-			int x = ((h & 0x3f) << 8) | getBytes()[getReadIndex() + 1];
-			setReadIndex(getReadIndex() + 2);
+			int x = ((h & 0x3f) << 8) | (Bytes[ReadIndex + 1] & 0xff);
+			ReadIndex += 2;
 			return x;
 		}
-		else if (h < 0xe0) {
+
+		if (h < 0xe0) {
 			EnsureRead(3);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint x = ((h & 0x1f) << 16) | ((uint)Bytes[ReadIndex + 1] << 8) | Bytes[ReadIndex + 2];
-			int x = ((h & 0x1f) << 16) | ((int)getBytes()[getReadIndex() + 1] << 8) | getBytes()[getReadIndex() + 2];
-			setReadIndex(getReadIndex() + 3);
+			int x = ((h & 0x1f) << 16) | ((Bytes[ReadIndex + 1] & 0xff) << 8) | (Bytes[ReadIndex + 2] & 0xff);
+			ReadIndex += 3;
 			return x;
 		}
-		else if (h < 0xf0) {
+
+		if (h < 0xf0) {
 			EnsureRead(4);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint x = ((h & 0x0f) << 24) | ((uint)Bytes[ReadIndex + 1] << 16) | ((uint)Bytes[ReadIndex + 2] << 8) | Bytes[ReadIndex + 3];
-			int x = ((h & 0x0f) << 24) | ((int)getBytes()[getReadIndex() + 1] << 16) | ((int)getBytes()[getReadIndex() + 2] << 8) | getBytes()[getReadIndex() + 3];
-			setReadIndex(getReadIndex() + 4);
+			int x = ((h & 0x0f) << 24) | ((Bytes[ReadIndex + 1]  & 0xff) << 16)
+					| ((Bytes[ReadIndex + 2] & 0xff) << 8) | (Bytes[ReadIndex + 3] & 0xff);
+			ReadIndex += 4;
 			return x;
 		}
-		else if (h < 0xf8) {
+
+		if (h < 0xf8) {
 			EnsureRead(5);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint xl = ((uint)Bytes[ReadIndex + 1] << 24) | ((uint)(Bytes[ReadIndex + 2] << 16)) | ((uint)Bytes[ReadIndex + 3] << 8) | (Bytes[ReadIndex + 4]);
-			int xl = ((int)getBytes()[getReadIndex() + 1] << 24) | ((int)(getBytes()[getReadIndex() + 2] << 16)) | ((int)getBytes()[getReadIndex() + 3] << 8) | (getBytes()[getReadIndex() + 4]);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint xh = h & 0x07;
+			int xl = ((Bytes[ReadIndex + 1] & 0xff) << 24) | ((Bytes[ReadIndex + 2] & 0xff) << 16)
+					| ((Bytes[ReadIndex + 3] & 0xff)<< 8) | (Bytes[ReadIndex + 4] & 0xff);
 			int xh = h & 0x07;
-			setReadIndex(getReadIndex() + 5);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: return ((ulong)xh << 32) | xl;
+			ReadIndex += 5;
 			return ((long)xh << 32) | xl;
 		}
-		else if (h < 0xfc) {
+
+		if (h < 0xfc) {
 			EnsureRead(6);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint xl = ((uint)Bytes[ReadIndex + 2] << 24) | ((uint)(Bytes[ReadIndex + 3] << 16)) | ((uint)Bytes[ReadIndex + 4] << 8) | (Bytes[ReadIndex + 5]);
-			int xl = ((int)getBytes()[getReadIndex() + 2] << 24) | ((int)(getBytes()[getReadIndex() + 3] << 16)) | ((int)getBytes()[getReadIndex() + 4] << 8) | (getBytes()[getReadIndex() + 5]);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint xh = ((h & 0x03) << 8) | Bytes[ReadIndex + 1];
-			int xh = ((h & 0x03) << 8) | getBytes()[getReadIndex() + 1];
-			setReadIndex(getReadIndex() + 6);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: return ((ulong)xh << 32) | xl;
+			int xl = ((Bytes[ReadIndex + 2] & 0xff) << 24) | ((Bytes[ReadIndex + 3] & 0xff) << 16)
+					| ((Bytes[ReadIndex + 4] & 0xff) << 8) | (Bytes[ReadIndex + 5] & 0xff);
+			int xh = ((h & 0x03) << 8) | (Bytes[ReadIndex + 1] & 0xff);
+			ReadIndex += 6;
 			return ((long)xh << 32) | xl;
 		}
-		else if (h < 0xfe) {
+
+		if (h < 0xfe) {
 			EnsureRead(7);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint xl = ((uint)Bytes[ReadIndex + 3] << 24) | ((uint)(Bytes[ReadIndex + 4] << 16)) | ((uint)Bytes[ReadIndex + 5] << 8) | (Bytes[ReadIndex + 6]);
-			int xl = ((int)getBytes()[getReadIndex() + 3] << 24) | ((int)(getBytes()[getReadIndex() + 4] << 16)) | ((int)getBytes()[getReadIndex() + 5] << 8) | (getBytes()[getReadIndex() + 6]);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint xh = ((h & 0x01) << 16) | ((uint)Bytes[ReadIndex + 1] << 8) | Bytes[ReadIndex + 2];
-			int xh = ((h & 0x01) << 16) | ((int)getBytes()[getReadIndex() + 1] << 8) | getBytes()[getReadIndex() + 2];
-			setReadIndex(getReadIndex() + 7);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: return ((ulong)xh << 32) | xl;
+			int xl = ((Bytes[ReadIndex + 3] & 0xff) << 24) | ((Bytes[ReadIndex + 4] & 0xff) << 16)
+					| ((Bytes[ReadIndex + 5] & 0xff) << 8) | (Bytes[ReadIndex + 6] & 0xff);
+			int xh = ((h & 0x01) << 16) | ((Bytes[ReadIndex + 1] & 0xff) << 8) | (Bytes[ReadIndex + 2] & 0xff);
+			ReadIndex += 7;
 			return ((long)xh << 32) | xl;
 		}
-		else if (h < 0xff) {
+
+		if (h < 0xff) {
 			EnsureRead(8);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint xl = ((uint)Bytes[ReadIndex + 4] << 24) | ((uint)(Bytes[ReadIndex + 5] << 16)) | ((uint)Bytes[ReadIndex + 6] << 8) | (Bytes[ReadIndex + 7]);
-			int xl = ((int)getBytes()[getReadIndex() + 4] << 24) | ((int)(getBytes()[getReadIndex() + 5] << 16)) | ((int)getBytes()[getReadIndex() + 6] << 8) | (getBytes()[getReadIndex() + 7]);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint xh = ((uint)Bytes[ReadIndex + 1] << 16) | ((uint)Bytes[ReadIndex + 2] << 8) | Bytes[ReadIndex + 3];
-			int xh = ((int)getBytes()[getReadIndex() + 1] << 16) | ((int)getBytes()[getReadIndex() + 2] << 8) | getBytes()[getReadIndex() + 3];
-			setReadIndex(getReadIndex() + 8);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: return ((ulong)xh << 32) | xl;
+			int xl = ((Bytes[ReadIndex + 4] & 0xff) << 24) | ((Bytes[ReadIndex + 5] & 0xff) << 16)
+					| ((Bytes[ReadIndex + 6] & 0xff) << 8) | (Bytes[ReadIndex + 7] & 0xff);
+			int xh = ((Bytes[ReadIndex + 1] & 0xff) << 16) | ((Bytes[ReadIndex + 2] & 0xff) << 8)
+					| (Bytes[ReadIndex + 3] & 0xff);
+			ReadIndex += 8;
 			return ((long)xh << 32) | xl;
 		}
-		else {
-			EnsureRead(9);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint xl = ((uint)Bytes[ReadIndex + 5] << 24) | ((uint)(Bytes[ReadIndex + 6] << 16)) | ((uint)Bytes[ReadIndex + 7] << 8) | (Bytes[ReadIndex + 8]);
-			int xl = ((int)getBytes()[getReadIndex() + 5] << 24) | ((int)(getBytes()[getReadIndex() + 6] << 16)) | ((int)getBytes()[getReadIndex() + 7] << 8) | (getBytes()[getReadIndex() + 8]);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint xh = ((uint)Bytes[ReadIndex + 1] << 24) | ((uint)Bytes[ReadIndex + 2] << 16) | ((uint)Bytes[ReadIndex + 3] << 8) | Bytes[ReadIndex + 4];
-			int xh = ((int)getBytes()[getReadIndex() + 1] << 24) | ((int)getBytes()[getReadIndex() + 2] << 16) | ((int)getBytes()[getReadIndex() + 3] << 8) | getBytes()[getReadIndex() + 4];
-			setReadIndex(getReadIndex() + 9);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: return ((ulong)xh << 32) | xl;
-			return ((long)xh << 32) | xl;
-		}
+
+		EnsureRead(9);
+		int xl = ((Bytes[ReadIndex + 5] & 0xff) << 24) | ((Bytes[ReadIndex + 6] & 0xff) << 16)
+				| ((Bytes[ReadIndex + 7] & 0xff) << 8) | (Bytes[ReadIndex + 8] & 0xff);
+		int xh = ((Bytes[ReadIndex + 1] & 0xff) << 24) | ((Bytes[ReadIndex + 2] & 0xff) << 16)
+				| ((Bytes[ReadIndex + 3] & 0xff) << 8) | (Bytes[ReadIndex + 4] & 0xff);
+		ReadIndex += 9;
+		return ((long)xh << 32) | xl;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteFloat(float x)
 	public void WriteFloat(float x) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] bs = BitConverter.GetBytes(x);
-		byte[] bs = BitConverter.GetBytes(x);
-		//if (false == BitConverter.IsLittleEndian)
-		//    Array.Reverse(bs);
-		Append(bs);
+		Append(ToBytes(x));
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public float ReadFloat()
 	public float ReadFloat() {
 		EnsureRead(4);
-		float x = BitConverter.ToSingle(getBytes(), getReadIndex());
-		setReadIndex(getReadIndex() + 4);
+		float x = ToFloat(Bytes, ReadIndex, 4);
+		ReadIndex+= 4;
 		return x;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteDouble(double x)
 	public void WriteDouble(double x) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] bs = BitConverter.GetBytes(x);
-		byte[] bs = BitConverter.GetBytes(x);
-		//if (false == BitConverter.IsLittleEndian)
-		//    Array.Reverse(bs);
-		Append(bs);
+		Append(ToBytes(x));
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public double ReadDouble()
 	public double ReadDouble() {
 		EnsureRead(8);
-		double x = BitConverter.ToDouble(getBytes(), getReadIndex());
-		setReadIndex(getReadIndex() + 8);
+		double x = ToDouble(Bytes, ReadIndex, 8);
+		ReadIndex += 8;
 		return x;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteString(string x)
 	public void WriteString(String x) {
 		WriteBytes(x.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 	}
@@ -1027,30 +699,22 @@ public final class ByteBuffer {
 	public String ReadString() {
 		int n = ReadInt();
 		EnsureRead(n);
-		String x = Encoding.UTF8.GetString(getBytes(), getReadIndex(), n);
-		setReadIndex(getReadIndex() + n);
+		String x = new String(Bytes, ReadIndex, n, java.nio.charset.StandardCharsets.UTF_8);
+		ReadIndex += n;
 		return x;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteBytes(byte[] x)
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteBytes(byte[] x)
 	public void WriteBytes(byte[] x) {
 		WriteBytes(x, 0, x.length);
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void WriteBytes(byte[] x, int offset, int length)
 	public void WriteBytes(byte[] x, int offset, int length) {
 		WriteInt(length);
 		EnsureWrite(length);
-		Buffer.BlockCopy(x, offset, getBytes(), getWriteIndex(), length);
-		setWriteIndex(getWriteIndex() + length);
+		System.arraycopy(x, offset, Bytes, WriteIndex, length);
+		WriteIndex += length;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteBinary(Zeze.Net.Binary binary)
 	public void WriteBinary(Zeze.Net.Binary binary) {
 		WriteBytes(binary.getBytes(), binary.getOffset(), binary.getCount());
 	}
@@ -1059,6 +723,7 @@ public final class ByteBuffer {
 	public static boolean getBinaryNoCopy() {
 		return BinaryNoCopy;
 	}
+
 	public static void setBinaryNoCopy(boolean value) {
 		BinaryNoCopy = value;
 	}
@@ -1066,38 +731,30 @@ public final class ByteBuffer {
 
 	public Zeze.Net.Binary ReadBinary() {
 		if (getBinaryNoCopy()) {
-			return new Net.Binary(ReadByteBuffer());
+			return new Zeze.Net.Binary(ReadByteBuffer());
 		}
 		return new Zeze.Net.Binary(ReadBytes());
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public byte[] ReadBytes()
 	public byte[] ReadBytes() {
 		int n = ReadInt();
 		EnsureRead(n);
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] x = new byte[n];
 		byte[] x = new byte[n];
-		Buffer.BlockCopy(getBytes(), getReadIndex(), x, 0, n);
-		setReadIndex(getReadIndex() + n);
+		System.arraycopy(Bytes, ReadIndex, x, 0, n);
+		ReadIndex += n;
 		return x;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void SkipBytes()
 	public void SkipBytes() {
 		int n = ReadInt();
 		EnsureRead(n);
-		setReadIndex(getReadIndex() + n);
+		ReadIndex += n;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void SkipBytes4()
 	public void SkipBytes4() {
 		int n = ReadInt4();
 		EnsureRead(n);
-		setReadIndex(getReadIndex() + n);
+		ReadIndex += n;
 	}
 
 	/** 
@@ -1105,32 +762,43 @@ public final class ByteBuffer {
 	 
 	 @return 
 	*/
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public ByteBuffer ReadByteBuffer()
 	public ByteBuffer ReadByteBuffer() {
 		int n = ReadInt();
 		EnsureRead(n);
-		int cur = getReadIndex();
-		setReadIndex(getReadIndex() + n);
-		return ByteBuffer.Wrap(getBytes(), cur, n);
+		int cur = ReadIndex;
+		ReadIndex += n;
+		return ByteBuffer.Wrap(Bytes, cur, n);
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteByteBuffer(ByteBuffer o)
 	public void WriteByteBuffer(ByteBuffer o) {
-		WriteBytes(o.getBytes(), o.getReadIndex(), o.getSize());
+		WriteBytes(o.Bytes, o.ReadIndex, o.Size());
 	}
 
+	private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+	public static String ToHex(byte[] bytes, int offset, int len) {
+	    byte[] hexChars = new byte[bytes.length * 2];
+	    int end = offset + len;
+	    for (int j = offset; j < end; j++) {
+	        int v = bytes[j] & 0xFF;
+	        hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+	        hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+	    }
+	    return new String(hexChars, java.nio.charset.StandardCharsets.UTF_8);
+	}
+	
 	@Override
 	public String toString() {
-		return BitConverter.toString(getBytes(), getReadIndex(), getSize());
+		return ToHex(Bytes, ReadIndex, Size());
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		boolean tempVar = obj instanceof ByteBuffer;
-		ByteBuffer other = tempVar ? (ByteBuffer)obj : null;
-		return (tempVar) && Equals(other);
+		if (obj instanceof ByteBuffer) {
+			ByteBuffer other = (ByteBuffer)obj;
+			return equals(other);
+		}
+		return false;
 	}
 
 	public boolean equals(ByteBuffer other) {
@@ -1138,12 +806,12 @@ public final class ByteBuffer {
 			return false;
 		}
 
-		if (this.getSize() != other.getSize()) {
+		if (this.Size() != other.Size()) {
 			return false;
 		}
 
-		for (int i = 0, n = this.getSize(); i < n; i++) {
-			if (getBytes()[getReadIndex() + i] != other.getBytes()[other.getReadIndex() + i]) {
+		for (int i = 0, n = this.Size(); i < n; i++) {
+			if (Bytes[ReadIndex + i] != other.Bytes[other.ReadIndex + i]) {
 				return false;
 			}
 		}
@@ -1159,23 +827,15 @@ public final class ByteBuffer {
 		return calc_hashnr(str.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static int calc_hashnr(byte[] keys)
 	public static int calc_hashnr(byte[] keys) {
 		return calc_hashnr(keys, 0, keys.length);
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static int calc_hashnr(byte[] keys, int offset, int len)
 	public static int calc_hashnr(byte[] keys, int offset, int len) {
 		int end = offset + len;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint hash = 0;
 		int hash = 0;
 		for (int i = offset; i < end; ++i) {
 			hash *= 16777619;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: hash ^= (uint)keys[i];
 			hash ^= (int)keys[i];
 		}
 		return (int)hash;
@@ -1183,7 +843,7 @@ public final class ByteBuffer {
 
 	@Override
 	public int hashCode() {
-		return (int)calc_hashnr(getBytes(), getReadIndex(), getSize());
+		return (int)calc_hashnr(Bytes, ReadIndex, Size());
 	}
 
 	// 只能增加新的类型定义，增加时记得同步 SkipUnknownField
@@ -1216,8 +876,6 @@ public final class ByteBuffer {
 	}
 	*/
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static void VerifyArrayIndex(byte[] bytes, int offset, int length)
 	public static void VerifyArrayIndex(byte[] bytes, int offset, int length) {
 		if (offset < 0 || offset > bytes.length) {
 			throw new RuntimeException(String.format("%1$s,%2$s,%3$s", bytes.length, offset, length));
@@ -1297,8 +955,6 @@ public final class ByteBuffer {
 		sb.append('}');
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static bool Equals(byte[] left, byte[] right)
 	public static boolean Equals(byte[] left, byte[] right) {
 		if (left == null || right == null) {
 			return left == right;
@@ -1314,8 +970,6 @@ public final class ByteBuffer {
 		return true;
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static int Compare(byte[] left, byte[] right)
 	public static int Compare(byte[] left, byte[] right) {
 		if (left == null || right == null) {
 			if (left == right) { // both null
@@ -1326,14 +980,13 @@ public final class ByteBuffer {
 			}
 			return 1;
 		}
+
 		if (left.length != right.length) {
-			return (new Integer(left.length)).compareTo(right.length); // shorter is small
+			return Integer.compare(left.length, right.length); // shorter is small
 		}
 
 		for (int i = 0; i < left.length; i++) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: int c = left[i].CompareTo(right[i]);
-			int c = (new Byte(left[i])).compareTo(right[i]);
+			int c = Byte.compare(left[i], right[i]);
 			if (0 != c) {
 				return c;
 			}
@@ -1341,27 +994,15 @@ public final class ByteBuffer {
 		return 0;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public static byte[] Copy(byte[] src)
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public static byte[] Copy(byte[] src)
 	public static byte[] Copy(byte[] src) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] result = new byte[src.Length];
 		byte[] result = new byte[src.length];
-		Buffer.BlockCopy(src, 0, result, 0, src.length);
+		System.arraycopy(src, 0, result, 0, src.length);
 		return result;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public static byte[] Copy(byte[] src, int offset, int length)
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] public static byte[] Copy(byte[] src, int offset, int length)
 	public static byte[] Copy(byte[] src, int offset, int length) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] result = new byte[length];
 		byte[] result = new byte[length];
-		Buffer.BlockCopy(src, offset, result, 0, length);
+		System.arraycopy(src, offset, result, 0, length);
 		return result;
 	}
 }

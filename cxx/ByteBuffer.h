@@ -82,15 +82,16 @@ namespace Serialize
 
         void BeginWriteWithSize4(int & state)
         {
-            state = WriteIndex;
+            state = Size();
             EnsureWrite(4);
             WriteIndex += 4;
         }
 
         void EndWriteWithSize4(int state)
         {
-            int size = WriteIndex - state - 4;
-            Replace(state, (const char *)(&size), 0, 4);
+			int oldWriteIndex = state + ReadIndex;
+            int size = WriteIndex - oldWriteIndex - 4;
+            Replace(oldWriteIndex, (const char *)(&size), 0, 4);
         }
 
         void BeginWriteSegment(int & oldSize)
