@@ -1,7 +1,10 @@
 package Zeze.Util;
 
-import Zeze.*;
 import java.util.*;
+import java.util.concurrent.Callable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /** 
  对每个相同的key，最多只提交一个 Task.Run。
@@ -14,7 +17,7 @@ import java.util.*;
  构造的时候，可以通过参数控制总的队列数量。
 */
 public final class TaskOneByOneByKey {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey.class);
 
 	private TaskOneByOne[] concurrency;
 
@@ -38,17 +41,15 @@ public final class TaskOneByOneByKey {
 	}
 
 
-	public void Execute(Object key, Action action, String actionName) {
+	public void Execute(Object key, Runnable action, String actionName) {
 		Execute(key, action, actionName, null);
 	}
 
-	public void Execute(Object key, Action action) {
+	public void Execute(Object key, Runnable action) {
 		Execute(key, action, null, null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void Execute(object key, Action action, string actionName = null, Action cancel = null)
-	public void Execute(Object key, tangible.Action0Param action, String actionName, tangible.Action0Param cancel) {
+	public void Execute(Object key, Runnable action, String actionName, Runnable cancel) {
 		if (null == action) {
 			throw new NullPointerException();
 		}
@@ -60,17 +61,15 @@ public final class TaskOneByOneByKey {
 
 
 
-	public void Execute(Object key, Func<Integer> action, String actionName) {
+	public void Execute(Object key, Callable<Integer> action, String actionName) {
 		Execute(key, action, actionName, null);
 	}
 
-	public void Execute(Object key, Func<Integer> action) {
+	public void Execute(Object key, Callable<Integer> action) {
 		Execute(key, action, null, null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void Execute(object key, Func<int> action, string actionName = null, Action cancel = null)
-	public void Execute(Object key, tangible.Func0Param<Integer> action, String actionName, tangible.Action0Param cancel) {
+	public void Execute(Object key, Callable<Integer> action, String actionName, Runnable cancel) {
 		if (null == action) {
 			throw new NullPointerException();
 		}
@@ -85,9 +84,7 @@ public final class TaskOneByOneByKey {
 		Execute(key, procedure, null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void Execute(object key, Zeze.Transaction.Procedure procedure, Action cancel = null)
-	public void Execute(Object key, Zeze.Transaction.Procedure procedure, tangible.Action0Param cancel) {
+	public void Execute(Object key, Zeze.Transaction.Procedure procedure, Runnable cancel) {
 		if (null == procedure) {
 			throw new NullPointerException();
 		}
@@ -102,8 +99,6 @@ public final class TaskOneByOneByKey {
 		Shutdown(true);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void Shutdown(bool cancel = true)
 	public void Shutdown(boolean cancel) {
 		for (var ts : concurrency) {
 			ts.Shutdown(cancel);
@@ -122,28 +117,31 @@ public final class TaskOneByOneByKey {
 	 * 
 	 * @see java.util.HashMap
 	 */
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] static int Hash(int _h)
 	private static int Hash(int _h) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint h = (uint)_h;
 		int h = (int)_h;
-		// This function ensures that hashCodes that differ only by
-		// constant multiples at each bit position have a bounded
-		// number of collisions (approximately 8 at default load factor).
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
 		h ^= (h >>> 20) ^ (h >>> 12);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
 		return (int)(h ^ (h >>> 7) ^ (h >>> 4));
 	}
 
+	static class Task {
+		public Runnable Action;
+		public String Name;
+		public Runnable Cancel;
+		
+		public Task(Runnable action, String name, Runnable cancel) {
+			Action = action;
+			Name = name;
+			Cancel = cancel;
+		}
+	}
+
 	public static class TaskOneByOne {
-		private LinkedList<(tangible.Action0Param, String, tangible.Action0Param)> queue = new LinkedList<(tangible.Action0Param, String, tangible.Action0Param)>();
+		private LinkedList<Task> queue = new LinkedList<Task>();
 
 		private boolean IsShutdown = false;
 
 		public final void Shutdown(boolean cancel) {
-			LinkedList<(tangible.Action0Param, String, tangible.Action0Param)> tmp = null;
+			LinkedList<Task> tmp = null;
 			synchronized (this) {
 				if (IsShutdown) {
 					return;
@@ -151,7 +149,7 @@ public final class TaskOneByOneByKey {
 				IsShutdown = true;
 				if (cancel) {
 					tmp = queue;
-					queue = new LinkedList<(tangible.Action0Param, String, tangible.Action0Param)>(); // clear
+					queue = new LinkedList<Task>(); // clear
 					if (!tmp.isEmpty()) {
 						queue.addLast(tmp.getFirst()); // put back running task back.
 					}
@@ -163,17 +161,17 @@ public final class TaskOneByOneByKey {
 
 			boolean first = true;
 			for (var e : tmp) {
-				if (first) { // first is running task
+				if (first) { // first is running task, skip
 					first = false;
 					continue;
 				}
 				try {
-					if (e.Item3 != null) {
-						e.Item3.Invoke();
+					if (e.Cancel != null) {
+						e.Cancel.run();
 					}
 				}
 				catch (RuntimeException ex) {
-					logger.Error(ex, String.format("CancelAction=%1$s", e.Item2));
+					logger.error("CancelAction={}", e.Name, ex);
 				}
 			}
 		}
@@ -182,7 +180,11 @@ public final class TaskOneByOneByKey {
 			synchronized (this) {
 				// wait running task.
 				while (!queue.isEmpty()) {
-					Monitor.Wait(this);
+					try {
+						this.wait();
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
 				}
 			}
 		}
@@ -190,50 +192,58 @@ public final class TaskOneByOneByKey {
 		public TaskOneByOne() {
 		}
 
-		public final void Execute(tangible.Action0Param action, String actionName, tangible.Action0Param cancel) {
+		public final void Execute(Runnable action, String actionName, Runnable cancel) {
 			synchronized (this) {
 				if (IsShutdown) {
 					if (cancel != null) {
-						cancel.invoke();
+						cancel.run();
 					}
 					return;
 				}
 
-				queue.addLast((() -> {
+				queue.addLast(new Task(
+					() -> {
 						try {
-							action.invoke();
+							action.run();
 						}
 						finally {
 							RunNext();
 						}
-				}, actionName, cancel));
+					},
+					actionName, cancel));
 
 				if (queue.size() == 1) {
-					Zeze.Util.Task.Run(queue.getFirst().Item1, queue.getFirst().Item2);
+					var first = queue.getFirst();
+					Zeze.Util.Task.Run(first.Action, first.Name);
 				}
 			}
 		}
 
-		public final void Execute(tangible.Func0Param<Integer> action, String actionName, tangible.Action0Param cancel) {
+		public final void Execute(Callable<Integer> action, String actionName, Runnable cancel) {
 			synchronized (this) {
 				if (IsShutdown) {
 					if (cancel != null) {
-						cancel.invoke();
+						cancel.run();
 					}
 					return;
 				}
 
-				queue.addLast((() -> {
+				queue.addLast(new Task(
+					() -> {
 						try {
-							action.invoke();
+							action.call();
+						} catch (Exception skip) {
+							// Zeze.Util.Task has handle error.
 						}
 						finally {
 							RunNext();
 						}
-				}, actionName, cancel));
+					},
+					actionName, cancel));
 
 				if (queue.size() == 1) {
-					Zeze.Util.Task.Run(queue.getFirst().Item1, queue.getFirst().Item2);
+					var first = queue.getFirst();
+					Zeze.Util.Task.Run(first.Action, first.Name);
 				}
 			}
 		}
@@ -244,12 +254,13 @@ public final class TaskOneByOneByKey {
 					queue.removeFirst();
 
 					if (IsShutdown && queue.isEmpty()) {
-						Monitor.PulseAll(this);
+						this.notify();
 						return;
 					}
 				}
 				if (!queue.isEmpty()) {
-					Zeze.Util.Task.Run(queue.getFirst().Item1, queue.getFirst().Item2);
+					var first = queue.getFirst();
+					Zeze.Util.Task.Run(first.Action, first.Name);
 				}
 			}
 		}

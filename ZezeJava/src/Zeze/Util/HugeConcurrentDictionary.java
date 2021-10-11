@@ -1,14 +1,15 @@
 package Zeze.Util;
 
-import Zeze.*;
 import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 // 使用哈希到多个ConcurrentDictionary的方式支持巨大内存。
 // 先不实现 IDictionary，要了再来添加。
-//C# TO JAVA CONVERTER TODO TASK: The interface type was changed to the closest equivalent Java type, but the methods implemented will need adjustment:
 public class HugeConcurrentDictionary<K, V> implements java.lang.Iterable<Map.Entry<K, V>> {
-	private java.util.concurrent.ConcurrentHashMap<K, V>[] Buckets;
-	private java.util.concurrent.ConcurrentHashMap<K, V>[] getBuckets() {
+	private ConcurrentHashMap<K, V>[] Buckets;
+	private ConcurrentHashMap<K, V>[] getBuckets() {
 		return Buckets;
 	}
 
@@ -25,12 +26,13 @@ public class HugeConcurrentDictionary<K, V> implements java.lang.Iterable<Map.En
 		return InitialCapacity;
 	}
 
+	@SuppressWarnings("unchecked")
 	public HugeConcurrentDictionary(int buckets, int concurrencyLevel, long capacity) {
 		BucketCount = buckets;
 		ConcurrencyLevel = concurrencyLevel;
 		InitialCapacity = capacity;
 
-		Buckets = new java.util.concurrent.ConcurrentHashMap<K, V>[buckets];
+		Buckets = (ConcurrentHashMap<K, V>[])new ConcurrentHashMap[buckets];
 		long bucketsCapacity = capacity / getBuckets().length;
 		if (bucketsCapacity > Integer.MAX_VALUE) {
 			throw new RuntimeException("capacity / buckets > int.MaxValue. Please Increace buckets.");
@@ -46,80 +48,37 @@ public class HugeConcurrentDictionary<K, V> implements java.lang.Iterable<Map.En
 		}
 	}
 
-	public final boolean TryGetValue(K key, tangible.OutObject<V> value) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint hash = (uint)key.GetHashCode();
-		int hash = (int)key.hashCode();
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint i = hash % (uint)Buckets.Length;
-		int i = hash % (int)getBuckets().length;
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		return getBuckets()[i].TryGetValue(key, value);
-	}
-
-	public final boolean TryAdd(K key, V value) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint hash = (uint)key.GetHashCode();
-		int hash = (int)key.hashCode();
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint i = hash % (uint)Buckets.Length;
-		int i = hash % (int)getBuckets().length;
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		return getBuckets()[i].TryAdd(key, value);
-	}
-
-	public final V GetOrAdd(K key, tangible.Func1Param<K, V> factory) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint hash = (uint)key.GetHashCode();
-		int hash = (int)key.hashCode();
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint i = hash % (uint)Buckets.Length;
-		int i = hash % (int)getBuckets().length;
-		return getBuckets()[i].putIfAbsent(key, factory);
-	}
-
-	public final boolean TryRemove(Map.Entry<K, V> pair) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint hash = (uint)pair.Key.GetHashCode();
-		int hash = (int)pair.getKey().hashCode();
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint i = hash % (uint)Buckets.Length;
-		int i = hash % (int)getBuckets().length;
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		return getBuckets()[i].TryRemove(pair);
-	}
-
-	public final boolean TryRemove(K key, tangible.OutObject<V> r) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint hash = (uint)key.GetHashCode();
-		int hash = (int)key.hashCode();
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint i = hash % (uint)Buckets.Length;
-		int i = hash % (int)getBuckets().length;
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		return getBuckets()[i].TryRemove(key, r);
+	private int hashIndex(K key) {
+		int hash = key.hashCode() & 0x7fffffff;
+		return hash % (int)getBuckets().length;
 	}
 
 	public final V get(K key) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint hash = (uint)key.GetHashCode();
-		int hash = (int)key.hashCode();
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint i = hash % (uint)Buckets.Length;
-		int i = hash % (int)getBuckets().length;
-		return getBuckets()[i].get(key);
-	}
-	public final void set(K key, V value) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint hash = (uint)key.GetHashCode();
-		int hash = (int)key.hashCode();
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint i = hash % (uint)Buckets.Length;
-		int i = hash % (int)getBuckets().length;
-		getBuckets()[i].put(key, value);
+		return getBuckets()[hashIndex(key)].get(key);
 	}
 
-	public final long getCount() {
+	public final V putIfAbsent(K key, V value) {
+		return getBuckets()[hashIndex(key)].putIfAbsent(key, value);
+	}
+
+	public final V GetOrAdd(K key, Function<? super K, ? extends V> factory) {
+		return getBuckets()[hashIndex(key)].computeIfAbsent(key, factory);
+	}
+
+	public final boolean remove(K key, V value) {
+		return getBuckets()[hashIndex(key)].remove(key, value);
+	}
+
+	public final V remove(K key) {
+		return getBuckets()[hashIndex(key)].remove(key);
+	}
+
+
+	public final V put(K key, V value) {
+		return getBuckets()[hashIndex(key)].put(key, value);
+	}
+
+	public final long size() {
 		long count = 0;
 		for (var dict : getBuckets()) {
 			count += dict.size();
@@ -128,66 +87,35 @@ public class HugeConcurrentDictionary<K, V> implements java.lang.Iterable<Map.En
 	}
 
 	public final Iterator<Map.Entry<K, V>> iterator() {
-		return new Enumerator(this);
+		return new Enumerator();
 	}
 
-	public final Iterator GetEnumerator() {
-		return new Enumerator(this);
-	}
-
-//C# TO JAVA CONVERTER TODO TASK: The interface type was changed to the closest equivalent Java type, but the methods implemented will need adjustment:
-	private static class Enumerator implements Iterator<Map.Entry<K, V>> {
+	private class Enumerator implements Iterator<Map.Entry<K, V>> {
 		private Iterator<Map.Entry<K, V>>[] Entrys;
-		private Iterator<Map.Entry<K, V>>[] getEntrys() {
-			return Entrys;
-		}
 		private int Index;
-		private int getIndex() {
-			return Index;
-		}
-		private void setIndex(int value) {
-			Index = value;
-		}
 
-		private Map.Entry<K, V> _Current;
-		public final Map.Entry<K, V> getCurrent() {
-			return _Current;
-		}
-
-		private Object IEnumerator.Current -> _Current;
-
-		public Enumerator(HugeConcurrentDictionary<K, V> huge) {
-			Entrys = new Iterator<Map.Entry<K, V>>[huge.getBuckets().length];
-			for (int i = 0; i < getEntrys().length; ++i) {
-				getEntrys()[i] = huge.getBuckets()[i].entrySet().iterator();
+		@SuppressWarnings("unchecked")
+		public Enumerator() {
+			Entrys = (Iterator<Map.Entry<K, V>>[])new Iterator[getBuckets().length];
+			for (int i = 0; i < Entrys.length; ++i) {
+				Entrys[i] = getBuckets()[i].entrySet().iterator();
 			}
 		}
 
-		public final boolean MoveNext() {
-			while (getIndex() < getEntrys().length) {
-				var e = getEntrys()[getIndex()];
-//C# TO JAVA CONVERTER TODO TASK: .NET iterators are only converted within the context of 'while' and 'for' loops:
-				if (e.MoveNext()) {
-//C# TO JAVA CONVERTER TODO TASK: .NET iterators are only converted within the context of 'while' and 'for' loops:
-					_Current = e.Current;
+		@Override
+		public boolean hasNext() {
+			while (Index < Entrys.length) {
+				var e = Entrys[Index];
+				if (e.hasNext())
 					return true;
-				}
-				setIndex(getIndex() + 1);
+				++Index;
 			}
 			return false;
 		}
 
-		public final void Reset() {
-			for (var e : getEntrys()) {
-				e.Reset();
-			}
-			setIndex(0);
-		}
-
-		public final void Dispose() {
-			for (var e : getEntrys()) {
-				e.Dispose();
-			}
+		@Override
+		public Entry<K, V> next() {
+			return Entrys[Index].next();
 		}
 	}
 }

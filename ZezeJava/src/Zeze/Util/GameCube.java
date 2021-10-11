@@ -1,21 +1,19 @@
 package Zeze.Util;
 
-import Zeze.*;
-import java.util.*;
+import org.pcollections.Empty;
+import org.pcollections.PSet;
 
 public class GameCube extends Cube<GameObjectId> {
-	private ImmutableHashSet<GameObjectId> ObjectIds = ImmutableHashSet<GameObjectId>.Empty;
-	public final ImmutableHashSet<GameObjectId> getObjectIds() {
+	private PSet<GameObjectId> ObjectIds = Empty.set();
+
+	public final PSet<GameObjectId> getObjectIds() {
 		return ObjectIds;
-	}
-	private void setObjectIds(ImmutableHashSet<GameObjectId> value) {
-		ObjectIds = value;
 	}
 
 	@Override
 	public void Add(CubeIndex index, GameObjectId obj) {
 		// under lock(cube)
-		setObjectIds(getObjectIds().Add(obj));
+		ObjectIds = ObjectIds.plus(obj);
 	}
 
 	/** 
@@ -28,7 +26,7 @@ public class GameCube extends Cube<GameObjectId> {
 	@Override
 	public boolean Remove(CubeIndex index, GameObjectId obj) {
 		// under lock(cube)
-		setObjectIds(getObjectIds().Remove(obj));
-		return getObjectIds().Count == 0;
+		ObjectIds = ObjectIds.minus(obj);
+		return ObjectIds.isEmpty();
 	}
 }

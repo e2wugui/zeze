@@ -21,6 +21,15 @@ public class Task implements Runnable {
 		}
 	}
 
+	public static void Call(Callable<Integer> action, String actionName) {
+		try {
+			action.call();
+		}
+		catch (Throwable ex) {
+			logger.error(actionName, ex);
+		}
+	}
+
 	private static Object lock = new Object();
 	private static java.util.concurrent.ScheduledThreadPoolExecutor threadPool;
 

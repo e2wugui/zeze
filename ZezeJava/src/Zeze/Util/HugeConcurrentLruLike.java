@@ -1,44 +1,17 @@
 package Zeze.Util;
 
-import Zeze.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class HugeConcurrentLruLike<K, V> {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(HugeConcurrentLruLike.class);
 
-	private static class LruItem {
-		private V Value;
-		public final V getValue() {
-			return Value;
-		}
-		private HugeConcurrentDictionary<K, LruItem> LruNode;
-		public final HugeConcurrentDictionary<K, LruItem> getLruNode() {
-			return LruNode;
-		}
-		public final void setLruNode(HugeConcurrentDictionary<K, LruItem> value) {
-			LruNode = value;
-		}
-
-		public LruItem(V value, HugeConcurrentDictionary<K, LruItem> lruNode) {
-			Value = value;
-			setLruNode(lruNode);
-		}
-	}
-
-	private HugeConcurrentDictionary<K, LruItem> DataMap;
-	private HugeConcurrentDictionary<K, LruItem> getDataMap() {
-		return DataMap;
-	}
-	private ConcurrentQueue<Zeze.Util.HugeConcurrentDictionary<K, LruItem>> LruQueue = new ConcurrentQueue<Zeze.Util.HugeConcurrentDictionary<K, LruItem>> ();
-	private ConcurrentQueue<Zeze.Util.HugeConcurrentDictionary<K, LruItem>> getLruQueue() {
-		return LruQueue;
-	}
-	private HugeConcurrentDictionary<K, LruItem> LruHot;
-	private HugeConcurrentDictionary<K, LruItem> getLruHot() {
-		return LruHot;
-	}
-	private void setLruHot(HugeConcurrentDictionary<K, LruItem> value) {
-		LruHot = value;
-	}
+	private HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>> DataMap;
+	private ConcurrentLinkedQueue<Zeze.Util.HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>>> LruQueue
+		= new ConcurrentLinkedQueue<Zeze.Util.HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>>> ();
+	private HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>> LruHot;
 
 	private long Capacity;
 	public final long getCapacity() {
@@ -84,32 +57,37 @@ public class HugeConcurrentLruLike<K, V> {
 	public final void setContinueWhenTryRemoveCallbackFail(boolean value) {
 		ContinueWhenTryRemoveCallbackFail = value;
 	}
-	private tangible.Func2Param<K, V, Boolean> TryRemoveCallback = null;
-	public final tangible.Func2Param<K, V, Boolean> getTryRemoveCallback() {
+
+	private TryRemoveHandle<K, V> TryRemoveCallback = null;
+	public final TryRemoveHandle<K, V> getTryRemoveCallback() {
 		return TryRemoveCallback;
 	}
-	public final void setTryRemoveCallback(tangible.Func2Param<K, V, Boolean> value) {
+	public final void setTryRemoveCallback(TryRemoveHandle<K, V> value) {
 		TryRemoveCallback = value;
 	}
 
+	@FunctionalInterface
+	public static interface TryRemoveHandle<K, V> {
+		boolean tryRemove(K key, V value);
+	}
 
-	public HugeConcurrentLruLike(long capacity, Func<K, V, Boolean> tryRemove, long newLruHotPeriod, long cleanPeriod, long initialCapacity, int buckets) {
+	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod, long cleanPeriod, long initialCapacity, int buckets) {
 		this(capacity, tryRemove, newLruHotPeriod, cleanPeriod, initialCapacity, buckets, 1024);
 	}
 
-	public HugeConcurrentLruLike(long capacity, Func<K, V, Boolean> tryRemove, long newLruHotPeriod, long cleanPeriod, long initialCapacity) {
+	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod, long cleanPeriod, long initialCapacity) {
 		this(capacity, tryRemove, newLruHotPeriod, cleanPeriod, initialCapacity, 16, 1024);
 	}
 
-	public HugeConcurrentLruLike(long capacity, Func<K, V, Boolean> tryRemove, long newLruHotPeriod, long cleanPeriod) {
+	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod, long cleanPeriod) {
 		this(capacity, tryRemove, newLruHotPeriod, cleanPeriod, 31, 16, 1024);
 	}
 
-	public HugeConcurrentLruLike(long capacity, Func<K, V, Boolean> tryRemove, long newLruHotPeriod) {
+	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod) {
 		this(capacity, tryRemove, newLruHotPeriod, 2000, 31, 16, 1024);
 	}
 
-	public HugeConcurrentLruLike(long capacity, Func<K, V, Boolean> tryRemove) {
+	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove) {
 		this(capacity, tryRemove, 200, 2000, 31, 16, 1024);
 	}
 
@@ -117,144 +95,117 @@ public class HugeConcurrentLruLike<K, V> {
 		this(capacity, null, 200, 2000, 31, 16, 1024);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public HugeConcurrentLruLike(long capacity, Func<K, V, bool> tryRemove = null, long newLruHotPeriod = 200, long cleanPeriod = 2000, long initialCapacity = 31, int buckets = 16, int concurrencyLevel = 1024)
-	public HugeConcurrentLruLike(long capacity, tangible.Func2Param<K, V, Boolean> tryRemove, long newLruHotPeriod, long cleanPeriod, long initialCapacity, int buckets, int concurrencyLevel) {
+	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod, long cleanPeriod, long initialCapacity, int buckets, int concurrencyLevel) {
 		setCapacity(capacity);
-		setTryRemoveCallback(::tryRemove);
+		setTryRemoveCallback(tryRemove);
 		setNewLruHotPeriod(newLruHotPeriod);
 		setCleanPeriod(cleanPeriod);
 
-		DataMap = new HugeConcurrentDictionary<K, LruItem>(buckets, concurrencyLevel, initialCapacity);
+		DataMap = new HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>>(buckets, concurrencyLevel, initialCapacity);
 		NewLruHot();
 
-		Scheduler.getInstance().Schedule((task) -> {
-				// 访问很少的时候不创建新的热点。这个选项没什么意思。
-				if (getLruHot().getCount() > GetLruInitialCapaicty() / 2) {
-					NewLruHot();
-				}
+		Task.schedule((task) -> {
+			// 访问很少的时候不创建新的热点。这个选项没什么意思。
+			if (LruHot.size() > GetLruInitialCapaicty() / 2) {
+				NewLruHot();
+			}
 		}, getNewLruHotPeriod(), getNewLruHotPeriod());
-		Util.Scheduler.getInstance().Schedule(::CleanNow, getCleanPeriod(), -1);
+		Task.schedule((thisTask) -> CleanNow(thisTask), getCleanPeriod(), -1);
 	}
 
-	public final V GetOrAdd(K k, tangible.Func1Param<K, V> factory) {
-		boolean isNew = false;
-		var lruItem = getDataMap().GetOrAdd(k, (k) -> {
-				V value = factory.invoke(k);
-				isNew = true;
-				var lruItem = new LruItem(value, getLruHot());
-				getLruHot().set(k, lruItem); // MUST replace
-				return lruItem;
+	public final V GetOrAdd(K k, Factory<V> factory) {
+		final tangible.OutObject<Boolean> isNew = new tangible.OutObject<>();
+		isNew.outArgValue = false;
+		var lruItem = DataMap.GetOrAdd(k, (k2) -> {
+				V value = factory.create();
+				isNew.outArgValue = true;
+				var lruItemNew = new HugeConcurrentLruItem<K, V>(value, LruHot);
+				LruHot.put(k, lruItemNew); // MUST replace
+				return lruItemNew;
 		});
 
-		if (false == isNew) {
+		if (false == isNew.outArgValue) {
 			AdjustLru(k, lruItem);
 		}
 		return lruItem.Value;
 	}
 
-	private void AdjustLru(K key, LruItem lruItem) {
-		if (lruItem.getLruNode() != getLruHot()) {
+	private void AdjustLru(K key, HugeConcurrentLruItem<K, V> lruItem) {
+		if (lruItem.LruNode != LruHot) {
 			// compare key and value
-			lruItem.getLruNode().TryRemove(KeyValuePair.Create(key, lruItem));
-			if (getLruHot().TryAdd(key, lruItem)) { // maybe fail
-				lruItem.setLruNode(getLruHot());
+			lruItem.LruNode.remove(key, lruItem);
+			if (LruHot.putIfAbsent(key, lruItem) == null) { // maybe fail
+				lruItem.LruNode = LruHot;
 			}
 		}
 	}
 
 	/** 
-	 
-	 
 	 @param key
 	 @param value
 	 @param adjustLru 是否调整lru 
 	 @return 
 	*/
 
-	public final boolean TryGetValue(K key, tangible.OutObject<V> value) {
-		return TryGetValue(key, value, true);
+	public final V get(K key) {
+		return get(key, true);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public bool TryGetValue(K key, out V value, bool adjustLru = true)
-	public final boolean TryGetValue(K key, tangible.OutObject<V> value, boolean adjustLru) {
-		V lruItem;
-		tangible.OutObject<LruItem> tempOut_lruItem = new tangible.OutObject<LruItem>();
-		if (getDataMap().TryGetValue(key, tempOut_lruItem)) {
-		lruItem = tempOut_lruItem.outArgValue;
+	public final V get(K key, boolean adjustLru) {
+		var lruItem = DataMap.get(key);
+		if (null != lruItem) {
 			if (adjustLru) {
 				AdjustLru(key, lruItem);
 			}
-			value.outArgValue = lruItem.Value;
-			return true;
+			return lruItem.Value;
 		}
-	else {
-		lruItem = tempOut_lruItem.outArgValue;
-	}
-		value.outArgValue = null;
-		return false;
+		return null;
 	}
 
 	private long GetLruInitialCapaicty() {
-		long lruInitialCapacity = (long)(getDataMap().getInitialCapacity() * 0.2);
+		long lruInitialCapacity = (long)(DataMap.getInitialCapacity() * 0.2);
 		return lruInitialCapacity < getMaxLruInitialCapaicty() ? lruInitialCapacity : getMaxLruInitialCapaicty();
 	}
 
 	private void NewLruHot() {
-		setLruHot(new Zeze.Util.HugeConcurrentDictionary<K, LruItem>(getDataMap().getBucketCount(), getDataMap().getConcurrencyLevel(), GetLruInitialCapaicty()));
-		getLruQueue().Enqueue(getLruHot());
+		LruHot = new Zeze.Util.HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>>(
+				DataMap.getBucketCount(), DataMap.getConcurrencyLevel(), GetLruInitialCapaicty());
+		LruQueue.add(LruHot);
 	}
 
 	// 自定义TryRemoveCallback时，需要调用这个方法真正删除。
-	public final boolean TryRemove(K key, tangible.OutObject<V> value) {
-		V e;
-		tangible.OutObject<LruItem> tempOut_e = new tangible.OutObject<LruItem>();
-		if (getDataMap().TryRemove(key, tempOut_e)) {
-		e = tempOut_e.outArgValue;
+	public final V remove(K key) {
+		var lruItemRemoved = DataMap.remove(key);
+		if (null != lruItemRemoved) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
 			// 1. GetOrAdd 需要 replace 更新
 			// 2. 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
-			e.LruNode.TryRemove(KeyValuePair.Create(key, e));
-			value.outArgValue = e.Value;
-			return true;
+			lruItemRemoved.LruNode.remove(key, lruItemRemoved);
+			return lruItemRemoved.Value;
 		}
-	else {
-		e = tempOut_e.outArgValue;
-	}
-		value.outArgValue = null;
-		return false;
+		return null;
 	}
 
-	public final void CleanNow(SchedulerTask taskNotUsed) {
+	public final void CleanNow(Task taskNotUsed) {
 		// 这个任务的执行时间可能很长，
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。
 
 		if (getCapacity() <= 0) {
-			Scheduler.getInstance().Schedule(::CleanNow, getCleanPeriod(), -1);
+			Task.schedule((thisTask) -> CleanNow(thisTask), getCleanPeriod(), -1);
 			return; // 容量不限
 		}
 
-		while (getDataMap().getCount() > getCapacity()) { // 超出容量，循环尝试
-			T node;
-			tangible.OutObject<Zeze.Util.HugeConcurrentDictionary<K, LruItem>> tempOut_node = new tangible.OutObject<Zeze.Util.HugeConcurrentDictionary<K, LruItem>>();
-			if (false == getLruQueue().TryPeek(tempOut_node)) {
-			node = tempOut_node.outArgValue;
-				break;
-			}
-		else {
-			node = tempOut_node.outArgValue;
-		}
-
-			if (node == getLruHot()) { // 热点。不回收。
+		while (DataMap.size() > getCapacity()) { // 超出容量，循环尝试
+			var node = LruQueue.peek();
+			if (null == node || node == LruHot) { // 热点。不回收。
 				break;
 			}
 
 			for (var e : node) {
 				if (null != getTryRemoveCallback()) {
-					if (TryRemoveCallback(e.Key, e.Value.Value)) {
+					if (TryRemoveCallback.tryRemove(e.getKey(), e.getValue().Value)) {
 						continue;
 					}
 					if (getContinueWhenTryRemoveCallbackFail()) {
@@ -262,25 +213,23 @@ public class HugeConcurrentLruLike<K, V> {
 					}
 					break;
 				}
-				V _;
-				tangible.OutObject<V> tempOut__ = new tangible.OutObject<V>();
-				TryRemove(e.Key, tempOut__);
-			_ = tempOut__.outArgValue;
+				remove(e.getKey());
 			}
-			if (node.Count == 0) {
-				T _;
-				tangible.OutObject<Zeze.Util.HugeConcurrentDictionary<K, LruItem>> tempOut__2 = new tangible.OutObject<Zeze.Util.HugeConcurrentDictionary<K, LruItem>>();
-				getLruQueue().TryDequeue(tempOut__2);
-			_ = tempOut__2.outArgValue;
+
+			if (node.size() == 0) {
+				LruQueue.poll();
 			}
 			else {
-				logger.Warn(String.format("remain record when clean oldest lrunode."));
+				logger.warn("remain record when clean oldest lrunode.");
 			}
 
 			if (getCleanPeriodWhenExceedCapacity() > 0) {
-				Thread.sleep(getCleanPeriodWhenExceedCapacity());
+				try {
+					Thread.sleep(getCleanPeriodWhenExceedCapacity());
+				} catch (InterruptedException skip) {
+				}
 			}
+			Task.schedule((thisTask) -> CleanNow(thisTask), getCleanPeriod(), -1);
 		}
-		Util.Scheduler.getInstance().Schedule(::CleanNow, getCleanPeriod(), -1);
 	}
 }
