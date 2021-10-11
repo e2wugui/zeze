@@ -6,13 +6,16 @@ import Zeze.Services.*;
 import Zeze.*;
 import java.util.*;
 
-public final class Transaction {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-	private static System.Threading.ThreadLocal<Transaction> threadLocal = new System.Threading.ThreadLocal<Transaction>();
+public final class Transaction {
+	private static final Logger logger = LogManager.getLogger(Transaction.class);
+
+	private static ThreadLocal<Transaction> threadLocal = new ThreadLocal<Transaction>();
 
 	public static Transaction getCurrent() {
-		return threadLocal.Value;
+		return threadLocal.get();
 	}
 
 	// 嵌套存储过程栈。
@@ -26,14 +29,15 @@ public final class Transaction {
 	}
 
 	public static Transaction Create() {
-		if (null == threadLocal.Value) {
-			threadLocal.Value = new Transaction();
+		var t = threadLocal.get();
+		if (null == t) {
+			threadLocal.set(new Transaction());
 		}
-		return threadLocal.Value;
+		return t;
 	}
 
 	public static void Destroy() {
-		threadLocal.Value = null;
+		threadLocal.set(null);
 	}
 
 	public void Begin() {
@@ -88,14 +92,14 @@ public final class Transaction {
 	}
 	*/
 
-	private final ArrayList<tangible.Action0Param> CommitActions = new ArrayList<tangible.Action0Param>();
-	private final ArrayList<tangible.Action0Param> RollbackActions = new ArrayList<tangible.Action0Param>();
+	private final ArrayList<Runnable> CommitActions = new ArrayList<Runnable>();
+	private final ArrayList<Runnable> RollbackActions = new ArrayList<Runnable>();
 
-	public void RunWhileCommit(tangible.Action0Param action) {
+	public void RunWhileCommit(Runnable action) {
 		CommitActions.add(action);
 	}
 
-	public void RunWhileRollback(tangible.Action0Param action) {
+	public void RunWhileRollback(Runnable action) {
 		RollbackActions.add(action);
 	}
 
@@ -117,7 +121,7 @@ public final class Transaction {
 							int result = procedure.Call();
 							if ((result == Procedure.Success && savepoints.size() != 1) || (result != Procedure.Success && !savepoints.isEmpty())) {
 								// 这个错误不应该重做
-								logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
+								logger.fatal("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
 								_final_rollback_(procedure);
 								return Procedure.ErrorSavepoint;
 							}
@@ -130,7 +134,7 @@ public final class Transaction {
 									// 正常一次成功的不统计，用来观察redo多不多。
 									// 失败在 Procedure.cs 中的统计。
 									if (tryCount > 0) {
-										ProcedureStatistics.getInstance().GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).IncrementAndGet();
+										ProcedureStatistics.getInstance().GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).incrementAndGet();
 									}
 //#endif
 									return Procedure.Success;
@@ -142,31 +146,30 @@ public final class Transaction {
 						}
 						catch (RedoAndReleaseLockException redorelease) {
 							checkResult = CheckResult.RedoAndReleaseLock;
-							logger.Debug(redorelease, "RedoAndReleaseLockException");
+							logger.debug("RedoAndReleaseLockException", redorelease);
 						}
 						catch (AbortException abort) {
-							logger.Debug(abort, "Transaction.Perform: Abort");
+							logger.debug("Transaction.Perform: Abort", abort);
 							_final_rollback_(procedure);
 							return Procedure.AbortException;
 						}
 						catch (RuntimeException e) {
 							// Procedure.Call 里面已经处理了异常。只有 unit test 或者内部错误会到达这里。
 							// 在 unit test 下，异常日志会被记录两次。
-							logger.Error(e, "Transaction.Perform:{0} exception. run count:{1}", procedure, tryCount);
+							logger.error("Transaction.Perform:{} exception. run count:{}", procedure, tryCount, e);
 							if (!savepoints.isEmpty()) {
 								// 这个错误不应该重做
-								logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 0.", procedure);
+								logger.fatal("Transaction.Perform:{}. exception. savepoints.Count != 0.", procedure, e);
 								_final_rollback_(procedure);
 								return Procedure.ErrorSavepoint;
 							}
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-//#if DEBUG
+
 							// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
 							if (e.getClass().getSimpleName().equals("AssertFailedException")) {
 								_final_rollback_(procedure);
 								throw e;
 							}
-//#endif
+
 							checkResult = _lock_and_check_();
 							if (checkResult == CheckResult.Success) {
 								_final_rollback_(procedure);
@@ -197,7 +200,7 @@ public final class Transaction {
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
 				procedure.getZeze().getCheckpoint().WaitRun();
 			}
-			logger.Error("Transaction.Perform:{0}. too many try.", procedure);
+			logger.error("Transaction.Perform:{}. too many try.", procedure);
 			_final_rollback_(procedure);
 			return Procedure.TooManyTry;
 		}
@@ -213,18 +216,20 @@ public final class Transaction {
 		try {
 			Savepoint sp = savepoints.get(savepoints.size() - 1);
 			for (Log log : sp.getLogs().values()) {
-				if (log.Bean == null) {
+				if (log.getBean() == null) {
 					continue; // 特殊日志没有Bean。
 				}
 
 				// 写成回调是为了优化，仅在需要的时候才创建path。
-//C# TO JAVA CONVERTER TODO TASK: The following lambda contained an unresolved 'out' keyword - these are not converted by C# to Java Converter:
-				cc.CollectChanged(log.Bean.TableKey, (out ArrayList<Util.KV<Bean, Integer>> path, out ChangeNote note) -> {
-							path = new ArrayList<Util.KV<Bean, Integer>>();
-							note = null;
-							path.Add(Util.KV.Create(log.Bean, log.VariableId));
-							log.Bean.BuildChangeListenerPath(path);
-				});
+				cc.CollectChanged(log.getBean().getTableKey(),
+					() -> {
+						var pn = new ChangePathAndNote();
+						pn.path = new ArrayList<Zeze.Util.KV<Bean, Integer>>();
+						pn.note = null;
+						pn.path.add(Zeze.Util.KV.Create(log.getBean(), log.getVariableId()));
+						log.getBean().BuildChangeListenerPath(pn.path);
+						return pn;
+					});
 			}
 			for (ChangeNote cn : sp.getChangeNotes().values()) {
 				if (cn.getBean() == null) {
@@ -232,12 +237,14 @@ public final class Transaction {
 				}
 
 				// 写成回调是为了优化，仅在需要的时候才创建path。
-//C# TO JAVA CONVERTER TODO TASK: The following lambda contained an unresolved 'out' keyword - these are not converted by C# to Java Converter:
-				cc.CollectChanged(cn.getBean().TableKey, (out ArrayList<Util.KV<Bean, Integer>> path, out ChangeNote note) -> {
-							path = new ArrayList<Util.KV<Bean, Integer>>();
-							note = cn;
-							path.Add(Util.KV.Create(cn.getBean().Parent, cn.getBean().VariableId));
-							cn.getBean().Parent.BuildChangeListenerPath(path);
+				cc.CollectChanged(cn.getBean().getTableKey(),
+						() -> {
+							var pn = new ChangePathAndNote();
+							pn.path = new ArrayList<Zeze.Util.KV<Bean, Integer>>();
+							pn.note = cn;
+							pn.path.add(Zeze.Util.KV.Create(cn.getBean().getParent(), cn.getBean().getVariableId()));
+							cn.getBean().getParent().BuildChangeListenerPath(pn.path);
+							return pn;
 				});
 			}
 
@@ -247,17 +254,17 @@ public final class Transaction {
 			cc.Notify();
 		}
 		catch (RuntimeException ex) {
-			logger.Error(ex, "ChangeListener Collect And Notify");
+			logger.error("ChangeListener Collect And Notify", ex);
 		}
 	}
 
 	private void _trigger_commit_actions_(Procedure procedure) {
-		for (tangible.Action0Param action : CommitActions) {
+		for (var action : CommitActions) {
 			try {
-				action.invoke();
+				action.run();
 			}
 			catch (RuntimeException e) {
-				logger.Error(e, "Commit Procedure {0} Action {1}", procedure, action.Method.Name);
+				logger.error("Commit Procedure {} Action {}", procedure, action.getClass().getName(), e);
 			}
 		}
 		CommitActions.clear();
@@ -279,7 +286,7 @@ public final class Transaction {
 					}
 				}
 				catch (RuntimeException e) {
-					logger.Error(e, "Transaction._final_commit_ {0}", procedure);
+					logger.error("Transaction._final_commit_ {}", procedure, e);
 					System.exit(54321);
 				}
 		});
@@ -293,95 +300,18 @@ public final class Transaction {
 
 	private void _final_rollback_(Procedure procedure) {
 		setCompleted(true);
-		for (tangible.Action0Param action : RollbackActions) {
+		for (var action : RollbackActions) {
 			try {
-				action.invoke();
+				action.run();
 			}
 			catch (RuntimeException e) {
-				logger.Error(e, "Rollback Procedure {0} Action {1}", procedure, action.Method.Name);
+				logger.error("Rollback Procedure {0} Action {1}", procedure, action.getClass().getName(), e);
 			}
 		}
 		RollbackActions.clear();
 	}
 
 	private final ArrayList<Lockey> holdLocks = new ArrayList<Lockey>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
-
-	public static class RecordAccessed extends Bean {
-		private Record OriginRecord;
-		public final Record getOriginRecord() {
-			return OriginRecord;
-		}
-		private long Timestamp;
-		public final long getTimestamp() {
-			return Timestamp;
-		}
-		private boolean Dirty;
-		public final boolean getDirty() {
-			return Dirty;
-		}
-		public final void setDirty(boolean value) {
-			Dirty = value;
-		}
-
-		public final Bean NewestValue() {
-			PutLog log = (PutLog)getCurrent().GetLog(getObjectId());
-			if (null != log) {
-				return log.getValue();
-			}
-			return getOriginRecord().getValue();
-		}
-
-		// Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
-		private PutLog CommittedPutLog;
-		public final PutLog getCommittedPutLog() {
-			return CommittedPutLog;
-		}
-		private void setCommittedPutLog(PutLog value) {
-			CommittedPutLog = value;
-		}
-
-		public static class PutLog extends Log<RecordAccessed, Bean> {
-			public PutLog(RecordAccessed bean, Bean putValue) {
-				super(bean, putValue);
-			}
-
-			@Override
-			public long getLogKey() {
-				return getBean().ObjectId;
-			}
-
-			@Override
-			public void Commit() {
-				RecordAccessed host = (RecordAccessed)getBean();
-				host.setCommittedPutLog(this); // 肯定最多只有一个 PutLog。由 LogKey 保证。
-			}
-		}
-
-		public RecordAccessed(Record originRecord) {
-			OriginRecord = originRecord;
-			Timestamp = originRecord.getTimestamp();
-		}
-
-		public final void Put(Transaction current, Bean putValue) {
-			current.PutLog(new PutLog(this, putValue));
-		}
-
-		public final void Remove(Transaction current) {
-			Put(current, null);
-		}
-
-		@Override
-		protected void InitChildrenRootInfo(Record.RootInfo root) {
-		}
-
-		@Override
-		public void Decode(ByteBuffer bb) {
-		}
-
-		@Override
-		public void Encode(ByteBuffer bb) {
-		}
-	}
 
 	private TreeMap<TableKey, RecordAccessed> AccessedRecords = new TreeMap<TableKey, RecordAccessed> ();
 	public TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
@@ -417,10 +347,7 @@ public final class Transaction {
 		//if (IsCompleted)
 		//    throw new Exception("Transaction Is Completed");
 
-		if (getAccessedRecords().containsKey(key) && (var record = getAccessedRecords().get(key)) == var record) {
-			return record;
-		}
-		return null;
+		return getAccessedRecords().get(key);
 	}
 
 

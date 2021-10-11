@@ -1,8 +1,6 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.*;
-import Zeze.*;
-import java.util.*;
 
 public class EmptyBean extends Bean {
 	@Override

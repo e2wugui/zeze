@@ -1,6 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import java.util.*;
 
 public final class ChangeCollector {
@@ -8,12 +7,12 @@ public final class ChangeCollector {
 
 	@FunctionalInterface
 	public interface Collect {
-		void invoke(tangible.OutObject<java.util.ArrayList<Util.KV<Bean, Integer>>> path, tangible.OutObject<ChangeNote> note);
+		ChangePathAndNote doIt();
 	}
 
 	public void BuildCollect(TableKey tableKey, Zeze.Transaction.RecordAccessed recordAccessed) {
-		TValue tableCollector;
-		if (false == (tables.containsKey(tableKey.getTableId()) && (tableCollector = tables.get(tableKey.getTableId())) == tableCollector)) {
+		var tableCollector = tables.get(tableKey.getTableId());
+		if (null == tableCollector) {
 			tableCollector = new ChangeTableCollector(tableKey);
 			tables.put(tableKey.getTableId(), tableCollector);
 		}
@@ -21,8 +20,8 @@ public final class ChangeCollector {
 	}
 
 	public void CollectChanged(TableKey tableKey, Collect collect) {
-		TValue ctc;
-		if (tables.containsKey(tableKey.getTableId()) && (ctc = tables.get(tableKey.getTableId())) == ctc) {
+		var ctc = tables.get(tableKey.getTableId());
+		if (null != ctc) {
 			ctc.CollectChanged(tableKey, collect);
 		}
 		// else skip error 只有测试代码可能会走到这个分支。

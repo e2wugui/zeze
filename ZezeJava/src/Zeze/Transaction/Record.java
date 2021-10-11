@@ -1,9 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.Serialize.*;
-import Zeze.Services.*;
-import Zeze.*;
-
 public abstract class Record {
 	public static class RootInfo {
 		private Record Record;
@@ -15,12 +11,10 @@ public abstract class Record {
 			return TableKey;
 		}
 
-//C# TO JAVA CONVERTER TODO TASK: C# 'records' are not converted by C# to Java Converter:
-//		public RootInfo(Record record, TableKey tableKey)
-//			{
-//				Record = record;
-//				TableKey = tableKey;
-//			}
+		public RootInfo(Record record, TableKey tableKey) {
+			Record = record;
+			TableKey = tableKey;
+		}
 	}
 
 	public final RootInfo CreateRootInfoIfNeed(TableKey tkey) {
@@ -83,16 +77,16 @@ public abstract class Record {
 	}
 
 	public Record(Bean value) {
-		setState(GlobalCacheManager.StateInvalid);
+		setState(Zeze.Services.GlobalCacheManager.StateInvalid);
 		setValue(value);
 		//Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 初始化
 	}
 
 	// 时戳生成器，运行时状态，需要持久化时，再考虑保存到数据库。
 	// 0 保留给不存在记录的的时戳。
-	private static Zeze.Util.AtomicLong _TimestampGen = new Zeze.Util.AtomicLong();
+	private static java.util.concurrent.atomic.AtomicLong _TimestampGen = new java.util.concurrent.atomic.AtomicLong();
 	public static long getNextTimestamp() {
-		return _TimestampGen.IncrementAndGet();
+		return _TimestampGen.incrementAndGet();
 	}
 
 	public abstract void Commit(Zeze.Transaction.RecordAccessed accessed);
