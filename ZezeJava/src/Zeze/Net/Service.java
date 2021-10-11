@@ -7,6 +7,8 @@ import Zeze.Transaction.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+
 import Zeze.*;
 
 import org.apache.logging.log4j.Logger;
@@ -18,8 +20,22 @@ public class Service {
 	/** 
 	 同一个 Service 下的所有连接都是用相同配置。
 	*/
-	public SocketOptions SocketOptions = new SocketOptions();
-	public ServiceConf Config;
+	private SocketOptions SocketOptions = new SocketOptions();
+	public SocketOptions getSocketOptions() {
+		return SocketOptions;
+	}
+	public void setSocketOptions(SocketOptions ops) {
+		SocketOptions = ops;
+	}
+
+	private ServiceConf Config;
+	public ServiceConf getConfig() {
+		return Config;
+	}
+	public void setConfig(ServiceConf conf) {
+		Config = conf;
+	}
+
 	private Application Zeze;
 	public final Application getZeze() {
 		return Zeze;
@@ -123,8 +139,6 @@ public class Service {
 		return NewClientSocket(hostNameOrAddress, port, null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public AsyncSocket NewClientSocket(string hostNameOrAddress, int port, object userState = null)
 	public final AsyncSocket NewClientSocket(String hostNameOrAddress, int port, Object userState) {
 		return new AsyncSocket(this, hostNameOrAddress, port, userState);
 	}
@@ -135,15 +149,10 @@ public class Service {
 	 @param so
 	 @param e
 	*/
-	public void OnSocketClose(AsyncSocket so, RuntimeException e) {
-		TValue _;
-		tangible.OutObject<AsyncSocket> tempOut__ = new tangible.OutObject<AsyncSocket>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getSocketMap().TryRemove(so.getSessionId(), tempOut__);
-	_ = tempOut__.outArgValue;
-
+	public void OnSocketClose(AsyncSocket so, Throwable e) {
+		SocketMap.remove(so.getSessionId(), so);
 		if (null != e) {
-			logger.Log(getSocketOptions().getSocketLogLevel(), e, "OnSocketClose");
+			logger.log(getSocketOptions().getSocketLogLevel(), "OnSocketClose", e);
 		}
 	}
 
@@ -173,11 +182,11 @@ public class Service {
 		return GetRpcContexts((p) -> p.Sender == sender);
 	}
 
-	public final HashMap<Long, Protocol> GetRpcContexts(tangible.Func1Param<Protocol, Boolean> filter) {
-		var result = new HashMap<Long, Protocol>(getRpcContexts().Count);
-		for (var ctx : getRpcContexts()) {
-			if (filter.invoke(ctx.Value)) {
-				result.put(ctx.Key, ctx.Value);
+	public final HashMap<Long, Protocol> GetRpcContexts(RpcContextFilter filter) {
+		var result = new HashMap<Long, Protocol>(_RpcContexts.size());
+		for (var ctx : _RpcContexts.entrySet()) {
+			if (filter.invoke(ctx.getValue())) {
+				result.put(ctx.getKey(), ctx.getValue());
 			}
 		}
 		return result;
@@ -200,8 +209,7 @@ public class Service {
 	 @param so
 	*/
 	public void OnSocketAccept(AsyncSocket so) {
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getSocketMap().TryAdd(so.getSessionId(), so);
+		SocketMap.putIfAbsent(so.getSessionId(), so);
 		OnHandshakeDone(so);
 	}
 
@@ -225,12 +233,8 @@ public class Service {
 	 @param e
 	*/
 	public void OnSocketConnectError(AsyncSocket so, RuntimeException e) {
-		TValue _;
-		tangible.OutObject<AsyncSocket> tempOut__ = new tangible.OutObject<AsyncSocket>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getSocketMap().TryRemove(so.getSessionId(), tempOut__);
-	_ = tempOut__.outArgValue;
-		logger.Log(getSocketOptions().getSocketLogLevel(), e, "OnSocketConnectError");
+		SocketMap.remove(so.getSessionId(), so);
+		logger.log(getSocketOptions().getSocketLogLevel(), "OnSocketConnectError", e);
 	}
 
 	/** 
@@ -239,8 +243,7 @@ public class Service {
 	 @param so
 	*/
 	public void OnSocketConnected(AsyncSocket so) {
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getSocketMap().TryAdd(so.getSessionId(), so);
+		SocketMap.putIfAbsent(so.getSessionId(), so);
 		OnHandshakeDone(so);
 	}
 
@@ -258,11 +261,11 @@ public class Service {
 	// 用来派发异步rpc回调。
 	public void DispatchRpcResponse(Protocol rpc, ProtocolHandle responseHandle, ProtocolFactoryHandle factoryHandle) {
 		if (null != getZeze() && false == factoryHandle.NoProcedure) {
-			Zeze.Util.Task.Run(getZeze().NewProcedure(
+			Task.Run(getZeze().NewProcedure(
 					() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response", rpc.UserState));
 		}
 		else {
-			Zeze.Util.Task.Run(() -> responseHandle.handle(rpc), rpc);
+			Task.Run(() -> responseHandle.handle(rpc), rpc);
 		}
 	}
 
@@ -343,32 +346,21 @@ public class Service {
 	}
 
 	public final ProtocolFactoryHandle FindProtocolFactoryHandle(int type) {
-		ProtocolFactoryHandle factory;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut_factory = new tangible.OutObject < getZeze().Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (getFactorys().TryGetValue(type, tempOut_factory)) {
-		factory = tempOut_factory.outArgValue;
-			return factory;
-		}
-	else {
-		factory = tempOut_factory.outArgValue;
-	}
-
-		return null;
+		return Factorys.get(type);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	/** Rpc Context. 模板不好放进去，使用基类 Protocol
 	*/
-	private static Util.AtomicLong StaticSessionIdAtomicLong = new Util.AtomicLong();
-	private static Util.AtomicLong getStaticSessionIdAtomicLong() {
+	private static AtomicLong StaticSessionIdAtomicLong = new AtomicLong();
+	private static AtomicLong getStaticSessionIdAtomicLong() {
 		return StaticSessionIdAtomicLong;
 	}
-	private tangible.Func0Param<Long> SessionIdGenerator;
-	public final tangible.Func0Param<Long> getSessionIdGenerator() {
+	private SessionIdGenerator SessionIdGenerator;
+	public final SessionIdGenerator getSessionIdGenerator() {
 		return SessionIdGenerator;
 	}
-	public final void setSessionIdGenerator(tangible.Func0Param<Long> value) {
+	public final void setSessionIdGenerator(SessionIdGenerator value) {
 		SessionIdGenerator = value;
 	}
 
@@ -378,34 +370,25 @@ public class Service {
 	}
 
 	public final long NextSessionId() {
-		if (null != getSessionIdGenerator()) {
-			return SessionIdGenerator();
+		if (null != SessionIdGenerator) {
+			return SessionIdGenerator.next();
 		}
-		return getStaticSessionIdAtomicLong().IncrementAndGet();
+		return getStaticSessionIdAtomicLong().incrementAndGet();
 	}
 
 	public final long AddRpcContext(Protocol p) {
 		while (true) {
 			long sessionId = NextSessionId();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-			if (_RpcContexts.TryAdd(sessionId, p)) {
+			if (null == _RpcContexts.putIfAbsent(sessionId, p)) {
 				return sessionId;
 			}
 		}
 	}
 
 	public final <T extends Protocol> T RemoveRpcContext(long sid) {
-		TValue p;
-		tangible.OutObject<Protocol> tempOut_p = new tangible.OutObject<Protocol>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (_RpcContexts.TryRemove(sid, tempOut_p)) {
-		p = tempOut_p.outArgValue;
-			return (T)p;
-		}
-	else {
-		p = tempOut_p.outArgValue;
-	}
-		return null;
+		@SuppressWarnings("unchecked")
+		var t = (T)_RpcContexts.remove(sid);
+		return t;
 	}
 
 	public abstract static class ManualContext {
@@ -440,47 +423,35 @@ public class Service {
 		return AddManualContextWithTimeout(context, 10 * 1000);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public long AddManualContextWithTimeout(ManualContext context, long timeout = 10*1000)
 	public final long AddManualContextWithTimeout(ManualContext context, long timeout) {
 		while (true) {
 			long sessionId = NextSessionId();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-			if (ManualContexts.TryAdd(sessionId, context)) {
+			if (null == ManualContexts.putIfAbsent(sessionId, context)) {
 				context.setSessionId(sessionId);
-				Util.Scheduler.getInstance().Schedule((ThisTask) -> this.<ManualContext>TryRemoveManualContext(sessionId) == null ? null : this.<ManualContext>TryRemoveManualContext(sessionId).OnTimeout(), timeout, -1);
+				Task.schedule((ThisTask) -> {
+					ManualContext ctx = this.<ManualContext>TryRemoveManualContext(sessionId);
+						if (null != ctx) {
+							ctx.OnTimeout();
+						}
+					}, timeout, -1);
 				return sessionId;
 			}
 		}
 	}
 
 	public final <T extends ManualContext> T TryGetManualContext(long sessionId) {
-		TValue c;
-		tangible.OutObject<TValue> tempOut_c = new tangible.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (ManualContexts.TryGetValue(sessionId, tempOut_c)) {
-		c = tempOut_c.outArgValue;
-			return (T)c;
-		}
-	else {
-		c = tempOut_c.outArgValue;
-	}
-		return null;
+		@SuppressWarnings("unchecked")
+		var r = (T)ManualContexts.get(sessionId);
+		return r;
 	}
 
 	public final <T extends ManualContext> T TryRemoveManualContext(long sessionId) {
-		TValue c;
-		tangible.OutObject<ManualContext> tempOut_c = new tangible.OutObject<ManualContext>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (ManualContexts.TryRemove(sessionId, tempOut_c)) {
-		c = tempOut_c.outArgValue;
-			c.OnRemoved();
-			return (T)c;
+		@SuppressWarnings("unchecked")
+		var r = (T)ManualContexts.remove(sessionId);
+		if (null != r) {
+			r.OnRemoved();
 		}
-	else {
-		c = tempOut_c.outArgValue;
-	}
-		return null;
+		return r;
 	}
 
 	// 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。

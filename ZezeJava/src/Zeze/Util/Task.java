@@ -9,26 +9,8 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class Task implements Runnable {
+public class Task extends java.util.concurrent.FutureTask<Integer> {
 	private static final Logger logger = LogManager.getLogger(Task.class);
-
-	public static void Call(Runnable action, String actionName) {
-		try {
-			action.run();
-		}
-		catch (Throwable ex) {
-			logger.error(actionName, ex);
-		}
-	}
-
-	public static void Call(Callable<Integer> action, String actionName) {
-		try {
-			action.call();
-		}
-		catch (Throwable ex) {
-			logger.error(actionName, ex);
-		}
-	}
 
 	private static Object lock = new Object();
 	private static java.util.concurrent.ScheduledThreadPoolExecutor threadPool;
@@ -63,25 +45,40 @@ public class Task implements Runnable {
 		}
 	}
 
-	protected java.util.concurrent.Future<?> Future;	
-	private Runnable action;
+	public static void Call(Runnable action, String actionName) {
+		try {
+			action.run();
+		}
+		catch (Throwable ex) {
+			logger.error(actionName, ex);
+		}
+	}
+
+	public static int Call(Callable<Integer> action, String actionName) {
+		try {
+			return action.call();
+		}
+		catch (Throwable ex) {
+			logger.error(actionName, ex);
+			return Zeze.Transaction.Procedure.Excption;
+		}
+	}
 
 	public void Cancel() {
-		Future.cancel(false);
+		super.cancel(false);
 	}
 
 	public Task(Runnable action) {
-		this.action = action;
+		super(action, 0);
 	}
-
-	@Override
-	public void run() {
-		action.run(); // 外面包装已经处理完错误。
+	
+	public Task(Callable<Integer> callable) {
+		super(callable);
 	}
 
 	public static Task Run(Runnable action, String actionName) {
 		var task = new Task(() -> Call(action, actionName));
-		task.Future = threadPool.submit(task);
+		threadPool.submit(task);
 		return task;
 	}
 
@@ -89,8 +86,12 @@ public class Task implements Runnable {
 		private SchedulerHandle SchedulerHandle;
 
 		public SchedulerTask(SchedulerHandle handle) {
-			super(null);
+			super(() -> fakecall());
 			SchedulerHandle = handle;
+		}
+		
+		private static int fakecall() {
+			return 0;
 		}
 
 		@Override
@@ -99,19 +100,21 @@ public class Task implements Runnable {
 				SchedulerHandle.handle(this);
 			} catch (Throwable ex) {
 				logger.error("SchedulerTask", ex);
+			} finally {
+				super.run();
 			}
 		}
 	}
 	
 	public static Task schedule(SchedulerHandle s, long initialDelay) {
 		var task = new SchedulerTask(s);
-		task.Future = threadPool.schedule(task, initialDelay, TimeUnit.MILLISECONDS);
+		threadPool.schedule(task, initialDelay, TimeUnit.MILLISECONDS);
 		return task;
 	}
 
 	public static Task schedule(SchedulerHandle s, long initialDelay, long period) {
 		var task = new SchedulerTask(s);
-		task.Future = threadPool.scheduleWithFixedDelay(task, initialDelay, period, TimeUnit.MILLISECONDS);
+		threadPool.scheduleWithFixedDelay(task, initialDelay, period, TimeUnit.MILLISECONDS);
 		return task;
 	}
 

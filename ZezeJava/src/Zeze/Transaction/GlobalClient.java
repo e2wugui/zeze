@@ -78,7 +78,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket so, RuntimeException e) {
+	public void OnSocketClose(AsyncSocket so, Throwable e) {
 		super.OnSocketClose(so, e);
 		Object tempVar = so.getUserState();
 		var agent = tempVar instanceof GlobalAgent.Agent ? (GlobalAgent.Agent)tempVar : null;

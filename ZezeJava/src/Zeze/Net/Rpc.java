@@ -9,12 +9,37 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	private static final Logger logger = LogManager.getLogger(Rpc.class);
 
 	public TResult Result;
-	public boolean IsTimeout = false;
-	public long SessionId;
-	public ProtocolHandle ResponseHandle;
-	public int Timeout = 5000;
 
-	public Zeze.Util.TaskCompletionSource<TResult> Future;
+	private boolean IsTimeout = false;
+	public boolean isTimeout() {
+		return IsTimeout;
+	}
+
+	public long SessionId;
+	public long getSessionId() {
+		return SessionId;
+	}
+	public void setSessionId(long sessionId) {
+		SessionId = sessionId;
+	}
+
+	private ProtocolHandle ResponseHandle;
+	public ProtocolHandle getResponseHandle() {
+		return ResponseHandle;
+	}
+	public void setResponseHandle(ProtocolHandle handle) {
+		ResponseHandle = handle;
+	}
+
+	private int Timeout = 5000;
+	public int getTimeout() {
+		return Timeout;
+	}
+	public void setTimeout(int timeout) {
+		Timeout = timeout;
+	}
+
+	private Zeze.Util.TaskCompletionSource<TResult> Future;
 
 	/** 
 	 使用当前 rpc 中设置的参数发送。

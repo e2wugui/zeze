@@ -4,6 +4,7 @@ import Zeze.Serialize.*;
 import Zeze.*;
 import java.util.*;
 import java.io.*;
+import java.net.InetSocketAddress;
 
 /** 
  使用Socket的BeginXXX,EndXXX XXXAsync方法的异步包装类。

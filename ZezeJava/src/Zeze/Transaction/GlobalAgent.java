@@ -121,7 +121,7 @@ public final class GlobalAgent {
 			tmp.close();
 		}
 
-		public final void OnSocketClose(GlobalClient client, RuntimeException ex) {
+		public final void OnSocketClose(GlobalClient client, Throwable ex) {
 			synchronized (this) {
 				if (null == getSocket()) {
 					// active close

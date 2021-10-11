@@ -722,7 +722,7 @@ public final class ServiceManager implements Closeable {
 		}
 
 		@Override
-		public void OnSocketClose(AsyncSocket so, RuntimeException e) {
+		public void OnSocketClose(AsyncSocket so, Throwable e) {
 			Object tempVar = so.getUserState();
 			var session = tempVar instanceof Session ? (Session)tempVar : null;
 			if (session != null) {
@@ -1848,7 +1848,7 @@ public final class ServiceManager implements Closeable {
 			}
 
 			@Override
-			public void OnSocketClose(AsyncSocket so, RuntimeException e) {
+			public void OnSocketClose(AsyncSocket so, Throwable e) {
 				if (getSocket() == so) {
 					setSocket(null);
 				}

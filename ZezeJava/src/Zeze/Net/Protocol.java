@@ -126,7 +126,7 @@ public abstract class Protocol implements Serializable {
 			// 参考 AsyncSocket
 			if (size < 0 || size > os.Size()) {
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
-				if (size < 0 || size > service.SocketOptions.getInputBufferMaxProtocolSize()) {
+				if (size < 0 || size > service.getSocketOptions().getInputBufferMaxProtocolSize()) {
 					var factoryHandle = service.FindProtocolFactoryHandle(type);
 					var pName = null == factoryHandle || null == factoryHandle.Factory
 							? "" : factoryHandle.Factory.create().getClass().getName();
