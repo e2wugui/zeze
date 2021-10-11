@@ -1,26 +1,24 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.*;
-import Zeze.*;
+import java.util.concurrent.ConcurrentHashMap;
 
-//C# TO JAVA CONVERTER TODO TASK: The C# 'new()' constraint has no equivalent in Java:
-//ORIGINAL LINE: public sealed class Storage<K, V> : Storage where V : Bean, new()
-public final class Storage<K, V extends Bean> extends Storage {
+public final class Storage1<K, V extends Bean> extends Storage {
 	private Table Table;
 	public Table getTable() {
 		return Table;
 	}
 
-	public Storage(Table<K, V> table, Database database, String tableName) {
+	public Storage1(Table1<K, V> table, Database database, String tableName) {
 		Table = table;
 		setDatabaseTable(database.OpenTable(tableName));
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<K, Record<K, V>> changed = new java.util.concurrent.ConcurrentHashMap<K, Record<K, V>>();
-	private java.util.concurrent.ConcurrentHashMap<K, Record<K, V>> encoded = new java.util.concurrent.ConcurrentHashMap<K, Record<K, V>>();
-	private java.util.concurrent.ConcurrentHashMap<K, Record<K, V>> snapshot = new java.util.concurrent.ConcurrentHashMap<K, Record<K, V>>();
+	private ConcurrentHashMap<K, Record1<K, V>> changed = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<K, Record1<K, V>> encoded = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<K, Record1<K, V>> snapshot = new ConcurrentHashMap<>();
 
-	public void OnRecordChanged(Record<K, V> r) {
+	public void OnRecordChanged(Record1<K, V> r) {
 		changed.put(r.getKey(), r);
 	}
 
@@ -45,8 +43,8 @@ public final class Storage<K, V extends Bean> extends Storage {
 	@Override
 	public int EncodeN() {
 		int c = 0;
-		for (var e : changed) {
-			if (e.Value.TryEncodeN(changed, encoded)) {
+		for (var e : changed.entrySet()) {
+			if (e.getValue().TryEncodeN(changed, encoded)) {
 				++c;
 			}
 		}
@@ -60,9 +58,9 @@ public final class Storage<K, V extends Bean> extends Storage {
 	*/
 	@Override
 	public int Encode0() {
-		for (var e : changed) {
-			e.Value.Encode0();
-			encoded.put(e.getKey(), e.Value);
+		for (var e : changed.entrySet()) {
+			e.getValue().Encode0();
+			encoded.put(e.getKey(), e.getValue());
 		}
 		int cc = changed.size();
 		changed.clear();
@@ -80,8 +78,8 @@ public final class Storage<K, V extends Bean> extends Storage {
 		snapshot = encoded;
 		encoded = tmp;
 		int cc = snapshot.size();
-		for (var e : snapshot) {
-			e.Value.SavedTimestampForCheckpointPeriod = e.Value.Timestamp;
+		for (var e : snapshot.entrySet()) {
+			e.getValue().setSavedTimestampForCheckpointPeriod(e.getValue().getTimestamp());
 		}
 		return cc;
 	}
@@ -95,8 +93,8 @@ public final class Storage<K, V extends Bean> extends Storage {
 	@Override
 	public int Flush(Database.Transaction t) {
 		int count = 0;
-		for (var e : snapshot) {
-			if (e.Value.Flush(t)) {
+		for (var e : snapshot.entrySet()) {
+			if (e.getValue().Flush(t)) {
 				++count;
 			}
 		}
@@ -109,13 +107,13 @@ public final class Storage<K, V extends Bean> extends Storage {
 	*/
 	@Override
 	public void Cleanup() {
-		for (var e : snapshot) {
-			e.Value.Cleanup();
+		for (var e : snapshot.entrySet()) {
+			e.getValue().Cleanup();
 		}
 		snapshot.clear();
 	}
 
-	public V Find(K key, Table<K, V> table) {
+	public V Find(K key, Table1<K, V> table) {
 		ByteBuffer value = getDatabaseTable().Find(table.EncodeKey(key));
 		return null != value ? table.DecodeValue(value) : null;
 	}

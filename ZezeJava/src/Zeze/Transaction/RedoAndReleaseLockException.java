@@ -1,8 +1,11 @@
 package Zeze.Transaction;
 
-import Zeze.*;
+public final class RedoAndReleaseLockException extends Error {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -7674037466857621440L;
 
-public final class RedoAndReleaseLockException extends RuntimeException {
 	public RedoAndReleaseLockException() {
 	}
 

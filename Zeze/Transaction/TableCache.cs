@@ -181,14 +181,14 @@ namespace Zeze.Transaction
         // under lockey.writelock
         private bool Remove(KeyValuePair<K, Record<K, V>> p)
         {
-            if (DataMap.TryRemove(p.Key, out var e))
+            if (DataMap.TryRemove(p))
             {
                 // 这里有个时间窗口：先删除DataMap再去掉Lru引用，
                 // 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
                 // see GetOrAdd
                 p.Value.State = GlobalCacheManager.StateRemoved;
                 // 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
-                e.LruNode.TryRemove(p);
+                p.Value.LruNode.TryRemove(p);
                 return true;
             }
             return false;

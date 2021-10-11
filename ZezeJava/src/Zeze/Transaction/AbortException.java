@@ -1,8 +1,11 @@
 package Zeze.Transaction;
 
-import Zeze.*;
+public final class AbortException extends Error {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3068088074472148295L;
 
-public final class AbortException extends RuntimeException {
 	public AbortException() {
 	}
 

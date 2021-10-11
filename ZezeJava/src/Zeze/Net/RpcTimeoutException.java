@@ -4,7 +4,7 @@ public final class RpcTimeoutException extends RuntimeException {
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = 1633955069498L;
+	private static final long serialVersionUID = -7782233468533311166L;
 
 	public RpcTimeoutException() {
 

@@ -1,8 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.Serialize.*;
-import Zeze.*;
-
 public abstract class Storage {
 	private Database.Table DatabaseTable;
 	public final Database.Table getDatabaseTable() {

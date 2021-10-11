@@ -1,23 +1,18 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.*;
-import MySql.Data.MySqlClient.*;
 import Zeze.*;
 import java.util.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import java.io.*;
-import java.nio.file.*;
-
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-//#if USE_DATABASE
-//#endif
-
 
 /** 
  数据访问的效率主要来自TableCache的命中。根据以往的经验，命中率是很高的。
  所以数据库层就不要求很高的效率。马马虎虎就可以了。
 */
 public abstract class Database {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(Database.class);
 
 	private HashMap<String, Zeze.Transaction.Table> tables = new HashMap<String, Zeze.Transaction.Table>();
 	public ArrayList<Storage> storages = new ArrayList<Storage>();
@@ -35,11 +30,7 @@ public abstract class Database {
 	}
 
 	public final Zeze.Transaction.Table GetTable(String name) {
-		TValue table;
-		if (tables.containsKey(name) && (table = tables.get(name)) == table) {
-			return table;
-		}
-		return null;
+		return tables.get(name);
 	}
 
 	public abstract Transaction BeginTransaction();
@@ -76,7 +67,7 @@ public abstract class Database {
 			for (Storage storage : storages) {
 				countEncodeN += storage.EncodeN();
 			}
-			//logger.Info("Checkpoint EncodeN {0}/{1}", i, countEncodeN);
+			logger.debug("Checkpoint EncodeN {}@{}", i, countEncodeN);
 		}
 	}
 
@@ -90,7 +81,7 @@ public abstract class Database {
 			countSnapshot += storage.Snapshot();
 		}
 
-		//logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
+		logger.info("Checkpoint Encode0 And Snapshot countEncode0={} countSnapshot={}", countEncode0, countSnapshot);
 	}
 
 	public final void Flush(Transaction trans) {
@@ -98,7 +89,7 @@ public abstract class Database {
 		for (Storage storage : storages) {
 			countFlush += storage.Flush(trans);
 		}
-		logger.Info("Checkpoint Flush count={0}", countFlush);
+		logger.info("Checkpoint Flush count={}", countFlush);
 	}
 
 	public final void Cleanup() {
@@ -125,9 +116,7 @@ public abstract class Database {
 		 @param callback
 		 @return 返回已经遍历的数量
 		*/
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public long Walk(Func<byte[], byte[], bool> callback);
-		public long Walk(tangible.Func2Param<byte[], byte[], Boolean> callback);
+		public long Walk(TableWalkHandleRaw callback);
 		public void Close();
 	}
 
@@ -185,8 +174,6 @@ public abstract class Database {
 		 @return 
 		*/
 		public boolean SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, tangible.RefObject<Long> version);
-//C# TO JAVA CONVERTER TODO TASK: Methods returning tuples are not converted by C# to Java Converter:
-//		public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key);
 	}
 
 	private Operates DirectOperates;

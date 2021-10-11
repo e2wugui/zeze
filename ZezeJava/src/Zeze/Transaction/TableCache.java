@@ -3,6 +3,12 @@ package Zeze.Transaction;
 import Zeze.Services.*;
 import Zeze.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import Zeze.Util.HugeConcurrentDictionary;
+import Zeze.Util.Task;
 
 // MESI？
 
@@ -20,85 +26,90 @@ import java.util.*;
  <typeparam name="K"></typeparam>
  <typeparam name="V"></typeparam>
 */
-//C# TO JAVA CONVERTER TODO TASK: The C# 'new()' constraint has no equivalent in Java:
-//ORIGINAL LINE: public class TableCache<K, V> where V : Bean, new()
 public class TableCache<K, V extends Bean> {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(TableCache.class);
 
-	private Util.HugeConcurrentDictionary<K, Record<K, V>> DataMap;
-	public final Util.HugeConcurrentDictionary<K, Record<K, V>> getDataMap() {
+	private HugeConcurrentDictionary<K, Record1<K, V>> DataMap;
+	public final HugeConcurrentDictionary<K, Record1<K, V>> getDataMap() {
 		return DataMap;
 	}
 
-	private ConcurrentQueue<Util.HugeConcurrentDictionary<K, Record<K, V>>> LruQueue = new ConcurrentQueue<Util.HugeConcurrentDictionary<K, Record<K, V>>> ();
-	private ConcurrentQueue<Util.HugeConcurrentDictionary<K, Record<K, V>>> getLruQueue() {
+	private ConcurrentLinkedQueue<HugeConcurrentDictionary<K, Record1<K, V>>> LruQueue = new ConcurrentLinkedQueue<> ();
+	private ConcurrentLinkedQueue<HugeConcurrentDictionary<K, Record1<K, V>>> getLruQueue() {
 		return LruQueue;
 	}
 
-	private Util.HugeConcurrentDictionary<K, Record<K, V>> LruHot;
-	private Util.HugeConcurrentDictionary<K, Record<K, V>> getLruHot() {
+	private HugeConcurrentDictionary<K, Record1<K, V>> LruHot;
+	private HugeConcurrentDictionary<K, Record1<K, V>> getLruHot() {
 		return LruHot;
 	}
-	private void setLruHot(Util.HugeConcurrentDictionary<K, Record<K, V>> value) {
+	private void setLruHot(HugeConcurrentDictionary<K, Record1<K, V>> value) {
 		LruHot = value;
 	}
 
-	private Table<K, V> Table;
-	public final Table<K, V> getTable() {
+	private Table1<K, V> Table;
+	public final Table1<K, V> getTable() {
 		return Table;
 	}
 
-	public TableCache(Application app, Table<K, V> table) {
+	public TableCache(Application app, Table1<K, V> table) {
 		this.Table = table;
-		DataMap = new Util.HugeConcurrentDictionary<K, Record<K, V>>(GetCacheBuckets(), GetCacheConcurrencyLevel(), GetCacheInitialCapaicty());
+		DataMap = new HugeConcurrentDictionary<K, Record1<K, V>>(
+				GetCacheBuckets(), GetCacheConcurrencyLevel(), GetCacheInitialCapaicty());
 		NewLruHot();
-		Util.Scheduler.getInstance().Schedule((task) -> {
+		Task.schedule((task) -> {
 				// 访问很少的时候不创建新的热点。这个选项没什么意思。
-				if (getLruHot().getCount() > table.TableConf.getCacheNewAccessHotThreshold()) {
+				if (getLruHot().size() > table.getTableConf().getCacheNewAccessHotThreshold()) {
 					NewLruHot();
 				}
-		}, table.TableConf.getCacheNewLruHotPeriod(), table.TableConf.getCacheNewLruHotPeriod());
-		Util.Scheduler.getInstance().Schedule(::CleanNow, getTable().TableConf.getCacheCleanPeriod(), -1);
+		}, table.getTableConf().getCacheNewLruHotPeriod(), table.getTableConf().getCacheNewLruHotPeriod());
+		Task.schedule((task)->CleanNow(task), getTable().getTableConf().getCacheCleanPeriod(), -1);
 	}
 
 	private int GetCacheBuckets() {
-		return getTable().TableConf.getCacheBuckets() < 16 ? 16 : getTable().TableConf.getCacheBuckets();
+		return getTable().getTableConf().getCacheBuckets() < 16 ? 16 : getTable().getTableConf().getCacheBuckets();
 	}
 
 	private int GetCacheConcurrencyLevel() {
 		// 这样写，当配置修改，可以使用的时候马上生效。
-		return getTable().TableConf.getCacheConcurrencyLevel() > Environment.ProcessorCount ? getTable().TableConf.getCacheConcurrencyLevel() : Environment.ProcessorCount;
+		var processors = Runtime.getRuntime().availableProcessors();
+		return getTable().getTableConf().getCacheConcurrencyLevel() > processors
+				? getTable().getTableConf().getCacheConcurrencyLevel() : processors;
 	}
 
 	private long GetCacheInitialCapaicty() {
 		// 31 from c# document
 		// 这样写，当配置修改，可以使用的时候马上生效。
-		return getTable().TableConf.getCacheInitialCapaicty() < 31 ? 31 : getTable().TableConf.getCacheInitialCapaicty();
+		return getTable().getTableConf().getCacheInitialCapaicty() < 31
+				? 31 : getTable().getTableConf().getCacheInitialCapaicty();
 	}
 
 	private long GetLruInitialCapaicty() {
 		long c = (long)(GetCacheInitialCapaicty() * 0.2);
-		return c < getTable().TableConf.getCacheMaxLruInitialCapaicty() ? c : getTable().TableConf.getCacheMaxLruInitialCapaicty();
+		return c < getTable().getTableConf().getCacheMaxLruInitialCapaicty()
+				? c : getTable().getTableConf().getCacheMaxLruInitialCapaicty();
 	}
 
 	private void NewLruHot() {
-		setLruHot(new Util.HugeConcurrentDictionary<K, Record<K, V>>(GetCacheBuckets(), GetCacheConcurrencyLevel(), GetLruInitialCapaicty()));
-		getLruQueue().Enqueue(getLruHot());
+		setLruHot(new HugeConcurrentDictionary<K, Record1<K, V>>(
+				GetCacheBuckets(), GetCacheConcurrencyLevel(), GetLruInitialCapaicty()));
+		getLruQueue().add(getLruHot());
 	}
 
-	public final Record<K, V> GetOrAdd(K key, tangible.Func1Param<K, Record<K, V>> valueFactory) {
-		boolean isNew = false;
-		Record<K, V> result = getDataMap().GetOrAdd(key, (k) -> {
-					var r = valueFactory.invoke(k);
-					getLruHot().set(k, r); // replace: add or update see this.Remove
-					r.LruNode = getLruHot();
-					isNew = true;
+	public final Record1<K, V> GetOrAdd(K key, Zeze.Util.Factory<Record1<K, V>> valueFactory) {
+		final tangible.OutObject<Boolean> isNew = new tangible.OutObject<>();
+		isNew.outArgValue = false;
+		Record1<K, V> result = DataMap.GetOrAdd(key, (k) -> {
+					var r = valueFactory.create();
+					getLruHot().put(k, r); // replace: add or update see this.Remove
+					r.setLruNode(getLruHot());
+					isNew.outArgValue = true;
 					return r;
 		});
 
-		if (false == isNew && result.getLruNode() != getLruHot()) {
-			result.getLruNode().TryRemove(KeyValuePair.Create(key, result));
-			if (getLruHot().TryAdd(key, result)) {
+		if (false == isNew.outArgValue && result.getLruNode() != getLruHot()) {
+			result.getLruNode().remove(key, result);
+			if (null == getLruHot().putIfAbsent(key, result)) {
 				result.setLruNode(getLruHot());
 			}
 			// else maybe fail in concurrent access.
@@ -115,17 +126,8 @@ public class TableCache<K, V extends Bean> {
 	 @param key
 	 @return 
 	*/
-	public final Record<K, V> Get(K key) {
-		V r;
-		tangible.OutObject<Record<K, V>> tempOut_r = new tangible.OutObject<Record<K, V>>();
-		if (getDataMap().TryGetValue(key, tempOut_r)) {
-		r = tempOut_r.outArgValue;
-			return r;
-		}
-	else {
-		r = tempOut_r.outArgValue;
-	}
-		return null;
+	public final Record1<K, V> Get(K key) {
+		return DataMap.get(key);
 	}
 
 	// 不再提供删除，由 Cleaner 集中清理。
@@ -137,28 +139,19 @@ public class TableCache<K, V extends Bean> {
 	}
 	*/
 
-	public final void CleanNow(Zeze.Util.SchedulerTask ThisTask) {
+	public final void CleanNow(Task ThisTask) {
 		// 这个任务的执行时间可能很长，
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。
 
-		if (getTable().TableConf.getCacheCapacity() <= 0) {
-			Util.Scheduler.getInstance().Schedule(::CleanNow, getTable().TableConf.getCacheCleanPeriod(), -1);
+		if (getTable().getTableConf().getCacheCapacity() <= 0) {
+			Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod(), -1);
 			return; // 容量不限
 		}
 
-		while (getDataMap().getCount() > getTable().TableConf.getCacheCapacity()) { // 超出容量，循环尝试
-			T node;
-			tangible.OutObject<Util.HugeConcurrentDictionary<K, Record<K, V>>> tempOut_node = new tangible.OutObject<Util.HugeConcurrentDictionary<K, Record<K, V>>>();
-			if (false == getLruQueue().TryPeek(tempOut_node)) {
-			node = tempOut_node.outArgValue;
-				break;
-			}
-		else {
-			node = tempOut_node.outArgValue;
-		}
-
-			if (node == getLruHot()) { // 热点。不回收。
+		while (DataMap.size() > getTable().getTableConf().getCacheCapacity()) { // 超出容量，循环尝试
+			var node = getLruQueue().peek();
+			if (null == node || node == getLruHot()) { // 热点。不回收。
 				break;
 			}
 
@@ -168,51 +161,45 @@ public class TableCache<K, V extends Bean> {
 					getTable().getZeze().CheckpointRun();
 				}
 			}
-			if (node.Count == 0) {
-				T _;
-				tangible.OutObject<Util.HugeConcurrentDictionary<K, Record<K, V>>> tempOut__ = new tangible.OutObject<Util.HugeConcurrentDictionary<K, Record<K, V>>>();
-				getLruQueue().TryDequeue(tempOut__);
-			_ = tempOut__.outArgValue;
+			if (node.size() == 0) {
+				getLruQueue().poll();
 			}
 			else {
-				logger.Warn(String.format("remain record when clean oldest lrunode."));
+				logger.warn("remain record when clean oldest lrunode.");
 			}
 
-			if (getTable().TableConf.getCacheCleanPeriodWhenExceedCapacity() > 0) {
-				Thread.sleep(getTable().TableConf.getCacheCleanPeriodWhenExceedCapacity());
+			if (getTable().getTableConf().getCacheCleanPeriodWhenExceedCapacity() > 0) {
+				try {
+					Thread.sleep(getTable().getTableConf().getCacheCleanPeriodWhenExceedCapacity());
+				} catch (InterruptedException skip) {
+				}
 			}
 		}
-		Util.Scheduler.getInstance().Schedule(::CleanNow, getTable().TableConf.getCacheCleanPeriod(), -1);
+		Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod(), -1);
 	}
 
 	// under lockey.writelock
-	private boolean Remove(Map.Entry<K, Record<K, V>> p) {
-		V e;
-		tangible.OutObject<Record<K, V>> tempOut_e = new tangible.OutObject<Record<K, V>>();
-		if (getDataMap().TryRemove(p.getKey(), tempOut_e)) {
-		e = tempOut_e.outArgValue;
+	private boolean Remove(Map.Entry<K, Record1<K, V>> p) {
+		if (DataMap.remove(p.getKey(), p.getValue())) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
 			// see GetOrAdd
-			p.getValue().State = GlobalCacheManager.StateRemoved;
+			p.getValue().setState(GlobalCacheManager.StateRemoved);
 			// 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
-			e.LruNode.TryRemove(p);
+			p.getValue().getLruNode().remove(p.getKey(), p.getValue());
 			return true;
 		}
-	else {
-		e = tempOut_e.outArgValue;
-	}
-		return false;
+		return true; // 没有删除成功，仍然返回true。
 	}
 
-	private boolean TryRemoveRecord(Map.Entry<K, Record<K, V>> p) {
+	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) {
 		TableKey tkey = new TableKey(this.getTable().getId(), p.getKey());
 		Lockey lockey = Locks.getInstance().Get(tkey);
 		if (false == lockey.TryEnterWriteLock(0)) {
 			return false;
 		}
 		try {
-			var storage = getTable().getTStorage();
+			var storage = getTable().TStorage;
 			if (null == storage) {
 				/* 不支持内存表cache同步。
 				if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
@@ -231,11 +218,11 @@ public class TableCache<K, V extends Bean> {
 			// （修改为true的时也在记录锁（lockey）下）。
 			// 这里只是读取，就不加锁了。
 
-			if (p.getValue().Dirty) {
+			if (p.getValue().getDirty()) {
 				return false;
 			}
 
-			if (p.getValue().State != GlobalCacheManager.StateInvalid) {
+			if (p.getValue().getState() != GlobalCacheManager.StateInvalid) {
 				if (p.getValue().Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid) {
 					return false;
 				}

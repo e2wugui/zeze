@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.*;
-
 public final class TableKey implements java.lang.Comparable<TableKey> {
 	private int TableId;
 	public int getTableId() {
@@ -17,17 +15,21 @@ public final class TableKey implements java.lang.Comparable<TableKey> {
 		Key = key;
 	}
 
+	@SuppressWarnings("unchecked")
 	public int compareTo(TableKey other) {
-		int c = (new Integer(this.getTableId())).compareTo(other.getTableId());
+		int c = Integer.compare(this.getTableId(), other.getTableId());
 		if (c != 0) {
 			return c;
 		}
-		return Comparer<java.lang.Comparable>.Default.Compare((java.lang.Comparable)getKey(), (java.lang.Comparable)other.getKey());
+		@SuppressWarnings("rawtypes")
+		Comparable This = (Comparable)getKey();
+		c = This.compareTo(other);
+		return c;
 	}
 
 	@Override
 	public String toString() {
-		return String.format("tkey{%1$s:%2$s,%3$s", getTableId(), Table.GetTable(getTableId()).getName(), getKey()}});
+		return String.format("tkey{%1$s:%2$s,%3$s", getTableId(), Table.GetTable(getTableId()).getName(), getKey());
 	}
 
 	@Override

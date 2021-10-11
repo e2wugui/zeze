@@ -17,17 +17,11 @@ public final class DatabaseMemory extends Database {
 		setDirectOperates(new ProceduresMemory());
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public class ByteArrayComparer : IEqualityComparer<byte[]>
-	public static class ByteArrayComparer implements IEqualityComparer<byte[]> {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public bool Equals(byte[] left, byte[] right)
+	public static class ByteArrayComparer implements IComparetor<byte[]> {
 		public final boolean equals(byte[] left, byte[] right) {
 			return ByteBuffer.Equals(left, right);
 		}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public int GetHashCode(byte[] key)
 		public final int hashCode(byte[] key) {
 			return ByteBuffer.calc_hashnr(key, 0, key.length);
 		}
@@ -57,9 +51,7 @@ public final class DatabaseMemory extends Database {
 			}
 		}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private Dictionary<byte[], DataWithVersion> DataWithVersions = new Dictionary<byte[], DataWithVersion>(new ByteArrayComparer());
-		private HashMap<byte[], DataWithVersion> DataWithVersions = new HashMap<byte[], DataWithVersion>(Arrays.asList(new ByteArrayComparer()));
+		private HashMap<byte[], DataWithVersion> DataWithVersions = new HashMap<>(Arrays.asList(new ByteArrayComparer()));
 
 //C# TO JAVA CONVERTER TODO TASK: Methods returning tuples are not converted by C# to Java Converter:
 //		public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key)

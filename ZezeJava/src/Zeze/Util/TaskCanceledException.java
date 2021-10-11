@@ -1,7 +1,7 @@
 package Zeze.Util;
 
-public class TaskCanceledException extends RuntimeException {
-	static final long serialVersionUID = 1633764672881L;
+public class TaskCanceledException extends Error {
+	static final long serialVersionUID = -1047347523279541091L;
 
 	public TaskCanceledException() {
 		

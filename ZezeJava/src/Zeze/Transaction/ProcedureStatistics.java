@@ -2,8 +2,6 @@ package Zeze.Transaction;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import Zeze.*;
-
 /** 
  在Procedure中统计，由于嵌套存储过程存在，总数会比实际事务数多。
  一般嵌套存储过程很少用，事务数量也可以参考这里的数值，不单独统计。

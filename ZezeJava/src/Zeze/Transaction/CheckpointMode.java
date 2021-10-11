@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.*;
-
 public enum CheckpointMode {
 	Period(0),
 	Immediately(1),

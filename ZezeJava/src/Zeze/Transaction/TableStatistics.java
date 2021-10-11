@@ -1,6 +1,6 @@
 package Zeze.Transaction;
 
-import Zeze.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class TableStatistics {
 	// 为了使用的地方可以方便访问，定义成全局的。
@@ -16,62 +16,62 @@ public class TableStatistics {
 	}
 
 	public final Statistics GetOrAdd(int tableId) {
-		return getTables().putIfAbsent(tableId, (key) -> new Statistics());
+		return getTables().computeIfAbsent(tableId, (key) -> new Statistics());
 	}
 
 	public static class Statistics {
-		private Zeze.Util.AtomicLong ReadLockTimes = new Util.AtomicLong();
-		public final Zeze.Util.AtomicLong getReadLockTimes() {
+		private AtomicLong ReadLockTimes = new AtomicLong();
+		public final AtomicLong getReadLockTimes() {
 			return ReadLockTimes;
 		}
-		private Zeze.Util.AtomicLong WriteLockTimes = new Util.AtomicLong();
-		public final Zeze.Util.AtomicLong getWriteLockTimes() {
+		private AtomicLong WriteLockTimes = new AtomicLong();
+		public final AtomicLong getWriteLockTimes() {
 			return WriteLockTimes;
 		}
-		private Zeze.Util.AtomicLong StorageFindCount = new Util.AtomicLong();
-		public final Zeze.Util.AtomicLong getStorageFindCount() {
+		private AtomicLong StorageFindCount = new AtomicLong();
+		public final AtomicLong getStorageFindCount() {
 			return StorageFindCount;
 		}
 
 		// 这两个统计用来观察cache清理的影响，
-		private Zeze.Util.AtomicLong TryReadLockTimes = new Util.AtomicLong();
-		public final Zeze.Util.AtomicLong getTryReadLockTimes() {
+		private AtomicLong TryReadLockTimes = new AtomicLong();
+		public final AtomicLong getTryReadLockTimes() {
 			return TryReadLockTimes;
 		}
-		private Zeze.Util.AtomicLong TryWriteLockTimes = new Util.AtomicLong();
-		public final Zeze.Util.AtomicLong getTryWriteLockTimes() {
+		private AtomicLong TryWriteLockTimes = new AtomicLong();
+		public final AtomicLong getTryWriteLockTimes() {
 			return TryWriteLockTimes;
 		}
 
 		// global acquire 的次数，即时没有开启cache-sync，也会有一点点计数，因为没人抢，所以以后总是成功了。
-		private Zeze.Util.AtomicLong GlobalAcquireShare = new Util.AtomicLong();
-		public final Zeze.Util.AtomicLong getGlobalAcquireShare() {
+		private AtomicLong GlobalAcquireShare = new AtomicLong();
+		public final AtomicLong getGlobalAcquireShare() {
 			return GlobalAcquireShare;
 		}
-		private Zeze.Util.AtomicLong GlobalAcquireModify = new Util.AtomicLong();
-		public final Zeze.Util.AtomicLong getGlobalAcquireModify() {
+		private AtomicLong GlobalAcquireModify = new AtomicLong();
+		public final AtomicLong getGlobalAcquireModify() {
 			return GlobalAcquireModify;
 		}
-		private Zeze.Util.AtomicLong GlobalAcquireInvalid = new Util.AtomicLong();
-		public final Zeze.Util.AtomicLong getGlobalAcquireInvalid() {
+		private AtomicLong GlobalAcquireInvalid = new AtomicLong();
+		public final AtomicLong getGlobalAcquireInvalid() {
 			return GlobalAcquireInvalid;
 		}
 
 		// 虽然有锁升级存在，但数量很少，忽略掉后，就可以把读写访问加起来当作总的查找次数。
 		public final long getTableFindCount() {
-			return getReadLockTimes().Get() + getWriteLockTimes().Get();
+			return getReadLockTimes().get() + getWriteLockTimes().get();
 		}
 		public final double getTableCacheHit() {
 			double total = getTableFindCount();
-			return (total - getStorageFindCount().Get()) / total;
+			return (total - getStorageFindCount().get()) / total;
 		}
 		public final double getGlobalAcquireShareHit() {
 			double total = getTableFindCount();
-			return (total - getGlobalAcquireShare().Get()) / total;
+			return (total - getGlobalAcquireShare().get()) / total;
 		}
 		public final double getGlobalAcquireModifyHit() {
 			double total = getTableFindCount();
-			return (total - getGlobalAcquireModify().Get()) / total;
+			return (total - getGlobalAcquireModify().get()) / total;
 		}
 	}
 }
