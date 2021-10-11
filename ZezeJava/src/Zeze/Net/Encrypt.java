@@ -1,105 +1,97 @@
 package Zeze.Net;
 
-import Zeze.Serialize.*;
-import Zeze.*;
-import java.io.*;
+import java.nio.ByteBuffer;
 
-public final class Encrypt implements Codec {
+import javax.crypto.Cipher;
+import javax.crypto.ShortBufferException;
+import javax.crypto.spec.SecretKeySpec;
+
+public class Encrypt implements Codec {
 	private final Codec sink;
-	private final ICryptoTransform cipher;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private readonly byte[] _iv;
-	private final byte[] _iv;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private readonly byte[] _in = new byte[16];
-	private final byte[] _in = new byte[16];
-	//private readonly byte[] _out = new byte[16];
+	private final Cipher cipher;
+	private final ByteBuffer ivr;
+	private final ByteBuffer ivw;
+	private final byte iv[];
+	private final byte in[];
 	private int count = 0;
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public Encrypt(Codec sink, byte[] key)
-	public Encrypt(Codec sink, byte[] key) {
+	public Encrypt(Codec sink, byte key[]) throws CodecException {
 		this.sink = sink;
-		_iv = Digest.Md5(key);
-		AesManaged aes = new AesManaged();
-		aes.Mode = CipherMode.ECB;
-		cipher = aes.CreateEncryptor(_iv, _iv);
+		iv = new byte[16];
+		in = new byte[16];
+		System.arraycopy(Digest.Md5(key), 0, iv, 0, 16);
+		ivr = ByteBuffer.wrap(iv);
+		ivw = ByteBuffer.wrap(iv);
+		try {
+			cipher = Cipher.getInstance("AES/ECB/NoPadding");
+			cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(iv, "AES"));
+		} catch (Exception e) {
+			throw new CodecException(e);
+		}
 	}
 
 	private void succeed() {
-		cipher.TransformBlock(_iv, 0, 16, _iv, 0);
+		try {
+			cipher.update(ivr, ivw);
+			ivr.clear();
+			ivw.clear();
+		} catch (ShortBufferException e) {
+		}
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void update(byte c)
-	public void update(byte c) {
+	@Override
+	public void update(byte c) throws CodecException {
 		if (count < 0) {
-			sink.update((byte)((byte)(_iv[count++ + 16] ^= c)));
+			sink.update(iv[count++ + 16] ^= c);
 			return;
 		}
-		_in[count++] = c;
-		if (count < 16) {
+		in[count++] = c;
+		if (count < 16)
 			return;
-		}
 		succeed();
-		for (int i = 0; i < 16; i++) {
-			_iv[i] ^= _in[i];
-		}
-		sink.update(_iv, 0, 16);
+		for (int i = 0; i < 16; i++)
+			iv[i] ^= in[i];
+		sink.update(iv, 0, 16);
 		count = 0;
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void update(byte[] data, int off, int len)
-	public void update(byte[] data, int off, int len) {
+	@Override
+	public void update(byte[] data, int off, int len) throws CodecException {
 		int i = off;
 		len += off;
 		if (count < 0) {
-			for (; i < len && count < 0; i++, count++) {
-				sink.update((byte)((byte)(_iv[count + 16] ^= data[i])));
-			}
-		}
-		else if (count > 0) {
-			for (; i < len && count < 16; i++, count++) {
-				_in[count] = data[i];
-			}
-			if (count < 16) {
+			for (; i < len && count < 0; i++, count++)
+				sink.update(iv[count + 16] ^= data[i]);
+		} else if (count > 0) {
+			for (; i < len && count < 16; i++, count++)
+				in[count] = data[i];
+			if (count < 16)
 				return;
-			}
 			succeed();
-			for (int j = 0; j < 16; j++) {
-				_iv[j] ^= _in[j];
-			}
-			sink.update(_iv, 0, 16);
+			for (int j = 0; j < 16; j++)
+				iv[j] ^= in[j];
+			sink.update(iv, 0, 16);
 			count = 0;
 		}
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
 		int nblocks = (len - i) >> 4;
 		for (int j = 0; j < nblocks; j++) {
 			succeed();
-			for (int k = 0; k < 16; k++) {
-				_iv[k] ^= data[i + j * 16 + k];
-			}
-			sink.update(_iv, 0, 16);
+			for (int k = 0; k < 16; k++)
+				iv[k] ^= data[i + j * 16 + k];
+			sink.update(iv, 0, 16);
 		}
-		for (i += nblocks << 4; i < len; i++) {
-			_in[count++] = data[i];
-		}
+		for (i += nblocks << 4; i < len; i++)
+			in[count++] = data[i];
 	}
 
-	public void flush() {
+	@Override
+	public void flush() throws CodecException {
 		if (count > 0) {
 			succeed();
-			for (int i = 0; i < count; i++) {
-				sink.update((byte)((byte)(_iv[i] ^= _in[i])));
-			}
+			for (int i = 0; i < count; i++)
+				sink.update(iv[i] ^= in[i]);
 			count -= 16;
 		}
 		sink.flush();
-	}
-
-	public void close() throws IOException {
-		cipher.Dispose();
-		sink.close();
 	}
 }

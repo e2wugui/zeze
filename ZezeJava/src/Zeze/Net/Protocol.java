@@ -1,46 +1,27 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
-import Zeze.*;
 
 public abstract class Protocol implements Serializable {
 	public abstract int getModuleId();
 	public abstract int getProtocolId();
+
 	public final int getTypeId() {
 		return getModuleId() << 16 | getProtocolId();
 	}
-	private Service Service;
-	public final Service getService() {
-		return Service;
-	}
-	public final void setService(Service value) {
-		Service = value;
-	}
+
+	public Service Service;
 
 	public static int GetModuleId(int type) {
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
-		return type >> 16 & 0xffff;
+		return type >>> 16 & 0xffff;
 	}
 
 	public static int GetProtocolId(int type) {
 		return type & 0xffff;
 	}
 
-	private AsyncSocket Sender;
-	public final AsyncSocket getSender() {
-		return Sender;
-	}
-	public final void setSender(AsyncSocket value) {
-		Sender = value;
-	}
-
-	private Object UserState;
-	public final Object getUserState() {
-		return UserState;
-	}
-	public final void setUserState(Object value) {
-		UserState = value;
-	}
+	public AsyncSocket Sender;
+	public Object UserState;
 
 	public void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle) {
 		service.DispatchProtocol(this, factoryHandle);
@@ -53,10 +34,7 @@ public abstract class Protocol implements Serializable {
 	public final ByteBuffer Encode() {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		bb.WriteInt4(getTypeId());
-		int state;
-		tangible.OutObject<Integer> tempOut_state = new tangible.OutObject<Integer>();
-		bb.BeginWriteWithSize4(tempOut_state);
-	state = tempOut_state.outArgValue;
+		int state = bb.BeginWriteWithSize4();
 		this.Encode(bb);
 		bb.EndWriteWithSize4(state);
 		return bb;
@@ -66,7 +44,7 @@ public abstract class Protocol implements Serializable {
 		if (null == so) {
 			return false;
 		}
-		setSender(so);
+		Sender = so;
 		if (getUniqueRequestId() == 0) {
 			setUniqueRequestId(so.getService().NextSessionId());
 		}
@@ -125,20 +103,15 @@ public abstract class Protocol implements Serializable {
 	*/
 
 	public static void Decode(Service service, AsyncSocket so, ByteBuffer bb) {
-		Decode(service, so, bb, null);
-	}
-
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb, Zeze.Services.ToLuaService.ToLua toLua = null)
-	public static void Decode(Service service, AsyncSocket so, ByteBuffer bb, Zeze.Services.ToLuaService.ToLua toLua) {
-		ByteBuffer os = ByteBuffer.Wrap(bb.getBytes(), bb.getReadIndex(), bb.getSize()); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
-		while (os.getSize() > 0) {
+		ByteBuffer os = ByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.Size());
+		// 创建一个新的ByteBuffer，解码确认了才修改bb索引。
+		while (os.Size() > 0) {
 			// 尝试读取协议类型和大小
 			int type;
 			int size;
-			int readIndexSaved = os.getReadIndex();
+			int readIndexSaved = os.ReadIndex;
 
-			if (os.getSize() >= 8) { // protocl header size.
+			if (os.Size() >= 8) { // protocl header size.
 				type = os.ReadInt4();
 				size = os.ReadInt4();
 			}
@@ -151,27 +124,29 @@ public abstract class Protocol implements Serializable {
 			// 以前写过的实现在数据不够之前会根据type检查size是否太大。
 			// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
 			// 参考 AsyncSocket
-			if (size < 0 || size > os.getSize()) {
+			if (size < 0 || size > os.Size()) {
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
-				if (size < 0 || size > service.SocketOptions.InputBufferMaxProtocolSize) {
-					var pName = service.FindProtocolFactoryHandle(type) == null ? null : service.FindProtocolFactoryHandle(type).Factory().getClass().getName();
+				if (size < 0 || size > service.SocketOptions.getInputBufferMaxProtocolSize()) {
+					var factoryHandle = service.FindProtocolFactoryHandle(type);
+					var pName = null == factoryHandle || null == factoryHandle.Factory
+							? "" : factoryHandle.Factory.create().getClass().getName();
 					throw new RuntimeException(String.format("Decode InputBufferMaxProtocolSize '%1$s' p='%2$s' type=%3$s size=%4$s", service.getName(), pName, type, size));
 				}
 
 				// not enough data. try next time.
-				bb.setReadIndex(readIndexSaved);
+				bb.ReadIndex = readIndexSaved;
 				return;
 			}
 
 			Service.ProtocolFactoryHandle factoryHandle = service.FindProtocolFactoryHandle(type);
 			if (null != factoryHandle) {
-				var pBuffer = ByteBuffer.Wrap(os.getBytes(), os.getReadIndex(), size);
-				os.setReadIndex(os.getReadIndex() + size);
+				var pBuffer = ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size);
+				os.ReadIndex += size;
 
-				Protocol p = factoryHandle.Factory();
+				Protocol p = factoryHandle.Factory.create();
 				p.Service = service;
 				p.Decode(pBuffer);
-				if (pBuffer.getReadIndex() != pBuffer.getWriteIndex()) {
+				if (pBuffer.ReadIndex != pBuffer.WriteIndex) {
 					throw new RuntimeException(String.format("type=%1$s size=%2$s too many data", type, size));
 				}
 				p.Sender = so;
@@ -179,16 +154,10 @@ public abstract class Protocol implements Serializable {
 				p.Dispatch(service, factoryHandle);
 				continue;
 			}
-			// 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
-			if (null != toLua) {
-				if (toLua.DecodeAndDispatch(service, so.getSessionId(), type, os)) {
-					continue;
-				}
-			}
-			service.DispatchUnknownProtocol(so, type, ByteBuffer.Wrap(os.getBytes(), os.getReadIndex(), size));
-			os.setReadIndex(os.getReadIndex() + size);
+			service.DispatchUnknownProtocol(so, type, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));
+			os.ReadIndex += size;
 		}
-		bb.setReadIndex(os.getReadIndex());
+		bb.ReadIndex = os.ReadIndex;
 	}
 
 	@Override

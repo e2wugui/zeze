@@ -5,10 +5,14 @@ import Zeze.Serialize.*;
 import Zeze.Transaction.*;
 import Zeze.*;
 import java.util.*;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.math.*;
 
 public class HandshakeBase extends Service {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(HandshakeBase.class);
 
 	private HashSet<Integer> HandshakeProtocols = new HashSet<Integer>();
 

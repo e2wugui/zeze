@@ -1,24 +1,18 @@
 package Zeze.Net;
 
-import Zeze.*;
+import Zeze.Serialize.ByteBuffer;
 
 // Bean 类型 binary 的辅助类。
 // 构造之后就是只读的。
 // byte[] bytes 参数传入以后，就不能再修改了。
 public final class Binary {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private byte[] _Bytes;
 	private byte[] _Bytes;
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public byte getItem(int index)
 	public byte get(int index) {
 		return _Bytes[index];
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: internal byte[] getBytes()
-	public byte[] getBytes() {
+	public byte[] getBytesInternalOnlyUnsafe() {
 		return _Bytes;
 	}
 
@@ -26,14 +20,13 @@ public final class Binary {
 	public int getOffset() {
 		return Offset;
 	}
+
 	private int Count;
 	public int getCount() {
 		return Count;
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static readonly Binary Empty = new Binary(Array.Empty<byte>());
-	public static final Binary Empty = new Binary(Array.<Byte>Empty());
+	public static final Binary Empty = new Binary(ByteBuffer.Empty);
 
 	/** 
 	 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
@@ -42,8 +35,6 @@ public final class Binary {
 	 @param offset
 	 @param count
 	*/
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public Binary(byte[] bytes, int offset, int count)
 	public Binary(byte[] bytes, int offset, int count) {
 		_Bytes = bytes;
 		Offset = offset;
@@ -55,8 +46,6 @@ public final class Binary {
 	 
 	 @param bytes
 	*/
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public Binary(byte[] bytes)
 	public Binary(byte[] bytes) {
 		this(bytes, 0, bytes.length);
 	}
@@ -68,7 +57,7 @@ public final class Binary {
 	 @param bb
 	*/
 	public Binary(Zeze.Serialize.ByteBuffer bb) {
-		this(bb.getBytes(), bb.getReadIndex(), bb.getSize());
+		this(bb.Bytes, bb.ReadIndex, bb.Size());
 
 	}
 
@@ -89,7 +78,7 @@ public final class Binary {
 
 	@Override
 	public String toString() {
-		return System.BitConverter.toString(_Bytes, getOffset(), getCount());
+		return ByteBuffer.ToHex(_Bytes, Offset, Count);
 	}
 
 	@Override
@@ -98,10 +87,9 @@ public final class Binary {
 			return true;
 		}
 
-		boolean tempVar = obj instanceof Binary;
-		Binary other = tempVar ? (Binary)obj : null;
-		if (tempVar) {
-			return Equals(other);
+		if (obj instanceof Binary) {
+			Binary other = (Binary)obj;
+			return equals(other);
 		}
 
 		return false;

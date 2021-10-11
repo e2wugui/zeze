@@ -1,24 +1,33 @@
 package Zeze.Net;
 
-import Zeze.Serialize.*;
-import Zeze.*;
-import java.io.*;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.MessageDigest;
 
 public final class Digest {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static byte[] Md5(byte[] message)
 	public static byte[] Md5(byte[] message) {
-		try (var md = MD5.Create()) {
-			return md.ComputeHash(message);
+		return Md5(message, 0, message.length);
+	}
+	
+	public static byte[] Md5(byte[] message, int offset, int len) {
+		try {
+			var md5 = MessageDigest.getInstance("MD5");
+			md5.update(message, offset, len);
+			return md5.digest();
+		} catch (Throwable ex) {
+			throw new RuntimeException(ex);
 		}
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static byte[] HmacMd5(byte[] key, byte[] data, int offset, int length)
+	// TODO 需要确认一下写法对不对。
 	public static byte[] HmacMd5(byte[] key, byte[] data, int offset, int length) {
-		try (HashAlgorithm hash = new HMACMD5(key)) {
-			hash.TransformFinalBlock(data, offset, length);
-			return hash.Hash;
+		try {
+			var mac = Mac.getInstance("HmacMD5");
+			mac.init(new SecretKeySpec(key, 0, key.length, "HmacMD5"));
+			mac.update(data, offset, length);
+			return mac.doFinal();
+		} catch (Throwable ex) {
+			throw new RuntimeException(ex);
 		}
 	}
 }

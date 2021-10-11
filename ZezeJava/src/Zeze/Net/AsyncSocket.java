@@ -108,7 +108,7 @@ public final class AsyncSocket implements Closeable {
 	/** 
 	 for server socket
 	*/
-	public AsyncSocket(Service service, System.Net.EndPoint localEP) {
+	public AsyncSocket(Service service, InetSocketAddress localEP) {
 		this.setService(service);
 
 		setSocket(new Socket(SocketType.Stream, ProtocolType.Tcp));

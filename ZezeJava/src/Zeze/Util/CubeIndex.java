@@ -1,8 +1,5 @@
 package Zeze.Util;
 
-import Zeze.*;
-import java.util.*;
-
 public class CubeIndex implements java.lang.Comparable<CubeIndex> {
 	private long X;
 	public final long getX() {
@@ -30,9 +27,9 @@ public class CubeIndex implements java.lang.Comparable<CubeIndex> {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 17;
-		result = prime * result + (new Long(getX())).hashCode();
-		result = prime * result + (new Long(getY())).hashCode();
-		result = prime * result + (new Long(getZ())).hashCode();
+		result = prime * result + Long.hashCode(getX());
+		result = prime * result + Long.hashCode(getY());
+		result = prime * result + Long.hashCode(getZ());
 		return result;
 	}
 
@@ -51,14 +48,14 @@ public class CubeIndex implements java.lang.Comparable<CubeIndex> {
 	}
 
 	public final int compareTo(CubeIndex other) {
-		int c = (new Long(getX())).compareTo(other.getX());
+		int c = Long.compare(getX(), other.getX());
 		if (c != 0) {
 			return c;
 		}
-		c = (new Long(getY())).compareTo(other.getY());
+		c = Long.compare(getY(), other.getY());
 		if (c != 0) {
 			return c;
 		}
-		return (new Long(getZ())).compareTo(other.getZ());
+		return Long.compare(getZ(), other.getZ());
 	}
 }

@@ -8,10 +8,9 @@ import java.util.*;
  地图中的玩家或者物品Id记录在所在的Cube中。
  用来快速找到某个坐标周围的玩家或物体。
 */
-//C# TO JAVA CONVERTER TODO TASK: The C# 'new()' constraint has no equivalent in Java:
-//ORIGINAL LINE: public class CubeIndexMap<TCube, TObject> where TCube : Cube<TObject>, new()
 public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
-	private java.util.concurrent.ConcurrentHashMap<CubeIndex, TCube> Cubes = new java.util.concurrent.ConcurrentHashMap<CubeIndex, TCube>();
+	private java.util.concurrent.ConcurrentHashMap<CubeIndex, TCube> Cubes
+		= new java.util.concurrent.ConcurrentHashMap<CubeIndex, TCube>();
 
 	private int CubeSizeX;
 	public final int getCubeSizeX() {
@@ -65,39 +64,37 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		this.CubeSizeZ = cubeSizeZ;
 	}
 
+	public static interface CubeHandle<TCube> {
+		void handle(CubeIndex index, TCube cube);
+	}
+
 	/** 
 	 perfrom action if cube exist.
 	 under lock (cube)
 	*/
-	public final void TryPerfrom(CubeIndex index, tangible.Action2Param<CubeIndex, TCube> action) {
-		TValue cube;
-		tangible.OutObject<TValue> tempOut_cube = new tangible.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (Cubes.TryGetValue(index, tempOut_cube)) {
-		cube = tempOut_cube.outArgValue;
+	public final void TryPerfrom(CubeIndex index, CubeHandle<TCube> action) {
+		TCube cube = Cubes.get(index);
+		if (null != cube) {
 			synchronized (cube) {
-				if (cube.State != Cube<TObject>.StateRemoved) {
-					action.invoke(index, cube);
+				if (cube.getState() != Cube<TObject>.StateRemoved) {
+					action.handle(index, cube);
 				}
 			}
 		}
-	else {
-		cube = tempOut_cube.outArgValue;
-	}
 	}
 
 	/** 
 	 perfrom action for Cubes.GetOrAdd.
 	 under lock (cube)
 	*/
-	public final void Perform(CubeIndex index, tangible.Action2Param<CubeIndex, TCube> action) {
+	public final void Perform(CubeIndex index, CubeHandle<TCube> action) {
 		while (true) {
-			var cube = Cubes.putIfAbsent(index, (_) -> new TCube());
+			TCube cube = Cubes.computeIfAbsent(index, () -> new TCube());
 			synchronized (cube) {
 				if (cube.State == Cube<TObject>.StateRemoved) {
 					continue;
 				}
-				action.invoke(index, cube);
+				action.handle(index, cube);
 			}
 		}
 	}
@@ -118,16 +115,13 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	}
 
 	public final void OnEnter(TObject obj, CubeIndex index) {
-		Perform(index, (index, cube) -> cube.Add(index, obj));
+		Perform(index, (index2, cube) -> cube.Add(index2, obj));
 	}
+
 	private void RemoveObject(CubeIndex index, TCube cube, TObject obj) {
 		if (cube.Remove(index, obj)) {
-			cube.State = Cube<TObject>.StateRemoved;
-			TValue _;
-			tangible.OutObject<TCube> tempOut__ = new tangible.OutObject<TCube>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-			Cubes.TryRemove(index, tempOut__);
-		_ = tempOut__.outArgValue;
+			cube.setState(Cube<TObject>.StateRemoved);
+			Cubes.remove(index, cube);
 		}
 	}
 
@@ -177,7 +171,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	}
 
 	public final void OnLeave(TObject obj, CubeIndex index) {
-		TryPerfrom(index, (index, cube) -> RemoveObject(index, cube, obj));
+		TryPerfrom(index, (index2, cube) -> RemoveObject(index2, cube, obj));
 	}
 
 	public final ArrayList<TCube> GetCubes(CubeIndex center, int rangeX, int rangeY, int rangeZ) {
@@ -189,16 +183,9 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 					index.setX(i);
 					index.setY(j);
 					index.setZ(k);
-					TValue cube;
-					tangible.OutObject<TValue> tempOut_cube = new tangible.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-					if (Cubes.TryGetValue(index, tempOut_cube)) {
-					cube = tempOut_cube.outArgValue;
+					TCube cube = Cubes.get(index);
+					if (null != cube)
 						result.add(cube);
-					}
-				else {
-					cube = tempOut_cube.outArgValue;
-				}
 				}
 			}
 		}
@@ -222,8 +209,6 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		return GetCubes(centerX, centerY, centerZ, 4, 4, 4);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public List<TCube> GetCubes(double centerX, double centerY, double centerZ, int rangeX = 4, int rangeY = 4, int rangeZ = 4)
 	public final ArrayList<TCube> GetCubes(double centerX, double centerY, double centerZ, int rangeX, int rangeY, int rangeZ) {
 		return GetCubes(ToIndex(centerX, centerY, centerZ), rangeX, rangeY, rangeZ);
 	}
@@ -241,12 +226,9 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		return GetCubes(centerX, centerY, centerZ, 4, 4, 4);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public List<TCube> GetCubes(float centerX, float centerY, float centerZ, int rangeX = 4, int rangeY = 4, int rangeZ = 4)
 	public final ArrayList<TCube> GetCubes(float centerX, float centerY, float centerZ, int rangeX, int rangeY, int rangeZ) {
 		return GetCubes(ToIndex(centerX, centerY, centerZ), rangeX, rangeY, rangeZ);
 	}
-
 
 	public final java.util.ArrayList<TCube> GetCubes(long centerX, long centerY, long centerZ, int rangeX, int rangeY) {
 		return GetCubes(centerX, centerY, centerZ, rangeX, rangeY, 4);
@@ -260,8 +242,6 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		return GetCubes(centerX, centerY, centerZ, 4, 4, 4);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public List<TCube> GetCubes(long centerX, long centerY, long centerZ, int rangeX = 4, int rangeY = 4, int rangeZ = 4)
 	public final ArrayList<TCube> GetCubes(long centerX, long centerY, long centerZ, int rangeX, int rangeY, int rangeZ) {
 		return GetCubes(ToIndex(centerX, centerY, centerZ), rangeX, rangeY, rangeZ);
 	}

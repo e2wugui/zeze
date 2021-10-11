@@ -2,8 +2,6 @@ package Zeze.Net;
 
 import org.apache.logging.log4j.Level;
 
-import Zeze.*;
-
 public final class SocketOptions {
 	// 系统选项
 	private Boolean NoDelay = null;
@@ -79,6 +77,6 @@ public final class SocketOptions {
 		setInputBufferMaxProtocolSize(2 * 1024 * 1024); // 2M
 		setBacklog(128);
 
-		setSocketLogLevel(NLog.LogLevel.Trace); // 可以使用 NLog.LogLevel.FromString 从配置中读取
+		setSocketLogLevel(Level.TRACE); // 可以使用 NLog.LogLevel.FromString 从配置中读取
 	}
 }

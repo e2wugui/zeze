@@ -17,20 +17,8 @@ public class Service {
 	/** 
 	 同一个 Service 下的所有连接都是用相同配置。
 	*/
-	private SocketOptions SocketOptions = new SocketOptions();
-	public final SocketOptions getSocketOptions() {
-		return SocketOptions;
-	}
-	private void setSocketOptions(SocketOptions value) {
-		SocketOptions = value;
-	}
-	private ServiceConf Config;
-	public final ServiceConf getConfig() {
-		return Config;
-	}
-	private void setConfig(ServiceConf value) {
-		Config = value;
-	}
+	public SocketOptions SocketOptions = new SocketOptions();
+	public ServiceConf Config;
 	private Application Zeze;
 	public final Application getZeze() {
 		return Zeze;
@@ -50,18 +38,18 @@ public class Service {
 	}
 
 	private void InitConfig(Config config) {
-		setConfig(config == null ? null : config.GetServiceConf(getName()));
-		if (null == getConfig()) {
+		Config = config == null ? null : config.GetServiceConf(getName());
+		if (null == Config) {
 			// setup program default
-			setConfig(new ServiceConf());
+			Config = new ServiceConf();
 			if (null != config) {
 				// reference to config default
-				getConfig().setSocketOptions(config.getDefaultServiceConf().getSocketOptions());
-				getConfig().setHandshakeOptions(config.getDefaultServiceConf().getHandshakeOptions());
+				Config.setSocketOptions(config.getDefaultServiceConf().getSocketOptions());
+				Config.setHandshakeOptions(config.getDefaultServiceConf().getHandshakeOptions());
 			}
 		}
-		getConfig().SetService(this);
-		setSocketOptions(getConfig().getSocketOptions());
+		Config.SetService(this);
+		SocketOptions= Config.getSocketOptions();
 	}
 
 	public Service(String name, Config config) {
@@ -97,18 +85,18 @@ public class Service {
 	}
 
 	public void Start() {
-		if (getConfig() != null) {
-			getConfig().Start();
+		if (Config != null) {
+			Config.Start();
 		}
 	}
 
 	public void Stop() {
-		if (getConfig() != null) {
-			getConfig().Stop();
+		if (Config != null) {
+			Config.Stop();
 		}
 
 		for (var e : getSocketMap().entrySet()) {
-			e.getValue().Dispose(); // remove in callback OnSocketClose
+			e.getValue().close(); // remove in callback OnSocketClose
 		}
 
 		// 先不清除，让Rpc的TimerTask仍然在超时以后触发回调。
@@ -312,28 +300,20 @@ public class Service {
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	/** 协议工厂
 	*/
+	@FunctionalInterface
+	public static interface IProtocolFactory {
+		Protocol create();
+	}
+
+	@FunctionalInterface
+	public static interface IProtocolHandle {
+		int handle(Protocol p);
+	}
+	
 	public static class ProtocolFactoryHandle {
-		private tangible.Func0Param<Protocol> Factory;
-		public final tangible.Func0Param<Protocol> getFactory() {
-			return Factory;
-		}
-		public final void setFactory(tangible.Func0Param<Protocol> value) {
-			Factory = value;
-		}
-		private tangible.Func1Param<Protocol, Integer> Handle;
-		public final tangible.Func1Param<Protocol, Integer> getHandle() {
-			return Handle;
-		}
-		public final void setHandle(tangible.Func1Param<Protocol, Integer> value) {
-			Handle = value;
-		}
-		private boolean NoProcedure = false;
-		public final boolean getNoProcedure() {
-			return NoProcedure;
-		}
-		public final void setNoProcedure(boolean value) {
-			NoProcedure = value;
-		}
+		public IProtocolFactory Factory;
+		public IProtocolHandle Handle;
+		public boolean NoProcedure = false;
 	}
 
 	private java.util.concurrent.ConcurrentHashMap<Integer, ProtocolFactoryHandle> Factorys = new java.util.concurrent.ConcurrentHashMap<Integer, ProtocolFactoryHandle> ();

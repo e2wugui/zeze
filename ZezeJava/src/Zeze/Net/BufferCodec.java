@@ -1,15 +1,13 @@
 package Zeze.Net;
 
-import Zeze.Serialize.*;
-import Zeze.*;
 import java.io.*;
 
 /** 
  用来接收 Codec 结果。
 */
 public final class BufferCodec implements Codec {
-	private Serialize.ByteBuffer Buffer = Serialize.ByteBuffer.Allocate();
-	public Serialize.ByteBuffer getBuffer() {
+	private Zeze.Serialize.ByteBuffer Buffer = Zeze.Serialize.ByteBuffer.Allocate();
+	public Zeze.Serialize.ByteBuffer getBuffer() {
 		return Buffer;
 	}
 
@@ -17,7 +15,7 @@ public final class BufferCodec implements Codec {
 
 	}
 
-	public BufferCodec(Serialize.ByteBuffer buffer) {
+	public BufferCodec(Zeze.Serialize.ByteBuffer buffer) {
 		Buffer = buffer;
 	}
 
@@ -27,14 +25,10 @@ public final class BufferCodec implements Codec {
 	public void flush() {
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void update(byte c)
 	public void update(byte c) {
 		getBuffer().Append(c);
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void update(byte[] data, int off, int len)
 	public void update(byte[] data, int off, int len) {
 		getBuffer().Append(data, off, len);
 	}

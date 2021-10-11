@@ -2,8 +2,6 @@ package Zeze.Net;
 
 import org.w3c.dom.Element;
 
-import Zeze.*;
-
 /** 
  连接器：建立并保持一个连接，可以设置自动重连及相关参数。
  可以继承并重载相关事件函数。重载实现里面需要调用 base.OnXXX。

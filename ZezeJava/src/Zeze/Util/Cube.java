@@ -1,8 +1,5 @@
 package Zeze.Util;
 
-import Zeze.*;
-import java.util.*;
-
 public abstract class Cube<TObject> {
 	public static final int StateNormal = 0;
 	public static final int StateRemoved = -1;

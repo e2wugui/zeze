@@ -1,7 +1,6 @@
 package Zeze.Util;
 
 import Zeze.*;
-import tangible.EventArgs;
 
 /** 
  这个类恐怕没什么用。写在这里主要是为了一个建议：

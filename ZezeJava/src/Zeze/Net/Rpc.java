@@ -1,62 +1,25 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
+
+import java.util.concurrent.TimeUnit;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import Zeze.*;
 
-//C# TO JAVA CONVERTER TODO TASK: The C# 'new()' constraint has no equivalent in Java:
-//ORIGINAL LINE: public abstract class Rpc<TArgument, TResult> : Protocol<TArgument> where TArgument: Zeze.Transaction.Bean, new() where TResult: Zeze.Transaction.Bean, new()
-public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult extends Zeze.Transaction.Bean> extends Protocol<TArgument> {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult extends Zeze.Transaction.Bean>
+	extends Protocol1<TArgument> {
+	private static final Logger logger = LogManager.getLogger(Rpc.class);
 
-	private TResult Result = new TResult();
-	public final TResult getResult() {
-		return Result;
-	}
-	public final void setResult(TResult value) {
-		Result = value;
-	}
+	public TResult Result;
+	public boolean IsTimeout = false;
+	public long SessionId;
+	public Service.IProtocolHandle ResponseHandle;
+	public int Timeout = 5000;
 
-	private boolean IsTimeout;
-	public final boolean isTimeout() {
-		return IsTimeout;
-	}
-	private void setTimeout(boolean value) {
-		IsTimeout = value;
-	}
-	private long SessionId;
-	public final long getSessionId() {
-		return SessionId;
-	}
-	public final void setSessionId(long value) {
-		SessionId = value;
-	}
-
-	private tangible.Func1Param<Protocol, Integer> ResponseHandle;
-	public final tangible.Func1Param<Protocol, Integer> getResponseHandle() {
-		return ResponseHandle;
-	}
-	public final void setResponseHandle(tangible.Func1Param<Protocol, Integer> value) {
-		ResponseHandle = value;
-	}
-	private int Timeout = 5000;
-	public final int getTimeout() {
-		return Timeout;
-	}
-	public final void setTimeout(int value) {
-		Timeout = value;
-	}
-
-	private TaskCompletionSource<TResult> Future;
-	public final TaskCompletionSource<TResult> getFuture() {
-		return Future;
-	}
-	private void setFuture(TaskCompletionSource<TResult> value) {
-		Future = value;
-	}
-
-	public Rpc() {
-		this.setTimeout(false);
-	}
+	public java.util.concurrent.Future<TResult> Future;
 
 	/** 
 	 使用当前 rpc 中设置的参数发送。
@@ -70,7 +33,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	*/
 	@Override
 	public boolean Send(AsyncSocket so) {
-		return Send(so, getResponseHandle(), getTimeout());
+		return Send(so, ResponseHandle, Timeout);
 	}
 
 	private Util.SchedulerTask Schedule(Service service, long sessionId, int millisecondsTimeout) {
