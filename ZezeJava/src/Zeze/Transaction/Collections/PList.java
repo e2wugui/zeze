@@ -63,18 +63,17 @@ public abstract class PList<E> extends PCollection implements Iterable<E> {
 		return getData().get(index);
 	}
 
-	public abstract void set(int index, E value);
-
 	public final boolean isReadOnly() {
 		return false;
 	}
 
-	public abstract void Add(E item);
-	public abstract void AddRange(java.util.Collection<E> items);
-	public abstract void Clear();
-	public abstract void Insert(int index, E item);
-	public abstract boolean Remove(E item);
-	public abstract void RemoveAt(int index);
+	public abstract void add(E item);
+	public abstract void addAll(java.util.Collection<E> items);
+	public abstract void clear();
+	public abstract void add(int index, E item);
+	public abstract boolean remove(E item);
+	public abstract void remove(int index);
+	public abstract E set(int index, E value);
 
 	public final boolean contains(Object item) {
 		return getData().contains(item);

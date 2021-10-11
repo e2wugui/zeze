@@ -67,11 +67,11 @@ public class Connector {
 	private void setSocket(AsyncSocket value) {
 		Socket = value;
 	}
-	private Zeze.Util.SchedulerTask ReconnectTask;
-	public final Zeze.Util.SchedulerTask getReconnectTask() {
+	private Zeze.Util.Task ReconnectTask;
+	public final Zeze.Util.Task getReconnectTask() {
 		return ReconnectTask;
 	}
-	private void setReconnectTask(Zeze.Util.SchedulerTask value) {
+	private void setReconnectTask(Zeze.Util.Task value) {
 		ReconnectTask = value;
 	}
 
@@ -179,7 +179,7 @@ public class Connector {
 					ConnectDelay = getMaxReconnectDelay();
 				}
 			}
-			setReconnectTask(Zeze.Util.Scheduler.getInstance().Schedule((ThisTask) -> Start(), ConnectDelay, -1));
+			setReconnectTask(Zeze.Util.Task.schedule((ThisTask) -> Start(), ConnectDelay, -1));
 			;
 		}
 	}

@@ -1,15 +1,10 @@
 package Zeze.Services.Handshake;
 
-import Zeze.*;
-import Zeze.Services.*;
 import Zeze.Net.*;
-import Zeze.Serialize.*;
 import Zeze.Transaction.*;
-import java.util.*;
-import java.math.*;
 
-public final class CHandshake extends Protocol<CHandshakeArgument> {
-	public final static int ProtocolId_ = Bean.Hash16(CHandshake.class.FullName);
+public final class CHandshake extends Protocol1<CHandshakeArgument> {
+	public final static int ProtocolId_ = Bean.Hash16(CHandshake.class.getName());
 
 	@Override
 	public int getModuleId() {
@@ -21,13 +16,12 @@ public final class CHandshake extends Protocol<CHandshakeArgument> {
 	}
 
 	public CHandshake() {
-
+		Argument = new CHandshakeArgument();
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public CHandshake(byte dh_group, byte[] dh_data)
 	public CHandshake(byte dh_group, byte[] dh_data) {
-		getArgument().dh_group = dh_group;
-		getArgument().dh_data = dh_data;
+		Argument = new CHandshakeArgument();
+		Argument.dh_group = dh_group;
+		Argument.dh_data = dh_data;
 	}
 }

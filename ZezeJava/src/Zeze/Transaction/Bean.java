@@ -17,7 +17,7 @@ public abstract class Bean implements Zeze.Serialize.Serializable {
 		return ObjectId;
 	}
 
-	Zeze.Transaction.Record.RootInfo RootInfo;
+	protected Zeze.Transaction.Record.RootInfo RootInfo;
 
 	public final TableKey getTableKey() {
 		return RootInfo == null ? null : RootInfo.getTableKey();

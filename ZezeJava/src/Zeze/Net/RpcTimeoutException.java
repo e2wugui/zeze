@@ -1,8 +1,11 @@
 package Zeze.Net;
 
-import Zeze.*;
-
 public final class RpcTimeoutException extends RuntimeException {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1633955069498L;
+
 	public RpcTimeoutException() {
 
 	}

@@ -12,7 +12,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void set(int index, E value) {
+	public E set(int index, E value) {
 		if (value == null) {
 			throw new NullPointerException();
 		}
@@ -24,15 +24,19 @@ public final class PList2<E extends Bean> extends PList<E> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			var oldv = null != log ? ((LogV)log).Value : list;
+			var olde = oldv.get(index);
 			txn.PutLog(NewLog(oldv.plus(index, value)));
+			return olde;
 		}
 		else {
+			var olde = list.get(index);
 			list = list.plus(index, value);
+			return olde;
 		}
 	}
 
 	@Override
-	public void Add(E item) {
+	public void add(E item) {
 		if (item == null) {
 			throw new NullPointerException();
 		}
@@ -53,7 +57,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 	}
 
 	@Override
-	public void AddRange(java.util.Collection<E> items) {
+	public void addAll(java.util.Collection<E> items) {
 		// XXX
 		for (var v : items) {
 			if (null == v) {
@@ -79,7 +83,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 	}
 
 	@Override
-	public void Clear() {
+	public void clear() {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
@@ -96,7 +100,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 	}
 
 	@Override
-	public void Insert(int index, E item) {
+	public void add(int index, E item) {
 		if (item == null) {
 			throw new NullPointerException();
 		}
@@ -117,7 +121,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 	}
 
 	@Override
-	public boolean Remove(E item) {
+	public boolean remove(E item) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
@@ -139,7 +143,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 	}
 
 	@Override
-	public void RemoveAt(int index) {
+	public void remove(int index) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);

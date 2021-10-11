@@ -5,11 +5,13 @@ import Zeze.Services.*;
 import Zeze.*;
 import java.util.*;
 
-//C# TO JAVA CONVERTER TODO TASK: The C# 'new()' constraint has no equivalent in Java:
-//ORIGINAL LINE: public abstract class Table<K, V> : Table where V : Bean, new()
-public abstract class Table<K, V extends Bean> extends Table {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-	public Table(String name) {
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+public abstract class Table1<K, V extends Bean> extends Table {
+	private static final Logger logger = LogManager.getLogger(Table1.class);
+
+	public Table1(String name) {
 		super(name);
 	}
 	private Application Zeze;
@@ -29,13 +31,11 @@ public abstract class Table<K, V extends Bean> extends Table {
 	}
 
 
-	private Record<K, V> FindInCacheOrStorage(K key) {
+	private Record1<K, V> FindInCacheOrStorage(K key) {
 		return FindInCacheOrStorage(key, null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: private Record<K, V> FindInCacheOrStorage(K key, Action<V> copy = null)
-	private Record<K, V> FindInCacheOrStorage(K key, tangible.Action1Param<V> copy) {
+	private Record1<K, V> FindInCacheOrStorage(K key, tangible.Action1Param<V> copy) {
 		TableKey tkey = new TableKey(getId(), key);
 		Lockey lockey = Locks.getInstance().Get(tkey);
 		lockey.EnterReadLock();
@@ -47,7 +47,7 @@ public abstract class Table<K, V extends Bean> extends Table {
 		// 应该是不会发生Reduce的，加这个锁为了保险起见）。
 		try {
 			while (true) {
-				Record<K, V> r = getCache().GetOrAdd(key, (key) -> new Record<K, V>(this, key, null));
+				Record1<K, V> r = getCache().GetOrAdd(key, (key) -> new Record1<K, V>(this, key, null));
 				synchronized (r) { // 如果外面是 WriteLock 就不需要这个了。
 					if (r.State == GlobalCacheManager.StateRemoved) {
 						continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。

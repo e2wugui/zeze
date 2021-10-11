@@ -2,6 +2,7 @@ package Zeze;
 
 import Zeze.Transaction.*;
 import java.util.*;
+import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
@@ -119,7 +120,7 @@ public final class Application {
 		return NewProcedure(action, actionName, null);
 	}
 
-	public Procedure NewProcedure(tangible.Func0Param<Integer> action, String actionName, Object userState) {
+	public Procedure NewProcedure(Callable<Integer> action, String actionName, Object userState) {
 		if (isStart()) {
 			return new Procedure(this, action, actionName, userState);
 		}

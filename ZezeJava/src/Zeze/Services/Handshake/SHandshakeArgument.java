@@ -1,16 +1,8 @@
 package Zeze.Services.Handshake;
 
-import Zeze.*;
-import Zeze.Services.*;
-import Zeze.Net.*;
 import Zeze.Serialize.*;
-import Zeze.Transaction.*;
-import java.util.*;
-import java.math.*;
 
 public final class SHandshakeArgument extends Zeze.Transaction.Bean {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public byte[] dh_data;
 	public byte[] dh_data;
 	public boolean s2cneedcompress;
 	public boolean c2sneedcompress;
@@ -30,6 +22,6 @@ public final class SHandshakeArgument extends Zeze.Transaction.Bean {
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
 	}
 }

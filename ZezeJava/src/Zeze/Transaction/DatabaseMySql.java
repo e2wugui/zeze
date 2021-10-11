@@ -72,7 +72,7 @@ public final class DatabaseMySql extends Database {
 				cmd.Parameters.Add("@in_global", MySqlDbType.VarBinary, Integer.MAX_VALUE).Value = global.getBytes(java.nio.charset.StandardCharsets.UTF_8);
 				MySqlParameter tempVar = new MySqlParameter("@ReturnValue", MySqlDbType.Int32);
 				tempVar.Direction = ParameterDirection.Output;
-				cmd.Parameters.Add(tempVar);
+				cmd.Parameters.add(tempVar);
 				cmd.Prepare();
 				cmd.ExecuteNonQuery();
 				switch ((int)cmd.Parameters["@ReturnValue"].Value) {
@@ -106,7 +106,7 @@ public final class DatabaseMySql extends Database {
 				cmd.Parameters.Add("@in_global", MySqlDbType.VarBinary, Integer.MAX_VALUE).Value = global.getBytes(java.nio.charset.StandardCharsets.UTF_8);
 				MySqlParameter tempVar = new MySqlParameter("@ReturnValue", MySqlDbType.Int32);
 				tempVar.Direction = ParameterDirection.Output;
-				cmd.Parameters.Add(tempVar);
+				cmd.Parameters.add(tempVar);
 				cmd.Prepare();
 				cmd.ExecuteNonQuery();
 				// Clear 不报告错误，直接返回。
@@ -152,10 +152,10 @@ public final class DatabaseMySql extends Database {
 				MySqlParameter tempVar = new MySqlParameter("@inout_version", MySqlDbType.Int64);
 				tempVar.Direction = ParameterDirection.InputOutput;
 				tempVar.Value = version.refArgValue;
-				cmd.Parameters.Add(tempVar);
+				cmd.Parameters.add(tempVar);
 				MySqlParameter tempVar2 = new MySqlParameter("@ReturnValue", MySqlDbType.Int32);
 				tempVar2.Direction = ParameterDirection.Output;
-				cmd.Parameters.Add(tempVar2);
+				cmd.Parameters.add(tempVar2);
 				cmd.Prepare();
 				cmd.ExecuteNonQuery();
 				switch ((int)cmd.Parameters["@ReturnValue"].Value) {

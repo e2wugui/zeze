@@ -28,7 +28,7 @@ public final class ChangeListenerMap {
 		synchronized (this) {
 			TValue set;
 			if (map.containsKey(variableId) && (set = map.get(variableId)) == set) {
-				boolean changed = set.Remove(listener);
+				boolean changed = set.remove(listener);
 				if (set.Count == 0) {
 					map.remove(variableId);
 				}

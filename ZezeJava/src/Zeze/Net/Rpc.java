@@ -1,13 +1,8 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
-
-import java.util.concurrent.TimeUnit;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import Zeze.*;
 
 public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult extends Zeze.Transaction.Bean>
 	extends Protocol1<TArgument> {
@@ -16,10 +11,10 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	public TResult Result;
 	public boolean IsTimeout = false;
 	public long SessionId;
-	public Service.IProtocolHandle ResponseHandle;
+	public ProtocolHandle ResponseHandle;
 	public int Timeout = 5000;
 
-	public java.util.concurrent.Future<TResult> Future;
+	public Zeze.Util.TaskCompletionSource<TResult> Future;
 
 	/** 
 	 使用当前 rpc 中设置的参数发送。
@@ -36,22 +31,22 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 		return Send(so, ResponseHandle, Timeout);
 	}
 
-	private Util.SchedulerTask Schedule(Service service, long sessionId, int millisecondsTimeout) {
-		return Zeze.Util.Scheduler.getInstance().Schedule((ThisTask) -> {
+	private Zeze.Util.Task Schedule(Service service, long sessionId, int millisecondsTimeout) {
+		return Zeze.Util.Task.schedule((ThisTask) -> {
 					Rpc<TArgument, TResult> context = service.<Rpc<TArgument, TResult>>RemoveRpcContext(sessionId);
 					if (null == context) { // 一般来说，此时结果已经返回。
 						return;
 					}
 
-					context.setTimeout(true);
+					context.IsTimeout = true;
 					context.setResultCode(Zeze.Transaction.Procedure.Timeout);
 
-					if (null != context.getFuture()) {
-						context.getFuture().TrySetException(new RpcTimeoutException());
+					if (null != context.Future) {
+						context.Future.TrySetException(new RpcTimeoutException());
 					}
 					else {
-						if (this.getResponseHandle() != null) {
-							this.getResponseHandle().Invoke(context);
+						if (this.ResponseHandle != null) {
+							this.ResponseHandle.handle(context);
 						}
 					}
 		}, millisecondsTimeout, -1);
@@ -68,26 +63,24 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	 @return 
 	*/
 
-	public final boolean Send(AsyncSocket so, Func<Protocol, Integer> responseHandle) {
+	public final boolean Send(AsyncSocket so, ProtocolHandle responseHandle) {
 		return Send(so, responseHandle, 5000);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public bool Send(AsyncSocket so, Func<Protocol, int> responseHandle, int millisecondsTimeout = 5000)
-	public final boolean Send(AsyncSocket so, tangible.Func1Param<Protocol, Integer> responseHandle, int millisecondsTimeout) {
+	public final boolean Send(AsyncSocket so, ProtocolHandle responseHandle, int millisecondsTimeout) {
 		if (so == null || so.getService() == null) {
 			return false;
 		}
 
 		this.setRequest(true);
-		this.setResponseHandle(::responseHandle);
-		this.setTimeout(millisecondsTimeout);
-		this.setSessionId(so.getService().AddRpcContext(this));
+		this.ResponseHandle = responseHandle;
+		this.Timeout = millisecondsTimeout;
+		this.SessionId = so.getService().AddRpcContext(this);
 		if (super.getUniqueRequestId() == 0) {
-			super.setUniqueRequestId(this.getSessionId());
+			super.setUniqueRequestId(this.SessionId);
 		}
 
-		var timeoutTask = Schedule(so.getService(), getSessionId(), millisecondsTimeout);
+		var timeoutTask = Schedule(so.getService(), SessionId, millisecondsTimeout);
 
 		if (super.Send(so)) {
 			return true;
@@ -100,7 +93,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 		// 【注意】当上下文已经其他并发过程删除（得到了处理），那么这里就返回成功。
 		// see OnSocketDisposed
 		// 这里返回 false 表示真的没有发送成功，外面根据自己需要决定是否重连并再次发送。
-		Rpc<TArgument, TResult> context = so.getService().<Rpc<TArgument, TResult>>RemoveRpcContext(this.getSessionId());
+		Rpc<TArgument, TResult> context = so.getService().<Rpc<TArgument, TResult>>RemoveRpcContext(this.SessionId);
 		return context == null;
 	}
 
@@ -114,41 +107,37 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	 @param millisecondsTimeout
 	*/
 
-	public final void SendReturnVoid(Service service, AsyncSocket so, Func<Protocol, Integer> responseHandle) {
+	public final void SendReturnVoid(Service service, AsyncSocket so, ProtocolHandle responseHandle) {
 		SendReturnVoid(service, so, responseHandle, 5000);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendReturnVoid(Service service, AsyncSocket so, Func<Protocol, int> responseHandle, int millisecondsTimeout = 5000)
-	public final void SendReturnVoid(Service service, AsyncSocket so, tangible.Func1Param<Protocol, Integer> responseHandle, int millisecondsTimeout) {
+	public final void SendReturnVoid(Service service, AsyncSocket so, ProtocolHandle responseHandle, int millisecondsTimeout) {
 		if (null != so && so.getService() != service) {
 			throw new RuntimeException("so.Service != service");
 		}
 
 		this.setRequest(true);
-		this.setResponseHandle(::responseHandle);
-		this.setTimeout(millisecondsTimeout);
-		this.setSessionId(service.AddRpcContext(this));
+		this.ResponseHandle = responseHandle;
+		this.Timeout = millisecondsTimeout;
+		this.SessionId = service.AddRpcContext(this);
 		if (super.getUniqueRequestId() == 0) {
-			super.setUniqueRequestId(this.getSessionId());
+			super.setUniqueRequestId(this.SessionId);
 		}
-		Schedule(service, getSessionId(), millisecondsTimeout);
+		Schedule(service, SessionId, millisecondsTimeout);
 		super.Send(so);
 	}
 
 
-	public final TaskCompletionSource<TResult> SendForWait(AsyncSocket so) {
+	public final Zeze.Util.TaskCompletionSource<TResult> SendForWait(AsyncSocket so) {
 		return SendForWait(so, 5000);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout = 5000)
-	public final TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout) {
-		setFuture(new TaskCompletionSource<TResult>());
+	public final Zeze.Util.TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout) {
+		Future = new Zeze.Util.TaskCompletionSource<TResult>();
 		if (false == Send(so, null, millisecondsTimeout)) {
-			getFuture().SetException(new RuntimeException("Send Failed."));
+			Future.TrySetException(new RuntimeException("Send Failed."));
 		}
-		return getFuture();
+		return Future;
 	}
 
 	// 使用异步方式实现的同步等待版本
@@ -157,25 +146,22 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 		SendAndWaitCheckResultCode(so, 5000);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendAndWaitCheckResultCode(AsyncSocket so, int millisecondsTimeout = 5000)
 	public final void SendAndWaitCheckResultCode(AsyncSocket so, int millisecondsTimeout) {
-		var tmpFuture = new TaskCompletionSource<Integer>();
-		if (false == Send(so, (_) -> {
-			if (isTimeout()) {
-				tmpFuture.TrySetException(new RpcTimeoutException(String.format("RpcTimeout %1$s", this)));
-			}
-			else if (getResultCode() != 0) {
-				tmpFuture.TrySetException(new RuntimeException(String.format("Rpc Invalid ResultCode=%1$s %2$s", getResultCode(), this)));
-			}
-			else {
-				tmpFuture.SetResult(0);
-			}
-			return Zeze.Transaction.Procedure.Success;
-		}, millisecondsTimeout)) {
+		var tmpFuture = new Zeze.Util.TaskCompletionSource<Integer>();
+		if (false == Send(so,
+			(rpc) -> {
+				if (IsTimeout) {
+					tmpFuture.TrySetException(new RpcTimeoutException(String.format("RpcTimeout %1$s", this)));
+				} else if (getResultCode() != 0) {
+					tmpFuture.TrySetException(new RuntimeException(String.format("Rpc Invalid ResultCode=%1$s %2$s", getResultCode(), this)));
+				} else {
+					tmpFuture.SetResult(0);
+				}
+				return Zeze.Transaction.Procedure.Success;
+			}, millisecondsTimeout)) {
 			throw new RuntimeException("Send Failed.");
 		}
-		tmpFuture.Task.Wait();
+		tmpFuture.Wait();
 	}
 	private boolean SendResultDone = false; // XXX ugly
 
@@ -186,7 +172,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 		SendResultDone = true;
 
 		setRequest(false);
-		super.Send(getSender());
+		super.Send(Sender);
 	}
 
 	@Override
@@ -198,7 +184,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 
 		setResultCode(code);
 		setRequest(false);
-		super.Send(getSender());
+		super.Send(Sender);
 	}
 
 	@Override
@@ -209,60 +195,60 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 		}
 
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
-		Rpc<TArgument, TResult> context = service.<Rpc<TArgument, TResult>>RemoveRpcContext(getSessionId());
+		Rpc<TArgument, TResult> context = service.<Rpc<TArgument, TResult>>RemoveRpcContext(SessionId);
 		if (null == context) {
-			logger.Info("rpc response: lost context, maybe timeout. {0}", this);
+			logger.info("rpc response: lost context, maybe timeout. {}", this);
 			return;
 		}
 
 		context.setRequest(false);
-		context.setResult(getResult());
-		context.setSender(getSender());
+		context.Result = Result;
+		context.Sender = Sender;
 		context.setResultCode(getResultCode());
-		context.setUserState(getUserState());
+		context.UserState = UserState;
 
-		if (context.getFuture() != null) {
-			context.getFuture().SetResult(context.getResult());
+		if (context.Future != null) {
+			context.Future.SetResult(context.Result);
 			return; // SendForWait，设置结果唤醒等待者。
 		}
-		context.setTimeout(false); // not need
-		if (null != context.getResponseHandle()) {
-			service.DispatchRpcResponse(context, context.getResponseHandle(), factoryHandle);
+		context.IsTimeout = false; // not need
+		if (null != context.ResponseHandle) {
+			service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
 		}
 	}
 
 	@Override
 	public void Decode(ByteBuffer bb) {
 		setRequest(bb.ReadBool());
-		setSessionId(bb.ReadLong());
+		SessionId = bb.ReadLong();
 		setResultCode(bb.ReadInt());
 		setUniqueRequestId(bb.ReadLong());
 
 		if (isRequest()) {
-			getArgument().Decode(bb);
+			Argument.Decode(bb);
 		}
 		else {
-			getResult().Decode(bb);
+			Result.Decode(bb);
 		}
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
 		bb.WriteBool(isRequest());
-		bb.WriteLong(getSessionId());
+		bb.WriteLong(SessionId);
 		bb.WriteInt(getResultCode());
 		bb.WriteLong(getUniqueRequestId());
 
 		if (isRequest()) {
-			getArgument().Encode(bb);
+			Argument.Encode(bb);
 		}
 		else {
-			getResult().Encode(bb);
+			Result.Encode(bb);
 		}
 	}
 
 	@Override
 	public String toString() {
-		return String.format("%1$s SessionId=%2$s UniqueRequestId=%3$s ResultCode=%4$s%5$s\tArgument=%6$s%7$s\tResult=%8$s", this.getClass().getName(), getSessionId(), getUniqueRequestId(), getResultCode(), System.lineSeparator(), getArgument(), System.lineSeparator(), getResult());
+		return String.format("%1$s SessionId=%2$s UniqueRequestId=%3$s ResultCode=%4$s%5$s\tArgument=%6$s%7$s\tResult=%8$s", this.getClass().getName(), SessionId, getUniqueRequestId(), getResultCode(), System.lineSeparator(), Argument, System.lineSeparator(), Result);
 	}
 }

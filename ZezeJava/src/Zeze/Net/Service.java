@@ -1,6 +1,7 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
+import Zeze.Util.Task;
 import Zeze.Transaction.*;
 
 import java.net.InetAddress;
@@ -255,56 +256,62 @@ public class Service {
 	}
 
 	// 用来派发异步rpc回调。
-	public void DispatchRpcResponse(Protocol rpc, tangible.Func1Param<Protocol, Integer> responseHandle, ProtocolFactoryHandle factoryHandle) {
-		if (null != getZeze() && false == factoryHandle.getNoProcedure()) {
-			Zeze.Util.Task.Run(getZeze().NewProcedure(() -> responseHandle.invoke(rpc), rpc.getClass().getName() + ":Response", rpc.UserState));
+	public void DispatchRpcResponse(Protocol rpc, ProtocolHandle responseHandle, ProtocolFactoryHandle factoryHandle) {
+		if (null != getZeze() && false == factoryHandle.NoProcedure) {
+			Zeze.Util.Task.Run(getZeze().NewProcedure(
+					() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response", rpc.UserState));
 		}
 		else {
-			Zeze.Util.Task.Run(() -> responseHandle.invoke(rpc), rpc);
+			Zeze.Util.Task.Run(() -> responseHandle.handle(rpc), rpc);
 		}
 	}
 
 	public final void DispatchProtocol2(Object key, Protocol p, ProtocolFactoryHandle factoryHandle) {
-		if (null != factoryHandle.getHandle()) {
-			if (null != getZeze() && false == factoryHandle.getNoProcedure()) {
-				getZeze().getTaskOneByOneByKey().Execute(key, () -> Zeze.Util.Task.Call(getZeze().NewProcedure(() -> factoryHandle.Handle(p), p.getClass().getName(), p.UserState), p, (p, code) -> p.SendResultCode(code)));
+		if (null != factoryHandle.Handle) {
+			if (null != getZeze() && false == factoryHandle.NoProcedure) {
+				getZeze().getTaskOneByOneByKey().Execute(key, () ->
+					Task.Call(getZeze().NewProcedure(
+							() -> factoryHandle.Handle.handle(p), p.getClass().getName(), p.UserState),
+							p,
+							(p2, code) -> p2.SendResultCode(code)
+							)
+					);
 			}
 			else {
-				getZeze().getTaskOneByOneByKey().Execute(key, () -> Zeze.Util.Task.Call(() -> factoryHandle.Handle(p), p, (p, code) -> p.SendResultCode(code)));
+				getZeze().getTaskOneByOneByKey().Execute(key,
+						() -> Task.Call(() -> factoryHandle.Handle.handle(p),
+						p,
+						(p2, code) -> p2.SendResultCode(code)));
 			}
 		}
 		else {
-			logger.Log(getSocketOptions().getSocketLogLevel(), "Protocol Handle Not Found. {0}", p);
+			logger.log(SocketOptions.getSocketLogLevel(), "Protocol Handle Not Found. {}", p);
 		}
 	}
 
 	public void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle) {
-		if (null != factoryHandle.getHandle()) {
-			if (null != getZeze() && false == factoryHandle.getNoProcedure()) {
-				Zeze.Util.Task.Run(getZeze().NewProcedure(() -> factoryHandle.Handle(p), p.getClass().getName(), p.UserState), p);
+		if (null != factoryHandle.Handle) {
+			if (null != getZeze() && false == factoryHandle.NoProcedure) {
+				Task.Run(getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
+						p.UserState),
+						p);
 			}
 			else {
-				Zeze.Util.Task.Run(() -> factoryHandle.Handle(p), p);
+				Task.Run(() -> factoryHandle.Handle.handle(p), p);
 			}
 		}
 		else {
-			logger.Log(getSocketOptions().getSocketLogLevel(), "Protocol Handle Not Found. {0}", p);
+			logger.log(SocketOptions.getSocketLogLevel(), "Protocol Handle Not Found. {0}", p);
 		}
 	}
 
 	public void DispatchUnknownProtocol(AsyncSocket so, int type, ByteBuffer data) {
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
-		throw new RuntimeException("Unknown Protocol (" + (type >> 16 & 0xffff) + ", " + (type & 0xffff) + ") size=" + data.getSize());
+		throw new RuntimeException("Unknown Protocol (" + (type >>> 16 & 0xffff) + ", " + (type & 0xffff) + ") size=" + data.Size());
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	/** 协议工厂
-	*/
-	@FunctionalInterface
-	public static interface ProtocolHandle {
-		int handle(Protocol p);
-	}
-	
+	*/	
 	public static class ProtocolFactoryHandle {
 		public Zeze.Util.Factory<Protocol> Factory;
 		public ProtocolHandle Handle;
@@ -317,14 +324,12 @@ public class Service {
 	}
 
 	public final void AddFactoryHandle(int type, ProtocolFactoryHandle factory) {
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (false == getFactorys().TryAdd(type, factory)) {
-//C# TO JAVA CONVERTER WARNING: The right shift operator was not replaced by Java's logical right shift operator since the left operand was not confirmed to be of an unsigned type, but you should review whether the logical right shift operator (>>>) is more appropriate:
-			throw new RuntimeException(String.format("duplicate factory type=%1$s moduleid=%2$s id=%3$s", type, (type >> 16) & 0x7fff, type & 0x7fff));
+		if (null != getFactorys().putIfAbsent(type, factory)) {
+			throw new RuntimeException(String.format("duplicate factory type=%1$s moduleid=%2$s id=%3$s", type, (type >>> 16) & 0x7fff, type & 0x7fff));
 		}
 	}
 
-	public static <T extends Protocol> tangible.Func1Param<Protocol, Integer> MakeHandle(Object target, java.lang.reflect.Method method) {
+	public static <T extends Protocol> ProtocolHandle MakeHandle(Object target, java.lang.reflect.Method method) {
 		return (Protocol p) -> {
 				if (method.IsStatic) {
 					var handler = Delegate.CreateDelegate(tangible.Func1Param<T, Integer>.class, method);

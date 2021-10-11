@@ -2,30 +2,38 @@ package Zeze.Transaction;
 
 import Zeze.Serialize.*;
 import Zeze.Services.*;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import Zeze.*;
 
 //C# TO JAVA CONVERTER TODO TASK: The C# 'new()' constraint has no equivalent in Java:
 //ORIGINAL LINE: public class Record<K, V> : Record where V : Bean, new()
-public class Record<K, V extends Bean> extends Record {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+public class Record1<K, V extends Bean> extends Record {
+	private static final Logger logger = LogManager.getLogger(Record1.class);
+
 	private K Key;
 	public final K getKey() {
 		return Key;
 	}
-	private Table<K, V> TTable;
-	public final Table<K, V> getTTable() {
+
+	private Table1<K, V> TTable;
+	public final Table1<K, V> getTTable() {
 		return TTable;
 	}
+
 	@Override
 	public Table getTable() {
 		return getTTable();
 	}
 
+	@SuppressWarnings("unchecked")
 	public final V getValueTyped() {
 		return (V)getValue();
 	}
 
-	public Record(Table<K, V> table, K key, V value) {
+	public Record1(Table1<K, V> table, K key, V value) {
 		super(value);
 		this.TTable = table;
 		this.Key = key;

@@ -73,7 +73,7 @@ public final class DatabaseSqlServer extends Database {
 				cmd.Parameters.Add("@global", SqlDbType.VarBinary, Integer.MAX_VALUE).Value = global.getBytes(java.nio.charset.StandardCharsets.UTF_8);
 				SqlParameter tempVar = new SqlParameter("@ReturnValue", SqlDbType.Int);
 				tempVar.Direction = ParameterDirection.Output;
-				cmd.Parameters.Add(tempVar);
+				cmd.Parameters.add(tempVar);
 				cmd.Prepare();
 				cmd.ExecuteNonQuery();
 				switch ((int)cmd.Parameters["@ReturnValue"].Value) {
@@ -107,7 +107,7 @@ public final class DatabaseSqlServer extends Database {
 				cmd.Parameters.Add("@global", SqlDbType.VarBinary, Integer.MAX_VALUE).Value = global.getBytes(java.nio.charset.StandardCharsets.UTF_8);
 				SqlParameter tempVar = new SqlParameter("@ReturnValue", SqlDbType.Int);
 				tempVar.Direction = ParameterDirection.Output;
-				cmd.Parameters.Add(tempVar);
+				cmd.Parameters.add(tempVar);
 				cmd.Prepare();
 				cmd.ExecuteNonQuery();
 				// Clear 不报告错误，直接返回。
@@ -153,10 +153,10 @@ public final class DatabaseSqlServer extends Database {
 				SqlParameter tempVar = new SqlParameter("@version", SqlDbType.BigInt);
 				tempVar.Direction = ParameterDirection.InputOutput;
 				tempVar.Value = version.refArgValue;
-				cmd.Parameters.Add(tempVar);
+				cmd.Parameters.add(tempVar);
 				SqlParameter tempVar2 = new SqlParameter("@ReturnValue", SqlDbType.Int);
 				tempVar2.Direction = ParameterDirection.Output;
-				cmd.Parameters.Add(tempVar2);
+				cmd.Parameters.add(tempVar2);
 				cmd.Prepare();
 				cmd.ExecuteNonQuery();
 				switch ((int)cmd.Parameters["@ReturnValue"].Value) {

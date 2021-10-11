@@ -1,7 +1,6 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
-import Zeze.*;
 
 public abstract class Protocol1<TArgument extends Zeze.Transaction.Bean> extends Protocol {
 	public TArgument Argument;
