@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import Zeze.*;
 import java.util.*;
 
 public final class Random {

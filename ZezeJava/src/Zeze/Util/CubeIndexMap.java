@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import Zeze.*;
 import java.util.*;
 
 /** 
@@ -25,6 +24,8 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		return CubeSizeZ;
 	}
 
+	private Factory<TCube> Factory;
+	
 	public final CubeIndex ToIndex(double x, double y, double z) {
 		CubeIndex tempVar = new CubeIndex();
 		tempVar.setX((long)(x / getCubeSizeX()));
@@ -48,7 +49,9 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		tempVar.setZ((long)(z / getCubeSizeZ()));
 		return tempVar;
 	}
-	public CubeIndexMap(int cubeSizeX, int cubeSizeY, int cubeSizeZ) {
+	public CubeIndexMap(Factory<TCube> factory, int cubeSizeX, int cubeSizeY, int cubeSizeZ) {
+		this.Factory = factory;
+
 		if (cubeSizeX <= 0) {
 			throw new IllegalArgumentException("cubeSizeX <= 0");
 		}
@@ -76,7 +79,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		TCube cube = Cubes.get(index);
 		if (null != cube) {
 			synchronized (cube) {
-				if (cube.getState() != Cube<TObject>.StateRemoved) {
+				if (cube.getState() != Cube.StateRemoved) {
 					action.handle(index, cube);
 				}
 			}
@@ -89,9 +92,9 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	*/
 	public final void Perform(CubeIndex index, CubeHandle<TCube> action) {
 		while (true) {
-			TCube cube = Cubes.computeIfAbsent(index, () -> new TCube());
+			TCube cube = Cubes.computeIfAbsent(index, (key) -> Factory.create());
 			synchronized (cube) {
-				if (cube.State == Cube<TObject>.StateRemoved) {
+				if (cube.getState() == Cube.StateRemoved) {
 					continue;
 				}
 				action.handle(index, cube);
@@ -120,7 +123,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 
 	private void RemoveObject(CubeIndex index, TCube cube, TObject obj) {
 		if (cube.Remove(index, obj)) {
-			cube.setState(Cube<TObject>.StateRemoved);
+			cube.setState(Cube.StateRemoved);
 			Cubes.remove(index, cube);
 		}
 	}

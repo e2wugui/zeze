@@ -1,45 +1,16 @@
 package Zeze.Transaction.Collections;
 
-import Zeze.*;
 import Zeze.Transaction.*;
 import java.util.*;
+import org.pcollections.Empty;
 
 public final class PMap1<K, V> extends PMap<K, V> {
-	public PMap1(long logKey, tangible.Func1Param<ImmutableDictionary<K, V>, Log> logFactory) {
+	public PMap1(long logKey, LogFactory<org.pcollections.PMap<K, V>> logFactory) {
 		super(logKey, logFactory);
 	}
 
 	@Override
-	public V get(Object objectKey) {
-		K key = (K)objectKey;
-		return getData()[key];
-	}
-	@Override
-	public void set(K key, V value) {
-		if (value == null) {
-			throw new NullPointerException();
-		}
-
-		if (this.isManaged()) {
-			var txn = Transaction.getCurrent();
-			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : map;
-			var newv = oldv.SetItem(key, value);
-			if (newv != oldv) {
-				txn.PutLog(NewLog(newv));
-				((ChangeNoteMap1<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap1<K, V>(this))).LogPut(key, value);
-			}
-		}
-		else {
-			map = map.SetItem(key, value);
-		}
-
-	}
-
-	@Override
-	public void Add(K key, V value) {
+	public V put(K key, V value) {
 		if (key == null) {
 			throw new NullPointerException();
 		}
@@ -50,23 +21,27 @@ public final class PMap1<K, V> extends PMap<K, V> {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : map;
-			var newv = oldv.Add(key, value);
-			if (newv != oldv) {
-				txn.PutLog(NewLog(newv));
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldm = null != log ? ((LogV)log).Value : map;
+			var oldv = oldm.get(key);
+			if (oldv != value) {
+				var newm = oldm.plus(key, value);
+				txn.PutLog(NewLog(newm));
 				((ChangeNoteMap1<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap1<K, V>(this))).LogPut(key, value);
 			}
+			return oldv;
 		}
 		else {
-			map = map.Add(key, value);
+			var oldv = map.get(key);
+			map = map.plus(key, value);
+			return oldv;
 		}
 	}
 
 	@Override
-	public void AddRange(java.lang.Iterable<Map.Entry<K, V>> pairs) {
-		for (var p : pairs) {
+	public void putAll(Map<? extends K, ? extends V> m) {
+		for (var p : m.entrySet()) {
 			if (p.getKey() == null) {
 				throw new NullPointerException();
 			}
@@ -78,103 +53,20 @@ public final class PMap1<K, V> extends PMap<K, V> {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : map;
-			var newv = oldv.AddRange(pairs);
-			if (newv != oldv) {
-				txn.PutLog(NewLog(newv));
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldm = null != log ? ((LogV)log).Value : map;
+			var newm = oldm.plusAll(m);
+			if (newm != oldm) {
+				txn.PutLog(NewLog(newm));
 				ChangeNoteMap1<K, V> note = (ChangeNoteMap1<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap1<K, V>(this));
-				for (var p : pairs) {
+				for (var p : m.entrySet()) {
 					note.LogPut(p.getKey(), p.getValue());
 				}
 			}
 		}
 		else {
-			map = map.AddRange(pairs);
-		}
-	}
-
-	@Override
-	public void SetItem(K key, V value) {
-		if (key == null) {
-			throw new NullPointerException();
-		}
-		if (value == null) {
-			throw new NullPointerException();
-		}
-
-		if (this.isManaged()) {
-			var txn = Transaction.getCurrent();
-			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : map;
-			var newv = oldv.SetItem(key, value);
-			if (newv != oldv) {
-				txn.PutLog(NewLog(newv));
-				((ChangeNoteMap1<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap1<K, V>(this))).LogPut(key, value);
-			}
-		}
-		else {
-			map = map.SetItem(key, value);
-		}
-	}
-
-	@Override
-	public void SetItems(java.lang.Iterable<Map.Entry<K, V>> pairs) {
-		for (var p : pairs) {
-			if (p.getKey() == null) {
-				throw new NullPointerException();
-			}
-			if (p.getValue() == null) {
-				throw new NullPointerException();
-			}
-		}
-
-		if (this.isManaged()) {
-			var txn = Transaction.getCurrent();
-			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : map;
-			var newv = oldv.SetItems(pairs);
-			if (newv != oldv) {
-				txn.PutLog(NewLog(newv));
-				ChangeNoteMap1<K, V> note = (ChangeNoteMap1<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap1<K, V>(this));
-				for (var p : pairs) {
-					note.LogPut(p.getKey(), p.getValue());
-				}
-			}
-		}
-		else {
-			map = map.SetItems(pairs);
-		}
-	}
-
-	@Override
-	public void Add(Map.Entry<K, V> item) {
-		if (item.getKey() == null) {
-			throw new NullPointerException();
-		}
-		if (item.getValue() == null) {
-			throw new NullPointerException();
-		}
-
-		if (this.isManaged()) {
-			var txn = Transaction.getCurrent();
-			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : map;
-			var newv = oldv.Add(item.getKey(), item.getValue());
-			if (newv != oldv) {
-				txn.PutLog(NewLog(newv));
-				((ChangeNoteMap1<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap1<K, V>(this))).LogPut(item.getKey(), item.getValue());
-			}
-		}
-		else {
-			map = map.Add(item.getKey(), item.getValue());
+			map = map.plusAll(m);
 		}
 	}
 
@@ -183,33 +75,33 @@ public final class PMap1<K, V> extends PMap<K, V> {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : map;
-			if (!oldv.IsEmpty) {
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldm = null != log ? ((LogV)log).Value : map;
+			if (!oldm.isEmpty()) {
 				ChangeNoteMap1<K, V> note = (ChangeNoteMap1<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap1<K, V>(this));
-				for (var e : oldv) {
-					note.LogRemove(e.Key);
+				for (var e : oldm.entrySet()) {
+					note.LogRemove(e.getKey());
 				}
-				txn.PutLog(NewLog(ImmutableDictionary<K, V>.Empty));
+				txn.PutLog(NewLog(Empty.map()));
 			}
 		}
 		else {
-			map = ImmutableDictionary<K, V>.Empty;
+			map = Empty.map();
 		}
 	}
 
 	@Override
-	public boolean Remove(K key) {
+	public boolean remove(K key) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : map;
-			var newv = oldv.Remove(key);
-			if (newv != oldv) {
-				txn.PutLog(NewLog(newv));
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldm = null != log ? ((LogV)log).Value : map;
+			var newm = oldm.minus(key);
+			if (newm != oldm) {
+				txn.PutLog(NewLog(newm));
 				((ChangeNoteMap1<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap1<K, V>(this))).LogRemove(key);
 				return true;
 			}
@@ -219,25 +111,27 @@ public final class PMap1<K, V> extends PMap<K, V> {
 		}
 		else {
 			var old = map;
-			map = map.Remove(key);
+			map = map.minus(key);
 			return old != map;
 		}
 	}
 
 	@Override
-	public boolean Remove(Map.Entry<K, V> item) {
+	public boolean remove(Map.Entry<K, V> item) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : map;
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldm = null != log ? ((LogV)log).Value : map;
 			// equals 处有box，能否优化掉？
-			Object olde;
-//C# TO JAVA CONVERTER TODO TASK: The following method call contained an unresolved 'out' keyword - these cannot be converted using the 'OutObject' helper class unless the method is within the code being modified:
-			if (oldv.TryGetValue(item.getKey(), out olde) && olde.equals(item.getValue())) {
-				var newv = oldv.Remove(item.getKey());
-				txn.PutLog(NewLog(newv));
+			Object olde = oldm.get(item.getKey());
+			if (null == olde)
+				return false;
+
+			if (olde.equals(item.getValue())) {
+				var newm = oldm.minus(item.getKey());
+				txn.PutLog(NewLog(newm));
 				((ChangeNoteMap1<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap1<K, V>(this))).LogRemove(item.getKey());
 				return true;
 			}
@@ -247,10 +141,11 @@ public final class PMap1<K, V> extends PMap<K, V> {
 		}
 		else {
 			// equals处有box
-			Object oldv;
-//C# TO JAVA CONVERTER TODO TASK: The following method call contained an unresolved 'out' keyword - these cannot be converted using the 'OutObject' helper class unless the method is within the code being modified:
-			if (map.TryGetValue(item.getKey(), out oldv) && oldv.equals(item.getValue())) {
-				map = map.Remove(item.getKey());
+			Object oldv = map.get(item.getKey());
+			if (null == oldv)
+				return false;
+			if (oldv.equals(item.getValue())) {
+				map = map.minus(item.getKey());
 				return true;
 			}
 			else {
@@ -260,7 +155,7 @@ public final class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo tableKey) {
+	protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo tableKey) {
 
 	}
 }

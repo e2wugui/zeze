@@ -1,27 +1,28 @@
 package Zeze.Transaction.Collections;
 
-import Zeze.*;
 import Zeze.Transaction.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
-//C# TO JAVA CONVERTER TODO TASK: The interface type was changed to the closest equivalent Java type, but the methods implemented will need adjustment:
-public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
-	private final tangible.Func1Param<ImmutableDictionary<K, V>, Log> _logFactory;
-	protected ImmutableDictionary<K, V> map;
+import org.pcollections.Empty;
 
-	public PMap(long logKey, tangible.Func1Param<ImmutableDictionary<K, V>, Log> logFactory) {
+public abstract class PMap<K, V> extends PCollection {
+	private final LogFactory<org.pcollections.PMap<K, V>> _logFactory;
+	protected org.pcollections.PMap<K, V> map;
+
+	public PMap(long logKey, LogFactory<org.pcollections.PMap<K, V>> logFactory) {
 		super(logKey);
-		this._logFactory = ::logFactory;
-		map = ImmutableDictionary<K, V>.Empty;
+		this._logFactory = logFactory;
+		map = Empty.map();
 	}
 
-	public final Log NewLog(ImmutableDictionary<K, V> value) {
-		return _logFactory.invoke(value);
+	public final Log NewLog(org.pcollections.PMap<K, V> value) {
+		return _logFactory.create(value);
 	}
 
-	public abstract static class LogV extends Log {
-		public ImmutableDictionary<K, V> Value;
-		protected LogV(Bean bean, ImmutableDictionary<K, V> value) {
+	public abstract class LogV extends Log {
+		public org.pcollections.PMap<K, V> Value;
+		protected LogV(Bean bean, org.pcollections.PMap<K, V> value) {
 			super(bean);
 			Value = value;
 		}
@@ -31,102 +32,70 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
 		}
 	}
 
-	protected final ImmutableDictionary<K, V> getData() {
+	protected final org.pcollections.PMap<K, V> getData() {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			if (txn == null) {
 				return map;
 			}
 			txn.VerifyRecordAccessed(this, true);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			return tempVar ? log.Value : map;
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldv = null != log ? ((LogV)log).Value : map;
+			return oldv;
 		}
 		else {
 			return map;
 		}
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Throw expressions are not converted by C# to Java Converter:
-//ORIGINAL LINE: [Obsolete("Don't use this, please use Keys2", true)] ICollection<K> IDictionary<K, V>.Keys => throw new NotImplementedException();
-    @Deprecated
-	private Collection<K> IDictionary<K, V>.Keys -> throw new UnsupportedOperationException();
-//C# TO JAVA CONVERTER TODO TASK: Throw expressions are not converted by C# to Java Converter:
-//ORIGINAL LINE: [Obsolete("Don't use this, please use Values2", true)] ICollection<V> IDictionary<K, V>.Values => throw new NotImplementedException();
-    @Deprecated
-	private Collection<V> IDictionary<K, V>.Values -> throw new UnsupportedOperationException();
-
-	public final java.lang.Iterable<K> getKeys() {
-		return getData().keySet();
-	}
-
-	public final java.lang.Iterable<V> values() {
-		return getData().Values;
-	}
-
 	public final int size() {
-		return getData().Count;
+		return getData().size();
 	}
 
 	@Override
 	public String toString() {
-		return String.format("PMap%1$s", getData());
+		return getData().entrySet().stream().map(e -> e.getKey().toString() + ":" + e.getValue().toString()).collect(Collectors.joining(",", "{", "}"));
 	}
+
 	public final boolean isReadOnly() {
 		return false;
 	}
 
-	public abstract V get(K key);
-	public abstract void set(K key, V value);
-	public abstract void Add(K key, V value);
-	public abstract void Add(Map.Entry<K, V> item);
-	public abstract void AddRange(java.lang.Iterable<Map.Entry<K, V>> pairs);
-	public abstract void SetItem(K key, V value);
-	public abstract void SetItems(java.lang.Iterable<Map.Entry<K, V>> items);
-	public abstract void Clear();
-	public abstract boolean Remove(K key);
-	public abstract boolean Remove(Map.Entry<K, V> item);
+	public abstract V put(K key, V value);
+	public abstract void putAll(Map<? extends K, ? extends V> m);
+	public abstract void clear();
+	public abstract boolean remove(K key);
+	public abstract boolean remove(Map.Entry<K, V> item);
 
-	public final void CopyTo(Map.Entry<K, V>[] array, int arrayIndex) {
+	public final void copyTo(Map.Entry<K, V>[] array, int arrayIndex) {
 		int index = arrayIndex;
-		for (var e : getData()) {
+		for (var e : getData().entrySet()) {
 			array[index++] = e;
 		}
 	}
 
-	public final boolean contains(Object objectValue) {
-		Map.Entry<K, V> item = (Map.Entry<K, V>)objectValue;
-		return getData().Contains(item);
+	public V get(K key) {
+		return getData().get(key);
 	}
 
-	public final boolean containsKey(Object objectKey) {
-		K key = (K)objectKey;
-		return getData().ContainsKey(key);
+	public final boolean containsValue(V v) {
+		return getData().containsValue(v);
 	}
 
-	public final boolean TryGetValue(K key, tangible.OutObject<V> value) {
-		return getData().TryGetValue(key, value);
-
+	public final boolean containsKey(Object key) {
+		return getData().containsKey(key);
 	}
 
-	public final Iterator GetEnumerator() {
-		if (this instanceof IEnumerable)
-			return IEnumerable_GetEnumerator();
-		else if (this instanceof IEnumerable)
-			return IEnumerable_GetEnumerator();
-		else
-			throw new UnsupportedOperationException("No interface found.");
-	}
+    public Set<K> keySet() {
+        return getData().keySet();
+    }
 
-	private Iterator IEnumerable_GetEnumerator() {
-		return getData().iterator();
-	}
+    public Collection<V> values() {
+        return getData().values();
+    }
 
-	private Iterator<Map.Entry<K, V>> IEnumerable_GetEnumerator() {
-		return getData().iterator();
-	}
-
-	public final ImmutableDictionary<K, V>.Enumerator GetEnumerator() {
-		return getData().iterator();
-	}
+    public Set<Map.Entry<K, V>> entrySet() {
+        return getData().entrySet();
+    }
 }

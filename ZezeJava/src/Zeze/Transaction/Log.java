@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.*;
-
 /** 
  操作日志。
  主要用于 bean.variable 的修改。
@@ -22,6 +20,6 @@ public abstract class Log {
 		setBean(bean);
 	}
 	public final int getVariableId() {
-		return (int)(getLogKey() & getBean().MaxVariableId);
+		return (int)(getLogKey() & Zeze.Transaction.Bean.MaxVariableId);
 	}
 }

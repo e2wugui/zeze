@@ -1,17 +1,16 @@
 package Zeze.Transaction.Collections;
 
-import Zeze.*;
+import org.pcollections.Empty;
+import org.pcollections.PVector;
+
 import Zeze.Transaction.*;
 
 public final class PList2<E extends Bean> extends PList<E> {
-	public PList2(long logKey, tangible.Func1Param<ImmutableList<E>, Log> logFactory) {
+	public PList2(long logKey, LogFactory<PVector<E>> logFactory) {
 		super(logKey, logFactory);
 	}
 
-	@Override
-	public E get(int index) {
-		return getData()[index];
-	}
+	@SuppressWarnings("unchecked")
 	@Override
 	public void set(int index, E value) {
 		if (value == null) {
@@ -23,13 +22,12 @@ public final class PList2<E extends Bean> extends PList<E> {
 			value.setVariableId(this.getVariableId());
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : list;
-			txn.PutLog(NewLog(oldv.SetItem(index, value)));
+			var log = txn.GetLog(LogKey);
+			var oldv = null != log ? ((LogV)log).Value : list;
+			txn.PutLog(NewLog(oldv.plus(index, value)));
 		}
 		else {
-			list = list.SetItem(index, value);
+			list = list.plus(index, value);
 		}
 	}
 
@@ -44,18 +42,18 @@ public final class PList2<E extends Bean> extends PList<E> {
 			item.setVariableId(this.getVariableId());
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : list;
-			txn.PutLog(NewLog(oldv.Add(item)));
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldv = null != log ? ((LogV)log).Value : list;
+			txn.PutLog(NewLog(oldv.plus(item)));
 		}
 		else {
-			list = list.Add(item);
+			list = list.plus(item);
 		}
 	}
 
 	@Override
-	public void AddRange(java.lang.Iterable<E> items) {
+	public void AddRange(java.util.Collection<E> items) {
 		// XXX
 		for (var v : items) {
 			if (null == v) {
@@ -70,35 +68,35 @@ public final class PList2<E extends Bean> extends PList<E> {
 			}
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : list;
-			txn.PutLog(NewLog(oldv.AddRange(items)));
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldv = null != log ? ((LogV)log).Value : list;
+			txn.PutLog(NewLog(oldv.plusAll(items)));
 		}
 		else {
-			list = list.AddRange(items);
+			list = list.plusAll(items);
 		}
 	}
 
 	@Override
-	public void clear() {
+	public void Clear() {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : list;
-			if (!oldv.IsEmpty) {
-				txn.PutLog(NewLog(ImmutableList<E>.Empty));
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldv = null != log ? ((LogV)log).Value : list;
+			if (!oldv.isEmpty()) {
+				txn.PutLog(NewLog(Empty.vector()));
 			}
 		}
 		else {
-			this.list = ImmutableList<E>.Empty;
+			this.list = Empty.vector();
 		}
 	}
 
 	@Override
-	public void add(int index, E item) {
+	public void Insert(int index, E item) {
 		if (item == null) {
 			throw new NullPointerException();
 		}
@@ -108,73 +106,55 @@ public final class PList2<E extends Bean> extends PList<E> {
 			item.setVariableId(this.getVariableId());
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : list;
-			txn.PutLog(NewLog(oldv.Insert(index, item)));
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldv = null != log ? ((LogV)log).Value : list;
+			txn.PutLog(NewLog(oldv.plus(index, item)));
 		}
 		else {
-			list = list.Insert(index, item);
+			list = list.plus(index, item);
 		}
 	}
 
 	@Override
-	public boolean remove(Object objectValue) {
-		E item = (E)objectValue;
+	public boolean Remove(E item) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : list;
-			var newv = oldv.Remove(item);
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldv = null != log ? ((LogV)log).Value : list;
+			var newv = oldv.minus(item);
 			if (oldv != newv) {
 				txn.PutLog(NewLog(newv));
 				return true;
 			}
-			else {
-				return false;
-			}
+			return false;
 		}
 		else {
 			var oldv = list;
-			list = list.Remove(item);
+			list = list.minus(item);
 			return oldv != list;
 		}
 	}
 
 	@Override
-	public void remove(int index) {
+	public void RemoveAt(int index) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : list;
-			txn.PutLog(NewLog(oldv.RemoveAt(index)));
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldv = null != log ? ((LogV)log).Value : list;
+			txn.PutLog(NewLog(oldv.minus(index)));
 		}
 		else {
-			list = list.RemoveAt(index);
+			list = list.minus(index);
 		}
 	}
 
 	@Override
-	public void RemoveRange(int index, int count) {
-		if (this.isManaged()) {
-			var txn = Transaction.getCurrent();
-			txn.VerifyRecordAccessed(this);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			var oldv = tempVar ? log.Value : list;
-			txn.PutLog(NewLog(oldv.RemoveRange(index, count)));
-		}
-		else {
-			list = list.RemoveRange(index, count);
-		}
-	}
-
-	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo tableKey) {
+	protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo tableKey) {
 		for (var e : list) {
 			e.InitRootInfo(tableKey, getParent());
 		}

@@ -1,53 +1,57 @@
 package Zeze.Transaction.Collections;
 
-import Zeze.*;
 import Zeze.Transaction.*;
 import java.util.*;
 
-//C# TO JAVA CONVERTER TODO TASK: The interface type was changed to the closest equivalent Java type, but the methods implemented will need adjustment:
-public abstract class PList<E> extends PCollection implements List<E>, IReadOnlyList<E> {
-	private final tangible.Func1Param<ImmutableList<E>, Log> _logFactory;
+import org.pcollections.Empty;
+import org.pcollections.PVector;
 
-	protected ImmutableList<E> list;
+public abstract class PList<E> extends PCollection implements Iterable<E> {
+	private final LogFactory<PVector<E>> _logFactory;
 
-	protected PList(long logKey, tangible.Func1Param<ImmutableList<E>, Log> logFactory) {
+	protected PVector<E> list;
+
+	protected PList(long logKey, LogFactory<PVector<E>> logFactory) {
 		super(logKey);
-		this._logFactory = ::logFactory;
-		list = ImmutableList<E>.Empty;
+		this._logFactory = logFactory;
+		list = Empty.vector();
 	}
 
-	public final Log NewLog(ImmutableList<E> value) {
-		return _logFactory.invoke(value);
+	public final Log NewLog(PVector<E> value) {
+		return _logFactory.create(value);
 	}
 
-	public abstract static class LogV extends Log {
-		public ImmutableList<E> Value;
+	public abstract class LogV extends Log {
+		public PVector<E> Value;
 
-		protected LogV(Bean bean, ImmutableList<E> last) {
+		protected LogV(Bean bean, PVector<E> last) {
 			super(bean);
 			this.Value = last;
 		}
 
-		protected final void Commit(PList<E> variable) {
-			variable.list = Value;
+		@Override
+		public final void Commit() {
+			list = Value;
 		}
 	}
 
-	protected final ImmutableList<E> getData() {
+	@SuppressWarnings("unchecked")
+	protected final PVector<E> getData() {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			if (txn == null) {
 				return list;
 			}
 			txn.VerifyRecordAccessed(this, true);
-			boolean tempVar = txn.GetLog(LogKey) instanceof LogV;
-			LogV log = tempVar ? (LogV)txn.GetLog(LogKey) : null;
-			return tempVar ? log.Value : list;
+			var log = txn.GetLog(LogKey);
+			if (null == log)
+				return list;
+			return ((LogV)log).Value;
 		}
 		return list;
 	}
 	public final int size() {
-		return getData().Count;
+		return getData().size();
 	}
 
 	@Override
@@ -55,7 +59,10 @@ public abstract class PList<E> extends PCollection implements List<E>, IReadOnly
 		return String.format("PList%1$s", getData());
 	}
 
-	public abstract E get(int index);
+	public E get(int index) {
+		return getData().get(index);
+	}
+
 	public abstract void set(int index, E value);
 
 	public final boolean isReadOnly() {
@@ -63,46 +70,28 @@ public abstract class PList<E> extends PCollection implements List<E>, IReadOnly
 	}
 
 	public abstract void Add(E item);
-	public abstract void AddRange(java.lang.Iterable<E> items);
+	public abstract void AddRange(java.util.Collection<E> items);
 	public abstract void Clear();
 	public abstract void Insert(int index, E item);
 	public abstract boolean Remove(E item);
 	public abstract void RemoveAt(int index);
-	public abstract void RemoveRange(int index, int count);
 
-	public final boolean contains(Object objectValue) {
-		E item = (E)objectValue;
-		return getData().Contains(item);
+	public final boolean contains(Object item) {
+		return getData().contains(item);
 	}
 
 	public final void CopyTo(E[] array, int arrayIndex) {
-		getData().CopyTo(array, arrayIndex);
+		var data = getData();
+		for (var e : data)
+			array[arrayIndex++] = e;
 	}
 
-
-	public final Iterator GetEnumerator() {
-		if (this instanceof IEnumerable)
-			return IEnumerable_GetEnumerator();
-		else if (this instanceof IEnumerable)
-			return IEnumerable_GetEnumerator();
-		else
-			throw new UnsupportedOperationException("No interface found.");
-	}
-
-	private Iterator IEnumerable_GetEnumerator() {
+	@Override
+	public final Iterator<E> iterator() {
 		return getData().iterator();
 	}
 
-	private Iterator<E> IEnumerable_GetEnumerator() {
-		return getData().iterator();
-	}
-
-	public final ImmutableList<E>.Enumerator GetEnumerator() {
-		return getData().iterator();
-	}
-
-	public final int indexOf(Object objectValue) {
-		E item = (E)objectValue;
-		return getData().IndexOf(item);
+	public final int indexOf(Object item) {
+		return getData().indexOf(item);
 	}
 }

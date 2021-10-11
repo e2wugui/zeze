@@ -1,9 +1,9 @@
 package Zeze.Util;
 
-import NLog.Filters.*;
-import Zeze.*;
+import java.lang.ref.WeakReference;
 
 public final class WeakHashSet<K> {
+
 	/**
 	 * The default initial capacity -- MUST be a power of two.
 	 */
@@ -23,6 +23,7 @@ public final class WeakHashSet<K> {
 	/**
 	 * The table, resized as necessary. Length MUST Always be a power of two.
 	 */
+	@SuppressWarnings("rawtypes")
 	private Entry[] table;
 
 	/**
@@ -50,23 +51,19 @@ public final class WeakHashSet<K> {
 	 *                                  the load factor is nonpositive.
 	 */
 	public WeakHashSet(int initialCapacity, float loadFactor) {
-		if (initialCapacity < 0) {
+		if (initialCapacity < 0)
 			throw new IllegalArgumentException("Illegal Initial Capacity: " + initialCapacity);
-		}
-		if (initialCapacity > MAXIMUM_CAPACITY) {
+		if (initialCapacity > MAXIMUM_CAPACITY)
 			initialCapacity = MAXIMUM_CAPACITY;
-		}
 
-		if (loadFactor <= 0 || Float.isNaN(loadFactor)) {
+		if (loadFactor <= 0 || Float.isNaN(loadFactor))
 			throw new IllegalArgumentException("Illegal Load factor: " + loadFactor);
-		}
 		int capacity = 1;
-		while (capacity < initialCapacity) {
+		while (capacity < initialCapacity)
 			capacity <<= 1;
-		}
 		table = new Entry[capacity];
 		this.loadFactor = loadFactor;
-		threshold = (int)(capacity * loadFactor);
+		threshold = (int) (capacity * loadFactor);
 	}
 
 	/**
@@ -86,7 +83,7 @@ public final class WeakHashSet<K> {
 	 */
 	public WeakHashSet() {
 		this.loadFactor = DEFAULT_LOAD_FACTOR;
-		threshold = (int)(DEFAULT_INITIAL_CAPACITY);
+		threshold = (int) (DEFAULT_INITIAL_CAPACITY);
 		table = new Entry[DEFAULT_INITIAL_CAPACITY];
 	}
 
@@ -101,13 +98,8 @@ public final class WeakHashSet<K> {
 		// This function ensures that hashCodes that differ only by
 		// constant multiples at each bit position have a bounded
 		// number of collisions (approximately 8 at default load factor).
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint uh = (uint)h;
-		int uh = (int)h;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-		uh ^= (uh >>> 20) ^ (uh >>> 12);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-		return (int)(uh ^ (uh >>> 7) ^ (uh >>> 4));
+		h ^= (h >>> 20) ^ (h >>> 12);
+		return h ^ (h >>> 7) ^ (h >>> 4);
 	}
 
 	/**
@@ -120,31 +112,25 @@ public final class WeakHashSet<K> {
 	/**
 	 * Expunges stale entries from the table.
 	 */
+	@SuppressWarnings("unchecked")
 	private void expungeStaleEntries() {
 		int n = table.length;
 		for (int i = 0; i < n; ++i) {
-			Entry e = table[i];
-			if (e == null) {
+			Entry<K> e = table[i];
+			if (e == null)
 				continue;
-			}
-			Entry prev = null;
+			Entry<K> prev = null;
 			while (e != null) {
-				K k;
-				tangible.OutObject<K> tempOut_k = new tangible.OutObject<K>();
-				e.weakRef.TryGetTarget(tempOut_k);
-			k = tempOut_k.outArgValue;
-				Entry next = e.next;
+				K k = e.get();
+				Entry<K> next = e.next;
 				if (k == null) {
-					if (prev == null) {
+					if (prev == null)
 						table[i] = next;
-					}
-					else {
+					else
 						prev.next = next;
-					}
 					e.next = null; // Help GC
 					--size;
-				}
-				else {
+				} else {
 					prev = e;
 				}
 				e = next;
@@ -157,7 +143,7 @@ public final class WeakHashSet<K> {
 	 * snapshot, and may not reflect unprocessed entries that will be removed before
 	 * next attempted access because they are no longer referenced.
 	 */
-	public int Size() {
+	public int size() {
 		return size;
 	}
 
@@ -166,35 +152,28 @@ public final class WeakHashSet<K> {
 	 *
 	 * @see #add(Object)
 	 */
-	public K get(K k) {
-		if (k == null) {
-			throw new RuntimeException();
-		}
+	@SuppressWarnings("unchecked")
+	public K get(final K k) {
+		if (k == null)
+			throw new NullPointerException();
 		int h = hash(k.hashCode());
 		int i = indexFor(h, table.length);
-		Entry prev = null;
-		Entry e = table[i];
+		Entry<K> prev = null;
+		Entry<K> e = table[i];
 		while (e != null) {
-			K _k;
-			tangible.OutObject<K> tempOut__k = new tangible.OutObject<K>();
-			e.weakRef.TryGetTarget(tempOut__k);
-		_k = tempOut__k.outArgValue;
-			Entry next = e.next;
+			K _k = e.get();
+			Entry<K> next = e.next;
 			if (_k == null) {
 				--size;
 				e.next = null; // Help GC
-							   // remove e
-				if (prev == null) {
+				// remove e
+				if (prev == null)
 					table[i] = next;
-				}
-				else {
+				else
 					prev.next = next;
-				}
-			}
-			else {
-				if (h == e.hash && k.equals(_k)) {
+			} else {
+				if (h == e.hash && k.equals(_k))
 					return _k;
-				}
 				prev = e;
 			}
 			e = next;
@@ -213,46 +192,38 @@ public final class WeakHashSet<K> {
 	 * @param e element to be added to this set
 	 * @return the added element or the old element if an equal one exists
 	 */
-	public K add(K k) {
-		if (k == null) {
-			throw new RuntimeException();
-		}
+	@SuppressWarnings("unchecked")
+	public K add(final K k) {
+		if (k == null)
+			throw new NullPointerException();
 		int h = hash(k.hashCode());
 		int i = indexFor(h, table.length);
-		Entry prev = null;
-		Entry e = table[i];
+		Entry<K> prev = null;
+		Entry<K> e = table[i];
 		while (e != null) {
-			K _k;
-			tangible.OutObject<K> tempOut__k = new tangible.OutObject<K>();
-			e.weakRef.TryGetTarget(tempOut__k);
-		_k = tempOut__k.outArgValue;
-			Entry next = e.next;
+			K _k = e.get();
+			Entry<K> next = e.next;
 			if (_k == null) {
 				--size;
 				e.next = null; // Help GC
-							   // remove e
-				if (prev == null) {
+				// remove e
+				if (prev == null)
 					table[i] = next;
-				}
-				else {
+				else
 					prev.next = next;
-				}
-			}
-			else {
-				if (h == e.hash && k.equals(_k)) {
+			} else {
+				if (h == e.hash && k.equals(_k))
 					return _k;
-				}
 				prev = e;
 			}
 			e = next;
 		}
 
-		table[i] = new Entry(k, h, table[i]);
+		table[i] = new Entry<K>(k, h, table[i]);
 		if (++size >= threshold) {
 			expungeStaleEntries();
-			if (size >= threshold) {
+			if (size >= threshold)
 				resize();
-			}
 		}
 		return k;
 	}
@@ -270,6 +241,7 @@ public final class WeakHashSet<K> {
 	 *                    than current capacity unless current capacity is
 	 *                    MAXIMUM_CAPACITY (in which case value is irrelevant).
 	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private void resize() {
 		int n = table.length;
 		if (n == MAXIMUM_CAPACITY) {
@@ -280,18 +252,14 @@ public final class WeakHashSet<K> {
 		Entry[] dest = new Entry[n2];
 		/** Transfers all entries from table to dest tables */
 		for (int j = 0; j < n; ++j) {
-			Entry e = table[j];
+			Entry<K> e = table[j];
 			while (e != null) {
-				Entry next = e.next;
-				K key;
-				tangible.OutObject<K> tempOut_key = new tangible.OutObject<K>();
-				e.weakRef.TryGetTarget(tempOut_key);
-			key = tempOut_key.outArgValue;
+				Entry<K> next = e.next;
+				K key = e.get();
 				if (key == null) {
 					e.next = null; // Help GC
 					--size;
-				}
-				else {
+				} else {
 					int i = indexFor(e.hash, n2);
 					e.next = dest[i];
 					dest[i] = e;
@@ -300,25 +268,26 @@ public final class WeakHashSet<K> {
 			}
 		}
 		table = dest;
-		threshold = (int)(n2 * loadFactor);
+		threshold = (int) (n2 * loadFactor);
 	}
 
 	/**
 	 * The entries in this hash set extend WeakReference using its main ref field as
 	 * the key
 	 */
-	public static class Entry {
-		public final System.WeakReference<K> weakRef;
-		public final int hash;
-		public Entry next;
+	private final static class Entry<K> extends WeakReference<K> {
+		private final int hash;
+		private Entry<K> next;
 
 		/**
 		 * Creates new entry.
 		 */
-		public Entry(K key, int hash, Entry next) {
-			this.weakRef = new WeakReference<K>(key);
+		Entry(K key, int hash, Entry<K> next) {
+			super(key);
 			this.hash = hash;
 			this.next = next;
 		}
+
 	}
+
 }

@@ -1,33 +1,28 @@
 package Zeze.Transaction;
 
-import Zeze.Serialize.*;
-import Zeze.*;
 import java.util.*;
 
 public abstract class Bean implements Zeze.Serialize.Serializable {
-	private static Zeze.Util.AtomicLong _objectIdGen = new Zeze.Util.AtomicLong();
+	private static java.util.concurrent.atomic.AtomicLong _objectIdGen = new java.util.concurrent.atomic.AtomicLong();
 
 	public static final int ObjectIdStep = 4096; // 自增长步长。低位保留给Variable.Id。也就是，Variable.Id 最大只能是4095.
 	public static final int MaxVariableId = ObjectIdStep - 1;
 
 	public static long getNextObjectId() {
-		return _objectIdGen.AddAndGet(ObjectIdStep);
+		return _objectIdGen.addAndGet(ObjectIdStep);
 	}
 
 	private long ObjectId = getNextObjectId();
 	public final long getObjectId() {
 		return ObjectId;
 	}
-	private Record.RootInfo RootInfo;
-	public final Record.RootInfo getRootInfo() {
-		return RootInfo;
-	}
-	private void setRootInfo(Record.RootInfo value) {
-		RootInfo = value;
-	}
+
+	protected Record.RootInfo RootInfo;
+
 	public final TableKey getTableKey() {
-		return getRootInfo() == null ? null : getRootInfo().getTableKey();
+		return RootInfo == null ? null : RootInfo.getTableKey();
 	}
+
 	// Parent VariableId 是 ChangeListener 需要的属性。
 	// Parent 和 TableKey 一起初始化，仅在被Table管理以后才设置。
 	private Bean Parent;
@@ -44,6 +39,8 @@ public abstract class Bean implements Zeze.Serialize.Serializable {
 	public final int getVariableId() {
 		return VariableId;
 	}
+
+	// TODO 这个方法应该仅用于内部。
 	public final void setVariableId(int value) {
 		VariableId = value;
 	}
@@ -61,21 +58,21 @@ public abstract class Bean implements Zeze.Serialize.Serializable {
 	 @param path
 	 @return 
 	*/
-	public final void BuildChangeListenerPath(ArrayList<Util.KV<Bean, Integer>> path) {
+	public final void BuildChangeListenerPath(ArrayList<Zeze.Util.KV<Bean, Integer>> path) {
 		for (Bean parent = getParent(); parent != null; parent = parent.Parent) {
-			path.add(Util.KV.Create(parent, getVariableId()));
+			path.add(Zeze.Util.KV.Create(parent, getVariableId()));
 		}
 	}
 
 	public final boolean isManaged() {
-		return getRootInfo() != null;
+		return RootInfo != null;
 	}
 
 	public final void InitRootInfo(Record.RootInfo rootInfo, Bean parent) {
 		if (isManaged()) {
 			throw new HasManagedException();
 		}
-		this.setRootInfo(rootInfo);
+		this.RootInfo = rootInfo;
 		this.setParent(parent);
 		InitChildrenRootInfo(rootInfo);
 	}
@@ -97,7 +94,7 @@ public abstract class Bean implements Zeze.Serialize.Serializable {
 		throw new UnsupportedOperationException();
 	}
 	public void BuildString(StringBuilder sb, int level) {
-		sb.append(tangible.StringHelper.repeatChar(' ', level)).Append("{}").Append(System.lineSeparator());
+		sb.append(tangible.StringHelper.repeatChar(' ', level)).append("{}").append(System.lineSeparator());
 	}
 
 	// Bean的类型Id，替换 ClassName，提高效率和存储空间
@@ -113,42 +110,23 @@ public abstract class Bean implements Zeze.Serialize.Serializable {
 	// XXX: 这个算法定好之后，就不能变了。
 	public static long Hash64(String name) {
 		// This is a Knuth hash
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: UInt64 hashedValue = 3074457345618258791ul;
-		long hashedValue = 3074457345618258791;
+		long hashedValue = 3074457345618258791L;
 		for (int i = 0; i < name.length(); i++) {
 			hashedValue += name.charAt(i);
-			hashedValue *= 3074457345618258799;
+			hashedValue *= 3074457345618258799L;
 		}
 		return (long)hashedValue;
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static uint Hash32(string name)
 	public static int Hash32(String name) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: ulong hash64 = (ulong)Hash64(name);
 		long hash64 = (long)Hash64(name);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint hash32 = (uint)(hash64 & 0xffffffff) ^ (uint)(hash64 >> 32);
 		int hash32 = (int)(hash64 & 0xffffffff) ^ (int)(hash64 >>> 32);
 		return hash32;
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public static ushort Hash16(string protocolName)
 	public static short Hash16(String protocolName) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: ulong hash64 = (ulong)Hash64(protocolName);
 		long hash64 = (long)Hash64(protocolName);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint hash32 = (uint)(hash64 & 0xffffffff) ^ (uint)(hash64 >> 32);
 		int hash32 = (int)(hash64 & 0xffffffff) ^ (int)(hash64 >>> 32);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: ushort hash16 = (ushort)((hash32 & 0xffff) ^ (hash32 >> 16));
 		short hash16 = (short)((hash32 & 0xffff) ^ (hash32 >>> 16));
 		return hash16;
 	}

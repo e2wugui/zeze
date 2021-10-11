@@ -301,18 +301,13 @@ public class Service {
 	/** 协议工厂
 	*/
 	@FunctionalInterface
-	public static interface IProtocolFactory {
-		Protocol create();
-	}
-
-	@FunctionalInterface
-	public static interface IProtocolHandle {
+	public static interface ProtocolHandle {
 		int handle(Protocol p);
 	}
 	
 	public static class ProtocolFactoryHandle {
-		public IProtocolFactory Factory;
-		public IProtocolHandle Handle;
+		public Zeze.Util.Factory<Protocol> Factory;
+		public ProtocolHandle Handle;
 		public boolean NoProcedure = false;
 	}
 
