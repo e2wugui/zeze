@@ -1,6 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import java.util.*;
 
 public final class ChangeNoteSet<K> extends ChangeNote {
@@ -35,6 +34,7 @@ public final class ChangeNoteSet<K> extends ChangeNote {
 
 	@Override
 	public void Merge(ChangeNote other) {
+		@SuppressWarnings("unchecked")
 		ChangeNoteSet<K> another = (ChangeNoteSet<K>)other;
 		// Put,Remove 需要确认有没有顺序问题
 		// this: add 1,3 remove 2,4 nest: add 2 remove 1

@@ -1,6 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import java.util.*;
 
 /** 
@@ -12,8 +11,8 @@ public final class ChangeListenerMap {
 
 	public void AddListener(int variableId, ChangeListener listener) {
 		synchronized (this) {
-			HashSet<ChangeListener> set;
-			if (false == (map.containsKey(variableId) && (set = map.get(variableId)) == set)) {
+			var set = map.get(variableId);
+			if (null == set) {
 				set = new HashSet<ChangeListener>();
 				map.put(variableId, set);
 			}
@@ -26,10 +25,10 @@ public final class ChangeListenerMap {
 
 	public void RemoveListener(int variableId, ChangeListener listener) {
 		synchronized (this) {
-			TValue set;
-			if (map.containsKey(variableId) && (set = map.get(variableId)) == set) {
+			var set = map.remove(variableId);
+			if (null != set) {
 				boolean changed = set.remove(listener);
-				if (set.Count == 0) {
+				if (set.size() == 0) {
 					map.remove(variableId);
 				}
 				if (changed) {

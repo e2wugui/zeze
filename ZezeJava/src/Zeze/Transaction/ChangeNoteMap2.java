@@ -1,12 +1,11 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import java.util.*;
 
 public final class ChangeNoteMap2<K, V extends Bean> extends ChangeNoteMap1<K, V> {
 	// 记录 map 中的 value 发生了改变。需要查找原 Map 才能映射到 Replaced 中。
 	// Notify 的时候由 Collector 设置。
-	private Util.IdentityHashMap<Bean, Bean> ChangedValue;
+	private IdentityHashMap<Bean, Bean> ChangedValue;
 
 	public ChangeNoteMap2(Zeze.Transaction.Collections.PMap<K, V> map) {
 		super(map);
@@ -20,10 +19,10 @@ public final class ChangeNoteMap2<K, V extends Bean> extends ChangeNoteMap1<K, V
 			return;
 		}
 
-		for (var e : map) {
-			if (ChangedValue.containsKey(e.Value)) {
-				if (!getReplaced().containsKey(e.Key)) {
-				   getReplaced().put(e.Key, e.Value);
+		for (var e : map.entrySet()) {
+			if (ChangedValue.containsKey(e.getValue())) {
+				if (!getReplaced().containsKey(e.getKey())) {
+				   getReplaced().put(e.getKey(), e.getValue());
 				}
 			}
 		}
@@ -32,7 +31,7 @@ public final class ChangeNoteMap2<K, V extends Bean> extends ChangeNoteMap1<K, V
 	}
 
 	@Override
-	public void SetChangedValue(Util.IdentityHashMap<Bean, Bean> values) {
+	public void SetChangedValue(IdentityHashMap<Bean, Bean> values) {
 		ChangedValue = values;
 	}
 }

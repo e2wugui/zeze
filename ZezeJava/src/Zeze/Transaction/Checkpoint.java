@@ -1,16 +1,11 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,9 +18,6 @@ public final class Checkpoint {
 	}
 
 	private ReentrantReadWriteLock FlushReadWriteLock = new ReentrantReadWriteLock();
-	private ReentrantReadWriteLock getFlushReadWriteLock() {
-		return FlushReadWriteLock;
-	}
 
 	private boolean IsRunning;
 	public boolean isRunning() {
@@ -236,7 +228,7 @@ public final class Checkpoint {
 	}
 
 	public void Flush(Transaction trans) {
-		Flush(from ra in trans.getAccessedRecords().values() where ra.Dirty select ra.OriginRecord);
+		Flush(trans.getAccessedRecords().values().stream().filter((r) -> r.Dirty).map((r) -> r.OriginRecord).toList());
 	}
 
 	public void Flush(java.lang.Iterable<Record> rs) {
@@ -290,7 +282,7 @@ public final class Checkpoint {
 	public void Flush(RelativeRecordSet rs) {
 		// rs.MergeTo == null &&  check outside
 		if (rs.getRecordSet() != null) {
-			Flush(from r in rs.getRecordSet() select r);
+			Flush(rs.getRecordSet());
 			for (var r : rs.getRecordSet()) {
 				r.setDirty(false);
 			}

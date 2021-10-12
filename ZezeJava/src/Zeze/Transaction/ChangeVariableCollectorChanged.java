@@ -1,15 +1,16 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import java.util.*;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public final class ChangeVariableCollectorChanged extends ChangeVariableCollector {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(ChangeVariableCollectorChanged.class);
 
 	private boolean changed = false;
 
 	@Override
-	public void CollectChanged(ArrayList<Util.KV<Bean, Integer>> path, ChangeNote note) {
+	public void CollectChanged(ArrayList<Zeze.Util.KV<Bean, Integer>> path, ChangeNote note) {
 		changed = true;
 	}
 
@@ -24,7 +25,7 @@ public final class ChangeVariableCollectorChanged extends ChangeVariableCollecto
 				l.OnChanged(key, value, null);
 			}
 			catch (RuntimeException ex) {
-				logger.Error(ex, "NotifyVariableChanged");
+				logger.error("NotifyVariableChanged", ex);
 			}
 		}
 	}

@@ -1,16 +1,15 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import java.util.*;
 
 public final class ChangeTableCollector {
-	private final HashMap<Object, ChangeRecordCollector> records = new HashMap<Object, ChangeRecordCollector>(); // key is Record.Key
+	private final HashMap<Object, ChangeRecordCollector> records = new HashMap<>(); // key is Record.Key
 	private final Table table;
 	private final boolean tableHasListener;
 
 	public ChangeTableCollector(TableKey tableKey) {
 		table = Table.GetTable(tableKey.getTableId());
-		tableHasListener = table.ChangeListenerMap.HasListener();
+		tableHasListener = table.getChangeListenerMap().HasListener();
 	}
 
 	public void BuildCollect(TableKey tableKey, Zeze.Transaction.RecordAccessed recordAccessed) {
@@ -25,8 +24,8 @@ public final class ChangeTableCollector {
 			return; // 优化，表格没有监听者时，不收集改变。
 		}
 
-		TValue crc;
-		if (records.containsKey(tableKey.getKey()) && (crc = records.get(tableKey.getKey())) == crc) {
+		var crc = records.get(tableKey.getKey());
+		if (null != crc) {
 			crc.CollectChanged(collect);
 		}
 		// else skip error . 只有测试代码可能会走到这个分支。
