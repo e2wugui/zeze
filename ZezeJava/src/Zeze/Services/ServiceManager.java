@@ -1083,7 +1083,7 @@ public final class ServiceManager implements Closeable {
 		}
 	}
 
-	public final static class NotifyServiceList extends Protocol<ServiceInfos> {
+	public final static class NotifyServiceList extends Protocol1<ServiceInfos> {
 		public final static int ProtocolId_ = Bean.Hash16(NotifyServiceList.class.FullName);
 
 		@Override
@@ -1096,7 +1096,7 @@ public final class ServiceManager implements Closeable {
 		}
 	}
 
-	public final static class ReadyServiceList extends Protocol<ServiceInfos> {
+	public final static class ReadyServiceList extends Protocol1<ServiceInfos> {
 		public final static int ProtocolId_ = Bean.Hash16(ReadyServiceList.class.FullName);
 
 		@Override
@@ -1109,7 +1109,7 @@ public final class ServiceManager implements Closeable {
 		}
 	}
 
-	public final static class CommitServiceList extends Protocol<ServiceInfos> {
+	public final static class CommitServiceList extends Protocol1<ServiceInfos> {
 		public final static int ProtocolId_ = Bean.Hash16(CommitServiceList.class.FullName);
 
 		@Override
@@ -1157,7 +1157,7 @@ public final class ServiceManager implements Closeable {
 		}
 	}
 
-	public final static class SubscribeFirstCommit extends Protocol<ServiceInfos> {
+	public final static class SubscribeFirstCommit extends Protocol1<ServiceInfos> {
 		public final static int ProtocolId_ = Bean.Hash16(SubscribeFirstCommit.class.FullName);
 
 		@Override
@@ -1279,21 +1279,21 @@ public final class ServiceManager implements Closeable {
 		 订阅服务状态发生变化时回调。
 		 如果需要处理这个事件，请在订阅前设置回调。
 		*/
-		private tangible.Action1Param<SubscribeState> OnChanged;
-		public tangible.Action1Param<SubscribeState> getOnChanged() {
+		private Zeze.Util.Action1<SubscribeState> OnChanged;
+		public Zeze.Util.Action1<SubscribeState> getOnChanged() {
 			return OnChanged;
 		}
-		public void setOnChanged(tangible.Action1Param<SubscribeState> value) {
+		public void setOnChanged(Zeze.Util.Action1<SubscribeState> value) {
 			OnChanged = value;
 		}
 
 		// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 		// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
-		private tangible.Action0Param OnKeepAlive;
-		public tangible.Action0Param getOnKeepAlive() {
+		private java.lang.Runnable OnKeepAlive;
+		public java.lang.Runnable getOnKeepAlive() {
 			return OnKeepAlive;
 		}
-		public void setOnKeepAlive(tangible.Action0Param value) {
+		public void setOnKeepAlive(java.lang.Runnable value) {
 			OnKeepAlive = value;
 		}
 
@@ -1662,7 +1662,7 @@ public final class ServiceManager implements Closeable {
 		private int ProcessKeepalive(Protocol p) {
 			var r = p instanceof Keepalive ? (Keepalive)p : null;
 			if (getOnKeepAlive() != null) {
-				getOnKeepAlive().Invoke();
+				getOnKeepAlive().run();
 			}
 			r.SendResultCode(Keepalive.Success);
 			return Procedure.Success;

@@ -75,7 +75,7 @@ public class HandshakeBase extends Service {
 //C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
 //ORIGINAL LINE: byte[] key = Config.HandshakeOptions.SecureIp != null ? Config.HandshakeOptions.SecureIp : ipaddress.GetAddressBytes();
 		byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null ? getConfig().getHandshakeOptions().getSecureIp() : ipaddress.GetAddressBytes();
-		logger.Debug("{0} localip={1}", p.Sender.getSessionId(), BitConverter.toString(key));
+		logger.Debug("{0} localip={1}", p.Sender.getSessionId(), Zeze.Util.BitConverter.toString(key));
 		int half = material.length / 2;
 //C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
 //ORIGINAL LINE: byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
@@ -107,11 +107,8 @@ public class HandshakeBase extends Service {
 
 	private int ProcessSHandshake(Protocol _p) {
 		Zeze.Services.Handshake.SHandshake p = (Zeze.Services.Handshake.SHandshake)_p;
-		TValue dhRandom;
-		Zeze.Util.OutObject<TValue> tempOut_dhRandom = new Zeze.Util.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (DHContext.TryGetValue(p.Sender.getSessionId(), tempOut_dhRandom)) {
-		dhRandom = tempOut_dhRandom.outArgValue;
+		var dhRandom = DHContext.get(p.Sender.getSessionId());
+		if ( dhRandom != null ) {
 			
 //C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
 //ORIGINAL LINE: byte[] material = Handshake.Helper.computeDHKey(Config.HandshakeOptions.DhGroup, new BigInteger(p.Argument.dh_data), dhRandom).ToByteArray();
@@ -124,7 +121,7 @@ public class HandshakeBase extends Service {
 //C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
 //ORIGINAL LINE: byte[] key = ipaddress.GetAddressBytes();
 			byte[] key = ipaddress.GetAddressBytes();
-			logger.Debug("{0} remoteip={1}", p.Sender.getSessionId(), BitConverter.toString(key));
+			logger.Debug("{0} remoteip={1}", p.Sender.getSessionId(), Zeze.Util.BitConverter.toString(key));
 
 			int half = material.length / 2;
 //C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
@@ -134,18 +131,11 @@ public class HandshakeBase extends Service {
 			hmacMd5 = Digest.HmacMd5(key, material, half, material.length - half);
 			p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
 
-			TValue _;
-			Zeze.Util.OutObject<BigInteger> tempOut__ = new Zeze.Util.OutObject<BigInteger>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-			DHContext.TryRemove(p.Sender.getSessionId(), tempOut__);
-		_ = tempOut__.outArgValue;
+			DHContext.remove(p.Sender.getSessionId());		
 			(new Zeze.Services.Handshake.CHandshakeDone()).Send(p.Sender);
 			OnHandshakeDone(p.Sender);
 			return 0;
 		}
-	else {
-		dhRandom = tempOut_dhRandom.outArgValue;
-	}
 		throw new RuntimeException("handshake lost context.");
 	}
 
