@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.*;
-
 /**
  * <p>
  * Locks原来使用 单个容器管理锁，效率太低：

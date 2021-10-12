@@ -47,7 +47,8 @@ public abstract class Record {
 	public final boolean getDirty() {
 		return Dirty;
 	}
-	public final void setDirty(boolean value) {
+	
+	final void setDirty(boolean value) {
 		Dirty = value;
 	}
 

@@ -1,18 +1,29 @@
 package Zeze.Transaction;
 
 import Zeze.*;
+import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
+
+import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class Checkpoint {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(Checkpoint.class);
 
 	private HashSet<Database> Databases = new HashSet<Database> ();
 	private HashSet<Database> getDatabases() {
 		return Databases;
 	}
 
-	private ReaderWriterLockSlim FlushReadWriteLock = new ReaderWriterLockSlim();
-	private ReaderWriterLockSlim getFlushReadWriteLock() {
+	private ReentrantReadWriteLock FlushReadWriteLock = new ReentrantReadWriteLock();
+	private ReentrantReadWriteLock getFlushReadWriteLock() {
 		return FlushReadWriteLock;
 	}
 
@@ -32,29 +43,29 @@ public final class Checkpoint {
 	}
 	private Task RunningTask = null;
 
-	private CheckpointMode CheckpointMode = CheckpointMode.values()[0];
+	private CheckpointMode Mode = CheckpointMode.Period;
 	public CheckpointMode getCheckpointMode() {
-		return CheckpointMode;
+		return Mode;
 	}
 
 	public Checkpoint(CheckpointMode mode) {
-		CheckpointMode = mode;
+		Mode = mode;
 	}
 
 	public Checkpoint(CheckpointMode mode, java.lang.Iterable<Database> dbs) {
-		CheckpointMode = mode;
+		Mode = mode;
 		Add(dbs);
 	}
 
 	public void EnterFlushReadLock() {
-		if (getCheckpointMode() == CheckpointMode.Period) {
-			getFlushReadWriteLock().EnterReadLock();
+		if (Mode == CheckpointMode.Period) {
+			FlushReadWriteLock.readLock().lock();
 		}
 	}
 
 	public void ExitFlushReadLock() {
-		if (getCheckpointMode() == CheckpointMode.Period) {
-			getFlushReadWriteLock().ExitReadLock();
+		if (Mode == CheckpointMode.Period) {
+			FlushReadWriteLock.readLock().unlock();
 		}
 	}
 
@@ -80,17 +91,21 @@ public final class Checkpoint {
 
 			setRunning(true);
 			setPeriod(period);
-			RunningTask = Zeze.Util.Task.Run(::Run, "Checkpoint.Run");
+			RunningTask = Task.Run(() -> Run(), "Checkpoint.Run");
 		}
 	}
 
 	public void StopAndJoin() {
 		synchronized (this) {
 			setRunning(false);
-			Monitor.Pulse(this);
+			this.notify();
 		}
 		if (RunningTask != null) {
-			RunningTask.Wait();
+			try {
+				RunningTask.get();
+			} catch (InterruptedException | ExecutionException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
@@ -100,9 +115,13 @@ public final class Checkpoint {
 				break;
 
 			case Period:
-				TaskCompletionSource<Integer> source = new TaskCompletionSource<Integer>();
+				final TaskCompletionSource<Integer> source = new TaskCompletionSource<Integer>();
 				AddActionAndPulse(() -> source.SetResult(0));
-				source.Task.Wait();
+				try {
+					source.get();
+				} catch (InterruptedException | ExecutionException e) {
+					throw new RuntimeException(e);
+				}
 				break;
 
 			case Table:
@@ -113,7 +132,7 @@ public final class Checkpoint {
 
 	private void Run() {
 		while (isRunning()) {
-			switch (getCheckpointMode()) {
+			switch (Mode) {
 				case Period:
 					CheckpointPeriod();
 					for (tangible.Action0Param action : actionCurrent) {
@@ -129,13 +148,19 @@ public final class Checkpoint {
 				case Table:
 					RelativeRecordSet.FlushWhenCheckpoint(this);
 					break;
+					
+				default:
+					break;
 			}
 			synchronized (this) {
-				Monitor.Wait(this, getPeriod());
+				try {
+					this.wait(Period);
+				} catch (InterruptedException skip) {
+				}
 			}
 		}
 		//logger.Fatal("final checkpoint start.");
-		switch (getCheckpointMode()) {
+		switch (Mode) {
 			case Period:
 				CheckpointPeriod();
 				break;
@@ -143,8 +168,11 @@ public final class Checkpoint {
 			case Table:
 				RelativeRecordSet.FlushWhenCheckpoint(this);
 				break;
+				
+			default:
+				break;
 		}
-		logger.Fatal("final checkpoint end.");
+		logger.fatal("final checkpoint end.");
 	}
 
 	private ArrayList<tangible.Action0Param> actionCurrent;
@@ -157,15 +185,16 @@ public final class Checkpoint {
 	 @param act
 	*/
 	public void AddActionAndPulse(tangible.Action0Param act) {
-		getFlushReadWriteLock().EnterReadLock();
+		final var r = FlushReadWriteLock.readLock();
+		r.lock();
 		try {
 			synchronized (this) {
 				actionPending.add(act);
-				Monitor.Pulse(this);
+				notify();
 			}
 		}
 		finally {
-			getFlushReadWriteLock().ExitReadLock();
+			r.unlock();
 		}
 	}
 
@@ -176,7 +205,8 @@ public final class Checkpoint {
 		}
 		{
 		// snapshot
-			getFlushReadWriteLock().EnterWriteLock();
+			final var w = FlushReadWriteLock.writeLock();
+			w.lock();
 			try {
 				actionCurrent = actionPending;
 				actionPending = new ArrayList<tangible.Action0Param>();
@@ -185,7 +215,7 @@ public final class Checkpoint {
 				}
 			}
 			finally {
-				getFlushReadWriteLock().ExitWriteLock();
+				w.unlock();
 			}
 		}
 		// flush
@@ -206,7 +236,6 @@ public final class Checkpoint {
 	}
 
 	public void Flush(Transaction trans) {
-//C# TO JAVA CONVERTER TODO TASK: There is no Java equivalent to LINQ query syntax:
 		Flush(from ra in trans.getAccessedRecords().values() where ra.Dirty select ra.OriginRecord);
 	}
 
@@ -214,9 +243,9 @@ public final class Checkpoint {
 		var dts = new HashMap<Database, Database.Transaction>();
 		// prepare: 编码并且为每一个数据库创建一个数据库事务。
 		for (var r : rs) {
-			Database database = r.getTable().Storage.DatabaseTable.Database;
-			TValue t;
-			if (false == (dts.containsKey(database) && (t = dts.get(database)) == t)) {
+			var database = r.getTable().getStorage().getDatabaseTable().getDatabase();
+			var t = dts.get(database);
+			if (null == t) {
 				t = database.BeginTransaction();
 				dts.put(database, t);
 			}
@@ -248,7 +277,11 @@ public final class Checkpoint {
 		}
 		finally {
 			for (var t : dts.values()) {
-				t.Dispose();
+				try {
+					t.close();
+				} catch (IOException e) {
+					logger.error("Checkpoint.Flush: close transacton{}", t, e);
+				}
 			}
 		}
 	}
@@ -257,10 +290,9 @@ public final class Checkpoint {
 	public void Flush(RelativeRecordSet rs) {
 		// rs.MergeTo == null &&  check outside
 		if (rs.getRecordSet() != null) {
-//C# TO JAVA CONVERTER TODO TASK: There is no Java equivalent to LINQ query syntax:
 			Flush(from r in rs.getRecordSet() select r);
 			for (var r : rs.getRecordSet()) {
-				r.Dirty = false;
+				r.setDirty(false);
 			}
 		}
 	}
