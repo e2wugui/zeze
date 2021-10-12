@@ -1,6 +1,7 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
+import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -452,6 +453,7 @@ public class Service {
 	}
 
 	// 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
+
 	public final void Foreach(Zeze.Util.Action1<AsyncSocket> action) {
 		for (var socket : getSocketMap().values()) {
 			action.run(socket);
