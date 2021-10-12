@@ -1,7 +1,8 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 /** 
  see zeze/README.md -> 18) 事务提交模式
@@ -32,13 +33,13 @@ public class RelativeRecordSet {
 		MergeTo = value;
 	}
 
-	public final static Util.AtomicLong IdGenerator = new Util.AtomicLong();
+	public final static AtomicLong IdGenerator = new AtomicLong();
 	public final static RelativeRecordSet Deleted = new RelativeRecordSet();
 
 	private final static java.util.concurrent.ConcurrentHashMap<RelativeRecordSet, RelativeRecordSet> RelativeRecordSetMap = new java.util.concurrent.ConcurrentHashMap<RelativeRecordSet, RelativeRecordSet>();
 
 	public RelativeRecordSet() {
-		Id = IdGenerator.IncrementAndGet();
+		Id = IdGenerator.incrementAndGet();
 	}
 
 	private void Merge(RelativeRecordSet rrs) {
@@ -56,7 +57,7 @@ public class RelativeRecordSet {
 
 		for (var r : rrs.getRecordSet()) {
 			getRecordSet().add(r);
-			r.RelativeRecordSet = this;
+			r.setRelativeRecordSet(this);
 		}
 
 		rrs.setMergeTo(this);
@@ -91,35 +92,38 @@ public class RelativeRecordSet {
 		if (null != getRecordSet()) { // 孤立记录不需要更新。
 			// Flush完成以后，清除关联集合，
 			for (var r : getRecordSet()) {
-				r.RelativeRecordSet = new RelativeRecordSet();
+				r.setRelativeRecordSet(new RelativeRecordSet());
 			}
 			setMergeTo(Deleted);
 		}
 	}
 
+	private ReentrantLock mutex = new ReentrantLock();
+
 	public final void Lock() {
-		System.Threading.Monitor.Enter(this);
+		mutex.lock();
 	}
 
 	// 必须且仅调用一次。
 	public final void UnLock() {
-		System.Threading.Monitor.Exit(this);
+		mutex.unlock();
 	}
 
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
-	public static void TryUpdateAndCheckpoint(Transaction trans, Procedure procedure, tangible.Action0Param commit) {
+	public static void TryUpdateAndCheckpoint(Transaction trans, Procedure procedure, Runnable commit) {
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 			case Immediately:
-				commit.invoke();
+				commit.run();
 				procedure.getZeze().getCheckpoint().Flush(trans);
 				// 这种模式下 RelativeRecordSet 都是空的。
 				return;
 
 			case Period:
-				commit.invoke();
+				commit.run();
 				// 这种模式下 RelativeRecordSet 都是空的。
 				return;
+
+			default:
+				break;
 		}
 
 		// CheckpointMode.Table
@@ -127,7 +131,7 @@ public class RelativeRecordSet {
 		boolean allCheckpointWhenCommit = true;
 		var RelativeRecordSets = new TreeMap<Long, RelativeRecordSet>();
 		for (var ar : trans.getAccessedRecords().values()) {
-			if (ar.OriginRecord.Table.TableConf.CheckpointWhenCommit) {
+			if (ar.OriginRecord.getTable().getTableConf().getCheckpointWhenCommit()) {
 				// 修改了需要马上提交的记录。
 				if (ar.Dirty) {
 					needFlushNow = true;
@@ -136,14 +140,14 @@ public class RelativeRecordSet {
 			else {
 				allCheckpointWhenCommit = false;
 			}
-			RelativeRecordSets.put(ar.OriginRecord.RelativeRecordSet.Id, ar.OriginRecord.RelativeRecordSet);
+			RelativeRecordSets.put(ar.OriginRecord.getRelativeRecordSet().getId(), ar.OriginRecord.getRelativeRecordSet());
 		}
 
 		if (allCheckpointWhenCommit) {
 			// && procedure.Zeze.Config.CheckpointMode != CheckpointMode.Period
 			// CheckpointMode.Period上面已经处理了，此时不会是它。
 			// 【优化】，事务内访问的所有记录都是Immediately的，马上提交，不需要更新关联记录集合。
-			commit.invoke();
+			commit.run();
 			procedure.getZeze().getCheckpoint().Flush(trans);
 			// 这种情况下 RelativeRecordSet 都是空的。
 			//logger.Debug($"allCheckpointWhenCommit AccessedCount={trans.AccessedRecords.Count}");
@@ -186,7 +190,7 @@ public class RelativeRecordSet {
 				}
 				*/
 				var mergedSet = _merge_(LockedRelativeRecordSets, trans);
-				commit.invoke(); // 必须在锁获得并且合并完集合以后才提交修改。
+				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
 				if (needFlushNow) {
 					procedure.getZeze().getCheckpoint().Flush(mergedSet);
 					mergedSet.Delete();
@@ -229,15 +233,17 @@ public class RelativeRecordSet {
 			// 读取     存在（已有修改） 不需要（存在的集合前面合并了）
 			// 修改     不存在（第一次） 【需要】
 			// 修改     存在（继续修改） 不需要（存在的集合前面合并了）
-			if (ar.Dirty && ar.OriginRecord.RelativeRecordSet.RecordSet == null) {
+			if (ar.Dirty && ar.OriginRecord.getRelativeRecordSet().RecordSet == null) {
 				largestCountSet.Merge(ar.OriginRecord);
 			}
 		}
 		return largestCountSet;
 	}
 
-	private static void _lock_(ArrayList<RelativeRecordSet> LockedRelativeRecordSets, TreeMap<Long, RelativeRecordSet> RelativeRecordSets) {
-		LabelLockRelativeRecordSets: {
+	private static void _lock_(ArrayList<RelativeRecordSet> LockedRelativeRecordSets,
+			TreeMap<Long, RelativeRecordSet> RelativeRecordSets) {
+
+		while (true) {
 			int index = 0;
 			int n = LockedRelativeRecordSets.size();
 			for (var rrs : RelativeRecordSets.values()) {
@@ -245,11 +251,11 @@ public class RelativeRecordSet {
 					if (_lock_and_check_(LockedRelativeRecordSets, RelativeRecordSets, rrs)) {
 						continue;
 					}
-//C# TO JAVA CONVERTER TODO TASK: There is no 'goto' in Java:
-					goto LabelLockRelativeRecordSets;
+
+					break;
 				}
 				var curset = LockedRelativeRecordSets.get(index);
-				int c = (new Long(curset.getId())).compareTo(rrs.Id);
+				int c = Long.compare(curset.getId(), rrs.Id);
 				if (c == 0) {
 					++index;
 					continue;
@@ -257,7 +263,10 @@ public class RelativeRecordSet {
 				if (c < 0) {
 					// 释放掉不需要的锁（已经被Delete了，Has Flush）。
 					int unlockEndIndex = index;
-					for (; unlockEndIndex < n && (new Long(LockedRelativeRecordSets.get(unlockEndIndex).getId())).compareTo(rrs.Id) < 0; ++unlockEndIndex) {
+					for (; unlockEndIndex < n
+							&& Long.compare(LockedRelativeRecordSets.get(unlockEndIndex).getId(), rrs.Id) < 0;
+							++unlockEndIndex) {
+
 						LockedRelativeRecordSets.get(unlockEndIndex).UnLock();
 					}
 					LockedRelativeRecordSets.subList(index, unlockEndIndex).clear();
@@ -288,7 +297,7 @@ public class RelativeRecordSet {
 
 			// 重新读取记录的关联集合的引用（并发）。
 			for (var r : rrs.getRecordSet()) {
-				var tmp = r.RelativeRecordSet; // concurrent
+				var tmp = r.getRelativeRecordSet(); // concurrent
 				all.put(tmp.Id, tmp);
 			}
 			return false;
@@ -307,11 +316,7 @@ public class RelativeRecordSet {
 
 				checkpoint.Flush(rrs);
 				rrs.Delete();
-				TValue _;
-				tangible.OutObject<RelativeRecordSet> tempOut__ = new tangible.OutObject<RelativeRecordSet>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-				RelativeRecordSetMap.TryRemove(rrs, tempOut__);
-			_ = tempOut__.outArgValue;
+				RelativeRecordSetMap.remove(rrs);
 			}
 			finally {
 				rrs.UnLock();

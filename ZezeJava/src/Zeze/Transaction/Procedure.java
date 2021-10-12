@@ -1,5 +1,12 @@
 package Zeze.Transaction;
 
+import java.util.concurrent.Callable;
+import Zeze.Net.Protocol;
+import Zeze.Util.TaskCanceledException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import Zeze.*;
 
 public class Procedure {
@@ -19,18 +26,18 @@ public class Procedure {
 	public static final int ErrorRequestId = -13;
 	// >0 用户自定义。
 
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(Procedure.class);
 
 	private Application Zeze;
 	public final Application getZeze() {
 		return Zeze;
 	}
 
-	private tangible.Func0Param<Integer> Action;
-	public final tangible.Func0Param<Integer> getAction() {
+	private Callable<Integer> Action;
+	public final Callable<Integer> getAction() {
 		return Action;
 	}
-	public final void setAction(tangible.Func0Param<Integer> value) {
+	public final void setAction(Callable<Integer> value) {
 		Action = value;
 	}
 
@@ -55,13 +62,15 @@ public class Procedure {
 		UserState = value;
 	}
 
-	public Procedure(Application app, tangible.Func0Param<Integer> action, String actionName, Object userState) {
+	public Procedure(Application app, Callable<Integer> action, String actionName, Object userState) {
 		Zeze = app;
-		setAction(::action);
+		setAction(action);
 		setActionName(actionName);
 		setUserState(userState);
 		if (null == getUserState()) { // 没指定，就从当前存储过程继承。嵌套时发生。
-			setUserState(Transaction.getCurrent() == null ? null : (Transaction.getCurrent().getTopProcedure() == null ? null : Transaction.getCurrent().getTopProcedure().getUserState()));
+			setUserState(Transaction.getCurrent() == null
+					? null : (Transaction.getCurrent().getTopProcedure() == null
+					? null : Transaction.getCurrent().getTopProcedure().getUserState()));
 		}
 	}
 
@@ -90,60 +99,55 @@ public class Procedure {
 			int result = Process();
 			if (Success == result) {
 				currentT.Commit();
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-//#if ENABLE_STATISTICS
-				ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(result).IncrementAndGet();
-//#endif
+
+				ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(result).incrementAndGet();
+
 				return Success;
 			}
 			currentT.Rollback();
 
 			var module = "";
 			if (result > 0) {
-				module = "@" + Net.Protocol.GetModuleId(result) + ":" + Net.Protocol.GetProtocolId(result);
+				module = "@" + Protocol.GetModuleId(result) + ":" + Protocol.GetProtocolId(result);
 			}
-			logger.Log(getZeze().getConfig().getProcessReturnErrorLogLevel(), "Procedure {0} Return{1}@{2} UserState={3}", ToString(), result, module, getUserState());
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-//#if ENABLE_STATISTICS
-			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(result).IncrementAndGet();
-//#endif
+			logger.log(getZeze().getConfig().getProcessReturnErrorLogLevel(),
+					"Procedure {} Return{}@{} UserState={}", this, result, module, getUserState());
+
+			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(result).incrementAndGet();
+
 			return result;
 		}
 		catch (AbortException e) {
 			currentT.Rollback();
-			throw; // 抛出这个异常，中断事务，跳过所有嵌套过程直到最外面。 e; // 抛出这个异常，中断事务，跳过所有嵌套过程直到最外面。
+			throw e;
+			// 抛出这个异常，中断事务，跳过所有嵌套过程直到最外面。 e;
 		}
 		catch (RedoAndReleaseLockException e2) {
 			currentT.Rollback();
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-//#if ENABLE_STATISTICS
-			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(RedoAndRelease).IncrementAndGet();
-//#endif
-			throw; // 抛出这个异常，打断事务，跳过所有嵌套过程直到最外面。会重做。 e2; // 抛出这个异常，打断事务，跳过所有嵌套过程直到最外面。会重做。
+
+			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(RedoAndRelease).incrementAndGet();
+
+			throw e2; // 抛出这个异常，打断事务，跳过所有嵌套过程直到最外面。会重做。
 		}
-		catch (TaskCanceledException ce) {
+		catch (TaskCanceledException e3) {
 			currentT.Rollback();
-			logger.Error(ce, "Procedure {0} Exception UserState={1}", ToString(), getUserState());
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-//#if ENABLE_STATISTICS
-			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(Excption).IncrementAndGet();
-//#endif
+			logger.error("Procedure {} Exception UserState={}", this, getUserState(), e3);
+
+			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(Excption).incrementAndGet();
+
 			return CancelExcption; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
 		}
-		catch (RuntimeException e) {
+		catch (RuntimeException e4) {
 			currentT.Rollback();
-			logger.Error(e, "Procedure {0} Exception UserState={1}", ToString(), getUserState());
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-//#if ENABLE_STATISTICS
-			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(Excption).IncrementAndGet();
-//#endif
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-//#if DEBUG
+			logger.error("Procedure {} Exception UserState={}", this, getUserState(), e4);
+
+			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(Excption).incrementAndGet();
+
 			// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
-			if (e.getClass().getSimpleName().equals("AssertFailedException")) {
-				throw e;
+			if (e4.getClass().getSimpleName().equals("AssertFailedException")) {
+				throw e4;
 			}
-//#endif
+
 			return Excption; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
 		}
 		finally {
@@ -152,8 +156,12 @@ public class Procedure {
 	}
 
 	protected int Process() {
-		if (null != getAction()) {
-			return tangible.Action0Param();
+		if (null != Action) {
+			try {
+				return Action.call();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
 		}
 		return NotImplement;
 	}
@@ -161,6 +169,6 @@ public class Procedure {
 	@Override
 	public String toString() {
 		// GetType().FullName 仅在用继承的方式实现 Procedure 才有意义。
-		return (null != getAction()) ? getActionName() :this.getClass().getName();
+		return (null != getAction()) ? getActionName() : this.getClass().getName();
 	}
 }

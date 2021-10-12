@@ -123,3 +123,6 @@ NPinyin C# 删除无用的函数
 
 Transaction.Collections.
 	去掉 is instanceof。
+
+ReentrantReadWriteLock
+	拥有 readLock 时，再次去锁 writeLock 会怎么样。
