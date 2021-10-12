@@ -342,19 +342,6 @@ public class Service {
 		}
 	}
 
-	public static <T extends Protocol> ProtocolHandle MakeHandle(Object target, java.lang.reflect.Method method) {
-		return (Protocol p) -> {
-				if (method.IsStatic) {
-					var handler = Delegate.CreateDelegate(tangible.Func1Param<T, Integer>.class, method);
-					return ((tangible.Func1Param<T, Integer>)handler)((T)p);
-				}
-				else {
-					var handler = Delegate.CreateDelegate(tangible.Func1Param<T, Integer>.class, target, method);
-					return ((tangible.Func1Param<T, Integer>)handler)((T)p);
-				}
-		};
-	}
-
 	public final ProtocolFactoryHandle FindProtocolFactoryHandle(int type) {
 		return Factorys.get(type);
 	}
@@ -375,10 +362,6 @@ public class Service {
 	}
 
 	private final java.util.concurrent.ConcurrentHashMap<Long, Protocol> _RpcContexts = new java.util.concurrent.ConcurrentHashMap<Long, Protocol>();
-	public final IReadOnlyDictionary<Long, Protocol> getRpcContexts() {
-		return _RpcContexts;
-	}
-
 	public final long NextSessionId() {
 		if (null != SessionIdGenerator) {
 			return SessionIdGenerator.next();
@@ -465,9 +448,9 @@ public class Service {
 	}
 
 	// 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
-	public final void Foreach(tangible.Action1Param<AsyncSocket> action) {
+	public final void Foreach(Zeze.Util.Action1<AsyncSocket> action) {
 		for (var socket : getSocketMap().values()) {
-			action.invoke(socket);
+			action.run(socket);
 		}
 	}
 
