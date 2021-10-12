@@ -23,13 +23,13 @@ public class HandshakeBoth extends HandshakeBase {
 	@Override
 	public void OnSocketAccept(AsyncSocket so) {
 		// 重载这个方法，推迟OnHandshakeDone调用
-		SocketMap.TryAdd(so.getSessionId(), so);
+		SocketMap.putIfAbsent(so.getSessionId(), so);
 	}
 
 	@Override
 	public void OnSocketConnected(AsyncSocket so) {
 		// 重载这个方法，推迟OnHandshakeDone调用
-		SocketMap.TryAdd(so.getSessionId(), so);
+		SocketMap.putIfAbsent(so.getSessionId(), so);
 		StartHandshake(so);
 	}
 

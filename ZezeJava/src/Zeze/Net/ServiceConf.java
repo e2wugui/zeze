@@ -82,19 +82,19 @@ public final class ServiceConf {
 	 @return true if addNew
 	*/
 	public boolean TryGetOrAddConnector(String host, int port, boolean autoReconnect,
-			tangible.OutObject<Connector> getOrAdd) {
+			Zeze.Util.OutObject<Connector> getOrAdd) {
 
 		var name = String.format("%1$s:%2$s", host, port);
-		final tangible.OutObject<Connector> addNew = new tangible.OutObject<Connector>();
-		getOrAdd.outArgValue = getConnectors().computeIfAbsent(name,
+		final var addNew = new Zeze.Util.OutObject<Connector>();
+		getOrAdd.Value = getConnectors().computeIfAbsent(name,
 			(key) -> {
 				Connector add = new Connector(host, port, autoReconnect);
 				add.SetService(getService());
-				addNew.outArgValue = add;
+				addNew.Value = add;
 				return add;
 			});
 
-		return addNew.outArgValue != null;
+		return addNew.Value != null;
 	}
 
 	public void RemoveConnector(Connector c) {

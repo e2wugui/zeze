@@ -2,6 +2,7 @@ package Zeze.Services;
 
 import Zeze.Net.*;
 import Zeze.Serialize.*;
+import Zeze.Services.Handshake.Helper;
 import Zeze.Transaction.*;
 import Zeze.*;
 import java.util.*;
@@ -76,7 +77,7 @@ public class HandshakeOptions {
 	}
 
 	public final void AddDhGroup(int group) {
-		if (Handshake.Helper.isDHGroupSupported(group)) {
+		if (Helper.isDHGroupSupported(group)) {
 			getDhGroups().add(group);
 		}
 	}

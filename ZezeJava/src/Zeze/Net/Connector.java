@@ -92,7 +92,7 @@ public class Connector {
 
 	public static Connector Create(Element e) {
 		var className = e.getAttribute("Class");
-		if (tangible.StringHelper.isNullOrEmpty(className))
+		if (className == null || className.isEmpty())
 			return new Connector(e);
 		try {
 			Class<?> ccls = java.lang.Class.forName(className);
