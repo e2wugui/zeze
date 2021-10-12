@@ -11,17 +11,13 @@ import java.net.InetSocketAddress;
  目前只支持Tcp。
 */
 public final class AsyncSocket implements Closeable {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private byte[] _inputBuffer;
 	private byte[] _inputBuffer;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private List<System.ArraySegment<byte>> _outputBufferList = null;
-	private ArrayList<System.ArraySegment<Byte>> _outputBufferList = null;
+	private ArrayList<java.nio.ByteBuffer> _outputBufferList = null;
 	private int _outputBufferListCountSum = 0;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private List<System.ArraySegment<byte>> _outputBufferListSending = null;
-	private ArrayList<System.ArraySegment<Byte>> _outputBufferListSending = null; // 正在发送的 buffers.
+
+	private ArrayList<java.nio.ByteBuffer> _outputBufferListSending = null; // 正在发送的 buffers.
 	private int _outputBufferListSendingCountSum = 0;
+
 	private Service Service;
 	public Service getService() {
 		return Service;
@@ -29,6 +25,7 @@ public final class AsyncSocket implements Closeable {
 	private void setService(Service value) {
 		Service = value;
 	}
+
 	private Connector Connector;
 	public Connector getConnector() {
 		return Connector;
@@ -36,6 +33,7 @@ public final class AsyncSocket implements Closeable {
 	public void setConnector(Connector value) {
 		Connector = value;
 	}
+
 	private Acceptor Acceptor;
 	public Acceptor getAcceptor() {
 		return Acceptor;
@@ -51,6 +49,7 @@ public final class AsyncSocket implements Closeable {
 	private void setLastException(RuntimeException value) {
 		LastException = value;
 	}
+
 	private long SessionId;
 	public long getSessionId() {
 		return SessionId;
@@ -58,6 +57,7 @@ public final class AsyncSocket implements Closeable {
 	private void setSessionId(long value) {
 		SessionId = value;
 	}
+
 	private Socket Socket;
 	public Socket getSocket() {
 		return Socket;
