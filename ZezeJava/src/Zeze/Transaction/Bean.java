@@ -94,7 +94,7 @@ public abstract class Bean implements Zeze.Serialize.Serializable {
 		throw new UnsupportedOperationException();
 	}
 	public void BuildString(StringBuilder sb, int level) {
-		sb.append(tangible.StringHelper.repeatChar(' ', level)).append("{}").append(System.lineSeparator());
+		sb.append(" ".repeat(level)).append("{}").append(System.lineSeparator());
 	}
 
 	// Bean的类型Id，替换 ClassName，提高效率和存储空间
