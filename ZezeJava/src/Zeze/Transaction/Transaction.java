@@ -77,7 +77,7 @@ public final class Transaction {
 		savepoints.get(savepoints.size() - 1).PutLog(log);
 	}
 
-	public ChangeNote GetOrAddChangeNote(long key, tangible.Func0Param<ChangeNote> factory) {
+	public ChangeNote GetOrAddChangeNote(long key, Zeze.Util.Factory<ChangeNote> factory) {
 		// 必须存在 Savepoint. 可能是为了修改。
 		return savepoints.get(savepoints.size() - 1).GetOrAddChangeNote(key, factory);
 	}

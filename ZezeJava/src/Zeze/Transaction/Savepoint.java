@@ -1,6 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import java.util.*;
 
 public final class Savepoint {
@@ -22,43 +21,45 @@ public final class Savepoint {
 	}
 	*/
 
-	public ChangeNote GetOrAddChangeNote(long key, tangible.Func0Param<ChangeNote> factory) {
-		if (getChangeNotes().containsKey(key) && (var exist = getChangeNotes().get(key)) == var exist) {
+	public ChangeNote GetOrAddChangeNote(long key, Zeze.Util.Factory<ChangeNote> factory) {
+		var exist = ChangeNotes.get(key);
+		if (null != exist) {
 			return exist;
 		}
-		ChangeNote newNote = factory.invoke();
+		ChangeNote newNote = factory.create();
 		getChangeNotes().put(key, newNote);
 		return newNote;
 	}
 
 	public void PutLog(Log log) {
-		getLogs().put(log.LogKey, log);
+		Logs.put(log.getLogKey(), log);
 		//newly[log.LogKey] = log;
 	}
 
 	public Log GetLog(long logKey) {
-		return (getLogs().containsKey(logKey) && (var log = getLogs().get(logKey)) == var log) ? log : null;
+		return Logs.get(logKey);
 	}
 
 	public Savepoint Duplicate() {
 		Savepoint sp = new Savepoint();
-		for (var e : getLogs().entrySet()) {
-			sp.getLogs().put(e.getKey(), e.getValue());
+		for (var e : Logs.entrySet()) {
+			sp.Logs.put(e.getKey(), e.getValue());
 		}
 		return sp;
 	}
 
 	public void Merge(Savepoint other) {
-		for (var e : other.getLogs().entrySet()) {
-			getLogs().put(e.getKey(), e.getValue());
+		for (var e : other.Logs.entrySet()) {
+			Logs.put(e.getKey(), e.getValue());
 		}
 
-		for (var e : other.getChangeNotes().entrySet()) {
-			if (this.getChangeNotes().containsKey(e.getKey()) && (var cur = this.getChangeNotes().get(e.getKey())) == var cur) {
+		for (var e : other.ChangeNotes.entrySet()) {
+			var cur = this.ChangeNotes.get(e.getKey());
+			if (null != cur) {
 				cur.Merge(e.getValue());
 			}
 			else {
-				this.getChangeNotes().put(e.getKey(), e.getValue());
+				this.ChangeNotes.put(e.getKey(), e.getValue());
 			}
 		}
 	}
