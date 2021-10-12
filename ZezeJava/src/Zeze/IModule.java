@@ -18,7 +18,6 @@ public abstract class IModule {
 	}
 
 	public final int ReturnCode(short code) {
-		int c = code >= 0 ? code : ((int)code) & 0xffff;
-		return getId() << 16 | c;
+		return getId() << 16 | (code & 0xffff);
 	}
 }

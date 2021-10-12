@@ -3,15 +3,17 @@ package Zeze.Transaction;
 import Zeze.Serialize.*;
 import MySql.Data.MySqlClient.*;
 import Zeze.*;
+import Zeze.Config.DatabaseConf;
+
 import java.util.*;
 import java.io.*;
 import java.nio.file.*;
 
 public class DatabaseRocksDb extends Database {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.GetCurrentClassLogger();
 
-	public DatabaseRocksDb(String url) {
-		super(url);
+	public DatabaseRocksDb(DatabaseConf conf) {
+		super(conf);
 		setDirectOperates(new OperatesRocksDb(this));
 	}
 
@@ -19,7 +21,7 @@ public class DatabaseRocksDb extends Database {
 		public RockdsDbTrans(String DatabaseUrl) {
 		}
 
-		public final void Dispose() {
+		public final void close() {
 		}
 
 
