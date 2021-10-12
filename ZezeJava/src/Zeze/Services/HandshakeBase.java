@@ -30,15 +30,44 @@ public class HandshakeBase extends Service {
 	public final boolean IsHandshakeProtocol(int typeId) {
 		return HandshakeProtocols.contains(typeId);
 	}
+	
+	private int ProcessCHandshake(Protocol _p) {
+		// TODO whf
+		return 0;
+	}
+	
+	private int ProcessCHandshakeDone(Protocol _p) {
+		OnHandshakeDone(_p.Sender);
+        return 0;
+	}
 
 	protected final void AddHandshakeServerFactoryHandle() {
-	{
+		{
 			var tmp = new Zeze.Services.Handshake.CHandshake();
 			HandshakeProtocols.add(tmp.getTypeId());
-			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle() {Factory = () -> new Zeze.Services.Handshake.CHandshake(), Handle = ProcessCHandshake, NoProcedure = true});
-	} {
+			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(() -> new Zeze.Services.Handshake.CHandshake()
+					, this::ProcessCHandshake
+					, true));
+		} 
+		{
 			var tmp = new Zeze.Services.Handshake.CHandshakeDone();
 			HandshakeProtocols.add(tmp.getTypeId());
-			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle() {Factory = () -> new Zeze.Services.Handshake.CHandshakeDone(), Handle = ProcessCHandshakeDone, NoProcedure = true});
+			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(() -> new Zeze.Services.Handshake.CHandshakeDone()
+					, this::ProcessCHandshakeDone
+					, true));
 		}
 	}
+	
+	protected void AddHandshakeClientFactoryHandle() {
+        // TODO whf
+    }
+
+    private int ProcessSHandshake(Protocol _p) {
+        // TODO whf
+    	return 0;
+    }
+
+    protected void StartHandshake(AsyncSocket so) {
+        // TODO whf
+    }
+}

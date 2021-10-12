@@ -45,7 +45,7 @@ public class Service {
 		return Name;
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<Long, AsyncSocket> SocketMap = new java.util.concurrent.ConcurrentHashMap<Long, AsyncSocket> ();
+	protected java.util.concurrent.ConcurrentHashMap<Long, AsyncSocket> SocketMap = new java.util.concurrent.ConcurrentHashMap<Long, AsyncSocket> ();
 	protected final java.util.concurrent.ConcurrentHashMap<Long, AsyncSocket> getSocketMap() {
 		return SocketMap;
 	}
@@ -319,6 +319,16 @@ public class Service {
 		public Zeze.Util.Factory<Protocol> Factory;
 		public ProtocolHandle Handle;
 		public boolean NoProcedure = false;
+		public ProtocolFactoryHandle() { }
+		public ProtocolFactoryHandle(Zeze.Util.Factory<Protocol> factory, ProtocolHandle handle) {
+			this.Factory = factory;
+			this.Handle = handle;
+		}
+		public ProtocolFactoryHandle(Zeze.Util.Factory<Protocol> factory, ProtocolHandle handle, boolean noProcedure) {
+			this.Factory = factory;
+			this.Handle = handle;
+			this.NoProcedure = noProcedure;
+		}
 	}
 
 	private java.util.concurrent.ConcurrentHashMap<Integer, ProtocolFactoryHandle> Factorys = new java.util.concurrent.ConcurrentHashMap<Integer, ProtocolFactoryHandle> ();
