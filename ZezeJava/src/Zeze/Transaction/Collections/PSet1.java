@@ -1,10 +1,7 @@
 package Zeze.Transaction.Collections;
 
 import java.util.Collection;
-
 import org.pcollections.Empty;
-
-import Zeze.*;
 import Zeze.Transaction.*;
 
 public final class PSet1<E> extends PSet<E> {
@@ -12,6 +9,7 @@ public final class PSet1<E> extends PSet<E> {
 		super(logKey, logFactory);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean add(E item) {
 		if (item == null) {
@@ -22,7 +20,6 @@ public final class PSet1<E> extends PSet<E> {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			@SuppressWarnings("unchecked")
 			var olds = null != log ? ((LogV)log).Value : set;
 			var news = olds.plus(item);
 			if (news != olds) {
@@ -51,6 +48,7 @@ public final class PSet1<E> extends PSet<E> {
 			var olds = null != log ? ((LogV)log).Value : set;
 			if (!olds.isEmpty()) {
 				txn.PutLog(NewLog(Empty.set()));
+				@SuppressWarnings("unchecked")
 				ChangeNoteSet<E> note = (ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this));
 				for (var item : olds) {
 					note.LogRemove(item);
@@ -63,13 +61,13 @@ public final class PSet1<E> extends PSet<E> {
 	}
 
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean remove(E item) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			@SuppressWarnings("unchecked")
 			var olds = null != log ? ((LogV)log).Value : set;
 			var news = olds.minus(item);
 			if (news != olds) {
@@ -102,6 +100,7 @@ public final class PSet1<E> extends PSet<E> {
 			var news = olds.plusAll(c);
 			if (news != olds) {
 				txn.PutLog(NewLog(news));
+				@SuppressWarnings("unchecked")
 				var note = ((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this)));
                 for (var item : c) {
                     if (false == olds.contains(item))
@@ -125,6 +124,7 @@ public final class PSet1<E> extends PSet<E> {
 			var news = olds.minusAll(c);
 			if (news != olds) {
 				txn.PutLog(NewLog(news));
+				@SuppressWarnings("unchecked")
 				var note = ((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this)));
                 for (var item : c) {
                     note.LogRemove(item);

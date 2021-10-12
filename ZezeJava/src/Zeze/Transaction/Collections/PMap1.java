@@ -9,6 +9,7 @@ public final class PMap1<K, V> extends PMap<K, V> {
 		super(logKey, logFactory);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public V put(K key, V value) {
 		if (key == null) {
@@ -22,7 +23,6 @@ public final class PMap1<K, V> extends PMap<K, V> {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			@SuppressWarnings("unchecked")
 			var oldm = null != log ? ((LogV)log).Value : map;
 			var oldv = oldm.get(key);
 			if (oldv != value) {
@@ -59,6 +59,7 @@ public final class PMap1<K, V> extends PMap<K, V> {
 			var newm = oldm.plusAll(m);
 			if (newm != oldm) {
 				txn.PutLog(NewLog(newm));
+				@SuppressWarnings("unchecked")
 				ChangeNoteMap1<K, V> note = (ChangeNoteMap1<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap1<K, V>(this));
 				for (var p : m.entrySet()) {
 					note.LogPut(p.getKey(), p.getValue());
@@ -79,6 +80,7 @@ public final class PMap1<K, V> extends PMap<K, V> {
 			@SuppressWarnings("unchecked")
 			var oldm = null != log ? ((LogV)log).Value : map;
 			if (!oldm.isEmpty()) {
+				@SuppressWarnings("unchecked")
 				ChangeNoteMap1<K, V> note = (ChangeNoteMap1<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap1<K, V>(this));
 				for (var e : oldm.entrySet()) {
 					note.LogRemove(e.getKey());
@@ -91,13 +93,13 @@ public final class PMap1<K, V> extends PMap<K, V> {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean remove(K key) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			@SuppressWarnings("unchecked")
 			var oldm = null != log ? ((LogV)log).Value : map;
 			var newm = oldm.minus(key);
 			if (newm != oldm) {
@@ -116,13 +118,13 @@ public final class PMap1<K, V> extends PMap<K, V> {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean remove(Map.Entry<K, V> item) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			@SuppressWarnings("unchecked")
 			var oldm = null != log ? ((LogV)log).Value : map;
 			// equals 处有box，能否优化掉？
 			Object olde = oldm.get(item.getKey());
