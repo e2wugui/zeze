@@ -4,6 +4,7 @@ import Zeze.*;
 
 import java.net.InetAddress;
 import java.util.*;
+import java.util.function.Function;
 
 import org.apache.logging.log4j.Level;
 import org.w3c.dom.Element;
@@ -101,9 +102,9 @@ public final class ServiceConf {
 		getConnectors().remove(c.getName(), c);
 	}
 
-	public void ForEachConnector(tangible.Action1Param<Connector> action) {
+	public void ForEachConnector(Zeze.Util.Action1<Connector> action) {
 		for (var c : getConnectors().values()) {
-			action.invoke(c);
+			action.run(c);
 		}
 	}
 
@@ -111,9 +112,9 @@ public final class ServiceConf {
 		return getConnectors().size();
 	}
 
-	public boolean ForEachConnector2(tangible.Func1Param<Connector, Boolean> func) {
+	public boolean ForEachConnector2(Function<Connector, Boolean> func) {
 		for (var c : getConnectors().values()) {
-			if (false == func.invoke(c)) {
+			if (false == func.apply(c)) {
 				return false;
 			}
 		}
@@ -131,15 +132,15 @@ public final class ServiceConf {
 		getAcceptors().remove(a.getName(), a);
 	}
 
-	public void ForEachAcceptor(tangible.Action1Param<Acceptor> action) {
+	public void ForEachAcceptor(Zeze.Util.Action1<Acceptor> action) {
 		for (var a : getAcceptors().values()) {
-			action.invoke(a);
+			action.run(a);
 		}
 	}
 
-	public boolean ForEachAcceptor2(tangible.Func1Param<Acceptor, Boolean> func) {
+	public boolean ForEachAcceptor2(Function<Acceptor, Boolean> func) {
 		for (var a : getAcceptors().values()) {
-			if (false == func.invoke(a)) {
+			if (false == func.apply(a)) {
 				return false;
 			}
 		}
@@ -226,12 +227,14 @@ public final class ServiceConf {
 		if (attr.length() > 0) {
 			getHandshakeOptions().setDhGroup(Byte.parseByte(attr));
 		}
-
-		if (tangible.StringHelper.isNullOrEmpty(getName())) {
-			conf.setDefaultServiceConf(this);
-		}
-		else if (null != conf.getServiceConfMap().putIfAbsent(getName(), this)) {
-			throw new RuntimeException(String.format("Duplicate ServiceConf '%1$s'", getName()));
+		{
+			String name = getName();
+			if ( name == null || name.isEmpty()) {
+				conf.setDefaultServiceConf(this);
+			}
+			else if (null != conf.getServiceConfMap().putIfAbsent(name, this)) {
+				throw new RuntimeException(String.format("Duplicate ServiceConf '%1$s'", getName()));
+			}
 		}
 
 		// connection creator options
