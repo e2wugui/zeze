@@ -1,9 +1,6 @@
 package Zeze.Transaction;
 
-import Zeze.Transaction.Collections.*;
-import Zeze.Serialize.*;
 import Zeze.Services.*;
-import Zeze.*;
 import java.util.*;
 
 import org.apache.logging.log4j.LogManager;
@@ -355,20 +352,18 @@ public final class Transaction {
 		VerifyRecordAccessed(bean, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void VerifyRecordAccessed(Bean bean, bool IsRead = false)
 	public void VerifyRecordAccessed(Bean bean, boolean IsRead) {
 		//if (IsRead)// && App.Config.AllowReadWhenRecoredNotAccessed)
 		//    return;
-		if (bean.RootInfo.Record.State == GlobalCacheManager.StateRemoved) {
-			throw new RuntimeException(String.format("VerifyRecordAccessed: Record Has Bean Removed From Cache. %1$s", bean.TableKey));
+		if (bean.RootInfo.getRecord().getState() == GlobalCacheManager.StateRemoved) {
+			throw new RuntimeException(String.format("VerifyRecordAccessed: Record Has Bean Removed From Cache. %1$s", bean.getTableKey()));
 		}
-		var ra = GetRecordAccessed(bean.TableKey);
+		var ra = GetRecordAccessed(bean.getTableKey());
 		if (ra == null) {
-			throw new RuntimeException(String.format("VerifyRecordAccessed: Record Not Control Under Current Transastion. %1$s", bean.TableKey));
+			throw new RuntimeException(String.format("VerifyRecordAccessed: Record Not Control Under Current Transastion. %1$s", bean.getTableKey()));
 		}
-		if (bean.RootInfo.Record != ra.getOriginRecord()) {
-			throw new RuntimeException(String.format("VerifyRecordAccessed: Record Reloaded.%1$s", bean.TableKey));
+		if (bean.RootInfo.getRecord() != ra.OriginRecord) {
+			throw new RuntimeException(String.format("VerifyRecordAccessed: Record Reloaded.%1$s", bean.getTableKey()));
 		}
 	}
 
@@ -376,53 +371,40 @@ public final class Transaction {
 		Success,
 		Redo,
 		RedoAndReleaseLock;
-
-		public static final int SIZE = java.lang.Integer.SIZE;
-
-		public int getValue() {
-			return this.ordinal();
-		}
-
-		public static CheckResult forValue(int value) {
-			return values()[value];
-		}
 	}
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] private CheckResult _check_(bool writeLock, RecordAccessed e)
+
 	private CheckResult _check_(boolean writeLock, RecordAccessed e) {
 		if (writeLock) {
-			switch (e.getOriginRecord().getState()) {
+			switch (e.OriginRecord.getState()) {
 				case GlobalCacheManager.StateRemoved:
 					// fall down
 				case GlobalCacheManager.StateInvalid:
 					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
 				case GlobalCacheManager.StateModify:
-					return e.getTimestamp() != e.getOriginRecord().getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+					return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 
 				case GlobalCacheManager.StateShare:
 					// 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-					if (e.getOriginRecord().Acquire(GlobalCacheManager.StateModify) != GlobalCacheManager.StateModify) {
-						logger.Warn("Acquire Faild. Maybe DeadLock Found {0}", e.getOriginRecord());
-						e.getOriginRecord().setState(GlobalCacheManager.StateInvalid);
+					if (e.OriginRecord.Acquire(GlobalCacheManager.StateModify) != GlobalCacheManager.StateModify) {
+						logger.warn("Acquire Faild. Maybe DeadLock Found {}", e.OriginRecord);
+						e.OriginRecord.setState(GlobalCacheManager.StateInvalid);
 						return CheckResult.RedoAndReleaseLock;
 					}
-					e.getOriginRecord().setState(GlobalCacheManager.StateModify);
-					return e.getTimestamp() != e.getOriginRecord().getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+					e.OriginRecord.setState(GlobalCacheManager.StateModify);
+					return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 			}
-			return e.getTimestamp() != e.getOriginRecord().getTimestamp() ? CheckResult.Redo : CheckResult.Success; // imposible
+			return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // imposible
 		}
 		else {
-			if (e.getOriginRecord().getState() == GlobalCacheManager.StateInvalid || e.getOriginRecord().getState() == GlobalCacheManager.StateRemoved) {
+			if (e.OriginRecord.getState() == GlobalCacheManager.StateInvalid || e.OriginRecord.getState() == GlobalCacheManager.StateRemoved) {
 				return CheckResult.RedoAndReleaseLock; // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
 			}
-			return e.getTimestamp() != e.getOriginRecord().getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+			return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 		}
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [MethodImpl(MethodImplOptions.AggressiveInlining)] private CheckResult _lock_and_check_(KeyValuePair<TableKey, RecordAccessed> e)
 	private CheckResult _lock_and_check_(Map.Entry<TableKey, RecordAccessed> e) {
 		Lockey lockey = Locks.getInstance().Get(e.getKey());
 		boolean writeLock = e.getValue().Dirty;
@@ -438,17 +420,17 @@ public final class Transaction {
 			for (var log : savepoints.get(savepoints.size() - 1).getLogs().values()) {
 				// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 				// 现在不会有这种情况，保留给未来扩展需要。
-				if (log.Bean == null) {
+				if (log.getBean() == null) {
 					continue;
 				}
 
-				TableKey tkey = log.Bean.TableKey;
-				if (getAccessedRecords().containsKey(tkey) && (var record = getAccessedRecords().get(tkey)) == var record) {
+				TableKey tkey = log.getBean().getTableKey();
+				var record = AccessedRecords.get(tkey);
+				if (null != record) {
 					record.Dirty = true;
-				}
-				else {
+				} else {
 					// 只有测试代码会把非 Managed 的 Bean 的日志加进来。
-					logger.Fatal("impossible! record not found.");
+					logger.fatal("impossible! record not found.");
 				}
 			}
 		}
