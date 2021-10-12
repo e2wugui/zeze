@@ -138,13 +138,13 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	}
 
 	public static int Call(Callable<Integer> func, Zeze.Net.Protocol p,
-			tangible.Action2Param<Zeze.Net.Protocol, Integer> actionWhenError) {
+			Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
 		boolean IsRequestSaved = p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
 			int result = func.call();
 			if (result != 0 && IsRequestSaved) {
 				if (actionWhenError != null) {
-					actionWhenError.invoke(p, result);
+					actionWhenError.run(p, result);
 				}
 			}
 			LogAndStatistics(result, p, IsRequestSaved);
@@ -162,7 +162,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 
 			if (IsRequestSaved) {
 				if (actionWhenError != null) {
-					actionWhenError.invoke(p, errorCode);
+					actionWhenError.run(p, errorCode);
 				}
 			}
 
@@ -179,7 +179,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	}
 
 	public static Task Run(Callable<Integer> func, Zeze.Net.Protocol p,
-			tangible.Action2Param<Zeze.Net.Protocol, Integer> actionWhenError) {
+			Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
 		var task = new Task(() -> Call(func, p, actionWhenError));
 		threadPool.execute(task);
 		return task;
@@ -195,7 +195,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	}
 
 	public static int Call(Procedure procdure, Zeze.Net.Protocol from,
-			tangible.Action2Param<Zeze.Net.Protocol, Integer> actionWhenError) {
+			Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
 		Boolean isRequestSaved = from == null ? null : from.isRequest();
 		try {
 			// 日志在Call里面记录。因为要支持嵌套。
@@ -203,7 +203,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			int result = procdure.Call();
 			if (result != 0 && !isRequestSaved.equals(null) && isRequestSaved.booleanValue()) {
 				if (actionWhenError != null) {
-					actionWhenError.invoke(from, result);
+					actionWhenError.run(from, result);
 				}
 			}
 			return result;
@@ -212,7 +212,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
 			if (!isRequestSaved.equals(null) && isRequestSaved.booleanValue()) {
 				if (actionWhenError != null) {
-					actionWhenError.invoke(from, Procedure.Excption);
+					actionWhenError.run(from, Procedure.Excption);
 				}
 			}
 			logger.error(procdure.getActionName(), ex);
@@ -231,7 +231,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 
 	public static Task Run(Procedure procdure,
 			Zeze.Net.Protocol from,
-			tangible.Action2Param<Zeze.Net.Protocol, Integer> actionWhenError) {
+			Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
 		var task = new Task(() -> Call(procdure, from, actionWhenError));
 		threadPool.execute(task);
 		return task;

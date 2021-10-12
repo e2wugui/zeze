@@ -281,7 +281,7 @@ namespace Zeze.Transaction
             // rs.MergeTo == null &&  check outside
             if (rs.RecordSet != null)
             {
-                Flush(from r in rs.RecordSet select r);
+                Flush(rs.RecordSet);
                 foreach (var r in rs.RecordSet)
                 {
                     r.Dirty = false;

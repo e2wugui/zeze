@@ -324,7 +324,7 @@ public class RelativeRecordSet {
 		}
 	}
 
-	public static void FlushWhenReduce(Record r, Checkpoint checkpoint, tangible.Action0Param after) {
+	public static void FlushWhenReduce(Record r, Checkpoint checkpoint, Runnable after) {
 		while (true) {
 			if (_FlushWhenReduce(r.getRelativeRecordSet(), checkpoint, after)) {
 				break;
@@ -332,7 +332,7 @@ public class RelativeRecordSet {
 		}
 	}
 
-	private static boolean _FlushWhenReduce(RelativeRecordSet rrs, Checkpoint checkpoint, tangible.Action0Param after) {
+	private static boolean _FlushWhenReduce(RelativeRecordSet rrs, Checkpoint checkpoint, Runnable after) {
 		rrs.Lock();
 		try {
 			if (rrs.getMergeTo() == null) {
@@ -340,7 +340,7 @@ public class RelativeRecordSet {
 					checkpoint.Flush(rrs);
 					rrs.Delete();
 				}
-				after.invoke();
+				after.run();
 				return true;
 			}
 
@@ -351,7 +351,7 @@ public class RelativeRecordSet {
 			// 或者不判断这个，总是由上面的步骤中处理。
 			if (rrs.getMergeTo() == RelativeRecordSet.Deleted) {
 				// has flush
-				after.invoke();
+				after.run();
 				return true;
 			}
 			// */

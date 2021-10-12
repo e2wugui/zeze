@@ -1,9 +1,10 @@
 package Zeze;
 
 import Zeze.Transaction.*;
+import Zeze.Util.TaskCompletionSource;
 import java.util.*;
 import java.util.concurrent.Callable;
-
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import org.apache.log4j.Logger;
 
 public final class Application {
@@ -13,12 +14,10 @@ public final class Application {
 	public HashMap<String, Database> getDatabases() {
 		return Databases;
 	}
-	private void setDatabases(HashMap<String, Database> value) {
-		Databases = value;
-	}
-	private Config Config;
+
+	private Config Conf;
 	public Config getConfig() {
-		return Config;
+		return Conf;
 	}
 	private boolean IsStart;
 	public boolean isStart() {
@@ -40,7 +39,7 @@ public final class Application {
 	}
 
 	// 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
-	public Zeze.Util.SimpleThreadPool InternalThreadPool;
+	ScheduledThreadPoolExecutor InternalThreadPool;
 
 	private Checkpoint _checkpoint;
 	public Checkpoint getCheckpoint() {
@@ -78,11 +77,11 @@ public final class Application {
 	public Application(String solutionName, Config config) {
 		SolutionName = solutionName;
 
-		Config = config;
-		if (null == getConfig()) {
-			Config = Config.Load(null);
+		Conf = config;
+		if (null == Conf) {
+			Conf = Config.Load(null);
 		}
-		InternalThreadPool = new Zeze.Util.SimpleThreadPool(getConfig().getInternalThreadPoolWorkerCount(), "ZezeSpecialThreadPool");
+		InternalThreadPool = new ScheduledThreadPoolExecutor(getConfig().getInternalThreadPoolWorkerCount());
 
 		getConfig().CreateDatabase(getDatabases());
 		GlobalAgent = new GlobalAgent(this);
@@ -116,7 +115,7 @@ public final class Application {
 	}
 
 
-	public Procedure NewProcedure(tangible.Func0Param<Integer> action, String actionName) {
+	public Procedure NewProcedure(Callable<Integer> action, String actionName) {
 		return NewProcedure(action, actionName, null);
 	}
 
@@ -163,32 +162,28 @@ public final class Application {
 			var keyOfSchemas = Zeze.Serialize.ByteBuffer.Allocate();
 			keyOfSchemas.WriteString("zeze.Schemas." + getConfig().getServerId());
 			while (true) {
-//C# TO JAVA CONVERTER TODO TASK: Java has no equivalent to C# deconstruction declarations:
-				var(data, version) = defaultDb.DirectOperates.GetDataWithVersion(keyOfSchemas);
-				if (null != data) {
+				var dataVersion = defaultDb.getDirectOperates().GetDataWithVersion(keyOfSchemas);
+				long version = 0;
+				if (null != dataVersion.Data) {
 					var SchemasPrevious = new Schemas();
 					try {
-						SchemasPrevious.Decode(data);
+						SchemasPrevious.Decode(dataVersion.Data);
 						SchemasPrevious.Compile();
 					}
 					catch (RuntimeException ex) {
 						SchemasPrevious = null;
-						logger.Error(ex, "Schemas Implement Changed?");
+						logger.error("Schemas Implement Changed?", ex);
 					}
 					if (false == getSchemas().IsCompatible(SchemasPrevious, getConfig())) {
 						throw new RuntimeException("Database Struct Not Compatible!");
 					}
+					version = dataVersion.Version;
 				}
-				var newdata = Serialize.ByteBuffer.Allocate();
+				var newdata = Zeze.Serialize.ByteBuffer.Allocate();
 				getSchemas().Encode(newdata);
-				tangible.RefObject<Long> tempRef_version = new tangible.RefObject<Long>(version);
-				if (defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newdata, tempRef_version)) {
-				version = tempRef_version.refArgValue;
+				var versionRc = defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newdata, version);
+				if (versionRc.getValue())
 					break;
-				}
-			else {
-				version = tempRef_version.refArgValue;
-			}
 			}
 		}
 	}
@@ -223,21 +218,13 @@ public final class Application {
 	}
 
 	public Application() {
-		var domain = AppDomain.CurrentDomain;
-//C# TO JAVA CONVERTER TODO TASK: Java has no equivalent to C#-style event wireups:
-		domain.UnhandledException += UnhandledExceptionEventHandler;
-//C# TO JAVA CONVERTER TODO TASK: Java has no equivalent to C#-style event wireups:
-		domain.ProcessExit += ProcessExit;
-		// domain.DomainUnload += DomainUnload;
-	}
-
-	private void ProcessExit(Object sender, tangible.EventArgs e) {
-		Stop();
-	}
-
-	private void UnhandledExceptionEventHandler(Object sender, UnhandledExceptionEventArgs args) {
-		RuntimeException e = (RuntimeException)args.ExceptionObject;
-		logger.Error(e, "UnhandledExceptionEventArgs");
+		Runtime.getRuntime().addShutdownHook(new Thread("zeze.ShutdownHook") {
+			@Override
+			public void run() {
+				logger.fatal("zeze stop start ... from ShutdownHook.");
+				Stop();
+			}
+		});
 	}
 
 	private Zeze.Util.TaskOneByOneByKey TaskOneByOneByKey = new Zeze.Util.TaskOneByOneByKey();
@@ -246,31 +233,37 @@ public final class Application {
 	}
 
 
-	public TaskCompletionSource<Integer> Run(Func<Integer> func, String actionName, TransactionModes mode) {
+	public TaskCompletionSource<Integer> Run(Callable<Integer> func, String actionName, TransactionModes mode) {
 		return Run(func, actionName, mode, null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public TaskCompletionSource<int> Run(Func<int> func, string actionName, TransactionModes mode, object oneByOneKey = null)
-	public TaskCompletionSource<Integer> Run(tangible.Func0Param<Integer> func, String actionName, TransactionModes mode, Object oneByOneKey) {
+	public TaskCompletionSource<Integer> Run(Callable<Integer> func, String actionName, TransactionModes mode, Object oneByOneKey) {
 		var future = new TaskCompletionSource<Integer>();
-		switch (mode) {
-			case ExecuteInTheCallerTransaction:
-				future.SetResult(func.invoke());
-				break;
-
-			case ExecuteInNestedCall:
-				future.SetResult(NewProcedure(func, actionName).Call());
-				break;
-
-			case ExecuteInAnotherThread:
-				if (null != oneByOneKey) {
-					getTaskOneByOneByKey().Execute(oneByOneKey, () -> future.SetResult(NewProcedure(func, actionName).Call()), actionName);
-				}
-				else {
-					Zeze.Util.Task.Run(() -> future.SetResult(NewProcedure(func, actionName).Call()), actionName);
-				}
-				break;
+		try {
+			switch (mode) {
+				case ExecuteInTheCallerTransaction:
+					future.SetResult(func.call());
+					break;
+	
+				case ExecuteInNestedCall:
+					future.SetResult(NewProcedure(func, actionName).Call());
+					break;
+	
+				case ExecuteInAnotherThread:
+					if (null != oneByOneKey) {
+						getTaskOneByOneByKey().Execute(oneByOneKey,
+								() -> future.SetResult(NewProcedure(func, actionName).Call()),
+								actionName);
+					}
+					else {
+						Zeze.Util.Task.Run(
+								() -> future.SetResult(NewProcedure(func, actionName).Call()),
+								actionName);
+					}
+					break;
+			}
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
 		}
 		return future;
 	}

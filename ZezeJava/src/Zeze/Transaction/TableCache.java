@@ -97,17 +97,17 @@ public class TableCache<K, V extends Bean> {
 	}
 
 	public final Record1<K, V> GetOrAdd(K key, Zeze.Util.Factory<Record1<K, V>> valueFactory) {
-		final tangible.OutObject<Boolean> isNew = new tangible.OutObject<>();
-		isNew.outArgValue = false;
+		final var isNew = new Zeze.Util.OutObject<Boolean>();
+		isNew.Value = false;
 		Record1<K, V> result = DataMap.GetOrAdd(key, (k) -> {
 					var r = valueFactory.create();
 					getLruHot().put(k, r); // replace: add or update see this.Remove
 					r.setLruNode(getLruHot());
-					isNew.outArgValue = true;
+					isNew.Value = true;
 					return r;
 		});
 
-		if (false == isNew.outArgValue && result.getLruNode() != getLruHot()) {
+		if (false == isNew.Value && result.getLruNode() != getLruHot()) {
 			result.getLruNode().remove(key, result);
 			if (null == getLruHot().putIfAbsent(key, result)) {
 				result.setLruNode(getLruHot());

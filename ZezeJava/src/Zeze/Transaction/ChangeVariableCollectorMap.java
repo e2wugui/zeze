@@ -1,34 +1,34 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import java.util.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ChangeVariableCollectorMap extends ChangeVariableCollector {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(ChangeVariableCollectorMap.class);
 
 	private ChangeNote note;
-	private Util.IdentityHashMap<Bean, Bean> changedValue;
+	private IdentityHashMap<Bean, Bean> changedValue;
 
-	private final tangible.Func0Param<ChangeNote> NoteFactory;
+	private final Zeze.Util.Factory<ChangeNote> NoteFactory;
 
-	public ChangeVariableCollectorMap(tangible.Func0Param<ChangeNote> noteFactory) {
-		NoteFactory = ::noteFactory;
+	public ChangeVariableCollectorMap(Zeze.Util.Factory<ChangeNote> noteFactory) {
+		NoteFactory = noteFactory;
 	}
 
 	@Override
-	public void CollectChanged(ArrayList<Util.KV<Bean, Integer>> path, ChangeNote note) {
+	public void CollectChanged(ArrayList<Zeze.Util.KV<Bean, Integer>> path, ChangeNote note) {
 		if (path.isEmpty()) {
 			this.note = note; // 肯定只有一个。这里就不检查了。
 		}
 		else {
 			if (null == changedValue) {
-				changedValue = new Util.IdentityHashMap<Bean, Bean>();
+				changedValue = new IdentityHashMap<Bean, Bean>();
 			}
 			// Value 不是 Bean 的 Map 不会走到这里。
 			Bean value = path.get(path.size() - 1).getKey();
 			if (!changedValue.containsKey(value)) {
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-				changedValue.TryAdd(value, value);
+				changedValue.putIfAbsent(value, value);
 			}
 		}
 	}
@@ -40,7 +40,7 @@ public final class ChangeVariableCollectorMap extends ChangeVariableCollector {
 		}
 
 		if (null == note) {
-			note = NoteFactory.invoke(); // 动态创建的 note 是没有所属容器的引用，也就丢失了所在 Bean 的引用。
+			note = NoteFactory.create(); // 动态创建的 note 是没有所属容器的引用，也就丢失了所在 Bean 的引用。
 		}
 		note.SetChangedValue(changedValue);
 
@@ -49,7 +49,7 @@ public final class ChangeVariableCollectorMap extends ChangeVariableCollector {
 				l.OnChanged(key, value, note);
 			}
 			catch (RuntimeException ex) {
-				logger.Error(ex, "NotifyVariableChanged");
+				logger.error("NotifyVariableChanged", ex);
 			}
 		}
 	}

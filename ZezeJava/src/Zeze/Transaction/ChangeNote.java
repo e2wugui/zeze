@@ -1,6 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import java.util.*;
 
 public abstract class ChangeNote {
@@ -8,6 +7,6 @@ public abstract class ChangeNote {
 
 	public abstract void Merge(ChangeNote other);
 
-	public void SetChangedValue(Util.IdentityHashMap<Bean, Bean> values) { // only ChangeNoteMap2 need
+	public void SetChangedValue(IdentityHashMap<Bean, Bean> values) { // only ChangeNoteMap2 need
 	}
 }

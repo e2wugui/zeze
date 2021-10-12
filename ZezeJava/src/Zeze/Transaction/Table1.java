@@ -33,7 +33,7 @@ public abstract class Table1<K, V extends Bean> extends Table {
 		return FindInCacheOrStorage(key, null);
 	}
 
-	private Record1<K, V> FindInCacheOrStorage(K key, tangible.Action1Param<V> copy) {
+	private Record1<K, V> FindInCacheOrStorage(K key, Zeze.Util.Action1<V> copy) {
 		TableKey tkey = new TableKey(getId(), key);
 		Lockey lockey = Locks.getInstance().Get(tkey);
 		lockey.EnterReadLock();
@@ -87,7 +87,7 @@ public abstract class Table1<K, V extends Bean> extends Table {
 					logger.debug("FindInCacheOrStorage {}", r);
 				}
 				if (copy != null) {
-					copy.invoke(r.getValueTyped());
+					copy.run(r.getValueTyped());
 				}
 				return r;
 			}
@@ -150,14 +150,14 @@ public abstract class Table1<K, V extends Bean> extends Table {
 		return 0;
 	}
 
-	private void FlushWhenReduce(Record r, tangible.Action0Param after) {
+	private void FlushWhenReduce(Record r, Runnable after) {
 		switch (getZeze().getConfig().getCheckpointMode()) {
 			case Period:
 				getZeze().getCheckpoint().AddActionAndPulse(after);
 				break;
 
 			case Immediately:
-				after.invoke();
+				after.run();
 				break;
 
 			case Table:
@@ -508,10 +508,10 @@ public abstract class Table1<K, V extends Bean> extends Table {
 			}
 		}
 
-		tangible.OutObject<Bean> copy = new tangible.OutObject<>();
-		FindInCacheOrStorage(key, (v) -> copy.outArgValue = v == null ? null : v.CopyBean());
+		final var copy = new Zeze.Util.OutObject<Bean>();
+		FindInCacheOrStorage(key, (v) -> copy.Value = v == null ? null : v.CopyBean());
 		@SuppressWarnings("unchecked")
-		var r = (V)copy.outArgValue;
+		var r = (V)copy.Value;
 		return r;
 	}
 }

@@ -114,17 +114,17 @@ public class HugeConcurrentLruLike<K, V> {
 	}
 
 	public final V GetOrAdd(K k, Factory<V> factory) {
-		final tangible.OutObject<Boolean> isNew = new tangible.OutObject<>();
-		isNew.outArgValue = false;
+		final var isNew = new OutObject<Boolean>();
+		isNew.Value = false;
 		var lruItem = DataMap.GetOrAdd(k, (k2) -> {
 				V value = factory.create();
-				isNew.outArgValue = true;
+				isNew.Value = true;
 				var lruItemNew = new HugeConcurrentLruItem<K, V>(value, LruHot);
 				LruHot.put(k, lruItemNew); // MUST replace
 				return lruItemNew;
 		});
 
-		if (false == isNew.outArgValue) {
+		if (false == isNew.Value) {
 			AdjustLru(k, lruItem);
 		}
 		return lruItem.Value;

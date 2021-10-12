@@ -1,16 +1,11 @@
 package Zeze.Transaction;
 
-import Zeze.*;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,9 +18,6 @@ public final class Checkpoint {
 	}
 
 	private ReentrantReadWriteLock FlushReadWriteLock = new ReentrantReadWriteLock();
-	private ReentrantReadWriteLock getFlushReadWriteLock() {
-		return FlushReadWriteLock;
-	}
 
 	private boolean IsRunning;
 	public boolean isRunning() {
@@ -135,8 +127,8 @@ public final class Checkpoint {
 			switch (Mode) {
 				case Period:
 					CheckpointPeriod();
-					for (tangible.Action0Param action : actionCurrent) {
-						action.invoke();
+					for (var action : actionCurrent) {
+						action.run();
 					}
 					synchronized (this) {
 						if (!actionPending.isEmpty()) {
@@ -175,8 +167,8 @@ public final class Checkpoint {
 		logger.fatal("final checkpoint end.");
 	}
 
-	private ArrayList<tangible.Action0Param> actionCurrent;
-	private ArrayList<tangible.Action0Param> actionPending = new ArrayList<tangible.Action0Param>();
+	private ArrayList<Runnable> actionCurrent;
+	private ArrayList<Runnable> actionPending = new ArrayList<>();
 
 	/** 
 	 增加 checkpoint 完成一次以后执行的动作，每次 FlushReadWriteLock.EnterWriteLock()
@@ -184,7 +176,7 @@ public final class Checkpoint {
 	 
 	 @param act
 	*/
-	public void AddActionAndPulse(tangible.Action0Param act) {
+	public void AddActionAndPulse(Runnable act) {
 		final var r = FlushReadWriteLock.readLock();
 		r.lock();
 		try {
@@ -209,7 +201,7 @@ public final class Checkpoint {
 			w.lock();
 			try {
 				actionCurrent = actionPending;
-				actionPending = new ArrayList<tangible.Action0Param>();
+				actionPending = new ArrayList<>();
 				for (var db : getDatabases()) {
 					db.Snapshot();
 				}
@@ -236,7 +228,7 @@ public final class Checkpoint {
 	}
 
 	public void Flush(Transaction trans) {
-		Flush(from ra in trans.getAccessedRecords().values() where ra.Dirty select ra.OriginRecord);
+		Flush(trans.getAccessedRecords().values().stream().filter((r) -> r.Dirty).map((r) -> r.OriginRecord).toList());
 	}
 
 	public void Flush(java.lang.Iterable<Record> rs) {
@@ -290,7 +282,7 @@ public final class Checkpoint {
 	public void Flush(RelativeRecordSet rs) {
 		// rs.MergeTo == null &&  check outside
 		if (rs.getRecordSet() != null) {
-			Flush(from r in rs.getRecordSet() select r);
+			Flush(rs.getRecordSet());
 			for (var r : rs.getRecordSet()) {
 				r.setDirty(false);
 			}
