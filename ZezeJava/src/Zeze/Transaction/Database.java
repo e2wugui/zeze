@@ -2,6 +2,8 @@ package Zeze.Transaction;
 
 import Zeze.Serialize.*;
 import Zeze.*;
+import Zeze.Config.DatabaseConf;
+
 import java.util.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,13 +22,19 @@ public abstract class Database {
 		return tables.values();
 	}
 
+	private DatabaseConf Conf;
+	public final DatabaseConf GetConf() {
+		return Conf;
+	}
+
 	private String DatabaseUrl;
 	public final String getDatabaseUrl() {
 		return DatabaseUrl;
 	}
 
-	public Database(String url) {
-		this.DatabaseUrl = url;
+	public Database(DatabaseConf conf) {
+		this.Conf = conf;
+		this.DatabaseUrl = conf.getDatabaseUrl();
 	}
 
 	public final Zeze.Transaction.Table GetTable(String name) {
@@ -52,7 +60,7 @@ public abstract class Database {
 		}
 	}
 
-	public final void Close() {
+	public void Close() {
 		for (Zeze.Transaction.Table table : tables.values()) {
 			table.Close();
 		}
@@ -120,6 +128,11 @@ public abstract class Database {
 		public void Close();
 	}
 
+	public final static class DataWithVersion {
+		public ByteBuffer Data;
+		public long Version;
+	}
+
 	/** 
 	 由后台数据库直接支持的存储过程。
 	 直接操作后台数据库，不经过cache。
@@ -173,7 +186,8 @@ public abstract class Database {
 		 @param version
 		 @return 
 		*/
-		public boolean SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, tangible.RefObject<Long> version);
+		public Zeze.Util.KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version);
+		public DataWithVersion GetDataWithVersion(ByteBuffer key);
 	}
 
 	private Operates DirectOperates;

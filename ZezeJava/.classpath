@@ -80,5 +80,7 @@
 	<classpathentry kind="lib" path="lib/log4j-web-2.14.1-javadoc.jar"/>
 	<classpathentry kind="lib" path="lib/log4j-web-2.14.1-sources.jar"/>
 	<classpathentry kind="lib" path="lib/pcollections-3.1.4.jar"/>
+	<classpathentry kind="lib" path="lib/commons-dbcp2-2.9.0.jar"/>
+	<classpathentry kind="lib" path="lib/commons-pool2-2.11.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -1,53 +1,12 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.*;
-import MySql.Data.MySqlClient.*;
-import Zeze.*;
-import java.util.*;
-import java.io.*;
-import java.nio.file.*;
+import Zeze.Config.DatabaseConf;
 
-public final class DatabaseSqlServer extends Database {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
-	public DatabaseSqlServer(String url) {
-		super(url);
+public final class DatabaseSqlServer extends DatabaseJdbc {
+	public DatabaseSqlServer(DatabaseConf conf) {
+		super(conf);
 		setDirectOperates(new OperatesSqlServer(this));
-	}
-
-	public static class SqlTrans implements Transaction {
-		private SqlConnection Connection;
-		public final SqlConnection getConnection() {
-			return Connection;
-		}
-		private SqlTransaction Transaction;
-		public final SqlTransaction getTransaction() {
-			return Transaction;
-		}
-
-		public SqlTrans(String DatabaseUrl) {
-			Connection = new SqlConnection(DatabaseUrl);
-			getConnection().Open();
-			Transaction = getConnection().BeginTransaction();
-		}
-
-		public final void Dispose() {
-			getTransaction().Dispose();
-			getConnection().Dispose();
-		}
-
-		public final void Commit() {
-			getTransaction().Commit();
-		}
-
-		public final void Rollback() {
-			getTransaction().Rollback();
-		}
-	}
-
-	@Override
-	public Transaction BeginTransaction() {
-		return new SqlTrans(getDatabaseUrl());
 	}
 
 	@Override
@@ -65,120 +24,112 @@ public final class DatabaseSqlServer extends Database {
 		}
 
 		public void SetInUse(int localId, String global) {
-			try (SqlConnection connection = new SqlConnection(getDatabaseReal().getDatabaseUrl())) {
-				connection.Open();
-				SqlCommand cmd = new SqlCommand("_ZezeSetInUse_", connection);
-				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add("@localid", SqlDbType.Int).Value = localId;
-				cmd.Parameters.Add("@global", SqlDbType.VarBinary, Integer.MAX_VALUE).Value = global.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-				SqlParameter tempVar = new SqlParameter("@ReturnValue", SqlDbType.Int);
-				tempVar.Direction = ParameterDirection.Output;
-				cmd.Parameters.add(tempVar);
-				cmd.Prepare();
-				cmd.ExecuteNonQuery();
-				switch ((int)cmd.Parameters["@ReturnValue"].Value) {
-					case 0:
-						return;
-					case 1:
-						throw new RuntimeException("Unknown Error");
-					case 2:
-						throw new RuntimeException("Instance Exist");
-					case 3:
-						throw new RuntimeException("Insert LocalId Faild");
-					case 4:
-						throw new RuntimeException("Global Not Equals");
-					case 5:
-						throw new RuntimeException("Insert Global Faild");
-					case 6:
-						throw new RuntimeException("Instance Greater Than One But No Global");
-					default:
-						throw new RuntimeException("Unknown ReturnValue");
+			try (var connection = DatabaseReal.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
+					cmd.setInt(1, localId);
+					cmd.setBytes(2, global.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+					cmd.registerOutParameter(3, java.sql.Types.INTEGER);
+					cmd.executeUpdate();
+					switch (cmd.getInt(3)) {
+						case 0:
+							return;
+						case 1:
+							throw new RuntimeException("Unknown Error");
+						case 2:
+							throw new RuntimeException("Instance Exist");
+						case 3:
+							throw new RuntimeException("Insert LocalId Faild");
+						case 4:
+							throw new RuntimeException("Global Not Equals");
+						case 5:
+							throw new RuntimeException("Insert Global Faild");
+						case 6:
+							throw new RuntimeException("Instance Greater Than One But No Global");
+						default:
+							throw new RuntimeException("Unknown ReturnValue");
+					}
 				}
-    
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 
 		public int ClearInUse(int localId, String global) {
-			try (SqlConnection connection = new SqlConnection(getDatabaseReal().getDatabaseUrl())) {
-				connection.Open();
-				SqlCommand cmd = new SqlCommand("_ZezeClearInUse_", connection);
-				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add("@localid", SqlDbType.Int).Value = localId;
-				cmd.Parameters.Add("@global", SqlDbType.VarBinary, Integer.MAX_VALUE).Value = global.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-				SqlParameter tempVar = new SqlParameter("@ReturnValue", SqlDbType.Int);
-				tempVar.Direction = ParameterDirection.Output;
-				cmd.Parameters.add(tempVar);
-				cmd.Prepare();
-				cmd.ExecuteNonQuery();
-				// Clear 不报告错误，直接返回。
-				return (int)cmd.Parameters["@ReturnValue"].Value;
+			try (var connection = DatabaseReal.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				try (var cmd = connection.prepareCall("{CALL _ZezeClearInUse_(?, ?, ?)}")) {
+					cmd.setInt(1, localId);
+					cmd.setBytes(2, global.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+					cmd.registerOutParameter(3, java.sql.Types.INTEGER);
+					cmd.executeUpdate();
+					// Clear 不报告错误，直接返回。
+					return cmd.getInt(3);
+				}
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 
-//C# TO JAVA CONVERTER TODO TASK: Methods returning tuples are not converted by C# to Java Converter:
-//		public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key)
-//			{
-//				using SqlConnection connection = new SqlConnection(DatabaseReal.DatabaseUrl);
-//				connection.Open();
-//
-//				string sql = "SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=@id";
-//
-//				SqlCommand cmd = new SqlCommand(sql, connection);
-//				cmd.Parameters.Add("@id", SqlDbType.VarBinary, 767).Value = key.Copy();
-//				cmd.Prepare();
-//
-//				using (SqlDataReader reader = cmd.ExecuteReader())
-//				{
-//					while (reader.Read())
-//					{
-//						byte[] value = (byte[])reader[0];
-//						long version = reader.GetInt64(1);
-//						return (ByteBuffer.Wrap(value), version);
-//					}
-//					return (null, 0);
-//				}
-//			}
+		public DataWithVersion GetDataWithVersion(ByteBuffer key) {
+			try (var connection = DatabaseReal.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				String sql = "SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?";
+				try (var cmd = connection.prepareStatement(sql)) {
+					cmd.setBytes(1, key.Copy());
+					try (var reader = cmd.executeQuery()) {
+						while (reader.next()) {
+							var result = new DataWithVersion();
+							result.Data = ByteBuffer.Wrap(reader.getBytes(1));
+							result.Version = reader.getLong(2);
+							return result;
+						}
+						return null;
+					}
+				}
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
 
-		public boolean SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, tangible.RefObject<Long> version) {
-			if (key.getSize() == 0) {
+		public Zeze.Util.KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+			if (key.Size() == 0) {
 				throw new RuntimeException("key is empty.");
 			}
 
-			try (SqlConnection connection = new SqlConnection(getDatabaseReal().getDatabaseUrl())) {
-				connection.Open();
-				SqlCommand cmd = new SqlCommand("_ZezeSaveDataWithSameVersion_", connection);
-				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add("@id", SqlDbType.VarBinary, 767).Value = key.Copy();
-				cmd.Parameters.Add("@data", SqlDbType.VarBinary, Integer.MAX_VALUE).Value = data.Copy();
-				SqlParameter tempVar = new SqlParameter("@version", SqlDbType.BigInt);
-				tempVar.Direction = ParameterDirection.InputOutput;
-				tempVar.Value = version.refArgValue;
-				cmd.Parameters.add(tempVar);
-				SqlParameter tempVar2 = new SqlParameter("@ReturnValue", SqlDbType.Int);
-				tempVar2.Direction = ParameterDirection.Output;
-				cmd.Parameters.add(tempVar2);
-				cmd.Prepare();
-				cmd.ExecuteNonQuery();
-				switch ((int)cmd.Parameters["@ReturnValue"].Value) {
-					case 0:
-						version.refArgValue = (long)cmd.Parameters["@version"].Value;
-						return true;
-					case 2:
-						return false;
-					default:
-						throw new RuntimeException("Procedure SaveDataWithSameVersion Exec Error.");
+			try (var connection = DatabaseReal.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				try (var cmd = connection.prepareCall("{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?)}")) {
+					cmd.setBytes(1, key.Copy());
+					cmd.setBytes(2, data.Copy());
+					cmd.registerOutParameter(3, java.sql.Types.BIGINT);
+					cmd.setLong(3, version);
+					cmd.registerOutParameter(4, java.sql.Types.INTEGER); // return code
+					cmd.executeUpdate();
+					switch (cmd.getInt(4)) {
+						case 0:
+							return Zeze.Util.KV.Create(cmd.getLong(3), true);
+						case 2:
+							return Zeze.Util.KV.Create(0L, false);
+						default:
+							throw new RuntimeException("Procedure SaveDataWithSameVersion Exec Error.");
+					}
 				}
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 
 		public OperatesSqlServer(DatabaseSqlServer database) {
 			DatabaseReal = database;
 
-			try (SqlConnection connection = new SqlConnection(getDatabaseReal().getDatabaseUrl())) {
-				connection.Open();
+			try (var connection = DatabaseReal.DataSource.getConnection()) {
+				connection.setAutoCommit(false);
     
 				String TableDataWithVersion = "if not exists (select * from sysobjects where name='_ZezeDataWithVersion_' and xtype='U')" + " CREATE TABLE _ZezeDataWithVersion_ (id VARBINARY(767) NOT NULL PRIMARY KEY, data VARBINARY(MAX) NOT NULL, version bigint NOT NULL)";
-				(new SqlCommand(TableDataWithVersion, connection)).ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement(TableDataWithVersion)) {
+					cmd.executeUpdate();
+				}
     
 				String ProcSaveDataWithSameVersion = "Create or Alter procedure _ZezeSaveDataWithSameVersion_" + "\r\n" + 
 "                        @id VARBINARY(767)," + "\r\n" + 
@@ -224,10 +175,14 @@ public final class DatabaseSqlServer extends Database {
 "                        ROLLBACK TRANSACTION" + "\r\n" + 
 "                        return 4" + "\r\n" + 
 "                    end";
-				(new SqlCommand(ProcSaveDataWithSameVersion, connection)).ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement(ProcSaveDataWithSameVersion)) {
+					cmd.executeUpdate();
+				}
     
 				String TableInstances = "if not exists (select * from sysobjects where name='_ZezeInstances_' and xtype='U')" + " CREATE TABLE _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)";
-				(new SqlCommand(TableInstances, connection)).ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement(TableInstances)) {
+					cmd.executeUpdate();
+				}
 				// zeze_global 使用 _ZezeDataWithVersion_ 存储。
     
 				String ProcSetInUse = "Create or Alter procedure _ZezeSetInUse_" + "\r\n" + 
@@ -293,7 +248,9 @@ public final class DatabaseSqlServer extends Database {
 "                        COMMIT TRANSACTION" + "\r\n" + 
 "                        return 0" + "\r\n" + 
 "                    end";
-				(new SqlCommand(ProcSetInUse, connection)).ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement(ProcSetInUse)) {
+					cmd.executeUpdate();
+				}
     
 				String ProcClearInUse = "Create or Alter procedure _ZezeClearInUse_" + "\r\n" + 
 "                        @localid int," + "\r\n" + 
@@ -323,7 +280,12 @@ public final class DatabaseSqlServer extends Database {
 "                        COMMIT TRANSACTION" + "\r\n" + 
 "                        return 0" + "\r\n" + 
 "                    end";
-				(new SqlCommand(ProcClearInUse, connection)).ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement(ProcClearInUse)) {
+					cmd.executeUpdate();
+				}
+				connection.commit();
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 	}
@@ -345,12 +307,15 @@ public final class DatabaseSqlServer extends Database {
 			DatabaseReal = database;
 			Name = name;
 
-			try (SqlConnection connection = new SqlConnection(getDatabaseReal().getDatabaseUrl())) {
-				connection.Open();
+			try (var connection = DatabaseReal.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
     
 				String sql = "if not exists (select * from sysobjects where name='" + getName() + "' and xtype='U') CREATE TABLE " + getName() + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
-				SqlCommand cmd = new SqlCommand(sql, connection);
-				cmd.ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement(sql)) {
+					cmd.executeUpdate();
+				}
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 
@@ -358,74 +323,74 @@ public final class DatabaseSqlServer extends Database {
 		}
 
 		public ByteBuffer Find(ByteBuffer key) {
-			try (SqlConnection connection = new SqlConnection(getDatabaseReal().getDatabaseUrl())) {
-				connection.Open();
+			try (var connection = DatabaseReal.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
     
-				String sql = "SELECT value FROM " + getName() + " WHERE id = @ID";
-    
+				String sql = "SELECT value FROM " + getName() + " WHERE id = ?";    
 				// 是否可以重用 SqlCommand
-				SqlCommand cmd = new SqlCommand(sql, connection);
-				cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
-				cmd.Prepare();
-    
-				try (SqlDataReader reader = cmd.ExecuteReader()) {
-					while (reader.Read()) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] value = (byte[])reader[0];
-						byte[] value = (byte[])reader[0];
-						return ByteBuffer.Wrap(value);
+				try (var cmd = connection.prepareStatement(sql)) {
+					cmd.setBytes(1, key.Copy());
+					try (var reader = cmd.executeQuery()) {
+						while (reader.next()) {
+							byte[] value = (byte[])reader.getBytes(1);
+							return ByteBuffer.Wrap(value);
+						}
+						return null;
 					}
-					return null;
 				}
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 
 		public void Remove(Transaction t, ByteBuffer key) {
-			var my = t instanceof SqlTrans ? (SqlTrans)t : null;
-			String sql = "DELETE FROM " + getName() + " WHERE id=@ID";
-			SqlCommand cmd = new SqlCommand(sql, my.getConnection(), my.getTransaction());
-			cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
-			cmd.Prepare();
-			cmd.ExecuteNonQuery();
+			var my = (JdbcTrans)t;
+			String sql = "DELETE FROM " + getName() + " WHERE id=?";
+			try (var cmd = my.Connection.prepareStatement(sql)) {
+				cmd.setBytes(1, key.Copy());
+				cmd.executeUpdate();
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void Replace(Transaction t, ByteBuffer key, ByteBuffer value) {
-			var my = t instanceof SqlTrans ? (SqlTrans)t : null;
-			String sql = "update " + getName() + " set value=@VALUE where id=@ID" + " if @@rowcount = 0 and @@error = 0 insert into " + getName() + " values(@ID,@VALUE)";
-
-			SqlCommand cmd = new SqlCommand(sql, my.getConnection(), my.getTransaction());
-			cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
-			cmd.Parameters.Add("@VALUE", System.Data.SqlDbType.VarBinary, Integer.MAX_VALUE).Value = value.Copy();
-			cmd.Prepare();
-			cmd.ExecuteNonQuery();
+			var my = (JdbcTrans)t;
+			String sql = "update " + getName() + " set value=? where id=?" + " if @@rowcount = 0 and @@error = 0 insert into " + getName() + " values(?,?)";
+			try (var cmd = my.Connection.prepareStatement(sql)) {
+				var keycopy = key.Copy();
+				var valuecopy = value.Copy();
+				cmd.setBytes(1, valuecopy);
+				cmd.setBytes(2, keycopy); // 传两次，使用存储过程优化？
+				cmd.setBytes(3, keycopy);
+				cmd.setBytes(4, valuecopy);
+				cmd.executeUpdate();
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public long Walk(Func<byte[], byte[], bool> callback)
-		public long Walk(tangible.Func2Param<byte[], byte[], Boolean> callback) {
-			try (SqlConnection connection = new SqlConnection(getDatabaseReal().getDatabaseUrl())) {
-				connection.Open();
+		public long Walk(TableWalkHandleRaw callback) {
+			try (var connection = DatabaseReal.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
     
 				String sql = "SELECT id,value FROM " + getName();
-				SqlCommand cmd = new SqlCommand(sql, connection);
-				cmd.Prepare();
-    
-				long count = 0;
-				try (SqlDataReader reader = cmd.ExecuteReader()) {
-					while (reader.Read()) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] key = (byte[])reader[0];
-						byte[] key = (byte[])reader[0];
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] value = (byte[])reader[1];
-						byte[] value = (byte[])reader[1];
-						++count;
-						if (false == callback.invoke(key, value)) {
-							break;
+				try (var cmd = connection.prepareStatement(sql)) {
+					long count = 0;
+					try (var reader = cmd.executeQuery()) {
+						while (reader.next()) {
+							byte[] key = reader.getBytes(1);
+							byte[] value = reader.getBytes(2);
+							++count;
+							if (false == callback.handle(key, value)) {
+								break;
+							}
 						}
 					}
+					return count;
 				}
-				return count;
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 	}

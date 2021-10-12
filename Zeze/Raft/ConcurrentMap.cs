@@ -186,6 +186,16 @@ namespace Zeze.Raft
             }
         }
 
+        /*
+        public void Remove(K k, V v)
+        {
+            if (Map.TryRemove(KeyValuePair.Create(k, v)))
+            {
+                SnapshotLog(SnapshotState.Remove, k, v);
+            }
+        }
+        */
+
         // 线程不安全，需要外面更大的锁来保护。
         public bool StartSerialize()
         {

@@ -133,7 +133,7 @@ namespace Zeze.Net
         /// <param name="e"></param>
         public virtual void OnSocketClose(AsyncSocket so, Exception e)
         {
-            SocketMap.TryRemove(so.SessionId, out var _);
+            SocketMap.TryRemove(KeyValuePair.Create(so.SessionId, so));
 
             if (null != e)
                 logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketClose");
@@ -222,7 +222,7 @@ namespace Zeze.Net
         /// <param name="e"></param>
         public virtual void OnSocketConnectError(AsyncSocket so, Exception e)
         {
-            SocketMap.TryRemove(so.SessionId, out var _);
+            SocketMap.TryRemove(KeyValuePair.Create(so.SessionId, so));
             logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketConnectError");
         }
 

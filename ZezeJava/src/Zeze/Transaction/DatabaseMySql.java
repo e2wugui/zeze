@@ -1,55 +1,12 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.*;
-import MySql.Data.MySqlClient.*;
-import Zeze.*;
-import java.util.*;
-import java.io.*;
-import java.nio.file.*;
+import Zeze.Config.DatabaseConf;
 
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-//#if USE_DATABASE
-public final class DatabaseMySql extends Database {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
-	public DatabaseMySql(String url) {
-		super(url);
+public final class DatabaseMySql extends DatabaseJdbc {
+	public DatabaseMySql(DatabaseConf conf) {
+		super(conf);
 		setDirectOperates(new OperatesMySql(this));
-	}
-
-	public static class MySqlTrans implements Transaction {
-		private MySqlConnection Connection;
-		public final MySqlConnection getConnection() {
-			return Connection;
-		}
-		private MySqlTransaction Transaction;
-		public final MySqlTransaction getTransaction() {
-			return Transaction;
-		}
-
-		public MySqlTrans(String DatabaseUrl) {
-			Connection = new MySqlConnection(DatabaseUrl);
-			getConnection().Open();
-			Transaction = getConnection().BeginTransaction();
-		}
-
-		public final void Dispose() {
-			getTransaction().Dispose();
-			getConnection().Dispose();
-		}
-
-		public final void Commit() {
-			getTransaction().Commit();
-		}
-
-		public final void Rollback() {
-			getTransaction().Rollback();
-		}
-	}
-
-	@Override
-	public Transaction BeginTransaction() {
-		return new MySqlTrans(getDatabaseUrl());
 	}
 
 	@Override
@@ -64,126 +21,119 @@ public final class DatabaseMySql extends Database {
 		}
 
 		public void SetInUse(int localId, String global) {
-			try (MySqlConnection connection = new MySqlConnection(getDatabase().getDatabaseUrl())) {
-				connection.Open();
-				MySqlCommand cmd = new MySqlCommand("_ZezeSetInUse_", connection);
-				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add("@in_localid", MySqlDbType.Int32).Value = localId;
-				cmd.Parameters.Add("@in_global", MySqlDbType.VarBinary, Integer.MAX_VALUE).Value = global.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-				MySqlParameter tempVar = new MySqlParameter("@ReturnValue", MySqlDbType.Int32);
-				tempVar.Direction = ParameterDirection.Output;
-				cmd.Parameters.add(tempVar);
-				cmd.Prepare();
-				cmd.ExecuteNonQuery();
-				switch ((int)cmd.Parameters["@ReturnValue"].Value) {
-					case 0:
-						return;
-					case 1:
-						throw new RuntimeException("Unknown Error");
-					case 2:
-						throw new RuntimeException("Instance Exist.");
-					case 3:
-						throw new RuntimeException("Insert LocalId Faild");
-					case 4:
-						throw new RuntimeException("Global Not Equals");
-					case 5:
-						throw new RuntimeException("Insert Global Faild");
-					case 6:
-						throw new RuntimeException("Instance Greater Than One But No Global");
-					default:
-						throw new RuntimeException("Unknown ReturnValue");
+			try (var connection = Database.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
+					cmd.setInt(1, localId);
+					cmd.setBytes(2, global.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+					cmd.registerOutParameter(3, java.sql.Types.INTEGER);
+					cmd.executeUpdate();
+					switch (cmd.getInt(3)) {
+						case 0:
+							return;
+						case 1:
+							throw new RuntimeException("Unknown Error");
+						case 2:
+							throw new RuntimeException("Instance Exist.");
+						case 3:
+							throw new RuntimeException("Insert LocalId Faild");
+						case 4:
+							throw new RuntimeException("Global Not Equals");
+						case 5:
+							throw new RuntimeException("Insert Global Faild");
+						case 6:
+							throw new RuntimeException("Instance Greater Than One But No Global");
+						default:
+							throw new RuntimeException("Unknown ReturnValue");
+					}
 				}
-    
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 
 		public int ClearInUse(int localId, String global) {
-			try (MySqlConnection connection = new MySqlConnection(getDatabase().getDatabaseUrl())) {
-				connection.Open();
-				MySqlCommand cmd = new MySqlCommand("_ZezeClearInUse_", connection);
-				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add("@in_localid", MySqlDbType.Int32).Value = localId;
-				cmd.Parameters.Add("@in_global", MySqlDbType.VarBinary, Integer.MAX_VALUE).Value = global.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-				MySqlParameter tempVar = new MySqlParameter("@ReturnValue", MySqlDbType.Int32);
-				tempVar.Direction = ParameterDirection.Output;
-				cmd.Parameters.add(tempVar);
-				cmd.Prepare();
-				cmd.ExecuteNonQuery();
-				// Clear 不报告错误，直接返回。
-				return (int)cmd.Parameters["@ReturnValue"].Value;
+			try (var connection = Database.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				try (var cmd = connection.prepareCall("{CALL _ZezeClearInUse_(?, ?, ?)}")) {
+					cmd.setInt(1, localId);
+					cmd.setBytes(2, global.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+					cmd.registerOutParameter(3, java.sql.Types.INTEGER);
+					cmd.executeUpdate();
+					// Clear 不报告错误，直接返回。
+					return (int)cmd.getInt(3);
+				}
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 
-//C# TO JAVA CONVERTER TODO TASK: Methods returning tuples are not converted by C# to Java Converter:
-//		public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key)
-//			{
-//				using MySqlConnection connection = new MySqlConnection(Database.DatabaseUrl);
-//				connection.Open();
-//
-//				string sql = "SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=@id";
-//
-//				MySqlCommand cmd = new MySqlCommand(sql, connection);
-//				cmd.Parameters.Add("@id", MySqlDbType.VarBinary, 767).Value = key.Copy();
-//				cmd.Prepare();
-//
-//				using (MySqlDataReader reader = cmd.ExecuteReader())
-//				{
-//					while (reader.Read())
-//					{
-//						byte[] value = (byte[])reader[0];
-//						long version = reader.GetInt64(1);
-//						return (ByteBuffer.Wrap(value), version);
-//					}
-//					return (null, 0);
-//				}
-//			}
+		public DataWithVersion GetDataWithVersion(ByteBuffer key) {
+			try (var connection = Database.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				try (var cmd = connection.prepareStatement("SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?")) {
+					cmd.setBytes(1, key.Copy());
+					try (java.sql.ResultSet rs = cmd.executeQuery()) {
+						while (rs.next()) {
+							byte[] value = (byte[])rs.getBytes(1);
+							long version = rs.getLong(2);
+							var result = new DataWithVersion();
+							result.Data = ByteBuffer.Wrap(value);
+							result.Version = version;
+							return result;
+						}
+						return null;
+					}
+				}
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
 
-		public boolean SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, tangible.RefObject<Long> version) {
-			if (key.getSize() == 0) {
+		public Zeze.Util.KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+			if (key.Size() == 0) {
 				throw new RuntimeException("key is empty.");
 			}
 
-			try (MySqlConnection connection = new MySqlConnection(getDatabase().getDatabaseUrl())) {
-				connection.Open();
-				MySqlCommand cmd = new MySqlCommand("_ZezeSaveDataWithSameVersion_", connection);
-				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add("@in_id", MySqlDbType.VarBinary, 767).Value = key.Copy();
-				cmd.Parameters.Add("@in_data", MySqlDbType.VarBinary, Integer.MAX_VALUE).Value = data.Copy();
-				MySqlParameter tempVar = new MySqlParameter("@inout_version", MySqlDbType.Int64);
-				tempVar.Direction = ParameterDirection.InputOutput;
-				tempVar.Value = version.refArgValue;
-				cmd.Parameters.add(tempVar);
-				MySqlParameter tempVar2 = new MySqlParameter("@ReturnValue", MySqlDbType.Int32);
-				tempVar2.Direction = ParameterDirection.Output;
-				cmd.Parameters.add(tempVar2);
-				cmd.Prepare();
-				cmd.ExecuteNonQuery();
-				switch ((int)cmd.Parameters["@ReturnValue"].Value) {
-					case 0:
-						version.refArgValue = (long)cmd.Parameters["@inout_version"].Value;
-						return true;
-					case 2:
-						return false;
-					default:
-						throw new RuntimeException("Procedure SaveDataWithSameVersion Exec Error.");
+			try (var connection = Database.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				try (var cmd = connection.prepareCall("{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?, ?)}")) {
+					cmd.setBytes(1, key.Copy()); // key
+					cmd.setBytes(2, data.Copy()); // data
+					cmd.registerOutParameter(3, java.sql.Types.BIGINT); // version (in | out)
+					cmd.setLong(3, version);
+					cmd.registerOutParameter(4, java.sql.Types.INTEGER); // return code
+					cmd.executeUpdate();
+					switch (cmd.getInt(4)) {
+						case 0:
+							return Zeze.Util.KV.Create(cmd.getLong(3), true);
+						case 2:
+							return Zeze.Util.KV.Create(0L, false);
+						default:
+							throw new RuntimeException("Procedure SaveDataWithSameVersion Exec Error.");
+					}
 				}
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 
 		public OperatesMySql(DatabaseMySql database) {
 			Database = database;
 
-			try (MySqlConnection connection = new MySqlConnection(getDatabase().getDatabaseUrl())) {
-				connection.Open();
-    
+			try (var connection = Database.DataSource.getConnection()) {
+				connection.setAutoCommit(false);
 				String TableDataWithVersion = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (" + "\r\n" + 
 "                        id VARBINARY(767) NOT NULL PRIMARY KEY," + "\r\n" + 
 "                        data MEDIUMBLOB NOT NULL," + "\r\n" + 
 "                        version bigint NOT NULL" + "\r\n" + 
 "                    )ENGINE=INNODB";
-				(new MySqlCommand(TableDataWithVersion, connection)).ExecuteNonQuery();
-    
-				(new MySqlCommand("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_", connection)).ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement(TableDataWithVersion)) {
+					cmd.executeUpdate();
+				}    
+				try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_")) {
+					cmd.executeUpdate();
+				}
 				String ProcSaveDataWithSameVersion = "Create procedure _ZezeSaveDataWithSameVersion_ (" + "\r\n" + 
 "                        IN    in_id VARBINARY(767)," + "\r\n" + 
 "                        IN    in_data MEDIUMBLOB," + "\r\n" + 
@@ -229,13 +179,17 @@ public final class DatabaseMySql extends Database {
 "                        ROLLBACK;" + "\r\n" + 
 "                        LEAVE return_label;" + "\r\n" + 
 "                    end;";
-				(new MySqlCommand(ProcSaveDataWithSameVersion, connection)).ExecuteNonQuery();
-    
+				try (var cmd = connection.prepareStatement(ProcSaveDataWithSameVersion)) {
+					cmd.executeUpdate();
+				}
 				String TableInstances = "CREATE TABLE IF NOT EXISTS _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)ENGINE=INNODB";
-				(new MySqlCommand(TableInstances, connection)).ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement(TableInstances)) {
+					cmd.executeUpdate();
+				}
 				// zeze_global 使用 _ZezeDataWithVersion_ 存储。
-    
-				(new MySqlCommand("DROP PROCEDURE IF EXISTS _ZezeSetInUse_", connection)).ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSetInUse_")) {
+					cmd.executeUpdate();
+				}
 				String ProcSetInUse = "Create procedure _ZezeSetInUse_ (" + "\r\n" + 
 "                        in in_localid int," + "\r\n" + 
 "                        in in_global MEDIUMBLOB," + "\r\n" + 
@@ -295,9 +249,12 @@ public final class DatabaseMySql extends Database {
 "                        COMMIT;" + "\r\n" + 
 "                        LEAVE return_label;" + "\r\n" + 
 "                    end";
-				(new MySqlCommand(ProcSetInUse, connection)).ExecuteNonQuery();
-    
-				(new MySqlCommand("DROP PROCEDURE IF EXISTS _ZezeClearInUse_", connection)).ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement(ProcSetInUse)) {
+					cmd.executeUpdate();
+				}
+				try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeClearInUse_")) {
+					cmd.executeUpdate();
+				}
 				String ProcClearInUse = "Create procedure _ZezeClearInUse_ (" + "\r\n" + 
 "                        in in_localid int," + "\r\n" + 
 "                        in in_global MEDIUMBLOB," + "\r\n" + 
@@ -327,7 +284,12 @@ public final class DatabaseMySql extends Database {
 "                        COMMIT;" + "\r\n" + 
 "                        LEAVE return_label;" + "\r\n" + 
 "                    end";
-				(new MySqlCommand(ProcClearInUse, connection)).ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement(ProcClearInUse)) {
+					cmd.executeUpdate();
+				}
+				connection.commit();
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 	}
@@ -348,12 +310,14 @@ public final class DatabaseMySql extends Database {
 		public TableMysql(DatabaseMySql database, String name) {
 			DatabaseReal = database;
 			Name = name;
-
-			try (MySqlConnection connection = new MySqlConnection(database.getDatabaseUrl())) {
-				connection.Open();
+			try (var connection = DatabaseReal.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
 				String sql = "CREATE TABLE IF NOT EXISTS " + getName() + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value MEDIUMBLOB NOT NULL)ENGINE=INNODB";
-				MySqlCommand cmd = new MySqlCommand(sql, connection);
-				cmd.ExecuteNonQuery();
+				try (var cmd = connection.prepareStatement(sql)) {
+					cmd.executeUpdate();
+				}
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 
@@ -361,72 +325,70 @@ public final class DatabaseMySql extends Database {
 		}
 
 		public ByteBuffer Find(ByteBuffer key) {
-			try (MySqlConnection connection = new MySqlConnection(getDatabaseReal().getDatabaseUrl())) {
-				connection.Open();
+			try (var connection = DatabaseReal.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
     
-				String sql = "SELECT value FROM " + getName() + " WHERE id = @ID";
+				String sql = "SELECT value FROM " + getName() + " WHERE id = ?";
 				// 是否可以重用 SqlCommand
-				MySqlCommand cmd = new MySqlCommand(sql, connection);
-				cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
-				cmd.Prepare();
-    
-				try (MySqlDataReader reader = cmd.ExecuteReader()) {
-					while (reader.Read()) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] value = (byte[])reader[0];
-						byte[] value = (byte[])reader[0];
-						return ByteBuffer.Wrap(value);
+				try (var cmd = connection.prepareStatement(sql)) {
+					cmd.setBytes(1, key.Copy());
+					try (var rs = cmd.executeQuery()) {
+						while (rs.next()) {
+							byte[] value = (byte[])rs.getBytes(1);
+							return ByteBuffer.Wrap(value);
+						}
+						return null;
 					}
-					return null;
 				}
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 
 		public void Remove(Transaction t, ByteBuffer key) {
-			var my = t instanceof MySqlTrans ? (MySqlTrans)t : null;
-			String sql = "DELETE FROM " + getName() + " WHERE id=@ID";
-			MySqlCommand cmd = new MySqlCommand(sql, my.getConnection(), my.getTransaction());
-			cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
-			cmd.Prepare();
-			cmd.ExecuteNonQuery();
+			var my = (JdbcTrans)t;
+			String sql = "DELETE FROM " + getName() + " WHERE id=?";
+			try (var cmd = my.Connection.prepareStatement(sql)) {
+				cmd.setBytes(1, key.Copy());
+				cmd.executeUpdate();
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void Replace(Transaction t, ByteBuffer key, ByteBuffer value) {
-			var my = t instanceof MySqlTrans ? (MySqlTrans)t : null;
-			String sql = "REPLACE INTO " + getName() + " values(@ID,@VALUE)";
-			MySqlCommand cmd = new MySqlCommand(sql, my.getConnection(), my.getTransaction());
-			cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
-			cmd.Parameters.Add("@VALUE", MySqlDbType.VarBinary, Integer.MAX_VALUE).Value = value.Copy();
-			cmd.Prepare();
-			cmd.ExecuteNonQuery();
+			var my = (JdbcTrans)t;
+			String sql = "REPLACE INTO " + getName() + " values(?, ?)";
+			try (var cmd = my.Connection.prepareStatement(sql)) {
+				cmd.setBytes(1, key.Copy());
+				cmd.setBytes(2, value.Copy());
+				cmd.executeUpdate();
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public long Walk(Func<byte[], byte[], bool> callback)
-		public long Walk(tangible.Func2Param<byte[], byte[], Boolean> callback) {
-			try (MySqlConnection connection = new MySqlConnection(getDatabaseReal().getDatabaseUrl())) {
-				connection.Open();
+		public long Walk(TableWalkHandleRaw callback) {
+			try (var connection = DatabaseReal.DataSource.getConnection()) {
+				connection.setAutoCommit(true);
     
 				String sql = "SELECT id,value FROM " + getName();
-				MySqlCommand cmd = new MySqlCommand(sql, connection);
-				cmd.Prepare();
-    
-				long count = 0;
-				try (MySqlDataReader reader = cmd.ExecuteReader()) {
-					while (reader.Read()) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] key = (byte[])reader[0];
-						byte[] key = (byte[])reader[0];
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] value = (byte[])reader[1];
-						byte[] value = (byte[])reader[1];
-						++count;
-						if (false == callback.invoke(key, value)) {
-							break;
+				try (var cmd = connection.prepareStatement(sql)) {    
+					long count = 0;
+					try (var rs = cmd.executeQuery()) {
+						while (rs.next()) {
+							byte[] key = (byte[])rs.getBytes(1);
+							byte[] value = (byte[])rs.getBytes(2);
+							++count;
+							if (false == callback.handle(key, value)) {
+								break;
+							}
 						}
 					}
+					return count;
 				}
-				return count;
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
 			}
 		}
 	}

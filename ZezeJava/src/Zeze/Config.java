@@ -162,16 +162,16 @@ public final class Config {
 		return DatabaseConfMap;
 	}
 
-	private Zeze.Transaction.Database CreateDatabase(DbType dbType, String url) {
-		switch (dbType) {
+	private Zeze.Transaction.Database CreateDatabase(DatabaseConf conf) {
+		switch (conf.DatabaseType) {
 			case Memory:
-				return new Zeze.Transaction.DatabaseMemory(url);
+				return new Zeze.Transaction.DatabaseMemory(conf);
 			case MySql:
-				return new Zeze.Transaction.DatabaseMySql(url);
+				return new Zeze.Transaction.DatabaseMySql(conf);
 			case SqlServer:
-				return new Zeze.Transaction.DatabaseSqlServer(url);
+				return new Zeze.Transaction.DatabaseSqlServer(conf);
 			case Tikv:
-				return new Zeze.Tikv.DatabaseTikv(url);
+				return new Zeze.Tikv.DatabaseTikv(conf.getDatabaseUrl());
 			default:
 				throw new RuntimeException("unknown database type.");
 		}
@@ -180,7 +180,7 @@ public final class Config {
 	public void CreateDatabase(HashMap<String, Zeze.Transaction.Database> map) {
 		// add other database
 		for (var db : getDatabaseConfMap().values()) {
-			map.put(db.Name, CreateDatabase(db.DatabaseType, db.DatabaseUrl));
+			map.put(db.Name, CreateDatabase(db));
 		}
 	}
 
