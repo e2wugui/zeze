@@ -2,17 +2,17 @@ package Zeze.Net;
 
 import Zeze.Serialize.*;
 import Zeze.Util.Task;
-import Zeze.Transaction.*;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
-
 import Zeze.*;
-
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import Zeze.Util.KV;
 
 public class Service {
 	private static final Logger logger = LogManager.getLogger(Service.class);
@@ -123,7 +123,11 @@ public class Service {
 	}
 
 	public final AsyncSocket NewServerSocket(String ipaddress, int port) {
-		return NewServerSocket(InetAddress.getByName(ipaddress), port);
+		try {
+			return NewServerSocket(InetAddress.getByName(ipaddress), port);
+		} catch (UnknownHostException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public final AsyncSocket NewServerSocket(InetAddress ipaddress, int port) {
@@ -456,74 +460,54 @@ public class Service {
 
 
 	public final String GetOneNetworkInterfaceIpAddress() {
-		return GetOneNetworkInterfaceIpAddress(AddressFamily.Unspecified);
-	}
-
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public string GetOneNetworkInterfaceIpAddress(AddressFamily family = AddressFamily.Unspecified)
-	public final String GetOneNetworkInterfaceIpAddress(AddressFamily family) {
-		for (NetworkInterface neti : NetworkInterface.GetAllNetworkInterfaces()) {
-			if (neti.NetworkInterfaceType == NetworkInterfaceType.Loopback) {
-				continue;
-			}
-
-			IPInterfaceProperties property = neti.GetIPProperties();
-			for (UnicastIPAddressInformation ip : property.UnicastAddresses) {
-				switch (ip.Address.AddressFamily) {
-					case InterNetworkV6:
-					case InterNetwork:
-						if (family == AddressFamily.Unspecified || family == ip.Address.AddressFamily) {
-							return ip.Address.toString();
-						}
-						continue;
+		try {
+			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+			while (interfaces.hasMoreElements()) {
+				NetworkInterface networkInterface = interfaces.nextElement();
+				Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
+				while (inetAddresses.hasMoreElements()) {
+					var inetaddr = inetAddresses.nextElement();
+					return inetaddr.getHostAddress();
 				}
 			}
+			return "";
+		} catch (SocketException ex) {
+			throw new RuntimeException(ex);
 		}
-		return null;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Methods returning tuples are not converted by C# to Java Converter:
-//	public (string, int) GetOneAcceptorAddress()
-//		{
-//			string ip = string.Empty;
-//			int port = 0;
-//
-//			Config.ForEachAcceptor((a) =>
-//				{
-//					if (false == string.IsNullOrEmpty(a.Ip) && a.Port != 0)
-//					{
-//						// 找到ip，port都配置成明确地址的。
-//						ip = a.Ip;
-//						port = a.Port;
-//						return false;
-//					}
-//					// 获得最后一个配置的port。允许返回(null, port)。
-//					port = a.Port;
-//					return true;
-//				}
-//				);
-//
-//			return (ip, port);
-//		}
+	public Zeze.Util.KV<String, Integer> GetOneAcceptorAddress() {
+		final var ipport = KV.Create("", 0);
 
-//C# TO JAVA CONVERTER TODO TASK: Methods returning tuples are not converted by C# to Java Converter:
-//	public (string, int) GetOnePassiveAddress()
-//		{
-//			var(ip, port) = GetOneAcceptorAddress();
-//			if (port == 0)
-//				throw new Exception("Acceptor: No Config.");
-//
-//			if (string.IsNullOrEmpty(ip))
-//			{
-//				// 可能绑定在任意地址上。尝试获得网卡的地址。
-//				ip = GetOneNetworkInterfaceIpAddress();
-//				if (string.IsNullOrEmpty(ip))
-//				{
-//					// 实在找不到ip地址，就设置成loopback。
-//					logger.Warn("PassiveAddress No Config. set ip to 127.0.0.1");
-//					ip = "127.0.0.1";
-//				}
-//			}
-//			return (ip, port);
-//		}
+		Config.ForEachAcceptor2((a) -> {
+			if (false == a.getIp().isEmpty() && a.getPort() != 0) {
+				// 找到ip，port都配置成明确地址的。
+				ipport.setKey(a.getIp());
+				ipport.setValue(a.getPort());
+				return false;
+			}
+			// 获得最后一个配置的port。允许返回(null, port)。
+			ipport.setValue(a.getPort());
+			return true;
+		});
+
+		return ipport;
+	}
+
+	public Zeze.Util.KV<String, Integer> GetOnePassiveAddress() {
+			var ipport = GetOneAcceptorAddress();
+			if (ipport.getValue() == 0)
+				throw new RuntimeException("Acceptor: No Config.");
+
+			if (ipport.getKey().isEmpty()) {
+				// 可能绑定在任意地址上。尝试获得网卡的地址。
+				ipport.setKey(GetOneNetworkInterfaceIpAddress());
+				if (ipport.getKey().isEmpty()) {
+					// 实在找不到ip地址，就设置成loopback。
+					logger.warn("PassiveAddress No Config. set ip to 127.0.0.1");
+					ipport.setKey("127.0.0.1");
+				}
+			}
+			return ipport;
+		}
 }

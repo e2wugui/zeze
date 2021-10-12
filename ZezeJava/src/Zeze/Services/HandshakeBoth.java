@@ -1,11 +1,7 @@
 package Zeze.Services;
 
 import Zeze.Net.*;
-import Zeze.Serialize.*;
-import Zeze.Transaction.*;
 import Zeze.*;
-import java.util.*;
-import java.math.*;
 
 public class HandshakeBoth extends HandshakeBase {
 	public HandshakeBoth(String name, Config config) {

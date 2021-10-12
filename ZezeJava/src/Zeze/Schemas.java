@@ -5,6 +5,7 @@ import java.util.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import Zeze.Util.Action1;
 
 /** 
  1 启动数据库时，用来判断当前代码的数据定义结构是否和当前数据库的定义结构兼容。
@@ -67,16 +68,16 @@ public class Schemas implements Serializable {
 		public final void setBean(Bean value) {
 			Bean = value;
 		}
-		private ArrayList<tangible.Action1Param<Bean>> Updates = new ArrayList<tangible.Action1Param<Bean>> ();
-		private ArrayList<tangible.Action1Param<Bean>> getUpdates() {
+		private ArrayList<Action1<Bean>> Updates = new ArrayList<Action1<Bean>> ();
+		private ArrayList<Action1<Bean>> getUpdates() {
 			return Updates;
 		}
-		private ArrayList<tangible.Action1Param<Bean>> UpdateVariables = new ArrayList<tangible.Action1Param<Bean>> ();
-		private ArrayList<tangible.Action1Param<Bean>> getUpdateVariables() {
+		private ArrayList<Action1<Bean>> UpdateVariables = new ArrayList<Action1<Bean>> ();
+		private ArrayList<Action1<Bean>> getUpdateVariables() {
 			return UpdateVariables;
 		}
 
-		public final void AddUpdate(tangible.Action1Param<Bean> Update, tangible.Action1Param<Bean> UpdateVariable) {
+		public final void AddUpdate(Action1<Bean> Update, Action1<Bean> UpdateVariable) {
 			getUpdates().add(Update);
 			if (null != UpdateVariable) {
 				getUpdateVariables().add(UpdateVariable);
@@ -85,10 +86,10 @@ public class Schemas implements Serializable {
 
 		public final void Update() {
 			for (var update : getUpdates()) {
-				update.invoke(getBean());
+				update.run(getBean());
 			}
 			for (var update : getUpdateVariables()) {
-				update.invoke(getBean());
+				update.run(getBean());
 			}
 		}
 	}
@@ -173,8 +174,8 @@ public class Schemas implements Serializable {
 		public Type Value;
 
 		public boolean IsCompatible(Type other, Context context,
-				tangible.Action1Param<Bean> Update,
-				tangible.Action1Param<Bean> UpdateVariable) {
+				Action1<Bean> Update,
+				Action1<Bean> UpdateVariable) {
 			if (other == this) {
 				return true;
 			}
@@ -248,8 +249,8 @@ public class Schemas implements Serializable {
         }
 
         public void TryCopyBeanIfRemoved(Context context,
-        		tangible.Action1Param<Bean> Update,
-        		tangible.Action1Param<Bean> UpdateVariable) {
+        		Action1<Bean> Update,
+        		Action1<Bean> UpdateVariable) {
         	if (null != Key)
 	            Key.TryCopyBeanIfRemoved(context,
 	                (bean) ->
@@ -374,7 +375,7 @@ public class Schemas implements Serializable {
 		 @return 
 		*/
 		@Override
-		public boolean IsCompatible(Type other, Context context, tangible.Action1Param<Bean> Update, tangible.Action1Param<Bean> UpdateVariable) {
+		public boolean IsCompatible(Type other, Context context, Action1<Bean> Update, Action1<Bean> UpdateVariable) {
 			if (other == null) {
 				return false;
 			}
@@ -465,8 +466,8 @@ public class Schemas implements Serializable {
 
 		@Override
 		public void TryCopyBeanIfRemoved(Context context,
-				tangible.Action1Param<Bean> Update,
-				tangible.Action1Param<Bean> UpdateVariable) {
+				Action1<Bean> Update,
+				Action1<Bean> UpdateVariable) {
 			CheckResult result = context.GetCopyBeanIfRemovedResult(this);
 			if (null != result) {
 				result.AddUpdate(Update, UpdateVariable);

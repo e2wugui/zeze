@@ -1,12 +1,7 @@
 package Zeze.Services;
 
-import Zeze.Net.*;
-import Zeze.Serialize.*;
 import Zeze.Services.Handshake.Helper;
-import Zeze.Transaction.*;
-import Zeze.*;
 import java.util.*;
-import java.math.*;
 
 /** 
  使用dh算法交换密匙把连接加密。
