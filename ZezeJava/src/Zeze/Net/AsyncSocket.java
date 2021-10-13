@@ -167,7 +167,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 
 		if (key.isWritable()) {
-			doWrite(key, true);
+			doWrite(key);
 			return;
 		}
 
@@ -366,11 +366,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 			_outputBufferList.add(java.nio.ByteBuffer.wrap(bytes, offset, length));
 			_outputBufferListCountSum += length;
-			
-			if (null == _outputBufferListSending) {
-				// 没有在发送中，马上请求发送，否则等回调处理。
-				doWrite(selectionKey, false);
-			}
+
+			this.interestOps(0, SelectionKey.OP_WRITE); // try
 			return true;
 		}
 	}
@@ -425,71 +422,76 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	// isSelectorThread 优化。是否IO-Thread。IO-Thread不需要wakeup。
-	// 如果在IO-Thread中直接调用Send发送数据，会产生多余的wakeup。
-	// 先这样！
-	private void doWrite(SelectionKey key, boolean isSelectorThread) {
+	private void interestOps(int remove, int add) {
+		int ops = selectionKey.interestOps();
+		int opsNew = (ops & ~remove) | add;
+		if (ops != opsNew) {
+			selectionKey.interestOps(opsNew);
+			if (Thread.currentThread().getId() != selector.getId())
+				selectionKey.selector().wakeup();
+		}
+	}
+
+	private void doWrite(SelectionKey key) {
+		ArrayList<java.nio.ByteBuffer> current;
 		synchronized (this) {
-			try {
-				if (null != outputCodecChain) {
-					// 压缩加密等 codec 链操作。
-					if (null == _outputBufferListSending)
-						_outputBufferListSending = new ArrayList<>();
+			current = _outputBufferList;
+			_outputBufferList = null;
+			_outputBufferListCountSum = 0;
+		}
 
-					for (var buffer : _outputBufferList) {
-						int length = buffer.remaining();
-						outputCodecBuffer.getBuffer().EnsureWrite(length); // reserve
-						outputCodecChain.update(buffer.array(), buffer.position(), length);
-						outputCodecChain.flush();
+		if (null != outputCodecChain) {
+			if (null != current) {
+				// 压缩加密等 codec 链操作。
+				if (null == _outputBufferListSending)
+					_outputBufferListSending = new ArrayList<>();
+				for (var buffer : current) {
+					int length = buffer.remaining();
+					outputCodecBuffer.getBuffer().EnsureWrite(length); // reserve
+					outputCodecChain.update(buffer.array(), buffer.position(), length);
+					outputCodecChain.flush();
+	
+					var codec = outputCodecBuffer.getBuffer();
+					_outputBufferListSending.add(java.nio.ByteBuffer.wrap(codec.Bytes, codec.ReadIndex, codec.Size()));
+					// 加入Sending后outputBufferCodec需要释放对byte[]的引用。
+					codec.FreeInternalBuffer();
+				}
+			}
+		}
+		else if (null != current) {
+			if (null == _outputBufferListSending)
+				_outputBufferListSending = current;
+			else
+				_outputBufferListSending.addAll(current);
+		}
 
-						var codec = outputCodecBuffer.getBuffer();
-						_outputBufferListSending.add(java.nio.ByteBuffer.wrap(codec.Bytes, codec.ReadIndex, codec.Size()));
-						// 加入Sending后outputBufferCodec需要释放对byte[]的引用。
-						codec.FreeInternalBuffer();
-					}
+		if (null == _outputBufferListSending)
+			return;
+
+		try {
+			var sc = (SocketChannel)key.channel();
+			var rc = sc.write(_outputBufferListSending.toArray(new java.nio.ByteBuffer[_outputBufferListSending.size()]));
+			if (rc >= 0) {
+				int i = 0;
+				for ( ; i < _outputBufferListSending.size() && _outputBufferListSending.get(i).remaining() == 0; ++i) {
+				}
+				_outputBufferListSending.subList(0, i).clear();
+				if (_outputBufferListSending.isEmpty()) {
+					_outputBufferListSending = null; // free output buffer
+					// remove write event
+					this.interestOps(SelectionKey.OP_WRITE, 0);
 				}
 				else {
-					_outputBufferListSending = _outputBufferList;
+					// add write event
+					this.interestOps(0, SelectionKey.OP_WRITE);
 				}
-				_outputBufferList = null;
-				_outputBufferListCountSum = 0;
-
-				var sc = (SocketChannel)key.channel();
-				var rc = sc.write(_outputBufferListSending.toArray(new java.nio.ByteBuffer[_outputBufferListSending.size()]));
-				if (rc >= 0) {
-					int i = 0;
-					for ( ; i < _outputBufferListSending.size() && _outputBufferListSending.get(i).remaining() == 0; ++i) {
-					}
-					_outputBufferListSending.subList(0, i).clear();
-					if (_outputBufferListSending.isEmpty()) {
-						_outputBufferListSending = null; // free output buffer
-
-						// remove write event
-						int ops = key.interestOps();
-						int opsNew = ops & ~SelectionKey.OP_WRITE;
-						if (ops != opsNew) {
-							key.interestOps(opsNew);
-							if (false == isSelectorThread)
-								key.selector().wakeup();
-						}
-					}
-					else {
-						int ops = key.interestOps();
-						int opsNew = ops | SelectionKey.OP_WRITE;
-						if (ops != opsNew) {
-							key.interestOps(opsNew);
-							if (false == isSelectorThread)
-								key.selector().wakeup();
-						}
-					}
-					return;
-				}
-				// error
-				close();
-			} catch (IOException e) {
-				close();
-				throw new RuntimeException(e);
+				return;
 			}
+			// error
+			close();
+		} catch (IOException e) {
+			close();
+			throw new RuntimeException(e);
 		}
 	}
 

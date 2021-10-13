@@ -24,7 +24,7 @@ public class Selector extends Thread {
 			// 当引擎线程执行register时，wakeup会导致一次多余唤醒。
 			// 这在连接建立不是很繁忙的应用中问题不大。
 			// 下面通过判断是否本线程来决定是否调用wakeup。
-			if (Thread.currentThread() != this)
+			if (Thread.currentThread().getId() != this.getId())
 				this.selector.wakeup(); // 不会丢失。
 			return key;
 		} catch (java.io.IOException e) {

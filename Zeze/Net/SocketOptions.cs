@@ -17,7 +17,7 @@ namespace Zeze.Net
         public int InputBufferSize { get; set; }
         // 最大协议包的大小。协议需要完整收到才解析和处理，所以需要缓存。这是个安全选项。防止出现攻击占用大量内存。
         public int InputBufferMaxProtocolSize { get; set; }
-        public int OutputBufferMaxSize { get; set; } // 暂时不使用，先保留这个选项
+        public int OutputBufferMaxSize { get; set; }
 
         // 系统选项，但没有默认，只有 ServerSocket 使用。
         public int Backlog { get; set; }
@@ -31,6 +31,7 @@ namespace Zeze.Net
             // 其他系统的选项不指定的话由系统提供默认值。
             InputBufferSize = 8192;
             InputBufferMaxProtocolSize = 2 * 1024 * 1024; // 2M
+            OutputBufferMaxSize = int.MaxValue;
             Backlog = 128;
 
             SocketLogLevel = NLog.LogLevel.Trace; // 可以使用 NLog.LogLevel.FromString 从配置中读取
