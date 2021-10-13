@@ -41,6 +41,10 @@ public final class Application {
 	// 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
 	ScheduledThreadPoolExecutor InternalThreadPool;
 
+	public ScheduledThreadPoolExecutor __GetInternalThreadPoolUnsafe() {
+		return InternalThreadPool;
+	}
+
 	private Checkpoint _checkpoint;
 	public Checkpoint getCheckpoint() {
 		return _checkpoint;

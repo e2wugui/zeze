@@ -2,7 +2,6 @@ package Zeze.Transaction;
 
 import Zeze.Net.*;
 import Zeze.Services.*;
-import NLog.*;
 import Zeze.*;
 
 public final class GlobalClient extends Zeze.Net.Service {
@@ -16,13 +15,13 @@ public final class GlobalClient extends Zeze.Net.Service {
 	@Override
 	public void OnHandshakeDone(AsyncSocket so) {
 		super.OnHandshakeDone(so);
-		Object tempVar = so.getUserState();
-		var agent = tempVar instanceof GlobalAgent.Agent ? (GlobalAgent.Agent)tempVar : null;
-		if (agent.getLoginedTimes().Get() > 1) {
+		
+		var agent = (GlobalAgent.Agent)so.getUserState();
+		if (agent.getLoginedTimes().get() > 1) {
 			var relogin = new GlobalCacheManager.ReLogin();
-			relogin.getArgument().setServerId(getZeze().getConfig().getServerId());
-			relogin.getArgument().setGlobalCacheManagerHashIndex(agent.getGlobalCacheManagerHashIndex());
-			relogin.Send(so, (_) -> {
+			relogin.Argument.ServerId = getZeze().getConfig().getServerId();
+			relogin.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
+			relogin.Send(so, (ThisRpc) -> {
 						if (relogin.isTimeout()) {
 							agent.getLogined().TrySetException(new RuntimeException("GloalAgent.ReLogin Timeout"));
 							;
@@ -31,7 +30,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 							agent.getLogined().TrySetException(new RuntimeException(String.format("GlobalAgent.ReLogoin Error %1$s", relogin.getResultCode())));
 						}
 						else {
-							agent.getLoginedTimes().IncrementAndGet();
+							agent.getLoginedTimes().incrementAndGet();
 							agent.getLogined().SetResult(so);
 						}
 						return 0;
@@ -39,9 +38,9 @@ public final class GlobalClient extends Zeze.Net.Service {
 		}
 		else {
 			var login = new GlobalCacheManager.Login();
-			login.getArgument().setServerId(getZeze().getConfig().getServerId());
-			login.getArgument().setGlobalCacheManagerHashIndex(agent.getGlobalCacheManagerHashIndex());
-			login.Send(so, (_) -> {
+			login.Argument.ServerId = getZeze().getConfig().getServerId();
+			login.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
+			login.Send(so, (ThisRpc) -> {
 						if (login.isTimeout()) {
 							agent.getLogined().TrySetException(new RuntimeException("GloalAgent.Login Timeout"));
 							;
@@ -50,7 +49,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 							agent.getLogined().TrySetException(new RuntimeException(String.format("GlobalAgent.Logoin Error %1$s", login.getResultCode())));
 						}
 						else {
-							agent.getLoginedTimes().IncrementAndGet();
+							agent.getLoginedTimes().incrementAndGet();
 							agent.getLogined().SetResult(so);
 						}
 						return 0;
@@ -72,8 +71,9 @@ public final class GlobalClient extends Zeze.Net.Service {
 	@Override
 	public void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle) {
 		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-		if (null != factoryHandle.getHandle()) {
-			agent.getZeze().InternalThreadPool.QueueUserWorkItem(() -> Util.Task.Call(() -> factoryHandle.Handle(p), p));
+		if (null != factoryHandle.Handle) {
+			agent.getZeze().__GetInternalThreadPoolUnsafe().execute(
+					() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p));
 		}
 	}
 

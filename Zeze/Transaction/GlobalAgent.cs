@@ -71,16 +71,17 @@ namespace Zeze.Transaction
             public void Close()
             {
                 var tmp = Socket;
-                lock (this)
+                try
                 {
-                    // 简单保护一下，Close 正常程序退出的时候才调用这个，应该不用保护。
-                    if (null == Socket)
-                        return;
+                    lock (this)
+                    {
+                        // 简单保护一下，Close 正常程序退出的时候才调用这个，应该不用保护。
+                        if (null == Socket)
+                            return;
 
-                    Socket = null; // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
-                }
-                if (Logined.Task.IsCompletedSuccessfully)
-                {
+                        Socket = null; // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
+                    }
+
                     var normalClose = new GlobalCacheManager.NormalClose();
                     var future = new TaskCompletionSource<int>();
                     normalClose.Send(tmp,
@@ -100,8 +101,12 @@ namespace Zeze.Transaction
                         });
                     future.Task.Wait();
                 }
-                Logined.TrySetException(new Exception("GlobalAgent.Close")); // 这个，，，，
-                tmp.Dispose();
+                finally
+                {
+                    tmp?.Dispose();
+                    // 关闭时，让等待Login的线程全部失败。
+                    Logined.TrySetException(new Exception("GlobalAgent.Close"));
+                }
             }
 
             public void OnSocketClose(GlobalClient client, Exception ex)

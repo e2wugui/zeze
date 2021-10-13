@@ -2,11 +2,21 @@ package Zeze.Transaction;
 
 import Zeze.Net.*;
 import Zeze.Services.*;
-import NLog.*;
+import Zeze.Util.TaskCompletionSource;
+
+import org.apache.logging.log4j.Logger;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.logging.log4j.LogManager;
 import Zeze.*;
 
 public final class GlobalAgent {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(GlobalAgent.class);
+
 	private GlobalClient Client;
 	public GlobalClient getClient() {
 		return Client;
@@ -38,8 +48,8 @@ public final class GlobalAgent {
 		public final int getPort() {
 			return Port;
 		}
-		private Zeze.Util.AtomicLong LoginedTimes = new Util.AtomicLong();
-		public final Zeze.Util.AtomicLong getLoginedTimes() {
+		private AtomicLong LoginedTimes = new AtomicLong();
+		public final AtomicLong getLoginedTimes() {
 			return LoginedTimes;
 		}
 		private int GlobalCacheManagerHashIndex;
@@ -58,13 +68,18 @@ public final class GlobalAgent {
 
 		public final AsyncSocket Connect(GlobalClient client) {
 			synchronized (this) {
-				// 这个能放到(lock(this)外吗？严格点，放这里更安全。
-				// TODO IsCompletedSuccessfully net471之类的没有这个方法，先不管。net471之类的unity要用。
-				if (null != getLogined() && getLogined().Task.IsCompletedSuccessfully) {
-					return getLogined().Task.Result;
+				if (null != Logined) {
+					try {
+						return Logined.get(0, TimeUnit.MILLISECONDS);
+					}
+					catch (TimeoutException skipAndContinue) {
+					}
+					catch (InterruptedException | ExecutionException abort) {
+						throw new AbortException(abort);
+					}
 				}
 
-				if (Zeze.Util.Time.getNowUnixMillis() - LastErrorTime < ForbitPeriod) {
+				if (System.currentTimeMillis() - LastErrorTime < ForbitPeriod) {
 					throw new AbortException("GloalAgent.Connect: In Forbit Login Period");
 				}
 
@@ -74,51 +89,63 @@ public final class GlobalAgent {
 					setLogined(new TaskCompletionSource<AsyncSocket>());
 				}
 			}
+
 			// 重新设置一个总超时。整个登录流程有ConnectTimeout,LoginTimeout。
 			// 要注意，这个超时发生时，登录流程可能还在进行中。
 			// 这里先不清理，下一次进来再次等待（需要确认这样可行）。
-			if (false == getLogined().Task.Wait(5000)) {
+			try {
+				return Logined.get(5000, TimeUnit.MILLISECONDS);
+			}
+			catch (InterruptedException | ExecutionException | TimeoutException abort) {
 				synchronized (this) {
 					// 并发的等待，简单用个规则：在间隔期内不再设置。
-					long now = Zeze.Util.Time.getNowUnixMillis();
+					long now = System.currentTimeMillis();
 					if (now - LastErrorTime > ForbitPeriod) {
 						LastErrorTime = now;
 					}
 				}
-				throw new AbortException("GloalAgent.Connect: Login Timeout");
+				throw new AbortException("GloalAgent Login Failed", abort);
 			}
-			return getSocket();
 		}
 
 		public final void Close() {
 			var tmp = getSocket();
-			synchronized (this) {
-				// 简单保护一下，Close 正常程序退出的时候才调用这个，应该不用保护。
-				if (null == getSocket()) {
-					return;
+			try {
+				synchronized (this) {
+					// 简单保护一下，Close 正常程序退出的时候才调用这个，应该不用保护。
+					if (null == getSocket()) {
+						return;
+					}
+
+					setSocket(null); // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
 				}
 
-				setSocket(null); // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
-			}
-			if (getLogined().Task.IsCompletedSuccessfully) {
 				var normalClose = new GlobalCacheManager.NormalClose();
 				var future = new TaskCompletionSource<Integer>();
-				normalClose.Send(tmp, (_) -> {
-							if (normalClose.isTimeout()) {
-								future.SetResult(-100); // 关闭错误就不抛异常了。
+				normalClose.Send(tmp, (ThisRpc) -> {
+						if (normalClose.isTimeout()) {
+							future.SetResult(-100); // 关闭错误就不抛异常了。
+						}
+						else {
+							future.SetResult(normalClose.getResultCode());
+							if (normalClose.getResultCode() != 0) {
+								logger.error("GlobalAgent:NormalClose ResultCode={}", normalClose.getResultCode());
 							}
-							else {
-								future.SetResult(normalClose.getResultCode());
-								if (normalClose.getResultCode() != 0) {
-									logger.Error("GlobalAgent:NormalClose ResultCode={0}", normalClose.getResultCode());
-								}
-							}
-							return 0;
+						}
+						return 0;
 				});
-				future.Task.Wait();
+				try {
+					future.get();
+				} catch (InterruptedException e) {
+				} catch (ExecutionException e) {
+				}
 			}
-			getLogined().TrySetException(new RuntimeException("GlobalAgent.Close")); // 这个，，，，
-			tmp.close();
+			finally {
+				if (null != tmp)
+					tmp.close();
+				// 关闭时，让等待Login的线程全部失败。
+				Logined.TrySetException(new RuntimeException("GlobalAgent.Close"));
+			}
 		}
 
 		public final void OnSocketClose(GlobalClient client, Throwable ex) {
@@ -129,14 +156,12 @@ public final class GlobalAgent {
 				}
 				setSocket(null);
 			}
-			if (getLogined().Task.IsCompletedSuccessfully) {
-				for (var database : client.getZeze().getDatabases().values()) {
-					for (var table : database.Tables) {
-						table.ReduceInvalidAllLocalOnly(getGlobalCacheManagerHashIndex());
-					}
+			for (var database : client.getZeze().getDatabases().values()) {
+				for (var table : database.getTables()) {
+					table.ReduceInvalidAllLocalOnly(getGlobalCacheManagerHashIndex());
 				}
-				client.getZeze().CheckpointRun();
 			}
+			client.getZeze().CheckpointRun();
 			getLogined().TrySetException(ex); // 连接关闭，这个继续保持。仅在Connect里面需要时创建。
 		}
 	}
@@ -155,7 +180,11 @@ public final class GlobalAgent {
 			// 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
 			// 一个请求异常不关闭连接，尝试继续工作。
 			GlobalCacheManager.Acquire rpc = new GlobalCacheManager.Acquire(gkey, state);
-			rpc.SendForWait(socket, 12000).Task.Wait();
+			try {
+				rpc.SendForWait(socket, 12000).get();
+			} catch (InterruptedException | ExecutionException e) {
+				throw new AbortException("Acquire", e);
+			}
 			/*
 			if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
 			{
@@ -167,23 +196,23 @@ public final class GlobalAgent {
 				case GlobalCacheManager.AcquireShareFaild:
 					throw new AbortException("GlobalAgent.Acquire Faild");
 			}
-			return rpc.getResult().getState();
+			return rpc.Result.State;
 		}
-		logger.Debug("Acquire local ++++++");
+		logger.debug("Acquire local ++++++");
 		return state;
 	}
 
 	public int ProcessReduceRequest(Protocol p) {
 		GlobalCacheManager.Reduce rpc = (GlobalCacheManager.Reduce)p;
-		switch (rpc.getArgument().getState()) {
+		switch (rpc.Argument.State) {
 			case GlobalCacheManager.StateInvalid:
-				return getZeze().GetTable(rpc.getArgument().getGlobalTableKey().getTableName()).ReduceInvalid(rpc);
+				return getZeze().GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceInvalid(rpc);
 
 			case GlobalCacheManager.StateShare:
-				return getZeze().GetTable(rpc.getArgument().getGlobalTableKey().getTableName()).ReduceShare(rpc);
+				return getZeze().GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceShare(rpc);
 
 			default:
-				rpc.setResult(rpc.getArgument());
+				rpc.Result = rpc.Argument;
 				rpc.SendResultCode(GlobalCacheManager.ReduceErrorState);
 				return 0;
 		}
@@ -205,20 +234,47 @@ public final class GlobalAgent {
 			}
 
 			setClient(new GlobalClient(this, getZeze()));
-			// Zeze-App 自动启用持久化的全局唯一的Rpc.SessionId生成器。
-			getClient().setSessionIdGenerator(getZeze().getServiceManagerAgent().GetAutoKey(getClient().getName()).Next);
 
-			getClient().AddFactoryHandle((new GlobalCacheManager.Reduce()).getTypeId(), new Service.ProtocolFactoryHandle() {Factory = () -> new GlobalCacheManager.Reduce(), Handle = ProcessReduceRequest, NoProcedure = true});
-			getClient().AddFactoryHandle((new GlobalCacheManager.Acquire()).getTypeId(), new Service.ProtocolFactoryHandle() {Factory = () -> new GlobalCacheManager.Acquire(), NoProcedure = true});
-			getClient().AddFactoryHandle((new GlobalCacheManager.Login()).getTypeId(), new Service.ProtocolFactoryHandle() {Factory = () -> new GlobalCacheManager.Login(), NoProcedure = true});
-			getClient().AddFactoryHandle((new GlobalCacheManager.ReLogin()).getTypeId(), new Service.ProtocolFactoryHandle() {Factory = () -> new GlobalCacheManager.ReLogin(), NoProcedure = true});
-			getClient().AddFactoryHandle((new GlobalCacheManager.NormalClose()).getTypeId(), new Service.ProtocolFactoryHandle() {Factory = () -> new GlobalCacheManager.NormalClose(), NoProcedure = true});
+			getClient().AddFactoryHandle(
+					(new GlobalCacheManager.Reduce()).getTypeId(),
+					new Service.ProtocolFactoryHandle(
+							() -> new GlobalCacheManager.Reduce(), 
+							(p) -> ProcessReduceRequest(p),
+							true));
+
+			getClient().AddFactoryHandle(
+					(new GlobalCacheManager.Acquire()).getTypeId(),
+					new Service.ProtocolFactoryHandle(
+							() -> new GlobalCacheManager.Acquire(),
+							null,
+							true));
+
+			getClient().AddFactoryHandle(
+					(new GlobalCacheManager.Login()).getTypeId(),
+					new Service.ProtocolFactoryHandle(
+							() -> new GlobalCacheManager.Login(), 
+							null,
+							true));
+
+			getClient().AddFactoryHandle(
+					(new GlobalCacheManager.ReLogin()).getTypeId(),
+					new Service.ProtocolFactoryHandle(
+							() -> new GlobalCacheManager.ReLogin(),
+							null,
+							true));
+
+			getClient().AddFactoryHandle(
+					(new GlobalCacheManager.NormalClose()).getTypeId(),
+					new Service.ProtocolFactoryHandle(
+							() -> new GlobalCacheManager.NormalClose(),
+							null,
+							true));
 
 			var globals = hostNameOrAddress.split("[;]", -1);
-			Agents = new Agent[globals.Length];
-			for (int i = 0; i < globals.Length; ++i) {
+			Agents = new Agent[globals.length];
+			for (int i = 0; i < globals.length; ++i) {
 				var hp = globals[i].split("[:]", -1);
-				if (hp.Length > 1) {
+				if (hp.length > 1) {
 					Agents[i] = new Agent(hp[0], Integer.parseInt(hp[1]), i);
 				}
 				else {
@@ -231,7 +287,7 @@ public final class GlobalAgent {
 				}
 				catch (RuntimeException ex) {
 					// 允许部分GlobalCacheManager连接错误时，继续启动程序，虽然后续相关事务都会失败。
-					logger.Error(ex, "GlobalAgent.Connect");
+					logger.error("GlobalAgent.Connect", ex);
 				}
 			}
 		}

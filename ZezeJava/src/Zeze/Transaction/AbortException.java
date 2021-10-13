@@ -13,4 +13,12 @@ public final class AbortException extends Error {
 		super(msg);
 
 	}
+	
+	public AbortException(Throwable cause) {
+		super(cause);
+	}
+
+	public AbortException(String msg, Throwable cause) {
+		super(msg, cause);
+	}
 }

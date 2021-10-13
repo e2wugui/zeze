@@ -1,15 +1,11 @@
 package Zeze.Services;
 
 import Zeze.Net.*;
-import Zeze.Serialize.*;
 import Zeze.Services.Handshake.Helper;
-import Zeze.Transaction.*;
 import Zeze.*;
 import java.util.*;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import java.math.*;
 
 public class HandshakeBase extends Service {
@@ -64,25 +60,16 @@ public class HandshakeBase extends Service {
 		
 		BigInteger data = new BigInteger(p.Argument.dh_data);
 		BigInteger rand = Helper.makeDHRandom();
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
 		byte[] material = Helper.computeDHKey(group, data, rand).toByteArray();
-		System.Net.IPAddress ipaddress = ((IPEndPoint)p.Sender.getSocket().LocalEndPoint).Address;
-		//logger.Debug(ipaddress);
-		if (ipaddress.IsIPv4MappedToIPv6) {
-			ipaddress = ipaddress.MapToIPv4();
-		}
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] key = Config.HandshakeOptions.SecureIp != null ? Config.HandshakeOptions.SecureIp : ipaddress.GetAddressBytes();
-		byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null ? getConfig().getHandshakeOptions().getSecureIp() : ipaddress.GetAddressBytes();
-		logger.Debug("{0} localip={1}", p.Sender.getSessionId(), Zeze.Util.BitConverter.toString(key));
+		var localaddress = p.Sender.getSocket().getLocalAddress();
+		byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null
+			? getConfig().getHandshakeOptions().getSecureIp() : localaddress.getAddress();
+		logger.debug("{} localip={}", p.Sender.getSessionId(), Zeze.Util.BitConverter.toString(key));
 		int half = material.length / 2;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
+
 		byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
 		p.Sender.SetInputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getC2sNeedCompress());
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] response = Handshake.Helper.generateDHResponse(group, rand).ToByteArray();
+
 		byte[] response = Helper.generateDHResponse(group, rand).toByteArray();
 		
 		(new Zeze.Services.Handshake.SHandshake(response, getConfig().getHandshakeOptions().getS2cNeedCompress(), getConfig().getHandshakeOptions().getC2sNeedCompress())).Send(p.Sender);
@@ -109,23 +96,15 @@ public class HandshakeBase extends Service {
 		Zeze.Services.Handshake.SHandshake p = (Zeze.Services.Handshake.SHandshake)_p;
 		var dhRandom = DHContext.get(p.Sender.getSessionId());
 		if ( dhRandom != null ) {
-			
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] material = Handshake.Helper.computeDHKey(Config.HandshakeOptions.DhGroup, new BigInteger(p.Argument.dh_data), dhRandom).ToByteArray();
+
 			byte[] material = Helper.computeDHKey(getConfig().getHandshakeOptions().getDhGroup(), new BigInteger(p.Argument.dh_data), dhRandom).toByteArray();
-			
-			System.Net.IPAddress ipaddress = ((IPEndPoint)p.Sender.getSocket().RemoteEndPoint).Address;
-			if (ipaddress.IsIPv4MappedToIPv6) {
-				ipaddress = ipaddress.MapToIPv4();
-			}
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] key = ipaddress.GetAddressBytes();
-			byte[] key = ipaddress.GetAddressBytes();
-			logger.Debug("{0} remoteip={1}", p.Sender.getSessionId(), Zeze.Util.BitConverter.toString(key));
+			var remoteaddress = p.Sender.getSocket().getInetAddress();
+
+			byte[] key = remoteaddress.getAddress();
+			logger.debug("{} remoteip={}", p.Sender.getSessionId(), Zeze.Util.BitConverter.toString(key));
 
 			int half = material.length / 2;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
+
 			byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
 			p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
 			hmacMd5 = Digest.HmacMd5(key, material, half, material.length - half);
@@ -141,12 +120,11 @@ public class HandshakeBase extends Service {
 
 	protected final void StartHandshake(AsyncSocket so) {
 		BigInteger dhRandom = Helper.makeDHRandom();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
+
 		if ( null != DHContext.putIfAbsent(so.getSessionId(), dhRandom)) {
 			throw new RuntimeException("handshake duplicate context for same session.");
 		}
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] response = Handshake.Helper.generateDHResponse(Config.HandshakeOptions.DhGroup, dhRandom).ToByteArray();
+
 		byte[] response = Helper.generateDHResponse(getConfig().getHandshakeOptions().getDhGroup(), dhRandom).toByteArray();
 		(new Zeze.Services.Handshake.CHandshake(getConfig().getHandshakeOptions().getDhGroup(), response)).Send(so);
 	}
