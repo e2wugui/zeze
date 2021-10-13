@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Zeze.Gen.Types;
 
-namespace Zeze.Gen.cs
+namespace Zeze.Gen.java
 {
     public class PropertyReadOnly : Types.Visitor
     {
@@ -13,9 +13,9 @@ namespace Zeze.Gen.cs
 
         public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
         {
-            sw.WriteLine($"{prefix}public long TypeId {{ get; }}");
+            sw.WriteLine($"{prefix}public long getTypeId();");
             sw.WriteLine($"{prefix}public void Encode(Zeze.Serialize.ByteBuffer _os_);");
-            sw.WriteLine($"{prefix}public bool NegativeCheck();");
+            sw.WriteLine($"{prefix}public boolean NegativeCheck();");
             sw.WriteLine($"{prefix}public Zeze.Transaction.Bean CopyBean();");
             sw.WriteLine();
             foreach (Types.Variable var in bean.Variables)
@@ -33,12 +33,12 @@ namespace Zeze.Gen.cs
 
         public void Visit(Bean type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + "ReadOnly " + var.NameUpper1 + " { get; }");
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + "ReadOnly " + var.Getter + ";");
         }
 
         private void WriteProperty(Types.Type type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " { get; }");
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + ";");
         }
 
         public void Visit(BeanKey type)

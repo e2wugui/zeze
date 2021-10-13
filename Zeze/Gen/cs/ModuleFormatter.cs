@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using NLog.Layouts;
 
-namespace Zeze.Gen.cs
+namespace Zeze.Gen.java
 {
     public class ModuleFormatter
     {
