@@ -324,10 +324,16 @@ public class Service {
 		public ProtocolHandle Handle;
 		public boolean NoProcedure = false;
 		public ProtocolFactoryHandle() { }
+
+		public ProtocolFactoryHandle(Zeze.Util.Factory<Protocol> factory) {
+			this.Factory = factory;
+		}
+
 		public ProtocolFactoryHandle(Zeze.Util.Factory<Protocol> factory, ProtocolHandle handle) {
 			this.Factory = factory;
 			this.Handle = handle;
 		}
+
 		public ProtocolFactoryHandle(Zeze.Util.Factory<Protocol> factory, ProtocolHandle handle, boolean noProcedure) {
 			this.Factory = factory;
 			this.Handle = handle;

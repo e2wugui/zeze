@@ -22,16 +22,13 @@ public class HandshakeOptions {
 	public final void setDhGroups(HashSet<Integer> value) {
 		DhGroups = value;
 	}
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private byte[] SecureIp = null;
+
 	private byte[] SecureIp = null;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public byte[] getSecureIp()
+
 	public final byte[] getSecureIp() {
 		return SecureIp;
 	}
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void setSecureIp(byte[] value)
+
 	public final void setSecureIp(byte[] value) {
 		SecureIp = value;
 	}
@@ -51,16 +48,12 @@ public class HandshakeOptions {
 	}
 
 	// for HandshakeClient
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private byte DhGroup = 1;
 	private byte DhGroup = 1;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public byte getDhGroup()
+
 	public final byte getDhGroup() {
 		return DhGroup;
 	}
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void setDhGroup(byte value)
+
 	public final void setDhGroup(byte value) {
 		DhGroup = value;
 	}

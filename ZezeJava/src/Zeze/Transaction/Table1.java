@@ -5,6 +5,7 @@ import Zeze.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.ServiceManager.AutoKey;
 
 public abstract class Table1<K, V extends Bean> extends Table {
 	private static final Logger logger = LogManager.getLogger(Table1.class);
@@ -20,12 +21,12 @@ public abstract class Table1<K, V extends Bean> extends Table {
 		Zeze = value;
 	}
 
-	private ServiceManager.Agent.AutoKey AutoKey;
-	protected final ServiceManager.Agent.AutoKey getAutoKey() {
-		return AutoKey;
+	private AutoKey autoKey;
+	protected final AutoKey getAutoKey() {
+		return autoKey;
 	}
-	private void setAutoKey(ServiceManager.Agent.AutoKey value) {
-		AutoKey = value;
+	private void setAutoKey(AutoKey value) {
+		autoKey = value;
 	}
 
 

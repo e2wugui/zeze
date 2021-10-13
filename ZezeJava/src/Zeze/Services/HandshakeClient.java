@@ -19,8 +19,6 @@ public class HandshakeClient extends HandshakeBase {
 		Connect(hostNameOrAddress, port, true);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
 	public final void Connect(String hostNameOrAddress, int port, boolean autoReconnect) {
 		var c = new Zeze.Util.OutObject<Connector>();
 		getConfig().TryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, c);
