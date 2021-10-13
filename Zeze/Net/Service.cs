@@ -67,6 +67,7 @@ namespace Zeze.Net
 
         /// <summary>
         /// 只包含成功建立的连接：服务器Accept和客户端Connected的连接。
+        /// ServerSocket 保存在 Acceptor 中。这里查询不到。
         /// </summary>
         /// <param name="serialNo"></param>
         /// <returns></returns>

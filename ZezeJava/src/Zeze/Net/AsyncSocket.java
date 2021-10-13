@@ -1,22 +1,26 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
-import Zeze.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.*;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 
-/** 
- 使用Socket的BeginXXX,EndXXX XXXAsync方法的异步包装类。
- 目前只支持Tcp。
-*/
-public final class AsyncSocket implements Closeable {
-	private byte[] _inputBuffer;
+public final class AsyncSocket implements SelectorHandle, Closeable {
+	private static Logger logger = LogManager.getLogger(AsyncSocket.class);
+	
 	private ArrayList<java.nio.ByteBuffer> _outputBufferList = null;
 	private int _outputBufferListCountSum = 0;
-
 	private ArrayList<java.nio.ByteBuffer> _outputBufferListSending = null; // 正在发送的 buffers.
-	private int _outputBufferListSendingCountSum = 0;
 
 	private Service Service;
 	public Service getService() {
@@ -58,12 +62,15 @@ public final class AsyncSocket implements Closeable {
 		SessionId = value;
 	}
 
-	private Socket Socket;
-	public Socket getSocket() {
-		return Socket;
+	private SelectionKey selectionKey;
+	private Selector selector;
+
+	public SocketChannel getSocketChannel() {
+		return (SocketChannel)selectionKey.channel();
 	}
-	private void setSocket(Socket value) {
-		Socket = value;
+
+	public Socket getSocket() {
+		return ((SocketChannel)selectionKey.channel()).socket();
 	}
 
 	/** 
@@ -86,11 +93,7 @@ public final class AsyncSocket implements Closeable {
 		IsHandshakeDone = value;
 	}
 
-	private static Zeze.Util.AtomicLong SessionIdGen = new Zeze.Util.AtomicLong();
-
-	private SocketAsyncEventArgs eventArgsAccept;
-	private SocketAsyncEventArgs eventArgsReceive;
-	private SocketAsyncEventArgs eventArgsSend;
+	private static AtomicLong SessionIdGen = new AtomicLong();
 
 	private BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
 	private BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
@@ -102,9 +105,6 @@ public final class AsyncSocket implements Closeable {
 	public String getRemoteAddress() {
 		return RemoteAddress;
 	}
-	private void setRemoteAddress(String value) {
-		RemoteAddress = value;
-	}
 
 	/** 
 	 for server socket
@@ -112,26 +112,75 @@ public final class AsyncSocket implements Closeable {
 	public AsyncSocket(Service service, InetSocketAddress localEP) {
 		this.setService(service);
 
-		setSocket(new Socket(SocketType.Stream, ProtocolType.Tcp));
-		getSocket().Blocking = false;
-		getSocket().SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+		try {
+			ServerSocketChannel ssc = ServerSocketChannel.open();
+			ServerSocket ss = ssc.socket();
+			ssc.configureBlocking(false);
+			ss.setReuseAddress(true);
+			// xxx 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
+			if (null != service.getSocketOptions().getReceiveBuffer())
+				ss.setReceiveBufferSize(service.getSocketOptions().getReceiveBuffer());
+			ss.bind(localEP, service.getSocketOptions().getBacklog());
 
-		// xxx 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
-		// 不知道 c# 会不会也这样，先这样写。
-		if (null != service.SocketOptions.ReceiveBuffer) {
-			getSocket().ReceiveBufferSize = service.SocketOptions.ReceiveBuffer.Value;
+			SessionId = SessionIdGen.incrementAndGet();
+
+			selector = Selectors.getInstance().choice();
+			selectionKey = selector.register(ssc, SelectionKey.OP_ACCEPT, this);	
+		}
+		catch (Throwable ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+
+	@Override
+	public void doHandle(SelectionKey key) throws Throwable {
+		if (key.isAcceptable()) {
+			SocketChannel sc = null;
+			try {
+				ServerSocketChannel ssc = (ServerSocketChannel) key.channel();
+				sc = ssc.accept();
+				if (null != sc)
+					Service.OnSocketAccept(new AsyncSocket(Service, sc));
+
+			} catch (Throwable e) {
+				if (null != sc)
+					sc.close();
+				// skip all error
+			}
+			return;
 		}
 
-		getSocket().Bind(localEP);
-		getSocket().Listen(service.SocketOptions.Backlog);
+		if (key.isConnectable()) {
+			try {
+				SocketChannel sc = (SocketChannel) key.channel();
+				if (sc.finishConnect()) {
+					doConnectSuccess(sc);
+					selectionKey.interestOps(SelectionKey.OP_READ);
+					return;
+				}
+				Service.OnSocketConnectError(this, null);
+			}
+			catch (RuntimeException e) {
+				Service.OnSocketConnectError(this, e);
+				close();
+			}
+		}
 
-		this.setSessionId(SessionIdGen.IncrementAndGet());
+		if (key.isWritable()) {
+			doWrite(key, true);
+			return;
+		}
 
-		eventArgsAccept = new SocketAsyncEventArgs();
-//C# TO JAVA CONVERTER TODO TASK: Java has no equivalent to C#-style event wireups:
-		eventArgsAccept.Completed += OnAsyncIOCompleted;
+		if (key.isReadable()) {
+			ProcessReceive((SocketChannel) key.channel());
+			return;
+		}
+	}
 
-		BeginAcceptAsync();
+	@Override
+	public void doException(SelectionKey key, Throwable e) throws Throwable {
+		var This = (AsyncSocket)key.attachment();
+		logger.error("doException {}", This.RemoteAddress, e);
 	}
 
 	/** 
@@ -139,34 +188,25 @@ public final class AsyncSocket implements Closeable {
 	 
 	 @param accepted
 	*/
-	private AsyncSocket(Service service, Socket accepted) {
+	private AsyncSocket(Service service, SocketChannel sc) throws SocketException, IOException {
 		this.setService(service);
 
-		setSocket(accepted);
-		getSocket().Blocking = false;
 
 		// 据说连接接受以后设置无效，应该从 ServerSocket 继承
-		if (null != service.SocketOptions.ReceiveBuffer) {
-			getSocket().ReceiveBufferSize = service.SocketOptions.ReceiveBuffer.Value;
-		}
-		if (null != service.SocketOptions.SendBuffer) {
-			getSocket().SendBufferSize = service.SocketOptions.SendBuffer.Value;
-		}
-		if (null != service.SocketOptions.NoDelay) {
-			getSocket().NoDelay = service.SocketOptions.NoDelay.Value;
-		}
+		Socket so = sc.socket();
+		if (null != Service.getSocketOptions().getReceiveBuffer())
+			so.setReceiveBufferSize(Service.getSocketOptions().getReceiveBuffer());
+		if (null != Service.getSocketOptions().getSendBuffer())
+			so.setSendBufferSize(Service.getSocketOptions().getSendBuffer());
+		if (null != Service.getSocketOptions().getNoDelay())
+			so.setTcpNoDelay(Service.getSocketOptions().getNoDelay());
+		sc.configureBlocking(false);
 
-		this.setSessionId(SessionIdGen.IncrementAndGet());
+		this.setSessionId(SessionIdGen.incrementAndGet());
+		RemoteAddress = so.getRemoteSocketAddress().toString();
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: this._inputBuffer = new byte[service.SocketOptions.InputBufferSize];
-		this._inputBuffer = new byte[service.SocketOptions.InputBufferSize];
-
-		System.Net.EndPoint tempVar = getSocket().RemoteEndPoint;
-		var remoteIp = tempVar instanceof IPEndPoint ? (IPEndPoint)tempVar : null;
-		setRemoteAddress(remoteIp.Address.GetAddressBytes().toString());
-
-		BeginReceiveAsync();
+		selector = Selectors.getInstance().choice();
+		selectionKey = selector.register(sc, SelectionKey.OP_READ, this);
 	}
 
 	/** 
@@ -180,32 +220,50 @@ public final class AsyncSocket implements Closeable {
 		this(service, hostNameOrAddress, port, null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public AsyncSocket(Service service, string hostNameOrAddress, int port, object userState = null)
+	private void doConnectSuccess(SocketChannel sc) {
+		if (Connector != null) {
+			Connector.OnSocketConnected(this);
+		}
+		RemoteAddress = sc.socket().getInetAddress().getAddress().toString();
+		Service.OnSocketConnected(this);
+	}
+
 	public AsyncSocket(Service service, String hostNameOrAddress, int port, Object userState) {
 		this.setService(service);
 
-		setSocket(new Socket(SocketType.Stream, ProtocolType.Tcp));
-		getSocket().Blocking = false;
-		setUserState(userState);
+		UserState = userState;
+		this.setSessionId(SessionIdGen.incrementAndGet());
 
-		if (null != service.SocketOptions.ReceiveBuffer) {
-			getSocket().ReceiveBufferSize = service.SocketOptions.ReceiveBuffer.Value;
-		}
-		if (null != service.SocketOptions.SendBuffer) {
-			getSocket().SendBufferSize = service.SocketOptions.SendBuffer.Value;
-		}
-		if (null != service.SocketOptions.NoDelay) {
-			getSocket().NoDelay = service.SocketOptions.NoDelay.Value;
-		}
+		SocketChannel sc = null;
+		try {
+			sc = SocketChannel.open();
+			Socket so = sc.socket();			
+			if (null != Service.getSocketOptions().getNoDelay())
+				so.setTcpNoDelay(Service.getSocketOptions().getNoDelay());
+			if (null != Service.getSocketOptions().getReceiveBuffer())
+				so.setReceiveBufferSize(Service.getSocketOptions().getReceiveBuffer());
+			if (null != Service.getSocketOptions().getSendBuffer())
+				so.setSendBufferSize(Service.getSocketOptions().getSendBuffer());
 
-		this.setSessionId(SessionIdGen.IncrementAndGet());
-
-		System.Net.Dns.BeginGetHostAddresses(hostNameOrAddress, ::OnAsyncGetHostAddresses, port);
+			selector = Selectors.getInstance().choice();
+			var address = InetAddress.getByName(hostNameOrAddress); // TODO async dns lookup
+			if (sc.connect(new InetSocketAddress(address, port))) {
+				doConnectSuccess(sc);
+				// 马上成功时，还没有注册到Selector中。
+				selectionKey = selector.register(sc, SelectionKey.OP_READ, this);
+			} else {
+				selectionKey = selector.register(sc, SelectionKey.OP_CONNECT, this);
+			}
+		} catch (Throwable e) {
+			if (null != sc)
+				try {
+					sc.close();
+				} catch (Throwable e2) {
+				}
+			throw new RuntimeException(e);
+		}
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void SetOutputSecurityCodec(byte[] key, bool compress)
 	public void SetOutputSecurityCodec(byte[] key, boolean compress) {
 		synchronized (this) {
 			Codec chain = outputCodecBuffer;
@@ -215,9 +273,11 @@ public final class AsyncSocket implements Closeable {
 			if (compress) {
 				chain = new Compress(chain);
 			}
+			/*
 			if (outputCodecChain != null) {
 				outputCodecChain.close();
 			}
+			*/
 			outputCodecChain = chain;
 			setOutputSecurity(true);
 		}
@@ -247,8 +307,6 @@ public final class AsyncSocket implements Closeable {
 		}
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public void SetInputSecurityCodec(byte[] key, bool compress)
 	public void SetInputSecurityCodec(byte[] key, boolean compress) {
 		synchronized (this) {
 			Codec chain = inputCodecBuffer;
@@ -258,9 +316,11 @@ public final class AsyncSocket implements Closeable {
 			if (null != key) {
 				chain = new Decrypt(chain, key);
 			}
+			/*
 			if (inputCodecChain != null) {
 				inputCodecChain.close();
 			}
+			*/
 			inputCodecChain = chain;
 			setInputSecurity(true);
 		}
@@ -271,15 +331,13 @@ public final class AsyncSocket implements Closeable {
 	}
 
 	public boolean Send(Zeze.Serialize.ByteBuffer bb) {
-		return Send(bb.getBytes(), bb.getReadIndex(), bb.getSize());
+		return Send(bb.Bytes, bb.ReadIndex, bb.Size());
 	}
 
 	public boolean Send(Binary binary) {
-		return Send(binary.getBytes(), binary.getOffset(), binary.getCount());
+		return Send(binary.getBytesInternalOnlyUnsafe(), binary.getOffset(), binary.getCount());
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public bool Send(byte[] bytes)
 	public boolean Send(byte[] bytes) {
 		return Send(bytes, 0, bytes.length);
 	}
@@ -291,56 +349,27 @@ public final class AsyncSocket implements Closeable {
 	 @param offset
 	 @param length
 	*/
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public bool Send(byte[] bytes, int offset, int length)
 	public boolean Send(byte[] bytes, int offset, int length) {
 		Zeze.Serialize.ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
 		synchronized (this) {
-			if (null == getSocket()) {
+			if (null == selectionKey) {
 				return false;
 			}
 
-			if (null != outputCodecChain) {
-				// 压缩加密等 codec 链操作。
-				outputCodecBuffer.getBuffer().EnsureWrite(length); // reserve
-				outputCodecChain.update(bytes, offset, length);
-				outputCodecChain.flush();
-
-				// 修改参数，后面继续使用处理过的数据继续发送。
-				bytes = outputCodecBuffer.getBuffer().getBytes();
-				offset = outputCodecBuffer.getBuffer().getReadIndex();
-				length = outputCodecBuffer.getBuffer().getSize();
-
-				// outputBufferCodec 释放对byte[]的引用。
-				outputCodecBuffer.getBuffer().FreeInternalBuffer();
-			}
-
 			if (null == _outputBufferList) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: _outputBufferList = new List<ArraySegment<byte>>();
-				_outputBufferList = new ArrayList<ArraySegment<Byte>>();
+				_outputBufferList = new ArrayList<>();
 			}
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: _outputBufferList.Add(new ArraySegment<byte>(bytes, offset, length));
-			_outputBufferList.add(new ArraySegment<Byte>(bytes, offset, length));
-			_outputBufferListCountSum += _outputBufferList.get(_outputBufferList.size() - 1).Count;
 
-			if (null == _outputBufferListSending) { // 没有在发送中，马上请求发送，否则等回调处理。
-				_outputBufferListSending = _outputBufferList;
-				_outputBufferList = null;
-				_outputBufferListSendingCountSum = _outputBufferListCountSum;
-				_outputBufferListCountSum = 0;
+			if (_outputBufferListCountSum + length > Service.getSocketOptions().getOutputBufferMaxSize())
+				return false;
 
-				if (null == eventArgsSend) {
-					eventArgsSend = new SocketAsyncEventArgs();
-//C# TO JAVA CONVERTER TODO TASK: Java has no equivalent to C#-style event wireups:
-					eventArgsSend.Completed += OnAsyncIOCompleted;
-				}
-				eventArgsSend.BufferList = _outputBufferListSending;
-				if (false == getSocket().SendAsync(eventArgsSend)) {
-					ProcessSend(eventArgsSend);
-				}
+			_outputBufferList.add(java.nio.ByteBuffer.wrap(bytes, offset, length));
+			_outputBufferListCountSum += length;
+			
+			if (null == _outputBufferListSending) {
+				// 没有在发送中，马上请求发送，否则等回调处理。
+				doWrite(selectionKey, false);
 			}
 			return true;
 		}
@@ -350,224 +379,116 @@ public final class AsyncSocket implements Closeable {
 		return Send(str.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 	}
 
-	private void OnAsyncIOCompleted(Object sender, SocketAsyncEventArgs e) {
-		if (getSocket() == null) { // async closed
-			return;
-		}
-
-		try {
-			switch (e.LastOperation) {
-				case Accept:
-					ProcessAccept(e);
-					break;
-				case Send:
-					ProcessSend(e);
-					break;
-				case Receive:
-					ProcessReceive(e);
-					break;
-				default:
-					throw new IllegalArgumentException();
-			}
-		}
-		catch (RuntimeException ex) {
-			Close(ex);
-		}
-	}
-
-	private void BeginAcceptAsync() {
-		eventArgsAccept.AcceptSocket = null;
-		if (false == getSocket().AcceptAsync(eventArgsAccept)) {
-			ProcessAccept(eventArgsAccept);
-		}
-	}
-
-	private void ProcessAccept(SocketAsyncEventArgs e) {
-		if (e.SocketError == SocketError.Success) {
-			AsyncSocket accepted = null;
-			try {
-				accepted = new AsyncSocket(this.getService(), e.AcceptSocket);
-				accepted.setAcceptor(this.getAcceptor());
-				this.getService().OnSocketAccept(accepted);
-			}
-			catch (RuntimeException ce) {
-				if (accepted != null) {
-					accepted.Close(ce);
-				}
-			}
-			BeginAcceptAsync();
-		}
-		/*
-		else
-		{
-		    Console.WriteLine("ProcessAccept " + e.SocketError);
-		}
-		*/
-	}
-
-	private void OnAsyncGetHostAddresses(IAsyncResult ar) {
-		try {
-			int port = (Integer)ar.AsyncState;
-			System.Net.IPAddress[] addrs = System.Net.Dns.EndGetHostAddresses(ar);
-			getSocket().BeginConnect(addrs, port, ::OnAsyncConnect, this);
-		}
-		catch (RuntimeException e) {
-			this.getService().OnSocketConnectError(this, e);
-			Close(null);
-		}
-	}
-
-	private void OnAsyncConnect(IAsyncResult ar) {
-		try {
-			this.getSocket().EndConnect(ar);
-			if (this.getConnector() != null) {
-				this.getConnector().OnSocketConnected(this);
-			}
-			this.getService().OnSocketConnected(this);
-
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: this._inputBuffer = new byte[Service.SocketOptions.InputBufferSize];
-			this._inputBuffer = new byte[getService().SocketOptions.InputBufferSize];
-			BeginReceiveAsync();
-		}
-		catch (RuntimeException e) {
-			this.getService().OnSocketConnectError(this, e);
-			Close(null);
-		}
-	}
-
-	private void BeginReceiveAsync() {
-		if (null == eventArgsReceive) {
-			eventArgsReceive = new SocketAsyncEventArgs();
-//C# TO JAVA CONVERTER TODO TASK: Java has no equivalent to C#-style event wireups:
-			eventArgsReceive.Completed += OnAsyncIOCompleted;
-		}
-
-		eventArgsReceive.SetBuffer(_inputBuffer, 0, _inputBuffer.length);
-		if (false == this.getSocket().ReceiveAsync(eventArgsReceive)) {
-			ProcessReceive(eventArgsReceive);
-		}
-	}
-
-	private void ProcessReceive(SocketAsyncEventArgs e) {
-		if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success) {
+	private void ProcessReceive(SocketChannel sc) throws IOException {
+		var buffer = java.nio.ByteBuffer.allocate(32 * 1024);
+		int BytesTransferred = sc.read(buffer);
+		if (BytesTransferred > 0) {
 			if (null != inputCodecChain) {
 				// 解密解压处理，处理结果直接加入 inputCodecBuffer。
-				inputCodecBuffer.getBuffer().EnsureWrite(e.BytesTransferred);
-				inputCodecChain.update(_inputBuffer, 0, e.BytesTransferred);
+				inputCodecBuffer.getBuffer().EnsureWrite(BytesTransferred);
+				inputCodecChain.update(buffer.array(), 0, BytesTransferred);
 				inputCodecChain.flush();
 
 				this.getService().OnSocketProcessInputBuffer(this, inputCodecBuffer.getBuffer());
 			}
-			else if (inputCodecBuffer.getBuffer().getSize() > 0) {
+			else if (inputCodecBuffer.getBuffer().Size() > 0) {
 				// 上次解析有剩余数据（不完整的协议），把新数据加入。
-				inputCodecBuffer.getBuffer().Append(_inputBuffer, 0, e.BytesTransferred);
+				inputCodecBuffer.getBuffer().Append(buffer.array(), 0, BytesTransferred);
 
 				this.getService().OnSocketProcessInputBuffer(this, inputCodecBuffer.getBuffer());
 			}
 			else {
-				ByteBuffer avoidCopy = ByteBuffer.Wrap(_inputBuffer, 0, e.BytesTransferred);
+				ByteBuffer avoidCopy = ByteBuffer.Wrap(buffer.array(), 0, BytesTransferred);
 
 				this.getService().OnSocketProcessInputBuffer(this, avoidCopy);
 
-				if (avoidCopy.getSize() > 0) { // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
-					inputCodecBuffer.getBuffer().Append(avoidCopy.getBytes(), avoidCopy.getReadIndex(), avoidCopy.getSize());
+				if (avoidCopy.Size() > 0) { // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
+					inputCodecBuffer.getBuffer().Append(avoidCopy.Bytes, avoidCopy.ReadIndex, avoidCopy.Size());
 				}
 			}
 
 			// 1 检测 buffer 是否满，2 剩余数据 Campact，3 需要的话，释放buffer内存。
-			int remain = inputCodecBuffer.getBuffer().getSize();
+			int remain = inputCodecBuffer.getBuffer().Size();
 			if (remain > 0) {
-				if (remain >= getService().SocketOptions.InputBufferMaxProtocolSize) {
-					throw new RuntimeException("InputBufferMaxProtocolSize " + getService().SocketOptions.InputBufferMaxProtocolSize);
+				var max = getService().getSocketOptions().getInputBufferMaxProtocolSize();
+				if (remain >= max) {
+					throw new RuntimeException("InputBufferMaxProtocolSize " + max);
 				}
-
 				inputCodecBuffer.getBuffer().Campact();
 			}
 			else {
 				inputCodecBuffer.getBuffer().FreeInternalBuffer(); // 解析缓冲如果为空，马上释放内部bytes[]。
 			}
-
-			BeginReceiveAsync();
 		}
 		else {
-			Close(null); // 正常关闭，不设置异常
+			close(); // 正常关闭，不设置异常
 		}
 	}
 
-	private void ProcessSend(SocketAsyncEventArgs e) {
-		if (e.BytesTransferred >= 0 && e.SocketError == SocketError.Success) {
-			BeginSendAsync(e.BytesTransferred);
-		}
-		else {
-			Close(new SocketException(e.SocketError.getValue()));
-		}
-	}
-
-	private void BeginSendAsync(int _bytesTransferred) {
+	// isSelectorThread 优化。是否IO-Thread。IO-Thread不需要wakeup。
+	// 如果在IO-Thread中直接调用Send发送数据，会产生多余的wakeup。
+	// 先这样！
+	private void doWrite(SelectionKey key, boolean isSelectorThread) {
 		synchronized (this) {
-			// 听说 BeginSend 成功回调的时候，所有数据都会被发送，这样的话就可以直接清除_outputBufferSending，而不用这么麻烦。
-			// MUST 下面的条件必须满足，不做判断。
-			// _outputBufferSending != null
-			// _outputBufferSending.Count > 0
-			// sum(_outputBufferSending[i].Count) <= bytesTransferred
-			int bytesTransferred = _bytesTransferred; // 后面还要用已经发送的原始值，本来下面计算也可以得到，但这样更容易理解。
-			if (bytesTransferred == _outputBufferListSendingCountSum) { // 全部发送完，优化。
-				_outputBufferListSending.clear();
-			}
-			else if (bytesTransferred > _outputBufferListSendingCountSum) {
-				throw new RuntimeException("hasSend too big.");
-			}
-			else {
-				// 部分发送
-				for (int i = 0; i < _outputBufferListSending.size(); ++i) {
-					int bytesCount = _outputBufferListSending.get(i).Count;
-					if (bytesTransferred >= bytesCount) {
-						bytesTransferred -= bytesCount;
-						if (bytesTransferred > 0) {
-							continue;
-						}
+			try {
+				if (null != outputCodecChain) {
+					// 压缩加密等 codec 链操作。
+					if (null == _outputBufferListSending)
+						_outputBufferListSending = new ArrayList<>();
 
-						_outputBufferListSending.subList(0, i + 1).clear();
-						break;
+					for (var buffer : _outputBufferList) {
+						int length = buffer.remaining();
+						outputCodecBuffer.getBuffer().EnsureWrite(length); // reserve
+						outputCodecChain.update(buffer.array(), buffer.position(), length);
+						outputCodecChain.flush();
+
+						var codec = outputCodecBuffer.getBuffer();
+						_outputBufferListSending.add(java.nio.ByteBuffer.wrap(codec.Bytes, codec.ReadIndex, codec.Size()));
+						// 加入Sending后outputBufferCodec需要释放对byte[]的引用。
+						codec.FreeInternalBuffer();
 					}
-					// 已经发送的数据比数组中的少。
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: ArraySegment<byte> segment = _outputBufferListSending[i];
-					ArraySegment<Byte> segment = _outputBufferListSending.get(i);
-					// Slice .net framework 没有定义。
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: _outputBufferListSending[i] = new ArraySegment<byte>(segment.Array, bytesTransferred, segment.Count - bytesTransferred);
-					_outputBufferListSending.set(i, new ArraySegment<Byte>(segment.Array, bytesTransferred, segment.Count - bytesTransferred));
+				}
+				else {
+					_outputBufferListSending = _outputBufferList;
+				}
+				_outputBufferList = null;
+				_outputBufferListCountSum = 0;
+
+				var sc = (SocketChannel)key.channel();
+				var rc = sc.write(_outputBufferListSending.toArray(new java.nio.ByteBuffer[_outputBufferListSending.size()]));
+				if (rc >= 0) {
+					int i = 0;
+					for ( ; i < _outputBufferListSending.size() && _outputBufferListSending.get(i).remaining() == 0; ++i) {
+					}
 					_outputBufferListSending.subList(0, i).clear();
-					break;
-				}
-			}
+					if (_outputBufferListSending.isEmpty()) {
+						_outputBufferListSending = null; // free output buffer
 
-			if (_outputBufferListSending.isEmpty()) {
-				// 全部发送完
-				_outputBufferListSending = _outputBufferList; // maybe null
-				_outputBufferList = null;
-				_outputBufferListSendingCountSum = _outputBufferListCountSum;
-				_outputBufferListCountSum = 0;
-			}
-			else if (null != _outputBufferList) {
-				// 没有发送完，并且有要发送的
-				_outputBufferListSending.addAll(_outputBufferList);
-				_outputBufferList = null;
-				_outputBufferListSendingCountSum = _outputBufferListCountSum + (_outputBufferListSendingCountSum - _bytesTransferred);
-				_outputBufferListCountSum = 0;
-			}
-			else {
-				// 没有发送完，也没有要发送的
-				_outputBufferListSendingCountSum = _outputBufferListSendingCountSum - _bytesTransferred;
-			}
-
-			if (null != _outputBufferListSending) { // 全部发送完，并且 _outputBufferList == null 时，可能为 null
-				eventArgsSend.BufferList = _outputBufferListSending;
-				if (false == getSocket().SendAsync(eventArgsSend)) {
-					ProcessSend(eventArgsSend);
+						// remove write event
+						int ops = key.interestOps();
+						int opsNew = ops & ~SelectionKey.OP_WRITE;
+						if (ops != opsNew) {
+							key.interestOps(opsNew);
+							if (false == isSelectorThread)
+								key.selector().wakeup();
+						}
+					}
+					else {
+						int ops = key.interestOps();
+						int opsNew = ops | SelectionKey.OP_WRITE;
+						if (ops != opsNew) {
+							key.interestOps(opsNew);
+							if (false == isSelectorThread)
+								key.selector().wakeup();
+						}
+					}
+					return;
 				}
+				// error
+				close();
+			} catch (IOException e) {
+				close();
+				throw new RuntimeException(e);
 			}
 		}
 	}
@@ -580,19 +501,17 @@ public final class AsyncSocket implements Closeable {
 	public void close() {
 		try {
 			synchronized (this) {
-				if (getSocket() == null) {
+				if (selectionKey == null) {
 					return;
 				}
 
 				try {
-					if (getConnector() != null) {
-						getConnector().OnSocketClose(this);
+					if (Connector != null) {
+						Connector.OnSocketClose(this);
 					}
-					getService().OnSocketClose(this, this.getLastException());
-					if (getSocket() != null) {
-						getSocket().Dispose();
-					}
-					setSocket(null);
+					Service.OnSocketClose(this, this.getLastException());
+					selectionKey.channel().close();
+					selectionKey = null;
 				}
 				catch (RuntimeException e) {
 					// skip Dispose error
@@ -601,7 +520,7 @@ public final class AsyncSocket implements Closeable {
 
 			synchronized (this) {
 				try {
-					getService().OnSocketDisposed(this);
+					Service.OnSocketDisposed(this);
 				}
 				catch (RuntimeException e2) {
 					// skip Dispose error

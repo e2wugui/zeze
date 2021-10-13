@@ -100,8 +100,7 @@ namespace Zeze.Net
 
             this._inputBuffer = new byte[service.SocketOptions.InputBufferSize];
 
-            var remoteIp = Socket.RemoteEndPoint as IPEndPoint;
-            RemoteAddress = remoteIp.Address.GetAddressBytes().ToString();
+            RemoteAddress = (Socket.RemoteEndPoint as IPEndPoint).Address.ToString();
 
             BeginReceiveAsync();
         }
@@ -224,8 +223,9 @@ namespace Zeze.Net
 
                 if (null == _outputBufferList)
                     _outputBufferList = new List<ArraySegment<byte>>();
-                _outputBufferList.Add(new ArraySegment<byte>(bytes, offset, length));
-                _outputBufferListCountSum += _outputBufferList[_outputBufferList.Count - 1].Count;
+                var adding = new ArraySegment<byte>(bytes, offset, length);
+                _outputBufferList.Add(adding);
+                _outputBufferListCountSum += adding.Count;
 
                 if (null == _outputBufferListSending) // 没有在发送中，马上请求发送，否则等回调处理。
                 {
@@ -334,7 +334,7 @@ namespace Zeze.Net
                 this.Socket.EndConnect(ar);
                 this.Connector?.OnSocketConnected(this);
                 this.Service.OnSocketConnected(this);
-
+                RemoteAddress = (Socket.RemoteEndPoint as IPEndPoint).Address.ToString();
                 this._inputBuffer = new byte[Service.SocketOptions.InputBufferSize];
                 BeginReceiveAsync();
             }

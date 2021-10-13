@@ -49,8 +49,7 @@ public class HugeConcurrentDictionary<K, V> implements java.lang.Iterable<Map.En
 	}
 
 	private int hashIndex(K key) {
-		int hash = key.hashCode() & 0x7fffffff;
-		return hash % (int)getBuckets().length;
+		return Integer.remainderUnsigned(key.hashCode(), getBuckets().length);
 	}
 
 	public final V get(K key) {

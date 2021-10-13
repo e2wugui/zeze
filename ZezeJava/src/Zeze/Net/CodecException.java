@@ -1,6 +1,6 @@
 package Zeze.Net;
 
-public class CodecException extends Exception {
+public class CodecException extends RuntimeException {
 	private static final long serialVersionUID = 501428574934410873L;
 
 	public CodecException() {

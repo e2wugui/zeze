@@ -121,8 +121,15 @@ Socket async surpport
 
 NPinyin C# 删除无用的函数
 
-Transaction.Collections.
+Transaction.Collections c#
 	去掉 is instanceof。
 
 ReentrantReadWriteLock
 	拥有 readLock 时，再次去锁 writeLock 会怎么样。
+
+乐观锁引起的逻辑冲突
+	mvcc？
+	读写数据时判断一下timestamp，快速重做。
+
+ServiceManager.Test
+	重复注册的问题？测试问题还是实现问题？

@@ -495,13 +495,14 @@ var Zeze;
             ByteBuffer.BlockCopy(src, srcOffset, this.Bytes, writeIndex, len);
         }
         BeginWriteWithSize4() {
-            var state = this.WriteIndex;
+            var state = this.Size();
             this.EnsureWrite(4);
             this.WriteIndex += 4;
             return state;
         }
         EndWriteWithSize4(state) {
-            this.View.setInt32(state, this.WriteIndex - state - 4, true);
+            var oldWriteIndex = state + this.ReadIndex;
+            this.View.setInt32(oldWriteIndex, this.WriteIndex - oldWriteIndex - 4, true);
         }
         BeginWriteSegment() {
             var oldSize = this.Size();
