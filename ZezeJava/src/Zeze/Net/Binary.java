@@ -13,7 +13,7 @@ public final class Binary {
 		return _Bytes[index];
 	}
 
-	public byte[] getBytesInternalOnlyUnsafe() {
+	public byte[] InternalGetBytesUnsafe() {
 		return _Bytes;
 	}
 

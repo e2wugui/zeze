@@ -27,7 +27,7 @@ public final class ByteBuffer {
 	}
 
 	public static ByteBuffer Wrap(Zeze.Net.Binary binary) {
-		return Wrap(binary.getBytesInternalOnlyUnsafe(), binary.getOffset(), binary.getCount());
+		return Wrap(binary.InternalGetBytesUnsafe(), binary.getOffset(), binary.getCount());
 	}
 
 	public static ByteBuffer Allocate() {
@@ -718,7 +718,7 @@ public final class ByteBuffer {
 	}
 
 	public void WriteBinary(Zeze.Net.Binary binary) {
-		WriteBytes(binary.getBytesInternalOnlyUnsafe(), binary.getOffset(), binary.getCount());
+		WriteBytes(binary.InternalGetBytesUnsafe(), binary.getOffset(), binary.getCount());
 	}
 
 	private static boolean BinaryNoCopy = false;
