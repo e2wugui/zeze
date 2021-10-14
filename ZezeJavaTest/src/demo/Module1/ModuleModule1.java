@@ -1,4 +1,4 @@
-﻿package demo.Module1;
+package demo.Module1;
 
 // ZEZE_FILE_CHUNK {{{ IMPORT GEN
 // ZEZE_FILE_CHUNK }}} IMPORT GEN

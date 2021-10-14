@@ -1,4 +1,4 @@
-﻿package demo;
+package demo;
 
 public class Server extends ServerBase {
     public Server(Zeze.Application zeze) {
