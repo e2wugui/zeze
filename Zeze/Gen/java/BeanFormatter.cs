@@ -25,7 +25,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("import Zeze.Serialize.*;");
             sw.WriteLine("");
             sw.WriteLine($"public interface {bean.Name}ReadOnly {{");
-            PropertyReadOnly.Make(bean, sw, "    ");
+            //PropertyReadOnly.Make(bean, sw, "    "); // java 不支持ReadOnly
             sw.WriteLine("}");
         }
         public void Make(string baseDir)
