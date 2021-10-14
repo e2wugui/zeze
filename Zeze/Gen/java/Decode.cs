@@ -81,7 +81,7 @@ namespace Zeze.Gen.java
         {
             if (null != var)
                 return var.Bean.IsNormalBean
-                    ? var.NameUpper1 : var.NamePrivate;
+                    ? var.Getter : var.NamePrivate;
             return tmpvarname;
         }
 
@@ -134,12 +134,12 @@ namespace Zeze.Gen.java
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (ByteBuffer.BYTE | " + id + " << ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadByte()" + ";"));
+                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadByte()") + ";");
                 sw.WriteLine(prefix + "    break;");
             }
             else
             {
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadByte()" + ";"));
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadByte()") + ";");
             }
         }
 
@@ -153,7 +153,7 @@ namespace Zeze.Gen.java
             }
             else
             {
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadDouble()" + ";"));
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadDouble()") + ";");
             }
         }
 
@@ -162,12 +162,12 @@ namespace Zeze.Gen.java
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (ByteBuffer.INT | " + id + " << ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadInt()" + ";"));
+                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadInt()") + ";");
                 sw.WriteLine(prefix + "    break;");
             }
             else
             {
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadInt()" + ";"));
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadInt()") + ";");
             }
         }
 
@@ -176,12 +176,12 @@ namespace Zeze.Gen.java
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (ByteBuffer.LONG | " + id + " << ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadLong()" + ";"));
+                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadLong()") + ";");
                 sw.WriteLine(prefix + "    break;");
             }
             else
             {
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadLong()" + ";"));
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadLong()") + ";");
             }
         }
 
@@ -190,12 +190,12 @@ namespace Zeze.Gen.java
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (ByteBuffer.BOOL | " + id + " << ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadBool()" + ";"));
+                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadBool()") + ";");
                 sw.WriteLine(prefix + "    break;");
             }
             else
             {
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadBool()" + ";"));
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadBool()") + ";");
             }
         }
 
@@ -218,12 +218,12 @@ namespace Zeze.Gen.java
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (ByteBuffer.STRING | " + id + " << ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadString()" + ";"));
+                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadString()") + ";");
                 sw.WriteLine(prefix + "    break;");
             }
             else
             {
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadString()" + ";"));
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadString()") + ";");
             }
         }
 
@@ -295,12 +295,12 @@ namespace Zeze.Gen.java
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (ByteBuffer.FLOAT | " + id + " << ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadFloat()" + ";"));
+                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadFloat()") + ";");
                 sw.WriteLine(prefix + "    break;");
             }
             else
             {
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadFloat()" + ";"));
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadFloat()") + ";");
             }
         }
 
@@ -309,12 +309,12 @@ namespace Zeze.Gen.java
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (ByteBuffer.SHORT | " + id + " << ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadShort()" + ";"));
+                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadShort()") + ";");
                 sw.WriteLine(prefix + "    break;");
             }
             else
             {
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadShort()" + ";"));
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadShort()") + ";");
             }
         }
 

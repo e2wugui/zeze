@@ -23,7 +23,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "        case " + v.Id + ": return new " + vistor .ChangeVariableCollectorName + ";");
             }
             sw.WriteLine("                default: return null;");
-            sw.WriteLine("            };");
+            sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine();
         }
@@ -99,10 +99,10 @@ namespace Zeze.Gen.java
 
         void Visitor.Visit(TypeMap type)
         {
-            string kv = TypeName.GetName(type.KeyType) + ", " + TypeName.GetName(type.ValueType);
+            string kv = BoxingName.GetName(type.KeyType) + ", " + BoxingName.GetName(type.ValueType);
             string factory = type.ValueType.IsNormalBean
-                ? "() => new Zeze.Transaction.ChangeNoteMap2<" + kv + ">(null)"
-                : "() => new Zeze.Transaction.ChangeNoteMap1<" + kv + ">(null)";
+                ? "() -> new Zeze.Transaction.ChangeNoteMap2<" + kv + ">(null)"
+                : "() -> new Zeze.Transaction.ChangeNoteMap1<" + kv + ">(null)";
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorMap(" + factory + ")";
         }
 

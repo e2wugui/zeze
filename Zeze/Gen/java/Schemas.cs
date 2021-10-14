@@ -40,12 +40,12 @@ namespace Zeze.Gen.java
             sw.WriteLine("// auto-generated");
             sw.WriteLine("package " + Project.Solution.Path() + ";");
             sw.WriteLine("");
-            sw.WriteLine("public class Schemas : Zeze.Schemas {");
+            sw.WriteLine("public class Schemas extends Zeze.Schemas {");
             sw.WriteLine("    public Schemas() {");
 
             foreach (var table in Project.AllTables.Values)
             {
-                sw.WriteLine($"        AddTable(new Zeze.Schemas.Table(\"{table.Space.Path("_", table.Name)}\", \"{GetFullName(table.KeyType)}\", \"{GetFullName(table.ValueType)}\");");
+                sw.WriteLine($"        AddTable(new Zeze.Schemas.Table(\"{table.Space.Path("_", table.Name)}\", \"{GetFullName(table.KeyType)}\", \"{GetFullName(table.ValueType)}\"));");
             }
 
             foreach (var type in Depends)
@@ -74,6 +74,7 @@ namespace Zeze.Gen.java
             sw.WriteLine($"            var bean = new Zeze.Schemas.Bean(\"{name}\", {isBeanKey.ToString().ToLower()});");
             foreach (var v in vars)
             {
+                sw.WriteLine($"        {{");
                 sw.WriteLine($"            var var = new Zeze.Schemas.Variable();");
                 sw.WriteLine($"            var.Id = {v.Id};");
                 sw.WriteLine($"            var.Name = \"{v.Name}\";");
@@ -88,7 +89,7 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"            var.ValueName = \"{GetFullName(map.ValueType)}\";");
                 }
                 sw.WriteLine($"            bean.AddVariable(var);");
-                sw.WriteLine($"        }});");
+                sw.WriteLine($"        }}");
             }
             sw.WriteLine($"        AddBean(bean);");
             sw.WriteLine($"    }}");

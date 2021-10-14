@@ -12,7 +12,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int compareTo(" + bean.Name + " _o1_) {");
             sw.WriteLine(prefix + "    if (_o1_ == this) return 0;");
-            sw.WriteLine(prefix + "    if (_o1_ is " + bean.Name + ") {");
+            sw.WriteLine(prefix + "    if (_o1_ instanceof " + bean.Name + ") {");
             sw.WriteLine(prefix + "        var _o_ = (" + bean.Name + ")_o1_;");
             sw.WriteLine(prefix + "        int _c_" + (bean.Variables.Count > 0 ? ";" : " = 0;"));
             foreach (Variable var in bean.Variables)
@@ -51,27 +51,27 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeByte type)
         {
-            text = $"Byte.compareTo({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+            text = $"Byte.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
         public void Visit(TypeDouble type)
         {
-            text = $"Double.compareTo({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+            text = $"Double.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
         public void Visit(TypeInt type)
         {
-            text = $"Integer.compareTo({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+            text = $"Integer.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
         public void Visit(TypeLong type)
         {
-            text = $"Long.compareTo({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+            text = $"Long.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
         public void Visit(TypeBool type)
         {
-            text = $"Boolean.compareTo({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+            text = $"Boolean.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
         public void Visit(TypeBinary type)
@@ -101,12 +101,12 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeFloat type)
         {
-            text = $"Float.compareTo({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+            text = $"Float.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
         public void Visit(TypeShort type)
         {
-            text = $"Short.compareTo({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+            text = $"Short.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
         public void Visit(TypeDynamic type)

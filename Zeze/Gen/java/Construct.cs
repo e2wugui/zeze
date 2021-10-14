@@ -108,7 +108,7 @@ namespace Zeze.Gen.java
         public void Visit(TypeMap type)
         {
             String typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(getObjectId() + " + variable.Id + ", _v => new Log_" + variable.NamePrivate + "(this, _v));");
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(getObjectId() + " + variable.Id + ", (_v) -> new Log_" + variable.NamePrivate + "(this, _v));");
             /*
             var key = TypeName.GetName(type.KeyType);
             var value = type.ValueType.IsNormalBean

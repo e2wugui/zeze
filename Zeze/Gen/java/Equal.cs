@@ -21,9 +21,9 @@ namespace Zeze.Gen.java
         public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, String prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public boolean equals(object _obj1_) {");
+            sw.WriteLine(prefix + "public boolean equals(Object _obj1_) {");
             sw.WriteLine(prefix + "    if (_obj1_ == this) return true;");
-            sw.WriteLine(prefix + "    if (_obj1_ is " + bean.Name + ") {");
+            sw.WriteLine(prefix + "    if (_obj1_ instanceof " + bean.Name + ") {");
             sw.WriteLine(prefix + $"        var _obj_ = ({bean.Name})_obj1_;");
             foreach (Types.Variable var in bean.Variables)
             {

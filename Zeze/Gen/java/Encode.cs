@@ -15,7 +15,8 @@ namespace Zeze.Gen.java
 
         public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "public override void Encode(ByteBuffer _os_) {");
+            sw.WriteLine(prefix + "@Override");
+            sw.WriteLine(prefix + "public void Encode(ByteBuffer _os_) {");
             sw.WriteLine(prefix + "    _os_.WriteInt(" + bean.Variables.Count + "); // Variables.Count");
 
             foreach (Types.Variable v in bean.Variables)
@@ -57,7 +58,7 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.BEAN | " + id + " << ByteBuffer.TAG_SHIFT);");
                 sw.WriteLine(prefix + "{");
-                sw.WriteLine(prefix + "    var _state_" + bufname + ".BeginWriteSegment();");
+                sw.WriteLine(prefix + "    var _state_ = " + bufname + ".BeginWriteSegment();");
                 sw.WriteLine(prefix + "    " + varname + ".Encode(" + bufname + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".EndWriteSegment(_state_);");
                 sw.WriteLine(prefix + "}");
@@ -74,7 +75,7 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.BEAN | " + id + " << ByteBuffer.TAG_SHIFT);");
                 sw.WriteLine(prefix + "{");
-                sw.WriteLine(prefix + "    var _state_" + bufname + ".BeginWriteSegment();");
+                sw.WriteLine(prefix + "    var _state_ = " + bufname + ".BeginWriteSegment();");
                 sw.WriteLine(prefix + "    " + varname + ".Encode(" + bufname + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".EndWriteSegment(_state_);");
                 sw.WriteLine(prefix + "}");
@@ -228,7 +229,7 @@ namespace Zeze.Gen.java
                 /*
                 sw.WriteLine($"{prefix}{bufname}.WriteLong8({varname}.TypeId);");
                 sw.WriteLine(prefix + "{");
-                sw.WriteLine(prefix + "    " + bufname + ".BeginWriteSegment(out var _state_);");
+                sw.WriteLine(prefix + "    var _state_ = " + bufname + ".BeginWriteSegment();");
                 sw.WriteLine(prefix + "    " + varname + ".Encode(" + bufname + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".EndWriteSegment(_state_);");
                 sw.WriteLine(prefix + "}");

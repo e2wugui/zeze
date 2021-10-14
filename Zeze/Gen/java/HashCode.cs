@@ -11,8 +11,8 @@ namespace Zeze.Gen.java
 		public static void Make(BeanKey bean, System.IO.StreamWriter sw, String prefix)
 		{
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public int GetHashCode() {");
-            sw.WriteLine(prefix + "    const int _prime_ = 31;");
+            sw.WriteLine(prefix + "public int hashCode() {");
+            sw.WriteLine(prefix + "    final int _prime_ = 31;");
             sw.WriteLine(prefix + "    int _h_ = 0;");
             foreach (Variable var in bean.Variables)
 			{

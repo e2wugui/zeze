@@ -22,7 +22,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("// auto-generated");
             sw.WriteLine("package " + bean.Space.Path() + ";");
             sw.WriteLine("");
-            sw.WriteLine("import Zeze.Serialize.*;");
+            //sw.WriteLine("import Zeze.Serialize.*;");
             sw.WriteLine("");
             sw.WriteLine($"public interface {bean.Name}ReadOnly {{");
             //PropertyReadOnly.Make(bean, sw, "    "); // java 不支持ReadOnly
@@ -75,10 +75,10 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine("");
 
-            Property.Make(bean, sw, "        ");
+            Property.Make(bean, sw, "    ");
             sw.WriteLine();
-            Construct.Make(bean, sw, "        ");
-            Assign.Make(bean, sw, "        ");
+            Construct.Make(bean, sw, "    ");
+            Assign.Make(bean, sw, "    ");
             // Copy
             sw.WriteLine("    public " + bean.Name + " CopyIfManaged() {");
             sw.WriteLine("        return isManaged() ? Copy() : this;");
@@ -101,7 +101,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return Copy();");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public final static long TYPEID = " + bean.TypeId + ";");
+            sw.WriteLine("    public final static long TYPEID = " + bean.TypeId + "L;");
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public long getTypeId() {");

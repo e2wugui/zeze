@@ -37,7 +37,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("");
             sw.WriteLine("public class " + service.Name + "Base extends " + BaseClass() + " {");
             sw.WriteLine("    public " + service.Name + "Base(Zeze.Application zeze) {");
-            sw.WriteLine("        super(\"" + service.Name + "\", zeze)");
+            sw.WriteLine("        super(\"" + service.Name + "\", zeze);");
             sw.WriteLine("    }");
             sw.WriteLine("");
             /*
@@ -74,7 +74,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("");
             sw.WriteLine($"public class {service.Name} extends {service.Name}Base {{");
             sw.WriteLine("    public " + service.Name + "(Zeze.Application zeze) {");
-            sw.WriteLine("        super(zeze)");
+            sw.WriteLine("        super(zeze);");
             sw.WriteLine("    }");
             sw.WriteLine("    // 重载需要的方法。");
             sw.WriteLine("}");

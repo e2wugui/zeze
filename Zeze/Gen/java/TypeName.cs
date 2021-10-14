@@ -17,84 +17,84 @@ namespace Zeze.Gen.java
             return visitor.name;
         }
 
-        public void Visit(Bean type)
+        public virtual void Visit(Bean type)
         {
             name = type.Space.Path(".", type.Name);
         }
 
-        public void Visit(BeanKey type)
+        public virtual void Visit(BeanKey type)
         {
             name = type.Space.Path(".", type.Name);
         }
 
-        public void Visit(TypeByte type)
+        public virtual void Visit(TypeByte type)
         {
             name = "byte";
         }
 
-        public void Visit(TypeDouble type)
+        public virtual void Visit(TypeDouble type)
         {
             name = "double";
         }
 
-        public void Visit(TypeInt type)
+        public virtual void Visit(TypeInt type)
         {
             name = "int";
         }
 
-        public void Visit(TypeLong type)
+        public virtual void Visit(TypeLong type)
         {
             name = "long";
         }
 
-        public void Visit(TypeBool type)
+        public virtual void Visit(TypeBool type)
         {
             name = "boolean";
         }
 
-        public void Visit(TypeBinary type)
+        public virtual void Visit(TypeBinary type)
         {
             name = "Zeze.Net.Binary";
         }
 
-        public void Visit(TypeString type)
+        public virtual void Visit(TypeString type)
         {
             name = "String";
         }
 
-        public void Visit(TypeList type)
+        public virtual void Visit(TypeList type)
         {
-            string valueName = TypeName.GetName(type.ValueType);
+            string valueName = BoxingName.GetName(type.ValueType);
             name = "Zeze.Transaction.Collections.PList" + (type.ValueType.IsNormalBean ? "2<" : "1<")  + valueName + ">";
             nameCollectionImplement = "org.pcollections.PVector<" + valueName + ">";
         }
 
-        public void Visit(TypeSet type)
+        public virtual void Visit(TypeSet type)
         {
-            string valueName = TypeName.GetName(type.ValueType);
+            string valueName = BoxingName.GetName(type.ValueType);
             name = "Zeze.Transaction.Collections.PSet1<" + valueName + ">";
             nameCollectionImplement = "org.pcollections.PSet<" + valueName + ">";
         }
 
-        public void Visit(TypeMap type)
+        public virtual void Visit(TypeMap type)
         {
-            string key = TypeName.GetName(type.KeyType);
-            string value = TypeName.GetName(type.ValueType);
+            string key = BoxingName.GetName(type.KeyType);
+            string value = BoxingName.GetName(type.ValueType);
             name = "Zeze.Transaction.Collections.PMap" + (type.ValueType.IsNormalBean ? "2<" : "1<") + key + ", " + value + ">";
             nameCollectionImplement = "org.pcollections.PMap<" + key + ", " + value + ">";
         }
 
-        public void Visit(TypeFloat type)
+        public virtual void Visit(TypeFloat type)
         {
             name = "float";
         }
 
-        public void Visit(TypeShort type)
+        public virtual void Visit(TypeShort type)
         {
             name = "short";
         }
 
-        public void Visit(TypeDynamic type)
+        public virtual void Visit(TypeDynamic type)
         {
             name = "Zeze.Transaction.DynamicBean";
         }

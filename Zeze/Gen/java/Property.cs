@@ -48,7 +48,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    if (txn == null) return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    txn.VerifyRecordAccessed(this, true);");
             sw.WriteLine(prefix + "    var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.getObjectId() + " + var.Id + ");");
-            sw.WriteLine(prefix + "    return log != null ? log.Value : " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    return log != null ? log.getValue() : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + "{");

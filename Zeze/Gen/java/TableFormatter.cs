@@ -27,7 +27,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("");
             string key = TypeName.GetName(table.KeyType);
             string value = TypeName.GetName(table.ValueType);
-            sw.WriteLine("public final class " + table.Name + " extends Zeze.Transaction.TableX<" + key + ", " + value + "> {");
+            string keyboxing = BoxingName.GetName(table.KeyType);
+            sw.WriteLine("public final class " + table.Name + " extends Zeze.Transaction.TableX<" + keyboxing + ", " + value + "> {");
             sw.WriteLine("    public " + table.Name + "() {");
             sw.WriteLine("        super(\"" + table.Space.Path("_", table.Name) + "\");");
             sw.WriteLine("    }");
@@ -51,21 +52,21 @@ namespace Zeze.Gen.java
             if (table.IsAutoKey)
             {
                 sw.WriteLine("    public long Insert(" + value + " value) {");
-                sw.WriteLine("            long key = AutoKey.Next();");
+                sw.WriteLine("            long key = getAutoKey().Next();");
                 sw.WriteLine("            Insert(key, value);");
                 sw.WriteLine("            return key;");
                 sw.WriteLine("    }");
                 sw.WriteLine();
             }
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public " + key + " DecodeKey(ByteBuffer _os_) {");
+            sw.WriteLine("    public " + keyboxing + " DecodeKey(ByteBuffer _os_) {");
             table.KeyType.Accept(new Define("_v_", sw, "        "));
             table.KeyType.Accept(new Decode("_v_", -1, "_os_", sw, "        "));
             sw.WriteLine("        return _v_;");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public ByteBuffer EncodeKey(" + key + " _v_) {");
+            sw.WriteLine("    public ByteBuffer EncodeKey(" + keyboxing + " _v_) {");
             sw.WriteLine("        ByteBuffer _os_ = ByteBuffer.Allocate();");            
             table.KeyType.Accept(new Encode("_v_", -1, "_os_", sw, "        "));
             sw.WriteLine("        return _os_;");

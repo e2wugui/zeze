@@ -48,7 +48,6 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    return sb.toString();");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void BuildString(StringBuilder sb, int level) {");
             sw.WriteLine($"{prefix}    sb.append(\" \".repeat(level * 4)).append(\"{bean.FullName}: {{\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "    level++;");
@@ -76,7 +75,7 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"{varname}\").append(\"=\").append(System.lineSeparator());");
             sw.WriteLine(prefix + getter + ".BuildString(sb, level + 1);");
-            sw.WriteLine(prefix + $"sb.Append(\"{sep}\").Append(System.lineSeparator());");
+            sw.WriteLine(prefix + $"sb.append(\"{sep}\").append(System.lineSeparator());");
         }
 
         void Visitor.Visit(BeanKey type)

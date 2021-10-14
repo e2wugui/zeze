@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Zeze.Util;
 
 namespace Zeze.Gen.java
 {
@@ -19,23 +20,80 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
-            MakePartialGen();
-            MakePartial();
-        }
+            var fcg = new FileChunkGen();
+            string fullDir = project.Solution.GetFullPath(srcDir);
+            string fullFileName = System.IO.Path.Combine(fullDir, $"App.java");
+            if (fcg.LoadFile(fullFileName))
+            {
+                fcg.SaveFile(fullFileName, GenChunkByName);
+                return;
+            }
+            // new file
+            System.IO.Directory.CreateDirectory(fullDir);
+            using System.IO.StreamWriter sw = new System.IO.StreamWriter(fullFileName, false, Encoding.UTF8);
 
-        public void MakePartialGen()
-        {
-            using System.IO.StreamWriter sw = project.Solution.OpenWriter(genDir, "AppBase.java");
-
-            sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             sw.WriteLine("package " + project.Solution.Path() + ";");
             sw.WriteLine("");
-            sw.WriteLine("import java.util.*;");
+            sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport);
+            ImportGen(sw);
+            sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);
+            sw.WriteLine();
             sw.WriteLine("");
-            sw.WriteLine("public class AppBase {");
+            sw.WriteLine("public class App {");
+            sw.WriteLine("");
+            sw.WriteLine("    public static App Instance = new App();");
+            sw.WriteLine("    public static App getInstance() {");
+            sw.WriteLine("        return Instance;");
+            sw.WriteLine("    }");
+            sw.WriteLine("");
+            sw.WriteLine("    public void Start() {");
+            sw.WriteLine("        Create();");
+            sw.WriteLine("        Zeze.Start(); // 启动数据库");
+            sw.WriteLine("        StartModules(); // 启动模块，装载配置什么的。");
+            sw.WriteLine("        StartService(); // 启动网络");
+            sw.WriteLine("    }");
+            sw.WriteLine("");
+            sw.WriteLine("    public void Stop() {");
+            sw.WriteLine("        StopService(); // 关闭网络");
+            sw.WriteLine("        StopModules(); // 关闭模块,，卸载配置什么的。");
+            sw.WriteLine("        Zeze.Stop(); // 关闭数据库");
+            sw.WriteLine("        Destroy();");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNameAppGen);
+            AppGen(sw);
+            sw.WriteLine("    " + fcg.ChunkEndTag + " " + ChunkNameAppGen);
+            sw.WriteLine("}");
+        }
+
+        private const string ChunkNameAppGen = "GEN APP";
+        private const string ChunkNameImport = "IMPORT GEN";
+
+        private void GenChunkByName(System.IO.StreamWriter writer, Zeze.Util.FileChunkGen.Chunk chunk)
+        {
+            switch (chunk.Name)
+            {
+                case ChunkNameAppGen:
+                    AppGen(writer);
+                    break;
+                case ChunkNameImport:
+                    ImportGen(writer);
+                    break;
+                default:
+                    throw new Exception("unknown Chunk.Name=" + chunk.Name);
+            }
+        }
+
+        private void ImportGen(System.IO.StreamWriter sw)
+        {
+            sw.WriteLine("import java.util.*;");
+        }
+
+        private void AppGen(System.IO.StreamWriter sw)
+        {
             sw.WriteLine("    public Zeze.Application Zeze;");
-            sw.WriteLine("    public HashMap<string, Zeze.IModule> Modules = new HashMap<>();");
+            sw.WriteLine("    public HashMap<String, Zeze.IModule> Modules = new HashMap<>();");
             sw.WriteLine("");
 
             foreach (Module m in project.AllModules.Values)
@@ -81,7 +139,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"            }}");
             }
             sw.WriteLine("");
-            sw.WriteLine("            Zeze.Schemas = new " + project.Solution.Path(".", "Schemas") + "();");
+            sw.WriteLine("            Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("");
@@ -142,36 +200,6 @@ namespace Zeze.Gen.java
                 sw.WriteLine("            " + m.Name + ".Stop();");
             }
             sw.WriteLine("        }");
-            sw.WriteLine("    }");
-            sw.WriteLine("}");
-        }
-
-        public void MakePartial()
-        {
-            using System.IO.StreamWriter sw = project.Solution.OpenWriter(srcDir, "App.java", false);
-            if (sw == null)
-                return;
-
-            sw.WriteLine("package " + project.Solution.Path() + ";");
-            sw.WriteLine("");
-            sw.WriteLine("public class App extends AppBase {");
-            sw.WriteLine("    public static App Instance = new App();");
-            sw.WriteLine("    public static App getInstance() {");
-            sw.WriteLine("        return Instance;");
-            sw.WriteLine("    }");
-            sw.WriteLine("");
-            sw.WriteLine("    public void Start() {");
-            sw.WriteLine("        Create();");
-            sw.WriteLine("        Zeze.Start(); // 启动数据库");
-            sw.WriteLine("        StartModules(); // 启动模块，装载配置什么的。");
-            sw.WriteLine("        StartService(); // 启动网络");
-            sw.WriteLine("    }");
-            sw.WriteLine("");
-            sw.WriteLine("    public void Stop() {");
-            sw.WriteLine("        StopService(); // 关闭网络");
-            sw.WriteLine("        StopModules(); // 关闭模块,，卸载配置什么的。");
-            sw.WriteLine("        Zeze.Stop(); // 关闭数据库");
-            sw.WriteLine("        Destroy();");
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }

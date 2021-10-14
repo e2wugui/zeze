@@ -35,13 +35,13 @@ namespace Zeze.Gen.java
 
         private void WriteLogValue(Types.Type type)
         {
-            string valueName = TypeName.GetName(type);
+            string valueName = BoxingName.GetName(type);
             sw.WriteLine(prefix + "private final static class Log_" + var.NamePrivate + " extends Zeze.Transaction.Log1<" + bean.Name + ", " + valueName + "> {");
             sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " self, " + valueName + " value) { super(self, value); }");
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + "    public long getLogKey() { return this.getBean().getObjectId() + " + var.Id + "; }");
             sw.WriteLine(prefix + "    @Override");
-            sw.WriteLine(prefix + "    public void Commit() { this.gBeanTyped()." + var.NamePrivate + " = this.getValue(); }");
+            sw.WriteLine(prefix + "    public void Commit() { this.getBeanTyped()." + var.NamePrivate + " = this.getValue(); }");
             sw.WriteLine(prefix + "}");
         }
 
@@ -90,10 +90,10 @@ namespace Zeze.Gen.java
             var tn = new TypeName();
             type.Accept(tn);
 
-            sw.WriteLine(prefix + "private sealed class Log_" + var.NamePrivate + " extends " + tn.name + ".LogV {");
+            sw.WriteLine(prefix + "private final class Log_" + var.NamePrivate + " extends " + tn.name + ".LogV {");
             sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " host, " + tn.nameCollectionImplement + " value) { super(host, value); }");
             sw.WriteLine(prefix + "    @Override");
-            sw.WriteLine(prefix + "    public long getLogKey() { return Bean.getObjectId() + " + var.Id + "; }");
+            sw.WriteLine(prefix + "    public long getLogKey() { return getBean().getObjectId() + " + var.Id + "; }");
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + "    public " + bean.Name + " getBeanTyped() { return (" + bean.Name + ")getBean(); }");
             sw.WriteLine(prefix + "    @Override");
