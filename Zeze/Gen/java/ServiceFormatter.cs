@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Zeze.Gen.cs
+namespace Zeze.Gen.java
 {
     public class ServiceFormatter
     {
@@ -33,17 +33,15 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
+            sw.WriteLine("package " + service.Project.Solution.Path());
             sw.WriteLine("");
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine("");
-            sw.WriteLine("namespace " + service.Project.Solution.Path());
-            sw.WriteLine("{");
-            sw.WriteLine("    public sealed partial class " + service.Name + " : " + BaseClass());
-            sw.WriteLine("    {");
-            sw.WriteLine("        public " + service.Name + "(Zeze.Application zeze) : base(\"" + service.Name + "\", zeze)");
-            sw.WriteLine("        {");
-            sw.WriteLine("        }");
+            sw.WriteLine("public final class " + service.Name + "BaseGen : " + BaseClass() + " {");
+            sw.WriteLine("    public " + service.Name + "(Zeze.Application zeze) {");
+            sw.WriteLine("        super(\"" + service.Name + "\", zeze)");
+            sw.WriteLine("    }");
             sw.WriteLine("");
             /*
             if (service.IsProvider)
@@ -66,7 +64,6 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("");
             }
             */
-            sw.WriteLine("    }");
             sw.WriteLine("}");
         }
 
@@ -76,16 +73,10 @@ namespace Zeze.Gen.cs
             if (null == sw)
                 return;
 
+            sw.WriteLine("package " + service.Project.Solution.Path());
             sw.WriteLine("");
-            //sw.WriteLine("using Zeze.Serialize;");
-            //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
-            sw.WriteLine("namespace " + service.Project.Solution.Path());
-            sw.WriteLine("{");
-            sw.WriteLine("    public sealed partial class " + service.Name);
-            sw.WriteLine("    {");
-            sw.WriteLine("        // 重载需要的方法。");
-            sw.WriteLine("    }");
+            sw.WriteLine($"public class {service.Name} extends {service.Name}BaseGen {{");
+            sw.WriteLine("    // 重载需要的方法。");
             sw.WriteLine("}");
         }
     }

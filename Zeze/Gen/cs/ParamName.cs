@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Zeze.Gen.java
+namespace Zeze.Gen.cs
 {
     public class ParamName : TypeName
     {

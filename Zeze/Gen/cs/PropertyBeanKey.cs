@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Zeze.Gen.Types;
 
-namespace Zeze.Gen.java
+namespace Zeze.Gen.cs
 {
     public class PropertyBeanKey : Visitor
     {
@@ -33,10 +33,7 @@ namespace Zeze.Gen.java
 
         private void WriteProperty(Types.Type type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + "{");
-            sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
         }
 
         public void Visit(BeanKey type)

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Zeze.Gen.Types;
 
-namespace Zeze.Gen.java
+namespace Zeze.Gen.cs
 {
     class NegativeCheck : Types.Visitor
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Zeze.Gen.Types;
 
-namespace Zeze.Gen.java
+namespace Zeze.Gen.cs
 {
     public class Property : Types.Visitor
     {
@@ -29,40 +29,41 @@ namespace Zeze.Gen.java
         public void Visit(Bean type)
         {
             var typeName = TypeName.GetName(type);
-            //var typeNameReadOnly = typeName + "ReadOnly";
-            //var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
-            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
-            sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
-            //sw.WriteLine(prefix + typeNameReadOnly + " " + beanNameReadOnly + "." + var.NameUpper1 + " => " + var.NamePrivate + ";");
+            var typeNameReadOnly = typeName + "ReadOnly";
+            var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
+            sw.WriteLine(prefix + "public " + typeName + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + typeNameReadOnly + " " + beanNameReadOnly + "." + var.NameUpper1 + " => " + var.NamePrivate + ";");
         }
 
         private void WriteProperty(Types.Type type, bool checkNull = false)
         {
-            var typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
-            sw.WriteLine(prefix + "    if (false == this.isManaged())");
-            sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.Current;");
-            sw.WriteLine(prefix + "    if (txn == null) return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    txn.VerifyRecordAccessed(this, true);");
-            sw.WriteLine(prefix + "    var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
-            sw.WriteLine(prefix + "    return log != null ? log.Value : " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
-            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + "{");
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
+            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "    get");
+            sw.WriteLine(prefix + "    {");
+            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
+            sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this, true);");
+            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
+            sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    set");
+            sw.WriteLine(prefix + "    {");
             if (checkNull)
             {
-                sw.WriteLine(prefix + "    if (null == value) throw new IllegalArgumentException();");
+                sw.WriteLine(prefix + "        if (null == value) throw new System.ArgumentNullException();");
             }
-            sw.WriteLine(prefix + "    if (false == this.isManaged()) {");
-            sw.WriteLine(prefix + "        " + var.NamePrivate + " = value;");
-            sw.WriteLine(prefix + "        return;");
+            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        {");
+            sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
+            sw.WriteLine(prefix + "            return;");
+            sw.WriteLine(prefix + "        }");
+            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
+            sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this);");
+            sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.Current;");
-            sw.WriteLine(prefix + "    txn.VerifyRecordAccessed(this);");
-            sw.WriteLine(prefix + "    txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -160,41 +161,28 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeList type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + " {");
-            sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
-            /*
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
             var valueName = type.ValueType.IsNormalBean
                 ? TypeName.GetName(type.ValueType) + "ReadOnly"
                 : TypeName.GetName(type.ValueType);
             var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
             sw.WriteLine($"{prefix}System.Collections.Generic.IReadOnlyList<{valueName}> {beanNameReadOnly}.{var.NameUpper1} => {var.NamePrivate};");
-            */
             sw.WriteLine();
         }
 
         public void Visit(TypeSet type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + " {");
-            sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
-            /*
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
             var v = TypeName.GetName(type.ValueType);
             var t = $"System.Collections.Generic.IReadOnlySet<{v}>";
             var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
             sw.WriteLine($"{prefix}{t} {beanNameReadOnly}.{var.NameUpper1} => {var.NamePrivate};");
             sw.WriteLine();
-            */
         }
 
         public void Visit(TypeMap type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + " {");
-            sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
             var valueName = type.ValueType.IsNormalBean
                 ? TypeName.GetName(type.ValueType) + "ReadOnly"
                 : TypeName.GetName(type.ValueType);
