@@ -38,22 +38,14 @@ namespace Zeze.Gen.java
             using System.IO.StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.java");
 
             sw.WriteLine("// auto-generated");
+            sw.WriteLine("package " + Project.Solution.Path());
             sw.WriteLine("");
-            sw.WriteLine("namespace " + Project.Solution.Path());
-            sw.WriteLine("{");
-            sw.WriteLine("    public class Schemas : Zeze.Schemas");
-            sw.WriteLine("    {");
-            sw.WriteLine("        public Schemas()");
-            sw.WriteLine("        {");
+            sw.WriteLine("public class Schemas : Zeze.Schemas {");
+            sw.WriteLine("    public Schemas() {");
 
             foreach (var table in Project.AllTables.Values)
             {
-                sw.WriteLine("            base.AddTable(new Zeze.Schemas.Table()");
-                sw.WriteLine("            {");
-                sw.WriteLine($"                Name = \"{table.Space.Path("_", table.Name)}\",");
-                sw.WriteLine($"                KeyName = \"{GetFullName(table.KeyType)}\",");
-                sw.WriteLine($"                ValueName = \"{GetFullName(table.ValueType)}\",");
-                sw.WriteLine("            });");
+                sw.WriteLine($"        AddTable(new Zeze.Schemas.Table(\"{table.Space.Path("_", table.Name)}\", \"{GetFullName(table.KeyType)}\", \"{GetFullName(table.ValueType)}\");");
             }
 
             foreach (var type in Depends)
@@ -72,35 +64,34 @@ namespace Zeze.Gen.java
                     GenAddBean(sw, bean.FullName, false, bean.Variables);
                 }
             }
-            sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }
 
         private void GenAddBean(System.IO.StreamWriter sw, string name, bool isBeanKey, List<Types.Variable> vars)
         {
-            sw.WriteLine($"            {{");
-            sw.WriteLine($"                var bean = new Zeze.Schemas.Bean() {{ Name = \"{name}\", IsBeanKey = {isBeanKey.ToString().ToLower()} }};");
+            sw.WriteLine($"        {{");
+            sw.WriteLine($"            var bean = new Zeze.Schemas.Bean(\"{name}\", {isBeanKey.ToString().ToLower()});");
             foreach (var v in vars)
             {
-                sw.WriteLine($"                bean.AddVariable(new Zeze.Schemas.Variable()");
-                sw.WriteLine($"                {{");
-                sw.WriteLine($"                    Id = {v.Id},");
-                sw.WriteLine($"                    Name = \"{v.Name}\",");
-                sw.WriteLine($"                    TypeName = \"{GetFullName(v.VariableType)}\",");
+                sw.WriteLine($"            var var = new Zeze.Schemas.Variable();");
+                sw.WriteLine($"            var.Id = {v.Id};");
+                sw.WriteLine($"            var.Name = \"{v.Name}\";");
+                sw.WriteLine($"            var.TypeName = \"{GetFullName(v.VariableType)}\";");
                 if (v.VariableType is Types.TypeCollection collection)
                 {
-                    sw.WriteLine($"                    ValueName = \"{GetFullName(collection.ValueType)}\",");
+                    sw.WriteLine($"            var.ValueName = \"{GetFullName(collection.ValueType)}\";");
                 }
                 else if (v.VariableType is Types.TypeMap map)
                 {
-                    sw.WriteLine($"                    KeyName = \"{GetFullName(map.KeyType)}\",");
-                    sw.WriteLine($"                    ValueName = \"{GetFullName(map.ValueType)}\",");
+                    sw.WriteLine($"            var.KeyName = \"{GetFullName(map.KeyType)}\";");
+                    sw.WriteLine($"            var.ValueName = \"{GetFullName(map.ValueType)}\";");
                 }
-                sw.WriteLine($"                }});");
+                sw.WriteLine($"            bean.AddVariable(var);");
+                sw.WriteLine($"        }});");
             }
-            sw.WriteLine($"                base.AddBean(bean);");
-            sw.WriteLine($"            }}");
+            sw.WriteLine($"        AddBean(bean);");
+            sw.WriteLine($"    }}");
         }
     }
 }

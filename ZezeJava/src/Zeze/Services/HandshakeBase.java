@@ -64,7 +64,7 @@ public class HandshakeBase extends Service {
 		var localaddress = p.Sender.getSocket().getLocalAddress();
 		byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null
 			? getConfig().getHandshakeOptions().getSecureIp() : localaddress.getAddress();
-		logger.debug("{} localip={}", p.Sender.getSessionId(), Zeze.Util.BitConverter.toString(key));
+		logger.debug("{} localip={}", p.Sender.getSessionId(), Arrays.toString(key));
 		int half = material.length / 2;
 
 		byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
@@ -101,7 +101,7 @@ public class HandshakeBase extends Service {
 			var remoteaddress = p.Sender.getSocket().getInetAddress();
 
 			byte[] key = remoteaddress.getAddress();
-			logger.debug("{} remoteip={}", p.Sender.getSessionId(), Zeze.Util.BitConverter.toString(key));
+			logger.debug("{} remoteip={}", p.Sender.getSessionId(), Arrays.toString(key));
 
 			int half = material.length / 2;
 
