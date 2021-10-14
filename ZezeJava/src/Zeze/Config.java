@@ -170,8 +170,8 @@ public final class Config {
 				return new Zeze.Transaction.DatabaseMySql(conf);
 			case SqlServer:
 				return new Zeze.Transaction.DatabaseSqlServer(conf);
-			case Tikv:
-				return new Zeze.Tikv.DatabaseTikv(conf.getDatabaseUrl());
+			//case Tikv:
+			//	return new Zeze.Tikv.DatabaseTikv(conf.getDatabaseUrl());
 			default:
 				throw new RuntimeException("unknown database type.");
 		}
