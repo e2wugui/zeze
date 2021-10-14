@@ -18,7 +18,7 @@ namespace Zeze.Gen.java
             using System.IO.StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".java");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("package " + beanKey.Space.Path());
+            sw.WriteLine("package " + beanKey.Space.Path() + ";");
             sw.WriteLine("");
             sw.WriteLine("import Zeze.Serialize.*;");
 

@@ -17,7 +17,7 @@ namespace Zeze.Gen.java
             using System.IO.StreamWriter sw = p.Space.OpenWriter(baseDir, p.Name + ".java");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("package " + p.Space.Path());
+            sw.WriteLine("package " + p.Space.Path() + ";");
             sw.WriteLine("");
             string argument = p.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(p.ArgumentType);
             sw.WriteLine("public class " + p.Name + " : Zeze.Net.Protocol1<" + argument + "> {");

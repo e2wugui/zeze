@@ -17,7 +17,7 @@ namespace Zeze.Gen.java
             using System.IO.StreamWriter sw = rpc.Space.OpenWriter(baseDir, rpc.Name + ".java");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("package " + rpc.Space.Path());
+            sw.WriteLine("package " + rpc.Space.Path() + ";");
             sw.WriteLine("");
             string argument = rpc.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ArgumentType);
             string result = rpc.ResultType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ResultType);
