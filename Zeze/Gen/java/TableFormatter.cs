@@ -21,7 +21,7 @@ namespace Zeze.Gen.java
             using System.IO.StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".java");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("package " + table.Space.Path());
+            sw.WriteLine("package " + table.Space.Path() + ";");
             sw.WriteLine("");
             sw.WriteLine("import Zeze.Serialize.*;");
             sw.WriteLine("");

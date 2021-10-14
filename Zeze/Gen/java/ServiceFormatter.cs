@@ -33,7 +33,7 @@ namespace Zeze.Gen.java
             using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("package " + service.Project.Solution.Path());
+            sw.WriteLine("package " + service.Project.Solution.Path() + ";");
             sw.WriteLine("");
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
@@ -73,7 +73,7 @@ namespace Zeze.Gen.java
             if (null == sw)
                 return;
 
-            sw.WriteLine("package " + service.Project.Solution.Path());
+            sw.WriteLine("package " + service.Project.Solution.Path() + ";");
             sw.WriteLine("");
             sw.WriteLine($"public class {service.Name} extends {service.Name}BaseGen {{");
             sw.WriteLine("    // 重载需要的方法。");

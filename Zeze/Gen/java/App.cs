@@ -29,12 +29,12 @@ namespace Zeze.Gen.java
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");
-            sw.WriteLine("package " + project.Solution.Path());
+            sw.WriteLine("package " + project.Solution.Path() + ";");
             sw.WriteLine("");
             sw.WriteLine("import java.util.*;");
             sw.WriteLine("");
             sw.WriteLine("public class AppBaseGen {");
-            sw.WriteLine("    public Zeze.Application Zeze { get; set; }");
+            sw.WriteLine("    public Zeze.Application Zeze;");
             sw.WriteLine("    public HashMap<string, Zeze.IModule> Modules = new HashMap<>();");
             sw.WriteLine("");
 
@@ -152,7 +152,7 @@ namespace Zeze.Gen.java
             if (sw == null)
                 return;
 
-            sw.WriteLine("package " + project.Solution.Path());
+            sw.WriteLine("package " + project.Solution.Path() + ";");
             sw.WriteLine("");
             sw.WriteLine("public class App extends AppBaseGen {");
             sw.WriteLine("    public static App Instance = new App();");

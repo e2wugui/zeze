@@ -38,7 +38,7 @@ namespace Zeze.Gen.java
             using System.IO.StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.java");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("package " + Project.Solution.Path());
+            sw.WriteLine("package " + Project.Solution.Path() + ";");
             sw.WriteLine("");
             sw.WriteLine("public class Schemas : Zeze.Schemas {");
             sw.WriteLine("    public Schemas() {");
