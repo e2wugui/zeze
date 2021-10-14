@@ -34,7 +34,7 @@ namespace Zeze.Gen.java
             }
             // new file
             System.IO.Directory.CreateDirectory(fullDir);
-            using System.IO.StreamWriter sw = new System.IO.StreamWriter(fullFileName, false, new UTF8Encoding(false));
+            using System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
             sw.WriteLine("package " + module.Path() + ";");
             sw.WriteLine("");
             sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport);

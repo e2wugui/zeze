@@ -137,7 +137,7 @@ namespace Zeze.Raft
                 node.Value.Save(XmlDocument, Self);
             }
 
-            using (TextWriter sw = new StreamWriter(XmlFileName, false, new UTF8Encoding(false)))
+            using (TextWriter sw = Gen.Program.OpenStreamWriter(XmlFileName))
             {
                 XmlDocument.Save(sw);
             }

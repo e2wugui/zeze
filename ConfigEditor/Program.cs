@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ConfigEditor
 {
-    static class Program
+    public static class Program
     {
         /// <summary>
         /// The main entry point for the application.
@@ -17,6 +19,12 @@ namespace ConfigEditor
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormMain());
+        }
+
+        public static Encoding EncodingUtf8NoBom = new UTF8Encoding(false);
+        public static StreamWriter OpenStreamWriter(string file, bool append = false)
+        {
+            return new StreamWriter(file, append, EncodingUtf8NoBom) { NewLine = "\n" };
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Xml;
 
@@ -221,13 +222,18 @@ namespace Zeze.Gen
             if (!exists || overwrite)
             {
                 Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
-                System.IO.StreamWriter sw = new System.IO.StreamWriter(fullFileName, false, new UTF8Encoding(false));
+                System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
                 return sw;
             }
             Program.Print("file skip '" + fullFileName + "'");
             return null;
         }
 
+        public static Encoding EncodingUtf8NoBom = new UTF8Encoding(false);
+        public static StreamWriter OpenStreamWriter(string file, bool append = false)
+        {
+            return new StreamWriter(file, append, EncodingUtf8NoBom) { NewLine = "\n" };
+        }
 
         public static string ToPinyin(string text)
         {

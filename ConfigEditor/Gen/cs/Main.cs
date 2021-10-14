@@ -49,7 +49,7 @@ namespace ConfigEditor.Gen.cs
             string dir = System.IO.Path.Combine(srcdir, Document.NamespacePrefix);
             System.IO.Directory.CreateDirectory(dir);
             string file = System.IO.Path.Combine(dir, "Manager.cs");
-            using (System.IO.StreamWriter sw = new System.IO.StreamWriter(file, false, new UTF8Encoding(false)))
+            using (System.IO.StreamWriter sw = Program.OpenStreamWriter(file))
             {
                 sw.WriteLine("// auto generate");
                 sw.WriteLine();

@@ -51,7 +51,7 @@ namespace Zeze.Util
 
         public void SaveFile(string fileName, ChunkProcess cp, Encoding encoding)
         {
-            using System.IO.StreamWriter sw = new System.IO.StreamWriter(fileName, false, encoding);
+            using System.IO.StreamWriter sw = Gen.Program.OpenStreamWriter(fileName);
             foreach (var chunk in Chunks)
             {
                 switch (chunk.State)

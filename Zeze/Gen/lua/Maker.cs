@@ -40,7 +40,7 @@ namespace Zeze.Gen.lua
             System.IO.Directory.CreateDirectory(genDir);
 
             string metaFileName = System.IO.Path.Combine(genDir, "ZezeMeta.lua");
-            using System.IO.StreamWriter swMeta = new System.IO.StreamWriter(metaFileName, false, new UTF8Encoding(false));
+            using System.IO.StreamWriter swMeta = Program.OpenStreamWriter(metaFileName);
             swMeta.WriteLine("-- auto-generated");
             swMeta.WriteLine("local meta = {}");
             swMeta.WriteLine("meta.beans = {}");
@@ -96,7 +96,7 @@ namespace Zeze.Gen.lua
             {
                 ModuleSpace solution = Project.Solution;
 
-                using System.IO.StreamWriter sw = new System.IO.StreamWriter(System.IO.Path.Combine(genDir, solution.Name + ".lua"), false, new UTF8Encoding(false));
+                using System.IO.StreamWriter sw = Program.OpenStreamWriter(System.IO.Path.Combine(genDir, solution.Name + ".lua"));
                 if (null != depth0) // 引用了solution内定义的bean，先调用ModuleFormatter生成
                 {
                     new ModuleFormatter(Project, solution, genDir, srcDir).MakeGen(sw);
@@ -127,7 +127,7 @@ namespace Zeze.Gen.lua
             string dispatcherFileName = System.IO.Path.Combine(srcDir, "Zeze.lua");
             if (false == System.IO.File.Exists(dispatcherFileName))
             {
-                using System.IO.StreamWriter swDispatcher = new System.IO.StreamWriter(dispatcherFileName, false, new UTF8Encoding(false));
+                using System.IO.StreamWriter swDispatcher = Program.OpenStreamWriter(dispatcherFileName);
 
                 swDispatcher.WriteLine("");
                 swDispatcher.WriteLine("local Zeze = { }");

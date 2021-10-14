@@ -352,9 +352,7 @@ namespace Zeze.Util
             }
             else
             {
-                using (TextWriter sw = new StreamWriter(
-                    targetXmlFile,
-                    false, utf8NoBom))
+                using (TextWriter sw = Gen.Program.OpenStreamWriter(targetXmlFile))
                 {
                     doc.Save(sw);
                 }

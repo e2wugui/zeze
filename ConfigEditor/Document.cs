@@ -46,7 +46,7 @@ namespace ConfigEditor
             string dir = Path.Combine(srcHome, NamespacePrefix, File.Parent.RelateName);
             Directory.CreateDirectory(dir);
             string path = Path.Combine(dir, Name + ext);
-            return new StreamWriter(path, false, new UTF8Encoding(false));
+            return Program.OpenStreamWriter(path);
         }
 
         public void AddBean(Bean bean)
@@ -150,7 +150,7 @@ namespace ConfigEditor
                 b.SaveAs(xml, xml.DocumentElement, create, flags);
             }
 
-            using (TextWriter sw = new StreamWriter(fileName, false, new UTF8Encoding(false)))
+            using (TextWriter sw = Program.OpenStreamWriter(fileName))
             {
                 xml.Save(sw);
             }
