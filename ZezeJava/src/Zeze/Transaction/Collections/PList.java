@@ -21,17 +21,16 @@ public abstract class PList<E> extends PCollection implements Iterable<E> {
 		return _logFactory.create(value);
 	}
 
-	public abstract class LogV extends Log {
+	public abstract static class LogV<E> extends Log {
 		public PVector<E> Value;
 
-		protected LogV(Bean bean, PVector<E> last) {
+		public LogV(Bean bean, PVector<E> last) {
 			super(bean);
 			this.Value = last;
 		}
 
-		@Override
-		public final void Commit() {
-			list = Value;
+		public final void Commit(PList<E> variable) {
+			variable.list = Value;
 		}
 	}
 
@@ -46,7 +45,7 @@ public abstract class PList<E> extends PCollection implements Iterable<E> {
 			var log = txn.GetLog(LogKey);
 			if (null == log)
 				return list;
-			return ((LogV)log).Value;
+			return ((LogV<E>)log).Value;
 		}
 		return list;
 	}

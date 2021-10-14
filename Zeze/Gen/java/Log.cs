@@ -85,16 +85,29 @@ namespace Zeze.Gen.java
             WriteLogValue(type);
         }
 
+        private string GetTemplatParams(Types.Type type)
+        {
+            if (type is TypeCollection coll)
+            {
+                return BoxingName.GetName(coll.ValueType);
+            }
+            else if (type is TypeMap map)
+            {
+                return $"{BoxingName.GetName(map.KeyType)}, {BoxingName.GetName(map.ValueType)}";
+            }
+            throw new Exception("Not A Container Type");
+        }
+
         private void WriteCollectionLog(Types.Type type)
         {
+            var pn = GetTemplatParams(type);
             var tn = new TypeName();
             type.Accept(tn);
 
-            sw.WriteLine(prefix + "private final class Log_" + var.NamePrivate + " extends " + tn.name + ".LogV {");
+            sw.WriteLine(prefix + $"private final class Log_{var.NamePrivate} extends {tn.nameRaw}.LogV<{pn}> {{");
             sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " host, " + tn.nameCollectionImplement + " value) { super(host, value); }");
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + "    public long getLogKey() { return getBean().getObjectId() + " + var.Id + "; }");
-            sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + "    public " + bean.Name + " getBeanTyped() { return (" + bean.Name + ")getBean(); }");
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + "    public void Commit() { Commit(getBeanTyped()." + var.NamePrivate + "); }");
@@ -131,24 +144,24 @@ namespace Zeze.Gen.java
             // TypeDynamic 使用写好的类 Zeze.Transaction.DynamicBean，
             // 不再需要生成Log。在这里生成 DynamicBean 需要的两个方法。
             sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean) {{");
-            sw.WriteLine($"{prefix}    switch (bean.getTypeId()) {{");
-            sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;");
+            sw.WriteLine($"{prefix}    var _typeId_ = bean.getTypeId();");
+            sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)");
+            sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.TYPEID;");
             foreach (var real in type.RealBeans)
             {
-                sw.WriteLine($"{prefix}        case {real.Value.TypeId}: return {real.Key}; // {real.Value.FullName}");
+                sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
+                sw.WriteLine($"{prefix}        return {real.Key}; // {real.Value.FullName}");
             }
-            sw.WriteLine($"{prefix}    }}");
             sw.WriteLine($"{prefix}    throw new RuntimeException(\"Unknown Bean! dynamic@{(var.Bean as Bean).FullName}:{var.Name}\");");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId) {{");
-            sw.WriteLine($"{prefix}    switch (typeId) {{");
-            //sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
+            //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             foreach (var real in type.RealBeans)
             {
-                sw.WriteLine($"{prefix}        case {real.Key}: return new {real.Value.FullName}();");
+                sw.WriteLine($"{prefix}    if (typeId == {real.Key}L)");
+                sw.WriteLine($"{prefix}        return new {real.Value.FullName}();");
             }
-            sw.WriteLine($"{prefix}    }}");
             sw.WriteLine($"{prefix}    return null;");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();

@@ -150,7 +150,7 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "level++;");
-            sw.WriteLine(prefix + $"for (var _kv_ : {getter}().entrySet()) {{");
+            sw.WriteLine(prefix + $"for (var _kv_ : {getter}.entrySet()) {{");
             sw.WriteLine(prefix + "    sb.append(\"(\").append(System.lineSeparator());");
             type.KeyType.Accept(new Tostring(sw, "Key", "_kv_.getKey()", prefix + "    ", ","));
             type.ValueType.Accept(new Tostring(sw, "Value", "_kv_.getValue()", prefix + "    ", ","));

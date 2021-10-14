@@ -29,7 +29,7 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldm = null != log ? ((LogV)log).Value : map;
+			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
 			var newm = oldm.plusAll(m);
 			if (newm != oldm) {
 				txn.PutLog(NewLog(newm));
@@ -61,7 +61,7 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			var oldm = null != log ? ((LogV)log).Value : map;
+			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
 			var oldv = oldm.get(key);
 			var newm = oldm.plus(key, value);
 			if (newm != oldm) {
@@ -84,7 +84,7 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldm = null != log ? ((LogV)log).Value : map;
+			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
 			if (!oldm.isEmpty()) {
 				@SuppressWarnings("unchecked")
 				ChangeNoteMap2<K, V> note = (ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<K, V>(this));
@@ -106,7 +106,7 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			var oldm = null != log ? ((LogV)log).Value : map;
+			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
 			var newm = oldm.minus(key);
 			if (newm != oldm) {
 				txn.PutLog(NewLog(newm));
@@ -131,7 +131,7 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			var oldm = null != log ? ((LogV)log).Value : map;
+			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
 			Object olde = oldm.get(item.getKey());
 			if (null == olde)
 				return false;

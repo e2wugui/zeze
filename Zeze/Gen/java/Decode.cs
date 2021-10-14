@@ -148,7 +148,7 @@ namespace Zeze.Gen.java
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (ByteBuffer.DOUBLE | " + id + " << ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadDouble()" + ";"));
+                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadDouble()") + ";");
                 sw.WriteLine(prefix + "    break;");
             }
             else
@@ -204,12 +204,12 @@ namespace Zeze.Gen.java
             if (id >= 0)
             {
                 sw.WriteLine(prefix + "case (ByteBuffer.BYTES | " + id + " << ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadBinary()" + ";"));
+                sw.WriteLine(prefix + "    " + AssignText($"{bufname}.ReadBinary()") + ";");
                 sw.WriteLine(prefix + "    break;");
             }
             else
             {
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadBinary()" + ";"));
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadBinary()") + ";");
             }
         }
 
@@ -274,7 +274,7 @@ namespace Zeze.Gen.java
 
             sw.WriteLine(prefix + "case (ByteBuffer.MAP | " + id + " << ByteBuffer.TAG_SHIFT):");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        _os_.BeginReadSegment(out var _state_);");
+            sw.WriteLine(prefix + "        var _state_ = _os_.BeginReadSegment();");
             sw.WriteLine(prefix + "        _os_.ReadInt(); // skip key typetag");
             sw.WriteLine(prefix + "        _os_.ReadInt(); // skip value typetag");
             sw.WriteLine(prefix + "        " + var.Getter + ".clear();");

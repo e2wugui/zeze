@@ -23,7 +23,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			var oldv = null != log ? ((LogV)log).Value : list;
+			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			var olde = oldv.get(index);
 			txn.PutLog(NewLog(oldv.plus(index, value)));
 			return olde;
@@ -48,7 +48,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV)log).Value : list;
+			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.plus(item)));
 		}
 		else {
@@ -74,7 +74,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV)log).Value : list;
+			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.plusAll(items)));
 		}
 		else {
@@ -89,7 +89,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV)log).Value : list;
+			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			if (!oldv.isEmpty()) {
 				txn.PutLog(NewLog(Empty.vector()));
 			}
@@ -112,7 +112,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV)log).Value : list;
+			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.plus(index, item)));
 		}
 		else {
@@ -127,7 +127,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV)log).Value : list;
+			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			var newv = oldv.minus(item);
 			if (oldv != newv) {
 				txn.PutLog(NewLog(newv));
@@ -149,7 +149,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV)log).Value : list;
+			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.minus(index)));
 		}
 		else {

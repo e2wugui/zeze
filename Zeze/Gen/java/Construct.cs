@@ -96,13 +96,13 @@ namespace Zeze.Gen.java
         public void Visit(TypeList type)
         {
             String typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(getObjectId() + " + variable.Id + ", _v => new Log_" + variable.NamePrivate + "(this, _v));");
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(getObjectId() + " + variable.Id + ", (_v) -> new Log_" + variable.NamePrivate + "(this, _v));");
         }
 
         public void Visit(TypeSet type)
         {
             String typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(getObjectId() + " + variable.Id + ", _v => new Log_" + variable.NamePrivate + "(this, _v));");
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(getObjectId() + " + variable.Id + ", (_v) -> new Log_" + variable.NamePrivate + "(this, _v));");
         }
 
         public void Visit(TypeMap type)

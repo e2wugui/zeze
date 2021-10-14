@@ -20,15 +20,15 @@ public abstract class PMap<K, V> extends PCollection {
 		return _logFactory.create(value);
 	}
 
-	public abstract class LogV extends Log {
+	public abstract static class LogV<K, V> extends Log {
 		public org.pcollections.PMap<K, V> Value;
 		protected LogV(Bean bean, org.pcollections.PMap<K, V> value) {
 			super(bean);
 			Value = value;
 		}
 
-		protected final void Commit(PMap<K, V> variable) {
-			variable.map = Value;
+		public final void Commit(PMap<K, V> var) {
+			var.map = Value;
 		}
 	}
 
@@ -41,7 +41,7 @@ public abstract class PMap<K, V> extends PCollection {
 			txn.VerifyRecordAccessed(this, true);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV)log).Value : map;
+			var oldv = null != log ? ((LogV<K, V>)log).Value : map;
 			return oldv;
 		}
 		else {

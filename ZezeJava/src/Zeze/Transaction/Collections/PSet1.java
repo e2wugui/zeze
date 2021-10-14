@@ -20,7 +20,7 @@ public final class PSet1<E> extends PSet<E> {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			var olds = null != log ? ((LogV)log).Value : set;
+			var olds = null != log ? ((LogV<E>)log).Value : set;
 			var news = olds.plus(item);
 			if (news != olds) {
 				txn.PutLog(NewLog(news));
@@ -45,7 +45,7 @@ public final class PSet1<E> extends PSet<E> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var olds = null != log ? ((LogV)log).Value : set;
+			var olds = null != log ? ((LogV<E>)log).Value : set;
 			if (!olds.isEmpty()) {
 				txn.PutLog(NewLog(Empty.set()));
 				@SuppressWarnings("unchecked")
@@ -68,7 +68,7 @@ public final class PSet1<E> extends PSet<E> {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			var olds = null != log ? ((LogV)log).Value : set;
+			var olds = null != log ? ((LogV<E>)log).Value : set;
 			var news = olds.minus(item);
 			if (news != olds) {
 				txn.PutLog(NewLog(news));
@@ -96,7 +96,7 @@ public final class PSet1<E> extends PSet<E> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var olds = null != log ? ((LogV)log).Value : set;
+			var olds = null != log ? ((LogV<E>)log).Value : set;
 			var news = olds.plusAll(c);
 			if (news != olds) {
 				txn.PutLog(NewLog(news));
@@ -120,7 +120,7 @@ public final class PSet1<E> extends PSet<E> {
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var olds = null != log ? ((LogV)log).Value : set;
+			var olds = null != log ? ((LogV<E>)log).Value : set;
 			var news = olds.minusAll(c);
 			if (news != olds) {
 				txn.PutLog(NewLog(news));

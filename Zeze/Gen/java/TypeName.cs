@@ -9,6 +9,7 @@ namespace Zeze.Gen.java
     {
         public string name;
         public string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
+        public string nameRaw; // 容器，其他为null。
 
         public static string GetName(Types.Type type)
         {
@@ -65,14 +66,16 @@ namespace Zeze.Gen.java
         public virtual void Visit(TypeList type)
         {
             string valueName = BoxingName.GetName(type.ValueType);
-            name = "Zeze.Transaction.Collections.PList" + (type.ValueType.IsNormalBean ? "2<" : "1<")  + valueName + ">";
+            nameRaw = "Zeze.Transaction.Collections.PList";
+            name = nameRaw + (type.ValueType.IsNormalBean ? "2<" : "1<")  + valueName + ">";
             nameCollectionImplement = "org.pcollections.PVector<" + valueName + ">";
         }
 
         public virtual void Visit(TypeSet type)
         {
             string valueName = BoxingName.GetName(type.ValueType);
-            name = "Zeze.Transaction.Collections.PSet1<" + valueName + ">";
+            nameRaw = "Zeze.Transaction.Collections.PSet";
+            name = nameRaw + "1<" + valueName + " >";
             nameCollectionImplement = "org.pcollections.PSet<" + valueName + ">";
         }
 
@@ -80,7 +83,8 @@ namespace Zeze.Gen.java
         {
             string key = BoxingName.GetName(type.KeyType);
             string value = BoxingName.GetName(type.ValueType);
-            name = "Zeze.Transaction.Collections.PMap" + (type.ValueType.IsNormalBean ? "2<" : "1<") + key + ", " + value + ">";
+            nameRaw = "Zeze.Transaction.Collections.PMap";
+            name = nameRaw + (type.ValueType.IsNormalBean ? "2<" : "1<") + key + ", " + value + ">";
             nameCollectionImplement = "org.pcollections.PMap<" + key + ", " + value + ">";
         }
 

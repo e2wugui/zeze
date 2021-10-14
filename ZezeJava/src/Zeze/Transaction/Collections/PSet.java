@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import org.pcollections.Empty;
 
-public abstract class PSet<E> extends PCollection {
+public abstract class PSet<E> extends PCollection implements Iterable<E> {
 	private final LogFactory<org.pcollections.PSet<E>> _logFactory;
 
 	protected org.pcollections.PSet<E> set;
@@ -21,7 +21,7 @@ public abstract class PSet<E> extends PCollection {
 		return _logFactory.create(value);
 	}
 
-	public abstract class LogV extends Log {
+	public abstract static class LogV<E> extends Log {
 		public org.pcollections.PSet<E> Value;
 
 		protected LogV(Bean bean, org.pcollections.PSet<E> value) {
@@ -43,7 +43,7 @@ public abstract class PSet<E> extends PCollection {
 			txn.VerifyRecordAccessed(this, true);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var olds = null != log ? ((LogV)log).Value : set;
+			var olds = null != log ? ((LogV<E>)log).Value : set;
 			return olds;
 		}
 		return set;
@@ -81,5 +81,10 @@ public abstract class PSet<E> extends PCollection {
 		for (var e : getData()) {
 			array[index++] = e;
 		}
+	}
+	
+	@Override
+	public Iterator<E> iterator() {
+		return getData().iterator();
 	}
 }

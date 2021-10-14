@@ -209,10 +209,10 @@ namespace Zeze.Gen.java
                 string rname = TypeName.GetName(real);
                 string pname = "get" + var.NameUpper1 + "_" + real.Space.Path("_", real.Name) + "()";
                 sw.WriteLine(prefix + "public " + rname + " " + pname + "{");
-                sw.WriteLine(prefix + "    return (" + rname + ")" + var.Getter + ".Bean;");
+                sw.WriteLine(prefix + "    return (" + rname + ")" + var.Getter + ".getBean();");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine(prefix + $"public void {var.Setter($"{rname} value")} {{");
-                sw.WriteLine(prefix + "    " + var.Getter + ".Bean = value;");
+                sw.WriteLine(prefix + "    " + var.Getter + ".setBean(value);");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
                 //sw.WriteLine(prefix + rname + "ReadOnly " + beanNameReadOnly + "." + pname + " => " + pname + ";");
