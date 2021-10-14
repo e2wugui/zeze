@@ -32,9 +32,10 @@ namespace Zeze.Gen.java
             }
             return type.Name;
         }
+
         public void Make()
         {
-            using System.IO.StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.cs");
+            using System.IO.StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.java");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");

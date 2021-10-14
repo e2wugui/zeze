@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Zeze.Gen.Types;
 
-namespace Zeze.Gen.cs
+namespace Zeze.Gen.java
 {
     class NegativeCheck : Types.Visitor
     {
@@ -13,13 +13,13 @@ namespace Zeze.Gen.cs
 
         public static void Make(Types.Bean bean, System.IO.StreamWriter sw, String prefix)
         {
-            sw.WriteLine(prefix + "public override bool NegativeCheck()");
-            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "@Override");
+            sw.WriteLine(prefix + "public boolean NegativeCheck() {");
             foreach (Types.Variable var in bean.Variables)
             {
                 if (var.AllowNegative)
                     continue;
-                var.VariableType.Accept(new NegativeCheck(sw, var.NameUpper1, prefix + "    "));
+                var.VariableType.Accept(new NegativeCheck(sw, var.Getter, prefix + "    "));
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
@@ -28,13 +28,12 @@ namespace Zeze.Gen.cs
 
         public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, String prefix)
         {
-            sw.WriteLine(prefix + "public bool NegativeCheck()");
-            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "public boolean NegativeCheck() {");
             foreach (Types.Variable var in bean.Variables)
             {
                 if (var.AllowNegative)
                     continue;
-                var.VariableType.Accept(new NegativeCheck(sw, var.NameUpper1, prefix + "    "));
+                var.VariableType.Accept(new NegativeCheck(sw, var.Getter, prefix + "    "));
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
@@ -94,7 +93,7 @@ namespace Zeze.Gen.cs
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "foreach (var _v_ in " + varname + ")");
+                sw.WriteLine(prefix + "for (var _v_ : " + varname + ")");
                 sw.WriteLine(prefix + "{");
                 type.ValueType.Accept(new NegativeCheck(sw, "_v_", prefix + "    "));
                 sw.WriteLine(prefix + "}");
@@ -105,7 +104,7 @@ namespace Zeze.Gen.cs
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "foreach (var _v_ in " + varname + ")");
+                sw.WriteLine(prefix + "for (var _v_ : " + varname + ")");
                 sw.WriteLine(prefix + "{");
                 type.ValueType.Accept(new NegativeCheck(sw, "_v_", prefix + "    "));
                 sw.WriteLine(prefix + "}");
@@ -116,7 +115,7 @@ namespace Zeze.Gen.cs
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "foreach (var _v_ in " + varname + ".Values)");
+                sw.WriteLine(prefix + "for (var _v_ : " + varname + ".values())");
                 sw.WriteLine(prefix + "{");
                 type.ValueType.Accept(new NegativeCheck(sw, "_v_", prefix + "    "));
                 sw.WriteLine(prefix + "}");

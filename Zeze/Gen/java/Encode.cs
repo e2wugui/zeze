@@ -29,6 +29,7 @@ namespace Zeze.Gen.java
 
         public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
         {
+            sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Encode(ByteBuffer _os_) {");
             sw.WriteLine(prefix + "    _os_.WriteInt(" + bean.Variables.Count + "); // Variables.Count");
 
@@ -153,8 +154,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    var _state_ = _os_.BeginWriteSegment();");
             sw.WriteLine(prefix + "    _os_.WriteInt(" + TypeTagName.GetName(vt) + ");");
-            sw.WriteLine(prefix + "    _os_.WriteInt(" + varname + ".Count);");
-            sw.WriteLine(prefix + "    foreach (var _v_ in " + varname + ") {");
+            sw.WriteLine(prefix + "    _os_.WriteInt(" + varname + ".size());");
+            sw.WriteLine(prefix + "    for (var _v_ : " + varname + ") {");
             vt.Accept(new Encode("_v_", -1, "_os_", sw, prefix + "        "));
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    _os_.EndWriteSegment(_state_); ");
@@ -187,14 +188,14 @@ namespace Zeze.Gen.java
 
             sw.WriteLine(prefix + bufname + ".WriteInt(ByteBuffer.MAP | " + id + " << ByteBuffer.TAG_SHIFT);");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    _os_.BeginWriteSegment(out var _state_);");
+            sw.WriteLine(prefix + "    var _state_ = _os_.BeginWriteSegment();");
             sw.WriteLine(prefix + "    _os_.WriteInt(" + TypeTagName.GetName(keytype) + ");");
             sw.WriteLine(prefix + "    _os_.WriteInt(" + TypeTagName.GetName(valuetype) + ");");
-            sw.WriteLine(prefix + "    _os_.WriteInt(" + varname + ".Count);");
-            sw.WriteLine(prefix + "    foreach (var _e_ in " + varname + ")");
+            sw.WriteLine(prefix + "    _os_.WriteInt(" + varname + ".size());");
+            sw.WriteLine(prefix + "    for  (var _e_ : " + varname + ".entrySet())");
             sw.WriteLine(prefix + "    {");
-            keytype.Accept(new Encode("_e_.Key", -1, "_os_", sw, prefix + "        "));
-            valuetype.Accept(new Encode("_e_.Value", -1, "_os_", sw, prefix + "        "));
+            keytype.Accept(new Encode("_e_.getKey()", -1, "_os_", sw, prefix + "        "));
+            valuetype.Accept(new Encode("_e_.getValue()", -1, "_os_", sw, prefix + "        "));
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    _os_.EndWriteSegment(_state_); ");
             sw.WriteLine(prefix + "}");

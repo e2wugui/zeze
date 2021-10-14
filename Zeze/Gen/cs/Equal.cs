@@ -5,6 +5,8 @@ using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
+    // 现在这个类仅用于BeanKey，如果普通Bean要支持，
+    // 需要使用NameUpper1进行比较，而不是NamePrivate。
     public class Equal : Types.Visitor
     {
         private Types.Variable var;

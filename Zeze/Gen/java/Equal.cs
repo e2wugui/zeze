@@ -47,37 +47,43 @@ namespace Zeze.Gen.java
 
         void Visitor.Visit(Bean type)
         {
-            text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";
+            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
         }
 
         void Visitor.Visit(BeanKey type)
         {
-            text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";
+            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+        }
+
+        void EqualsOnCompare(string typeWrapperName)
+        {
+            var eq = (isEquals ? " == " : " != ");
+            text = $"{typeWrapperName}.compare({var.Getter}, {another}.{var.Getter}){eq}0";
         }
 
         void Visitor.Visit(TypeByte type)
         {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
+            EqualsOnCompare("Byte");
         }
 
         void Visitor.Visit(TypeDouble type)
         {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
+            EqualsOnCompare("Double");
         }
 
         void Visitor.Visit(TypeInt type)
         {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
+            EqualsOnCompare("Integer");
         }
 
         void Visitor.Visit(TypeLong type)
         {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
+            EqualsOnCompare("Long");
         }
 
         void Visitor.Visit(TypeBool type)
         {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
+            EqualsOnCompare("Boolean");
         }
 
         void Visitor.Visit(TypeBinary type)
@@ -87,7 +93,7 @@ namespace Zeze.Gen.java
 
         void Visitor.Visit(TypeString type)
         {
-            text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";
+            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
         }
 
         void Visitor.Visit(TypeList type)
@@ -107,12 +113,12 @@ namespace Zeze.Gen.java
 
         void Visitor.Visit(TypeFloat type)
         {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
+            EqualsOnCompare("Float");
         }
 
         void Visitor.Visit(TypeShort type)
         {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
+            EqualsOnCompare("Short");
         }
 
         void Visitor.Visit(TypeDynamic type)
