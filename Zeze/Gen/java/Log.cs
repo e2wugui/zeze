@@ -36,11 +36,12 @@ namespace Zeze.Gen.java
         private void WriteLogValue(Types.Type type)
         {
             string valueName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "private sealed class Log_" + var.NamePrivate + " : Zeze.Transaction.Log<" + bean.Name + ", " + valueName + ">");
-            sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " self, " + valueName + " value) : base(self, value) { }");
-            sw.WriteLine(prefix + "    public override long LogKey => this.Bean.ObjectId + " + var.Id + ";");
-            sw.WriteLine(prefix + "    public override void Commit() { this.BeanTyped." + var.NamePrivate + " = this.Value; }");
+            sw.WriteLine(prefix + "private final static class Log_" + var.NamePrivate + " : Zeze.Transaction.Log1<" + bean.Name + ", " + valueName + "> {");
+            sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " self, " + valueName + " value) { super(self, value); }");
+            sw.WriteLine(prefix + "    @Override");
+            sw.WriteLine(prefix + "    public long getLogKey() { return this.Bean.getObjectId() + " + var.Id + "; }");
+            sw.WriteLine(prefix + "    @Override");
+            sw.WriteLine(prefix + "    public void Commit() { this.BeanTyped." + var.NamePrivate + " = this.Value; }");
             sw.WriteLine(prefix + "}");
         }
 
@@ -89,12 +90,14 @@ namespace Zeze.Gen.java
             var tn = new TypeName();
             type.Accept(tn);
 
-            sw.WriteLine(prefix + "private sealed class Log_" + var.NamePrivate + " : " + tn.name + ".LogV");
-            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "private sealed class Log_" + var.NamePrivate + " : " + tn.name + ".LogV {");
             sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " host, " + tn.nameCollectionImplement + " value) : base(host, value) { }");
-            sw.WriteLine(prefix + "    public override long LogKey => Bean.ObjectId + " + var.Id + ";");
-            sw.WriteLine(prefix + "    public " + bean.Name + " BeanTyped => (" + bean.Name + ")Bean;");
-            sw.WriteLine(prefix + "    public override void Commit() { Commit(BeanTyped." + var.NamePrivate + "); }");
+            sw.WriteLine(prefix + "    @Override");
+            sw.WriteLine(prefix + "    public long getLogKey() { return Bean.getObjectId() + " + var.Id + "; }");
+            sw.WriteLine(prefix + "    @Override");
+            sw.WriteLine(prefix + "    public " + bean.Name + " getBeanTyped() { return (" + bean.Name + ")Bean; }");
+            sw.WriteLine(prefix + "    @Override");
+            sw.WriteLine(prefix + "    public void Commit() { Commit(getBeanTyped()." + var.NamePrivate + "); }");
             sw.WriteLine(prefix + "}");
         }
 
@@ -127,23 +130,19 @@ namespace Zeze.Gen.java
         {
             // TypeDynamic 使用写好的类 Zeze.Transaction.DynamicBean，
             // 不再需要生成Log。在这里生成 DynamicBean 需要的两个方法。
-            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean)");
-            sw.WriteLine($"{prefix}{{");
-            sw.WriteLine($"{prefix}    switch (bean.TypeId)");
-            sw.WriteLine($"{prefix}    {{");
+            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean) {{");
+            sw.WriteLine($"{prefix}    switch (bean.getTypeId()) {{");
             sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;");
             foreach (var real in type.RealBeans)
             {
                 sw.WriteLine($"{prefix}        case {real.Value.TypeId}: return {real.Key}; // {real.Value.FullName}");
             }
             sw.WriteLine($"{prefix}    }}");
-            sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{(var.Bean as Bean).FullName}:{var.Name}\");");
+            sw.WriteLine($"{prefix}    throw new RuntimeException(\"Unknown Bean! dynamic@{(var.Bean as Bean).FullName}:{var.Name}\");");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId)");
-            sw.WriteLine($"{prefix}{{");
-            sw.WriteLine($"{prefix}    switch (typeId)");
-            sw.WriteLine($"{prefix}    {{");
+            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId) {{");
+            sw.WriteLine($"{prefix}    switch (typeId) {{");
             //sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             foreach (var real in type.RealBeans)
             {

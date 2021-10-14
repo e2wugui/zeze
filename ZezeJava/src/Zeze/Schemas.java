@@ -281,6 +281,10 @@ public class Schemas implements Serializable {
         public Type Type;
         public boolean Deleted = false;
 
+        public Variable() {
+        	
+        }
+
         @Override
         public void Decode(ByteBuffer bb) {
             Id = bb.ReadInt();
@@ -365,6 +369,15 @@ public class Schemas implements Serializable {
 		}
 		private void setRealName(String value) {
 			RealName = value;
+		}
+
+		public Bean() {
+			
+		}
+
+		public Bean(String name, boolean isbeankey) {
+			Name = name;
+			IsBeanKey = isbeankey;
 		}
 
 		/** 
@@ -564,6 +577,16 @@ public class Schemas implements Serializable {
         public String ValueName;
         public Type KeyType;
         public Type ValueType;
+
+        public Table() {
+        	
+        }
+
+        public Table(String n, String k, String v) {
+        	Name = n;
+        	KeyName = k;
+        	ValueName = v;
+        }
 
         @Override
         public void Decode(ByteBuffer bb) {
