@@ -1,6 +1,6 @@
 ﻿package demo;
 
-public class App extends AppBaseGen {
+public class App extends AppBase {
     public static App Instance = new App();
     public static App getInstance() {
         return Instance;

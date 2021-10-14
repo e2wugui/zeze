@@ -20,7 +20,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("package " + p.Space.Path() + ";");
             sw.WriteLine("");
             string argument = p.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(p.ArgumentType);
-            sw.WriteLine("public class " + p.Name + " : Zeze.Net.Protocol1<" + argument + "> {");
+            sw.WriteLine("public class " + p.Name + " extends Zeze.Net.Protocol1<" + argument + "> {");
             sw.WriteLine("    public final static int ModuleId_ = " + p.Space.Id + ";");
             sw.WriteLine("    public final static int ProtocolId_ = " + p.Id + ";");
             sw.WriteLine("    public final static int TypeId_ = ModuleId_ << 16 | ProtocolId_; ");
@@ -60,7 +60,6 @@ namespace Zeze.Gen.java
                 sw.WriteLine("");
             }
             */
-            sw.WriteLine("    }");
             sw.WriteLine("}");
         }
     }

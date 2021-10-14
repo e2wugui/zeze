@@ -2,10 +2,87 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="Gen"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/Zeze"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="/Zeze/lib/commons-dbcp2-2.9.0.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/commons-pool2-2.11.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-1.2-api-2.14.1.jar" sourcepath="/Zeze/lib/log4j-api-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-1.2-api-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-1.2-api-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-api-2.14.1.jar" sourcepath="/Zeze/lib/log4j-api-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-api-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-api-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-appserver-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-appserver-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-appserver-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-cassandra-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-cassandra-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-cassandra-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-core-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-core-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-core-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-core-2.14.1-tests.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-couchdb-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-couchdb-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-couchdb-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-docker-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-docker-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-docker-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-flume-ng-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-flume-ng-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-flume-ng-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-iostreams-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-iostreams-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-iostreams-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jcl-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jcl-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jcl-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jdbc-dbcp2-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jdbc-dbcp2-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jdbc-dbcp2-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jmx-gui-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jmx-gui-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jmx-gui-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jpa-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jpa-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jpa-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jul-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jul-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-jul-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-liquibase-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-liquibase-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-liquibase-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-mongodb3-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-mongodb3-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-mongodb3-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-mongodb4-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-mongodb4-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-mongodb4-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-slf4j18-impl-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-slf4j18-impl-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-slf4j18-impl-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-slf4j-impl-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-slf4j-impl-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-slf4j-impl-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-spring-boot-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-spring-boot-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-spring-boot-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-spring-cloud-config-client-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-spring-cloud-config-client-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-spring-cloud-config-client-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-taglib-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-taglib-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-taglib-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-to-slf4j-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-to-slf4j-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-to-slf4j-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-web-2.14.1.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-web-2.14.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/log4j-web-2.14.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Zeze/lib/pcollections-3.1.4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

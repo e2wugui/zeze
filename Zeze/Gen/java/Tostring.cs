@@ -41,7 +41,7 @@ namespace Zeze.Gen.java
         public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, String prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public override String toString() {");
+            sw.WriteLine(prefix + "public String toString() {");
             sw.WriteLine(prefix + "    var sb = new StringBuilder();");
             sw.WriteLine(prefix + "    BuildString(sb, 0);");
             sw.WriteLine(prefix + "    sb.append(System.lineSeparator());");

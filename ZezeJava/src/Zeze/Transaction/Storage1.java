@@ -9,7 +9,7 @@ public final class Storage1<K, V extends Bean> extends Storage {
 		return Table;
 	}
 
-	public Storage1(Table1<K, V> table, Database database, String tableName) {
+	public Storage1(TableX<K, V> table, Database database, String tableName) {
 		Table = table;
 		setDatabaseTable(database.OpenTable(tableName));
 	}
@@ -113,7 +113,7 @@ public final class Storage1<K, V extends Bean> extends Storage {
 		snapshot.clear();
 	}
 
-	public V Find(K key, Table1<K, V> table) {
+	public V Find(K key, TableX<K, V> table) {
 		ByteBuffer value = getDatabaseTable().Find(table.EncodeKey(key));
 		return null != value ? table.DecodeValue(value) : null;
 	}

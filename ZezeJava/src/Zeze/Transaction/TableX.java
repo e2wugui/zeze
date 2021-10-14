@@ -7,10 +7,10 @@ import org.apache.logging.log4j.Logger;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AutoKey;
 
-public abstract class Table1<K, V extends Bean> extends Table {
-	private static final Logger logger = LogManager.getLogger(Table1.class);
+public abstract class TableX<K, V extends Bean> extends Table {
+	private static final Logger logger = LogManager.getLogger(TableX.class);
 
-	public Table1(String name) {
+	public TableX(String name) {
 		super(name);
 	}
 	private Application Zeze;

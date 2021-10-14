@@ -47,12 +47,12 @@ public class TableCache<K, V extends Bean> {
 		LruHot = value;
 	}
 
-	private Table1<K, V> Table;
-	public final Table1<K, V> getTable() {
+	private TableX<K, V> Table;
+	public final TableX<K, V> getTable() {
 		return Table;
 	}
 
-	public TableCache(Application app, Table1<K, V> table) {
+	public TableCache(Application app, TableX<K, V> table) {
 		this.Table = table;
 		DataMap = new HugeConcurrentDictionary<K, Record1<K, V>>(
 				GetCacheBuckets(), GetCacheConcurrencyLevel(), GetCacheInitialCapaicty());

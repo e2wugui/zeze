@@ -30,16 +30,13 @@ namespace Zeze.Gen.java
 
         public void MakePartialInGen()
         {
-            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + ".cs");
+            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + "Base.java");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("package " + service.Project.Solution.Path() + ";");
             sw.WriteLine("");
-            //sw.WriteLine("using Zeze.Serialize;");
-            //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
-            sw.WriteLine("public final class " + service.Name + "BaseGen : " + BaseClass() + " {");
-            sw.WriteLine("    public " + service.Name + "(Zeze.Application zeze) {");
+            sw.WriteLine("public class " + service.Name + "Base extends " + BaseClass() + " {");
+            sw.WriteLine("    public " + service.Name + "Base(Zeze.Application zeze) {");
             sw.WriteLine("        super(\"" + service.Name + "\", zeze)");
             sw.WriteLine("    }");
             sw.WriteLine("");
@@ -69,13 +66,16 @@ namespace Zeze.Gen.java
 
         public void MakePartialInSrc()
         {
-            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".cs", false);
+            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".java", false);
             if (null == sw)
                 return;
 
             sw.WriteLine("package " + service.Project.Solution.Path() + ";");
             sw.WriteLine("");
-            sw.WriteLine($"public class {service.Name} extends {service.Name}BaseGen {{");
+            sw.WriteLine($"public class {service.Name} extends {service.Name}Base {{");
+            sw.WriteLine("    public " + service.Name + "(Zeze.Application zeze) {");
+            sw.WriteLine("        super(zeze)");
+            sw.WriteLine("    }");
             sw.WriteLine("    // 重载需要的方法。");
             sw.WriteLine("}");
         }

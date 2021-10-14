@@ -22,7 +22,7 @@ namespace Zeze.Gen.java
             string argument = rpc.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ArgumentType);
             string result = rpc.ResultType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ResultType);
 
-            sw.WriteLine("public class " + rpc.Name + " : Zeze.Net.Rpc1<" + argument + ", " + result + "> {");
+            sw.WriteLine("public class " + rpc.Name + " extends Zeze.Net.Rpc<" + argument + ", " + result + "> {");
             sw.WriteLine("    public final static int ModuleId_ = " + rpc.Space.Id + ";");
             sw.WriteLine("    public final static int ProtocolId_ = " + rpc.Id + ";");
             sw.WriteLine("    public final static int TypeId_ = ModuleId_ << 16 | ProtocolId_; ");

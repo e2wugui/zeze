@@ -39,7 +39,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("");
             sw.WriteLine("import Zeze.Serialize.*;");
             sw.WriteLine("");
-            sw.WriteLine($"public final class {bean.Name} : Zeze.Transaction.Bean, {bean.Name}ReadOnly {{");
+            sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
             WriteDefine(sw);
             sw.WriteLine("}");
         }

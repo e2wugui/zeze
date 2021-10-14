@@ -23,7 +23,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("import Zeze.Serialize.*;");
 
             sw.WriteLine("");
-            sw.WriteLine($"public final class {beanKey.Name} : Serializable, Comparable<{beanKey.Name}> {{");
+            sw.WriteLine($"public final class {beanKey.Name} implements Serializable, Comparable<{beanKey.Name}> {{");
 
             // declare enums
             foreach (Types.Enum e in beanKey.Enums)

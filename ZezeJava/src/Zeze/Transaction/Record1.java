@@ -14,8 +14,8 @@ public class Record1<K, V extends Bean> extends Record {
 		return Key;
 	}
 
-	private Table1<K, V> TTable;
-	public final Table1<K, V> getTTable() {
+	private TableX<K, V> TTable;
+	public final TableX<K, V> getTTable() {
 		return TTable;
 	}
 
@@ -29,7 +29,7 @@ public class Record1<K, V extends Bean> extends Record {
 		return (V)getValue();
 	}
 
-	public Record1(Table1<K, V> table, K key, V value) {
+	public Record1(TableX<K, V> table, K key, V value) {
 		super(value);
 		this.TTable = table;
 		this.Key = key;

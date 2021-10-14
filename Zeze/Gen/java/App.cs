@@ -25,7 +25,7 @@ namespace Zeze.Gen.java
 
         public void MakePartialGen()
         {
-            using System.IO.StreamWriter sw = project.Solution.OpenWriter(genDir, "AppBaseGen.java");
+            using System.IO.StreamWriter sw = project.Solution.OpenWriter(genDir, "AppBase.java");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");
@@ -33,7 +33,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("");
             sw.WriteLine("import java.util.*;");
             sw.WriteLine("");
-            sw.WriteLine("public class AppBaseGen {");
+            sw.WriteLine("public class AppBase {");
             sw.WriteLine("    public Zeze.Application Zeze;");
             sw.WriteLine("    public HashMap<string, Zeze.IModule> Modules = new HashMap<>();");
             sw.WriteLine("");
@@ -154,7 +154,7 @@ namespace Zeze.Gen.java
 
             sw.WriteLine("package " + project.Solution.Path() + ";");
             sw.WriteLine("");
-            sw.WriteLine("public class App extends AppBaseGen {");
+            sw.WriteLine("public class App extends AppBase {");
             sw.WriteLine("    public static App Instance = new App();");
             sw.WriteLine("    public static App getInstance() {");
             sw.WriteLine("        return Instance;");

@@ -29,7 +29,7 @@ namespace Zeze.Gen.java
 
         public void MakePartialImplementInGen()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(genDir, $"AbstractModule{module.Name}Gen.java");
+            using System.IO.StreamWriter sw = module.OpenWriter(genDir, $"AbstractModule{module.Name}.java");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("package " + module.Path() + ";");
@@ -195,7 +195,7 @@ namespace Zeze.Gen.java
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
                         sw.WriteLine("    @Override");
-                        sw.WriteLine("    public int Process" + p.Name + "(Zeze.Net.Protocol _p)");
+                        sw.WriteLine("    public int Process" + p.Name + "(Zeze.Net.Protocol _p) {");
                         sw.WriteLine($"        var p = ({p.ShortNameIf(module)})_p;");
                         sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
                         sw.WriteLine("    }");
