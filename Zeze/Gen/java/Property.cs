@@ -54,7 +54,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + "{");
             if (checkNull)
             {
-                sw.WriteLine(prefix + "    if (null == value) throw new IllegalArgumentException();");
+                sw.WriteLine(prefix + "        if (null == value)");
+                sw.WriteLine(prefix + "            throw new IllegalArgumentException();");
             }
             sw.WriteLine(prefix + "    if (false == this.isManaged()) {");
             sw.WriteLine(prefix + "        " + var.NamePrivate + " = value;");
@@ -69,33 +70,7 @@ namespace Zeze.Gen.java
 
         public void Visit(BeanKey type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
-            sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    get");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
-            sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
-            sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this, true);");
-            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
-            sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    set");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (null == value)");
-            sw.WriteLine(prefix + "            throw new System.ArgumentNullException();");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
-            sw.WriteLine(prefix + "        {");
-            sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
-            sw.WriteLine(prefix + "            return;");
-            sw.WriteLine(prefix + "        }");
-            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
-            sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this);");
-            sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeByte type)
@@ -125,32 +100,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeBinary type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
-            sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    get");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
-            sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
-            sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this, true);");
-            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
-            sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    set");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (null == value) throw new System.ArgumentNullException();");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
-            sw.WriteLine(prefix + "        {");
-            sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
-            sw.WriteLine(prefix + "            return;");
-            sw.WriteLine(prefix + "        }");
-            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
-            sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this);");
-            sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeString type)
@@ -195,6 +145,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
+            /*
             var valueName = type.ValueType.IsNormalBean
                 ? TypeName.GetName(type.ValueType) + "ReadOnly"
                 : TypeName.GetName(type.ValueType);
@@ -202,6 +153,7 @@ namespace Zeze.Gen.java
             var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
             sw.WriteLine($"{prefix}System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {beanNameReadOnly}.{var.NameUpper1} => {var.NamePrivate}ReadOnly;");
             sw.WriteLine();
+            */
         }
 
         public void Visit(TypeFloat type)
@@ -217,9 +169,11 @@ namespace Zeze.Gen.java
         public void Visit(TypeDynamic type)
         {
             var typeName = TypeName.GetName(type);
-            var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
-            sw.WriteLine($"{prefix}public {typeName} {var.NameUpper1} => {var.NamePrivate};");
-            sw.WriteLine($"{prefix}{typeName}ReadOnly {beanNameReadOnly}.{var.NameUpper1} => {var.NameUpper1};");
+            //var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
+            sw.WriteLine($"{prefix}public {typeName} {var.Getter} {{");
+            sw.WriteLine($"{prefix}    return {var.NamePrivate};");
+            sw.WriteLine($"{prefix}}}");
+            //sw.WriteLine($"{prefix}{typeName}ReadOnly {beanNameReadOnly}.{var.NameUpper1} => {var.NameUpper1};");
             /*
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    get");
@@ -253,15 +207,16 @@ namespace Zeze.Gen.java
             foreach (Bean real in type.RealBeans.Values)
             {
                 string rname = TypeName.GetName(real);
-                string pname = var.NameUpper1 + "_" + real.Space.Path("_", real.Name);
-                sw.WriteLine(prefix + "public " + rname + " " + pname);
-                sw.WriteLine(prefix + "{");
-                sw.WriteLine(prefix + "    get { return (" + rname + ")" + var.NameUpper1 + ".Bean; }");
-                sw.WriteLine(prefix + "    set { " + var.NameUpper1 + ".Bean = value; }");
+                string pname = "get" + var.NameUpper1 + "_" + real.Space.Path("_", real.Name) + "()";
+                sw.WriteLine(prefix + "public " + rname + " " + pname + "{");
+                sw.WriteLine(prefix + "    return (" + rname + ")" + var.Getter + ".Bean;");
+                sw.WriteLine(prefix + "}");
+                sw.WriteLine(prefix + $"public void {var.Setter($"{rname} value")} {{");
+                sw.WriteLine(prefix + "    " + var.Getter + ".Bean = value;");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
-                sw.WriteLine(prefix + rname + "ReadOnly " + beanNameReadOnly + "." + pname + " => " + pname + ";");
-                sw.WriteLine();
+                //sw.WriteLine(prefix + rname + "ReadOnly " + beanNameReadOnly + "." + pname + " => " + pname + ";");
+                //sw.WriteLine();
             }
         }
     }
