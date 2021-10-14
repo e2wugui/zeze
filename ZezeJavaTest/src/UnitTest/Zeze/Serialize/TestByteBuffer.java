@@ -1,38 +1,29 @@
 package UnitTest.Zeze.Serialize;
 
 import Zeze.Serialize.*;
+import Zeze.Util.BitConverter;
+import junit.framework.TestCase;
 import UnitTest.*;
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestClass] public class TestByteBuffer
-public class TestByteBuffer {
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void TestBytes()
-	public final void TestBytes() {
+public class TestByteBuffer extends TestCase {
+	public void testBytes() {
 		ByteBuffer bb = ByteBuffer.Allocate();
-
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: byte[] v = new byte[0];
 		byte[] v = new byte[0];
 		bb.WriteBytes(v);
-		assert 1 == bb.Size;
-		assert "00" == bb.toString();
-		assert BitConverter.toString(v) == BitConverter.toString(bb.ReadBytes());
-		assert bb.ReadIndex == bb.WriteIndex;
+		assertTrue(1 == bb.Size());
+		assertTrue("00".equals(bb.toString()));
+		assertTrue(BitConverter.toString(v).equals(BitConverter.toString(bb.ReadBytes())));
+		assertTrue(bb.ReadIndex == bb.WriteIndex);
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: v = new byte[]{ 1, 2 };
 		v = new byte[]{1, 2};
 		bb.WriteBytes(v);
-		assert 3 == bb.Size;
+		assertTrue(3 == bb.Size());
 		//Console.WriteLine(bb);
-		assert "02-01-02" == bb.toString();
-		assert BitConverter.toString(v) == BitConverter.toString(bb.ReadBytes());
-		assert bb.ReadIndex == bb.WriteIndex;
+		assertTrue("02-01-02".equals(bb.toString()));
+		assertTrue(BitConverter.toString(v).equals(BitConverter.toString(bb.ReadBytes())));
+		assertTrue(bb.ReadIndex == bb.WriteIndex);
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void TestBasic()
 	public final void TestBasic() {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		assert bb.ReadIndex == bb.WriteIndex;

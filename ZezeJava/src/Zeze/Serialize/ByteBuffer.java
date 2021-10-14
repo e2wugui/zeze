@@ -2,6 +2,8 @@ package Zeze.Serialize;
 
 import java.util.*;
 
+import Zeze.Util.BitConverter;
+
 public final class ByteBuffer {
 	public byte[] Bytes;
 	public int ReadIndex;
@@ -774,6 +776,7 @@ public final class ByteBuffer {
 		WriteBytes(o.Bytes, o.ReadIndex, o.Size());
 	}
 
+	/*
 	private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
 	public static String ToHex(byte[] bytes, int offset, int len) {
@@ -786,10 +789,11 @@ public final class ByteBuffer {
 	    }
 	    return new String(hexChars, java.nio.charset.StandardCharsets.UTF_8);
 	}
+	*/
 	
 	@Override
 	public String toString() {
-		return ToHex(Bytes, ReadIndex, Size());
+		return BitConverter.toString(Bytes, ReadIndex, Size());
 	}
 
 	@Override

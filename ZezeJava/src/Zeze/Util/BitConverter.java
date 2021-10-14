@@ -3,15 +3,21 @@ package Zeze.Util;
 public class BitConverter {
 	
 	private static final char[] hexDigit = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-	public static String toString(byte[] bytes) {
-		var len = bytes.length;
-		var r = new char[len*2];
+
+	public static String toString(byte[] bytes, int offset, int len) {
+		var sb = new StringBuilder();
 		for(int i = 0; i < len; ++i) {
-			byte b = bytes[i];
-			r[2*i] = hexDigit[(b>>8)&0xf];
-			r[2*i+1] = hexDigit[b&0xf];
+			byte b = bytes[i + offset];
+			if (i > 0)
+				sb.append('-');
+			sb.append(hexDigit[(b>>8)&0xf]);
+			sb.append(hexDigit[b&0xf]);
 		}
-		return new String(r);
+		return sb.toString();
+	}
+
+	public static String toString(byte[] bytes) {
+		return toString(bytes, 0, bytes.length);
 	}
 	
 	public static void main(String[] args) {
