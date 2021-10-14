@@ -137,3 +137,5 @@ ServiceManager.Test
 AsyncSocket c#
 	优化，减少和逻辑层的互斥时间。
 	？？？使用一个空的outputListSending去调用SendAsync???好像不可行。
+
+ZezexJava Export

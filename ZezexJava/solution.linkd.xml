@@ -300,4 +300,14 @@
 		<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server,client"/> 默认不启用事务，由协议实现自己控制。
 	</module>
 
+	<project name="linkd" gendir="." scriptdir="src" platform="java">
+		<service name="LinkdService" handle="server" base="Zeze.Services.HandshakeServer">
+			<module ref="Linkd"/>
+		</service>
+
+		<service name="ProviderService" handle="client"  base="Zeze.Services.HandshakeServer">
+			<module ref="Provider"/>
+		</service>
+	</project>
+
 </solution>
