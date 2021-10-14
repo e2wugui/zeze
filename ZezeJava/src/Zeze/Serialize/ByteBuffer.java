@@ -131,7 +131,7 @@ public final class ByteBuffer {
 	}
 
 	public static byte[] ToBytes(double i) {
-		var bb = java.nio.ByteBuffer.allocate(4);
+		var bb = java.nio.ByteBuffer.allocate(8);
 		bb.putDouble(i);
 		return bb.array();
 	}
@@ -201,7 +201,7 @@ public final class ByteBuffer {
 
 	private int ReadSegment() {
 		EnsureRead(1);
-		int h = Bytes[ReadIndex];
+		int h = Bytes[ReadIndex] & 0xff;
 		ReadIndex += 1;
 
 		int segmentSize = 0;
@@ -256,7 +256,7 @@ public final class ByteBuffer {
 		ReadIndex = saveState;
 	}
 
-	/** 
+	/**
 	 这个方法把剩余可用数据移到buffer开头。
 	 【注意】这个方法会修改ReadIndex，WriteIndex。
 	 最好仅在全部读取写入处理完成以后调用处理一次，
@@ -434,7 +434,7 @@ public final class ByteBuffer {
 				WriteIndex += 3;
 				return;
 			}
-			
+
 			//if (x < 0x10000000) { // 1110 1111,-,-,-
 			EnsureWrite(4);
 			Bytes[WriteIndex + 3] = (byte)x;
@@ -462,7 +462,7 @@ public final class ByteBuffer {
 			ReadIndex += 1;
 			return h;
 		}
-		
+
 		if (h < 0xc0) {
 			EnsureRead(2);
 			int x = ((h & 0x3f) << 8) | (Bytes[ReadIndex + 1] & 0xff);
@@ -476,7 +476,7 @@ public final class ByteBuffer {
 			ReadIndex += 3;
 			return x;
 		}
-		
+
 		if (h < 0xf0) {
 			EnsureRead(4);
 			int x = ((h & 0x0f) << 24) | ((Bytes[ReadIndex + 1] & 0xff) << 16)
@@ -520,7 +520,7 @@ public final class ByteBuffer {
 				WriteIndex += 3;
 				return;
 			}
-			
+
 			if (x < 0x10000000L) { // 1110 1111,-,-,-
 				EnsureWrite(4);
 				Bytes[WriteIndex + 3] = (byte)x;
@@ -530,7 +530,7 @@ public final class ByteBuffer {
 				WriteIndex += 4;
 				return;
 			}
-			
+
 			if (x < 0x800000000L) { // 1111 0xxx,-,-,-,-
 				EnsureWrite(5);
 				Bytes[WriteIndex + 4] = (byte)x;
@@ -553,8 +553,8 @@ public final class ByteBuffer {
 				WriteIndex += 6;
 				return;
 			}
-			
-			if (x < 0x200000000000L) { // 1111 110x,
+
+			if (x < 0x2000000000000L) { // 1111 110x,
 				EnsureWrite(7);
 				Bytes[WriteIndex + 6] = (byte)x;
 				Bytes[WriteIndex + 5] = (byte)(x >>> 8);
@@ -566,7 +566,7 @@ public final class ByteBuffer {
 				WriteIndex += 7;
 				return;
 			}
-			
+
 			//if (x < 0x100000000000000L) { // 1111 1110
 			EnsureWrite(8);
 			Bytes[WriteIndex + 7] = (byte)x;
@@ -580,7 +580,7 @@ public final class ByteBuffer {
 			WriteIndex += 8;
 			return;
 		}
-		
+
 		// 1111 1111
 		EnsureWrite(9);
 		Bytes[WriteIndex] = (byte)0xff;
@@ -603,7 +603,7 @@ public final class ByteBuffer {
 			ReadIndex += 1;
 			return h;
 		}
-		
+
 		if (h < 0xc0) {
 			EnsureRead(2);
 			int x = ((h & 0x3f) << 8) | (Bytes[ReadIndex + 1] & 0xff);
@@ -759,10 +759,10 @@ public final class ByteBuffer {
 		ReadIndex += n;
 	}
 
-	/** 
+	/**
 	 会推进ReadIndex，但是返回的ByteBuffer和原来的共享内存。
-	 
-	 @return 
+
+	 @return
 	*/
 	public ByteBuffer ReadByteBuffer() {
 		int n = ReadInt();
@@ -790,7 +790,7 @@ public final class ByteBuffer {
 	    return new String(hexChars, java.nio.charset.StandardCharsets.UTF_8);
 	}
 	*/
-	
+
 	@Override
 	public String toString() {
 		return BitConverter.toString(Bytes, ReadIndex, Size());
