@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import Zeze.Util.BitConverter;
+
 public class GlobalCacheManager {
     public static final int StateInvalid = 0;
     public static final int StateShare = 1;
@@ -306,7 +308,7 @@ public class GlobalCacheManager {
 
         @Override
         public String toString() {
-            return TableName + ":" + Zeze.Serialize.ByteBuffer.ToHex(Key, 0, Key.length);
+            return TableName + ":" + BitConverter.toString(Key, 0, Key.length);
         }
 
         public void Decode(Zeze.Serialize.ByteBuffer bb) {

@@ -1,6 +1,7 @@
 package Zeze.Net;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.BitConverter;
 
 // Bean 类型 binary 的辅助类。
 // 构造之后就是只读的。
@@ -78,7 +79,7 @@ public final class Binary {
 
 	@Override
 	public String toString() {
-		return ByteBuffer.ToHex(_Bytes, Offset, Count);
+		return BitConverter.toString(_Bytes, Offset, Count);
 	}
 
 	@Override
