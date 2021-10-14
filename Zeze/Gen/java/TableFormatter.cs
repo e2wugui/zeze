@@ -18,7 +18,7 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
-            using System.IO.StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".cs");
+            using System.IO.StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".java");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("package " + table.Space.Path());
@@ -58,17 +58,22 @@ namespace Zeze.Gen.java
                 sw.WriteLine();
             }
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public " + TypeName.GetName(table.KeyType) + " DecodeKey(ByteBuffer _os_) {");
+            sw.WriteLine("    public " + key + " DecodeKey(ByteBuffer _os_) {");
             table.KeyType.Accept(new Define("_v_", sw, "        "));
             table.KeyType.Accept(new Decode("_v_", -1, "_os_", sw, "        "));
             sw.WriteLine("        return _v_;");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public override ByteBuffer EncodeKey(" + TypeName.GetName(table.KeyType) + " _v_) {");
+            sw.WriteLine("    public ByteBuffer EncodeKey(" + key + " _v_) {");
             sw.WriteLine("        ByteBuffer _os_ = ByteBuffer.Allocate();");            
             table.KeyType.Accept(new Encode("_v_", -1, "_os_", sw, "        "));
             sw.WriteLine("        return _os_;");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    @Override");
+            sw.WriteLine($"    public {value} NewValue() {{");
+            sw.WriteLine($"        return new {value}();");
             sw.WriteLine("    }");
             sw.WriteLine();
             CreateChangeVariableCollector.Make(sw, "    ", (Types.Bean)table.ValueType);

@@ -154,7 +154,7 @@ namespace Zeze.Gen.java
 
             sw.WriteLine("package " + project.Solution.Path());
             sw.WriteLine("");
-            sw.WriteLine("public sealed partial class App extnds AppBaseGen {");
+            sw.WriteLine("public class App extends AppBaseGen {");
             sw.WriteLine("    public static App Instance = new App();");
             sw.WriteLine("    public static App getInstance() {");
             sw.WriteLine("        return Instance;");

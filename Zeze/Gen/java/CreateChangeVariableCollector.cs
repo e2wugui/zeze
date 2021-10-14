@@ -13,7 +13,7 @@ namespace Zeze.Gen.java
         public static void Make(System.IO.StreamWriter sw, string prefix, Types.Bean bean)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public override Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {");
+            sw.WriteLine(prefix + "public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {");
             sw.WriteLine(prefix + "    switch(variableId) {");
             sw.WriteLine(prefix + "        case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();");
             foreach (var v in bean.Variables)
