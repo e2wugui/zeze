@@ -28,7 +28,7 @@ namespace Zeze.Gen.lua
         public void MakeGen()
         {
             using System.IO.StreamWriter sw = (null == module.Parent)
-                ? new System.IO.StreamWriter(System.IO.Path.Combine(genDir, module.Name + ".lua"), false, Encoding.UTF8)
+                ? new System.IO.StreamWriter(System.IO.Path.Combine(genDir, module.Name + ".lua"), false, new UTF8Encoding(false))
                 : module.Parent.OpenWriter(genDir, module.Name + ".lua");
             MakeGen(sw);
             sw.WriteLine();
@@ -120,7 +120,7 @@ namespace Zeze.Gen.lua
             else
             {
                 System.IO.Directory.CreateDirectory(fullDir);
-                using System.IO.StreamWriter sw = new System.IO.StreamWriter(fullFileName, false, Encoding.UTF8);
+                using System.IO.StreamWriter sw = new System.IO.StreamWriter(fullFileName, false, new UTF8Encoding(false));
 
                 sw.WriteLine($"local {module.Name}Impl = {{}}");
                 sw.WriteLine();

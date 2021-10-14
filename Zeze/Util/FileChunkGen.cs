@@ -46,7 +46,7 @@ namespace Zeze.Util
 
         public void SaveFile(string fileName, ChunkProcess cp)
         {
-            SaveFile(fileName, cp, Encoding.UTF8);
+            SaveFile(fileName, cp, new UTF8Encoding(false));
         }
 
         public void SaveFile(string fileName, ChunkProcess cp, Encoding encoding)

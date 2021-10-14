@@ -30,7 +30,7 @@ namespace Zeze.Gen.java
             }
             // new file
             System.IO.Directory.CreateDirectory(fullDir);
-            using System.IO.StreamWriter sw = new System.IO.StreamWriter(fullFileName, false, Encoding.UTF8);
+            using System.IO.StreamWriter sw = new System.IO.StreamWriter(fullFileName, false, new UTF8Encoding(false));
 
             sw.WriteLine("");
             sw.WriteLine("package " + project.Solution.Path() + ";");
