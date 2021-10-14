@@ -19,7 +19,8 @@ namespace Zeze.Gen.java
             string projectBasedir = Project.Gendir;
             string projectDir = System.IO.Path.Combine(projectBasedir, Project.Name);
             string genDir = System.IO.Path.Combine(projectDir, "Gen");
-            string srcDir = projectDir;
+            string srcDir = Project.ScriptDir.Length > 0
+                ? System.IO.Path.Combine(projectDir, Project.ScriptDir) : projectDir;
 
             if (System.IO.Directory.Exists(genDir))
                 System.IO.Directory.Delete(genDir, true);

@@ -216,6 +216,9 @@ namespace Zeze.Gen
                     new global::Zeze.Gen.cs.Maker(this).Make();
                     new ts.Maker(this).Make();
                     break;
+                case "java":
+                    new java.Maker(this).Make();
+                    break;
                 default:
                     throw new Exception("unsupport platform: " + Platform);
             }
