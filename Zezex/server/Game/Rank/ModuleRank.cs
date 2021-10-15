@@ -206,12 +206,12 @@ namespace Game.Rank
         /// <param name="roleId"></param>
         /// <param name="value"></param>
         /// <param name="valueEx">只保存，不参与比较。如果需要参与比较，需要另行实现自己的Update和Get。</param>
-        [ModuleRedirect()]
+        [Zezex.ModuleRedirect()]
         public virtual void RunUpdateRank(
             BConcurrentKey keyHint,
             long roleId, long value, Zeze.Net.Binary valueEx)
         {
-            int hash = Game.ModuleRedirect.GetChoiceHashCode();
+            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
             App.Zeze.Run(() => UpdateRank(hash, keyHint, roleId, value, valueEx),
                 nameof(RunUpdateRank), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
         }
@@ -224,7 +224,7 @@ namespace Game.Rank
             return UpdateRank(hash, keyHint, roleId, value, valueEx);
         }
 
-        [ModuleRedirectWithHash()]
+        [Zezex.ModuleRedirectWithHash()]
         public virtual void RunUpdateRankWithHash(
             int hash, BConcurrentKey keyHint,
             long roleId, long value, Zeze.Net.Binary valueEx)
@@ -260,7 +260,7 @@ namespace Game.Rank
 
         // 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
         // 需要注意在子类上下文中可以编译通过。可以是常量。
-        [ModuleRedirectAll("GetConcurrentLevel(keyHint.RankType)")]
+        [Zezex.ModuleRedirectAll("GetConcurrentLevel(keyHint.RankType)")]
         public virtual void RunGetRank(BConcurrentKey keyHint,
             System.Action<long, int, int, BRankList> onHashResult,
             Action<ModuleRedirectAllContext> onHashEnd
@@ -463,10 +463,10 @@ namespace Game.Rank
         }
 
         /******************************** ModuleRedirect 测试 *****************************************/
-        [ModuleRedirect()]
+        [Zezex.ModuleRedirect()]
         public virtual TaskCompletionSource<int> RunTest1(Zeze.TransactionModes mode)
         {
-            int hash = Game.ModuleRedirect.GetChoiceHashCode();
+            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
             return App.Zeze.Run(() => Test1(hash), nameof(Test1), mode, hash);
         }
 
@@ -475,10 +475,10 @@ namespace Game.Rank
             return Procedure.Success;
         }
 
-        [ModuleRedirect()]
+        [Zezex.ModuleRedirect()]
         public virtual void RunTest2(int inData, ref int refData, out int outData)
         {
-            int hash = Game.ModuleRedirect.GetChoiceHashCode();
+            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
             int outDataTmp = 0;
             int refDataTmp = refData;
             var future = App.Zeze.Run(() => Test2(hash, inData, ref refDataTmp, out outDataTmp), nameof(Test2), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
@@ -494,10 +494,10 @@ namespace Game.Rank
             return Procedure.Success;
         }
 
-        [ModuleRedirect()]
+        [Zezex.ModuleRedirect()]
         public virtual void RunTest3(int inData, ref int refData, out int outData, System.Action<int> resultCallback)
         {
-            int hash = Game.ModuleRedirect.GetChoiceHashCode();
+            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
             int outDataTmp = 0;
             int refDataTmp = refData;
             var future = App.Zeze.Run(() => Test3(hash, inData, ref refDataTmp, out outDataTmp, resultCallback), nameof(Test3), Zeze.TransactionModes.ExecuteInAnotherThread, hash);

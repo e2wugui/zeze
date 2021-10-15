@@ -4,11 +4,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public final class LinkdService extends LinkdServiceBase {
+	private static final Logger logger = LogManager.getLogger(LinkdService.class);
+
 	public LinkdService(Zeze.Application zeze) {
 		super(zeze);
 	}
-
-	private static final Logger logger = LogManager.getLogger(LinkdService.class);
 
 	public void ReportError(long linkSid, int from, int code, String desc) {
 		var link = this.GetSocket(linkSid);
@@ -116,16 +116,15 @@ public final class LinkdService extends LinkdServiceBase {
 	@Override
 	public void OnHandshakeDone(Zeze.Net.AsyncSocket sender) {
 		super.OnHandshakeDone(sender);
-		sender.UserState = new LinkSession(sender.SessionId);
+		sender.setUserState(new LinkSession(sender.getSessionId()));
 	}
 
 	@Override
-	public void OnSocketClose(Zeze.Net.AsyncSocket so, RuntimeException e) {
+	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) {
 		super.OnSocketClose(so, e);
-		Object tempVar = so.UserState;
-		var linkSession = tempVar instanceof LinkSession ? (LinkSession)tempVar : null;
-		if (linkSession != null) {
-			linkSession.OnClose();
+		if (so.getUserState() != null) {
+			((LinkSession))so.getUserState()).OnClose();
+		}
 		}
 	}
 }

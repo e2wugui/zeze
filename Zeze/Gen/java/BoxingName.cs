@@ -6,7 +6,7 @@ namespace Zeze.Gen.java
 {
 	class BoxingName : TypeName
 	{
-		public static string GetName(Types.Type type)
+		public static string GetBoxingName(Types.Type type)
 		{
 			BoxingName visitor = new BoxingName();
 			type.Accept(visitor);

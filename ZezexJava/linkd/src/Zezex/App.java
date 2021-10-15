@@ -10,8 +10,6 @@ import java.util.*;
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class App {
-	private static final Logger logger = LogManager.getLogger(App.class);
-
 	public static App Instance = new App();
 	public static App getInstance() {
 		return Instance;
@@ -24,7 +22,6 @@ public final class App {
 		Zeze.Start(); // 启动数据库
 		StartService(); // 启动网络
 
-//C# TO JAVA CONVERTER TODO TASK: Java has no equivalent to C# deconstruction declarations:
 		var ipp = ProviderService.GetOnePassiveAddress();
 		setProviderServicePassiveIp(ipp.getKey());
 		setProviderServicePasivePort(ipp.getValue());

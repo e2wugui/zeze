@@ -105,7 +105,7 @@ namespace Zezex.Provider
 
                 rpc.Result.ModuleId = rpc.Argument.ModuleId;
                 rpc.Result.ServerId = App.Zeze.Config.ServerId;
-                if (false == Game.ModuleRedirect.Instance.Handles.TryGetValue(rpc.Argument.MethodFullName, out var handle))
+                if (false == Zezex.ModuleRedirect.Instance.Handles.TryGetValue(rpc.Argument.MethodFullName, out var handle))
                 {
                     rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
                     return Procedure.LogicError;
@@ -160,7 +160,7 @@ namespace Zezex.Provider
                 result.Argument.SessionId = protocol.Argument.SessionId;
                 result.Argument.MethodFullName = protocol.Argument.MethodFullName;
 
-                if (false == Game.ModuleRedirect.Instance.Handles.TryGetValue(
+                if (false == Zezex.ModuleRedirect.Instance.Handles.TryGetValue(
                     protocol.Argument.MethodFullName, out var handle))
                 {
                     result.ResultCode = ModuleRedirect.ResultCodeMethodFullNameNotFound;

@@ -48,7 +48,7 @@ namespace Game.Login
                         handle.OnReliableNotify(pNotify);
                     }
                 }
-                catch (System.Exception ex)
+                catch (System.Exception )
                 {
                     // TODO handle error here.
                 }

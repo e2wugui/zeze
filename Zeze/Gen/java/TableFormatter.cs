@@ -27,7 +27,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("");
             string key = TypeName.GetName(table.KeyType);
             string value = TypeName.GetName(table.ValueType);
-            string keyboxing = BoxingName.GetName(table.KeyType);
+            string keyboxing = BoxingName.GetBoxingName(table.KeyType);
             sw.WriteLine("public final class " + table.Name + " extends Zeze.Transaction.TableX<" + keyboxing + ", " + value + "> {");
             sw.WriteLine("    public " + table.Name + "() {");
             sw.WriteLine("        super(\"" + table.Space.Path("_", table.Name) + "\");");

@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Game
+namespace Zezex
 {
     /// <summary>
     /// 把模块的方法调用发送到其他服务器实例上执行。
@@ -31,9 +31,9 @@ namespace Game
             return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
         }
 
-        public static Login.Session GetLoginSession()
+        public static Game.Login.Session GetLoginSession()
         {
-            return Zeze.Transaction.Transaction.Current.TopProcedure.UserState as Login.Session;
+            return Zeze.Transaction.Transaction.Current.TopProcedure.UserState as Game.Login.Session;
         }
 
         public static ModuleRedirect Instance = new ModuleRedirect();

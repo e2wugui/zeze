@@ -99,7 +99,7 @@ namespace Zeze.Gen.java
 
         void Visitor.Visit(TypeMap type)
         {
-            string kv = BoxingName.GetName(type.KeyType) + ", " + BoxingName.GetName(type.ValueType);
+            string kv = BoxingName.GetBoxingName(type.KeyType) + ", " + BoxingName.GetBoxingName(type.ValueType);
             string factory = type.ValueType.IsNormalBean
                 ? "() -> new Zeze.Transaction.ChangeNoteMap2<" + kv + ">(null)"
                 : "() -> new Zeze.Transaction.ChangeNoteMap1<" + kv + ">(null)";

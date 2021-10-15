@@ -35,7 +35,7 @@ namespace Zeze.Gen.java
 
         private void WriteLogValue(Types.Type type)
         {
-            string valueName = BoxingName.GetName(type);
+            string valueName = BoxingName.GetBoxingName(type);
             sw.WriteLine(prefix + "private final static class Log_" + var.NamePrivate + " extends Zeze.Transaction.Log1<" + bean.Name + ", " + valueName + "> {");
             sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " self, " + valueName + " value) { super(self, value); }");
             sw.WriteLine(prefix + "    @Override");
@@ -89,11 +89,11 @@ namespace Zeze.Gen.java
         {
             if (type is TypeCollection coll)
             {
-                return BoxingName.GetName(coll.ValueType);
+                return BoxingName.GetBoxingName(coll.ValueType);
             }
             else if (type is TypeMap map)
             {
-                return $"{BoxingName.GetName(map.KeyType)}, {BoxingName.GetName(map.ValueType)}";
+                return $"{BoxingName.GetBoxingName(map.KeyType)}, {BoxingName.GetBoxingName(map.ValueType)}";
             }
             throw new Exception("Not A Container Type");
         }
