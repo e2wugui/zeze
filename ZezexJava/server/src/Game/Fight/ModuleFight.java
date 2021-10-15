@@ -3,8 +3,8 @@ package Game.Fight;
 import Zeze.Transaction.*;
 import Game.*;
 
-// auto-generated
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class ModuleFight extends AbstractModule {
 	public void Start(App app) {
@@ -36,7 +36,7 @@ public final class ModuleFight extends AbstractModule {
 		Task.Run(App.getInstance().getZeze().NewProcedure(() -> CalculateFighter(fighterId), "CalculateFighter", null).Call);
 	}
 
-
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE
 	public static final int ModuleId = 4;
 
 	private tfighters _tfighters = new tfighters();
@@ -57,5 +57,5 @@ public final class ModuleFight extends AbstractModule {
 	public void UnRegister() {
 		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_tfighters.Name).DatabaseName, _tfighters);
 	}
-
+	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

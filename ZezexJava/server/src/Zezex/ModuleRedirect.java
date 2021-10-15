@@ -1,4 +1,4 @@
-package Game;
+package Zezex;
 
 import java.util.*;
 import java.io.*;

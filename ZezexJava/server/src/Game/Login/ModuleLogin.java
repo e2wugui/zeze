@@ -3,8 +3,8 @@ package Game.Login;
 import Zeze.Transaction.*;
 import Game.*;
 
-// auto-generated
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class ModuleLogin extends AbstractModule {
 	public void Start(App app) {
@@ -230,7 +230,7 @@ public final class ModuleLogin extends AbstractModule {
 		return Procedure.Success;
 	}
 
-
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE
 	public static final int ModuleId = 1;
 
 	private taccount _taccount = new taccount();
@@ -296,5 +296,5 @@ public final class ModuleLogin extends AbstractModule {
 		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_trole.Name).DatabaseName, _trole);
 		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_trolename.Name).DatabaseName, _trolename);
 	}
-
+	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

@@ -6,8 +6,8 @@ import Game.*;
 import java.util.*;
 import java.time.*;
 
-// auto-generated
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 /** 
  基本排行榜，实现了按long value从大到小进榜。
@@ -507,7 +507,7 @@ public class ModuleRank extends AbstractModule {
 		return Procedure.Success;
 	}
 
-
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE
 	public static final int ModuleId = 9;
 
 	private trank _trank = new trank();
@@ -537,5 +537,5 @@ public class ModuleRank extends AbstractModule {
 		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_trank.Name).DatabaseName, _trank);
 		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_trankcounters.Name).DatabaseName, _trankcounters);
 	}
-
+	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

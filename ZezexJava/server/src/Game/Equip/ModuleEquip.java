@@ -4,7 +4,8 @@ import Game.Fight.*;
 import Zeze.Transaction.*;
 import Game.*;
 
-// auto-generated
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 
 public final class ModuleEquip extends AbstractModule {
@@ -180,7 +181,7 @@ public final class ModuleEquip extends AbstractModule {
 		}
 	}
 
-
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE
 	public static final int ModuleId = 7;
 
 	private tequip _tequip = new tequip();
@@ -213,5 +214,5 @@ public final class ModuleEquip extends AbstractModule {
 	_ = tempOut__2.outArgValue;
 		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_tequip.Name).DatabaseName, _tequip);
 	}
-
+	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

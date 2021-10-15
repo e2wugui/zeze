@@ -2,8 +2,8 @@ package Game.Skill;
 
 import Game.*;
 
-// auto-generated
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class ModuleSkill extends AbstractModule {
 	public void Start(App app) {
@@ -16,7 +16,7 @@ public final class ModuleSkill extends AbstractModule {
 		return new Skills(roleId, _tskills.GetOrAdd(roleId));
 	}
 
-
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE
 	public static final int ModuleId = 5;
 
 	private tskills _tskills = new tskills();
@@ -37,5 +37,5 @@ public final class ModuleSkill extends AbstractModule {
 	public void UnRegister() {
 		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_tskills.Name).DatabaseName, _tskills);
 	}
-
+	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

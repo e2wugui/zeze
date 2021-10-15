@@ -3,8 +3,8 @@ package Game.Buf;
 import Zeze.Transaction.*;
 import Game.*;
 
-// auto-generated
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public class ModuleBuf extends AbstractModule {
 	public final void Start(App app) {
@@ -65,7 +65,7 @@ public class ModuleBuf extends AbstractModule {
 		return new Bufs(roleId, _tbufs.GetOrAdd(roleId));
 	}
 
-
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE
 	public static final int ModuleId = 6;
 
 	private tbufs _tbufs = new tbufs();
@@ -86,5 +86,5 @@ public class ModuleBuf extends AbstractModule {
 	public void UnRegister() {
 		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_tbufs.Name).DatabaseName, _tbufs);
 	}
-
+	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

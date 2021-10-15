@@ -3,8 +3,8 @@ package Game.Bag;
 import Zeze.Transaction.*;
 import Game.*;
 
-// auto-generated
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class ModuleBag extends AbstractModule {
 	public void Start(App app) {
@@ -139,7 +139,7 @@ public final class ModuleBag extends AbstractModule {
 
 	}
 
-
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE
 	public static final int ModuleId = 2;
 
 	private tbag _tbag = new tbag();
@@ -190,5 +190,5 @@ public final class ModuleBag extends AbstractModule {
 	_ = tempOut__5.outArgValue;
 		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_tbag.Name).DatabaseName, _tbag);
 	}
-
+	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

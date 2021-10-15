@@ -2,8 +2,8 @@ package Game.Item;
 
 import Game.*;
 
-// auto-generated
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class ModuleItem extends AbstractModule {
 	public void Start(App app) {
@@ -13,7 +13,7 @@ public final class ModuleItem extends AbstractModule {
 	}
 
 
-
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE
 	public static final int ModuleId = 3;
 
 
@@ -31,5 +31,5 @@ public final class ModuleItem extends AbstractModule {
 	@Override
 	public void UnRegister() {
 	}
-
+	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

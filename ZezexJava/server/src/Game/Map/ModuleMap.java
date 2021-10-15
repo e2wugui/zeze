@@ -3,8 +3,8 @@ package Game.Map;
 import Zeze.Transaction.*;
 import Game.*;
 
-// auto-generated
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class ModuleMap extends AbstractModule {
 	public void Start(App app) {
@@ -30,7 +30,7 @@ public final class ModuleMap extends AbstractModule {
 		return Procedure.NotImplement;
 	}
 
-
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE
 	public static final int ModuleId = 8;
 
 
@@ -60,5 +60,5 @@ public final class ModuleMap extends AbstractModule {
 		getApp().getServer().getFactorys().TryRemove(537032, tempOut__2);
 	_ = tempOut__2.outArgValue;
 	}
-
+	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }
