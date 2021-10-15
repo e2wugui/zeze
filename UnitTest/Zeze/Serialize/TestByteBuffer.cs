@@ -255,11 +255,11 @@ namespace UnitTest.Zeze.Serialize
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
-            v = 0x200000000000L;
+            v = 0x2000000000000L;
             bb.WriteLong(v);
             Assert.AreEqual(8, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("FE-00-20-00-00-00-00-00", bb.ToString());
+            Assert.AreEqual("FE-02-00-00-00-00-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 

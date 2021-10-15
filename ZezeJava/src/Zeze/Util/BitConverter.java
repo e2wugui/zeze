@@ -10,7 +10,7 @@ public class BitConverter {
 			byte b = bytes[i + offset];
 			if (i > 0)
 				sb.append('-');
-			sb.append(hexDigit[(b>>8)&0xf]);
+			sb.append(hexDigit[(b>>4)&0xf]);
 			sb.append(hexDigit[b&0xf]);
 		}
 		return sb.toString();

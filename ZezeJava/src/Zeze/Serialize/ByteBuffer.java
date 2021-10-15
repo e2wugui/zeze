@@ -434,15 +434,16 @@ public final class ByteBuffer {
 				WriteIndex += 3;
 				return;
 			}
-
-			//if (x < 0x10000000) { // 1110 1111,-,-,-
-			EnsureWrite(4);
-			Bytes[WriteIndex + 3] = (byte)x;
-			Bytes[WriteIndex + 2] = (byte)(x >>> 8);
-			Bytes[WriteIndex + 1] = (byte)(x >>> 16);
-			Bytes[WriteIndex] = (byte)((x >>> 24) | 0xe0);
-			WriteIndex += 4;
-			return;
+			
+			if (x < 0x10000000) { // 1110 1111,-,-,-
+				EnsureWrite(4);
+				Bytes[WriteIndex + 3] = (byte)x;
+				Bytes[WriteIndex + 2] = (byte)(x >>> 8);
+				Bytes[WriteIndex + 1] = (byte)(x >>> 16);
+				Bytes[WriteIndex] = (byte)((x >>> 24) | 0xe0);
+				WriteIndex += 4;
+				return;
+			}
 		}
 
 		EnsureWrite(5);
@@ -566,19 +567,20 @@ public final class ByteBuffer {
 				WriteIndex += 7;
 				return;
 			}
-
-			//if (x < 0x100000000000000L) { // 1111 1110
-			EnsureWrite(8);
-			Bytes[WriteIndex + 7] = (byte)x;
-			Bytes[WriteIndex + 6] = (byte)(x >>> 8);
-			Bytes[WriteIndex + 5] = (byte)(x >>> 16);
-			Bytes[WriteIndex + 4] = (byte)(x >>> 24);
-			Bytes[WriteIndex + 3] = (byte)(x >>> 32);
-			Bytes[WriteIndex + 2] = (byte)(x >>> 40);
-			Bytes[WriteIndex + 1] = (byte)(x >>> 48);
-			Bytes[WriteIndex] = (byte)0xfe;
-			WriteIndex += 8;
-			return;
+			
+			if (x < 0x100000000000000L) { // 1111 1110
+				EnsureWrite(8);
+				Bytes[WriteIndex + 7] = (byte)x;
+				Bytes[WriteIndex + 6] = (byte)(x >>> 8);
+				Bytes[WriteIndex + 5] = (byte)(x >>> 16);
+				Bytes[WriteIndex + 4] = (byte)(x >>> 24);
+				Bytes[WriteIndex + 3] = (byte)(x >>> 32);
+				Bytes[WriteIndex + 2] = (byte)(x >>> 40);
+				Bytes[WriteIndex + 1] = (byte)(x >>> 48);
+				Bytes[WriteIndex] = (byte)0xfe;
+				WriteIndex += 8;
+				return;
+			}
 		}
 
 		// 1111 1111
