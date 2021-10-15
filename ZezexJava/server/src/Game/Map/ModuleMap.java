@@ -31,34 +31,32 @@ public final class ModuleMap extends AbstractModule {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-	public static final int ModuleId = 8;
+    public static final int ModuleId = 8;
 
 
-	private App App;
-	public App getApp() {
-		return App;
-	}
+    public Game.App App;
 
-	public ModuleMap(App app) {
-		App = app;
-		// register protocol factory and handles
-		getApp().getServer().AddFactoryHandle(546916, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Map.CEnterWorld(), Handle = Zeze.Net.Service.<CEnterWorld>MakeHandle(this, this.getClass().getMethod("ProcessCEnterWorld"))});
-		getApp().getServer().AddFactoryHandle(537032, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Map.CEnterWorldDone(), Handle = Zeze.Net.Service.<CEnterWorldDone>MakeHandle(this, this.getClass().getMethod("ProcessCEnterWorldDone"))});
-		// register table
-	}
+    public ModuleMap(Game.App app) {
+        App = app;
+        // register protocol factory and handles
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Map.CEnterWorld();
+            factoryHandle.Handle = (_p) -> ProcessCEnterWorld(_p);
+            App.Server.AddFactoryHandle(546916, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Map.CEnterWorldDone();
+            factoryHandle.Handle = (_p) -> ProcessCEnterWorldDone(_p);
+            App.Server.AddFactoryHandle(537032, factoryHandle);
+       }
+        // register table
+    }
 
-	@Override
-	public void UnRegister() {
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__ = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(546916, tempOut__);
-	_ = tempOut__.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__2 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(537032, tempOut__2);
-	_ = tempOut__2.outArgValue;
-	}
+    public void UnRegister() {
+        App.Server.getFactorys().remove(546916);
+        App.Server.getFactorys().remove(537032);
+    }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

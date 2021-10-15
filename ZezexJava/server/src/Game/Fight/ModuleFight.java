@@ -37,25 +37,21 @@ public final class ModuleFight extends AbstractModule {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-	public static final int ModuleId = 4;
+    public static final int ModuleId = 4;
 
-	private tfighters _tfighters = new tfighters();
+    private tfighters _tfighters = new tfighters();
 
-	private App App;
-	public App getApp() {
-		return App;
-	}
+    public Game.App App;
 
-	public ModuleFight(App app) {
-		App = app;
-		// register protocol factory and handles
-		// register table
-		getApp().getZeze().AddTable(getApp().getZeze().Config.GetTableConf(_tfighters.Name).DatabaseName, _tfighters);
-	}
+    public ModuleFight(Game.App app) {
+        App = app;
+        // register protocol factory and handles
+        // register table
+        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tfighters.getName()).getDatabaseName(), _tfighters);
+    }
 
-	@Override
-	public void UnRegister() {
-		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_tfighters.Name).DatabaseName, _tfighters);
-	}
+    public void UnRegister() {
+        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_tfighters.getName()).getDatabaseName(), _tfighters);
+    }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

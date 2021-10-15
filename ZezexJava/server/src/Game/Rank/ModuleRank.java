@@ -508,34 +508,31 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-	public static final int ModuleId = 9;
+    public static final int ModuleId = 9;
 
-	private trank _trank = new trank();
-	private trankcounters _trankcounters = new trankcounters();
+    private trank _trank = new trank();
+    private trankcounters _trankcounters = new trankcounters();
 
-	private App App;
-	public final App getApp() {
-		return App;
-	}
+    public Game.App App;
 
-	public ModuleRank(App app) {
-		App = app;
-		// register protocol factory and handles
-		getApp().getServer().AddFactoryHandle(612619, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Rank.CGetRankList(), Handle = Zeze.Net.Service.<CGetRankList>MakeHandle(this, this.getClass().getMethod("ProcessCGetRankList"))});
-		// register table
-		getApp().getZeze().AddTable(getApp().getZeze().Config.GetTableConf(_trank.Name).DatabaseName, _trank);
-		getApp().getZeze().AddTable(getApp().getZeze().Config.GetTableConf(_trankcounters.Name).DatabaseName, _trankcounters);
-	}
+    public ModuleRank(Game.App app) {
+        App = app;
+        // register protocol factory and handles
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Rank.CGetRankList();
+            factoryHandle.Handle = (_p) -> ProcessCGetRankList(_p);
+            App.Server.AddFactoryHandle(612619, factoryHandle);
+       }
+        // register table
+        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_trank.getName()).getDatabaseName(), _trank);
+        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_trankcounters.getName()).getDatabaseName(), _trankcounters);
+    }
 
-	@Override
-	public void UnRegister() {
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__ = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(612619, tempOut__);
-	_ = tempOut__.outArgValue;
-		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_trank.Name).DatabaseName, _trank);
-		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_trankcounters.Name).DatabaseName, _trankcounters);
-	}
+    public void UnRegister() {
+        App.Server.getFactorys().remove(612619);
+        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_trank.getName()).getDatabaseName(), _trank);
+        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_trankcounters.getName()).getDatabaseName(), _trankcounters);
+    }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

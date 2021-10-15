@@ -2,8 +2,9 @@ package Game;
 
 import java.util.*;
 
-// auto-generated
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+import java.util.*;
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class App {
 	private HashMap<Integer, Zezex.Provider.BModule> StaticBinds = new HashMap<Integer, Zezex.Provider.BModule> ();
@@ -19,7 +20,7 @@ public final class App {
 	}
 
 	public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
-		return Game.ModuleRedirect.Instance.ReplaceModuleInstance(module);
+		return Zezex.ModuleRedirect.Instance.ReplaceModuleInstance(module);
 	}
 
 	private Config Config;
@@ -95,223 +96,159 @@ public final class App {
 		Destroy();
 	}
 
+	// ZEZE_FILE_CHUNK {{{ GEN APP
+    public Zeze.Application Zeze;
+    public HashMap<String, Zeze.IModule> Modules = new HashMap<>();
 
-	private static App Instance = new App();
-	public static App getInstance() {
-		return Instance;
-	}
+    public Game.Bag.ModuleBag Game_Bag;
 
-	private Zeze.Application Zeze;
-	public Zeze.Application getZeze() {
-		return Zeze;
-	}
-	public void setZeze(Zeze.Application value) {
-		Zeze = value;
-	}
+    public Game.Buf.ModuleBuf Game_Buf;
 
-	private HashMap<String, Zeze.IModule> Modules = new HashMap < String, getZeze().IModule> ();
-	public HashMap<String, Zeze.IModule> getModules() {
-		return Modules;
-	}
+    public Game.Equip.ModuleEquip Game_Equip;
 
-	private Game.Bag.ModuleBag Game_Bag;
-	public Game.Bag.ModuleBag getGameBag() {
-		return Game_Bag;
-	}
-	public void setGameBag(Game.Bag.ModuleBag value) {
-		Game_Bag = value;
-	}
+    public Game.Fight.ModuleFight Game_Fight;
 
-	private Game.Buf.ModuleBuf Game_Buf;
-	public Game.Buf.ModuleBuf getGameBuf() {
-		return Game_Buf;
-	}
-	public void setGameBuf(Game.Buf.ModuleBuf value) {
-		Game_Buf = value;
-	}
+    public Game.Item.ModuleItem Game_Item;
 
-	private Game.Equip.ModuleEquip Game_Equip;
-	public Game.Equip.ModuleEquip getGameEquip() {
-		return Game_Equip;
-	}
-	public void setGameEquip(Game.Equip.ModuleEquip value) {
-		Game_Equip = value;
-	}
+    public Game.Login.ModuleLogin Game_Login;
 
-	private Game.Fight.ModuleFight Game_Fight;
-	public Game.Fight.ModuleFight getGameFight() {
-		return Game_Fight;
-	}
-	public void setGameFight(Game.Fight.ModuleFight value) {
-		Game_Fight = value;
-	}
+    public Game.Map.ModuleMap Game_Map;
 
-	private Game.Item.ModuleItem Game_Item;
-	public Game.Item.ModuleItem getGameItem() {
-		return Game_Item;
-	}
-	public void setGameItem(Game.Item.ModuleItem value) {
-		Game_Item = value;
-	}
+    public Game.Rank.ModuleRank Game_Rank;
 
-	private Game.Login.ModuleLogin Game_Login;
-	public Game.Login.ModuleLogin getGameLogin() {
-		return Game_Login;
-	}
-	public void setGameLogin(Game.Login.ModuleLogin value) {
-		Game_Login = value;
-	}
+    public Game.Skill.ModuleSkill Game_Skill;
 
-	private Game.Map.ModuleMap Game_Map;
-	public Game.Map.ModuleMap getGameMap() {
-		return Game_Map;
-	}
-	public void setGameMap(Game.Map.ModuleMap value) {
-		Game_Map = value;
-	}
+    public Zezex.Provider.ModuleProvider Zezex_Provider;
 
-	private Game.Rank.ModuleRank Game_Rank;
-	public Game.Rank.ModuleRank getGameRank() {
-		return Game_Rank;
-	}
-	public void setGameRank(Game.Rank.ModuleRank value) {
-		Game_Rank = value;
-	}
+    public Game.Server Server;
 
-	private Game.Skill.ModuleSkill Game_Skill;
-	public Game.Skill.ModuleSkill getGameSkill() {
-		return Game_Skill;
-	}
-	public void setGameSkill(Game.Skill.ModuleSkill value) {
-		Game_Skill = value;
-	}
+    public void Create() {
+        Create(null);
+    }
 
-	private Zezex.Provider.ModuleProvider Zezex_Provider;
-	public Zezex.Provider.ModuleProvider getZezexProvider() {
-		return Zezex_Provider;
-	}
-	public void setZezexProvider(Zezex.Provider.ModuleProvider value) {
-		Zezex_Provider = value;
-	}
+    public void Create(Zeze.Config config) {
+        synchronized (this) {
+            if (null != Zeze)
+                return;
 
-	private Game.Server Server;
-	public Game.Server getServer() {
-		return Server;
-	}
-	public void setServer(Game.Server value) {
-		Server = value;
-	}
+            Zeze = new Zeze.Application("Game", config);
 
+            Server = new Game.Server(Zeze);
 
-	public void Create() {
-		Create(null);
-	}
+            Game_Bag = new Game.Bag.ModuleBag(this);
+            Game_Bag = (Game.Bag.ModuleBag)ReplaceModuleInstance(Game_Bag);
+            if (null != Modules.put(Game_Bag.getName(), Game_Bag)) {
+                throw new RuntimeException("duplicate module name: Game_Bag");
+            }
+            Game_Buf = new Game.Buf.ModuleBuf(this);
+            Game_Buf = (Game.Buf.ModuleBuf)ReplaceModuleInstance(Game_Buf);
+            if (null != Modules.put(Game_Buf.getName(), Game_Buf)) {
+                throw new RuntimeException("duplicate module name: Game_Buf");
+            }
+            Game_Equip = new Game.Equip.ModuleEquip(this);
+            Game_Equip = (Game.Equip.ModuleEquip)ReplaceModuleInstance(Game_Equip);
+            if (null != Modules.put(Game_Equip.getName(), Game_Equip)) {
+                throw new RuntimeException("duplicate module name: Game_Equip");
+            }
+            Game_Fight = new Game.Fight.ModuleFight(this);
+            Game_Fight = (Game.Fight.ModuleFight)ReplaceModuleInstance(Game_Fight);
+            if (null != Modules.put(Game_Fight.getName(), Game_Fight)) {
+                throw new RuntimeException("duplicate module name: Game_Fight");
+            }
+            Game_Item = new Game.Item.ModuleItem(this);
+            Game_Item = (Game.Item.ModuleItem)ReplaceModuleInstance(Game_Item);
+            if (null != Modules.put(Game_Item.getName(), Game_Item)) {
+                throw new RuntimeException("duplicate module name: Game_Item");
+            }
+            Game_Login = new Game.Login.ModuleLogin(this);
+            Game_Login = (Game.Login.ModuleLogin)ReplaceModuleInstance(Game_Login);
+            if (null != Modules.put(Game_Login.getName(), Game_Login)) {
+                throw new RuntimeException("duplicate module name: Game_Login");
+            }
+            Game_Map = new Game.Map.ModuleMap(this);
+            Game_Map = (Game.Map.ModuleMap)ReplaceModuleInstance(Game_Map);
+            if (null != Modules.put(Game_Map.getName(), Game_Map)) {
+                throw new RuntimeException("duplicate module name: Game_Map");
+            }
+            Game_Rank = new Game.Rank.ModuleRank(this);
+            Game_Rank = (Game.Rank.ModuleRank)ReplaceModuleInstance(Game_Rank);
+            if (null != Modules.put(Game_Rank.getName(), Game_Rank)) {
+                throw new RuntimeException("duplicate module name: Game_Rank");
+            }
+            Game_Skill = new Game.Skill.ModuleSkill(this);
+            Game_Skill = (Game.Skill.ModuleSkill)ReplaceModuleInstance(Game_Skill);
+            if (null != Modules.put(Game_Skill.getName(), Game_Skill)) {
+                throw new RuntimeException("duplicate module name: Game_Skill");
+            }
+            Zezex_Provider = new Zezex.Provider.ModuleProvider(this);
+            Zezex_Provider = (Zezex.Provider.ModuleProvider)ReplaceModuleInstance(Zezex_Provider);
+            if (null != Modules.put(Zezex_Provider.getName(), Zezex_Provider)) {
+                throw new RuntimeException("duplicate module name: Zezex_Provider");
+            }
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void Create(Zeze.Config config = null)
-	public void Create(Zeze.Config config) {
-		synchronized (this) {
-			if (null != getZeze()) {
-				return;
-			}
+            Zeze.setSchemas(new Game.Schemas());
+        }
+    }
 
-			setZeze(new Zeze.Application("Game", config));
+    public void Destroy() {
+        synchronized(this) {
+            Game_Bag = null;
+            Game_Buf = null;
+            Game_Equip = null;
+            Game_Fight = null;
+            Game_Item = null;
+            Game_Login = null;
+            Game_Map = null;
+            Game_Rank = null;
+            Game_Skill = null;
+            Zezex_Provider = null;
+            Modules.clear();
+            Server = null;
+            Zeze = null;
+        }
+    }
 
-			setServer(new Game.Server(getZeze()));
+    public void StartModules() {
+        synchronized(this) {
+            Game_Bag.Start(this);
+            Game_Buf.Start(this);
+            Game_Equip.Start(this);
+            Game_Fight.Start(this);
+            Game_Item.Start(this);
+            Game_Login.Start(this);
+            Game_Map.Start(this);
+            Game_Rank.Start(this);
+            Game_Skill.Start(this);
+            Zezex_Provider.Start(this);
 
-			setGameBag(new Game.Bag.ModuleBag(this));
-			setGameBag((Game.Bag.ModuleBag)ReplaceModuleInstance(getGameBag()));
-			getModules().put(getGameBag().getName(), getGameBag());
-			setGameBuf(new Game.Buf.ModuleBuf(this));
-			setGameBuf((Game.Buf.ModuleBuf)ReplaceModuleInstance(getGameBuf()));
-			getModules().put(getGameBuf().getName(), getGameBuf());
-			setGameEquip(new Game.Equip.ModuleEquip(this));
-			setGameEquip((Game.Equip.ModuleEquip)ReplaceModuleInstance(getGameEquip()));
-			getModules().put(getGameEquip().getName(), getGameEquip());
-			setGameFight(new Game.Fight.ModuleFight(this));
-			setGameFight((Game.Fight.ModuleFight)ReplaceModuleInstance(getGameFight()));
-			getModules().put(getGameFight().getName(), getGameFight());
-			setGameItem(new Game.Item.ModuleItem(this));
-			setGameItem((Game.Item.ModuleItem)ReplaceModuleInstance(getGameItem()));
-			getModules().put(getGameItem().getName(), getGameItem());
-			setGameLogin(new Game.Login.ModuleLogin(this));
-			setGameLogin((Game.Login.ModuleLogin)ReplaceModuleInstance(getGameLogin()));
-			getModules().put(getGameLogin().getName(), getGameLogin());
-			setGameMap(new Game.Map.ModuleMap(this));
-			setGameMap((Game.Map.ModuleMap)ReplaceModuleInstance(getGameMap()));
-			getModules().put(getGameMap().getName(), getGameMap());
-			setGameRank(new Game.Rank.ModuleRank(this));
-			setGameRank((Game.Rank.ModuleRank)ReplaceModuleInstance(getGameRank()));
-			getModules().put(getGameRank().getName(), getGameRank());
-			setGameSkill(new Game.Skill.ModuleSkill(this));
-			setGameSkill((Game.Skill.ModuleSkill)ReplaceModuleInstance(getGameSkill()));
-			getModules().put(getGameSkill().getName(), getGameSkill());
-			setZezexProvider(new Zezex.Provider.ModuleProvider(this));
-			setZezexProvider((Zezex.Provider.ModuleProvider)ReplaceModuleInstance(getZezexProvider()));
-			getModules().put(getZezexProvider().getName(), getZezexProvider());
+        }
+    }
 
-			getZeze().Schemas = new Game.Schemas();
-		}
-	}
+    public void StopModules() {
+        synchronized(this) {
+            Game_Bag.Stop(this);
+            Game_Buf.Stop(this);
+            Game_Equip.Stop(this);
+            Game_Fight.Stop(this);
+            Game_Item.Stop(this);
+            Game_Login.Stop(this);
+            Game_Map.Stop(this);
+            Game_Rank.Stop(this);
+            Game_Skill.Stop(this);
+            Zezex_Provider.Stop(this);
+        }
+    }
 
-	public void Destroy() {
-		synchronized (this) {
-			setGameBag(null);
-			setGameBuf(null);
-			setGameEquip(null);
-			setGameFight(null);
-			setGameItem(null);
-			setGameLogin(null);
-			setGameMap(null);
-			setGameRank(null);
-			setGameSkill(null);
-			setZezexProvider(null);
-			getModules().clear();
-			setServer(null);
-			setZeze(null);
-		}
-	}
+    public void StartService() {
+        synchronized(this) {
+            Server.Start();
+        }
+    }
 
-	public void StartModules() {
-		synchronized (this) {
-			getGameBag().Start(this);
-			getGameBuf().Start(this);
-			getGameEquip().Start(this);
-			getGameFight().Start(this);
-			getGameItem().Start(this);
-			getGameLogin().Start(this);
-			getGameMap().Start(this);
-			getGameRank().Start(this);
-			getGameSkill().Start(this);
-			getZezexProvider().Start(this);
-
-		}
-	}
-
-	public void StopModules() {
-		synchronized (this) {
-			getGameBag().Stop(this);
-			getGameBuf().Stop(this);
-			getGameEquip().Stop(this);
-			getGameFight().Stop(this);
-			getGameItem().Stop(this);
-			getGameLogin().Stop(this);
-			getGameMap().Stop(this);
-			getGameRank().Stop(this);
-			getGameSkill().Stop(this);
-			getZezexProvider().Stop(this);
-		}
-	}
-
-	public void StartService() {
-		synchronized (this) {
-			getServer().Start();
-		}
-	}
-
-	public void StopService() {
-		synchronized (this) {
-			getServer().Stop();
-		}
-	}
+    public void StopService() {
+        synchronized(this) {
+            Server.Stop();
+        }
+    }
+    // ZEZE_FILE_CHUNK }}} GEN APP
 }

@@ -140,55 +140,56 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-	public static final int ModuleId = 2;
+    public static final int ModuleId = 2;
 
-	private tbag _tbag = new tbag();
+    private tbag _tbag = new tbag();
 
-	private App App;
-	public App getApp() {
-		return App;
-	}
+    public Game.App App;
 
-	public ModuleBag(App app) {
-		App = app;
-		// register protocol factory and handles
-		getApp().getServer().AddFactoryHandle(184003, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Bag.CUse(), Handle = Zeze.Net.Service.<CUse>MakeHandle(this, this.getClass().getMethod("ProcessCUse"))});
-		getApp().getServer().AddFactoryHandle(175038, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Bag.Destroy(), Handle = Zeze.Net.Service.<Destroy>MakeHandle(this, this.getClass().getMethod("ProcessDestroyRequest"))});
-		getApp().getServer().AddFactoryHandle(137439, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Bag.GetBag(), Handle = Zeze.Net.Service.<GetBag>MakeHandle(this, this.getClass().getMethod("ProcessGetBagRequest"))});
-		getApp().getServer().AddFactoryHandle(192909, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Bag.Move(), Handle = Zeze.Net.Service.<Move>MakeHandle(this, this.getClass().getMethod("ProcessMoveRequest"))});
-		getApp().getServer().AddFactoryHandle(142072, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Bag.Sort(), Handle = Zeze.Net.Service.<Sort>MakeHandle(this, this.getClass().getMethod("ProcessSortRequest"))});
-		// register table
-		getApp().getZeze().AddTable(getApp().getZeze().Config.GetTableConf(_tbag.Name).DatabaseName, _tbag);
-	}
+    public ModuleBag(Game.App app) {
+        App = app;
+        // register protocol factory and handles
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Bag.CUse();
+            factoryHandle.Handle = (_p) -> ProcessCUse(_p);
+            App.Server.AddFactoryHandle(184003, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Bag.Destroy();
+            factoryHandle.Handle = (_p) -> ProcessDestroyRequest(_p);
+            App.Server.AddFactoryHandle(175038, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Bag.GetBag();
+            factoryHandle.Handle = (_p) -> ProcessGetBagRequest(_p);
+            App.Server.AddFactoryHandle(137439, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Bag.Move();
+            factoryHandle.Handle = (_p) -> ProcessMoveRequest(_p);
+            App.Server.AddFactoryHandle(192909, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Bag.Sort();
+            factoryHandle.Handle = (_p) -> ProcessSortRequest(_p);
+            App.Server.AddFactoryHandle(142072, factoryHandle);
+        }
+        // register table
+        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tbag.getName()).getDatabaseName(), _tbag);
+    }
 
-	@Override
-	public void UnRegister() {
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__ = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(184003, tempOut__);
-	_ = tempOut__.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__2 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(175038, tempOut__2);
-	_ = tempOut__2.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__3 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(137439, tempOut__3);
-	_ = tempOut__3.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__4 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(192909, tempOut__4);
-	_ = tempOut__4.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__5 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(142072, tempOut__5);
-	_ = tempOut__5.outArgValue;
-		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_tbag.Name).DatabaseName, _tbag);
-	}
+    public void UnRegister() {
+        App.Server.getFactorys().remove(184003);
+        App.Server.getFactorys().remove(175038);
+        App.Server.getFactorys().remove(137439);
+        App.Server.getFactorys().remove(192909);
+        App.Server.getFactorys().remove(142072);
+        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_tbag.getName()).getDatabaseName(), _tbag);
+    }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

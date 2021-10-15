@@ -66,25 +66,21 @@ public class ModuleBuf extends AbstractModule {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-	public static final int ModuleId = 6;
+    public static final int ModuleId = 6;
 
-	private tbufs _tbufs = new tbufs();
+    private tbufs _tbufs = new tbufs();
 
-	private App App;
-	public final App getApp() {
-		return App;
-	}
+    public Game.App App;
 
-	public ModuleBuf(App app) {
-		App = app;
-		// register protocol factory and handles
-		// register table
-		getApp().getZeze().AddTable(getApp().getZeze().Config.GetTableConf(_tbufs.Name).DatabaseName, _tbufs);
-	}
+    public ModuleBuf(Game.App app) {
+        App = app;
+        // register protocol factory and handles
+        // register table
+        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tbufs.getName()).getDatabaseName(), _tbufs);
+    }
 
-	@Override
-	public void UnRegister() {
-		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_tbufs.Name).DatabaseName, _tbufs);
-	}
+    public void UnRegister() {
+        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_tbufs.getName()).getDatabaseName(), _tbufs);
+    }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

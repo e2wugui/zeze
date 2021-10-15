@@ -231,70 +231,72 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-	public static final int ModuleId = 1;
+    public static final int ModuleId = 1;
 
-	private taccount _taccount = new taccount();
-	private tonline _tonline = new tonline();
-	private trole _trole = new trole();
-	private trolename _trolename = new trolename();
+    private taccount _taccount = new taccount();
+    private tonline _tonline = new tonline();
+    private trole _trole = new trole();
+    private trolename _trolename = new trolename();
 
-	private App App;
-	public App getApp() {
-		return App;
-	}
+    public Game.App App;
 
-	public ModuleLogin(App app) {
-		App = app;
-		// register protocol factory and handles
-		getApp().getServer().AddFactoryHandle(108094, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Login.CreateRole(), Handle = Zeze.Net.Service.<CreateRole>MakeHandle(this, this.getClass().getMethod("ProcessCreateRoleRequest"))});
-		getApp().getServer().AddFactoryHandle(91931, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Login.GetRoleList(), Handle = Zeze.Net.Service.<GetRoleList>MakeHandle(this, this.getClass().getMethod("ProcessGetRoleListRequest"))});
-		getApp().getServer().AddFactoryHandle(83324, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Login.Login(), Handle = Zeze.Net.Service.<Login>MakeHandle(this, this.getClass().getMethod("ProcessLoginRequest"))});
-		getApp().getServer().AddFactoryHandle(113969, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Login.Logout(), Handle = Zeze.Net.Service.<Logout>MakeHandle(this, this.getClass().getMethod("ProcessLogoutRequest"))});
-		getApp().getServer().AddFactoryHandle(80485, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Login.ReliableNotifyConfirm(), Handle = Zeze.Net.Service.<ReliableNotifyConfirm>MakeHandle(this, this.getClass().getMethod("ProcessReliableNotifyConfirmRequest"))});
-		getApp().getServer().AddFactoryHandle(108643, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Game.Login.ReLogin(), Handle = Zeze.Net.Service.<ReLogin>MakeHandle(this, this.getClass().getMethod("ProcessReLoginRequest"))});
-		// register table
-		getApp().getZeze().AddTable(getApp().getZeze().Config.GetTableConf(_taccount.Name).DatabaseName, _taccount);
-		getApp().getZeze().AddTable(getApp().getZeze().Config.GetTableConf(_tonline.Name).DatabaseName, _tonline);
-		getApp().getZeze().AddTable(getApp().getZeze().Config.GetTableConf(_trole.Name).DatabaseName, _trole);
-		getApp().getZeze().AddTable(getApp().getZeze().Config.GetTableConf(_trolename.Name).DatabaseName, _trolename);
-	}
+    public ModuleLogin(Game.App app) {
+        App = app;
+        // register protocol factory and handles
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Login.CreateRole();
+            factoryHandle.Handle = (_p) -> ProcessCreateRoleRequest(_p);
+            App.Server.AddFactoryHandle(108094, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Login.GetRoleList();
+            factoryHandle.Handle = (_p) -> ProcessGetRoleListRequest(_p);
+            App.Server.AddFactoryHandle(91931, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Login.Login();
+            factoryHandle.Handle = (_p) -> ProcessLoginRequest(_p);
+            App.Server.AddFactoryHandle(83324, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Login.Logout();
+            factoryHandle.Handle = (_p) -> ProcessLogoutRequest(_p);
+            App.Server.AddFactoryHandle(113969, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Login.ReliableNotifyConfirm();
+            factoryHandle.Handle = (_p) -> ProcessReliableNotifyConfirmRequest(_p);
+            App.Server.AddFactoryHandle(80485, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Game.Login.ReLogin();
+            factoryHandle.Handle = (_p) -> ProcessReLoginRequest(_p);
+            App.Server.AddFactoryHandle(108643, factoryHandle);
+        }
+        // register table
+        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_taccount.getName()).getDatabaseName(), _taccount);
+        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_trole.getName()).getDatabaseName(), _trole);
+        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_trolename.getName()).getDatabaseName(), _trolename);
+    }
 
-	@Override
-	public void UnRegister() {
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__ = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(108094, tempOut__);
-	_ = tempOut__.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__2 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(91931, tempOut__2);
-	_ = tempOut__2.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__3 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(83324, tempOut__3);
-	_ = tempOut__3.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__4 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(113969, tempOut__4);
-	_ = tempOut__4.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__5 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(80485, tempOut__5);
-	_ = tempOut__5.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__6 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(108643, tempOut__6);
-	_ = tempOut__6.outArgValue;
-		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_taccount.Name).DatabaseName, _taccount);
-		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_tonline.Name).DatabaseName, _tonline);
-		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_trole.Name).DatabaseName, _trole);
-		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_trolename.Name).DatabaseName, _trolename);
-	}
+    public void UnRegister() {
+        App.Server.getFactorys().remove(108094);
+        App.Server.getFactorys().remove(91931);
+        App.Server.getFactorys().remove(83324);
+        App.Server.getFactorys().remove(113969);
+        App.Server.getFactorys().remove(80485);
+        App.Server.getFactorys().remove(108643);
+        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_taccount.getName()).getDatabaseName(), _taccount);
+        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_trole.getName()).getDatabaseName(), _trole);
+        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_trolename.getName()).getDatabaseName(), _trolename);
+    }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

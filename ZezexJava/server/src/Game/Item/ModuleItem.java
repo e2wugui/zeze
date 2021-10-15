@@ -14,22 +14,18 @@ public final class ModuleItem extends AbstractModule {
 
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-	public static final int ModuleId = 3;
+    public static final int ModuleId = 3;
 
 
-	private App App;
-	public App getApp() {
-		return App;
-	}
+    public Game.App App;
 
-	public ModuleItem(App app) {
-		App = app;
-		// register protocol factory and handles
-		// register table
-	}
+    public ModuleItem(Game.App app) {
+        App = app;
+        // register protocol factory and handles
+        // register table
+    }
 
-	@Override
-	public void UnRegister() {
-	}
+    public void UnRegister() {
+    }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

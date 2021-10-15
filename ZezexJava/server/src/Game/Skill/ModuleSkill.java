@@ -17,25 +17,21 @@ public final class ModuleSkill extends AbstractModule {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-	public static final int ModuleId = 5;
+    public static final int ModuleId = 5;
 
-	private tskills _tskills = new tskills();
+    private tskills _tskills = new tskills();
 
-	private App App;
-	public App getApp() {
-		return App;
-	}
+    public Game.App App;
 
-	public ModuleSkill(App app) {
-		App = app;
-		// register protocol factory and handles
-		// register table
-		getApp().getZeze().AddTable(getApp().getZeze().Config.GetTableConf(_tskills.Name).DatabaseName, _tskills);
-	}
+    public ModuleSkill(Game.App app) {
+        App = app;
+        // register protocol factory and handles
+        // register table
+        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tskills.getName()).getDatabaseName(), _tskills);
+    }
 
-	@Override
-	public void UnRegister() {
-		getApp().getZeze().RemoveTable(getApp().getZeze().Config.GetTableConf(_tskills.Name).DatabaseName, _tskills);
-	}
+    public void UnRegister() {
+        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_tskills.getName()).getDatabaseName(), _tskills);
+    }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }
