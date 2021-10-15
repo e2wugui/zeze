@@ -2,40 +2,43 @@ package UnitTest.Zeze.Net;
 
 import Zeze.Net.*;
 import Zeze.Transaction.*;
-import UnitTest.*;
+import Zeze.Util.Factory;
+import Zeze.Util.ManualResetEvent;
+import junit.framework.TestCase;
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestClass] public class TestRpc
-public class TestRpc {
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void TestRpcSimple()
-	public final void TestRpcSimple() {
+public class TestRpc extends TestCase{
+	
+	 ManualResetEvent connected = new ManualResetEvent(false);
+	
+	public final void testRpcSimple() throws InterruptedException {
 		Service server = new Service("TestRpc.Server");
 
 		FirstRpc forid = new FirstRpc();
-		server.AddFactoryHandle(forid.getTypeId(), new Service.ProtocolFactoryHandle() {Factory = () -> new FirstRpc(), Handle = Service.<FirstRpc>MakeHandle(this, this.getClass().getMethod("ProcessFirstRpcRequest"))});
+		Factory<Protocol> f =  () -> new FirstRpc();
+		server.AddFactoryHandle(forid.getTypeId(), new Service.ProtocolFactoryHandle(f,x-> ProcessFirstRpcRequest(x)));
 
-		AsyncSocket servetrSocket = server.NewServerSocket(IPAddress.Any, 5000);
+		AsyncSocket servetrSocket = server.NewServerSocket("127.0.0.1", 5000);
 		Client client = new Client(this);
-		client.AddFactoryHandle(forid.getTypeId(), new Service.ProtocolFactoryHandle() {Factory = () -> new FirstRpc()});
+		client.AddFactoryHandle(forid.getTypeId(), new Service.ProtocolFactoryHandle(() -> new FirstRpc()));
 
 		AsyncSocket clientSocket = client.NewClientSocket("127.0.0.1", 5000, null);
 		connected.WaitOne();
 
 		FirstRpc first = new FirstRpc();
-		first.getArgument().Int1 = 1234;
+		first.Argument.setInt1(1234);
 		//Console.WriteLine("SendFirstRpcRequest");
-		first.SendForWait(clientSocket).Task.Wait();
+		first.SendForWait(clientSocket).Wait();
 		//Console.WriteLine("FirstRpc Wait End");
-		assert first.getArgument().getInt1() == first.getResult().getInt1();
+		assert first.Argument.getInt1() == first.Result.getInt1();
 	}
 
-	private ManualResetEvent connected = new ManualResetEvent(false);
+	
 
-	public final int ProcessFirstRpcRequest(FirstRpc rpc) {
-		rpc.getResult().Assign(rpc.getArgument());
+	public final int ProcessFirstRpcRequest(Protocol p) {
+		FirstRpc rpc = (FirstRpc) p;
+		rpc.Result.Assign(rpc.Argument);
 		rpc.SendResult();
-		System.out.println("ProcessFirstRpcRequest result.Int1=" + rpc.getResult().getInt1());
+		System.out.println("ProcessFirstRpcRequest result.Int1=" + rpc.Result.getInt1());
 		return Procedure.Success;
 	}
 

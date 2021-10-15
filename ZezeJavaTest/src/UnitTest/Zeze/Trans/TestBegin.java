@@ -2,11 +2,12 @@ package UnitTest.Zeze.Trans;
 
 import Zeze.Serialize.*;
 import Zeze.Transaction.*;
+import Zeze.Transaction.Record;
+import junit.framework.TestCase;
 import UnitTest.*;
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestClass] public class TestBegin
-public class TestBegin {
+public class TestBegin extends TestCase{
+	
 	public static class MyBean extends Bean {
 		@Override
 		public void Decode(ByteBuffer bb) {
@@ -24,7 +25,7 @@ public class TestBegin {
 
 		public int _i;
 
-		private static class MyLog extends Log<MyBean, Integer> {
+		private static class MyLog extends Log1<MyBean, Integer> {
 			public MyLog(MyBean bean, int value) {
 				super(bean, value);
 
@@ -32,29 +33,27 @@ public class TestBegin {
 
 			@Override
 			public long getLogKey() {
-				return Bean.ObjectId + 0;
+				return getBean().getObjectId() + 0;
 			}
 
 			@Override
 			public void Commit() {
-				((MyBean)Bean)._i = getValue();
+				((MyBean)getBean())._i = getValue();
 			}
 		}
 		public final int getI() {
-			MyLog log = (MyLog)Transaction.Current.GetLog(this.getObjectId() + 0);
+			MyLog log = (MyLog)Transaction.getCurrent().GetLog(this.getObjectId() + 0);
 			return (null != log) ? log.getValue() : _i;
 		}
 		public final void setI(int value) {
-			Transaction.Current.PutLog(new MyLog(this, value));
+			Transaction.getCurrent().PutLog(new MyLog(this, value));
 		}
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void TestRollback()
-	public final void TestRollback() {
+	public final void testRollback() {
 		Transaction.Create();
 		try {
-			Transaction.Current.Begin();
+			Transaction.getCurrent().Begin();
 
 			// process
 			MyBean bean = new MyBean();
@@ -63,7 +62,7 @@ public class TestBegin {
 			bean.setI(1);
 			assert bean.getI() == 1;
 
-			Transaction.Current.Rollback();
+			Transaction.getCurrent().Rollback();
 			assert bean.getI() == 0;
 		}
 		finally {
@@ -71,12 +70,10 @@ public class TestBegin {
 		}
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void TestCommit()
-	public final void TestCommit() {
+	public final void testCommit() {
 		Transaction.Create();
 		try {
-			Transaction.Current.Begin();
+			Transaction.getCurrent().Begin();
 
 			// process
 			MyBean bean = new MyBean();
@@ -85,7 +82,7 @@ public class TestBegin {
 			bean.setI(1);
 			assert bean.getI() == 1;
 
-			Transaction.Current.Commit();
+			Transaction.getCurrent().Commit();
 			assert bean.getI() == 1;
 		}
 		finally {
@@ -93,22 +90,20 @@ public class TestBegin {
 		}
 	}
 
-	private void ProcessNestRollback(MyBean bean) {
+	private void processNestRollback(MyBean bean) {
 		assert bean.getI() == 1;
-		Transaction.Current.Begin();
+		Transaction.getCurrent().Begin();
 		assert bean.getI() == 1;
 		bean.setI(2);
 		assert bean.getI() == 2;
-		Transaction.Current.Rollback();
+		Transaction.getCurrent().Rollback();
 		assert bean.getI() == 1;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void TestNestRollback()
-	public final void TestNestRollback() {
+	public final void testNestRollback() {
 		Transaction.Create();
 		try {
-			Transaction.Current.Begin();
+			Transaction.getCurrent().Begin();
 
 			// process
 			MyBean bean = new MyBean();
@@ -116,10 +111,10 @@ public class TestBegin {
 
 			bean.setI(1);
 			assert bean.getI() == 1;
-			ProcessNestRollback(bean);
+			processNestRollback(bean);
 			assert bean.getI() == 1;
 
-			Transaction.Current.Commit();
+			Transaction.getCurrent().Commit();
 			assert bean.getI() == 1;
 		}
 		finally {
@@ -129,20 +124,18 @@ public class TestBegin {
 
 	private void ProcessNestCommit(MyBean bean) {
 		assert bean.getI() == 1;
-		Transaction.Current.Begin();
+		Transaction.getCurrent().Begin();
 		assert bean.getI() == 1;
 		bean.setI(2);
 		assert bean.getI() == 2;
-		Transaction.Current.Commit();
+		Transaction.getCurrent().Commit();
 		assert bean.getI() == 2;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void TestNestCommit()
-	public final void TestNestCommit() {
+	public final void testNestCommit() {
 		Transaction.Create();
 		try {
-			Transaction.Current.Begin();
+			Transaction.getCurrent().Begin();
 
 			// process
 			MyBean bean = new MyBean();
@@ -153,7 +146,7 @@ public class TestBegin {
 			ProcessNestCommit(bean);
 			assert bean.getI() == 2;
 
-			Transaction.Current.Commit();
+			Transaction.getCurrent().Commit();
 			assert bean.getI() == 2;
 		}
 		finally {

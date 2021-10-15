@@ -105,5 +105,9 @@ public class App {
             Server.Stop();
         }
     }
-    // ZEZE_FILE_CHUNK }}} GEN APP
+
+	public Zeze.Application getZeze() {
+		return Zeze;
+	}
+
 }

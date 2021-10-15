@@ -32,9 +32,9 @@ public class ModuleModule1 extends AbstractModule {
     public static final int ModuleId = 1;
 
     private Autokey_ _Autokey_ = new Autokey_();
-    private Table1 _Table1 = new Table1();
-    private Table2 _Table2 = new Table2();
-    private Table3 _Table3 = new Table3();
+    public Table1 _Table1 = new Table1();
+    public Table2 _Table2 = new Table2();
+    public Table3 _Table3 = new Table3();
     private TableImportant _TableImportant = new TableImportant();
 
     public demo.App App;
