@@ -3,12 +3,15 @@ package Zezex.Provider;
 import Zeze.Services.*;
 import Zezex.*;
 import java.util.*;
+import Zeze.Services.ServiceManager.Agent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class ModuleProvider extends AbstractModule {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(ModuleProvider.class);
 
 	public void Start(App app) {
 	}
@@ -20,49 +23,50 @@ public final class ModuleProvider extends AbstractModule {
 		return String.format("%1$s%2$s", serviceNamePrefix, moduleId);
 	}
 
-	public boolean ChoiceHash(ServiceManager.Agent.SubscribeState providers, int hash, tangible.OutObject<Long> provider) {
-		provider.outArgValue = 0;
+	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, Zeze.Util.OutObject<Long> provider) {
+		provider.Value = 0L;
 
-		var list = providers.ServiceInfos.ServiceInfoListSortedByIdentity;
-		if (list.Count == 0) {
+		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
+		if (list.size() == 0) {
 			return false;
 		}
 
-		Object tempVar = list.get(hash % list.Count).LocalState;
+		Object tempVar = list.get(Integer.remainderUnsigned(hash, list.size())).getLocalState();
 		var providerModuleState = tempVar instanceof ProviderModuleState ? (ProviderModuleState)tempVar : null;
 		if (null == providerModuleState) {
 			return false;
 		}
 
-		provider.outArgValue = providerModuleState.getSessionId();
+		provider.Value = providerModuleState.getSessionId();
 		return true;
 	}
 
-	public boolean ChoiceLoad(ServiceManager.Agent.SubscribeState providers, tangible.OutObject<Long> provider) {
-		provider.outArgValue = 0;
+	public boolean ChoiceLoad(Agent.SubscribeState providers, Zeze.Util.OutObject<Long> provider) {
+		provider.Value = 0L;
 
-		var list = providers.ServiceInfos.ServiceInfoListSortedByIdentity;
-		var frees = new ArrayList<ProviderSession>(list.Count);
-		var all = new ArrayList<ProviderSession>(list.Count);
+		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
+		var frees = new ArrayList<ProviderSession>(list.size());
+		var all = new ArrayList<ProviderSession>(list.size());
 		int TotalWeight = 0;
 
 		// 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
-		for (int i = list.Count - 1; i >= 0; --i) {
-			Object tempVar = list.get(i).LocalState;
+		for (int i = list.size() - 1; i >= 0; --i) {
+			Object tempVar = list.get(i).getLocalState();
 			var providerModuleState = tempVar instanceof ProviderModuleState ? (ProviderModuleState)tempVar : null;
 			if (null == providerModuleState) {
 				continue;
 			}
-			Object tempVar2 = getApp().Instance.ProviderService.GetSocket(providerModuleState.getSessionId()).UserState;
-			var ps = getApp().Instance.ProviderService.GetSocket(providerModuleState.getSessionId()) == null ? null : tempVar2 instanceof ProviderSession ? (ProviderSession)tempVar2 : null;
+			Object tempVar2 = App.Instance.ProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
+			var ps = App.Instance.ProviderService.GetSocket(providerModuleState.getSessionId()) == null
+					? null : tempVar2 instanceof ProviderSession ? (ProviderSession)tempVar2 : null;
 			if (null == ps) {
 				continue; // 这里发现关闭的服务，仅仅忽略.
 			}
 			all.add(ps);
-			if (ps.OnlineNew > getApp().Instance.Config.MaxOnlineNew) {
+			if (ps.getOnlineNew() > App.Instance.getConfig().getMaxOnlineNew()) {
 				continue;
 			}
-			int weight = ps.ProposeMaxOnline - ps.Online;
+			int weight = ps.getProposeMaxOnline() - ps.getOnline();
 			if (weight <= 0) {
 				continue;
 			}
@@ -70,11 +74,11 @@ public final class ModuleProvider extends AbstractModule {
 			TotalWeight += weight;
 		}
 		if (TotalWeight > 0) {
-			int randweight = Zeze.Util.Random.Instance.nextInt(TotalWeight);
+			int randweight = Zeze.Util.Random.getInstance().nextInt(TotalWeight);
 			for (var ps : frees) {
 				int weight = ps.getProposeMaxOnline() - ps.getOnline();
 				if (randweight < weight) {
-					provider.outArgValue = ps.getSessionId();
+					provider.Value = ps.getSessionId();
 					return true;
 				}
 				randweight -= weight;
@@ -82,7 +86,7 @@ public final class ModuleProvider extends AbstractModule {
 		}
 		// 选择失败，一般是都满载了，随机选择一个。
 		if (!all.isEmpty()) {
-			provider.outArgValue = all.get(Zeze.Util.Random.Instance.nextInt(all.size())).getSessionId();
+			provider.Value = all.get(Zeze.Util.Random.getInstance().nextInt(all.size())).getSessionId();
 			return true;
 		}
 		// no providers

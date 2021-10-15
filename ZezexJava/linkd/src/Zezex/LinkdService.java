@@ -1,65 +1,69 @@
 package Zezex;
 
-// auto-generated
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-
-
-public final class LinkdService extends Zeze.Services.HandshakeServer {
+public final class LinkdService extends LinkdServiceBase {
 	public LinkdService(Zeze.Application zeze) {
-		super("LinkdService", zeze);
+		super(zeze);
 	}
 
-
-
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(LinkdService.class);
 
 	public void ReportError(long linkSid, int from, int code, String desc) {
 		var link = this.GetSocket(linkSid);
 		if (null != link) {
 			var error = new Zezex.Linkd.ReportError();
-			error.getArgument().From = from;
-			error.getArgument().Code = code;
-			error.getArgument().Desc = desc;
+			error.Argument.setFrom(from);
+			error.Argument.setCode(code);
+			error.Argument.setDesc(desc);
 			error.Send(link);
 
 			switch (from) {
-				case Linkd.BReportError.FromLink:
+				case Zezex.Linkd.BReportError.FromLink:
 					switch (code) {
-						case Linkd.BReportError.CodeNoProvider:
+						case Zezex.Linkd.BReportError.CodeNoProvider:
 							// 没有服务时，不断开连接，允许客户端重试。
 							return;
 					}
 					break;
 
-				case Linkd.BReportError.FromProvider:
+				case Zezex.Linkd.BReportError.FromProvider:
 					break;
 			}
 			// 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
-			Zeze.Util.Scheduler.Instance.Schedule((ThisTask) -> this.GetSocket(linkSid) == null ? null : this.GetSocket(linkSid).close(), 2000, -1);
+			Zeze.Util.Task.schedule((ThisTask) -> {
+				var so = this.GetSocket(linkSid);
+				if (so != null)
+					so.close();
+			}, 2000, -1);
 		}
 	}
 
 	@Override
 	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int type, Zeze.Serialize.ByteBuffer data) {
-		Object tempVar = so.UserState;
-		var linkSession = tempVar instanceof LinkSession ? (LinkSession)tempVar : null;
+		var linkSession = (LinkSession)so.getUserState();
 		if (null == linkSession || linkSession.getAccount().equals(null)) {
-			ReportError(so.SessionId, Linkd.BReportError.FromLink, Linkd.BReportError.CodeNotAuthed, "not authed.");
+			ReportError(
+					so.getSessionId(),
+					Zezex.Linkd.BReportError.FromLink,
+					Zezex.Linkd.BReportError.CodeNotAuthed,
+					"not authed."
+					);
 			return;
 		}
 
 		var moduleId = Zeze.Net.Protocol.GetModuleId(type);
 		var dispatch = new Zezex.Provider.Dispatch();
-		dispatch.getArgument().LinkSid = so.SessionId;
-		dispatch.getArgument().Account = linkSession.getAccount();
-		dispatch.getArgument().ProtocolType = type;
-		dispatch.getArgument().ProtocolData = new Zeze.Net.Binary(data);
-		dispatch.getArgument().getStates().AddRange(linkSession.getUserStates());
-		dispatch.getArgument().Statex = linkSession.getUserStatex();
+		dispatch.Argument.setLinkSid(so.getSessionId());
+		dispatch.Argument.setAccount(linkSession.getAccount());
+		dispatch.Argument.setProtocolType(type);
+		dispatch.Argument.setProtocolData(new Zeze.Net.Binary(data));
+		dispatch.Argument.getStates().addAll(linkSession.getUserStates());
+		dispatch.Argument.setStatex(linkSession.getUserStatex());
 
-		long provider;
-		tangible.OutObject<Long> tempOut_provider = new tangible.OutObject<Long>();
-		if (linkSession.TryGetProvider(moduleId, tempOut_provider)) {
+		var provider = new Zeze.Util.OutObject<Long>();
+		if (linkSession.TryGetProvider(moduleId, provider)) {
 		provider = tempOut_provider.outArgValue;
 			var socket = App.getInstance().getProviderService().GetSocket(provider);
 			if (null != socket) {

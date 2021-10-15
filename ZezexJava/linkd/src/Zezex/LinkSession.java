@@ -49,9 +49,15 @@ public class LinkSession {
 		}
 	}
 
-	public final boolean TryGetProvider(int moduleId, tangible.OutObject<Long> provider) {
+	public final boolean TryGetProvider(int moduleId, Zeze.Util.OutObject<Long> provider) {
 		synchronized (this) {
-			return (getBinds().containsKey(moduleId) && (provider.outArgValue = getBinds().get(moduleId)) == provider.outArgValue);
+			var binded = Binds.get(moduleId);
+			if (null != binded) {
+				provider.Value = binded;
+				return true;
+			}
+			provider.Value = 0L;
+			return false;
 		}
 	}
 

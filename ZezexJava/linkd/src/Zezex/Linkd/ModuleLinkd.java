@@ -13,7 +13,8 @@ public final class ModuleLinkd extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessAuthRequest(Auth rpc) {
+	public int ProcessAuthRequest(Zeze.Net.Protocol _rpc) {
+		var rpc = (Auth)_rpc;
 		/*
 		BAccount account = _taccount.Get(protocol.Argument.Account);
 		if (null == account || false == account.Token.Equals(protocol.Argument.Token))
@@ -25,17 +26,17 @@ public final class ModuleLinkd extends AbstractModule {
 		Game.App.Instance.LinkdService.GetSocket(account.SocketSessionId)?.Dispose(); // kick, 最好发个协议再踢。如果允许多个连接，去掉这行。
 		account.SocketSessionId = protocol.Sender.SessionId;
 		*/
-		Object tempVar = rpc.getSender().UserState;
-		var linkSession = tempVar instanceof LinkSession ? (LinkSession)tempVar : null;
-		linkSession.setAccount(rpc.getArgument().getAccount());
+		var linkSession = (LinkSession)rpc.Sender.getUserState();
+		linkSession.setAccount(rpc.Argument.getAccount());
 		rpc.SendResultCode(Auth.Success);
 
 		return Zeze.Transaction.Procedure.Success;
 	}
 
 	@Override
-	public int ProcessKeepAlive(KeepAlive protocol) {
-		var linkSession = protocol.Sender.UserState instanceof LinkSession ? (LinkSession)protocol.Sender.UserState : null;
+	public int ProcessKeepAlive(Zeze.Net.Protocol _p) {
+		var protocol = (KeepAlive)_p;
+		var linkSession = (LinkSession)protocol.Sender.getUserState();
 		if (null == linkSession) {
 			// handshake 完成之前不可能回收得到 keepalive，先这样处理吧。
 			protocol.Sender.Close(null);
