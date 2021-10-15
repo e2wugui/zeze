@@ -588,7 +588,7 @@ namespace Zeze.Serialize
                 Bytes[WriteIndex] = (byte)((x >> 40) | 0xf8);
                 WriteIndex += 6;
             }
-            else if (x < 0x200000000000L) // 1111 110x,
+            else if (x < 0x2000000000000L) // 1111 110x,
             {
                 EnsureWrite(7);
                 Bytes[WriteIndex + 6] = (byte)x;

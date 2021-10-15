@@ -974,7 +974,7 @@ export module Zeze {
 					this.WriteIndex += 6;
 					return;
 				}
-				if (x < 0x200000000000n) // 1111 110x,
+				if (x < 0x2000000000000n) // 1111 110x,
 				{
 					this.EnsureWrite(7);
 					var u8 = Long.ToUint8Array(x, 7);
