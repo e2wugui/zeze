@@ -4,103 +4,10 @@ import Zeze.Services.*;
 import Zezex.*;
 import java.util.*;
 
-// auto-generated
-
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class ModuleProvider extends AbstractModule {
-	public static final int ModuleId = 10001;
-
-
-	private App App;
-	public App getApp() {
-		return App;
-	}
-
-	public ModuleProvider(App app) {
-		App = app;
-		// register protocol factory and handles
-		getApp().getProviderService().AddFactoryHandle(655451039, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.AnnounceProviderInfo(), Handle = Zeze.Net.Service.<AnnounceProviderInfo>MakeHandle(this, this.getClass().getMethod("ProcessAnnounceProviderInfo")), NoProcedure = true});
-		getApp().getProviderService().AddFactoryHandle(655479127, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.Bind(), Handle = Zeze.Net.Service.<Bind>MakeHandle(this, this.getClass().getMethod("ProcessBindRequest"))});
-		getApp().getProviderService().AddFactoryHandle(655477884, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.Broadcast(), Handle = Zeze.Net.Service.<Broadcast>MakeHandle(this, this.getClass().getMethod("ProcessBroadcast"))});
-		getApp().getProviderService().AddFactoryHandle(655446121, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.Kick(), Handle = Zeze.Net.Service.<Kick>MakeHandle(this, this.getClass().getMethod("ProcessKick"))});
-		getApp().getProviderService().AddFactoryHandle(655455850, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.ModuleRedirect(), Handle = Zeze.Net.Service.<ModuleRedirect>MakeHandle(this, this.getClass().getMethod("ProcessModuleRedirectRequest"))});
-		getApp().getProviderService().AddFactoryHandle(655479394, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.ModuleRedirectAllRequest(), Handle = Zeze.Net.Service.<ModuleRedirectAllRequest>MakeHandle(this, this.getClass().getMethod("ProcessModuleRedirectAllRequest"))});
-		getApp().getProviderService().AddFactoryHandle(655465353, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.ModuleRedirectAllResult(), Handle = Zeze.Net.Service.<ModuleRedirectAllResult>MakeHandle(this, this.getClass().getMethod("ProcessModuleRedirectAllResult"))});
-		getApp().getProviderService().AddFactoryHandle(655489496, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.ReportLoad(), Handle = Zeze.Net.Service.<ReportLoad>MakeHandle(this, this.getClass().getMethod("ProcessReportLoad"))});
-		getApp().getProviderService().AddFactoryHandle(655456505, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.Send(), Handle = Zeze.Net.Service.<Send>MakeHandle(this, this.getClass().getMethod("ProcessSend"))});
-		getApp().getProviderService().AddFactoryHandle(655480350, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.SetUserState(), Handle = Zeze.Net.Service.<SetUserState>MakeHandle(this, this.getClass().getMethod("ProcessSetUserState"))});
-		getApp().getProviderService().AddFactoryHandle(655453724, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.Transmit(), Handle = Zeze.Net.Service.<Transmit>MakeHandle(this, this.getClass().getMethod("ProcessTransmit")), NoProcedure = true});
-		getApp().getProviderService().AddFactoryHandle(655436306, new Zeze.Net.Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.UnBind(), Handle = Zeze.Net.Service.<UnBind>MakeHandle(this, this.getClass().getMethod("ProcessUnBindRequest"))});
-		// register table
-	}
-
-	@Override
-	public void UnRegister() {
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__ = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655451039, tempOut__);
-	_ = tempOut__.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__2 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655479127, tempOut__2);
-	_ = tempOut__2.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__3 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655477884, tempOut__3);
-	_ = tempOut__3.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__4 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655446121, tempOut__4);
-	_ = tempOut__4.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__5 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655455850, tempOut__5);
-	_ = tempOut__5.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__6 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655479394, tempOut__6);
-	_ = tempOut__6.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__7 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655465353, tempOut__7);
-	_ = tempOut__7.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__8 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655489496, tempOut__8);
-	_ = tempOut__8.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__9 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655456505, tempOut__9);
-	_ = tempOut__9.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__10 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655480350, tempOut__10);
-	_ = tempOut__10.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__11 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655453724, tempOut__11);
-	_ = tempOut__11.outArgValue;
-		TValue _;
-		tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle> tempOut__12 = new tangible.OutObject<Zeze.Net.Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getProviderService().getFactorys().TryRemove(655436306, tempOut__12);
-	_ = tempOut__12.outArgValue;
-	}
-
-
-
 	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
 	public void Start(App app) {
@@ -618,4 +525,106 @@ public final class ModuleProvider extends AbstractModule {
 		setServerServiceNamePrefix(protocol.getArgument().getServiceNamePrefix());
 		return Zeze.Transaction.Procedure.Success;
 	}
+
+    // ZEZE_FILE_CHUNK {{{ GEN MODULE
+    public static final int ModuleId = 10001;
+
+
+    public Zezex.App App;
+
+    public ModuleProvider(Zezex.App app) {
+        App = app;
+        // register protocol factory and handles
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.AnnounceProviderInfo();
+            factoryHandle.Handle = (_p) -> ProcessAnnounceProviderInfo(_p);
+            factoryHandle.NoProcedure = true,
+            App.ProviderService.AddFactoryHandle(655451039, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.Bind();
+            factoryHandle.Handle = (_p) -> ProcessBindRequest(_p);
+            App.ProviderService.AddFactoryHandle(655479127, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.Broadcast();
+            factoryHandle.Handle = (_p) -> ProcessBroadcast(_p);
+            App.ProviderService.AddFactoryHandle(655477884, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.Kick();
+            factoryHandle.Handle = (_p) -> ProcessKick(_p);
+            App.ProviderService.AddFactoryHandle(655446121, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirect();
+            factoryHandle.Handle = (_p) -> ProcessModuleRedirectRequest(_p);
+            App.ProviderService.AddFactoryHandle(655455850, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirectAllRequest();
+            factoryHandle.Handle = (_p) -> ProcessModuleRedirectAllRequest(_p);
+            App.ProviderService.AddFactoryHandle(655479394, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirectAllResult();
+            factoryHandle.Handle = (_p) -> ProcessModuleRedirectAllResult(_p);
+            App.ProviderService.AddFactoryHandle(655465353, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.ReportLoad();
+            factoryHandle.Handle = (_p) -> ProcessReportLoad(_p);
+            App.ProviderService.AddFactoryHandle(655489496, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.Send();
+            factoryHandle.Handle = (_p) -> ProcessSend(_p);
+            App.ProviderService.AddFactoryHandle(655456505, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.SetUserState();
+            factoryHandle.Handle = (_p) -> ProcessSetUserState(_p);
+            App.ProviderService.AddFactoryHandle(655480350, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.Transmit();
+            factoryHandle.Handle = (_p) -> ProcessTransmit(_p);
+            factoryHandle.NoProcedure = true,
+            App.ProviderService.AddFactoryHandle(655453724, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.UnBind();
+            factoryHandle.Handle = (_p) -> ProcessUnBindRequest(_p);
+            App.ProviderService.AddFactoryHandle(655436306, factoryHandle);
+        }
+        // register table
+    }
+
+    public void UnRegister() {
+        App.ProviderService.getFactorys().remove(655451039);
+        App.ProviderService.getFactorys().remove(655479127);
+        App.ProviderService.getFactorys().remove(655477884);
+        App.ProviderService.getFactorys().remove(655446121);
+        App.ProviderService.getFactorys().remove(655455850);
+        App.ProviderService.getFactorys().remove(655479394);
+        App.ProviderService.getFactorys().remove(655465353);
+        App.ProviderService.getFactorys().remove(655489496);
+        App.ProviderService.getFactorys().remove(655456505);
+        App.ProviderService.getFactorys().remove(655480350);
+        App.ProviderService.getFactorys().remove(655453724);
+        App.ProviderService.getFactorys().remove(655436306);
+    }
+	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

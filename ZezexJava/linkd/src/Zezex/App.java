@@ -2,137 +2,43 @@ package Zezex;
 
 import java.util.*;
 
-// auto-generated
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+import java.util.*;
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class App {
-	private static App Instance = new App();
+	private static final Logger logger = LogManager.getLogger(App.class);
+
+	public static App Instance = new App();
 	public static App getInstance() {
 		return Instance;
 	}
 
-	private Zeze.Application Zeze;
-	public Zeze.Application getZeze() {
-		return Zeze;
-	}
-	public void setZeze(Zeze.Application value) {
-		Zeze = value;
-	}
+	public void Start() {
+		LoadConfig();
+		Create();
+		StartModules(); // 启动模块，装载配置什么的。
+		Zeze.Start(); // 启动数据库
+		StartService(); // 启动网络
 
-	private HashMap<String, Zeze.IModule> Modules = new HashMap < String, getZeze().IModule> ();
-	public HashMap<String, Zeze.IModule> getModules() {
-		return Modules;
-	}
+//C# TO JAVA CONVERTER TODO TASK: Java has no equivalent to C# deconstruction declarations:
+		var ipp = ProviderService.GetOnePassiveAddress();
+		setProviderServicePassiveIp(ipp.getKey());
+		setProviderServicePasivePort(ipp.getValue());
 
-	private Zezex.Linkd.ModuleLinkd Zezex_Linkd;
-	public Zezex.Linkd.ModuleLinkd getZezexLinkd() {
-		return Zezex_Linkd;
-	}
-	public void setZezexLinkd(Zezex.Linkd.ModuleLinkd value) {
-		Zezex_Linkd = value;
+		setServiceManagerAgent(new Zeze.Services.ServiceManager.Agent(Zeze.getConfig()));
+		getServiceManagerAgent().RegisterService(LinkdServiceName, String.format("%1$s:%2$s", getProviderServicePassiveIp(), getProviderServicePasivePort()), getProviderServicePassiveIp(), getProviderServicePasivePort(), null);
 	}
 
-	private Zezex.Provider.ModuleProvider Zezex_Provider;
-	public Zezex.Provider.ModuleProvider getZezexProvider() {
-		return Zezex_Provider;
+	public void Stop() {
+		StopService(); // 关闭网络
+		Zeze.Stop(); // 关闭数据库
+		StopModules(); // 关闭模块,，卸载配置什么的。
+		Destroy();
 	}
-	public void setZezexProvider(Zezex.Provider.ModuleProvider value) {
-		Zezex_Provider = value;
-	}
-
-	private Zezex.LinkdService LinkdService;
-	public Zezex.LinkdService getLinkdService() {
-		return LinkdService;
-	}
-	public void setLinkdService(Zezex.LinkdService value) {
-		LinkdService = value;
-	}
-
-	private Zezex.ProviderService ProviderService;
-	public Zezex.ProviderService getProviderService() {
-		return ProviderService;
-	}
-	public void setProviderService(Zezex.ProviderService value) {
-		ProviderService = value;
-	}
-
-
-	public void Create() {
-		Create(null);
-	}
-
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void Create(Zeze.Config config = null)
-	public void Create(Zeze.Config config) {
-		synchronized (this) {
-			if (null != getZeze()) {
-				return;
-			}
-
-			setZeze(new Zeze.Application("Zezex", config));
-
-			setLinkdService(new Zezex.LinkdService(getZeze()));
-			setProviderService(new Zezex.ProviderService(getZeze()));
-
-			setZezexLinkd(new Zezex.Linkd.ModuleLinkd(this));
-			setZezexLinkd((Zezex.Linkd.ModuleLinkd)ReplaceModuleInstance(getZezexLinkd()));
-			getModules().put(getZezexLinkd().getName(), getZezexLinkd());
-			setZezexProvider(new Zezex.Provider.ModuleProvider(this));
-			setZezexProvider((Zezex.Provider.ModuleProvider)ReplaceModuleInstance(getZezexProvider()));
-			getModules().put(getZezexProvider().getName(), getZezexProvider());
-
-			getZeze().Schemas = new Zezex.Schemas();
-		}
-	}
-
-	public void Destroy() {
-		synchronized (this) {
-			setZezexLinkd(null);
-			setZezexProvider(null);
-			getModules().clear();
-			setLinkdService(null);
-			setProviderService(null);
-			setZeze(null);
-		}
-	}
-
-	public void StartModules() {
-		synchronized (this) {
-			getZezexLinkd().Start(this);
-			getZezexProvider().Start(this);
-
-		}
-	}
-
-	public void StopModules() {
-		synchronized (this) {
-			getZezexLinkd().Stop(this);
-			getZezexProvider().Stop(this);
-		}
-	}
-
-	public void StartService() {
-		synchronized (this) {
-			getLinkdService().Start();
-			getProviderService().Start();
-		}
-	}
-
-	public void StopService() {
-		synchronized (this) {
-			getLinkdService().Stop();
-			getProviderService().Stop();
-		}
-	}
-
-
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
-	public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
-		return module;
-	}
-
 
 	private Config Config;
 	public Config getConfig() {
@@ -179,26 +85,89 @@ public final class App {
 		ProviderServicePasivePort = value;
 	}
 
-	public void Start() {
-		LoadConfig();
-		Create();
-		StartModules(); // 启动模块，装载配置什么的。
-		getZeze().Start(); // 启动数据库
-		StartService(); // 启动网络
+    // ZEZE_FILE_CHUNK {{{ GEN APP
+    public Zeze.Application Zeze;
+    public HashMap<String, Zeze.IModule> Modules = new HashMap<>();
 
-//C# TO JAVA CONVERTER TODO TASK: Java has no equivalent to C# deconstruction declarations:
-		var(ip, port) = ProviderService.GetOnePassiveAddress();
-		setProviderServicePassiveIp(ip);
-		setProviderServicePasivePort(port);
+    public Zezex.Linkd.ModuleLinkd Zezex_Linkd;
 
-		setServiceManagerAgent(new Zeze.Services.ServiceManager.Agent(getZeze().Config));
-		getServiceManagerAgent().RegisterService(LinkdServiceName, String.format("%1$s:%2$s", getProviderServicePassiveIp(), getProviderServicePasivePort()), getProviderServicePassiveIp(), getProviderServicePasivePort(), null);
-	}
+    public Zezex.Provider.ModuleProvider Zezex_Provider;
 
-	public void Stop() {
-		StopService(); // 关闭网络
-		getZeze().Stop(); // 关闭数据库
-		StopModules(); // 关闭模块,，卸载配置什么的。
-		Destroy();
-	}
+    public Zezex.LinkdService LinkdService;
+
+    public Zezex.ProviderService ProviderService;
+
+    public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
+        return module;
+    }
+
+    public void Create() {
+        Create(null);
+    }
+
+    public void Create(Zeze.Config config) {
+        synchronized (this) {
+            if (null != Zeze)
+                return;
+
+            Zeze = new Zeze.Application("Zezex", config);
+
+            LinkdService = new Zezex.LinkdService(Zeze);
+            ProviderService = new Zezex.ProviderService(Zeze);
+
+            Zezex_Linkd = new Zezex.Linkd.ModuleLinkd(this);
+            Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)ReplaceModuleInstance(Zezex_Linkd);
+            if (null != Modules.put(Zezex_Linkd.getName(), Zezex_Linkd)) {
+                throw new RuntimeException("duplicate module name: Zezex_Linkd");
+            }
+            Zezex_Provider = new Zezex.Provider.ModuleProvider(this);
+            Zezex_Provider = (Zezex.Provider.ModuleProvider)ReplaceModuleInstance(Zezex_Provider);
+            if (null != Modules.put(Zezex_Provider.getName(), Zezex_Provider)) {
+                throw new RuntimeException("duplicate module name: Zezex_Provider");
+            }
+
+            Zeze.setSchemas(new Zezex.Schemas());
+        }
+    }
+
+    public void Destroy() {
+        synchronized(this) {
+            Zezex_Linkd = null;
+            Zezex_Provider = null;
+            Modules.clear();
+            LinkdService = null;
+            ProviderService = null;
+            Zeze = null;
+        }
+    }
+
+    public void StartModules() {
+        synchronized(this) {
+            Zezex_Linkd.Start(this);
+            Zezex_Provider.Start(this);
+
+        }
+    }
+
+    public void StopModules() {
+        synchronized(this) {
+            Zezex_Linkd.Stop(this);
+            Zezex_Provider.Stop(this);
+        }
+    }
+
+    public void StartService() {
+        synchronized(this) {
+            LinkdService.Start();
+            ProviderService.Start();
+        }
+    }
+
+    public void StopService() {
+        synchronized(this) {
+            LinkdService.Stop();
+            ProviderService.Stop();
+        }
+    }
+    // ZEZE_FILE_CHUNK }}} GEN APP
 }

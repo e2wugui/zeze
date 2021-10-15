@@ -1,53 +1,50 @@
 package Zezex;
 
-// auto-generated
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-
-
-public final class ProviderService extends Zeze.Services.HandshakeServer {
+public final class ProviderService extends ProviderServiceBase {
 	public ProviderService(Zeze.Application zeze) {
-		super("ProviderService", zeze);
+		super(zeze);
 	}
 
-
-
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(ProviderService.class);
 
 	// 重载需要的方法。
 	@Override
 	public void DispatchProtocol(Zeze.Net.Protocol p, ProtocolFactoryHandle factoryHandle) {
 		if (null != factoryHandle.Handle) {
-			if (p.TypeId == Zezex.Provider.Bind.TypeId_) {
+			if (p.getTypeId() == Zezex.Provider.Bind.TypeId_) {
 				// Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
 				// 不要直接在io-thread里面执行。
-				Zeze.Util.Task.Run(() -> factoryHandle.Handle(p), p);
+				Zeze.Util.Task.Run(() -> factoryHandle.Handle.handle(p), p);
 			}
 			else {
 				// 不启用新的Task，直接在io-thread里面执行。因为其他协议都是立即处理的，
 				// 直接执行，少一次线程切换。
 				try {
-					var isReqeustSaved = p.IsRequest;
-					int result = factoryHandle.Handle(p);
+					var isReqeustSaved = p.isRequest();
+					int result = factoryHandle.Handle.handle(p);
 					Zeze.Util.Task.LogAndStatistics(result, p, isReqeustSaved);
 				}
 				catch (RuntimeException ex) {
-					logger.Log(getSocketOptions().SocketLogLevel, ex, "Protocol.Handle. {0}", p);
+					logger.log(getSocketOptions().getSocketLogLevel(), () -> "Protocol.Handle. " + p, ex);
 				}
 			}
 		}
 		else {
-			logger.Log(getSocketOptions().SocketLogLevel, "Protocol Handle Not Found. {0}", p);
+			logger.log(getSocketOptions().getSocketLogLevel(), () -> "Protocol Handle Not Found. " + p);
 		}
 	}
 
 	@Override
 	public void OnHandshakeDone(Zeze.Net.AsyncSocket sender) {
 		super.OnHandshakeDone(sender);
-		sender.UserState = new ProviderSession(sender.SessionId);
+		sender.setUserState(new ProviderSession(sender.getSessionId()));
 
 		var announce = new Zezex.Provider.AnnounceLinkInfo();
-		announce.getArgument().LinkId = 0; // reserve
-		announce.getArgument().ProviderSessionId = sender.SessionId;
+		announce.Argument.setLinkId(0); // reserve
+		announce.Argument.setProviderSessionId(sender.getSessionId());
 		sender.Send(announce);
 	}
 
