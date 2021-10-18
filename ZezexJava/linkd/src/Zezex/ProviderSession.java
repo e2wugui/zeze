@@ -65,12 +65,13 @@ public class ProviderSession {
 
 	public final void AddLinkSession(int moduleId, long linkSessionId) {
 		synchronized (getLinkSessionIds()) {
-			if (false == (getLinkSessionIds().containsKey(moduleId) && (var linkSids = getLinkSessionIds().get(moduleId)) == var linkSids)) {
+			var linkSids = LinkSessionIds.get(moduleId);
+			if (null == linkSids) {
 				linkSids = new HashSet<Long>();
-				getLinkSessionIds().put(moduleId, linkSids);
+				LinkSessionIds.put(moduleId, linkSids);
 			}
-			if (linkSids.Add(linkSessionId)) {
-				getLoad().Online += App.getInstance().getConfig().getApproximatelyLinkdCount();
+			if (linkSids.add(linkSessionId)) {
+				Load.setOnline(Load.getOnline() + App.Instance.getConfig().getApproximatelyLinkdCount());
 				// 在真正的数据报告回来之前，临时增加统计。仅包括本linkd分配的。
 				// 本来Load应该总是由Provider报告的。
 				// linkd 的临时增加是为了能快速反应出报告间隔期间的分配。
@@ -79,14 +80,15 @@ public class ProviderSession {
 	}
 
 	public final void RemoveLinkSession(int moduleId, long linkSessionId) {
-		synchronized (getLinkSessionIds()) {
-			if (getLinkSessionIds().containsKey(moduleId) && (var linkSids = getLinkSessionIds().get(moduleId)) == var linkSids) {
-				if (linkSids.Remove(linkSessionId)) {
+		synchronized (LinkSessionIds) {
+			var linkSids= LinkSessionIds.get(moduleId);
+			if (null != linkSids) {
+				if (linkSids.remove(linkSessionId)) {
 					// 下线时Provider会进行统计，这里避免二次计数，
 					// 没有扣除不会有问题，本来Load应该总是由Provider报告的。
 					//--Load.Online;
-					if (linkSids.Count == 0) {
-						getLinkSessionIds().remove(moduleId);
+					if (linkSids.isEmpty()) {
+						LinkSessionIds.remove(moduleId);
 					}
 				}
 			}
