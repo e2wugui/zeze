@@ -74,7 +74,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 							this.ResponseHandle.handle(context);
 						}
 					}
-		}, millisecondsTimeout, -1);
+		}, millisecondsTimeout, millisecondsTimeout);
 	}
 
 	/** 

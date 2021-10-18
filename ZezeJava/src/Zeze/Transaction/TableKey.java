@@ -23,8 +23,7 @@ public final class TableKey implements java.lang.Comparable<TableKey> {
 		}
 		@SuppressWarnings("rawtypes")
 		Comparable This = (Comparable)getKey();
-		c = This.compareTo(other);
-		return c;
+		return This.compareTo(other.getKey());
 	}
 
 	@Override
