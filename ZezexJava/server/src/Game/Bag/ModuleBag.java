@@ -160,25 +160,25 @@ public final class ModuleBag extends AbstractModule {
             factoryHandle.Factory = () -> new Game.Bag.Destroy();
             factoryHandle.Handle = (_p) -> ProcessDestroyRequest(_p);
             App.Server.AddFactoryHandle(175038, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.GetBag();
             factoryHandle.Handle = (_p) -> ProcessGetBagRequest(_p);
             App.Server.AddFactoryHandle(137439, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.Move();
             factoryHandle.Handle = (_p) -> ProcessMoveRequest(_p);
             App.Server.AddFactoryHandle(192909, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.Sort();
             factoryHandle.Handle = (_p) -> ProcessSortRequest(_p);
             App.Server.AddFactoryHandle(142072, factoryHandle);
-        }
+         }
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tbag.getName()).getDatabaseName(), _tbag);
     }

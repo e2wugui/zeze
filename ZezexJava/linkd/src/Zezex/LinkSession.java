@@ -1,9 +1,11 @@
 package Zezex;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import java.util.*;
 
 public class LinkSession {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(LinkSession.class);
 
 	private String Account;
 	public final String getAccount() {
@@ -64,13 +66,16 @@ public class LinkSession {
 	public final void Bind(Zeze.Net.AsyncSocket link, java.lang.Iterable<Integer> moduleIds, Zeze.Net.AsyncSocket provider) {
 		synchronized (this) {
 			for (var moduleId : moduleIds) {
-				if (getBinds().containsKey(moduleId) && (var exist = getBinds().get(moduleId)) == var exist) {
-					var oldSocket = App.getInstance().getProviderService().GetSocket(exist);
-					logger.Warn("LinkSession.Bind replace provider {0} {1} {2}", moduleId, oldSocket.Socket.RemoteEndPoint, provider.Socket.RemoteEndPoint);
+				var exist = Binds.get(moduleId);
+				if (null != exist) {
+					var oldSocket = App.getInstance().ProviderService.GetSocket(exist);
+					logger.warn("LinkSession.Bind replace provider {} {} {}",
+							moduleId, oldSocket.getRemoteAddress(), provider.getRemoteAddress());
 				}
-				getBinds().put(moduleId, provider.SessionId);
-				Object tempVar = provider.UserState;
-				(tempVar instanceof ProviderSession ? (ProviderSession)tempVar : null).AddLinkSession(moduleId, link.SessionId);
+				getBinds().put(moduleId, provider.getSessionId());
+				var ps = (ProviderSession)provider.getUserState();
+				if (null != ps)
+					ps.AddLinkSession(moduleId, link.getSessionId());
 			}
 		}
 	}
@@ -80,10 +85,10 @@ public class LinkSession {
 		UnBind(link, moduleId, provider, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void UnBind(Zeze.Net.AsyncSocket link, int moduleId, Zeze.Net.AsyncSocket provider, bool isOnProviderClose = false)
 	public final void UnBind(Zeze.Net.AsyncSocket link, int moduleId, Zeze.Net.AsyncSocket provider, boolean isOnProviderClose) {
-		UnBind(link, new HashSet<Integer>() {moduleId}, provider, isOnProviderClose);
+		var moduleIds = new HashSet<Integer>();
+		moduleIds.add(moduleId);
+		UnBind(link, moduleIds, provider, isOnProviderClose);
 	}
 
 
@@ -91,25 +96,23 @@ public class LinkSession {
 		UnBind(link, moduleIds, provider, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void UnBind(Zeze.Net.AsyncSocket link, IEnumerable<int> moduleIds, Zeze.Net.AsyncSocket provider, bool isOnProviderClose = false)
 	public final void UnBind(Zeze.Net.AsyncSocket link, java.lang.Iterable<Integer> moduleIds, Zeze.Net.AsyncSocket provider, boolean isOnProviderClose) {
 		synchronized (this) {
 			for (var moduleId : moduleIds) {
-				if (getBinds().containsKey(moduleId) && (var exist = getBinds().get(moduleId)) == var exist) {
-					if (exist == provider.SessionId) { // check owner? 也许不做这个检测更好？
+				var exist = Binds.get(moduleId);
+				if (null != exist) {
+					if (exist == provider.getSessionId()) { // check owner? 也许不做这个检测更好？
 						getBinds().remove(moduleId);
 						if (false == isOnProviderClose) {
-							Object tempVar = provider.UserState;
-							if ((tempVar instanceof ProviderSession ? (ProviderSession)tempVar : null) != null) {
-								Object tempVar2 = provider.UserState;
-								(tempVar2 instanceof ProviderSession ? (ProviderSession)tempVar2 : null).RemoveLinkSession(moduleId, link.SessionId);
-							}
+							var ps = (ProviderSession)provider.getUserState();
+							if (null != ps)
+								ps.RemoveLinkSession(moduleId, link.getSessionId());
 						}
 					}
 					else {
-						var oldSocket = App.getInstance().getProviderService().GetSocket(exist);
-						logger.Warn("LinkSession.UnBind not owner {0} {1} {2}", moduleId, oldSocket.Socket.RemoteEndPoint, provider.Socket.RemoteEndPoint);
+						var oldSocket = App.getInstance().ProviderService.GetSocket(exist);
+						logger.warn("LinkSession.UnBind not owner {} {} {}",
+								moduleId, oldSocket.getRemoteAddress(), provider.getRemoteAddress());
 					}
 				}
 			}
@@ -117,17 +120,18 @@ public class LinkSession {
 	}
 
 	// 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
-	private Zeze.Util.SchedulerTask KeepAliveTask;
+	private Zeze.Util.Task KeepAliveTask;
 
 	public final void KeepAlive() {
 		if (KeepAliveTask != null) {
 			KeepAliveTask.Cancel();
 		}
-		KeepAliveTask = Zeze.Util.Scheduler.Instance.Schedule((ThisTask) -> {
-				if (App.getInstance().getLinkdService().GetSocket(getSessionId()) != null) {
-					App.getInstance().getLinkdService().GetSocket(getSessionId()).Close(null);
+		KeepAliveTask = Zeze.Util.Task.schedule((ThisTask) -> {
+			var link = App.getInstance().LinkdService.GetSocket(getSessionId());
+				if (link != null) {
+					link.Close(null);
 				}
-		}, 3000000, -1);
+		}, 3000000);
 	}
 
 	public final void OnClose() {
@@ -147,24 +151,22 @@ public class LinkSession {
 		}
 
 		var linkBroken = new Zezex.Provider.LinkBroken();
-		linkBroken.getArgument().Account = getAccount();
-		linkBroken.getArgument().LinkSid = getSessionId();
-		linkBroken.getArgument().getStates().AddRange(getUserStates());
-		linkBroken.getArgument().Statex = getUserStatex();
-		linkBroken.getArgument().Reason = Provider.BLinkBroken.REASON_PEERCLOSE; // 这个保留吧。现在没什么用。
+		linkBroken.Argument.setAccount(Account);
+		linkBroken.Argument.setLinkSid(SessionId);
+		linkBroken.Argument.getStates().addAll(getUserStates());
+		linkBroken.Argument.setStatex(UserStatex);
+		linkBroken.Argument.setReason(Zezex.Provider.BLinkBroken.REASON_PEERCLOSE); // 这个保留吧。现在没什么用。
 
 		// 需要在锁外执行，因为如果 ProviderSocket 和 LinkdSocket 同时关闭。都需要去清理自己和对方，可能导致死锁。
 		for (var e : bindsSwap.entrySet()) {
-			var provider = App.getInstance().getProviderService().GetSocket(e.getValue());
+			var provider = App.getInstance().ProviderService.GetSocket(e.getValue());
 			if (null == provider) {
 				continue;
 			}
-			Object tempVar = provider.UserState;
-			var providerSession = tempVar instanceof ProviderSession ? (ProviderSession)tempVar : null;
+			var providerSession = (ProviderSession)provider.getUserState();
 			if (null == providerSession) {
 				continue;
 			}
-
 			provider.Send(linkBroken);
 			providerSession.RemoveLinkSession(e.getKey(), getSessionId());
 		}

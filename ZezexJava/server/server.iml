@@ -8,5 +8,19 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="Zeze" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../../ZezeJava/lib" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../../ZezeJava/lib" />
+        </SOURCES>
+        <jarDirectory url="file://$MODULE_DIR$/../../ZezeJava/lib" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/../../ZezeJava/lib" recursive="false" type="SOURCES" />
+      </library>
+    </orderEntry>
   </component>
 </module>

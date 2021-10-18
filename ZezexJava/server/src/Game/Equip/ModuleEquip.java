@@ -196,13 +196,13 @@ public final class ModuleEquip extends AbstractModule {
             factoryHandle.Factory = () -> new Game.Equip.Equipement();
             factoryHandle.Handle = (_p) -> ProcessEquipementRequest(_p);
             App.Server.AddFactoryHandle(512274, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Equip.Unequipement();
             factoryHandle.Handle = (_p) -> ProcessUnequipementRequest(_p);
             App.Server.AddFactoryHandle(483491, factoryHandle);
-        }
+         }
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tequip.getName()).getDatabaseName(), _tequip);
     }

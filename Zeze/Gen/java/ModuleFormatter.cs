@@ -149,7 +149,7 @@ namespace Zeze.Gen.java
                         sw.WriteLine($"            factoryHandle.Factory = () -> new {p.Space.Path(".", p.Name)}();");
                         sw.WriteLine($"            factoryHandle.Handle = (_p) -> Process{p.Name}(_p);");
                         if (p.NoProcedure)
-                            sw.WriteLine($"            factoryHandle.NoProcedure = true,");
+                            sw.WriteLine($"            factoryHandle.NoProcedure = true;");
                         sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({p.TypeId}, factoryHandle);");
                         sw.WriteLine( "       }");
                     }

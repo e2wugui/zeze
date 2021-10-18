@@ -12,14 +12,14 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="file://$MODULE_DIR$/../../ZezeJava/lib" />
+          <root url="file://$MODULE_DIR$/../ZezeJava/lib" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="file://$MODULE_DIR$/../../ZezeJava/lib" />
+          <root url="file://$MODULE_DIR$/../ZezeJava/lib" />
         </SOURCES>
-        <jarDirectory url="file://$MODULE_DIR$/../../ZezeJava/lib" recursive="false" />
-        <jarDirectory url="file://$MODULE_DIR$/../../ZezeJava/lib" recursive="false" type="SOURCES" />
+        <jarDirectory url="file://$MODULE_DIR$/../ZezeJava/lib" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/../ZezeJava/lib" recursive="false" type="SOURCES" />
       </library>
     </orderEntry>
   </component>
