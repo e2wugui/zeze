@@ -1,5 +1,6 @@
 package Zezex;
 
+import java.lang.annotation.Annotation;
 import java.util.*;
 import java.io.*;
 import java.time.*;
@@ -63,15 +64,12 @@ public class ModuleRedirect {
 		public final OverrideType getOverrideType() {
 			return OverrideType;
 		}
-		private Attribute Attribute;
-		public final Attribute getAttribute() {
+		private Annotation Attribute;
+		public final Annotation getAttribute() {
 			return Attribute;
 		}
 
-		public MethodOverride(java.lang.reflect.Method method, OverrideType type, Attribute attribute) {
-			if (false == method.IsVirtual) {
-				throw new RuntimeException("ModuleRedirect Need Virtual。");
-			}
+		public MethodOverride(java.lang.reflect.Method method, OverrideType type, Annotation attribute) {
 			Method = method;
 			OverrideType = type;
 			Attribute = attribute;
@@ -1338,32 +1336,6 @@ public class ModuleRedirect {
 //			return sb.ToString();
 //		}
 }
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [System.AttributeUsage(System.AttributeTargets.Method)] public class ModuleRedirectAttribute : System.Attribute
-//C# TO JAVA CONVERTER TODO TASK: Local functions are not converted by C# to Java Converter:
-//[System.AttributeUsage(System.AttributeTargets.Method)]
-//public class ModuleRedirectAttribute : System.Attribute
-//	{
-//		public string ChoiceHashCodeSource
-//		{
-//			get;
-//		}
-//		public ModuleRedirectAttribute(string source = null)
-//		{
-//			ChoiceHashCodeSource = source;
-//		}
-//	}
-
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [System.AttributeUsage(System.AttributeTargets.Method)] public class ModuleRedirectWithHashAttribute : System.Attribute
-//C# TO JAVA CONVERTER TODO TASK: Local functions are not converted by C# to Java Converter:
-//[System.AttributeUsage(System.AttributeTargets.Method)]
-//public class ModuleRedirectWithHashAttribute : System.Attribute
-//	{
-//		public ModuleRedirectWithHashAttribute()
-//		{
-//		}
-//	}
 
 //C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
 //ORIGINAL LINE: [System.AttributeUsage(System.AttributeTargets.Method)] public class ModuleRedirectAllAttribute : System.Attribute
