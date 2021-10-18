@@ -1,0 +1,781 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="EclipseModuleManager">
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-1.2-api-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-1.2-api-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-1.2-api-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-api-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-api-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-api-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-appserver-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-appserver-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-appserver-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-cassandra-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-cassandra-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-cassandra-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-core-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-core-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-core-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-core-2.14.1-tests.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-couchdb-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-couchdb-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-couchdb-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-docker-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-docker-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-docker-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-flume-ng-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-flume-ng-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-flume-ng-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-iostreams-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-iostreams-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-iostreams-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jcl-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jcl-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jcl-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jdbc-dbcp2-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jdbc-dbcp2-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jdbc-dbcp2-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jmx-gui-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jmx-gui-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jmx-gui-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jpa-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jpa-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jpa-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jul-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jul-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-jul-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-liquibase-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-liquibase-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-liquibase-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-mongodb3-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-mongodb3-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-mongodb3-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-mongodb4-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-mongodb4-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-mongodb4-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-slf4j18-impl-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-slf4j18-impl-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-slf4j18-impl-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-slf4j-impl-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-slf4j-impl-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-slf4j-impl-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-spring-boot-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-spring-boot-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-spring-boot-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-spring-cloud-config-client-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-spring-cloud-config-client-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-spring-cloud-config-client-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-taglib-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-taglib-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-taglib-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-to-slf4j-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-to-slf4j-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-to-slf4j-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-web-2.14.1.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-web-2.14.1-javadoc.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/log4j-web-2.14.1-sources.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/pcollections-3.1.4.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/commons-dbcp2-2.9.0.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/commons-pool2-2.11.1.jar!/" />
+    <src_description expected_position="0">
+      <src_folder value="file://$MODULE_DIR$/src" expected_position="0" />
+    </src_description>
+  </component>
+  <component name="NewModuleRootManager">
+    <output url="file://$MODULE_DIR$/bin" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+    </content>
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="module-library">
+      <library name="log4j-1.2-api-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-1.2-api-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-api-2.14.1-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-1.2-api-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-1.2-api-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-1.2-api-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-1.2-api-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-api-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-api-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-api-2.14.1-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-api-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-api-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-api-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-api-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-appserver-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-appserver-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-appserver-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-appserver-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-appserver-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-appserver-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-cassandra-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-cassandra-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-cassandra-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-cassandra-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-cassandra-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-cassandra-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-core-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-core-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-core-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-core-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-core-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-core-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-core-2.14.1-tests.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-core-2.14.1-tests.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-couchdb-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-couchdb-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-couchdb-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-couchdb-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-couchdb-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-couchdb-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-docker-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-docker-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-docker-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-docker-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-docker-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-docker-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-flume-ng-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-flume-ng-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-flume-ng-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-flume-ng-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-flume-ng-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-flume-ng-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-iostreams-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-iostreams-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-iostreams-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-iostreams-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-iostreams-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-iostreams-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jcl-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jcl-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jcl-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jcl-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jcl-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jcl-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jdbc-dbcp2-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jdbc-dbcp2-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jdbc-dbcp2-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jdbc-dbcp2-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jdbc-dbcp2-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jdbc-dbcp2-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jmx-gui-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jmx-gui-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jmx-gui-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jmx-gui-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jmx-gui-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jmx-gui-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jpa-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jpa-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jpa-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jpa-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jpa-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jpa-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jul-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jul-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jul-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jul-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-jul-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-jul-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-liquibase-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-liquibase-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-liquibase-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-liquibase-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-liquibase-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-liquibase-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-mongodb3-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-mongodb3-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-mongodb3-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-mongodb3-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-mongodb3-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-mongodb3-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-mongodb4-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-mongodb4-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-mongodb4-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-mongodb4-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-mongodb4-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-mongodb4-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-slf4j18-impl-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-slf4j18-impl-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-slf4j18-impl-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-slf4j18-impl-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-slf4j18-impl-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-slf4j18-impl-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-slf4j-impl-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-slf4j-impl-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-slf4j-impl-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-slf4j-impl-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-slf4j-impl-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-slf4j-impl-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-spring-boot-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-spring-boot-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-spring-boot-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-spring-boot-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-spring-boot-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-spring-boot-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-spring-cloud-config-client-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-spring-cloud-config-client-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-spring-cloud-config-client-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-spring-cloud-config-client-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-spring-cloud-config-client-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-spring-cloud-config-client-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-taglib-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-taglib-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-taglib-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-taglib-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-taglib-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-taglib-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-to-slf4j-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-to-slf4j-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-to-slf4j-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-to-slf4j-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-to-slf4j-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-to-slf4j-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-web-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-web-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-web-2.14.1-javadoc.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-web-2.14.1-javadoc.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="log4j-web-2.14.1-sources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-web-2.14.1-sources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="pcollections-3.1.4.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/pcollections-3.1.4.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="commons-dbcp2-2.9.0.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/commons-dbcp2-2.9.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="commons-pool2-2.11.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/commons-pool2-2.11.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+  </component>
+</module>
