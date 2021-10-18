@@ -113,9 +113,7 @@ public class Bag {
 			   如果没有回滚，那么就会完成部分添加。此时返回剩余number，逻辑可能需要把剩余数量的物品转到其他系统（比如邮件中）。
 			   另外如果想回滚全部添加，但是又不回滚整个事务，应该使用嵌套事务。
 			   在嵌套事务中尝试添加，失败的话回滚嵌套事务，然后继续把所有物品转到其他系统。
-	 
-	 @param item
-	*/
+	 */
 	public final int Add(int positionHint, BItem itemAdd) {
 		if (itemAdd.getNumber() <= 0) {
 			throw new IllegalArgumentException();
@@ -270,6 +268,9 @@ public class Bag {
 	}
 
 	public final void Sort(Comparator<Map.Entry<Integer, BItem>> comparison) {
+		if (null == comparison)
+			comparison = (x, y) -> Long.compare(x.getValue().getId(), y.getValue().getId());
+
 		var sort = (Map.Entry<Integer, BItem>[])bag.getItems().entrySet().toArray(new Map.Entry[bag.getItems().size()]);
 		Arrays.sort(sort, comparison);
 		for (int i = 0; i < sort.length; ++i) {

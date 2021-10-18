@@ -218,39 +218,28 @@ public class ModuleRedirect {
 		}
 	}
 
-	private boolean CheckAddMethod(java.lang.reflect.Method method, OverrideType type, Object[] attrs, ArrayList<MethodOverride> result) {
-		if (attrs.length == 1) {
-			result.add(new MethodOverride(method, type, attrs[0] instanceof Attribute ? (Attribute)attrs[0] : null));
-			return true;
-		}
-		return false;
-	}
-
 	public final Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
 		ArrayList<MethodOverride> overrides = new ArrayList<MethodOverride>();
 		var methods = module.getClass().getMethods();
 		for (var method : methods) {
-			if (CheckAddMethod(method, OverrideType.Redirect, method.GetCustomAttributes(ModuleRedirectAttribute.class, false), overrides)) {
-				continue;
-			}
-			if (CheckAddMethod(method, OverrideType.RedirectWithHash, method.GetCustomAttributes(ModuleRedirectWithHashAttribute.class, false), overrides)) {
-				continue;
-			}
-			if (CheckAddMethod(method, OverrideType.RedirectAll, method.GetCustomAttributes(ModuleRedirectAllAttribute.class, false), overrides)) {
-				continue;
-			}
+			overrides.add(new MethodOverride(method, OverrideType.Redirect, method.getAnnotation(Redirect.class)));
+			overrides.add(new MethodOverride(method, OverrideType.RedirectWithHash, method.getAnnotation(RedirectWithHash.class)));
+			overrides.add(new MethodOverride(method, OverrideType.RedirectAll, method.getAnnotation(RedirectAll.class)));
 		}
 		if (overrides.isEmpty()) {
 			return module; // 没有需要重定向的方法。
 		}
 
-
-		String genClassName = String.format("_ModuleRedirect_%1$s_Gen_", module.FullName.replace('.', '_'));
+		String genClassName = String.format("_ModuleRedirect_%1$s_Gen_", module.getFullName().replace('.', '_'));
 		if (getSrcDirWhenPostBuild().equals(null)) {
 			module.UnRegister();
 			//Console.WriteLine($"'{module.FullName}' Replaced.");
 			// from Game.App.Start. try load new module instance.
-			return (Zeze.IModule)java.lang.Class.forName(genClassName).newInstance();
+			try {
+				return (Zeze.IModule) Class.forName(genClassName).newInstance();
+			} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		String srcFileName = Path.Combine(getSrcDirWhenPostBuild(), module.FullName.replace('.', File.separatorChar), String.format("Module%1$s.cs", module.Name));

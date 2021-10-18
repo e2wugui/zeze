@@ -15,20 +15,13 @@ public class Skills {
 	}
 
 	public final Skill GetSkill(int id) {
-		V skill;
-		tangible.OutObject<V> tempOut_skill = new tangible.OutObject<V>();
-		if (Bean.getSkills().TryGetValue(id, tempOut_skill)) {
-		skill = tempOut_skill.outArgValue;
-			switch (skill.Extra.TypeId) {
-				case BSkillAttackExtra.TYPEID:
-					return new SkillAttack(skill, (BSkillAttackExtra)skill.Extra.Bean);
-				default:
-					throw new RuntimeException("unknown extra");
-			}
+		var skill = Bean.getSkills().get(id);
+		if (null != skill) {
+			var extraTypeId = skill.getExtra().getTypeId();
+			if (extraTypeId == BSkillAttackExtra.TYPEID)
+				return new SkillAttack(skill, (BSkillAttackExtra)skill.getExtra().getBean());
+			throw new RuntimeException("unknown extra");
 		}
-	else {
-		skill = tempOut_skill.outArgValue;
-	}
 		return null;
 	}
 }

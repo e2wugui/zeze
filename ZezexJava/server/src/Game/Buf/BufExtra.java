@@ -13,7 +13,7 @@ public class BufExtra extends Buf {
 
 	@Override
 	public void CalculateFighter(Game.Fight.Fighter fighter) {
-		fighter.getBean().Attack += 10.0f;
-		fighter.getBean().Defence += 10.0f;
+		fighter.getBean().setAttack(fighter.getBean().getAttack() + 10.0f);
+		fighter.getBean().setDefence(fighter.getBean().getDefence() + 10.0f);
 	}
 }

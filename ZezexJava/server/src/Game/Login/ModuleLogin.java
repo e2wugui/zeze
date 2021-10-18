@@ -1,5 +1,6 @@
 package Game.Login;
 
+import Zeze.Net.Protocol;
 import Zeze.Transaction.*;
 import Game.*;
 
@@ -23,33 +24,35 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessCreateRoleRequest(CreateRole rpc) {
-		Session session = Session.Get(rpc);
+	public int ProcessCreateRoleRequest(Protocol _rpc) {
+		var rpc = (CreateRole)_rpc;
+		var session = Session.Get(rpc);
 
 		BRoleData tempVar = new BRoleData();
-		tempVar.setName(rpc.getArgument().getName());
+		tempVar.setName(rpc.Argument.getName());
 		long roleid = _trole.Insert(tempVar);
 
 		// duplicate name check
 		BRoleId tempVar2 = new BRoleId();
 		tempVar2.setId(roleid);
-		if (false == _trolename.TryAdd(rpc.getArgument().getName(), tempVar2)) {
+		if (false == _trolename.TryAdd(rpc.Argument.getName(), tempVar2)) {
 			return ReturnCode(ResultCodeCreateRoleDuplicateRoleName);
 		}
 
 		var account = _taccount.GetOrAdd(session.getAccount());
-		account.getRoles().Add(roleid);
+		account.getRoles().add(roleid);
 
 		// initialize role data
-		App.getInstance().getGameBag().GetBag(roleid).SetCapacity(50);
+		App.Game_Bag.GetBag(roleid).SetCapacity(50);
 
 		session.SendResponse(rpc);
 		return Procedure.Success;
 	}
 
 	@Override
-	public int ProcessGetRoleListRequest(GetRoleList rpc) {
-		Session session = Session.Get(rpc);
+	public int ProcessGetRoleListRequest(Protocol _rpc) {
+		var rpc = (GetRoleList)_rpc;
+		var session = Session.Get(rpc);
 
 		BAccount account = _taccount.Get(session.getAccount());
 		if (null != account) {
@@ -59,10 +62,10 @@ public final class ModuleLogin extends AbstractModule {
 					BRole tempVar = new BRole();
 					tempVar.setId(roleId);
 					tempVar.setName(roleData.getName());
-					rpc.getResult().getRoleList().Add(tempVar);
+					rpc.Result.getRoleList().add(tempVar);
 				}
 			}
-			rpc.getResult().LastLoginRoleId = account.getLastLoginRoleId();
+			rpc.Result.setLastLoginRoleId(account.getLastLoginRoleId());
 		}
 
 		session.SendResponse(rpc);
@@ -70,93 +73,93 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessLoginRequest(Login rpc) {
-		Session session = Session.Get(rpc);
+	public int ProcessLoginRequest(Protocol _rpc) {
+		var rpc = (Login)_rpc;
+		var session = Session.Get(rpc);
 
 		BAccount account = _taccount.Get(session.getAccount());
 		if (null == account) {
 			return ReturnCode(ResultCodeAccountNotExist);
 		}
 
-		account.LastLoginRoleId = rpc.getArgument().getRoleId();
-		BRoleData role = _trole.Get(rpc.getArgument().getRoleId());
+		account.setLastLoginRoleId(rpc.Argument.getRoleId());
+		BRoleData role = _trole.Get(rpc.Argument.getRoleId());
 		if (null == role) {
 			return ReturnCode(ResultCodeRoleNotExist);
 		}
 
-		BOnline online = _tonline.GetOrAdd(rpc.getArgument().getRoleId());
-		online.LinkName = session.getLinkName();
-		online.LinkSid = session.getSessionId();
-		online.State = BOnline.StateOnline;
+		BOnline online = _tonline.GetOrAdd(rpc.Argument.getRoleId());
+		online.setLinkName(session.getLinkName());
+		online.setLinkSid(session.getSessionId());
+		online.setState(BOnline.StateOnline);
 
-		online.ReliableNotifyConfirmCount = 0;
-		online.ReliableNotifyTotalCount = 0;
-		online.getReliableNotifyMark().Clear();
-		online.getReliableNotifyQueue().Clear();
+		online.setReliableNotifyConfirmCount(0);
+		online.setReliableNotifyTotalCount(0);
+		online.getReliableNotifyMark().clear();
+		online.getReliableNotifyQueue().clear();
 
-		var linkSession = session.getLink().UserState instanceof Server.LinkSession ? (Server.LinkSession)session.getLink().UserState : null;
-		online.ProviderId = getApp().getZeze().Config.ServerId;
-		online.ProviderSessionId = linkSession.getProviderSessionId();
+		var linkSession = (Server.LinkSession)session.getLink().getUserState();
+		online.setProviderId(App.Zeze.getConfig().getServerId());
+		online.setProviderSessionId(linkSession.getProviderSessionId());
 
 		// 先提交结果再设置状态。
 		// see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
 		session.SendResponseWhileCommit(rpc);
-		Transaction.Current.RunWhileCommit(() -> {
+		Transaction.getCurrent().RunWhileCommit(() -> {
 				var setUserState = new Zezex.Provider.SetUserState();
-				setUserState.getArgument().LinkSid = session.getSessionId();
-				setUserState.getArgument().getStates().Add(rpc.getArgument().getRoleId());
-				rpc.getSender().Send(setUserState); // 直接使用link连接。
+				setUserState.Argument.setLinkSid(session.getSessionId());
+				setUserState.Argument.getStates().add(rpc.Argument.getRoleId());
+				rpc.Sender.Send(setUserState); // 直接使用link连接。
 		});
-		getApp().getLoad().getLoginCount().IncrementAndGet();
+		App.getLoad().getLoginCount().incrementAndGet();
 		return Procedure.Success;
 	}
 
 	@Override
-	public int ProcessReLoginRequest(ReLogin rpc) {
-		Session session = Session.Get(rpc);
+	public int ProcessReLoginRequest(Protocol _rpc) {
+		var rpc = (ReLogin)_rpc;
+		var session = Session.Get(rpc);
 
 		BAccount account = _taccount.Get(session.getAccount());
 		if (null == account) {
 			return ReturnCode(ResultCodeAccountNotExist);
 		}
 
-		if (account.getLastLoginRoleId() != rpc.getArgument().getRoleId()) {
+		if (account.getLastLoginRoleId() != rpc.Argument.getRoleId()) {
 			return ReturnCode(ResultCodeNotLastLoginRoleId);
 		}
 
-		BRoleData role = _trole.Get(rpc.getArgument().getRoleId());
+		BRoleData role = _trole.Get(rpc.Argument.getRoleId());
 		if (null == role) {
 			return ReturnCode(ResultCodeRoleNotExist);
 		}
 
-		BOnline online = _tonline.Get(rpc.getArgument().getRoleId());
+		BOnline online = _tonline.Get(rpc.Argument.getRoleId());
 		if (null == online) {
 			return ReturnCode(ResultCodeOnlineDataNotFound);
 		}
 
-		online.LinkName = session.getLinkName();
-		online.LinkSid = session.getSessionId();
-		online.State = BOnline.StateOnline;
+		online.setLinkName(session.getLinkName());
+		online.setLinkSid(session.getSessionId());
+		online.setState(BOnline.StateOnline);
 
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
 		session.SendResponseWhileCommit(rpc);
-		Transaction.Current.RunWhileCommit(() -> {
+		Transaction.getCurrent().RunWhileCommit(() -> {
 				var setUserState = new Zezex.Provider.SetUserState();
-				setUserState.getArgument().LinkSid = session.getSessionId();
-				setUserState.getArgument().getStates().Add(rpc.getArgument().getRoleId());
-				rpc.getSender().Send(setUserState); // 直接使用link连接。
+				setUserState.Argument.setLinkSid(session.getSessionId());
+				setUserState.Argument.getStates().add(rpc.Argument.getRoleId());
+				rpc.Sender.Send(setUserState); // 直接使用link连接。
 		});
 
-		var syncResultCode = ReliableNotifySync(session, rpc.getArgument().getReliableNotifyConfirmCount(), online);
+		var syncResultCode = ReliableNotifySync(session, rpc.Argument.getReliableNotifyConfirmCount(), online);
 
 		if (syncResultCode != ResultCodeSuccess) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: return ReturnCode((ushort)syncResultCode);
-			return ReturnCode((short)syncResultCode);
+			return ReturnCode(syncResultCode);
 		}
 
-		getApp().getLoad().getLoginCount().IncrementAndGet();
+		App.getLoad().getLoginCount().incrementAndGet();
 		return Procedure.Success;
 	}
 
@@ -165,10 +168,10 @@ public final class ModuleLogin extends AbstractModule {
 		return ReliableNotifySync(session, ReliableNotifyConfirmCount, online, true);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: private int ReliableNotifySync(Session session, long ReliableNotifyConfirmCount, BOnline online, bool sync = true)
 	private int ReliableNotifySync(Session session, long ReliableNotifyConfirmCount, BOnline online, boolean sync) {
-		if (ReliableNotifyConfirmCount < online.getReliableNotifyConfirmCount() || ReliableNotifyConfirmCount > online.getReliableNotifyTotalCount() || ReliableNotifyConfirmCount - online.getReliableNotifyConfirmCount() > online.getReliableNotifyQueue().Count) {
+		if (ReliableNotifyConfirmCount < online.getReliableNotifyConfirmCount()
+				|| ReliableNotifyConfirmCount > online.getReliableNotifyTotalCount()
+				|| ReliableNotifyConfirmCount - online.getReliableNotifyConfirmCount() > online.getReliableNotifyQueue().size()) {
 			return ResultCodeReliableNotifyConfirmCountOutOfRange;
 		}
 
@@ -176,20 +179,23 @@ public final class ModuleLogin extends AbstractModule {
 
 		if (sync) {
 			var notify = new SReliableNotify();
-			notify.getArgument().ReliableNotifyTotalCountStart = ReliableNotifyConfirmCount;
-			for (int i = confirmCount; i < online.getReliableNotifyQueue().Count; ++i) {
-				notify.getArgument().getNotifies().Add(online.getReliableNotifyQueue().get(i));
+			notify.Argument.setReliableNotifyTotalCountStart(ReliableNotifyConfirmCount);
+			for (int i = confirmCount; i < online.getReliableNotifyQueue().size(); ++i) {
+				notify.Argument.getNotifies().add(online.getReliableNotifyQueue().get(i));
 			}
 			session.SendResponseWhileCommit(notify);
 		}
-		online.getReliableNotifyQueue().RemoveRange(0, confirmCount);
-		online.ReliableNotifyConfirmCount = ReliableNotifyConfirmCount;
+		for (int ir = 0; ir < confirmCount; ++ir)
+			online.getReliableNotifyQueue().remove(0);
+		//online.getReliableNotifyQueue().RemoveRange(0, confirmCount);
+		online.setReliableNotifyConfirmCount(ReliableNotifyConfirmCount);
 		return ResultCodeSuccess;
 	}
 
 	@Override
-	public int ProcessReliableNotifyConfirmRequest(ReliableNotifyConfirm rpc) {
-		Session session = Session.Get(rpc);
+	public int ProcessReliableNotifyConfirmRequest(Protocol _rpc) {
+		var rpc = (ReliableNotifyConfirm)_rpc;
+		var session = Session.Get(rpc);
 
 		BOnline online = _tonline.Get(session.getRoleId().longValue());
 		if (null == online || online.getState() == BOnline.StateOffline) {
@@ -197,20 +203,19 @@ public final class ModuleLogin extends AbstractModule {
 		}
 
 		session.SendResponseWhileCommit(rpc); // 同步前提交。
-		var syncResultCode = ReliableNotifySync(session, rpc.getArgument().getReliableNotifyConfirmCount(), online, false);
+		var syncResultCode = ReliableNotifySync(session, rpc.Argument.getReliableNotifyConfirmCount(), online, false);
 
 		if (ResultCodeSuccess != syncResultCode) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: return ReturnCode((ushort)syncResultCode);
-			return ReturnCode((short)syncResultCode);
+			return ReturnCode(syncResultCode);
 		}
 
 		return Procedure.Success;
 	}
 
 	@Override
-	public int ProcessLogoutRequest(Logout rpc) {
-		Session session = Session.Get(rpc);
+	public int ProcessLogoutRequest(Protocol _rpc) {
+		var rpc = (Logout)_rpc;
+		var session = Session.Get(rpc);
 
 		if (session.getRoleId() == null) {
 			return ReturnCode(ResultCodeNotLogin);
@@ -219,10 +224,10 @@ public final class ModuleLogin extends AbstractModule {
 		_tonline.Remove(session.getRoleId().longValue());
 
 		// 先设置状态，再发送Logout结果。
-		Transaction.Current.RunWhileCommit(() -> {
+		Transaction.getCurrent().RunWhileCommit(() -> {
 				var setUserState = new Zezex.Provider.SetUserState();
-				setUserState.getArgument().LinkSid = session.getSessionId();
-				rpc.getSender().Send(setUserState); // 直接使用link连接。
+				setUserState.Argument.setLinkSid(session.getSessionId());
+				rpc.Sender.Send(setUserState); // 直接使用link连接。
 		});
 		session.SendResponseWhileCommit(rpc);
 		// 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。

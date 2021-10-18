@@ -8,7 +8,7 @@ import Game.*;
 
 public class ModuleBuf extends AbstractModule {
 	public final void Start(App app) {
-		_tbufs.ChangeListenerMap.AddListener(tbufs.VAR_Bufs, new BufChangeListener("Game.Buf.Bufs"));
+		_tbufs.getChangeListenerMap().AddListener(tbufs.VAR_Bufs, new BufChangeListener("Game.Buf.Bufs"));
 	}
 
 	public final void Stop(App app) {
@@ -28,10 +28,10 @@ public class ModuleBuf extends AbstractModule {
 			BBufs record = (BBufs)value;
 
 			SChanged changed = new SChanged();
-			changed.getArgument().ChangeTag = BBufChanged.ChangeTagRecordChanged;
-			changed.getArgument().Replace.AddRange(record.getBufs());
+			changed.Argument.setChangeTag(BBufChanged.ChangeTagRecordChanged);
+			changed.Argument.getReplace().putAll(record.getBufs());
 
-			App.getInstance().getGameLogin().getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			Game.App.Instance.Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
 		}
 
 		public final void OnChanged(Object key, Bean value, ChangeNote note) {
@@ -41,20 +41,19 @@ public class ModuleBuf extends AbstractModule {
 			notemap2.MergeChangedToReplaced(record.getBufs());
 
 			SChanged changed = new SChanged();
-			changed.getArgument().ChangeTag = BBufChanged.ChangeTagNormalChanged;
-
-			changed.getArgument().Replace.AddRange(notemap2.Replaced);
-			for (var p : notemap2.Removed) {
-				changed.getArgument().Remove.Add(p);
+			changed.Argument.setChangeTag(BBufChanged.ChangeTagNormalChanged);
+			changed.Argument.getReplace().putAll(notemap2.getReplaced());
+			for (var p : notemap2.getRemoved()) {
+				changed.Argument.getRemove().add(p);
 			}
 
-			App.getInstance().getGameLogin().getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			Game.App.getInstance().Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
 		}
 
 		public final void OnRemoved(Object key) {
 			SChanged changed = new SChanged();
-			changed.getArgument().ChangeTag = BBufChanged.ChangeTagRecordIsRemoved;
-			App.getInstance().getGameLogin().getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			changed.Argument.setChangeTag(BBufChanged.ChangeTagRecordIsRemoved);
+			Game.App.getInstance().Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
 		}
 	}
 

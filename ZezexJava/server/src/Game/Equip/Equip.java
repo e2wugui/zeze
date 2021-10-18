@@ -11,8 +11,8 @@ public class Equip extends Game.Item.Item {
 
 	@Override
 	public void CalculateFighter(Game.Fight.Fighter fighter) {
-		fighter.getBean().Attack += 20.0f;
-		fighter.getBean().Defence += 20.0f;
+		fighter.getBean().setAttack(fighter.getBean().getAttack() + 20.0f);
+		fighter.getBean().setDefence(fighter.getBean().getDefence() + 20.0f);
 	}
 
 	@Override

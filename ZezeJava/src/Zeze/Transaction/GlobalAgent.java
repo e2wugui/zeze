@@ -134,11 +134,7 @@ public final class GlobalAgent {
 						}
 						return 0;
 				});
-				try {
-					future.get();
-				} catch (InterruptedException e) {
-				} catch (ExecutionException e) {
-				}
+				future.Wait();
 			}
 			finally {
 				if (null != tmp)

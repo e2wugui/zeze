@@ -3,6 +3,8 @@ package Game.Login;
 import Zeze.Net.*;
 import Zeze.Transaction.*;
 import Game.*;
+import Zeze.Util.TaskCompletionSource;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 
 public class Onlines {
@@ -15,19 +17,19 @@ public class Onlines {
 	public final void OnLinkBroken(long roleId) {
 		var online = table.Get(roleId);
 		if (null != online) {
-			online.State = BOnline.StateNetBroken;
+			online.setState(BOnline.StateNetBroken);
 		}
 
-		Zeze.Util.Scheduler.Instance.Schedule((ThisTask) -> {
-				App.getInstance().getZeze().NewProcedure(() -> {
+		Zeze.Util.Task.schedule((ThisTask) -> {
+				App.getInstance().Zeze.NewProcedure(() -> {
 					// 网络断开后延迟删除在线状态。这里简单判断一下是否StateNetBroken。
 					// 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
 					// 造成延迟时间不准确。管理Timeout有点烦，先这样吧。
-					var online = table.Get(roleId);
-					if (null != online && online.getState() == BOnline.StateNetBroken) {
+					var online2 = table.Get(roleId);
+					if (null != online2 && online2.getState() == BOnline.StateNetBroken) {
 						table.Remove(roleId);
 					}
-					App.getInstance().getLoad().getLogoutCount().IncrementAndGet();
+					App.getInstance().getLoad().getLogoutCount().incrementAndGet();
 
 					return Procedure.Success;
 				}, "Onlines.OnLinkBroken", null).Call();
@@ -39,13 +41,13 @@ public class Onlines {
 		if (null == online || online.getState() != BOnline.StateOnline) {
 			throw new RuntimeException("Not Online. AddReliableNotifyMark: " + listenerName);
 		}
-		online.getReliableNotifyMark().Add(listenerName);
+		online.getReliableNotifyMark().add(listenerName);
 	}
 
 	public final void RemoveReliableNotifyMark(long roleId, String listenerName) {
 		// 移除尽量通过，不做任何判断。
 		if (table.Get(roleId) != null) {
-			table.Get(roleId).getReliableNotifyMark().Remove(listenerName);
+			table.Get(roleId).getReliableNotifyMark().remove(listenerName);
 		}
 	}
 
@@ -57,7 +59,7 @@ public class Onlines {
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public void SendReliableNotifyWhileCommit(long roleId, string listenerName, Protocol p, bool WaitConfirm = false)
 	public final void SendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol p, boolean WaitConfirm) {
-		Transaction.Current.RunWhileCommit(() -> SendReliableNotify(roleId, listenerName, p, WaitConfirm));
+		Transaction.getCurrent().RunWhileCommit(() -> SendReliableNotify(roleId, listenerName, p, WaitConfirm));
 	}
 
 
@@ -68,7 +70,7 @@ public class Onlines {
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public void SendReliableNotifyWhileCommit(long roleId, string listenerName, int typeId, Binary fullEncodedProtocol, bool WaitConfirm = false)
 	public final void SendReliableNotifyWhileCommit(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
-		Transaction.Current.RunWhileCommit(() -> SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm));
+		Transaction.getCurrent().RunWhileCommit(() -> SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm));
 	}
 
 
@@ -79,7 +81,7 @@ public class Onlines {
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public void SendReliableNotifyWhileRollback(long roleId, string listenerName, Protocol p, bool WaitConfirm = false)
 	public final void SendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol p, boolean WaitConfirm) {
-		Transaction.Current.RunWhileRollback(() -> SendReliableNotify(roleId, listenerName, p, WaitConfirm));
+		Transaction.getCurrent().RunWhileRollback(() -> SendReliableNotify(roleId, listenerName, p, WaitConfirm));
 	}
 
 
@@ -90,7 +92,7 @@ public class Onlines {
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public void SendReliableNotifyWhileRollback(long roleId, string listenerName, int typeId, Binary fullEncodedProtocol, bool WaitConfirm = false)
 	public final void SendReliableNotifyWhileRollback(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
-		Transaction.Current.RunWhileRollback(() -> SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm));
+		Transaction.getCurrent().RunWhileRollback(() -> SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm));
 	}
 
 
@@ -101,7 +103,7 @@ public class Onlines {
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public void SendReliableNotify(long roleId, string listenerName, Protocol p, bool WaitConfirm = false)
 	public final void SendReliableNotify(long roleId, String listenerName, Protocol p, boolean WaitConfirm) {
-		SendReliableNotify(roleId, listenerName, p.TypeId, new Binary(p.Encode()), WaitConfirm);
+		SendReliableNotify(roleId, listenerName, p.getTypeId(), new Binary(p.Encode()), WaitConfirm);
 	}
 
 	/** 
@@ -119,37 +121,34 @@ public class Onlines {
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public void SendReliableNotify(long roleId, string listenerName, int typeId, Binary fullEncodedProtocol, bool WaitConfirm = false)
 	public final void SendReliableNotify(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
-		TaskCompletionSource<Long> future = null;
+		final TaskCompletionSource<Long> future = WaitConfirm ? new TaskCompletionSource<Long>() : null;
 
-		if (WaitConfirm) {
-			future = new TaskCompletionSource<Long>();
-		}
-
-		App.getInstance().getZeze().TaskOneByOneByKey.Execute(listenerName, App.getInstance().getZeze().NewProcedure(() -> {
+		App.getInstance().Zeze.getTaskOneByOneByKey().Execute(listenerName,
+				App.getInstance().Zeze.NewProcedure(() -> {
 					BOnline online = table.Get(roleId);
 					if (null == online || online.getState() == BOnline.StateOffline) {
 						return Procedure.Success;
 					}
-					if (false == online.getReliableNotifyMark().Contains(listenerName)) {
+					if (false == online.getReliableNotifyMark().contains(listenerName)) {
 						return Procedure.Success; // 相关数据装载的时候要同步设置这个。
 					}
 
 					// 先保存在再发送，然后客户端还会确认。
 					// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
-					online.getReliableNotifyQueue().Add(fullEncodedProtocol);
+					online.getReliableNotifyQueue().add(fullEncodedProtocol);
 					if (online.getState() == BOnline.StateOnline) {
 						var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
-						notify.getArgument().ReliableNotifyTotalCountStart = online.getReliableNotifyTotalCount();
-						notify.getArgument().getNotifies().Add(fullEncodedProtocol);
+						notify.Argument.setReliableNotifyTotalCountStart(online.getReliableNotifyTotalCount());
+						notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-						SendInProcedure(new ArrayList<Long>(Arrays.asList(roleId)), notify.TypeId, new Binary(notify.Encode()), future);
+						SendInProcedure(new ArrayList<Long>(Arrays.asList(roleId)), notify.getTypeId(), new Binary(notify.Encode()), future);
 					}
-					online.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
+					online.setReliableNotifyTotalCount(online.getReliableNotifyConfirmCount() + 1); // 后加，start 是 Queue.Add 之前的。
 					return Procedure.Success;
 		}, "SendReliableNotify." + listenerName, null), null);
 
 		if (future != null) {
-			future.Task.Wait();
+			future.Wait();
 		}
 	}
 
@@ -196,32 +195,25 @@ public class Onlines {
 		for (var roleId : roleIds) {
 			var online = table.Get(roleId);
 			if (null == online || online.getState() != BOnline.StateOnline) {
-				groupNotOnline.getRoles().TryAdd(roleId, new Zezex.Provider.BTransmitContext());
+				groupNotOnline.getRoles().putIfAbsent(roleId, new Zezex.Provider.BTransmitContext());
 				continue;
 			}
 
-			TValue connector;
-			tangible.OutObject<TValue> tempOut_connector = new tangible.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-			if (false == App.getInstance().getServer().getLinks().TryGetValue(online.getLinkName(), tempOut_connector)) {
-			connector = tempOut_connector.outArgValue;
-				groupNotOnline.getRoles().TryAdd(roleId, new Zezex.Provider.BTransmitContext());
+			var connector = App.getInstance().Server.getLinks().get(online.getLinkName());
+			if (null == connector) {
+				groupNotOnline.getRoles().putIfAbsent(roleId, new Zezex.Provider.BTransmitContext());
 				continue;
 			}
-		else {
-			connector = tempOut_connector.outArgValue;
-		}
-
-			if (false == connector.IsHandshakeDone) {
-				groupNotOnline.getRoles().TryAdd(roleId, new Zezex.Provider.BTransmitContext());
+			if (false == connector.isHandshakeDone()) {
+				groupNotOnline.getRoles().putIfAbsent(roleId, new Zezex.Provider.BTransmitContext());
 				continue;
 			}
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
-			TValue group;
-			if (false == (groups.containsKey(online.getLinkName()) && (group = groups.get(online.getLinkName())) == group)) {
+			var group = groups.get(online.getLinkName());
+			if (null == group) {
 				group = new RoleOnLink();
 				group.setLinkName(online.getLinkName());
-				group.setLinkSocket(connector.Socket);
+				group.setLinkSocket(connector.getSocket());
 				group.setProviderId(online.getProviderId());
 				group.setProviderSessionId(online.getProviderSessionId());
 				groups.put(group.LinkName, group);
@@ -230,7 +222,7 @@ public class Onlines {
 			tempVar.setLinkSid(online.getLinkSid());
 			tempVar.setProviderId(online.getProviderId());
 			tempVar.setProviderSessionId(online.getProviderSessionId());
-			group.Roles.TryAdd(roleId, tempVar);
+			group.Roles.putIfAbsent(roleId, tempVar);
 		}
 		return groups.values();
 	}
@@ -249,7 +241,7 @@ public class Onlines {
 
 				confrmContext.getLinkNames().add(group.getLinkName());
 			}
-			serialId = App.getInstance().getServer().AddManualContextWithTimeout(confrmContext, 5000);
+			serialId = App.getInstance().Server.AddManualContextWithTimeout(confrmContext, 5000);
 		}
 
 		for (var group : groups) {
@@ -258,32 +250,28 @@ public class Onlines {
 			}
 
 			var send = new Zezex.Provider.Send();
-			send.getArgument().ProtocolType = typeId;
-			send.getArgument().ProtocolWholeData = fullEncodedProtocol;
-			send.getArgument().ConfirmSerialId = serialId;
+			send.Argument.setProtocolType(typeId);
+			send.Argument.setProtocolWholeData(fullEncodedProtocol);
+			send.Argument.setConfirmSerialId(serialId);
 
 			for (var ctx : group.getRoles().values()) {
-				send.getArgument().getLinkSids().Add(ctx.LinkSid);
+				send.Argument.getLinkSids().add(ctx.getLinkSid());
 			}
 			group.getLinkSocket().Send(send);
 		}
 	}
 
 	private void Send(Collection<Long> roleIds, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
-		TaskCompletionSource<Long> future = null;
-
-		if (WaitConfirm) {
-			future = new TaskCompletionSource<Long>();
-		}
+		final TaskCompletionSource<Long> future = WaitConfirm ? new TaskCompletionSource<Long>() : null;
 
 		// 发送协议请求在另外的事务中执行。
-		Zeze.Util.Task.Run(App.getInstance().getZeze().NewProcedure(() -> {
+		Zeze.Util.Task.Run(App.Instance.Zeze.NewProcedure(() -> {
 				SendInProcedure(roleIds, typeId, fullEncodedProtocol, future);
 				return Procedure.Success;
 		}, "Onlines.Send", null), null, null);
 
 		if (future != null) {
-			future.Task.Wait();
+			future.Wait();
 		}
 	}
 
@@ -292,10 +280,8 @@ public class Onlines {
 		Send(roleId, p, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void Send(long roleId, Protocol p, bool WaitConfirm = false)
 	public final void Send(long roleId, Protocol p, boolean WaitConfirm) {
-		Send(new ArrayList<Long>(Arrays.asList(roleId)), p.TypeId, new Binary(p.Encode()), WaitConfirm);
+		Send(new ArrayList<Long>(Arrays.asList(roleId)), p.getTypeId(), new Binary(p.Encode()), WaitConfirm);
 	}
 
 
@@ -303,10 +289,8 @@ public class Onlines {
 		Send(roleIds, p, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void Send(ICollection<long> roleIds, Protocol p, bool WaitConfirm = false)
 	public final void Send(Collection<Long> roleIds, Protocol p, boolean WaitConfirm) {
-		Send(roleIds, p.TypeId, new Binary(p.Encode()), WaitConfirm);
+		Send(roleIds, p.getTypeId(), new Binary(p.Encode()), WaitConfirm);
 	}
 
 
@@ -317,7 +301,7 @@ public class Onlines {
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public void SendWhileCommit(long roleId, Protocol p, bool WaitConfirm = false)
 	public final void SendWhileCommit(long roleId, Protocol p, boolean WaitConfirm) {
-		Transaction.Current.RunWhileCommit(() -> Send(roleId, p, WaitConfirm));
+		Transaction.getCurrent().RunWhileCommit(() -> Send(roleId, p, WaitConfirm));
 	}
 
 
@@ -328,7 +312,7 @@ public class Onlines {
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public void SendWhileCommit(ICollection<long> roleIds, Protocol p, bool WaitConfirm = false)
 	public final void SendWhileCommit(Collection<Long> roleIds, Protocol p, boolean WaitConfirm) {
-		Transaction.Current.RunWhileCommit(() -> Send(roleIds, p, WaitConfirm));
+		Transaction.getCurrent().RunWhileCommit(() -> Send(roleIds, p, WaitConfirm));
 	}
 
 
@@ -339,7 +323,7 @@ public class Onlines {
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public void SendWhileRollback(long roleId, Protocol p, bool WaitConfirm = false)
 	public final void SendWhileRollback(long roleId, Protocol p, boolean WaitConfirm) {
-		Transaction.Current.RunWhileRollback(() -> Send(roleId, p, WaitConfirm));
+		Transaction.getCurrent().RunWhileRollback(() -> Send(roleId, p, WaitConfirm));
 	}
 
 
@@ -350,7 +334,7 @@ public class Onlines {
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public void SendWhileRollback(ICollection<long> roleIds, Protocol p, bool WaitConfirm = false)
 	public final void SendWhileRollback(Collection<Long> roleIds, Protocol p, boolean WaitConfirm) {
-		Transaction.Current.RunWhileRollback(() -> Send(roleIds, p, WaitConfirm));
+		Transaction.getCurrent().RunWhileRollback(() -> Send(roleIds, p, WaitConfirm));
 	}
 
 	/** 
@@ -359,8 +343,8 @@ public class Onlines {
 	 target: 查询目标角色。
 	 result: 返回值，int，按普通事务处理过程返回值处理。
 	*/
-	private java.util.concurrent.ConcurrentHashMap<String, tangible.Func2Param<Long, Long, Integer>> TransmitActions = new java.util.concurrent.ConcurrentHashMap<String, tangible.Func2Param<Long, Long, Integer>> ();
-	public final java.util.concurrent.ConcurrentHashMap<String, tangible.Func2Param<Long, Long, Integer>> getTransmitActions() {
+	private ConcurrentHashMap<String, Zeze.Util.Func2<Long, Long, Integer>> TransmitActions = new ConcurrentHashMap<> ();
+	public final ConcurrentHashMap<String, Zeze.Util.Func2<Long, Long, Integer>> getTransmitActions() {
 		return TransmitActions;
 	}
 
@@ -376,22 +360,20 @@ public class Onlines {
 	}
 
 	public final void ProcessTransmit(long sender, String actionName, java.lang.Iterable<Long> roleIds) {
-		TValue handle;
-		tangible.OutObject<TValue> tempOut_handle = new tangible.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (getTransmitActions().TryGetValue(actionName, tempOut_handle)) {
-		handle = tempOut_handle.outArgValue;
+		var handle = getTransmitActions().get(actionName);
+		if (null != handle) {
 			for (var target : roleIds) {
-				Zeze.Util.Task.Run(App.getInstance().getZeze().NewProcedure(() -> handle(sender, target), "Game.Online.Transmit:" + actionName, null), null, null);
+				Zeze.Util.Task.Run(
+						App.Instance.Zeze.NewProcedure(
+								() -> handle.call(sender, target),
+								"Game.Online.Transmit:" + actionName, null),
+						null, null);
 			}
 		}
-	else {
-		handle = tempOut_handle.outArgValue;
-	}
 	}
 
 	private void TransmitInProcedure(long sender, String actionName, Collection<Long> roleIds) {
-		if (App.getInstance().getZeze().Config.GlobalCacheManagerHostNameOrAddress.length() == 0) {
+		if (App.getInstance().Zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().length() == 0) {
 			// 没有启用cache-sync，马上触发本地任务。
 			ProcessTransmit(sender, actionName, roleIds);
 			return;
@@ -399,16 +381,16 @@ public class Onlines {
 
 		var groups = GroupByLink(roleIds);
 		for (var group : groups) {
-			if (group.getProviderId() == App.getInstance().getZeze().Config.ServerId) {
+			if (group.getProviderId() == App.getInstance().Zeze.getConfig().getServerId()) {
 				// loopback 就是当前gs.
 				ProcessTransmit(sender, actionName, group.getRoles().keySet());
 				continue;
 			}
 			var transmit = new Zezex.Provider.Transmit();
-			transmit.getArgument().ActionName = actionName;
-			transmit.getArgument().Sender = sender;
-			transmit.getArgument().ServiceNamePrefix = App.ServerServiceNamePrefix;
-			transmit.getArgument().getRoles().AddRange(group.getRoles());
+			transmit.Argument.setActionName(actionName);
+			transmit.Argument.setSender(sender);
+			transmit.Argument.setServiceNamePrefix(App.ServerServiceNamePrefix);
+			transmit.Argument.getRoles().putAll(group.getRoles());
 
 			if (null != group.getLinkSocket()) {
 				group.getLinkSocket().Send(transmit);
@@ -417,13 +399,13 @@ public class Onlines {
 
 			// 对于不在线的角色，随机选择一个linkd转发。
 			ArrayList<AsyncSocket> readyLinks = new ArrayList<AsyncSocket>();
-			for (var link : App.getInstance().getServer().getLinks().values()) {
-				if (link.IsHandshakeDone) {
-					readyLinks.add(link.Socket);
+			for (var link : App.getInstance().Server.getLinks().values()) {
+				if (link.isHandshakeDone()) {
+					readyLinks.add(link.getSocket());
 				}
 			}
 			if (!readyLinks.isEmpty()) {
-				var randLink = readyLinks.get(Zeze.Util.Random.Instance.nextInt(readyLinks.size()));
+				var randLink = readyLinks.get(Zeze.Util.Random.getInstance().nextInt(readyLinks.size()));
 				randLink.Send(transmit);
 			}
 		}
@@ -435,7 +417,7 @@ public class Onlines {
 		}
 
 		// 发送协议请求在另外的事务中执行。
-		Zeze.Util.Task.Run(App.getInstance().getZeze().NewProcedure(() -> {
+		Zeze.Util.Task.Run(App.getInstance().Zeze.NewProcedure(() -> {
 				TransmitInProcedure(sender, actionName, roleIds);
 				return Procedure.Success;
 		}, "Onlines.Transmit", null), null, null);
@@ -445,28 +427,28 @@ public class Onlines {
 		if (false == getTransmitActions().containsKey(actionName)) {
 			throw new RuntimeException("Unkown Action Name: " + actionName);
 		}
-		Transaction.Current.RunWhileCommit(() -> Transmit(sender, actionName, roleId));
+		Transaction.getCurrent().RunWhileCommit(() -> Transmit(sender, actionName, roleId));
 	}
 
 	public final void TransmitWhileCommit(long sender, String actionName, Collection<Long> roleIds) {
 		if (false == getTransmitActions().containsKey(actionName)) {
 			throw new RuntimeException("Unkown Action Name: " + actionName);
 		}
-		Transaction.Current.RunWhileCommit(() -> Transmit(sender, actionName, roleIds));
+		Transaction.getCurrent().RunWhileCommit(() -> Transmit(sender, actionName, roleIds));
 	}
 
 	public final void TransmitWhileRollback(long sender, String actionName, long roleId) {
 		if (false == getTransmitActions().containsKey(actionName)) {
 			throw new RuntimeException("Unkown Action Name: " + actionName);
 		}
-		Transaction.Current.RunWhileRollback(() -> Transmit(sender, actionName, roleId));
+		Transaction.getCurrent().RunWhileRollback(() -> Transmit(sender, actionName, roleId));
 	}
 
 	public final void TransmitWhileRollback(long sender, String actionName, Collection<Long> roleIds) {
 		if (false == getTransmitActions().containsKey(actionName)) {
 			throw new RuntimeException("Unkown Action Name: " + actionName);
 		}
-		Transaction.Current.RunWhileRollback(() -> Transmit(sender, actionName, roleIds));
+		Transaction.getCurrent().RunWhileRollback(() -> Transmit(sender, actionName, roleIds));
 	}
 
 	public static class ConfirmContext extends Service.ManualContext {
@@ -494,7 +476,7 @@ public class Onlines {
 			synchronized (this) {
 				getLinkNames().remove(linkName);
 				if (getLinkNames().isEmpty()) {
-					App.getInstance().getServer().<ConfirmContext>TryRemoveManualContext(getSessionId());
+					App.getInstance().Server.<ConfirmContext>TryRemoveManualContext(getSessionId());
 				}
 				return Procedure.Success;
 			}
@@ -507,28 +489,28 @@ public class Onlines {
 		if (WaitConfirm) {
 			future = new TaskCompletionSource<Long>();
 			var confirmContext = new ConfirmContext(future);
-			for (var link : App.getInstance().getServer().getLinks().values()) {
-				if (link.Socket != null) {
-					confirmContext.getLinkNames().add(link.Name);
+			for (var link : App.getInstance().Server.getLinks().values()) {
+				if (link.getSocket() != null) {
+					confirmContext.getLinkNames().add(link.getName());
 				}
 			}
-			serialId = App.getInstance().getServer().AddManualContextWithTimeout(confirmContext, 5000);
+			serialId = App.getInstance().Server.AddManualContextWithTimeout(confirmContext, 5000);
 		}
 
 		var broadcast = new Zezex.Provider.Broadcast();
-		broadcast.getArgument().ProtocolType = typeId;
-		broadcast.getArgument().ProtocolWholeData = fullEncodedProtocol;
-		broadcast.getArgument().ConfirmSerialId = serialId;
-		broadcast.getArgument().Time = time;
+		broadcast.Argument.setProtocolType(typeId);
+		broadcast.Argument.setProtocolWholeData(fullEncodedProtocol);
+		broadcast.Argument.setConfirmSerialId(serialId);
+		broadcast.Argument.setTime(time);
 
-		for (var link : App.getInstance().getServer().getLinks().values()) {
-			if (link.Socket != null) {
-				link.Socket.Send(broadcast);
+		for (var link : App.getInstance().Server.getLinks().values()) {
+			if (link.getSocket() != null) {
+				link.getSocket().Send(broadcast);
 			}
 		}
 
 		if (future != null) {
-			future.Task.Wait();
+			future.Wait();
 		}
 	}
 
@@ -541,9 +523,7 @@ public class Onlines {
 		Broadcast(p, 60 * 1000, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void Broadcast(Protocol p, int time = 60 * 1000, bool WaitConfirm = false)
 	public final void Broadcast(Protocol p, int time, boolean WaitConfirm) {
-		Broadcast(p.TypeId, new Binary(p.Encode()), time, WaitConfirm);
+		Broadcast(p.getTypeId(), new Binary(p.Encode()), time, WaitConfirm);
 	}
 }

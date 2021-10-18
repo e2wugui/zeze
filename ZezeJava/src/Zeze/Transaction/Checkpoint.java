@@ -109,11 +109,7 @@ public final class Checkpoint {
 			case Period:
 				final TaskCompletionSource<Integer> source = new TaskCompletionSource<Integer>();
 				AddActionAndPulse(() -> source.SetResult(0));
-				try {
-					source.get();
-				} catch (InterruptedException | ExecutionException e) {
-					throw new RuntimeException(e);
-				}
+				source.Wait();
 				break;
 
 			case Table:

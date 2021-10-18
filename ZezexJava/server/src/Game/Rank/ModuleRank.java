@@ -472,11 +472,7 @@ public class ModuleRank extends AbstractModule {
 		var future = App.Zeze.Run(
 				() -> Test2(hash, inData, refData, outData),
 				"Test2", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-		try {
-			future.get();
-		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
-		}
+		future.Wait();
 	}
 
 	protected final int Test2(int hash, int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData) {
@@ -493,11 +489,7 @@ public class ModuleRank extends AbstractModule {
 		var future = App.Zeze.Run(
 				() -> Test3(hash, inData, refData, outData, resultCallback),
 				"Test3", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-		try {
-			future.get();
-		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
-		}
+		future.Wait();
 	}
 
 	/*

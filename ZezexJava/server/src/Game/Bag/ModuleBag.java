@@ -1,5 +1,6 @@
 package Game.Bag;
 
+import Zeze.Net.Protocol;
 import Zeze.Transaction.*;
 import Game.*;
 
@@ -8,8 +9,8 @@ import Game.*;
 
 public final class ModuleBag extends AbstractModule {
 	public void Start(App app) {
-		_tbag.ChangeListenerMap.AddListener(tbag.VAR_Items, new ItemsChangeListener());
-		_tbag.ChangeListenerMap.AddListener(tbag.VAR_All, new BagChangeListener());
+		_tbag.getChangeListenerMap().AddListener(tbag.VAR_Items, new ItemsChangeListener());
+		_tbag.getChangeListenerMap().AddListener(tbag.VAR_All, new BagChangeListener());
 	}
 
 	public void Stop(App app) {
@@ -25,9 +26,9 @@ public final class ModuleBag extends AbstractModule {
 			// 记录改变，通知全部。
 			BBag bbag = (BBag)value;
 			var sbag = new SBag();
-			Bag.ToProtocol(bbag, sbag.getArgument());
+			Bag.ToProtocol(bbag, sbag.Argument);
 
-			App.getInstance().getGameLogin().getOnlines().SendReliableNotify((Long)key, getName(), sbag);
+			Game.App.getInstance().Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), sbag);
 		}
 
 		public final void OnChanged(Object key, Bean value, ChangeNote note) {
@@ -37,8 +38,8 @@ public final class ModuleBag extends AbstractModule {
 
 		public final void OnRemoved(Object key) {
 			SChanged changed = new SChanged();
-			changed.getArgument().ChangeTag = BChangedResult.ChangeTagRecordIsRemoved;
-			App.getInstance().getGameLogin().getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			changed.Argument.setChangeTag(BChangedResult.ChangeTagRecordIsRemoved);
+			Game.App.getInstance().Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
 		}
 	}
 
@@ -58,14 +59,13 @@ public final class ModuleBag extends AbstractModule {
 			notemap2.MergeChangedToReplaced(bbag.getItems());
 
 			SChanged changed = new SChanged();
-			changed.getArgument().ChangeTag = BChangedResult.ChangeTagNormalChanged;
-
-			changed.getArgument().getItemsReplace().AddRange(notemap2.Replaced);
-			for (var p : notemap2.Removed) {
-				changed.getArgument().getItemsRemove().Add(p);
+			changed.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
+			changed.Argument.getItemsReplace().putAll(notemap2.getReplaced());
+			for (var p : notemap2.getRemoved()) {
+				changed.Argument.getItemsRemove().add(p);
 			}
 
-			App.getInstance().getGameLogin().getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			Game.App.getInstance().Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
 		}
 
 		public final void OnRemoved(Object key) {
@@ -75,10 +75,12 @@ public final class ModuleBag extends AbstractModule {
 
 	// protocol handles
 	@Override
-	public int ProcessMoveRequest(Move rpc) {
-		Login.Session session = Login.Session.Get(rpc);
+	public int ProcessMoveRequest(Protocol _rpc) {
+		var rpc = (Move)_rpc;
+		var session = Game.Login.Session.Get(rpc);
 		// throw exception if not login
-		var moduleCode = GetBag(session.getRoleId().longValue()).Move(rpc.getArgument().getPositionFrom(), rpc.getArgument().getPositionTo(), rpc.getArgument().getNumber());
+		var moduleCode = GetBag(session.getRoleId().longValue()).Move(
+				rpc.Argument.getPositionFrom(), rpc.Argument.getPositionTo(), rpc.Argument.getNumber());
 		if (moduleCode != 0) {
 //C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
 //ORIGINAL LINE: return ReturnCode((ushort)moduleCode);
@@ -89,9 +91,10 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessDestroyRequest(Destroy rpc) {
-		Login.Session session = Login.Session.Get(rpc);
-		var moduleCode = GetBag(session.getRoleId().longValue()).Destory(rpc.getArgument().getPosition());
+	public int ProcessDestroyRequest(Protocol _rpc) {
+		var rpc = (Destroy)_rpc;
+		var session = Game.Login.Session.Get(rpc);
+		var moduleCode = GetBag(session.getRoleId().longValue()).Destory(rpc.Argument.getPosition());
 		if (0 != moduleCode) {
 //C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
 //ORIGINAL LINE: return ReturnCode((ushort)moduleCode);
@@ -102,21 +105,23 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessSortRequest(Sort rpc) {
-		Login.Session session = Login.Session.Get(rpc);
+	public int ProcessSortRequest(Protocol _rpc) {
+		var rpc = (Sort)_rpc;
+		var session = Game.Login.Session.Get(rpc);
 		Bag bag = GetBag(session.getRoleId().longValue());
-		bag.Sort();
+		bag.Sort(null);
 		session.SendResponse(rpc);
 		return Procedure.Success;
 	}
 
 	@Override
-	public int ProcessGetBagRequest(GetBag rpc) {
-		Login.Session session = Login.Session.Get(rpc);
+	public int ProcessGetBagRequest(Protocol _rpc) {
+		var rpc = (GetBag)_rpc;
+		var session = Game.Login.Session.Get(rpc);
 
-		GetBag(session.getRoleId().longValue()).ToProtocol(rpc.getResult());
+		GetBag(session.getRoleId().longValue()).ToProtocol(rpc.Result);
 		session.SendResponse(rpc);
-		App.getInstance().getGameLogin().getOnlines().AddReliableNotifyMark(session.getRoleId().longValue(), BagChangeListener.getName());
+		App.getInstance().Game_Login.getOnlines().AddReliableNotifyMark(session.getRoleId().longValue(), BagChangeListener.getName());
 		return Procedure.Success;
 	}
 
@@ -126,12 +131,13 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessCUse(CUse protocol) {
-		Login.Session session = Login.Session.Get(protocol);
+	public int ProcessCUse(Protocol _protocol) {
+		var protocol = (CUse)_protocol;
+		var session = Game.Login.Session.Get(protocol);
 		Bag bag = GetBag(session.getRoleId().longValue());
-		Item.Item item = bag.GetItem(protocol.getArgument().getPosition());
+		var item = bag.GetItem(protocol.Argument.getPosition());
 		if (null != item && item.Use()) {
-			if (bag.Remove(protocol.getArgument().getPosition(), item.getId(), 1)) {
+			if (bag.Remove(protocol.Argument.getPosition(), item.getId(), 1)) {
 				return Procedure.Success;
 			}
 		}
