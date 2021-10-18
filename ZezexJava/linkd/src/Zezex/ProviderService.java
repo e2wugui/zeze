@@ -2,6 +2,7 @@ package Zezex;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.appender.db.jpa.converter.ThrowableAttributeConverter;
 
 public final class ProviderService extends ProviderServiceBase {
 	public ProviderService(Zeze.Application zeze) {
@@ -49,9 +50,9 @@ public final class ProviderService extends ProviderServiceBase {
 	}
 
 	@Override
-	public void OnSocketClose(Zeze.Net.AsyncSocket so, RuntimeException e) {
+	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) {
 		// 先unbind。这样避免有时间窗口。
-		Zezex.App.getInstance().getZezexProvider().OnProviderClose(so);
+		Zezex.App.getInstance().Zezex_Provider.OnProviderClose(so);
 		super.OnSocketClose(so, e);
 	}
 }

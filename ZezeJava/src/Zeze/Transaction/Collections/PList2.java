@@ -5,6 +5,8 @@ import org.pcollections.PVector;
 
 import Zeze.Transaction.*;
 
+import java.util.Collection;
+
 public final class PList2<E extends Bean> extends PList<E> {
 	public PList2(long logKey, LogFactory<PVector<E>> logFactory) {
 		super(logKey, logFactory);
@@ -36,7 +38,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 	}
 
 	@Override
-	public void add(E item) {
+	public boolean add(E item) {
 		if (item == null) {
 			throw new NullPointerException();
 		}
@@ -50,25 +52,20 @@ public final class PList2<E extends Bean> extends PList<E> {
 			@SuppressWarnings("unchecked")
 			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.plus(item)));
+			return true;
 		}
 		else {
 			list = list.plus(item);
+			return true;
 		}
 	}
 
 	@Override
-	public void addAll(java.util.Collection<E> items) {
-		// XXX
-		for (var v : items) {
-			if (null == v) {
-				throw new NullPointerException();
-			}
-		}
-
+	public boolean addAll(Collection<? extends E> items) {
 		if (this.isManaged()) {
-			for (var v : items) {
-				v.InitRootInfo(RootInfo, getParent());
-				v.setVariableId(this.getVariableId());
+			for (var item : items) {
+				item.InitRootInfo(RootInfo, getParent());
+				item.setVariableId(this.getVariableId());
 			}
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
@@ -76,9 +73,11 @@ public final class PList2<E extends Bean> extends PList<E> {
 			@SuppressWarnings("unchecked")
 			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.plusAll(items)));
+			return true;
 		}
 		else {
 			list = list.plusAll(items);
+			return true;
 		}
 	}
 
@@ -121,7 +120,7 @@ public final class PList2<E extends Bean> extends PList<E> {
 	}
 
 	@Override
-	public boolean remove(E item) {
+	public boolean remove(Object item) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
@@ -154,6 +153,28 @@ public final class PList2<E extends Bean> extends PList<E> {
 		}
 		else {
 			list = list.minus(index);
+		}
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		if (this.isManaged()) {
+			var txn = Transaction.getCurrent();
+			txn.VerifyRecordAccessed(this);
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldv = null != log ? ((LogV<E>)log).Value : list;
+			var newv = oldv.minusAll(c);
+			if (oldv != newv) {
+				txn.PutLog(NewLog(newv));
+				return true;
+			}
+			return false;
+		}
+		else {
+			var oldv = list;
+			list = list.minusAll(c);
+			return oldv != list;
 		}
 	}
 

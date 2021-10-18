@@ -1,7 +1,10 @@
 package Zezex;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
+import jason.JasonReader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -56,10 +59,10 @@ public final class App {
 
 	private void LoadConfig() {
 		try {
-			String json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes("linkd.json"));
-			setConfig(JsonSerializer.<Config>Deserialize(json));
+            byte [] bytes = Files.readAllBytes(Paths.get("linkd.json"));
+            setConfig(new JasonReader().buf(bytes).parse(Config.class));
 		}
-		catch (RuntimeException e) {
+		catch (Exception e) {
 			//MessageBox.Show(ex.ToString());
 		}
 		if (null == getConfig()) {

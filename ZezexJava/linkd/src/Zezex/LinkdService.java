@@ -116,6 +116,5 @@ public final class LinkdService extends LinkdServiceBase {
 		if (so.getUserState() != null) {
 			((Zezex.LinkSession)so.getUserState()).OnClose();
 		}
-		}
 	}
 }
