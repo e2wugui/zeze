@@ -97,53 +97,41 @@ public final class ByteBuffer {
 		return saveSize;
 	}
 
-	public static byte[] ToBytes(int i) {
-		var bb = java.nio.ByteBuffer.allocate(4);
-		bb.putInt(i);
-		return bb.array();
+	public static int ToInt(byte[] bytes, int offset) {
+		return (bytes[offset] & 0xff) |
+				((bytes[offset + 1] & 0xff) << 8) |
+				((bytes[offset + 2] & 0xff) << 16) |
+				(bytes[offset + 3] << 24);
 	}
 
-	public static int ToInt(byte[] bytes, int offset, int len) {
-		var bb = java.nio.ByteBuffer.wrap(bytes, offset, len);
-		return bb.getInt();
+	public static long ToLong(byte[] bytes, int offset) {
+		return (bytes[offset] & 0xff) |
+				((bytes[offset + 1] & 0xff) << 8) |
+				((bytes[offset + 2] & 0xff) << 16) |
+				((long)(bytes[offset + 3] & 0xff) << 24) |
+				((long)(bytes[offset + 4] & 0xff) << 32) |
+				((long)(bytes[offset + 5] & 0xff) << 40) |
+				((long)(bytes[offset + 6] & 0xff) << 48) |
+				((long)bytes[offset + 7] << 56);
 	}
 
-	public static byte[] ToBytes(long l) {
-		var bb = java.nio.ByteBuffer.allocate(8);
-		bb.putLong(l);
-		return bb.array();
+	public static float ToFloat(byte[] bytes, int offset) {
+		return Float.intBitsToFloat(ToInt(bytes, offset));
 	}
 
-	public static long ToLong(byte[] bytes, int offset, int len) {
-		var bb = java.nio.ByteBuffer.wrap(bytes, offset, len);
-		return bb.getLong();
-	}
-
-	public static byte[] ToBytes(float i) {
-		var bb = java.nio.ByteBuffer.allocate(4);
-		bb.putFloat(i);
-		return bb.array();
-	}
-
-	public static float ToFloat(byte[] bytes, int offset, int len) {
-		var bb = java.nio.ByteBuffer.wrap(bytes, offset, len);
-		return bb.getFloat();
-	}
-
-	public static byte[] ToBytes(double i) {
-		var bb = java.nio.ByteBuffer.allocate(8);
-		bb.putDouble(i);
-		return bb.array();
-	}
-
-	public static double ToDouble(byte[] bytes, int offset, int len) {
-		var bb = java.nio.ByteBuffer.wrap(bytes, offset, len);
-		return bb.getDouble();
+	public static double ToDouble(byte[] bytes, int offset) {
+		return Double.longBitsToDouble(ToLong(bytes, offset));
 	}
 
 	public void EndWriteWithSize4(int state) {
 		var oldWriteIndex = state + ReadIndex;
-		Replace(oldWriteIndex, ToBytes(WriteIndex - oldWriteIndex - 4));
+		if (oldWriteIndex + 4 > Capacity())
+			throw new RuntimeException();
+		int v = WriteIndex - oldWriteIndex - 4;
+		Bytes[oldWriteIndex] = (byte)v;
+		Bytes[oldWriteIndex + 1] = (byte)(v >>> 8);
+		Bytes[oldWriteIndex + 2] = (byte)(v >>> 16);
+		Bytes[oldWriteIndex + 3] = (byte)(v >>> 24);
 	}
 
 	public int BeginWriteSegment() {
@@ -204,7 +192,7 @@ public final class ByteBuffer {
 		int h = Bytes[ReadIndex] & 0xff;
 		ReadIndex += 1;
 
-		int segmentSize = 0;
+		int segmentSize;
 		int startPos = ReadIndex;
 
 		if (h < 0x80) {
@@ -387,23 +375,37 @@ public final class ByteBuffer {
 	}
 
 	public void WriteInt4(int x) {
-		Append(ToBytes(x));
+		EnsureWrite(4);
+		Bytes[WriteIndex] = (byte)x;
+		Bytes[WriteIndex + 1] = (byte)(x >>> 8);
+		Bytes[WriteIndex + 2] = (byte)(x >>> 16);
+		Bytes[WriteIndex + 3] = (byte)(x >>> 24);
+		WriteIndex += 4;
 	}
 
 	public int ReadInt4() {
 		EnsureRead(4);
-		int x = ToInt(Bytes, ReadIndex, 4);
+		int x = ToInt(Bytes, ReadIndex);
 		ReadIndex += 4;
 		return x;
 	}
 
 	public void WriteLong8(long x) {
-		Append(ToBytes(x));
+		EnsureWrite(8);
+		Bytes[WriteIndex] = (byte)x;
+		Bytes[WriteIndex + 1] = (byte)(x >>> 8);
+		Bytes[WriteIndex + 2] = (byte)(x >>> 16);
+		Bytes[WriteIndex + 3] = (byte)(x >>> 24);
+		Bytes[WriteIndex + 4] = (byte)(x >>> 32);
+		Bytes[WriteIndex + 5] = (byte)(x >>> 40);
+		Bytes[WriteIndex + 6] = (byte)(x >>> 48);
+		Bytes[WriteIndex + 7] = (byte)(x >>> 56);
+		WriteIndex += 8;
 	}
 
 	public long ReadLong8() {
 		EnsureRead(8);
-		long x = ToLong(Bytes, ReadIndex, 8);
+		long x = ToLong(Bytes, ReadIndex);
 		ReadIndex += 8;
 		return x;
 	}
@@ -434,7 +436,7 @@ public final class ByteBuffer {
 				WriteIndex += 3;
 				return;
 			}
-			
+
 			if (x < 0x10000000) { // 1110 1111,-,-,-
 				EnsureWrite(4);
 				Bytes[WriteIndex + 3] = (byte)x;
@@ -567,7 +569,7 @@ public final class ByteBuffer {
 				WriteIndex += 7;
 				return;
 			}
-			
+
 			if (x < 0x100000000000000L) { // 1111 1110
 				EnsureWrite(8);
 				Bytes[WriteIndex + 7] = (byte)x;
@@ -675,23 +677,23 @@ public final class ByteBuffer {
 	}
 
 	public void WriteFloat(float x) {
-		Append(ToBytes(x));
+		WriteInt4(Float.floatToRawIntBits(x));
 	}
 
 	public float ReadFloat() {
 		EnsureRead(4);
-		float x = ToFloat(Bytes, ReadIndex, 4);
+		float x = ToFloat(Bytes, ReadIndex);
 		ReadIndex+= 4;
 		return x;
 	}
 
 	public void WriteDouble(double x) {
-		Append(ToBytes(x));
+		WriteLong8(Double.doubleToRawLongBits(x));
 	}
 
 	public double ReadDouble() {
 		EnsureRead(8);
-		double x = ToDouble(Bytes, ReadIndex, 8);
+		double x = ToDouble(Bytes, ReadIndex);
 		ReadIndex += 8;
 		return x;
 	}
@@ -763,9 +765,7 @@ public final class ByteBuffer {
 
 	/**
 	 会推进ReadIndex，但是返回的ByteBuffer和原来的共享内存。
-
-	 @return
-	*/
+	 */
 	public ByteBuffer ReadByteBuffer() {
 		int n = ReadInt();
 		EnsureRead(n);
@@ -800,8 +800,7 @@ public final class ByteBuffer {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (obj instanceof ByteBuffer) {
-			ByteBuffer other = (ByteBuffer)obj;
+		if (obj instanceof ByteBuffer other) {
 			return equals(other);
 		}
 		return false;
@@ -842,14 +841,14 @@ public final class ByteBuffer {
 		int hash = 0;
 		for (int i = offset; i < end; ++i) {
 			hash *= 16777619;
-			hash ^= (int)keys[i];
+			hash ^= keys[i];
 		}
-		return (int)hash;
+		return hash;
 	}
 
 	@Override
 	public int hashCode() {
-		return (int)calc_hashnr(Bytes, ReadIndex, Size());
+		return calc_hashnr(Bytes, ReadIndex, Size());
 	}
 
 	// 只能增加新的类型定义，增加时记得同步 SkipUnknownField
@@ -904,41 +903,19 @@ public final class ByteBuffer {
 	public static void SkipUnknownField(int tagid, ByteBuffer bb) {
 		int tagType = tagid & TAG_MASK;
 		switch (tagType) {
-			case BOOL:
-				bb.ReadBool();
-				break;
-			case BYTE:
-				bb.ReadByte();
-				break;
-			case SHORT:
-				bb.ReadShort();
-				break;
-			case INT:
-				bb.ReadInt();
-				break;
-			case LONG:
-				bb.ReadLong();
-				break;
-			case FLOAT:
-				bb.ReadFloat();
-				break;
-			case DOUBLE:
-				bb.ReadDouble();
-				break;
-			case STRING:
-			case BYTES:
-			case LIST:
-			case SET:
-			case MAP:
-			case BEAN:
-				bb.SkipBytes();
-				break;
-			case DYNAMIC:
+			case BOOL -> bb.ReadBool();
+			case BYTE -> bb.ReadByte();
+			case SHORT -> bb.ReadShort();
+			case INT -> bb.ReadInt();
+			case LONG -> bb.ReadLong();
+			case FLOAT -> bb.ReadFloat();
+			case DOUBLE -> bb.ReadDouble();
+			case STRING, BYTES, LIST, SET, MAP, BEAN -> bb.SkipBytes();
+			case DYNAMIC -> {
 				bb.ReadLong8();
 				bb.SkipBytes();
-				break;
-			default:
-				throw new RuntimeException("SkipUnknownField");
+			}
+			default -> throw new RuntimeException("SkipUnknownField");
 		}
 	}
 

@@ -1,7 +1,5 @@
 package UnitTest.Zeze.Serialize;
 
-import org.junit.Test;
-
 import Zeze.Serialize.*;
 import Zeze.Util.BitConverter;
 import junit.framework.TestCase;
@@ -24,7 +22,7 @@ public class TestByteBuffer extends TestCase {
 		assertTrue(BitConverter.toString(v).equals(BitConverter.toString(bb.ReadBytes())));
 		assertTrue(bb.ReadIndex == bb.WriteIndex);
 	}
-	
+
 	public void testBasic() {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		assert bb.ReadIndex == bb.WriteIndex;
@@ -47,35 +45,35 @@ public class TestByteBuffer extends TestCase {
 			double v = 1.1;
 			bb.WriteDouble(v);
 			assert 8 == bb.Size();
-			assert "3F-F1-99-99-99-99-99-9A".equals(bb.toString());
+			assert "9A-99-99-99-99-99-F1-3F".equals(bb.toString());
 			assert v == bb.ReadDouble();
 			assert bb.ReadIndex == bb.WriteIndex;
 		} {
 			float v = 1.1f;
 			bb.WriteFloat(v);
 			assert 4 == bb.Size();
-			assert "3F-8C-CC-CD".equals(bb.toString());
+			assert "CD-CC-8C-3F".equals(bb.toString());
 			assert v == bb.ReadFloat();
 			assert bb.ReadIndex == bb.WriteIndex;
 		} {
 			int int4 = 0x12345678;
 			bb.WriteInt4(int4);
 			assert 4 == bb.Size();
-			assert "12-34-56-78".equals(bb.toString());
+			assert "78-56-34-12".equals(bb.toString());
 			assert int4 == bb.ReadInt4();
 			assert bb.ReadIndex == bb.WriteIndex;
 		} {
 			long long8 = 0x1234567801020304L;
 			bb.WriteLong8(long8);
 			assert 8 == bb.Size();
-			assert "12-34-56-78-01-02-03-04".equals(bb.toString());
+			assert "04-03-02-01-78-56-34-12".equals(bb.toString());
 			assert long8 == bb.ReadLong8();
 			assert bb.ReadIndex == bb.WriteIndex;
 		} {
 			long long8 = -12345678;
 			bb.WriteLong8(long8);
 			assert 8 == bb.Size();
-			assert "FF-FF-FF-FF-FF-43-9E-B2".equals(bb.toString());
+			assert "B2-9E-43-FF-FF-FF-FF-FF".equals(bb.toString());
 			assert long8 == bb.ReadLong8();
 			assert bb.ReadIndex == bb.WriteIndex;
 		} {
@@ -224,7 +222,7 @@ public class TestByteBuffer extends TestCase {
 		v = 0x100000000000000L;
 		bb.WriteLong(v);
 		assert 9 == bb.Size();
-		
+
 		assert "FF-01-00-00-00-00-00-00-00".equals(bb.toString());
 		assert v == bb.ReadLong();
 		assert bb.ReadIndex == bb.WriteIndex;
