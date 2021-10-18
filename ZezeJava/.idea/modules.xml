@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Zeze.iml" filepath="$PROJECT_DIR$/Zeze.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ZezeJavaTest/ZezeJavaTest.iml" filepath="$PROJECT_DIR$/../ZezeJavaTest/ZezeJavaTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ZezexJava/linkd/linkd.iml" filepath="$PROJECT_DIR$/../ZezexJava/linkd/linkd.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ZezexJava/server/server.iml" filepath="$PROJECT_DIR$/../ZezexJava/server/server.iml" />
+    </modules>
+  </component>
+</project>
