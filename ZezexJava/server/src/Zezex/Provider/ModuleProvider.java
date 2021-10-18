@@ -105,11 +105,11 @@ public final class ModuleProvider extends AbstractModule {
 			var(ReturnCode, Params) = handle(rpc.SessionId, rpc.Argument.HashCode, rpc.Argument.Params, rpc.Result.Actions);
 			rpc.getResult().ReturnCode = ReturnCode;
 			if (ReturnCode == Procedure.Success) {
-				rpc.getResult().Params = Params;
+				rpc.Result.setParams(Params);
 			}
 			// rpc 成功了，具体handle结果还需要看ReturnCode。
 			rpc.SendResultCode(ModuleRedirect.ResultCodeSuccess);
-			return rpc.getResult().getReturnCode();
+			return rpc.Result.getReturnCode();
 		}
 		catch (RuntimeException e) {
 			rpc.SendResultCode(ModuleRedirect.ResultCodeHandleException);
@@ -153,7 +153,7 @@ public final class ModuleProvider extends AbstractModule {
 				for (var hash : protocol.Argument.getHashCodes()) {
 					BModuleRedirectAllHash tempVar = new BModuleRedirectAllHash();
 					tempVar.setReturnCode(Procedure.NotImplement);
-					result.Argument.getHashs().Add(hash, tempVar);
+					result.Argument.getHashs().put(hash, tempVar);
 				}
 				result.Send(protocol.Sender);
 				return Procedure.LogicError;
@@ -174,7 +174,7 @@ public final class ModuleProvider extends AbstractModule {
 				if (hashResult.getReturnCode() == Procedure.Success) {
 					hashResult.setParams(Params);
 				}
-				result.Argument.getHashs().add(hash, hashResult);
+				result.Argument.getHashs().put(hash, hashResult);
 				SendResultIfSizeExceed(protocol.Sender, result);
 			}
 
@@ -231,18 +231,18 @@ public final class ModuleProvider extends AbstractModule {
 		 2) 需要时初始化UserState并传给action；
 		 3) 处理完成时删除Context
 		*/
-		public final <T> int ProcessHash(int hash, tangible.Func0Param<T> factory, tangible.Func1Param<T, Integer> action) {
+		public final <T> int ProcessHash(int hash, Zeze.Util.Factory<T> factory, Zeze.Util.Func1<T, Integer> action) {
 			synchronized (this) {
 				try {
 					if (null == getUserState()) {
-						setUserState(factory.invoke());
+						setUserState(factory.create());
 					}
-					return action.invoke((T)getUserState());
+					return action.call((T)getUserState());
 				}
 				finally {
 					getHashCodes().remove((Integer)hash); // 如果不允许一个hash分组处理措辞，把这个移到开头并判断结果。
 					if (getHashCodes().isEmpty()) {
-						Game.App.getInstance().getServer().<Service.ManualContext>TryRemoveManualContext(getSessionId());
+						Game.App.getInstance().Server.TryRemoveManualContext(getSessionId());
 					}
 				}
 			}
@@ -250,22 +250,24 @@ public final class ModuleProvider extends AbstractModule {
 
 		// 这里处理真正redirect发生时，从远程返回的结果。
 		public final void ProcessResult(ModuleRedirectAllResult result) {
-			for (var h : result.Argument.getHashs()) {
+			for (var h : result.Argument.getHashs().entrySet()) {
 				// 嵌套存储过程，单个分组的结果处理不影响其他分组。
 				// 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
 				Game.App.getInstance().Zeze.NewProcedure(() -> ProcessHashResult(
-						h.Key, h.Value.ReturnCode, h.Value.Params, h.Value.Actions), getMethodFullName(), null).Call();
+						h.getKey(), h.getValue().getReturnCode(), h.getValue().getParams(), h.getValue().getActions()),
+						getMethodFullName(), null).Call();
 			}
 		}
 
 		// 生成代码实现。see Game.ModuleRedirect.cs
-		public int ProcessHashResult(int _hash_, int _returnCode_, Binary _params, List<Zezex.Provider.BActionParam> _actions_) {
+		public int ProcessHashResult(int _hash_, int _returnCode_, Binary _params, Collection<Zezex.Provider.BActionParam> _actions_) {
 			return Procedure.NotImplement;
 		}
 	}
 
 	@Override
-	public int ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) {
+	public int ProcessModuleRedirectAllResult(Protocol _protocol) {
+		var protocol = (ModuleRedirectAllResult)_protocol;
 		// replace RootProcedure.ActionName. 为了统计和日志输出。
 		Transaction.getCurrent().getTopProcedure().setActionName(protocol.Argument.getMethodFullName());
 		var ctx = App.Server.<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());

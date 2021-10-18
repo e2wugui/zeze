@@ -302,10 +302,10 @@ namespace Game.Rank
                         ?.ProcessHash(hash, () => new Rank(), (rank) =>
                         {
                             if (returnCode != Procedure.Success) // 只有处理成功的结果才是有效的。
-                            return returnCode;
+                                return returnCode;
                             if (rank.TableValue == null)
                                 rank.TableValue = BRankList.CopyIfManaged(); // 本地实现的时候可能返回受管理的数据Bean，此时需要拷贝。
-                        else
+                            else
                                 rank.TableValue = Merge(rank.TableValue, BRankList);
                             if (rank.TableValue.RankList.Count > countNeed) // 合并中间结果超过需要的数量可以先删除。
                             rank.TableValue.RankList.RemoveRange(countNeed, rank.TableValue.RankList.Count - countNeed);

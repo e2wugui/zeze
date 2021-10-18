@@ -1,10 +1,18 @@
 package Game.Rank;
 
+import Zeze.Net.Protocol;
 import Zeze.Transaction.*;
 import static Zezex.Provider.ModuleProvider.*;
 import Game.*;
+import Zezex.Redirect;
+import Zezex.RedirectAll;
+import Zezex.RedirectWithHash;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.*;
 import java.time.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -16,7 +24,7 @@ import java.time.*;
 */
 public class ModuleRank extends AbstractModule {
 
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(ModuleRank.class);
 
 	public final void Start(App app) {
 	}
@@ -42,25 +50,25 @@ public class ModuleRank extends AbstractModule {
 		var rank = _trank.GetOrAdd(concurrentKey);
 		// remove if role exist. 看看有没有更快的算法。
 		BRankValue exist = null;
-		for (int i = 0; i < rank.getRankList().Count; ++i) {
+		for (int i = 0; i < rank.getRankList().size(); ++i) {
 			var rankValue = rank.getRankList().get(i);
 			if (rankValue.getRoleId() == roleId) {
 				exist = rankValue;
-				rank.getRankList().RemoveAt(i);
+				rank.getRankList().remove(i);
 				break;
 			}
 		}
 		// insert if in rank. 这里可以用 BinarySearch。
-		for (int i = 0; i < rank.getRankList().Count; ++i) {
-			if (rank.getRankList().get(i).Value < value) {
+		for (int i = 0; i < rank.getRankList().size(); ++i) {
+			if (rank.getRankList().get(i).getValue() < value) {
 				BRankValue tempVar = new BRankValue();
 				tempVar.setRoleId(roleId);
 				tempVar.setValue(value);
 				tempVar.setValueEx(valueEx);
-				tempVar.setAwardTaken(null == exist ? false : exist.getAwardTaken());
-				rank.getRankList().Insert(i, tempVar);
-				if (rank.getRankList().Count > maxCount) {
-					rank.getRankList().RemoveAt(rank.getRankList().Count - 1);
+				tempVar.setAwardTaken(null == exist ? false : exist.isAwardTaken());
+				rank.getRankList().add(i, tempVar);
+				if (rank.getRankList().size() > maxCount) {
+					rank.getRankList().remove(rank.getRankList().size() - 1);
 				}
 				return Procedure.Success;
 			}
@@ -68,12 +76,13 @@ public class ModuleRank extends AbstractModule {
 		// A: 如果排行的Value可能减少，那么当它原来存在，但现在处于队尾时，不要再进榜。
 		// 因为此时可能存在未进榜但比它大的Value。
 		// B: 但是在进榜玩家比榜单数量少的时候，如果不进榜，队尾的玩家更新还在队尾就会消失。
-		if (rank.getRankList().Count < GetRankCount(keyHint.getRankType()) || (rank.getRankList().Count < maxCount && null == exist)) {
+		if (rank.getRankList().size() < GetRankCount(keyHint.getRankType())
+				|| (rank.getRankList().size() < maxCount && null == exist)) {
 			BRankValue tempVar2 = new BRankValue();
 			tempVar2.setRoleId(roleId);
 			tempVar2.setValue(value);
 			tempVar2.setValueEx(valueEx);
-			rank.getRankList().Add(tempVar2);
+			rank.getRankList().add(tempVar2);
 		}
 		return Procedure.Success;
 	}
@@ -95,33 +104,33 @@ public class ModuleRank extends AbstractModule {
 		}
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<BConcurrentKey, Rank> Ranks = new java.util.concurrent.ConcurrentHashMap<BConcurrentKey, Rank>();
+	private ConcurrentHashMap<BConcurrentKey, Rank> Ranks = new ConcurrentHashMap<BConcurrentKey, Rank>();
 	public static final long RebuildTime = 5 * 60 * 1000; // 5 min
 
 	private BRankList Merge(BRankList left, BRankList right) {
 		BRankList result = new BRankList();
 		int indexLeft = 0;
 		int indexRight = 0;
-		while (indexLeft < left.getRankList().Count && indexRight < right.getRankList().Count) {
-			if (left.getRankList().get(indexLeft).Value >= right.getRankList().get(indexRight).Value) {
-				result.getRankList().Add(left.getRankList().get(indexLeft));
+		while (indexLeft < left.getRankList().size() && indexRight < right.getRankList().size()) {
+			if (left.getRankList().get(indexLeft).getValue() >= right.getRankList().get(indexRight).getValue()) {
+				result.getRankList().add(left.getRankList().get(indexLeft));
 				++indexLeft;
 			}
 			else {
-				result.getRankList().Add(right.getRankList().get(indexRight));
+				result.getRankList().add(right.getRankList().get(indexRight));
 				++indexRight;
 			}
 		}
 		// 下面两种情况不会同时存在，同时存在"在上面"处理。
-		if (indexLeft < left.getRankList().Count) {
-			while (indexLeft < left.getRankList().Count) {
-				result.getRankList().Add(left.getRankList().get(indexLeft));
+		if (indexLeft < left.getRankList().size()) {
+			while (indexLeft < left.getRankList().size()) {
+				result.getRankList().add(left.getRankList().get(indexLeft));
 				++indexLeft;
 			}
 		}
-		else if (indexRight < right.getRankList().Count) {
-			while (indexRight < right.getRankList().Count) {
-				result.getRankList().Add(right.getRankList().get(indexRight));
+		else if (indexRight < right.getRankList().size()) {
+			while (indexRight < right.getRankList().size()) {
+				result.getRankList().add(right.getRankList().get(indexRight));
 				++indexRight;
 			}
 		}
@@ -129,9 +138,9 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	private Rank GetRank(BConcurrentKey keyHint) {
-		var Rank = Ranks.putIfAbsent(keyHint, (key) -> new Rank());
+		var Rank = Ranks.computeIfAbsent(keyHint, (key) -> new Rank());
 		synchronized (Rank) {
-			long now = Zeze.Util.Time.NowUnixMillis;
+			long now = System.currentTimeMillis();
 			if (now - Rank.BuildTime < RebuildTime) {
 				return Rank;
 			}
@@ -159,18 +168,22 @@ public class ModuleRank extends AbstractModule {
 					BRankList current = datas.get(0);
 					for (int i = 1; i < datas.size(); ++i) {
 						current = Merge(current, datas.get(i));
-						if (current.getRankList().Count > countNeed) {
+						if (current.getRankList().size() > countNeed) {
 							// 合并中间结果超过需要的数量可以先删除。
 							// 第一个current直接引用table.data，不能删除。
-							current.getRankList().RemoveRange(countNeed, current.getRankList().Count - countNeed);
+							for (int ir = current.getRankList().size() - 1; ir >= countNeed; --ir)
+								current.getRankList().remove(ir);
+							//current.getRankList().RemoveRange(countNeed, current.getRankList().Count - countNeed);
 						}
 					}
 					Rank.TableValue = current.Copy(); // current 可能还直接引用第一个，虽然逻辑上不大可能。先Copy。
 					break;
 			}
 			Rank.BuildTime = now;
-			if (Rank.TableValue.RankList.Count > countNeed) { // 再次删除多余的结果。
-				Rank.TableValue.RankList.RemoveRange(countNeed, Rank.TableValue.RankList.Count - countNeed);
+			if (Rank.TableValue.getRankList().size() > countNeed) { // 再次删除多余的结果。
+				for (int ir = Rank.TableValue.getRankList().size() - 1; ir >= countNeed; --ir)
+					Rank.TableValue.getRankList().remove(ir);
+				//Rank.TableValue.getRankList().RemoveRange(countNeed, Rank.TableValue.RankList.Count - countNeed);
 			}
 		}
 		return Rank;
@@ -186,11 +199,14 @@ public class ModuleRank extends AbstractModule {
 	 @param value
 	 @param valueEx 只保存，不参与比较。如果需要参与比较，需要另行实现自己的Update和Get。
 	*/
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [ModuleRedirect()] public virtual void RunUpdateRank(BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
+	@Redirect()
 	public void RunUpdateRank(BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
-		int hash = ModuleRedirect.GetChoiceHashCode();
-		getApp().getZeze().Run(() -> UpdateRank(hash, keyHint, roleId, value, valueEx), "RunUpdateRank", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+		int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
+		App.Zeze.Run(
+				() -> UpdateRank(hash, keyHint, roleId, value, valueEx),
+				"RunUpdateRank",
+				Zeze.TransactionModes.ExecuteInAnotherThread,
+				hash);
 	}
 
 	// 名字必须和RunUpdateRankWithHash匹配，内部使用一样的实现。
@@ -198,10 +214,13 @@ public class ModuleRank extends AbstractModule {
 		return UpdateRank(hash, keyHint, roleId, value, valueEx);
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [ModuleRedirectWithHash()] public virtual void RunUpdateRankWithHash(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
+	@RedirectWithHash()
 	public void RunUpdateRankWithHash(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
-		getApp().getZeze().Run(() -> UpdateRankWithHash(hash, keyHint, roleId, value, valueEx), "RunUpdateRankWithHash", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+		App.Zeze.Run(
+				() -> UpdateRankWithHash(hash, keyHint, roleId, value, valueEx),
+				"RunUpdateRankWithHash",
+				Zeze.TransactionModes.ExecuteInAnotherThread,
+				hash);
 	}
 
 	/** 
@@ -215,77 +234,81 @@ public class ModuleRank extends AbstractModule {
 		c) 第三个参数是returnCode，
 		d) 剩下的是自定义参数。
 	*/
-	protected final int GetRank(long sessionId, int hash, BConcurrentKey keyHint, tangible.Action4Param<Long, Integer, Integer, BRankList> onHashResult) {
+	protected final int GetRank(long sessionId, int hash, BConcurrentKey keyHint,
+								Zeze.Util.Action4<Long, Integer, Integer, BRankList> onHashResult) {
 		// 根据hash获取分组rank。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel, keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
-		onHashResult.invoke(sessionId, hash, Procedure.Success, _trank.GetOrAdd(concurrentKey));
+		onHashResult.run(sessionId, hash, Procedure.Success, _trank.GetOrAdd(concurrentKey));
 		return Procedure.Success;
 	}
 
 	// 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
 	// 需要注意在子类上下文中可以编译通过。可以是常量。
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [ModuleRedirectAll("GetConcurrentLevel(keyHint.RankType)")] public virtual void RunGetRank(BConcurrentKey keyHint, System.Action<long, int, int, BRankList> onHashResult, Action<ModuleRedirectAllContext> onHashEnd)
-	public void RunGetRank(BConcurrentKey keyHint, tangible.Action4Param<Long, Integer, Integer, BRankList> onHashResult, tangible.Action1Param<ModuleProvider.ModuleRedirectAllContext> onHashEnd) {
+	@RedirectAll(GetConcurrentLevelSource="GetConcurrentLevel(keyHint.RankType)")
+	public void RunGetRank(BConcurrentKey keyHint,
+						   Zeze.Util.Action4<Long, Integer, Integer, BRankList> onHashResult,
+						   Zeze.Util.Action1<Zezex.Provider.ModuleProvider.ModuleRedirectAllContext> onHashEnd) {
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-		var ctx = new ModuleProvider.ModuleRedirectAllContext(concurrentLevel, String.format("%1$s:%2$s", getFullName(), "RunGetRank"));
+		var ctx = new Zezex.Provider.ModuleProvider.ModuleRedirectAllContext(concurrentLevel, String.format("%1$s:%2$s", getFullName(), "RunGetRank"));
 		ctx.setOnHashEnd(onHashEnd);
-		long sessionId = getApp().getServer().AddManualContextWithTimeout(ctx, 10000); // 处理hash分组结果需要一个上下文保存收集的结果。
+		long sessionId = App.Server.AddManualContextWithTimeout(ctx, 10000); // 处理hash分组结果需要一个上下文保存收集的结果。
 		for (int i = 0; i < concurrentLevel; ++i) {
 			GetRank(sessionId, i, keyHint, onHashResult);
 		}
 	}
 
 	// 使用异步方案构建rank。
-	private void GetRankAsync(BConcurrentKey keyHint, tangible.Action1Param<Rank> callback) {
-		TValue rank;
-		tangible.OutObject<TValue> tempOut_rank = new tangible.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (Ranks.TryGetValue(keyHint, tempOut_rank)) {
-		rank = tempOut_rank.outArgValue;
-			long now = Zeze.Util.Time.NowUnixMillis;
+	private void GetRankAsync(BConcurrentKey keyHint,
+							  Zeze.Util.Action1<Rank> callback) {
+		var rank = Ranks.get(keyHint);
+		if (null != rank) {
+			long now = System.currentTimeMillis();
 			if (now - rank.BuildTime < RebuildTime) {
-				callback.invoke(rank);
+				callback.run(rank);
 				return;
 			}
 		}
-	else {
-		rank = tempOut_rank.outArgValue;
-	}
+
 		// 异步方式没法锁住Rank，所以并发的情况下，可能多次去获取数据，多次构建，多次覆盖Ranks的cache。
 		int countNeed = GetRankCount(keyHint.getRankType());
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-		RunGetRank(keyHint, (sessionId, hash, returnCode, BRankList) -> {
-					if (getApp().getServer().<ModuleProvider.ModuleRedirectAllContext>TryGetManualContext(sessionId) != null) {
-						getApp().getServer().<ModuleProvider.ModuleRedirectAllContext>TryGetManualContext(sessionId).ProcessHash;
-					} {
+		RunGetRank(keyHint,
+				// Action OnHashResult
+				(sessionId, hash, returnCode, BRankList) -> {
+					var ctx = App.Server.<Zezex.Provider.ModuleProvider.ModuleRedirectAllContext>TryGetManualContext(sessionId);
+					if (ctx == null)
+						return;
+					ctx.ProcessHash(hash, () -> new Rank(), (rank2)-> {
 						if (returnCode != Procedure.Success) {
 							return returnCode;
 						}
-						if (rank.TableValue == null) {
-							rank.TableValue = BRankList.CopyIfManaged();
+						if (rank2.TableValue == null) {
+							rank2.TableValue = BRankList.CopyIfManaged();
 						}
 						else {
-							rank.TableValue = Merge(rank.TableValue, BRankList);
+							rank2.TableValue = Merge(rank2.TableValue, BRankList);
 						}
-						if (rank.TableValue.RankList.Count > countNeed) {
-							rank.TableValue.RankList.RemoveRange(countNeed, rank.TableValue.RankList.Count - countNeed);
+						if (rank2.TableValue.getRankList().size() > countNeed) {
+							for (int ir = rank2.TableValue.getRankList().size() - 1; ir >= countNeed; --i)
+								rank2.TableValue.getRankList().remove(ir);
+							//rank.TableValue.RankList.RemoveRange(countNeed, rank.TableValue.RankList.Count - countNeed);
 						}
 						return Procedure.Success;
-					}
-					);
-		}, (context) -> {
-					if (context.HashCodes.Count > 0) {
+					});
+				},
+				// Action OnHashEnd
+				(context) -> {
+					if (context.getHashCodes().size() > 0) {
 						// 一般是超时发生时还有未返回结果的hash分组。
-						logger.Warn(String.format("OnHashEnd: timeout with hashs: %1$s", context.HashCodes));
+						logger.warn(String.format("OnHashEnd: timeout with hashs: %1$s", context.getHashCodes()));
 					}
 
-					var rank = context.UserState instanceof Rank ? (Rank)context.UserState : null;
-					rank.setBuildTime(Zeze.Util.Time.NowUnixMillis);
-					Ranks.put(keyHint, rank); // 覆盖最新的数据到缓存里面。
-					callback.invoke(rank);
+					var rank2 = (Rank)context.getUserState();
+					rank.setBuildTime(System.currentTimeMillis());
+					Ranks.put(keyHint, rank2); // 覆盖最新的数据到缓存里面。
+					callback.run(rank2);
 				});
 	}
 
@@ -320,54 +343,40 @@ public class ModuleRank extends AbstractModule {
 
 	public final long GetCounter(long roleId, BConcurrentKey keyHint) {
 		var counters = _trankcounters.GetOrAdd(roleId);
-		V counter;
-		tangible.OutObject<V> tempOut_counter = new tangible.OutObject<V>();
-		if (false == counters.getCounters().TryGetValue(keyHint, tempOut_counter)) {
-		counter = tempOut_counter.outArgValue;
+		var counter = counters.getCounters().get(keyHint);
+		if (null == counter)
 			return 0;
-		}
-	else {
-		counter = tempOut_counter.outArgValue;
+		return counter.getValue();
 	}
-
-		return counter.Value;
-	}
-
 
 	public final void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint) {
 		AddCounterAndUpdateRank(roleId, delta, keyHint, null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint, Zeze.Net.Binary valueEx = null)
 	public final void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint, Zeze.Net.Binary valueEx) {
 		var counters = _trankcounters.GetOrAdd(roleId);
-		V counter;
-		tangible.OutObject<V> tempOut_counter = new tangible.OutObject<V>();
-		if (false == counters.getCounters().TryGetValue(keyHint, tempOut_counter)) {
-		counter = tempOut_counter.outArgValue;
+		var counter = counters.getCounters().get(keyHint);
+		if (null == counter) {
 			counter = new BRankCounter();
-			counters.getCounters().Add(keyHint, counter);
+			counters.getCounters().put(keyHint, counter);
 		}
-	else {
-		counter = tempOut_counter.outArgValue;
-	}
-		counter.Value += delta;
+		counter.setValue(counter.getValue() + delta);
 
 		if (null == valueEx) {
 			valueEx = Zeze.Net.Binary.Empty;
 		}
 
-		RunUpdateRank(keyHint, roleId, counter.Value, valueEx);
+		RunUpdateRank(keyHint, roleId, counter.getValue(), valueEx);
 	}
 
 	@Override
-	public int ProcessCGetRankList(CGetRankList protocol) {
-		Login.Session session = Login.Session.Get(protocol);
+	public int ProcessCGetRankList(Protocol _protocol) {
+		var protocol = (CGetRankList)_protocol;
+		var session = Game.Login.Session.Get(protocol);
 
 		var result = new SGetRankList();
 		if (session.getRoleId().equals(null)) {
-			result.ResultCode = -1;
+			result.setResultCode(-1);
 			session.SendResponse(result);
 			return Procedure.LogicError;
 		}
@@ -380,30 +389,25 @@ public class ModuleRank extends AbstractModule {
 		});
 		/*/
 		// 同步方式获取rank
-		result.getArgument().getRankList().AddRange(GetRank(NewRankKey(protocol.getArgument().getRankType(), protocol.getArgument().getTimeType())).getTableValue().getRankList());
+		var rankKey = NewRankKey(protocol.Argument.getRankType(), protocol.Argument.getTimeType());
+		result.Argument.getRankList().addAll(GetRank(rankKey).getTableValue().getRankList());
 		session.SendResponse(result);
 		// */
 		return Procedure.Success;
 	}
 
-
 	public final BConcurrentKey NewRankKey(int rankType, int timeType) {
 		return NewRankKey(rankType, timeType, 0);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public BConcurrentKey NewRankKey(int rankType, int timeType, long customizeId = 0)
 	public final BConcurrentKey NewRankKey(int rankType, int timeType, long customizeId) {
 		return NewRankKey(LocalDateTime.now(), rankType, timeType, customizeId);
 	}
-
 
 	public final BConcurrentKey NewRankKey(java.time.LocalDateTime time, int rankType, int timeType) {
 		return NewRankKey(time, rankType, timeType, 0);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public BConcurrentKey NewRankKey(DateTime time, int rankType, int timeType, long customizeId = 0)
 	public final BConcurrentKey NewRankKey(LocalDateTime time, int rankType, int timeType, long customizeId) {
 		var year = time.getYear(); // 后面根据TimeType可能覆盖这个值。
 		long offset;
@@ -442,21 +446,19 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	/******************************** ModuleRedirect 测试 *****************************************/
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [ModuleRedirect()] public virtual TaskCompletionSource<int> RunTest1(Zeze.TransactionModes mode)
-	public TaskCompletionSource<Integer> RunTest1(Zeze.TransactionModes mode) {
-		int hash = ModuleRedirect.GetChoiceHashCode();
-		return getApp().getZeze().Run(() -> Test1(hash), "Test1", mode, hash);
+	@Redirect()
+	public Zeze.Util.TaskCompletionSource<Integer> RunTest1(Zeze.TransactionModes mode) {
+		int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
+		return App.Zeze.Run(() -> Test1(hash), "Test1", mode, hash);
 	}
 
 	protected final int Test1(int hash) {
 		return Procedure.Success;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [ModuleRedirect()] public virtual void RunTest2(int inData, ref int refData, out int outData)
+	@Redirect()
 	public void RunTest2(int inData, tangible.RefObject<Integer> refData, tangible.OutObject<Integer> outData) {
-		int hash = ModuleRedirect.GetChoiceHashCode();
+		int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
 		int outDataTmp = 0;
 		int refDataTmp = refData.refArgValue;
 		tangible.RefObject<Integer> tempRef_refDataTmp = new tangible.RefObject<Integer>(refDataTmp);
