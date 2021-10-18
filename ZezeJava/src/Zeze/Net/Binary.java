@@ -23,7 +23,7 @@ public final class Binary {
 	}
 
 	private int Count;
-	public int getCount() {
+	public int size() {
 		return Count;
 	}
 
@@ -73,7 +73,7 @@ public final class Binary {
 	}
 
 	public void Decode(Zeze.Serialize.Serializable _s_) {
-		Zeze.Serialize.ByteBuffer _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_Bytes, getOffset(), getCount());
+		Zeze.Serialize.ByteBuffer _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_Bytes, getOffset(), size());
 		_s_.Decode(_bb_);
 	}
 
@@ -101,11 +101,11 @@ public final class Binary {
 			return false;
 		}
 
-		if (this.getCount() != other.getCount()) {
+		if (this.size() != other.size()) {
 			return false;
 		}
 
-		for (int i = 0, n = this.getCount(); i < n; ++i) {
+		for (int i = 0, n = this.size(); i < n; ++i) {
 			if (_Bytes[getOffset() + i] != other._Bytes[other.getOffset() + i]) {
 				return false;
 			}
@@ -116,6 +116,6 @@ public final class Binary {
 
 	@Override
 	public int hashCode() {
-		return (int)Zeze.Serialize.ByteBuffer.calc_hashnr(_Bytes, getOffset(), getCount());
+		return (int)Zeze.Serialize.ByteBuffer.calc_hashnr(_Bytes, getOffset(), size());
 	}
 }

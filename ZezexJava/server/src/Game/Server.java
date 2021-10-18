@@ -1,13 +1,16 @@
 package Game;
 
 import Zeze.Net.*;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 
 // auto-generated
 
 
-public final class Server extends Zeze.Services.HandshakeClient {
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+public final class Server extends ServerBase {
+	private static final Logger logger = LogManager.getLogger(Server.class);
 
 	/** 
 	 不使用 RemoteEndPoint 是怕有些系统返回 ipv6 有些 ipv4，造成不一致。
@@ -18,54 +21,42 @@ public final class Server extends Zeze.Services.HandshakeClient {
 	 @return 
 	*/
 	public String GetLinkName(AsyncSocket sender) {
-		return sender.Connector.Name;
+		return sender.getConnector().getName();
 	}
 
 	public String GetLinkName(Zeze.Services.ServiceManager.ServiceInfo serviceInfo) {
-		return serviceInfo.PassiveIp + ":" + serviceInfo.PassivePort;
+		return serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
 	}
 
 	@Override
 	public void Start() {
 		// copy Config.Connector to Links
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getConfig().ForEachConnector((c) -> getLinks().TryAdd(c.Name, c));
+		getConfig().ForEachConnector((c) -> getLinks().putIfAbsent(c.getName(), c));
 		super.Start();
 	}
 
 	public void ApplyLinksChanged(Zeze.Services.ServiceManager.ServiceInfos serviceInfos) {
 		HashSet<String> current = new HashSet<String>();
-		for (var link : serviceInfos.ServiceInfoListSortedByIdentity) {
+		for (var link : serviceInfos.getServiceInfoListSortedByIdentity()) {
 			var linkName = GetLinkName(link);
-			current.add(getLinks().putIfAbsent(linkName, (key) -> {
-					Zeze.Net.Connector c;
-					tangible.OutObject<Connector> tempOut_c = new tangible.OutObject < getZeze().Net.Connector>();
-					if (getConfig().TryGetOrAddConnector(link.PassiveIp, link.PassivePort, true, tempOut_c)) {
-						c = tempOut_c.outArgValue;
-						c.Start();
+			current.add(getLinks().computeIfAbsent(linkName, (key) -> {
+				var outc = new Zeze.Util.OutObject<Connector>();
+					if (getConfig().TryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outc)) {
+						outc.Value.Start();
 					}
-					else {
-						c = tempOut_c.outArgValue;
-					}
-					return c;
-			}).Name);
+					return outc.Value;
+			}).getName());
 		}
 		// 删除多余的连接器。
 		for (var linkName : getLinks().keySet()) {
 			if (current.contains(linkName)) {
 				continue;
 			}
-			TValue removed;
-			tangible.OutObject<Connector> tempOut_removed = new tangible.OutObject<Connector>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-			if (getLinks().TryRemove(linkName, tempOut_removed)) {
-			removed = tempOut_removed.outArgValue;
+			var removed = getLinks().remove(linkName);
+			if (null != removed) {
 				getConfig().RemoveConnector(removed);
 				removed.Stop();
 			}
-		else {
-			removed = tempOut_removed.outArgValue;
-		}
 		}
 	}
 
@@ -106,28 +97,28 @@ public final class Server extends Zeze.Services.HandshakeClient {
 		}
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<String, Connector> Links = new java.util.concurrent.ConcurrentHashMap<String, Connector> ();
-	public java.util.concurrent.ConcurrentHashMap<String, Connector> getLinks() {
+	private ConcurrentHashMap<String, Connector> Links = new ConcurrentHashMap<String, Connector> ();
+	public ConcurrentHashMap<String, Connector> getLinks() {
 		return Links;
 	}
 
 	// 用来同步等待Provider的静态绑定完成。
-	public System.Threading.ManualResetEvent ProviderStaticBindCompleted = new System.Threading.ManualResetEvent(false);
+	public Zeze.Util.ManualResetEvent ProviderStaticBindCompleted = new Zeze.Util.ManualResetEvent(false);
 
 	@Override
 	public void OnHandshakeDone(AsyncSocket sender) {
 		super.OnHandshakeDone(sender);
 		var linkName = GetLinkName(sender);
-		sender.UserState = new LinkSession(linkName, sender.SessionId);
+		sender.setUserState(new LinkSession(linkName, sender.getSessionId()));
 
 		var announce = new Zezex.Provider.AnnounceProviderInfo();
-		announce.getArgument().ServiceNamePrefix = App.ServerServiceNamePrefix;
-		announce.getArgument().ServiceIndentity = getZeze().Config.ServerId.toString();
+		announce.Argument.setServiceNamePrefix(App.ServerServiceNamePrefix);
+		announce.Argument.setServiceIndentity(String.valueOf(getZeze().getConfig().getServerId()));
 		announce.Send(sender);
 
 		// static binds
 		var rpc = new Zezex.Provider.Bind();
-		rpc.getArgument().getModules().AddRange(Game.App.getInstance().getStaticBinds());
+		rpc.Argument.getModules().putAll(Game.App.getInstance().getStaticBinds());
 		rpc.Send(sender, (protocol) -> {
 				ProviderStaticBindCompleted.Set();
 				return 0;
@@ -137,22 +128,28 @@ public final class Server extends Zeze.Services.HandshakeClient {
 	@Override
 	public void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle) {
 		// 防止Client不进入加密，直接发送用户协议。
-		if (false == IsHandshakeProtocol(p.TypeId)) {
+		if (false == IsHandshakeProtocol(p.getTypeId())) {
 			p.Sender.VerifySecurity();
 		}
 
-		if (p.TypeId == Zezex.Provider.ModuleRedirect.TypeId_) {
+		if (p.getTypeId() == Zezex.Provider.ModuleRedirect.TypeId_) {
 			if (null != factoryHandle.Handle) {
 				var modureRecirect = p instanceof Zezex.Provider.ModuleRedirect ? (Zezex.Provider.ModuleRedirect)p : null;
 				if (null != getZeze() && false == factoryHandle.NoProcedure) {
-					getZeze().TaskOneByOneByKey.Execute(modureRecirect.getArgument().getHashCode(), () -> Zeze.Util.Task.Call(getZeze().NewProcedure(() -> factoryHandle.Handle(p), p.getClass().getName(), p.UserState), p, (p, code) -> p.SendResultCode(code)));
+					getZeze().getTaskOneByOneByKey().Execute(
+							modureRecirect.Argument.getHashCode(),
+							() -> Zeze.Util.Task.Call(getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p),
+									p.getClass().getName(), p.UserState),
+									p, (p2, code) -> p2.SendResultCode(code)));
 				}
 				else {
-					getZeze().TaskOneByOneByKey.Execute(modureRecirect.getArgument().getHashCode(), () -> Zeze.Util.Task.Call(() -> factoryHandle.Handle(p), p, (p, code) -> p.SendResultCode(code)));
+					getZeze().getTaskOneByOneByKey().Execute(modureRecirect.Argument.getHashCode(),
+							() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p,
+									(p2, code) -> p2.SendResultCode(code)));
 				}
 			}
 			else {
-				logger.Log(getSocketOptions().SocketLogLevel, "Protocol Handle Not Found. {0}", p);
+				logger.log(getSocketOptions().getSocketLogLevel(), "Protocol Handle Not Found. {}", p);
 			}
 			return;
 		}
@@ -163,20 +160,20 @@ public final class Server extends Zeze.Services.HandshakeClient {
 	public void ReportLoad(int online, int proposeMaxOnline, int onlineNew) {
 		var report = new Zezex.Provider.ReportLoad();
 
-		report.getArgument().Online = online;
-		report.getArgument().ProposeMaxOnline = proposeMaxOnline;
-		report.getArgument().OnlineNew = onlineNew;
+		report.Argument.setOnline(online);
+		report.Argument.setProposeMaxOnline(proposeMaxOnline);
+		report.Argument.setOnlineNew(onlineNew);
 
 		for (var link : getLinks().values()) {
-			if (link.IsHandshakeDone) {
-				link.Socket.Send(report);
+			if (link.isHandshakeDone()) {
+				link.getSocket().Send(report);
 			}
 		}
 	}
 
 
 	public Server(Zeze.Application zeze) {
-		super("Server", zeze);
+		super(zeze);
 	}
 
 }

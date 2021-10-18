@@ -1,12 +1,22 @@
 package Game;
 
+import jason.JasonReader;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
+import Zeze.Services.ServiceManager.SubscribeInfo;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 import java.util.*;
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
-public final class App {
+public final class App extends Zeze.AppBase {
+    public static App Instance = new App();
+    public static App getInstance() {
+        return Instance;
+    }
+
 	private HashMap<Integer, Zezex.Provider.BModule> StaticBinds = new HashMap<Integer, Zezex.Provider.BModule> ();
 	public HashMap<Integer, Zezex.Provider.BModule> getStaticBinds() {
 		return StaticBinds;
@@ -40,10 +50,10 @@ public final class App {
 
 	private void LoadConfig() {
 		try {
-			String json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes("Game.json"));
-			setConfig(JsonSerializer.<Config>Deserialize(json));
+            byte [] bytes = Files.readAllBytes(Paths.get("Game.json"));
+            setConfig(new JasonReader().buf(bytes).parse(Config.class));
 		}
-		catch (RuntimeException e) {
+		catch (Exception e) {
 			//MessageBox.Show(ex.ToString());
 		}
 		if (null == getConfig()) {
@@ -63,36 +73,40 @@ public final class App {
 		}
 
 		LoadConfig();
-		var config = Zeze.Config.Load("zeze.xml");
+		var config = Zeze.getConfig().Load("zeze.xml");
 		if (ServerId != -1) {
-			config.ServerId = ServerId; // replace from args
+			config.setServerId(ServerId); // replace from args
 		}
 		Create(config);
 
 		setProviderModuleBinds(Zezex.ProviderModuleBinds.Load());
-		getProviderModuleBinds().BuildStaticBinds(getModules(), getZeze().Config.ServerId, getStaticBinds());
+		getProviderModuleBinds().BuildStaticBinds(Modules, Zeze.getConfig().getServerId(), StaticBinds);
 
-		getZeze().ServiceManagerAgent.OnChanged = (subscribeState) -> {
-				getServer().ApplyLinksChanged(subscribeState.ServiceInfos);
-		};
-		getZeze().ServiceManagerAgent.OnChanged = (getZeze().Services.ServiceManager.Agent.SubscribeState subscribeState) -> TangibleLambdaToken32;
+		Zeze.getServiceManagerAgent().setOnChanged((subscribeState) -> {
+				Server.ApplyLinksChanged(subscribeState.getServiceInfos());
+		});
 
-		getZeze().Start(); // 启动数据库
+		Zeze.Start(); // 启动数据库
 		StartModules(); // 启动模块，装载配置什么的。
 		StartService(); // 启动网络
 		getLoad().StartTimerTask();
 
 		// 服务准备好以后才注册和订阅。
 		for (var staticBind : getStaticBinds().entrySet()) {
-			getZeze().ServiceManagerAgent.RegisterService(String.format("%1$s%2$s", ServerServiceNamePrefix, staticBind.getKey()), config.ServerId.toString(), null, 0, null);
+			Zeze.getServiceManagerAgent().RegisterService(
+                    String.format("%1$s%2$s", ServerServiceNamePrefix, staticBind.getKey()),
+                    String.valueOf(config.getServerId()),
+                    null,
+                    0,
+                    null);
 		}
-		getZeze().ServiceManagerAgent.SubscribeService(LinkdServiceName, Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeSimple, null);
+		Zeze.getServiceManagerAgent().SubscribeService(LinkdServiceName, SubscribeInfo.SubscribeTypeSimple, null);
 	}
 
 	public void Stop() {
 		StopService(); // 关闭网络
 		StopModules(); // 关闭模块,，卸载配置什么的。
-		getZeze().Stop(); // 关闭数据库
+		Zeze.Stop(); // 关闭数据库
 		Destroy();
 	}
 

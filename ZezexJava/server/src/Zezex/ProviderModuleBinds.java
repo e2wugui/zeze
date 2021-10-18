@@ -1,5 +1,13 @@
 package Zezex;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.io.*;
 
@@ -16,59 +24,68 @@ public class ProviderModuleBinds {
 			xmlfile = "provider.module.binds.xml";
 		}
 
-		if ((new File(xmlfile)).isFile()) {
-			XmlDocument doc = new XmlDocument();
-			doc.Load(xmlfile);
-			return new ProviderModuleBinds(doc.DocumentElement);
+		if (Files.isRegularFile(Paths.get(xmlfile))) {
+			DocumentBuilderFactory db = DocumentBuilderFactory.newInstance();
+			db.setXIncludeAware(true);
+			db.setNamespaceAware(true);
+			try {
+				Document doc = db.newDocumentBuilder().parse(xmlfile);
+				return new ProviderModuleBinds(doc.getDocumentElement());
+			}
+			catch (Exception ex) {
+				throw new RuntimeException(ex);
+			}
 		}
 		return new ProviderModuleBinds();
 	}
 
 	private boolean IsDynamicModule(String name) {
-		if (getModules().containsKey(name) && (var m = getModules().get(name)) == var m) {
-			return m.Providers.Count == 0;
+		var m = Modules.get(name);
+		if (null != m) {
+			return m.Providers.isEmpty();
 		}
 		return false;
 	}
 
 	private int GetModuleChoiceType(String name) {
-		if (getModules().containsKey(name) && (var m = getModules().get(name)) == var m) {
+		var m = Modules.get(name);
+		if (null != m) {
 			return m.ChoiceType;
 		}
 		return Zezex.Provider.BModule.ChoiceTypeDefault;
 	}
 
-	public final void BuildStaticBinds(HashMap<String, Zeze.IModule> AllModules, int AutoKeyLocalId, HashMap<Integer, Zezex.Provider.BModule> modules) {
+	public final void BuildStaticBinds(HashMap<String, Zeze.IModule> AllModules, int serverId, HashMap<Integer, Zezex.Provider.BModule> modules) {
 		HashMap<String, Integer> binds = new HashMap<String, Integer>();
 
 		// special binds
 		for (var m : getModules().values()) {
-			if (m.Providers.Contains(AutoKeyLocalId)) {
+			if (m.Providers.contains(serverId)) {
 				binds.put(m.FullName, Zezex.Provider.BModule.ConfigTypeSpecial);
 			}
 		}
 
 		// default binds
-		if (false == getProviderNoDefaultModule().contains(AutoKeyLocalId)) {
+		if (false == getProviderNoDefaultModule().contains(serverId)) {
 			for (var m : AllModules.values()) {
-				if (IsDynamicModule(m.FullName)) {
+				if (IsDynamicModule(m.getFullName())) {
 					continue; // 忽略动态注册的模块。
 				}
-				if (getModules().containsKey(m.FullName)) {
+				if (getModules().containsKey(m.getFullName())) {
 					continue; // 忽略已经有特别配置的模块
 				}
-				binds.put(m.FullName, Zezex.Provider.BModule.ConfigTypeDefault);
+				binds.put(m.getFullName(), Zezex.Provider.BModule.ConfigTypeDefault);
 			}
 		}
 
 		// output
 		for (var bind : binds.entrySet()) {
-			TValue m;
-			if (AllModules.containsKey(bind.getKey()) && (m = AllModules.get(bind.getKey())) == m) {
+			var m = AllModules.get(bind.getKey());
+			if (null != m){
 				Zezex.Provider.BModule tempVar = new Zezex.Provider.BModule();
 				tempVar.setChoiceType(GetModuleChoiceType(bind.getKey()));
 				tempVar.setConfigType(bind.getValue());
-				modules.put(m.Id, tempVar);
+				modules.put(m.getId(), tempVar);
 			}
 		}
 	}
@@ -87,8 +104,8 @@ public class ProviderModuleBinds {
 			return Providers;
 		}
 
-		private int GetChoiceType(XmlElement self) {
-			switch (self.GetAttribute("ChoiceType")) {
+		private int GetChoiceType(Element self) {
+			switch (self.getAttribute("ChoiceType")) {
 				case "ChoiceTypeHashAccount":
 					return Zezex.Provider.BModule.ChoiceTypeHashAccount;
 
@@ -100,10 +117,10 @@ public class ProviderModuleBinds {
 			}
 		}
 
-		public Module(XmlElement self) {
-			FullName = self.GetAttribute("name");
+		public Module(Element self) {
+			FullName = self.getAttribute("name");
 			ChoiceType = GetChoiceType(self);
-			ProviderModuleBinds.SplitIntoSet(self.GetAttribute("providers"), getProviders());
+			ProviderModuleBinds.SplitIntoSet(self.getAttribute("providers"), getProviders());
 		}
 	}
 
@@ -119,29 +136,30 @@ public class ProviderModuleBinds {
 	private ProviderModuleBinds() {
 	}
 
-	private ProviderModuleBinds(XmlElement self) {
-		if (false == self.Name.equals("ProviderModuleBinds")) {
+	private ProviderModuleBinds(Element self) {
+		if (false == self.getNodeName().equals("ProviderModuleBinds")) {
 			throw new RuntimeException("is it a ProviderModuleBinds config.");
 		}
 
-		XmlNodeList childNodes = self.ChildNodes;
-		for (XmlNode node : childNodes) {
-			if (XmlNodeType.Element != node.NodeType) {
+		NodeList childnodes = self.getChildNodes();
+		for (int i = 0; i < childnodes.getLength(); ++i) {
+			Node node = childnodes.item(i);
+			if (Node.ELEMENT_NODE != node.getNodeType()) {
 				continue;
 			}
 
-			XmlElement e = (XmlElement)node;
-			switch (e.Name) {
+			Element e = (Element)node;
+			switch (e.getNodeName()) {
 				case "module":
 					AddModule(new Module(e));
 					break;
 
 				case "ProviderNoDefaultModule":
-					SplitIntoSet(e.GetAttribute("providers"), getProviderNoDefaultModule());
+					SplitIntoSet(e.getAttribute("providers"), getProviderNoDefaultModule());
 					break;
 
 				default:
-					throw new RuntimeException("unknown node name: " + e.Name);
+					throw new RuntimeException("unknown node name: " + e.getNodeName());
 			}
 		}
 	}

@@ -14,6 +14,13 @@ namespace Zeze
         {
         }
 
+        public int ReturnCode(uint code)
+        {
+            if (code > ushort.MaxValue)
+                throw new Exception("return code too big");
+            return ReturnCode((ushort)code);
+        }
+
         public int ReturnCode(ushort code)
         {
             return Id << 16 | code;

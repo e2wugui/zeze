@@ -3,6 +3,8 @@ package Game.Login;
 import Zeze.Net.*;
 import Zeze.Transaction.*;
 import Game.*;
+import Zeze.Transaction.Collections.PList1;
+
 import java.util.*;
 
 public class Session {
@@ -32,12 +34,12 @@ public class Session {
 		Link = value;
 	}
 
-	public Session(String account, List<Long> states, AsyncSocket link, long linkSid) {
+	public Session(String account, PList1<Long> states, AsyncSocket link, long linkSid) {
 		Account = account;
 		RoleId = states.isEmpty() ? null : states.get(0);
 		SessionId = linkSid;
 		setLink(link);
-		LinkName = App.getInstance().getServer().GetLinkName(link);
+		LinkName = App.getInstance().Server.GetLinkName(link);
 	}
 
 	public final void SendResponse(Binary fullEncodedProtocol) {
@@ -46,58 +48,52 @@ public class Session {
 
 	public final void SendResponse(int typeId, Binary fullEncodedProtocol) {
 		var send = new Zezex.Provider.Send();
-		send.getArgument().getLinkSids().Add(getSessionId());
-		send.getArgument().ProtocolType = typeId;
-		send.getArgument().ProtocolWholeData = fullEncodedProtocol;
+		send.Argument.getLinkSids().add(getSessionId());
+		send.Argument.setProtocolType(typeId);
+		send.Argument.setProtocolWholeData(fullEncodedProtocol);
 
-		if (null != getLink() && null != getLink().Socket) {
+		if (null != getLink() && null != getLink().getSocket()) {
 			getLink().Send(send);
 			return;
 		}
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，已经不可靠了，先这样写着吧。
-		TValue link;
-		tangible.OutObject<TValue> tempOut_link = new tangible.OutObject<TValue>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		if (App.getInstance().getServer().getLinks().TryGetValue(getLinkName(), tempOut_link)) {
-		link = tempOut_link.outArgValue;
-			if (link.IsHandshakeDone) {
-				setLink(link.Socket);
-				link.Socket.Send(send);
+		var link = App.getInstance().Server.getLinks().get(getLinkName());
+		if (null != link) {
+			if (link.isHandshakeDone()) {
+				setLink(link.getSocket());
+				link.getSocket().Send(send);
 			}
 		}
-	else {
-		link = tempOut_link.outArgValue;
-	}
 	}
 
 	public final void SendResponse(Protocol p) {
-		p.IsRequest = false;
-		SendResponse(p.TypeId, new Binary(p.Encode()));
+		p.setRequest(false);
+		SendResponse(p.getTypeId(), new Binary(p.Encode()));
 	}
 
 	public final void SendResponseWhileCommit(int typeId, Binary fullEncodedProtocol) {
-		Transaction.Current.RunWhileCommit(() -> SendResponse(typeId, fullEncodedProtocol));
+		Transaction.getCurrent().RunWhileCommit(() -> SendResponse(typeId, fullEncodedProtocol));
 	}
 
 	public final void SendResponseWhileCommit(Binary fullEncodedProtocol) {
-		Transaction.Current.RunWhileCommit(() -> SendResponse(fullEncodedProtocol));
+		Transaction.getCurrent().RunWhileCommit(() -> SendResponse(fullEncodedProtocol));
 	}
 
 	public final void SendResponseWhileCommit(Protocol p) {
-		Transaction.Current.RunWhileCommit(() -> SendResponse(p));
+		Transaction.getCurrent().RunWhileCommit(() -> SendResponse(p));
 	}
 
 	// 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
 	private void SendResponseWhileRollback(int typeId, Binary fullEncodedProtocol) {
-		Transaction.Current.RunWhileRollback(() -> SendResponse(typeId, fullEncodedProtocol));
+		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(typeId, fullEncodedProtocol));
 	}
 
 	private void SendResponseWhileRollback(Binary fullEncodedProtocol) {
-		Transaction.Current.RunWhileRollback(() -> SendResponse(fullEncodedProtocol));
+		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(fullEncodedProtocol));
 	}
 
 	public final void SendResponseWhileRollback(Protocol p) {
-		Transaction.Current.RunWhileRollback(() -> SendResponse(p));
+		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(p));
 	}
 
 	public static Session Get(Protocol context) {

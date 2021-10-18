@@ -71,7 +71,7 @@ public abstract class PList<E> extends PCollection implements Collection<E> {
 	public abstract void clear();
 	public abstract void add(int index, E item);
 	public abstract boolean remove(Object item);
-	public abstract void remove(int index);
+	public abstract E remove(int index);
 	public abstract boolean removeAll(Collection<?> c);
 	@Override
 	public boolean retainAll(Collection<?> c) {

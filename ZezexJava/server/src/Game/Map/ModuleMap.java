@@ -2,6 +2,7 @@ package Game.Map;
 
 import Zeze.Transaction.*;
 import Game.*;
+import Zeze.Net.Protocol;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -14,7 +15,8 @@ public final class ModuleMap extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessCEnterWorld(CEnterWorld protocol) {
+	public int ProcessCEnterWorld(Protocol _protocol) {
+        var protocol = (CEnterWorld)_protocol;
 		Game.Login.Session session = Game.Login.Session.Get(protocol);
 		if (session.getRoleId().equals(null)) {
 			return Procedure.LogicError;
@@ -25,7 +27,8 @@ public final class ModuleMap extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessCEnterWorldDone(CEnterWorldDone protocol) {
+	public int ProcessCEnterWorldDone(Protocol _protocol) {
+        var protocol = (CEnterWorldDone)_protocol;
 		// TODO map
 		return Procedure.NotImplement;
 	}

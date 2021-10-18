@@ -171,17 +171,21 @@ public final class PList1<E> extends PList<E> {
 	}
 
 	@Override
-	public void remove(int index) {
+	public E remove(int index) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
 			var oldv = null != log ? ((LogV<E>)log).Value : list;
+			var exist = oldv.get(index);
 			txn.PutLog(NewLog(oldv.minus(index)));
+			return exist;
 		}
 		else {
+			var exist = list.get(index);
 			list = list.minus(index);
+			return exist;
 		}
 	}
 

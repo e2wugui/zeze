@@ -1,96 +1,19 @@
 package Zezex.Provider;
 
-import static Zeze.Net.Service.*;
+import Zeze.Net.Binary;
+import Zeze.Net.Protocol;
+import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.*;
-import Zezex.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.*;
 
-// auto-generated
-
-
+//ZEZE_FILE_CHUNK {{{ IMPORT GEN
+//ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class ModuleProvider extends AbstractModule {
-	public static final int ModuleId = 10001;
-
-
-	private Game.App App;
-	public Game.App getApp() {
-		return App;
-	}
-
-	public ModuleProvider(Game.App app) {
-		App = app;
-		// register protocol factory and handles
-		getApp().getServer().AddFactoryHandle(655473135, new Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.AnnounceLinkInfo(), Handle = Service.<AnnounceLinkInfo>MakeHandle(this, this.getClass().getMethod("ProcessAnnounceLinkInfo")), NoProcedure = true});
-		getApp().getServer().AddFactoryHandle(655479127, new Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.Bind()});
-		getApp().getServer().AddFactoryHandle(655471205, new Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.Dispatch(), Handle = Service.<Dispatch>MakeHandle(this, this.getClass().getMethod("ProcessDispatch"))});
-		getApp().getServer().AddFactoryHandle(655477748, new Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.LinkBroken(), Handle = Service.<LinkBroken>MakeHandle(this, this.getClass().getMethod("ProcessLinkBroken"))});
-		getApp().getServer().AddFactoryHandle(655455850, new Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.ModuleRedirect(), Handle = Service.<ModuleRedirect>MakeHandle(this, this.getClass().getMethod("ProcessModuleRedirectRequest"))});
-		getApp().getServer().AddFactoryHandle(655479394, new Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.ModuleRedirectAllRequest(), Handle = Service.<ModuleRedirectAllRequest>MakeHandle(this, this.getClass().getMethod("ProcessModuleRedirectAllRequest"))});
-		getApp().getServer().AddFactoryHandle(655465353, new Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.ModuleRedirectAllResult(), Handle = Service.<ModuleRedirectAllResult>MakeHandle(this, this.getClass().getMethod("ProcessModuleRedirectAllResult"))});
-		getApp().getServer().AddFactoryHandle(655476045, new Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.SendConfirm(), Handle = Service.<SendConfirm>MakeHandle(this, this.getClass().getMethod("ProcessSendConfirm"))});
-		getApp().getServer().AddFactoryHandle(655453724, new Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.Transmit(), Handle = Service.<Transmit>MakeHandle(this, this.getClass().getMethod("ProcessTransmit")), NoProcedure = true});
-		getApp().getServer().AddFactoryHandle(655436306, new Service.ProtocolFactoryHandle() {Factory = () -> new Zezex.Provider.UnBind()});
-		// register table
-	}
-
-	@Override
-	public void UnRegister() {
-		TValue _;
-		tangible.OutObject<Service.ProtocolFactoryHandle> tempOut__ = new tangible.OutObject<Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(655473135, tempOut__);
-	_ = tempOut__.outArgValue;
-		TValue _;
-		tangible.OutObject<Service.ProtocolFactoryHandle> tempOut__2 = new tangible.OutObject<Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(655479127, tempOut__2);
-	_ = tempOut__2.outArgValue;
-		TValue _;
-		tangible.OutObject<Service.ProtocolFactoryHandle> tempOut__3 = new tangible.OutObject<Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(655471205, tempOut__3);
-	_ = tempOut__3.outArgValue;
-		TValue _;
-		tangible.OutObject<Service.ProtocolFactoryHandle> tempOut__4 = new tangible.OutObject<Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(655477748, tempOut__4);
-	_ = tempOut__4.outArgValue;
-		TValue _;
-		tangible.OutObject<Service.ProtocolFactoryHandle> tempOut__5 = new tangible.OutObject<Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(655455850, tempOut__5);
-	_ = tempOut__5.outArgValue;
-		TValue _;
-		tangible.OutObject<Service.ProtocolFactoryHandle> tempOut__6 = new tangible.OutObject<Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(655479394, tempOut__6);
-	_ = tempOut__6.outArgValue;
-		TValue _;
-		tangible.OutObject<Service.ProtocolFactoryHandle> tempOut__7 = new tangible.OutObject<Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(655465353, tempOut__7);
-	_ = tempOut__7.outArgValue;
-		TValue _;
-		tangible.OutObject<Service.ProtocolFactoryHandle> tempOut__8 = new tangible.OutObject<Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(655476045, tempOut__8);
-	_ = tempOut__8.outArgValue;
-		TValue _;
-		tangible.OutObject<Service.ProtocolFactoryHandle> tempOut__9 = new tangible.OutObject<Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(655453724, tempOut__9);
-	_ = tempOut__9.outArgValue;
-		TValue _;
-		tangible.OutObject<Service.ProtocolFactoryHandle> tempOut__10 = new tangible.OutObject<Service.ProtocolFactoryHandle>();
-//C# TO JAVA CONVERTER TODO TASK: There is no Java ConcurrentHashMap equivalent to this .NET ConcurrentDictionary method:
-		getApp().getServer().getFactorys().TryRemove(655436306, tempOut__10);
-	_ = tempOut__10.outArgValue;
-	}
-
-
-
-	private static final NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static final Logger logger = LogManager.getLogger(ModuleProvider.class);
 
 	public void Start(Game.App app) {
 	}
@@ -100,78 +23,81 @@ public final class ModuleProvider extends AbstractModule {
 
 	private void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {
 		var p = new Kick();
-		p.getArgument().Linksid = linkSid;
-		p.getArgument().Code = code;
-		p.getArgument().Desc = desc;
+		p.Argument.setLinksid(linkSid);
+		p.Argument.setCode(code);
+		p.Argument.setDesc(desc);
 		p.Send(sender);
 	}
 
 	@Override
-	public int ProcessDispatch(Dispatch p) {
+	public int ProcessDispatch(Protocol _p) {
+		var p = (Dispatch)_p;
 		try {
-			var factoryHandle = Game.App.getInstance().getServer().FindProtocolFactoryHandle(p.getArgument().getProtocolType());
+			var factoryHandle = App.Server.FindProtocolFactoryHandle(p.Argument.getProtocolType());
 			if (null == factoryHandle) {
-				SendKick(p.Sender, p.getArgument().getLinkSid(), BKick.ErrorProtocolUnkown, "unknown protocol");
+				SendKick(p.Sender, p.Argument.getLinkSid(), BKick.ErrorProtocolUnkown, "unknown protocol");
 				return Procedure.LogicError;
 			}
-			var p2 = factoryHandle.Factory();
-			p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.getArgument().getProtocolData()));
+			var p2 = factoryHandle.Factory.create();
+			p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.getProtocolData()));
 			p2.Sender = p.Sender;
 
-			var session = new Game.Login.Session(p.getArgument().getAccount(), p.getArgument().getStates(), p.Sender, p.getArgument().getLinkSid());
+			var session = new Game.Login.Session(p.Argument.getAccount(), p.Argument.getStates(), p.Sender, p.Argument.getLinkSid());
 
 			p2.UserState = session;
-			if (Transaction.Current != null) {
+			if (Transaction.getCurrent() != null) {
 				// 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
-				Transaction.Current.TopProcedure.ActionName = p2.getClass().getName();
-				Transaction.Current.TopProcedure.UserState = p2.UserState;
-				return Zeze.Util.Task.Call(() -> factoryHandle.Handle(p2), p2, (p, code) -> {
-						p.ResultCode = code;
-						session.SendResponse(p);
+				Transaction.getCurrent().getTopProcedure().setActionName(p2.getClass().getName());
+				Transaction.getCurrent().getTopProcedure().setUserState(p2.UserState);
+				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p2), p2, (p3, code) -> {
+						p3.setResultCode(code);
+						session.SendResponse(p3);
 				});
 			}
 
-			if (p2.Sender.Service.Zeze == null || factoryHandle.NoProcedure) {
+			if (p2.Sender.getService().getZeze() == null || factoryHandle.NoProcedure) {
 				// 应用框架不支持事务或者协议配置了"不需要事务”
-				return Zeze.Util.Task.Call(() -> factoryHandle.Handle(p2), p2, (p, code) -> {
-						p.ResultCode = code;
-						session.SendResponse(p);
+				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p2), p2, (p3, code) -> {
+						p3.setResultCode(code);
+						session.SendResponse(p3);
 				});
 			}
 
 			// 创建存储过程并且在当前线程中调用。
-			return Zeze.Util.Task.Call(p2.Sender.Service.Zeze.NewProcedure(() -> factoryHandle.Handle(p2), p2.getClass().getName(), p2.UserState), p2, (p, code) -> {
-					p.ResultCode = code;
-					session.SendResponse(p);
-			});
+			return Zeze.Util.Task.Call(
+					p2.Sender.getService().getZeze().NewProcedure(
+							() -> factoryHandle.Handle.handle(p2), p2.getClass().getName(), p2.UserState),
+					p2, (p3, code) -> { p3.setResultCode(code); session.SendResponse(p3);
+					});
 		}
 		catch (RuntimeException ex) {
-			SendKick(p.Sender, p.getArgument().getLinkSid(), BKick.ErrorProtocolException, ex.toString());
+			SendKick(p.Sender, p.Argument.getLinkSid(), BKick.ErrorProtocolException, ex.toString());
 			throw ex;
 		}
 	}
 
 	@Override
-	public int ProcessLinkBroken(LinkBroken protocol) {
+	public int ProcessLinkBroken(Protocol _protocol) {
+		var protocol = (LinkBroken)_protocol;
 		// 目前仅需设置online状态。
-		if (protocol.getArgument().getStates().Count > 0) {
-			var roleId = protocol.getArgument().getStates().get(0);
-			Game.App.getInstance().getGameLogin().getOnlines().OnLinkBroken(roleId);
+		if (false == protocol.Argument.getStates().isEmpty()) {
+			var roleId = protocol.Argument.getStates().get(0);
+			Game.App.getInstance().Game_Login.getOnlines().OnLinkBroken(roleId);
 		}
 		return Procedure.Success;
 	}
 
 	@Override
-	public int ProcessModuleRedirectRequest(ModuleRedirect rpc) {
+	public int ProcessModuleRedirectRequest(Protocol _rpc) {
+		var rpc = (ModuleRedirect)_rpc;
 		try {
 			// replace RootProcedure.ActionName. 为了统计和日志输出。
-			Transaction.Current.TopProcedure.ActionName = rpc.getArgument().getMethodFullName();
+			Transaction.getCurrent().getTopProcedure().setActionName(rpc.Argument.getMethodFullName());
 
-			rpc.getResult().ModuleId = rpc.getArgument().getModuleId();
-			rpc.getResult().ServerId = getApp().getZeze().Config.ServerId;
-			Object handle;
-//C# TO JAVA CONVERTER TODO TASK: The following method call contained an unresolved 'out' keyword - these cannot be converted using the 'OutObject' helper class unless the method is within the code being modified:
-			if (false == Game.ModuleRedirect.Instance.Handles.TryGetValue(rpc.getArgument().getMethodFullName(), out handle)) {
+			rpc.Result.setModuleId(rpc.Argument.getModuleId());
+			rpc.Result.setServerId(App.Zeze.getConfig().getServerId());
+			var handle = Zezex.ModuleRedirect.Instance.getHandles().get(rpc.Argument.getMethodFullName());
+			if (null == handle) {
 				rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 				return Procedure.LogicError;
 			}
@@ -193,52 +119,52 @@ public final class ModuleProvider extends AbstractModule {
 
 	private void SendResultIfSizeExceed(AsyncSocket sender, ModuleRedirectAllResult result) {
 		int size = 0;
-		for (var hashResult : result.getArgument().getHashs().Values) {
-			size += hashResult.Params.Count;
-			for (var hashActions : hashResult.Actions) {
-				size += hashActions.Params.Count;
+		for (var hashResult : result.Argument.getHashs().values()) {
+			size += hashResult.getParams().size();
+			for (var hashActions : hashResult.getActions()) {
+				size += hashActions.getParams().size();
 			}
 		}
 		if (size > 2 * 1024 * 1024) { // 2M
 			result.Send(sender);
-			result.getArgument().getHashs().Clear();
+			result.Argument.getHashs().clear();
 		}
 	}
 
 	@Override
-	public int ProcessModuleRedirectAllRequest(ModuleRedirectAllRequest protocol) {
+	public int ProcessModuleRedirectAllRequest(Protocol _protocol) {
+		var protocol = (ModuleRedirectAllRequest)_protocol;
 		var result = new ModuleRedirectAllResult();
 		try {
 			// replace RootProcedure.ActionName. 为了统计和日志输出。
-			Transaction.Current.TopProcedure.ActionName = protocol.getArgument().getMethodFullName();
+			Transaction.getCurrent().getTopProcedure().setActionName(protocol.Argument.getMethodFullName());
 
 			// common parameters for result
-			result.getArgument().ModuleId = protocol.getArgument().getModuleId();
-			result.getArgument().ServerId = getApp().getZeze().Config.ServerId;
-			result.getArgument().SourceProvider = protocol.getArgument().getSourceProvider();
-			result.getArgument().SessionId = protocol.getArgument().getSessionId();
-			result.getArgument().MethodFullName = protocol.getArgument().getMethodFullName();
+			result.Argument.setModuleId(protocol.Argument.getModuleId());
+			result.Argument.setServerId(App.Zeze.getConfig().getServerId());
+			result.Argument.setSourceProvider(protocol.Argument.getSourceProvider());
+			result.Argument.setSessionId(protocol.Argument.getSessionId());
+			result.Argument.setMethodFullName(protocol.Argument.getMethodFullName());
 
-			Object handle;
-//C# TO JAVA CONVERTER TODO TASK: The following method call contained an unresolved 'out' keyword - these cannot be converted using the 'OutObject' helper class unless the method is within the code being modified:
-			if (false == Game.ModuleRedirect.Instance.Handles.TryGetValue(protocol.getArgument().getMethodFullName(), out handle)) {
-				result.ResultCode = ModuleRedirect.ResultCodeMethodFullNameNotFound;
+			var handle = Zezex.ModuleRedirect.Instance.getHandles().get(protocol.Argument.getMethodFullName());
+			if (null == handle) {
+				result.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 				// 失败了，需要把hash返回。此时是没有处理结果的。
-				for (var hash : protocol.getArgument().getHashCodes()) {
+				for (var hash : protocol.Argument.getHashCodes()) {
 					BModuleRedirectAllHash tempVar = new BModuleRedirectAllHash();
 					tempVar.setReturnCode(Procedure.NotImplement);
-					result.getArgument().getHashs().Add(hash, tempVar);
+					result.Argument.getHashs().Add(hash, tempVar);
 				}
 				result.Send(protocol.Sender);
 				return Procedure.LogicError;
 			}
-			result.ResultCode = ModuleRedirect.ResultCodeSuccess;
+			result.setResultCode(ModuleRedirect.ResultCodeSuccess);
 
-			for (var hash : protocol.getArgument().getHashCodes()) {
+			for (var hash : protocol.Argument.getHashCodes()) {
 				// 嵌套存储过程，某个分组处理失败不影响其他分组。
 				var hashResult = new BModuleRedirectAllHash();
 				Binary Params = null;
-				hashResult.ReturnCode = getApp().getZeze().NewProcedure(() -> {
+				hashResult.setReturnCode(App.Zeze.NewProcedure(() -> {
 						var(_ReturnCode, _Params) = handle(protocol.Argument.SessionId, hash, protocol.Argument.Params, hashResult.Actions);
 						Params = _Params;
 						return _ReturnCode;
@@ -246,20 +172,20 @@ public final class ModuleProvider extends AbstractModule {
 
 				// 单个分组处理失败继续执行。XXX
 				if (hashResult.getReturnCode() == Procedure.Success) {
-					hashResult.Params = Params;
+					hashResult.setParams(Params);
 				}
-				result.getArgument().getHashs().Add(hash, hashResult);
+				result.Argument.getHashs().add(hash, hashResult);
 				SendResultIfSizeExceed(protocol.Sender, result);
 			}
 
 			// send remain
-			if (result.getArgument().getHashs().Count > 0) {
+			if (result.Argument.getHashs().size() > 0) {
 				result.Send(protocol.Sender);
 			}
 			return Procedure.Success;
 		}
 		catch (RuntimeException e) {
-			result.ResultCode = ModuleRedirect.ResultCodeHandleException;
+			result.setResultCode(ModuleRedirect.ResultCodeHandleException);
 			result.Send(protocol.Sender);
 			throw e;
 		}
@@ -274,11 +200,11 @@ public final class ModuleProvider extends AbstractModule {
 		public final HashSet<Integer> getHashCodes() {
 			return HashCodes;
 		}
-		private tangible.Action1Param<ModuleRedirectAllContext> OnHashEnd;
-		public final tangible.Action1Param<ModuleRedirectAllContext> getOnHashEnd() {
+		private Zeze.Util.Action1<ModuleRedirectAllContext> OnHashEnd;
+		public final Zeze.Util.Action1<ModuleRedirectAllContext> getOnHashEnd() {
 			return OnHashEnd;
 		}
-		public final void setOnHashEnd(tangible.Action1Param<ModuleRedirectAllContext> value) {
+		public final void setOnHashEnd(Zeze.Util.Action1<ModuleRedirectAllContext> value) {
 			OnHashEnd = value;
 		}
 
@@ -292,10 +218,10 @@ public final class ModuleProvider extends AbstractModule {
 		@Override
 		public void OnRemoved() {
 			synchronized (this) {
-				if (getOnHashEnd() != null) {
-					getOnHashEnd().Invoke(this);
+				if (OnHashEnd != null) {
+					OnHashEnd.run(this);
 				}
-				setOnHashEnd(::null);
+				OnHashEnd = null;
 			}
 		}
 
@@ -324,10 +250,11 @@ public final class ModuleProvider extends AbstractModule {
 
 		// 这里处理真正redirect发生时，从远程返回的结果。
 		public final void ProcessResult(ModuleRedirectAllResult result) {
-			for (var h : result.getArgument().getHashs()) {
+			for (var h : result.Argument.getHashs()) {
 				// 嵌套存储过程，单个分组的结果处理不影响其他分组。
 				// 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
-				Game.App.getInstance().getZeze().NewProcedure(() -> ProcessHashResult(h.Key, h.Value.ReturnCode, h.Value.Params, h.Value.Actions), getMethodFullName(), null).Call();
+				Game.App.getInstance().Zeze.NewProcedure(() -> ProcessHashResult(
+						h.Key, h.Value.ReturnCode, h.Value.Params, h.Value.Actions), getMethodFullName(), null).Call();
 			}
 		}
 
@@ -340,33 +267,128 @@ public final class ModuleProvider extends AbstractModule {
 	@Override
 	public int ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) {
 		// replace RootProcedure.ActionName. 为了统计和日志输出。
-		Transaction.Current.TopProcedure.ActionName = protocol.getArgument().getMethodFullName();
-		if (getApp().getServer().<ModuleRedirectAllContext>TryGetManualContext(protocol.getArgument().getSessionId()) != null) {
-			getApp().getServer().<ModuleRedirectAllContext>TryGetManualContext(protocol.getArgument().getSessionId()).ProcessResult(protocol);
+		Transaction.getCurrent().getTopProcedure().setActionName(protocol.Argument.getMethodFullName());
+		var ctx = App.Server.<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
+		if (ctx != null) {
+			ctx.ProcessResult(protocol);
 		}
 		return Procedure.Success;
 	}
 
 	@Override
-	public int ProcessTransmit(Transmit protocol) {
-		getApp().getGameLogin().getOnlines().ProcessTransmit(protocol.getArgument().getSender(), protocol.getArgument().getActionName(), protocol.getArgument().getRoles().keySet());
+	public int ProcessTransmit(Protocol _protocol) {
+		var protocol = (Transmit)_protocol;
+		App.Game_Login.getOnlines().ProcessTransmit(
+				protocol.Argument.getSender(),
+				protocol.Argument.getActionName(),
+				protocol.Argument.getRoles().keySet());
 		return Procedure.Success;
 	}
 
 	@Override
-	public int ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) {
-		var linkSession = protocol.Sender.UserState instanceof Game.Server.LinkSession ? (Game.Server.LinkSession)protocol.Sender.UserState : null;
-		linkSession.Setup(protocol.getArgument().getLinkId(), protocol.getArgument().getProviderSessionId());
+	public int ProcessAnnounceLinkInfo(Protocol _protocol) {
+		var protocol = (AnnounceLinkInfo)_protocol;
+		var linkSession = (Game.Server.LinkSession)protocol.Sender.getUserState();
+		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
 		return Procedure.Success;
 	}
 
 	@Override
-	public int ProcessSendConfirm(SendConfirm protocol) {
-		var linkSession = protocol.Sender.UserState instanceof Game.Server.LinkSession ? (Game.Server.LinkSession)protocol.Sender.UserState : null;
-		if (getApp().getServer().<Game.Login.Onlines.ConfirmContext>TryGetManualContext(protocol.getArgument().getConfirmSerialId()) != null) {
-			getApp().getServer().<Game.Login.Onlines.ConfirmContext>TryGetManualContext(protocol.getArgument().getConfirmSerialId()).ProcessLinkConfirm(linkSession.getName());
+	public int ProcessSendConfirm(Protocol _protocol) {
+		var protocol = (SendConfirm)_protocol;
+		var linkSession = (Game.Server.LinkSession)protocol.Sender.getUserState();
+		var ctx = App.Server.<Game.Login.Onlines.ConfirmContext>TryGetManualContext(
+				protocol.Argument.getConfirmSerialId());
+		if (ctx != null) {
+			ctx.ProcessLinkConfirm(linkSession.getName());
 		}
 		// linkName 也可以从 protocol.Sender.Connector.Name 获取。
 		return Procedure.Success;
 	}
+
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE
+    public static final int ModuleId = 10001;
+
+
+    public Game.App App;
+
+    public ModuleProvider(Game.App app) {
+        App = app;
+        // register protocol factory and handles
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.AnnounceLinkInfo();
+            factoryHandle.Handle = (_p) -> ProcessAnnounceLinkInfo(_p);
+            factoryHandle.NoProcedure = true;
+            App.Server.AddFactoryHandle(655473135, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.Bind();
+            App.Server.AddFactoryHandle(655479127, factoryHandle);
+         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.Dispatch();
+            factoryHandle.Handle = (_p) -> ProcessDispatch(_p);
+            App.Server.AddFactoryHandle(655471205, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.LinkBroken();
+            factoryHandle.Handle = (_p) -> ProcessLinkBroken(_p);
+            App.Server.AddFactoryHandle(655477748, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirect();
+            factoryHandle.Handle = (_p) -> ProcessModuleRedirectRequest(_p);
+            App.Server.AddFactoryHandle(655455850, factoryHandle);
+         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirectAllRequest();
+            factoryHandle.Handle = (_p) -> ProcessModuleRedirectAllRequest(_p);
+            App.Server.AddFactoryHandle(655479394, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirectAllResult();
+            factoryHandle.Handle = (_p) -> ProcessModuleRedirectAllResult(_p);
+            App.Server.AddFactoryHandle(655465353, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.SendConfirm();
+            factoryHandle.Handle = (_p) -> ProcessSendConfirm(_p);
+            App.Server.AddFactoryHandle(655476045, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.Transmit();
+            factoryHandle.Handle = (_p) -> ProcessTransmit(_p);
+            factoryHandle.NoProcedure = true;
+            App.Server.AddFactoryHandle(655453724, factoryHandle);
+       }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.UnBind();
+            App.Server.AddFactoryHandle(655436306, factoryHandle);
+         }
+        // register table
+    }
+
+    public void UnRegister() {
+        App.Server.getFactorys().remove(655473135);
+        App.Server.getFactorys().remove(655479127);
+        App.Server.getFactorys().remove(655471205);
+        App.Server.getFactorys().remove(655477748);
+        App.Server.getFactorys().remove(655455850);
+        App.Server.getFactorys().remove(655479394);
+        App.Server.getFactorys().remove(655465353);
+        App.Server.getFactorys().remove(655476045);
+        App.Server.getFactorys().remove(655453724);
+        App.Server.getFactorys().remove(655436306);
+    }
+	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

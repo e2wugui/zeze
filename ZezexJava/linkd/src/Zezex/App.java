@@ -97,10 +97,6 @@ public final class App {
 
     public Zezex.ProviderService ProviderService;
 
-    public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
-        return module;
-    }
-
     public void Create() {
         Create(null);
     }
