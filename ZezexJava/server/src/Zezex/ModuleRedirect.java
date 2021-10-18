@@ -4,7 +4,11 @@ import java.lang.annotation.Annotation;
 import java.util.*;
 import java.io.*;
 import java.time.*;
+import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Net.Binary;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.Func4;
+import Zezex.Provider.BActionParam;
 
 /** 
  把模块的方法调用发送到其他服务器实例上执行。
@@ -130,12 +134,12 @@ public class ModuleRedirect {
 
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public string GetNarmalCallString(Func<ParameterInfo, bool> skip = null)
-		public final String GetNarmalCallString(tangible.Func1Param<ParameterInfo, Boolean> skip) {
+		public final String GetNarmalCallString(Zeze.Util.Func1<ParameterInfo, Boolean> skip) {
 			StringBuilder sb = new StringBuilder();
 			boolean first = true;
 			for (int i = 0; i < getParametersNormal().size(); ++i) {
 				var p = getParametersNormal().get(i);
-				if (null != skip && skip.invoke(p)) {
+				if (null != skip && skip.call(p)) {
 					continue;
 				}
 				if (first) {
@@ -297,18 +301,25 @@ public class ModuleRedirect {
 	}
 	// */
 
-	/** 
+	public static class Return {
+		public int ReturnCode;
+		public Binary EncodedParameters;
+		public Return(int rc, Binary params) {
+			ReturnCode = rc;
+			EncodedParameters = params;
+		}
+	}
+
+	/**
 	 0) long [in] sessionid
 	 1) int [in] hash
 	 2) Zeze.Net.Binary [in] encoded parameters
 	 3) List<Zezex.Provider.BActionParam> [result] result for callback. avoid copy.
-	 4) (int ReturnCode, Zeze.Net.Binary encoded-parameters) [return]
+	 4) Return [return]
 		 Func不能使用ref，而Zeze.Net.Binary是只读的。就这样吧。
 	*/
-//C# TO JAVA CONVERTER TODO TASK: The following line could not be converted:
-	public Dictionary < string, Func<Long, Integer, Zeze.Net.Binary, IList<Zezex.Provider.BActionParam>, (int, Zeze.Net.Binary)>> Handles {
-		get;
-	} = new Dictionary < string, Func<Long, Integer, Zeze.Net.Binary, IList<Zezex.Provider.BActionParam>, (int, Zeze.Net.Binary)>>();
+	public ConcurrentHashMap<String,
+				Func4<Long, Integer, Binary, List<BActionParam>, Return>> Handles = new ConcurrentHashMap <>();
 
 	enum ReturnType {
 		Void,
