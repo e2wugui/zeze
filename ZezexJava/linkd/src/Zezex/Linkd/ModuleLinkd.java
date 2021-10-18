@@ -61,7 +61,7 @@ public final class ModuleLinkd extends AbstractModule {
             factoryHandle.Factory = () -> new Zezex.Linkd.Auth();
             factoryHandle.Handle = (_p) -> ProcessAuthRequest(_p);
             App.LinkdService.AddFactoryHandle(655394483, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Linkd.KeepAlive();

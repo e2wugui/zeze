@@ -248,37 +248,37 @@ public final class ModuleLogin extends AbstractModule {
             factoryHandle.Factory = () -> new Game.Login.CreateRole();
             factoryHandle.Handle = (_p) -> ProcessCreateRoleRequest(_p);
             App.Server.AddFactoryHandle(108094, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.GetRoleList();
             factoryHandle.Handle = (_p) -> ProcessGetRoleListRequest(_p);
             App.Server.AddFactoryHandle(91931, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.Login();
             factoryHandle.Handle = (_p) -> ProcessLoginRequest(_p);
             App.Server.AddFactoryHandle(83324, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.Logout();
             factoryHandle.Handle = (_p) -> ProcessLogoutRequest(_p);
             App.Server.AddFactoryHandle(113969, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.ReliableNotifyConfirm();
             factoryHandle.Handle = (_p) -> ProcessReliableNotifyConfirmRequest(_p);
             App.Server.AddFactoryHandle(80485, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.ReLogin();
             factoryHandle.Handle = (_p) -> ProcessReLoginRequest(_p);
             App.Server.AddFactoryHandle(108643, factoryHandle);
-        }
+         }
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_taccount.getName()).getDatabaseName(), _taccount);
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tonline.getName()).getDatabaseName(), _tonline);

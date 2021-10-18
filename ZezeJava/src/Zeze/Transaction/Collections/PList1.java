@@ -5,6 +5,8 @@ import org.pcollections.PVector;
 
 import Zeze.Transaction.*;
 
+import java.util.Collection;
+
 public final class PList1<E> extends PList<E> {
 	public PList1(long logKey, LogFactory<PVector<E>> logFactory) {
 		super(logKey, logFactory);
@@ -34,7 +36,7 @@ public final class PList1<E> extends PList<E> {
 	}
 
 	@Override
-	public void add(E item) {
+	public boolean add(E item) {
 		if (item == null) {
 			throw new NullPointerException();
 		}
@@ -46,14 +48,16 @@ public final class PList1<E> extends PList<E> {
 			@SuppressWarnings("unchecked")
 			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.plus(item)));
+			return true;
 		}
 		else {
 			list = list.plus(item);
+			return true;
 		}
 	}
 
 	@Override
-	public void addAll(java.util.Collection<E> items) {
+	public boolean addAll(java.util.Collection<? extends E> items) {
 		// XXX
 		for (var v : items) {
 			if (null == v) {
@@ -68,9 +72,11 @@ public final class PList1<E> extends PList<E> {
 			@SuppressWarnings("unchecked")
 			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.plusAll(items)));
+			return true;
 		}
 		else {
 			list = list.plusAll(items);
+			return true;
 		}
 	}
 
@@ -108,6 +114,30 @@ public final class PList1<E> extends PList<E> {
 		}
 		else {
 			list = list.plus(index, item);
+		}
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		if (this.isManaged()) {
+			var txn = Transaction.getCurrent();
+			txn.VerifyRecordAccessed(this);
+			var log = txn.GetLog(LogKey);
+			@SuppressWarnings("unchecked")
+			var oldv = null != log ? ((LogV<E>)log).Value : list;
+			var newv = oldv.minusAll(c);
+			if (oldv != newv) {
+				txn.PutLog(NewLog(newv));
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		else {
+			var oldlist = list;
+			list = list.minusAll(c);
+			return oldlist != list;
 		}
 	}
 

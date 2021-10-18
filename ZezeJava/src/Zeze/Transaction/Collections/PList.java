@@ -6,7 +6,7 @@ import java.util.*;
 import org.pcollections.Empty;
 import org.pcollections.PVector;
 
-public abstract class PList<E> extends PCollection implements Iterable<E> {
+public abstract class PList<E> extends PCollection implements Collection<E> {
 	private final LogFactory<PVector<E>> _logFactory;
 
 	protected PVector<E> list;
@@ -66,12 +66,17 @@ public abstract class PList<E> extends PCollection implements Iterable<E> {
 		return false;
 	}
 
-	public abstract void add(E item);
-	public abstract void addAll(java.util.Collection<E> items);
+	public abstract boolean add(E item);
+	public abstract boolean addAll(java.util.Collection<? extends E> items);
 	public abstract void clear();
 	public abstract void add(int index, E item);
-	public abstract boolean remove(E item);
+	public abstract boolean remove(Object item);
 	public abstract void remove(int index);
+	public abstract boolean removeAll(Collection<?> c);
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		throw new UnsupportedOperationException();
+	}
 	public abstract E set(int index, E value);
 
 	public final boolean contains(Object item) {
@@ -91,5 +96,25 @@ public abstract class PList<E> extends PCollection implements Iterable<E> {
 
 	public final int indexOf(Object item) {
 		return getData().indexOf(item);
+	}
+
+	@Override
+	public boolean isEmpty() {
+		return getData().isEmpty();
+	}
+
+	@Override
+	public Object[] toArray() {
+		return getData().toArray();
+	}
+
+	@Override
+	public <E> E[] toArray(E[] a) {
+		return getData().toArray(a);
+	}
+
+	@Override
+	public boolean containsAll(Collection<?> c) {
+		return getData().containsAll(c);
 	}
 }

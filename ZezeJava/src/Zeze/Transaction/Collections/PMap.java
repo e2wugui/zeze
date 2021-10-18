@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import org.pcollections.Empty;
 
-public abstract class PMap<K, V> extends PCollection {
+public abstract class PMap<K, V> extends PCollection implements Iterable<Map.Entry<K, V>> {
 	private final LogFactory<org.pcollections.PMap<K, V>> _logFactory;
 	protected org.pcollections.PMap<K, V> map;
 
@@ -98,4 +98,8 @@ public abstract class PMap<K, V> extends PCollection {
     public Set<Map.Entry<K, V>> entrySet() {
         return getData().entrySet();
     }
+
+	public Iterator<Map.Entry<K, V>> iterator() {
+		return getData().entrySet().iterator();
+	}
 }

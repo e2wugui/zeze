@@ -43,7 +43,7 @@ public final class LinkdService extends LinkdServiceBase {
 	@Override
 	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int type, Zeze.Serialize.ByteBuffer data) {
 		var linkSession = (LinkSession)so.getUserState();
-		if (null == linkSession || linkSession.getAccount().equals(null)) {
+		if (null == linkSession || linkSession.getAccount().isEmpty()) {
 			ReportError(
 					so.getSessionId(),
 					Zezex.Linkd.BReportError.FromLink,
@@ -64,8 +64,7 @@ public final class LinkdService extends LinkdServiceBase {
 
 		var provider = new Zeze.Util.OutObject<Long>();
 		if (linkSession.TryGetProvider(moduleId, provider)) {
-		provider = tempOut_provider.outArgValue;
-			var socket = App.getInstance().getProviderService().GetSocket(provider);
+			var socket = App.getInstance().ProviderService.GetSocket(provider.Value);
 			if (null != socket) {
 				socket.Send(dispatch);
 				return;
@@ -74,14 +73,9 @@ public final class LinkdService extends LinkdServiceBase {
 			// 此时应该处于 UnBind 过程中。
 			//linkSession.UnBind(so, moduleId, null);
 		}
-	else {
-		provider = tempOut_provider.outArgValue;
-	}
 
-		tangible.OutObject<Long> tempOut_provider2 = new tangible.OutObject<Long>();
-		if (App.getInstance().getZezexProvider().ChoiceProviderAndBind(moduleId, so, tempOut_provider2)) {
-		provider = tempOut_provider2.outArgValue;
-			var providerSocket = App.getInstance().getProviderService().GetSocket(provider);
+		if (App.getInstance().Zezex_Provider.ChoiceProviderAndBind(moduleId, so, provider)) {
+			var providerSocket = App.getInstance().ProviderService.GetSocket(provider.Value);
 			if (null != providerSocket) {
 				// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
 				providerSocket.Send(dispatch);
@@ -89,18 +83,15 @@ public final class LinkdService extends LinkdServiceBase {
 			}
 			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
 		}
-	else {
-		provider = tempOut_provider2.outArgValue;
-	}
-		ReportError(so.SessionId, Linkd.BReportError.FromLink, Linkd.BReportError.CodeNoProvider, "no provider.");
+		ReportError(so.getSessionId(), Zezex.Linkd.BReportError.FromLink, Zezex.Linkd.BReportError.CodeNoProvider, "no provider.");
 	}
 
 	@Override
 	public void DispatchProtocol(Zeze.Net.Protocol p, ProtocolFactoryHandle factoryHandle) {
 		if (null != factoryHandle.Handle) {
 			try {
-				var isRequestSaved = p.IsRequest;
-				int result = factoryHandle.Handle(p); // 不启用新的Task，直接在io-thread里面执行。
+				var isRequestSaved = p.isRequest();
+				int result = factoryHandle.Handle.handle(p); // 不启用新的Task，直接在io-thread里面执行。
 				Zeze.Util.Task.LogAndStatistics(result, p, isRequestSaved);
 			}
 			catch (RuntimeException ex) {
@@ -108,7 +99,7 @@ public final class LinkdService extends LinkdServiceBase {
 			}
 		}
 		else {
-			logger.Log(getSocketOptions().SocketLogLevel, "Protocol Handle Not Found. {0}", p);
+			logger.log(getSocketOptions().getSocketLogLevel(), "Protocol Handle Not Found. {}", p);
 			p.Sender.Close(null);
 		}
 	}
@@ -123,7 +114,7 @@ public final class LinkdService extends LinkdServiceBase {
 	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) {
 		super.OnSocketClose(so, e);
 		if (so.getUserState() != null) {
-			((LinkSession))so.getUserState()).OnClose();
+			((Zezex.LinkSession)so.getUserState()).OnClose();
 		}
 		}
 	}
