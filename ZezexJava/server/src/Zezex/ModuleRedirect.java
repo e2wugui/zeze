@@ -3,6 +3,7 @@ package Zezex;
 import java.util.*;
 import java.io.*;
 import java.time.*;
+import Zeze.Transaction.Transaction;
 
 /** 
  把模块的方法调用发送到其他服务器实例上执行。
@@ -26,8 +27,8 @@ public class ModuleRedirect {
 	}
 
 	public static Game.Login.Session GetLoginSession() {
-		Object tempVar = Zeze.Transaction.Transaction.Current.TopProcedure.UserState;
-		return tempVar instanceof Game.Login.Session ? (Game.Login.Session)tempVar : null;
+		var tempVar = (Game.Login.Session)Transaction.getCurrent().getTopProcedure().getUserState();
+		return tempVar;
 	}
 
 	public static ModuleRedirect Instance = new ModuleRedirect();
@@ -51,16 +52,6 @@ public class ModuleRedirect {
 		Redirect,
 		RedirectWithHash,
 		RedirectAll;
-
-		public static final int SIZE = java.lang.Integer.SIZE;
-
-		public int getValue() {
-			return this.ordinal();
-		}
-
-		public static OverrideType forValue(int value) {
-			return values()[value];
-		}
 	}
 
 	public static class MethodOverride {
@@ -68,7 +59,7 @@ public class ModuleRedirect {
 		public final java.lang.reflect.Method getMethod() {
 			return Method;
 		}
-		private OverrideType OverrideType = OverrideType.values()[0];
+		private OverrideType OverrideType = ModuleRedirect.OverrideType.Redirect;
 		public final OverrideType getOverrideType() {
 			return OverrideType;
 		}
