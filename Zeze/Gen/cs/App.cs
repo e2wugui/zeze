@@ -33,7 +33,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("");
             sw.WriteLine("namespace " + project.Solution.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed partial class App");
+            sw.WriteLine("    public sealed partial class App : Zeze.AppBase");
             sw.WriteLine("    {");
             sw.WriteLine("        public static App Instance { get; } = new App();");
             sw.WriteLine("");
@@ -164,11 +164,6 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class App");
             sw.WriteLine("    {");
-            sw.WriteLine("        public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)");
-            sw.WriteLine("        {");
-            sw.WriteLine("            return module;");
-            sw.WriteLine("        }");
-            sw.WriteLine("");
             sw.WriteLine("        public void Start()");
             sw.WriteLine("        {");
             sw.WriteLine("            Create();");

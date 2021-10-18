@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import org.pcollections.Empty;
 
-public abstract class PMap<K, V> extends PCollection implements Iterable<Map.Entry<K, V>> {
+public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
 	private final LogFactory<org.pcollections.PMap<K, V>> _logFactory;
 	protected org.pcollections.PMap<K, V> map;
 
@@ -65,7 +65,7 @@ public abstract class PMap<K, V> extends PCollection implements Iterable<Map.Ent
 	public abstract V put(K key, V value);
 	public abstract void putAll(Map<? extends K, ? extends V> m);
 	public abstract void clear();
-	public abstract boolean remove(K key);
+	public abstract V remove(Object key);
 	public abstract boolean remove(Map.Entry<K, V> item);
 
 	public final void copyTo(Map.Entry<K, V>[] array, int arrayIndex) {
@@ -75,11 +75,11 @@ public abstract class PMap<K, V> extends PCollection implements Iterable<Map.Ent
 		}
 	}
 
-	public V get(K key) {
+	public V get(Object key) {
 		return getData().get(key);
 	}
 
-	public final boolean containsValue(V v) {
+	public final boolean containsValue(Object v) {
 		return getData().containsValue(v);
 	}
 
@@ -88,18 +88,19 @@ public abstract class PMap<K, V> extends PCollection implements Iterable<Map.Ent
 	}
 
     public Set<K> keySet() {
-        return getData().keySet();
+        return Collections.unmodifiableSet(getData().keySet());
     }
 
     public Collection<V> values() {
-        return getData().values();
+        return Collections.unmodifiableCollection(getData().values());
     }
 
     public Set<Map.Entry<K, V>> entrySet() {
-        return getData().entrySet();
+        return Collections.unmodifiableSet(getData().entrySet());
     }
 
-	public Iterator<Map.Entry<K, V>> iterator() {
-		return getData().entrySet().iterator();
+	@Override
+	public boolean isEmpty() {
+		return getData().isEmpty();
 	}
 }

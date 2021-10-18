@@ -40,7 +40,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);
             sw.WriteLine();
             sw.WriteLine("");
-            sw.WriteLine("public class App {");
+            sw.WriteLine("public class App extends Zeze.AppBase {");
             sw.WriteLine("");
             sw.WriteLine("    public static App Instance = new App();");
             sw.WriteLine("    public static App getInstance() {");
@@ -109,10 +109,6 @@ namespace Zeze.Gen.java
                 sw.WriteLine("");
             }
 
-            sw.WriteLine("    public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {");
-            sw.WriteLine("        return module;");
-            sw.WriteLine("    }");
-            sw.WriteLine("");
             sw.WriteLine("    public void Create() {");
             sw.WriteLine("        Create(null);");
             sw.WriteLine("    }");

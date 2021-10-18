@@ -10,7 +10,7 @@ namespace Zezex
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
+        public override Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
         {
             return module;
         }

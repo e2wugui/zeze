@@ -101,26 +101,26 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public boolean remove(K key) {
+	public V remove(Object key) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
 			var newm = oldm.minus(key);
+			var exist = oldm.get(key);
 			if (newm != oldm) {
 				txn.PutLog(NewLog(newm));
-				((ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<K, V>(this))).LogRemove(key);
-				return true;
+				((ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(),
+						() -> new ChangeNoteMap2<K, V>(this))).LogRemove((K)key);
 			}
-			else {
-				return false;
-			}
+			return exist;
 		}
 		else {
 			var old = map;
+			var exist = old.get(key);
 			map = map.minus(key);
-			return old != map;
+			return exist;
 		}
 	}
 

@@ -150,7 +150,7 @@ namespace Zeze.Gen.java
             foreach (var real in type.RealBeans)
             {
                 sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
-                sw.WriteLine($"{prefix}        return {real.Key}; // {real.Value.FullName}");
+                sw.WriteLine($"{prefix}        return {real.Key}L; // {real.Value.FullName}");
             }
             sw.WriteLine($"{prefix}    throw new RuntimeException(\"Unknown Bean! dynamic@{(var.Bean as Bean).FullName}:{var.Name}\");");
             sw.WriteLine($"{prefix}}}");

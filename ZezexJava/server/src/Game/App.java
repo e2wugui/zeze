@@ -122,10 +122,6 @@ public final class App {
 
     public Game.Server Server;
 
-    public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
-        return module;
-    }
-
     public void Create() {
         Create(null);
     }

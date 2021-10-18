@@ -544,74 +544,74 @@ public final class ModuleProvider extends AbstractModule {
             factoryHandle.Handle = (_p) -> ProcessAnnounceProviderInfo(_p);
             factoryHandle.NoProcedure = true;
             App.ProviderService.AddFactoryHandle(655451039, factoryHandle);
-        }
+       }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Bind();
             factoryHandle.Handle = (_p) -> ProcessBindRequest(_p);
             App.ProviderService.AddFactoryHandle(655479127, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Broadcast();
             factoryHandle.Handle = (_p) -> ProcessBroadcast(_p);
             App.ProviderService.AddFactoryHandle(655477884, factoryHandle);
-        }
+       }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Kick();
             factoryHandle.Handle = (_p) -> ProcessKick(_p);
             App.ProviderService.AddFactoryHandle(655446121, factoryHandle);
-        }
+       }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirect();
             factoryHandle.Handle = (_p) -> ProcessModuleRedirectRequest(_p);
             App.ProviderService.AddFactoryHandle(655455850, factoryHandle);
-        }
+         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirectAllRequest();
             factoryHandle.Handle = (_p) -> ProcessModuleRedirectAllRequest(_p);
             App.ProviderService.AddFactoryHandle(655479394, factoryHandle);
-        }
+       }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirectAllResult();
             factoryHandle.Handle = (_p) -> ProcessModuleRedirectAllResult(_p);
             App.ProviderService.AddFactoryHandle(655465353, factoryHandle);
-        }
+       }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.ReportLoad();
             factoryHandle.Handle = (_p) -> ProcessReportLoad(_p);
             App.ProviderService.AddFactoryHandle(655489496, factoryHandle);
-        }
+       }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Send();
             factoryHandle.Handle = (_p) -> ProcessSend(_p);
             App.ProviderService.AddFactoryHandle(655456505, factoryHandle);
-        }
+       }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.SetUserState();
             factoryHandle.Handle = (_p) -> ProcessSetUserState(_p);
             App.ProviderService.AddFactoryHandle(655480350, factoryHandle);
-        }
+       }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Transmit();
             factoryHandle.Handle = (_p) -> ProcessTransmit(_p);
             factoryHandle.NoProcedure = true;
             App.ProviderService.AddFactoryHandle(655453724, factoryHandle);
-        }
+       }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.UnBind();
             factoryHandle.Handle = (_p) -> ProcessUnBindRequest(_p);
             App.ProviderService.AddFactoryHandle(655436306, factoryHandle);
-        }
+         }
         // register table
     }
 
