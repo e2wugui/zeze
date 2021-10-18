@@ -2,7 +2,6 @@ package Game.Rank;
 
 import Zeze.Net.Protocol;
 import Zeze.Transaction.*;
-import static Zezex.Provider.ModuleProvider.*;
 import Game.*;
 import Zezex.Redirect;
 import Zezex.RedirectAll;
@@ -11,8 +10,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.*;
-import java.time.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -36,7 +35,6 @@ public class ModuleRank extends AbstractModule {
 	 根据 value 设置到排行榜中
 	 
 	 @param hash
-	 @param rankType
 	 @param roleId
 	 @param value
 	 @return Procudure.Success...
@@ -45,7 +43,9 @@ public class ModuleRank extends AbstractModule {
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		int maxCount = GetRankComputeCount(keyHint.getRankType());
 
-		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel, keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
+		var concurrentKey = new BConcurrentKey(keyHint.getRankType(),
+				hash % concurrentLevel,
+				keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 
 		var rank = _trank.GetOrAdd(concurrentKey);
 		// remove if role exist. 看看有没有更快的算法。
@@ -193,8 +193,6 @@ public class ModuleRank extends AbstractModule {
 	 相关数据变化时，更新排行榜。
 	 最好在事务成功结束或者处理快完的时候或者ChangeListener中调用这个方法更新排行榜。
 	 比如使用 Transaction.Current.RunWhileCommit(() => RunUpdateRank(...));
-	 
-	 @param rankType
 	 @param roleId
 	 @param value
 	 @param valueEx 只保存，不参与比较。如果需要参与比较，需要另行实现自己的Update和Get。
@@ -291,7 +289,7 @@ public class ModuleRank extends AbstractModule {
 							rank2.TableValue = Merge(rank2.TableValue, BRankList);
 						}
 						if (rank2.TableValue.getRankList().size() > countNeed) {
-							for (int ir = rank2.TableValue.getRankList().size() - 1; ir >= countNeed; --i)
+							for (int ir = rank2.TableValue.getRankList().size() - 1; ir >= countNeed; --ir)
 								rank2.TableValue.getRankList().remove(ir);
 							//rank.TableValue.RankList.RemoveRange(countNeed, rank.TableValue.RankList.Count - countNeed);
 						}
@@ -397,19 +395,21 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	public final BConcurrentKey NewRankKey(int rankType, int timeType) {
-		return NewRankKey(rankType, timeType, 0);
+		return NewRankKey(System.currentTimeMillis(), rankType, timeType, 0);
 	}
 
 	public final BConcurrentKey NewRankKey(int rankType, int timeType, long customizeId) {
-		return NewRankKey(LocalDateTime.now(), rankType, timeType, customizeId);
+		return NewRankKey(System.currentTimeMillis(), rankType, timeType, customizeId);
 	}
 
-	public final BConcurrentKey NewRankKey(java.time.LocalDateTime time, int rankType, int timeType) {
+	public final BConcurrentKey NewRankKey(long time, int rankType, int timeType) {
 		return NewRankKey(time, rankType, timeType, 0);
 	}
 
-	public final BConcurrentKey NewRankKey(LocalDateTime time, int rankType, int timeType, long customizeId) {
-		var year = time.getYear(); // 后面根据TimeType可能覆盖这个值。
+	public final BConcurrentKey NewRankKey(long time, int rankType, int timeType, long customizeId) {
+		var c = java.util.Calendar.getInstance();
+		c.setTimeInMillis(time);
+		var year = c.get(java.util.Calendar.YEAR); // 后面根据TimeType可能覆盖这个值。
 		long offset;
 
 		switch (timeType) {
@@ -419,15 +419,15 @@ public class ModuleRank extends AbstractModule {
 				break;
 
 			case BConcurrentKey.TimeTypeDay:
-				offset = time.getDayOfYear();
+				offset = c.get(java.util.Calendar.DAY_OF_YEAR);
 				break;
 
 			case BConcurrentKey.TimeTypeWeek:
-				offset = Zeze.Util.Time.GetWeekOfYear(time);
+				offset = c.get(Calendar.WEEK_OF_YEAR);
 				break;
 
 			case BConcurrentKey.TimeTypeSeason:
-				offset = Zeze.Util.Time.GetSimpleChineseSeason(time);
+				offset = GetSimpleChineseSeason(c);
 				break;
 
 			case BConcurrentKey.TimeTypeYear:
@@ -445,6 +445,16 @@ public class ModuleRank extends AbstractModule {
 		return new BConcurrentKey(rankType, 0, timeType, year, offset);
 	}
 
+	public int GetSimpleChineseSeason(java.util.Calendar c)
+	{
+		var month = c.get(Calendar.MONTH);
+		if (month < 3) return 4; // 12,1,2
+		if (month < 6) return 1; // 3,4,5
+		if (month < 9) return 2; // 6,7,8
+		if (month < 12) return 3; // 9,10,11
+		return 4; // 12,1,2
+	}
+
 	/******************************** ModuleRedirect 测试 *****************************************/
 	@Redirect()
 	public Zeze.Util.TaskCompletionSource<Integer> RunTest1(Zeze.TransactionModes mode) {
@@ -457,40 +467,37 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@Redirect()
-	public void RunTest2(int inData, tangible.RefObject<Integer> refData, tangible.OutObject<Integer> outData) {
+	public void RunTest2(int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData) {
 		int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
-		int outDataTmp = 0;
-		int refDataTmp = refData.refArgValue;
-		tangible.RefObject<Integer> tempRef_refDataTmp = new tangible.RefObject<Integer>(refDataTmp);
-		tangible.OutObject<Integer> tempOut_outDataTmp = new tangible.OutObject<Integer>();
-		var future = getApp().getZeze().Run(() -> Test2(hash, inData, tempRef_refDataTmp, tempOut_outDataTmp), "Test2", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-	outDataTmp = tempOut_outDataTmp.outArgValue;
-	refDataTmp = tempRef_refDataTmp.refArgValue;
-		future.Task.Wait();
-		refData.refArgValue = refDataTmp;
-		outData.outArgValue = outDataTmp;
+		var future = App.Zeze.Run(
+				() -> Test2(hash, inData, refData, outData),
+				"Test2", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+		try {
+			future.get();
+		} catch (InterruptedException | ExecutionException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
-	protected final int Test2(int hash, int inData, tangible.RefObject<Integer> refData, tangible.OutObject<Integer> outData) {
-		outData.outArgValue = 1;
-		++refData.refArgValue;
+	protected final int Test2(int hash, int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData) {
+		outData.Value = 1;
+		++refData.Value;
 		return Procedure.Success;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [ModuleRedirect()] public virtual void RunTest3(int inData, ref int refData, out int outData, System.Action<int> resultCallback)
-	public void RunTest3(int inData, tangible.RefObject<Integer> refData, tangible.OutObject<Integer> outData, tangible.Action1Param<Integer> resultCallback) {
-		int hash = ModuleRedirect.GetChoiceHashCode();
-		int outDataTmp = 0;
-		int refDataTmp = refData.refArgValue;
-		tangible.RefObject<Integer> tempRef_refDataTmp = new tangible.RefObject<Integer>(refDataTmp);
-		tangible.OutObject<Integer> tempOut_outDataTmp = new tangible.OutObject<Integer>();
-		var future = getApp().getZeze().Run(() -> Test3(hash, inData, tempRef_refDataTmp, tempOut_outDataTmp, resultCallback), "Test3", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-	outDataTmp = tempOut_outDataTmp.outArgValue;
-	refDataTmp = tempRef_refDataTmp.refArgValue;
-		future.Task.Wait();
-		refData.refArgValue = refDataTmp;
-		outData.outArgValue = outDataTmp;
+	public void RunTest3(int inData,
+						 Zeze.Util.RefObject<Integer> refData,
+						 Zeze.Util.OutObject<Integer> outData,
+						 Zeze.Util.Action1<Integer> resultCallback) {
+		int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
+		var future = App.Zeze.Run(
+				() -> Test3(hash, inData, refData, outData, resultCallback),
+				"Test3", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+		try {
+			future.get();
+		} catch (InterruptedException | ExecutionException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	/*
@@ -502,10 +509,12 @@ public class ModuleRank extends AbstractModule {
 	 * 
 	 * ref|out 方式需要同步等待，【不建议使用这种方式】【不建议使用这种方式】【不建议使用这种方式】
 	 */
-	protected final int Test3(int hash, int inData, tangible.RefObject<Integer> refData, tangible.OutObject<Integer> outData, tangible.Action1Param<Integer> resultCallback) {
-		outData.outArgValue = 1;
-		++refData.refArgValue;
-		resultCallback.invoke(1);
+	protected final int Test3(int hash,
+							  int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData,
+							  Zeze.Util.Action1<Integer> resultCallback) {
+		outData.Value = 1;
+		++refData.Value;
+		resultCallback.run(1);
 		return Procedure.Success;
 	}
 

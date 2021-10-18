@@ -40,7 +40,7 @@ public class Load {
 		int onlineNewPerSecond = onlineNew / TimoutDelaySeconds;
 		if (onlineNewPerSecond > App.Instance.getConfig().getMaxOnlineNew()) {
 			// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
-			App.getInstance().getServer().ReportLoad(online, App.getInstance().getConfig().getProposeMaxOnline(), onlineNew);
+			App.getInstance().Server.ReportLoad(online, App.getInstance().getConfig().getProposeMaxOnline(), onlineNew);
 			// new delay for digestion
 			StartTimerTask(onlineNewPerSecond / App.getInstance().getConfig().getMaxOnlineNew() + App.getInstance().getConfig().getDigestionDelayExSeconds());
 			// 消化完后，下一次强迫报告Load。
@@ -51,7 +51,7 @@ public class Load {
 		ReportDelaySeconds += TimoutDelaySeconds;
 		if (ReportDelaySeconds >= App.getInstance().getConfig().getReportDelaySeconds()) {
 			ReportDelaySeconds = 0;
-			App.getInstance().getServer().ReportLoad(online, App.getInstance().getConfig().getProposeMaxOnline(), onlineNew);
+			App.getInstance().Server.ReportLoad(online, App.getInstance().getConfig().getProposeMaxOnline(), onlineNew);
 		}
 		StartTimerTask();
 	}
