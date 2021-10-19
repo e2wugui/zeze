@@ -348,8 +348,10 @@ namespace Zeze.Services
             var session = r.Sender.UserState as Session;
             if (false == session.Registers.TryAdd(r.Argument, r.Argument))
             {
-                r.SendResultCode(Register.DuplicateRegister);
-                return Procedure.LogicError;
+                // 允许重复登录，断线重连Agent不好原子实现重发。
+                // r.SendResultCode(Register.DuplicateRegister);
+                r.SendResultCode(Register.Success);
+                return Procedure.Success;
             }
             var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
 
@@ -665,7 +667,7 @@ namespace Zeze.Services
             public string ServiceName { get; private set; }
 
             /// <summary>
-            /// 服务id，对于 Zeze.Application，一般就是 Config.AutoKeyLocalId.
+            /// 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
             /// 这里使用类型 string 是为了更好的支持扩展。
             /// </summary>
             public string ServiceIdentity { get; private set; }
@@ -744,6 +746,11 @@ namespace Zeze.Services
                         && ServiceIdentity.Equals(other.ServiceIdentity);
                 }
                 return false;
+            }
+
+            public override string ToString()
+            {
+                return $"{ServiceName}@{ServiceIdentity}";
             }
         }
 
