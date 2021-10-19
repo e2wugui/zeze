@@ -47,21 +47,11 @@ public class TestLock extends TestCase{
 				e.printStackTrace();
 			}
 
-			Object notusedk4ref;
-			OutObject<demo.Module1.Key> tempOut_notusedk4ref = new OutObject<demo.Module1.Key>();
-			if (false == wref.refersTo(tempOut_notusedk4ref.Value)) {
-				notusedk4ref = tempOut_notusedk4ref.Value;
+			if (null == wref.get())
 				break;
-			}else {
-				notusedk4ref = tempOut_notusedk4ref.Value;
-			}
 		}
 
-		demo.Module1.Key k4ref;
-		OutObject<demo.Module1.Key> tempOut_k4ref = new OutObject<demo.Module1.Key>();
-		assert false == wref.refersTo(tempOut_k4ref.Value);
-		k4ref = tempOut_k4ref.Value;
-		assert null == k4ref;
+		assert null == wref.get();
 
 		demo.Module1.Key key3 = new demo.Module1.Key((short)1);
 		System.out.println("test: is null.");
