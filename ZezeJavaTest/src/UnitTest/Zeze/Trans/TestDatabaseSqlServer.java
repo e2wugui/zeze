@@ -1,17 +1,21 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Serialize.*;
-import Zeze.Transaction.*;
-import UnitTest.*;
+import Zeze.Config.DatabaseConf;
+import Zeze.Config.DbType;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Database;
+import Zeze.Transaction.DatabaseSqlServer;
+import junit.framework.TestCase;
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestClass] public class TestDatabaseSqlServer
-public class TestDatabaseSqlServer {
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void Test1()
-	public final void Test1() {
+public class TestDatabaseSqlServer extends TestCase {
+	
+	public final void test1() {
 		String url = "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true";
-		DatabaseSqlServer sqlserver = new DatabaseSqlServer(url);
+		DatabaseConf databaseConf = new DatabaseConf();
+		databaseConf.setDatabaseType(DbType.SqlServer);
+		databaseConf.setDatabaseUrl(url);
+		databaseConf.setName("sqlserver");
+		DatabaseSqlServer sqlserver = new DatabaseSqlServer(databaseConf);
 		Database.Table table = sqlserver.OpenTable("test1"); {
 			var trans = sqlserver.BeginTransaction(); {
 				ByteBuffer key = ByteBuffer.Allocate();
@@ -24,7 +28,7 @@ public class TestDatabaseSqlServer {
 			}
 			trans.Commit();
 		}
-		assert 0 == table.Walk(::PrintRecord); {
+		assert 0 == table.Walk(this::PrintRecord); {
 			var trans = sqlserver.BeginTransaction(); {
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(1);
@@ -54,11 +58,9 @@ public class TestDatabaseSqlServer {
 			assert 2 == value.ReadInt();
 			assert value.ReadIndex == value.WriteIndex;
 		}
-		assert 2 == table.Walk(::PrintRecord);
+		assert 2 == table.Walk(this::PrintRecord);
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public bool PrintRecord(byte[] key, byte[] value)
 	public final boolean PrintRecord(byte[] key, byte[] value) {
 		int ikey = ByteBuffer.Wrap(key).ReadInt();
 		int ivalue = ByteBuffer.Wrap(value).ReadInt();

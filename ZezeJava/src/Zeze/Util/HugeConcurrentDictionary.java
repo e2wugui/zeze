@@ -37,6 +37,9 @@ public class HugeConcurrentDictionary<K, V> implements java.lang.Iterable<Map.En
 		if (bucketsCapacity > Integer.MAX_VALUE) {
 			throw new RuntimeException("capacity / buckets > int.MaxValue. Please Increace buckets.");
 		}
+		if(bucketsCapacity <= 0) {
+			bucketsCapacity = 1;
+		}
 		for (int i = 0; i < getBuckets().length; ++i) {
 			getBuckets()[i] = new java.util.concurrent.ConcurrentHashMap<K, V>(concurrencyLevel, (int)bucketsCapacity);
 		}

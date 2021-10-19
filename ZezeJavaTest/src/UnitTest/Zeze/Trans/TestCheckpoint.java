@@ -1,45 +1,44 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Serialize.*;
-import Zeze.Transaction.*;
-import UnitTest.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestClass] public class TestCheckpoint
-public class TestCheckpoint {
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestInitialize] public void TestInit()
-	public final void TestInit() {
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Procedure;
+
+public class TestCheckpoint{
+	
+	@Before
+	public final void testInit() {
 		demo.App.getInstance().Start();
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestCleanup] public void TestCleanup()
-	public final void TestCleanup() {
+	@After
+	public final void testCleanup() {
 		demo.App.getInstance().Stop();
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void TestCp()
-	public final void TestCp() {
-		assert demo.App.getInstance().getZeze().NewProcedure(::ProcClear, "ProcClear", null).Call() == Procedure.Success;
-		assert demo.App.getInstance().getZeze().NewProcedure(::ProcChange, "ProcChange", null).Call() == Procedure.Success;
-		demo.App.getInstance().getZeze().CheckpointRun();
-		demo.Module1.Table1 table = demo.App.getInstance().getDemoModule1().getTable1();
-		ByteBuffer value = table.GetStorageForTestOnly("IKnownWhatIAmDoing").DatabaseTable.Find(table.EncodeKey(56));
+	@Test
+	public final void testCp() {
+		assert demo.App.getInstance().Zeze.NewProcedure(this::ProcClear, "ProcClear", null).Call() == Procedure.Success;
+		assert demo.App.getInstance().Zeze.NewProcedure(this::ProcChange, "ProcChange", null).Call() == Procedure.Success;
+		demo.App.getInstance().Zeze.CheckpointRun();
+		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
+		ByteBuffer value = table.GetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().Find(table.EncodeKey(56L));
 		assert value != null;
-		assert value == bytesInTrans;
+		assert value.equals(bytesInTrans);
 	}
 
 	private int ProcClear() {
-		demo.App.getInstance().getDemoModule1().getTable1().Remove(56);
+		demo.App.getInstance().demo_Module1.getTable1().Remove(56L);
 		return Procedure.Success;
 	}
 
 	private ByteBuffer bytesInTrans;
 	private int ProcChange() {
-		demo.Module1.Value v = demo.App.getInstance().getDemoModule1().getTable1().GetOrAdd(56);
-		v.Int1 = 1;
+		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(56L);
+		v.setInt1(1);
 		bytesInTrans = ByteBuffer.Allocate();
 		v.Encode(bytesInTrans);
 		return Procedure.Success;

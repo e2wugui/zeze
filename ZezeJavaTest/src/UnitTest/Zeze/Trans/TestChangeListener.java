@@ -1,162 +1,185 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Transaction.*;
-import Zeze.Serialize.*;
-import Zeze.Net.*;
-import UnitTest.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestClass] public class TestChangeListener
-public class TestChangeListener {
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestInitialize] public void TestInit()
-	public final void TestInit() {
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import Zeze.Net.Binary;
+import Zeze.Transaction.Bean;
+import Zeze.Transaction.ChangeListener;
+import Zeze.Transaction.ChangeNote;
+import Zeze.Transaction.ChangeNoteMap1;
+import Zeze.Transaction.ChangeNoteMap2;
+import Zeze.Transaction.ChangeNoteSet;
+import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Collections.PSet1;
+
+public class TestChangeListener{
+	
+	@Before
+	public final void testInit() {
 		demo.App.getInstance().Start();
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestCleanup] public void TestCleanup()
-	public final void TestCleanup() {
+	@After
+	public final void testCleanup() {
 		demo.App.getInstance().Stop();
 	}
 
 	private void Prepare() {
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.App.getInstance().getDemoModule1().getTable1().Remove(1);
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.App.getInstance().demo_Module1.getTable1().Remove(1L);
 					return Procedure.Success;
 		}, "TestChangeListener.Remove", null).Call();
 
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.Module1.Value value = demo.App.getInstance().getDemoModule1().getTable1().GetOrAdd(1);
-					value.Int1 = 123;
-					value.Long2 = 123;
-					value.String3 = "123";
-					value.Bool4 = true;
-					value.Short5 = 123;
-					value.Float6 = 123.0f;
-					value.Double7 = 123.0;
-					value.Bytes8 = Binary.Empty;
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(1L);
+					value.setInt1(123);
+					value.setLong2(123);
+					value.setString3("123");
+					value.setBool4(true);
+					value.setShort5((short) 123);
+					value.setFloat6(123);
+					value.setDouble7(123);
+					value.setBytes8(Binary.Empty);
+				
 					demo.Bean1 tempVar = new demo.Bean1();
 					tempVar.setV1(1);
-					value.getList9().Add(tempVar);
+					value.getList9().add(tempVar);
 					demo.Bean1 tempVar2 = new demo.Bean1();
 					tempVar2.setV1(2);
-					value.getList9().Add(tempVar2);
-					value.getSet10().Add(123);
-					value.getSet10().Add(124);
-					value.getMap11().Add(1, new demo.Module2.Value());
-					value.getMap11().Add(2, new demo.Module2.Value());
-					value.getBean12().Int1 = 123;
-					value.Byte13 = 12;
-					value.Dynamic14_demo_Module1_Simple = new demo.Module1.Simple();
-					value.getDynamic14DemoModule1Simple().setInt1(123);
-					value.getMap15().Add(1, 1);
-					value.getMap15().Add(2, 2);
+					value.getList9().add(tempVar2);
+					value.getSet10().add(123);
+					value.getSet10().add(124);
+					value.getMap11().put(1L, new demo.Module2.Value());
+					value.getMap11().put(2L, new demo.Module2.Value());
+					value.getBean12().setInt1(123);
+					value.setByte13((byte) 12);
+					value.setDynamic14(new demo.Module1.Simple());
+					value.getDynamic14_demo_Module1_Simple().setInt1(123);
+					value.getMap15().put(1L, 1L);
+					value.getMap15().put(2L, 2L);
 					return Procedure.Success;
 		}, "TestChangeListener.Prepare", null).Call();
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void TestAllType()
-	public final void TestAllType() {
+	@Test
+	public final void testAllType() {
 		Prepare();
 		AddListener();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.Module1.Value value = demo.App.getInstance().getDemoModule1().getTable1().GetOrAdd(1);
-					value.Int1 = 124;
-					value.Long2 = 124;
-					value.String3 = "124";
-					value.Bool4 = false;
-					value.Short5 = 124;
-					value.Float6 = 124.0f;
-					value.Double7 = 124.0;
-					value.Bytes8 = new Binary(new byte[4]);
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(1L);
+					value.setInt1(124);
+					value.setLong2(124);
+					value.setString3("124");
+					value.setBool4(true);
+					value.setShort5((short) 124);
+					value.setFloat6(124);
+					value.setDouble7(124);
+					value.setBytes8(new Binary(new byte[4]));
+				
 					demo.Bean1 tempVar = new demo.Bean1();
-					tempVar.setV1(2);
-					value.getList9().Add(tempVar);
+					tempVar.setV1(1);
+					value.getList9().add(tempVar);
 					demo.Bean1 tempVar2 = new demo.Bean1();
-					tempVar2.setV1(3);
-					value.getList9().Add(tempVar2);
-					value.getSet10().Add(125);
-					value.getSet10().Add(126);
-					value.getMap11().Add(3, new demo.Module2.Value());
-					value.getMap11().Add(4, new demo.Module2.Value());
-					value.getBean12().Int1 = 124;
-					value.Byte13 = 13;
-					value.Dynamic14_demo_Module1_Simple = new demo.Module1.Simple();
-					value.getDynamic14DemoModule1Simple().setInt1(124);
-					value.getMap15().Add(3, 3);
-					value.getMap15().Add(4, 4);
+					tempVar2.setV1(2);
+					value.getList9().add(tempVar2);
+					value.getSet10().add(124);
+					value.getSet10().add(124);
+					value.getMap11().put(1L, new demo.Module2.Value());
+					value.getMap11().put(2L, new demo.Module2.Value());
+					value.getBean12().setInt1(124);
+					value.setByte13((byte) 13);
+					value.setDynamic14(new demo.Module1.Simple());
+					value.getDynamic14_demo_Module1_Simple().setInt1(124);
+					value.getMap15().put(3L, 3L);
+					value.getMap15().put(4L, 4L);
+				
 					return Procedure.Success;
 		}, "TestChangeListener.Modify", null).Call();
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.Module1.Value value = demo.App.getInstance().getDemoModule1().getTable1().GetOrAdd(1);
-					value.getSet10().Add(127);
-					value.getSet10().Remove(124);
-					value.getMap11().Add(5, new demo.Module2.Value());
-					value.getMap11().Add(6, new demo.Module2.Value());
-					value.getMap11().Remove(1);
-					value.getMap11().Remove(2);
-					value.getMap15().Add(5, 5);
-					value.getMap15().Add(6, 6);
-					value.getMap15().Remove(1);
-					value.getMap15().Remove(2);
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(1L);
+					value.getSet10().add(127);
+					value.getSet10().remove(124);
+					value.getMap11().put(5L, new demo.Module2.Value());
+					value.getMap11().put(6L, new demo.Module2.Value());
+					value.getMap11().remove(1L);
+					value.getMap11().remove(2L);
+					value.getMap15().put(5L, 5L);
+					value.getMap15().put(6L, 6L);
+					value.getMap15().remove(1L);
+					value.getMap15().remove(2L);
 					return Procedure.Success;
 		}, "TestChangeListener.ModifyCollections", null).Call();
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.Module1.Value value = demo.App.getInstance().getDemoModule1().getTable1().GetOrAdd(1);
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(1L);
 					ArrayList<Integer> except = new ArrayList<Integer>(Arrays.asList(1, 2));
-					value.getSet10().ExceptWith(except);
+					value.getSet10().removeAll(except);
 					return Procedure.Success;
 		}, "TestChangeListener.ModifySetExcept", null).Call();
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.Module1.Value value = demo.App.getInstance().getDemoModule1().getTable1().GetOrAdd(1);
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(1L);
 					ArrayList<Integer> intersect = new ArrayList<Integer>(Arrays.asList(123, 126));
-					value.getSet10().IntersectWith(intersect);
+					//value.getSet10().IntersectWith(intersect);
+					PSet1<Integer> set10 = value.getSet10();
+					List<Integer> temp = new ArrayList<>(intersect.size());
+					intersect.forEach( i ->{
+						if(set10.contains(i)) {
+							temp.add(i);
+						}	
+					});
+					set10.clear();
+					set10.addAll(temp);
 					return Procedure.Success;
 		}, "TestChangeListener.ModifySetIntersect", null).Call();
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.Module1.Value value = demo.App.getInstance().getDemoModule1().getTable1().GetOrAdd(1);
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(1L);
 					ArrayList<Integer> SymmetricExcept = new ArrayList<Integer>(Arrays.asList(123, 140));
-					value.getSet10().SymmetricExceptWith(SymmetricExcept);
+					value.getSet10().removeAll(SymmetricExcept);
 					return Procedure.Success;
 		}, "TestChangeListener.ModifySetSymmetricExcept", null).Call();
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.Module1.Value value = demo.App.getInstance().getDemoModule1().getTable1().GetOrAdd(1);
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(1L);
 					ArrayList<Integer> Union = new ArrayList<Integer>(Arrays.asList(123, 140));
-					value.getSet10().UnionWith(Union);
+					//value.getSet10().UnionWith(Union);
+					value.getSet10().addAll(Union);
 					return Procedure.Success;
 		}, "TestChangeListener.ModifySetUnion", null).Call();
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.App.getInstance().getDemoModule1().getTable1().Put(1, new demo.Module1.Value());
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.App.getInstance().demo_Module1.getTable1().Put(1L, new demo.Module1.Value());
 					return Procedure.Success;
 		}, "TestChangeListener.PutRecord", null).Call();
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.App.getInstance().getDemoModule1().getTable1().Remove(1);
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.App.getInstance().demo_Module1.getTable1().Remove(1L);
 					return Procedure.Success;
 		}, "TestChangeListener.RemoveRecord", null).Call();
 		Verify();
@@ -165,8 +188,8 @@ public class TestChangeListener {
 	private demo.Module1.Value localValue;
 
 	private void Init() {
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.Module1.Value value = demo.App.getInstance().getDemoModule1().getTable1().Get(1);
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().Get(1L);
 					localValue = value == null ? null : value.Copy();
 					return Procedure.Success;
 		}, "TestChangeListener.CopyLocal", null).Call();
@@ -190,8 +213,8 @@ public class TestChangeListener {
 	}
 
 	private void Verify() {
-		assert Procedure.Success == demo.App.getInstance().getZeze().NewProcedure(() -> {
-					demo.Module1.Value value = demo.App.getInstance().getDemoModule1().getTable1().Get(1);
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+					demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().Get(1L);
 					localValue = value == null ? null : value.Copy();
 					return Procedure.Success;
 		}, "TestChangeListener.CopyLocal", null).Call();
@@ -214,21 +237,21 @@ public class TestChangeListener {
 	}
 
 	private void AddListener() {
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_int1, _CLInt1);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_long2, _ClLong2);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_string3, _CLString3);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bool4, _CLBool4);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_short5, _CLShort5);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_float6, _CLFloat6);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_double7, _CLDouble7);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bytes8, _CLBytes8);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_list9, _CLList9);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_set10, _CLSet10);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_map11, _CLMap11);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bean12, _CLBean12);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_byte13, _CLByte13);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_dynamic14, _ClDynamic14);
-		demo.App.getInstance().getDemoModule1().getTable1().ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_map15, _CLMap15);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_int1, _CLInt1);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_long2, _ClLong2);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_string3, _CLString3);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_bool4, _CLBool4);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_short5, _CLShort5);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_float6, _CLFloat6);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_double7, _CLDouble7);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_bytes8, _CLBytes8);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_list9, _CLList9);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_set10, _CLSet10);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_map11, _CLMap11);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_bean12, _CLBean12);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_byte13, _CLByte13);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_dynamic14, _ClDynamic14);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_map15, _CLMap15);
 	}
 
 	private final CLInt1 _CLInt1 = new CLInt1();
@@ -253,8 +276,8 @@ public class TestChangeListener {
 		public final void Init(demo.Module1.Value current) {
 			if (null != current) {
 				newValue = new HashMap<Long, Long>();
-				for (var e : current.getMap15()) {
-					newValue.put(e.Key, e.Value);
+				for (var e : current.getMap15().entrySet()) {
+					newValue.put(e.getKey(), e.getValue());
 				}
 			}
 			else {
@@ -268,31 +291,33 @@ public class TestChangeListener {
 				return;
 			}
 			HashMap<Long, Long> newValueCopy = new HashMap<Long, Long>();
-			for (var e : ((demo.Module1.Value)current).getMap15()) {
-				newValueCopy.put(e.Key, e.Value);
+			for (var e : ((demo.Module1.Value)current).getMap15().entrySet()) {
+				newValueCopy.put(e.getKey(), e.getValue());
 			}
 			assert newValue.size() == newValueCopy.size();
 			for (var e : newValue.entrySet()) {
-				TValue exist;
-				assert newValueCopy.containsKey(e.getKey()) && (exist = newValueCopy.get(e.getKey())) == exist;
-				assert e.getValue() == exist;
+				
+				Long exist = newValueCopy.get(e.getKey());
+				assert newValueCopy.containsKey(e.getKey());
+				assert e.getValue().equals(exist);
 			}
 		}
 
 		public final void OnChanged(Object key, Bean value) {
 			newValue = new HashMap<Long, Long>();
-			for (var e : ((demo.Module1.Value)value).getMap15()) {
-				newValue.put(e.Key, e.Value);
+			for (var e : ((demo.Module1.Value)value).getMap15().entrySet()) {
+				newValue.put(e.getKey(), e.getValue());
 			}
 		}
 
 		public final void OnChanged(Object key, Bean value, ChangeNote note) {
+			@SuppressWarnings("unchecked")
 			ChangeNoteMap1<Long, Long> notemap1 = (ChangeNoteMap1<Long, Long>)note;
 
-			for (var a : notemap1.Replaced) {
-				newValue.put(a.Key, a.Value);
+			for (var a : notemap1.getReplaced().entrySet()) {
+				newValue.put(a.getKey(), a.getValue());
 			}
-			for (var r : notemap1.Removed) {
+			for (var r : notemap1.getRemoved()) {
 				newValue.remove(r);
 			}
 		}
@@ -314,10 +339,10 @@ public class TestChangeListener {
 				assert null == newValue;
 				return;
 			}
-			assert newValue.TypeId == current.getDynamic14().TypeId;
-			if (newValue.TypeId == demo.Module1.Simple.TYPEID) {
+			assert newValue.getTypeId() == current.getDynamic14().getTypeId();
+			if (newValue.getTypeId() == demo.Module1.Simple.TYPEID) {
 				demo.Module1.Simple newSimple = newValue instanceof demo.Module1.Simple ? (demo.Module1.Simple)newValue : null;
-				Zeze.Transaction.Bean tempVar = current.getDynamic14().Bean;
+				Zeze.Transaction.Bean tempVar = current.getDynamic14().getBean();
 				demo.Module1.Simple currentSimple = tempVar instanceof demo.Module1.Simple ? (demo.Module1.Simple)tempVar : null;
 				assert null != newSimple;
 				assert null != currentSimple;
@@ -351,7 +376,7 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.Value current) {
 			if (null == current) {
-				assert 255 == newValue;
+				assert ((byte)255) == newValue;
 				return;
 			}
 			assert newValue == current.getByte13();
@@ -410,8 +435,8 @@ public class TestChangeListener {
 		public final void Init(demo.Module1.Value current) {
 			if (null != current) {
 				newValue = new HashMap<Long, demo.Module2.Value>();
-				for (var e : current.getMap11()) {
-					newValue.put(e.Key, e.Value.Copy());
+				for (var e : current.getMap11().entrySet()) {
+					newValue.put(e.getKey(), e.getValue().Copy());
 				}
 			}
 			else {
@@ -425,32 +450,33 @@ public class TestChangeListener {
 				return;
 			}
 			HashMap<Long, demo.Module2.Value> newValueCopy = new HashMap<Long, demo.Module2.Value>();
-			for (var e : ((demo.Module1.Value)current).getMap11()) {
-				newValueCopy.put(e.Key, e.Value.Copy());
+			for (var e : ((demo.Module1.Value)current).getMap11().entrySet()) {
+				newValueCopy.put(e.getKey(), e.getValue().Copy());
 			}
 			assert newValue.size() == newValueCopy.size();
 			for (var e : newValue.entrySet()) {
-				TValue exist;
-				assert newValueCopy.containsKey(e.getKey()) && (exist = newValueCopy.get(e.getKey())) == exist;
-				assert e.getValue().S == exist.S;
+				demo.Module2.Value exist = newValueCopy.get(e.getKey());
+				assert newValueCopy.containsKey(e.getKey());
+				assert e.getValue().getS() == exist.getS();
 			}
 		}
 
 		public final void OnChanged(Object key, Bean value) {
 			newValue = new HashMap<Long, demo.Module2.Value>();
-			for (var e : ((demo.Module1.Value)value).getMap11()) {
-				newValue.put(e.Key, e.Value.Copy());
+			for (var e : ((demo.Module1.Value)value).getMap11().entrySet()) {
+				newValue.put(e.getKey(), e.getValue().Copy());
 			}
 		}
 
 		public final void OnChanged(Object key, Bean value, ChangeNote note) {
+			@SuppressWarnings("unchecked")
 			ChangeNoteMap2<Long, demo.Module2.Value> notemap2 = (ChangeNoteMap2<Long, demo.Module2.Value>)note;
 			notemap2.MergeChangedToReplaced(((demo.Module1.Value)value).getMap11());
 
-			for (var a : notemap2.Replaced) {
-				newValue.put(a.Key, a.Value);
+			for (var a : notemap2.getReplaced().entrySet()) {
+				newValue.put(a.getKey(), a.getValue());
 			}
-			for (var r : notemap2.Removed) {
+			for (var r : notemap2.getRemoved()) {
 				newValue.remove(r);
 			}
 		}
@@ -498,11 +524,12 @@ public class TestChangeListener {
 		}
 
 		public final void OnChanged(Object key, Bean value, ChangeNote note) {
+			@SuppressWarnings("unchecked")
 			ChangeNoteSet<Integer> noteset = (ChangeNoteSet<Integer>)note;
-			for (var a : noteset.Added) {
+			for (var a : noteset.getAdded()) {
 				newValue.add(a);
 			}
-			for (var r : noteset.Removed) {
+			for (var r : noteset.getRemoved()) {
 				newValue.remove((Integer)r);
 			}
 		}
@@ -532,9 +559,9 @@ public class TestChangeListener {
 				assert null == newValue;
 				return;
 			}
-			assert newValue.size() == current.getList9().Count;
+			assert newValue.size() == current.getList9().size();
 			for (int i = 0; i < newValue.size(); ++i) {
-				assert newValue.get(i).getV1() == current.getList9().get(i).V1;
+				assert newValue.get(i).getV1() == current.getList9().get(i).getV1();
 			}
 		}
 
@@ -673,7 +700,7 @@ public class TestChangeListener {
 		private boolean newValue;
 
 		public final void Init(demo.Module1.Value current) {
-			newValue = (null != current) && current.getBool4();
+			newValue = (null != current) && current.isBool4();
 		}
 
 		public final void Verify(demo.Module1.Value current) {
@@ -681,15 +708,15 @@ public class TestChangeListener {
 				assert false == newValue;
 				return;
 			}
-			assert newValue == current.getBool4();
+			assert newValue == current.isBool4();
 		}
 
 		public final void OnChanged(Object key, Bean value) {
-			newValue = ((demo.Module1.Value)value).getBool4();
+			newValue = ((demo.Module1.Value)value).isBool4();
 		}
 
 		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).getBool4();
+			newValue = ((demo.Module1.Value)value).isBool4();
 		}
 
 		public final void OnRemoved(Object key) {
@@ -707,10 +734,10 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.Value current) {
 			if (null == current) {
-				assert newValue.equals(null);
+				assert newValue == null;
 				return;
 			}
-			assert newValue == current.getString3();
+			assert newValue.equals(current.getString3());
 		}
 
 		public final void OnChanged(Object key, Bean value) {

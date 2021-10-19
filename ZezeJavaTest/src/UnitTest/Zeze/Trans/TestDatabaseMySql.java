@@ -1,17 +1,21 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Serialize.*;
-import Zeze.Transaction.*;
-import UnitTest.*;
+import Zeze.Config.DatabaseConf;
+import Zeze.Config.DbType;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Database;
+import Zeze.Transaction.DatabaseMySql;
+import junit.framework.TestCase;
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestClass] public class TestDatabaseMySql
-public class TestDatabaseMySql {
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void Test1()
-	public final void Test1() {
+public class TestDatabaseMySql extends TestCase{
+	
+	public final void test1() {
 		String url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
-		DatabaseMySql sqlserver = new DatabaseMySql(url);
+		DatabaseConf databaseConf = new DatabaseConf();
+		databaseConf.setDatabaseType(DbType.MySql);
+		databaseConf.setDatabaseUrl(url);
+		databaseConf.setName("mysql");
+		DatabaseMySql sqlserver = new DatabaseMySql(databaseConf);
 		Database.Table table = sqlserver.OpenTable("test_1"); {
 			var trans = sqlserver.BeginTransaction(); {
 				ByteBuffer key = ByteBuffer.Allocate();
@@ -24,7 +28,7 @@ public class TestDatabaseMySql {
 			}
 			trans.Commit();
 		}
-		assert 0 == table.Walk(::PrintRecord); {
+		assert 0 == table.Walk(this::PrintRecord); {
 			var trans = sqlserver.BeginTransaction(); {
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(1);
@@ -54,11 +58,9 @@ public class TestDatabaseMySql {
 			assert 2 == value.ReadInt();
 			assert value.ReadIndex == value.WriteIndex;
 		}
-		assert 2 == table.Walk(::PrintRecord);
+		assert 2 == table.Walk(this::PrintRecord);
 	}
 
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: public bool PrintRecord(byte[] key, byte[] value)
 	public final boolean PrintRecord(byte[] key, byte[] value) {
 		int ikey = ByteBuffer.Wrap(key).ReadInt();
 		int ivalue = ByteBuffer.Wrap(value).ReadInt();

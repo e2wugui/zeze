@@ -63,7 +63,7 @@ public class TableCache<K, V extends Bean> {
 					NewLruHot();
 				}
 		}, table.getTableConf().getCacheNewLruHotPeriod(), table.getTableConf().getCacheNewLruHotPeriod());
-		Task.schedule((task)->CleanNow(task), getTable().getTableConf().getCacheCleanPeriod(), -1);
+		Task.schedule((task)->CleanNow(task), getTable().getTableConf().getCacheCleanPeriod(), getTable().getTableConf().getCacheCleanPeriod());
 	}
 
 	private int GetCacheBuckets() {

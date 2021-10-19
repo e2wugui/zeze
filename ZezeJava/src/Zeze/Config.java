@@ -355,6 +355,18 @@ public final class Config {
 		public String getDatabaseUrl() {
 			return DatabaseUrl;
 		}
+		
+		public void setName(String name) {
+			Name = name;
+		}
+
+		public void setDatabaseType(DbType databaseType) {
+			DatabaseType = databaseType;
+		}
+
+		public void setDatabaseUrl(String databaseUrl) {
+			DatabaseUrl = databaseUrl;
+		}
 
 		public DatabaseConf() {
 		}

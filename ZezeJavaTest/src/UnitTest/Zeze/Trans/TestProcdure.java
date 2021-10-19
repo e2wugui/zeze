@@ -1,12 +1,14 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Serialize.*;
-import Zeze.Transaction.*;
-import UnitTest.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestClass] public class TestProcdure
-public class TestProcdure {
+import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Record1;
+import Zeze.Transaction.TableKey;
+
+public class TestProcdure{
 	private TestBegin.MyBean bean = new TestBegin.MyBean();
 
 	public final int ProcTrue() {
@@ -25,13 +27,13 @@ public class TestProcdure {
 		assert bean.getI() == 0;
 		bean.setI(1);
 		assert bean.getI() == 1; {
-			int r = demo.App.getInstance().getZeze().NewProcedure(::ProcFalse, "ProcFalse", null).Call();
+			int r = demo.App.getInstance().Zeze.NewProcedure(this::ProcFalse, "ProcFalse", null).Call();
 			assert r != Procedure.Success;
 			assert bean.getI() == 1;
 		}
 
 		{
-			int r = demo.App.getInstance().getZeze().NewProcedure(::ProcTrue, "ProcFalse", null).Call();
+			int r = demo.App.getInstance().Zeze.NewProcedure(this::ProcTrue, "ProcFalse", null).Call();
 			assert r == Procedure.Success;
 			assert bean.getI() == 123;
 		}
@@ -39,26 +41,23 @@ public class TestProcdure {
 		return Procedure.Success;
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestInitialize] public void TestInit()
-	public final void TestInit() {
+	@Before
+	public final void testInit() {
 		demo.App.getInstance().Start();
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestCleanup] public void TestCleanup()
-	public final void TestCleanup() {
+	@After
+	public final void testCleanup() {
 		demo.App.getInstance().Stop();
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void Test1()
-	public final void Test1() {
+	@Test
+	public final void test1() {
 		TableKey root = new TableKey(1, 1);
 		// 特殊测试，拼凑一个record用来提供需要的信息。
-		var r = new Record<Long, TestBegin.MyBean>(null, 1, bean);
+		var r = new Record1<Long, TestBegin.MyBean>(null, 1L, bean);
 		bean.InitRootInfo(r.CreateRootInfoIfNeed(root), null);
-		int rc = demo.App.getInstance().getZeze().NewProcedure(::ProcNest, "ProcNest", null).Call();
+		int rc = demo.App.getInstance().Zeze.NewProcedure(this::ProcNest, "ProcNest", null).Call();
 		assert rc == Procedure.Success;
 		// 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。
 		assert bean._i == 123;

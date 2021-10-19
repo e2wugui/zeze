@@ -28,7 +28,7 @@ public final class Transaction {
 	public static Transaction Create() {
 		var t = threadLocal.get();
 		if (null == t) {
-			threadLocal.set(new Transaction());
+			threadLocal.set(t = new Transaction());
 		}
 		return t;
 	}

@@ -5,6 +5,8 @@ package demo;
 import java.util.*;
 // ZEZE_FILE_CHUNK }}} IMPORT GEN
 
+import Zeze.Config;
+
 
 public class App {
 
@@ -14,7 +16,11 @@ public class App {
     }
 
     public void Start() {
-        Create();
+    	Start(Config.Load("./zeze.xml"));
+    }
+    
+    public void Start(Config config) {
+        Create(config);
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。
         StartService(); // 启动网络

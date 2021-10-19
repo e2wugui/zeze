@@ -1,14 +1,11 @@
 package UnitTest.Zeze.Trans;
 
 import Zeze.Transaction.*;
-import UnitTest.*;
+import junit.framework.TestCase;
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestClass] public class TestTableKey
-public class TestTableKey {
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void Test1()
-	public final void Test1() {
+public class TestTableKey extends TestCase{
+	
+	public final void test1() {
 	{
 			TableKey tkey1 = new TableKey(1, 1);
 			TableKey tkey2 = new TableKey(1, 1);

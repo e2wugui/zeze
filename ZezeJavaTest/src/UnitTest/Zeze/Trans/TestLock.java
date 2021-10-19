@@ -1,17 +1,18 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Transaction.*;
-import Zeze.Util.*;
-import UnitTest.*;
+import java.lang.ref.WeakReference;
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestClass] public class TestLock
-public class TestLock {
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void Test()
-	public final void Test() {
+import Zeze.Transaction.Lockey;
+import Zeze.Transaction.Locks;
+import Zeze.Transaction.TableKey;
+import Zeze.Util.OutObject;
+import Zeze.Util.WeakHashSet;
+import junit.framework.TestCase;
+
+public class TestLock extends TestCase{
+	
+	public final void test() {
 		// DEBUG 下垃圾回收策略导致 WeakReference 不回收。
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
 //#if RELEASE
 		WeakHashSet<demo.Module1.Key> keys = new WeakHashSet<demo.Module1.Key>();
 		demo.Module1.Key key1 = new demo.Module1.Key((short)1);
@@ -26,7 +27,7 @@ public class TestLock {
 
 		demo.Module1.Key exist2 = keys.get(key2);
 		assert null != exist2;
-		assert exist2 == key1;
+		assert exist2.equals(key1);
 
 		key1 = null;
 		key2 = null;
@@ -38,25 +39,28 @@ public class TestLock {
 		k4 = null;
 		for (int i = 0; i < 10; ++i) {
 			System.gc();
-			GC.WaitForFullGCComplete();
 			System.runFinalization();
-			Thread.sleep(200);
-
-			T notusedk4ref;
-			tangible.OutObject<demo.Module1.Key> tempOut_notusedk4ref = new tangible.OutObject<demo.Module1.Key>();
-			if (false == wref.TryGetTarget(tempOut_notusedk4ref)) {
-			notusedk4ref = tempOut_notusedk4ref.outArgValue;
-				break;
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-		else {
-			notusedk4ref = tempOut_notusedk4ref.outArgValue;
-		}
+
+			Object notusedk4ref;
+			OutObject<demo.Module1.Key> tempOut_notusedk4ref = new OutObject<demo.Module1.Key>();
+			if (false == wref.refersTo(tempOut_notusedk4ref.Value)) {
+				notusedk4ref = tempOut_notusedk4ref.Value;
+				break;
+			}else {
+				notusedk4ref = tempOut_notusedk4ref.Value;
+			}
 		}
 
 		demo.Module1.Key k4ref;
-		tangible.OutObject<demo.Module1.Key> tempOut_k4ref = new tangible.OutObject<demo.Module1.Key>();
-		assert false == wref.TryGetTarget(tempOut_k4ref);
-	k4ref = tempOut_k4ref.outArgValue;
+		OutObject<demo.Module1.Key> tempOut_k4ref = new OutObject<demo.Module1.Key>();
+		assert false == wref.refersTo(tempOut_k4ref.Value);
+		k4ref = tempOut_k4ref.Value;
 		assert null == k4ref;
 
 		demo.Module1.Key key3 = new demo.Module1.Key((short)1);
@@ -65,10 +69,8 @@ public class TestLock {
 //#endif
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void Test1()
-	public final void Test1() {
-		Locks locks = Locks.Instance;
+	public final void test1() {
+		Locks locks = Locks.getInstance();
 
 		TableKey tk1 = new TableKey(1, 1);
 		TableKey tk2 = new TableKey(1, 1);
@@ -76,24 +78,22 @@ public class TestLock {
 		Lockey lock1 = new Lockey(tk1);
 		Lockey lock2 = new Lockey(tk2);
 
-		assert lock1 == lock2;
+		assert lock1.equals(lock2);
 
 		Lockey lock1ref = locks.Get(lock1);
-		assert lock1ref == lock1; // first Get. self
+		assert lock1ref.equals(lock1); // first Get. self
 
 		Lockey lock2ref = locks.Get(lock2);
-		assert lock2ref == lock1; // second Get. the exist
+		assert lock2ref.equals(lock1); // second Get. the exist
 
 		TableKey tk3 = new TableKey(1, 2);
 		Lockey lock3 = new Lockey(tk3);
 		Lockey lock3ref = locks.Get(lock3);
-		assert lock3ref == lock3;
-		assert!lock3ref == lock1;
+		assert lock3ref.equals(lock3);
+		assert !(lock3ref.equals(lock1));
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void TestRecursion1()
-	public final void TestRecursion1() {
+	public final void testRecursion1() {
 		/*
 		TableKey tkey = new TableKey(1, 1);
 		Lockey lockey = Locks.Instance.Get(tkey);
@@ -104,9 +104,7 @@ public class TestLock {
 		*/
 	}
 
-//C# TO JAVA CONVERTER TODO TASK: Java annotations will not correspond to .NET attributes:
-//ORIGINAL LINE: [TestMethod] public void TestRecursion2()
-	public final void TestRecursion2() {
+	public final void testRecursion2() {
 		/*
 		TableKey tkey = new TableKey(1, 1);
 		Lockey lockey = Locks.Instance.Get(tkey);

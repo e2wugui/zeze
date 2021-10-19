@@ -4,7 +4,6 @@ import Zeze.Serialize.*;
 import Zeze.Transaction.*;
 import Zeze.Transaction.Record;
 import junit.framework.TestCase;
-import UnitTest.*;
 
 public class TestBegin extends TestCase{
 	

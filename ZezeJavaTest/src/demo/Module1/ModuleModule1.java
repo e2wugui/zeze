@@ -27,8 +27,24 @@ public class ModuleModule1 extends AbstractModule {
         var r = (Rpc1)_r;
         return Zeze.Transaction.Procedure.NotImplement;
     }
+    
+    public Table1 getTable1() {
+		return _Table1;
+	}
 
-    // ZEZE_FILE_CHUNK {{{ GEN MODULE
+	public Table2 getTable2() {
+		return _Table2;
+	}
+
+	public Table3 getTable3() {
+		return _Table3;
+	}
+
+	public TableImportant getTableImportant() {
+		return _TableImportant;
+	}
+
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE
     public static final int ModuleId = 1;
 
     private Autokey_ _Autokey_ = new Autokey_();

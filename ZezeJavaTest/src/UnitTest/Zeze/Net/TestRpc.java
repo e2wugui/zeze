@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Net;
 
+
 import Zeze.Net.*;
 import Zeze.Transaction.*;
 import Zeze.Util.Factory;
@@ -12,7 +13,7 @@ public class TestRpc extends TestCase{
 	
 	public final void testRpcSimple() throws InterruptedException {
 		Service server = new Service("TestRpc.Server");
-
+		Zeze.Util.Task.initThreadPool(new java.util.concurrent.ScheduledThreadPoolExecutor(10));
 		FirstRpc forid = new FirstRpc();
 		Factory<Protocol> f =  () -> new FirstRpc();
 		server.AddFactoryHandle(forid.getTypeId(), new Service.ProtocolFactoryHandle(f,x-> ProcessFirstRpcRequest(x)));
@@ -43,6 +44,10 @@ public class TestRpc extends TestCase{
 	}
 
 	public static class FirstRpc extends Rpc<demo.Module1.Value, demo.Module1.Value> {
+		public FirstRpc() {
+			Argument = new demo.Module1.Value();
+		}
+		
 		@Override
 		public int getModuleId() {
 			return 1;
