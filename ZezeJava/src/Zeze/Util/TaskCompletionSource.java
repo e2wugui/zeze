@@ -1,11 +1,23 @@
 package Zeze.Util;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 public class TaskCompletionSource<T> extends FutureTask<T> {
+	
+	public TaskCompletionSource(Callable<T> callable) {
+		super(callable);
+	}
+	
 	public TaskCompletionSource() {
-		super(null);
+		super(new Callable<T>() {
+
+			@Override
+			public T call() throws Exception {
+				return null;
+			}
+		});
 	}
 	
 	public boolean TrySetException(Throwable ex) {

@@ -5,10 +5,12 @@ import Zeze.Util.TaskCompletionSource;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import org.apache.log4j.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class Application {
-	private static final Logger logger = Logger.getLogger(Application.class);
+	private static final Logger logger = LogManager.getLogger(Application.class);
 
 	private HashMap<String, Database> Databases = new HashMap<String, Database> ();
 	public HashMap<String, Database> getDatabases() {
@@ -168,7 +170,7 @@ public final class Application {
 			while (true) {
 				var dataVersion = defaultDb.getDirectOperates().GetDataWithVersion(keyOfSchemas);
 				long version = 0;
-				if (null != dataVersion.Data) {
+				if (dataVersion !=null && null != dataVersion.Data) {
 					var SchemasPrevious = new Schemas();
 					try {
 						SchemasPrevious.Decode(dataVersion.Data);
