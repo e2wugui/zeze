@@ -1,7 +1,5 @@
 package UnitTest.Zeze.Trans;
 
-import java.util.concurrent.ExecutionException;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
