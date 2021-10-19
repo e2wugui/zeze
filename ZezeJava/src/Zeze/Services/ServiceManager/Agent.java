@@ -436,6 +436,7 @@ public final class Agent implements Closeable {
 	 * 用于测试：Agent.Client.NewClientSocket(...)，不会自动重连，不要和Config混用。
 	 */
 
+	public final static String DefaultServiceName = "Zeze.Services.ServiceManager.Agent";
 	public Agent(Zeze.Config config) {
 		this(config, null);
 	}

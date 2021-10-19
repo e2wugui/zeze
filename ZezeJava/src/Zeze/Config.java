@@ -227,8 +227,7 @@ public final class Config {
 	 c.AddCustomize(...);
 	 c.LoadAndParse();
 	 
-	 @param xmlfile
-	 @return 
+	 @return
 	*/
 
 	public static Config Load() {

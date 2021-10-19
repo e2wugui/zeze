@@ -5,9 +5,9 @@ import Zeze.Util.TaskCompletionSource;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import Zeze.Services.ServiceManager.Agent;
 
 public final class Application {
 	private static final Logger logger = LogManager.getLogger(Application.class);
@@ -28,8 +28,8 @@ public final class Application {
 	private void setStart(boolean value) {
 		IsStart = value;
 	}
-	private Zeze.Services.ServiceManager.Agent ServiceManagerAgent;
-	public Zeze.Services.ServiceManager.Agent getServiceManagerAgent() {
+	private Agent ServiceManagerAgent;
+	public Agent getServiceManagerAgent() {
 		return ServiceManagerAgent;
 	}
 	private void setServiceManagerAgent(Zeze.Services.ServiceManager.Agent value) {
@@ -147,8 +147,11 @@ public final class Application {
 			setStart(true);
 			Zeze.Util.Task.tryInitThreadPool(this, null);
 
-			setServiceManagerAgent(new Zeze.Services.ServiceManager.Agent(getConfig()));
-			getServiceManagerAgent().WaitConnectorReady();
+			var serviceManagerConf = getConfig().GetServiceConf(Agent.DefaultServiceName);
+			if (null != serviceManagerConf) {
+				setServiceManagerAgent(new Agent(getConfig()));
+				getServiceManagerAgent().WaitConnectorReady();
+			}
 
 			Database defaultDb = GetDatabase("");
 			for (var db : getDatabases().values()) {

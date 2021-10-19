@@ -16,7 +16,7 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 	}
 
 	public AgentClient(Agent agent, Zeze.Config config) {
-		super("Zeze.Services.ServiceManager.Agent", config);
+		super(Agent.DefaultServiceName, config);
 		this.agent = agent;
 	}
 
