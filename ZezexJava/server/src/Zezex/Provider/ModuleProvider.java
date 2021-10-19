@@ -96,16 +96,16 @@ public final class ModuleProvider extends AbstractModule {
 
 			rpc.Result.setModuleId(rpc.Argument.getModuleId());
 			rpc.Result.setServerId(App.Zeze.getConfig().getServerId());
-			var handle = Zezex.ModuleRedirect.Instance.getHandles().get(rpc.Argument.getMethodFullName());
+			var handle = Zezex.ModuleRedirect.Instance.Handles.get(rpc.Argument.getMethodFullName());
 			if (null == handle) {
 				rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 				return Procedure.LogicError;
 			}
-//C# TO JAVA CONVERTER TODO TASK: Java has no equivalent to C# deconstruction declarations:
-			var(ReturnCode, Params) = handle(rpc.SessionId, rpc.Argument.HashCode, rpc.Argument.Params, rpc.Result.Actions);
-			rpc.getResult().ReturnCode = ReturnCode;
-			if (ReturnCode == Procedure.Success) {
-				rpc.Result.setParams(Params);
+
+			var rp = handle.call(rpc.SessionId, rpc.Argument.getHashCode(), rpc.Argument.getParams(), rpc.Result.getActions());
+			rpc.Result.setReturnCode(rp.ReturnCode);
+			if (rp.ReturnCode == Procedure.Success) {
+				rpc.Result.setParams(rp.EncodedParameters);
 			}
 			// rpc 成功了，具体handle结果还需要看ReturnCode。
 			rpc.SendResultCode(ModuleRedirect.ResultCodeSuccess);
@@ -170,7 +170,7 @@ public final class ModuleProvider extends AbstractModule {
 								protocol.Argument.getSessionId(), hash, protocol.Argument.getParams(), hashResult.getActions());
 						Params.Value = rp.EncodedParameters;
 						return rp.ReturnCode;
-				}, Transaction.getCurrent()).getTopProcedure().getActionName(), null).Call();
+				}, Transaction.getCurrent().getTopProcedure().getActionName(), null).Call());
 
 				// 单个分组处理失败继续执行。XXX
 				if (hashResult.getReturnCode() == Procedure.Success) {
@@ -221,7 +221,7 @@ public final class ModuleProvider extends AbstractModule {
 		public void OnRemoved() {
 			synchronized (this) {
 				if (OnHashEnd != null) {
-					OnHashEnd.run(this);
+					OnHashEnd.handle(this);
 				}
 				OnHashEnd = null;
 			}

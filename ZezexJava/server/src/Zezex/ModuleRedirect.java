@@ -336,7 +336,7 @@ public class ModuleRedirect {
 		 Func不能使用ref，而Zeze.Net.Binary是只读的。就这样吧。
 	*/
 	public ConcurrentHashMap<String,
-				Func4<Long, Integer, Binary, List<BActionParam>, Return>> Handles = new ConcurrentHashMap <>();
+				Func4<Long, Integer, Binary, Collection<BActionParam>, Return>> Handles = new ConcurrentHashMap <>();
 
 	enum ReturnType {
 		Void,
@@ -412,9 +412,11 @@ public class ModuleRedirect {
 			sb.AppendLine("        }");
 			sb.AppendLine("");
 
+			java.lang.reflect.Parameter onHashResult = null; // TODO
+
 			if (methodOverride.OverrideType == OverrideType.RedirectAll) {
-				GenRedirectAllContext(sbContexts, methodOverride);
-				GenRedirectAll(sb, sbHandles, module, methodOverride);
+				GenRedirectAllContext(sbContexts, methodOverride, onHashResult, null); // TODO
+				GenRedirectAll(sb, sbHandles, module, methodOverride, onHashResult);
 				continue;
 			}
 			var rpcVarName = "tmp" + TmpVarNameId.incrementAndGet();
@@ -462,7 +464,7 @@ public class ModuleRedirect {
 			sb.AppendLine(String.format(""));
 
 			// Handles
-			sbHandles.AppendLine(String.format("        Zezex.ModuleRedirect.Instance.Handles.Add(\"{0}:{1}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_) =>", module.FullName, methodOverride.Method.Name));
+			sbHandles.AppendLine(String.format("        Zezex.ModuleRedirect.Instance.Handles.Add(\"{0}:{1}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_) =>", module.getFullName(), methodOverride.Method.getName()));
 			sbHandles.AppendLine(String.format("        {{"));
 			sbHandles.AppendLine(String.format("            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);"));
 			for (int i = 0; i < methodOverride.ParametersNormal.size(); ++i)

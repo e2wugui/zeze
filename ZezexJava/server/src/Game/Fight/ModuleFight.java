@@ -23,8 +23,8 @@ public final class ModuleFight extends AbstractModule {
 		Fighter fighter = new Fighter(fighterId, new BFighter());
 		switch (fighterId.getType()) {
 			case BFighterId.TypeRole:
-				App.getInstance().getGameBuf().GetBufs(fighterId.getInstanceId()).CalculateFighter(fighter);
-				App.getInstance().getGameEquip().CalculateFighter(fighter);
+				App.getInstance().Game_Buf.GetBufs(fighterId.getInstanceId()).CalculateFighter(fighter);
+				App.getInstance().Game_Equip.CalculateFighter(fighter);
 				break;
 		}
 		_tfighters.GetOrAdd(fighterId).Assign(fighter.getBean());
@@ -33,7 +33,7 @@ public final class ModuleFight extends AbstractModule {
 
 	public void StartCalculateFighter(long roleId) {
 		BFighterId fighterId = new BFighterId(BFighterId.TypeRole, roleId);
-		Task.Run(App.getInstance().getZeze().NewProcedure(() -> CalculateFighter(fighterId), "CalculateFighter", null).Call);
+		Zeze.Util.Task.Run(App.getInstance().Zeze.NewProcedure(() -> CalculateFighter(fighterId), "CalculateFighter", null));
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
