@@ -1,20 +1,25 @@
 package Zeze.Services;
 
 import Zeze.Net.*;
+import Zeze.Services.Handshake.CHandshake;
+import Zeze.Services.Handshake.CHandshakeDone;
 import Zeze.Services.Handshake.Helper;
 import Zeze.*;
 import java.util.*;
+
+import Zeze.Services.Handshake.SHandshake;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.math.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class HandshakeBase extends Service {
 	private static final Logger logger = LogManager.getLogger(HandshakeBase.class);
 
-	private HashSet<Integer> HandshakeProtocols = new HashSet<Integer>();
+	private final HashSet<Integer> HandshakeProtocols = new HashSet<>();
 
 	// For Client Only
-	private java.util.concurrent.ConcurrentHashMap<Long, BigInteger> DHContext = new java.util.concurrent.ConcurrentHashMap<Long, BigInteger>();
+	private final ConcurrentHashMap<Long, BigInteger> DHContext = new ConcurrentHashMap<>();
 
 	public HandshakeBase(String name, Config config) {
 		super(name, config);
@@ -32,14 +37,14 @@ public class HandshakeBase extends Service {
 		{
 			var tmp = new Zeze.Services.Handshake.CHandshake();
 			HandshakeProtocols.add(tmp.getTypeId());
-			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(() -> new Zeze.Services.Handshake.CHandshake()
+			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(CHandshake::new
 					, this::ProcessCHandshake
 					, true));
 		} 
 		{
 			var tmp = new Zeze.Services.Handshake.CHandshakeDone();
 			HandshakeProtocols.add(tmp.getTypeId());
-			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(() -> new Zeze.Services.Handshake.CHandshakeDone()
+			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(CHandshakeDone::new
 					, this::ProcessCHandshakeDone
 					, true));
 		}
@@ -53,7 +58,7 @@ public class HandshakeBase extends Service {
 	private int ProcessCHandshake(Protocol _p) {
 		Zeze.Services.Handshake.CHandshake p = (Zeze.Services.Handshake.CHandshake)_p;
 		int group = p.Argument.dh_group;
-		if (false == getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
+		if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
 			p.Sender.Close(new RuntimeException("dhGroup Not Supported"));
 			return 0;
 		}
@@ -88,7 +93,7 @@ public class HandshakeBase extends Service {
 	protected final void AddHandshakeClientFactoryHandle() {
 		var tmp = new Zeze.Services.Handshake.SHandshake();
 		HandshakeProtocols.add(tmp.getTypeId());
-		AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(() -> new Zeze.Services.Handshake.SHandshake()
+		AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(SHandshake::new
 				, this::ProcessSHandshake, true));
 	}
 

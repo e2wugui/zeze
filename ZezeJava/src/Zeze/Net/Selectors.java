@@ -8,14 +8,14 @@ import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Selectors {
-	private static Selectors Instance = new Selectors();
+	private final static Selectors Instance = new Selectors();
 
 	public static Selectors getInstance() {
 		return Instance;
 	}
 
 	private PVector<Selector> SelectorList = Empty.vector();
-	private AtomicLong choiceCount = new AtomicLong();
+	private final AtomicLong choiceCount = new AtomicLong();
 
 	private Selectors() {
 		add(Runtime.getRuntime().availableProcessors());

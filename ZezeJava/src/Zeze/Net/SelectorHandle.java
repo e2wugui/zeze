@@ -8,7 +8,7 @@ import java.nio.channels.SelectionKey;
  * 由于这个接口没有定义close（比如 doClose）相关方法，对于关闭连接需要实现者自行处理。 <b>参考，doException的说明。</b>
  */
 public interface SelectorHandle {
-	public void doHandle(SelectionKey key) throws Throwable;
+	void doHandle(SelectionKey key) throws Throwable;
 
 	/**
 	 * 在调用 doHandle 时，如果捕捉到异常，就调用这个方法处理错误。
@@ -20,9 +20,9 @@ public interface SelectorHandle {
 	 * <p>
 	 * 建议，不管doHandle，doException，还是主动关闭，都调用是一个close实现。 在close实现中明确关闭 channel.close。
 	 * 
-	 * @param key
-	 * @param e
-	 * @throws Throwable
+	 * @param key selection key
+	 * @param e exception
+	 * @throws Throwable can throw anything
 	 */
-	public void doException(SelectionKey key, Throwable e) throws Throwable;
+	void doException(SelectionKey key, Throwable e) throws Throwable;
 }

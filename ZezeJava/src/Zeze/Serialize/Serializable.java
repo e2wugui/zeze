@@ -1,6 +1,6 @@
 package Zeze.Serialize;
 
 public interface Serializable {
-	public void Decode(ByteBuffer bb);
-	public void Encode(ByteBuffer bb);
+	void Decode(ByteBuffer bb);
+	void Encode(ByteBuffer bb);
 }

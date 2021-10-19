@@ -159,6 +159,7 @@ namespace Zeze.Util
                     if (cube.State == Cube<TObject>.StateRemoved)
                         continue;
                     action(index, cube);
+                    break;
                 }
             }
         }

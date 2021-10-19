@@ -24,7 +24,7 @@ public class KV<K, V> {
 	}
 
 	public static <K, V> KV<K, V> Create(K key, V value) {
-		KV<K, V> tempVar = new KV<K, V>();
+		KV<K, V> tempVar = new KV<>();
 		tempVar.setKey(key);
 		tempVar.setValue(value);
 		return tempVar;

@@ -13,6 +13,7 @@ import Zeze.*;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import Zeze.Util.KV;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Service {
 	private static final Logger logger = LogManager.getLogger(Service.class);
@@ -40,17 +41,17 @@ public class Service {
 	public final Application getZeze() {
 		return Zeze;
 	}
-	private String Name;
+	private final String Name;
 	public final String getName() {
 		return Name;
 	}
 
-	protected java.util.concurrent.ConcurrentHashMap<Long, AsyncSocket> SocketMap = new java.util.concurrent.ConcurrentHashMap<Long, AsyncSocket> ();
-	protected final java.util.concurrent.ConcurrentHashMap<Long, AsyncSocket> getSocketMap() {
+	protected ConcurrentHashMap<Long, AsyncSocket> SocketMap = new ConcurrentHashMap<> ();
+	protected final ConcurrentHashMap<Long, AsyncSocket> getSocketMap() {
 		return SocketMap;
 	}
 
-	public final java.util.concurrent.ConcurrentHashMap<Long, AsyncSocket> getSocketMapInternal() {
+	public final ConcurrentHashMap<Long, AsyncSocket> getSocketMapInternal() {
 		return getSocketMap();
 	}
 
@@ -280,7 +281,7 @@ public class Service {
 					Task.Call(getZeze().NewProcedure(
 							() -> factoryHandle.Handle.handle(p), p.getClass().getName(), p.UserState),
 							p,
-							(p2, code) -> p2.SendResultCode(code)
+							Protocol::SendResultCode
 							)
 					);
 			}
@@ -341,8 +342,8 @@ public class Service {
 		}
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<Integer, ProtocolFactoryHandle> Factorys = new java.util.concurrent.ConcurrentHashMap<Integer, ProtocolFactoryHandle> ();
-	public final java.util.concurrent.ConcurrentHashMap<Integer, ProtocolFactoryHandle> getFactorys() {
+	private final ConcurrentHashMap<Integer, ProtocolFactoryHandle> Factorys = new ConcurrentHashMap<> ();
+	public final ConcurrentHashMap<Integer, ProtocolFactoryHandle> getFactorys() {
 		return Factorys;
 	}
 
@@ -359,7 +360,7 @@ public class Service {
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	/** Rpc Context. 模板不好放进去，使用基类 Protocol
 	*/
-	private static AtomicLong StaticSessionIdAtomicLong = new AtomicLong();
+	private static final AtomicLong StaticSessionIdAtomicLong = new AtomicLong();
 	private static AtomicLong getStaticSessionIdAtomicLong() {
 		return StaticSessionIdAtomicLong;
 	}
@@ -371,7 +372,7 @@ public class Service {
 		SessionIdGenerator = value;
 	}
 
-	private final java.util.concurrent.ConcurrentHashMap<Long, Protocol> _RpcContexts = new java.util.concurrent.ConcurrentHashMap<Long, Protocol>();
+	private final ConcurrentHashMap<Long, Protocol> _RpcContexts = new ConcurrentHashMap<>();
 	public final long NextSessionId() {
 		if (null != SessionIdGenerator) {
 			return SessionIdGenerator.next();
@@ -419,7 +420,7 @@ public class Service {
 
 	}
 
-	private final java.util.concurrent.ConcurrentHashMap<Long, ManualContext> ManualContexts = new java.util.concurrent.ConcurrentHashMap<Long, ManualContext>();
+	private final java.util.concurrent.ConcurrentHashMap<Long, ManualContext> ManualContexts = new java.util.concurrent.ConcurrentHashMap<>();
 
 
 	public final long AddManualContextWithTimeout(ManualContext context) {
@@ -432,7 +433,7 @@ public class Service {
 			if (null == ManualContexts.putIfAbsent(sessionId, context)) {
 				context.setSessionId(sessionId);
 				Task.schedule((ThisTask) -> {
-					ManualContext ctx = this.<ManualContext>TryRemoveManualContext(sessionId);
+					ManualContext ctx = this.TryRemoveManualContext(sessionId);
 						if (null != ctx) {
 							ctx.OnTimeout();
 						}
@@ -487,7 +488,7 @@ public class Service {
 		final var ipport = KV.Create("", 0);
 
 		Config.ForEachAcceptor2((a) -> {
-			if (false == a.getIp().isEmpty() && a.getPort() != 0) {
+			if (!a.getIp().isEmpty() && a.getPort() != 0) {
 				// 找到ip，port都配置成明确地址的。
 				ipport.setKey(a.getIp());
 				ipport.setValue(a.getPort());

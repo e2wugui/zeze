@@ -83,7 +83,7 @@ public final class WeakHashSet<K> {
 	 */
 	public WeakHashSet() {
 		this.loadFactor = DEFAULT_LOAD_FACTOR;
-		threshold = (int) (DEFAULT_INITIAL_CAPACITY);
+		threshold = DEFAULT_INITIAL_CAPACITY;
 		table = new Entry[DEFAULT_INITIAL_CAPACITY];
 	}
 
@@ -189,7 +189,6 @@ public final class WeakHashSet<K> {
 	 * already contains the element, the call leaves the set unchanged and returns
 	 * the old value.
 	 *
-	 * @param e element to be added to this set
 	 * @return the added element or the old element if an equal one exists
 	 */
 	@SuppressWarnings("unchecked")
@@ -237,9 +236,6 @@ public final class WeakHashSet<K> {
 	 * but sets threshold to Integer.MAX_VALUE. This has the effect of preventing
 	 * future calls.
 	 *
-	 * @param newCapacity the new capacity, MUST be a power of two; must be greater
-	 *                    than current capacity unless current capacity is
-	 *                    MAXIMUM_CAPACITY (in which case value is irrelevant).
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private void resize() {
@@ -251,8 +247,8 @@ public final class WeakHashSet<K> {
 		int n2 = n + n;
 		Entry[] dest = new Entry[n2];
 		/** Transfers all entries from table to dest tables */
-		for (int j = 0; j < n; ++j) {
-			Entry<K> e = table[j];
+		for (Entry<K> entry : table) {
+			Entry<K> e = entry;
 			while (e != null) {
 				Entry<K> next = e.next;
 				K key = e.get();

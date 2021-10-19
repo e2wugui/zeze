@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** 
  把三维空间划分成一个个相邻的Cube。
@@ -8,23 +9,22 @@ import java.util.*;
  用来快速找到某个坐标周围的玩家或物体。
 */
 public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
-	private java.util.concurrent.ConcurrentHashMap<CubeIndex, TCube> Cubes
-		= new java.util.concurrent.ConcurrentHashMap<CubeIndex, TCube>();
+	private final ConcurrentHashMap<CubeIndex, TCube> Cubes = new ConcurrentHashMap<>();
 
-	private int CubeSizeX;
+	private final int CubeSizeX;
 	public final int getCubeSizeX() {
 		return CubeSizeX;
 	}
-	private int CubeSizeY;
+	private final int CubeSizeY;
 	public final int getCubeSizeY() {
 		return CubeSizeY;
 	}
-	private int CubeSizeZ;
+	private final int CubeSizeZ;
 	public final int getCubeSizeZ() {
 		return CubeSizeZ;
 	}
 
-	private Factory<TCube> Factory;
+	private final Factory<TCube> Factory;
 	
 	public final CubeIndex ToIndex(double x, double y, double z) {
 		CubeIndex tempVar = new CubeIndex();
@@ -44,9 +44,9 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 
 	public final CubeIndex ToIndex(long x, long y, long z) {
 		CubeIndex tempVar = new CubeIndex();
-		tempVar.setX((long)(x / getCubeSizeX()));
-		tempVar.setY((long)(y / getCubeSizeY()));
-		tempVar.setZ((long)(z / getCubeSizeZ()));
+		tempVar.setX(x / getCubeSizeX());
+		tempVar.setY(y / getCubeSizeY());
+		tempVar.setZ(z / getCubeSizeZ());
 		return tempVar;
 	}
 	public CubeIndexMap(Factory<TCube> factory, int cubeSizeX, int cubeSizeY, int cubeSizeZ) {
@@ -67,7 +67,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		this.CubeSizeZ = cubeSizeZ;
 	}
 
-	public static interface CubeHandle<TCube> {
+	public interface CubeHandle<TCube> {
 		void handle(CubeIndex index, TCube cube);
 	}
 
@@ -98,6 +98,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 					continue;
 				}
 				action.handle(index, cube);
+				break;
 			}
 		}
 	}

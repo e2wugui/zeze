@@ -9,13 +9,14 @@ import org.apache.logging.log4j.Logger;
 import Zeze.Transaction.Procedure;
 import Zeze.Net.*;
 import Zeze.Net.Service.ProtocolFactoryHandle;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class Agent implements Closeable {
 	static final Logger logger = LogManager.getLogger(Agent.class);
 
 	// key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
 	// ServiceName ->
-	private ConcurrentHashMap<String, SubscribeState> SubscribeStates = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, SubscribeState> SubscribeStates = new ConcurrentHashMap<>();
 
 	public ConcurrentHashMap<String, SubscribeState> getSubscribeStates() {
 		return SubscribeStates;
@@ -52,7 +53,7 @@ public final class Agent implements Closeable {
 		OnKeepAlive = value;
 	}
 
-	private ConcurrentHashMap<ServiceInfo, ServiceInfo> Registers = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<ServiceInfo, ServiceInfo> Registers = new ConcurrentHashMap<>();
 
 	private ConcurrentHashMap<ServiceInfo, ServiceInfo> getRegisters() {
 		return Registers;
@@ -67,7 +68,7 @@ public final class Agent implements Closeable {
 			return Agent.this;
 		}
 
-		private SubscribeInfo subscribeInfo;
+		private final SubscribeInfo subscribeInfo;
 
 		public SubscribeInfo getSubscribeInfo() {
 			return subscribeInfo;
@@ -116,9 +117,9 @@ public final class Agent implements Closeable {
 		}
 
 		// 服务准备好。
-		private java.util.concurrent.ConcurrentHashMap<String, Object> ServiceIdentityReadyStates = new java.util.concurrent.ConcurrentHashMap<String, Object>();
+		private final ConcurrentHashMap<String, Object> ServiceIdentityReadyStates = new ConcurrentHashMap<>();
 
-		public java.util.concurrent.ConcurrentHashMap<String, Object> getServiceIdentityReadyStates() {
+		public ConcurrentHashMap<String, Object> getServiceIdentityReadyStates() {
 			return ServiceIdentityReadyStates;
 		}
 
@@ -201,7 +202,7 @@ public final class Agent implements Closeable {
 				return false;
 			
 			for (int i = 0; i < l1.size(); ++i) {
-				if (false == l1.get(i).equals(l2.get(i)))
+				if (!l1.get(i).equals(l2.get(i)))
 					return false;
 			}
 			return true;
@@ -253,7 +254,7 @@ public final class Agent implements Closeable {
 
 	public void WaitConnectorReady() {
 		// 实际上只有一个连接，这样就不用查找了。
-		getClient().getConfig().ForEachConnector((c) -> c.WaitReady());
+		getClient().getConfig().ForEachConnector(Connector::WaitReady);
 	}
 
 	private ServiceInfo RegisterService(ServiceInfo info) {
@@ -389,9 +390,9 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<String, AutoKey> AutoKeys = new java.util.concurrent.ConcurrentHashMap<String, AutoKey>();
+	private final ConcurrentHashMap<String, AutoKey> AutoKeys = new ConcurrentHashMap<>();
 
-	private java.util.concurrent.ConcurrentHashMap<String, AutoKey> getAutoKeys() {
+	private ConcurrentHashMap<String, AutoKey> getAutoKeys() {
 		return AutoKeys;
 	}
 
@@ -450,31 +451,31 @@ public final class Agent implements Closeable {
 				: new AgentClient(this, config, netServiceName);
 
 		Client.AddFactoryHandle((new Register()).getTypeId(),
-				new ProtocolFactoryHandle(() -> new Register()));
+				new ProtocolFactoryHandle(Register::new));
 
 		Client.AddFactoryHandle((new UnRegister()).getTypeId(),
-				new ProtocolFactoryHandle(() -> new UnRegister()));
+				new ProtocolFactoryHandle(UnRegister::new));
 
 		Client.AddFactoryHandle((new Subscribe()).getTypeId(),
-				new ProtocolFactoryHandle(() -> new Subscribe()));
+				new ProtocolFactoryHandle(Subscribe::new));
 
 		Client.AddFactoryHandle((new UnSubscribe()).getTypeId(),
-				new ProtocolFactoryHandle(() -> new UnSubscribe()));
+				new ProtocolFactoryHandle(UnSubscribe::new));
 
 		Client.AddFactoryHandle((new NotifyServiceList()).getTypeId(),
-				new ProtocolFactoryHandle(() -> new NotifyServiceList(), (p) -> ProcessNotifyServiceList(p)));
+				new ProtocolFactoryHandle(NotifyServiceList::new, this::ProcessNotifyServiceList));
 
 		Client.AddFactoryHandle((new CommitServiceList()).getTypeId(),
-				new ProtocolFactoryHandle(() -> new CommitServiceList(), (p) -> ProcessCommitServiceList(p)));
+				new ProtocolFactoryHandle(CommitServiceList::new, this::ProcessCommitServiceList));
 
 		Client.AddFactoryHandle((new Keepalive()).getTypeId(),
-				new ProtocolFactoryHandle(() -> new Keepalive(), (p) -> ProcessKeepalive(p)));
+				new ProtocolFactoryHandle(Keepalive::new, this::ProcessKeepalive));
 
 		Client.AddFactoryHandle((new SubscribeFirstCommit()).getTypeId(), new Service.ProtocolFactoryHandle(
-				() -> new SubscribeFirstCommit(), (p) -> ProcessSubscribeFirstCommit(p)));
+				SubscribeFirstCommit::new, this::ProcessSubscribeFirstCommit));
 
 		Client.AddFactoryHandle((new AllocateId()).getTypeId(),
-				new ProtocolFactoryHandle(() -> new AllocateId()));
+				new ProtocolFactoryHandle(AllocateId::new));
 
 		Client.Start();
 	}

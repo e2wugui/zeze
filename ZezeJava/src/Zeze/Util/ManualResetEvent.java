@@ -2,7 +2,7 @@ package Zeze.Util;
 
 public class ManualResetEvent {
 	private final Object monitor = new Object();
-	private volatile boolean open = false;
+	private volatile boolean open;
 
 	public ManualResetEvent(boolean open) {
 		this.open = open;
@@ -10,7 +10,7 @@ public class ManualResetEvent {
 
 	public void WaitOne() throws InterruptedException {
 		synchronized (monitor) {
-			while (open == false) {
+			while (!open) {
 				monitor.wait();
 			}
 		}

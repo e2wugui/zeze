@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 public class Task extends java.util.concurrent.FutureTask<Integer> {
 	private static final Logger logger = LogManager.getLogger(Task.class);
 
-	private static Object lock = new Object();
+	private static final Object lock = new Object();
 	private static java.util.concurrent.ScheduledThreadPoolExecutor threadPool;
 
 	public static java.util.concurrent.ScheduledThreadPoolExecutor getThreadPool() {
@@ -83,10 +83,10 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	}
 
 	private static class SchedulerTask extends Task {
-		private SchedulerHandle SchedulerHandle;
+		private final SchedulerHandle SchedulerHandle;
 
 		public SchedulerTask(SchedulerHandle handle) {
-			super(() -> fakecall());
+			super(SchedulerTask::fakecall);
 			SchedulerHandle = handle;
 		}
 		
@@ -201,7 +201,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			// 日志在Call里面记录。因为要支持嵌套。
 			// 统计在Call里面实现。
 			int result = procdure.Call();
-			if (result != 0 && !isRequestSaved.equals(null) && isRequestSaved.booleanValue()) {
+			if (result != 0 && !isRequestSaved.equals(null) && isRequestSaved) {
 				if (actionWhenError != null) {
 					actionWhenError.run(from, result);
 				}
@@ -210,7 +210,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 		}
 		catch (RuntimeException ex) {
 			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
-			if (!isRequestSaved.equals(null) && isRequestSaved.booleanValue()) {
+			if (!isRequestSaved.equals(null) && isRequestSaved) {
 				if (actionWhenError != null) {
 					actionWhenError.run(from, Procedure.Excption);
 				}

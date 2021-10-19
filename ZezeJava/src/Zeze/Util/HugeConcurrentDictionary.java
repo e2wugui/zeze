@@ -8,20 +8,20 @@ import java.util.function.Function;
 // 使用哈希到多个ConcurrentDictionary的方式支持巨大内存。
 // 先不实现 IDictionary，要了再来添加。
 public class HugeConcurrentDictionary<K, V> implements java.lang.Iterable<Map.Entry<K, V>> {
-	private ConcurrentHashMap<K, V>[] Buckets;
+	private final ConcurrentHashMap<K, V>[] Buckets;
 	private ConcurrentHashMap<K, V>[] getBuckets() {
 		return Buckets;
 	}
 
-	private int BucketCount;
+	private final int BucketCount;
 	public final int getBucketCount() {
 		return BucketCount;
 	}
-	private int ConcurrencyLevel;
+	private final int ConcurrencyLevel;
 	public final int getConcurrencyLevel() {
 		return ConcurrencyLevel;
 	}
-	private long InitialCapacity;
+	private final long InitialCapacity;
 	public final long getInitialCapacity() {
 		return InitialCapacity;
 	}
@@ -41,7 +41,7 @@ public class HugeConcurrentDictionary<K, V> implements java.lang.Iterable<Map.En
 			bucketsCapacity = 1;
 		}
 		for (int i = 0; i < getBuckets().length; ++i) {
-			getBuckets()[i] = new java.util.concurrent.ConcurrentHashMap<K, V>(concurrencyLevel, (int)bucketsCapacity);
+			getBuckets()[i] = new java.util.concurrent.ConcurrentHashMap<>(concurrencyLevel, (int)bucketsCapacity);
 		}
 	}
 
@@ -93,7 +93,7 @@ public class HugeConcurrentDictionary<K, V> implements java.lang.Iterable<Map.En
 	}
 
 	private class Enumerator implements Iterator<Map.Entry<K, V>> {
-		private Iterator<Map.Entry<K, V>>[] Entrys;
+		private final Iterator<Map.Entry<K, V>>[] Entrys;
 		private int Index;
 
 		@SuppressWarnings("unchecked")

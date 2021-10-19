@@ -12,28 +12,19 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.io.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class Config {
 	public interface ICustomize {
-		public String getName();
-		public void Parse(Element self);
+		String getName();
+		void Parse(Element self);
 	}
 
 	public enum DbType {
 		Memory,
 		MySql,
 		SqlServer,
-		Tikv;
-
-		public static final int SIZE = java.lang.Integer.SIZE;
-
-		public int getValue() {
-			return this.ordinal();
-		}
-
-		public static DbType forValue(int value) {
-			return values()[value];
-		}
+		Tikv
 	}
 
 	private int WorkerThreads;
@@ -100,8 +91,8 @@ public final class Config {
 	private void setGlobalCacheManagerPort(int value) {
 		GlobalCacheManagerPort = value;
 	}
-	private java.util.concurrent.ConcurrentHashMap<String, TableConf> TableConfMap = new java.util.concurrent.ConcurrentHashMap<String, TableConf> ();
-	public java.util.concurrent.ConcurrentHashMap<String, TableConf> getTableConfMap() {
+	private final ConcurrentHashMap<String, TableConf> TableConfMap = new ConcurrentHashMap<> ();
+	public ConcurrentHashMap<String, TableConf> getTableConfMap() {
 		return TableConfMap;
 	}
 	private TableConf DefaultTableConf;
@@ -125,8 +116,8 @@ public final class Config {
 	public void setAllowSchemasReuseVariableIdWithSameType(boolean value) {
 		AllowSchemasReuseVariableIdWithSameType = value;
 	}
-	private java.util.concurrent.ConcurrentHashMap<String, ICustomize> Customize = new java.util.concurrent.ConcurrentHashMap<String, ICustomize> ();
-	public java.util.concurrent.ConcurrentHashMap<String, ICustomize> getCustomize() {
+	private final ConcurrentHashMap<String, ICustomize> Customize = new ConcurrentHashMap<> ();
+	public ConcurrentHashMap<String, ICustomize> getCustomize() {
 		return Customize;
 	}
 
@@ -136,8 +127,6 @@ public final class Config {
 	 如果外面保存了配置引用，是不需要访问这个接口的。
 	 
 	 <typeparam name="T"></typeparam>
-	 @param name
-	 @param customize
 	*/
 	@SuppressWarnings("unchecked")
 	public <T extends ICustomize> T GetCustomize(T customize) {
@@ -157,8 +146,8 @@ public final class Config {
 		return getDefaultTableConf();
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<String, DatabaseConf> DatabaseConfMap = new java.util.concurrent.ConcurrentHashMap<String, DatabaseConf> ();
-	public java.util.concurrent.ConcurrentHashMap<String, DatabaseConf> getDatabaseConfMap() {
+	private final ConcurrentHashMap<String, DatabaseConf> DatabaseConfMap = new ConcurrentHashMap<> ();
+	public ConcurrentHashMap<String, DatabaseConf> getDatabaseConfMap() {
 		return DatabaseConfMap;
 	}
 
@@ -191,7 +180,7 @@ public final class Config {
 
 	public void ClearInUseAndIAmSureAppStopped(HashMap<String, Zeze.Transaction.Database> databases) {
 		if (null == databases) {
-			databases = new HashMap<String, Zeze.Transaction.Database>();
+			databases = new HashMap<>();
 			CreateDatabase(databases);
 		}
 		for (var db : databases.values()) {
@@ -200,8 +189,8 @@ public final class Config {
 	}
 
 
-	private java.util.concurrent.ConcurrentHashMap<String, ServiceConf> ServiceConfMap = new java.util.concurrent.ConcurrentHashMap<String, ServiceConf> ();
-	public java.util.concurrent.ConcurrentHashMap<String, ServiceConf> getServiceConfMap() {
+	private final ConcurrentHashMap<String, ServiceConf> ServiceConfMap = new ConcurrentHashMap<>();
+	public ConcurrentHashMap<String, ServiceConf> getServiceConfMap() {
 		return ServiceConfMap;
 	}
 	private ServiceConf DefaultServiceConf = new ServiceConf();
@@ -213,11 +202,7 @@ public final class Config {
 	}
 
 	public ServiceConf GetServiceConf(String name) {
-		var serviceConf = getServiceConfMap().get(name);
-		if (null != serviceConf)
-			return serviceConf;
-
-		return null;
+		return getServiceConfMap().get(name);
 	}
 
 	/** 
@@ -227,7 +212,6 @@ public final class Config {
 	 c.AddCustomize(...);
 	 c.LoadAndParse();
 	 
-	 @return
 	*/
 
 	public static Config Load() {
@@ -261,7 +245,7 @@ public final class Config {
 	}
 
 	public void Parse(Element self) {
-		if (false == self.getNodeName().equals("zeze")) {
+		if (!self.getNodeName().equals("zeze")) {
 			throw new RuntimeException("is it a zeze config.");
 		}
 
@@ -287,9 +271,9 @@ public final class Config {
 		setCompletionPortThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);
 
 		attr = self.getAttribute("AllowReadWhenRecoredNotAccessed");
-		setAllowReadWhenRecoredNotAccessed(attr.length() > 0 ? Boolean.parseBoolean(attr) : true);
+		setAllowReadWhenRecoredNotAccessed(attr.length() <= 0 || Boolean.parseBoolean(attr));
 		attr = self.getAttribute("AllowSchemasReuseVariableIdWithSameType");
-		setAllowSchemasReuseVariableIdWithSameType(attr.length() > 0 ? Boolean.parseBoolean(attr) : true);
+		setAllowSchemasReuseVariableIdWithSameType(attr.length() <= 0 || Boolean.parseBoolean(attr));
 
 		attr = self.getAttribute("CheckpointMode");
 		if (attr.length() > 0) {

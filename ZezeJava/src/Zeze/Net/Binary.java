@@ -7,7 +7,7 @@ import Zeze.Util.BitConverter;
 // 构造之后就是只读的。
 // byte[] bytes 参数传入以后，就不能再修改了。
 public final class Binary {
-	private byte[] _Bytes;
+	private final byte[] _Bytes;
 
 	public byte get(int index) {
 		return _Bytes[index];
@@ -17,12 +17,12 @@ public final class Binary {
 		return _Bytes;
 	}
 
-	private int Offset;
+	private final int Offset;
 	public int getOffset() {
 		return Offset;
 	}
 
-	private int Count;
+	private final int Count;
 	public int size() {
 		return Count;
 	}
@@ -31,10 +31,7 @@ public final class Binary {
 
 	/** 
 	 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
-	 
-	 @param bytes
-	 @param offset
-	 @param count
+
 	*/
 	public Binary(byte[] bytes, int offset, int count) {
 		_Bytes = bytes;
@@ -44,8 +41,6 @@ public final class Binary {
 
 	/** 
 	 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
-	 
-	 @param bytes
 	*/
 	public Binary(byte[] bytes) {
 		this(bytes, 0, bytes.length);
@@ -54,8 +49,6 @@ public final class Binary {
 	/** 
 	 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
 	 【一般用于临时存储】
-	 
-	 @param bb
 	*/
 	public Binary(Zeze.Serialize.ByteBuffer bb) {
 		this(bb.Bytes, bb.ReadIndex, bb.Size());
@@ -65,8 +58,6 @@ public final class Binary {
 	/** 
 	 这里调用Copy是因为ByteBuffer可能分配的保留内存较大。Copy返回实际大小的数据。
 	 使用这个方法的地方一般是应用。这个数据可能被存储到表中。
-	 
-	 @param _s_
 	*/
 	public Binary(Zeze.Serialize.Serializable _s_) {
 		this(Zeze.Serialize.ByteBuffer.Encode(_s_).Copy());
@@ -88,8 +79,7 @@ public final class Binary {
 			return true;
 		}
 
-		if (obj instanceof Binary) {
-			Binary other = (Binary)obj;
+		if (obj instanceof Binary other) {
 			return equals(other);
 		}
 
@@ -116,6 +106,6 @@ public final class Binary {
 
 	@Override
 	public int hashCode() {
-		return (int)Zeze.Serialize.ByteBuffer.calc_hashnr(_Bytes, getOffset(), size());
+		return Zeze.Serialize.ByteBuffer.calc_hashnr(_Bytes, getOffset(), size());
 	}
 }

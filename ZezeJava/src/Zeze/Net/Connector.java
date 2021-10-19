@@ -19,7 +19,7 @@ public class Connector {
 		Service = value;
 	}
 
-	private String HostNameOrAddress;
+	private final String HostNameOrAddress;
 	public final String getHostNameOrAddress() {
 		return HostNameOrAddress;
 	}
@@ -52,7 +52,7 @@ public class Connector {
 	public final boolean isHandshakeDone() {
 		return getHandshakeDoneEvent().WaitOne(0);
 	}
-	private Zeze.Util.ManualResetEvent HandshakeDoneEvent = new Zeze.Util.ManualResetEvent(false);
+	private final Zeze.Util.ManualResetEvent HandshakeDoneEvent = new Zeze.Util.ManualResetEvent(false);
 	public final Zeze.Util.ManualResetEvent getHandshakeDoneEvent() {
 		return HandshakeDoneEvent;
 	}
@@ -166,7 +166,7 @@ public class Connector {
 
 	public void TryReconnect() {
 		synchronized (this) {
-			if (false == isAutoReconnect() || null != getSocket() || null != getReconnectTask()) {
+			if (!isAutoReconnect() || null != getSocket() || null != getReconnectTask()) {
 				return;
 			}
 
@@ -180,7 +180,6 @@ public class Connector {
 				}
 			}
 			setReconnectTask(Zeze.Util.Task.schedule((ThisTask) -> Start(), ConnectDelay, -1));
-			;
 		}
 	}
 

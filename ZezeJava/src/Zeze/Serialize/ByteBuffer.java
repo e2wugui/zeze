@@ -778,21 +778,6 @@ public final class ByteBuffer {
 		WriteBytes(o.Bytes, o.ReadIndex, o.Size());
 	}
 
-	/*
-	private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes(java.nio.charset.StandardCharsets.UTF_8);
-
-	public static String ToHex(byte[] bytes, int offset, int len) {
-	    byte[] hexChars = new byte[bytes.length * 2];
-	    int end = offset + len;
-	    for (int j = offset; j < end; j++) {
-	        int v = bytes[j] & 0xFF;
-	        hexChars[j * 2] = HEX_ARRAY[v >>> 4];
-	        hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
-	    }
-	    return new String(hexChars, java.nio.charset.StandardCharsets.UTF_8);
-	}
-	*/
-
 	@Override
 	public String toString() {
 		return BitConverter.toString(Bytes, ReadIndex, Size());

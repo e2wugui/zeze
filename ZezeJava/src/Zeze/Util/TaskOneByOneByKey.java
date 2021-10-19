@@ -19,7 +19,7 @@ import org.apache.logging.log4j.Logger;
 public final class TaskOneByOneByKey {
 	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey.class);
 
-	private TaskOneByOne[] concurrency;
+	private final TaskOneByOne[] concurrency;
 
 	public TaskOneByOneByKey() {
 		this(1024);
@@ -118,7 +118,7 @@ public final class TaskOneByOneByKey {
 	 * @see java.util.HashMap
 	 */
 	private static int Hash(int _h) {
-		int h = (int)_h;
+		int h = _h;
 		h ^= (h >>> 20) ^ (h >>> 12);
 		return (int)(h ^ (h >>> 7) ^ (h >>> 4));
 	}
@@ -136,7 +136,7 @@ public final class TaskOneByOneByKey {
 	}
 
 	public static class TaskOneByOne {
-		private LinkedList<Task> queue = new LinkedList<Task>();
+		private LinkedList<Task> queue = new LinkedList<>();
 
 		private boolean IsShutdown = false;
 
@@ -149,7 +149,7 @@ public final class TaskOneByOneByKey {
 				IsShutdown = true;
 				if (cancel) {
 					tmp = queue;
-					queue = new LinkedList<Task>(); // clear
+					queue = new LinkedList<>(); // clear
 					if (!tmp.isEmpty()) {
 						queue.addLast(tmp.getFirst()); // put back running task back.
 					}

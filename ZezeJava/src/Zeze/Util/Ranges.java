@@ -4,8 +4,8 @@ import java.util.*;
 
 public final class Ranges {
 	public final static class Range {
-		private int first; // [first, last)
-		private int last;
+		private final int first; // [first, last)
+		private final int last;
 
 		public Range(String[] pair) {
 			first = Integer.parseInt(pair[0]);
@@ -31,7 +31,7 @@ public final class Ranges {
 			if (first + 1 == last) {
 				return String.valueOf(first);
 			}
-			return String.valueOf(first) + "-" + String.valueOf(last);
+			return first + "-" + last;
 		}
 
 		public boolean Include(Range r) {
@@ -39,7 +39,7 @@ public final class Ranges {
 		}
 	}
 
-	private ArrayList<Range> ranges = new ArrayList<Range>();
+	private final ArrayList<Range> ranges = new ArrayList<>();
 
 	public Ranges() {
 

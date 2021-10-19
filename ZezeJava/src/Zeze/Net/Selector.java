@@ -7,7 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Selector extends Thread {
-	private static Logger logger = LogManager.getLogger(Selector.class);
+	private final static Logger logger = LogManager.getLogger(Selector.class);
 	private volatile boolean running = true;
 	private final java.nio.channels.Selector selector;
 

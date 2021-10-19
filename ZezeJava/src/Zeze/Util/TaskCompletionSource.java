@@ -11,13 +11,7 @@ public class TaskCompletionSource<T> extends FutureTask<T> {
 	}
 	
 	public TaskCompletionSource() {
-		super(new Callable<T>() {
-
-			@Override
-			public T call() throws Exception {
-				return null;
-			}
-		});
+		super(() -> null);
 	}
 	
 	public boolean TrySetException(Throwable ex) {

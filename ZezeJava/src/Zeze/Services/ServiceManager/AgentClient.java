@@ -3,7 +3,7 @@ package Zeze.Services.ServiceManager;
 import Zeze.Net.AsyncSocket;
 
 public final class AgentClient extends Zeze.Services.HandshakeClient {
-	private Agent agent;
+	private final Agent agent;
 	public Agent getAgent() {
 		return agent;
 	}
@@ -30,7 +30,7 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 		super.OnHandshakeDone(sender);
 		if (null == Socket) {
 			Socket = sender;
-			Zeze.Util.Task.Run(() -> agent.OnConnected(), "ServiceManager.Agent.OnConnected");
+			Zeze.Util.Task.Run(agent::OnConnected, "ServiceManager.Agent.OnConnected");
 		}
 		else {
 			Agent.logger.error("Has Connected.");

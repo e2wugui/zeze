@@ -84,8 +84,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	 
 	 @param so
 	 @param responseHandle
-	 @param millisecondsTimeout
-	 @return 
+	 @return
 	*/
 
 	public final boolean Send(AsyncSocket so, ProtocolHandle responseHandle) {
@@ -129,7 +128,6 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	 @param service
 	 @param so
 	 @param responseHandle
-	 @param millisecondsTimeout
 	*/
 
 	public final void SendReturnVoid(Service service, AsyncSocket so, ProtocolHandle responseHandle) {

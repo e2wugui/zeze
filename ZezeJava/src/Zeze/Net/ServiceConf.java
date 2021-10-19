@@ -4,6 +4,7 @@ import Zeze.*;
 
 import java.net.InetAddress;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import org.apache.logging.log4j.Level;
@@ -19,7 +20,7 @@ public final class ServiceConf {
 	private void setService(Service value) {
 		Service = value;
 	}
-	private String Name;
+	private final String Name;
 	public String getName() {
 		return Name;
 	}
@@ -38,12 +39,12 @@ public final class ServiceConf {
 		HandshakeOptions = value;
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<String, Acceptor> Acceptors = new java.util.concurrent.ConcurrentHashMap<String, Acceptor> ();
-	private java.util.concurrent.ConcurrentHashMap<String, Acceptor> getAcceptors() {
+	private final ConcurrentHashMap<String, Acceptor> Acceptors = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<String, Acceptor> getAcceptors() {
 		return Acceptors;
 	}
-	private java.util.concurrent.ConcurrentHashMap<String, Connector> Connectors = new java.util.concurrent.ConcurrentHashMap<String, Connector> ();
-	private java.util.concurrent.ConcurrentHashMap<String, Connector> getConnectors() {
+	private ConcurrentHashMap<String, Connector> Connectors = new ConcurrentHashMap<> ();
+	private ConcurrentHashMap<String, Connector> getConnectors() {
 		return Connectors;
 	}
 
@@ -197,7 +198,7 @@ public final class ServiceConf {
 		// HandshakeOptions
 		attr = self.getAttribute("DhGroups");
 		if (attr.length() > 0) {
-			getHandshakeOptions().setDhGroups(new HashSet<Integer>());
+			getHandshakeOptions().setDhGroups(new HashSet<>());
 			for (String dg : attr.split("[,]", -1)) {
 				String dgtmp = dg.strip();
 				if (dgtmp.length() == 0) {
@@ -260,16 +261,16 @@ public final class ServiceConf {
 	}
 
 	public void Start() {
-		ForEachAcceptor((a) -> a.Start());
-		ForEachConnector((c) -> c.Start());
+		ForEachAcceptor(Acceptor::Start);
+		ForEachConnector(Connector::Start);
 	}
 
 	public void Stop() {
-		ForEachAcceptor((a) -> a.Stop());
-		ForEachConnector((c) -> c.Stop());
+		ForEachAcceptor(Acceptor::Stop);
+		ForEachConnector(Connector::Stop);
 	}
 
 	public void StopListen() {
-		ForEachAcceptor((a) -> a.Stop());
+		ForEachAcceptor(Acceptor::Stop);
 	}
 }

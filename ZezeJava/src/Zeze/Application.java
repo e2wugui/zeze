@@ -12,7 +12,7 @@ import Zeze.Services.ServiceManager.Agent;
 public final class Application {
 	private static final Logger logger = LogManager.getLogger(Application.class);
 
-	private HashMap<String, Database> Databases = new HashMap<String, Database> ();
+	private final HashMap<String, Database> Databases = new HashMap<> ();
 	public HashMap<String, Database> getDatabases() {
 		return Databases;
 	}
@@ -165,8 +165,6 @@ public final class Application {
 			getCheckpoint().Start(getConfig().getCheckpointPeriod()); // 定时模式可以和其他模式混用。
 
 			/////////////////////////////////////////////////////
-			/** Schemas Check
-			*/
 			getSchemas().Compile();
 			var keyOfSchemas = Zeze.Serialize.ByteBuffer.Allocate();
 			keyOfSchemas.WriteString("zeze.Schemas." + getConfig().getServerId());
@@ -183,7 +181,7 @@ public final class Application {
 						SchemasPrevious = null;
 						logger.error("Schemas Implement Changed?", ex);
 					}
-					if (false == getSchemas().IsCompatible(SchemasPrevious, getConfig())) {
+					if (!getSchemas().IsCompatible(SchemasPrevious, getConfig())) {
 						throw new RuntimeException("Database Struct Not Compatible!");
 					}
 					version = dataVersion.Version;
@@ -203,7 +201,7 @@ public final class Application {
 				getGlobalAgent().Stop();
 			}
 
-			if (false == isStart()) {
+			if (!isStart()) {
 				return;
 			}
 			if (getConfig() != null) {
@@ -236,7 +234,7 @@ public final class Application {
 		});
 	}
 
-	private Zeze.Util.TaskOneByOneByKey TaskOneByOneByKey = new Zeze.Util.TaskOneByOneByKey();
+	private final Zeze.Util.TaskOneByOneByKey TaskOneByOneByKey = new Zeze.Util.TaskOneByOneByKey();
 	public Zeze.Util.TaskOneByOneByKey getTaskOneByOneByKey() {
 		return TaskOneByOneByKey;
 	}

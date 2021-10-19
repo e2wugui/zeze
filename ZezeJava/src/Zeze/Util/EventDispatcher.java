@@ -2,6 +2,8 @@ package Zeze.Util;
 
 import Zeze.*;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 /** 
  这个类恐怕没什么用。写在这里主要是为了一个建议：
  即事件应该在新的事务中执行。不要嵌套到触发者的事务中，否则可能无法控制。
@@ -9,7 +11,7 @@ import Zeze.*;
 public class EventDispatcher {
 
 	@FunctionalInterface
-	public static interface EventHandle {
+	public interface EventHandle {
 		int invoke(Object sender, EventArg arg);
 	}
 
@@ -17,8 +19,7 @@ public class EventDispatcher {
 		public static EventArg Empty = new EventArg();
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<String, EventHandle> Handles
-		= new java.util.concurrent.ConcurrentHashMap<String, EventHandle> ();
+	private ConcurrentHashMap<String, EventHandle> Handles = new ConcurrentHashMap<> ();
 
 	public final void AddEventHandle(EventHandle handle) {
 		AddEventHandle(handle, null);

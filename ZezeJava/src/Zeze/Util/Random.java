@@ -3,7 +3,7 @@ package Zeze.Util;
 import java.util.*;
 
 public final class Random {
-	private static java.util.Random Instance = new java.util.Random();
+	private static final java.util.Random Instance = new java.util.Random();
 	public static java.util.Random getInstance() {
 		return Instance;
 	}

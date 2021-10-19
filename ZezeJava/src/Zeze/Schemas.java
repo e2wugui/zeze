@@ -68,11 +68,11 @@ public class Schemas implements Serializable {
 		public final void setBean(Bean value) {
 			Bean = value;
 		}
-		private ArrayList<Action1<Bean>> Updates = new ArrayList<Action1<Bean>> ();
+		private final ArrayList<Action1<Bean>> Updates = new ArrayList<> ();
 		private ArrayList<Action1<Bean>> getUpdates() {
 			return Updates;
 		}
-		private ArrayList<Action1<Bean>> UpdateVariables = new ArrayList<Action1<Bean>> ();
+		private final ArrayList<Action1<Bean>> UpdateVariables = new ArrayList<> ();
 		private ArrayList<Action1<Bean>> getUpdateVariables() {
 			return UpdateVariables;
 		}
@@ -109,11 +109,11 @@ public class Schemas implements Serializable {
 		public final void setPrevious(Schemas value) {
 			Previous = value;
 		}
-		private HashMap<Checked, CheckResult> Checked = new HashMap<Checked, CheckResult> ();
+		private final HashMap<Checked, CheckResult> Checked = new HashMap<> ();
 		public final HashMap<Checked, CheckResult> getChecked() {
 			return Checked;
 		}
-		private HashMap<Bean, CheckResult> CopyBeanIfRemoved = new HashMap<Bean, CheckResult> ();
+		private HashMap<Bean, CheckResult> CopyBeanIfRemoved = new HashMap<> ();
 		public final HashMap<Bean, CheckResult> getCopyBeanIfRemoved() {
 			return CopyBeanIfRemoved;
 		}
@@ -342,7 +342,7 @@ public class Schemas implements Serializable {
 	public static class Bean extends Type {
 		private static final Logger logger = LogManager.getLogger(Bean.class);
 
-		private HashMap<Integer, Variable> Variables = new HashMap<Integer, Variable> ();
+		private HashMap<Integer, Variable> Variables = new HashMap<> ();
 		public final HashMap<Integer, Variable> getVariables() {
 			return Variables;
 		}
@@ -407,7 +407,7 @@ public class Schemas implements Serializable {
 			result.setBean(this);
 			context.AddCheckResult(beanOther, this, result);
 
-			ArrayList<Variable> Deleteds = new ArrayList<Variable>();
+			ArrayList<Variable> Deleteds = new ArrayList<>();
 			for (var vOther : beanOther.getVariables().values()) {
 				var vThis = getVariables().get(vOther.Id);
 				if (null != vThis) {
@@ -629,10 +629,10 @@ public class Schemas implements Serializable {
         }
     }
 
-    public HashMap<String, Table> Tables = new HashMap<String, Table>();
-    public HashMap<String, Bean> Beans = new HashMap<String, Bean>();
+    public HashMap<String, Table> Tables = new HashMap<>();
+    public HashMap<String, Bean> Beans = new HashMap<>();
 
-    private static Logger logger = LogManager.getLogger(Table.class);
+    private final static Logger logger = LogManager.getLogger(Table.class);
 
     public boolean IsCompatible(Schemas other, Config config) {
         if (null == other)
@@ -698,7 +698,7 @@ public class Schemas implements Serializable {
         }
     }
 
-    private HashMap<String, Type> BasicTypes = new HashMap<String, Type>();
+    private final HashMap<String, Type> BasicTypes = new HashMap<>();
 
     public Type Compile(String type, String key, String value) {
         if (null == type || type.isEmpty())
@@ -720,7 +720,7 @@ public class Schemas implements Serializable {
             n.Name = type;
             n.KeyName = key;
             n.ValueName = value;
-        };
+        }
         BasicTypes.put(fullTypeName, n);
         n.Compile(this); // 容器需要编译。这里的时机不是太好。
         return n;

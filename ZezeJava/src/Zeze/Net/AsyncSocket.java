@@ -16,7 +16,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 public final class AsyncSocket implements SelectorHandle, Closeable {
-	private static Logger logger = LogManager.getLogger(AsyncSocket.class);
+	private static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 	
 	private ArrayList<java.nio.ByteBuffer> _outputBufferList = null;
 	private int _outputBufferListCountSum = 0;
@@ -63,7 +63,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	private SelectionKey selectionKey;
-	private Selector selector;
+	private final Selector selector;
 
 	public SocketChannel getSocketChannel() {
 		return (SocketChannel)selectionKey.channel();
@@ -93,10 +93,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		IsHandshakeDone = value;
 	}
 
-	private static AtomicLong SessionIdGen = new AtomicLong();
+	private static final AtomicLong SessionIdGen = new AtomicLong();
 
-	private BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
-	private BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
+	private final BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
+	private final BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
 
 	private Codec inputCodecChain;
 	private Codec outputCodecChain;
@@ -185,10 +185,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	/** 
 	 use inner. create when accept;
-	 
-	 @param accepted
 	*/
-	private AsyncSocket(Service service, SocketChannel sc) throws SocketException, IOException {
+	private AsyncSocket(Service service, SocketChannel sc) throws IOException {
 		this.setService(service);
 
 
@@ -211,9 +209,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	/** 
 	 for client socket. connect
-	 
-	 @param hostNameOrAddress
-	 @param port
 	*/
 
 	public AsyncSocket(Service service, String hostNameOrAddress, int port) {
@@ -259,6 +254,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				try {
 					sc.close();
 				} catch (Throwable e2) {
+					// skip
 				}
 			throw new RuntimeException(e);
 		}
@@ -344,11 +340,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	/** 
 	 可能直接加到发送缓冲区，不能再修改bytes了。
-	 
-	 @param bytes
-	 @param offset
-	 @param length
-	*/
+	 */
 	public boolean Send(byte[] bytes, int offset, int length) {
 		Zeze.Serialize.ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
@@ -474,6 +466,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (rc >= 0) {
 				int i = 0;
 				for ( ; i < _outputBufferListSending.size() && _outputBufferListSending.get(i).remaining() == 0; ++i) {
+					// nothing
 				}
 				_outputBufferListSending.subList(0, i).clear();
 				if (_outputBufferListSending.isEmpty()) {

@@ -8,9 +8,9 @@ import org.apache.logging.log4j.Logger;
 public class HugeConcurrentLruLike<K, V> {
 	private static final Logger logger = LogManager.getLogger(HugeConcurrentLruLike.class);
 
-	private HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>> DataMap;
-	private ConcurrentLinkedQueue<Zeze.Util.HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>>> LruQueue
-		= new ConcurrentLinkedQueue<Zeze.Util.HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>>> ();
+	private final HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>> DataMap;
+	private final ConcurrentLinkedQueue<Zeze.Util.HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>>> LruQueue
+		= new ConcurrentLinkedQueue<> ();
 	private HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>> LruHot;
 
 	private long Capacity;
@@ -67,7 +67,7 @@ public class HugeConcurrentLruLike<K, V> {
 	}
 
 	@FunctionalInterface
-	public static interface TryRemoveHandle<K, V> {
+	public interface TryRemoveHandle<K, V> {
 		boolean tryRemove(K key, V value);
 	}
 
@@ -101,7 +101,7 @@ public class HugeConcurrentLruLike<K, V> {
 		setNewLruHotPeriod(newLruHotPeriod);
 		setCleanPeriod(cleanPeriod);
 
-		DataMap = new HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>>(buckets, concurrencyLevel, initialCapacity);
+		DataMap = new HugeConcurrentDictionary<>(buckets, concurrencyLevel, initialCapacity);
 		NewLruHot();
 
 		Task.schedule((task) -> {
@@ -119,7 +119,7 @@ public class HugeConcurrentLruLike<K, V> {
 		var lruItem = DataMap.GetOrAdd(k, (k2) -> {
 				V value = factory.create();
 				isNew.Value = true;
-				var lruItemNew = new HugeConcurrentLruItem<K, V>(value, LruHot);
+				var lruItemNew = new HugeConcurrentLruItem<>(value, LruHot);
 				LruHot.put(k, lruItemNew); // MUST replace
 				return lruItemNew;
 		});
@@ -141,9 +141,7 @@ public class HugeConcurrentLruLike<K, V> {
 	}
 
 	/** 
-	 @param key
-	 @param value
-	 @param adjustLru 是否调整lru 
+	 @param key key
 	 @return 
 	*/
 
@@ -164,11 +162,11 @@ public class HugeConcurrentLruLike<K, V> {
 
 	private long GetLruInitialCapaicty() {
 		long lruInitialCapacity = (long)(DataMap.getInitialCapacity() * 0.2);
-		return lruInitialCapacity < getMaxLruInitialCapaicty() ? lruInitialCapacity : getMaxLruInitialCapaicty();
+		return Math.min(lruInitialCapacity, getMaxLruInitialCapaicty());
 	}
 
 	private void NewLruHot() {
-		LruHot = new Zeze.Util.HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>>(
+		LruHot = new Zeze.Util.HugeConcurrentDictionary<>(
 				DataMap.getBucketCount(), DataMap.getConcurrencyLevel(), GetLruInitialCapaicty());
 		LruQueue.add(LruHot);
 	}
@@ -227,9 +225,10 @@ public class HugeConcurrentLruLike<K, V> {
 				try {
 					Thread.sleep(getCleanPeriodWhenExceedCapacity());
 				} catch (InterruptedException skip) {
+					// skip ?
 				}
 			}
-			Task.schedule((thisTask) -> CleanNow(thisTask), getCleanPeriod(), -1);
+			Task.schedule(this::CleanNow, getCleanPeriod(), -1);
 		}
 	}
 }

@@ -97,9 +97,6 @@ public abstract class Protocol implements Serializable {
 
 	/** 
 	 Id + size + protocol.bytes
-	 
-	 @param bb
-	 @return 
 	*/
 
 	public static void Decode(Service service, AsyncSocket so, ByteBuffer bb) {

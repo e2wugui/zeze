@@ -7,15 +7,11 @@ import java.util.*;
  使用dh算法交换密匙把连接加密。
  如果dh交换失败，现在依赖加密压缩实现以及后面的协议解析的错误检查来发现。
  有没有好的安全的dh交换失败的检测手段。
-*/
-
-
-/** 
  服务器客户端定义在一起
 */
 public class HandshakeOptions {
 	// for HandshakeServer
-	private HashSet<Integer> DhGroups = new HashSet<Integer> ();
+	private HashSet<Integer> DhGroups = new HashSet<>();
 	public final HashSet<Integer> getDhGroups() {
 		return DhGroups;
 	}

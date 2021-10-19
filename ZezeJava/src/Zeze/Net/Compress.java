@@ -5,8 +5,8 @@ public final class Compress implements Codec {
 	private final Codec sink;
 	private int pos = 0;
 	private int rem = 0;
-	private byte dict[] = new byte[8192];
-	private short hash[] = new short[65536];
+	private final byte dict[] = new byte[8192];
+	private final short hash[] = new short[65536];
 	private int idx = 0;
 	private int match_idx;
 	private int match_off = -1;
