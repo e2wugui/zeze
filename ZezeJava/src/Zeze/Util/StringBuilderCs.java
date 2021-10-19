@@ -3,20 +3,24 @@ package Zeze.Util;
 public class StringBuilderCs {
     public StringBuilder sb = new StringBuilder();
 
-    public void AppendLine(String line) {
+    public StringBuilderCs AppendLine(String line) {
         sb.append(line).append("\n");
+        return this;
     }
 
-    public void Append(String s) {
+    public StringBuilderCs Append(String s) {
         sb.append(s);
+        return this;
     }
 
-    public void Append(int i) {
+    public StringBuilderCs Append(int i) {
         sb.append(i);
+        return this;
     }
 
-    public void Append(long l) {
+    public StringBuilderCs Append(long l) {
         sb.append(l);
+        return this;
     }
 
     public String toString() {
