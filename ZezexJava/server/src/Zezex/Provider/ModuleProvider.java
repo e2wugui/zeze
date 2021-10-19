@@ -240,8 +240,8 @@ public final class ModuleProvider extends AbstractModule {
 					return action.call((T)getUserState());
 				}
 				finally {
-					getHashCodes().remove((Integer)hash); // 如果不允许一个hash分组处理措辞，把这个移到开头并判断结果。
-					if (getHashCodes().isEmpty()) {
+					HashCodes.remove(hash); // 如果不允许一个hash分组处理措辞，把这个移到开头并判断结果。
+					if (HashCodes.isEmpty()) {
 						Game.App.getInstance().Server.TryRemoveManualContext(getSessionId());
 					}
 				}

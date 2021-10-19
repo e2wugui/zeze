@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.*;
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
-public final class App {
+public final class App extends Zeze.AppBase {
 	public static App Instance = new App();
 	public static App getInstance() {
 		return Instance;

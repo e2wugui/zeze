@@ -1,6 +1,7 @@
 
 public class Program {
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws InterruptedException, NoSuchMethodException {
+
 		Zeze.Serialize.ByteBuffer.setBinaryNoCopy(true);
 		Zezex.App.getInstance().Start();
 		try {

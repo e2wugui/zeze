@@ -212,7 +212,7 @@ public final class ModuleProvider extends AbstractModule {
         var rpc = (Bind) _rpc;
         if (rpc.Argument.getLinkSids().size() == 0) {
             var providerSession = (Zezex.ProviderSession) rpc.Sender.getUserState();
-            for (var module : rpc.Argument.getModules()) {
+            for (var module : rpc.Argument.getModules().entrySet()) {
                 if (getFirstModuleWithConfigTypeDefault() == 0 && module.getValue().getConfigType() == BModule.ConfigTypeDefault) {
                     setFirstModuleWithConfigTypeDefault(module.getValue().getConfigType());
                 }
@@ -455,7 +455,7 @@ public final class ModuleProvider extends AbstractModule {
         // 如果 role 不在线，就根据 hash(roleId) 选择 provider 转发。
         var transmitsHash = new HashMap<Integer, Transmit>();
 
-        for (var target : protocol.Argument.getRoles()) {
+        for (var target : protocol.Argument.getRoles().entrySet()) {
             var provider = App.ProviderService.GetSocket(target.getValue().getProviderSessionId());
             if (null == provider) {
                 var hash = target.getKey().hashCode();
