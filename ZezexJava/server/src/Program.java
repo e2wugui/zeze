@@ -1,6 +1,6 @@
 
 public class Program {
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		String srcDirWhenPostBuild = null;
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
@@ -10,9 +10,9 @@ public class Program {
 			}
 		}
 		if (!srcDirWhenPostBuild.equals(null)) {
-			Game.ModuleRedirect.Instance.setSrcDirWhenPostBuild(srcDirWhenPostBuild);
+			Zezex.ModuleRedirect.Instance.setSrcDirWhenPostBuild(srcDirWhenPostBuild);
 			Game.App.getInstance().Create();
-			if (Game.ModuleRedirect.Instance.getHasNewGen()) {
+			if (Zezex.ModuleRedirect.Instance.getHasNewGen()) {
 				System.out.println("ModuleRedirect HasNewGen. Please Rebuild Now.");
 			}
 			Game.App.getInstance().Destroy();

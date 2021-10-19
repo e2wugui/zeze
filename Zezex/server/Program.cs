@@ -23,9 +23,9 @@ namespace server
             }
             if (null != srcDirWhenPostBuild)
             {
-                Game.ModuleRedirect.Instance.SrcDirWhenPostBuild = srcDirWhenPostBuild;
+                Zezex.ModuleRedirect.Instance.SrcDirWhenPostBuild = srcDirWhenPostBuild;
                 Game.App.Instance.Create();
-                if (Game.ModuleRedirect.Instance.HasNewGen)
+                if (Zezex.ModuleRedirect.Instance.HasNewGen)
                 {
                     Console.WriteLine("ModuleRedirect HasNewGen. Please Rebuild Now.");
                 }

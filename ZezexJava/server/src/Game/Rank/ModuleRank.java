@@ -233,11 +233,11 @@ public class ModuleRank extends AbstractModule {
 		d) 剩下的是自定义参数。
 	*/
 	protected final int GetRank(long sessionId, int hash, BConcurrentKey keyHint,
-								Zeze.Util.Action4<Long, Integer, Integer, BRankList> onHashResult) {
+								Zezex.RedirectAllResultHandle onHashResult) {
 		// 根据hash获取分组rank。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel, keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
-		onHashResult.run(sessionId, hash, Procedure.Success, _trank.GetOrAdd(concurrentKey));
+		onHashResult.handle(sessionId, hash, Procedure.Success, _trank.GetOrAdd(concurrentKey));
 		return Procedure.Success;
 	}
 
@@ -245,8 +245,8 @@ public class ModuleRank extends AbstractModule {
 	// 需要注意在子类上下文中可以编译通过。可以是常量。
 	@RedirectAll(GetConcurrentLevelSource="GetConcurrentLevel(keyHint.RankType)")
 	public void RunGetRank(BConcurrentKey keyHint,
-						   Zeze.Util.Action4<Long, Integer, Integer, BRankList> onHashResult,
-						   Zeze.Util.Action1<Zezex.Provider.ModuleProvider.ModuleRedirectAllContext> onHashEnd) {
+						   Zezex.RedirectAllResultHandle onHashResult,
+						   Zezex.RedirectAllDoneHandle onHashEnd) {
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var ctx = new Zezex.Provider.ModuleProvider.ModuleRedirectAllContext(concurrentLevel, String.format("%1$s:%2$s", getFullName(), "RunGetRank"));
@@ -274,7 +274,7 @@ public class ModuleRank extends AbstractModule {
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		RunGetRank(keyHint,
 				// Action OnHashResult
-				(sessionId, hash, returnCode, BRankList) -> {
+				(sessionId, hash, returnCode, _result) -> {
 					var ctx = App.Server.<Zezex.Provider.ModuleProvider.ModuleRedirectAllContext>TryGetManualContext(sessionId);
 					if (ctx == null)
 						return;
@@ -282,11 +282,12 @@ public class ModuleRank extends AbstractModule {
 						if (returnCode != Procedure.Success) {
 							return returnCode;
 						}
+						var result = (BRankList)_result;
 						if (rank2.TableValue == null) {
-							rank2.TableValue = BRankList.CopyIfManaged();
+							rank2.TableValue = result.CopyIfManaged();
 						}
 						else {
-							rank2.TableValue = Merge(rank2.TableValue, BRankList);
+							rank2.TableValue = Merge(rank2.TableValue, result);
 						}
 						if (rank2.TableValue.getRankList().size() > countNeed) {
 							for (int ir = rank2.TableValue.getRankList().size() - 1; ir >= countNeed; --ir)

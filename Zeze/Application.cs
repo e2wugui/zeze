@@ -131,7 +131,7 @@ namespace Zeze
                     return;
                 IsStart = true;
 
-                var serviceConf = Config.GetServiceConf(ServiceManager.Agent.DefaultServiceName));
+                var serviceConf = Config.GetServiceConf(ServiceManager.Agent.DefaultServiceName);
                 if (null != serviceConf) {
                     ServiceManagerAgent = new ServiceManager.Agent(Config);
                     ServiceManagerAgent.WaitConnectorReady();

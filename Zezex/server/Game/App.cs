@@ -11,9 +11,9 @@ namespace Game
         public Dictionary<int, Zezex.Provider.BModule> StaticBinds { get; } = new Dictionary<int, Zezex.Provider.BModule>();
         public Zezex.ProviderModuleBinds ProviderModuleBinds { get; private set; }
 
-        public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
+        public override Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
         {
-            return Game.ModuleRedirect.Instance.ReplaceModuleInstance(module);
+            return Zezex.ModuleRedirect.Instance.ReplaceModuleInstance(module);
         }
 
         public Config Config { get; private set; }

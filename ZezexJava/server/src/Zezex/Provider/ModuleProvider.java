@@ -200,11 +200,11 @@ public final class ModuleProvider extends AbstractModule {
 		public final HashSet<Integer> getHashCodes() {
 			return HashCodes;
 		}
-		private Zeze.Util.Action1<ModuleRedirectAllContext> OnHashEnd;
-		public final Zeze.Util.Action1<ModuleRedirectAllContext> getOnHashEnd() {
+		private Zezex.RedirectAllDoneHandle OnHashEnd;
+		public final Zezex.RedirectAllDoneHandle getOnHashEnd() {
 			return OnHashEnd;
 		}
-		public final void setOnHashEnd(Zeze.Util.Action1<ModuleRedirectAllContext> value) {
+		public final void setOnHashEnd(Zezex.RedirectAllDoneHandle value) {
 			OnHashEnd = value;
 		}
 
@@ -259,7 +259,7 @@ public final class ModuleProvider extends AbstractModule {
 			}
 		}
 
-		// 生成代码实现。see Game.ModuleRedirect.cs
+		// 生成代码实现。see Zezex.ModuleRedirect.cs
 		public int ProcessHashResult(int _hash_, int _returnCode_, Binary _params, Collection<Zezex.Provider.BActionParam> _actions_) {
 			return Procedure.NotImplement;
 		}

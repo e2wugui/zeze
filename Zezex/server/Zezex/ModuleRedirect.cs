@@ -152,7 +152,7 @@ namespace Zezex
                     case OverrideType.Redirect:
                         var attr = Attribute as ModuleRedirectAttribute;
                         if (string.IsNullOrEmpty(attr.ChoiceHashCodeSource))
-                            return "Game.ModuleRedirect.GetChoiceHashCode()";
+                            return "Zezex.ModuleRedirect.GetChoiceHashCode()";
                         return attr.ChoiceHashCodeSource;
 
                     default:
@@ -519,7 +519,7 @@ namespace Zezex
 
                 sb.AppendLine($"    public override {returnTypeName} {methodOverride.Method.Name}({parametersDefine})");
                 sb.AppendLine($"    {{");
-                sb.AppendLine($"        if (Game.ModuleRedirect.Instance.IsLocalServer(\"{module.FullName}\"))");
+                sb.AppendLine($"        if (Zezex.ModuleRedirect.Instance.IsLocalServer(\"{module.FullName}\"))");
                 sb.AppendLine($"        {{");
                 switch (returnType)
                 {
@@ -558,7 +558,7 @@ namespace Zezex
                 sb.AppendLine($"");
                 string sessionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
                 string futureVarName = "tmp" + TmpVarNameId.IncrementAndGet();
-                sb.AppendLine($"        var {sessionVarName} = Game.ModuleRedirect.GetLoginSession();");
+                sb.AppendLine($"        var {sessionVarName} = Zezex.ModuleRedirect.GetLoginSession();");
                 sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource<int>();");
                 sb.AppendLine($"");
                 foreach (var outOrRef in parametersOutOrRef)
@@ -627,7 +627,7 @@ namespace Zezex
                 sb.AppendLine($"    }}");
                 sb.AppendLine($"");
 
-                sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_) =>");
+                sbHandles.AppendLine($"        Zezex.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_) =>");
                 sbHandles.AppendLine($"        {{");
                 sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
                 for (int i = 0; i < methodOverride.ParametersNormal.Count; ++i)
@@ -717,13 +717,13 @@ namespace Zezex
             }
             sb.AppendLine($"");
             string sessionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
-            sb.AppendLine($"        var {sessionVarName} = Game.ModuleRedirect.GetLoginSession();");
+            sb.AppendLine($"        var {sessionVarName} = Zezex.ModuleRedirect.GetLoginSession();");
             sb.AppendLine($"        {reqVarName}.Send({sessionVarName}.Link);");
             sb.AppendLine($"    }}");
             sb.AppendLine($"");
 
             // handles
-            sbHandles.AppendLine($"        Game.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_) =>");
+            sbHandles.AppendLine($"        Zezex.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_) =>");
             sbHandles.AppendLine($"        {{");
             sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
             for (int i = 0; i < methodOverride.ParametersNormal.Count; ++i)
