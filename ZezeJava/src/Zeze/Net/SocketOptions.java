@@ -44,7 +44,7 @@ public final class SocketOptions {
 	public void setInputBufferMaxProtocolSize(int value) {
 		InputBufferMaxProtocolSize = value;
 	}
-	private int OutputBufferMaxSize;
+	private int OutputBufferMaxSize = 2 * 1024 * 1024;
 	public int getOutputBufferMaxSize() {
 		return OutputBufferMaxSize;
 	}

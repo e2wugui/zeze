@@ -16,8 +16,6 @@ public class TestAsyncSocket extends TestCase {
 		public void OnSocketConnected(AsyncSocket so) {
 			super.OnSocketConnected(so);
 			System.out.println("OnSocketConnected: " + so.getSessionId());
-			String head = "GET http://www.163.com/\r\nHost: www.163.com\r\nAccept:*/*\r\n\r\n";
-			so.Send(head);
 		}
 
 		@Override
@@ -32,6 +30,12 @@ public class TestAsyncSocket extends TestCase {
 	public final void testConnect() {
 		ServiceClient client = new ServiceClient();
 		try (AsyncSocket so = client.NewClientSocket("www.163.com", 80, null)) {
+			String head = "GET http://www.163.com/\r\nHost: www.163.com\r\nAccept:*/*\r\n\r\n";
+			boolean suc = so.Send(head);
+			if(!suc) {
+				System.out.println("send fail");
+				return;
+			}
 			client.Future.Wait();
 		}
 	}

@@ -46,6 +46,7 @@ public class TestRpc extends TestCase{
 	public static class FirstRpc extends Rpc<demo.Module1.Value, demo.Module1.Value> {
 		public FirstRpc() {
 			Argument = new demo.Module1.Value();
+			Result = new demo.Module1.Value();
 		}
 		
 		@Override
