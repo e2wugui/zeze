@@ -146,7 +146,7 @@ public final class ModuleProvider extends AbstractModule {
 			result.Argument.setSessionId(protocol.Argument.getSessionId());
 			result.Argument.setMethodFullName(protocol.Argument.getMethodFullName());
 
-			var handle = Zezex.ModuleRedirect.Instance.getHandles().get(protocol.Argument.getMethodFullName());
+			var handle = Zezex.ModuleRedirect.Instance.Handles.get(protocol.Argument.getMethodFullName());
 			if (null == handle) {
 				result.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 				// 失败了，需要把hash返回。此时是没有处理结果的。
@@ -163,16 +163,18 @@ public final class ModuleProvider extends AbstractModule {
 			for (var hash : protocol.Argument.getHashCodes()) {
 				// 嵌套存储过程，某个分组处理失败不影响其他分组。
 				var hashResult = new BModuleRedirectAllHash();
-				Binary Params = null;
+				final var Params = new Zeze.Util.OutObject<Binary>();
+				Params.Value = null;
 				hashResult.setReturnCode(App.Zeze.NewProcedure(() -> {
-						var(_ReturnCode, _Params) = handle(protocol.Argument.SessionId, hash, protocol.Argument.Params, hashResult.Actions);
-						Params = _Params;
-						return _ReturnCode;
-				}, Transaction.Current.TopProcedure.ActionName, null).Call();
+						var rp = handle.call(
+								protocol.Argument.getSessionId(), hash, protocol.Argument.getParams(), hashResult.getActions());
+						Params.Value = rp.EncodedParameters;
+						return rp.ReturnCode;
+				}, Transaction.getCurrent()).getTopProcedure().getActionName(), null).Call();
 
 				// 单个分组处理失败继续执行。XXX
 				if (hashResult.getReturnCode() == Procedure.Success) {
-					hashResult.setParams(Params);
+					hashResult.setParams(Params.Value);
 				}
 				result.Argument.getHashs().put(hash, hashResult);
 				SendResultIfSizeExceed(protocol.Sender, result);

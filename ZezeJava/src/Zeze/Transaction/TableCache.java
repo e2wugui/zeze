@@ -63,7 +63,7 @@ public class TableCache<K, V extends Bean> {
 					NewLruHot();
 				}
 		}, table.getTableConf().getCacheNewLruHotPeriod(), table.getTableConf().getCacheNewLruHotPeriod());
-		Task.schedule((task)->CleanNow(task), getTable().getTableConf().getCacheCleanPeriod(), -1);
+		Task.schedule((task)->CleanNow(task), getTable().getTableConf().getCacheCleanPeriod());
 	}
 
 	private int GetCacheBuckets() {
@@ -145,7 +145,7 @@ public class TableCache<K, V extends Bean> {
 		// 每次执行完重新调度。
 
 		if (getTable().getTableConf().getCacheCapacity() <= 0) {
-			Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod(), -1);
+			Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod());
 			return; // 容量不限
 		}
 
@@ -175,7 +175,7 @@ public class TableCache<K, V extends Bean> {
 				}
 			}
 		}
-		Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod(), -1);
+		Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod());
 	}
 
 	// under lockey.writelock
