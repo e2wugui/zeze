@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using Zeze.Transaction;
+using Zeze.Services;
 
 namespace Zeze
 {
@@ -15,7 +16,7 @@ namespace Zeze
         public Dictionary<string, Database> Databases { get; private set; } = new Dictionary<string, Database>();
         public Config Config { get; }
         public bool IsStart { get; private set; }
-        public Services.ServiceManager.Agent ServiceManagerAgent { get; private set; }
+        public ServiceManager.Agent ServiceManagerAgent { get; private set; }
         internal GlobalAgent GlobalAgent { get; }
 
         // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
@@ -130,9 +131,11 @@ namespace Zeze
                     return;
                 IsStart = true;
 
-                ServiceManagerAgent = new Services.ServiceManager.Agent(Config);
-                ServiceManagerAgent.WaitConnectorReady();
-
+                var serviceConf = Config.GetServiceConf(ServiceManager.Agent.DefaultServiceName));
+                if (null != serviceConf) {
+                    ServiceManagerAgent = new ServiceManager.Agent(Config);
+                    ServiceManagerAgent.WaitConnectorReady();
+                }
                 Database defaultDb = GetDatabase("");
                 foreach (var db in Databases.Values)
                 {

@@ -1524,6 +1524,8 @@ namespace Zeze.Services
                 Stop();
             }
 
+            public const string DefaultServiceName = "Zeze.Services.ServiceManager.Agent";
+
             public sealed class NetClient : HandshakeClient
             {
                 public Agent Agent { get; }

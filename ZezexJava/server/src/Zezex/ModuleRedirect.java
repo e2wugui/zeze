@@ -1,6 +1,7 @@
 package Zezex;
 
 import java.lang.annotation.Annotation;
+import java.nio.file.Paths;
 import java.util.*;
 import java.io.*;
 import java.time.*;
@@ -231,6 +232,7 @@ public class ModuleRedirect {
 		}
 
 		String genClassName = String.format("_ModuleRedirect_%1$s_Gen_", module.getFullName().replace('.', '_'));
+		/*
 		if (getSrcDirWhenPostBuild().equals(null)) {
 			module.UnRegister();
 			//Console.WriteLine($"'{module.FullName}' Replaced.");
@@ -241,8 +243,12 @@ public class ModuleRedirect {
 				throw new RuntimeException(e);
 			}
 		}
+		*/
 
-		String srcFileName = Path.Combine(getSrcDirWhenPostBuild(), module.FullName.replace('.', File.separatorChar), String.format("Module%1$s.cs", module.Name));
+		var srcFileName = Paths.get(
+				getSrcDirWhenPostBuild(),
+				module.getFullName().replace('.', File.separatorChar),
+				String.format("Module%1$s.cs", module.getName()));
 
 		long srcLastWriteTimeTicks = System.IO.File.GetLastWriteTime(srcFileName).getTime();
 		String genFileName = Path.Combine(getSrcDirWhenPostBuild(), "Gen", genClassName + ".cs");
