@@ -150,8 +150,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			try {
 				SocketChannel sc = (SocketChannel) key.channel();
 				if (sc.finishConnect()) {
-					doConnectSuccess(sc);
+					// 先修改事件，防止doConnectSuccess发送数据注册了新的事件导致OP_CONNECT重新触发。
+					// 虽然实际上在回调中应该不会唤醒Selector重入。
 					interestOps(SelectionKey.OP_CONNECT, SelectionKey.OP_READ);
+					doConnectSuccess(sc);
 					return;
 				}
 				Service.OnSocketConnectError(this, null);
