@@ -151,7 +151,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				SocketChannel sc = (SocketChannel) key.channel();
 				if (sc.finishConnect()) {
 					doConnectSuccess(sc);
-					selectionKey.interestOps(SelectionKey.OP_READ);
+					interestOps(SelectionKey.OP_CONNECT, SelectionKey.OP_READ);
 					return;
 				}
 				Service.OnSocketConnectError(this, null);
@@ -196,7 +196,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			so.setTcpNoDelay(Service.getSocketOptions().getNoDelay());
 		sc.configureBlocking(false);
 
-		this.setSessionId(SessionIdGen.incrementAndGet());
+		this.SessionId = SessionIdGen.incrementAndGet();
 		RemoteAddress = so.getRemoteSocketAddress().toString();
 
 		selector = Selectors.getInstance().choice();
@@ -223,11 +223,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		this.setService(service);
 
 		UserState = userState;
-		this.setSessionId(SessionIdGen.incrementAndGet());
+		this.SessionId = SessionIdGen.incrementAndGet();
 
 		SocketChannel sc = null;
 		try {
 			sc = SocketChannel.open();
+			sc.configureBlocking(false);
 			Socket so = sc.socket();			
 			if (null != Service.getSocketOptions().getNoDelay())
 				so.setTcpNoDelay(Service.getSocketOptions().getNoDelay());
@@ -239,9 +240,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			selector = Selectors.getInstance().choice();
 			var address = InetAddress.getByName(hostNameOrAddress); // TODO async dns lookup
 			if (sc.connect(new InetSocketAddress(address, port))) {
-				doConnectSuccess(sc);
 				// 马上成功时，还没有注册到Selector中。
 				selectionKey = selector.register(sc, SelectionKey.OP_READ, this);
+				doConnectSuccess(sc);
 			} else {
 				selectionKey = selector.register(sc, SelectionKey.OP_CONNECT, this);
 			}
