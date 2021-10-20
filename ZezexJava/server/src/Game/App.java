@@ -6,9 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import Zeze.Services.ServiceManager.SubscribeInfo;
+import Zeze.Config;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
-import java.util.*;
+
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class App extends Zeze.AppBase {
@@ -33,13 +34,11 @@ public final class App extends Zeze.AppBase {
 		return Zezex.ModuleRedirect.Instance.ReplaceModuleInstance(module);
 	}
 
-	private Config Config;
-	public Config getConfig() {
-		return Config;
+	private MyConfig MyConfig;
+	public MyConfig getMyConfig() {
+		return MyConfig;
 	}
-	private void setConfig(Config value) {
-		Config = value;
-	}
+
 	private Load Load = new Load();
 	public Load getLoad() {
 		return Load;
@@ -51,13 +50,13 @@ public final class App extends Zeze.AppBase {
 	private void LoadConfig() {
 		try {
             byte [] bytes = Files.readAllBytes(Paths.get("Game.json"));
-            setConfig(new JasonReader().buf(bytes).parse(Config.class));
+            MyConfig = new JasonReader().buf(bytes).parse(MyConfig.class);
 		}
 		catch (Exception e) {
 			//MessageBox.Show(ex.ToString());
 		}
-		if (null == getConfig()) {
-			setConfig(new Config());
+		if (null == MyConfig) {
+			MyConfig = new MyConfig();
 		}
 	}
 
@@ -73,7 +72,7 @@ public final class App extends Zeze.AppBase {
 		}
 
 		LoadConfig();
-		var config = Zeze.getConfig().Load("zeze.xml");
+		var config = Config.Load("zeze.xml");
 		if (ServerId != -1) {
 			config.setServerId(ServerId); // replace from args
 		}
@@ -140,7 +139,7 @@ public final class App extends Zeze.AppBase {
         Create(null);
     }
 
-    public void Create(Zeze.Config config) {
+    public void Create(Config config) {
         synchronized (this) {
             if (null != Zeze)
                 return;

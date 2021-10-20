@@ -85,13 +85,14 @@ public final class Application {
 
 		Conf = config;
 		if (null == Conf) {
-			Conf = Config.Load(null);
+			Conf = Config.Load();
 		}
 		InternalThreadPool = new ScheduledThreadPoolExecutor(getConfig().getInternalThreadPoolWorkerCount());
 
 		getConfig().CreateDatabase(getDatabases());
 		GlobalAgent = new GlobalAgent(this);
 		_checkpoint = new Checkpoint(getConfig().getCheckpointMode(), getDatabases().values());
+		setServiceManagerAgent(new Agent(getConfig()));
 	}
 
 	public void AddTable(String dbName, Table table) {
@@ -149,7 +150,7 @@ public final class Application {
 
 			var serviceManagerConf = getConfig().GetServiceConf(Agent.DefaultServiceName);
 			if (null != serviceManagerConf) {
-				setServiceManagerAgent(new Agent(getConfig()));
+				getServiceManagerAgent().getClient().Start();
 				getServiceManagerAgent().WaitConnectorReady();
 			}
 

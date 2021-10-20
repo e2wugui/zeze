@@ -5,11 +5,9 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import jason.JasonReader;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
-import java.util.*;
+
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class App extends Zeze.AppBase {
@@ -40,11 +38,11 @@ public final class App extends Zeze.AppBase {
 		Destroy();
 	}
 
-	private Config Config;
-	public Config getConfig() {
+	private Zezex.Config Config;
+	public Zezex.Config getConfig() {
 		return Config;
 	}
-	private void setConfig(Config value) {
+	private void setConfig(Zezex.Config value) {
 		Config = value;
 	}
 	private Zeze.Services.ServiceManager.Agent ServiceManagerAgent;
@@ -60,13 +58,13 @@ public final class App extends Zeze.AppBase {
 	private void LoadConfig() {
 		try {
             byte [] bytes = Files.readAllBytes(Paths.get("linkd.json"));
-            setConfig(new JasonReader().buf(bytes).parse(Config.class));
+            setConfig(new JasonReader().buf(bytes).parse(Zezex.Config.class));
 		}
 		catch (Exception e) {
 			//MessageBox.Show(ex.ToString());
 		}
 		if (null == getConfig()) {
-			setConfig(new Config());
+			setConfig(new Zezex.Config());
 		}
 	}
 

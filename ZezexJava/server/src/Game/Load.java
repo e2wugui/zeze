@@ -27,7 +27,7 @@ public class Load {
 
 	public final void StartTimerTask(int delaySeconds) {
 		TimoutDelaySeconds = delaySeconds;
-		Zeze.Util.Task.schedule((thisTask) -> OnTimerTask(thisTask), TimoutDelaySeconds * 1000, -1);
+		Zeze.Util.Task.schedule((thisTask) -> OnTimerTask(thisTask), TimoutDelaySeconds * 1000);
 	}
 
 	private void OnTimerTask(Zeze.Util.Task ThisTask) {
@@ -38,20 +38,20 @@ public class Load {
 		LoginCountLast = login;
 
 		int onlineNewPerSecond = onlineNew / TimoutDelaySeconds;
-		if (onlineNewPerSecond > App.Instance.getConfig().getMaxOnlineNew()) {
+		if (onlineNewPerSecond > App.Instance.getMyConfig().getMaxOnlineNew()) {
 			// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
-			App.getInstance().Server.ReportLoad(online, App.getInstance().getConfig().getProposeMaxOnline(), onlineNew);
+			App.getInstance().Server.ReportLoad(online, App.getInstance().getMyConfig().getProposeMaxOnline(), onlineNew);
 			// new delay for digestion
-			StartTimerTask(onlineNewPerSecond / App.getInstance().getConfig().getMaxOnlineNew() + App.getInstance().getConfig().getDigestionDelayExSeconds());
+			StartTimerTask(onlineNewPerSecond / App.getInstance().getMyConfig().getMaxOnlineNew() + App.getInstance().getMyConfig().getDigestionDelayExSeconds());
 			// 消化完后，下一次强迫报告Load。
-			ReportDelaySeconds = App.getInstance().getConfig().getReportDelaySeconds();
+			ReportDelaySeconds = App.getInstance().getMyConfig().getReportDelaySeconds();
 			return;
 		}
 		// slow report
 		ReportDelaySeconds += TimoutDelaySeconds;
-		if (ReportDelaySeconds >= App.getInstance().getConfig().getReportDelaySeconds()) {
+		if (ReportDelaySeconds >= App.getInstance().getMyConfig().getReportDelaySeconds()) {
 			ReportDelaySeconds = 0;
-			App.getInstance().Server.ReportLoad(online, App.getInstance().getConfig().getProposeMaxOnline(), onlineNew);
+			App.getInstance().Server.ReportLoad(online, App.getInstance().getMyConfig().getProposeMaxOnline(), onlineNew);
 		}
 		StartTimerTask();
 	}

@@ -55,7 +55,7 @@ public class Service {
 		return getSocketMap();
 	}
 
-	private void InitConfig(Config config) {
+	private void InitConfig(Zeze.Config config) {
 		Config = config == null ? null : config.GetServiceConf(getName());
 		if (null == Config) {
 			// setup program default
@@ -70,7 +70,7 @@ public class Service {
 		SocketOptions= Config.getSocketOptions();
 	}
 
-	public Service(String name, Config config) {
+	public Service(String name, Zeze.Config config) {
 		Name = name;
 		InitConfig(config);
 	}

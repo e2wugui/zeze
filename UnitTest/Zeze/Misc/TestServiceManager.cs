@@ -45,6 +45,7 @@ namespace UnitTest.Zeze.Misc
             clientConfig.ServiceConfMap.TryAdd(agentName, agentConfig);
             agentConfig.AddConnector(new global::Zeze.Net.Connector(ip, port));
             using var agent = new ServiceManager.Agent(clientConfig, agentName);
+            agent.Client.Start();
             agent.RegisterService(serviceName, "1");
             agent.OnChanged = (state) =>
             {

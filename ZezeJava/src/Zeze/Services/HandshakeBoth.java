@@ -4,7 +4,7 @@ import Zeze.Net.*;
 import Zeze.*;
 
 public class HandshakeBoth extends HandshakeBase {
-	public HandshakeBoth(String name, Config config) {
+	public HandshakeBoth(String name, Zeze.Config config) {
 		super(name, config);
 		AddHandshakeClientFactoryHandle();
 		AddHandshakeServerFactoryHandle();

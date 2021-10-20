@@ -51,7 +51,7 @@ public class App {
         Create(null);
     }
 
-    public void Create(Zeze.Config config) {
+    public void Create(Config config) {
         synchronized (this) {
             if (null != Zeze)
                 return;

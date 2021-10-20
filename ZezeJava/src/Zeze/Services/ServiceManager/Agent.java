@@ -4,12 +4,13 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+
+import Zeze.Config;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Transaction.Procedure;
 import Zeze.Net.*;
 import Zeze.Net.Service.ProtocolFactoryHandle;
-import java.util.concurrent.ConcurrentHashMap;
 
 public final class Agent implements Closeable {
 	static final Logger logger = LogManager.getLogger(Agent.class);
@@ -438,11 +439,11 @@ public final class Agent implements Closeable {
 	 */
 
 	public final static String DefaultServiceName = "Zeze.Services.ServiceManager.Agent";
-	public Agent(Zeze.Config config) {
+	public Agent(Config config) {
 		this(config, null);
 	}
 
-	public Agent(Zeze.Config config, String netServiceName) {
+	public Agent(Config config, String netServiceName) {
 		if (null == config) {
 			throw new RuntimeException("Config is null");
 		}
@@ -476,8 +477,6 @@ public final class Agent implements Closeable {
 
 		Client.AddFactoryHandle((new AllocateId()).getTypeId(),
 				new ProtocolFactoryHandle(AllocateId::new));
-
-		Client.Start();
 	}
 
 	public void close() throws IOException {

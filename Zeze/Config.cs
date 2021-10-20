@@ -158,6 +158,15 @@ namespace Zeze
                 Parse(doc.DocumentElement);
             }
 
+            if (null == DefaultTableConf)
+                DefaultTableConf = new TableConf();
+            if (DatabaseConfMap.Count == 0) // add default databaseconf.
+            {
+                if (!DatabaseConfMap.TryAdd("", new DatabaseConf()))
+                {
+                    throw new Exception("Concurrent Add Default Database.");
+                }
+            }
             return this;
         }
 
@@ -225,15 +234,6 @@ namespace Zeze
 
                     default:
                         throw new Exception("unknown node name: " + e.Name);
-                }
-            }
-            if (null == DefaultTableConf)
-                DefaultTableConf = new TableConf();
-            if (DatabaseConfMap.Count == 0) // add default databaseconf.
-            {
-                if (!DatabaseConfMap.TryAdd("", new DatabaseConf()))
-                {
-                    throw new Exception("Concurrent Add Default Database.");
                 }
             }
         }

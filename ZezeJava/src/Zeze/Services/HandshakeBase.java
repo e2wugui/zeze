@@ -21,7 +21,7 @@ public class HandshakeBase extends Service {
 	// For Client Only
 	private final ConcurrentHashMap<Long, BigInteger> DHContext = new ConcurrentHashMap<>();
 
-	public HandshakeBase(String name, Config config) {
+	public HandshakeBase(String name, Zeze.Config config) {
 		super(name, config);
 	}
 

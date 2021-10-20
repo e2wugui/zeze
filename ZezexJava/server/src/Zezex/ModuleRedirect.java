@@ -1,7 +1,8 @@
 package Zezex;
 
+import java.io.*;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
@@ -10,12 +11,7 @@ import Zeze.Net.Binary;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Func4;
 import Zezex.Provider.BActionParam;
-import org.w3c.dom.Attr;
 
-import java.io.ByteArrayOutputStream;
-import java.io.FilterOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URI;
 import java.nio.CharBuffer;
 import java.util.HashMap;
@@ -53,12 +49,12 @@ public class ModuleRedirect {
 	}
 
 	public static Game.Login.Session GetLoginSession() {
-		var tempVar = (Game.Login.Session)Transaction.getCurrent().getTopProcedure().getUserState();
-		return tempVar;
+		return (Game.Login.Session)Transaction.getCurrent().getTopProcedure().getUserState();
 	}
 
 	public static ModuleRedirect Instance = new ModuleRedirect();
 
+	// TODO delete me
 	private String SrcDirWhenPostBuild;
 	public final String getSrcDirWhenPostBuild() {
 		return SrcDirWhenPostBuild;
@@ -190,13 +186,32 @@ public class ModuleRedirect {
 		}
 	}
 
+	private void tryCollectMethod(ArrayList<MethodOverride> result, OverrideType type, Method method) {
+		switch (type) {
+			case Redirect:
+				var annotation1 = method.getAnnotation(Redirect.class);
+				if (null != annotation1)
+					result.add(new MethodOverride(method, OverrideType.Redirect, annotation1));
+				break;
+			case RedirectAll:
+				var annotation2 = method.getAnnotation(RedirectAll.class);
+				if (null != annotation2)
+					result.add(new MethodOverride(method, OverrideType.RedirectAll, annotation2));
+				break;
+			case RedirectWithHash:
+				var annotation3 = method.getAnnotation(RedirectWithHash.class);
+				if (null != annotation3)
+					result.add(new MethodOverride(method, OverrideType.RedirectWithHash, annotation3));
+				break;
+		}
+	}
 	public final Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
-		ArrayList<MethodOverride> overrides = new ArrayList<MethodOverride>();
+		var overrides = new ArrayList<MethodOverride>();
 		var methods = module.getClass().getMethods();
 		for (var method : methods) {
-			overrides.add(new MethodOverride(method, OverrideType.Redirect, method.getAnnotation(Redirect.class)));
-			overrides.add(new MethodOverride(method, OverrideType.RedirectWithHash, method.getAnnotation(RedirectWithHash.class)));
-			overrides.add(new MethodOverride(method, OverrideType.RedirectAll, method.getAnnotation(RedirectAll.class)));
+			tryCollectMethod(overrides, OverrideType.Redirect, method);
+			tryCollectMethod(overrides, OverrideType.RedirectWithHash, method);
+			tryCollectMethod(overrides, OverrideType.RedirectAll, method);
 		}
 		if (overrides.isEmpty()) {
 			return module; // 没有需要重定向的方法。
@@ -204,8 +219,16 @@ public class ModuleRedirect {
 
 		String genClassName = String.format("_ModuleRedirect_{0}_Gen_", module.getFullName().replace('.', '_'));
 		String code = GenModuleCode(module, genClassName, overrides);
-		module.UnRegister();
-		return CompileCode(code, genClassName);
+		try {
+			var tmp = new FileWriter(genClassName + ".java", java.nio.charset.StandardCharsets.UTF_8);
+			tmp.write(code);
+			tmp.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return module;
+		//module.UnRegister();
+		//return CompileCode(code, genClassName);
 	}
 
 	private Zeze.IModule CompileCode(String code, String genClassName) {
@@ -353,7 +376,7 @@ public class ModuleRedirect {
 	}
 
 	private ReturnTypeAndName GetReturnType(Class<?> type)  {
-		if (type == Void.class)
+		if (type == void.class)
 			return new ReturnTypeAndName(ReturnType.Void, "void");
 		if (type == Zeze.Util.TaskCompletionSource.class) {
 			// java 怎么获得模板参数列表，检查一下模板参数类型必须Integer.
@@ -371,7 +394,7 @@ public class ModuleRedirect {
 	private void Verify(MethodOverride method) {
 		switch (method.OverrideType) {
 			case RedirectAll:
-				if (method.Method.getReturnType() != Void.class)
+				if (method.Method.getReturnType() != void.class)
 					throw new RuntimeException("RedirectAll ReturnType Must Be void");
 				break;
 		}

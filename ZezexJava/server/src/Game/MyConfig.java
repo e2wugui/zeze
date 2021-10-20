@@ -1,6 +1,6 @@
 package Game;
 
-public class Config {
+public class MyConfig {
 	private int MaxOnlineNew = 30;
 	public final int getMaxOnlineNew() {
 		return MaxOnlineNew;

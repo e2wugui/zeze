@@ -77,7 +77,7 @@ public final class Config {
 	public void setServerId(int value) {
 		ServerId = value;
 	}
-	private String GlobalCacheManagerHostNameOrAddress;
+	private String GlobalCacheManagerHostNameOrAddress = "";
 	public String getGlobalCacheManagerHostNameOrAddress() {
 		return GlobalCacheManagerHostNameOrAddress;
 	}
@@ -240,7 +240,15 @@ public final class Config {
 				throw new RuntimeException(ex);
 			}
 		}
+		if (null == getDefaultTableConf()) {
+			setDefaultTableConf(new TableConf());
+		}
+		if (getDatabaseConfMap().isEmpty()) { // add default databaseconf.
 
+			if (null != getDatabaseConfMap().putIfAbsent("", new DatabaseConf())) {
+				throw new RuntimeException("Concurrent Add Default Database.");
+			}
+		}
 		return this;
 	}
 
@@ -312,15 +320,6 @@ public final class Config {
 
 				default:
 					throw new RuntimeException("unknown node name: " + e.getNodeName());
-			}
-		}
-		if (null == getDefaultTableConf()) {
-			setDefaultTableConf(new TableConf());
-		}
-		if (getDatabaseConfMap().isEmpty()) { // add default databaseconf.
-
-			if (null != getDatabaseConfMap().putIfAbsent("", new DatabaseConf())) {
-				throw new RuntimeException("Concurrent Add Default Database.");
 			}
 		}
 	}

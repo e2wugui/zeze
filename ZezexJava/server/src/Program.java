@@ -9,7 +9,7 @@ public class Program {
 					break;
 			}
 		}
-		if (!srcDirWhenPostBuild.equals(null)) {
+		if (null == srcDirWhenPostBuild) {
 			Zezex.ModuleRedirect.Instance.setSrcDirWhenPostBuild(srcDirWhenPostBuild);
 			Game.App.getInstance().Create();
 			if (Zezex.ModuleRedirect.Instance.getHasNewGen()) {

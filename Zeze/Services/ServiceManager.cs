@@ -1522,8 +1522,6 @@ namespace Zeze.Services
                 {
                     Factory = () => new AllocateId(),
                 });
-
-                Client.Start();
             }
 
             public void Dispose()

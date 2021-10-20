@@ -117,11 +117,11 @@ public class Schemas implements Serializable {
 		public final HashMap<Bean, CheckResult> getCopyBeanIfRemoved() {
 			return CopyBeanIfRemoved;
 		}
-		private Config Config;
-		public final Config getConfig() {
+		private Zeze.Config Config;
+		public final Zeze.Config getConfig() {
 			return Config;
 		}
-		public final void setConfig(Config value) {
+		public final void setConfig(Zeze.Config value) {
 			Config = value;
 		}
 

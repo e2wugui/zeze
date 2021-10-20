@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import Zeze.Config;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -47,8 +48,8 @@ public class TestGlobal extends TestCase{
 	public final void test2AppSameLocalId() {
 		demo.App app1 = demo.App.getInstance();
 		demo.App app2 = new demo.App();
-		var config1 = Zeze.Config.Load("zeze.xml");
-		var config2 = Zeze.Config.Load("zeze.xml");
+		var config1 = Config.Load("zeze.xml");
+		var config2 = Config.Load("zeze.xml");
 		try {
 			app1.Start(config1);
 			app2.Start(config2);
@@ -62,8 +63,8 @@ public class TestGlobal extends TestCase{
 	public final void test2App() {
 		demo.App app1 = demo.App.getInstance();
 		demo.App app2 = new demo.App();
-		var config1 = Zeze.Config.Load("zeze.xml");
-		var config2 = Zeze.Config.Load("zeze.xml");
+		var config1 = Config.Load("zeze.xml");
+		var config2 = Config.Load("zeze.xml");
 		config2.setServerId( config1.getServerId() + 1);
 
 		app1.Start(config1);
