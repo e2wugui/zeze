@@ -2,7 +2,6 @@ package Zezex;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.appender.db.jpa.converter.ThrowableAttributeConverter;
 
 public final class ProviderService extends ProviderServiceBase {
 	public ProviderService(Zeze.Application zeze) {

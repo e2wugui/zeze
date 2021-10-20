@@ -10,7 +10,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
@@ -57,9 +56,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private long SessionId;
 	public long getSessionId() {
 		return SessionId;
-	}
-	private void setSessionId(long value) {
-		SessionId = value;
 	}
 
 	private SelectionKey selectionKey;
@@ -527,13 +523,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	public void SetSessionId(long newSessionId) {
-		if (getService().getSocketMapInternal().remove(getSessionId(), this)) {
+	public void setSessionId(long newSessionId) {
+		if (getService().getSocketMapInternal().remove(SessionId, this)) {
 			if (null != getService().getSocketMapInternal().putIfAbsent(newSessionId, this)) {
-				getService().getSocketMapInternal().putIfAbsent(getSessionId(), this); // rollback
+				getService().getSocketMapInternal().putIfAbsent(SessionId, this); // rollback
 				throw new RuntimeException(String.format("duplicate sessionid %1$s", this));
 			}
-			setSessionId(newSessionId);
+			SessionId = newSessionId;
 		}
 		else {
 			// 为了简化并发问题，只能加入Service以后的Socket的SessionId。

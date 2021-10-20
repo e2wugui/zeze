@@ -97,9 +97,9 @@ public class Session {
 	}
 
 	public static Session Get(Protocol context) {
-		if (null == context.UserState) {
+		if (null == context.getUserState()) {
 			throw new RuntimeException("not auth");
 		}
-		return (Session)context.UserState;
+		return (Session)context.getUserState();
 	}
 }

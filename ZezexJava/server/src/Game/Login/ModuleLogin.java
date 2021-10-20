@@ -109,7 +109,7 @@ public final class ModuleLogin extends AbstractModule {
 				var setUserState = new Zezex.Provider.SetUserState();
 				setUserState.Argument.setLinkSid(session.getSessionId());
 				setUserState.Argument.getStates().add(rpc.Argument.getRoleId());
-				rpc.Sender.Send(setUserState); // 直接使用link连接。
+				rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 		App.getLoad().getLoginCount().incrementAndGet();
 		return Procedure.Success;
@@ -150,7 +150,7 @@ public final class ModuleLogin extends AbstractModule {
 				var setUserState = new Zezex.Provider.SetUserState();
 				setUserState.Argument.setLinkSid(session.getSessionId());
 				setUserState.Argument.getStates().add(rpc.Argument.getRoleId());
-				rpc.Sender.Send(setUserState); // 直接使用link连接。
+				rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
 		var syncResultCode = ReliableNotifySync(session, rpc.Argument.getReliableNotifyConfirmCount(), online);
@@ -227,7 +227,7 @@ public final class ModuleLogin extends AbstractModule {
 		Transaction.getCurrent().RunWhileCommit(() -> {
 				var setUserState = new Zezex.Provider.SetUserState();
 				setUserState.Argument.setLinkSid(session.getSessionId());
-				rpc.Sender.Send(setUserState); // 直接使用link连接。
+				rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 		session.SendResponseWhileCommit(rpc);
 		// 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。

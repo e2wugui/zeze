@@ -127,7 +127,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			final var module = result > 0
 					? "@" + Zeze.Net.Protocol.GetModuleId(result) + ":" + Zeze.Net.Protocol.GetProtocolId(result)
 					: "";
-			logger.log(logLevel, () -> "Task " + actionName + " Return=" + result + module + " UserState=" + p.UserState);
+			logger.log(logLevel, () -> "Task " + actionName + " Return=" + result + module + " UserState=" + p.getUserState());
 		}
 		ProcedureStatistics.getInstance().GetOrAdd(actionName).GetOrAdd(result).incrementAndGet();
 	}
@@ -168,7 +168,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 
 			LogAndStatistics(errorCode, p, IsRequestSaved);
 			// 使用 InnerException
-			logger.error(() -> "Task " + p.getClass().getName() + " Exception UserState=" + p.UserState, ex);
+			logger.error(() -> "Task " + p.getClass().getName() + " Exception UserState=" + p.getUserState(), ex);
 			return errorCode;
 		}
 	}

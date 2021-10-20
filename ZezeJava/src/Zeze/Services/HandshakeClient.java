@@ -36,7 +36,7 @@ public class HandshakeClient extends HandshakeBase {
 	public void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle) {
 		// 防止Client不进入加密，直接发送用户协议。
 		if (!IsHandshakeProtocol(p.getTypeId())) {
-			p.Sender.VerifySecurity();
+			p.getSender().VerifySecurity();
 		}
 
 		super.DispatchProtocol(p, factoryHandle);

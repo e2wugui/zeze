@@ -20,8 +20,20 @@ public abstract class Protocol implements Serializable {
 		return type & 0xffff;
 	}
 
-	public AsyncSocket Sender;
-	public Object UserState;
+	private AsyncSocket Sender;
+	public AsyncSocket getSender() {
+		return Sender;
+	}
+	public void setSender(AsyncSocket sender) {
+		Sender = sender;
+	}
+	private Object UserState;
+	public Object getUserState() {
+		return UserState;
+	}
+	public void setUserState(Object userState) {
+		UserState = userState;
+	}
 
 	public void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle) {
 		service.DispatchProtocol(this, factoryHandle);

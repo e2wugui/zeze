@@ -184,7 +184,7 @@ public class Service {
 
 	// Not Need Now
 	public final HashMap<Long, Protocol> GetRpcContextsToSender(AsyncSocket sender) {
-		return GetRpcContexts((p) -> p.Sender == sender);
+		return GetRpcContexts((p) -> p.getSender() == sender);
 	}
 
 	public final HashMap<Long, Protocol> GetRpcContexts(RpcContextFilter filter) {
@@ -267,7 +267,7 @@ public class Service {
 	public void DispatchRpcResponse(Protocol rpc, ProtocolHandle responseHandle, ProtocolFactoryHandle factoryHandle) {
 		if (null != getZeze() && false == factoryHandle.NoProcedure) {
 			Task.Run(getZeze().NewProcedure(
-					() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response", rpc.UserState));
+					() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response", rpc.getUserState()));
 		}
 		else {
 			Task.Run(() -> responseHandle.handle(rpc), rpc);
@@ -279,7 +279,7 @@ public class Service {
 			if (null != getZeze() && false == factoryHandle.NoProcedure) {
 				getZeze().getTaskOneByOneByKey().Execute(key, () ->
 					Task.Call(getZeze().NewProcedure(
-							() -> factoryHandle.Handle.handle(p), p.getClass().getName(), p.UserState),
+							() -> factoryHandle.Handle.handle(p), p.getClass().getName(), p.getUserState()),
 							p,
 							Protocol::SendResultCode
 							)
@@ -301,7 +301,7 @@ public class Service {
 		if (null != factoryHandle.Handle) {
 			if (null != getZeze() && false == factoryHandle.NoProcedure) {
 				Task.Run(getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
-						p.UserState),
+						p.getUserState()),
 						p);
 			}
 			else {

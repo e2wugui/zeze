@@ -195,7 +195,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 		SendResultDone = true;
 
 		setRequest(false);
-		super.Send(Sender);
+		super.Send(getSender());
 	}
 
 	@Override
@@ -207,7 +207,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 
 		setResultCode(code);
 		setRequest(false);
-		super.Send(Sender);
+		super.Send(getSender());
 	}
 
 	@Override
@@ -226,9 +226,9 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 
 		context.setRequest(false);
 		context.Result = Result;
-		context.Sender = Sender;
+		context.setSender(getSender());
 		context.setResultCode(getResultCode());
-		context.UserState = UserState;
+		context.setUserState(getUserState());
 
 		if (context.Future != null) {
 			context.Future.SetResult(context.Result);

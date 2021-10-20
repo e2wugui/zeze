@@ -35,27 +35,27 @@ public final class ModuleProvider extends AbstractModule {
 		try {
 			var factoryHandle = App.Server.FindProtocolFactoryHandle(p.Argument.getProtocolType());
 			if (null == factoryHandle) {
-				SendKick(p.Sender, p.Argument.getLinkSid(), BKick.ErrorProtocolUnkown, "unknown protocol");
+				SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolUnkown, "unknown protocol");
 				return Procedure.LogicError;
 			}
 			var p2 = factoryHandle.Factory.create();
 			p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.getProtocolData()));
-			p2.Sender = p.Sender;
+			p2.setSender(p.getSender());
 
-			var session = new Game.Login.Session(p.Argument.getAccount(), p.Argument.getStates(), p.Sender, p.Argument.getLinkSid());
+			var session = new Game.Login.Session(p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
 
-			p2.UserState = session;
+			p2.setUserState(session);
 			if (Transaction.getCurrent() != null) {
 				// 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
 				Transaction.getCurrent().getTopProcedure().setActionName(p2.getClass().getName());
-				Transaction.getCurrent().getTopProcedure().setUserState(p2.UserState);
+				Transaction.getCurrent().getTopProcedure().setUserState(p2.getUserState());
 				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p2), p2, (p3, code) -> {
 						p3.setResultCode(code);
 						session.SendResponse(p3);
 				});
 			}
 
-			if (p2.Sender.getService().getZeze() == null || factoryHandle.NoProcedure) {
+			if (p2.getSender().getService().getZeze() == null || factoryHandle.NoProcedure) {
 				// 应用框架不支持事务或者协议配置了"不需要事务”
 				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p2), p2, (p3, code) -> {
 						p3.setResultCode(code);
@@ -65,13 +65,13 @@ public final class ModuleProvider extends AbstractModule {
 
 			// 创建存储过程并且在当前线程中调用。
 			return Zeze.Util.Task.Call(
-					p2.Sender.getService().getZeze().NewProcedure(
-							() -> factoryHandle.Handle.handle(p2), p2.getClass().getName(), p2.UserState),
+					p2.getSender().getService().getZeze().NewProcedure(
+							() -> factoryHandle.Handle.handle(p2), p2.getClass().getName(), p2.getUserState()),
 					p2, (p3, code) -> { p3.setResultCode(code); session.SendResponse(p3);
 					});
 		}
 		catch (RuntimeException ex) {
-			SendKick(p.Sender, p.Argument.getLinkSid(), BKick.ErrorProtocolException, ex.toString());
+			SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolException, ex.toString());
 			throw ex;
 		}
 	}
@@ -155,7 +155,7 @@ public final class ModuleProvider extends AbstractModule {
 					tempVar.setReturnCode(Procedure.NotImplement);
 					result.Argument.getHashs().put(hash, tempVar);
 				}
-				result.Send(protocol.Sender);
+				result.Send(protocol.getSender());
 				return Procedure.LogicError;
 			}
 			result.setResultCode(ModuleRedirect.ResultCodeSuccess);
@@ -177,18 +177,18 @@ public final class ModuleProvider extends AbstractModule {
 					hashResult.setParams(Params.Value);
 				}
 				result.Argument.getHashs().put(hash, hashResult);
-				SendResultIfSizeExceed(protocol.Sender, result);
+				SendResultIfSizeExceed(protocol.getSender(), result);
 			}
 
 			// send remain
 			if (result.Argument.getHashs().size() > 0) {
-				result.Send(protocol.Sender);
+				result.Send(protocol.getSender());
 			}
 			return Procedure.Success;
 		}
 		catch (RuntimeException e) {
 			result.setResultCode(ModuleRedirect.ResultCodeHandleException);
-			result.Send(protocol.Sender);
+			result.Send(protocol.getSender());
 			throw e;
 		}
 	}
@@ -292,7 +292,7 @@ public final class ModuleProvider extends AbstractModule {
 	@Override
 	public int ProcessAnnounceLinkInfo(Protocol _protocol) {
 		var protocol = (AnnounceLinkInfo)_protocol;
-		var linkSession = (Game.Server.LinkSession)protocol.Sender.getUserState();
+		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
 		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
 		return Procedure.Success;
 	}
@@ -300,7 +300,7 @@ public final class ModuleProvider extends AbstractModule {
 	@Override
 	public int ProcessSendConfirm(Protocol _protocol) {
 		var protocol = (SendConfirm)_protocol;
-		var linkSession = (Game.Server.LinkSession)protocol.Sender.getUserState();
+		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
 		var ctx = App.Server.<Game.Login.Onlines.ConfirmContext>TryGetManualContext(
 				protocol.Argument.getConfirmSerialId());
 		if (ctx != null) {

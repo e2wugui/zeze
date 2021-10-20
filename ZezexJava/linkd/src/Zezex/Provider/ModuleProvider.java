@@ -211,7 +211,7 @@ public final class ModuleProvider extends AbstractModule {
     public int ProcessBindRequest(Protocol _rpc) {
         var rpc = (Bind) _rpc;
         if (rpc.Argument.getLinkSids().size() == 0) {
-            var providerSession = (Zezex.ProviderSession) rpc.Sender.getUserState();
+            var providerSession = (Zezex.ProviderSession) rpc.getSender().getUserState();
             for (var module : rpc.Argument.getModules().entrySet()) {
                 if (getFirstModuleWithConfigTypeDefault() == 0 && module.getValue().getConfigType() == BModule.ConfigTypeDefault) {
                     setFirstModuleWithConfigTypeDefault(module.getValue().getConfigType());
@@ -231,7 +231,7 @@ public final class ModuleProvider extends AbstractModule {
                 var link = App.LinkdService.GetSocket(linkSid);
                 if (null != link) {
                     var linkSession = (Zezex.LinkSession) link.getUserState();
-                    linkSession.Bind(link, rpc.Argument.getModules().keySet(), rpc.Sender);
+                    linkSession.Bind(link, rpc.Argument.getModules().keySet(), rpc.getSender());
                 }
             }
         }
@@ -266,14 +266,14 @@ public final class ModuleProvider extends AbstractModule {
     public int ProcessUnBindRequest(Protocol _rpc) {
         var rpc = (UnBind) _rpc;
         if (rpc.Argument.getLinkSids().size() == 0) {
-            UnBindModules(rpc.Sender, rpc.Argument.getModules().keySet());
+            UnBindModules(rpc.getSender(), rpc.Argument.getModules().keySet());
         } else {
             // 动态绑定
             for (var linkSid : rpc.Argument.getLinkSids()) {
                 var link = App.LinkdService.GetSocket(linkSid);
                 if (null != link) {
                     var linkSession = (Zezex.LinkSession) link.getUserState();
-                    linkSession.UnBind(link, rpc.Argument.getModules().keySet(), rpc.Sender);
+                    linkSession.UnBind(link, rpc.Argument.getModules().keySet(), rpc.getSender());
                 }
             }
         }
@@ -289,7 +289,7 @@ public final class ModuleProvider extends AbstractModule {
         if (protocol.Argument.getConfirmSerialId() != 0) {
             var confirm = new SendConfirm();
             confirm.Argument.setConfirmSerialId(protocol.Argument.getConfirmSerialId());
-            protocol.Sender.Send(confirm);
+            protocol.getSender().Send(confirm);
         }
 
         for (var linkSid : protocol.Argument.getLinkSids()) {
@@ -310,7 +310,7 @@ public final class ModuleProvider extends AbstractModule {
         if (protocol.Argument.getConfirmSerialId() != 0) {
             var confirm = new SendConfirm();
             confirm.Argument.setConfirmSerialId(protocol.Argument.getConfirmSerialId());
-            protocol.Sender.Send(confirm);
+            protocol.getSender().Send(confirm);
         }
 
         App.Instance.LinkdService.Foreach((socket) -> {
@@ -350,7 +350,7 @@ public final class ModuleProvider extends AbstractModule {
     @Override
     public int ProcessModuleRedirectRequest(Protocol _rpc) {
         var rpc = (ModuleRedirect) _rpc;
-        long SourceProvider = rpc.Sender.getSessionId();
+        long SourceProvider = rpc.getSender().getSessionId();
         var provider = new Zeze.Util.OutObject<Long>();
         if (ChoiceProvider(rpc.Argument.getServiceNamePrefix(), rpc.Argument.getModuleId(),
                 rpc.Argument.getHashCode(), provider)) {
@@ -378,7 +378,7 @@ public final class ModuleProvider extends AbstractModule {
         ModuleRedirectAllResult miss = new ModuleRedirectAllResult();
         miss.Argument.setModuleId(protocol.Argument.getModuleId());
         miss.Argument.setMethodFullName(protocol.Argument.getMethodFullName());
-        miss.Argument.setSourceProvider(protocol.Sender.getSessionId()); // not used
+        miss.Argument.setSourceProvider(protocol.getSender().getSessionId()); // not used
         miss.Argument.setSessionId(protocol.Argument.getSessionId());
         miss.Argument.setServerId(0); // 在这里没法知道逻辑服务器id，错误报告就不提供这个了。
         miss.setResultCode(ModuleRedirect.ResultCodeLinkdNoProvider);
@@ -393,7 +393,7 @@ public final class ModuleProvider extends AbstractModule {
                     exist.Argument.setModuleId(protocol.Argument.getModuleId());
                     exist.Argument.setHashCodeConcurrentLevel(protocol.Argument.getHashCodeConcurrentLevel());
                     exist.Argument.setMethodFullName(protocol.Argument.getMethodFullName());
-                    exist.Argument.setSourceProvider(protocol.Sender.getSessionId());
+                    exist.Argument.setSourceProvider(protocol.getSender().getSessionId());
                     exist.Argument.setSessionId(protocol.Argument.getSessionId());
                     exist.Argument.setParams(protocol.Argument.getParams());
                     transmits.put(provider.Value, exist);
@@ -422,7 +422,7 @@ public final class ModuleProvider extends AbstractModule {
 
         // 没有转发成功的provider的hash分组，马上发送结果报告错误。
         if (miss.Argument.getHashs().size() > 0) {
-            miss.Send(protocol.Sender);
+            miss.Send(protocol.getSender());
         }
         return Zeze.Transaction.Procedure.Success;
     }
@@ -440,7 +440,7 @@ public final class ModuleProvider extends AbstractModule {
     @Override
     public int ProcessReportLoad(Protocol _protocol) {
         var protocol = (ReportLoad) _protocol;
-        var providerSession = (Zezex.ProviderSession) protocol.Sender.getUserState();
+        var providerSession = (Zezex.ProviderSession) protocol.getSender().getUserState();
         if (providerSession != null) {
             providerSession.SetLoad(protocol.Argument);
         }
@@ -523,7 +523,7 @@ public final class ModuleProvider extends AbstractModule {
     @Override
     public int ProcessAnnounceProviderInfo(Protocol _protocol) {
         var protocol = (AnnounceProviderInfo) _protocol;
-        var session = (Zezex.ProviderSession) protocol.Sender.getUserState();
+        var session = (Zezex.ProviderSession) protocol.getSender().getUserState();
         session.setInfo(protocol.Argument);
         setServerServiceNamePrefix(protocol.Argument.getServiceNamePrefix());
         return Zeze.Transaction.Procedure.Success;

@@ -129,7 +129,7 @@ public final class Server extends ServerBase {
 	public void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle) {
 		// 防止Client不进入加密，直接发送用户协议。
 		if (false == IsHandshakeProtocol(p.getTypeId())) {
-			p.Sender.VerifySecurity();
+			p.getSender().VerifySecurity();
 		}
 
 		if (p.getTypeId() == Zezex.Provider.ModuleRedirect.TypeId_) {
@@ -139,7 +139,7 @@ public final class Server extends ServerBase {
 					getZeze().getTaskOneByOneByKey().Execute(
 							modureRecirect.Argument.getHashCode(),
 							() -> Zeze.Util.Task.Call(getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p),
-									p.getClass().getName(), p.UserState),
+									p.getClass().getName(), p.getUserState()),
 									p, (p2, code) -> p2.SendResultCode(code)));
 				}
 				else {

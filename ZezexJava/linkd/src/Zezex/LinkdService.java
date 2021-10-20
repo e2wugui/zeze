@@ -95,12 +95,12 @@ public final class LinkdService extends LinkdServiceBase {
 				Zeze.Util.Task.LogAndStatistics(result, p, isRequestSaved);
 			}
 			catch (RuntimeException ex) {
-				p.Sender.Close(ex); // link 在异常时关闭连接。
+				p.getSender().Close(ex); // link 在异常时关闭连接。
 			}
 		}
 		else {
 			logger.log(getSocketOptions().getSocketLogLevel(), "Protocol Handle Not Found. {}", p);
-			p.Sender.Close(null);
+			p.getSender().Close(null);
 		}
 	}
 

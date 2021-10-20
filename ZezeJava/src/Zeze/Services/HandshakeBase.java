@@ -51,7 +51,7 @@ public class HandshakeBase extends Service {
 	}
 	
 	private int ProcessCHandshakeDone(Protocol p) {
-		OnHandshakeDone(p.Sender);
+		OnHandshakeDone(p.getSender());
 		return 0;
 	}
 
@@ -59,27 +59,29 @@ public class HandshakeBase extends Service {
 		Zeze.Services.Handshake.CHandshake p = (Zeze.Services.Handshake.CHandshake)_p;
 		int group = p.Argument.dh_group;
 		if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
-			p.Sender.Close(new RuntimeException("dhGroup Not Supported"));
+			p.getSender().Close(new RuntimeException("dhGroup Not Supported"));
 			return 0;
 		}
 		
 		BigInteger data = new BigInteger(p.Argument.dh_data);
 		BigInteger rand = Helper.makeDHRandom();
 		byte[] material = Helper.computeDHKey(group, data, rand).toByteArray();
-		var localaddress = p.Sender.getSocket().getLocalAddress();
+		var localaddress = p.getSender().getSocket().getLocalAddress();
 		byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null
 			? getConfig().getHandshakeOptions().getSecureIp() : localaddress.getAddress();
-		logger.debug("{} localip={}", p.Sender.getSessionId(), Arrays.toString(key));
+		logger.debug("{} localip={}", p.getSender().getSessionId(), Arrays.toString(key));
 		int half = material.length / 2;
 
 		byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-		p.Sender.SetInputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getC2sNeedCompress());
+		p.getSender().SetInputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getC2sNeedCompress());
 
 		byte[] response = Helper.generateDHResponse(group, rand).toByteArray();
 		
-		(new Zeze.Services.Handshake.SHandshake(response, getConfig().getHandshakeOptions().getS2cNeedCompress(), getConfig().getHandshakeOptions().getC2sNeedCompress())).Send(p.Sender);
+		(new Zeze.Services.Handshake.SHandshake(response,
+				getConfig().getHandshakeOptions().getS2cNeedCompress(),
+				getConfig().getHandshakeOptions().getC2sNeedCompress())).Send(p.getSender());
 		hmacMd5 = Digest.HmacMd5(key, material, half, material.length - half);
-		p.Sender.SetOutputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getS2cNeedCompress());
+		p.getSender().SetOutputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getS2cNeedCompress());
 
 		// 为了防止服务器在Handshake以后马上发送数据，
 		// 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
@@ -99,25 +101,25 @@ public class HandshakeBase extends Service {
 
 	private int ProcessSHandshake(Protocol _p) {
 		Zeze.Services.Handshake.SHandshake p = (Zeze.Services.Handshake.SHandshake)_p;
-		var dhRandom = DHContext.get(p.Sender.getSessionId());
+		var dhRandom = DHContext.get(p.getSender().getSessionId());
 		if ( dhRandom != null ) {
 
 			byte[] material = Helper.computeDHKey(getConfig().getHandshakeOptions().getDhGroup(), new BigInteger(p.Argument.dh_data), dhRandom).toByteArray();
-			var remoteaddress = p.Sender.getSocket().getInetAddress();
+			var remoteaddress = p.getSender().getSocket().getInetAddress();
 
 			byte[] key = remoteaddress.getAddress();
-			logger.debug("{} remoteip={}", p.Sender.getSessionId(), Arrays.toString(key));
+			logger.debug("{} remoteip={}", p.getSender().getSessionId(), Arrays.toString(key));
 
 			int half = material.length / 2;
 
 			byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-			p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
+			p.getSender().SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
 			hmacMd5 = Digest.HmacMd5(key, material, half, material.length - half);
-			p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
+			p.getSender().SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
 
-			DHContext.remove(p.Sender.getSessionId());		
-			(new Zeze.Services.Handshake.CHandshakeDone()).Send(p.Sender);
-			OnHandshakeDone(p.Sender);
+			DHContext.remove(p.getSender().getSessionId());
+			(new Zeze.Services.Handshake.CHandshakeDone()).Send(p.getSender());
+			OnHandshakeDone(p.getSender());
 			return 0;
 		}
 		throw new RuntimeException("handshake lost context.");
