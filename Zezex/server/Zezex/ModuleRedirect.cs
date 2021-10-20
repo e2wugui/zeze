@@ -1197,7 +1197,7 @@ namespace Zezex
                 return basic.Item4();
             }
 
-            if (type.IsSubclassOf(typeof(Zeze.Transaction.Bean)))
+            if (typeof(Zeze.Serialize.Serializable).IsAssignableFrom(type))
             {
                 return type.FullName;
             }
@@ -1246,7 +1246,7 @@ namespace Zezex
                 return;
             }
 
-            if (type.IsSubclassOf(typeof(Zeze.Transaction.Bean)))
+            if (typeof(Zeze.Serialize.Serializable).IsAssignableFrom(type))
             {
                 sb.AppendLine($"{prefix}{type.FullName} {varName} = new {type.FullName}();");
                 return;
@@ -1291,7 +1291,7 @@ namespace Zezex
                 return;
             }
 
-            if (type.IsSubclassOf(typeof(Zeze.Transaction.Bean)))
+            if (typeof(Zeze.Serialize.Serializable).IsAssignableFrom(type))
             {
                 sb.AppendLine($"{prefix}{varName}.Encode(_bb_);");
                 return;
@@ -1334,11 +1334,9 @@ namespace Zezex
                 return;
             }
 
-            if (type.IsSubclassOf(typeof(Zeze.Transaction.Bean)))
+            if (typeof(Zeze.Serialize.Serializable).IsAssignableFrom(type))
             {
-                var tmp0 = $"tmp{TmpVarNameId.IncrementAndGet()}";
-                sb.AppendLine($"{prefix}var {tmp0} = new {type.FullName}();");
-                sb.AppendLine($"{prefix}{tmp0}.Decode(_bb_);");
+                sb.AppendLine($"{prefix}{varName}.Decode(_bb_);");
                 return;
             }
 

@@ -21,6 +21,8 @@ namespace server
                         break;
                 }
             }
+            //srcDirWhenPostBuild = "C:\\Users\\86139\\Desktop\\code\\zeze\\Zezex\\server";
+
             if (null != srcDirWhenPostBuild)
             {
                 Zezex.ModuleRedirect.Instance.SrcDirWhenPostBuild = srcDirWhenPostBuild;

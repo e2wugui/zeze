@@ -108,7 +108,7 @@ namespace Zeze.Serialize
                         (ByteBuffer buf, Zeze.Net.Binary x) => buf.WriteBinary(x)));
             }
 
-            if (typeof(T).IsSubclassOf(typeof(Serializable)))
+            if (typeof(Serializable).IsAssignableFrom(typeof(T)))
             {
                 return (ByteBuffer buf, T x) => (x as Serializable).Encode(buf);
             }

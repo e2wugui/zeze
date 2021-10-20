@@ -140,3 +140,4 @@ AsyncSocket c#
 
 ZezexJava Export
 ReplaceModuleInstance
+$(OutDir)\$(TargetName) -srcDirWhenPostBuild $(ProjectDir)

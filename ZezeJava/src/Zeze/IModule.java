@@ -1,5 +1,7 @@
 package Zeze;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 public abstract class IModule {
 	public abstract String getFullName();
 	public abstract String getName();
@@ -16,5 +18,19 @@ public abstract class IModule {
 
 	public final int ReturnCode(short code) {
 		return getId() << 16 | (code & 0xffff);
+	}
+
+	private ConcurrentHashMap<String, Class<?>> ClassMap = new ConcurrentHashMap<>();
+
+	public Class<?> getClassByMethodName(String name) {
+		var cls = ClassMap.get(name);
+		if (cls == null)
+			throw new RuntimeException("Class For Method " + name + " Not Found.");
+		return cls;
+	}
+
+	protected void addClass(String methodName, Class<?> cls) {
+		if (ClassMap.putIfAbsent(methodName, cls) != null)
+			throw new RuntimeException("Duplicate Method Name " + methodName);
 	}
 }
