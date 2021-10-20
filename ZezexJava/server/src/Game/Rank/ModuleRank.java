@@ -248,7 +248,7 @@ public class ModuleRank extends AbstractModule {
 
 	// 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
 	// 需要注意在子类上下文中可以编译通过。可以是常量。
-	@RedirectAll(GetConcurrentLevelSource="GetConcurrentLevel(keyHint.RankType)")
+	@RedirectAll(GetConcurrentLevelSource="GetConcurrentLevel(arg0.getRankType())")
 	public void RunGetRank(BConcurrentKey keyHint,
 						   Zezex.RedirectAllResultHandle onHashResult,
 						   Zezex.RedirectAllDoneHandle onHashEnd) {

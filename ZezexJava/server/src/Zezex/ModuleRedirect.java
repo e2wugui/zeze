@@ -550,7 +550,7 @@ public class ModuleRedirect {
 			var returnParamsVarName = "tmp" + TmpVarNameId.incrementAndGet();
 			sbHandles.AppendLine(Str.format("            var {} = super.{}(_hash_{}{});", returnCodeVarName, methodNameWithHash, sep, normalcall));
 			sbHandles.AppendLine(Str.format("            var {} = Binary.Empty;", returnParamsVarName));
-			sbHandles.AppendLine(Str.format("            return new Zezex.ModuleRedirect.Return({},{});", returnCodeVarName, returnParamsVarName));
+			sbHandles.AppendLine(Str.format("            return new Zezex.ModuleRedirect.Return({}, {});", returnCodeVarName, returnParamsVarName));
 			sbHandles.AppendLine(Str.format("        });"));
 			sbHandles.AppendLine(Str.format(""));
 		}
@@ -587,7 +587,7 @@ public class ModuleRedirect {
 
 		String initOnHashEnd = (null == m.ParameterRedirectAllResultHandle) ? "" : ", " + m.ParameterRedirectAllResultHandle.getName();
 		String contextVarName = "tmp" + TmpVarNameId.incrementAndGet();
-		sb.AppendLine(Str.format("        var {} = new Context{}({}.Argument.getHashCodeConcurrentLevel(), {}.Argument.getMethodFullName(){4});",
+		sb.AppendLine(Str.format("        var {} = new Context{}({}.Argument.getHashCodeConcurrentLevel(), {}.Argument.getMethodFullName(){});",
 				contextVarName, m.Method.getName(), reqVarName, reqVarName, initOnHashEnd));
 		sb.AppendLine(Str.format("        {}.Argument.setSessionId(App.Server.AddManualContextWithTimeout({}));",
 				reqVarName, contextVarName));
@@ -622,20 +622,20 @@ public class ModuleRedirect {
 		GenDecode(sbHandles, "            ", m.ParametersNormal);
 
 		if (null != m.ParameterRedirectAllResultHandle) {
-			var actionVarName = "tmp" + TmpVarNameId.incrementAndGet();
-			sbHandles.AppendLine(Str.format("{}var {} = (_sidtmp1_, _hashtmp2_, _rctmp3_, _beantmp4_) -> {", "    ", actionVarName));
-			sbHandles.AppendLine("        var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
-			GenEncode(sbHandles, "        ", long.class, "_sidtmp1_");
-			GenEncode(sbHandles, "        ", int.class, "_hashtmp2_");
-			GenEncode(sbHandles, "        ", int.class, "_rctmp3_");
+			//var actionVarName = "tmp" + TmpVarNameId.incrementAndGet();
+			sbHandles.AppendLine(Str.format("{}        Zezex.RedirectAllResultHandle {} = (_sidtmp1_, _hashtmp2_, _rctmp3_, _beantmp4_) -> {", "    ", m.ParameterRedirectAllResultHandle.getName()));
+			sbHandles.AppendLine("                var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
+			GenEncode(sbHandles, "                ", long.class, "_sidtmp1_");
+			GenEncode(sbHandles, "                ", int.class, "_hashtmp2_");
+			GenEncode(sbHandles, "                ", int.class, "_rctmp3_");
 			var resultClass = module.getClassByMethodName(m.Method.getName());
-			GenEncode(sbHandles, "        ", resultClass, "_beantmp4_");
+			GenEncode(sbHandles, "                ", resultClass, "_beantmp4_");
 			var paramVarName = "tmp" + TmpVarNameId.incrementAndGet();
-			sbHandles.AppendLine("        var " + paramVarName + " = new BActionParam();");
-			sbHandles.AppendLine("        " + paramVarName + ".setName(\"" + m.ParameterRedirectAllResultHandle.getName() + "\");");
-			sbHandles.AppendLine("        " + paramVarName + ".setParams(new Binary(_bb_));");
-			sbHandles.AppendLine("        _actions_.add(" + paramVarName + ");");
-			sbHandles.AppendLine(Str.format("		}"));
+			sbHandles.AppendLine("                var " + paramVarName + " = new BActionParam();");
+			sbHandles.AppendLine("                " + paramVarName + ".setName(\"" + m.ParameterRedirectAllResultHandle.getName() + "\");");
+			sbHandles.AppendLine("                " + paramVarName + ".setParams(new Binary(_bb_));");
+			sbHandles.AppendLine("                _actions_.add(" + paramVarName + ");");
+			sbHandles.AppendLine(Str.format("		};"));
 			// action.GenActionEncode(sbHandles, "            ");
 		}
 		String normalcall = m.GetNarmalCallString((pInfo) -> pInfo.getType() == Zezex.RedirectAllDoneHandle.class);
@@ -676,6 +676,7 @@ public class ModuleRedirect {
 		}
 		sb.AppendLine("            return Zeze.Transaction.Procedure.Success;");
 		sb.AppendLine("        }");
+		sb.AppendLine("    }");
 		sb.AppendLine("");
 	}
 
@@ -841,6 +842,8 @@ public class ModuleRedirect {
 					prefix, type.getTypeName(), varName, type.getTypeName()));
 			return;
 		}
+
+		sb.AppendLine(Str.format("{} {} = null;", type.getTypeName(), varName));
 	}
 
 	public void GenEncode(Zeze.Util.StringBuilderCs sb, String prefix, Class<?> type, String varName) {
@@ -879,10 +882,12 @@ public class ModuleRedirect {
 		}
 		String tmp1 = "tmp" + TmpVarNameId.incrementAndGet();
 		String tmp2 = "tmp" + TmpVarNameId.incrementAndGet();
+		//String tmp3 = "tmp" + TmpVarNameId.incrementAndGet();
 		sb.AppendLine(Str.format("{}try {", prefix));
 		sb.AppendLine(Str.format("{}    var {} = _bb_.ReadByteBuffer();", prefix, tmp1));
-		sb.AppendLine(Str.format("{}    try (var input = new java.io.ByteArrayInputStream({}); var objinput = new java.io.ObjectInputStream(inpue)) {", prefix, tmp1));
-		sb.AppendLine(Str.format("{}        {} = ()objinput.readObject();", prefix, varName, GetTypeName(type)));
+		sb.AppendLine(Str.format("{}    try (var {} = new java.io.ByteArrayInputStream({}.Bytes, {}.ReadIndex, {}.Size()); var objinput = new java.io.ObjectInputStream({})) {",
+				prefix, tmp2, tmp1, tmp1, tmp1, tmp2));
+		sb.AppendLine(Str.format("{}        {} = ({})objinput.readObject();", prefix, varName, GetTypeName(type)));
 		sb.AppendLine(Str.format("{}    }", prefix));
 		sb.AppendLine(Str.format("{}} catch (Throwable e) {", prefix));
 		sb.AppendLine(Str.format("{}    throw new RuntimeException(e);", prefix));
@@ -890,10 +895,13 @@ public class ModuleRedirect {
 	}
 
 	private boolean IsOut(Class<?> type) {
-		return type == Zeze.Util.OutObject.class;
+		return false;
+		// return type == Zeze.Util.OutObject.class;
 	}
+
 	private boolean IsRef(Class<?> type) {
-		return type == Zeze.Util.RefObject.class;
+		return false;
+		//return type == Zeze.Util.RefObject.class;
 	}
 
 	public void GenEncode(Zeze.Util.StringBuilderCs sb, String prefix, List<java.lang.reflect.Parameter> parameters) {
