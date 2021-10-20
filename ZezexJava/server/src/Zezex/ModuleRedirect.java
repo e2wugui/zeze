@@ -622,20 +622,25 @@ public class ModuleRedirect {
 		GenDecode(sbHandles, "            ", m.ParametersNormal);
 
 		if (null != m.ParameterRedirectAllResultHandle) {
-			//var actionVarName = "tmp" + TmpVarNameId.incrementAndGet();
-			sbHandles.AppendLine(Str.format("{}        Zezex.RedirectAllResultHandle {} = (_sidtmp1_, _hashtmp2_, _rctmp3_, _beantmp4_) -> {", "    ", m.ParameterRedirectAllResultHandle.getName()));
+			var session = "tmp" + TmpVarNameId.incrementAndGet();
+			var hash = "tmp" + TmpVarNameId.incrementAndGet();
+			var rc = "tmp" + TmpVarNameId.incrementAndGet();
+			var result = "tmp" + TmpVarNameId.incrementAndGet();
+
+			sbHandles.AppendLine(Str.format("{}        Zezex.RedirectAllResultHandle {} = ({}, {}, {}, {}) -> {", "    ",
+					m.ParameterRedirectAllResultHandle.getName(), session, hash, rc, result));
 			sbHandles.AppendLine("                var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
-			GenEncode(sbHandles, "                ", long.class, "_sidtmp1_");
-			GenEncode(sbHandles, "                ", int.class, "_hashtmp2_");
-			GenEncode(sbHandles, "                ", int.class, "_rctmp3_");
+			GenEncode(sbHandles, "                ", long.class, session);
+			GenEncode(sbHandles, "                ", int.class, hash);
+			GenEncode(sbHandles, "                ", int.class, rc);
 			var resultClass = module.getClassByMethodName(m.Method.getName());
-			GenEncode(sbHandles, "                ", resultClass, "_beantmp4_");
+			GenEncode(sbHandles, "                ", resultClass, result);
 			var paramVarName = "tmp" + TmpVarNameId.incrementAndGet();
 			sbHandles.AppendLine("                var " + paramVarName + " = new BActionParam();");
 			sbHandles.AppendLine("                " + paramVarName + ".setName(\"" + m.ParameterRedirectAllResultHandle.getName() + "\");");
 			sbHandles.AppendLine("                " + paramVarName + ".setParams(new Binary(_bb_));");
 			sbHandles.AppendLine("                _actions_.add(" + paramVarName + ");");
-			sbHandles.AppendLine(Str.format("		};"));
+			sbHandles.AppendLine(Str.format("            };"));
 			// action.GenActionEncode(sbHandles, "            ");
 		}
 		String normalcall = m.GetNarmalCallString((pInfo) -> pInfo.getType() == Zezex.RedirectAllDoneHandle.class);
@@ -843,7 +848,7 @@ public class ModuleRedirect {
 			return;
 		}
 
-		sb.AppendLine(Str.format("{} {} = null;", type.getTypeName(), varName));
+		sb.AppendLine(Str.format("{}{} {} = null;", prefix, type.getTypeName(), varName));
 	}
 
 	public void GenEncode(Zeze.Util.StringBuilderCs sb, String prefix, Class<?> type, String varName) {
