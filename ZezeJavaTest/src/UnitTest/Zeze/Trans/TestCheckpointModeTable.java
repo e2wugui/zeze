@@ -21,7 +21,7 @@ public class TestCheckpointModeTable{
 
 	private void Check(int expect) {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
-					var value = demo.App.getInstance().demo_Module1.getTableImportant().GetOrAdd(1L);
+					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 					return value.getInt1() == expect ? Procedure.Success : Procedure.LogicError;
 		}, "TestCheckpointModeTable.Check", null).Call();
 	}
@@ -29,7 +29,7 @@ public class TestCheckpointModeTable{
 	@Test
 	public final void test1() {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
-					var value = demo.App.getInstance().demo_Module1.getTableImportant().GetOrAdd(1L);
+					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 					value.setInt1(0);
 					return Procedure.Success;
 		}, "TestCheckpointModeTable.Init", null).Call();
@@ -69,15 +69,15 @@ public class TestCheckpointModeTable{
 	}
 
 	private int Add() {
-		var value = demo.App.getInstance().demo_Module1.getTableImportant().GetOrAdd(1l);
+		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1l);
 		value.setInt1 (value.getInt1() + 1);
 		return Procedure.Success;
 	}
 
 	private int Add2() {
-		var value = demo.App.getInstance().demo_Module1.getTableImportant().GetOrAdd(1l);
+		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1l);
 		value.setInt1(value.getInt1() + 1);
-		var value2 = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(1l);
+		var value2 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1l);
 		value2.setInt1 ( value2.getInt1() + 1);
 		return Procedure.Success;
 	}

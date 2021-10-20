@@ -80,7 +80,7 @@ public final class ModuleEquip extends AbstractModule {
 				return ReturnCode(ResultCodeCannotEquip);
 			}
 
-			BEquips equips = _tequip.GetOrAdd(session.getRoleId().longValue());
+			BEquips equips = _tequip.getOrAdd(session.getRoleId().longValue());
 			Game.Bag.BItem bEquipAdd;
 			var eItem = equips.getItems().get(equipPos);
 			if (null != eItem) {
@@ -121,7 +121,7 @@ public final class ModuleEquip extends AbstractModule {
 		var rpc = (Unequipement)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 
-		BEquips equips = _tequip.GetOrAdd(session.getRoleId().longValue());
+		BEquips equips = _tequip.getOrAdd(session.getRoleId().longValue());
 		var eItem = equips.getItems().get(rpc.Argument.getEquipPos());
 		if (null != eItem) {
 			equips.getItems().remove(rpc.Argument.getEquipPos());
@@ -141,7 +141,7 @@ public final class ModuleEquip extends AbstractModule {
 	}
 
 	public Game.Item.Item GetEquipItem(long roleId, int position) {
-		BEquips equips = _tequip.GetOrAdd(roleId);
+		BEquips equips = _tequip.getOrAdd(roleId);
 		return GetEquipItem(equips, position);
 	}
 
@@ -161,7 +161,7 @@ public final class ModuleEquip extends AbstractModule {
 			return;
 		}
 
-		BEquips equips = _tequip.GetOrAdd(fighter.getId().getInstanceId());
+		BEquips equips = _tequip.getOrAdd(fighter.getId().getInstanceId());
 		for (var pos : equips.getItems().keySet()) {
 			GetEquipItem(equips, pos).CalculateFighter(fighter);
 		}

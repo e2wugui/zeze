@@ -61,7 +61,7 @@ public class ModuleBuf extends AbstractModule {
 	// 统一存到一个表格中（使用BFighetId），或者分开存储。
 	// 【建议分开处理】。
 	public final Bufs GetBufs(long roleId) {
-		return new Bufs(roleId, _tbufs.GetOrAdd(roleId));
+		return new Bufs(roleId, _tbufs.getOrAdd(roleId));
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE

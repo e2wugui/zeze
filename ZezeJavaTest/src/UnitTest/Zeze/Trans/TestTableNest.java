@@ -25,15 +25,15 @@ public class TestTableNest{
 	}
 
 	private int ProcTableRemove() {
-		demo.App.getInstance().demo_Module1.getTable1().Remove(4321L);
+		demo.App.getInstance().demo_Module1.getTable1().remove(4321L);
 		return Procedure.Success;
 	}
 
 	private int ProcTableAdd() {
-		demo.Module1.Value v1 = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(4321L);
+		demo.Module1.Value v1 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(4321L);
 		assert v1 != null;
 		assert Procedure.Success != demo.App.getInstance().Zeze.NewProcedure(this::ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback", null).Call();
-		demo.Module1.Value v2 = demo.App.getInstance().demo_Module1.getTable1().Get(4321L);
+		demo.Module1.Value v2 = demo.App.getInstance().demo_Module1.getTable1().get(4321L);
 		assert v1 != null;
 		assert v1.equals(v2);
 		return Procedure.Success;
@@ -41,7 +41,7 @@ public class TestTableNest{
 
 	private int ProcTablePutNestAndRollback() {
 		demo.Module1.Value v = new demo.Module1.Value();
-		demo.App.getInstance().demo_Module1.getTable1().Put(4321L, v);
+		demo.App.getInstance().demo_Module1.getTable1().put(4321L, v);
 		return Procedure.Unknown;
 	}
 }

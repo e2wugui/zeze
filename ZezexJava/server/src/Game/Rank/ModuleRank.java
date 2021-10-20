@@ -11,7 +11,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -47,7 +46,7 @@ public class ModuleRank extends AbstractModule {
 				hash % concurrentLevel,
 				keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 
-		var rank = _trank.GetOrAdd(concurrentKey);
+		var rank = _trank.getOrAdd(concurrentKey);
 		// remove if role exist. 看看有没有更快的算法。
 		BRankValue exist = null;
 		for (int i = 0; i < rank.getRankList().size(); ++i) {
@@ -149,7 +148,7 @@ public class ModuleRank extends AbstractModule {
 			int cocurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 			for (int i = 0; i < cocurrentLevel; ++i) {
 				var concurrentKey = new BConcurrentKey(keyHint.getRankType(), i, keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
-				var rank = _trank.GetOrAdd(concurrentKey);
+				var rank = _trank.getOrAdd(concurrentKey);
 				datas.add(rank);
 			}
 			int countNeed = GetRankCount(keyHint.getRankType());
@@ -237,7 +236,7 @@ public class ModuleRank extends AbstractModule {
 		// 根据hash获取分组rank。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel, keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
-		onHashResult.handle(sessionId, hash, Procedure.Success, _trank.GetOrAdd(concurrentKey));
+		onHashResult.handle(sessionId, hash, Procedure.Success, _trank.getOrAdd(concurrentKey));
 		return Procedure.Success;
 	}
 
@@ -341,7 +340,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	public final long GetCounter(long roleId, BConcurrentKey keyHint) {
-		var counters = _trankcounters.GetOrAdd(roleId);
+		var counters = _trankcounters.getOrAdd(roleId);
 		var counter = counters.getCounters().get(keyHint);
 		if (null == counter)
 			return 0;
@@ -353,7 +352,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	public final void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint, Zeze.Net.Binary valueEx) {
-		var counters = _trankcounters.GetOrAdd(roleId);
+		var counters = _trankcounters.getOrAdd(roleId);
 		var counter = counters.getCounters().get(keyHint);
 		if (null == counter) {
 			counter = new BRankCounter();

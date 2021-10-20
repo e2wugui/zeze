@@ -99,7 +99,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	}
 
 	@Override
-	public int ReduceShare(GlobalCacheManager.Reduce rpc) {
+	int ReduceShare(GlobalCacheManager.Reduce rpc) {
 		rpc.Result = rpc.Argument;
 		K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
@@ -168,7 +168,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	}
 
 	@Override
-	public int ReduceInvalid(GlobalCacheManager.Reduce rpc) {
+	int ReduceInvalid(GlobalCacheManager.Reduce rpc) {
 		rpc.Result= rpc.Argument;
 		K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
@@ -223,7 +223,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	}
 
 	@Override
-	public void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
+	void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
 		for (var e : getCache().getDataMap()) {
 			var gkey = new GlobalCacheManager.GlobalTableKey(getName(), EncodeKey(e.getKey()));
 			if (getZeze().getGlobalAgent().GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex) {
@@ -244,7 +244,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 		}
 	}
 
-	public final V Get(K key) {
+	public final V get(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(getId(), key);
 
@@ -260,7 +260,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 		return r.getValueTyped();
 	}
 
-	public final V GetOrAdd(K key) {
+	public final V getOrAdd(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(getId(), key);
 
@@ -290,8 +290,8 @@ public abstract class TableX<K, V extends Bean> extends Table {
 		return add;
 	}
 
-	public final boolean TryAdd(K key, V value) {
-		if (null != Get(key)) {
+	public final boolean tryAdd(K key, V value) {
+		if (null != get(key)) {
 			return false;
 		}
 
@@ -303,13 +303,13 @@ public abstract class TableX<K, V extends Bean> extends Table {
 		return true;
 	}
 
-	public final void Insert(K key, V value) {
-		if (false == TryAdd(key, value)) {
+	public final void insert(K key, V value) {
+		if (false == tryAdd(key, value)) {
 			throw new IllegalArgumentException(String.format("table:%1$s insert key:%2$s exists", this.getClass().getName(), key));
 		}
 	}
 
-	public final void Put(K key, V value) {
+	public final void put(K key, V value) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(getId(), key);
 
@@ -326,7 +326,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	}
 
 	// 几乎和Put一样，还是独立开吧。
-	public final void Remove(K key) {
+	public final void remove(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(getId(), key);
 
@@ -350,7 +350,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 		Cache = value;
 	}
 
-	public final Storage1<K, V> GetStorageForTestOnly(String IAmSure) {
+	public final Storage1<K, V> InternalGetStorageForTestOnly(String IAmSure) {
 		if (!IAmSure.equals("IKnownWhatIAmDoing")) {
 			throw new RuntimeException();
 		}
@@ -358,7 +358,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	}
 
 	private Database.Table OldTable;
-	public final Database.Table getOldTable() {
+	final Database.Table getOldTable() {
 		return OldTable;
 	}
 	private void setOldTable(Database.Table value) {
@@ -368,12 +368,12 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	Storage1<K, V> TStorage;
 
 	@Override
-	public Storage getStorage() {
+	Storage GetStorage() {
 		return TStorage;
 	}
 
 	@Override
-	public Storage Open(Application app, Database database) {
+	Storage Open(Application app, Database database) {
 		if (null != TStorage) {
 			throw new RuntimeException("table has opened." + getName());
 		}
@@ -392,7 +392,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	}
 
 	@Override
-	public void Close() {
+	void Close() {
 		if (TStorage != null) {
 			TStorage.Close();
 		}
@@ -497,7 +497,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	 @param key
 	 @return 
 	*/
-	public final V SelectCopy(K key) {
+	public final V selectCopy(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		if (null != currentT) {
 			TableKey tkey = new TableKey(getId(), key);

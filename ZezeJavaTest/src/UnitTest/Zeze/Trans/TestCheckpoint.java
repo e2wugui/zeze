@@ -25,19 +25,19 @@ public class TestCheckpoint{
 		assert demo.App.getInstance().Zeze.NewProcedure(this::ProcChange, "ProcChange", null).Call() == Procedure.Success;
 		demo.App.getInstance().Zeze.CheckpointRun();
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
-		ByteBuffer value = table.GetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().Find(table.EncodeKey(56L));
+		ByteBuffer value = table.InternalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().Find(table.EncodeKey(56L));
 		assert value != null;
 		assert value.equals(bytesInTrans);
 	}
 
 	private int ProcClear() {
-		demo.App.getInstance().demo_Module1.getTable1().Remove(56L);
+		demo.App.getInstance().demo_Module1.getTable1().remove(56L);
 		return Procedure.Success;
 	}
 
 	private ByteBuffer bytesInTrans;
 	private int ProcChange() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(56L);
+		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(56L);
 		v.setInt1(1);
 		bytesInTrans = ByteBuffer.Allocate();
 		v.Encode(bytesInTrans);

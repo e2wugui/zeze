@@ -1,7 +1,5 @@
 package UnitTest.Zeze.Trans;
 
-import java.util.concurrent.ExecutionException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -73,7 +71,7 @@ public class TestGlobal extends TestCase{
 		try {
 			// 只删除一个app里面的记录就够了。
 			assert Procedure.Success == app1.Zeze.NewProcedure(() -> {
-					app1.demo_Module1.getTable1().Remove(6785L);
+					app1.demo_Module1.getTable1().remove(6785L);
 					return Procedure.Success;
 			}, "RemoveClean", null).Call();
 
@@ -89,13 +87,13 @@ public class TestGlobal extends TestCase{
 			}
 			int countall = count * 2;
 			assert Procedure.Success == app1.Zeze.NewProcedure(() -> {
-					int last1 = app1.demo_Module1.getTable1().Get(6785L).getInt1();
+					int last1 = app1.demo_Module1.getTable1().get(6785L).getInt1();
 					assert countall == last1;
 					//Console.WriteLine("app1 " + last1);
 					return Procedure.Success;
 			}, "CheckResult1", null).Call();
 			assert Procedure.Success == app2.Zeze.NewProcedure(() -> {
-					int last2 = app2.demo_Module1.getTable1().Get(6785L).getInt1();
+					int last2 = app2.demo_Module1.getTable1().get(6785L).getInt1();
 					assert countall == last2;
 					//Console.WriteLine("app1 " + last2);
 					return Procedure.Success;
@@ -111,7 +109,7 @@ public class TestGlobal extends TestCase{
 		Task[] tasks = new Task[count];
 		for (int i = 0; i < tasks.length; ++i) {
 			tasks[i] = Zeze.Util.Task.Run(app.Zeze.NewProcedure(()-> {
-					demo.Module1.Value b = app.demo_Module1.getTable1().GetOrAdd(6785l);
+					demo.Module1.Value b = app.demo_Module1.getTable1().getOrAdd(6785l);
 					b.setInt1(b.getInt1()+1);
 					PrintLog log = new PrintLog(b, b, appId);
 					Transaction.getCurrent().PutLog(log);

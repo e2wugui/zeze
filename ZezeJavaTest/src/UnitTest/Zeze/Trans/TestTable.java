@@ -13,8 +13,8 @@ public class TestTable {
 	public final void testInit() {
 		demo.App.getInstance().Start();
 		demo.App.getInstance().Zeze.NewProcedure(() -> {
-				demo.App.getInstance().demo_Module1.getTable1().Remove(1L);
-				demo.App.getInstance().demo_Module1.getTable2().Remove(new demo.Module1.Key((short)1));
+				demo.App.getInstance().demo_Module1.getTable1().remove(1L);
+				demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
 				return Procedure.Success;
 		}, "RemoveDataFirst", null).Call();
 	}
@@ -31,7 +31,7 @@ public class TestTable {
 	}
 
 	private int ProcGetUpdate() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().Get(1L);
+		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 
 		v.setInt1(1);
 		v.setLong2(22);
@@ -49,7 +49,7 @@ public class TestTable {
 	}
 
 	private int ProcGetUpdateCheckRemove() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().Get(1L);
+		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 
 		assert v.getInt1() == 11;
 		assert v.getLong2() == 22;
@@ -74,7 +74,7 @@ public class TestTable {
 	}
 
 	private int ProcGetOrAdd() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd((long) 1);
+		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd((long) 1);
 		v.setInt1(1);
 		v.setLong2(2);
 		v.setString3("3");
@@ -92,7 +92,7 @@ public class TestTable {
 	}
 
 	private int ProcGetOrAddCheckAndRemove() {
-		var v = demo.App.getInstance().demo_Module1.getTable1().Get(1L);
+		var v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 		assert v != null;
 
 		assert v.getInt1() == 1;
@@ -109,8 +109,8 @@ public class TestTable {
 		assert v.getBean12().getInt1() == 12;
 		assert v.getByte13() == 13;
 
-		demo.App.getInstance().demo_Module1.getTable1().Remove(1L);
-		assert demo.App.getInstance().demo_Module1.getTable1().Get(1L) == null;
+		demo.App.getInstance().demo_Module1.getTable1().remove(1L);
+		assert demo.App.getInstance().demo_Module1.getTable1().get(1L) == null;
 		return Procedure.Success;
 	}
 
@@ -129,7 +129,7 @@ public class TestTable {
 	private int ProcGet21() {
 		ProcGet11();
 		demo.Module1.Key key = new demo.Module1.Key((short)1);
-		assert demo.App.getInstance().demo_Module1.getTable2().Get(key) == null;
+		assert demo.App.getInstance().demo_Module1.getTable2().get(key) == null;
 		demo.Module1.Value v = new demo.Module1.Value();
 		v.setInt1(1);
 		v.setLong2(2);
@@ -145,15 +145,15 @@ public class TestTable {
 		v.setByte13((byte)13);	
 	
 
-		demo.App.getInstance().demo_Module1.getTable2().Put(key, v);
-		assert v == demo.App.getInstance().demo_Module1.getTable2().Get(key);
+		demo.App.getInstance().demo_Module1.getTable2().put(key, v);
+		assert v == demo.App.getInstance().demo_Module1.getTable2().get(key);
 		return Procedure.Success;
 	}
 
 	private int ProcGet22() {
 		ProcGet12();
 		demo.Module1.Key key = new demo.Module1.Key((short)1);
-		var v = demo.App.getInstance().demo_Module1.getTable2().Get(key);
+		var v = demo.App.getInstance().demo_Module1.getTable2().get(key);
 		assert v != null;
 
 		assert v.getInt1() == 1;
@@ -170,13 +170,13 @@ public class TestTable {
 		assert v.getBean12().getInt1() == 12;
 		assert v.getByte13() == 13;
 
-		demo.App.getInstance().demo_Module1.getTable2().Remove(key);
-		assert demo.App.getInstance().demo_Module1.getTable2().Get(key) == null;
+		demo.App.getInstance().demo_Module1.getTable2().remove(key);
+		assert demo.App.getInstance().demo_Module1.getTable2().get(key) == null;
 		return Procedure.Success;
 	}
 
 	private int ProcGet11() {
-		assert demo.App.getInstance().demo_Module1.getTable1().Get(1L) == null;
+		assert demo.App.getInstance().demo_Module1.getTable1().get(1L) == null;
 		demo.Module1.Value v = new demo.Module1.Value();
 		v.setInt1(1);
 		v.setLong2(2);
@@ -191,13 +191,13 @@ public class TestTable {
 		v.getBean12().setInt1(12);
 		v.setByte13((byte)13);	
 	
-		demo.App.getInstance().demo_Module1.getTable1().Put(1L, v);
-		assert v == demo.App.getInstance().demo_Module1.getTable1().Get(1L);
+		demo.App.getInstance().demo_Module1.getTable1().put(1L, v);
+		assert v == demo.App.getInstance().demo_Module1.getTable1().get(1L);
 		return Procedure.Success;
 	}
 
 	private int ProcGet12() {
-		var v = demo.App.getInstance().demo_Module1.getTable1().Get(1L);
+		var v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 		assert v != null;
 
 		assert v.getInt1() == 1;
@@ -214,8 +214,8 @@ public class TestTable {
 		assert v.getBean12().getInt1() == 12;
 		assert v.getByte13() == 13;
 
-		demo.App.getInstance().demo_Module1.getTable1().Remove(1L);
-		assert demo.App.getInstance().demo_Module1.getTable1().Get(1L) == null;
+		demo.App.getInstance().demo_Module1.getTable1().remove(1L);
+		assert demo.App.getInstance().demo_Module1.getTable1().get(1L) == null;
 		return Procedure.Success;
 	}
 }

@@ -15,7 +15,7 @@ public class Onlines {
 	}
 
 	public final void OnLinkBroken(long roleId) {
-		var online = table.Get(roleId);
+		var online = table.get(roleId);
 		if (null != online) {
 			online.setState(BOnline.StateNetBroken);
 		}
@@ -25,9 +25,9 @@ public class Onlines {
 					// 网络断开后延迟删除在线状态。这里简单判断一下是否StateNetBroken。
 					// 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
 					// 造成延迟时间不准确。管理Timeout有点烦，先这样吧。
-					var online2 = table.Get(roleId);
+					var online2 = table.get(roleId);
 					if (null != online2 && online2.getState() == BOnline.StateNetBroken) {
-						table.Remove(roleId);
+						table.remove(roleId);
 					}
 					App.getInstance().getLoad().getLogoutCount().incrementAndGet();
 
@@ -37,7 +37,7 @@ public class Onlines {
 	}
 
 	public final void AddReliableNotifyMark(long roleId, String listenerName) {
-		var online = table.Get(roleId);
+		var online = table.get(roleId);
 		if (null == online || online.getState() != BOnline.StateOnline) {
 			throw new RuntimeException("Not Online. AddReliableNotifyMark: " + listenerName);
 		}
@@ -46,8 +46,8 @@ public class Onlines {
 
 	public final void RemoveReliableNotifyMark(long roleId, String listenerName) {
 		// 移除尽量通过，不做任何判断。
-		if (table.Get(roleId) != null) {
-			table.Get(roleId).getReliableNotifyMark().remove(listenerName);
+		if (table.get(roleId) != null) {
+			table.get(roleId).getReliableNotifyMark().remove(listenerName);
 		}
 	}
 
@@ -125,7 +125,7 @@ public class Onlines {
 
 		App.getInstance().Zeze.getTaskOneByOneByKey().Execute(listenerName,
 				App.getInstance().Zeze.NewProcedure(() -> {
-					BOnline online = table.Get(roleId);
+					BOnline online = table.get(roleId);
 					if (null == online || online.getState() == BOnline.StateOffline) {
 						return Procedure.Success;
 					}
@@ -193,7 +193,7 @@ public class Onlines {
 		groups.put(groupNotOnline.getLinkName(), groupNotOnline);
 
 		for (var roleId : roleIds) {
-			var online = table.Get(roleId);
+			var online = table.get(roleId);
 			if (null == online || online.getState() != BOnline.StateOnline) {
 				groupNotOnline.getRoles().putIfAbsent(roleId, new Zezex.Provider.BTransmitContext());
 				continue;

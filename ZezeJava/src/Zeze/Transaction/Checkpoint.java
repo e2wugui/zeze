@@ -231,7 +231,7 @@ public final class Checkpoint {
 		var dts = new HashMap<Database, Database.Transaction>();
 		// prepare: 编码并且为每一个数据库创建一个数据库事务。
 		for (var r : rs) {
-			var database = r.getTable().getStorage().getDatabaseTable().getDatabase();
+			var database = r.getTable().GetStorage().getDatabaseTable().getDatabase();
 			var t = dts.get(database);
 			if (null == t) {
 				t = database.BeginTransaction();

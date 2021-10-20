@@ -13,7 +13,7 @@ public final class ModuleSkill extends AbstractModule {
 	}
 
 	public Skills GetSkills(long roleId) {
-		return new Skills(roleId, _tskills.GetOrAdd(roleId));
+		return new Skills(roleId, _tskills.getOrAdd(roleId));
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE

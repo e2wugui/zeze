@@ -40,19 +40,19 @@ public class TestConflict {
 	}
 
 	private int ProcRemove() {
-		demo.App.getInstance().demo_Module1.getTable1().Remove(123123l);
+		demo.App.getInstance().demo_Module1.getTable1().remove(123123l);
 		return Procedure.Success;
 	}
 
 	private int ProcAdd() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(123123L);
+		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
 		v.setInt1(v.getInt1() + 1);
 		sum++;
 		return Procedure.Success;
 	}
 
 	private int ProcVerify() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().GetOrAdd(123123L);
+		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
 		assert v.getInt1() == sum;
 		return Procedure.Success;
 	}

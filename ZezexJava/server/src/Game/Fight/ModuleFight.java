@@ -14,7 +14,7 @@ public final class ModuleFight extends AbstractModule {
 	}
 
 	public Fighter GetFighter(BFighterId fighterId) {
-		return new Fighter(fighterId, _tfighters.GetOrAdd(fighterId));
+		return new Fighter(fighterId, _tfighters.getOrAdd(fighterId));
 	}
 
 	public int CalculateFighter(BFighterId fighterId) {
@@ -27,7 +27,7 @@ public final class ModuleFight extends AbstractModule {
 				App.getInstance().Game_Equip.CalculateFighter(fighter);
 				break;
 		}
-		_tfighters.GetOrAdd(fighterId).Assign(fighter.getBean());
+		_tfighters.getOrAdd(fighterId).Assign(fighter.getBean());
 		return Procedure.Success;
 	}
 

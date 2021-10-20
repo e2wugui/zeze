@@ -45,18 +45,18 @@ public abstract class Table {
 		TableConf = value;
 	}
 
-	public abstract Storage Open(Application app, Database database);
-	public abstract void Close();
+	abstract Storage Open(Application app, Database database);
+	abstract void Close();
 
-	public int ReduceShare(GlobalCacheManager.Reduce rpc) {
+	int ReduceShare(GlobalCacheManager.Reduce rpc) {
 		throw new UnsupportedOperationException();
 	}
 
-	public int ReduceInvalid(GlobalCacheManager.Reduce rpc) {
+	int ReduceInvalid(GlobalCacheManager.Reduce rpc) {
 		throw new UnsupportedOperationException();
 	}
 
-	public void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
+	void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -67,5 +67,5 @@ public abstract class Table {
 
 	public abstract ChangeVariableCollector CreateChangeVariableCollector(int variableId);
 
-	public abstract Storage getStorage();
+	abstract Storage GetStorage();
 }

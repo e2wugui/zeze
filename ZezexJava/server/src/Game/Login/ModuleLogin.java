@@ -35,11 +35,11 @@ public final class ModuleLogin extends AbstractModule {
 		// duplicate name check
 		BRoleId tempVar2 = new BRoleId();
 		tempVar2.setId(roleid);
-		if (false == _trolename.TryAdd(rpc.Argument.getName(), tempVar2)) {
+		if (false == _trolename.tryAdd(rpc.Argument.getName(), tempVar2)) {
 			return ReturnCode(ResultCodeCreateRoleDuplicateRoleName);
 		}
 
-		var account = _taccount.GetOrAdd(session.getAccount());
+		var account = _taccount.getOrAdd(session.getAccount());
 		account.getRoles().add(roleid);
 
 		// initialize role data
@@ -54,10 +54,10 @@ public final class ModuleLogin extends AbstractModule {
 		var rpc = (GetRoleList)_rpc;
 		var session = Session.Get(rpc);
 
-		BAccount account = _taccount.Get(session.getAccount());
+		BAccount account = _taccount.get(session.getAccount());
 		if (null != account) {
 			for (var roleId : account.getRoles()) {
-				BRoleData roleData = _trole.Get(roleId);
+				BRoleData roleData = _trole.get(roleId);
 				if (null != roleData) {
 					BRole tempVar = new BRole();
 					tempVar.setId(roleId);
@@ -77,18 +77,18 @@ public final class ModuleLogin extends AbstractModule {
 		var rpc = (Login)_rpc;
 		var session = Session.Get(rpc);
 
-		BAccount account = _taccount.Get(session.getAccount());
+		BAccount account = _taccount.get(session.getAccount());
 		if (null == account) {
 			return ReturnCode(ResultCodeAccountNotExist);
 		}
 
 		account.setLastLoginRoleId(rpc.Argument.getRoleId());
-		BRoleData role = _trole.Get(rpc.Argument.getRoleId());
+		BRoleData role = _trole.get(rpc.Argument.getRoleId());
 		if (null == role) {
 			return ReturnCode(ResultCodeRoleNotExist);
 		}
 
-		BOnline online = _tonline.GetOrAdd(rpc.Argument.getRoleId());
+		BOnline online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 		online.setLinkName(session.getLinkName());
 		online.setLinkSid(session.getSessionId());
 		online.setState(BOnline.StateOnline);
@@ -120,7 +120,7 @@ public final class ModuleLogin extends AbstractModule {
 		var rpc = (ReLogin)_rpc;
 		var session = Session.Get(rpc);
 
-		BAccount account = _taccount.Get(session.getAccount());
+		BAccount account = _taccount.get(session.getAccount());
 		if (null == account) {
 			return ReturnCode(ResultCodeAccountNotExist);
 		}
@@ -129,12 +129,12 @@ public final class ModuleLogin extends AbstractModule {
 			return ReturnCode(ResultCodeNotLastLoginRoleId);
 		}
 
-		BRoleData role = _trole.Get(rpc.Argument.getRoleId());
+		BRoleData role = _trole.get(rpc.Argument.getRoleId());
 		if (null == role) {
 			return ReturnCode(ResultCodeRoleNotExist);
 		}
 
-		BOnline online = _tonline.Get(rpc.Argument.getRoleId());
+		BOnline online = _tonline.get(rpc.Argument.getRoleId());
 		if (null == online) {
 			return ReturnCode(ResultCodeOnlineDataNotFound);
 		}
@@ -197,7 +197,7 @@ public final class ModuleLogin extends AbstractModule {
 		var rpc = (ReliableNotifyConfirm)_rpc;
 		var session = Session.Get(rpc);
 
-		BOnline online = _tonline.Get(session.getRoleId().longValue());
+		BOnline online = _tonline.get(session.getRoleId().longValue());
 		if (null == online || online.getState() == BOnline.StateOffline) {
 			return ReturnCode(ResultCodeOnlineDataNotFound);
 		}
@@ -221,7 +221,7 @@ public final class ModuleLogin extends AbstractModule {
 			return ReturnCode(ResultCodeNotLogin);
 		}
 
-		_tonline.Remove(session.getRoleId().longValue());
+		_tonline.remove(session.getRoleId().longValue());
 
 		// 先设置状态，再发送Logout结果。
 		Transaction.getCurrent().RunWhileCommit(() -> {
