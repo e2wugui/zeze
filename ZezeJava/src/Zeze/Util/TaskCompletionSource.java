@@ -18,7 +18,12 @@ public class TaskCompletionSource<T> extends FutureTask<T> {
 		super.setException(ex);
 		return true;
 	}
-	
+
+	public boolean SetException(Throwable ex) {
+		super.setException(ex);
+		return true;
+	}
+
 	public void SetResult(T t) {
 		super.set(t);
 	}

@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import Zeze.Util.Str;
 import Zeze.Services.*;
 import Zeze.*;
 import org.apache.logging.log4j.LogManager;
@@ -305,7 +306,8 @@ public abstract class TableX<K, V extends Bean> extends Table {
 
 	public final void insert(K key, V value) {
 		if (false == tryAdd(key, value)) {
-			throw new IllegalArgumentException(String.format("table:%1$s insert key:%2$s exists", this.getClass().getName(), key));
+			throw new IllegalArgumentException(Str.format("table:{} insert key:{} exists",
+					this.getClass().getName(), key));
 		}
 	}
 

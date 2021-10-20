@@ -1,6 +1,7 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
+import Zeze.Util.Str;
 import Zeze.Util.Task;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -349,7 +350,7 @@ public class Service {
 
 	public final void AddFactoryHandle(int type, ProtocolFactoryHandle factory) {
 		if (null != getFactorys().putIfAbsent(type, factory)) {
-			throw new RuntimeException(String.format("duplicate factory type=%1$s moduleid=%2$s id=%3$s", type, (type >>> 16) & 0x7fff, type & 0x7fff));
+			throw new RuntimeException(Str.format("duplicate factory type={} moduleid={} id={}", type, (type >>> 16) & 0x7fff, type & 0x7fff));
 		}
 	}
 

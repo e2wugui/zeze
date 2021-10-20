@@ -174,9 +174,9 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 		if (false == Send(so,
 			(rpc) -> {
 				if (IsTimeout) {
-					tmpFuture.TrySetException(new RpcTimeoutException(String.format("RpcTimeout %1$s", this)));
+					tmpFuture.TrySetException(new RpcTimeoutException("RpcTimeout " + this));
 				} else if (getResultCode() != 0) {
-					tmpFuture.TrySetException(new RuntimeException(String.format("Rpc Invalid ResultCode=%1$s %2$s", getResultCode(), this)));
+					tmpFuture.TrySetException(new RuntimeException(Zeze.Util.Str.format("Rpc Invalid ResultCode={} {}", getResultCode(), this)));
 				} else {
 					tmpFuture.SetResult(0);
 				}
@@ -272,6 +272,8 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 
 	@Override
 	public String toString() {
-		return String.format("%1$s SessionId=%2$s UniqueRequestId=%3$s ResultCode=%4$s%5$s\tArgument=%6$s%7$s\tResult=%8$s", this.getClass().getName(), SessionId, getUniqueRequestId(), getResultCode(), System.lineSeparator(), Argument, System.lineSeparator(), Result);
+		return Zeze.Util.Str.format("{} SessionId={} UniqueRequestId={} ResultCode={}{}\tArgument={}{}\tResult={}",
+				this.getClass().getName(), SessionId, getUniqueRequestId(), getResultCode(),
+				System.lineSeparator(), Argument, System.lineSeparator(), Result);
 	}
 }

@@ -1,6 +1,7 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
+import Zeze.Util.Str;
 
 public abstract class Protocol implements Serializable {
 	public abstract int getModuleId();
@@ -139,7 +140,7 @@ public abstract class Protocol implements Serializable {
 					var factoryHandle = service.FindProtocolFactoryHandle(type);
 					var pName = null == factoryHandle || null == factoryHandle.Factory
 							? "" : factoryHandle.Factory.create().getClass().getName();
-					throw new RuntimeException(String.format("Decode InputBufferMaxProtocolSize '%1$s' p='%2$s' type=%3$s size=%4$s", service.getName(), pName, type, size));
+					throw new RuntimeException(Str.format("Decode InputBufferMaxProtocolSize '%1$s' p='%2$s' type=%3$s size=%4$s", service.getName(), pName, type, size));
 				}
 
 				// not enough data. try next time.
@@ -156,7 +157,7 @@ public abstract class Protocol implements Serializable {
 				p.Service = service;
 				p.Decode(pBuffer);
 				if (pBuffer.ReadIndex != pBuffer.WriteIndex) {
-					throw new RuntimeException(String.format("type=%1$s size=%2$s too many data", type, size));
+					throw new RuntimeException(Zeze.Util.Str.format("type={} size={} too many data", type, size));
 				}
 				p.Sender = so;
 				p.UserState = so.getUserState();
@@ -171,6 +172,6 @@ public abstract class Protocol implements Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("%1$s(%2$s,%3$s,%4$s)", this.getClass().getName(), getModuleId(), getProtocolId(), getUniqueRequestId());
+		return Zeze.Util.Str.format("{}({},{},{})", this.getClass().getName(), getModuleId(), getProtocolId(), getUniqueRequestId());
 	}
 }

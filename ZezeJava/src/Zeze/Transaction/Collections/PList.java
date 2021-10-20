@@ -2,11 +2,12 @@ package Zeze.Transaction.Collections;
 
 import Zeze.Transaction.*;
 import java.util.*;
+import java.util.function.UnaryOperator;
 
 import org.pcollections.Empty;
 import org.pcollections.PVector;
 
-public abstract class PList<E> extends PCollection implements Collection<E> {
+public abstract class PList<E> extends PCollection implements List<E> {
 	private final LogFactory<PVector<E>> _logFactory;
 
 	protected PVector<E> list;
@@ -55,7 +56,7 @@ public abstract class PList<E> extends PCollection implements Collection<E> {
 
 	@Override
 	public String toString() {
-		return String.format("PList%1$s", getData());
+		return "PList" + getData();
 	}
 
 	public E get(int index) {
@@ -91,6 +92,7 @@ public abstract class PList<E> extends PCollection implements Collection<E> {
 
 	@Override
 	public final Iterator<E> iterator() {
+		// TODO readonly
 		return getData().iterator();
 	}
 
@@ -117,4 +119,35 @@ public abstract class PList<E> extends PCollection implements Collection<E> {
 	public boolean containsAll(Collection<?> c) {
 		return getData().containsAll(c);
 	}
+
+	@Override
+	public boolean addAll(int index, Collection<? extends E> c) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public void replaceAll(UnaryOperator<E> operator) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public ListIterator<E> listIterator() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public int lastIndexOf(Object o) {
+		return getData().lastIndexOf(o);
+	}
+
+	@Override
+	public ListIterator<E> listIterator(int index) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public List<E> subList(int fromIndex, int toIndex) {
+		throw new UnsupportedOperationException();
+	}
+
 }

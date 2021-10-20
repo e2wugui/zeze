@@ -64,7 +64,7 @@ public class TestDatabaseSqlServer extends TestCase {
 	public final boolean PrintRecord(byte[] key, byte[] value) {
 		int ikey = ByteBuffer.Wrap(key).ReadInt();
 		int ivalue = ByteBuffer.Wrap(value).ReadInt();
-		System.out.println(String.format("key=%1$s value=%2$s", ikey, ivalue));
+		System.out.println(Zeze.Util.Str.format("key={} value={}", ikey, ivalue));
 		return true;
 	}
 }

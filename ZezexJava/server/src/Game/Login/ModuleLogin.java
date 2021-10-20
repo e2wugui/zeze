@@ -30,7 +30,7 @@ public final class ModuleLogin extends AbstractModule {
 
 		BRoleData tempVar = new BRoleData();
 		tempVar.setName(rpc.Argument.getName());
-		long roleid = _trole.Insert(tempVar);
+		long roleid = _trole.insert(tempVar);
 
 		// duplicate name check
 		BRoleId tempVar2 = new BRoleId();

@@ -48,6 +48,6 @@ public final class SubscribeInfo extends Bean {
 
 	@Override
 	public String toString() {
-		return String.format("%1$s:%2$s", getServiceName(), getSubscribeType());
+		return getServiceName() + ":" + getSubscribeType();
 	}
 }

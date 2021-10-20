@@ -6,6 +6,8 @@ import org.pcollections.PVector;
 import Zeze.Transaction.*;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.ListIterator;
 
 public final class PList1<E> extends PList<E> {
 	public PList1(long logKey, LogFactory<PVector<E>> logFactory) {

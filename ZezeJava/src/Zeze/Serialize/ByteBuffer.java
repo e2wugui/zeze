@@ -868,14 +868,14 @@ public final class ByteBuffer {
 
 	public static void VerifyArrayIndex(byte[] bytes, int offset, int length) {
 		if (offset < 0 || offset > bytes.length) {
-			throw new RuntimeException(String.format("%1$s,%2$s,%3$s", bytes.length, offset, length));
+			throw new RuntimeException(Zeze.Util.Str.format("{},{},{}", bytes.length, offset, length));
 		}
 		int endindex = offset + length;
 		if (endindex < 0 || endindex > bytes.length) {
-			throw new RuntimeException(String.format("%1$s,%2$s,%3$s", bytes.length, offset, length));
+			throw new RuntimeException(Zeze.Util.Str.format("{},{},{}", bytes.length, offset, length));
 		}
 		if (offset > endindex) {
-			throw new RuntimeException(String.format("%1$s,%2$s,%3$s", bytes.length, offset, length));
+			throw new RuntimeException(Zeze.Util.Str.format("{},{},{}", bytes.length, offset, length));
 		}
 	}
 

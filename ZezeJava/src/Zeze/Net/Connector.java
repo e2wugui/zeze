@@ -57,7 +57,7 @@ public class Connector {
 		return HandshakeDoneEvent;
 	}
 	public final String getName() {
-		return String.format("%1$s:%2$s", getHostNameOrAddress(), getPort());
+		return getHostNameOrAddress() + ":" + getPort();
 	}
 
 	private AsyncSocket Socket;
@@ -125,7 +125,7 @@ public class Connector {
 	public final void SetService(Service service) {
 		synchronized (this) {
 			if (getService() != null) {
-				throw new RuntimeException(String.format("Connector of '%1$s' Service != null", getName()));
+				throw new RuntimeException("Connector of '" + getName() + "' Service != null");
 			}
 			setService(service);
 		}
@@ -140,7 +140,7 @@ public class Connector {
 		if (getHandshakeDoneEvent().WaitOne(timeout)) {
 			return;
 		}
-		throw new RuntimeException(String.format("Connnector.WaitReady fail. %1$s", getName()));
+		throw new RuntimeException("Connnector.WaitReady fail. " + getName());
 	}
 
 	public void OnSocketClose(AsyncSocket closed) {

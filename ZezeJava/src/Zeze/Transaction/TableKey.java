@@ -28,7 +28,8 @@ public final class TableKey implements java.lang.Comparable<TableKey> {
 
 	@Override
 	public String toString() {
-		return String.format("tkey{%1$s:%2$s,%3$s", getTableId(), Table.GetTable(getTableId()).getName(), getKey());
+		return Zeze.Util.Str.format("tkey({}:{},{})",
+				getTableId(), Table.GetTable(getTableId()).getName(), getKey());
 	}
 
 	@Override

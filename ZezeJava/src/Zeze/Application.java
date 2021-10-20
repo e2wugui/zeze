@@ -118,7 +118,7 @@ public final class Application {
 		if (null != db) {
 			return db;
 		}
-		throw new RuntimeException(String.format("database not exist name=%1$s", name));
+		throw new RuntimeException("database not exist name=" + name);
 	}
 
 

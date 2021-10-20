@@ -30,7 +30,7 @@ public class EventDispatcher {
 			name = handle.getClass().getName();
 		}
 		if (null != Handles.putIfAbsent(name, handle)) {
-			throw new RuntimeException(String.format("Handle for '%1$s' exist.", name));
+			throw new RuntimeException(Zeze.Util.Str.format("Handle for '{}' exist.", name));
 		}
 	}
 

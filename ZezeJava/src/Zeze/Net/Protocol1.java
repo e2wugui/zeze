@@ -21,6 +21,6 @@ public abstract class Protocol1<TArgument extends Zeze.Transaction.Bean> extends
 
 	@Override
 	public String toString() {
-		return String.format("%1$s UniqueRequestId=%2$s ResultCode=%3$s%4$s\tArgument=%5$s", this.getClass().getName(), getUniqueRequestId(), getResultCode(), System.lineSeparator(), Argument);
+		return Zeze.Util.Str.format("{} UniqueRequestId={} ResultCode={}{}\tArgument={}", this.getClass().getName(), getUniqueRequestId(), getResultCode(), System.lineSeparator(), Argument);
 	}
 }

@@ -295,7 +295,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	public void VerifySecurity() {
 		if (!isSecurity()) {
-			throw new RuntimeException(String.format("%1$s !IsSecurity", getService().getName()));
+			throw new RuntimeException(getService().getName() + " !IsSecurity");
 		}
 	}
 
@@ -527,13 +527,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (getService().getSocketMapInternal().remove(SessionId, this)) {
 			if (null != getService().getSocketMapInternal().putIfAbsent(newSessionId, this)) {
 				getService().getSocketMapInternal().putIfAbsent(SessionId, this); // rollback
-				throw new RuntimeException(String.format("duplicate sessionid %1$s", this));
+				throw new RuntimeException("duplicate sessionid " + this);
 			}
 			SessionId = newSessionId;
 		}
 		else {
 			// 为了简化并发问题，只能加入Service以后的Socket的SessionId。
-			throw new RuntimeException(String.format("Not Exist In Service %1$s", this));
+			throw new RuntimeException("Not Exist In Service " + this);
 		}
 	}
 }

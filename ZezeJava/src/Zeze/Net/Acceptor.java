@@ -27,7 +27,7 @@ public class Acceptor {
 		Socket = value;
 	}
 	public final String getName() {
-		return String.format("%1$s:%2$s", getIp(), getPort());
+		return getIp() + ":"  + getPort();
 	}
 
 	public Acceptor(int port, String ip) {
@@ -46,7 +46,7 @@ public class Acceptor {
 	public final void SetService(Service service) {
 		synchronized (this) {
 			if (getService() != null) {
-				throw new RuntimeException(String.format("Acceptor of '%1$s' Service != null", getName()));
+				throw new RuntimeException("Acceptor of '" + getName() + "' Service != null");
 			}
 			setService(service);
 		}

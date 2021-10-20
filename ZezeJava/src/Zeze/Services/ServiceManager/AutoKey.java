@@ -36,7 +36,7 @@ public final class AutoKey {
 			}
 
 			if (getCount() <= 0) {
-				throw new RuntimeException(String.format("AllocateId failed for %1$s", getName()));
+				throw new RuntimeException("AllocateId failed for " + getName());
 			}
 
 			var tmp = getCurrent();

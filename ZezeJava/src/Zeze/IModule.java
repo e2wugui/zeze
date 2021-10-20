@@ -29,8 +29,11 @@ public abstract class IModule {
 		return cls;
 	}
 
-	protected void addClass(String methodName, Class<?> cls) {
-		if (ClassMap.putIfAbsent(methodName, cls) != null)
-			throw new RuntimeException("Duplicate Method Name " + methodName);
+	public void putClassForMethod(String methodName, Class<?> cls) {
+		ClassMap.put(methodName, cls);
+	}
+
+	public void Initialize(Zeze.AppBase app) {
+
 	}
 }

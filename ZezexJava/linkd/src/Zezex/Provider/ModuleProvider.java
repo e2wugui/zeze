@@ -19,7 +19,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     private String MakeServiceName(String serviceNamePrefix, int moduleId) {
-        return String.format("%1$s%2$s", serviceNamePrefix, moduleId);
+        return serviceNamePrefix + moduleId;
     }
 
     public boolean ChoiceHash(Agent.SubscribeState providers, int hash, Zeze.Util.OutObject<Long> provider) {

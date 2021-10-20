@@ -37,7 +37,8 @@ public class Record1<K, V extends Bean> extends Record {
 
 	@Override
 	public String toString() {
-		return String.format("T %1$s:%2$s K %3$s S %4$s T %5$s", getTTable().getId(), getTTable().getName(), getKey(), getState(), getTimestamp()); // V {Value}";
+		return Zeze.Util.Str.format("T {}:{} K {} S {} T {}",
+				getTTable().getId(), getTTable().getName(), getKey(), getState(), getTimestamp()); // V {Value}";
 		// 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
 	}
 

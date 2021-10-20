@@ -8,7 +8,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 	private GlobalAgent agent;
 
 	public GlobalClient(GlobalAgent agent, Application zeze) {
-		super(String.format("%1$s.GlobalClient", agent.getZeze().getSolutionName()), zeze);
+		super(Zeze.Util.Str.format("{}.GlobalClient", agent.getZeze().getSolutionName()), zeze);
 		this.agent = agent;
 	}
 
@@ -27,7 +27,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 							;
 						}
 						else if (relogin.getResultCode() != 0) {
-							agent.getLogined().TrySetException(new RuntimeException(String.format("GlobalAgent.ReLogoin Error %1$s", relogin.getResultCode())));
+							agent.getLogined().TrySetException(new RuntimeException("GlobalAgent.ReLogoin Error " + relogin.getResultCode()));
 						}
 						else {
 							agent.getLoginedTimes().incrementAndGet();
@@ -46,7 +46,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 							;
 						}
 						else if (login.getResultCode() != 0) {
-							agent.getLogined().TrySetException(new RuntimeException(String.format("GlobalAgent.Logoin Error %1$s", login.getResultCode())));
+							agent.getLogined().TrySetException(new RuntimeException("GlobalAgent.Logoin Error " + login.getResultCode()));
 						}
 						else {
 							agent.getLoginedTimes().incrementAndGet();

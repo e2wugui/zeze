@@ -135,7 +135,7 @@ public final class Config {
 
 	public void AddCustomize(ICustomize c) {
 		if (null != getCustomize().putIfAbsent(c.getName(), c)) {
-			throw new RuntimeException(String.format("Duplicate Customize Config '%1$s'", c.getName()));
+			throw new RuntimeException("Duplicate Customize Config '" + c.getName() + "'");
 		}
 	}
 
@@ -313,7 +313,7 @@ public final class Config {
 					var cname = e.getAttribute("Name");
 					var customizeConf = getCustomize().get(cname);
 					if (null == customizeConf)
-						throw new RuntimeException(String.format("Unknown CustomizeConf Name='%1$s'", cname));
+						throw new RuntimeException("Unknown CustomizeConf Name='" + cname + "'");
 
 					customizeConf.Parse(e);
 					break;
@@ -373,7 +373,7 @@ public final class Config {
 			}
 			DatabaseUrl = self.getAttribute("DatabaseUrl");
 			if (null != conf.getDatabaseConfMap().putIfAbsent(getName(), this)) {
-				throw new RuntimeException(String.format("Duplicate Database '%1$s'", getName()));
+				throw new RuntimeException("Duplicate Database '" + getName() + "'");
 			}
 		}
 	}
@@ -522,7 +522,7 @@ public final class Config {
 
 			if (getName().length() > 0) {
 				if (null != conf.getTableConfMap().putIfAbsent(getName(), this)) {
-					throw new RuntimeException(String.format("Duplicate Table '%1$s'", getName()));
+					throw new RuntimeException("Duplicate Table '" + getName() + "'");
 				}
 			}
 			else if (conf.getDefaultTableConf() == null) {

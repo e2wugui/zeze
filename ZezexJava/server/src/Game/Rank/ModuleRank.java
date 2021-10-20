@@ -3,6 +3,7 @@ package Game.Rank;
 import Zeze.Net.Protocol;
 import Zeze.Transaction.*;
 import Game.*;
+import Zeze.Util.Str;
 import Zezex.Redirect;
 import Zezex.RedirectAll;
 import Zezex.RedirectWithHash;
@@ -23,6 +24,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ModuleRank extends AbstractModule {
 
 	private static final Logger logger = LogManager.getLogger(ModuleRank.class);
+
+	@Override
+	public void Initialize(Zeze.AppBase app) {
+		super.putClassForMethod("RunGetRank", BRankList.class);
+	}
 
 	public final void Start(App app) {
 	}
@@ -248,7 +254,8 @@ public class ModuleRank extends AbstractModule {
 						   Zezex.RedirectAllDoneHandle onHashEnd) {
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-		var ctx = new Zezex.Provider.ModuleProvider.ModuleRedirectAllContext(concurrentLevel, String.format("%1$s:%2$s", getFullName(), "RunGetRank"));
+		var ctx = new Zezex.Provider.ModuleProvider.ModuleRedirectAllContext(concurrentLevel,
+				Str.format("{}:{}", getFullName(), "RunGetRank"));
 		ctx.setOnHashEnd(onHashEnd);
 		long sessionId = App.Server.AddManualContextWithTimeout(ctx, 10000); // 处理hash分组结果需要一个上下文保存收集的结果。
 		for (int i = 0; i < concurrentLevel; ++i) {
@@ -300,7 +307,7 @@ public class ModuleRank extends AbstractModule {
 				(context) -> {
 					if (context.getHashCodes().size() > 0) {
 						// 一般是超时发生时还有未返回结果的hash分组。
-						logger.warn(String.format("OnHashEnd: timeout with hashs: %1$s", context.getHashCodes()));
+						logger.warn("OnHashEnd: timeout with hashs: {}", context.getHashCodes());
 					}
 
 					var rank2 = (Rank)context.getUserState();
@@ -440,7 +447,7 @@ public class ModuleRank extends AbstractModule {
 				break;
 
 			default:
-				throw new RuntimeException(String.format("Unsupport TimeType=%1$s", timeType));
+				throw new RuntimeException("Unsupport TimeType=" + timeType);
 		}
 		return new BConcurrentKey(rankType, 0, timeType, year, offset);
 	}

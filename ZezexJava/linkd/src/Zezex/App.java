@@ -3,7 +3,7 @@ package Zezex;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-
+import Zeze.Util.Str;
 import jason.JasonReader;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
@@ -28,7 +28,9 @@ public final class App extends Zeze.AppBase {
 		setProviderServicePasivePort(ipp.getValue());
 
 		setServiceManagerAgent(new Zeze.Services.ServiceManager.Agent(Zeze.getConfig()));
-		getServiceManagerAgent().RegisterService(LinkdServiceName, String.format("%1$s:%2$s", getProviderServicePassiveIp(), getProviderServicePasivePort()), getProviderServicePassiveIp(), getProviderServicePasivePort(), null);
+		getServiceManagerAgent().RegisterService(LinkdServiceName,
+                Str.format("{}:{}", getProviderServicePassiveIp(), getProviderServicePasivePort()),
+                getProviderServicePassiveIp(), getProviderServicePasivePort(), null);
 	}
 
 	public void Stop() {
@@ -110,11 +112,13 @@ public final class App extends Zeze.AppBase {
             ProviderService = new Zezex.ProviderService(Zeze);
 
             Zezex_Linkd = new Zezex.Linkd.ModuleLinkd(this);
+            Zezex_Linkd.Initialize(this);
             Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)ReplaceModuleInstance(Zezex_Linkd);
             if (null != Modules.put(Zezex_Linkd.getName(), Zezex_Linkd)) {
                 throw new RuntimeException("duplicate module name: Zezex_Linkd");
             }
             Zezex_Provider = new Zezex.Provider.ModuleProvider(this);
+            Zezex_Provider.Initialize(this);
             Zezex_Provider = (Zezex.Provider.ModuleProvider)ReplaceModuleInstance(Zezex_Provider);
             if (null != Modules.put(Zezex_Provider.getName(), Zezex_Provider)) {
                 throw new RuntimeException("duplicate module name: Zezex_Provider");

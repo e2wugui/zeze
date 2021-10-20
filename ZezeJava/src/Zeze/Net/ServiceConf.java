@@ -1,7 +1,7 @@
 package Zeze.Net;
 
 import Zeze.*;
-
+import Zeze.Util.Str;
 import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +51,7 @@ public final class ServiceConf {
 	public void SetService(Service service) {
 		synchronized (this) {
 			if (getService() != null) {
-				throw new RuntimeException(String.format("ServiceConf of '%1$s' Service != null", getName()));
+				throw new RuntimeException(Str.format("ServiceConf of '{}' Service != null", getName()));
 			}
 			setService(service);
 			ForEachAcceptor((a) -> a.SetService(service));
@@ -61,7 +61,7 @@ public final class ServiceConf {
 
 	public void AddConnector(Connector connector) {
 		if (null != getConnectors().putIfAbsent(connector.getName(), connector)) {
-			throw new RuntimeException(String.format("Duplicate Connector=%1$s", connector.getName()));
+			throw new RuntimeException("Duplicate Connector=" + connector.getName());
 		}
 		connector.SetService(getService());
 	}
@@ -71,7 +71,7 @@ public final class ServiceConf {
 	}
 
 	public Connector FindConnector(String host, int port) {
-		return FindConnector(String.format("%1$s:%2$s", host, port));
+		return FindConnector(host + ":" + port);
 	}
 
 	/** 
@@ -86,7 +86,7 @@ public final class ServiceConf {
 	public boolean TryGetOrAddConnector(String host, int port, boolean autoReconnect,
 			Zeze.Util.OutObject<Connector> getOrAdd) {
 
-		var name = String.format("%1$s:%2$s", host, port);
+		var name = host + ":" + port;
 		final var addNew = new Zeze.Util.OutObject<Connector>();
 		getOrAdd.Value = getConnectors().computeIfAbsent(name,
 			(key) -> {
@@ -124,7 +124,7 @@ public final class ServiceConf {
 
 	public void AddAcceptor(Acceptor a) {
 		if (null != getAcceptors().putIfAbsent(a.getName(), a)) {
-			throw new RuntimeException(String.format("Duplicate Acceptor=%1$s", a.getName()));
+			throw new RuntimeException("Duplicate Acceptor=" + a.getName());
 		}
 		a.SetService(getService());
 	}
@@ -234,7 +234,7 @@ public final class ServiceConf {
 				conf.setDefaultServiceConf(this);
 			}
 			else if (null != conf.getServiceConfMap().putIfAbsent(name, this)) {
-				throw new RuntimeException(String.format("Duplicate ServiceConf '%1$s'", getName()));
+				throw new RuntimeException("Duplicate ServiceConf " + getName());
 			}
 		}
 

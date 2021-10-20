@@ -356,14 +356,14 @@ public final class Transaction {
 		//if (IsRead)// && App.Config.AllowReadWhenRecoredNotAccessed)
 		//    return;
 		if (bean.RootInfo.getRecord().getState() == GlobalCacheManager.StateRemoved) {
-			throw new RuntimeException(String.format("VerifyRecordAccessed: Record Has Bean Removed From Cache. %1$s", bean.getTableKey()));
+			throw new RuntimeException("VerifyRecordAccessed: Record Has Bean Removed From Cache. " + bean.getTableKey());
 		}
 		var ra = GetRecordAccessed(bean.getTableKey());
 		if (ra == null) {
-			throw new RuntimeException(String.format("VerifyRecordAccessed: Record Not Control Under Current Transastion. %1$s", bean.getTableKey()));
+			throw new RuntimeException("VerifyRecordAccessed: Record Not Control Under Current Transastion. " + bean.getTableKey());
 		}
 		if (bean.RootInfo.getRecord() != ra.OriginRecord) {
-			throw new RuntimeException(String.format("VerifyRecordAccessed: Record Reloaded.%1$s", bean.getTableKey()));
+			throw new RuntimeException("VerifyRecordAccessed: Record Reloaded. " + bean.getTableKey());
 		}
 	}
 

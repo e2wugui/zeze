@@ -12,6 +12,7 @@ import Game.Rank.BRankList;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Func4;
+import Zeze.Util.Str;
 import Zezex.Provider.BActionParam;
 
 import java.net.URI;
@@ -103,12 +104,13 @@ public class ModuleRedirect {
 
 			if (OverrideType == OverrideType.RedirectWithHash) {
 				ParameterFirstWithHash = ParametersAll[0];
-				if (ParameterFirstWithHash.getType() != Integer.class) {
+				if (ParameterFirstWithHash.getType() != int.class) {
 					throw new RuntimeException("ModuleRedirectWithHash: type of first parameter must be 'int'");
 				}
-				if (false == ParameterFirstWithHash.getName().equals("hash")) {
-					throw new RuntimeException("ModuleRedirectWithHash: name of first parameter must be 'hash'");
-				}
+				//System.out.println(ParameterFirstWithHash.getName() + "<-----");
+				//if (false == ParameterFirstWithHash.getName().equals("hash")) {
+				//	throw new RuntimeException("ModuleRedirectWithHash: name of first parameter must be 'hash'");
+				//}
 				ParametersNormal.remove(0);
 			}
 
@@ -158,27 +160,27 @@ public class ModuleRedirect {
 			if (ParametersAll.length == 1) { // 除了mode，没有其他参数。
 				return ParameterLastWithMode.getName();
 			}
-			return String.format(", {0}", ParameterLastWithMode.getName());
+			return Str.format(", {}", ParameterLastWithMode.getName());
 		}
 
-		public final String GetHashCallString(String varname) {
+		public final String GetHashCallString() {
 			if (ParameterFirstWithHash == null) {
 				return "";
 			}
 			if (ParametersAll.length == 1) { // 除了hash，没有其他参数。
-				return varname;
+				return ParameterFirstWithHash.getName();
 			}
-			return String.format("{0}, ", varname);
+			return Str.format("{}, ", ParameterFirstWithHash.getName());
 		}
 
 		public final String GetBaseCallString() {
-			return String.format("{0}{1}{2}", GetHashCallString("hash"), GetNarmalCallString(), GetModeCallString());
+			return Str.format("{}{}{}", GetHashCallString(), GetNarmalCallString(), GetModeCallString());
 		}
 
 		public final String GetChoiceHashCodeSource() {
 			switch (OverrideType) {
 				case RedirectWithHash:
-					return "hash"; // parameter name
+					return ParameterFirstWithHash.getName(); // parameter name
 
 				case Redirect:
 					var attr = (Zezex.Redirect)Attribute;
@@ -231,7 +233,7 @@ public class ModuleRedirect {
 			return module; // 没有需要重定向的方法。
 		}
 
-		String genClassName = String.format("_ModuleRedirect_{0}_Gen_", module.getFullName().replace('.', '_'));
+		String genClassName = Str.format("_ModuleRedirect_{}_", module.getFullName().replace('.', '_'));
 		String code = GenModuleCode(module, genClassName, overrides);
 		try {
 			var tmp = new FileWriter(genClassName + ".java", java.nio.charset.StandardCharsets.UTF_8);
@@ -373,7 +375,7 @@ public class ModuleRedirect {
 		 Func不能使用ref，而Zeze.Net.Binary是只读的。就这样吧。
 	*/
 	public ConcurrentHashMap<String,
-				Func4<Long, Integer, Binary, Collection<BActionParam>, Return>> Handles = new ConcurrentHashMap <>();
+				Func4<Long, Integer, Binary, List<BActionParam>, Return>> Handles = new ConcurrentHashMap <>();
 
 	enum ReturnType {
 		Void,
@@ -418,7 +420,11 @@ public class ModuleRedirect {
 
 	private String GenModuleCode(Zeze.IModule module, String genClassName, List<MethodOverride> overrides)  {
 		var sb = new Zeze.Util.StringBuilderCs();
-		sb.AppendLine(String.format("public class {0} extends {1}.Module{2}", genClassName, module.getFullName(), module.getName()));
+		sb.AppendLine("import java.util.List;");
+		sb.AppendLine("import Zeze.Net.Binary;");
+		sb.AppendLine("import Zezex.Provider.BActionParam;");
+		sb.AppendLine("");
+		sb.AppendLine(Str.format("public class {} extends {}.Module{}", genClassName, module.getFullName(), module.getName()));
 		sb.AppendLine("{");
 
 		// TaskCompletionSource<int> void
@@ -432,20 +438,20 @@ public class ModuleRedirect {
 			Verify(methodOverride);
 
 			sb.AppendLine("    @Override");
-			sb.AppendLine(String.format("    public {0} {1} ({2})",
-					rtn.ReturnType, methodOverride.Method.getName(), parametersDefine));
+			sb.AppendLine(Str.format("    public {} {} ({})",
+					rtn.ReturnTypeName, methodOverride.Method.getName(), parametersDefine));
 			sb.AppendLine("    {");
-			sb.AppendLine(String.format("        if (Zezex.ModuleRedirect.Instance.IsLocalServer(\"{0}\"))", module.getFullName()));
+			sb.AppendLine(Str.format("        if (Zezex.ModuleRedirect.Instance.IsLocalServer(\"{}\"))", module.getFullName()));
 			sb.AppendLine("        {");
 			switch (rtn.ReturnType)
 			{
 				case Void:
-					sb.AppendLine(String.format("            base.{0}({1});",
+					sb.AppendLine(Str.format("            super.{}({});",
 							methodOverride.Method.getName(), methodOverride.GetBaseCallString()));
-					sb.AppendLine(String.format("            return;"));
+					sb.AppendLine(Str.format("            return;"));
 					break;
 				case TaskCompletionSource:
-					sb.AppendLine(String.format("            return base.{0}({1});",
+					sb.AppendLine(Str.format("            return super.{}({});",
 							methodOverride.Method.getName(), methodOverride.GetBaseCallString()));
 					break;
 			}
@@ -458,62 +464,62 @@ public class ModuleRedirect {
 				continue;
 			}
 			var rpcVarName = "tmp" + TmpVarNameId.incrementAndGet();
-			sb.AppendLine(String.format("        var {0} = new Zezex.Provider.ModuleRedirect();", rpcVarName));
-			sb.AppendLine(String.format("        {0}.Argument.setModuleId({1});", rpcVarName, module.getId()));
-			sb.AppendLine(String.format("        {0}.Argument.setHashCode({1});", rpcVarName, methodOverride.GetChoiceHashCodeSource()));
-			sb.AppendLine(String.format("        {0}.Argument.setMethodFullName(\"{1}:{2}\");", rpcVarName, module.getFullName(), methodOverride.Method.getName()));
-			sb.AppendLine(String.format("        {0}.Argument.setServiceNamePrefix(Game.App.ServerServiceNamePrefix);", rpcVarName));
+			sb.AppendLine(Str.format("        var {} = new Zezex.Provider.ModuleRedirect();", rpcVarName));
+			sb.AppendLine(Str.format("        {}.Argument.setModuleId({});", rpcVarName, module.getId()));
+			sb.AppendLine(Str.format("        {}.Argument.setHashCode({});", rpcVarName, methodOverride.GetChoiceHashCodeSource()));
+			sb.AppendLine(Str.format("        {}.Argument.setMethodFullName(\"{}:{}\");", rpcVarName, module.getFullName(), methodOverride.Method.getName()));
+			sb.AppendLine(Str.format("        {}.Argument.setServiceNamePrefix(Game.App.ServerServiceNamePrefix);", rpcVarName));
 			if (methodOverride.ParametersNormal.size() > 0) {
 				// normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
-				sb.AppendLine(String.format("        {"));
-				sb.AppendLine(String.format("            var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();"));
+				sb.AppendLine(Str.format("        {"));
+				sb.AppendLine(Str.format("            var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();"));
 				GenEncode(sb, "            ", methodOverride.ParametersNormal);
-				sb.AppendLine(String.format("            {0}.Argument.setParams(new Zeze.Net.Binary(_bb_));", rpcVarName));
-				sb.AppendLine(String.format("        }}"));
+				sb.AppendLine(Str.format("            {}.Argument.setParams(new Binary(_bb_));", rpcVarName));
+				sb.AppendLine(Str.format("        }"));
 			}
-			sb.AppendLine(String.format(""));
+			sb.AppendLine(Str.format(""));
 			String sessionVarName = "tmp" + TmpVarNameId.incrementAndGet();
 			String futureVarName = "tmp" + TmpVarNameId.incrementAndGet();
-			sb.AppendLine(String.format("        var {0} = Zezex.ModuleRedirect.GetLoginSession();", sessionVarName));
-			sb.AppendLine(String.format("        var {0} = new Zeze.Util.TaskCompletionSource<Integer>();", futureVarName));
-			sb.AppendLine(String.format(""));
-			sb.AppendLine(String.format("        {0}.Send({1}.Link, (_) =>", rpcVarName, sessionVarName));
-			sb.AppendLine(String.format("        {"));
-			sb.AppendLine(String.format("            if ({0}.isTimeout())", rpcVarName));
-			sb.AppendLine(String.format("            {"));
-			sb.AppendLine(String.format("                {0}.SetException(new RuntimeException(\"{1}:{2} Rpc Timeout.\"));", futureVarName, module.getFullName(), methodOverride.Method.getName()));
-			sb.AppendLine(String.format("            }"));
-			sb.AppendLine(String.format("            else if (Zezex.Provider.ModuleRedirect.ResultCodeSuccess != {0}.getResultCode())", rpcVarName));
-			sb.AppendLine(String.format("            {"));
-			sb.AppendLine(String.format("                {0}.SetException(new RuntimeException(\"{1}:{2} Rpc Error=\" + {3}.getResultCode()));", futureVarName, module.getFullName(), methodOverride.Method.getName(), rpcVarName));
-			sb.AppendLine(String.format("            }"));
-			sb.AppendLine(String.format("            else"));
-			sb.AppendLine(String.format("            {"));
+			sb.AppendLine(Str.format("        var {} = Zezex.ModuleRedirect.GetLoginSession();", sessionVarName));
+			sb.AppendLine(Str.format("        var {} = new Zeze.Util.TaskCompletionSource<Integer>();", futureVarName));
+			sb.AppendLine(Str.format(""));
+			sb.AppendLine(Str.format("        {}.Send({}.getLink(), (thisRpc) ->", rpcVarName, sessionVarName));
+			sb.AppendLine(Str.format("        {"));
+			sb.AppendLine(Str.format("            if ({}.isTimeout())", rpcVarName));
+			sb.AppendLine(Str.format("            {"));
+			sb.AppendLine(Str.format("                {}.SetException(new RuntimeException(\"{}:{} Rpc Timeout.\"));", futureVarName, module.getFullName(), methodOverride.Method.getName()));
+			sb.AppendLine(Str.format("            }"));
+			sb.AppendLine(Str.format("            else if (Zezex.Provider.ModuleRedirect.ResultCodeSuccess != {}.getResultCode())", rpcVarName));
+			sb.AppendLine(Str.format("            {"));
+			sb.AppendLine(Str.format("                {}.SetException(new RuntimeException(\"{}:{} Rpc Error=\" + {}.getResultCode()));", futureVarName, module.getFullName(), methodOverride.Method.getName(), rpcVarName));
+			sb.AppendLine(Str.format("            }"));
+			sb.AppendLine(Str.format("            else"));
+			sb.AppendLine(Str.format("            {"));
 			if (null != methodOverride.ParameterRedirectResultHandle) {
 				// decode and run if has result
 				String redirectResultVarName = "tmp" + TmpVarNameId.incrementAndGet();
-				sb.AppendLine(String.format("                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap({0}.Result.getActions().get(0));", rpcVarName));
+				sb.AppendLine(Str.format("                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap({}.Result.getActions().get(0));", rpcVarName));
 				var resultClass = module.getClassByMethodName(methodOverride.Method.getName());
 				GenLocalVariable(sb, "                ", resultClass, redirectResultVarName);
 				GenDecode(sb, "                ", resultClass, redirectResultVarName);
-				sb.AppendLine(String.format("                {0}.handle({1});", methodOverride.ParameterRedirectResultHandle.getName(), redirectResultVarName));
+				sb.AppendLine(Str.format("                {}.handle({});", methodOverride.ParameterRedirectResultHandle.getName(), redirectResultVarName));
 			}
-			sb.AppendLine(String.format("                {0}.SetResult({1}.Result.getReturnCode());", futureVarName, rpcVarName));
-			sb.AppendLine(String.format("            }"));
-			sb.AppendLine(String.format("            return Zeze.Transaction.Procedure.Success;"));
-			sb.AppendLine(String.format("        });"));
-			sb.AppendLine(String.format(""));
+			sb.AppendLine(Str.format("                {}.SetResult({}.Result.getReturnCode());", futureVarName, rpcVarName));
+			sb.AppendLine(Str.format("            }"));
+			sb.AppendLine(Str.format("            return Zeze.Transaction.Procedure.Success;"));
+			sb.AppendLine(Str.format("        });"));
+			sb.AppendLine(Str.format(""));
 			if (rtn.ReturnType == ReturnType.TaskCompletionSource)
 			{
-				sb.AppendLine(String.format("        return {0};", futureVarName));
+				sb.AppendLine(Str.format("        return {};", futureVarName));
 			}
-			sb.AppendLine(String.format("    }"));
-			sb.AppendLine(String.format(""));
+			sb.AppendLine(Str.format("    }"));
+			sb.AppendLine(Str.format(""));
 
 			// Handles
-			sbHandles.AppendLine(String.format("        Zezex.ModuleRedirect.Instance.Handles.Add(\"{0}:{1}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_) =>", module.getFullName(), methodOverride.Method.getName()));
-			sbHandles.AppendLine(String.format("        {{"));
-			sbHandles.AppendLine(String.format("            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);"));
+			sbHandles.AppendLine(Str.format("        Zezex.ModuleRedirect.Instance.Handles.put(\"{}:{}\", (Long _sessionid_, Integer _hash_, Binary _params_, List<BActionParam> _actions_) ->", module.getFullName(), methodOverride.Method.getName()));
+			sbHandles.AppendLine(Str.format("        {"));
+			sbHandles.AppendLine(Str.format("            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);"));
 			for (int i = 0; i < methodOverride.ParametersNormal.size(); ++i)
 			{
 				var p = methodOverride.ParametersNormal.get(i);
@@ -526,36 +532,36 @@ public class ModuleRedirect {
 			if (null != methodOverride.ParameterRedirectResultHandle) {
 				var actionVarName = "tmp" + TmpVarNameId.incrementAndGet();
 				var resultVarName = "tmp" + TmpVarNameId.incrementAndGet();
-				sbHandles.AppendLine(String.format("{0}Zezex.RedirectResultHandle {1} = ({2}}) -> {", "    ", actionVarName, resultVarName));
+				sbHandles.AppendLine(Str.format("{}Zezex.RedirectResultHandle {} = ({}) -> {", "    ", actionVarName, resultVarName));
 				sbHandles.AppendLine("        var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
 				var resultClass = module.getClassByMethodName(methodOverride.Method.getName());
 				GenEncode(sbHandles, "        ", resultClass, resultVarName);
 				var paramVarName = "tmp" + TmpVarNameId.incrementAndGet();
-				sbHandles.AppendLine("        var " + paramVarName + " = new Zezex.Provider.BActionParam();");
+				sbHandles.AppendLine("        var " + paramVarName + " = new BActionParam();");
 				sbHandles.AppendLine("        " + paramVarName + ".setName(\"" + methodOverride.ParameterRedirectResultHandle.getName() + "\");");
-				sbHandles.AppendLine("        " + paramVarName + ".setParams(new Zeze.Net.Binary(_bb_));");
+				sbHandles.AppendLine("        " + paramVarName + ".setParams(new Binary(_bb_));");
 				sbHandles.AppendLine("        _actions_.add(" + paramVarName + ");");
-				sbHandles.AppendLine(String.format("		}"));
+				sbHandles.AppendLine(Str.format("		}"));
 				// action.GenActionEncode(sbHandles, "            ");
 			}
 			String normalcall = methodOverride.GetNarmalCallString();
 			String sep = normalcall.isEmpty() ? "" : ", ";
 			var returnCodeVarName = "tmp" + TmpVarNameId.incrementAndGet();
 			var returnParamsVarName = "tmp" + TmpVarNameId.incrementAndGet();
-			sbHandles.AppendLine(String.format("            var {0} = super.{1}(_hash_{2}{3});", returnCodeVarName, methodNameWithHash, sep, normalcall));
-			sbHandles.AppendLine(String.format("            var {0} = Zeze.Net.Binary.Empty;", returnParamsVarName));
-			sbHandles.AppendLine(String.format("            return new Return({0},{1});", returnCodeVarName, returnParamsVarName));
-			sbHandles.AppendLine(String.format("        });"));
-			sbHandles.AppendLine(String.format(""));
+			sbHandles.AppendLine(Str.format("            var {} = super.{}(_hash_{}{});", returnCodeVarName, methodNameWithHash, sep, normalcall));
+			sbHandles.AppendLine(Str.format("            var {} = Binary.Empty;", returnParamsVarName));
+			sbHandles.AppendLine(Str.format("            return new Zezex.ModuleRedirect.Return({},{});", returnCodeVarName, returnParamsVarName));
+			sbHandles.AppendLine(Str.format("        });"));
+			sbHandles.AppendLine(Str.format(""));
 		}
-		sb.AppendLine(String.format("    public {0}() ", genClassName));
-		sb.AppendLine(String.format("    {"));
+		sb.AppendLine(Str.format("    public {}() ", genClassName));
+		sb.AppendLine(Str.format("    {"));
 		sb.AppendLine("        super(Game.App.Instance);");
 		sb.Append(sbHandles.toString());
-		sb.AppendLine(String.format("    }"));
-		sb.AppendLine(String.format(""));
+		sb.AppendLine(Str.format("    }"));
+		sb.AppendLine(Str.format(""));
 		sb.Append(sbContexts.toString());
-		sb.AppendLine(String.format("}"));
+		sb.AppendLine(Str.format("}"));
 		return sb.toString();
 	}
 
@@ -572,39 +578,40 @@ public class ModuleRedirect {
 	void GenRedirectAll(Zeze.Util.StringBuilderCs sb, Zeze.Util.StringBuilderCs sbHandles,
 						Zeze.IModule module, MethodOverride m) {
 		var reqVarName = "tmp" + TmpVarNameId.incrementAndGet();
-		sb.AppendLine(String.format("        var {0} = new Zezex.Provider.ModuleRedirectAllRequest();", reqVarName));
-		sb.AppendLine(String.format("        {0}.Argument.setModuleId({1});", reqVarName, module.getId()));
-		sb.AppendLine(String.format("        {0}.Argument.setHashCodeConcurrentLevel({1});", reqVarName, m.GetConcurrentLevelSource()));
-		sb.AppendLine(String.format("        // {0}.Argument.setHashCodes(); = // setup in linkd;", reqVarName));
-		sb.AppendLine(String.format("        {0}.Argument.setMethodFullName(\"{1}:{2}\");", reqVarName, module.getFullName(), m.Method.getName()));
-		sb.AppendLine(String.format("        {0}.Argument.setServiceNamePrefix(Game.App.ServerServiceNamePrefix;)", reqVarName));
+		sb.AppendLine(Str.format("        var {} = new Zezex.Provider.ModuleRedirectAllRequest();", reqVarName));
+		sb.AppendLine(Str.format("        {}.Argument.setModuleId({});", reqVarName, module.getId()));
+		sb.AppendLine(Str.format("        {}.Argument.setHashCodeConcurrentLevel({});", reqVarName, m.GetConcurrentLevelSource()));
+		sb.AppendLine(Str.format("        // {}.Argument.setHashCodes(); = // setup in linkd;", reqVarName));
+		sb.AppendLine(Str.format("        {}.Argument.setMethodFullName(\"{}:{}\");", reqVarName, module.getFullName(), m.Method.getName()));
+		sb.AppendLine(Str.format("        {}.Argument.setServiceNamePrefix(Game.App.ServerServiceNamePrefix);", reqVarName));
 
 		String initOnHashEnd = (null == m.ParameterRedirectAllResultHandle) ? "" : ", " + m.ParameterRedirectAllResultHandle.getName();
 		String contextVarName = "tmp" + TmpVarNameId.incrementAndGet();
-		sb.AppendLine(String.format("        var {0} = new Context{1}({2}.Argument.getHashCodeConcurrentLevel(), {3}.Argument.getMethodFullName(){4});",
+		sb.AppendLine(Str.format("        var {} = new Context{}({}.Argument.getHashCodeConcurrentLevel(), {}.Argument.getMethodFullName(){4});",
 				contextVarName, m.Method.getName(), reqVarName, reqVarName, initOnHashEnd));
-		sb.AppendLine(String.format("        {0}.Argument.setSessionId(App.Server.AddManualContextWithTimeout({1}));", reqVarName, contextVarName));
+		sb.AppendLine(Str.format("        {}.Argument.setSessionId(App.Server.AddManualContextWithTimeout({}));",
+				reqVarName, contextVarName));
 		if (m.ParametersNormal.size() > 0)
 		{
 			// normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
-			sb.AppendLine(String.format("        {"));
-			sb.AppendLine(String.format("            var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();"));
+			sb.AppendLine(Str.format("        {"));
+			sb.AppendLine(Str.format("            var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();"));
 			GenEncode(sb, "            ", m.ParametersNormal);
-			sb.AppendLine(String.format("            {0}.Argument.setParams(new Zeze.Net.Binary(_bb_));", reqVarName));
-			sb.AppendLine(String.format("        }"));
+			sb.AppendLine(Str.format("            {}.Argument.setParams(new Binary(_bb_));", reqVarName));
+			sb.AppendLine(Str.format("        }"));
 		}
-		sb.AppendLine(String.format(""));
+		sb.AppendLine(Str.format(""));
 		var sessionVarName = "tmp" + TmpVarNameId.incrementAndGet();
-		sb.AppendLine(String.format("        var {0} = Zezex.ModuleRedirect.GetLoginSession();", sessionVarName));
-		sb.AppendLine(String.format("        {0}.Send({1}.getLink());", reqVarName, sessionVarName));
-		sb.AppendLine(String.format("    }"));
-		sb.AppendLine(String.format(""));
+		sb.AppendLine(Str.format("        var {} = Zezex.ModuleRedirect.GetLoginSession();", sessionVarName));
+		sb.AppendLine(Str.format("        {}.Send({}.getLink());", reqVarName, sessionVarName));
+		sb.AppendLine(Str.format("    }"));
+		sb.AppendLine(Str.format(""));
 
 		// handles
-		sbHandles.AppendLine(String.format("        Zezex.ModuleRedirect.Instance.Handles.Add(\"{0}:{1}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, java.util.List<Zezex.Provider.BActionParam> _actions_) ->",
+		sbHandles.AppendLine(Str.format("        Zezex.ModuleRedirect.Instance.Handles.put(\"{}:{}\", (Long _sessionid_, Integer _hash_, Binary _params_, List<BActionParam> _actions_) ->",
 				module.getFullName(), m.Method.getName()));
-		sbHandles.AppendLine(String.format("        {"));
-		sbHandles.AppendLine(String.format("            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);"));
+		sbHandles.AppendLine(Str.format("        {"));
+		sbHandles.AppendLine(Str.format("            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);"));
 		for (int i = 0; i < m.ParametersNormal.size(); ++i)
 		{
 			var p = m.ParametersNormal.get(i);
@@ -616,7 +623,7 @@ public class ModuleRedirect {
 
 		if (null != m.ParameterRedirectAllResultHandle) {
 			var actionVarName = "tmp" + TmpVarNameId.incrementAndGet();
-			sbHandles.AppendLine(String.format("{0}var {1} = (_sidtmp1_, _hashtmp2_, _rctmp3_, _beantmp4_) -> {", "    ", actionVarName));
+			sbHandles.AppendLine(Str.format("{}var {} = (_sidtmp1_, _hashtmp2_, _rctmp3_, _beantmp4_) -> {", "    ", actionVarName));
 			sbHandles.AppendLine("        var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
 			GenEncode(sbHandles, "        ", long.class, "_sidtmp1_");
 			GenEncode(sbHandles, "        ", int.class, "_hashtmp2_");
@@ -624,57 +631,51 @@ public class ModuleRedirect {
 			var resultClass = module.getClassByMethodName(m.Method.getName());
 			GenEncode(sbHandles, "        ", resultClass, "_beantmp4_");
 			var paramVarName = "tmp" + TmpVarNameId.incrementAndGet();
-			sbHandles.AppendLine("        var " + paramVarName + " = new Zezex.Provider.BActionParam();");
+			sbHandles.AppendLine("        var " + paramVarName + " = new BActionParam();");
 			sbHandles.AppendLine("        " + paramVarName + ".setName(\"" + m.ParameterRedirectAllResultHandle.getName() + "\");");
-			sbHandles.AppendLine("        " + paramVarName + ".setParams(new Zeze.Net.Binary(_bb_));");
+			sbHandles.AppendLine("        " + paramVarName + ".setParams(new Binary(_bb_));");
 			sbHandles.AppendLine("        _actions_.add(" + paramVarName + ");");
-			sbHandles.AppendLine(String.format("		}"));
+			sbHandles.AppendLine(Str.format("		}"));
 			// action.GenActionEncode(sbHandles, "            ");
 		}
 		String normalcall = m.GetNarmalCallString((pInfo) -> pInfo.getType() == Zezex.RedirectAllDoneHandle.class);
 		String sep = normalcall.isEmpty() ? "" : ", ";
 		var returnCodeVarName = "tmp" + TmpVarNameId.incrementAndGet();
-		sbHandles.AppendLine(String.format("            var {0} = super.{1}(_sessionid_, _hash_{2}{3});",
+		sbHandles.AppendLine(Str.format("            var {} = super.{}(_sessionid_, _hash_{}{});",
 				returnCodeVarName, GetMethodNameWithHash(m.Method.getName()), sep, normalcall));
-		sbHandles.AppendLine(String.format("            return new Return({0}, Zeze.Net.Binary.Empty);", returnCodeVarName));
-		sbHandles.AppendLine(String.format("        }});"));
-		sbHandles.AppendLine(String.format(""));
+		sbHandles.AppendLine(Str.format("            return new Zezex.ModuleRedirect.Return({}, Binary.Empty);", returnCodeVarName));
+		sbHandles.AppendLine(Str.format("        });"));
+		sbHandles.AppendLine(Str.format(""));
 	}
 
 	void GenRedirectAllContext(Zeze.Util.StringBuilderCs sb, Zeze.IModule module, MethodOverride m) {
-		sb.AppendLine(String.format("    public static class Context{0} extends Zezex.Provider.ModuleProvider.ModuleRedirectAllContext", m.Method.getName()));
-		sb.AppendLine(String.format("    {"));
+		sb.AppendLine(Str.format("    public static class Context{} extends Zezex.Provider.ModuleProvider.ModuleRedirectAllContext", m.Method.getName()));
+		sb.AppendLine(Str.format("    {"));
 		if (null != m.ParameterRedirectAllResultHandle)
-			sb.AppendLine(String.format("        private Zezex.RedirectAllResulthandle redirectAllResulthandle;"));
-		sb.AppendLine(String.format(""));
+			sb.AppendLine(Str.format("        private Zezex.RedirectAllResultHandle redirectAllResultHandle;"));
+		sb.AppendLine(Str.format(""));
 		if (null != m.ParameterRedirectAllResultHandle)
-			sb.AppendLine(String.format("        public Context{0}(int _c_, string _n_, Zezex.RedirectAllResulthandle _r_) {", m.Method.getName()));
+			sb.AppendLine(Str.format("        public Context{}(int _c_, String _n_, Zezex.RedirectAllResultHandle _r_) {", m.Method.getName()));
 		else
-			sb.AppendLine(String.format("        public Context{0}(int _c_, string _n_) {", m.Method.getName()));
+			sb.AppendLine(Str.format("        public Context{}(int _c_, String _n_) {", m.Method.getName()));
 
-		sb.AppendLine(String.format("        	super(_c_, _n_);"));
+		sb.AppendLine(Str.format("        	super(_c_, _n_);"));
 		if (null != m.ParameterRedirectAllResultHandle)
-			sb.AppendLine("            this.redirectAllResulthandle = _r);");
+			sb.AppendLine("            this.redirectAllResultHandle = _r_;");
 		sb.AppendLine("        }");
 		sb.AppendLine("");
 		sb.AppendLine("        @Override");
-		sb.AppendLine("        public int ProcessHashResult(int _hash_, int _returnCode_, Zeze.Net.Binary _params, java.util.List<Zezex.Provider.BActionParam> _actions_)");
+		sb.AppendLine("        public int ProcessHashResult(int _hash_, int _returnCode_, Binary _params, List<BActionParam> _actions_)");
 		sb.AppendLine("        {");
 		if (null != m.ParameterRedirectAllResultHandle) {
-			sb.AppendLine("            Zezex.RedirectAllResulthandle _decode_and_run_ = (_params_) -> {");
-			sb.AppendLine("            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
+			sb.AppendLine("            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_actions_.get(0).getParams());");
 			var resultClass = module.getClassByMethodName(m.Method.getName());
 			GenLocalVariable(sb, "            ", resultClass, "_result_bean_");
 			GenDecode(sb, "            ", resultClass, "_result_bean_");
-			sb.AppendLine(String.format("            redirectAllResulthandle.run(super.SessionId, _hash_, _returnCode_, _result_bean_);"));
-			sb.AppendLine("       };");
-
-			sb.AppendLine("            _decode_and_run_.handle(_actions_.get(0).getParams());");
-			sb.AppendLine("            }");
+			sb.AppendLine(Str.format("            redirectAllResultHandle.handle(super.getSessionId(), _hash_, _returnCode_, _result_bean_);"));
 		}
 		sb.AppendLine("            return Zeze.Transaction.Procedure.Success;");
 		sb.AppendLine("        }");
-		sb.AppendLine("    }");
 		sb.AppendLine("");
 	}
 
@@ -708,111 +709,111 @@ public class ModuleRedirect {
 
 	private ModuleRedirect() {
 		Serializer.put(Zeze.Net.Binary.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteBinary({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadBinary();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}Zeze.Net.Binary {1} = null;", prefix, varName)),
-				() -> "Zeze.Net.Binary")
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteBinary({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadBinary();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}Binary {} = null;", prefix, varName)),
+				() -> "Binary")
 		);
 		Serializer.put(Boolean.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteBool({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadBool();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}bool {1} = false;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteBool({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadBool();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}bool {} = false;", prefix, varName)),
 				() -> "boolean")
 		);
 		Serializer.put(boolean.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteBool({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadBool();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}bool {1} = false;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteBool({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadBool();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}bool {} = false;", prefix, varName)),
 				() -> "boolean")
 		);
 		Serializer.put(Byte.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteByte({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadByte();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}byte {1} = 0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteByte({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadByte();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}byte {1} = 0;", prefix, varName)),
 				() -> "byte")
 		);
 		Serializer.put(byte.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteByte({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadByte();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}byte {1} = 0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteByte({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadByte();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}byte {} = 0;", prefix, varName)),
 				() -> "byte")
 		);
 		Serializer.put(Zeze.Serialize.ByteBuffer.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteByteBuffer({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = Zeze.Serialize.ByteBuffer.Wrap(_bb_.ReadBytes());", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}Zeze.Serialize.ByteBuffer {1} = null;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteByteBuffer({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = Zeze.Serialize.ByteBuffer.Wrap(_bb_.ReadBytes());", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}Zeze.Serialize.ByteBuffer {} = null;", prefix, varName)),
 				() -> "Zeze.Serialize.ByteBuffer")
 		);
 		Serializer.put(byte[].class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteBytes({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadBytes();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}byte[] {1} = null;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteBytes({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadBytes();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}byte[] {} = null;", prefix, varName)),
 				() -> "byte[]")
 		);
 		Serializer.put(Double.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteDouble({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadDouble();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}double {1} = 0.0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteDouble({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadDouble();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}double {} = 0.0;", prefix, varName)),
 				() -> "double")
 		);
 		Serializer.put(double.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteDouble({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadDouble();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}double {1} = 0.0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteDouble({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadDouble();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}double {} = 0.0;", prefix, varName)),
 				() -> "double")
 		);
 		Serializer.put(Float.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteFloat({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadFloat();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}float {1} = 0.0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteFloat({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadFloat();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}float {} = 0.0;", prefix, varName)),
 				() -> "float")
 		);
 		Serializer.put(float.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteFloat({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadFloat();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}float {1} = 0.0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteFloat({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadFloat();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}float {} = 0.0;", prefix, varName)),
 				() -> "float")
 		);
 		Serializer.put(Integer.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteInt({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadInt();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}int {1} = 0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteInt({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadInt();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}int {} = 0;", prefix, varName)),
 				() -> "int")
 		);
 		Serializer.put(int.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteInt({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadInt();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}int {1} = 0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteInt({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadInt();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}int {} = 0;", prefix, varName)),
 				() -> "int")
 		);
 		Serializer.put(Long.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteLong({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadLong();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}long {1} = 0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteLong({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadLong();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}long {} = 0;", prefix, varName)),
 				() -> "long")
 		);
 		Serializer.put(long.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteLong({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadLong();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}long {1} = 0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteLong({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadLong();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}long {} = 0;", prefix, varName)),
 				() -> "long")
 		);
 		Serializer.put(Short.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteShort({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadShort();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}short {1} = 0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteShort({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadShort();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}short {} = 0;", prefix, varName)),
 				() -> "short")
 		);
 		Serializer.put(short.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteShort({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadShort();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}short {1} = 0;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteShort({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadShort();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}short {} = 0;", prefix, varName)),
 				() -> "short")
 		);
 		Serializer.put(String.class, new KnownSerializer(
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}_bb_.WriteString({1});", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}{1} = _bb_.ReadString();", prefix, varName)),
-				(sb, prefix, varName) -> sb.AppendLine(String.format("{0}string {1} = null;", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}_bb_.WriteString({});", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadString();", prefix, varName)),
+				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}string {} = null;", prefix, varName)),
 				() -> "String")
 		);
 	}
@@ -822,7 +823,7 @@ public class ModuleRedirect {
 		if (null != kn)
 			return kn.TypeName.call();
 
-		if (Zeze.Transaction.Bean.class.isAssignableFrom(type))
+		if (Zeze.Serialize.Serializable.class.isAssignableFrom(type))
 			return type.getTypeName();
 
 		return type.getTypeName();
@@ -835,8 +836,9 @@ public class ModuleRedirect {
 			return;
 		}
 
-		if (Zeze.Transaction.Bean.class.isAssignableFrom(type)) {
-			sb.AppendLine(String.format("{0}{1} {2} = new {3}();", prefix, type.getTypeName(), varName, type.getTypeName()));
+		if (Zeze.Serialize.Serializable.class.isAssignableFrom(type)) {
+			sb.AppendLine(Str.format("{}{} {} = new {}();",
+					prefix, type.getTypeName(), varName, type.getTypeName()));
 			return;
 		}
 	}
@@ -848,20 +850,20 @@ public class ModuleRedirect {
 			return;
 		}
 
-		if (Zeze.Transaction.Bean.class.isAssignableFrom(type)) {
-			sb.AppendLine(String.format("{0}{1}.Encode(_bb_);", prefix, varName));
+		if (Zeze.Serialize.Serializable.class.isAssignableFrom(type)) {
+			sb.AppendLine(Str.format("{}{}.Encode(_bb_);", prefix, varName));
 			return;
 		}
 
-		sb.AppendLine(String.format("{0}try {", prefix));
-		sb.AppendLine(String.format("{0}	try (var output = new java.io.ByteArrayOutputStream(); var objOutput = new java.io.ObjectOutputStream(output))", prefix));
-		sb.AppendLine(String.format("{0}	{", prefix));
-		sb.AppendLine(String.format("{0}		objOutput.writeObject(varName);", prefix));
-		sb.AppendLine(String.format("{0}		_bb_.WriteBytes(output.toByteArray());", prefix));
-		sb.AppendLine(String.format("{0}	}", prefix));
-		sb.AppendLine(String.format("{0}} catch (Throwable e) {", prefix));
-		sb.AppendLine(String.format("{0}	throw new RuntimeException(e);", prefix));
-		sb.AppendLine(String.format("{0}}", prefix));
+		sb.AppendLine(Str.format("{}try {", prefix));
+		sb.AppendLine(Str.format("{}    try (var output = new java.io.ByteArrayOutputStream(); var objOutput = new java.io.ObjectOutputStream(output))", prefix));
+		sb.AppendLine(Str.format("{}    {", prefix));
+		sb.AppendLine(Str.format("{}        objOutput.writeObject({});", prefix, varName));
+		sb.AppendLine(Str.format("{}        _bb_.WriteBytes(output.toByteArray());", prefix));
+		sb.AppendLine(Str.format("{}	   }", prefix));
+		sb.AppendLine(Str.format("{}} catch (Throwable e) {", prefix));
+		sb.AppendLine(Str.format("{}    throw new RuntimeException(e);", prefix));
+		sb.AppendLine(Str.format("{}}", prefix));
 	}
 
 	public void GenDecode(Zeze.Util.StringBuilderCs sb, String prefix, Class<?> type, String varName) {
@@ -871,28 +873,25 @@ public class ModuleRedirect {
 			return;
 		}
 
-		if (Zeze.Transaction.Bean.class.isAssignableFrom(type)) {
-			var tmp0 = String.format("tmp{0}", TmpVarNameId.incrementAndGet());
-			sb.AppendLine(String.format("{0}var {1} = new {2}();", prefix, tmp0, type.getTypeName()));
-			sb.AppendLine(String.format("{0}{1}.Decode(_bb_);", prefix, tmp0));
+		if (Zeze.Serialize.Serializable.class.isAssignableFrom(type)) {
+			sb.AppendLine(Str.format("{}{}.Decode(_bb_);", prefix, varName));
 			return;
 		}
 		String tmp1 = "tmp" + TmpVarNameId.incrementAndGet();
 		String tmp2 = "tmp" + TmpVarNameId.incrementAndGet();
-		sb.AppendLine(String.format("{0}try {", prefix));
-		sb.AppendLine(String.format("{0}	var {1} = _bb_.ReadByteBuffer();", prefix, tmp1));
-		sb.AppendLine(String.format("{0}	try (var input = new java.io.ByteArrayInputStream({1}); var objinput = new java.io.ObjectInputStream(inpue)) {", prefix, tmp1));
-		sb.AppendLine(String.format("{0}		{1} = (2)objinput.readObject();", prefix, varName, GetTypeName(type)));
-		sb.AppendLine(String.format("{0}	}", prefix));
-		sb.AppendLine(String.format("{0}} catch (Throwable e) {", prefix));
-		sb.AppendLine(String.format("{0}	throw new RuntimeException(e);", prefix));
-		sb.AppendLine(String.format("{0}}", prefix));
+		sb.AppendLine(Str.format("{}try {", prefix));
+		sb.AppendLine(Str.format("{}    var {} = _bb_.ReadByteBuffer();", prefix, tmp1));
+		sb.AppendLine(Str.format("{}    try (var input = new java.io.ByteArrayInputStream({}); var objinput = new java.io.ObjectInputStream(inpue)) {", prefix, tmp1));
+		sb.AppendLine(Str.format("{}        {} = ()objinput.readObject();", prefix, varName, GetTypeName(type)));
+		sb.AppendLine(Str.format("{}    }", prefix));
+		sb.AppendLine(Str.format("{}} catch (Throwable e) {", prefix));
+		sb.AppendLine(Str.format("{}    throw new RuntimeException(e);", prefix));
+		sb.AppendLine(Str.format("{}}", prefix));
 	}
 
 	private boolean IsOut(Class<?> type) {
 		return type == Zeze.Util.OutObject.class;
 	}
-
 	private boolean IsRef(Class<?> type) {
 		return type == Zeze.Util.RefObject.class;
 	}
