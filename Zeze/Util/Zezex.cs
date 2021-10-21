@@ -384,10 +384,6 @@ namespace Zeze.Util
                 ReplaceAndCopyTo("server/server.csproj", Path.Combine(serverDir, $"{serverName}.csproj"));
                 ReplaceAndCopyTo($"server/zeze.xml", serverDir);
             }
-            else
-            {
-                ReplaceAndCopyTo($"server/{InnerSrcDir}org", serverDir);
-            }
             ReplaceAndCopyTo($"server/{InnerSrcDir}Zezex", serverDir);
 
             var moduleBasedir = Path.Combine(serverDir, SolutionName);
