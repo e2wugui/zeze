@@ -4,6 +4,7 @@ using System.Text;
 using Zeze.Serialize;
 using Zeze.Services;
 using System.Threading;
+using Zeze.Services.GlobalCacheManager;
 
 namespace Zeze.Transaction
 {
@@ -33,12 +34,12 @@ namespace Zeze.Transaction
         internal abstract Storage Open(Application app, Database database);
         internal abstract void Close();
 
-        internal virtual int ReduceShare(GlobalCacheManager.Reduce rpc)
+        internal virtual int ReduceShare(Reduce rpc)
         {
             throw new NotImplementedException();
         }
 
-        internal virtual int ReduceInvalid(GlobalCacheManager.Reduce rpc)
+        internal virtual int ReduceInvalid(Reduce rpc)
         {
             throw new NotImplementedException();
         }
@@ -63,7 +64,7 @@ namespace Zeze.Transaction
         }
         public Application Zeze { get; private set; }
 
-        protected ServiceManager.Agent.AutoKey AutoKey { get; private set;  }
+        protected Zeze.Services.ServiceManager.Agent.AutoKey AutoKey { get; private set;  }
 
         private Record<K, V> FindInCacheOrStorage(K key, Action<V> copy = null)
         {
@@ -84,17 +85,17 @@ namespace Zeze.Transaction
                         (key) => new Record<K, V>(this, key, null));
                     lock (r) // 如果外面是 WriteLock 就不需要这个了。
                     {
-                        if (r.State == GlobalCacheManager.StateRemoved)
+                        if (r.State == GlobalCacheManagerServer.StateRemoved)
                             continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
 
-                        if (r.State == GlobalCacheManager.StateShare
-                            || r.State == GlobalCacheManager.StateModify)
+                        if (r.State == GlobalCacheManagerServer.StateShare
+                            || r.State == GlobalCacheManagerServer.StateModify)
                         {
                             return r;
                         }
 
-                        r.State = r.Acquire(GlobalCacheManager.StateShare);
-                        if (r.State == GlobalCacheManager.StateInvalid)
+                        r.State = r.Acquire(GlobalCacheManagerServer.StateShare);
+                        if (r.State == GlobalCacheManagerServer.StateInvalid)
                         {
                             throw new RedoAndReleaseLockException(tkey.ToString() + ":" + r.ToString());
                             //throw new RedoAndReleaseLockException();
@@ -141,7 +142,7 @@ namespace Zeze.Transaction
             }
         }
 
-        internal override int ReduceShare(GlobalCacheManager.Reduce rpc)
+        internal override int ReduceShare(Reduce rpc)
         {
             rpc.Result = rpc.Argument;
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
@@ -158,27 +159,27 @@ namespace Zeze.Transaction
                 logger.Debug("Reduce NewState={0} {1}", rpc.Argument.State, r);
                 if (null == r)
                 {
-                    rpc.Result.State = GlobalCacheManager.StateInvalid;
+                    rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                     logger.Debug("Reduce SendResult 1 {0}", r);
-                    rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsInvalid);
+                    rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
                     return 0;
                 }
                 switch (r.State)
                 {
-                    case GlobalCacheManager.StateInvalid:
-                        rpc.Result.State = GlobalCacheManager.StateInvalid;
+                    case GlobalCacheManagerServer.StateInvalid:
+                        rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                         logger.Debug("Reduce SendResult 2 {0}", r);
-                        rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsInvalid);
+                        rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
                         return 0;
 
-                    case GlobalCacheManager.StateShare:
-                        rpc.Result.State = GlobalCacheManager.StateShare;
+                    case GlobalCacheManagerServer.StateShare:
+                        rpc.Result.State = GlobalCacheManagerServer.StateShare;
                         logger.Debug("Reduce SendResult 3 {0}", r);
-                        rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsShare);
+                        rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsShare);
                         return 0;
 
-                    case GlobalCacheManager.StateModify:
-                        r.State = GlobalCacheManager.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
+                    case GlobalCacheManagerServer.StateModify:
+                        r.State = GlobalCacheManagerServer.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
                         r.Timestamp = Record.NextTimestamp;
                         break;
                 }
@@ -188,7 +189,7 @@ namespace Zeze.Transaction
                 lockey.ExitWriteLock();
             }
             //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
-            rpc.Result.State = GlobalCacheManager.StateShare;
+            rpc.Result.State = GlobalCacheManagerServer.StateShare;
             FlushWhenReduce(r, () =>
             {
                 logger.Debug("Reduce SendResult 4 {0}", r);
@@ -216,7 +217,7 @@ namespace Zeze.Transaction
             }
         }
 
-        internal override int ReduceInvalid(GlobalCacheManager.Reduce rpc)
+        internal override int ReduceInvalid(Reduce rpc)
         {
             rpc.Result = rpc.Argument;
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
@@ -233,29 +234,29 @@ namespace Zeze.Transaction
                 logger.Debug("Reduce NewState={0} {1}", rpc.Argument.State, r);
                 if (null == r)
                 {
-                    rpc.Result.State = GlobalCacheManager.StateInvalid;
+                    rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                     logger.Debug("Reduce SendResult 1 {0}", r);
-                    rpc.SendResultCode(GlobalCacheManager.ReduceInvalidAlreadyIsInvalid);
+                    rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
                     return 0;
                 }
                 switch (r.State)
                 {
-                    case GlobalCacheManager.StateInvalid:
-                        rpc.Result.State = GlobalCacheManager.StateInvalid;
+                    case GlobalCacheManagerServer.StateInvalid:
+                        rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                         logger.Debug("Reduce SendResult 2 {0}", r);
-                        rpc.SendResultCode(GlobalCacheManager.ReduceInvalidAlreadyIsInvalid);
+                        rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
                         return 0;
 
-                    case GlobalCacheManager.StateShare:
-                        r.State = GlobalCacheManager.StateInvalid;
+                    case GlobalCacheManagerServer.StateShare:
+                        r.State = GlobalCacheManagerServer.StateInvalid;
                         r.Timestamp = Record.NextTimestamp;
                         // 不删除记录，让TableCache.CleanNow处理。 
                         logger.Debug("Reduce SendResult 3 {0}", r);
                         rpc.SendResult();
                         return 0;
 
-                    case GlobalCacheManager.StateModify:
-                        r.State = GlobalCacheManager.StateInvalid;
+                    case GlobalCacheManagerServer.StateModify:
+                        r.State = GlobalCacheManagerServer.StateInvalid;
                         r.Timestamp = Record.NextTimestamp;
                         break;
                 }
@@ -265,7 +266,7 @@ namespace Zeze.Transaction
                 lockey.ExitWriteLock();
             }
             //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
-            rpc.Result.State = GlobalCacheManager.StateInvalid;
+            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
             FlushWhenReduce(r, () =>
             {
                 logger.Debug("Reduce SendResult 4 {0}", r);
@@ -279,7 +280,7 @@ namespace Zeze.Transaction
         {
             foreach (var e in Cache.DataMap)
             {
-                var gkey = new GlobalCacheManager.GlobalTableKey(Name, EncodeKey(e.Key));
+                var gkey = new GlobalTableKey(Name, EncodeKey(e.Key));
                 if (Zeze.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
                 {
                     // 不是断开连接的GlobalCacheManager。跳过。
@@ -292,7 +293,7 @@ namespace Zeze.Transaction
                 try
                 {
                     // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
-                    e.Value.State = GlobalCacheManager.StateInvalid;
+                    e.Value.State = GlobalCacheManagerServer.StateInvalid;
                 }
                 finally
                 {
@@ -488,10 +489,10 @@ namespace Zeze.Transaction
                     try
                     {
                         Record<K, V> r = Cache.Get(k);
-                        if (null != r && r.State != GlobalCacheManager.StateRemoved)
+                        if (null != r && r.State != GlobalCacheManagerServer.StateRemoved)
                         {
-                            if (r.State == GlobalCacheManager.StateShare
-                                || r.State == GlobalCacheManager.StateModify)
+                            if (r.State == GlobalCacheManagerServer.StateShare
+                                || r.State == GlobalCacheManagerServer.StateModify)
                             {
                                 // 拥有正确的状态：
                                 if (r.Value == null)

@@ -78,7 +78,7 @@ public abstract class Record {
 	}
 
 	public Record(Bean value) {
-		setState(Zeze.Services.GlobalCacheManager.StateInvalid);
+		setState(Zeze.Services.GlobalCacheManagerServer.StateInvalid);
 		setValue(value);
 		//Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 初始化
 	}

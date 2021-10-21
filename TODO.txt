@@ -47,12 +47,6 @@ Raft
 GlobalCacheManagerWithRaft
 	改成ConcurrentMapOnRocksDb
 
-ServiceManager.Test
-	注册发现重复。测试案例的问题?
-
-                            // 【BUG】当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
-                            if (null == r.Value && null != OldTable)
-
 RocksDb hot-copy 这样写？
 
 // maindb
@@ -131,13 +125,8 @@ ReentrantReadWriteLock
 	mvcc？
 	读写数据时判断一下timestamp，快速重做。
 
-ServiceManager.Test
-	重复注册的问题？测试问题还是实现问题？
-
 AsyncSocket c#
 	优化，减少和逻辑层的互斥时间。
 	？？？使用一个空的outputListSending去调用SendAsync???好像不可行。
 
 ZezexJava Export
-ReplaceModuleInstance
-$(OutDir)\$(TargetName) -srcDirWhenPostBuild $(ProjectDir)

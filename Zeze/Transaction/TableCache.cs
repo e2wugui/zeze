@@ -186,7 +186,7 @@ namespace Zeze.Transaction
                 // 这里有个时间窗口：先删除DataMap再去掉Lru引用，
                 // 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
                 // see GetOrAdd
-                p.Value.State = GlobalCacheManager.StateRemoved;
+                p.Value.State = GlobalCacheManagerServer.StateRemoved;
                 // 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
                 p.Value.LruNode.TryRemove(p);
                 return true;
@@ -227,10 +227,10 @@ namespace Zeze.Transaction
                 if (p.Value.Dirty)
                     return false;
 
-                if (p.Value.State != GlobalCacheManager.StateInvalid)
+                if (p.Value.State != GlobalCacheManagerServer.StateInvalid)
                 {
-                    if (p.Value.Acquire(GlobalCacheManager.StateInvalid)
-                        != GlobalCacheManager.StateInvalid)
+                    if (p.Value.Acquire(GlobalCacheManagerServer.StateInvalid)
+                        != GlobalCacheManagerServer.StateInvalid)
                     {
                         return false;
                     }

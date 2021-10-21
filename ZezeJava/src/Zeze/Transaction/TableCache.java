@@ -184,7 +184,7 @@ public class TableCache<K, V extends Bean> {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
 			// see GetOrAdd
-			p.getValue().setState(GlobalCacheManager.StateRemoved);
+			p.getValue().setState(GlobalCacheManagerServer.StateRemoved);
 			// 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
 			p.getValue().getLruNode().remove(p.getKey(), p.getValue());
 			return true;
@@ -222,8 +222,8 @@ public class TableCache<K, V extends Bean> {
 				return false;
 			}
 
-			if (p.getValue().getState() != GlobalCacheManager.StateInvalid) {
-				if (p.getValue().Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid) {
+			if (p.getValue().getState() != GlobalCacheManagerServer.StateInvalid) {
+				if (p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid) != GlobalCacheManagerServer.StateInvalid) {
 					return false;
 				}
 			}

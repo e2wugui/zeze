@@ -5,6 +5,7 @@ import Zeze.Services.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Services.GlobalCacheManager.*;
 
 public class Record1<K, V extends Bean> extends Record {
 	private static final Logger logger = LogManager.getLogger(Record1.class);
@@ -48,20 +49,20 @@ public class Record1<K, V extends Bean> extends Record {
 			return state; // 不支持内存表cache同步。
 		}
 
-		GlobalCacheManager.GlobalTableKey gkey = new GlobalCacheManager.GlobalTableKey(getTTable().getName(), getTTable().EncodeKey(getKey()));
+		var gkey = new GlobalTableKey(getTTable().getName(), getTTable().EncodeKey(getKey()));
 		logger.debug("Acquire NewState={0} {1}", state, this);
 
 		var stat = TableStatistics.getInstance().GetOrAdd(getTTable().getId());
 		switch (state) {
-			case GlobalCacheManager.StateInvalid:
+			case GlobalCacheManagerServer.StateInvalid:
 				stat.getGlobalAcquireInvalid().incrementAndGet();
 				break;
 
-			case GlobalCacheManager.StateShare:
+			case GlobalCacheManagerServer.StateShare:
 				stat.getGlobalAcquireShare().incrementAndGet();
 				break;
 
-			case GlobalCacheManager.StateModify:
+			case GlobalCacheManagerServer.StateModify:
 				stat.getGlobalAcquireModify().incrementAndGet();
 				break;
 		}

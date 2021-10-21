@@ -1,6 +1,6 @@
 package Zeze.Transaction;
 
-import Zeze.Services.*;
+import Zeze.Services.GlobalCacheManager.*;
 import Zeze.*;
 import java.util.*;
 
@@ -48,11 +48,11 @@ public abstract class Table {
 	abstract Storage Open(Application app, Database database);
 	abstract void Close();
 
-	int ReduceShare(GlobalCacheManager.Reduce rpc) {
+	int ReduceShare(Reduce rpc) {
 		throw new UnsupportedOperationException();
 	}
 
-	int ReduceInvalid(GlobalCacheManager.Reduce rpc) {
+	int ReduceInvalid(Reduce rpc) {
 		throw new UnsupportedOperationException();
 	}
 

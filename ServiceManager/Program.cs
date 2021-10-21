@@ -34,11 +34,11 @@ namespace ServiceManager
                 : System.Net.IPAddress.Parse(ip);
 
             var config = new Zeze.Config();
-            var smconfig = new Zeze.Services.ServiceManager.Conf();
+            var smconfig = new Zeze.Services.ServiceManagerServer.Conf();
             config.AddCustomize(smconfig);
             config.LoadAndParse();
 
-            using var sm = new Zeze.Services.ServiceManager(address, port, config);
+            using var sm = new Zeze.Services.ServiceManagerServer(address, port, config);
 
             while (true)
             {

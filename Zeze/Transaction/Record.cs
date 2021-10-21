@@ -4,6 +4,7 @@ using System.Text;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
 using Zeze.Services;
+using Zeze.Services.GlobalCacheManager;
 
 namespace Zeze.Transaction
 {
@@ -52,7 +53,7 @@ namespace Zeze.Transaction
 
         public Record(Bean value)
         {
-            State = GlobalCacheManager.StateInvalid;
+            State = GlobalCacheManagerServer.StateInvalid;
             Value = value;
             //Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 初始化
         }
@@ -100,21 +101,21 @@ namespace Zeze.Transaction
             if (null == TTable.TStorage)
                 return state; // 不支持内存表cache同步。
 
-            GlobalCacheManager.GlobalTableKey gkey = new GlobalCacheManager.GlobalTableKey(TTable.Name, TTable.EncodeKey(Key));
+            var gkey = new GlobalTableKey(TTable.Name, TTable.EncodeKey(Key));
             logger.Debug("Acquire NewState={0} {1}", state, this);
 #if ENABLE_STATISTICS
             var stat = TableStatistics.Instance.GetOrAdd(TTable.Id);
             switch (state)
             {
-                case GlobalCacheManager.StateInvalid:
+                case GlobalCacheManagerServer.StateInvalid:
                     stat.GlobalAcquireInvalid.IncrementAndGet();
                     break;
 
-                case GlobalCacheManager.StateShare:
+                case GlobalCacheManagerServer.StateShare:
                     stat.GlobalAcquireShare.IncrementAndGet();
                     break;
 
-                case GlobalCacheManager.StateModify:
+                case GlobalCacheManagerServer.StateModify:
                     stat.GlobalAcquireModify.IncrementAndGet();
                     break;
             }

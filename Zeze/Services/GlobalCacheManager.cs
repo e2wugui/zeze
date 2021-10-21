@@ -11,10 +11,11 @@ using System.Text;
 using Zeze.Transaction;
 using System.Xml;
 using System.Collections;
+using Zeze.Services.GlobalCacheManager;
 
 namespace Zeze.Services
 {
-    public sealed class GlobalCacheManager
+    public sealed class GlobalCacheManagerServer
     {
         public const int StateInvalid = 0;
         public const int StateShare = 1;
@@ -50,7 +51,7 @@ namespace Zeze.Services
         public const int LoginBindSocketFail = 60;
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        public static GlobalCacheManager Instance { get; } = new GlobalCacheManager();
+        public static GlobalCacheManagerServer Instance { get; } = new GlobalCacheManagerServer();
         public ServerService Server { get; private set; }
         private AsyncSocket ServerSocket;
         private Util.HugeConcurrentDictionary<GlobalTableKey, CacheState> global;
@@ -66,7 +67,7 @@ namespace Zeze.Services
          */
         private ConcurrentDictionary<int, CacheHolder> Sessions;
 
-        private GlobalCacheManager()
+        private GlobalCacheManagerServer()
         { 
         }
 
@@ -662,7 +663,7 @@ namespace Zeze.Services
         public sealed class CacheState
         {
             internal CacheHolder Modify { get; set; }
-            internal int AcquireStatePending { get; set; } = GlobalCacheManager.StateInvalid;
+            internal int AcquireStatePending { get; set; } = StateInvalid;
             internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
             public override string ToString()
             {
@@ -694,7 +695,7 @@ namespace Zeze.Services
                     if (newSocket.UserState != null)
                         return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
 
-                    var socket = GlobalCacheManager.Instance.Server.GetSocket(SessionId);
+                    var socket = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
                     if (null == socket)
                     {
                         // old socket not exist or has lost.
@@ -717,7 +718,7 @@ namespace Zeze.Services
                     if (oldSocket.UserState != this)
                         return false; // not bind to this
 
-                    var socket = GlobalCacheManager.Instance.Server.GetSocket(SessionId);
+                    var socket = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
                     if (socket != oldSocket)
                         return false; // not same socket
 
@@ -741,18 +742,18 @@ namespace Zeze.Services
                         // 如果rpc返回错误的值，外面能处理。
                         return reduce.Result.State;
                     }
-                    return GlobalCacheManager.StateReduceNetError;
+                    return StateReduceNetError;
                 }
                 catch (RpcTimeoutException timeoutex)
                 {
                     // 等待超时，应该报告错误。
                     logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1}", state, SessionId);
-                    return GlobalCacheManager.StateReduceRpcTimeout;
+                    return StateReduceRpcTimeout;
                 }
                 catch (Exception ex)
                 {
                     logger.Error(ex, "Reduce Exception {0} target={1}", state, SessionId);
-                    return GlobalCacheManager.StateReduceException;
+                    return StateReduceException;
                 }
             }
 
@@ -783,7 +784,7 @@ namespace Zeze.Services
                         if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbitPeriod)
                             return null;
                     }
-                    AsyncSocket peer = GlobalCacheManager.Instance.Server.GetSocket(SessionId);
+                    AsyncSocket peer = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
                     if (null != peer)
                     {
                         Reduce reduce = new Reduce(gkey, state);
@@ -800,254 +801,257 @@ namespace Zeze.Services
                 return null;
             }
         }
+    }
+}
 
-        public sealed class Param : Zeze.Transaction.Bean
+namespace Zeze.Services.GlobalCacheManager
+{
+    public sealed class Param : Zeze.Transaction.Bean
+    {
+        public GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
+        public int State { get; set; }
+
+        public override void Decode(ByteBuffer bb)
         {
-            public GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
-            public int State { get; set; }
-
-            public override void Decode(ByteBuffer bb)
-            {
-                if (null == GlobalTableKey)
-                    GlobalTableKey = new GlobalTableKey();
-                GlobalTableKey.Decode(bb);
-                State = bb.ReadInt();
-            }
-
-            public override void Encode(ByteBuffer bb)
-            {
-                GlobalTableKey.Encode(bb);
-                bb.WriteInt(State);
-            }
-
-            protected override void InitChildrenRootInfo(Record.RootInfo root)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override string ToString()
-            {
-                return GlobalTableKey.ToString() + ":" + State;
-            }
-        }
-        public sealed class Acquire : Zeze.Net.Rpc<Param, Param>
-        {
-            public readonly static int ProtocolId_ = Bean.Hash16(typeof(Acquire).FullName);
-
-            public override int ModuleId => 0;
-            public override int ProtocolId => ProtocolId_;
-
-            public Acquire()
-            {
-            }
-
-            public Acquire(GlobalTableKey gkey, int state)
-            {
-                Argument.GlobalTableKey = gkey;
-                Argument.State = state;
-            }
+            if (null == GlobalTableKey)
+                GlobalTableKey = new GlobalTableKey();
+            GlobalTableKey.Decode(bb);
+            State = bb.ReadInt();
         }
 
-        public sealed class Reduce : Zeze.Net.Rpc<Param, Param>
+        public override void Encode(ByteBuffer bb)
         {
-            public readonly static int ProtocolId_ = Bean.Hash16(typeof(Reduce).FullName);
-
-            public override int ModuleId => 0;
-            public override int ProtocolId => ProtocolId_;
-
-            public Reduce()
-            {
-            }
-
-            public Reduce(GlobalTableKey gkey, int state)
-            {
-                Argument.GlobalTableKey = gkey;
-                Argument.State = state;
-            }
+            GlobalTableKey.Encode(bb);
+            bb.WriteInt(State);
         }
 
-        public sealed class LoginParam : Zeze.Transaction.Bean
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
-            public int ServerId { get; set; }
-
-            // GlobalCacheManager 本身没有编号。
-            // 启用多个进程，使用 GlobalTableKey.GetHashCode() 分配负载后，报告错误需要这个来识别哪个进程。
-            // 当然识别还可以根据 ServerService 绑定的ip和port。
-            // 给每个实例加配置不容易维护。
-            public int GlobalCacheManagerHashIndex { get; set; }
-
-            public override void Decode(ByteBuffer bb)
-            {
-                ServerId = bb.ReadInt();
-                GlobalCacheManagerHashIndex = bb.ReadInt();
-            }
-
-            public override void Encode(ByteBuffer bb)
-            {
-                bb.WriteInt(ServerId);
-                bb.WriteInt(GlobalCacheManagerHashIndex);
-            }
-
-            protected override void InitChildrenRootInfo(Record.RootInfo root)
-            {
-                throw new NotImplementedException();
-            }
+            throw new NotImplementedException();
         }
 
-        public sealed class Login : Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean>
+        public override string ToString()
         {
-            public readonly static int ProtocolId_ = Bean.Hash16(typeof(Login).FullName);
+            return GlobalTableKey.ToString() + ":" + State;
+        }
+    }
+    public sealed class Acquire : Zeze.Net.Rpc<Param, Param>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash16(typeof(Acquire).FullName);
 
-            public override int ModuleId => 0;
-            public override int ProtocolId => ProtocolId_;
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
 
-            public Login()
-            {
-            }
-
-            public Login(int id)
-            {
-                Argument.ServerId = id;
-            }
+        public Acquire()
+        {
         }
 
-        public sealed class ReLogin : Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean>
+        public Acquire(GlobalTableKey gkey, int state)
         {
-            public readonly static int ProtocolId_ = Bean.Hash16(typeof(ReLogin).FullName);
+            Argument.GlobalTableKey = gkey;
+            Argument.State = state;
+        }
+    }
 
-            public override int ModuleId => 0;
-            public override int ProtocolId => ProtocolId_;
+    public sealed class Reduce : Zeze.Net.Rpc<Param, Param>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash16(typeof(Reduce).FullName);
 
-            public ReLogin()
-            {
-            }
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
 
-            public ReLogin(int id)
-            {
-                Argument.ServerId = id;
-            }
+        public Reduce()
+        {
         }
 
-        public sealed class NormalClose : Zeze.Net.Rpc<Zeze.Transaction.EmptyBean, Zeze.Transaction.EmptyBean>
+        public Reduce(GlobalTableKey gkey, int state)
         {
-            public readonly static int ProtocolId_ = Bean.Hash16(typeof(NormalClose).FullName);
+            Argument.GlobalTableKey = gkey;
+            Argument.State = state;
+        }
+    }
 
-            public override int ModuleId => 0;
-            public override int ProtocolId => ProtocolId_;
+    public sealed class LoginParam : Zeze.Transaction.Bean
+    {
+        public int ServerId { get; set; }
+
+        // GlobalCacheManager 本身没有编号。
+        // 启用多个进程，使用 GlobalTableKey.GetHashCode() 分配负载后，报告错误需要这个来识别哪个进程。
+        // 当然识别还可以根据 ServerService 绑定的ip和port。
+        // 给每个实例加配置不容易维护。
+        public int GlobalCacheManagerHashIndex { get; set; }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            ServerId = bb.ReadInt();
+            GlobalCacheManagerHashIndex = bb.ReadInt();
         }
 
-        public sealed class AchillesHeel : Zeze.Transaction.Bean
+        public override void Encode(ByteBuffer bb)
         {
-            public int AutoKeyLocalId { get; set; } // 必须的。
-
-            public string SecureKey { get; set; } // 安全验证
-            public int GlobalCacheManagerHashIndex { get; set; } // 安全验证
-
-            public override void Decode(ByteBuffer bb)
-            {
-                AutoKeyLocalId = bb.ReadInt();
-                SecureKey = bb.ReadString();
-                GlobalCacheManagerHashIndex = bb.ReadInt();
-            }
-
-            public override void Encode(ByteBuffer bb)
-            {
-                bb.WriteInt(AutoKeyLocalId);
-                bb.WriteString(SecureKey);
-                bb.WriteInt(GlobalCacheManagerHashIndex);
-            }
-
-            protected override void InitChildrenRootInfo(Record.RootInfo root)
-            {
-                throw new NotImplementedException();
-            }
+            bb.WriteInt(ServerId);
+            bb.WriteInt(GlobalCacheManagerHashIndex);
         }
 
-        public sealed class Cleanup : Zeze.Net.Rpc<AchillesHeel, Zeze.Transaction.EmptyBean>
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
-            public readonly static int ProtocolId_ = Bean.Hash16(typeof(Cleanup).FullName);
+            throw new NotImplementedException();
+        }
+    }
 
-            public override int ModuleId => 0;
-            public override int ProtocolId => ProtocolId_;
+    public sealed class Login : Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash16(typeof(Login).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+
+        public Login()
+        {
         }
 
-        public sealed class ServerService : Zeze.Net.Service
+        public Login(int id)
         {
-            public ServerService(Config config) : base("GlobalCacheManager", config)
-            { 
-            }
+            Argument.ServerId = id;
+        }
+    }
 
-            public override void OnSocketAccept(AsyncSocket so)
-            {
-                // so.UserState = new CacheHolder(so.SessionId); // Login ReLogin 的时候初始化。
-                base.OnSocketAccept(so);
-            }
+    public sealed class ReLogin : Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash16(typeof(ReLogin).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+
+        public ReLogin()
+        {
         }
 
-        public sealed class GlobalTableKey : IComparable<GlobalTableKey>, Serializable
+        public ReLogin(int id)
         {
-            public string TableName { get; private set; }
-            public byte[] Key { get; private set; }
+            Argument.ServerId = id;
+        }
+    }
 
-            public GlobalTableKey()
-            {
-            }
+    public sealed class NormalClose : Zeze.Net.Rpc<Zeze.Transaction.EmptyBean, Zeze.Transaction.EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash16(typeof(NormalClose).FullName);
 
-            public GlobalTableKey(string tableName, ByteBuffer key) : this(tableName, key.Copy())
-            {
-            }
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+    }
 
-            public GlobalTableKey(string tableName, byte[] key)
-            {
-                TableName = tableName;
-                Key = key;
-            }
+    public sealed class AchillesHeel : Zeze.Transaction.Bean
+    {
+        public int AutoKeyLocalId { get; set; } // 必须的。
 
-            public int CompareTo(GlobalTableKey other)
-            {
-                int c = this.TableName.CompareTo(other.TableName);
-                if (c != 0)
-                    return c;
+        public string SecureKey { get; set; } // 安全验证
+        public int GlobalCacheManagerHashIndex { get; set; } // 安全验证
 
-                return ByteBuffer.Compare(Key, other.Key);
-            }
+        public override void Decode(ByteBuffer bb)
+        {
+            AutoKeyLocalId = bb.ReadInt();
+            SecureKey = bb.ReadString();
+            GlobalCacheManagerHashIndex = bb.ReadInt();
+        }
 
-            public override bool Equals(object obj)
-            {
-                if (this == obj)
-                    return true;
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteInt(AutoKeyLocalId);
+            bb.WriteString(SecureKey);
+            bb.WriteInt(GlobalCacheManagerHashIndex);
+        }
 
-                if (obj is GlobalTableKey another)
-                    return TableName.Equals(another.TableName) && ByteBuffer.Equals(Key, another.Key);
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+    }
 
-                return false;
-            }
+    public sealed class Cleanup : Zeze.Net.Rpc<AchillesHeel, Zeze.Transaction.EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash16(typeof(Cleanup).FullName);
 
-            public override int GetHashCode()
-            {
-                const int prime = 31;
-                int result = 17;
-                result = prime * result + ByteBuffer.calc_hashnr(TableName);
-                result = prime * result + ByteBuffer.calc_hashnr(Key, 0, Key.Length);
-                return result;
-            }
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+    }
 
-            public override string ToString()
-            {
-                return $"({TableName},{BitConverter.ToString(Key)})";
-            }
+    public sealed class ServerService : Zeze.Net.Service
+    {
+        public ServerService(Config config) : base("GlobalCacheManager", config)
+        {
+        }
 
-            public void Decode(ByteBuffer bb)
-            {
-                TableName = bb.ReadString();
-                Key = bb.ReadBytes();
-            }
+        public override void OnSocketAccept(AsyncSocket so)
+        {
+            // so.UserState = new CacheHolder(so.SessionId); // Login ReLogin 的时候初始化。
+            base.OnSocketAccept(so);
+        }
+    }
 
-            public void Encode(ByteBuffer bb)
-            {
-                bb.WriteString(TableName);
-                bb.WriteBytes(Key);
-            }
+    public sealed class GlobalTableKey : IComparable<GlobalTableKey>, Serializable
+    {
+        public string TableName { get; private set; }
+        public byte[] Key { get; private set; }
+
+        public GlobalTableKey()
+        {
+        }
+
+        public GlobalTableKey(string tableName, ByteBuffer key) : this(tableName, key.Copy())
+        {
+        }
+
+        public GlobalTableKey(string tableName, byte[] key)
+        {
+            TableName = tableName;
+            Key = key;
+        }
+
+        public int CompareTo(GlobalTableKey other)
+        {
+            int c = this.TableName.CompareTo(other.TableName);
+            if (c != 0)
+                return c;
+
+            return ByteBuffer.Compare(Key, other.Key);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (this == obj)
+                return true;
+
+            if (obj is GlobalTableKey another)
+                return TableName.Equals(another.TableName) && ByteBuffer.Equals(Key, another.Key);
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            const int prime = 31;
+            int result = 17;
+            result = prime * result + ByteBuffer.calc_hashnr(TableName);
+            result = prime * result + ByteBuffer.calc_hashnr(Key, 0, Key.Length);
+            return result;
+        }
+
+        public override string ToString()
+        {
+            return $"({TableName},{BitConverter.ToString(Key)})";
+        }
+
+        public void Decode(ByteBuffer bb)
+        {
+            TableName = bb.ReadString();
+            Key = bb.ReadBytes();
+        }
+
+        public void Encode(ByteBuffer bb)
+        {
+            bb.WriteString(TableName);
+            bb.WriteBytes(Key);
         }
     }
 }

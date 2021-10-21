@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.logging.log4j.LogManager;
 import Zeze.*;
+import Zeze.Services.GlobalCacheManager.*;
 
 public final class GlobalAgent {
 	private static final Logger logger = LogManager.getLogger(GlobalAgent.class);
@@ -120,7 +121,7 @@ public final class GlobalAgent {
 					setSocket(null); // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
 				}
 
-				var normalClose = new GlobalCacheManager.NormalClose();
+				var normalClose = new NormalClose();
 				var future = new TaskCompletionSource<Integer>();
 				normalClose.Send(tmp, (ThisRpc) -> {
 						if (normalClose.isTimeout()) {
@@ -164,18 +165,18 @@ public final class GlobalAgent {
 
 	public Agent[] Agents;
 
-	public int GetGlobalCacheManagerHashIndex(GlobalCacheManager.GlobalTableKey gkey) {
+	public int GetGlobalCacheManagerHashIndex(GlobalTableKey gkey) {
 		return gkey.hashCode() % Agents.length;
 	}
 
-	public int Acquire(GlobalCacheManager.GlobalTableKey gkey, int state) {
+	public int Acquire(GlobalTableKey gkey, int state) {
 		if (null != getClient()) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
 			var socket = agent.Connect(getClient());
 
 			// 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
 			// 一个请求异常不关闭连接，尝试继续工作。
-			GlobalCacheManager.Acquire rpc = new GlobalCacheManager.Acquire(gkey, state);
+			var rpc = new Acquire(gkey, state);
 			try {
 				rpc.SendForWait(socket, 12000).get();
 			} catch (InterruptedException | ExecutionException e) {
@@ -188,8 +189,8 @@ public final class GlobalAgent {
 			}
 			*/
 			switch (rpc.getResultCode()) {
-				case GlobalCacheManager.AcquireModifyFaild:
-				case GlobalCacheManager.AcquireShareFaild:
+				case GlobalCacheManagerServer.AcquireModifyFaild:
+				case GlobalCacheManagerServer.AcquireShareFaild:
 					throw new AbortException("GlobalAgent.Acquire Faild");
 			}
 			return rpc.Result.State;
@@ -199,17 +200,17 @@ public final class GlobalAgent {
 	}
 
 	public int ProcessReduceRequest(Protocol p) {
-		GlobalCacheManager.Reduce rpc = (GlobalCacheManager.Reduce)p;
+		var rpc = (Reduce)p;
 		switch (rpc.Argument.State) {
-			case GlobalCacheManager.StateInvalid:
+			case GlobalCacheManagerServer.StateInvalid:
 				return getZeze().GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceInvalid(rpc);
 
-			case GlobalCacheManager.StateShare:
+			case GlobalCacheManagerServer.StateShare:
 				return getZeze().GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceShare(rpc);
 
 			default:
 				rpc.Result = rpc.Argument;
-				rpc.SendResultCode(GlobalCacheManager.ReduceErrorState);
+				rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
 				return 0;
 		}
 	}
@@ -232,37 +233,37 @@ public final class GlobalAgent {
 			setClient(new GlobalClient(this, getZeze()));
 
 			getClient().AddFactoryHandle(
-					(new GlobalCacheManager.Reduce()).getTypeId(),
+					(new Reduce()).getTypeId(),
 					new Service.ProtocolFactoryHandle(
-							() -> new GlobalCacheManager.Reduce(), 
+							() -> new Reduce(),
 							(p) -> ProcessReduceRequest(p),
 							true));
 
 			getClient().AddFactoryHandle(
-					(new GlobalCacheManager.Acquire()).getTypeId(),
+					(new Acquire()).getTypeId(),
 					new Service.ProtocolFactoryHandle(
-							() -> new GlobalCacheManager.Acquire(),
+							() -> new Acquire(),
 							null,
 							true));
 
 			getClient().AddFactoryHandle(
-					(new GlobalCacheManager.Login()).getTypeId(),
+					(new Login()).getTypeId(),
 					new Service.ProtocolFactoryHandle(
-							() -> new GlobalCacheManager.Login(), 
+							() -> new Login(),
 							null,
 							true));
 
 			getClient().AddFactoryHandle(
-					(new GlobalCacheManager.ReLogin()).getTypeId(),
+					(new ReLogin()).getTypeId(),
 					new Service.ProtocolFactoryHandle(
-							() -> new GlobalCacheManager.ReLogin(),
+							() -> new ReLogin(),
 							null,
 							true));
 
 			getClient().AddFactoryHandle(
-					(new GlobalCacheManager.NormalClose()).getTypeId(),
+					(new NormalClose()).getTypeId(),
 					new Service.ProtocolFactoryHandle(
-							() -> new GlobalCacheManager.NormalClose(),
+							() -> new NormalClose(),
 							null,
 							true));
 

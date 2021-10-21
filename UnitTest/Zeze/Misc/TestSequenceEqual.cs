@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Zeze.Services;
+using Zeze.Services.ServiceManager;
 
 namespace UnitTest.Zeze.Misc
 {
@@ -14,12 +14,12 @@ namespace UnitTest.Zeze.Misc
         [TestMethod]
         public void TestSequenceEqual1()
         {
-            var infos1 = new Dictionary<string, ServiceManager.ServiceInfo>();
-            var info1 = new ServiceManager.ServiceInfo("gs", "1");
+            var infos1 = new Dictionary<string, ServiceInfo>();
+            var info1 = new ServiceInfo("gs", "1");
             infos1.Add("1", info1);
 
-            var infos2 = new Dictionary<string, ServiceManager.ServiceInfo>();
-            var info2 = new ServiceManager.ServiceInfo("gs", "1");
+            var infos2 = new Dictionary<string, ServiceInfo>();
+            var info2 = new ServiceInfo("gs", "1");
             infos2.Add("1", info2);
 
             Assert.IsTrue(Enumerable.SequenceEqual(infos1.Values, infos2.Values));

@@ -449,7 +449,7 @@ namespace Zeze.Transaction
         {
             //if (IsRead)// && App.Config.AllowReadWhenRecoredNotAccessed)
             //    return;
-            if (bean.RootInfo.Record.State == GlobalCacheManager.StateRemoved)
+            if (bean.RootInfo.Record.State == GlobalCacheManagerServer.StateRemoved)
                 throw new Exception($"VerifyRecordAccessed: Record Has Bean Removed From Cache. {bean.TableKey}");
             var ra = GetRecordAccessed(bean.TableKey);
             if (ra == null)
@@ -471,32 +471,32 @@ namespace Zeze.Transaction
             {
                 switch (e.OriginRecord.State)
                 {
-                    case GlobalCacheManager.StateRemoved:
+                    case GlobalCacheManagerServer.StateRemoved:
                         // fall down
-                    case GlobalCacheManager.StateInvalid:
+                    case GlobalCacheManagerServer.StateInvalid:
                         return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
-                    case GlobalCacheManager.StateModify:
+                    case GlobalCacheManagerServer.StateModify:
                         return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
 
-                    case GlobalCacheManager.StateShare:
+                    case GlobalCacheManagerServer.StateShare:
                         // 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                         // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                        if (e.OriginRecord.Acquire(GlobalCacheManager.StateModify) != GlobalCacheManager.StateModify)
+                        if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify) != GlobalCacheManagerServer.StateModify)
                         {
                             logger.Warn("Acquire Faild. Maybe DeadLock Found {0}", e.OriginRecord);
-                            e.OriginRecord.State = GlobalCacheManager.StateInvalid;
+                            e.OriginRecord.State = GlobalCacheManagerServer.StateInvalid;
                             return CheckResult.RedoAndReleaseLock;
                         }
-                        e.OriginRecord.State = GlobalCacheManager.StateModify;
+                        e.OriginRecord.State = GlobalCacheManagerServer.StateModify;
                         return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
                 }
                 return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success; // imposible
             }
             else
             {
-                if (e.OriginRecord.State == GlobalCacheManager.StateInvalid
-                    || e.OriginRecord.State == GlobalCacheManager.StateRemoved)
+                if (e.OriginRecord.State == GlobalCacheManagerServer.StateInvalid
+                    || e.OriginRecord.State == GlobalCacheManagerServer.StateRemoved)
                     return CheckResult.RedoAndReleaseLock; // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
                 return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
             }

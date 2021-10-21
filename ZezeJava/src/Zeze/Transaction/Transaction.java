@@ -326,8 +326,6 @@ public final class Transaction {
 
 	/** 
 	 只能添加一次。
-	 
-	 @param key
 	 @param r
 	*/
 	public void AddRecordAccessed(Record.RootInfo root, RecordAccessed r) {
@@ -355,7 +353,7 @@ public final class Transaction {
 	public void VerifyRecordAccessed(Bean bean, boolean IsRead) {
 		//if (IsRead)// && App.Config.AllowReadWhenRecoredNotAccessed)
 		//    return;
-		if (bean.RootInfo.getRecord().getState() == GlobalCacheManager.StateRemoved) {
+		if (bean.RootInfo.getRecord().getState() == GlobalCacheManagerServer.StateRemoved) {
 			throw new RuntimeException("VerifyRecordAccessed: Record Has Bean Removed From Cache. " + bean.getTableKey());
 		}
 		var ra = GetRecordAccessed(bean.getTableKey());
@@ -376,29 +374,30 @@ public final class Transaction {
 	private CheckResult _check_(boolean writeLock, RecordAccessed e) {
 		if (writeLock) {
 			switch (e.OriginRecord.getState()) {
-				case GlobalCacheManager.StateRemoved:
+				case GlobalCacheManagerServer.StateRemoved:
 					// fall down
-				case GlobalCacheManager.StateInvalid:
+				case GlobalCacheManagerServer.StateInvalid:
 					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
-				case GlobalCacheManager.StateModify:
+				case GlobalCacheManagerServer.StateModify:
 					return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 
-				case GlobalCacheManager.StateShare:
+				case GlobalCacheManagerServer.StateShare:
 					// 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-					if (e.OriginRecord.Acquire(GlobalCacheManager.StateModify) != GlobalCacheManager.StateModify) {
+					if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify) != GlobalCacheManagerServer.StateModify) {
 						logger.warn("Acquire Faild. Maybe DeadLock Found {}", e.OriginRecord);
-						e.OriginRecord.setState(GlobalCacheManager.StateInvalid);
+						e.OriginRecord.setState(GlobalCacheManagerServer.StateInvalid);
 						return CheckResult.RedoAndReleaseLock;
 					}
-					e.OriginRecord.setState(GlobalCacheManager.StateModify);
+					e.OriginRecord.setState(GlobalCacheManagerServer.StateModify);
 					return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 			}
 			return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // imposible
 		}
 		else {
-			if (e.OriginRecord.getState() == GlobalCacheManager.StateInvalid || e.OriginRecord.getState() == GlobalCacheManager.StateRemoved) {
+			if (e.OriginRecord.getState() == GlobalCacheManagerServer.StateInvalid
+					|| e.OriginRecord.getState() == GlobalCacheManagerServer.StateRemoved) {
 				return CheckResult.RedoAndReleaseLock; // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
 			}
 			return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;

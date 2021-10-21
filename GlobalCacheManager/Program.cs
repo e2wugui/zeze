@@ -30,7 +30,7 @@ namespace GlobalCacheManager
                 ? System.Net.IPAddress.Any
                 : System.Net.IPAddress.Parse(ip);
 
-            Zeze.Services.GlobalCacheManager.Instance.Start(address, port);
+            Zeze.Services.GlobalCacheManagerServer.Instance.Start(address, port);
             //Console.WriteLine("Ok.");
             logger.Info("Started.");
             while (true)

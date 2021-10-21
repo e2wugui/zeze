@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AutoKey;
+import Zeze.Services.GlobalCacheManager.*;
 
 public abstract class TableX<K, V extends Bean> extends Table {
 	private static final Logger logger = LogManager.getLogger(TableX.class);
@@ -49,16 +50,17 @@ public abstract class TableX<K, V extends Bean> extends Table {
 			while (true) {
 				Record1<K, V> r = getCache().GetOrAdd(key, () -> new Record1<K, V>(this, key, null));
 				synchronized (r) { // 如果外面是 WriteLock 就不需要这个了。
-					if (r.getState() == GlobalCacheManager.StateRemoved) {
+					if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
 						continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
 					}
 
-					if (r.getState() == GlobalCacheManager.StateShare || r.getState() == GlobalCacheManager.StateModify) {
+					if (r.getState() == GlobalCacheManagerServer.StateShare
+							|| r.getState() == GlobalCacheManagerServer.StateModify) {
 						return r;
 					}
 
-					r.setState(r.Acquire(GlobalCacheManager.StateShare));
-					if (r.getState() == GlobalCacheManager.StateInvalid) {
+					r.setState(r.Acquire(GlobalCacheManagerServer.StateShare));
+					if (r.getState() == GlobalCacheManagerServer.StateInvalid) {
 						throw new RedoAndReleaseLockException(tkey.toString() + ":" + r.toString());
 						//throw new RedoAndReleaseLockException();
 					}
@@ -100,7 +102,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	}
 
 	@Override
-	int ReduceShare(GlobalCacheManager.Reduce rpc) {
+	int ReduceShare(Reduce rpc) {
 		rpc.Result = rpc.Argument;
 		K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
@@ -114,26 +116,26 @@ public abstract class TableX<K, V extends Bean> extends Table {
 			r = getCache().Get(key);
 			logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
 			if (null == r) {
-				rpc.Result.State = GlobalCacheManager.StateInvalid;
+				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
 				logger.debug("Reduce SendResult 1 {}", r);
-				rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsInvalid);
+				rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
 				return 0;
 			}
 			switch (r.getState()) {
-				case GlobalCacheManager.StateInvalid:
-					rpc.Result.State = GlobalCacheManager.StateInvalid;
+				case GlobalCacheManagerServer.StateInvalid:
+					rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
 					logger.debug("Reduce SendResult 2 {}", r);
-					rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsInvalid);
+					rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
 					return 0;
 
-				case GlobalCacheManager.StateShare:
-					rpc.Result.State = GlobalCacheManager.StateShare;
+				case GlobalCacheManagerServer.StateShare:
+					rpc.Result.State = GlobalCacheManagerServer.StateShare;
 					logger.debug("Reduce SendResult 3 {}", r);
-					rpc.SendResultCode(GlobalCacheManager.ReduceShareAlreadyIsShare);
+					rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsShare);
 					return 0;
 
-				case GlobalCacheManager.StateModify:
-					r.setState(GlobalCacheManager.StateShare); // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
+				case GlobalCacheManagerServer.StateModify:
+					r.setState(GlobalCacheManagerServer.StateShare); // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
 					r.setTimestamp(Record.getNextTimestamp());
 					break;
 			}
@@ -142,7 +144,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 			lockey.ExitWriteLock();
 		}
 		//logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
-		rpc.Result.State = GlobalCacheManager.StateShare;
+		rpc.Result.State = GlobalCacheManagerServer.StateShare;
 		final var fr = r;
 		FlushWhenReduce(r, () -> {
 				logger.debug("Reduce SendResult 4 {}", fr);
@@ -169,7 +171,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	}
 
 	@Override
-	int ReduceInvalid(GlobalCacheManager.Reduce rpc) {
+	int ReduceInvalid(Reduce rpc) {
 		rpc.Result= rpc.Argument;
 		K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
@@ -183,28 +185,28 @@ public abstract class TableX<K, V extends Bean> extends Table {
 			r = getCache().Get(key);
 			logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
 			if (null == r) {
-				rpc.Result.State = GlobalCacheManager.StateInvalid;
+				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
 				logger.debug("Reduce SendResult 1 {}", r);
-				rpc.SendResultCode(GlobalCacheManager.ReduceInvalidAlreadyIsInvalid);
+				rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
 				return 0;
 			}
 			switch (r.getState()) {
-				case GlobalCacheManager.StateInvalid:
-					rpc.Result.State = GlobalCacheManager.StateInvalid;
+				case GlobalCacheManagerServer.StateInvalid:
+					rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
 					logger.debug("Reduce SendResult 2 {}", r);
-					rpc.SendResultCode(GlobalCacheManager.ReduceInvalidAlreadyIsInvalid);
+					rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
 					return 0;
 
-				case GlobalCacheManager.StateShare:
-					r.setState(GlobalCacheManager.StateInvalid);
+				case GlobalCacheManagerServer.StateShare:
+					r.setState(GlobalCacheManagerServer.StateInvalid);
 					r.setTimestamp(Record.getNextTimestamp());
 					// 不删除记录，让TableCache.CleanNow处理。 
 					logger.debug("Reduce SendResult 3 {}", r);
 					rpc.SendResult();
 					return 0;
 
-				case GlobalCacheManager.StateModify:
-					r.setState(GlobalCacheManager.StateInvalid);
+				case GlobalCacheManagerServer.StateModify:
+					r.setState(GlobalCacheManagerServer.StateInvalid);
 					r.setTimestamp(Record.getNextTimestamp());
 					break;
 			}
@@ -213,7 +215,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 			lockey.ExitWriteLock();
 		}
 		//logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
-		rpc.Result.State = GlobalCacheManager.StateInvalid;
+		rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
 		final var fr = r;
 		FlushWhenReduce(r, () -> {
 				logger.debug("Reduce SendResult 4 {}", fr);
@@ -226,7 +228,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	@Override
 	void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
 		for (var e : getCache().getDataMap()) {
-			var gkey = new GlobalCacheManager.GlobalTableKey(getName(), EncodeKey(e.getKey()));
+			var gkey = new GlobalTableKey(getName(), EncodeKey(e.getKey()));
 			if (getZeze().getGlobalAgent().GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex) {
 				// 不是断开连接的GlobalCacheManager。跳过。
 				continue;
@@ -237,7 +239,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 			lockey.EnterWriteLock();
 			try {
 				// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
-				e.getValue().setState(GlobalCacheManager.StateInvalid);
+				e.getValue().setState(GlobalCacheManagerServer.StateInvalid);
 			}
 			finally {
 				lockey.ExitWriteLock();
@@ -441,8 +443,9 @@ public abstract class TableX<K, V extends Bean> extends Table {
 					lockey.EnterReadLock();
 					try {
 						Record1<K, V> r = getCache().Get(k);
-						if (null != r && r.getState() != GlobalCacheManager.StateRemoved) {
-							if (r.getState() == GlobalCacheManager.StateShare || r.getState() == GlobalCacheManager.StateModify) {
+						if (null != r && r.getState() != GlobalCacheManagerServer.StateRemoved) {
+							if (r.getState() == GlobalCacheManagerServer.StateShare
+									|| r.getState() == GlobalCacheManagerServer.StateModify) {
 								// 拥有正确的状态：
 								if (r.getValue() == null) {
 									return true; // 已经被删除，但是还没有checkpoint的记录看不到。

@@ -1,8 +1,8 @@
 package Zeze.Transaction;
 
 import Zeze.Net.*;
-import Zeze.Services.*;
 import Zeze.*;
+import Zeze.Services.GlobalCacheManager.*;
 
 public final class GlobalClient extends Zeze.Net.Service {
 	private GlobalAgent agent;
@@ -18,7 +18,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 		
 		var agent = (GlobalAgent.Agent)so.getUserState();
 		if (agent.getLoginedTimes().get() > 1) {
-			var relogin = new GlobalCacheManager.ReLogin();
+			var relogin = new ReLogin();
 			relogin.Argument.ServerId = getZeze().getConfig().getServerId();
 			relogin.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
 			relogin.Send(so, (ThisRpc) -> {
@@ -37,7 +37,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 			});
 		}
 		else {
-			var login = new GlobalCacheManager.Login();
+			var login = new Login();
 			login.Argument.ServerId = getZeze().getConfig().getServerId();
 			login.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
 			login.Send(so, (ThisRpc) -> {

@@ -5,6 +5,7 @@ using Zeze.Net;
 using Zeze.Services;
 using System.Threading.Tasks;
 using NLog;
+using Zeze.Services.GlobalCacheManager;
 
 namespace Zeze.Transaction
 {
@@ -82,7 +83,7 @@ namespace Zeze.Transaction
                         Socket = null; // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
                     }
 
-                    var normalClose = new GlobalCacheManager.NormalClose();
+                    var normalClose = new NormalClose();
                     var future = new TaskCompletionSource<int>();
                     normalClose.Send(tmp,
                         (_) =>
@@ -137,12 +138,12 @@ namespace Zeze.Transaction
 
         internal Agent[] Agents;
 
-        internal int GetGlobalCacheManagerHashIndex(GlobalCacheManager.GlobalTableKey gkey)
+        internal int GetGlobalCacheManagerHashIndex(GlobalTableKey gkey)
         {
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        internal int Acquire(GlobalCacheManager.GlobalTableKey gkey, int state)
+        internal int Acquire(GlobalTableKey gkey, int state)
         {
             if (null != Client)
             {
@@ -151,7 +152,7 @@ namespace Zeze.Transaction
 
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
                 // 一个请求异常不关闭连接，尝试继续工作。
-                GlobalCacheManager.Acquire rpc = new GlobalCacheManager.Acquire(gkey, state);
+                var rpc = new Acquire(gkey, state);
                 rpc.SendForWait(socket, 12000).Task.Wait();
                 /*
                 if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
@@ -161,8 +162,8 @@ namespace Zeze.Transaction
                 */
                 switch (rpc.ResultCode)
                 {
-                    case GlobalCacheManager.AcquireModifyFaild:
-                    case GlobalCacheManager.AcquireShareFaild:
+                    case GlobalCacheManagerServer.AcquireModifyFaild:
+                    case GlobalCacheManagerServer.AcquireShareFaild:
                         throw new AbortException("GlobalAgent.Acquire Faild");
                 }
                 return rpc.Result.State;
@@ -173,18 +174,18 @@ namespace Zeze.Transaction
 
         public int ProcessReduceRequest(Zeze.Net.Protocol p)
         {
-            GlobalCacheManager.Reduce rpc = (GlobalCacheManager.Reduce)p;
+            var rpc = (Reduce)p;
             switch (rpc.Argument.State)
             {
-                case GlobalCacheManager.StateInvalid:
+                case GlobalCacheManagerServer.StateInvalid:
                     return Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceInvalid(rpc);
 
-                case GlobalCacheManager.StateShare:
+                case GlobalCacheManagerServer.StateShare:
                     return Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceShare(rpc);
 
                 default:
                     rpc.Result = rpc.Argument;
-                    rpc.SendResultCode(GlobalCacheManager.ReduceErrorState);
+                    rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
                     return 0;
             }
         }
@@ -207,31 +208,31 @@ namespace Zeze.Transaction
                 // Raft Need. Zeze-App 自动启用持久化的全局唯一的Rpc.SessionId生成器。
                 //Client.SessionIdGenerator = Zeze.ServiceManagerAgent.GetAutoKey(Client.Name).Next;
 
-                Client.AddFactoryHandle(new GlobalCacheManager.Reduce().TypeId, new Service.ProtocolFactoryHandle()
+                Client.AddFactoryHandle(new Reduce().TypeId, new Service.ProtocolFactoryHandle()
                 {
-                    Factory = () => new GlobalCacheManager.Reduce(),
+                    Factory = () => new Reduce(),
                     Handle = ProcessReduceRequest,
                     NoProcedure = true
                 });
-                Client.AddFactoryHandle(new GlobalCacheManager.Acquire().TypeId, new Service.ProtocolFactoryHandle()
+                Client.AddFactoryHandle(new Acquire().TypeId, new Service.ProtocolFactoryHandle()
                 {
-                    Factory = () => new GlobalCacheManager.Acquire(),
+                    Factory = () => new Acquire(),
                     NoProcedure = true
                     // 同步方式调用，不需要设置Handle: Response Timeout 
                 });
-                Client.AddFactoryHandle(new GlobalCacheManager.Login().TypeId, new Service.ProtocolFactoryHandle()
+                Client.AddFactoryHandle(new Login().TypeId, new Service.ProtocolFactoryHandle()
                 {
-                    Factory = ()=>new GlobalCacheManager.Login(),
+                    Factory = ()=>new Login(),
                     NoProcedure = true
                 });
-                Client.AddFactoryHandle(new GlobalCacheManager.ReLogin().TypeId, new Service.ProtocolFactoryHandle()
+                Client.AddFactoryHandle(new ReLogin().TypeId, new Service.ProtocolFactoryHandle()
                 {
-                    Factory = () => new GlobalCacheManager.ReLogin(),
+                    Factory = () => new ReLogin(),
                     NoProcedure = true
                 });
-                Client.AddFactoryHandle(new GlobalCacheManager.NormalClose().TypeId, new Service.ProtocolFactoryHandle()
+                Client.AddFactoryHandle(new NormalClose().TypeId, new Service.ProtocolFactoryHandle()
                 {
-                    Factory = () => new GlobalCacheManager.NormalClose(),
+                    Factory = () => new NormalClose(),
                     NoProcedure = true
                 });
 
@@ -294,7 +295,7 @@ namespace Zeze.Transaction
             var agent = so.UserState as GlobalAgent.Agent;
             if (agent.LoginedTimes.Get() > 1)
             {
-                var relogin = new GlobalCacheManager.ReLogin();
+                var relogin = new ReLogin();
                 relogin.Argument.ServerId = Zeze.Config.ServerId;
                 relogin.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
                 relogin.Send(so,
@@ -318,7 +319,7 @@ namespace Zeze.Transaction
             }
             else
             {
-                var login = new GlobalCacheManager.Login();
+                var login = new Login();
                 login.Argument.ServerId = Zeze.Config.ServerId;
                 login.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
                 login.Send(so,
