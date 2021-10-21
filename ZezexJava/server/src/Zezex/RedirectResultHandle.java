@@ -1,6 +1,6 @@
 package Zezex;
 
 @FunctionalInterface
-public interface RedirectResultHandle<R extends Zeze.Transaction.Bean> {
-    public void handle(R result);
+public interface RedirectResultHandle {
+    public void handle(Zeze.Transaction.Bean result);
 }

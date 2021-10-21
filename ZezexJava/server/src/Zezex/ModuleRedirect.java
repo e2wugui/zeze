@@ -9,11 +9,13 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import Game.Rank.BRankList;
+import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Func4;
 import Zeze.Util.Str;
 import Zezex.Provider.BActionParam;
+import org.mdkt.compiler.InMemoryJavaCompiler;
 
 import java.net.URI;
 import java.nio.CharBuffer;
@@ -235,6 +237,7 @@ public class ModuleRedirect {
 
 		String genClassName = Str.format("_ModuleRedirect_{}_", module.getFullName().replace('.', '_'));
 		String code = GenModuleCode(module, genClassName, overrides);
+		/*
 		try {
 			var tmp = new FileWriter(genClassName + ".java", java.nio.charset.StandardCharsets.UTF_8);
 			tmp.write(code);
@@ -243,16 +246,28 @@ public class ModuleRedirect {
 			e.printStackTrace();
 		}
 		return module;
-		//module.UnRegister();
+		*/
+		module.UnRegister();
+		try {
+			Class<?> moduleClass = compiler.compile(genClassName, code);
+			return (IModule) moduleClass.getDeclaredConstructor(new Class[0]).newInstance();
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+		}
 		//return CompileCode(code, genClassName);
 	}
 
+	private org.mdkt.compiler.InMemoryJavaCompiler compiler;
+	/*
 	private Zeze.IModule CompileCode(String code, String genClassName) {
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		StandardJavaFileManager stdManager = compiler.getStandardFileManager(null, null, null);
 		try (var manager = new MemoryJavaFileManager(stdManager)) {
 			var javaFileObject = manager.makeStringSource(genClassName, code);
-			var task = compiler.getTask(null, manager, null, null, null, Arrays.asList(javaFileObject));
+			var optionList = new ArrayList<String>();
+			optionList.add("-classpath");
+			optionList.add(System.getProperty("java.class.path"));
+			var task = compiler.getTask(null, manager, null, optionList, null, Arrays.asList(javaFileObject));
 			if (false == task.call())
 				throw new RuntimeException("compile failed.");
 			try (MemoryClassLoader classLoader = new MemoryClassLoader(manager.getClassBytes())) {
@@ -348,6 +363,9 @@ public class ModuleRedirect {
 
 		@Override
 		protected Class<?> findClass(String name) throws ClassNotFoundException {
+			//System.err.println("----------->" + name + classBytes.keySet());
+			//if (!name.startsWith("Zezex."))
+			//	name = "Zezex." + name;
 			byte[] buf = classBytes.get(name);
 			if (buf == null) {
 				return super.findClass(name);
@@ -356,6 +374,7 @@ public class ModuleRedirect {
 			return defineClass(name, buf, 0, buf.length);
 		}
 	}
+	*/
 
 	public static class Return {
 		public int ReturnCode;
@@ -420,6 +439,7 @@ public class ModuleRedirect {
 
 	private String GenModuleCode(Zeze.IModule module, String genClassName, List<MethodOverride> overrides)  {
 		var sb = new Zeze.Util.StringBuilderCs();
+		sb.AppendLine("");
 		sb.AppendLine("import java.util.List;");
 		sb.AppendLine("import Zeze.Net.Binary;");
 		sb.AppendLine("import Zezex.Provider.BActionParam;");
@@ -714,6 +734,9 @@ public class ModuleRedirect {
 	private AtomicLong TmpVarNameId = new AtomicLong();
 
 	private ModuleRedirect() {
+		compiler = InMemoryJavaCompiler.newInstance();
+		compiler.ignoreWarnings();
+
 		Serializer.put(Zeze.Net.Binary.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.AppendLine(Str.format("{}{}.WriteBinary({});", prefix, bbName, varName)),
 				(sb, prefix, varName) -> sb.AppendLine(Str.format("{}{} = _bb_.ReadBinary();", prefix, varName)),
