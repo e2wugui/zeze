@@ -434,3 +434,9 @@
 5. 全局模块的Cache命中率和ModuleRedirect（在Zezex中）
    see Zezex/README.md
    see Zezex/linkd.provider.txt
+
+6. 按需行动
+   如果可以预见请求量，并且代价不大时，可以一开始就优化并发性能。
+   否则可以等到请求量大到快无法支撑了再来优化。
+   一开始实现一个支持任意请求量是没有必要的。
+   计算机都是在有限资源有限时间解决问题。
