@@ -201,7 +201,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			// 日志在Call里面记录。因为要支持嵌套。
 			// 统计在Call里面实现。
 			int result = procdure.Call();
-			if (result != 0 && !isRequestSaved.equals(null) && isRequestSaved) {
+			if (result != 0 && isRequestSaved != null && isRequestSaved) {
 				if (actionWhenError != null) {
 					actionWhenError.run(from, result);
 				}
@@ -210,7 +210,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 		}
 		catch (RuntimeException ex) {
 			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
-			if (!isRequestSaved.equals(null) && isRequestSaved) {
+			if (isRequestSaved != null && isRequestSaved) {
 				if (actionWhenError != null) {
 					actionWhenError.run(from, Procedure.Excption);
 				}

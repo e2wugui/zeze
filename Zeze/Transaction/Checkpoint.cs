@@ -18,9 +18,9 @@ namespace Zeze.Transaction
 
         public bool IsRunning { get; private set; }
         public int Period { get; private set; }
-        private Task RunningTask = null;
 
         public CheckpointMode CheckpointMode { get; }
+        private Thread CheckpointThread;
 
         public Checkpoint(CheckpointMode mode)
         {
@@ -71,7 +71,9 @@ namespace Zeze.Transaction
 
                 IsRunning = true;
                 Period = period;
-                RunningTask = Zeze.Util.Task.Run(Run, "Checkpoint.Run");
+                CheckpointThread = new Thread(() => Zeze.Util.Task.Call(Run, "Checkpoint.Run"));
+                CheckpointThread.Name = "CheckpointThread";
+                CheckpointThread.Start();
             }
         }
 
@@ -82,7 +84,7 @@ namespace Zeze.Transaction
                 IsRunning = false;
                 Monitor.Pulse(this);
             }
-            RunningTask?.Wait();
+            CheckpointThread?.Join();
         }
 
         internal void RunOnce()

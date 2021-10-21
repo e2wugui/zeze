@@ -44,20 +44,13 @@ public class TestGlobal extends TestCase{
 		}
 	}
 
-	//[TestMethod]
-	public final void test2AppSameLocalId() {
-		demo.App app1 = demo.App.getInstance();
-		demo.App app2 = new demo.App();
-		var config1 = Config.Load("zeze.xml");
-		var config2 = Config.Load("zeze.xml");
-		try {
-			app1.Start(config1);
-			app2.Start(config2);
-		}
-		finally {
-			app1.Stop();
-			app2.Stop();
-		}
+	public final void testNone() {
+		var rname = Zeze.Services.ServiceManager.Register.class.getTypeName();
+		System.out.println(rname);
+		var x = Zeze.Transaction.Bean.Hash16(rname);
+		System.out.println(x);
+		var i = (int)x & 0xffff;
+		System.out.println(i);
 	}
 
 	public final void test2App() {

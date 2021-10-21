@@ -219,7 +219,9 @@ namespace Zeze.Transaction
                         procedure.Zeze.Checkpoint.ExitFlushReadLock();
                     }
                     //logger.Debug("Checkpoint.WaitRun {0}", procedure);
-                    procedure.Zeze.Checkpoint.WaitRun();
+                    //这行代码应该是当时缓存同步线程饥饿问题加的保险措施。
+                    //应该是不需要的。先注释掉看看。
+                    //procedure.Zeze.Checkpoint.WaitRun();
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 _final_rollback_(procedure);

@@ -118,16 +118,16 @@ public abstract class Bean implements Zeze.Serialize.Serializable {
 		return (long)hashedValue;
 	}
 
-	public static int Hash32(String name) {
+	public static long Hash32(String name) {
 		long hash64 = (long)Hash64(name);
-		int hash32 = (int)(hash64 & 0xffffffff) ^ (int)(hash64 >>> 32);
+		long hash32 = (hash64 & 0xffffffff) ^ (hash64 >>> 32);
 		return hash32;
 	}
 
-	public static short Hash16(String protocolName) {
+	public static int Hash16(String protocolName) {
 		long hash64 = (long)Hash64(protocolName);
 		int hash32 = (int)(hash64 & 0xffffffff) ^ (int)(hash64 >>> 32);
-		short hash16 = (short)((hash32 & 0xffff) ^ (hash32 >>> 16));
+		int hash16 = (hash32 & 0xffff) ^ (hash32 >>> 16);
 		return hash16;
 	}
 }

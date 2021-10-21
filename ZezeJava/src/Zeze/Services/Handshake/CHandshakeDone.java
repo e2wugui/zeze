@@ -15,4 +15,8 @@ public final class CHandshakeDone extends Protocol1<EmptyBean> {
 	public int getProtocolId() {
 		return ProtocolId_;
 	}
+
+	public CHandshakeDone() {
+		Argument = new EmptyBean();
+	}
 }

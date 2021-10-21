@@ -33,12 +33,13 @@ public final class Checkpoint {
 	private void setPeriod(int value) {
 		Period = value;
 	}
-	private Task RunningTask = null;
 
 	private CheckpointMode Mode = CheckpointMode.Period;
 	public CheckpointMode getCheckpointMode() {
 		return Mode;
 	}
+
+	private Thread CheckpointThread;
 
 	public Checkpoint(CheckpointMode mode) {
 		Mode = mode;
@@ -83,7 +84,10 @@ public final class Checkpoint {
 
 			setRunning(true);
 			setPeriod(period);
-			RunningTask = Task.Run(() -> Run(), "Checkpoint.Run");
+			CheckpointThread = new Thread(
+					() -> Task.Call(() -> Run(), "Checkpoint.Run"),
+					"ChectpointThread");
+			CheckpointThread.start();
 		}
 	}
 
@@ -92,10 +96,10 @@ public final class Checkpoint {
 			setRunning(false);
 			this.notify();
 		}
-		if (RunningTask != null) {
+		if (null != CheckpointThread) {
 			try {
-				RunningTask.get();
-			} catch (InterruptedException | ExecutionException e) {
+				CheckpointThread.join();
+			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
 		}
