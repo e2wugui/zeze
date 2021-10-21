@@ -21,6 +21,7 @@ namespace Zeze.Util
         private string ExportDirectory = "../../";
         private readonly string ZezexDirectory = "./";
         private string Lang = "cs";
+        private string InnerSrcDir = "";
 
         private Zezex(string [] args)
         {
@@ -38,6 +39,8 @@ namespace Zeze.Util
                     case "-modules": modules = args[++i]; break;
                 }
             }
+            if (Lang == "java")
+                InnerSrcDir = "src/";
         }
 
         private static void Usage()
@@ -65,7 +68,6 @@ namespace Zeze.Util
                 Usage();
                 return;
             }
-
             x.Export();
         }
 
@@ -83,9 +85,10 @@ namespace Zeze.Util
                 return false;
             }
             ExportDirectory = Path.Combine(ExportDirectory, SolutionName);
-            if (Directory.Exists(ExportDirectory))
+            var firstExportVersionFile = Path.Combine(ExportDirectory, "FirstExport.Version");
+            if (Directory.Exists(ExportDirectory) && File.Exists(firstExportVersionFile))
             {
-                FirstExportVersion = File.ReadAllLines(Path.Combine(ExportDirectory, "FirstExport.Version"))[0];
+                FirstExportVersion = File.ReadAllLines(firstExportVersionFile)[0];
             }
             if (false == Directory.Exists(ZezexDirectory))
             {
@@ -375,24 +378,24 @@ namespace Zeze.Util
             var serverDir = Path.Combine(ExportDirectory, serverName);
             Directory.CreateDirectory(serverDir);
 
-            ReplaceAndCopyTo($"server/Program.{Lang}", serverDir);
+            ReplaceAndCopyTo($"server/{InnerSrcDir}Program.{Lang}", serverDir);
             if (Lang == "cs")
                 ReplaceAndCopyTo("server/server.csproj", Path.Combine(serverDir, $"{serverName}.csproj"));
-            ReplaceAndCopyTo("server/zeze.xml", serverDir);
+            ReplaceAndCopyTo($"server/zeze.xml", serverDir);
 
-            ReplaceAndCopyTo("server/Zezex", serverDir);
+            ReplaceAndCopyTo($"server/{InnerSrcDir}Zezex", serverDir);
 
             var moduleBasedir = Path.Combine(serverDir, SolutionName);
             Directory.CreateDirectory(moduleBasedir);
 
-            ReplaceAndCopyTo($"server/Game/App.{Lang}", moduleBasedir);
-            ReplaceAndCopyTo($"server/Game/Config.{Lang}", moduleBasedir);
-            ReplaceAndCopyTo($"server/Game/Load.{Lang}", moduleBasedir);
-            ReplaceAndCopyTo($"server/Game/Server.{Lang}", moduleBasedir);
+            ReplaceAndCopyTo($"server/{InnerSrcDir}Game/App.{Lang}", moduleBasedir);
+            ReplaceAndCopyTo($"server/{InnerSrcDir}Game/Config.{Lang}", moduleBasedir);
+            ReplaceAndCopyTo($"server/{InnerSrcDir}Game/Load.{Lang}", moduleBasedir);
+            ReplaceAndCopyTo($"server/{InnerSrcDir}Game/Server.{Lang}", moduleBasedir);
 
             foreach (var m in ModulesExported)
             {
-                ReplaceAndCopyTo($"server/Game/{m}", moduleBasedir);
+                ReplaceAndCopyTo($"server/{InnerSrcDir}Game/{m}", moduleBasedir);
             }
         }
 
@@ -423,10 +426,10 @@ namespace Zeze.Util
 
             var linkdDir = Path.Combine(ExportDirectory, "linkd");
             Directory.CreateDirectory(linkdDir);
-            ReplaceAndCopyTo("linkd/Zezex", linkdDir);
+            ReplaceAndCopyTo($"linkd/{InnerSrcDir}Zezex", linkdDir);
             if (Lang == "cs")
                 ReplaceAndCopyTo("linkd/linkd.csproj", linkdDir);
-            ReplaceAndCopyTo("linkd/Program.{Lang}", linkdDir);
+            ReplaceAndCopyTo($"linkd/{InnerSrcDir}Program.{Lang}", linkdDir);
             ReplaceAndCopyTo("linkd/zeze.xml", linkdDir);
         }
 

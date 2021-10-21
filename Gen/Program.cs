@@ -6,10 +6,12 @@ namespace Gen
     {
         public static void Main(string[] args)
         {
+            /*
             var rname = typeof(Zeze.Services.ServiceManager.Register).FullName;
             Console.WriteLine(rname);
             Console.WriteLine(Zeze.Transaction.Bean.Hash16(rname));
             return;
+            */
             string command = "gen";
             for (int i = 0; i < args.Length; ++i)
             {
