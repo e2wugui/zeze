@@ -375,7 +375,7 @@ namespace Zeze.Util
             ReplaceAndCopyTo("gen.bat", ExportDirectory);
 
             var serverName = GetServerProjectName();
-            var serverDir = Path.Combine(ExportDirectory, serverName);
+            var serverDir = Path.Combine(ExportDirectory, serverName, InnerSrcDir);
             Directory.CreateDirectory(serverDir);
 
             ReplaceAndCopyTo($"server/{InnerSrcDir}Program.{Lang}", serverDir);
@@ -384,14 +384,20 @@ namespace Zeze.Util
                 ReplaceAndCopyTo("server/server.csproj", Path.Combine(serverDir, $"{serverName}.csproj"));
                 ReplaceAndCopyTo($"server/zeze.xml", serverDir);
             }
-
+            else
+            {
+                ReplaceAndCopyTo($"server/{InnerSrcDir}org", serverDir);
+            }
             ReplaceAndCopyTo($"server/{InnerSrcDir}Zezex", serverDir);
 
             var moduleBasedir = Path.Combine(serverDir, SolutionName);
             Directory.CreateDirectory(moduleBasedir);
 
             ReplaceAndCopyTo($"server/{InnerSrcDir}Game/App.{Lang}", moduleBasedir);
-            ReplaceAndCopyTo($"server/{InnerSrcDir}Game/Config.{Lang}", moduleBasedir);
+            if (Lang == "cs")
+                ReplaceAndCopyTo($"server/{InnerSrcDir}Game/Config.{Lang}", moduleBasedir);
+            else
+                ReplaceAndCopyTo($"server/{InnerSrcDir}Game/MyConfig.{Lang}", moduleBasedir);
             ReplaceAndCopyTo($"server/{InnerSrcDir}Game/Load.{Lang}", moduleBasedir);
             ReplaceAndCopyTo($"server/{InnerSrcDir}Game/Server.{Lang}", moduleBasedir);
 
@@ -413,7 +419,7 @@ namespace Zeze.Util
                     source = source.Replace("namespace Game", $"namespace {SolutionName}");
                     source = source.Replace("Game.", $"{SolutionName}.");
                     source = source.Replace("Game_", $"{SolutionName}_");
-                    source = source.Replace("package Game.", $"{SolutionName}."); // java
+                    source = source.Replace("package Game", $"package {SolutionName}"); // java
 
                     source = source.Replace("Include=\"..\\..\\Zeze\\Zeze.csproj\"", "Include=\"..\\..\\zeze\\Zeze\\Zeze.csproj\"");
                     source = source.Replace("..\\Gen\\bin\\", "..\\zeze\\Gen\\bin\\");
@@ -426,7 +432,7 @@ namespace Zeze.Util
         {
             ReplaceAndCopyTo("solution.linkd.xml", ExportDirectory);
 
-            var linkdDir = Path.Combine(ExportDirectory, "linkd");
+            var linkdDir = Path.Combine(ExportDirectory, "linkd", InnerSrcDir);
             Directory.CreateDirectory(linkdDir);
             ReplaceAndCopyTo($"linkd/{InnerSrcDir}Zezex", linkdDir);
             if (Lang == "cs")
