@@ -380,8 +380,10 @@ namespace Zeze.Util
 
             ReplaceAndCopyTo($"server/{InnerSrcDir}Program.{Lang}", serverDir);
             if (Lang == "cs")
+            {
                 ReplaceAndCopyTo("server/server.csproj", Path.Combine(serverDir, $"{serverName}.csproj"));
-            ReplaceAndCopyTo($"server/zeze.xml", serverDir);
+                ReplaceAndCopyTo($"server/zeze.xml", serverDir);
+            }
 
             ReplaceAndCopyTo($"server/{InnerSrcDir}Zezex", serverDir);
 
@@ -428,9 +430,11 @@ namespace Zeze.Util
             Directory.CreateDirectory(linkdDir);
             ReplaceAndCopyTo($"linkd/{InnerSrcDir}Zezex", linkdDir);
             if (Lang == "cs")
+            {
                 ReplaceAndCopyTo("linkd/linkd.csproj", linkdDir);
+                ReplaceAndCopyTo("linkd/zeze.xml", linkdDir);
+            }
             ReplaceAndCopyTo($"linkd/{InnerSrcDir}Program.{Lang}", linkdDir);
-            ReplaceAndCopyTo("linkd/zeze.xml", linkdDir);
         }
 
         /// <summary>
