@@ -195,7 +195,9 @@ public final class Transaction {
 					procedure.getZeze().getCheckpoint().ExitFlushReadLock();
 				}
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
-				procedure.getZeze().getCheckpoint().WaitRun();
+				//这行代码应该是当时缓存同步线程饥饿问题加的保险措施。
+				//应该是不需要的。先注释掉看看。
+				//procedure.getZeze().getCheckpoint().WaitRun();
 			}
 			logger.error("Transaction.Perform:{}. too many try.", procedure);
 			_final_rollback_(procedure);
