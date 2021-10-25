@@ -107,16 +107,8 @@ ConcurrentMap 并发
 	1. lock(value)
 	2. duplicate key
 
-zzuser
-	BDepartmentTreeNode 分块存储
-
 Socket async surpport
 	用来给纯转发服务器用，可以避免使用多线程。
-
-NPinyin C# 删除无用的函数
-
-Transaction.Collections c#
-	去掉 is instanceof。
 
 ReentrantReadWriteLock
 	拥有 readLock 时，再次去锁 writeLock 会怎么样。

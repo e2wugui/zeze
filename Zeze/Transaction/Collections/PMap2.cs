@@ -25,7 +25,8 @@ namespace Zeze.Transaction.Collections
                     value.VariableId = this.VariableId;
                     var txn = Transaction.Current;
                     txn.VerifyRecordAccessed(this);
-                    var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                    var log = (LogV)txn.GetLog(LogKey);
+                    var oldv = log == null ? map : log.Value;
                     var newv = oldv.SetItem(key, value);
                     if (newv != oldv)
                     {
@@ -54,7 +55,8 @@ namespace Zeze.Transaction.Collections
                 value.VariableId = this.VariableId;
                 var txn = Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var log = (LogV)txn.GetLog(LogKey);
+                var oldv = log == null ? map : log.Value;
                 var newv = oldv.Add(key, value);
                 if (newv != oldv)
                 {
@@ -87,7 +89,8 @@ namespace Zeze.Transaction.Collections
                 }
                 var txn = Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var log = (LogV)txn.GetLog(LogKey);
+                var oldv = log == null ? map : log.Value;
                 var newv = oldv.AddRange(pairs);
                 if (newv != oldv)
                 {
@@ -118,7 +121,8 @@ namespace Zeze.Transaction.Collections
                 value.VariableId = this.VariableId;
                 var txn = Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var log = (LogV)txn.GetLog(LogKey);
+                var oldv = log == null ? map : log.Value;
                 var newv = oldv.SetItem(key, value);
                 if (newv != oldv)
                 {
@@ -151,7 +155,8 @@ namespace Zeze.Transaction.Collections
                 }
                 var txn = Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var log = (LogV)txn.GetLog(LogKey);
+                var oldv = log == null ? map : log.Value;
                 var newv = oldv.SetItems(pairs);
                 if (newv != oldv)
                 {
@@ -182,7 +187,8 @@ namespace Zeze.Transaction.Collections
                 item.Value.VariableId = this.VariableId;
                 var txn = Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var log = (LogV)txn.GetLog(LogKey);
+                var oldv = log == null ? map : log.Value;
                 var newv = oldv.Add(item.Key, item.Value);
                 if (newv != oldv)
                 {
@@ -202,7 +208,8 @@ namespace Zeze.Transaction.Collections
             {
                 var txn = Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var log = (LogV)txn.GetLog(LogKey);
+                var oldv = log == null ? map : log.Value;
                 if (!oldv.IsEmpty)
                 {
                     ChangeNoteMap2<K, V> note = (ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.ObjectId, () => new ChangeNoteMap2<K, V>(this));
@@ -225,7 +232,8 @@ namespace Zeze.Transaction.Collections
             {
                 var txn = Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var log = (LogV)txn.GetLog(LogKey);
+                var oldv = log == null ? map : log.Value;
                 var newv = oldv.Remove(key);
                 if (newv != oldv)
                 {
@@ -252,7 +260,8 @@ namespace Zeze.Transaction.Collections
             {
                 var txn = Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                var oldv = txn.GetLog(LogKey) is LogV log ? log.Value : map;
+                var log = (LogV)txn.GetLog(LogKey);
+                var oldv = log == null ? map : log.Value;
                 if (oldv.TryGetValue(item.Key, out var olde) && olde.Equals(item.Value))
                 {
                     var newv = oldv.Remove(item.Key);
