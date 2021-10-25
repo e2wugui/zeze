@@ -1,6 +1,5 @@
 package Zeze.Net;
 
-import java.io.Serial;
 
 // RFC2118
 public final class Decompress implements Codec {
@@ -13,7 +12,6 @@ public final class Decompress implements Codec {
 	private int hpos = 0;
 
 	public static class UncompressException extends CodecException {
-		@Serial
 		private static final long serialVersionUID = -3837317279182358389L;
 	}
 

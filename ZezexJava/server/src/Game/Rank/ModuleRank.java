@@ -324,26 +324,26 @@ public class ModuleRank extends AbstractModule {
 	 一般选择一个足够大，但是又不能太大的数据。
 	*/
 	public final int GetConcurrentLevel(int rankType) {
-		return switch (rankType) {
-			case BConcurrentKey.RankTypeGold -> 128;
-			default -> 128; // default
-		};
+		switch (rankType) {
+			case BConcurrentKey.RankTypeGold: return 128;
+			default: return 128; // default
+		}
 	}
 
 	// 为排行榜设置需要的数量。【有默认值】
 	public final int GetRankCount(int rankType) {
-		return switch (rankType) {
-			case BConcurrentKey.RankTypeGold -> 100;
-			default -> 100;
-		};
+		switch (rankType) {
+			case BConcurrentKey.RankTypeGold: return 100;
+			default: return 100;
+		}
 	}
 
 	// 排行榜中间数据的数量。【有默认值】
 	public final int GetRankComputeCount(int rankType) {
-		return switch (rankType) {
-			case BConcurrentKey.RankTypeGold -> 500;
-			default -> GetRankCount(rankType) * 5;
-		};
+		switch (rankType) {
+			case BConcurrentKey.RankTypeGold: return 500;
+			default: return GetRankCount(rankType) * 5;
+		}
 	}
 
 	public final long GetCounter(long roleId, BConcurrentKey keyHint) {

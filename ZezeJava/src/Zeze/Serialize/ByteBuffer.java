@@ -785,7 +785,8 @@ public final class ByteBuffer {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (obj instanceof ByteBuffer other) {
+		if (obj instanceof ByteBuffer) {
+			var other = (ByteBuffer)obj;
 			return equals(other);
 		}
 		return false;
@@ -888,19 +889,22 @@ public final class ByteBuffer {
 	public static void SkipUnknownField(int tagid, ByteBuffer bb) {
 		int tagType = tagid & TAG_MASK;
 		switch (tagType) {
-			case BOOL -> bb.ReadBool();
-			case BYTE -> bb.ReadByte();
-			case SHORT -> bb.ReadShort();
-			case INT -> bb.ReadInt();
-			case LONG -> bb.ReadLong();
-			case FLOAT -> bb.ReadFloat();
-			case DOUBLE -> bb.ReadDouble();
-			case STRING, BYTES, LIST, SET, MAP, BEAN -> bb.SkipBytes();
-			case DYNAMIC -> {
+			case BOOL: bb.ReadBool(); return;
+			case BYTE: bb.ReadByte(); return;
+			case SHORT: bb.ReadShort(); return;
+			case INT: bb.ReadInt(); return;
+			case LONG: bb.ReadLong(); return;
+			case FLOAT: bb.ReadFloat(); return;
+			case DOUBLE: bb.ReadDouble(); return;
+			case STRING: case BYTES: case LIST: case SET: case MAP: case BEAN:
+				bb.SkipBytes(); return;
+			case DYNAMIC: {
 				bb.ReadLong8();
 				bb.SkipBytes();
+				return;
 			}
-			default -> throw new RuntimeException("SkipUnknownField");
+			default:
+				throw new RuntimeException("SkipUnknownField");
 		}
 	}
 

@@ -79,7 +79,8 @@ public final class Binary {
 			return true;
 		}
 
-		if (obj instanceof Binary other) {
+		if (obj instanceof Binary) {
+			var other = (Binary)obj;
 			return equals(other);
 		}
 

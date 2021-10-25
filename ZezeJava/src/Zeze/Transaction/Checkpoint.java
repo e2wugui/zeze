@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -228,7 +230,10 @@ public final class Checkpoint {
 	}
 
 	public void Flush(Transaction trans) {
-		Flush(trans.getAccessedRecords().values().stream().filter((r) -> r.Dirty).map((r) -> r.OriginRecord).toList());
+		var result = trans.getAccessedRecords().values()
+				.stream().filter((r) -> r.Dirty).map((r) -> r.OriginRecord)
+				.collect(Collectors.toList());
+		Flush(result);
 	}
 
 	public void Flush(java.lang.Iterable<Record> rs) {
