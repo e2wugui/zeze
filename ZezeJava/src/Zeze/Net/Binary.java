@@ -13,8 +13,16 @@ public final class Binary {
 		return _Bytes[index];
 	}
 
-	public byte[] InternalGetBytesUnsafe() {
+	byte[] InternalGetBytesUnsafe() {
 		return _Bytes;
+	}
+
+	public void Encode(Zeze.Serialize.ByteBuffer bb) {
+		bb.WriteBytes(_Bytes, Offset, Count);
+	}
+
+	public Zeze.Serialize.ByteBuffer Wrap() {
+		return Zeze.Serialize.ByteBuffer.Wrap(_Bytes, Offset, Count);
 	}
 
 	private final int Offset;

@@ -3,12 +3,12 @@
   <component name="EclipseModuleManager">
     <libelement value="jar://$MODULE_DIR$/lib/log4j-api-2.14.1.jar!/" />
     <libelement value="jar://$MODULE_DIR$/lib/log4j-core-2.14.1.jar!/" />
-    <libelement value="jar://$MODULE_DIR$/lib/commons-logging-1.2.jar!/" />
     <libelement value="jar://$MODULE_DIR$/lib/pcollections-3.1.4.jar!/" />
     <libelement value="jar://$MODULE_DIR$/lib/commons-dbcp2-2.9.0.jar!/" />
     <libelement value="jar://$MODULE_DIR$/lib/commons-pool2-2.11.1.jar!/" />
-    <src_description expected_position="0">
-      <src_folder value="file://$MODULE_DIR$/src" expected_position="0" />
+    <libelement value="jar://$MODULE_DIR$/lib/commons-logging-1.2.jar!/" />
+    <src_description expected_position="1">
+      <src_folder value="file://$MODULE_DIR$/src" expected_position="1" />
     </src_description>
   </component>
   <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_11">
@@ -19,17 +19,60 @@
     </content>
     <orderEntry type="jdk" jdkName="11" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module-library">
-      <library>
+    <orderEntry type="module-library" exported="">
+      <library name="log4j-api-2.14.1.jar">
         <CLASSES>
-          <root url="file://$MODULE_DIR$/lib" />
+          <root url="jar://$MODULE_DIR$/lib/log4j-api-2.14.1.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="file://$MODULE_DIR$/lib" />
+          <root url="file://lib/log4j-api-2.14.1-sources.jar" />
         </SOURCES>
-        <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" />
-        <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" type="SOURCES" />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library" exported="">
+      <library name="log4j-core-2.14.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/log4j-core-2.14.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="pcollections-3.1.4.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/pcollections-3.1.4.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="commons-dbcp2-2.9.0.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/commons-dbcp2-2.9.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="commons-pool2-2.11.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/commons-pool2-2.11.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="commons-logging-1.2.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/commons-logging-1.2.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
       </library>
     </orderEntry>
   </component>
