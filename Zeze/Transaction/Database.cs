@@ -7,7 +7,7 @@ using System.Collections.Concurrent;
 using System.Data.SqlClient;
 using MySql.Data.MySqlClient;
 using System.Data;
-#endif
+#endif // USE_DATABASE
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
@@ -1205,7 +1205,7 @@ namespace Zeze.Transaction
             }
         }
     }
-#endif
+#endif // USE_DATABASE
     /// <summary>
     /// Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
     /// </summary>

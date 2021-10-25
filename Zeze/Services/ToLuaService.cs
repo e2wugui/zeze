@@ -1,6 +1,4 @@
 ﻿
-//#define USE_KERA_LUA
-
 using System;
 using System.Collections.Generic;
 using System.Text;
