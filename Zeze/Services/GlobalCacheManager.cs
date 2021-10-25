@@ -968,7 +968,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class Cleanup : Zeze.Net.Rpc<AchillesHeel, Zeze.Transaction.EmptyBean>
+    public sealed class Cleanup : Rpc<AchillesHeel, EmptyBean>
     {
         public readonly static int ProtocolId_ = Bean.Hash16(typeof(Cleanup).FullName);
 
@@ -1053,5 +1053,30 @@ namespace Zeze.Services.GlobalCacheManager
             bb.WriteString(TableName);
             bb.WriteBytes(Key);
         }
+    }
+
+    /// <summary>
+    /// AchillesHeel!
+    /// GlobalAgent 定时发送KeepAlive，只要发现GlobalCacheManager没有相应，
+    ///     就释放本地从该GlobalCacheManager申请的资源。
+    /// GlobalCacheManager 一定时间（大于客户端发送间隔的两倍）没有收到某个GlobalAgent的KeepAlive，
+    ///     就释放该GlobalAgent拥有的资源。【关键】这样定义是否足够，有没有数据安全问题？
+    /// 【问题】
+    ///     a) 如果GlobalAgent发送KeepAlive的代码死了（不能正确清理本地资源的状态），
+    ///     但是其他执行事务的模块还活着，此时就需要把执行事务的模块通过检查一个标志，禁止活动，
+    ///     检查这个这个标志在多个GlobalCacheManager时不容易高效实现。
+    ///     b) 实行事务时检查标志的代码可能也会某些原因失效，那就更复杂了。
+    ///     c) 另外本地要在KeepAlive失败时自动清理，需要记录锁修改状态，并且能正确Checkpoint。
+    ///     这在某些异常原因导致本地服务器死掉时很可能无法正常进行。而此时GlobalCacheManager
+    ///     超时就清理还是有风险。
+    ///     *) 总之，可能的情况太多，KeepAlive还是不够安全。
+    ///     所以先不实现了。
+    /// </summary>
+    public sealed class KeepAlive : Rpc<EmptyBean, EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash16(typeof(KeepAlive).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
     }
 }

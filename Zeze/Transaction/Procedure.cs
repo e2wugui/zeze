@@ -98,6 +98,11 @@ namespace Zeze.Transaction
 #endif
                 return result;
             }
+            catch (RedoException)
+            {
+                currentT.Rollback();
+                throw; // 抛出这个异常，重做，提前检测数据发生了改变。
+            }
             catch (AbortException)
             {
                 currentT.Rollback();

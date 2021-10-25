@@ -159,6 +159,11 @@ namespace Zeze.Transaction
                                 checkResult = CheckResult.RedoAndReleaseLock;
                                 logger.Debug(redorelease, "RedoAndReleaseLockException");
                             }
+                            catch (RedoException redo)
+                            {
+                                checkResult = CheckResult.Redo;
+                                logger.Debug(redo, "RedoException");
+                            }
                             catch (AbortException abort)
                             {
                                 logger.Debug(abort, "Transaction.Perform: Abort");
@@ -458,6 +463,10 @@ namespace Zeze.Transaction
                 throw new Exception($"VerifyRecordAccessed: Record Not Control Under Current Transastion. {bean.TableKey}");
             if (bean.RootInfo.Record != ra.OriginRecord)
                 throw new Exception($"VerifyRecordAccessed: Record Reloaded.{bean.TableKey}");
+            // 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
+            // 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
+            if (false == IsCompleted && ra.OriginRecord.Timestamp != ra.Timestamp)
+                throw new RedoException();
         }
 
         enum CheckResult

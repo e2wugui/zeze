@@ -1,4 +1,4 @@
-﻿local Module2Impl = {}
+local Module2Impl = {}
 
 local Zeze = require 'Zeze'
 

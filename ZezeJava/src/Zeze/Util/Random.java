@@ -27,4 +27,8 @@ public final class Random {
 		}
 		return list;
 	}
+
+	public static void main(String args[]) {
+		System.out.println(Instance.nextLong());
+	}
 }

@@ -121,10 +121,13 @@ Transaction.Collections c#
 ReentrantReadWriteLock
 	拥有 readLock 时，再次去锁 writeLock 会怎么样。
 
-乐观锁引起的逻辑冲突
-	mvcc？
-	读写数据时判断一下timestamp，快速重做。
-
 AsyncSocket c#
 	优化，减少和逻辑层的互斥时间。
 	？？？使用一个空的outputListSending去调用SendAsync???好像不可行。
+
+可靠 udp for server - server connection
+
+   对于全局模块的请求在优化前通过压力测试得到最大吞吐量。
+   考虑zeze增加协议最大吞吐量配置，达到60%时自动发送警告。
+   默认最大吞吐量为单个数据执行+1计算并且cache命中100%时的值。
+   当然这个值仅对全局共享的数据的访问有用，对于天然并发的事务是没有参考价值的。

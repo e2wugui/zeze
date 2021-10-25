@@ -117,6 +117,10 @@ public class Procedure {
 
 			return result;
 		}
+		catch (RedoException e) {
+			currentT.Rollback();
+			throw e;
+		}
 		catch (AbortException e) {
 			currentT.Rollback();
 			throw e;

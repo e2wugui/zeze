@@ -145,6 +145,10 @@ public final class Transaction {
 							checkResult = CheckResult.RedoAndReleaseLock;
 							logger.debug("RedoAndReleaseLockException", redorelease);
 						}
+						catch (RedoException redo) {
+							checkResult = CheckResult.Redo;
+							logger.debug("RedoException", redo);
+						}
 						catch (AbortException abort) {
 							logger.debug("Transaction.Perform: Abort", abort);
 							_final_rollback_(procedure);
@@ -365,6 +369,10 @@ public final class Transaction {
 		if (bean.RootInfo.getRecord() != ra.OriginRecord) {
 			throw new RuntimeException("VerifyRecordAccessed: Record Reloaded. " + bean.getTableKey());
 		}
+		// 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
+		// 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
+		if (false == IsCompleted && ra.OriginRecord.getTimestamp() != ra.Timestamp)
+			throw new RedoException();
 	}
 
 	private enum CheckResult {
