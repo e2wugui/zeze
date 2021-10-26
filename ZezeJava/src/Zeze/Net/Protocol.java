@@ -140,7 +140,7 @@ public abstract class Protocol implements Serializable {
 					var factoryHandle = service.FindProtocolFactoryHandle(type);
 					var pName = null == factoryHandle || null == factoryHandle.Factory
 							? "" : factoryHandle.Factory.create().getClass().getName();
-					throw new RuntimeException(Str.format("Decode InputBufferMaxProtocolSize '%1$s' p='%2$s' type=%3$s size=%4$s", service.getName(), pName, type, size));
+					throw new RuntimeException(Str.format("Decode InputBufferMaxProtocolSize '{}' p='{}' type={} size={}", service.getName(), pName, type, size));
 				}
 
 				// not enough data. try next time.
