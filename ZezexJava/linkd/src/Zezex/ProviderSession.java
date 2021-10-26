@@ -71,7 +71,7 @@ public class ProviderSession {
 				LinkSessionIds.put(moduleId, linkSids);
 			}
 			if (linkSids.add(linkSessionId)) {
-				Load.setOnline(Load.getOnline() + App.Instance.getConfig().getApproximatelyLinkdCount());
+				Load.setOnline(Load.getOnline() + App.Instance.getLinkConfig().getApproximatelyLinkdCount());
 				// 在真正的数据报告回来之前，临时增加统计。仅包括本linkd分配的。
 				// 本来Load应该总是由Provider报告的。
 				// linkd 的临时增加是为了能快速反应出报告间隔期间的分配。

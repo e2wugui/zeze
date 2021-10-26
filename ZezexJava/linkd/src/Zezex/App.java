@@ -40,12 +40,12 @@ public final class App extends Zeze.AppBase {
 		Destroy();
 	}
 
-	private Zezex.Config Config;
-	public Zezex.Config getConfig() {
-		return Config;
+	private Zezex.LinkConfig LinkConfig;
+	public Zezex.LinkConfig getLinkConfig() {
+		return LinkConfig;
 	}
-	private void setConfig(Zezex.Config value) {
-		Config = value;
+	private void setLinkConfig(Zezex.LinkConfig value) {
+		LinkConfig = value;
 	}
 	private Zeze.Services.ServiceManager.Agent ServiceManagerAgent;
 	public Zeze.Services.ServiceManager.Agent getServiceManagerAgent() {
@@ -60,13 +60,13 @@ public final class App extends Zeze.AppBase {
 	private void LoadConfig() {
 		try {
             byte [] bytes = Files.readAllBytes(Paths.get("linkd.json"));
-            setConfig(new JasonReader().buf(bytes).parse(Zezex.Config.class));
+            setLinkConfig(new JasonReader().buf(bytes).parse(Zezex.LinkConfig.class));
 		}
 		catch (Exception e) {
 			//MessageBox.Show(ex.ToString());
 		}
-		if (null == getConfig()) {
-			setConfig(new Zezex.Config());
+		if (null == getLinkConfig()) {
+			setLinkConfig(new LinkConfig());
 		}
 	}
 

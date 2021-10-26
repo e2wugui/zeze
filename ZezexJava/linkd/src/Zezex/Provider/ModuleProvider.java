@@ -61,7 +61,7 @@ public final class ModuleProvider extends AbstractModule {
                 continue; // 这里发现关闭的服务，仅仅忽略.
             }
             all.add(ps);
-            if (ps.getOnlineNew() > App.Instance.getConfig().getMaxOnlineNew()) {
+            if (ps.getOnlineNew() > App.Instance.getLinkConfig().getMaxOnlineNew()) {
                 continue;
             }
             int weight = ps.getProposeMaxOnline() - ps.getOnline();
