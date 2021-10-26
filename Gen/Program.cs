@@ -7,11 +7,12 @@ namespace Gen
         public static void Main(string[] args)
         {
             /*
-            var rname = typeof(Zeze.Services.ServiceManager.Register).FullName;
+            var rname = typeof(Zeze.Services.ServiceManager.SubscribeFirstCommit).FullName;
             Console.WriteLine(rname);
             Console.WriteLine(Zeze.Transaction.Bean.Hash16(rname));
+            Console.WriteLine(new Zeze.Services.ServiceManager.SubscribeFirstCommit().TypeId);
             return;
-            */
+            // */
             string command = "gen";
             for (int i = 0; i < args.Length; ++i)
             {

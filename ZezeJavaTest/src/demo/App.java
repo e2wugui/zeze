@@ -8,7 +8,7 @@ import java.util.*;
 import Zeze.Config;
 
 
-public class App {
+public class App extends Zeze.AppBase {
 
     public static App Instance = new App();
     public static App getInstance() {

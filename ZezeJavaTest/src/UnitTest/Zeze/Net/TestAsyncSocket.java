@@ -6,6 +6,15 @@ import Zeze.Util.*;
 import junit.framework.TestCase;
 
 public class TestAsyncSocket extends TestCase {
+	public void testMain() {
+		var typeId = new Zeze.Services.ServiceManager.SubscribeFirstCommit().getTypeId();
+		System.out.println(typeId);
+		var name = Zeze.Services.ServiceManager.SubscribeFirstCommit.class.getName();
+		System.out.println(name);
+		var pid = Zeze.Transaction.Bean.Hash16(name);
+		System.out.println(pid);
+	}
+
 	public static class ServiceClient extends Service {
 		public TaskCompletionSource<Boolean> Future = new TaskCompletionSource<>();
 		public ServiceClient() {
