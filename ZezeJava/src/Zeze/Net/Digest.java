@@ -19,7 +19,6 @@ public final class Digest {
 		}
 	}
 
-	// TODO 需要确认一下写法对不对。
 	public static byte[] HmacMd5(byte[] key, byte[] data, int offset, int length) {
 		try {
 			var mac = Mac.getInstance("HmacMD5");

@@ -40,7 +40,7 @@ public abstract class Bean implements Zeze.Serialize.Serializable {
 		return VariableId;
 	}
 
-	// TODO 这个方法应该仅用于内部。
+	// 这个方法应该仅用于内部。
 	public final void setVariableId(int value) {
 		VariableId = value;
 	}

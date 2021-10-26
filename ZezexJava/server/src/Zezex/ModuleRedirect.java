@@ -1,14 +1,10 @@
 package Zezex;
 
-import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import Game.Rank.BRankList;
 import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Transaction;
@@ -17,20 +13,8 @@ import Zeze.Util.Str;
 import Zezex.Provider.BActionParam;
 import org.mdkt.compiler.InMemoryJavaCompiler;
 
-import java.net.URI;
-import java.nio.CharBuffer;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.tools.FileObject;
-import javax.tools.ForwardingJavaFileManager;
-import javax.tools.JavaFileManager;
-import javax.tools.JavaFileObject;
-import javax.tools.JavaFileObject.Kind;
-import javax.tools.SimpleJavaFileObject;
-import javax.tools.JavaCompiler;
-import javax.tools.StandardJavaFileManager;
-import javax.tools.ToolProvider;
 
 /** 
  把模块的方法调用发送到其他服务器实例上执行。
@@ -58,22 +42,6 @@ public class ModuleRedirect {
 	}
 
 	public static ModuleRedirect Instance = new ModuleRedirect();
-
-	// TODO delete me
-	private String SrcDirWhenPostBuild;
-	public final String getSrcDirWhenPostBuild() {
-		return SrcDirWhenPostBuild;
-	}
-	public final void setSrcDirWhenPostBuild(String value) {
-		SrcDirWhenPostBuild = value;
-	}
-	private boolean HasNewGen = false;
-	public final boolean getHasNewGen() {
-		return HasNewGen;
-	}
-	private void setHasNewGen(boolean value) {
-		HasNewGen = value;
-	}
 
 	public enum OverrideType {
 		Redirect,

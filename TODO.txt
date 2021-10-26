@@ -123,3 +123,10 @@ AsyncSocket c#
    考虑zeze增加协议最大吞吐量配置，达到60%时自动发送警告。
    默认最大吞吐量为单个数据执行+1计算并且cache命中100%时的值。
    当然这个值仅对全局共享的数据的访问有用，对于天然并发的事务是没有参考价值的。
+
+gen 出错时处理可能有问题
+
+确认zezex islocal loopback redirect 的实现
+
+friends 遍历：tail改成事务外，其他事务内。减少tail竞争，其他node竞争小，不copy。
+活跃好友一般只发生在tail，选择合适的node.list.size。

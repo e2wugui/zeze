@@ -126,14 +126,11 @@ public final class Transaction {
 							if (checkResult == CheckResult.Success) {
 								if (result == Procedure.Success) {
 									_final_commit_(procedure);
-//C# TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-//#if ENABLE_STATISTICS
 									// 正常一次成功的不统计，用来观察redo多不多。
 									// 失败在 Procedure.cs 中的统计。
 									if (tryCount > 0) {
 										ProcedureStatistics.getInstance().GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).incrementAndGet();
 									}
-//#endif
 									return Procedure.Success;
 								}
 								_final_rollback_(procedure);
