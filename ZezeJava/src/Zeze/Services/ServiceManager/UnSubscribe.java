@@ -18,4 +18,10 @@ public final class UnSubscribe extends Rpc<SubscribeInfo, EmptyBean> {
 	public int getProtocolId() {
 		return ProtocolId_;
 	}
+	
+
+	public UnSubscribe() {
+		Argument = new SubscribeInfo();
+		Result = new EmptyBean();
+	}
 }

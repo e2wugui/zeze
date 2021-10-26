@@ -21,4 +21,10 @@ public class Register extends Rpc<ServiceInfo, EmptyBean> {
 	public int getProtocolId() {
 		return ProtocolId_;
 	}
+
+	public Register(){
+		this.Argument = new ServiceInfo();
+		this.Result = new EmptyBean();
+	}
+
 }

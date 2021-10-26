@@ -14,4 +14,9 @@ public final class AllocateId extends Rpc<AllocateIdArgument, AllocateIdResult> 
 	public int getProtocolId() {
 		return ProtocolId_;
 	}
+	
+	public AllocateId() {
+		Argument = new AllocateIdArgument();
+		Result = new AllocateIdResult();
+	}
 }

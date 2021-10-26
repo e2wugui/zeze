@@ -22,4 +22,9 @@ public final class UnRegister extends Rpc<ServiceInfo, EmptyBean> {
 	public int getProtocolId() {
 		return ProtocolId_;
 	}
+	
+	public UnRegister() {
+		Argument = new ServiceInfo();
+		Result = new EmptyBean();
+	}
 }
