@@ -128,5 +128,8 @@ gen 出错时处理可能有问题
 
 确认zezex islocal loopback redirect 的实现
 
-friends 遍历：tail改成事务外，其他事务内。减少tail竞争，其他node竞争小，不copy。
-活跃好友一般只发生在tail，选择合适的node.list.size。
+定时器：Timeout & Timer
+
+c# 发布 exe dll
+    for unity ： 使用 framework.
+    有一些 .net 5 才有api需要处理。

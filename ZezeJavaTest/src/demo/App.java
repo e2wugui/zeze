@@ -43,15 +43,11 @@ public class App {
 
     public demo.Server Server;
 
-    public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
-        return module;
-    }
-
     public void Create() {
         Create(null);
     }
 
-    public void Create(Config config) {
+    public void Create(Zeze.Config config) {
         synchronized (this) {
             if (null != Zeze)
                 return;
@@ -61,11 +57,13 @@ public class App {
             Server = new demo.Server(Zeze);
 
             demo_Module1 = new demo.Module1.ModuleModule1(this);
+            demo_Module1.Initialize(this);
             demo_Module1 = (demo.Module1.ModuleModule1)ReplaceModuleInstance(demo_Module1);
             if (null != Modules.put(demo_Module1.getName(), demo_Module1)) {
                 throw new RuntimeException("duplicate module name: demo_Module1");
             }
             demo_Module1_Module11 = new demo.Module1.Module11.ModuleModule11(this);
+            demo_Module1_Module11.Initialize(this);
             demo_Module1_Module11 = (demo.Module1.Module11.ModuleModule11)ReplaceModuleInstance(demo_Module1_Module11);
             if (null != Modules.put(demo_Module1_Module11.getName(), demo_Module1_Module11)) {
                 throw new RuntimeException("duplicate module name: demo_Module1_Module11");

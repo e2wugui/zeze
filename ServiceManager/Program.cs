@@ -46,19 +46,6 @@ namespace ServiceManager
             }
         }
 
-        public static void TestServiceManager()
-        {
-            var test = new UnitTest.Zeze.Misc.TestServiceManager();
-            try
-            {
-                test.Test1();
-            }
-            finally
-            {
-                test.TestCleanup();
-            }
-        }
-
         public static void TestRocksDb()
         {
             string temp = System.IO.Path.GetTempPath();
