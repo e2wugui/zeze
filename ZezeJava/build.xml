@@ -27,7 +27,7 @@
         <delete dir="${build}"/>
     </target>
 
-    <target name="dist" depends="clean, compile, clean">
+    <target name="dist" depends="clean, compile">
         <jar jarfile="zeze.jar" basedir="${build}">
             <zipgroupfileset dir="${lib}" includes="commons-dbcp2-2.9.0.jar"/>
             <zipgroupfileset dir="${lib}" includes="commons-pool2-2.11.1.jar"/>
@@ -36,5 +36,6 @@
             <zipgroupfileset dir="${lib}" includes="log4j-core-2.14.1.jar"/>
             <zipgroupfileset dir="${lib}" includes="pcollections-3.1.4.jar"/>
         </jar>
+        <delete dir="${build}"/>
     </target>
 </project>
