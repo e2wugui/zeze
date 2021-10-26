@@ -1,0 +1,40 @@
+<project name="zeze" default="dist">
+
+    <property name="src" value="src/"/>
+    <property name="build" value="dist/"/>
+    <property name="lib" value="lib/"/>
+
+    <target name="init">
+        <mkdir dir="${build}"/>
+    </target>
+
+    <target name="compile" depends="init">
+        <path id="classpath">
+            <pathelement path="${lib}/commons-dbcp2-2.9.0.jar"/>
+            <pathelement path="${lib}/commons-pool2-2.11.1.jar"/>
+            <pathelement path="${lib}/jason.jar"/>
+            <pathelement path="${lib}/log4j-api-2.14.1.jar"/>
+            <pathelement path="${lib}/log4j-core-2.14.1.jar"/>
+            <pathelement path="${lib}/pcollections-3.1.4.jar"/>
+        </path>
+        <javac encoding="utf8" srcdir="${src}" destdir="${build}" includeantruntime="false"
+               classpathref="classpath" debug="true" debuglevel="lines,source">
+            <compilerarg line="-Xlint:unchecked"/>
+        </javac>
+    </target>
+
+    <target name="clean">
+        <delete dir="${build}"/>
+    </target>
+
+    <target name="dist" depends="clean, compile, clean">
+        <jar jarfile="zeze.jar" basedir="${build}">
+            <zipgroupfileset dir="${lib}" includes="commons-dbcp2-2.9.0.jar"/>
+            <zipgroupfileset dir="${lib}" includes="commons-pool2-2.11.1.jar"/>
+            <zipgroupfileset dir="${lib}" includes="jason.jar"/>
+            <zipgroupfileset dir="${lib}" includes="log4j-api-2.14.1.jar"/>
+            <zipgroupfileset dir="${lib}" includes="log4j-core-2.14.1.jar"/>
+            <zipgroupfileset dir="${lib}" includes="pcollections-3.1.4.jar"/>
+        </jar>
+    </target>
+</project>
