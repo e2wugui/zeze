@@ -6,6 +6,8 @@ import java.util.*;
 // ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 import Zeze.Config;
+import Zeze.Util.Benchmark;
+import Benchmark.*;
 
 
 public class App extends Zeze.AppBase {
@@ -20,10 +22,16 @@ public class App extends Zeze.AppBase {
     }
     
     public void Start(Config config) {
-        config.getDefaultTableConf().setCacheCapacity(1_000_000); // 测试本地事务性能需要容量大一点
+        // 测试本地事务性能需要容量大一点
+        if (config.getDefaultTableConf().getCacheCapacity() < ABasicSimpleAddOneThread.AddCount)
+            config.getDefaultTableConf().setCacheCapacity(ABasicSimpleAddOneThread.AddCount);
         var table1Conf = config.getTableConfMap().get("demo_Module1_Table1");
-        if (null != table1Conf)
-            table1Conf.setCacheCapacity(1_000_000);
+        if (null != table1Conf) {
+            if (table1Conf.getCacheCapacity() < ABasicSimpleAddOneThread.AddCount)
+                table1Conf.setCacheCapacity(ABasicSimpleAddOneThread.AddCount);
+            if (table1Conf.getCacheBuckets() < CBasicSimpleAddConcurrent.ConcurrentLevel)
+                table1Conf.setCacheBuckets((int)CBasicSimpleAddConcurrent.ConcurrentLevel);
+        }
         Create(config);
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。

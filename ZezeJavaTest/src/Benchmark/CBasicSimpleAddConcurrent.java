@@ -8,8 +8,8 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
 public class CBasicSimpleAddConcurrent extends TestCase {
-    public static long AddCount = 1_000_000L;
-    public static long ConcurrentLevel = 1_000L;
+    public final static long AddCount = 1_000_000L;
+    public final static long ConcurrentLevel = 1_000L;
 
     public void testBenchmark() throws ExecutionException, InterruptedException {
         App.Instance.Start();
@@ -19,8 +19,8 @@ public class CBasicSimpleAddConcurrent extends TestCase {
                 App.Instance.Zeze.NewProcedure(() -> Remove(k), "remove").Call();
             }
             System.out.println("benchmark start...");
+            ArrayList<Zeze.Util.Task> tasks = new ArrayList<>((int)AddCount);
             var b = new Zeze.Util.Benchmark();
-            ArrayList<Task> tasks = new ArrayList<>();
             for (long i = 0; i < AddCount; ++i) {
                 final long c = i % ConcurrentLevel;
                 tasks.add(Zeze.Util.Task.Run(
@@ -30,7 +30,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
             for (var task : tasks) {
                 task.get();
             }
-            b.Report(AddCount);
+            b.Report(this.getClass().getName(), AddCount);
             App.Instance.Zeze.NewProcedure(this::Check, "check").Call();
             for (long i = 0; i < ConcurrentLevel; ++i) {
                 final long k = i;

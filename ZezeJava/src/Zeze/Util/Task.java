@@ -36,6 +36,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 				int workerThreads = app.getConfig().getWorkerThreads() > 0
 						? app.getConfig().getWorkerThreads()
 						: Runtime.getRuntime().availableProcessors() * 30;
+				//System.out.println("workerThreads=" + workerThreads);
 				threadPool = new java.util.concurrent.ScheduledThreadPoolExecutor(workerThreads);
 			}
 			else {

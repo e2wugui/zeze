@@ -6,22 +6,22 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
 public class BBasicSimpleAddConcurrentWithConflict  extends TestCase {
-    public static long AddCount = 1000000L;
+    public final static long AddCount = 1_000_000L;
 
     public void testBenchmark() throws ExecutionException, InterruptedException {
         App.Instance.Start();
         try {
             App.Instance.Zeze.NewProcedure(this::Remove, "remove").Call();
             System.out.println("benchmark start...");
+            ArrayList<Zeze.Util.Task> tasks = new ArrayList<>((int)AddCount);
             var b = new Zeze.Util.Benchmark();
-            ArrayList<Zeze.Util.Task> tasks = new ArrayList<>();
             for (long i = 0; i < AddCount; ++i) {
                 tasks.add(Zeze.Util.Task.Run(App.Instance.Zeze.NewProcedure(this::Add, "Add"), null));
             }
             for (var task : tasks) {
                 task.get();
             }
-            b.Report(AddCount);
+            b.Report(this.getClass().getName(), AddCount);
             App.Instance.Zeze.NewProcedure(this::Check, "check").Call();
             App.Instance.Zeze.NewProcedure(this::Remove, "remove").Call();
         }

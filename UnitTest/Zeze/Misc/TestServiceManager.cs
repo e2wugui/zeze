@@ -13,12 +13,18 @@ namespace UnitTest.Zeze.Misc
     [TestClass]
     public class TestServiceManager
     {
+        [TestInitialize]
+        public void TestInit()
+        {
+            demo.App.Instance.Start();
+        }
         ServiceManagerServer ServiceManager;
         [TestCleanup]
         public void TestCleanup()
         {
             ServiceManager?.Dispose();
             ServiceManager = null;
+            demo.App.Instance.Stop();
         }
         TaskCompletionSource<int> future;
 
@@ -40,12 +46,12 @@ namespace UnitTest.Zeze.Misc
 
             future = new TaskCompletionSource<int>();
             // for reconnect
-            var clientConfig = global::Zeze.Config.Load();
+            var clientConfig = demo.App.Instance.Zeze.Config;
             var agentConfig = new global::Zeze.Net.ServiceConf();
             var agentName = "Zeze.Services.ServiceManager.Agent.Test";
             clientConfig.ServiceConfMap.TryAdd(agentName, agentConfig);
             agentConfig.AddConnector(new global::Zeze.Net.Connector(ip, port));
-            using var agent = new Agent(clientConfig, agentName);
+            using var agent = new Agent(demo.App.Instance.Zeze, agentName);
             agent.Client.Start();
             agent.RegisterService(serviceName, "1");
             agent.OnChanged = (state) =>

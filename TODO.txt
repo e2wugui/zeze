@@ -135,3 +135,4 @@ c# 发布 exe dll
     有一些 .net 5 才有api需要处理。
 
 Java concurrenthashmap 枚举的时候阻止读写？
+java Concurrent 没有起来，吞吐比纯conflict还低。

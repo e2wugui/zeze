@@ -4,7 +4,7 @@ import demo.App;
 import junit.framework.TestCase;
 
 public class ABasicSimpleAddOneThread extends TestCase {
-    public static long AddCount = 10000000L;
+    public final static long AddCount = 10_000_000L;
 
     public void testBenchmark() {
         App.Instance.Start();
@@ -15,7 +15,7 @@ public class ABasicSimpleAddOneThread extends TestCase {
             for (long i = 0; i < AddCount; ++i) {
                 App.Instance.Zeze.NewProcedure(this::Add, "Add").Call();
             }
-            b.Report(AddCount);
+            b.Report(this.getClass().getName(), AddCount);
             App.Instance.Zeze.NewProcedure(this::Check, "check").Call();
             App.Instance.Zeze.NewProcedure(this::Remove, "remove").Call();
         }

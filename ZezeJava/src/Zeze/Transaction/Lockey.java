@@ -138,7 +138,7 @@ public final class Lockey implements java.lang.Comparable<Lockey> {
 		// java 没有判断是否拥有读锁，不严格检查了状态了。
 	}
 
-public int compareTo(Lockey other) {
+	public int compareTo(Lockey other) {
 		if (other == null) {
 			return 1; // null always small
 		}

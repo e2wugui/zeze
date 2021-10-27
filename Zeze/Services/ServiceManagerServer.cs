@@ -672,6 +672,7 @@ namespace Zeze.Services.ServiceManager
         public ConcurrentDictionary<string, SubscribeState> SubscribeStates { get; }
             = new ConcurrentDictionary<string, SubscribeState>();
         public NetClient Client { get; private set; }
+        public Application Zeze { get; }
 
         /// <summary>
         /// 订阅服务状态发生变化时回调。
@@ -1087,8 +1088,10 @@ namespace Zeze.Services.ServiceManager
         /// 使用Config配置连接信息，可以配置是否支持重连。
         /// 用于测试：Agent.Client.NewClientSocket(...)，不会自动重连，不要和Config混用。
         /// </summary>
-        public Agent(Config config, string netServiceName = null)
+        public Agent(Application zeze, string netServiceName = null)
         {
+            Zeze = zeze;
+            var config = zeze.Config;
             if (null == config)
                 throw new Exception("Config is null");
 
@@ -1190,6 +1193,17 @@ namespace Zeze.Services.ServiceManager
                     Socket = null;
                 base.OnSocketClose(so, e);
             }
+
+            public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+            {
+                // Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
+                if (null != factoryHandle.Handle)
+                {
+                    Agent.Zeze.InternalThreadPool.QueueUserWorkItem(
+                        () => Util.Task.Call(() => factoryHandle.Handle(p), p));
+                }
+            }
+
         }
     }
 

@@ -66,7 +66,7 @@ namespace Zeze
             Config.CreateDatabase(Databases);
             GlobalAgent = new GlobalAgent(this);
             _checkpoint = new Checkpoint(Config.CheckpointMode, Databases.Values);
-            ServiceManagerAgent = new Agent(Config);
+            ServiceManagerAgent = new Agent(this);
         }
 
         public void AddTable(string dbName, Transaction.Table table)
