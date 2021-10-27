@@ -8,25 +8,27 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
 public class CBasicSimpleAddConcurrent extends TestCase {
-    public final static long AddCount = 1_000_000L;
-    public final static long ConcurrentLevel = 1_000L;
+    public final static int AddCount = 1_000_000;
+    public final static int ConcurrentLevel = 1_000;
 
     public void testBenchmark() throws ExecutionException, InterruptedException {
         App.Instance.Start();
         try {
-            for (long i = 0; i < ConcurrentLevel; ++i) {
+            for (int i = 0; i < ConcurrentLevel; ++i) {
                 final long k = i;
                 App.Instance.Zeze.NewProcedure(() -> Remove(k), "remove").Call();
             }
-            System.out.println("benchmark start...");
-            ArrayList<Zeze.Util.Task> tasks = new ArrayList<>((int)AddCount);
-            var b = new Zeze.Util.Benchmark();
-            for (long i = 0; i < AddCount; ++i) {
-                final long c = i % ConcurrentLevel;
-                tasks.add(Zeze.Util.Task.Run(
-                        App.Instance.Zeze.NewProcedure(() -> Add(c), "Add"),
-                        null));
+            ArrayList<Zeze.Util.Task> tasks = new ArrayList<>(AddCount);
+            for (int i = 0; i < AddCount; ++i) {
+                final int c = i % ConcurrentLevel;
+                tasks.add(Zeze.Util.Task.Create(App.Instance.Zeze.NewProcedure(() -> Add(c), "Add"), null, null));
             }
+            System.out.println("benchmark start...");
+            var b = new Zeze.Util.Benchmark();
+            for (var task : tasks) {
+                Zeze.Util.Task.Run(task);
+            }
+            b.Report(this.getClass().getName(), AddCount);
             for (var task : tasks) {
                 task.get();
             }
@@ -56,6 +58,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
     private int Add(long key) {
         var r = App.Instance.demo_Module1.getTable1().getOrAdd(key);
         r.setLong2(r.getLong2() + 1);
+        //System.out.println("Add=" + key);
         return 0;
     }
 

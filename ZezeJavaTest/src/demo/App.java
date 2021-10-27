@@ -20,18 +20,20 @@ public class App extends Zeze.AppBase {
     public void Start() {
     	Start(Config.Load("./zeze.xml"));
     }
-    
+
+    private void adjustTableConf(Config.TableConf conf) {
+        if (null != conf) {
+            if (conf.getCacheCapacity() < ABasicSimpleAddOneThread.AddCount)
+                conf.setCacheCapacity(ABasicSimpleAddOneThread.AddCount);
+            if (conf.getCacheConcurrencyLevel() < CBasicSimpleAddConcurrent.ConcurrentLevel)
+                conf.setCacheConcurrencyLevel((int)CBasicSimpleAddConcurrent.ConcurrentLevel);
+        }
+    }
     public void Start(Config config) {
         // 测试本地事务性能需要容量大一点
-        if (config.getDefaultTableConf().getCacheCapacity() < ABasicSimpleAddOneThread.AddCount)
-            config.getDefaultTableConf().setCacheCapacity(ABasicSimpleAddOneThread.AddCount);
-        var table1Conf = config.getTableConfMap().get("demo_Module1_Table1");
-        if (null != table1Conf) {
-            if (table1Conf.getCacheCapacity() < ABasicSimpleAddOneThread.AddCount)
-                table1Conf.setCacheCapacity(ABasicSimpleAddOneThread.AddCount);
-            if (table1Conf.getCacheBuckets() < CBasicSimpleAddConcurrent.ConcurrentLevel)
-                table1Conf.setCacheBuckets((int)CBasicSimpleAddConcurrent.ConcurrentLevel);
-        }
+        adjustTableConf(config.getDefaultTableConf());
+        adjustTableConf(config.getTableConfMap().get("demo_Module1_Table1"));
+
         Create(config);
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。

@@ -237,4 +237,15 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 		threadPool.execute(task);
 		return task;
 	}
+
+	public static Task Create(Procedure procdure,
+							  Zeze.Net.Protocol from,
+							  Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
+		return new Task(() -> Call(procdure, from, actionWhenError));
+	}
+
+	public static Task Run(Task task) {
+		threadPool.execute(task);
+		return task;
+	}
 }
