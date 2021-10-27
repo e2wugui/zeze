@@ -29,7 +29,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
             for (var task : tasks) {
                 Zeze.Util.Task.Run(task);
             }
-            b.Report(this.getClass().getName(), AddCount);
+            //b.Report(this.getClass().getName(), AddCount);
             for (var task : tasks) {
                 task.get();
             }

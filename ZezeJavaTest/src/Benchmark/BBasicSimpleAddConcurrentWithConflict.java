@@ -18,7 +18,7 @@ public class BBasicSimpleAddConcurrentWithConflict  extends TestCase {
             for (int i = 0; i < AddCount; ++i) {
                 tasks.add(Zeze.Util.Task.Run(App.Instance.Zeze.NewProcedure(this::Add, "Add")));
             }
-            b.Report(this.getClass().getName(), AddCount);
+            //b.Report(this.getClass().getName(), AddCount);
             for (var task : tasks) {
                 task.get();
             }
