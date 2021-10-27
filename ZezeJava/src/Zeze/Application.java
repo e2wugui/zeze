@@ -92,7 +92,7 @@ public final class Application {
 		getConfig().CreateDatabase(getDatabases());
 		GlobalAgent = new GlobalAgent(this);
 		_checkpoint = new Checkpoint(getConfig().getCheckpointMode(), getDatabases().values());
-		setServiceManagerAgent(new Agent(getConfig()));
+		setServiceManagerAgent(new Agent(this));
 	}
 
 	public void AddTable(String dbName, Table table) {

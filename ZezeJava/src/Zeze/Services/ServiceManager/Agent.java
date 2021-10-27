@@ -29,6 +29,11 @@ public final class Agent implements Closeable {
 		return Client;
 	}
 
+	private Zeze.Application zeze;
+	public Zeze.Application getZeze() {
+		return zeze;
+	}
+
 	/**
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
 	 */
@@ -439,11 +444,14 @@ public final class Agent implements Closeable {
 	 */
 
 	public final static String DefaultServiceName = "Zeze.Services.ServiceManager.Agent";
-	public Agent(Config config) {
-		this(config, null);
+	public Agent(Zeze.Application zeze) {
+		this(zeze, null);
 	}
 
-	public Agent(Config config, String netServiceName) {
+	public Agent(Zeze.Application zeze, String netServiceName) {
+		this.zeze = zeze;
+
+		var config = zeze.getConfig();
 		if (null == config) {
 			throw new RuntimeException("Config is null");
 		}

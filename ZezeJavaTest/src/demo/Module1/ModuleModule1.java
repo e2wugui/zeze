@@ -63,24 +63,24 @@ public class ModuleModule1 extends AbstractModule {
             factoryHandle.Factory = () -> new demo.Module1.Protocol3();
             factoryHandle.Handle = (_p) -> ProcessProtocol3(_p);
             App.Server.AddFactoryHandle(82178, factoryHandle);
-       }
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Protocol4();
             factoryHandle.Handle = (_p) -> ProcessProtocol4(_p);
             App.Server.AddFactoryHandle(106975, factoryHandle);
-       }
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Rpc1();
             factoryHandle.Handle = (_p) -> ProcessRpc1Request(_p);
             App.Server.AddFactoryHandle(116383, factoryHandle);
-         }
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Rpc2();
             App.Server.AddFactoryHandle(93307, factoryHandle);
-         }
+        }
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_Autokey_.getName()).getDatabaseName(), _Autokey_);
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_Table1.getName()).getDatabaseName(), _Table1);

@@ -20,6 +20,10 @@ public class App extends Zeze.AppBase {
     }
     
     public void Start(Config config) {
+        config.getDefaultTableConf().setCacheCapacity(1_000_000); // 测试本地事务性能需要容量大一点
+        var table1Conf = config.getTableConfMap().get("demo_Module1_Table1");
+        if (null != table1Conf)
+            table1Conf.setCacheCapacity(1_000_000);
         Create(config);
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。

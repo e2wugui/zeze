@@ -139,7 +139,7 @@ namespace Zeze.Gen.java
                         if (p.NoProcedure)
                             sw.WriteLine($"            factoryHandle.NoProcedure = true;");
                         sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({rpc.TypeId}, factoryHandle);");
-                        sw.WriteLine("         }");
+                        sw.WriteLine("        }");
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
@@ -151,7 +151,7 @@ namespace Zeze.Gen.java
                         if (p.NoProcedure)
                             sw.WriteLine($"            factoryHandle.NoProcedure = true;");
                         sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({p.TypeId}, factoryHandle);");
-                        sw.WriteLine( "       }");
+                        sw.WriteLine( "        }");
                     }
                 }
             }

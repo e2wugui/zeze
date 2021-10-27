@@ -1,6 +1,7 @@
 package Zeze.Services.ServiceManager;
 
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Protocol;
 
 public final class AgentClient extends Zeze.Services.HandshakeClient {
 	private final Agent agent;
@@ -43,5 +44,14 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 			Socket = null;
 		}
 		super.OnSocketClose(so, e);
+	}
+
+	@Override
+	public void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle) {
+		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
+		if (null != factoryHandle.Handle) {
+			agent.getZeze().__GetInternalThreadPoolUnsafe().execute(
+					() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p));
+		}
 	}
 }

@@ -133,3 +133,5 @@ gen 出错时处理可能有问题
 c# 发布 exe dll
     for unity ： 使用 framework.
     有一些 .net 5 才有api需要处理。
+
+Java concurrenthashmap 枚举的时候阻止读写？
