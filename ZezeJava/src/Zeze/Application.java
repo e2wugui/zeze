@@ -4,7 +4,10 @@ import Zeze.Transaction.*;
 import Zeze.Util.TaskCompletionSource;
 import java.util.*;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Services.ServiceManager.Agent;
@@ -41,9 +44,9 @@ public final class Application {
 	}
 
 	// 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
-	ScheduledThreadPoolExecutor InternalThreadPool;
+	ThreadPoolExecutor InternalThreadPool;
 
-	public ScheduledThreadPoolExecutor __GetInternalThreadPoolUnsafe() {
+	public ThreadPoolExecutor __GetInternalThreadPoolUnsafe() {
 		return InternalThreadPool;
 	}
 
@@ -87,7 +90,8 @@ public final class Application {
 		if (null == Conf) {
 			Conf = Config.Load();
 		}
-		InternalThreadPool = new ScheduledThreadPoolExecutor(getConfig().getInternalThreadPoolWorkerCount());
+		final var core = getConfig().getInternalThreadPoolWorkerCount();
+		InternalThreadPool = new ThreadPoolExecutor(core, core, 0, TimeUnit.NANOSECONDS, new LinkedBlockingQueue<>());
 
 		getConfig().CreateDatabase(getDatabases());
 		GlobalAgent = new GlobalAgent(this);
@@ -146,7 +150,7 @@ public final class Application {
 				return;
 			}
 			setStart(true);
-			Zeze.Util.Task.tryInitThreadPool(this, null);
+			Zeze.Util.Task.tryInitThreadPool(this, null, null);
 
 			var serviceManagerConf = getConfig().GetServiceConf(Agent.DefaultServiceName);
 			if (null != serviceManagerConf) {

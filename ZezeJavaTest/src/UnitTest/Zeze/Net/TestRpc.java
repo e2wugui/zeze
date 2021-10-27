@@ -7,13 +7,20 @@ import Zeze.Util.Factory;
 import Zeze.Util.ManualResetEvent;
 import junit.framework.TestCase;
 
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 public class TestRpc extends TestCase{
 	
 	 ManualResetEvent connected = new ManualResetEvent(false);
 	
 	public final void testRpcSimple() throws InterruptedException {
 		Service server = new Service("TestRpc.Server");
-		Zeze.Util.Task.initThreadPool(new java.util.concurrent.ScheduledThreadPoolExecutor(10));
+		Zeze.Util.Task.initThreadPool(
+				new java.util.concurrent.ThreadPoolExecutor(10, 10,
+						0, TimeUnit.NANOSECONDS,
+						new LinkedBlockingQueue<Runnable>()),
+				new java.util.concurrent.ScheduledThreadPoolExecutor(10));
 		FirstRpc forid = new FirstRpc();
 		Factory<Protocol> f =  () -> new FirstRpc();
 		server.AddFactoryHandle(forid.getTypeId(), new Service.ProtocolFactoryHandle(f,x-> ProcessFirstRpcRequest(x)));

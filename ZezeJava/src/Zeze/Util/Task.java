@@ -2,9 +2,9 @@ package Zeze.Util;
 
 import Zeze.Transaction.*;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
+import org.apache.commons.dbcp2.DelegatingResultSet;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,34 +13,55 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	private static final Logger logger = LogManager.getLogger(Task.class);
 
 	private static final Object lock = new Object();
-	private static java.util.concurrent.ScheduledThreadPoolExecutor threadPool;
+	private static ThreadPoolExecutor threadPoolDefault;
+	private static ScheduledThreadPoolExecutor threadPoolScheduled;
 
-	public static java.util.concurrent.ScheduledThreadPoolExecutor getThreadPool() {
-		return threadPool;
+	public static ThreadPoolExecutor getThreadPool() {
+		return threadPoolDefault;
 	}
 
-	public static void initThreadPool(java.util.concurrent.ScheduledThreadPoolExecutor pool) {
+	public static ScheduledThreadPoolExecutor getScheduledThreadPool() {
+		return threadPoolScheduled;
+	}
+
+	public static void initThreadPool(ThreadPoolExecutor pool, ScheduledThreadPoolExecutor scheduled) {
+		if (pool == null || scheduled == null)
+			throw new IllegalArgumentException();
+
 		synchronized (lock) {
-			if (null != threadPool)
+			if (null != threadPoolDefault || null != threadPoolScheduled)
 				throw new RuntimeException("ThreadPool Has Inited.");
-			threadPool = pool;
+			threadPoolDefault = pool;
+			threadPoolScheduled = scheduled;
 		}
 	}
 
 	public static boolean tryInitThreadPool(Zeze.Application app,
-			java.util.concurrent.ScheduledThreadPoolExecutor pool) {
+											ThreadPoolExecutor pool,
+											ScheduledThreadPoolExecutor scheduled) {
 		synchronized (lock) {
-			if (null != threadPool)
+			if (null != threadPoolDefault || null != threadPoolScheduled)
 				return false;
+
 			if (null == pool) {
 				int workerThreads = app.getConfig().getWorkerThreads() > 0
 						? app.getConfig().getWorkerThreads()
 						: Runtime.getRuntime().availableProcessors() * 30;
-				//System.out.println("workerThreads=" + workerThreads);
-				threadPool = new java.util.concurrent.ScheduledThreadPoolExecutor(workerThreads);
+				threadPoolDefault = new java.util.concurrent.ThreadPoolExecutor(
+						workerThreads, workerThreads, 0,
+						TimeUnit.NANOSECONDS, new LinkedBlockingQueue<>());
 			}
 			else {
-				threadPool = pool;
+				threadPoolDefault = pool;
+			}
+
+			if (null == scheduled) {
+				int workerThreads = app.getConfig().getWorkerThreads() > 0
+						? app.getConfig().getWorkerThreads()
+						: Runtime.getRuntime().availableProcessors() * 30;
+				threadPoolScheduled = new ScheduledThreadPoolExecutor(workerThreads);
+			} else {
+				threadPoolScheduled = scheduled;
 			}
 			return true;
 		}
@@ -79,7 +100,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 
 	public static Task Run(Runnable action, String actionName) {
 		var task = new Task(() -> Call(action, actionName));
-		threadPool.submit(task);
+		threadPoolDefault.execute(task);
 		return task;
 	}
 
@@ -109,13 +130,13 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	
 	public static Task schedule(SchedulerHandle s, long initialDelay) {
 		var task = new SchedulerTask(s);
-		threadPool.schedule(task, initialDelay, TimeUnit.MILLISECONDS);
+		threadPoolScheduled.schedule(task, initialDelay, TimeUnit.MILLISECONDS);
 		return task;
 	}
 
 	public static Task schedule(SchedulerHandle s, long initialDelay, long period) {
 		var task = new SchedulerTask(s);
-		threadPool.scheduleWithFixedDelay(task, initialDelay, period, TimeUnit.MILLISECONDS);
+		threadPoolScheduled.scheduleWithFixedDelay(task, initialDelay, period, TimeUnit.MILLISECONDS);
 		return task;
 	}
 
@@ -182,7 +203,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	public static Task Run(Callable<Integer> func, Zeze.Net.Protocol p,
 			Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
 		var task = new Task(() -> Call(func, p, actionWhenError));
-		threadPool.execute(task);
+		threadPoolDefault.execute(task);
 		return task;
 	}
 
@@ -234,7 +255,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			Zeze.Net.Protocol from,
 			Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
 		var task = new Task(() -> Call(procdure, from, actionWhenError));
-		threadPool.execute(task);
+		threadPoolDefault.execute(task);
 		return task;
 	}
 
@@ -245,7 +266,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	}
 
 	public static Task Run(Task task) {
-		threadPool.execute(task);
+		threadPoolDefault.execute(task);
 		return task;
 	}
 }
