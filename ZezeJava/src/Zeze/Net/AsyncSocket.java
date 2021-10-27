@@ -2,6 +2,8 @@ package Zeze.Net;
 
 import Zeze.Serialize.*;
 import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -16,9 +18,66 @@ import java.nio.channels.SocketChannel;
 
 public final class AsyncSocket implements SelectorHandle, Closeable {
 	private static final Logger logger = LogManager.getLogger(AsyncSocket.class);
-	
-	private ArrayList<java.nio.ByteBuffer> _outputBufferList = null;
-	private int _outputBufferListCountSum = 0;
+
+	final class OperateSend implements Runnable {
+		private byte[] bytes;
+		private int offset;
+		private int length;
+
+		public OperateSend(byte[] bytes, int offset, int length) {
+			this.bytes = bytes;
+			this.offset = offset;
+			this.length = length;
+			_outputBufferListCountSum.addAndGet(length);
+		}
+
+		@Override
+		public void run() {
+			_prepareSending(bytes, offset, length);
+			_outputBufferListCountSum.addAndGet(-length);
+		}
+	}
+
+	final class OperateSetOutputSecurityCodec implements Runnable {
+		private byte[] key;
+		private boolean compress;
+		private Runnable callback;
+
+		public OperateSetOutputSecurityCodec(byte[] key, boolean compress, Runnable callback) {
+			this.key = key;
+			this.compress = compress;
+			this.callback = callback;
+		}
+
+		@Override
+		public void run() {
+			_SetOutputSecurityCodec(key, compress);
+			if (null != callback)
+				callback.run();
+		}
+	}
+
+	final class OperateSetInputSecurityCodec implements Runnable {
+		private byte[] key;
+		private boolean compress;
+		private Runnable callback;
+
+		public OperateSetInputSecurityCodec(byte[] key, boolean compress, Runnable callback) {
+			this.key = key;
+			this.compress = compress;
+			this.callback = callback;
+		}
+
+		@Override
+		public void run() {
+			_SetInputSecurityCodec(key, compress);
+			if (null != callback)
+				callback.run();
+		}
+	}
+
+	private LinkedBlockingQueue<Runnable> _operates = new LinkedBlockingQueue<>();
+	private AtomicInteger _outputBufferListCountSum = new AtomicInteger();
 	private ArrayList<java.nio.ByteBuffer> _outputBufferListSending = null; // 正在发送的 buffers.
 
 	private Service Service;
@@ -259,7 +318,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	public void SetOutputSecurityCodec(byte[] key, boolean compress) {
+	public void SetOutputSecurityCodec(byte[] key, boolean compress, Runnable callback) {
+		_operates.add(new OperateSetOutputSecurityCodec(key, compress, callback));
+		this.interestOps(0, SelectionKey.OP_WRITE); // try
+	}
+
+	private void _SetOutputSecurityCodec(byte[] key, boolean compress) {
 		synchronized (this) {
 			Codec chain = outputCodecBuffer;
 			if (null != key) {
@@ -302,7 +366,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	public void SetInputSecurityCodec(byte[] key, boolean compress) {
+	public void SetInputSecurityCodec(byte[] key, boolean compress, Runnable callback) {
+		_operates.add(new OperateSetInputSecurityCodec(key, compress, callback));
+		this.interestOps(0, SelectionKey.OP_WRITE); // try
+	}
+
+	private void _SetInputSecurityCodec(byte[] key, boolean compress) {
 		synchronized (this) {
 			Codec chain = inputCodecBuffer;
 			if (compress) {
@@ -347,17 +416,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (null == selectionKey) {
 				return false;
 			}
-
-			if (null == _outputBufferList) {
-				_outputBufferList = new ArrayList<>();
-			}
-
-			if (_outputBufferListCountSum + length > Service.getSocketOptions().getOutputBufferMaxSize())
+			if (_outputBufferListCountSum.get() + length > Service.getSocketOptions().getOutputBufferMaxSize())
 				return false;
-
-			_outputBufferList.add(java.nio.ByteBuffer.wrap(bytes, offset, length));
-			_outputBufferListCountSum += length;
-
+			_operates.add(new OperateSend(bytes, offset, length));
 			this.interestOps(0, SelectionKey.OP_WRITE); // try
 			return true;
 		}
@@ -423,41 +484,34 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	private void doWrite(SelectionKey key) {
-		ArrayList<java.nio.ByteBuffer> current;
-		synchronized (this) {
-			current = _outputBufferList;
-			_outputBufferList = null;
-			_outputBufferListCountSum = 0;
-		}
+	private void _prepareSending(byte[] bytes, int offset, int length) {
+		if (null == _outputBufferListSending)
+			_outputBufferListSending = new ArrayList<>();
 
 		if (null != outputCodecChain) {
-			if (null != current) {
-				// 压缩加密等 codec 链操作。
-				if (null == _outputBufferListSending)
-					_outputBufferListSending = new ArrayList<>();
-				for (var buffer : current) {
-					int length = buffer.remaining();
-					outputCodecBuffer.getBuffer().EnsureWrite(length); // reserve
-					outputCodecChain.update(buffer.array(), buffer.position(), length);
-					outputCodecChain.flush();
-	
-					var codec = outputCodecBuffer.getBuffer();
-					_outputBufferListSending.add(java.nio.ByteBuffer.wrap(codec.Bytes, codec.ReadIndex, codec.Size()));
-					// 加入Sending后outputBufferCodec需要释放对byte[]的引用。
-					codec.FreeInternalBuffer();
-				}
-			}
+			// 压缩加密等 codec 链操作。
+			outputCodecBuffer.getBuffer().EnsureWrite(length); // reserve
+			outputCodecChain.update(bytes, offset, length);
+			outputCodecChain.flush();
+			var codec = outputCodecBuffer.getBuffer();
+			_outputBufferListSending.add(java.nio.ByteBuffer.wrap(codec.Bytes, codec.ReadIndex, codec.Size()));
+			// 加入Sending后outputBufferCodec需要释放对byte[]的引用。
+			codec.FreeInternalBuffer();
 		}
-		else if (null != current) {
-			if (null == _outputBufferListSending)
-				_outputBufferListSending = current;
-			else
-				_outputBufferListSending.addAll(current);
+		else {
+			_outputBufferListSending.add(java.nio.ByteBuffer.wrap(bytes, offset, length));
+		}
+	}
+
+	private void doWrite(SelectionKey key) {
+		for (var op = _operates.poll(); op != null; op = _operates.poll()) {
+			op.run();
 		}
 
-		if (null == _outputBufferListSending)
+		if (null == _outputBufferListSending) {
+			this.interestOps(SelectionKey.OP_WRITE, 0);
 			return;
+		}
 
 		try {
 			var sc = (SocketChannel)key.channel();
@@ -474,7 +528,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					this.interestOps(SelectionKey.OP_WRITE, 0);
 				}
 				else {
-					// add write event
+					// add write event，里面判断了事件没有变化时不做操作，严格来说，再次注册事件是不需要的。
 					this.interestOps(0, SelectionKey.OP_WRITE);
 				}
 				return;

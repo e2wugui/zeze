@@ -134,5 +134,7 @@ c# 发布 exe dll
     for unity ： 使用 framework.
     有一些 .net 5 才有api需要处理。
 
+c# 性能测试
+
 Java concurrenthashmap 枚举的时候阻止读写？
-java Concurrent 没有起来，吞吐比纯conflict还低。
+性能测试表现，一秒一个事务，TableCache.Cleanup刚好一秒执行一次。
