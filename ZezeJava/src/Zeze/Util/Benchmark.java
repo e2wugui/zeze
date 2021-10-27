@@ -13,14 +13,14 @@ public class Benchmark {
         startTime = System.nanoTime();
     }
 
-    public void Report(String name, long calls) {
+    public void Report(String name, long tasks) {
         double cpu =  (os.getProcessCpuTime() - startProcessCpuTime) / 1_000_000_000;
         var endTime = System.nanoTime();
         var elapsedTime = endTime - startTime;
         var seconds = (double)elapsedTime / 1_000_000_000;
         var cpupercent = cpu / seconds;
         System.out.println(String.format(
-                "%s calls/s=%.2f time=%.2fs cpu=%.2fs concurrent=%.2f",
-                name, (calls / seconds), seconds, cpu, cpupercent));
+                "%s tasks/s=%.2f time=%.2fs cpu=%.2fs concurrent=%.2f",
+                name, (tasks / seconds), seconds, cpu, cpupercent));
     }
 }
