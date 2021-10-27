@@ -319,8 +319,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public void SetOutputSecurityCodec(byte[] key, boolean compress, Runnable callback) {
-		_operates.add(new OperateSetOutputSecurityCodec(key, compress, callback));
-		this.interestOps(0, SelectionKey.OP_WRITE); // try
+		synchronized (this) {
+			_operates.add(new OperateSetOutputSecurityCodec(key, compress, callback));
+			this.interestOps(0, SelectionKey.OP_WRITE); // try
+		}
 	}
 
 	private void _SetOutputSecurityCodec(byte[] key, boolean compress) {
@@ -367,8 +369,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public void SetInputSecurityCodec(byte[] key, boolean compress, Runnable callback) {
-		_operates.add(new OperateSetInputSecurityCodec(key, compress, callback));
-		this.interestOps(0, SelectionKey.OP_WRITE); // try
+		synchronized (this) {
+			_operates.add(new OperateSetInputSecurityCodec(key, compress, callback));
+			this.interestOps(0, SelectionKey.OP_WRITE); // try
+		}
 	}
 
 	private void _SetInputSecurityCodec(byte[] key, boolean compress) {
@@ -412,16 +416,16 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public boolean Send(byte[] bytes, int offset, int length) {
 		Zeze.Serialize.ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
+		if (null == selectionKey) {
+			return false;
+		}
+		if (_outputBufferListCountSum.get() + length > Service.getSocketOptions().getOutputBufferMaxSize())
+			return false;
 		synchronized (this) {
-			if (null == selectionKey) {
-				return false;
-			}
-			if (_outputBufferListCountSum.get() + length > Service.getSocketOptions().getOutputBufferMaxSize())
-				return false;
 			_operates.add(new OperateSend(bytes, offset, length));
 			this.interestOps(0, SelectionKey.OP_WRITE); // try
-			return true;
 		}
+		return true;
 	}
 
 	public boolean Send(String str) {
@@ -504,40 +508,48 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	private void doWrite(SelectionKey key) {
-		for (var op = _operates.poll(); op != null; op = _operates.poll()) {
-			op.run();
-		}
+		while (true) {
+			for (var op = _operates.poll(); op != null; op = _operates.poll()) {
+				op.run();
+			}
 
-		if (null == _outputBufferListSending) {
-			this.interestOps(SelectionKey.OP_WRITE, 0);
-			return;
-		}
+			if (null == _outputBufferListSending) {
+				// 时间窗口
+				// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
+				synchronized (this) {
+					if (_operates.isEmpty()) {
+						// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
+						this.interestOps(SelectionKey.OP_WRITE, 0);
+						return;
+					}
+					continue; // 发现数据，继续尝试处理。
+				}
+			}
 
-		try {
-			var sc = (SocketChannel)key.channel();
-			var rc = sc.write(_outputBufferListSending.toArray(new java.nio.ByteBuffer[_outputBufferListSending.size()]));
-			if (rc >= 0) {
-				int i = 0;
-				for ( ; i < _outputBufferListSending.size() && _outputBufferListSending.get(i).remaining() == 0; ++i) {
-					// nothing
-				}
-				_outputBufferListSending.subList(0, i).clear();
-				if (_outputBufferListSending.isEmpty()) {
-					_outputBufferListSending = null; // free output buffer
-					// remove write event
-					this.interestOps(SelectionKey.OP_WRITE, 0);
-				}
-				else {
+			try {
+				var sc = (SocketChannel) key.channel();
+				var rc = sc.write(_outputBufferListSending.toArray(new java.nio.ByteBuffer[_outputBufferListSending.size()]));
+				if (rc >= 0) {
+					int i = 0;
+					for (; i < _outputBufferListSending.size() && _outputBufferListSending.get(i).remaining() == 0; ++i) {
+						// nothing
+					}
+					_outputBufferListSending.subList(0, i).clear();
+					if (_outputBufferListSending.isEmpty()) {
+						_outputBufferListSending = null; // free output buffer
+						continue; // 全部都写出去了，继续尝试看看有没有新的操作。
+					}
+					// 有数据正在发送，此时可以安全退出执行，写完以后Selector会再次触发doWrite。
 					// add write event，里面判断了事件没有变化时不做操作，严格来说，再次注册事件是不需要的。
 					this.interestOps(0, SelectionKey.OP_WRITE);
+					return;
 				}
-				return;
+				// error
+				close();
+			} catch (IOException e) {
+				close();
+				throw new RuntimeException(e);
 			}
-			// error
-			close();
-		} catch (IOException e) {
-			close();
-			throw new RuntimeException(e);
 		}
 	}
 
