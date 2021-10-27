@@ -168,11 +168,12 @@ public class TableCache<K, V extends Bean> {
 				logger.warn("remain record when clean oldest lrunode.");
 			}
 
-			if (getTable().getTableConf().getCacheCleanPeriodWhenExceedCapacity() > 0) {
-				try {
-					Thread.sleep(getTable().getTableConf().getCacheCleanPeriodWhenExceedCapacity());
-				} catch (InterruptedException skip) {
-				}
+			int sleepTime = getTable().getTableConf().getCacheCleanPeriodWhenExceedCapacity();
+			if (sleepTime < 1000)
+				sleepTime = 1000;
+			try {
+				Thread.sleep(sleepTime);
+			} catch (InterruptedException skip) {
 			}
 		}
 		Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod());

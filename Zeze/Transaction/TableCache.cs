@@ -172,8 +172,10 @@ namespace Zeze.Transaction
                     logger.Warn($"remain record when clean oldest lrunode.");
                 }
 
-                if (Table.TableConf.CacheCleanPeriodWhenExceedCapacity > 0)
-                    System.Threading.Thread.Sleep(Table.TableConf.CacheCleanPeriodWhenExceedCapacity);
+                int sleepTime = Table.TableConf.CacheCleanPeriodWhenExceedCapacity;
+                if (sleepTime < 1000)
+                    sleepTime = 1000;
+                System.Threading.Thread.Sleep(sleepTime);
             }
             Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
         }
