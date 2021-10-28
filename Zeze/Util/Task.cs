@@ -132,5 +132,19 @@ namespace Zeze.Util
         {
             return System.Threading.Tasks.Task.Run(() => Call(procdure, from, actionWhenError));
         }
+
+        public static System.Threading.Tasks.Task Create(
+            Procedure p,
+            Net.Protocol from = null,
+            Action<Net.Protocol, int> actionWhenError = null)
+        {
+            return new System.Threading.Tasks.Task(() => Call(p, from, actionWhenError));
+        }
+
+        public static System.Threading.Tasks.Task Run(System.Threading.Tasks.Task task)
+        {
+            task.Start();
+            return task;
+        }
     }
 }
