@@ -10,7 +10,7 @@ import junit.framework.TestCase;
 public class TestDatabaseMySql extends TestCase{
 	
 	public final void test1() {
-		String url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
+		String url = "jdbc:mysql://localhost:3306/mysql?user=root&password=123";
 		DatabaseConf databaseConf = new DatabaseConf();
 		databaseConf.setDatabaseType(DbType.MySql);
 		databaseConf.setDatabaseUrl(url);

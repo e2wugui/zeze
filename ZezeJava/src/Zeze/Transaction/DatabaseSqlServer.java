@@ -24,7 +24,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		public void SetInUse(int localId, String global) {
-			try (var connection = DatabaseReal.DataSource.getConnection()) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
 					cmd.setInt(1, localId);
@@ -56,7 +56,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		public int ClearInUse(int localId, String global) {
-			try (var connection = DatabaseReal.DataSource.getConnection()) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeClearInUse_(?, ?, ?)}")) {
 					cmd.setInt(1, localId);
@@ -72,7 +72,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		public DataWithVersion GetDataWithVersion(ByteBuffer key) {
-			try (var connection = DatabaseReal.DataSource.getConnection()) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				String sql = "SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?";
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -97,7 +97,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				throw new RuntimeException("key is empty.");
 			}
 
-			try (var connection = DatabaseReal.DataSource.getConnection()) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?)}")) {
 					cmd.setBytes(1, key.Copy());
@@ -123,7 +123,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		public OperatesSqlServer(DatabaseSqlServer database) {
 			DatabaseReal = database;
 
-			try (var connection = DatabaseReal.DataSource.getConnection()) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(false);
     
 				String TableDataWithVersion = "if not exists (select * from sysobjects where name='_ZezeDataWithVersion_' and xtype='U')" + " CREATE TABLE _ZezeDataWithVersion_ (id VARBINARY(767) NOT NULL PRIMARY KEY, data VARBINARY(MAX) NOT NULL, version bigint NOT NULL)";
@@ -307,7 +307,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			DatabaseReal = database;
 			Name = name;
 
-			try (var connection = DatabaseReal.DataSource.getConnection()) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
     
 				String sql = "if not exists (select * from sysobjects where name='" + getName() + "' and xtype='U') CREATE TABLE " + getName() + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
@@ -323,7 +323,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		public ByteBuffer Find(ByteBuffer key) {
-			try (var connection = DatabaseReal.DataSource.getConnection()) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
     
 				String sql = "SELECT value FROM " + getName() + " WHERE id = ?";    
@@ -371,7 +371,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		public long Walk(TableWalkHandleRaw callback) {
-			try (var connection = DatabaseReal.DataSource.getConnection()) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
     
 				String sql = "SELECT id,value FROM " + getName();

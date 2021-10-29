@@ -158,7 +158,7 @@ public final class Application {
 				getServiceManagerAgent().WaitConnectorReady();
 			}
 
-			Database defaultDb = GetDatabase("");
+			Database defaultDb = GetDatabase(getConfig().getDefaultTableConf().getDatabaseName());
 			for (var db : getDatabases().values()) {
 				db.Open(this);
 			}

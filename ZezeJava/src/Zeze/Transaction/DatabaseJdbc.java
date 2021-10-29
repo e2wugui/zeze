@@ -9,20 +9,21 @@ import Zeze.Config.DatabaseConf;
 public abstract class DatabaseJdbc extends Database {
 	private static final Logger logger = LogManager.getLogger(DatabaseMySql.class);
 
-	protected BasicDataSource DataSource;
+	protected BasicDataSource dataSource;
 	
 	public DatabaseJdbc(DatabaseConf conf) {
 		super(conf);
-
-		// TODO config
-		DataSource = new BasicDataSource();
+		dataSource = new BasicDataSource();
+		BasicDataSource pool = this.dataSource;// 连接池
+		pool.setUrl(conf.getDatabaseUrl());
+		pool.setDriverClassName("com.mysql.cj.jdbc.Driver");
 	}
 	
 	@Override
 	public void Close() {
 		super.Close();
 		try {
-			DataSource.close();
+			dataSource.close();
 		} catch (SQLException skip) {
 		}
 	}
@@ -38,7 +39,7 @@ public abstract class DatabaseJdbc extends Database {
 
 		public JdbcTrans() {
 			try {
-				Connection = DataSource.getConnection();
+				Connection = dataSource.getConnection();
 				Connection.setAutoCommit(false);
 			} catch (SQLException e) {
 				throw new RuntimeException(e);

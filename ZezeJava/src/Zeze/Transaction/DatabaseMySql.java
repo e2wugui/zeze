@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.*;
+
 import Zeze.Config.DatabaseConf;
 
 public final class DatabaseMySql extends DatabaseJdbc {
@@ -21,7 +22,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		public void SetInUse(int localId, String global) {
-			try (var connection = Database.DataSource.getConnection()) {
+			try (var connection = Database.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
 					cmd.setInt(1, localId);
@@ -53,7 +54,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		public int ClearInUse(int localId, String global) {
-			try (var connection = Database.DataSource.getConnection()) {
+			try (var connection = Database.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeClearInUse_(?, ?, ?)}")) {
 					cmd.setInt(1, localId);
@@ -69,7 +70,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		public DataWithVersion GetDataWithVersion(ByteBuffer key) {
-			try (var connection = Database.DataSource.getConnection()) {
+			try (var connection = Database.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareStatement("SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?")) {
 					cmd.setBytes(1, key.Copy());
@@ -95,7 +96,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				throw new RuntimeException("key is empty.");
 			}
 
-			try (var connection = Database.DataSource.getConnection()) {
+			try (var connection = Database.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?, ?)}")) {
 					cmd.setBytes(1, key.Copy()); // key
@@ -121,7 +122,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public OperatesMySql(DatabaseMySql database) {
 			Database = database;
 
-			try (var connection = Database.DataSource.getConnection()) {
+			try (var connection = Database.dataSource.getConnection()) {
 				connection.setAutoCommit(false);
 				String TableDataWithVersion = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (" + "\r\n" + 
 "                        id VARBINARY(767) NOT NULL PRIMARY KEY," + "\r\n" + 
@@ -310,7 +311,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public TableMysql(DatabaseMySql database, String name) {
 			DatabaseReal = database;
 			Name = name;
-			try (var connection = DatabaseReal.DataSource.getConnection()) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				String sql = "CREATE TABLE IF NOT EXISTS " + getName() + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value MEDIUMBLOB NOT NULL)ENGINE=INNODB";
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -325,7 +326,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		public ByteBuffer Find(ByteBuffer key) {
-			try (var connection = DatabaseReal.DataSource.getConnection()) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
     
 				String sql = "SELECT value FROM " + getName() + " WHERE id = ?";
@@ -369,7 +370,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		public long Walk(TableWalkHandleRaw callback) {
-			try (var connection = DatabaseReal.DataSource.getConnection()) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
     
 				String sql = "SELECT id,value FROM " + getName();
