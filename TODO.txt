@@ -117,14 +117,10 @@ AsyncSocket c#
 	优化，减少和逻辑层的互斥时间。
 	？？？使用一个空的outputListSending去调用SendAsync???好像不可行。
 
-可靠 udp for server - server connection
-
-   对于全局模块的请求在优化前通过压力测试得到最大吞吐量。
-   考虑zeze增加协议最大吞吐量配置，达到60%时自动发送警告。
-   默认最大吞吐量为单个数据执行+1计算并且cache命中100%时的值。
-   当然这个值仅对全局共享的数据的访问有用，对于天然并发的事务是没有参考价值的。
-
-gen 出错时处理可能有问题
+对于全局模块的请求在优化前通过压力测试得到最大吞吐量。
+考虑zeze增加协议最大吞吐量配置，达到60%时自动发送警告。
+默认最大吞吐量为单个数据执行+1计算并且cache命中100%时的值。
+当然这个值仅对全局共享的数据的访问有用，对于天然并发的事务是没有参考价值的。
 
 确认zezex islocal loopback redirect 的实现
 
@@ -132,7 +128,7 @@ c# 发布 exe dll
     for unity ： 使用 framework.
     有一些 .net 5 才有的 api 需要处理。
 
-c# 性能测试
-
 性能测试表现，一秒一个事务，TableCache.Cleanup刚好一秒执行一次。改成了不忙等，至少Sleep一秒。需要确认效果。
 Raft.ConcurrentMap 使用 RocksDb 持久化，自己实现快速 Snapshot，解决 RocksDb 没有这个功能的问题。
+
+java TestGlobal 过了，仅修改了AsyncSocket。这个怎么影响了TestGlobal没想通。

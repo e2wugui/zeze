@@ -36,7 +36,7 @@ public class TestGlobal extends TestCase{
 		public void Commit() {
 			if (eq) {
 				logger.debug("xxxeq " + oldInt + " " + appId);
-			}else {
+			} else {
 				//logger.debug("xxx " + oldInt + " " + appId);
 			}
 
