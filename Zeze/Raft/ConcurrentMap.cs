@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -59,7 +60,66 @@ namespace Zeze.Raft
     public class ConcurrentMap<K, V>
         where V : Copyable<V>, new()
     {
-        private HugeConcurrentDictionary<K, V> Map { get; }
+        public HugeConcurrentLruLike<K, CachedValue> Lru { get; }
+        private RocksDbSharp.RocksDb Db;
+
+        public ConcurrentMap(
+            string dbHome,
+            long capacity,
+            int buckets = 16,
+            int concurrencyLevel = 1024,
+            long initialCapacity = 1000000)
+        {
+            var options = new RocksDbSharp.DbOptions().SetCreateIfMissing(true);
+            Db = RocksDbSharp.RocksDb.Open(options, dbHome);
+            Lru = new HugeConcurrentLruLike<K, CachedValue>(
+                capacity, TryRemove, 200, 2000,
+                initialCapacity, buckets, concurrencyLevel);
+        }
+
+        private bool TryRemove(K key, CachedValue value)
+        {
+            // TODO
+            return true;
+        }
+
+        public sealed class CachedValue
+        {
+            public const int Normal = 0;
+            public const int Removed = 1;
+
+            public int State { get; set; }
+            public V Value { get; set; }
+        }
+
+        private ConcurrentDictionary<K, CachedValue> Changed { get; }
+            = new ConcurrentDictionary<K, CachedValue>();
+
+        public V GetOrAdd(K key)
+        {
+            return GetOrAdd(key, (_) => new V());
+        }
+
+        public V GetOrAdd(K key, Func<K, V> valueFactory)
+        {
+            while (true)
+            {
+                var cv = Lru.GetOrAdd(key, (_) => new CachedValue());
+                lock (cv)
+                {
+                    if (cv.State == CachedValue.Removed)
+                        continue;
+
+                    if (cv.Value == null)
+                    {
+                        cv.Value = valueFactory(key);
+                        Changed[key] = cv;
+                        SnapshotLog(SnapshotState.Add, key, cv.Value);
+                    }
+                    return cv.Value;
+                }
+            }
+        }
 
         enum SnapshotState
         {
@@ -140,31 +200,8 @@ namespace Zeze.Raft
             }
         }
 
-        public long Count => Map.Count;
-
         // 需要外面更大锁来保护。Raft.StateMachine 的子类内加锁。
         private bool Snapshoting = false;
-
-        public ConcurrentMap(int buckets = 16, int concurrencyLevel = 1024, long initialCapacity = 1000000)
-        { 
-            Map = new HugeConcurrentDictionary<K, V>(buckets, concurrencyLevel, initialCapacity);
-        }
-
-        public V GetOrAdd(K key)
-        {
-            return GetOrAdd(key, (_) => new V());
-        }
-
-        public V GetOrAdd(K key, Func<K, V> valueFactory)
-        {
-            return Map.GetOrAdd(key,
-                (k) =>
-                {
-                    V v = valueFactory(k);
-                    SnapshotLog(SnapshotState.Add, k, v);
-                    return v;
-                });
-        }
 
         public void Update(K k, Action<V> updator)
         {
@@ -180,21 +217,17 @@ namespace Zeze.Raft
 
         public void Remove(K k)
         {
-            if (Map.TryRemove(k, out var removed))
+            if (Lru.TryGetValue(k, out var removed))
             {
-                SnapshotLog(SnapshotState.Remove, k, removed);
+                lock (removed)
+                {
+                    if (removed.State == CachedValue.Removed)
+                        return;
+                    removed.State = CachedValue.Removed;
+                    SnapshotLog(SnapshotState.Remove, k, removed.Value);
+                }
             }
         }
-
-        /*
-        public void Remove(K k, V v)
-        {
-            if (Map.TryRemove(KeyValuePair.Create(k, v)))
-            {
-                SnapshotLog(SnapshotState.Remove, k, v);
-            }
-        }
-        */
 
         // 线程不安全，需要外面更大的锁来保护。
         public bool StartSerialize()
@@ -256,6 +289,7 @@ namespace Zeze.Raft
 
         public void SerializeTo(System.IO.Stream stream)
         {
+            /*
             var position = WriteLong8To(stream, Map.Count);
 
             long SnapshotCount = 0;
@@ -294,6 +328,7 @@ namespace Zeze.Raft
             }
             WriteLong8To(stream, SnapshotCount, position);
             stream.Seek(0, System.IO.SeekOrigin.End);
+            */
         }
 
         // 线程不安全，需要外面更大的锁保护。
@@ -301,7 +336,7 @@ namespace Zeze.Raft
         {
             if (Snapshoting)
                 throw new Exception("Coucurrent Error: In Snapshoting");
-
+            /*
             Map.Clear();
             for (long count = ReadLong8From(stream); count > 0; --count)
             {
@@ -316,6 +351,7 @@ namespace Zeze.Raft
                 value.Decode(bb);
                 Map[key] = value; // ignore result
             }
+            */
         }
     }
 }

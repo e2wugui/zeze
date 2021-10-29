@@ -132,7 +132,7 @@ namespace Zeze.Util
         {
             return System.Threading.Tasks.Task.Run(() => Call(procdure, from, actionWhenError));
         }
-
+        /*
         public static System.Threading.Tasks.Task Create(
             Procedure p,
             Net.Protocol from = null,
@@ -146,5 +146,6 @@ namespace Zeze.Util
             task.Start();
             return task;
         }
+        */
     }
 }

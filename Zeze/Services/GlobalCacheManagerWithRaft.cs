@@ -232,7 +232,7 @@ namespace Zeze.Services
                 Release(rpc.Sender.RemoteAddress, rpc.UniqueRequestId, session, gkey);
             }
             rpc.SendResultCode(0);
-            logger.Debug("After NormalClose global.Count={0}", RaftData.Global.Count);
+            //logger.Debug("After NormalClose global.Count={0}", RaftData.Global.Count);
             return 0;
         }
 
@@ -686,9 +686,11 @@ namespace Zeze.Services
 
             public RaftDatas(GlobalCacheManagerServer.GCMConfig config)
             {
+                /*
                 Global = new ConcurrentMap<GlobalCacheManager.GlobalTableKey, CacheState>
                     (config.ConcurrencyLevel, (int)config.InitialCapacity);
                 Sessions = new ConcurrentMap<int, CacheHolder>(config.ConcurrencyLevel, 4096);
+                */
                 AddFactory(new OperatesLog("", 0).TypeId, () => new OperatesLog("", 0));
             }
 

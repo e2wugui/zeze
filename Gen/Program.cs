@@ -1,16 +1,34 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Gen
 {
     public class Program
     {
+        private static void DoNothing()
+        {
+
+        }
+
         public static void Main(string[] args)
         {
             /*
-            var rname = typeof(Zeze.Services.ServiceManager.SubscribeFirstCommit).FullName;
-            Console.WriteLine(rname);
-            Console.WriteLine(Zeze.Transaction.Bean.Hash16(rname));
-            Console.WriteLine(new Zeze.Services.ServiceManager.SubscribeFirstCommit().TypeId);
+            var b = new Zeze.Util.Benchmark();
+            var tasks = new Task[1000_0000];
+            for (int i = 0; i < tasks.Length; ++i)
+                tasks[i] = new Task(DoNothing);
+            b.Report("Create", tasks.Length);
+            foreach (var task in tasks)
+                task.Start();
+            b.Report("Queue", tasks.Length);
+            Task.WaitAll(tasks);
+            b.Report("Done", tasks.Length);
+            */
+            //*
+            new Benchmark.ABasicSimpleAddOneThread().testBenchmark();
+            new Benchmark.BBasicSimpleAddConcurrentWithConflict().testBenchmark();
+            new Benchmark.CBasicSimpleAddConcurrent().testBenchmark();
             return;
             // */
             string command = "gen";

@@ -19,43 +19,6 @@ namespace Zeze.Util
                 true);
         }
 
-        [SupportedOSPlatform("windows")]
-        private string ObtainProcessName()
-        {
-            string processName = null;
-            bool notFound = true;
-            int processOptionsChecked = 0;
-            int maxNrOfParallelProcesses = 3 + 1;
-
-            var baseProcessName = Process.GetCurrentProcess().ProcessName;
-            var processId = Process.GetCurrentProcess().Id;
-            while (notFound)
-            {
-                processName = baseProcessName;
-                if (processOptionsChecked > maxNrOfParallelProcesses)
-                {
-                    break;
-                }
-
-                if (1 == processOptionsChecked)
-                {
-                    processName = string.Format("{0}_{1}", baseProcessName, processId);
-                }
-                else if (processOptionsChecked > 1)
-                {
-                    processName = string.Format("{0}#{1}", baseProcessName, processOptionsChecked - 1);
-                }
-
-                PerformanceCounter counter = new PerformanceCounter("Process", "ID Process", processName);
-                if (processId == (int)counter.NextValue())
-                {
-                    notFound = !true;
-                }
-                processOptionsChecked++;
-            }
-            return processName;
-        }
-
         public Benchmark()
         {
             if (OperatingSystem.IsWindows())
@@ -70,7 +33,7 @@ namespace Zeze.Util
             return counter.NextValue();
         }
 
-        public void Report(String name, long tasks)
+        public void Report(string name, long tasks)
         {
             var cpu = OperatingSystem.IsWindows() ? GetProcessCpuTime() : 0.0f;
             var endTime = DateTime.Now.Ticks;

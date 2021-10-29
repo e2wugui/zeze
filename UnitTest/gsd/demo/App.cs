@@ -10,7 +10,7 @@ namespace demo
                 if (conf.CacheCapacity < Benchmark.ABasicSimpleAddOneThread.AddCount)
                     conf.CacheCapacity = Benchmark.ABasicSimpleAddOneThread.AddCount;
                 if (conf.CacheConcurrencyLevel < Benchmark.CBasicSimpleAddConcurrent.ConcurrentLevel)
-                    conf.CacheConcurrencyLevel = (int)Benchmark.CBasicSimpleAddConcurrent.ConcurrentLevel;
+                    conf.CacheConcurrencyLevel = Benchmark.CBasicSimpleAddConcurrent.ConcurrentLevel;
             }
         }
 
@@ -18,6 +18,7 @@ namespace demo
         {
             if (config == null)
                 config = new Zeze.Config().LoadAndParse();
+            //config.WorkerThreads = 240;
             AdjustTableConf(config.DefaultTableConf);
             AdjustTableConf(config.GetTableConf("demo_Module1_Table1"));
 
