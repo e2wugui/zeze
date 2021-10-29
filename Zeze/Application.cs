@@ -55,13 +55,23 @@ namespace Zeze
             InternalThreadPool = new Util.SimpleThreadPool(
                 Config.InternalThreadPoolWorkerCount, "ZezeSpecialThreadPool");
 
-            int workerThreads, completionPortThreads;
-            ThreadPool.GetMinThreads(out workerThreads, out completionPortThreads);
+            int workerMin, ioMin;
+            //int workerMax, ioMax;
+            ThreadPool.GetMinThreads(out workerMin, out ioMin);
+            //ThreadPool.GetMaxThreads(out workerMax, out ioMax);
+            //Console.WriteLine($"worker ({workerMin}, {workerMax}) io({ioMin}, {ioMax})");
             if (Config.WorkerThreads > 0)
-                workerThreads = Config.WorkerThreads;
+            {
+                workerMin = Config.WorkerThreads;
+                //workerMax = Config.WorkerThreads;
+            }
             if (Config.CompletionPortThreads > 0)
-                completionPortThreads = Config.CompletionPortThreads;
-            ThreadPool.SetMinThreads(workerThreads, completionPortThreads);
+            {
+                ioMin = Config.CompletionPortThreads;
+                //ioMax = Config.CompletionPortThreads;
+            }
+            ThreadPool.SetMinThreads(workerMin, ioMin);
+            //ThreadPool.SetMaxThreads(workerMax, ioMax);
 
             Config.CreateDatabase(Databases);
             GlobalAgent = new GlobalAgent(this);

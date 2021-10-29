@@ -131,4 +131,6 @@ c# 发布 exe dll
 性能测试表现，一秒一个事务，TableCache.Cleanup刚好一秒执行一次。改成了不忙等，至少Sleep一秒。需要确认效果。
 Raft.ConcurrentMap 使用 RocksDb 持久化，自己实现快速 Snapshot，解决 RocksDb 没有这个功能的问题。
 
-java TestGlobal 过了，仅修改了AsyncSocket。这个怎么影响了TestGlobal没想通。
+RedoException 导致更多忙等。
+
+c# ThreadPool 并发访问性能好像不高。使用自己的线程池替换看看。

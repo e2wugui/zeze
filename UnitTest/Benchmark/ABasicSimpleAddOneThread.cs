@@ -6,7 +6,7 @@ namespace Benchmark
     [TestClass]
     public class ABasicSimpleAddOneThread
     {
-        public const int AddCount = 10_000_000;
+        public const int AddCount = 1_000_000;
 
         [TestMethod]
         public void testBenchmark()

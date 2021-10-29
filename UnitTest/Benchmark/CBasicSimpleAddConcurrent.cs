@@ -19,17 +19,14 @@ namespace Benchmark
                     demo.App.Instance.Zeze.NewProcedure(() => Remove(k), "remove").Call();
                 }
                 var tasks = new List<Task>(AddCount);
-                for (int i = 0; i < AddCount; ++i) {
-                    int c = i % ConcurrentLevel;
-                    tasks.Add(Zeze.Util.Task.Create(demo.App.Instance.Zeze.NewProcedure(()=>Add(c), "Add")));
-                    //tasks.add(Zeze.Util.Task.Create(App.Instance.Zeze.NewProcedure(this::Add, "Add"), null, null));
-                }
                 Console.WriteLine("benchmark start...");
                 var b = new Zeze.Util.Benchmark();
-                foreach (var task in tasks) {
-                    Zeze.Util.Task.Run(task);
+                for (int i = 0; i < AddCount; ++i)
+                {
+                    int c = i % ConcurrentLevel;
+                    tasks.Add(Zeze.Util.Task.Run(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add")));
                 }
-                //b.Report(this.getClass().getName(), AddCount);
+                b.Report(this.GetType().FullName, AddCount);
                 foreach (var task in tasks) {
                     task.Wait();
                 }
