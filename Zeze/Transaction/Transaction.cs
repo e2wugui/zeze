@@ -17,40 +17,72 @@ namespace Zeze.Transaction
 
         private static System.Threading.ThreadLocal<Transaction> threadLocal = new System.Threading.ThreadLocal<Transaction>();
 
-        public static Transaction Current => threadLocal.Value;
-
+        public static Transaction Current
+        {
+            get
+            {
+                var tmp = threadLocal.Value;
+                if (null == tmp)
+                    return null;
+                return tmp.Created ? tmp : null;
+            }
+        }
         // 嵌套存储过程栈。
         public List<Procedure> ProcedureStack { get; } = new List<Procedure>();
 
         public Procedure TopProcedure => ProcedureStack.Count == 0 ? null : ProcedureStack[ProcedureStack.Count - 1];
 
+        private bool Created = true;
+
+        private void ReuseTransaction()
+        {
+            this.Created = false;
+
+            this.AccessedRecords.Clear();
+            this.CommitActions.Clear();
+            //this.holdLocks.Clear(); // 执行完肯定清理了。
+            this.IsCompleted = false;
+            this.ProcedureStack.Clear();
+            this.RollbackActions.Clear();
+            this.Savepoints.Clear();
+        }
+
         public static Transaction Create()
         {
             if (null == threadLocal.Value)
-                threadLocal.Value = new Transaction();
-            return threadLocal.Value;
+            {
+                var tmp = new Transaction();
+                threadLocal.Value = tmp;
+                return tmp;
+            }
+            else
+            {
+                var tmp = threadLocal.Value;
+                tmp.Created = true;
+                return tmp;
+            }
         }
 
         public static void Destroy()
         {
-            threadLocal.Value = null;
+            threadLocal.Value.ReuseTransaction();
         }
 
         public void Begin()
         {
-            Savepoint sp = savepoints.Count > 0 ? savepoints[savepoints.Count - 1].Duplicate() : new Savepoint();
-            savepoints.Add(sp);
+            Savepoint sp = Savepoints.Count > 0 ? Savepoints[Savepoints.Count - 1].Duplicate() : new Savepoint();
+            Savepoints.Add(sp);
         }
 
         public void Commit()
         {
-            if (savepoints.Count > 1)
+            if (Savepoints.Count > 1)
             {
                 // 嵌套事务，把日志合并到上一层。
-                int lastIndex = savepoints.Count - 1;
-                Savepoint last = savepoints[lastIndex];
-                savepoints.RemoveAt(lastIndex);
-                savepoints[savepoints.Count - 1].Merge(last);
+                int lastIndex = Savepoints.Count - 1;
+                Savepoint last = Savepoints[lastIndex];
+                Savepoints.RemoveAt(lastIndex);
+                Savepoints[Savepoints.Count - 1].Merge(last);
             }
             /*
             else
@@ -62,29 +94,29 @@ namespace Zeze.Transaction
 
         public void Rollback()
         {
-            int lastIndex = savepoints.Count - 1;
-            Savepoint last = savepoints[lastIndex];
-            savepoints.RemoveAt(lastIndex);
+            int lastIndex = Savepoints.Count - 1;
+            Savepoint last = Savepoints[lastIndex];
+            Savepoints.RemoveAt(lastIndex);
             last.Rollback();
         }
 
         public Log GetLog(long key)
         {
             // 允许没有 savepoint 时返回 null. 就是说允许在保存点不存在时进行读取操作。
-            return savepoints.Count > 0 ? savepoints[savepoints.Count - 1].GetLog(key) : null;
+            return Savepoints.Count > 0 ? Savepoints[Savepoints.Count - 1].GetLog(key) : null;
         }
 
         public void PutLog(Log log)
         {
             if (IsCompleted)
                 throw new Exception("Transaction Is Completed.");
-            savepoints[savepoints.Count - 1].PutLog(log);
+            Savepoints[Savepoints.Count - 1].PutLog(log);
         }
 
         public ChangeNote GetOrAddChangeNote(long key, Func<ChangeNote> factory)
         {
             // 必须存在 Savepoint. 可能是为了修改。
-            return savepoints[savepoints.Count - 1].GetOrAddChangeNote(key, factory);
+            return Savepoints[Savepoints.Count - 1].GetOrAddChangeNote(key, factory);
         }
 
         /*
@@ -128,7 +160,7 @@ namespace Zeze.Transaction
                             try
                             {
                                 int result = procedure.Call();
-                                if ((result == Procedure.Success && savepoints.Count != 1) || (result != Procedure.Success && savepoints.Count != 0))
+                                if ((result == Procedure.Success && Savepoints.Count != 1) || (result != Procedure.Success && Savepoints.Count != 0))
                                 {
                                     // 这个错误不应该重做
                                     logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
@@ -152,7 +184,7 @@ namespace Zeze.Transaction
                                     _final_rollback_(procedure);
                                     return result;
                                 }
-                                // retry
+                                // retry in finally
                             }
                             catch (RedoAndReleaseLockException redorelease)
                             {
@@ -175,7 +207,7 @@ namespace Zeze.Transaction
                                 // Procedure.Call 里面已经处理了异常。只有 unit test 或者内部错误会到达这里。
                                 // 在 unit test 下，异常日志会被记录两次。
                                 logger.Error(e, "Transaction.Perform:{0} exception. run count:{1}", procedure, tryCount);
-                                if (savepoints.Count != 0)
+                                if (Savepoints.Count != 0)
                                 {
                                     // 这个错误不应该重做
                                     logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 0.", procedure);
@@ -210,7 +242,9 @@ namespace Zeze.Transaction
                                 }
                                 // retry 可能保持已有的锁，清除记录和保存点。
                                 AccessedRecords.Clear();
-                                savepoints.Clear();
+                                Savepoints.Clear();
+                                CommitActions.Clear();
+                                RollbackActions.Clear();
                             }
                             if (checkResult == CheckResult.RedoAndReleaseLock)
                             {
@@ -246,7 +280,7 @@ namespace Zeze.Transaction
         {
             try
             {
-                Savepoint sp = savepoints[savepoints.Count - 1];
+                Savepoint sp = Savepoints[Savepoints.Count - 1];
                 foreach (Log log in sp.Logs.Values)
                 {
                     if (log.Bean == null)
@@ -278,7 +312,7 @@ namespace Zeze.Transaction
                         });
                 }
 
-                savepoints.Clear();
+                Savepoints.Clear();
                 //accessedRecords.Clear(); // 事务内访问过的记录保留，这样在Listener中可以读取。
 
                 cc.Notify();
@@ -315,7 +349,7 @@ namespace Zeze.Transaction
             {
                 try
                 {
-                    savepoints[savepoints.Count - 1].Commit();
+                    Savepoints[Savepoints.Count - 1].Commit();
                     foreach (var e in AccessedRecords)
                     {
                         if (e.Value.Dirty)
@@ -421,7 +455,7 @@ namespace Zeze.Transaction
 
         internal SortedDictionary<TableKey, RecordAccessed> AccessedRecords { get; }
             = new SortedDictionary<TableKey, RecordAccessed>();
-        private readonly List<Savepoint> savepoints = new List<Savepoint>();
+        private readonly List<Savepoint> Savepoints = new List<Savepoint>();
 
         public bool IsCompleted { get; private set; } = false;
 
@@ -526,11 +560,11 @@ namespace Zeze.Transaction
 
         private CheckResult _lock_and_check_()
         {
-            if (savepoints.Count > 0)
+            if (Savepoints.Count > 0)
             {
                 // 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；
                 // 其他情况属于Begin,Commit,Rollback不匹配。外面检查。
-                foreach (var log in savepoints[savepoints.Count - 1].Logs.Values)
+                foreach (var log in Savepoints[Savepoints.Count - 1].Logs.Values)
                 {
                     // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
                     // 现在不会有这种情况，保留给未来扩展需要。
