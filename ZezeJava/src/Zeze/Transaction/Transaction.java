@@ -12,7 +12,10 @@ public final class Transaction {
 	private static ThreadLocal<Transaction> threadLocal = new ThreadLocal<Transaction>();
 
 	public static Transaction getCurrent() {
-		return threadLocal.get();
+		var t = threadLocal.get();
+		if (null == t)
+			return null;
+		return t.Created ? t : null;
 	}
 
 	// 嵌套存储过程栈。
@@ -25,30 +28,48 @@ public final class Transaction {
 		return getProcedureStack().isEmpty() ? null : getProcedureStack().get(getProcedureStack().size() - 1);
 	}
 
+	private boolean Created = true;
+
+	private void ReuseTransaction()
+	{
+		this.Created = false;
+
+		this.AccessedRecords.clear();
+		this.CommitActions.clear();
+		//this.holdLocks.Clear(); // 执行完肯定清理了。
+		this.IsCompleted = false;
+		this.ProcedureStack.clear();
+		this.RollbackActions.clear();
+		this.Savepoints.clear();
+	}
+
 	public static Transaction Create() {
 		var t = threadLocal.get();
 		if (null == t) {
-			threadLocal.set(t = new Transaction());
+			t=  new Transaction();
+			threadLocal.set(t);
+			return t;
 		}
+		t.Created = true;
 		return t;
 	}
 
 	public static void Destroy() {
-		threadLocal.set(null);
+		threadLocal.get().ReuseTransaction();
 	}
 
 	public void Begin() {
-		Savepoint sp = !savepoints.isEmpty() ? savepoints.get(savepoints.size() - 1).Duplicate() : new Savepoint();
-		savepoints.add(sp);
+		Savepoint sp = !Savepoints.isEmpty() ? Savepoints.get(Savepoints.size() - 1).Duplicate() : new Savepoint();
+		Savepoints.add(sp);
 	}
 
 	public void Commit() {
-		if (savepoints.size() > 1) {
+		if (Savepoints.size() > 1) {
 			// 嵌套事务，把日志合并到上一层。
-			int lastIndex = savepoints.size() - 1;
-			Savepoint last = savepoints.get(lastIndex);
-			savepoints.remove(lastIndex);
-			savepoints.get(savepoints.size() - 1).Merge(last);
+			int lastIndex = Savepoints.size() - 1;
+			Savepoint last = Savepoints.get(lastIndex);
+			Savepoints.remove(lastIndex);
+			Savepoints.get(Savepoints.size() - 1).Merge(last);
 		}
 		/*
 		else
@@ -59,27 +80,27 @@ public final class Transaction {
 	}
 
 	public void Rollback() {
-		int lastIndex = savepoints.size() - 1;
-		Savepoint last = savepoints.get(lastIndex);
-		savepoints.remove(lastIndex);
+		int lastIndex = Savepoints.size() - 1;
+		Savepoint last = Savepoints.get(lastIndex);
+		Savepoints.remove(lastIndex);
 		last.Rollback();
 	}
 
 	public Log GetLog(long key) {
 		// 允许没有 savepoint 时返回 null. 就是说允许在保存点不存在时进行读取操作。
-		return !savepoints.isEmpty() ? savepoints.get(savepoints.size() - 1).GetLog(key) : null;
+		return !Savepoints.isEmpty() ? Savepoints.get(Savepoints.size() - 1).GetLog(key) : null;
 	}
 
 	public void PutLog(Log log) {
 		if (isCompleted()) {
 			throw new RuntimeException("Transaction Is Completed.");
 		}
-		savepoints.get(savepoints.size() - 1).PutLog(log);
+		Savepoints.get(Savepoints.size() - 1).PutLog(log);
 	}
 
 	public ChangeNote GetOrAddChangeNote(long key, Zeze.Util.Factory<ChangeNote> factory) {
 		// 必须存在 Savepoint. 可能是为了修改。
-		return savepoints.get(savepoints.size() - 1).GetOrAddChangeNote(key, factory);
+		return Savepoints.get(Savepoints.size() - 1).GetOrAddChangeNote(key, factory);
 	}
 
 	/*
@@ -116,7 +137,7 @@ public final class Transaction {
 						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
 						try {
 							int result = procedure.Call();
-							if ((result == Procedure.Success && savepoints.size() != 1) || (result != Procedure.Success && !savepoints.isEmpty())) {
+							if ((result == Procedure.Success && Savepoints.size() != 1) || (result != Procedure.Success && !Savepoints.isEmpty())) {
 								// 这个错误不应该重做
 								logger.fatal("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
 								_final_rollback_(procedure);
@@ -136,7 +157,7 @@ public final class Transaction {
 								_final_rollback_(procedure);
 								return result;
 							}
-							// retry
+							// retry clear in finally
 						}
 						catch (RedoAndReleaseLockException redorelease) {
 							checkResult = CheckResult.RedoAndReleaseLock;
@@ -155,7 +176,7 @@ public final class Transaction {
 							// Procedure.Call 里面已经处理了异常。只有 unit test 或者内部错误会到达这里。
 							// 在 unit test 下，异常日志会被记录两次。
 							logger.error("Transaction.Perform:{} exception. run count:{}", procedure, tryCount, e);
-							if (!savepoints.isEmpty()) {
+							if (!Savepoints.isEmpty()) {
 								// 这个错误不应该重做
 								logger.fatal("Transaction.Perform:{}. exception. savepoints.Count != 0.", procedure, e);
 								_final_rollback_(procedure);
@@ -183,8 +204,10 @@ public final class Transaction {
 								holdLocks.clear();
 							}
 							// retry 可能保持已有的锁，清除记录和保存点。
-							getAccessedRecords().clear();
-							savepoints.clear();
+							AccessedRecords.clear();
+							Savepoints.clear();
+							CommitActions.clear();
+							RollbackActions.clear();
 						}
 						if (checkResult == CheckResult.RedoAndReleaseLock) {
 							//logger.Debug("CheckResult.RedoAndReleaseLock break {0}", procedure);
@@ -214,7 +237,7 @@ public final class Transaction {
 
 	private void _notify_listener_(ChangeCollector cc) {
 		try {
-			Savepoint sp = savepoints.get(savepoints.size() - 1);
+			Savepoint sp = Savepoints.get(Savepoints.size() - 1);
 			for (Log log : sp.getLogs().values()) {
 				if (log.getBean() == null) {
 					continue; // 特殊日志没有Bean。
@@ -248,7 +271,7 @@ public final class Transaction {
 				});
 			}
 
-			savepoints.clear();
+			Savepoints.clear();
 			//accessedRecords.Clear(); // 事务内访问过的记录保留，这样在Listener中可以读取。
 
 			cc.Notify();
@@ -277,7 +300,7 @@ public final class Transaction {
 
 		RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () -> {
 				try {
-					savepoints.get(savepoints.size() - 1).Commit();
+					Savepoints.get(Savepoints.size() - 1).Commit();
 					for (var e : getAccessedRecords().entrySet()) {
 						if (e.getValue().Dirty) {
 							e.getValue().OriginRecord.Commit(e.getValue());
@@ -317,7 +340,7 @@ public final class Transaction {
 	public TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
 		return AccessedRecords;
 	}
-	private final ArrayList<Savepoint> savepoints = new ArrayList<Savepoint>();
+	private final ArrayList<Savepoint> Savepoints = new ArrayList<Savepoint>();
 
 	private boolean IsCompleted = false;
 	public boolean isCompleted() {
@@ -420,10 +443,10 @@ public final class Transaction {
 	}
 
 	private CheckResult _lock_and_check_() {
-		if (!savepoints.isEmpty()) {
+		if (!Savepoints.isEmpty()) {
 			// 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；
 			// 其他情况属于Begin,Commit,Rollback不匹配。外面检查。
-			for (var log : savepoints.get(savepoints.size() - 1).getLogs().values()) {
+			for (var log : Savepoints.get(Savepoints.size() - 1).getLogs().values()) {
 				// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 				// 现在不会有这种情况，保留给未来扩展需要。
 				if (log.getBean() == null) {

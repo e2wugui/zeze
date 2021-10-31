@@ -184,7 +184,7 @@ namespace Zeze.Transaction
                                     _final_rollback_(procedure);
                                     return result;
                                 }
-                                // retry in finally
+                                // retry clear in finally
                             }
                             catch (RedoAndReleaseLockException redorelease)
                             {

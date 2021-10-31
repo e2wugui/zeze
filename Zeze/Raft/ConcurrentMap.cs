@@ -60,8 +60,18 @@ namespace Zeze.Raft
     public class ConcurrentMap<K, V>
         where V : Copyable<V>, new()
     {
+        // 可靠性来讲，写操作要马上持久化。读则由Lru提高性能。
+        // 不马上持久化，如果数据修改丢失，
+        // 多个Raft-Node之间的Statemachine可能就不一致。
+        // 这个类目的是为了提供并发snapshot，尽可能小的影响使用。
+        // 实现snapshot的基本思路是：
+        // 拦截修改；让RocksDb慢慢backup；然后把修改apply进去，取消拦截。
+        // 这样的话，拦截的过程中，仍然可能丢失修改。这个问题怎么解决！
         public HugeConcurrentLruLike<K, CachedValue> Lru { get; }
         private RocksDbSharp.RocksDb Db;
+
+        private ConcurrentDictionary<K, CachedValue> Changed { get; }
+            = new ConcurrentDictionary<K, CachedValue>();
 
         public ConcurrentMap(
             string dbHome,
@@ -92,8 +102,6 @@ namespace Zeze.Raft
             public V Value { get; set; }
         }
 
-        private ConcurrentDictionary<K, CachedValue> Changed { get; }
-            = new ConcurrentDictionary<K, CachedValue>();
 
         public V GetOrAdd(K key)
         {
