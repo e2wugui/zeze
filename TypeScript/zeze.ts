@@ -219,13 +219,14 @@ export module Zeze {
 		abstract Encode(_os_: ByteBuffer): void;
 		abstract Decode(_os_: ByteBuffer): void;
 
-		public TypeId(): number {
-			return this.ModuleId() << 16 | this.ProtocolId();
+		public TypeId(): bigint {
+			return BigInt(this.ModuleId()) << 32n | BigInt(this.ProtocolId());
 		}
 
 		public EncodeProtocol(): Zeze.ByteBuffer {
 			var bb = new Zeze.ByteBuffer();
-			bb.WriteInt4(this.TypeId());
+			bb.WriteInt4(this.ModuleId());
+			bb.WriteInt4(this.ProtocolId());
 			var state = bb.BeginWriteWithSize4();
 			this.Encode(bb);
 			bb.EndWriteWithSize4(state);
@@ -244,13 +245,15 @@ export module Zeze {
 		public static DecodeProtocols(service: Service, socket: Socket, input: Zeze.ByteBuffer): void {
 			var os = new Zeze.ByteBuffer(input.Bytes, input.ReadIndex, input.Size());
 			while (os.Size() > 0) {
-				var type: number;
+				var moduleId: number;
+				var protocolId: number;
 				var size: number;
 				var readIndexSaved = os.ReadIndex;
 
-				if (os.Size() >= 8) // protocl header size.
+				if (os.Size() >= 12) // protocl header size.
 				{
-					type = os.ReadInt4();
+					moduleId = os.ReadInt4();
+					protocolId = os.ReadInt4();
 					size = os.ReadInt4();
 				}
 				else {
@@ -265,6 +268,7 @@ export module Zeze {
 
 				var buffer = new Zeze.ByteBuffer(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
+				var type: bigint = BigInt(moduleId) << 32n | BigInt(protocolId);
 				var factoryHandle = service.FactoryHandleMap.get(type);
 				if (null != factoryHandle) {
 					var p = factoryHandle.factory();
@@ -455,8 +459,13 @@ export module Zeze {
 		OnSoekctInput(service: Service, socket: Socket, buffer: ArrayBuffer, offset: number, len: number): boolean; // true 已经处理了，false 进行默认处理
     }
 
+	export class ProtocolHead {
+		public moduleId: number;
+		public protocolId: number;
+    }
+
 	export class Service {
-		public FactoryHandleMap: Map<number, Zeze.ProtocolFactoryHandle> = new Map<number, Zeze.ProtocolFactoryHandle>();
+		public FactoryHandleMap: Map<bigint, Zeze.ProtocolFactoryHandle> = new Map<bigint, Zeze.ProtocolFactoryHandle>();
 
 		private serialId: bigint = 0n;
 		private contexts: Map<bigint, Zeze.Protocol> = new Map<bigint, Zeze.Protocol>();
@@ -476,7 +485,7 @@ export module Zeze {
 			return null;
         }
 
-		public DispatchUnknownProtocol(socket: Socket, type: number, buffer: Zeze.ByteBuffer): void {
+		public DispatchUnknownProtocol(socket: Socket, type: bigint, buffer: Zeze.ByteBuffer): void {
 		}
 
 		public DispatchProtocol(p: Zeze.Protocol, factoryHandle: ProtocolFactoryHandle): void {

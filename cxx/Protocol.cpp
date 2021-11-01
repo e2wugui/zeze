@@ -11,13 +11,15 @@ namespace Zeze
 			while (os.Size() > 0)
 			{
 				// 尝试读取协议类型和大小
-				int type;
+				int moduleId;
+				int protocolId;
 				int size;
 				int readIndexSaved = os.ReadIndex;
 
-				if (os.Size() >= 8) // protocl header size.
+				if (os.Size() >= 12) // protocl header size.
 				{
-					type = os.ReadInt4();
+					moduleId = os.ReadInt4();
+					protocolId = os.ReadInt4();
 					size = os.ReadInt4();
 				}
 				else
@@ -40,6 +42,7 @@ namespace Zeze
 				Zeze::Serialize::ByteBuffer pbb(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
 				Service::ProtocolFactoryHandle factoryHandle;
+				long long type = (long long)moduleId << 32 | (protocolId & 0xffffffff);
 				if (service->FindProtocolFactoryHandle(type, factoryHandle))
 				{
 					std::auto_ptr<Protocol> p(factoryHandle.Factory());
@@ -49,9 +52,9 @@ namespace Zeze
 					continue;
 				}
 				// 优先派发c++实现，然后尝试lua实现，最后UnknownProtocol。
-				if (NULL != toLua && toLua->DecodeAndDispatch(service, sender->SessionId, type, pbb))
+				if (NULL != toLua && toLua->DecodeAndDispatch(service, sender->SessionId, moduleId, protocolId, pbb))
 					continue;
-				service->DispatchUnknownProtocol(sender, type, pbb);
+				service->DispatchUnknownProtocol(sender, moduleId, protocolId, pbb);
 			}
 			bb.ReadIndex = os.ReadIndex;
 		}

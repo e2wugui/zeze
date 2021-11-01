@@ -11,7 +11,7 @@ namespace Zeze.Gen
         public string NamePinyin => Program.ToPinyin(Name);
         public ModuleSpace Parent { get; private set; }
         public global::Zeze.Util.Ranges ProtocolIdRanges { get; } = new global::Zeze.Util.Ranges();
-        public short Id { get; }
+        public int Id { get; }
 
         public XmlElement Self { get; }
 
@@ -134,7 +134,7 @@ namespace Zeze.Gen
 
             if (hasId)
             {
-                Id = short.Parse(self.GetAttribute("id"));
+                Id = int.Parse(self.GetAttribute("id"));
                 if (Id <= 0)
                     throw new Exception("module id <= 0 is reserved. @" + this.Path());
 

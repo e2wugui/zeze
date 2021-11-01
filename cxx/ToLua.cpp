@@ -46,13 +46,18 @@ namespace Zeze
             if (false == Lua.IsTable(-1))
                 throw std::exception("SendProtocol param is not a table.");
 
-            Lua.GetField(-1, "TypeId");
-            int typeId = (int)Lua.ToInteger(-1);
+            Lua.GetField(-1, "ModuleId");
+            int ModuleId = (int)Lua.ToInteger(-1);
             Lua.Pop(1);
+            Lua.GetField(-1, "ProtocolId");
+            int ProtocolId = (int)Lua.ToInteger(-1);
+            Lua.Pop(1);
+
             Lua.GetField(-1, "ResultCode");
             int resultCode = (int)Lua.ToInteger(-1);
             Lua.Pop(1);
 
+			long typeId = (long long)ModuleId << 32 | (ProtocolId & 0xffffffff);
             ProtocolMetasMap::iterator pit = ProtocolMetas.find(typeId);
             if (pit == ProtocolMetas.end())
                 throw std::exception("protocol not found in meta for typeid=" + typeId);
@@ -85,7 +90,8 @@ namespace Zeze
 
                 // see Rpc.Encode
                 Zeze::Serialize::ByteBuffer bb(1024);
-                bb.WriteInt4(typeId);
+                bb.WriteInt4(moduleId);
+				bb.WriteInt4(protocolId);
                 int outstate;
                 bb.BeginWriteWithSize4(outstate);
                 bb.WriteBool(isRequest);
@@ -106,7 +112,8 @@ namespace Zeze
             {
                 // see Protocol.Encode
                 Zeze::Serialize::ByteBuffer bb(1024);
-                bb.WriteInt4(typeId);
+                bb.WriteInt4(moduleId);
+				bb.WriteInt4(protocolId);
                 int outstate;
                 bb.BeginWriteWithSize4(outstate);
                 bb.WriteInt(resultCode);
@@ -231,7 +238,7 @@ namespace Zeze
             Lua.Pop(1);
         }
 
-        bool ToLua::DecodeAndDispatch(Service* service, long long sessionId, int typeId, Zeze::Serialize::ByteBuffer& _os_)
+        bool ToLua::DecodeAndDispatch(Service* service, long long sessionId, int moduleId, int protocolId, Zeze::Serialize::ByteBuffer& _os_)
         {
             if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
             {
@@ -251,13 +258,14 @@ namespace Zeze
             Lua.SetTable(-3);
 
             Lua.PushString("ModuleId");
-            Lua.PushInteger((typeId >> 16) & 0xffff);
+            Lua.PushInteger(moduleId);
             Lua.SetTable(-3);
 
             Lua.PushString("ProtcolId");
-            Lua.PushInteger(typeId & 0xffff);
+            Lua.PushInteger(protocolId);
             Lua.SetTable(-3);
 
+			long long typeId = (long long)moduleId << 32 | (protocolId & 0xffffffff);
             Lua.PushString("TypeId");
             Lua.PushInteger(typeId);
             Lua.SetTable(-3);

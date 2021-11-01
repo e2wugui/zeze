@@ -102,19 +102,11 @@ namespace Zeze.Transaction
             return (long)hashedValue;
         }
 
-        public static uint Hash32(string name)
+        public static int Hash32(string name)
         {
             ulong hash64 = (ulong)Hash64(name);
             uint hash32 = (uint)(hash64 & 0xffffffff) ^ (uint)(hash64 >> 32);
-            return hash32;
-        }
-
-        public static ushort Hash16(string protocolName)
-        {
-            ulong hash64 = (ulong)Hash64(protocolName);
-            uint hash32 = (uint)(hash64 & 0xffffffff) ^ (uint)(hash64 >> 32);
-            ushort hash16 = (ushort)((hash32 & 0xffff) ^ (hash32 >> 16));
-            return hash16;
+            return (int)hash32;
         }
     }
 

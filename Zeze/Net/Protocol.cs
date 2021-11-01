@@ -9,18 +9,10 @@ namespace Zeze.Net
     {
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
-		public int TypeId => ModuleId << 16 | ProtocolId;
+
+		public long TypeId => (long)ModuleId << 32 | (ProtocolId & 0xffff_ffff);
+
 		public Service Service { get; set; }
-
-		public static int GetModuleId(int type)
-        {
-			return type >> 16 & 0xffff;
-        }
-
-		public static int GetProtocolId(int type)
-		{
-			return type & 0xffff;
-		}
 
 		public AsyncSocket Sender { get; set; }
 
@@ -38,7 +30,10 @@ namespace Zeze.Net
 		public ByteBuffer Encode()
         {
 			ByteBuffer bb = ByteBuffer.Allocate();
-			bb.WriteInt4(TypeId);
+
+			bb.WriteInt4(ModuleId);
+			bb.WriteInt4(ProtocolId);
+
 			bb.BeginWriteWithSize4(out var state);
 			this.Encode(bb);
 			bb.EndWriteWithSize4(state);
@@ -93,13 +88,15 @@ namespace Zeze.Net
 			while (os.Size > 0)
 			{
 				// 尝试读取协议类型和大小
-				int type;
+				int moduleId;
+				int protocoId;
 				int size;
 				int readIndexSaved = os.ReadIndex;
 
-				if (os.Size >= 8) // protocl header size.
+				if (os.Size >= 12) // protocl header size.
 				{
-					type = os.ReadInt4();
+					moduleId = os.ReadInt4();
+					protocoId = os.ReadInt4();
 					size = os.ReadInt4();
 				}
 				else
@@ -112,6 +109,7 @@ namespace Zeze.Net
 				// 以前写过的实现在数据不够之前会根据type检查size是否太大。
 				// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
 				// 参考 AsyncSocket
+				long type = (long)moduleId << 32 | (protocoId & 0xffff_ffff);
 				if (size < 0 || size > os.Size)
                 {
 					// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
@@ -126,7 +124,7 @@ namespace Zeze.Net
 					return;
 				}
 
-				Service.ProtocolFactoryHandle factoryHandle = service.FindProtocolFactoryHandle(type);
+				var factoryHandle = service.FindProtocolFactoryHandle(type);
 				if (null != factoryHandle)
 				{
 					var pBuffer = ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size);
@@ -137,7 +135,7 @@ namespace Zeze.Net
 					p.Decode(pBuffer);
 					if (pBuffer.ReadIndex != pBuffer.WriteIndex)
                     {
-						throw new Exception($"type={type} size={size} too many data");
+						throw new Exception($"p=({moduleId},{protocoId}) size={size} too many data");
                     }
 					p.Sender = so;
 					p.UserState = so.UserState;
@@ -150,7 +148,7 @@ namespace Zeze.Net
 					if (toLua.DecodeAndDispatch(service, so.SessionId, type, os))
 						continue;
 				}
-				service.DispatchUnknownProtocol(so, type, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));
+				service.DispatchUnknownProtocol(so, moduleId, protocoId, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));
 				os.ReadIndex += size;
 			}
 			bb.ReadIndex = os.ReadIndex;

@@ -186,11 +186,12 @@ var Zeze;
     Zeze.DynamicBean = DynamicBean;
     class Protocol {
         TypeId() {
-            return this.ModuleId() << 16 | this.ProtocolId();
+            return BigInt(this.ModuleId()) << 32n | BigInt(this.ProtocolId());
         }
         EncodeProtocol() {
             var bb = new Zeze.ByteBuffer();
-            bb.WriteInt4(this.TypeId());
+            bb.WriteInt4(this.ModuleId());
+            bb.WriteInt4(this.ProtocolId());
             var state = bb.BeginWriteWithSize4();
             this.Encode(bb);
             bb.EndWriteWithSize4(state);
@@ -206,12 +207,14 @@ var Zeze;
         static DecodeProtocols(service, socket, input) {
             var os = new Zeze.ByteBuffer(input.Bytes, input.ReadIndex, input.Size());
             while (os.Size() > 0) {
-                var type;
+                var moduleId;
+                var protocolId;
                 var size;
                 var readIndexSaved = os.ReadIndex;
-                if (os.Size() >= 8) // protocl header size.
+                if (os.Size() >= 12) // protocl header size.
                  {
-                    type = os.ReadInt4();
+                    moduleId = os.ReadInt4();
+                    protocolId = os.ReadInt4();
                     size = os.ReadInt4();
                 }
                 else {
@@ -224,6 +227,7 @@ var Zeze;
                 }
                 var buffer = new Zeze.ByteBuffer(os.Bytes, os.ReadIndex, size);
                 os.ReadIndex += size;
+                var type = BigInt(moduleId) << 32n | BigInt(protocolId);
                 var factoryHandle = service.FactoryHandleMap.get(type);
                 if (null != factoryHandle) {
                     var p = factoryHandle.factory();
@@ -374,6 +378,9 @@ var Zeze;
         }
     }
     Zeze.Socket = Socket;
+    class ProtocolHead {
+    }
+    Zeze.ProtocolHead = ProtocolHead;
     class Service {
         constructor(name) {
             this.FactoryHandleMap = new Map();

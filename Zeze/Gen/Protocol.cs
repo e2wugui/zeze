@@ -15,8 +15,8 @@ namespace Zeze.Gen
             return holder == Space ? Name : FullName;
         }
 
-        public ushort Id { get; private set; }
-        public int TypeId => ((int)Space.Id << 16) | ((int)Id & 0xffff);
+        public int Id { get; private set; }
+        public long TypeId => (long)Space.Id << 32 | (Id & 0xffff_ffff);
         public string Argument { get; private set; }
         public string Handle { get; private set; }
         public int HandleFlags { get; }
@@ -34,7 +34,9 @@ namespace Zeze.Gen
             space.Add(this);
 
             string attr = self.GetAttribute("id");
-            Id = attr.Length > 0 ? ushort.Parse(attr) : Zeze.Transaction.Bean.Hash16(space.Path(".", Name));
+            Id = attr.Length > 0
+                ? int.Parse(attr)
+                : Zeze.Transaction.Bean.Hash32(space.Path(".", Name));
             space.ProtocolIdRanges.CheckAdd(Id);
 
             Argument = self.GetAttribute("argument");

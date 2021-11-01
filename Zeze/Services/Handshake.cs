@@ -49,7 +49,7 @@ namespace Zeze.Services
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private HashSet<int> HandshakeProtocols = new HashSet<int>();
+        private HashSet<long> HandshakeProtocols = new HashSet<long>();
 
         // For Client Only
         private ConcurrentDictionary<long, BigInteger> DHContext
@@ -63,7 +63,7 @@ namespace Zeze.Services
         {
         }
 
-        public bool IsHandshakeProtocol(int typeId)
+        public bool IsHandshakeProtocol(long typeId)
         {
             return HandshakeProtocols.Contains(typeId);
         }
@@ -416,7 +416,7 @@ namespace Zeze.Services.Handshake
 
     public sealed class CHandshake : Protocol<CHandshakeArgument>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(CHandshake).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(CHandshake).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -435,7 +435,7 @@ namespace Zeze.Services.Handshake
 
     public sealed class SHandshake : Zeze.Net.Protocol<SHandshakeArgument>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(SHandshake).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(SHandshake).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -454,7 +454,7 @@ namespace Zeze.Services.Handshake
 
     public sealed class CHandshakeDone : Protocol<EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(CHandshakeDone).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(CHandshakeDone).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;

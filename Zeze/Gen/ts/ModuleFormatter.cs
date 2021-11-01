@@ -95,13 +95,13 @@ namespace Zeze.Gen.ts
                 {
                     string handle = ((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
                         ? "this.Process" + rpc.Name + "Request.bind(this)" : "null";
-                    sw.WriteLine($"        app.{serv.Name}.FactoryHandleMap.set({rpc.TypeId}, new Zeze.ProtocolFactoryHandle({factory}, {handle}));");
+                    sw.WriteLine($"        app.{serv.Name}.FactoryHandleMap.set({rpc.TypeId}n, new Zeze.ProtocolFactoryHandle({factory}, {handle}));");
                     continue;
                 }
                 if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
                 {
                     string handle = "this.Process" + p.Name + ".bind(this)";
-                    sw.WriteLine($"        app.{serv.Name}.FactoryHandleMap.set({p.TypeId}, new Zeze.ProtocolFactoryHandle({factory}, {handle}));");
+                    sw.WriteLine($"        app.{serv.Name}.FactoryHandleMap.set({p.TypeId}n, new Zeze.ProtocolFactoryHandle({factory}, {handle}));");
                 }
             }
         }

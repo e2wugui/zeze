@@ -22,7 +22,7 @@ namespace Zeze.Util
 			{
 				this.first = first;
 				this.last = last;
-				if (first < 0 || last < 0 || first >= last)
+				if (first >= last)
 					throw new Exception("error new range : " + this);
 			}
 

@@ -29,7 +29,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("    {");
             sw.WriteLine("        public const int ModuleId_ = " + p.Space.Id + ";");
             sw.WriteLine("        public const int ProtocolId_ = " + p.Id + ";");
-            sw.WriteLine("        public const int TypeId_ = ModuleId_ << 16 | ProtocolId_; ");
+            sw.WriteLine("        public const long TypeId_ = (long)ModuleId_ << 32 | (ProtocolId_ & 0xffff_ffff); ");
             sw.WriteLine();
             sw.WriteLine("        public override int ModuleId => ModuleId_;");
             sw.WriteLine("        public override int ProtocolId => ProtocolId_;");

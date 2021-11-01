@@ -233,8 +233,11 @@ namespace Zeze.Services.ToLuaService
             public List<VariableMeta> Variables { get; } = new List<VariableMeta>();
         }
 
-        private readonly Dictionary<long, BeanMeta> BeanMetas = new Dictionary<long, BeanMeta>(); // Bean.TypeId -> vars
-        private readonly Dictionary<int, ProtocolArgument> ProtocolMetas = new Dictionary<int, ProtocolArgument>(); // protocol.TypeId -> Bean.TypeId
+        private readonly Dictionary<long, BeanMeta> BeanMetas
+            = new Dictionary<long, BeanMeta>(); // Bean.TypeId -> vars
+
+        private readonly Dictionary<long, ProtocolArgument> ProtocolMetas
+            = new Dictionary<long, ProtocolArgument>(); // protocol.TypeId -> Bean.TypeId
 
         public void LoadMeta()
         {
@@ -298,13 +301,22 @@ namespace Zeze.Services.ToLuaService
                 {
                     switch (Lua.ToInteger(-2))
                     {
-                        case 1: pa.ArgumentBeanTypeId = Lua.ToInteger(-1); pa.IsRpc = false; break;
-                        case 2: pa.ResultBeanTypeId = Lua.ToInteger(-1); pa.IsRpc = true; break;
-                        default: throw new Exception("error index for protocol argument bean typeid");
+                        case 1:
+                            pa.ArgumentBeanTypeId = Lua.ToInteger(-1);
+                            pa.IsRpc = false;
+                            break;
+
+                        case 2:
+                            pa.ResultBeanTypeId = Lua.ToInteger(-1);
+                            pa.IsRpc = true;
+                            break;
+
+                        default:
+                            throw new Exception("error index for protocol argument bean typeid");
                     }
                     Lua.Pop(1);
                 }
-                ProtocolMetas.Add((int)Lua.ToInteger(-2), pa);
+                ProtocolMetas.Add(Lua.ToInteger(-2), pa);
                 Lua.Pop(1); // pop value
             }
             Lua.Pop(1);
@@ -413,15 +425,19 @@ namespace Zeze.Services.ToLuaService
             if (false == Lua.IsTable(-1))
                 throw new Exception("SendProtocol param is not a table.");
 
-            Lua.GetField(-1, "TypeId");
-            int typeId = (int)Lua.ToInteger(-1);
+            Lua.GetField(-1, "ModuleId");
+            int ModuleId = (int)Lua.ToInteger(-1);
+            Lua.Pop(1);
+            Lua.GetField(-1, "ProtocolId");
+            int ProtocolId = (int)Lua.ToInteger(-1);
             Lua.Pop(1);
             Lua.GetField(-1, "ResultCode");
             int resultCode = (int)Lua.ToInteger(-1);
             Lua.Pop(1);
 
-            if (false == ProtocolMetas.TryGetValue(typeId, out var pa))
-                throw new Exception("protocol not found in meta for typeid=" + typeId);
+            long type = (long)ModuleId << 32 | (ProtocolId & 0xffff_ffff);
+            if (false == ProtocolMetas.TryGetValue(type, out var pa))
+                throw new Exception($"protocol not found in meta. ({ModuleId},{ProtocolId})");
 
             if (pa.IsRpc)
             {
@@ -450,7 +466,8 @@ namespace Zeze.Services.ToLuaService
 
                 // see Rpc.Encode
                 ByteBuffer bb = ByteBuffer.Allocate();
-                bb.WriteInt4(typeId);
+                bb.WriteInt4(ModuleId);
+                bb.WriteInt4(ProtocolId);
                 bb.BeginWriteWithSize4(out var outstate);
                 bb.WriteBool(isRequest);
                 bb.WriteLong(sid);
@@ -468,7 +485,8 @@ namespace Zeze.Services.ToLuaService
             {
                 // see Protocol.Encode
                 ByteBuffer bb = ByteBuffer.Allocate();
-                bb.WriteInt4(typeId);
+                bb.WriteInt4(ModuleId);
+                bb.WriteInt4(ProtocolId);
                 bb.BeginWriteWithSize4(out var state);
                 bb.WriteInt(resultCode);
                 Lua.GetField(-1, "Argument");
@@ -699,7 +717,7 @@ namespace Zeze.Services.ToLuaService
             Lua.Pop(1);
         }
 
-        public bool DecodeAndDispatch(Net.Service service, long sessionId, int typeId, ByteBuffer _os_)
+        public bool DecodeAndDispatch(Net.Service service, long sessionId, long typeId, ByteBuffer _os_)
         {
             if (LuaType.Function != this.Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
             {

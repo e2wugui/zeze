@@ -740,12 +740,12 @@ namespace Zeze.Services
                 catch (RpcTimeoutException timeoutex)
                 {
                     // 等待超时，应该报告错误。
-                    logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1}", state, SessionId);
+                    logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1} '{2}'", state, SessionId, gkey);
                     return StateReduceRpcTimeout;
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "Reduce Exception {0} target={1}", state, SessionId);
+                    logger.Error(ex, "Reduce Exception {0} target={1} '{2}'", state, SessionId, gkey);
                     return StateReduceException;
                 }
             }
@@ -830,7 +830,7 @@ namespace Zeze.Services.GlobalCacheManager
     }
     public sealed class Acquire : Zeze.Net.Rpc<Param, Param>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(Acquire).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Acquire).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -848,7 +848,7 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class Reduce : Zeze.Net.Rpc<Param, Param>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(Reduce).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Reduce).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -894,7 +894,7 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class Login : Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(Login).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Login).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -911,7 +911,7 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class ReLogin : Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(ReLogin).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(ReLogin).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -928,7 +928,7 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class NormalClose : Zeze.Net.Rpc<Zeze.Transaction.EmptyBean, Zeze.Transaction.EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(NormalClose).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(NormalClose).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -963,7 +963,7 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class Cleanup : Rpc<AchillesHeel, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(Cleanup).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Cleanup).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1067,7 +1067,7 @@ namespace Zeze.Services.GlobalCacheManager
     /// </summary>
     public sealed class KeepAlive : Rpc<EmptyBean, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(KeepAlive).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(KeepAlive).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;

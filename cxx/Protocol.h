@@ -18,11 +18,12 @@ namespace Zeze
 			virtual int ModuleId() = 0;
 			virtual int ProtocolId() = 0;
 
-			int TypeId() { return ModuleId() << 16 | ProtocolId(); }
+			int TypeId() { return (long long)ModuleId() << 32 | (ProtocolId() & 0xffffffff); }
 
 			void EncodeProtcocol(Zeze::Serialize::ByteBuffer& bb)
 			{
-				bb.WriteInt4(TypeId());
+				bb.WriteInt4(ModuleId());
+				bb.WriteInt4(ProtocolId());
 				int outstate;
 				bb.BeginWriteWithSize4(outstate);
 				this->Encode(bb);

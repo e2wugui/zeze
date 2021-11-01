@@ -250,7 +250,7 @@ namespace Net
 		Protocol::DecodeProtocol(this, sender, input);
 	}
 
-	void Service::DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int typeId, Zeze::Serialize::ByteBuffer& data)
+	void Service::DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int moduleId, int protocolId, Zeze::Serialize::ByteBuffer& data)
 	{
 		sender; typeId; data;
 	}

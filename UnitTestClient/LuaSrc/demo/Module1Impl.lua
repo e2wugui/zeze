@@ -4,9 +4,9 @@ local Zeze = require 'Zeze'
 
 function Module1Impl:Init()
     -- ZEZE_FILE_CHUNK {{{ REGISTER PROTOCOL
-    Zeze.ProtocolHandles[74770] = Module1Impl.ProcessProtocol1
-    Zeze.ProtocolHandles[82178] = Module1Impl.ProcessProtocol3
-    Zeze.ProtocolHandles[93307] = Module1Impl.ProcessRpc2Request
+    Zeze.ProtocolHandles[7370347356] = Module1Impl.ProcessProtocol1
+    Zeze.ProtocolHandles[7815467220] = Module1Impl.ProcessProtocol3
+    Zeze.ProtocolHandles[7854078040] = Module1Impl.ProcessRpc2Request
     -- ZEZE_FILE_CHUNK }}} REGISTER PROTOCOL
 end
 

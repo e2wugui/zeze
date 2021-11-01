@@ -39,7 +39,7 @@ namespace Zeze.Util
                     : NLog.LogLevel.Info;
                 var module = "";
                 if (result > 0)
-                    module = "@" + Net.Protocol.GetModuleId(result) + ":" + Net.Protocol.GetProtocolId(result);
+                    module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetReturnCode(result);
                 logger.Log(logLevel,
                     "Task {0} Return={1}{2} UserState={3}",
                     actionName, result, module, p.UserState);

@@ -25,7 +25,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("public class " + rpc.Name + " extends Zeze.Net.Rpc<" + argument + ", " + result + "> {");
             sw.WriteLine("    public final static int ModuleId_ = " + rpc.Space.Id + ";");
             sw.WriteLine("    public final static int ProtocolId_ = " + rpc.Id + ";");
-            sw.WriteLine("    public final static int TypeId_ = ModuleId_ << 16 | ProtocolId_; ");
+            sw.WriteLine("    public final static long TypeId_ = (long)ModuleId_ << 32 | (ProtocolId_ & 0xffff_ffff); ");
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public int getModuleId() {");

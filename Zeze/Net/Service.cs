@@ -319,9 +319,9 @@ namespace Zeze.Net
             }
         }
 
-        public virtual void DispatchUnknownProtocol(AsyncSocket so, int type, ByteBuffer data)
+        public virtual void DispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data)
         {
-            throw new Exception("Unknown Protocol (" + (type >> 16 & 0xffff) + ", " + (type & 0xffff) + ") size=" + data.Size);
+            throw new Exception($"Unknown Protocol=({moduleId}, {protocolId}) size={data.Size}");
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -333,9 +333,10 @@ namespace Zeze.Net
             public bool NoProcedure { get; set; } = false;
         }
 
-        public ConcurrentDictionary<int, ProtocolFactoryHandle> Factorys { get; } = new ConcurrentDictionary<int, ProtocolFactoryHandle>();
+        public ConcurrentDictionary<long, ProtocolFactoryHandle> Factorys { get; }
+            = new ConcurrentDictionary<long, ProtocolFactoryHandle>();
 
-        public void AddFactoryHandle(int type, ProtocolFactoryHandle factory)
+        public void AddFactoryHandle(long type, ProtocolFactoryHandle factory)
         {
             if (false == Factorys.TryAdd(type, factory))
                 throw new Exception($"duplicate factory type={type} moduleid={(type >> 16) & 0x7fff} id={type & 0x7fff}");
@@ -358,7 +359,7 @@ namespace Zeze.Net
             };
         }
 
-        public ProtocolFactoryHandle FindProtocolFactoryHandle(int type)
+        public ProtocolFactoryHandle FindProtocolFactoryHandle(long type)
         {
             if (Factorys.TryGetValue(type, out ProtocolFactoryHandle factory))
             {

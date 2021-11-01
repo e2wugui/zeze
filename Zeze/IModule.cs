@@ -25,5 +25,15 @@ namespace Zeze
         {
             return Id << 16 | code;
         }
+
+        public static int GetModuleId(int result)
+        {
+            return (result >> 16) & 0xffff;
+        }
+
+        public static int GetReturnCode(int result)
+        {
+            return (result >> 16) & 0xffff;
+        }
     }
 }

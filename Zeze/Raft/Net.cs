@@ -95,9 +95,10 @@ namespace Zeze.Raft
             service.Config.AddAcceptor(new Acceptor(node.Port, node.Host));
         }
 
-        private bool IsImportantProtocol(int typeId)
+        private bool IsImportantProtocol(long typeId)
         {
             return IsHandshakeProtocol(typeId)
+                // 【注意】下面这些模块的Id总是为0。
                 || typeId == RequestVote.ProtocolId_
                 || typeId == AppendEntries.ProtocolId_
                 || typeId == InstallSnapshot.ProtocolId_
@@ -631,7 +632,7 @@ namespace Zeze.Raft
 
     public sealed class RequestVote : Rpc<RequestVoteArgument, RequestVoteResult>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(RequestVote).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(RequestVote).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -723,7 +724,7 @@ namespace Zeze.Raft
 
     public sealed class AppendEntries : Rpc<AppendEntriesArgument, AppendEntriesResult>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(AppendEntries).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(AppendEntries).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -814,7 +815,7 @@ namespace Zeze.Raft
 
     public sealed class InstallSnapshot : Rpc<InstallSnapshotArgument, InstallSnapshotResult>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(InstallSnapshot).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(InstallSnapshot).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -883,7 +884,7 @@ namespace Zeze.Raft
     /// </summary>
     public sealed class LeaderIs : Rpc<LeaderIsArgument, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(LeaderIs).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(LeaderIs).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;

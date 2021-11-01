@@ -88,8 +88,8 @@ namespace Zeze.Transaction
 
                 var module = "";
                 if (result > 0)
-                    module = "@" + Net.Protocol.GetModuleId(result)
-                        + ":" + Net.Protocol.GetProtocolId(result);
+                    module = "@" + IModule.GetModuleId(result)
+                        + ":" + IModule.GetReturnCode(result);
                 logger.Log(Zeze.Config.ProcessReturnErrorLogLevel,
                     "Procedure {0} Return{1}@{2} UserState={3}",
                     ToString(), result, module, UserState);

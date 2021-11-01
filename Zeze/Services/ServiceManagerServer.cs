@@ -1307,7 +1307,7 @@ namespace Zeze.Services.ServiceManager
     /// </summary>
     public sealed class Register : Rpc<ServiceInfo, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(Register).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Register).FullName);
 
         public const int Success = 0;
         public const int DuplicateRegister = 1;
@@ -1323,7 +1323,7 @@ namespace Zeze.Services.ServiceManager
     /// </summary>
     public sealed class UnRegister : Rpc<ServiceInfo, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(UnRegister).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(UnRegister).FullName);
 
         public const int Success = 0;
         public const int NotExist = 1;
@@ -1366,7 +1366,7 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class Subscribe : Rpc<SubscribeInfo, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(Subscribe).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Subscribe).FullName);
 
         public const int Success = 0;
         public const int DuplicateSubscribe = 1;
@@ -1378,7 +1378,7 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class UnSubscribe : Rpc<SubscribeInfo, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(UnSubscribe).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(UnSubscribe).FullName);
 
         public const int Success = 0;
         public const int NotExist = 1;
@@ -1473,7 +1473,7 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class NotifyServiceList : Protocol<ServiceInfos>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(NotifyServiceList).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(NotifyServiceList).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1481,7 +1481,7 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class ReadyServiceList : Protocol<ServiceInfos>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(ReadyServiceList).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(ReadyServiceList).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1489,7 +1489,7 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class CommitServiceList : Protocol<ServiceInfos>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(CommitServiceList).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(CommitServiceList).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1519,7 +1519,7 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class Keepalive : Rpc<EmptyBean, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(Keepalive).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Keepalive).FullName);
 
         public const int Success = 0;
 
@@ -1529,7 +1529,7 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class SubscribeFirstCommit : Protocol<ServiceInfos>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(SubscribeFirstCommit).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(SubscribeFirstCommit).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1586,7 +1586,7 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class AllocateId : Rpc<AllocateIdArgument, AllocateIdResult>
     {
-        public readonly static int ProtocolId_ = Bean.Hash16(typeof(AllocateId).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(AllocateId).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;

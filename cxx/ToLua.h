@@ -74,7 +74,7 @@ namespace Net
         };
 
         typedef std::unordered_map<long long, BeanMeta> BeanMetasMap;
-        typedef std::unordered_map<int, ProtocolArgument> ProtocolMetasMap;
+        typedef std::unordered_map<long long, ProtocolArgument> ProtocolMetasMap;
 
         BeanMetasMap BeanMetas; // Bean.TypeId -> vars
         ProtocolMetasMap ProtocolMetas; // protocol.TypeId -> Bean.TypeId
@@ -152,7 +152,7 @@ namespace Net
                     }
                     Lua.Pop(1);
                 }
-                ProtocolMetas[(int)Lua.ToInteger(-2)] = pa;
+                ProtocolMetas[Lua.ToInteger(-2)] = pa;
                 Lua.Pop(1); // pop value
             }
             Lua.Pop(1);
@@ -389,7 +389,7 @@ namespace Net
             }
         }
     public:
-        virtual bool DecodeAndDispatch(Service* service, long long sessionId, int typeId, Zeze::Serialize::ByteBuffer& _os_) override;
+        virtual bool DecodeAndDispatch(Service* service, long long sessionId, int moduleId, int protocolId, Zeze::Serialize::ByteBuffer& _os_) override;
         void CallRpcTimeout(long long sid);
 
     private:
