@@ -194,7 +194,7 @@ namespace Zeze.Transaction
         private bool TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)
         {
             TableKey tkey = new TableKey(this.Table.Name, p.Key);
-            Lockey lockey = Locks.Instance.Get(tkey);
+            Lockey lockey = Table.Zeze.Locks.Get(tkey);
             if (false == lockey.TryEnterWriteLock(0))
             {
                 return false;

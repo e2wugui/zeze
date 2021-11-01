@@ -47,11 +47,17 @@ namespace Zeze.Transaction
             this.Savepoints.Clear();
         }
 
-        public static Transaction Create()
+        private Locks Locks;
+        private Transaction(Locks locks)
+        {
+            Locks = locks;
+        }
+
+        public static Transaction Create(Locks locks)
         {
             if (null == threadLocal.Value)
             {
-                var tmp = new Transaction();
+                var tmp = new Transaction(locks);
                 threadLocal.Value = tmp;
                 return tmp;
             }
@@ -500,7 +506,8 @@ namespace Zeze.Transaction
             // 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
             // 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
             // 【注意】这个提前检测更容易忙等，因为都没去尝试锁（这会阻塞）。
-            if (false == IsCompleted && ra.OriginRecord.Timestamp != ra.Timestamp)
+            if (ra.OriginRecord.Table.Zeze.Config.FastRedoWhenConfict
+                && false == IsCompleted && ra.OriginRecord.Timestamp != ra.Timestamp)
                 throw new RedoException();
         }
 
@@ -551,7 +558,7 @@ namespace Zeze.Transaction
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private CheckResult _lock_and_check_(KeyValuePair<TableKey, RecordAccessed> e)
         {
-            Lockey lockey = Locks.Instance.Get(e.Key);
+            Lockey lockey = Locks.Get(e.Key);
             bool writeLock = e.Value.Dirty;
             lockey.EnterLock(writeLock);
             holdLocks.Add(lockey);

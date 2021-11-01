@@ -3,7 +3,7 @@ package Zeze.Services.Handshake;
 import Zeze.Transaction.*;
 
 public final class SHandshake extends Zeze.Net.Protocol1<SHandshakeArgument> {
-	public final static int ProtocolId_ = Bean.Hash16(SHandshake.class.getName());
+	public final static int ProtocolId_ = Bean.Hash32(SHandshake.class.getName());
 
 	@Override
 	public int getModuleId() {

@@ -194,8 +194,9 @@ namespace Zeze.Util
                     logger.Warn($"remain record when clean oldest lrunode.");
                 }
 
-                if (CleanPeriodWhenExceedCapacity > 0)
-                    System.Threading.Thread.Sleep(CleanPeriodWhenExceedCapacity);
+                int sleepms = CleanPeriodWhenExceedCapacity > 1000
+                    ? CleanPeriodWhenExceedCapacity : 1000;
+                System.Threading.Thread.Sleep(sleepms);
             }
             Util.Scheduler.Instance.Schedule(CleanNow, CleanPeriod);
         }

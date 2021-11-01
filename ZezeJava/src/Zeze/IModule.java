@@ -36,4 +36,12 @@ public abstract class IModule {
 	public void Initialize(Zeze.AppBase app) {
 
 	}
+
+	public static int GetModuleId(int result) {
+		return (result >> 16) & 0xffff;
+	}
+
+	public static int GetReturnCode(int result) {
+		return result & 0xffff;
+	}
 }

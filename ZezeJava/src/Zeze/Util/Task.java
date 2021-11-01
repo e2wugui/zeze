@@ -147,7 +147,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 					? p.Service.getZeze().getConfig().getProcessReturnErrorLogLevel()
 					: Level.INFO;
 			final var module = result > 0
-					? "@" + Zeze.Net.Protocol.GetModuleId(result) + ":" + Zeze.Net.Protocol.GetProtocolId(result)
+					? "@" + Zeze.IModule.GetModuleId(result) + ":" + Zeze.IModule.GetReturnCode(result)
 					: "";
 			logger.log(logLevel, () -> "Task " + actionName + " Return=" + result + module + " UserState=" + p.getUserState());
 		}

@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class HandshakeBase extends Service {
 	private static final Logger logger = LogManager.getLogger(HandshakeBase.class);
 
-	private final HashSet<Integer> HandshakeProtocols = new HashSet<>();
+	private final HashSet<Long> HandshakeProtocols = new HashSet<>();
 
 	// For Client Only
 	private final ConcurrentHashMap<Long, BigInteger> DHContext = new ConcurrentHashMap<>();
@@ -29,7 +29,7 @@ public class HandshakeBase extends Service {
 		super(name, app);
 	}
 
-	public final boolean IsHandshakeProtocol(int typeId) {
+	public final boolean IsHandshakeProtocol(long typeId) {
 		return HandshakeProtocols.contains(typeId);
 	}
 	

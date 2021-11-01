@@ -21,6 +21,7 @@ namespace Zeze
 
         // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
         internal Util.SimpleThreadPool InternalThreadPool;
+        internal Locks Locks { get; } = new Locks();
 
         private Checkpoint _checkpoint;
         public Checkpoint Checkpoint
@@ -29,6 +30,7 @@ namespace Zeze
             {
                 return _checkpoint;
             }
+            /*
             set
             {
                 lock (this)
@@ -40,6 +42,7 @@ namespace Zeze
                     _checkpoint = value;
                 }
             }
+            */
         }
 
         public Schemas Schemas { get; set; } // no thread protected
@@ -73,7 +76,7 @@ namespace Zeze
             ThreadPool.SetMinThreads(workerMin, ioMin);
             //ThreadPool.SetMaxThreads(workerMax, ioMax);
 
-            Config.CreateDatabase(Databases);
+            Config.CreateDatabase(this, Databases);
             GlobalAgent = new GlobalAgent(this);
             _checkpoint = new Checkpoint(Config.CheckpointMode, Databases.Values);
             ServiceManagerAgent = new Agent(this);
@@ -132,7 +135,7 @@ namespace Zeze
         {
             lock (this)
             {
-                Config?.ClearInUseAndIAmSureAppStopped(Databases); // XXX REMOVE ME!
+                Config?.ClearInUseAndIAmSureAppStopped(this, Databases); // XXX REMOVE ME!
                 foreach (var db in Databases.Values)
                 {
                     db.DirectOperates.SetInUse(Config.ServerId, Config.GlobalCacheManagerHostNameOrAddress);
@@ -200,7 +203,7 @@ namespace Zeze
 
                 if (false == IsStart)
                     return;
-                Config?.ClearInUseAndIAmSureAppStopped(Databases);
+                Config?.ClearInUseAndIAmSureAppStopped(this, Databases);
                 IsStart = false;
 
                 Checkpoint?.StopAndJoin();

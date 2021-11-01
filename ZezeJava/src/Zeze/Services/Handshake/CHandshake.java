@@ -4,7 +4,7 @@ import Zeze.Net.*;
 import Zeze.Transaction.*;
 
 public final class CHandshake extends Protocol1<CHandshakeArgument> {
-	public final static int ProtocolId_ = Bean.Hash16(CHandshake.class.getName());
+	public final static int ProtocolId_ = Bean.Hash32(CHandshake.class.getName());
 
 	@Override
 	public int getModuleId() {

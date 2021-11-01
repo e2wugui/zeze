@@ -14,7 +14,7 @@ namespace Zeze.Tikv
             Console.WriteLine("RunScan");
 
             // for keyprefix
-            var tikvDb = new DatabaseTikv(url);
+            var tikvDb = new DatabaseTikv(null, url);
             var table = tikvDb.OpenTable("_testtable_") as DatabaseTikv.TableTikv;
 
             // prepare data
@@ -41,7 +41,7 @@ namespace Zeze.Tikv
         {
             Console.WriteLine("RunWrap");
 
-            var tikvDb = new DatabaseTikv(url);
+            var tikvDb = new DatabaseTikv(null, url);
             var table = tikvDb.OpenTable("_testtable_");
             var key = Zeze.Serialize.ByteBuffer.Allocate(64);
             key.WriteString("key");

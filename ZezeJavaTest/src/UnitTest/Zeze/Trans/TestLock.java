@@ -58,11 +58,12 @@ public class TestLock extends TestCase{
 //#endif
 	}
 
+	private Zeze.Transaction.Locks Locks = new Zeze.Transaction.Locks();
 	public final void test1() {
-		Locks locks = Locks.getInstance();
+		Locks locks = Locks;
 
-		TableKey tk1 = new TableKey(1, 1);
-		TableKey tk2 = new TableKey(1, 1);
+		TableKey tk1 = new TableKey("1", 1);
+		TableKey tk2 = new TableKey("1", 1);
 
 		Lockey lock1 = new Lockey(tk1);
 		Lockey lock2 = new Lockey(tk2);
@@ -75,7 +76,7 @@ public class TestLock extends TestCase{
 		Lockey lock2ref = locks.Get(lock2);
 		assert lock2ref.equals(lock1); // second Get. the exist
 
-		TableKey tk3 = new TableKey(1, 2);
+		TableKey tk3 = new TableKey("1", 2);
 		Lockey lock3 = new Lockey(tk3);
 		Lockey lock3ref = locks.Get(lock3);
 		assert lock3ref.equals(lock3);

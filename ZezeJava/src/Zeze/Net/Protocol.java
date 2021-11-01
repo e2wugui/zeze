@@ -7,19 +7,11 @@ public abstract class Protocol implements Serializable {
 	public abstract int getModuleId();
 	public abstract int getProtocolId();
 
-	public final int getTypeId() {
-		return getModuleId() << 16 | getProtocolId();
+	public final long getTypeId() {
+		return (long)getModuleId() << 32 | (getProtocolId() & 0xffff_ffff);
 	}
 
 	public Service Service;
-
-	public static int GetModuleId(int type) {
-		return type >>> 16 & 0xffff;
-	}
-
-	public static int GetProtocolId(int type) {
-		return type & 0xffff;
-	}
 
 	private AsyncSocket Sender;
 	public AsyncSocket getSender() {
@@ -46,7 +38,8 @@ public abstract class Protocol implements Serializable {
 
 	public final ByteBuffer Encode() {
 		ByteBuffer bb = ByteBuffer.Allocate();
-		bb.WriteInt4(getTypeId());
+		bb.WriteInt4(getModuleId());
+		bb.WriteInt4(getProtocolId());
 		int state = bb.BeginWriteWithSize4();
 		this.Encode(bb);
 		bb.EndWriteWithSize4(state);
@@ -117,12 +110,14 @@ public abstract class Protocol implements Serializable {
 		// 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 		while (os.Size() > 0) {
 			// 尝试读取协议类型和大小
-			int type;
+			int moduleId;
+			int protocolId;
 			int size;
 			int readIndexSaved = os.ReadIndex;
 
-			if (os.Size() >= 8) { // protocl header size.
-				type = os.ReadInt4();
+			if (os.Size() >= 12) { // protocl header size.
+				moduleId = os.ReadInt4();
+				protocolId = os.ReadInt4();
 				size = os.ReadInt4();
 			}
 			else {
@@ -134,13 +129,15 @@ public abstract class Protocol implements Serializable {
 			// 以前写过的实现在数据不够之前会根据type检查size是否太大。
 			// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
 			// 参考 AsyncSocket
+			long type = (long)moduleId << 32 | protocolId;
 			if (size < 0 || size > os.Size()) {
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
 				if (size < 0 || size > service.getSocketOptions().getInputBufferMaxProtocolSize()) {
 					var factoryHandle = service.FindProtocolFactoryHandle(type);
 					var pName = null == factoryHandle || null == factoryHandle.Factory
 							? "" : factoryHandle.Factory.create().getClass().getName();
-					throw new RuntimeException(Str.format("Decode InputBufferMaxProtocolSize '{}' p='{}' type={} size={}", service.getName(), pName, type, size));
+					throw new RuntimeException(Str.format("Decode InputBufferMaxProtocolSize '{}' p='{}' module={} protocol={} size={}",
+							service.getName(), pName, moduleId, protocolId, size));
 				}
 
 				// not enough data. try next time.
@@ -164,7 +161,7 @@ public abstract class Protocol implements Serializable {
 				p.Dispatch(service, factoryHandle);
 				continue;
 			}
-			service.DispatchUnknownProtocol(so, type, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));
+			service.DispatchUnknownProtocol(so, moduleId, protocolId, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));
 			os.ReadIndex += size;
 		}
 		bb.ReadIndex = os.ReadIndex;

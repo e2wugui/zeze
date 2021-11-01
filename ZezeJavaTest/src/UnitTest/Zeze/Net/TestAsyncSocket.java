@@ -11,7 +11,7 @@ public class TestAsyncSocket extends TestCase {
 		System.out.println(typeId);
 		var name = Zeze.Services.ServiceManager.SubscribeFirstCommit.class.getName();
 		System.out.println(name);
-		var pid = Zeze.Transaction.Bean.Hash16(name);
+		var pid = Zeze.Transaction.Bean.Hash32(name);
 		System.out.println(pid);
 	}
 

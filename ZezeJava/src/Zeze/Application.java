@@ -66,6 +66,11 @@ public final class Application {
 		}
 	}
 
+	private Locks Locks = new Locks();
+	public Locks getLocks() {
+		return Locks;
+	}
+
 	private Schemas Schemas;
 	public Schemas getSchemas() {
 		return Schemas;

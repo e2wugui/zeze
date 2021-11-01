@@ -1,7 +1,7 @@
 package Zeze.Services.GlobalCacheManager;
 
 public class Reduce extends Zeze.Net.Rpc<Param, Param> {
-    public final static int ProtocolId_ = Zeze.Transaction.Bean.Hash16(Reduce.class.getName());
+    public final static int ProtocolId_ = Zeze.Transaction.Bean.Hash32(Reduce.class.getName());
 
     @Override
     public int getModuleId() {

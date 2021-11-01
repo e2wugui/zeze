@@ -156,9 +156,11 @@ namespace Zeze.Transaction
         private ByteBuffer snapshotKey;
         private ByteBuffer snapshotValue;
 
-        internal bool TryEncodeN(ConcurrentDictionary<K, Record<K, V>> changed, ConcurrentDictionary<K, Record<K, V>> encoded)
+        internal bool TryEncodeN(
+            ConcurrentDictionary<K, Record<K, V>> changed,
+            ConcurrentDictionary<K, Record<K, V>> encoded)
         {
-            Lockey lockey = Locks.Instance.Get(new TableKey(TTable.Name, Key));
+            Lockey lockey = TTable.Zeze.Locks.Get(new TableKey(TTable.Name, Key));
             if (false == lockey.TryEnterReadLock(0))
                 return false;
             try
@@ -217,41 +219,35 @@ namespace Zeze.Transaction
         internal override void Cleanup()
         {
             this.DatabaseTransactionTmp = null;
-            /*
-            TableKey tkey = new TableKey(Table.Name, Key);
-            Lockey lockey = Locks.Instance.Get(tkey);
-            lockey.EnterWriteLock();
-            try
-            */
-            {
-                if (SavedTimestampForCheckpointPeriod == base.Timestamp)
-                    Dirty = false;
 
-                // ExistInBackDatabase = null != snapshotValue;
-                // 修改很少，下面这样会更快？
-                if (null != snapshotValue)
-                {
-                    // replace
-                    if (false == ExistInBackDatabase)
-                        ExistInBackDatabase = true;
-                }
-                else
-                {
-                    // remove
-                    if (ExistInBackDatabase)
-                        ExistInBackDatabase = false;
-                }
-            }
-            /*
-            finally
+            if (TTable.Zeze.Checkpoint.CheckpointMode == CheckpointMode.Period)
             {
-                lockey.ExitWriteLock();
+                var tkey = new TableKey(Table.Name, Key);
+                var lockey = TTable.Zeze.Locks.Get(tkey);
+                lockey.EnterWriteLock();
+                try
+                {
+                    if (SavedTimestampForCheckpointPeriod == base.Timestamp)
+                    {
+                        Dirty = false;
+                    }
+                }
+                finally
+                {
+                    lockey.ExitWriteLock();
+                }
             }
-            */
+
+            lock (this)
+            {
+                // 仅和 Table.FindInCacheOrStorage 内互斥。
+                ExistInBackDatabase = null != snapshotValue;
+            }
+
             snapshotKey = null;
             snapshotValue = null;
         }
-
+        private long ExistInBackDatabaseModifyTimestamp;
         public ConcurrentDictionary<K, Record<K, V>> LruNode { get; set; }
     }
 }

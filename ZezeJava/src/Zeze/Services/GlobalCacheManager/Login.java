@@ -1,7 +1,7 @@
 package Zeze.Services.GlobalCacheManager;
 
 public class Login extends Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean> {
-    public final static int ProtocolId_ = Zeze.Transaction.Bean.Hash16(Login.class.getName());
+    public final static int ProtocolId_ = Zeze.Transaction.Bean.Hash32(Login.class.getName());
 
     @Override
     public int getModuleId() {

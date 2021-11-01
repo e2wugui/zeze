@@ -7,8 +7,8 @@ public final class ChangeTableCollector {
 	private final Table table;
 	private final boolean tableHasListener;
 
-	public ChangeTableCollector(TableKey tableKey) {
-		table = Table.GetTable(tableKey.getTableId());
+	public ChangeTableCollector(Table t, TableKey tableKey) {
+		table = t;
 		tableHasListener = table.getChangeListenerMap().HasListener();
 	}
 

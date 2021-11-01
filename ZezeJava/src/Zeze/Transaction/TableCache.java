@@ -3,11 +3,11 @@ package Zeze.Transaction;
 import Zeze.Services.*;
 import Zeze.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import Zeze.Util.HugeConcurrentDictionary;
 import Zeze.Util.Task;
 
 // MESI？
@@ -29,21 +29,21 @@ import Zeze.Util.Task;
 public class TableCache<K, V extends Bean> {
 	private static final Logger logger = LogManager.getLogger(TableCache.class);
 
-	private HugeConcurrentDictionary<K, Record1<K, V>> DataMap;
-	public final HugeConcurrentDictionary<K, Record1<K, V>> getDataMap() {
+	private ConcurrentHashMap<K, Record1<K, V>> DataMap;
+	public final ConcurrentHashMap<K, Record1<K, V>> getDataMap() {
 		return DataMap;
 	}
 
-	private ConcurrentLinkedQueue<HugeConcurrentDictionary<K, Record1<K, V>>> LruQueue = new ConcurrentLinkedQueue<> ();
-	private ConcurrentLinkedQueue<HugeConcurrentDictionary<K, Record1<K, V>>> getLruQueue() {
+	private ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> LruQueue = new ConcurrentLinkedQueue<> ();
+	private ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> getLruQueue() {
 		return LruQueue;
 	}
 
-	private HugeConcurrentDictionary<K, Record1<K, V>> LruHot;
-	private HugeConcurrentDictionary<K, Record1<K, V>> getLruHot() {
+	private ConcurrentHashMap<K, Record1<K, V>> LruHot;
+	private ConcurrentHashMap<K, Record1<K, V>> getLruHot() {
 		return LruHot;
 	}
-	private void setLruHot(HugeConcurrentDictionary<K, Record1<K, V>> value) {
+	private void setLruHot(ConcurrentHashMap<K, Record1<K, V>> value) {
 		LruHot = value;
 	}
 
@@ -54,8 +54,8 @@ public class TableCache<K, V extends Bean> {
 
 	public TableCache(Application app, TableX<K, V> table) {
 		this.Table = table;
-		DataMap = new HugeConcurrentDictionary<K, Record1<K, V>>(
-				GetCacheBuckets(), GetCacheConcurrencyLevel(), GetCacheInitialCapaicty());
+		DataMap = new ConcurrentHashMap<K, Record1<K, V>>(
+				GetCacheInitialCapaicty(), 0.75f, GetCacheConcurrencyLevel());
 		NewLruHot();
 		Task.schedule((task) -> {
 				// 访问很少的时候不创建新的热点。这个选项没什么意思。
@@ -66,10 +66,6 @@ public class TableCache<K, V extends Bean> {
 		Task.schedule((task)->CleanNow(task), getTable().getTableConf().getCacheCleanPeriod());
 	}
 
-	private int GetCacheBuckets() {
-		return getTable().getTableConf().getCacheBuckets() < 16 ? 16 : getTable().getTableConf().getCacheBuckets();
-	}
-
 	private int GetCacheConcurrencyLevel() {
 		// 这样写，当配置修改，可以使用的时候马上生效。
 		var processors = Runtime.getRuntime().availableProcessors();
@@ -77,29 +73,29 @@ public class TableCache<K, V extends Bean> {
 				? getTable().getTableConf().getCacheConcurrencyLevel() : processors;
 	}
 
-	private long GetCacheInitialCapaicty() {
+	private int GetCacheInitialCapaicty() {
 		// 31 from c# document
 		// 这样写，当配置修改，可以使用的时候马上生效。
 		return getTable().getTableConf().getCacheInitialCapaicty() < 31
 				? 31 : getTable().getTableConf().getCacheInitialCapaicty();
 	}
 
-	private long GetLruInitialCapaicty() {
-		long c = (long)(GetCacheInitialCapaicty() * 0.2);
+	private int GetLruInitialCapaicty() {
+		int c = (int)(GetCacheInitialCapaicty() * 0.2);
 		return c < getTable().getTableConf().getCacheMaxLruInitialCapaicty()
 				? c : getTable().getTableConf().getCacheMaxLruInitialCapaicty();
 	}
 
 	private void NewLruHot() {
-		setLruHot(new HugeConcurrentDictionary<K, Record1<K, V>>(
-				GetCacheBuckets(), GetCacheConcurrencyLevel(), GetLruInitialCapaicty()));
+		setLruHot(new ConcurrentHashMap<K, Record1<K, V>>(
+				GetLruInitialCapaicty(), 0.75f, GetCacheConcurrencyLevel()));
 		getLruQueue().add(getLruHot());
 	}
 
 	public final Record1<K, V> GetOrAdd(K key, Zeze.Util.Factory<Record1<K, V>> valueFactory) {
 		final var isNew = new Zeze.Util.OutObject<Boolean>();
 		isNew.Value = false;
-		Record1<K, V> result = DataMap.GetOrAdd(key, (k) -> {
+		Record1<K, V> result = DataMap.computeIfAbsent(key, (k) -> {
 					var r = valueFactory.create();
 					getLruHot().put(k, r); // replace: add or update see this.Remove
 					r.setLruNode(getLruHot());
@@ -155,7 +151,7 @@ public class TableCache<K, V extends Bean> {
 				break;
 			}
 
-			for (var e : node) {
+			for (var e : node.entrySet()) {
 				if (false == TryRemoveRecord(e)) {
 					// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
 					getTable().getZeze().CheckpointRun();
@@ -194,8 +190,8 @@ public class TableCache<K, V extends Bean> {
 	}
 
 	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) {
-		TableKey tkey = new TableKey(this.getTable().getId(), p.getKey());
-		Lockey lockey = Locks.getInstance().Get(tkey);
+		TableKey tkey = new TableKey(this.getTable().getName(), p.getKey());
+		Lockey lockey = Table.getZeze().getLocks().Get(tkey);
 		if (false == lockey.TryEnterWriteLock(0)) {
 			return false;
 		}

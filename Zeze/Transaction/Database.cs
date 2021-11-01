@@ -27,9 +27,11 @@ namespace Zeze.Transaction
         internal ICollection<Zeze.Transaction.Table> Tables => tables.Values;
 
         public string DatabaseUrl { get; }
+        public Application Zeze { get; }
 
-        public Database(string url)
+        public Database(Application zeze, string url)
         {
+            Zeze = zeze;
             this.DatabaseUrl = url;
         }
 
@@ -210,7 +212,7 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public DatabaseMySql(string url) : base(url)
+        public DatabaseMySql(Application zeze, string url) : base(zeze, url)
         {
             DirectOperates = new OperatesMySql(this);
         }
@@ -632,7 +634,7 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public DatabaseSqlServer(string url) : base(url)
+        public DatabaseSqlServer(Application zeze, string url) : base(zeze, url)
         {
             DirectOperates = new OperatesSqlServer(this);
         }
@@ -1057,7 +1059,7 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public DatabaseRocksDb(string url) : base(url)
+        public DatabaseRocksDb(Application zeze, string url) : base(zeze, url)
         {
             DirectOperates = new OperatesRocksDb(this);
         }
@@ -1211,7 +1213,7 @@ namespace Zeze.Transaction
     /// </summary>
     public sealed class DatabaseMemory : Database
     {
-        public DatabaseMemory(string url) : base(url)
+        public DatabaseMemory(Application zeze, string url) : base(zeze, url)
         {
             DirectOperates = new ProceduresMemory();
         }

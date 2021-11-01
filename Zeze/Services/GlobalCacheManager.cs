@@ -414,8 +414,12 @@ namespace Zeze.Services
                         {
                             case StateShare:
                                 cs.Modify.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
-                                cs.Share.Add(cs.Modify);
-                                // 降级成功，有可能降到 Invalid，此时就不需要加入 Share 了。
+                                cs.Share.Add(cs.Modify); // 降级成功。
+                                break;
+
+                            case StateInvalid:
+                                // 降到了 Invalid，此时就不需要加入 Share 了。
+                                cs.Modify.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out _);
                                 break;
 
                             default:
@@ -523,7 +527,7 @@ namespace Zeze.Services
                         switch (stateReduceResult)
                         {
                             case StateInvalid:
-                                cs.Modify.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out var _);
+                                cs.Modify.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out _);
                                 break; // reduce success
 
                             default:

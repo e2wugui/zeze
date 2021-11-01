@@ -43,10 +43,13 @@ public final class Transaction {
 		this.Savepoints.clear();
 	}
 
-	public static Transaction Create() {
+	private Locks Locks;
+
+	public static Transaction Create(Locks locks) {
 		var t = threadLocal.get();
 		if (null == t) {
-			t=  new Transaction();
+			t = new Transaction();
+			t.Locks = locks;
 			threadLocal.set(t);
 			return t;
 		}
@@ -304,7 +307,7 @@ public final class Transaction {
 					for (var e : getAccessedRecords().entrySet()) {
 						if (e.getValue().Dirty) {
 							e.getValue().OriginRecord.Commit(e.getValue());
-							cc.BuildCollect(e.getKey(), e.getValue()); // 首先对脏记录创建Table,Record相关Collector。
+							cc.BuildCollect(procedure.getZeze(), e.getKey(), e.getValue()); // 首先对脏记录创建Table,Record相关Collector。
 						}
 					}
 				}
@@ -435,7 +438,7 @@ public final class Transaction {
 	}
 
 	private CheckResult _lock_and_check_(Map.Entry<TableKey, RecordAccessed> e) {
-		Lockey lockey = Locks.getInstance().Get(e.getKey());
+		Lockey lockey = Locks.Get(e.getKey());
 		boolean writeLock = e.getValue().Dirty;
 		lockey.EnterLock(writeLock);
 		holdLocks.add(lockey);

@@ -4,7 +4,7 @@ import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 
 public final class AllocateId extends Rpc<AllocateIdArgument, AllocateIdResult> {
-	public final static int ProtocolId_ = Bean.Hash16(AllocateId.class.getName());
+	public final static int ProtocolId_ = Bean.Hash32(AllocateId.class.getName());
 
 	@Override
 	public int getModuleId() {

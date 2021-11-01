@@ -138,7 +138,7 @@ namespace Zeze.Gen.java
                             sw.WriteLine($"            factoryHandle.Handle = (_p) -> Process{rpc.Name}Request(_p);");
                         if (p.NoProcedure)
                             sw.WriteLine($"            factoryHandle.NoProcedure = true;");
-                        sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({rpc.TypeId}, factoryHandle);");
+                        sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({rpc.TypeId}L, factoryHandle);");
                         sw.WriteLine("        }");
                         continue;
                     }
@@ -150,7 +150,7 @@ namespace Zeze.Gen.java
                         sw.WriteLine($"            factoryHandle.Handle = (_p) -> Process{p.Name}(_p);");
                         if (p.NoProcedure)
                             sw.WriteLine($"            factoryHandle.NoProcedure = true;");
-                        sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({p.TypeId}, factoryHandle);");
+                        sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({p.TypeId}L, factoryHandle);");
                         sw.WriteLine( "        }");
                     }
                 }
@@ -172,12 +172,12 @@ namespace Zeze.Gen.java
                     if (p is Rpc rpc)
                     {
                         // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
-                        sw.WriteLine($"        App.{serv.Name}.getFactorys().remove({rpc.TypeId});");
+                        sw.WriteLine($"        App.{serv.Name}.getFactorys().remove({rpc.TypeId}L);");
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine($"        App.{serv.Name}.getFactorys().remove({p.TypeId});");
+                        sw.WriteLine($"        App.{serv.Name}.getFactorys().remove({p.TypeId}L);");
                     }
                 }
             }

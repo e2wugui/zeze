@@ -8,11 +8,6 @@ package Zeze.Transaction;
  * 2. 并发访问效率低. 通过增加segment解决。
  */
 public final class Locks {
-	private static Locks Instance = new Locks();
-	public static Locks getInstance() {
-		return Instance;
-	}
-
 	/**
 	 * The maximum number of segments to allow; used to bound constructor arguments.
 	 */
@@ -61,11 +56,11 @@ public final class Locks {
 		return segments[index];
 	}
 
-	private Locks() {
+	public Locks() {
 		this(1024);
 	}
 
-	private Locks(int concurrencyLevel) {
+	public Locks(int concurrencyLevel) {
 		if (concurrencyLevel <= 0) {
 			throw new IllegalArgumentException();
 		}

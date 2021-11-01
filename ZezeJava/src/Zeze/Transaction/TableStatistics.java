@@ -10,13 +10,14 @@ public class TableStatistics {
 		return Instance;
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<Integer, Statistics> Tables = new java.util.concurrent.ConcurrentHashMap<Integer, Statistics> ();
-	public final java.util.concurrent.ConcurrentHashMap<Integer, Statistics> getTables() {
+	private java.util.concurrent.ConcurrentHashMap<String, Statistics> Tables
+			= new java.util.concurrent.ConcurrentHashMap<> ();
+	public final java.util.concurrent.ConcurrentHashMap<String, Statistics> getTables() {
 		return Tables;
 	}
 
-	public final Statistics GetOrAdd(int tableId) {
-		return getTables().computeIfAbsent(tableId, (key) -> new Statistics());
+	public final Statistics GetOrAdd(String name) {
+		return getTables().computeIfAbsent(name, (key) -> new Statistics());
 	}
 
 	public static class Statistics {

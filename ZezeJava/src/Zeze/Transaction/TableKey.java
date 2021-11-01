@@ -1,23 +1,23 @@
 package Zeze.Transaction;
 
 public final class TableKey implements java.lang.Comparable<TableKey> {
-	private int TableId;
-	public int getTableId() {
-		return TableId;
+	private String Name;
+	public String getName() {
+		return Name;
 	}
 	private Object Key;
 	public Object getKey() {
 		return Key;
 	}
 
-	public TableKey(int tableId, Object key) {
-		TableId = tableId;
+	public TableKey(String name, Object key) {
+		Name = name;
 		Key = key;
 	}
 
 	@SuppressWarnings("unchecked")
 	public int compareTo(TableKey other) {
-		int c = Integer.compare(this.getTableId(), other.getTableId());
+		int c = this.Name.compareTo(other.Name);
 		if (c != 0) {
 			return c;
 		}
@@ -29,14 +29,14 @@ public final class TableKey implements java.lang.Comparable<TableKey> {
 	@Override
 	public String toString() {
 		return Zeze.Util.Str.format("tkey({}:{},{})",
-				getTableId(), Table.GetTable(getTableId()).getName(), getKey());
+				Name, getKey());
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 17;
-		result = prime * result + getTableId();
+		result = prime * result + Name.hashCode();
 		result = prime * result + getKey().hashCode();
 		return result;
 	}
@@ -47,10 +47,9 @@ public final class TableKey implements java.lang.Comparable<TableKey> {
 			return true;
 		}
 
-		boolean tempVar = obj instanceof TableKey;
-		TableKey another = tempVar ? (TableKey)obj : null;
-		if (tempVar) {
-			return getTableId() == another.getTableId() && getKey().equals(another.getKey());
+		if (obj instanceof TableKey) {
+			TableKey another = (TableKey) obj;
+			return Name.equals(another.Name) && getKey().equals(another.getKey());
 		}
 		return false;
 	}

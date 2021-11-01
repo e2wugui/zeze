@@ -49,8 +49,9 @@ public class TestBegin extends TestCase{
 		}
 	}
 
+	private Zeze.Transaction.Locks Locks = new Locks();
 	public final void testRollback() {
-		Transaction.Create();
+		Transaction.Create(Locks);
 		try {
 			Transaction.getCurrent().Begin();
 
@@ -70,7 +71,7 @@ public class TestBegin extends TestCase{
 	}
 
 	public final void testCommit() {
-		Transaction.Create();
+		Transaction.Create(Locks);
 		try {
 			Transaction.getCurrent().Begin();
 
@@ -100,7 +101,7 @@ public class TestBegin extends TestCase{
 	}
 
 	public final void testNestRollback() {
-		Transaction.Create();
+		Transaction.Create(Locks);
 		try {
 			Transaction.getCurrent().Begin();
 
@@ -132,7 +133,7 @@ public class TestBegin extends TestCase{
 	}
 
 	public final void testNestCommit() {
-		Transaction.Create();
+		Transaction.Create(Locks);
 		try {
 			Transaction.getCurrent().Begin();
 

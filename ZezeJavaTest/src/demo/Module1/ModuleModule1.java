@@ -62,24 +62,24 @@ public class ModuleModule1 extends AbstractModule {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Protocol3();
             factoryHandle.Handle = (_p) -> ProcessProtocol3(_p);
-            App.Server.AddFactoryHandle(82178, factoryHandle);
+            App.Server.AddFactoryHandle(7815467220L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Protocol4();
             factoryHandle.Handle = (_p) -> ProcessProtocol4(_p);
-            App.Server.AddFactoryHandle(106975, factoryHandle);
+            App.Server.AddFactoryHandle(5222864529L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Rpc1();
             factoryHandle.Handle = (_p) -> ProcessRpc1Request(_p);
-            App.Server.AddFactoryHandle(116383, factoryHandle);
+            App.Server.AddFactoryHandle(5635082623L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Rpc2();
-            App.Server.AddFactoryHandle(93307, factoryHandle);
+            App.Server.AddFactoryHandle(7854078040L, factoryHandle);
         }
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_Autokey_.getName()).getDatabaseName(), _Autokey_);
@@ -90,10 +90,10 @@ public class ModuleModule1 extends AbstractModule {
     }
 
     public void UnRegister() {
-        App.Server.getFactorys().remove(82178);
-        App.Server.getFactorys().remove(106975);
-        App.Server.getFactorys().remove(116383);
-        App.Server.getFactorys().remove(93307);
+        App.Server.getFactorys().remove(7815467220L);
+        App.Server.getFactorys().remove(5222864529L);
+        App.Server.getFactorys().remove(5635082623L);
+        App.Server.getFactorys().remove(7854078040L);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_Autokey_.getName()).getDatabaseName(), _Autokey_);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_Table1.getName()).getDatabaseName(), _Table1);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_Table2.getName()).getDatabaseName(), _Table2);

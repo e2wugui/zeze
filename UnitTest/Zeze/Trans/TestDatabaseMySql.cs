@@ -10,11 +10,23 @@ namespace UnitTest.Zeze.Trans
     [TestClass]
     public class TestDatabaseMySql
     {
+        [TestInitialize]
+        public void TestInit()
+        {
+            demo.App.Instance.Start();
+        }
+
+        [TestCleanup]
+        public void TestCleanup()
+        {
+            demo.App.Instance.Stop();
+        }
+
         [TestMethod]
         public void Test1()
         {
             string url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
-            DatabaseMySql sqlserver = new DatabaseMySql(url);
+            DatabaseMySql sqlserver = new DatabaseMySql(demo.App.Instance.Zeze, url);
             Database.Table table = sqlserver.OpenTable("test_1");
             {
                 var trans = sqlserver.BeginTransaction();

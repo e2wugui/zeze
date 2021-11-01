@@ -5,36 +5,27 @@ import Zeze.*;
 import java.util.*;
 
 public abstract class Table {
-	private static ArrayList<Table> Tables = new ArrayList<Table> ();
-	private static ArrayList<Table> getTables() {
-		return Tables;
-	}
-	public static Table GetTable(int id) {
-		return getTables().get(id);
-	}
-
 	public Table(String name) {
 		this.Name = name;
-
-		synchronized (getTables()) {
-			this.Id = getTables().size();
-			getTables().add(this);
-		}
 	}
 
-	private String Name;
+	protected String Name;
 	public final String getName() {
 		return Name;
-	}
-	private int Id;
-	public final int getId() {
-		return Id;
 	}
 	public boolean isMemory() {
 		return true;
 	}
 	public boolean isAutoKey() {
 		return false;
+	}
+
+	private Application Zeze;
+	public final Application getZeze() {
+		return Zeze;
+	}
+	protected void setZeze(Application value) {
+		Zeze = value;
 	}
 
 	private Config.TableConf TableConf;

@@ -132,3 +132,10 @@ c# 发布 exe dll
 Raft.ConcurrentMap 使用 RocksDb 持久化，自己实现快速 Snapshot，解决 RocksDb 没有这个功能的问题。
 
 RedoException 导致更多忙等。
+
+Protocol.Type 从 int 改成 long，实际上就是 ModuleId, ProtocolId 都独立使用int。
+cs
+java: remove Locks.Instance; Record.Cleanup; remove Table.Id; remove HugeXXX;
+lua
+ts
+cxx

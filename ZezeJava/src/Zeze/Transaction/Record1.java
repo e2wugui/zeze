@@ -39,7 +39,7 @@ public class Record1<K, V extends Bean> extends Record {
 	@Override
 	public String toString() {
 		return Zeze.Util.Str.format("T {}:{} K {} S {} T {}",
-				getTTable().getId(), getTTable().getName(), getKey(), getState(), getTimestamp()); // V {Value}";
+				getTTable().getName(), getKey(), getState(), getTimestamp()); // V {Value}";
 		// 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
 	}
 
@@ -52,7 +52,7 @@ public class Record1<K, V extends Bean> extends Record {
 		var gkey = new GlobalTableKey(getTTable().getName(), getTTable().EncodeKey(getKey()));
 		logger.debug("Acquire NewState={0} {1}", state, this);
 
-		var stat = TableStatistics.getInstance().GetOrAdd(getTTable().getId());
+		var stat = TableStatistics.getInstance().GetOrAdd(getTTable().getName());
 		switch (state) {
 			case GlobalCacheManagerServer.StateInvalid:
 				stat.getGlobalAcquireInvalid().incrementAndGet();
@@ -116,7 +116,7 @@ public class Record1<K, V extends Bean> extends Record {
 	private ByteBuffer snapshotValue;
 
 	public final boolean TryEncodeN(ConcurrentHashMap<K, Record1<K, V>> changed, ConcurrentHashMap<K, Record1<K, V>> encoded) {
-		Lockey lockey = Locks.getInstance().Get(new TableKey(getTTable().getId(), getKey()));
+		Lockey lockey = getTable().getZeze().getLocks().Get(new TableKey(getTTable().getName(), getKey()));
 		if (false == lockey.TryEnterReadLock(0)) {
 			return false;
 		}
@@ -177,8 +177,8 @@ public class Record1<K, V extends Bean> extends Record {
 	public void Cleanup() {
 		this.setDatabaseTransactionTmp(null);
 
-		TableKey tkey = new TableKey(getTable().getId(), getKey());
-		Lockey lockey = Locks.getInstance().Get(tkey);
+		TableKey tkey = new TableKey(getTable().getName(), getKey());
+		Lockey lockey = getTable().getZeze().getLocks().Get(tkey);
 		lockey.EnterWriteLock();
 		try {
 			if (getSavedTimestampForCheckpointPeriod() == super.getTimestamp()) {
@@ -208,11 +208,11 @@ public class Record1<K, V extends Bean> extends Record {
 		snapshotValue = null;
 	}
 
-	private Zeze.Util.HugeConcurrentDictionary<K, Record1<K, V>> LruNode;
-	public final Zeze.Util.HugeConcurrentDictionary<K, Record1<K, V>> getLruNode() {
+	private ConcurrentHashMap<K, Record1<K, V>> LruNode;
+	public final ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
 		return LruNode;
 	}
-	public final void setLruNode(Zeze.Util.HugeConcurrentDictionary<K, Record1<K, V>> value) {
+	public final void setLruNode(ConcurrentHashMap<K, Record1<K, V>> value) {
 		LruNode = value;
 	}
 }

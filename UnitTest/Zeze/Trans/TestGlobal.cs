@@ -121,7 +121,8 @@ namespace UnitTest.Zeze.Trans
                     demo.Module1.Value b = app.demo_Module1.Table1.GetOrAdd(6785);
                     b.Int1 += 1;
                     PrintLog log = new PrintLog(b, b, appId);
-                    Transaction.Current.PutLog(log); return Procedure.Success;
+                    Transaction.Current.PutLog(log);
+                    return Procedure.Success;
                 }, "ConcurrentAdd" + appId));
             }
             Task.WaitAll(tasks);

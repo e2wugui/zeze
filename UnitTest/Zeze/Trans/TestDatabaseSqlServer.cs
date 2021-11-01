@@ -10,11 +10,24 @@ namespace UnitTest.Zeze.Trans
     [TestClass]
     public class TestDatabaseSqlServer
     {
+        [TestInitialize]
+        public void TestInit()
+        {
+            demo.App.Instance.Start();
+        }
+
+        [TestCleanup]
+        public void TestCleanup()
+        {
+            demo.App.Instance.Stop();
+        }
+
+
         [TestMethod]
         public void Test1()
         {
             string url = "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true";
-            DatabaseSqlServer sqlserver = new DatabaseSqlServer(url);
+            DatabaseSqlServer sqlserver = new DatabaseSqlServer(demo.App.Instance.Zeze, url);
             Database.Table table = sqlserver.OpenTable("test1");
             {
                 var trans = sqlserver.BeginTransaction();

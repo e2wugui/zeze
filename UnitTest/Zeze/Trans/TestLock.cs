@@ -65,7 +65,7 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void Test1()
         {
-            Locks locks = Locks.Instance;
+            Locks locks = new Locks();
 
             TableKey tk1 = new TableKey("1", 1);
             TableKey tk2 = new TableKey("1", 1);

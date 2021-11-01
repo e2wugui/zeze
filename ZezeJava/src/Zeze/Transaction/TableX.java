@@ -15,13 +15,6 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	public TableX(String name) {
 		super(name);
 	}
-	private Application Zeze;
-	public final Application getZeze() {
-		return Zeze;
-	}
-	private void setZeze(Application value) {
-		Zeze = value;
-	}
 
 	private AutoKey autoKey;
 	protected final AutoKey getAutoKey() {
@@ -37,8 +30,8 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	}
 
 	private Record1<K, V> FindInCacheOrStorage(K key, Zeze.Util.Action1<V> copy) {
-		TableKey tkey = new TableKey(getId(), key);
-		Lockey lockey = Locks.getInstance().Get(tkey);
+		TableKey tkey = new TableKey(Name, key);
+		Lockey lockey = getZeze().getLocks().Get(tkey);
 		lockey.EnterReadLock();
 		// 严格来说，这里应该是WriteLock,但是这会涉及Transaction持有的锁的升级问题，
 		// 虽然这里只是临时锁一下也会和持有冲突。
@@ -68,7 +61,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 					r.setTimestamp(Record.getNextTimestamp());
 
 					if (null != TStorage) {
-						TableStatistics.getInstance().GetOrAdd(getId()).getStorageFindCount().incrementAndGet();
+						TableStatistics.getInstance().GetOrAdd(Name).getStorageFindCount().incrementAndGet();
 						r.setValue(TStorage.Find(key, this)); // r.Value still maybe null
 
 						// 【注意】这个变量不管 OldTable 中是否存在的情况。
@@ -108,8 +101,8 @@ public abstract class TableX<K, V extends Bean> extends Table {
 
 		//logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
-		TableKey tkey = new TableKey(getId(), key);
-		Lockey lockey = Locks.getInstance().Get(tkey);
+		TableKey tkey = new TableKey(Name, key);
+		Lockey lockey = getZeze().getLocks().Get(tkey);
 		lockey.EnterWriteLock();
 		Record1<K, V> r = null;
 		try {
@@ -177,8 +170,8 @@ public abstract class TableX<K, V extends Bean> extends Table {
 
 		//logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
-		TableKey tkey = new TableKey(getId(), key);
-		Lockey lockey = Locks.getInstance().Get(tkey);
+		TableKey tkey = new TableKey(Name, key);
+		Lockey lockey = getZeze().getLocks().Get(tkey);
 		lockey.EnterWriteLock();
 		Record1<K, V> r = null;
 		try {
@@ -227,15 +220,15 @@ public abstract class TableX<K, V extends Bean> extends Table {
 
 	@Override
 	void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
-		for (var e : getCache().getDataMap()) {
+		for (var e : getCache().getDataMap().entrySet()) {
 			var gkey = new GlobalTableKey(getName(), EncodeKey(e.getKey()));
 			if (getZeze().getGlobalAgent().GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex) {
 				// 不是断开连接的GlobalCacheManager。跳过。
 				continue;
 			}
 
-			TableKey tkey = new TableKey(getId(), e.getKey());
-			Lockey lockey = Locks.getInstance().Get(tkey);
+			TableKey tkey = new TableKey(Name, e.getKey());
+			Lockey lockey = getZeze().getLocks().Get(tkey);
 			lockey.EnterWriteLock();
 			try {
 				// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
@@ -249,7 +242,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 
 	public final V get(K key) {
 		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(getId(), key);
+		TableKey tkey = new TableKey(Name, key);
 
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		if (null != cr) {
@@ -265,7 +258,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 
 	public final V getOrAdd(K key) {
 		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(getId(), key);
+		TableKey tkey = new TableKey(Name, key);
 
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		if (null != cr) {
@@ -299,7 +292,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 		}
 
 		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(getId(), key);
+		TableKey tkey = new TableKey(Name, key);
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, value);
@@ -315,7 +308,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 
 	public final void put(K key, V value) {
 		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(getId(), key);
+		TableKey tkey = new TableKey(Name, key);
 
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		if (null != cr) {
@@ -332,7 +325,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	// 几乎和Put一样，还是独立开吧。
 	public final void remove(K key) {
 		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(getId(), key);
+		TableKey tkey = new TableKey(Name, key);
 
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		if (null != cr) {
@@ -438,8 +431,8 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	public final long Walk(TableWalkHandle<K, V> callback) {
 		return TStorage.getDatabaseTable().Walk((key, value) -> {
 					K k = DecodeKey(ByteBuffer.Wrap(key));
-					TableKey tkey = new TableKey(getId(), k);
-					Lockey lockey = Locks.getInstance().Get(tkey);
+					TableKey tkey = new TableKey(Name, k);
+					Lockey lockey = getZeze().getLocks().Get(tkey);
 					lockey.EnterReadLock();
 					try {
 						Record1<K, V> r = getCache().Get(k);
@@ -505,7 +498,7 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	public final V selectCopy(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		if (null != currentT) {
-			TableKey tkey = new TableKey(getId(), key);
+			TableKey tkey = new TableKey(Name, key);
 			Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 			if (null != cr) {
 				@SuppressWarnings("unchecked")

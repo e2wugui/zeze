@@ -16,6 +16,8 @@ namespace Zeze.Transaction
         }
 
         public string Name { get; }
+        public Application Zeze { get; protected set; }
+
         public virtual bool IsMemory => true;
         public virtual bool IsAutoKey => false;
 
@@ -52,14 +54,13 @@ namespace Zeze.Transaction
         public Table(string name) : base(name)
         {
         }
-        public Application Zeze { get; private set; }
 
         protected Zeze.Services.ServiceManager.Agent.AutoKey AutoKey { get; private set;  }
 
         private Record<K, V> FindInCacheOrStorage(K key, Action<V> copy = null)
         {
             TableKey tkey = new TableKey(Name, key);
-            Lockey lockey = Locks.Instance.Get(tkey);
+            Lockey lockey = Zeze.Locks.Get(tkey);
             lockey.EnterReadLock();
             // 严格来说，这里应该是WriteLock,但是这会涉及Transaction持有的锁的升级问题，
             // 虽然这里只是临时锁一下也会和持有冲突。
@@ -140,7 +141,7 @@ namespace Zeze.Transaction
             //logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
             TableKey tkey = new TableKey(Name, key);
-            Lockey lockey = Locks.Instance.Get(tkey);
+            Lockey lockey = Zeze.Locks.Get(tkey);
             lockey.EnterWriteLock();
             Record<K, V> r = null;
             try
@@ -215,7 +216,7 @@ namespace Zeze.Transaction
             //logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
             TableKey tkey = new TableKey(Name, key);
-            Lockey lockey = Locks.Instance.Get(tkey);
+            Lockey lockey = Zeze.Locks.Get(tkey);
             lockey.EnterWriteLock();
             Record<K, V> r = null;
             try
@@ -278,7 +279,7 @@ namespace Zeze.Transaction
                 }
 
                 TableKey tkey = new TableKey(Name, e.Key);
-                Lockey lockey = Locks.Instance.Get(tkey);
+                Lockey lockey = Zeze.Locks.Get(tkey);
                 lockey.EnterWriteLock();
                 try
                 {
@@ -474,7 +475,7 @@ namespace Zeze.Transaction
                 {
                     K k = DecodeKey(ByteBuffer.Wrap(key));
                     TableKey tkey = new TableKey(Name, k);
-                    Lockey lockey = Locks.Instance.Get(tkey);
+                    Lockey lockey = Zeze.Locks.Get(tkey);
                     lockey.EnterReadLock();
                     try
                     {

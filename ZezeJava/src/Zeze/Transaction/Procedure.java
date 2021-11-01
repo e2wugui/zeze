@@ -84,7 +84,7 @@ public class Procedure {
 		if (null == Transaction.getCurrent()) {
 			try {
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-				return Transaction.Create().Perform(this);
+				return Transaction.Create(Zeze.getLocks()).Perform(this);
 			}
 			finally {
 				Transaction.Destroy();
@@ -108,7 +108,7 @@ public class Procedure {
 
 			var module = "";
 			if (result > 0) {
-				module = "@" + Protocol.GetModuleId(result) + ":" + Protocol.GetProtocolId(result);
+				module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetReturnCode(result);
 			}
 			logger.log(getZeze().getConfig().getProcessReturnErrorLogLevel(),
 					"Procedure {} Return{}@{} UserState={}", this, result, module, getUserState());

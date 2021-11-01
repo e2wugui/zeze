@@ -278,9 +278,9 @@
 	   当需要时，Zeze 就会自动从老库中装载记录。
 	   配置参考：UnitTest\zeze.xml
 
-	3) 多个 Zeze.Application 之间的事务
+	3) 同一个进程内多个 Zeze.Application 之间的事务（XXX 已经被废弃，不再支持，需要的喊！）
 	   一般来说，事务仅仅访问一个 Zeze.Application 的数据库表格。
-	   如果需要在多个 Zeze.Application 之间支持事务。应用直接访问不同 App.Module 
+	   如果需要在多个 Zeze.Application 之间支持事务。应用直接访问不同 App.Module。
 	   里面的表格即可完成事务支持。不过由于事务提交(Checkpoint)默认是在一个 Zeze.Application
 	   中执行的，为了让事务提交也原子化。需要在App.Start前设置统一Checkpoint。
 	   设置代码例子：

@@ -9,7 +9,7 @@ import Zeze.Transaction.EmptyBean;
 最好主动注销，方便以后错误处理。
 */
 public final class UnRegister extends Rpc<ServiceInfo, EmptyBean> {
-	public final static int ProtocolId_ = Bean.Hash16(UnRegister.class.getName());
+	public final static int ProtocolId_ = Bean.Hash32(UnRegister.class.getName());
 
 	public static final int Success = 0;
 	public static final int NotExist = 1;

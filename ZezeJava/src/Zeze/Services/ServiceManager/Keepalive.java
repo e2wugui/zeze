@@ -5,7 +5,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
 public final class Keepalive extends Rpc<EmptyBean, EmptyBean> {
-	public final static int ProtocolId_ = Bean.Hash16(Keepalive.class.getName());
+	public final static int ProtocolId_ = Bean.Hash32(Keepalive.class.getName());
 
 	public static final int Success = 0;
 

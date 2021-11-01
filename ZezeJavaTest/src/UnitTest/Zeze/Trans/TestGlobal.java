@@ -47,7 +47,7 @@ public class TestGlobal extends TestCase{
 	public final void testNone() {
 		var rname = Zeze.Services.ServiceManager.Register.class.getTypeName();
 		System.out.println(rname);
-		var x = Zeze.Transaction.Bean.Hash16(rname);
+		var x = Zeze.Transaction.Bean.Hash32(rname);
 		System.out.println(x);
 		var i = (int)x & 0xffff;
 		System.out.println(i);

@@ -1,25 +1,41 @@
 package Zeze.Util;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class HugeConcurrentLruLike<K, V> {
-	private static final Logger logger = LogManager.getLogger(HugeConcurrentLruLike.class);
+public class ConcurrentLruLike<K, V> {
+	private static final Logger logger = LogManager.getLogger(ConcurrentLruLike.class);
 
-	private final HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>> DataMap;
-	private final ConcurrentLinkedQueue<Zeze.Util.HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>>> LruQueue
+	private final ConcurrentHashMap<K, ConcurrentLruItem<K, V>> DataMap;
+	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, ConcurrentLruItem<K, V>>> LruQueue
 		= new ConcurrentLinkedQueue<> ();
-	private HugeConcurrentDictionary<K, HugeConcurrentLruItem<K, V>> LruHot;
+	private ConcurrentHashMap<K, ConcurrentLruItem<K, V>> LruHot;
 
-	private long Capacity;
-	public final long getCapacity() {
+	private int Capacity;
+	public final int getCapacity() {
 		return Capacity;
 	}
-	public final void setCapacity(long value) {
+	public final void setCapacity(int value) {
 		Capacity = value;
 	}
+	private int InitialCapacity;
+	public final int getInitialCapacity() {
+		return InitialCapacity;
+	}
+	public final void setInitialCapacity(int cap) {
+		InitialCapacity = cap;
+	}
+	private int ConcurrencyLevel;
+	public final int getConcurrencyLevel() {
+		return ConcurrencyLevel;
+	}
+	public final void setConcurrencyLevel(int c) {
+		ConcurrencyLevel = c;
+	}
+
 	private long MaxLruInitialCapaicty = 100000;
 	public final long getMaxLruInitialCapaicty() {
 		return MaxLruInitialCapaicty;
@@ -71,37 +87,40 @@ public class HugeConcurrentLruLike<K, V> {
 		boolean tryRemove(K key, V value);
 	}
 
-	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod, long cleanPeriod, long initialCapacity, int buckets) {
-		this(capacity, tryRemove, newLruHotPeriod, cleanPeriod, initialCapacity, buckets, 1024);
+	public ConcurrentLruLike(int capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod, long cleanPeriod, int initialCapacity) {
+		this(capacity, tryRemove, newLruHotPeriod, cleanPeriod, initialCapacity, 1024);
 	}
 
-	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod, long cleanPeriod, long initialCapacity) {
-		this(capacity, tryRemove, newLruHotPeriod, cleanPeriod, initialCapacity, 16, 1024);
+	public ConcurrentLruLike(int capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod, long cleanPeriod) {
+		this(capacity, tryRemove, newLruHotPeriod, cleanPeriod, 31, 1024);
 	}
 
-	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod, long cleanPeriod) {
-		this(capacity, tryRemove, newLruHotPeriod, cleanPeriod, 31, 16, 1024);
+	public ConcurrentLruLike(int capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod) {
+		this(capacity, tryRemove, newLruHotPeriod, 2000, 31, 1024);
 	}
 
-	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod) {
-		this(capacity, tryRemove, newLruHotPeriod, 2000, 31, 16, 1024);
+	public ConcurrentLruLike(int capacity, TryRemoveHandle<K, V> tryRemove) {
+		this(capacity, tryRemove, 200, 2000, 31, 1024);
 	}
 
-	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove) {
-		this(capacity, tryRemove, 200, 2000, 31, 16, 1024);
+	public ConcurrentLruLike(int capacity) {
+		this(capacity, null, 200, 2000, 31, 1024);
 	}
 
-	public HugeConcurrentLruLike(long capacity) {
-		this(capacity, null, 200, 2000, 31, 16, 1024);
-	}
-
-	public HugeConcurrentLruLike(long capacity, TryRemoveHandle<K, V> tryRemove, long newLruHotPeriod, long cleanPeriod, long initialCapacity, int buckets, int concurrencyLevel) {
+	public ConcurrentLruLike(int capacity,
+							 TryRemoveHandle<K, V> tryRemove,
+							 long newLruHotPeriod,
+							 long cleanPeriod,
+							 int initialCapacity,
+							 int concurrencyLevel) {
 		setCapacity(capacity);
+		InitialCapacity = initialCapacity;
+		ConcurrencyLevel = concurrencyLevel;
 		setTryRemoveCallback(tryRemove);
 		setNewLruHotPeriod(newLruHotPeriod);
 		setCleanPeriod(cleanPeriod);
 
-		DataMap = new HugeConcurrentDictionary<>(buckets, concurrencyLevel, initialCapacity);
+		DataMap = new ConcurrentHashMap<>(concurrencyLevel, initialCapacity);
 		NewLruHot();
 
 		Task.schedule((task) -> {
@@ -116,10 +135,10 @@ public class HugeConcurrentLruLike<K, V> {
 	public final V GetOrAdd(K k, Factory<V> factory) {
 		final var isNew = new OutObject<Boolean>();
 		isNew.Value = false;
-		var lruItem = DataMap.GetOrAdd(k, (k2) -> {
+		var lruItem = DataMap.computeIfAbsent(k, (k2) -> {
 				V value = factory.create();
 				isNew.Value = true;
-				var lruItemNew = new HugeConcurrentLruItem<>(value, LruHot);
+				var lruItemNew = new ConcurrentLruItem<>(value, LruHot);
 				LruHot.put(k, lruItemNew); // MUST replace
 				return lruItemNew;
 		});
@@ -130,7 +149,7 @@ public class HugeConcurrentLruLike<K, V> {
 		return lruItem.Value;
 	}
 
-	private void AdjustLru(K key, HugeConcurrentLruItem<K, V> lruItem) {
+	private void AdjustLru(K key, ConcurrentLruItem<K, V> lruItem) {
 		if (lruItem.LruNode != LruHot) {
 			// compare key and value
 			lruItem.LruNode.remove(key, lruItem);
@@ -161,13 +180,13 @@ public class HugeConcurrentLruLike<K, V> {
 	}
 
 	private long GetLruInitialCapaicty() {
-		long lruInitialCapacity = (long)(DataMap.getInitialCapacity() * 0.2);
+		int lruInitialCapacity = (int)(InitialCapacity * 0.2);
 		return Math.min(lruInitialCapacity, getMaxLruInitialCapaicty());
 	}
 
 	private void NewLruHot() {
-		LruHot = new Zeze.Util.HugeConcurrentDictionary<>(
-				DataMap.getBucketCount(), DataMap.getConcurrencyLevel(), GetLruInitialCapaicty());
+		LruHot = new ConcurrentHashMap<>(
+				ConcurrencyLevel, GetLruInitialCapaicty());
 		LruQueue.add(LruHot);
 	}
 
@@ -201,7 +220,7 @@ public class HugeConcurrentLruLike<K, V> {
 				break;
 			}
 
-			for (var e : node) {
+			for (var e : node.entrySet()) {
 				if (null != getTryRemoveCallback()) {
 					if (TryRemoveCallback.tryRemove(e.getKey(), e.getValue().Value)) {
 						continue;
@@ -221,12 +240,12 @@ public class HugeConcurrentLruLike<K, V> {
 				logger.warn("remain record when clean oldest lrunode.");
 			}
 
-			if (getCleanPeriodWhenExceedCapacity() > 0) {
-				try {
-					Thread.sleep(getCleanPeriodWhenExceedCapacity());
-				} catch (InterruptedException skip) {
-					// skip ?
-				}
+			int sleepms = CleanPeriodWhenExceedCapacity > 1000
+					? CleanPeriodWhenExceedCapacity : 1000;
+			try {
+				Thread.sleep(sleepms);
+			} catch (InterruptedException skip) {
+				// skip ?
 			}
 			Task.schedule(this::CleanNow, getCleanPeriod(), -1);
 		}

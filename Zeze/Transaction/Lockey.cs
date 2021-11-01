@@ -164,8 +164,6 @@ namespace Zeze.Transaction
 	 */
 	public sealed class Locks
 	{
-		public static Locks Instance { get; } = new Locks();
-
 		/**
 		 * The maximum number of segments to allow; used to bound constructor arguments.
 		 */
@@ -203,11 +201,11 @@ namespace Zeze.Transaction
 			return segments[index];
 		}
 
-		private Locks() : this(1024)
+		public Locks() : this(1024)
 		{
 		}
 
-		private Locks(int concurrencyLevel)
+		public Locks(int concurrencyLevel)
 		{
 			if (concurrencyLevel <= 0)
 				throw new ArgumentException();

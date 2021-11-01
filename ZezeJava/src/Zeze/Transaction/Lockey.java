@@ -39,7 +39,7 @@ public final class Lockey implements java.lang.Comparable<Lockey> {
 		var r = rwLock.readLock();
 
 		//if (false == rwLock.IsReadLockHeld) { // 第一次才计数. java 没有这个，那么每次访问都统计。
-			TableStatistics.getInstance().GetOrAdd(getTableKey().getTableId()).getReadLockTimes().incrementAndGet();
+			TableStatistics.getInstance().GetOrAdd(getTableKey().getName()).getReadLockTimes().incrementAndGet();
 		//}
 
 		r.lock();
@@ -54,7 +54,7 @@ public final class Lockey implements java.lang.Comparable<Lockey> {
 		//logger.Debug("EnterWriteLock {0}", TableKey);
 
 		if (false == rwLock.isWriteLocked()) { // 第一次才计数
-			TableStatistics.getInstance().GetOrAdd(getTableKey().getTableId()).getWriteLockTimes().incrementAndGet();
+			TableStatistics.getInstance().GetOrAdd(getTableKey().getName()).getWriteLockTimes().incrementAndGet();
 		}
 
 		var w = rwLock.writeLock();
@@ -69,7 +69,7 @@ public final class Lockey implements java.lang.Comparable<Lockey> {
 
 	public boolean TryEnterReadLock(int millisecondsTimeout) {
 		//if (false == rwLock.IsReadLockHeld) { // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
-			TableStatistics.getInstance().GetOrAdd(getTableKey().getTableId()).getTryReadLockTimes().incrementAndGet();
+			TableStatistics.getInstance().GetOrAdd(getTableKey().getName()).getTryReadLockTimes().incrementAndGet();
 		//}
 
 		try {
@@ -82,7 +82,7 @@ public final class Lockey implements java.lang.Comparable<Lockey> {
 	public boolean TryEnterWriteLock(int millisecondsTimeout) {
 
 		if (false == rwLock.isWriteLocked()) { // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
-			TableStatistics.getInstance().GetOrAdd(getTableKey().getTableId()).getTryWriteLockTimes().incrementAndGet();
+			TableStatistics.getInstance().GetOrAdd(getTableKey().getName()).getTryWriteLockTimes().incrementAndGet();
 		}
 
 		try {

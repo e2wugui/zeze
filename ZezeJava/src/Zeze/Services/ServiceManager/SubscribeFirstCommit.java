@@ -4,7 +4,7 @@ import Zeze.Net.Protocol1;
 import Zeze.Transaction.Bean;
 
 public final class SubscribeFirstCommit extends Protocol1<ServiceInfos> {
-	public final static int ProtocolId_ = Bean.Hash16(SubscribeFirstCommit.class.getName());
+	public final static int ProtocolId_ = Bean.Hash32(SubscribeFirstCommit.class.getName());
 
 	public SubscribeFirstCommit() {
 		Argument = new ServiceInfos();

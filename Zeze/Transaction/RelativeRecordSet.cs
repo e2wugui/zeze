@@ -381,7 +381,7 @@ namespace Zeze.Transaction
                 // 已经不会有后续的修改（但可能有读取并且被合并然后又被Flush），
                 // 或者被 Checkpoint Flush。
                 // 此时可以认为直接成功了吧？
-                // 或者不判断这个，总是由上面的步骤中处理。
+                /* 或者不判断这个，总是由上面的步骤中处理。
                 if (rrs.MergeTo == RelativeRecordSet.Deleted)
                 {
                     // has flush

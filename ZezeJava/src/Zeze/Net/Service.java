@@ -314,8 +314,8 @@ public class Service {
 		}
 	}
 
-	public void DispatchUnknownProtocol(AsyncSocket so, int type, ByteBuffer data) {
-		throw new RuntimeException("Unknown Protocol (" + (type >>> 16 & 0xffff) + ", " + (type & 0xffff) + ") size=" + data.Size());
+	public void DispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) {
+		throw new RuntimeException("Unknown Protocol (" + moduleId + ", " + protocolId + ") size=" + data.Size());
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -343,18 +343,18 @@ public class Service {
 		}
 	}
 
-	private final ConcurrentHashMap<Integer, ProtocolFactoryHandle> Factorys = new ConcurrentHashMap<> ();
-	public final ConcurrentHashMap<Integer, ProtocolFactoryHandle> getFactorys() {
+	private final ConcurrentHashMap<Long, ProtocolFactoryHandle> Factorys = new ConcurrentHashMap<> ();
+	public final ConcurrentHashMap<Long, ProtocolFactoryHandle> getFactorys() {
 		return Factorys;
 	}
 
-	public final void AddFactoryHandle(int type, ProtocolFactoryHandle factory) {
+	public final void AddFactoryHandle(long type, ProtocolFactoryHandle factory) {
 		if (null != getFactorys().putIfAbsent(type, factory)) {
 			throw new RuntimeException(Str.format("duplicate factory type={} moduleid={} id={}", type, (type >>> 16) & 0x7fff, type & 0x7fff));
 		}
 	}
 
-	public final ProtocolFactoryHandle FindProtocolFactoryHandle(int type) {
+	public final ProtocolFactoryHandle FindProtocolFactoryHandle(long type) {
 		return Factorys.get(type);
 	}
 

@@ -397,11 +397,11 @@ public final class Config {
 		public void setCacheConcurrencyLevel(int value) {
 			CacheConcurrencyLevel = value;
 		}
-		private long CacheInitialCapaicty;
-		public long getCacheInitialCapaicty() {
+		private int CacheInitialCapaicty;
+		public int getCacheInitialCapaicty() {
 			return CacheInitialCapaicty;
 		}
-		public void setCacheInitialCapaicty(long value) {
+		public void setCacheInitialCapaicty(int value) {
 			CacheInitialCapaicty = value;
 		}
 		private int CacheNewAccessHotThreshold;
@@ -417,13 +417,6 @@ public final class Config {
 		}
 		public void setCacheCleanPeriod(int value) {
 			CacheCleanPeriod = value;
-		}
-		private int CacheBuckets = 16;
-		public int getCacheBuckets() {
-			return CacheBuckets;
-		}
-		public void setCacheBuckets(int value) {
-			CacheBuckets = value;
 		}
 		private int CacheNewLruHotPeriod = 1000;
 		public int getCacheNewLruHotPeriod() {
@@ -501,7 +494,7 @@ public final class Config {
 			}
 			attr = self.getAttribute("CacheInitialCapaicty");
 			if (attr.length() > 0) {
-				setCacheInitialCapaicty(Long.parseLong(attr));
+				setCacheInitialCapaicty(Integer.parseInt(attr));
 			}
 			attr = self.getAttribute("CacheNewAccessHotThreshold");
 			if (attr.length() > 0) {
@@ -510,10 +503,6 @@ public final class Config {
 			attr = self.getAttribute("CacheCleanPeriodWhenExceedCapacity");
 			if (attr.length() > 0) {
 				setCacheCleanPeriodWhenExceedCapacity(Integer.parseInt(attr));
-			}
-			attr = self.getAttribute("CacheBuckets");
-			if (attr.length() > 0) {
-				setCacheBuckets(Integer.parseInt(attr));
 			}
 			attr = self.getAttribute("CacheMaxLruInitialCapaicty");
 			if (attr.length() > 0) {

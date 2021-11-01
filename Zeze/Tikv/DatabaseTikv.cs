@@ -13,7 +13,8 @@ namespace Zeze.Tikv
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public DatabaseTikv(string databaseUrl) : base(databaseUrl)
+        public DatabaseTikv(Application zeze, string databaseUrl)
+            : base(zeze, databaseUrl)
         {
             DirectOperates = new OperatesTikv(this);
         }

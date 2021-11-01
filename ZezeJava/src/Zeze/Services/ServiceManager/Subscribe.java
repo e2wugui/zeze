@@ -5,7 +5,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
 public final class Subscribe extends Rpc<SubscribeInfo, EmptyBean> {
-	public final static int ProtocolId_ = Bean.Hash16(Subscribe.class.getName());
+	public final static int ProtocolId_ = Bean.Hash32(Subscribe.class.getName());
 
 	public static final int Success = 0;
 	public static final int DuplicateSubscribe = 1;

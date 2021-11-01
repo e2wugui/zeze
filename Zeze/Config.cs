@@ -40,6 +40,7 @@ namespace Zeze
         public TableConf DefaultTableConf { get; set; }
         public bool AllowReadWhenRecoredNotAccessed { get; set; } = true;
         public bool AllowSchemasReuseVariableIdWithSameType { get; set; } = true;
+        public bool FastRedoWhenConfict { get; set; } = false;
         public ConcurrentDictionary<string, ICustomize> Customize { get; }
             = new ConcurrentDictionary<string, ICustomize>();
 
@@ -81,41 +82,41 @@ namespace Zeze
         public ConcurrentDictionary<string, DatabaseConf> DatabaseConfMap { get; }
             = new ConcurrentDictionary<string, DatabaseConf>();
 
-        private Transaction.Database CreateDatabase(DbType dbType, string url)
+        private Transaction.Database CreateDatabase(Application zeze, DbType dbType, string url)
         {
             switch (dbType)
             {
                 case DbType.Memory:
-                    return new Transaction.DatabaseMemory(url);
+                    return new Transaction.DatabaseMemory(zeze, url);
 #if USE_DATABASE
                 case DbType.MySql:
-                    return new Transaction.DatabaseMySql(url);
+                    return new Transaction.DatabaseMySql(zeze, url);
                 case DbType.SqlServer:
-                    return new Transaction.DatabaseSqlServer(url);
+                    return new Transaction.DatabaseSqlServer(zeze, url);
                 case DbType.Tikv:
-                    return new Tikv.DatabaseTikv(url);
+                    return new Tikv.DatabaseTikv(zeze, url);
 #endif
                 default:
                     throw new Exception("unknown database type.");
             }
         }
 
-        public void CreateDatabase(Dictionary<string, Transaction.Database> map)
+        public void CreateDatabase(Application zeze, Dictionary<string, Transaction.Database> map)
         {
             // add other database
             foreach (var db in DatabaseConfMap.Values)
             {
-                map.Add(db.Name, CreateDatabase(db.DatabaseType, db.DatabaseUrl));
+                map.Add(db.Name, CreateDatabase(zeze, db.DatabaseType, db.DatabaseUrl));
             }
         }
 
-        public void ClearInUseAndIAmSureAppStopped(
+        public void ClearInUseAndIAmSureAppStopped(Application zeze,
             Dictionary<string, Transaction.Database> databases = null)
         {
             if (null == databases)
             {
                 databases = new Dictionary<string, Transaction.Database>();
-                CreateDatabase(databases);
+                CreateDatabase(zeze, databases);
             }
             foreach (var db in databases.Values)
             {
@@ -203,6 +204,10 @@ namespace Zeze
             attr = self.GetAttribute("CheckpointMode");
             if (attr.Length > 0)
                 CheckpointMode = (Transaction.CheckpointMode)Enum.Parse(typeof(Transaction.CheckpointMode), attr);
+
+            attr = self.GetAttribute("FastRedoWhenConfict");
+            if (attr.Length > 0)
+                FastRedoWhenConfict = bool.Parse(attr);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
