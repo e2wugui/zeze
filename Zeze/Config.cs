@@ -268,12 +268,11 @@ namespace Zeze
         public sealed class TableConf
         {
             public string Name { get; }
-            public long CacheCapacity { get; set; } = 20000;
+            public int CacheCapacity { get; set; } = 20000;
             public int CacheConcurrencyLevel { get; set; }
-            public long CacheInitialCapaicty { get; set; }
+            public int CacheInitialCapaicty { get; set; }
             public int CacheNewAccessHotThreshold { get; set; }
             public int CacheCleanPeriod { get; set; } = 1000;
-            public int CacheBuckets { get; set; } = 16;
             public int CacheNewLruHotPeriod { get; set; } = 1000;
             public int CacheMaxLruInitialCapaicty { get; set; } = 100000;
             public int CacheCleanPeriodWhenExceedCapacity { get; set; }
@@ -298,7 +297,7 @@ namespace Zeze
 
                 string attr = self.GetAttribute("CacheCapacity");
                 if (attr.Length > 0)
-                    CacheCapacity = long.Parse(attr);
+                    CacheCapacity = int.Parse(attr);
 
                 attr = self.GetAttribute("CacheCleanPeriod");
                 if (attr.Length > 0)
@@ -315,16 +314,13 @@ namespace Zeze
                     CacheConcurrencyLevel = int.Parse(attr);
                 attr = self.GetAttribute("CacheInitialCapaicty");
                 if (attr.Length > 0)
-                    CacheInitialCapaicty = long.Parse(attr);
+                    CacheInitialCapaicty = int.Parse(attr);
                 attr = self.GetAttribute("CacheNewAccessHotThreshold");
                 if (attr.Length > 0)
                     CacheNewAccessHotThreshold = int.Parse(attr);
                 attr = self.GetAttribute("CacheCleanPeriodWhenExceedCapacity");
                 if (attr.Length > 0)
                     CacheCleanPeriodWhenExceedCapacity = int.Parse(attr);
-                attr = self.GetAttribute("CacheBuckets");
-                if (attr.Length > 0)
-                    CacheBuckets = int.Parse(attr);
                 attr = self.GetAttribute("CacheMaxLruInitialCapaicty");
                 if (attr.Length > 0)
                     CacheMaxLruInitialCapaicty = int.Parse(attr);

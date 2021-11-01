@@ -67,7 +67,7 @@ namespace Zeze.Raft
         // 实现snapshot的基本思路是：
         // 拦截修改；让RocksDb慢慢backup；然后把修改apply进去，取消拦截。
         // 这样的话，拦截的过程中，仍然可能丢失修改。这个问题怎么解决！
-        public HugeConcurrentLruLike<K, CachedValue> Lru { get; }
+        public ConcurrentLruLike<K, CachedValue> Lru { get; }
         private RocksDbSharp.RocksDb Db;
 
         private ConcurrentDictionary<K, CachedValue> Changed { get; }
@@ -75,16 +75,15 @@ namespace Zeze.Raft
 
         public ConcurrentMap(
             string dbHome,
-            long capacity,
-            int buckets = 16,
+            int capacity,
             int concurrencyLevel = 1024,
-            long initialCapacity = 1000000)
+            int initialCapacity = 1000000)
         {
             var options = new RocksDbSharp.DbOptions().SetCreateIfMissing(true);
             Db = RocksDbSharp.RocksDb.Open(options, dbHome);
-            Lru = new HugeConcurrentLruLike<K, CachedValue>(
+            Lru = new ConcurrentLruLike<K, CachedValue>(
                 capacity, TryRemove, 200, 2000,
-                initialCapacity, buckets, concurrencyLevel);
+                initialCapacity, concurrencyLevel);
         }
 
         private bool TryRemove(K key, CachedValue value)

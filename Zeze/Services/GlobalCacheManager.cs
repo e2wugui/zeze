@@ -54,7 +54,7 @@ namespace Zeze.Services
         public static GlobalCacheManagerServer Instance { get; } = new GlobalCacheManagerServer();
         public ServerService Server { get; private set; }
         private AsyncSocket ServerSocket;
-        private Util.HugeConcurrentDictionary<GlobalTableKey, CacheState> global;
+        private ConcurrentDictionary<GlobalTableKey, CacheState> global;
         /*
          * 会话。
          * key是 LogicServer.Id，现在的实现就是Zeze.Config.ServerId。
@@ -78,8 +78,7 @@ namespace Zeze.Services
             public int ConcurrencyLevel { get; set; } = 1024;
             // 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
             // 尽量不重新调整ConcurrentDictionary。
-            public long InitialCapacity { get; set; } = 100000000;
-            public int GCMCount { get; set; } = 16;
+            public int InitialCapacity { get; set; } = 100000000;
 
             public void Parse(XmlElement self)
             {
@@ -93,15 +92,9 @@ namespace Zeze.Services
 
                 attr = self.GetAttribute("InitialCapacity");
                 if (attr.Length > 0)
-                    InitialCapacity = long.Parse(attr);
+                    InitialCapacity = int.Parse(attr);
                 if (InitialCapacity < 31)
                     InitialCapacity = 31;
-
-                attr = self.GetAttribute("GCMCount");
-                if (attr.Length > 0)
-                    GCMCount = int.Parse(attr);
-                if (GCMCount < 1)
-                    GCMCount = 1;
             }
         }
 
@@ -121,8 +114,8 @@ namespace Zeze.Services
                     config.LoadAndParse();
                 }
                 Sessions = new ConcurrentDictionary<int, CacheHolder>(Config.ConcurrencyLevel, 4096);
-                global = new Util.HugeConcurrentDictionary<GlobalTableKey, CacheState>
-                    (Config.GCMCount, Config.ConcurrencyLevel, Config.InitialCapacity);
+                global = new ConcurrentDictionary<GlobalTableKey, CacheState>
+                    (Config.ConcurrencyLevel, Config.InitialCapacity);
 
                 Server = new ServerService(config);
 
@@ -680,12 +673,12 @@ namespace Zeze.Services
             public long SessionId { get; private set; }
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
-            public Util.HugeConcurrentDictionary<GlobalTableKey, int> Acquired { get; }
+            public ConcurrentDictionary<GlobalTableKey, int> Acquired { get; }
 
             public CacheHolder(GCMConfig config)
             {
-                Acquired = new Util.HugeConcurrentDictionary<GlobalTableKey, int>(
-                    config.GCMCount, config.ConcurrencyLevel, config.InitialCapacity);
+                Acquired = new ConcurrentDictionary<GlobalTableKey, int>(
+                    config.ConcurrencyLevel, config.InitialCapacity);
             }
 
             public bool TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)

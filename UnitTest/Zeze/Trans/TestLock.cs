@@ -67,8 +67,8 @@ namespace UnitTest.Zeze.Trans
         {
             Locks locks = Locks.Instance;
 
-            TableKey tk1 = new TableKey(1, 1);
-            TableKey tk2 = new TableKey(1, 1);
+            TableKey tk1 = new TableKey("1", 1);
+            TableKey tk2 = new TableKey("1", 1);
 
             Lockey lock1 = new Lockey(tk1);
             Lockey lock2 = new Lockey(tk2);
@@ -81,7 +81,7 @@ namespace UnitTest.Zeze.Trans
             Lockey lock2ref = locks.Get(lock2);
             Assert.IsTrue(lock2ref == lock1); // second Get. the exist
 
-            TableKey tk3 = new TableKey(1, 2);
+            TableKey tk3 = new TableKey("1", 2);
             Lockey lock3 = new Lockey(tk3);
             Lockey lock3ref = locks.Get(lock3);
             Assert.IsTrue(lock3ref == lock3);

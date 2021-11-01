@@ -6,18 +6,18 @@ namespace Zeze.Transaction
 {
     public sealed class TableKey : IComparable<TableKey>
     {
-        public int TableId { get; }
+        public string Name { get; }
         public object Key { get; } // 只能是简单变量(bool,byte,short,int,long)和BeanKey
 
-        public TableKey(int tableId, object key)
+        public TableKey(string name, object key)
         {
-            TableId = tableId;
+            Name = name;
             Key = key;
         }
 
         public int CompareTo(TableKey other)
         {
-            int c = this.TableId.CompareTo(other.TableId);
+            int c = this.Name.CompareTo(other.Name);
             if (c != 0)
             {
                 return c;
@@ -27,14 +27,14 @@ namespace Zeze.Transaction
 
         public override string ToString()
         {
-            return $"tkey{{{TableId}:{Table.GetTable(TableId).Name},{Key}}}";
+            return $"tkey{{{Name},{Key}}}";
         }
 
         public override int GetHashCode()
         {
             const int prime = 31;
             int result = 17;
-            result = prime * result + TableId;
+            result = prime * result + Name.GetHashCode();
             result = prime * result + Key.GetHashCode();
             return result;
         }
@@ -46,7 +46,7 @@ namespace Zeze.Transaction
 
             if (obj is TableKey another)
             {
-                return TableId == another.TableId && Key.Equals(another.Key);
+                return Name.Equals(another.Name) && Key.Equals(another.Key);
             }
             return false;
         }

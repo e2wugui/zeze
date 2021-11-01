@@ -178,10 +178,34 @@ namespace Zeze.Transaction
             switch (rpc.Argument.State)
             {
                 case GlobalCacheManagerServer.StateInvalid:
-                    return Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceInvalid(rpc);
+                    {
+                        var table = Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName);
+                        if (table == null)
+                        {
+                            logger.Warn($"ReduceInvalid Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zeze.Config.ServerId}");
+                            // 本地没有找到表格看作成功。
+                            rpc.Result = rpc.Argument;
+                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                            rpc.SendResultCode(0);
+                            return 0;
+                        }
+                        return table.ReduceInvalid(rpc);
+                    }
 
                 case GlobalCacheManagerServer.StateShare:
-                    return Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceShare(rpc);
+                    {
+                        var table = Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName);
+                        if (table == null)
+                        {
+                            logger.Warn($"ReduceShare Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zeze.Config.ServerId}");
+                            // 本地没有找到表格看作成功。
+                            rpc.Result = rpc.Argument;
+                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                            rpc.SendResultCode(0);
+                            return 0;
+                        }
+                        return table.ReduceShare(rpc);
+                    }
 
                 default:
                     rpc.Result = rpc.Argument;

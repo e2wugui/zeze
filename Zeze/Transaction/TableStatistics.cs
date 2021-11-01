@@ -11,9 +11,9 @@ namespace Zeze.Transaction
         // 这里的tableId也是全局分配的，即时起多个Zeze.Application，也是没问题的。see Table.cs
         public static TableStatistics Instance { get; } = new TableStatistics();
 
-        public ConcurrentDictionary<int, Statistics> Tables { get; } = new ConcurrentDictionary<int, Statistics>();
+        public ConcurrentDictionary<string, Statistics> Tables { get; } = new ConcurrentDictionary<string, Statistics>();
 
-        public Statistics GetOrAdd(int tableId)
+        public Statistics GetOrAdd(string tableId)
         {
             return Tables.GetOrAdd(tableId, (key) => new Statistics());
         }

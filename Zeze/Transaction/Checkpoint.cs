@@ -254,7 +254,7 @@ namespace Zeze.Transaction
                 {
                     t.Commit();
                 }
-                // 清除编码状态
+                // 清除状态
                 foreach (var r in rs)
                 {
                     r.Cleanup();

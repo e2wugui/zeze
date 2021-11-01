@@ -26,20 +26,20 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        internal Util.HugeConcurrentDictionary<K, Record<K, V>> DataMap { get; }
+        internal ConcurrentDictionary<K, Record<K, V>> DataMap { get; }
 
-        private ConcurrentQueue<Util.HugeConcurrentDictionary<K, Record<K, V>>> LruQueue { get; }
-            = new ConcurrentQueue<Util.HugeConcurrentDictionary<K, Record<K, V>>>();
+        private ConcurrentQueue<ConcurrentDictionary<K, Record<K, V>>> LruQueue { get; }
+            = new ConcurrentQueue<ConcurrentDictionary<K, Record<K, V>>>();
 
-        private Util.HugeConcurrentDictionary<K, Record<K, V>> LruHot { get; set; }
+        private ConcurrentDictionary<K, Record<K, V>> LruHot { get; set; }
 
         public Table<K, V> Table { get; }
 
         public TableCache(Application app, Table<K, V> table)
         {
             this.Table = table;
-            DataMap = new Util.HugeConcurrentDictionary<K, Record<K, V>>(
-                GetCacheBuckets(), GetCacheConcurrencyLevel(), GetCacheInitialCapaicty());
+            DataMap = new ConcurrentDictionary<K, Record<K, V>>(
+                GetCacheConcurrencyLevel(), GetCacheInitialCapaicty());
             NewLruHot();
             Util.Scheduler.Instance.Schedule((task) =>
             {
@@ -52,11 +52,6 @@ namespace Zeze.Transaction
             Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
         }
 
-        private int GetCacheBuckets()
-        {
-            return Table.TableConf.CacheBuckets < 16 ? 16 : Table.TableConf.CacheBuckets;
-        }
-
         private int GetCacheConcurrencyLevel()
         {
             // 这样写，当配置修改，可以使用的时候马上生效。
@@ -64,7 +59,7 @@ namespace Zeze.Transaction
                 ? Table.TableConf.CacheConcurrencyLevel : Environment.ProcessorCount;
         }
 
-        private long GetCacheInitialCapaicty()
+        private int GetCacheInitialCapaicty()
         {
             // 31 from c# document
             // 这样写，当配置修改，可以使用的时候马上生效。
@@ -72,17 +67,17 @@ namespace Zeze.Transaction
                 ? 31 : Table.TableConf.CacheInitialCapaicty;
         }
 
-        private long GetLruInitialCapaicty()
+        private int GetLruInitialCapaicty()
         {
-            long c = (long)(GetCacheInitialCapaicty() * 0.2);
+            int c = (int)(GetCacheInitialCapaicty() * 0.2);
             return c < Table.TableConf.CacheMaxLruInitialCapaicty
                 ? c : Table.TableConf.CacheMaxLruInitialCapaicty;
         }
 
         private void NewLruHot()
         {
-            LruHot = new Util.HugeConcurrentDictionary<K, Record<K, V>>(
-                GetCacheBuckets(), GetCacheConcurrencyLevel(), GetLruInitialCapaicty());
+            LruHot = new ConcurrentDictionary<K, Record<K, V>>(
+                GetCacheConcurrencyLevel(), GetLruInitialCapaicty());
             LruQueue.Enqueue(LruHot);
         }
 
@@ -198,7 +193,7 @@ namespace Zeze.Transaction
 
         private bool TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)
         {
-            TableKey tkey = new TableKey(this.Table.Id, p.Key);
+            TableKey tkey = new TableKey(this.Table.Name, p.Key);
             Lockey lockey = Locks.Instance.Get(tkey);
             if (false == lockey.TryEnterWriteLock(0))
             {

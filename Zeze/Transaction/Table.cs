@@ -10,22 +10,12 @@ namespace Zeze.Transaction
 {
     public abstract class Table
     {
-        private static List<Table> Tables { get; } = new List<Table>(); // 全局。这样允许多个Zeze实例。线程不安全：仅在初始化时保护一下。
-        public static Table GetTable(int id) => Tables[id];
-
         public Table(string name)
         {
             this.Name = name;
-
-            lock (Tables)
-            {
-                this.Id = Tables.Count;
-                Tables.Add(this);
-            }
         }
 
         public string Name { get; }
-        public int Id { get; }
         public virtual bool IsMemory => true;
         public virtual bool IsAutoKey => false;
 
@@ -68,7 +58,7 @@ namespace Zeze.Transaction
 
         private Record<K, V> FindInCacheOrStorage(K key, Action<V> copy = null)
         {
-            TableKey tkey = new TableKey(Id, key);
+            TableKey tkey = new TableKey(Name, key);
             Lockey lockey = Locks.Instance.Get(tkey);
             lockey.EnterReadLock();
             // 严格来说，这里应该是WriteLock,但是这会涉及Transaction持有的锁的升级问题，
@@ -106,7 +96,7 @@ namespace Zeze.Transaction
                         if (null != TStorage)
                         {
 #if ENABLE_STATISTICS
-                            TableStatistics.Instance.GetOrAdd(Id).StorageFindCount.IncrementAndGet();
+                            TableStatistics.Instance.GetOrAdd(Name).StorageFindCount.IncrementAndGet();
 #endif
                             r.Value = TStorage.Find(key, this); // r.Value still maybe null
 
@@ -149,7 +139,7 @@ namespace Zeze.Transaction
 
             //logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
-            TableKey tkey = new TableKey(Id, key);
+            TableKey tkey = new TableKey(Name, key);
             Lockey lockey = Locks.Instance.Get(tkey);
             lockey.EnterWriteLock();
             Record<K, V> r = null;
@@ -224,7 +214,7 @@ namespace Zeze.Transaction
 
             //logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
-            TableKey tkey = new TableKey(Id, key);
+            TableKey tkey = new TableKey(Name, key);
             Lockey lockey = Locks.Instance.Get(tkey);
             lockey.EnterWriteLock();
             Record<K, V> r = null;
@@ -287,7 +277,7 @@ namespace Zeze.Transaction
                     continue;
                 }
 
-                TableKey tkey = new TableKey(Id, e.Key);
+                TableKey tkey = new TableKey(Name, e.Key);
                 Lockey lockey = Locks.Instance.Get(tkey);
                 lockey.EnterWriteLock();
                 try
@@ -305,7 +295,7 @@ namespace Zeze.Transaction
         public V Get(K key)
         {
             Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Id, key);
+            TableKey tkey = new TableKey(Name, key);
 
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
@@ -321,7 +311,7 @@ namespace Zeze.Transaction
         public V GetOrAdd(K key)
         {
             Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Id, key);
+            TableKey tkey = new TableKey(Name, key);
 
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
@@ -356,7 +346,7 @@ namespace Zeze.Transaction
                 return false;
 
             Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Id, key);
+            TableKey tkey = new TableKey(Name, key);
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
@@ -372,7 +362,7 @@ namespace Zeze.Transaction
         public void Put(K key, V value)
         {
             Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Id, key);
+            TableKey tkey = new TableKey(Name, key);
 
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
@@ -391,7 +381,7 @@ namespace Zeze.Transaction
         public void Remove(K key)
         {
             Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Id, key);
+            TableKey tkey = new TableKey(Name, key);
 
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
@@ -483,7 +473,7 @@ namespace Zeze.Transaction
                 (key, value) =>
                 {
                     K k = DecodeKey(ByteBuffer.Wrap(key));
-                    TableKey tkey = new TableKey(Id, k);
+                    TableKey tkey = new TableKey(Name, k);
                     Lockey lockey = Locks.Instance.Get(tkey);
                     lockey.EnterReadLock();
                     try
@@ -556,7 +546,7 @@ namespace Zeze.Transaction
             Transaction currentT = Transaction.Current;
             if (null != currentT)
             {
-                TableKey tkey = new TableKey(Id, key);
+                TableKey tkey = new TableKey(Name, key);
                 Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
                 if (null != cr)
                 {

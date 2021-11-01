@@ -25,7 +25,7 @@ namespace Gen
             Task.WaitAll(tasks);
             b.Report("Done", tasks.Length);
             */
-            /*
+            //*
             new Benchmark.ABasicSimpleAddOneThread().testBenchmark();
             new Benchmark.BBasicSimpleAddConcurrentWithConflict().testBenchmark();
             new Benchmark.CBasicSimpleAddConcurrent().testBenchmark();

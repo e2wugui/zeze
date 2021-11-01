@@ -6,23 +6,23 @@ namespace Zeze.Transaction
 {
 	public sealed class ChangeCollector
 	{
-		private readonly Dictionary<int, ChangeTableCollector> tables = new Dictionary<int, ChangeTableCollector>(); // key is Table.Id
+		private readonly Dictionary<string, ChangeTableCollector> tables = new Dictionary<string, ChangeTableCollector>(); // key is Table.Id
 
 		public delegate void Collect(out List<Util.KV<Bean, int>> path, out ChangeNote note);
 
-		public void BuildCollect(TableKey tableKey, Transaction.RecordAccessed recordAccessed)
+		public void BuildCollect(Application zeze, TableKey tableKey, Transaction.RecordAccessed recordAccessed)
         {
-			if (false == tables.TryGetValue(tableKey.TableId, out var tableCollector))
+			if (false == tables.TryGetValue(tableKey.Name, out var tableCollector))
             {
-				tableCollector = new ChangeTableCollector(tableKey);
-				tables.Add(tableKey.TableId, tableCollector);
+				tableCollector = new ChangeTableCollector(zeze.GetTable(tableKey.Name), tableKey);
+				tables.Add(tableKey.Name, tableCollector);
 			}
 			tableCollector.BuildCollect(tableKey, recordAccessed);
 		}
 
 		public void CollectChanged(TableKey tableKey, Collect collect)
         {
-			if (tables.TryGetValue(tableKey.TableId, out var ctc))
+			if (tables.TryGetValue(tableKey.Name, out var ctc))
 			{
 				ctc.CollectChanged(tableKey, collect);
 			}
@@ -42,9 +42,9 @@ namespace Zeze.Transaction
 		private readonly Table table;
 		private readonly bool tableHasListener;
 
-		public ChangeTableCollector(TableKey tableKey)
+		public ChangeTableCollector(Table t, TableKey tableKey)
 		{
-			table = Table.GetTable(tableKey.TableId);
+			table = t;
 			tableHasListener = table.ChangeListenerMap.HasListener();
 		}
 

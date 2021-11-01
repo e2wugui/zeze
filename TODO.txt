@@ -132,23 +132,3 @@ c# 发布 exe dll
 Raft.ConcurrentMap 使用 RocksDb 持久化，自己实现快速 Snapshot，解决 RocksDb 没有这个功能的问题。
 
 RedoException 导致更多忙等。
-
-1 c#换自己的简单线程池更糟糕！
-
-2 Benchmark
-  a) ABasicSimpleAddOneThread
-     c# 比 java 慢一倍，怀疑是 c# jit 没有生效。
-
-  b) BBasicSimpleAddConcurrentWithConflict
-     c#: tasks/s=178472.01 time=5.60 cpu=52.78 concurrent=9.42
-     两者吞吐相当，但是c#的cpu(concurrent)非常高，感觉线程都跑起来了，这点表现比java好。
-
-  c) CBasicSimpleAddConcurrent
-     c# tasks/s=221182.08 time=4.52 cpu=37.87 concurrent=8.38
-     吞吐量，c#比java慢一倍，
-     c#的cpu都运转起来了。8.38/8核。并发记录不够多？
-     java的concurrent，5.7/8核。
-
-3 Benchmark 总结
-  多线程时，c#很忙，吞吐低。真正应用事务和并发上去以后应该会好转吧。等待进一步测试。
-  多线程是，java没有全部忙起来，但吞吐相当高。以后也用更真实的事务来看看。

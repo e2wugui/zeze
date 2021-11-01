@@ -355,7 +355,7 @@ namespace Zeze.Transaction
                         if (e.Value.Dirty)
                         {
                             e.Value.OriginRecord.Commit(e.Value);
-                            cc.BuildCollect(e.Key, e.Value); // 首先对脏记录创建Table,Record相关Collector。
+                            cc.BuildCollect(procedure.Zeze, e.Key, e.Value); // 首先对脏记录创建Table,Record相关Collector。
                         }
                     }
                 }

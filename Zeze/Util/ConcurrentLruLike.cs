@@ -7,29 +7,31 @@ using System.Threading.Tasks;
 
 namespace Zeze.Util
 {
-    public class HugeConcurrentLruLike<K, V>
+    public class ConcurrentLruLike<K, V>
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         class LruItem
         {
             public V Value { get; }
-            public HugeConcurrentDictionary<K, LruItem> LruNode { get; set; }
+            public ConcurrentDictionary<K, LruItem> LruNode { get; set; }
 
-            public LruItem(V value, HugeConcurrentDictionary<K, LruItem> lruNode)
+            public LruItem(V value, ConcurrentDictionary<K, LruItem> lruNode)
             {
                 Value = value;
                 LruNode = lruNode;
             }
         }
 
-        private HugeConcurrentDictionary<K, LruItem> DataMap { get; }
-        private ConcurrentQueue<Util.HugeConcurrentDictionary<K, LruItem>> LruQueue { get; }
-            = new ConcurrentQueue<Util.HugeConcurrentDictionary<K, LruItem>>();
-        private HugeConcurrentDictionary<K, LruItem> LruHot { get; set; }
+        private ConcurrentDictionary<K, LruItem> DataMap { get; }
+        private ConcurrentQueue<ConcurrentDictionary<K, LruItem>> LruQueue { get; }
+            = new ConcurrentQueue<ConcurrentDictionary<K, LruItem>>();
+        private ConcurrentDictionary<K, LruItem> LruHot { get; set; }
 
-        public long Capacity { get; set; }
-        public long MaxLruInitialCapaicty { get; set; } = 100000;
+        public int Capacity { get; set; }
+        public int InitialCapacity { get; set; } // 创建以后再修改，只影响lru，不影响cache。
+        public int ConcurrencyLevel { get; set; } // 创建以后再修改，只影响lru，不影响cache。
+        public int MaxLruInitialCapaicty { get; set; } = 100000;
 
         public long NewLruHotPeriod { get; set; } = 1000;
         public long CleanPeriod { get; set; } = 1000;
@@ -38,21 +40,23 @@ namespace Zeze.Util
         public bool ContinueWhenTryRemoveCallbackFail { get; set; } = true;
         public Func<K, V, bool> TryRemoveCallback { get; set; } = null;
 
-        public HugeConcurrentLruLike(long capacity,
+        public ConcurrentLruLike(int capacity,
             // 自定义删除。
             Func<K, V, bool> tryRemove = null,
             // 调度参数
             long newLruHotPeriod = 200,
             long cleanPeriod = 2000,
             // 其他初始化参数
-            long initialCapacity = 31, int buckets = 16, int concurrencyLevel = 1024)
+            int initialCapacity = 31, int concurrencyLevel = 1024)
         {
             Capacity = capacity;
             TryRemoveCallback = tryRemove;
             NewLruHotPeriod = newLruHotPeriod;
             CleanPeriod = cleanPeriod;
+            InitialCapacity = initialCapacity;
+            ConcurrencyLevel = concurrencyLevel;
 
-            DataMap = new HugeConcurrentDictionary<K, LruItem>(buckets, concurrencyLevel, initialCapacity);
+            DataMap = new ConcurrentDictionary<K, LruItem>(concurrencyLevel, initialCapacity);
             NewLruHot();
 
             Scheduler.Instance.Schedule((task) =>
@@ -118,17 +122,17 @@ namespace Zeze.Util
             return false;
         }
 
-        private long GetLruInitialCapaicty()
+        private int GetLruInitialCapaicty()
         {
-            long lruInitialCapacity = (long)(DataMap.InitialCapacity * 0.2);
+            int lruInitialCapacity = (int)(InitialCapacity * 0.2);
             return lruInitialCapacity < MaxLruInitialCapaicty
                 ? lruInitialCapacity : MaxLruInitialCapaicty;
         }
 
         private void NewLruHot()
         {
-            LruHot = new Util.HugeConcurrentDictionary<K, LruItem>(
-                DataMap.BucketCount, DataMap.ConcurrencyLevel, GetLruInitialCapaicty());
+            LruHot = new ConcurrentDictionary<K, LruItem>(
+                ConcurrencyLevel, GetLruInitialCapaicty());
             LruQueue.Enqueue(LruHot);
         }
 

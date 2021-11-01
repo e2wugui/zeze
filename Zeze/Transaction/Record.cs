@@ -92,7 +92,7 @@ namespace Zeze.Transaction
 
         public override string ToString()
         {
-            return $"T {TTable.Id}:{TTable.Name} K {Key} S {State} T {Timestamp}";// V {Value}";
+            return $"T {TTable.Name} K {Key} S {State} T {Timestamp}";// V {Value}";
             // 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
         }
 
@@ -104,7 +104,7 @@ namespace Zeze.Transaction
             var gkey = new GlobalTableKey(TTable.Name, TTable.EncodeKey(Key));
             logger.Debug("Acquire NewState={0} {1}", state, this);
 #if ENABLE_STATISTICS
-            var stat = TableStatistics.Instance.GetOrAdd(TTable.Id);
+            var stat = TableStatistics.Instance.GetOrAdd(TTable.Name);
             switch (state)
             {
                 case GlobalCacheManagerServer.StateInvalid:
@@ -158,7 +158,7 @@ namespace Zeze.Transaction
 
         internal bool TryEncodeN(ConcurrentDictionary<K, Record<K, V>> changed, ConcurrentDictionary<K, Record<K, V>> encoded)
         {
-            Lockey lockey = Locks.Instance.Get(new TableKey(TTable.Id, Key));
+            Lockey lockey = Locks.Instance.Get(new TableKey(TTable.Name, Key));
             if (false == lockey.TryEnterReadLock(0))
                 return false;
             try
@@ -217,11 +217,12 @@ namespace Zeze.Transaction
         internal override void Cleanup()
         {
             this.DatabaseTransactionTmp = null;
-
-            TableKey tkey = new TableKey(Table.Id, Key);
+            /*
+            TableKey tkey = new TableKey(Table.Name, Key);
             Lockey lockey = Locks.Instance.Get(tkey);
             lockey.EnterWriteLock();
             try
+            */
             {
                 if (SavedTimestampForCheckpointPeriod == base.Timestamp)
                     Dirty = false;
@@ -241,15 +242,16 @@ namespace Zeze.Transaction
                         ExistInBackDatabase = false;
                 }
             }
+            /*
             finally
             {
                 lockey.ExitWriteLock();
             }
-
+            */
             snapshotKey = null;
             snapshotValue = null;
         }
 
-        public Util.HugeConcurrentDictionary<K, Record<K, V>> LruNode { get; set; }
+        public ConcurrentDictionary<K, Record<K, V>> LruNode { get; set; }
     }
 }

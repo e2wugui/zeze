@@ -39,7 +39,7 @@ namespace Zeze.Transaction
 			//logger.Debug("EnterReadLock {0}", TableKey);
 #if ENABLE_STATISTICS
 			if (false == rwLock.IsReadLockHeld) // 第一次才计数
-				TableStatistics.Instance.GetOrAdd(TableKey.TableId).ReadLockTimes.IncrementAndGet();
+				TableStatistics.Instance.GetOrAdd(TableKey.Name).ReadLockTimes.IncrementAndGet();
 #endif
 			rwLock.EnterReadLock();
         }
@@ -55,7 +55,7 @@ namespace Zeze.Transaction
 			//logger.Debug("EnterWriteLock {0}", TableKey);
 #if ENABLE_STATISTICS
 			if (false == rwLock.IsWriteLockHeld) // 第一次才计数
-				TableStatistics.Instance.GetOrAdd(TableKey.TableId).WriteLockTimes.IncrementAndGet();
+				TableStatistics.Instance.GetOrAdd(TableKey.Name).WriteLockTimes.IncrementAndGet();
 #endif
 			rwLock.EnterWriteLock();
 		}
@@ -70,7 +70,7 @@ namespace Zeze.Transaction
         {
 #if ENABLE_STATISTICS
 			if (false == rwLock.IsReadLockHeld) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
-				TableStatistics.Instance.GetOrAdd(TableKey.TableId).TryReadLockTimes.IncrementAndGet();
+				TableStatistics.Instance.GetOrAdd(TableKey.Name).TryReadLockTimes.IncrementAndGet();
 #endif
 			return rwLock.TryEnterReadLock(millisecondsTimeout);
         }
@@ -79,7 +79,7 @@ namespace Zeze.Transaction
         {
 #if ENABLE_STATISTICS
 			if (false == rwLock.IsWriteLockHeld) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
-				TableStatistics.Instance.GetOrAdd(TableKey.TableId).TryWriteLockTimes.IncrementAndGet();
+				TableStatistics.Instance.GetOrAdd(TableKey.Name).TryWriteLockTimes.IncrementAndGet();
 #endif
 			return rwLock.TryEnterWriteLock(millisecondsTimeout);
         }
