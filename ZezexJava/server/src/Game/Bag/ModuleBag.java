@@ -159,42 +159,42 @@ public final class ModuleBag extends AbstractModule {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.CUse();
             factoryHandle.Handle = (_p) -> ProcessCUse(_p);
-            App.Server.AddFactoryHandle(184003, factoryHandle);
-       }
+            App.Server.AddFactoryHandle(10451394608L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.Destroy();
             factoryHandle.Handle = (_p) -> ProcessDestroyRequest(_p);
-            App.Server.AddFactoryHandle(175038, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(12623633363L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.GetBag();
             factoryHandle.Handle = (_p) -> ProcessGetBagRequest(_p);
-            App.Server.AddFactoryHandle(137439, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(12175658342L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.Move();
             factoryHandle.Handle = (_p) -> ProcessMoveRequest(_p);
-            App.Server.AddFactoryHandle(192909, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(8838578012L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.Sort();
             factoryHandle.Handle = (_p) -> ProcessSortRequest(_p);
-            App.Server.AddFactoryHandle(142072, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(12620192448L, factoryHandle);
+        }
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tbag.getName()).getDatabaseName(), _tbag);
     }
 
     public void UnRegister() {
-        App.Server.getFactorys().remove(184003);
-        App.Server.getFactorys().remove(175038);
-        App.Server.getFactorys().remove(137439);
-        App.Server.getFactorys().remove(192909);
-        App.Server.getFactorys().remove(142072);
+        App.Server.getFactorys().remove(10451394608L);
+        App.Server.getFactorys().remove(12623633363L);
+        App.Server.getFactorys().remove(12175658342L);
+        App.Server.getFactorys().remove(8838578012L);
+        App.Server.getFactorys().remove(12620192448L);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_tbag.getName()).getDatabaseName(), _tbag);
     }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE

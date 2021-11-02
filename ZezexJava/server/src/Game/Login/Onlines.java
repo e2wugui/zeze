@@ -120,7 +120,7 @@ public class Onlines {
 
 //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
 //ORIGINAL LINE: public void SendReliableNotify(long roleId, string listenerName, int typeId, Binary fullEncodedProtocol, bool WaitConfirm = false)
-	public final void SendReliableNotify(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
+	public final void SendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
 		final TaskCompletionSource<Long> future = WaitConfirm ? new TaskCompletionSource<Long>() : null;
 
 		App.getInstance().Zeze.getTaskOneByOneByKey().Execute(listenerName,
@@ -227,7 +227,7 @@ public class Onlines {
 		return groups.values();
 	}
 
-	private void SendInProcedure(Collection<Long> roleIds, int typeId, Binary fullEncodedProtocol, TaskCompletionSource<Long> future) {
+	private void SendInProcedure(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol, TaskCompletionSource<Long> future) {
 		var groups = GroupByLink(roleIds);
 		long serialId = 0;
 		if (null != future) {
@@ -261,7 +261,7 @@ public class Onlines {
 		}
 	}
 
-	private void Send(Collection<Long> roleIds, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
+	private void Send(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
 		final TaskCompletionSource<Long> future = WaitConfirm ? new TaskCompletionSource<Long>() : null;
 
 		// 发送协议请求在另外的事务中执行。
@@ -483,7 +483,7 @@ public class Onlines {
 		}
 	}
 
-	private void Broadcast(int typeId, Binary fullEncodedProtocol, int time, boolean WaitConfirm) {
+	private void Broadcast(long typeId, Binary fullEncodedProtocol, int time, boolean WaitConfirm) {
 		TaskCompletionSource<Long> future = null;
 		long serialId = 0;
 		if (WaitConfirm) {

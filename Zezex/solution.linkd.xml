@@ -83,7 +83,7 @@
 
 		<bean name="BSend">
 			<variable name="linkSids"     id="1" type="set" value="long"/>
-			<variable name="protocolType" id="2" type="int"/>
+			<variable name="protocolType" id="2" type="long"/>
 			<variable name="protocolWholeData" id="3" type="binary"/> 完整的协议打包，包括了 type, size
 			<variable name="ConfirmSerialId" id="4" type="long"/> 不为0的时候，linkd发送SendConfirm回逻辑服务器
 		</bean>
@@ -97,7 +97,7 @@
 		<protocol name="SendConfirm" argument="BSendConfirm" handle="server"/>
 
 		<bean name="BBroadcast">
-			<variable name="protocolType" id="1" type="int"/>
+			<variable name="protocolType" id="1" type="long"/>
 			<variable name="protocolWholeData" id="2" type="binary"/> 完整的协议打包，包括了 type, size
 			<variable name="time"         id="3" type="int"/>
 			<variable name="ConfirmSerialId" id="4" type="long"/> 不为0的时候，linkd发送SendConfirm回逻辑服务器
@@ -169,7 +169,7 @@
 		<bean name="BDispatch">
 			<variable name="linkSid"      id="1" type="long"/>
 			<variable name="account"      id="2" type="string"/>
-			<variable name="protocolType" id="3" type="int"/>
+			<variable name="protocolType" id="3" type="long"/>
 			<variable name="protocolData" id="4" type="binary"/> 协议打包，不包括 type, size
 			<variable name="states"       id="5" type="list" value="long"/> SetUserState
 			<variable name="statex"       id="6" type="binary"/> SetUserState
@@ -217,7 +217,7 @@
 
 		<bean name="BModuleRedirectResult">
 			<variable name="ModuleId"       id="1" type="int"/>
-			<variable name="ServerId" id="2" type="int"/> 目标server的id。
+			<variable name="ServerId"       id="2" type="int"/> 目标server的id。
 			<!-- 上面两个参数用来调试，不是必要的。 -->
 
 			<!--
@@ -267,7 +267,7 @@
 
 		<bean name="BModuleRedirectAllResult">
 			<variable name="ModuleId"       id="1" type="int"/>
-			<variable name="ServerId" id="2" type="int"/> 目标server的id。
+			<variable name="ServerId"       id="2" type="int"/> 目标server的id。
 			<!-- 上面两个参数用来调试，不是必要的。 -->
 			<variable name="SourceProvider" id="3" type="long"/> 从BModuleRedirectAllRequest里面得到。
 			<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"

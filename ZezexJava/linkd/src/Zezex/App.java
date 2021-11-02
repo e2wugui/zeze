@@ -27,7 +27,7 @@ public final class App extends Zeze.AppBase {
 		setProviderServicePassiveIp(ipp.getKey());
 		setProviderServicePasivePort(ipp.getValue());
 
-		setServiceManagerAgent(new Zeze.Services.ServiceManager.Agent(Zeze.getConfig()));
+		setServiceManagerAgent(new Zeze.Services.ServiceManager.Agent(Zeze));
 		getServiceManagerAgent().RegisterService(LinkdServiceName,
                 Str.format("{}:{}", getProviderServicePassiveIp(), getProviderServicePasivePort()),
                 getProviderServicePassiveIp(), getProviderServicePasivePort(), null);

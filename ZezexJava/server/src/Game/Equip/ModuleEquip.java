@@ -181,21 +181,21 @@ public final class ModuleEquip extends AbstractModule {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Equip.Equipement();
             factoryHandle.Handle = (_p) -> ProcessEquipementRequest(_p);
-            App.Server.AddFactoryHandle(512274, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(32772485238L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Equip.Unequipement();
             factoryHandle.Handle = (_p) -> ProcessUnequipementRequest(_p);
-            App.Server.AddFactoryHandle(483491, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(30979741226L, factoryHandle);
+        }
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tequip.getName()).getDatabaseName(), _tequip);
     }
 
     public void UnRegister() {
-        App.Server.getFactorys().remove(512274);
-        App.Server.getFactorys().remove(483491);
+        App.Server.getFactorys().remove(32772485238L);
+        App.Server.getFactorys().remove(30979741226L);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_tequip.getName()).getDatabaseName(), _tequip);
     }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE

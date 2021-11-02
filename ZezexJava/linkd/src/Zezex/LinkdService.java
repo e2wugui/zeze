@@ -41,7 +41,7 @@ public final class LinkdService extends LinkdServiceBase {
 	}
 
 	@Override
-	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int type, Zeze.Serialize.ByteBuffer data) {
+	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
 		var linkSession = (LinkSession)so.getUserState();
 		if (null == linkSession || linkSession.getAccount().isEmpty()) {
 			ReportError(
@@ -53,11 +53,10 @@ public final class LinkdService extends LinkdServiceBase {
 			return;
 		}
 
-		var moduleId = Zeze.Net.Protocol.GetModuleId(type);
 		var dispatch = new Zezex.Provider.Dispatch();
 		dispatch.Argument.setLinkSid(so.getSessionId());
 		dispatch.Argument.setAccount(linkSession.getAccount());
-		dispatch.Argument.setProtocolType(type);
+		dispatch.Argument.setProtocolType((long)moduleId << 32 | (protocolId & 0xffff_ffff));
 		dispatch.Argument.setProtocolData(new Zeze.Net.Binary(data));
 		dispatch.Argument.getStates().addAll(linkSession.getUserStates());
 		dispatch.Argument.setStatex(linkSession.getUserStatex());

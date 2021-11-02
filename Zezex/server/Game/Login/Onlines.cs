@@ -101,7 +101,7 @@ namespace Game.Login
         /// <param name="listenerName"></param>
         /// <param name="fullEncodedProtocol">协议必须先编码，因为会跨事务。</param>
         public void SendReliableNotify(
-            long roleId, string listenerName, int typeId, Binary fullEncodedProtocol,
+            long roleId, string listenerName, long typeId, Binary fullEncodedProtocol,
             bool WaitConfirm = false)
         {
             TaskCompletionSource<long> future = null;
@@ -204,7 +204,7 @@ namespace Game.Login
         }
 
         private void SendInProcedure(
-            ICollection<long> roleIds, int typeId, Binary fullEncodedProtocol,
+            ICollection<long> roleIds, long typeId, Binary fullEncodedProtocol,
             TaskCompletionSource<long> future)
         {
             var groups = GroupByLink(roleIds);
@@ -243,7 +243,7 @@ namespace Game.Login
         }
 
         private void Send(
-            ICollection<long> roleIds, int typeId, Binary fullEncodedProtocol,
+            ICollection<long> roleIds, long typeId, Binary fullEncodedProtocol,
             bool WaitConfirm)
         {
             TaskCompletionSource<long> future = null;
@@ -443,7 +443,7 @@ namespace Game.Login
             }
         }
 
-        private void Broadcast(int typeId, Binary fullEncodedProtocol, int time, bool WaitConfirm)
+        private void Broadcast(long typeId, Binary fullEncodedProtocol, int time, bool WaitConfirm)
         {
             TaskCompletionSource<long> future = null;
             long serialId = 0;

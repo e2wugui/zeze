@@ -1,6 +1,6 @@
 ﻿
 using System.Collections.Generic;
-using Zeze.Services;
+using Zeze.Services.ServiceManager;
 
 namespace Zezex.Provider
 {
@@ -21,7 +21,7 @@ namespace Zezex.Provider
             return $"{serviceNamePrefix}{moduleId}";
         }
 
-        public bool ChoiceHash(ServiceManager.Agent.SubscribeState providers,
+        public bool ChoiceHash(Agent.SubscribeState providers,
             int hash, out long provider)
         {
             provider = 0;
@@ -38,7 +38,7 @@ namespace Zezex.Provider
             return true;
         }
 
-        public bool ChoiceLoad(ServiceManager.Agent.SubscribeState providers, out long provider)
+        public bool ChoiceLoad(Agent.SubscribeState providers, out long provider)
         {
             provider = 0;
 
@@ -206,7 +206,7 @@ namespace Zezex.Provider
                         module.Key, module.Value.ChoiceType, module.Value.ConfigType);
                     var serviceName = MakeServiceName(providerSession.Info.ServiceNamePrefix, module.Key);
                     var subState = App.ServiceManagerAgent.SubscribeService(serviceName,
-                        ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit,
+                        SubscribeInfo.SubscribeTypeReadyCommit,
                         providerModuleState);
                     // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
                     subState.SetServiceIdentityReadyState(providerSession.Info.ServiceIndentity, providerModuleState);

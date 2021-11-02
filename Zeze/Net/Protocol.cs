@@ -12,6 +12,16 @@ namespace Zeze.Net
 
 		public long TypeId => (long)ModuleId << 32 | (ProtocolId & 0xffff_ffff);
 
+		public static int GetModuleId(long typeId)
+        {
+			return (int)((ulong)typeId >> 32);
+        }
+
+		public static int GetProtocolId(long typeId)
+        {
+			return (int)(typeId & 0xffff_ffff);
+        }
+
 		public Service Service { get; set; }
 
 		public AsyncSocket Sender { get; set; }

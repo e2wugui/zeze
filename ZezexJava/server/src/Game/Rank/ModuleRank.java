@@ -532,15 +532,15 @@ public class ModuleRank extends AbstractModule {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Rank.CGetRankList();
             factoryHandle.Handle = (_p) -> ProcessCGetRankList(_p);
-            App.Server.AddFactoryHandle(612619, factoryHandle);
-       }
+            App.Server.AddFactoryHandle(41046169473L, factoryHandle);
+        }
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_trank.getName()).getDatabaseName(), _trank);
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_trankcounters.getName()).getDatabaseName(), _trankcounters);
     }
 
     public void UnRegister() {
-        App.Server.getFactorys().remove(612619);
+        App.Server.getFactorys().remove(41046169473L);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_trank.getName()).getDatabaseName(), _trank);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_trankcounters.getName()).getDatabaseName(), _trankcounters);
     }

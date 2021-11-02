@@ -46,20 +46,20 @@ public final class ModuleMap extends AbstractModule {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Map.CEnterWorld();
             factoryHandle.Handle = (_p) -> ProcessCEnterWorld(_p);
-            App.Server.AddFactoryHandle(546916, factoryHandle);
-       }
+            App.Server.AddFactoryHandle(35514358966L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Map.CEnterWorldDone();
             factoryHandle.Handle = (_p) -> ProcessCEnterWorldDone(_p);
-            App.Server.AddFactoryHandle(537032, factoryHandle);
-       }
+            App.Server.AddFactoryHandle(35705348604L, factoryHandle);
+        }
         // register table
     }
 
     public void UnRegister() {
-        App.Server.getFactorys().remove(546916);
-        App.Server.getFactorys().remove(537032);
+        App.Server.getFactorys().remove(35514358966L);
+        App.Server.getFactorys().remove(35705348604L);
     }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

@@ -1,4 +1,5 @@
 ﻿
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace Game.Login
@@ -18,13 +19,14 @@ namespace Game.Login
         {
         }
 
-        // 没有考虑线程问题
+        // 没有完全考虑线程问题
         private long ReliableNotifyTotalCount;
-        private Dictionary<int, IReliableNotify> ReliableNotifyMap { get; } = new Dictionary<int, IReliableNotify>();
+        private ConcurrentDictionary<long, IReliableNotify> ReliableNotifyMap { get; } = new ConcurrentDictionary<long, IReliableNotify>();
 
-        public void RegisterReliableNotify(int protocolTypeId, IReliableNotify handle)
+        public void RegisterReliableNotify(long protocolTypeId, IReliableNotify handle)
         {
-            ReliableNotifyMap.Add(protocolTypeId, handle);
+            if (false == ReliableNotifyMap.TryAdd(protocolTypeId, handle))
+                throw new System.Exception($"Duplicate Protocol({Zeze.Net.Protocol.GetModuleId(protocolTypeId)}, {Zeze.Net.Protocol.GetProtocolId(protocolTypeId)})");
         }
 
         public override int ProcessSReliableNotify(SReliableNotify protocol)

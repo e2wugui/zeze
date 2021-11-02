@@ -11,6 +11,14 @@ public abstract class Protocol implements Serializable {
 		return (long)getModuleId() << 32 | (getProtocolId() & 0xffff_ffff);
 	}
 
+	public static int GetModuleId(long typeId) {
+		return (int)(typeId >>> 32);
+	}
+
+	public static int GetProtocolId(long typeId) {
+		return (int)(typeId & 0xffff_ffff);
+	}
+
 	public Service Service;
 
 	private AsyncSocket Sender;

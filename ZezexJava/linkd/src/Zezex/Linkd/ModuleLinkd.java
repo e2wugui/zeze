@@ -60,20 +60,20 @@ public final class ModuleLinkd extends AbstractModule {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Linkd.Auth();
             factoryHandle.Handle = (_p) -> ProcessAuthRequest(_p);
-            App.LinkdService.AddFactoryHandle(655394483, factoryHandle);
-         }
+            App.LinkdService.AddFactoryHandle(42952970027574L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Linkd.KeepAlive();
             factoryHandle.Handle = (_p) -> ProcessKeepAlive(_p);
-            App.LinkdService.AddFactoryHandle(655406763, factoryHandle);
-       }
+            App.LinkdService.AddFactoryHandle(42951249029979L, factoryHandle);
+        }
         // register table
     }
 
     public void UnRegister() {
-        App.LinkdService.getFactorys().remove(655394483);
-        App.LinkdService.getFactorys().remove(655406763);
+        App.LinkdService.getFactorys().remove(42952970027574L);
+        App.LinkdService.getFactorys().remove(42951249029979L);
     }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 

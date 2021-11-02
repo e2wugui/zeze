@@ -37,7 +37,11 @@ namespace Zezex
             }
         }
 
-        public override void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int type, Zeze.Serialize.ByteBuffer data)
+        public override void DispatchUnknownProtocol(
+            Zeze.Net.AsyncSocket so,
+            int moduleId,
+            int protocolId,
+            Zeze.Serialize.ByteBuffer data)
         {
             var linkSession = so.UserState as LinkSession;
             if (null == linkSession || null == linkSession.Account)
@@ -46,11 +50,10 @@ namespace Zezex
                 return;
             }
 
-            var moduleId = global::Zeze.Net.Protocol.GetModuleId(type);
             var dispatch = new Provider.Dispatch();
             dispatch.Argument.LinkSid = so.SessionId;
             dispatch.Argument.Account = linkSession.Account;
-            dispatch.Argument.ProtocolType = type;
+            dispatch.Argument.ProtocolType = (long)moduleId << 32 | (protocolId & 0xffff_ffff);
             dispatch.Argument.ProtocolData = new Zeze.Net.Binary(data);
             dispatch.Argument.States.AddRange(linkSession.UserStates);
             dispatch.Argument.Statex = linkSession.UserStatex;

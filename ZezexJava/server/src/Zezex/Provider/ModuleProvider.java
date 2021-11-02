@@ -324,75 +324,75 @@ public final class ModuleProvider extends AbstractModule {
             factoryHandle.Factory = () -> new Zezex.Provider.AnnounceLinkInfo();
             factoryHandle.Handle = (_p) -> ProcessAnnounceLinkInfo(_p);
             factoryHandle.NoProcedure = true;
-            App.Server.AddFactoryHandle(655473135, factoryHandle);
-       }
+            App.Server.AddFactoryHandle(42956386019790L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Bind();
-            App.Server.AddFactoryHandle(655479127, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(42956370435684L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Dispatch();
             factoryHandle.Handle = (_p) -> ProcessDispatch(_p);
-            App.Server.AddFactoryHandle(655471205, factoryHandle);
-       }
+            App.Server.AddFactoryHandle(42956978782483L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.LinkBroken();
             factoryHandle.Handle = (_p) -> ProcessLinkBroken(_p);
-            App.Server.AddFactoryHandle(655477748, factoryHandle);
-       }
+            App.Server.AddFactoryHandle(42958025275938L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirect();
             factoryHandle.Handle = (_p) -> ProcessModuleRedirectRequest(_p);
-            App.Server.AddFactoryHandle(655455850, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(42957157812299L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirectAllRequest();
             factoryHandle.Handle = (_p) -> ProcessModuleRedirectAllRequest(_p);
-            App.Server.AddFactoryHandle(655479394, factoryHandle);
-       }
+            App.Server.AddFactoryHandle(42954995920679L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirectAllResult();
             factoryHandle.Handle = (_p) -> ProcessModuleRedirectAllResult(_p);
-            App.Server.AddFactoryHandle(655465353, factoryHandle);
-       }
+            App.Server.AddFactoryHandle(42956729630485L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.SendConfirm();
             factoryHandle.Handle = (_p) -> ProcessSendConfirm(_p);
-            App.Server.AddFactoryHandle(655476045, factoryHandle);
-       }
+            App.Server.AddFactoryHandle(42954102918470L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Transmit();
             factoryHandle.Handle = (_p) -> ProcessTransmit(_p);
             factoryHandle.NoProcedure = true;
-            App.Server.AddFactoryHandle(655453724, factoryHandle);
-       }
+            App.Server.AddFactoryHandle(42954614917260L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.UnBind();
-            App.Server.AddFactoryHandle(655436306, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(42955764678922L, factoryHandle);
+        }
         // register table
     }
 
     public void UnRegister() {
-        App.Server.getFactorys().remove(655473135);
-        App.Server.getFactorys().remove(655479127);
-        App.Server.getFactorys().remove(655471205);
-        App.Server.getFactorys().remove(655477748);
-        App.Server.getFactorys().remove(655455850);
-        App.Server.getFactorys().remove(655479394);
-        App.Server.getFactorys().remove(655465353);
-        App.Server.getFactorys().remove(655476045);
-        App.Server.getFactorys().remove(655453724);
-        App.Server.getFactorys().remove(655436306);
+        App.Server.getFactorys().remove(42956386019790L);
+        App.Server.getFactorys().remove(42956370435684L);
+        App.Server.getFactorys().remove(42956978782483L);
+        App.Server.getFactorys().remove(42958025275938L);
+        App.Server.getFactorys().remove(42957157812299L);
+        App.Server.getFactorys().remove(42954995920679L);
+        App.Server.getFactorys().remove(42956729630485L);
+        App.Server.getFactorys().remove(42954102918470L);
+        App.Server.getFactorys().remove(42954614917260L);
+        App.Server.getFactorys().remove(42955764678922L);
     }
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

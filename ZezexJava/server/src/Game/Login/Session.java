@@ -46,7 +46,7 @@ public class Session {
 		SendResponse(Zeze.Serialize.ByteBuffer.Wrap(fullEncodedProtocol).ReadInt4(), fullEncodedProtocol);
 	}
 
-	public final void SendResponse(int typeId, Binary fullEncodedProtocol) {
+	public final void SendResponse(long typeId, Binary fullEncodedProtocol) {
 		var send = new Zezex.Provider.Send();
 		send.Argument.getLinkSids().add(getSessionId());
 		send.Argument.setProtocolType(typeId);

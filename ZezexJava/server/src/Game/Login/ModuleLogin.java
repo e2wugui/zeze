@@ -252,38 +252,38 @@ public final class ModuleLogin extends AbstractModule {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.CreateRole();
             factoryHandle.Handle = (_p) -> ProcessCreateRoleRequest(_p);
-            App.Server.AddFactoryHandle(108094, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(8319355361L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.GetRoleList();
             factoryHandle.Handle = (_p) -> ProcessGetRoleListRequest(_p);
-            App.Server.AddFactoryHandle(91931, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(4551632983L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.Login();
             factoryHandle.Handle = (_p) -> ProcessLoginRequest(_p);
-            App.Server.AddFactoryHandle(83324, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(4704197912L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.Logout();
             factoryHandle.Handle = (_p) -> ProcessLogoutRequest(_p);
-            App.Server.AddFactoryHandle(113969, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(7963174805L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.ReliableNotifyConfirm();
             factoryHandle.Handle = (_p) -> ProcessReliableNotifyConfirmRequest(_p);
-            App.Server.AddFactoryHandle(80485, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(4656410606L, factoryHandle);
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.ReLogin();
             factoryHandle.Handle = (_p) -> ProcessReLoginRequest(_p);
-            App.Server.AddFactoryHandle(108643, factoryHandle);
-         }
+            App.Server.AddFactoryHandle(6271065515L, factoryHandle);
+        }
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_taccount.getName()).getDatabaseName(), _taccount);
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tonline.getName()).getDatabaseName(), _tonline);
@@ -292,12 +292,12 @@ public final class ModuleLogin extends AbstractModule {
     }
 
     public void UnRegister() {
-        App.Server.getFactorys().remove(108094);
-        App.Server.getFactorys().remove(91931);
-        App.Server.getFactorys().remove(83324);
-        App.Server.getFactorys().remove(113969);
-        App.Server.getFactorys().remove(80485);
-        App.Server.getFactorys().remove(108643);
+        App.Server.getFactorys().remove(8319355361L);
+        App.Server.getFactorys().remove(4551632983L);
+        App.Server.getFactorys().remove(4704197912L);
+        App.Server.getFactorys().remove(7963174805L);
+        App.Server.getFactorys().remove(4656410606L);
+        App.Server.getFactorys().remove(6271065515L);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_taccount.getName()).getDatabaseName(), _taccount);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_tonline.getName()).getDatabaseName(), _tonline);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_trole.getName()).getDatabaseName(), _trole);

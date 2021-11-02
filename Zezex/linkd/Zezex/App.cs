@@ -51,7 +51,7 @@ namespace Zezex
             ProviderServicePassiveIp = ip;
             ProviderServicePasivePort = port;
 
-            ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(Zeze.Config);
+            ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(Zeze);
             ServiceManagerAgent.RegisterService(LinkdServiceName,
                 $"{ProviderServicePassiveIp}:{ProviderServicePasivePort}",
                 ProviderServicePassiveIp, ProviderServicePasivePort);
