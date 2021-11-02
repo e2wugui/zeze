@@ -46,17 +46,22 @@ namespace Zeze
             */
         }
 
-        internal ConcurrentDictionary<TableKey, TaskCompletionSource<int>> FlushWhenReduceTasks
+        internal ConcurrentDictionary<TableKey, TaskCompletionSource<int>> FlushWhenReduceFutures
             = new ConcurrentDictionary<TableKey, TaskCompletionSource<int>>();
 
         public bool TryWaitFlushWhenReduce(TableKey tkey)
         {
-            if (FlushWhenReduceTasks.TryGetValue(tkey, out var future))
+            _checkpoint.RunOnce();
+            return true;
+            // TODO
+            /*
+            if (FlushWhenReduceFutures.TryGetValue(tkey, out var future))
             {
                 future.Task.Wait();
                 return true;
             }
             return false;
+            */
         }
 
         public Schemas Schemas { get; set; } // no thread protected

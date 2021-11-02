@@ -143,16 +143,16 @@ namespace Zeze.Transaction
             //logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
             TableKey tkey = new TableKey(Name, key);
-            Lockey lockey = Zeze.Locks.Get(tkey);
-            lockey.EnterWriteLock();
-            Record<K, V> r = null;
             var flushFuture = new TaskCompletionSource<int>();
             try
             {
+                Lockey lockey = Zeze.Locks.Get(tkey);
+                lockey.EnterWriteLock();
+                Record<K, V> r = null;
                 try
                 {
                     logger.Debug("Reduce NewState={0} {1}", rpc.Argument.State, r);
-                    if (false == Zeze.FlushWhenReduceTasks.TryAdd(tkey, flushFuture))
+                    if (false == Zeze.FlushWhenReduceFutures.TryAdd(tkey, flushFuture))
                     {
                         rpc.Result.State = GlobalCacheManagerServer.StateReduceDuplicate;
                         logger.Debug("Reduce SendResult 0 {0}", r);
@@ -193,19 +193,26 @@ namespace Zeze.Transaction
                 }
                 //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
                 rpc.Result.State = GlobalCacheManagerServer.StateShare;
+                var flushFutureInCallback = flushFuture;
+                flushFuture = null;
                 FlushWhenReduce(r, () =>
                 {
                     logger.Debug("Reduce SendResult 4 {0}", r);
+                    // Must before SendResult
+                    Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
                     rpc.SendResult();
-                    flushFuture.SetResult(0);
+                    flushFutureInCallback.SetResult(0);
                 });
                 //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
                 return 0;
             }
             finally
             {
-                flushFuture.TrySetResult(0);
-                Zeze.FlushWhenReduceTasks.TryRemove(tkey, out _);
+                if (null != flushFuture)
+                {
+                    Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                    flushFuture.SetResult(0);
+                }
             }
         }
 
@@ -235,16 +242,16 @@ namespace Zeze.Transaction
             //logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
             TableKey tkey = new TableKey(Name, key);
-            Lockey lockey = Zeze.Locks.Get(tkey);
-            lockey.EnterWriteLock();
-            Record<K, V> r = null;
             var flushFuture = new TaskCompletionSource<int>();
             try
             {
+                Lockey lockey = Zeze.Locks.Get(tkey);
+                lockey.EnterWriteLock();
+                Record<K, V> r = null;
                 try
                 {
                     logger.Debug("Reduce NewState={0} {1}", rpc.Argument.State, r);
-                    if (false == Zeze.FlushWhenReduceTasks.TryAdd(tkey, flushFuture))
+                    if (false == Zeze.FlushWhenReduceFutures.TryAdd(tkey, flushFuture))
                     {
                         rpc.Result.State = GlobalCacheManagerServer.StateReduceDuplicate;
                         logger.Debug("Reduce SendResult 0 {0}", r);
@@ -287,19 +294,26 @@ namespace Zeze.Transaction
                 }
                 //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                var flushFutureInCallback = flushFuture;
+                flushFuture = null;
                 FlushWhenReduce(r, () =>
                 {
                     logger.Debug("Reduce SendResult 4 {0}", r);
-                    flushFuture.SetResult(0);
+                // Must before SendResult
+                Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
                     rpc.SendResult();
+                    flushFutureInCallback.SetResult(0);
                 });
                 //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
                 return 0;
             }
             finally
             {
-                flushFuture.TrySetResult(0);
-                Zeze.FlushWhenReduceTasks.TryRemove(tkey, out _);
+                if (null != flushFuture)
+                {
+                    Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                    flushFuture.SetResult(0);
+                }
             }
         }
 

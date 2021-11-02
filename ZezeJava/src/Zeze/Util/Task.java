@@ -44,9 +44,9 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 				return false;
 
 			if (null == pool) {
-				int workerThreads = app.getConfig().getWorkerThreads() > 0
+				int workerThreads = null == app ? 240 : (app.getConfig().getWorkerThreads() > 0
 						? app.getConfig().getWorkerThreads()
-						: Runtime.getRuntime().availableProcessors() * 30;
+						: Runtime.getRuntime().availableProcessors() * 30);
 				threadPoolDefault = new java.util.concurrent.ThreadPoolExecutor(
 						workerThreads, workerThreads, 0,
 						TimeUnit.NANOSECONDS, new LinkedBlockingQueue<>());
@@ -56,9 +56,9 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			}
 
 			if (null == scheduled) {
-				int workerThreads = app.getConfig().getWorkerThreads() > 0
+				int workerThreads = null == app ? 240 : (app.getConfig().getWorkerThreads() > 0
 						? app.getConfig().getWorkerThreads()
-						: Runtime.getRuntime().availableProcessors() * 30;
+						: Runtime.getRuntime().availableProcessors() * 30);
 				threadPoolScheduled = new ScheduledThreadPoolExecutor(workerThreads);
 			} else {
 				threadPoolScheduled = scheduled;

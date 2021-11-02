@@ -84,7 +84,7 @@ namespace UnitTest.Zeze.Trans
                 }, "RemoveClean").Call());
                 
                 Task[] task2 = new Task[2];
-                int count = 2000;
+                int count = 100;
                 task2[0] = global::Zeze.Util.Task.Run(() => ConcurrentAdd(app1, count, 1), "TestGlobal.ConcurrentAdd1");
                 task2[1] = global::Zeze.Util.Task.Run(() => ConcurrentAdd(app2, count, 2), "TestGlobal.ConcurrentAdd2");
                 Task.WaitAll(task2);

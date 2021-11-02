@@ -8,9 +8,9 @@ namespace Gen
     {
         public static void Main(string[] args)
         {
+            /*
             new UnitTest.Zeze.Trans.TestGlobal().Test2App();
             return;
-            /*
             new Benchmark.ABasicSimpleAddOneThread().testBenchmark();
             new Benchmark.BBasicSimpleAddConcurrentWithConflict().testBenchmark();
             new Benchmark.CBasicSimpleAddConcurrent().testBenchmark();

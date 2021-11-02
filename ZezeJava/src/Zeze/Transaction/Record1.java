@@ -84,6 +84,13 @@ public class Record1<K, V extends Bean> extends Record {
 	public final void setExistInBackDatabase(boolean value) {
 		ExistInBackDatabase = value;
 	}
+	private boolean ExistInBackDatabaseSavedForFlushRemove;
+	public final boolean getExistInBackDatabaseSavedForFlushRemove() {
+		return ExistInBackDatabaseSavedForFlushRemove;
+	}
+	public final void setExistInBackDatabaseSavedForFlushRemove(boolean value) {
+		ExistInBackDatabaseSavedForFlushRemove = value;
+	}
 
 	@Override
 	public void Commit(Zeze.Transaction.RecordAccessed accessed) {
@@ -133,8 +140,38 @@ public class Record1<K, V extends Bean> extends Record {
 
 	@Override
 	public void Encode0() {
+		// Under Lock：this.TryEncodeN & Storage.Snapshot
+
+		// 【注意】可能保存多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
+		// 从 Storage.Snapshot 里面修改移到这里，避免Snapshot遍历，减少FlushWriteLock时间。
+		SavedTimestampForCheckpointPeriod = getTimestamp();
+
+		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
 		snapshotKey = getTTable().EncodeKey(getKey());
 		snapshotValue = getValue() != null ? getTTable().EncodeValue(getValueTyped()) : null;
+
+		// 【注意】
+		// 这个标志本来应该在真正写到Database之后修改才是最合适的；
+		// 但这样需要再次锁定记录写锁，并发效率比较低，增加Flush时间；
+		// 由于Encode0()之后肯定会进行写Database操作，而写Database是不会并发的，
+		// ExistInBackDatabase也仅在写Database操作使用，所以提前到这里修改；
+		// 【并发简单分析】
+		// 1) FindInCacheOrStorage
+		//    第一次装载时，只会装载一次，记录读锁+lock(record)；
+		// 2.1) CheckpointMode.Period
+		//    a) TryEncodeN 记录读锁，看起来这个锁定是不够的，
+		//       但是由于记录在TableCache中存在时，不会引起再次装载，
+		//       所以实际上不会和FindInCacheOrStorage并发;
+		//    b) Snapshot FlushWriteLock
+		//       此时世界都暂停了，改一点状态完全没问题。
+		// 2.2) CheckpointMode.Table
+		//    rrs.lock()，使得Encode0()不会并发，其他理由同上面2.1)a)，
+		//    这种模式也是可以直接修改的。
+		//【ExistInBackDatabaseSavedForFlushRemove】
+		//    由于这里提前修改，所以需要保存一个副本后面写Database时用。
+		//    see this.Flush
+		ExistInBackDatabaseSavedForFlushRemove = ExistInBackDatabase;
+		ExistInBackDatabase = null != snapshotValue;
 	}
 
 	/*
@@ -154,9 +191,9 @@ public class Record1<K, V extends Bean> extends Record {
 		}
 		else {
 			// removed
-			if (getExistInBackDatabase()) { // 优化，仅在后台db存在时才去删除。
-				if (getTTable().TStorage != null) {
-					getTTable().TStorage.getDatabaseTable().Remove(t, snapshotKey);
+			if (ExistInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
+				if (TTable.TStorage != null) {
+					TTable.TStorage.getDatabaseTable().Remove(t, snapshotKey);
 				}
 			}
 
@@ -185,14 +222,14 @@ public class Record1<K, V extends Bean> extends Record {
 				if (getSavedTimestampForCheckpointPeriod() == super.getTimestamp()) {
 					setDirty(false);
 				}
+				snapshotKey = null;
+				snapshotValue = null;
+				return;
 			} finally {
 				lockey.ExitWriteLock();
 			}
 		}
-
-		synchronized (this) {
-			ExistInBackDatabase = null != snapshotValue;
-		}
+		// CheckpointMode.Table
 		snapshotKey = null;
 		snapshotValue = null;
 	}
