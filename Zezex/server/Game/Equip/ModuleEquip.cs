@@ -1,5 +1,6 @@
 ﻿
 using Game.Fight;
+using Zeze.Net;
 using Zeze.Transaction;
 
 
@@ -67,8 +68,9 @@ namespace Game.Equip
         }
         // 装备只有装上取下两个操作，没有公开的需求，先不提供包装类了。
 
-        public override int ProcessEquipementRequest(Equipement rpc)
+        public override int ProcessEquipementRequest(Protocol p)
         {
+            var rpc = p as Equipement;
             Login.Session session = Login.Session.Get(rpc);
 
             Bag.Bag bag = App.Instance.Game_Bag.GetBag(session.RoleId.Value);
@@ -107,8 +109,9 @@ namespace Game.Equip
             return ReturnCode(ResultCodeItemNotFound);
         }
 
-        public override int ProcessUnequipementRequest(Unequipement rpc)
+        public override int ProcessUnequipementRequest(Protocol p)
         {
+            var rpc = p as Unequipement;
             Login.Session session = Login.Session.Get(rpc);
 
             BEquips equips = _tequip.GetOrAdd(session.RoleId.Value);

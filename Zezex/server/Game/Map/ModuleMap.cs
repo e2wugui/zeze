@@ -1,4 +1,5 @@
 ﻿
+using Zeze.Net;
 using Zeze.Transaction;
 
 namespace Game.Map
@@ -13,8 +14,9 @@ namespace Game.Map
         {
         }
 
-        public override int ProcessCEnterWorld(CEnterWorld protocol)
+        public override int ProcessCEnterWorld(Protocol p)
         {
+            var protocol = p as CEnterWorld;
             Game.Login.Session session = Game.Login.Session.Get(protocol);
             if (null == session.RoleId)
             {
@@ -25,8 +27,9 @@ namespace Game.Map
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
-        public override int ProcessCEnterWorldDone(CEnterWorldDone protocol)
+        public override int ProcessCEnterWorldDone(Protocol _p)
         {
+            var p = _p as CEnterWorldDone;
             // TODO map
             return Zeze.Transaction.Procedure.NotImplement;
         }

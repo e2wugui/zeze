@@ -1,4 +1,5 @@
 ﻿
+using Zeze.Net;
 using Zeze.Transaction;
 
 namespace Game.Bag
@@ -76,8 +77,9 @@ namespace Game.Bag
         }
 
         // protocol handles
-        public override int ProcessMoveRequest(Move rpc)
+        public override int ProcessMoveRequest(Protocol p)
         {
+            var rpc = p as Move;
             Login.Session session = Login.Session.Get(rpc);
             // throw exception if not login
             var moduleCode = GetBag(session.RoleId.Value).Move(
@@ -90,8 +92,9 @@ namespace Game.Bag
             return 0;
         }
 
-        public override int ProcessDestroyRequest(Destroy rpc)
+        public override int ProcessDestroyRequest(Protocol p)
         {
+            var rpc = p as Destroy;
             Login.Session session = Login.Session.Get(rpc);
             var moduleCode = GetBag(session.RoleId.Value).Destory(rpc.Argument.Position);
             if (0 != moduleCode)
@@ -100,8 +103,9 @@ namespace Game.Bag
             return 0;
         }
 
-        public override int ProcessSortRequest(Sort rpc)
+        public override int ProcessSortRequest(Protocol p)
         {
+            var rpc = p as Sort;
             Login.Session session = Login.Session.Get(rpc);
             Bag bag = GetBag(session.RoleId.Value);
             bag.Sort();
@@ -109,8 +113,9 @@ namespace Game.Bag
             return Procedure.Success;
         }
 
-        public override int ProcessGetBagRequest(GetBag rpc)
+        public override int ProcessGetBagRequest(Protocol p)
         {
+            var rpc = p as GetBag;
             Login.Session session = Login.Session.Get(rpc);
 
             GetBag(session.RoleId.Value).ToProtocol(rpc.Result);
@@ -126,8 +131,9 @@ namespace Game.Bag
             return new Bag(roleid, _tbag.GetOrAdd(roleid));
         }
 
-        public override int ProcessCUse(CUse protocol)
+        public override int ProcessCUse(Protocol p)
         {
+            var protocol = p as CUse;
             Login.Session session = Login.Session.Get(protocol);
             Bag bag = GetBag(session.RoleId.Value);
             Item.Item item = bag.GetItem(protocol.Argument.Position);

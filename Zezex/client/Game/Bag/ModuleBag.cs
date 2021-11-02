@@ -1,4 +1,6 @@
 ﻿
+using Zeze.Net;
+
 namespace Game.Bag
 {
     public sealed partial class ModuleBag : AbstractModule, Login.IReliableNotify
@@ -26,8 +28,9 @@ namespace Game.Bag
             }
         }
 
-        public override int ProcessSChanged(SChanged protocol)
+        public override int ProcessSChanged(Protocol p)
         {
+            var protocol = p as SChanged;
             switch (protocol.Argument.ChangeTag)
             {
                 case BChangedResult.ChangeTagRecordChanged:
@@ -52,8 +55,9 @@ namespace Game.Bag
 
         private BBag bag;
 
-        public override int ProcessSBag(SBag protocol)
+        public override int ProcessSBag(Protocol p)
         {
+            var protocol = p as SBag;
             bag = protocol.Argument;
             return 0;
         }

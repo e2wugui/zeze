@@ -1,5 +1,6 @@
 ﻿
 using System.Collections.Generic;
+using Zeze.Net;
 using Zeze.Transaction;
 
 namespace Game.Login
@@ -17,8 +18,9 @@ namespace Game.Login
 
         public Onlines Onlines { get; private set; }
 
-        public override int ProcessCreateRoleRequest(CreateRole rpc)
+        public override int ProcessCreateRoleRequest(Protocol p)
         {
+            var rpc = p as CreateRole;
             Session session = Session.Get(rpc);
 
             long roleid = _trole.Insert(new BRoleData()
@@ -40,8 +42,9 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        public override int ProcessGetRoleListRequest(GetRoleList rpc)
+        public override int ProcessGetRoleListRequest(Protocol p)
         {
+            var rpc = p as GetRoleList;
             Session session = Session.Get(rpc);
 
             BAccount account = _taccount.Get(session.Account);
@@ -66,8 +69,9 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        public override int ProcessLoginRequest(Login rpc)
+        public override int ProcessLoginRequest(Protocol p)
         {
+            var rpc = p as Login;
             Session session = Session.Get(rpc);
 
             BAccount account = _taccount.Get(session.Account);
@@ -107,8 +111,9 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        public override int ProcessReLoginRequest(ReLogin rpc)
+        public override int ProcessReLoginRequest(Protocol p)
         {
+            var rpc = p as ReLogin;
             Session session = Session.Get(rpc);
 
             BAccount account = _taccount.Get(session.Account);
@@ -176,8 +181,9 @@ namespace Game.Login
             return ResultCodeSuccess;
         }
 
-        public override int ProcessReliableNotifyConfirmRequest(ReliableNotifyConfirm rpc)
+        public override int ProcessReliableNotifyConfirmRequest(Protocol p)
         {
+            var rpc = p as ReliableNotifyConfirm;
             Session session = Session.Get(rpc);
 
             BOnline online = _tonline.Get(session.RoleId.Value);
@@ -197,8 +203,9 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        public override int ProcessLogoutRequest(Logout rpc)
+        public override int ProcessLogoutRequest(Protocol p)
         {
+            var rpc = p as Logout;
             Session session = Session.Get(rpc);
 
             if (session.RoleId == null)

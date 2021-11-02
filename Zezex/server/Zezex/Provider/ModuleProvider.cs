@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using static Zeze.Net.Service;
 using Zeze.Transaction;
+using Zeze.Net;
 
 namespace Zezex.Provider
 {
@@ -27,8 +28,9 @@ namespace Zezex.Provider
             p.Send(sender);
         }
 
-        public override int ProcessDispatch(Dispatch p)
+        public override int ProcessDispatch(Protocol _p)
         {
+            var p = _p as Dispatch;
             try
             {
                 var factoryHandle = Game.App.Instance.Server.FindProtocolFactoryHandle(p.Argument.ProtocolType);
@@ -85,8 +87,9 @@ namespace Zezex.Provider
             }
         }
 
-        public override int ProcessLinkBroken(LinkBroken protocol)
+        public override int ProcessLinkBroken(Protocol p)
         {
+            var protocol = p as LinkBroken;
             // 目前仅需设置online状态。
             if (protocol.Argument.States.Count > 0)
             {
@@ -96,8 +99,9 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        public override int ProcessModuleRedirectRequest(ModuleRedirect rpc)
+        public override int ProcessModuleRedirectRequest(Protocol p)
         {
+            var rpc = p as ModuleRedirect;
             try
             {
                 // replace RootProcedure.ActionName. 为了统计和日志输出。
@@ -145,8 +149,9 @@ namespace Zezex.Provider
             }
         }
 
-        public override int ProcessModuleRedirectAllRequest(ModuleRedirectAllRequest protocol)
+        public override int ProcessModuleRedirectAllRequest(Protocol p)
         {
+            var protocol = p as ModuleRedirectAllRequest;
             var result = new ModuleRedirectAllResult();
             try
             {
@@ -286,8 +291,9 @@ namespace Zezex.Provider
             }
         }
 
-        public override int ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol)
+        public override int ProcessModuleRedirectAllResult(Protocol p)
         {
+            var protocol = p as ModuleRedirectAllResult;
             // replace RootProcedure.ActionName. 为了统计和日志输出。
             Transaction.Current.TopProcedure.ActionName = protocol.Argument.MethodFullName;
             App.Server.TryGetManualContext<ModuleRedirectAllContext>(
@@ -295,22 +301,25 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        public override int ProcessTransmit(Transmit protocol)
+        public override int ProcessTransmit(Protocol p)
         {
+            var protocol = p as Transmit;
             App.Game_Login.Onlines.ProcessTransmit(protocol.Argument.Sender,
                 protocol.Argument.ActionName, protocol.Argument.Roles.Keys);
             return Procedure.Success;
         }
 
-        public override int ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol)
+        public override int ProcessAnnounceLinkInfo(Protocol p)
         {
+            var protocol = p as AnnounceLinkInfo;
             var linkSession = protocol.Sender.UserState as Game.Server.LinkSession;
             linkSession.Setup(protocol.Argument.LinkId, protocol.Argument.ProviderSessionId);
             return Procedure.Success;
         }
 
-        public override int ProcessSendConfirm(SendConfirm protocol)
+        public override int ProcessSendConfirm(Protocol p)
         {
+            var protocol = p as SendConfirm;
             var linkSession = protocol.Sender.UserState as Game.Server.LinkSession;
             App.Server.TryGetManualContext<Game.Login.Onlines.ConfirmContext>(
                 protocol.Argument.ConfirmSerialId)?.ProcessLinkConfirm(linkSession.Name);

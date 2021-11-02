@@ -1,4 +1,6 @@
 ﻿
+using Zeze.Net;
+
 namespace Zezex.Linkd
 {
     public sealed partial class ModuleLinkd : AbstractModule
@@ -11,8 +13,9 @@ namespace Zezex.Linkd
         {
         }
 
-        public override int ProcessAuthRequest(Auth rpc)
+        public override int ProcessAuthRequest(Protocol p)
         {
+            var rpc = p as Auth;
             /*
             BAccount account = _taccount.Get(protocol.Argument.Account);
             if (null == account || false == account.Token.Equals(protocol.Argument.Token))
@@ -31,8 +34,9 @@ namespace Zezex.Linkd
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessKeepAlive(KeepAlive protocol)
+        public override int ProcessKeepAlive(Protocol p)
         {
+            var protocol = p as KeepAlive;
             var linkSession = protocol.Sender.UserState as LinkSession;
             if (null == linkSession)
             {

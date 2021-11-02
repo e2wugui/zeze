@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
+using Zeze.Net;
 using Zeze.Transaction;
 using static Zezex.Provider.ModuleProvider;
 
@@ -390,8 +391,9 @@ namespace Game.Rank
             RunUpdateRank(keyHint, roleId, counter.Value, valueEx);
         }
 
-        public override int ProcessCGetRankList(CGetRankList protocol)
+        public override int ProcessCGetRankList(Protocol p)
         {
+            var protocol = p as CGetRankList;
             Login.Session session = Login.Session.Get(protocol);
 
             var result = new SGetRankList();

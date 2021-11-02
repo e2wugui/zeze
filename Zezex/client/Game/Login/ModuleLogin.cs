@@ -1,6 +1,7 @@
 ﻿
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Zeze.Net;
 
 namespace Game.Login
 {
@@ -29,8 +30,9 @@ namespace Game.Login
                 throw new System.Exception($"Duplicate Protocol({Zeze.Net.Protocol.GetModuleId(protocolTypeId)}, {Zeze.Net.Protocol.GetProtocolId(protocolTypeId)})");
         }
 
-        public override int ProcessSReliableNotify(SReliableNotify protocol)
+        public override int ProcessSReliableNotify(Protocol p)
         {
+            var protocol = p as SReliableNotify;
             // TODO
             ReliableNotifyTotalCount += protocol.Argument.Notifies.Count;
 

@@ -342,7 +342,9 @@ namespace Zeze.Net
                 throw new Exception($"duplicate factory type={type} moduleid={(type >> 16) & 0x7fff} id={type & 0x7fff}");
         }
 
-        public static Func<Protocol, int> MakeHandle<T>(object target /*静态方法可以传null*/, MethodInfo method) where T : Protocol
+        /* target: 静态方法可以传null */
+        /*
+        public static Func<Protocol, int> MakeHandle<T>(object target , MethodInfo method) where T : Protocol
         {
             return (Protocol p) =>
             {
@@ -358,6 +360,7 @@ namespace Zeze.Net
                 }
             };
         }
+        */
 
         public ProtocolFactoryHandle FindProtocolFactoryHandle(long type)
         {

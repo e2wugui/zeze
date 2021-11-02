@@ -21,7 +21,7 @@ namespace UnitTest.Zeze.Net
             server.AddFactoryHandle(forid.TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new FirstRpc(),
-                Handle = Service.MakeHandle<FirstRpc>(this, GetType().GetMethod(nameof(ProcessFirstRpcRequest))),
+                Handle = ProcessFirstRpcRequest,
             });
 
             AsyncSocket servetrSocket = server.NewServerSocket(IPAddress.Any, 5000);
@@ -44,8 +44,9 @@ namespace UnitTest.Zeze.Net
 
         ManualResetEvent connected = new ManualResetEvent(false);
 
-        public int ProcessFirstRpcRequest(FirstRpc rpc)
+        public int ProcessFirstRpcRequest(Protocol p)
         {
+            var rpc = p as FirstRpc;
             rpc.Result.Assign(rpc.Argument);
             rpc.SendResult();
             Console.WriteLine("ProcessFirstRpcRequest result.Int1=" +  rpc.Result.Int1);

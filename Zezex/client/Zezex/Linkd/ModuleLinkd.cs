@@ -1,4 +1,6 @@
 ﻿
+using Zeze.Net;
+
 namespace Zezex.Linkd
 {
     public sealed partial class ModuleLinkd : AbstractModule
@@ -11,13 +13,15 @@ namespace Zezex.Linkd
         {
         }
 
-        public override int ProcessKeepAlive(KeepAlive protocol)
+        public override int ProcessKeepAlive(Protocol _p)
         {
+            var p = _p as KeepAlive;
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
-        public override int ProcessReportError(ReportError protocol)
+        public override int ProcessReportError(Protocol _p)
         {
+            var p = _p as ReportError;
             return Zeze.Transaction.Procedure.NotImplement;
         }
     }
