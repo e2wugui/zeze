@@ -54,14 +54,6 @@ namespace Zeze.Transaction
             return this;
         }
 
-        internal void WaitRun()
-        {
-            // 严格来说，这里应该是等待一次正在进行的checkpoint，如果没有在执行中应该不启动新的checkpoint。
-            // 但是由于时间窗口的原因，可能开始执行waitrun时，checkpoint还没开始，没办法进行等待。
-            // 先使用RunOnce。
-            this.RunOnce();
-        }
-
         internal void Start(int period)
         {
             lock (this)
@@ -220,7 +212,8 @@ namespace Zeze.Transaction
 
         internal void Flush(Transaction trans)
         {
-            Flush(from ra in trans.AccessedRecords.Values where ra.Dirty select ra.OriginRecord);
+            Flush(from ra in trans.AccessedRecords.Values
+                  where ra.Dirty select ra.OriginRecord);
         }
 
         internal void Flush(IEnumerable<Record> rs)

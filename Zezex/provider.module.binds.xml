@@ -33,7 +33,7 @@
 	b) linkd 收到 bind 然后去订阅时判断 Module.ConfigType == ConfigTypeSpecial。
 	*) XXX 这个规则带来灵活性降低，到底要不要，考虑一下。XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 	-->
-	<module name="Game.UniqueModule" providers="0"/> providers里面填写 zeze.xml::AutoKeyLocalId，多个用','分开。
+	<module name="Game.UniqueModule" providers="0"/> providers里面填写 zeze.xml::ServerId，多个用','分开。
 	<module name="Game.Map" providers=""/> providers为空表示动态绑定，不会注册到StaticBinds中。
 
 	<!--

@@ -139,3 +139,28 @@ java: remove Locks.Instance; Record.Cleanup; remove Table.Id; remove HugeXXX;
 lua
 ts
 cxx
+
+SXXX 服务器发送给客户端协议。
+CXXX 客户端发送给服务器协议。
+
+ModuleRoom
+  @ModuleRedirectXXX 这个选择方式可能需要自定义增加
+  void EnterRoom(user) {
+     var room = LocalRooms.choice();
+     room.join(user);
+     linkd.Bind(userConnectedLinkName, userConnectedLinkSid);
+     Onlines.Send(SEnterRoomBegin());
+  }
+
+  int ProcessCEnterRoomEnd() {
+     ...
+     真正让玩家进入房间或者Enable某个状态，比如此后其他Room的玩家就能看到他了（这是游戏地区的模式，其他打牌房间，那就是别的玩家看到他进列表之类的），
+  }
+
+client.Send(CEnterRoom)  从可用Room服务器选一个转发请求。可选方式就是，直接调用ModureRoom.EnterRoom，自动选择Room服务器。
+client.OnSEnterRoomBegin() {
+   ...
+   load resource;
+   Send(CEnterRoomEnd()); // 由于ModuleRoom调用了linkd.Bind，这个协议会转给刚才选中的ModuleRoom所在的服务器。
+}
+

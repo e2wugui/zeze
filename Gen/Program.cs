@@ -6,25 +6,10 @@ namespace Gen
 {
     public class Program
     {
-        private static void DoNothing()
-        {
-
-        }
-
         public static void Main(string[] args)
         {
-            /*
-            var b = new Zeze.Util.Benchmark();
-            var tasks = new Task[1000_0000];
-            for (int i = 0; i < tasks.Length; ++i)
-                tasks[i] = new Task(DoNothing);
-            b.Report("Create", tasks.Length);
-            foreach (var task in tasks)
-                task.Start();
-            b.Report("Queue", tasks.Length);
-            Task.WaitAll(tasks);
-            b.Report("Done", tasks.Length);
-            */
+            new UnitTest.Zeze.Trans.TestGlobal().Test2App();
+            return;
             /*
             new Benchmark.ABasicSimpleAddOneThread().testBenchmark();
             new Benchmark.BBasicSimpleAddConcurrentWithConflict().testBenchmark();

@@ -356,7 +356,9 @@ namespace Zeze.Transaction
             while (true)
             {
                 if (_FlushWhenReduce(r.RelativeRecordSet, checkpoint, after))
+                {
                     break;
+                }
             }
         }
 

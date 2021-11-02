@@ -145,6 +145,8 @@ namespace Zeze.Transaction
             RollbackActions.Add(action);
         }
 
+        private TableKey RecentTableKeyOfRedoAndRelease = null;
+
         /// <summary>
         /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
         /// </summary>
@@ -158,7 +160,6 @@ namespace Zeze.Transaction
                     try
                     {
                         // 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
-
                         procedure.Zeze.Checkpoint.EnterFlushReadLock();
                         for (/* out loop */; tryCount < 256; ++tryCount) // 最多尝试次数
                         {
@@ -194,6 +195,7 @@ namespace Zeze.Transaction
                             }
                             catch (RedoAndReleaseLockException redorelease)
                             {
+                                RecentTableKeyOfRedoAndRelease = redorelease.TableKey;
                                 checkResult = CheckResult.RedoAndReleaseLock;
                                 logger.Debug(redorelease, "RedoAndReleaseLockException");
                             }
@@ -264,9 +266,7 @@ namespace Zeze.Transaction
                         procedure.Zeze.Checkpoint.ExitFlushReadLock();
                     }
                     //logger.Debug("Checkpoint.WaitRun {0}", procedure);
-                    //这行代码应该是当时缓存同步线程饥饿问题加的保险措施。
-                    //应该是不需要的。先注释掉看看。
-                    //procedure.Zeze.Checkpoint.WaitRun();
+                    procedure.Zeze.TryWaitFlushWhenReduce(RecentTableKeyOfRedoAndRelease);
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 _final_rollback_(procedure);
@@ -527,6 +527,7 @@ namespace Zeze.Transaction
                     case GlobalCacheManagerServer.StateRemoved:
                         // fall down
                     case GlobalCacheManagerServer.StateInvalid:
+                        RecentTableKeyOfRedoAndRelease = e.TableKey;
                         return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
                     case GlobalCacheManagerServer.StateModify:
@@ -539,6 +540,7 @@ namespace Zeze.Transaction
                         {
                             logger.Warn("Acquire Faild. Maybe DeadLock Found {0}", e.OriginRecord);
                             e.OriginRecord.State = GlobalCacheManagerServer.StateInvalid;
+                            RecentTableKeyOfRedoAndRelease = e.TableKey;
                             return CheckResult.RedoAndReleaseLock;
                         }
                         e.OriginRecord.State = GlobalCacheManagerServer.StateModify;
@@ -550,7 +552,11 @@ namespace Zeze.Transaction
             {
                 if (e.OriginRecord.State == GlobalCacheManagerServer.StateInvalid
                     || e.OriginRecord.State == GlobalCacheManagerServer.StateRemoved)
-                    return CheckResult.RedoAndReleaseLock; // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
+                {
+                    // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
+                    RecentTableKeyOfRedoAndRelease = e.TableKey;
+                    return CheckResult.RedoAndReleaseLock;
+                }
                 return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
             }
         }
@@ -598,9 +604,15 @@ namespace Zeze.Transaction
                 {
                     switch (_lock_and_check_(e))
                     {
-                        case CheckResult.Success: break;
-                        case CheckResult.Redo: conflict = true; break; // continue lock
-                        case CheckResult.RedoAndReleaseLock: return CheckResult.RedoAndReleaseLock;
+                        case CheckResult.Success:
+                            break;
+
+                        case CheckResult.Redo:
+                            conflict = true;
+                            break; // continue lock
+
+                        case CheckResult.RedoAndReleaseLock:
+                            return CheckResult.RedoAndReleaseLock;
                     }
                 }
                 return conflict ? CheckResult.Redo : CheckResult.Success;
@@ -615,9 +627,15 @@ namespace Zeze.Transaction
                 {
                     switch (_lock_and_check_(e))
                     {
-                        case CheckResult.Success: break;
-                        case CheckResult.Redo: conflict = true; break; // continue lock
-                        case CheckResult.RedoAndReleaseLock: return CheckResult.RedoAndReleaseLock;
+                        case CheckResult.Success:
+                            break;
+
+                        case CheckResult.Redo:
+                            conflict = true;
+                            break; // continue lock
+
+                        case CheckResult.RedoAndReleaseLock:
+                            return CheckResult.RedoAndReleaseLock;
                     }
                     continue;
                 }

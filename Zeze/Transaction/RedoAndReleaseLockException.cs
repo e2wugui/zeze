@@ -6,13 +6,12 @@ namespace Zeze.Transaction
 {
     public sealed class RedoAndReleaseLockException : Exception
     {
-        internal RedoAndReleaseLockException()
-        { 
-        }
+        public TableKey TableKey { get; }
 
-        internal RedoAndReleaseLockException(string msg) : base(msg)
+        internal RedoAndReleaseLockException(TableKey tkey, string msg)
+            : base(msg)
         {
-
+            TableKey = tkey;
         }
     }
 }

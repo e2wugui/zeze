@@ -5,6 +5,7 @@ using Zeze.Serialize;
 using Zeze.Services;
 using System.Threading;
 using Zeze.Services.GlobalCacheManager;
+using System.Threading.Tasks;
 
 namespace Zeze.Transaction
 {
@@ -88,7 +89,8 @@ namespace Zeze.Transaction
                         r.State = r.Acquire(GlobalCacheManagerServer.StateShare);
                         if (r.State == GlobalCacheManagerServer.StateInvalid)
                         {
-                            throw new RedoAndReleaseLockException(tkey.ToString() + ":" + r.ToString());
+                            throw new RedoAndReleaseLockException(tkey,
+                                tkey.ToString() + ":" + r.ToString());
                             //throw new RedoAndReleaseLockException();
                         }
 
@@ -144,50 +146,67 @@ namespace Zeze.Transaction
             Lockey lockey = Zeze.Locks.Get(tkey);
             lockey.EnterWriteLock();
             Record<K, V> r = null;
+            var flushFuture = new TaskCompletionSource<int>();
             try
             {
-                r = Cache.Get(key);
-                logger.Debug("Reduce NewState={0} {1}", rpc.Argument.State, r);
-                if (null == r)
+                try
                 {
-                    rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                    logger.Debug("Reduce SendResult 1 {0}", r);
-                    rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-                    return 0;
-                }
-                switch (r.State)
-                {
-                    case GlobalCacheManagerServer.StateInvalid:
+                    logger.Debug("Reduce NewState={0} {1}", rpc.Argument.State, r);
+                    if (false == Zeze.FlushWhenReduceTasks.TryAdd(tkey, flushFuture))
+                    {
+                        rpc.Result.State = GlobalCacheManagerServer.StateReduceDuplicate;
+                        logger.Debug("Reduce SendResult 0 {0}", r);
+                        rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
+                        return 0;
+                    }
+                    r = Cache.Get(key);
+                    if (null == r)
+                    {
                         rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                        logger.Debug("Reduce SendResult 2 {0}", r);
+                        logger.Debug("Reduce SendResult 1 {0}", r);
                         rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
                         return 0;
+                    }
+                    switch (r.State)
+                    {
+                        case GlobalCacheManagerServer.StateInvalid:
+                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                            logger.Debug("Reduce SendResult 2 {0}", r);
+                            rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
+                            return 0;
 
-                    case GlobalCacheManagerServer.StateShare:
-                        rpc.Result.State = GlobalCacheManagerServer.StateShare;
-                        logger.Debug("Reduce SendResult 3 {0}", r);
-                        rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsShare);
-                        return 0;
+                        case GlobalCacheManagerServer.StateShare:
+                            rpc.Result.State = GlobalCacheManagerServer.StateShare;
+                            logger.Debug("Reduce SendResult 3 {0}", r);
+                            rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsShare);
+                            return 0;
 
-                    case GlobalCacheManagerServer.StateModify:
-                        r.State = GlobalCacheManagerServer.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
-                        r.Timestamp = Record.NextTimestamp;
-                        break;
+                        case GlobalCacheManagerServer.StateModify:
+                            r.State = GlobalCacheManagerServer.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
+                            r.Timestamp = Record.NextTimestamp;
+                            break;
+                    }
                 }
+                finally
+                {
+                    lockey.ExitWriteLock();
+                }
+                //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
+                rpc.Result.State = GlobalCacheManagerServer.StateShare;
+                FlushWhenReduce(r, () =>
+                {
+                    logger.Debug("Reduce SendResult 4 {0}", r);
+                    rpc.SendResult();
+                    flushFuture.SetResult(0);
+                });
+                //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
+                return 0;
             }
             finally
             {
-                lockey.ExitWriteLock();
+                flushFuture.TrySetResult(0);
+                Zeze.FlushWhenReduceTasks.TryRemove(tkey, out _);
             }
-            //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
-            rpc.Result.State = GlobalCacheManagerServer.StateShare;
-            FlushWhenReduce(r, () =>
-            {
-                logger.Debug("Reduce SendResult 4 {0}", r);
-                rpc.SendResult();
-            });
-            //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
-            return 0;
         }
 
         private void FlushWhenReduce(Record r, Action after)
@@ -219,52 +238,69 @@ namespace Zeze.Transaction
             Lockey lockey = Zeze.Locks.Get(tkey);
             lockey.EnterWriteLock();
             Record<K, V> r = null;
+            var flushFuture = new TaskCompletionSource<int>();
             try
             {
-                r = Cache.Get(key);
-                logger.Debug("Reduce NewState={0} {1}", rpc.Argument.State, r);
-                if (null == r)
+                try
                 {
-                    rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                    logger.Debug("Reduce SendResult 1 {0}", r);
-                    rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
-                    return 0;
-                }
-                switch (r.State)
-                {
-                    case GlobalCacheManagerServer.StateInvalid:
+                    logger.Debug("Reduce NewState={0} {1}", rpc.Argument.State, r);
+                    if (false == Zeze.FlushWhenReduceTasks.TryAdd(tkey, flushFuture))
+                    {
+                        rpc.Result.State = GlobalCacheManagerServer.StateReduceDuplicate;
+                        logger.Debug("Reduce SendResult 0 {0}", r);
+                        rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
+                        return 0;
+                    }
+                    r = Cache.Get(key);
+                    if (null == r)
+                    {
                         rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                        logger.Debug("Reduce SendResult 2 {0}", r);
+                        logger.Debug("Reduce SendResult 1 {0}", r);
                         rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
                         return 0;
+                    }
+                    switch (r.State)
+                    {
+                        case GlobalCacheManagerServer.StateInvalid:
+                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                            logger.Debug("Reduce SendResult 2 {0}", r);
+                            rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
+                            return 0;
 
-                    case GlobalCacheManagerServer.StateShare:
-                        r.State = GlobalCacheManagerServer.StateInvalid;
-                        r.Timestamp = Record.NextTimestamp;
-                        // 不删除记录，让TableCache.CleanNow处理。 
-                        logger.Debug("Reduce SendResult 3 {0}", r);
-                        rpc.SendResult();
-                        return 0;
+                        case GlobalCacheManagerServer.StateShare:
+                            r.State = GlobalCacheManagerServer.StateInvalid;
+                            r.Timestamp = Record.NextTimestamp;
+                            // 不删除记录，让TableCache.CleanNow处理。 
+                            logger.Debug("Reduce SendResult 3 {0}", r);
+                            rpc.SendResult();
+                            return 0;
 
-                    case GlobalCacheManagerServer.StateModify:
-                        r.State = GlobalCacheManagerServer.StateInvalid;
-                        r.Timestamp = Record.NextTimestamp;
-                        break;
+                        case GlobalCacheManagerServer.StateModify:
+                            r.State = GlobalCacheManagerServer.StateInvalid;
+                            r.Timestamp = Record.NextTimestamp;
+                            break;
+                    }
                 }
+                finally
+                {
+                    lockey.ExitWriteLock();
+                }
+                //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
+                rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                FlushWhenReduce(r, () =>
+                {
+                    logger.Debug("Reduce SendResult 4 {0}", r);
+                    flushFuture.SetResult(0);
+                    rpc.SendResult();
+                });
+                //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
+                return 0;
             }
             finally
             {
-                lockey.ExitWriteLock();
+                flushFuture.TrySetResult(0);
+                Zeze.FlushWhenReduceTasks.TryRemove(tkey, out _);
             }
-            //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
-            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-            FlushWhenReduce(r, () =>
-            {
-                logger.Debug("Reduce SendResult 4 {0}", r);
-                rpc.SendResult();
-            });
-            //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
-            return 0;
         }
 
         internal override void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)

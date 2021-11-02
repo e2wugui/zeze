@@ -24,6 +24,7 @@ namespace Zeze.Services
         public const int StateReduceRpcTimeout = -2; // 用来表示 reduce 超时失败。不是状态。
         public const int StateReduceException = -3; // 用来表示 reduce 异常失败。不是状态。
         public const int StateReduceNetError = -4;  // 用来表示 reduce 网络失败。不是状态。
+        public const int StateReduceDuplicate = -5; // 用来表示重复的 reduce。错误报告，不是状态。
 
         public const int AcquireShareDeadLockFound = 1;
         public const int AcquireShareAlreadyIsModify = 2;

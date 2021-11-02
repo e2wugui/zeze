@@ -96,10 +96,6 @@ namespace Zeze.Transaction
             snapshot = encoded;
             encoded = tmp;
             int cc = snapshot.Count;
-            foreach (var e in snapshot)
-            {
-                e.Value.SavedTimestampForCheckpointPeriod = e.Value.Timestamp;
-            }
             return cc;
         }
 

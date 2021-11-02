@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Transactions;
 using Zeze.Transaction;
 using Zeze.Services.ServiceManager;
+using System.Collections.Concurrent;
 
 namespace Zeze
 {
@@ -43,6 +44,19 @@ namespace Zeze
                 }
             }
             */
+        }
+
+        internal ConcurrentDictionary<TableKey, TaskCompletionSource<int>> FlushWhenReduceTasks
+            = new ConcurrentDictionary<TableKey, TaskCompletionSource<int>>();
+
+        public bool TryWaitFlushWhenReduce(TableKey tkey)
+        {
+            if (FlushWhenReduceTasks.TryGetValue(tkey, out var future))
+            {
+                future.Task.Wait();
+                return true;
+            }
+            return false;
         }
 
         public Schemas Schemas { get; set; } // no thread protected
@@ -104,6 +118,7 @@ namespace Zeze
 
         public Table GetTable(string name)
         {
+            // TODO 优化
             foreach (Database db in Databases.Values)
             {
                 Table t = db.GetTable(name);

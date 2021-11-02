@@ -177,33 +177,22 @@ public class Record1<K, V extends Bean> extends Record {
 	public void Cleanup() {
 		this.setDatabaseTransactionTmp(null);
 
-		TableKey tkey = new TableKey(getTable().getName(), getKey());
-		Lockey lockey = getTable().getZeze().getLocks().Get(tkey);
-		lockey.EnterWriteLock();
-		try {
-			if (getSavedTimestampForCheckpointPeriod() == super.getTimestamp()) {
-				setDirty(false);
-			}
-
-			// ExistInBackDatabase = null != snapshotValue;
-			// 修改很少，下面这样会更快？
-			if (null != snapshotValue) {
-				// replace
-				if (false == getExistInBackDatabase()) {
-					setExistInBackDatabase(true);
+		if (getTable().getZeze().getCheckpoint().getCheckpointMode() == CheckpointMode.Period) {
+			TableKey tkey = new TableKey(getTable().getName(), getKey());
+			Lockey lockey = getTable().getZeze().getLocks().Get(tkey);
+			lockey.EnterWriteLock();
+			try {
+				if (getSavedTimestampForCheckpointPeriod() == super.getTimestamp()) {
+					setDirty(false);
 				}
-			}
-			else {
-				// remove
-				if (getExistInBackDatabase()) {
-					setExistInBackDatabase(false);
-				}
+			} finally {
+				lockey.ExitWriteLock();
 			}
 		}
-		finally {
-			lockey.ExitWriteLock();
-		}
 
+		synchronized (this) {
+			ExistInBackDatabase = null != snapshotValue;
+		}
 		snapshotKey = null;
 		snapshotValue = null;
 	}
