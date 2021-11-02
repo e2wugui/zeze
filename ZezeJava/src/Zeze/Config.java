@@ -116,6 +116,13 @@ public final class Config {
 	public void setAllowSchemasReuseVariableIdWithSameType(boolean value) {
 		AllowSchemasReuseVariableIdWithSameType = value;
 	}
+	private boolean FastRedoWhenConfict = false;
+	public boolean getFastRedoWhenConfict() {
+		return FastRedoWhenConfict;
+	}
+	public void setFastRedoWhenConfict(boolean value) {
+		FastRedoWhenConfict = value;
+	}
 	private final ConcurrentHashMap<String, ICustomize> Customize = new ConcurrentHashMap<> ();
 	public ConcurrentHashMap<String, ICustomize> getCustomize() {
 		return Customize;
@@ -282,6 +289,9 @@ public final class Config {
 		setAllowReadWhenRecoredNotAccessed(attr.length() <= 0 || Boolean.parseBoolean(attr));
 		attr = self.getAttribute("AllowSchemasReuseVariableIdWithSameType");
 		setAllowSchemasReuseVariableIdWithSameType(attr.length() <= 0 || Boolean.parseBoolean(attr));
+
+		attr = self.getAttribute("FastRedoWhenConfict");
+		setFastRedoWhenConfict((attr.length() <= 0 || Boolean.parseBoolean(attr)));
 
 		attr = self.getAttribute("CheckpointMode");
 		if (attr.length() > 0) {

@@ -392,7 +392,8 @@ public final class Transaction {
 		}
 		// 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
 		// 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
-		if (false == IsCompleted && ra.OriginRecord.getTimestamp() != ra.Timestamp)
+		if (ra.OriginRecord.getTable().getZeze().getConfig().getFastRedoWhenConfict()
+				&&  false == IsCompleted && ra.OriginRecord.getTimestamp() != ra.Timestamp)
 			throw new RedoException();
 	}
 
