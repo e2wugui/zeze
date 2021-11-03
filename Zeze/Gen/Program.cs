@@ -277,7 +277,8 @@ namespace Zeze.Gen
             foreach (var subdir in Directory.GetDirectories(dir))
             {
                 DeleteOldFileInGenDir(subdir);
-                if (Directory.GetFiles(subdir).Length == 0)
+                if (Directory.GetFiles(subdir).Length == 0
+                    && Directory.GetDirectories(subdir).Length == 0)
                 {
                     // delete empty dir.
                     Directory.Delete(subdir);

@@ -8,7 +8,7 @@ public abstract class Protocol implements Serializable {
 	public abstract int getProtocolId();
 
 	public final long getTypeId() {
-		return (long)getModuleId() << 32 | (getProtocolId() & 0xffff_ffff);
+		return (long)getModuleId() << 32 | (getProtocolId() & 0xffff_ffffL);
 	}
 
 	public static int GetModuleId(long typeId) {
@@ -20,7 +20,7 @@ public abstract class Protocol implements Serializable {
 	}
 
 	public static long MakeTypeId(int moduleId, int protocolId) {
-		return (long)moduleId << 32 | (protocolId & 0xffff_ffff);
+		return (long)moduleId << 32 | (protocolId & 0xffff_ffffL);
 	}
 
 	public Service Service;

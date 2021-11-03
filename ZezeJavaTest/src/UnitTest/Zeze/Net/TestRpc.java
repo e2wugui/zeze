@@ -19,6 +19,7 @@ public class TestRpc extends TestCase{
 		Zeze.Util.Task.tryInitThreadPool(null, null, null);
 		FirstRpc forid = new FirstRpc();
 		Factory<Protocol> f =  () -> new FirstRpc();
+		System.out.println(forid.getTypeId());
 		server.AddFactoryHandle(forid.getTypeId(), new Service.ProtocolFactoryHandle(f,x-> ProcessFirstRpcRequest(x)));
 
 		AsyncSocket servetrSocket = server.NewServerSocket("127.0.0.1", 5000);
@@ -59,7 +60,7 @@ public class TestRpc extends TestCase{
 
 		@Override
 		public int getProtocolId() {
-			return 1;
+			return -1;
 		}
 	}
 	public static class Client extends Service {
