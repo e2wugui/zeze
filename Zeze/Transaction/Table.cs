@@ -146,76 +146,68 @@ namespace Zeze.Transaction
 
             TableKey tkey = new TableKey(Name, key);
             var flushFuture = new TaskCompletionSource<int>();
+            if (false == Zeze.FlushWhenReduceFutures.TryAdd(tkey, flushFuture))
+            {
+                rpc.Result.State = GlobalCacheManagerServer.StateReduceDuplicate;
+                logger.Debug("ReduceShare SendResult 0");
+                rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
+                return 0;
+            }
+
+            Lockey lockey = Zeze.Locks.Get(tkey);
+            lockey.EnterWriteLock();
+            Record<K, V> r = null;
             try
             {
-                if (false == Zeze.FlushWhenReduceFutures.TryAdd(tkey, flushFuture))
+                r = Cache.Get(key);
+                if (null == r)
                 {
-                    rpc.Result.State = GlobalCacheManagerServer.StateReduceDuplicate;
-                    logger.Debug("ReduceShare SendResult 0");
-                    rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
+                    rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                    logger.Debug("ReduceShare SendResult 1 {0}", r);
+                    rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
+                    flushFuture.SetResult(0);
                     return 0;
                 }
-
-                Lockey lockey = Zeze.Locks.Get(tkey);
-                lockey.EnterWriteLock();
-                Record<K, V> r = null;
-                try
+                switch (r.State)
                 {
-                    r = Cache.Get(key);
-                    if (null == r)
-                    {
+                    case GlobalCacheManagerServer.StateInvalid:
                         rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                        logger.Debug("ReduceShare SendResult 1 {0}", r);
+                        logger.Debug("ReduceShare SendResult 2 {0}", r);
+                        Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
                         rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
+                        flushFuture.SetResult(0);
                         return 0;
-                    }
-                    switch (r.State)
-                    {
-                        case GlobalCacheManagerServer.StateInvalid:
-                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                            logger.Debug("ReduceShare SendResult 2 {0}", r);
-                            rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-                            return 0;
 
-                        case GlobalCacheManagerServer.StateShare:
-                            rpc.Result.State = GlobalCacheManagerServer.StateShare;
-                            logger.Debug("ReduceShare SendResult 3 {0}", r);
-                            rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsShare);
-                            return 0;
+                    case GlobalCacheManagerServer.StateShare:
+                        rpc.Result.State = GlobalCacheManagerServer.StateShare;
+                        logger.Debug("ReduceShare SendResult 3 {0}", r);
+                        Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                        rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsShare);
+                        flushFuture.SetResult(0);
+                        return 0;
 
-                        case GlobalCacheManagerServer.StateModify:
-                            r.State = GlobalCacheManagerServer.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
-                            r.Timestamp = Record.NextTimestamp;
-                            break;
-                    }
+                    case GlobalCacheManagerServer.StateModify:
+                        r.State = GlobalCacheManagerServer.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
+                        r.Timestamp = Record.NextTimestamp;
+                        break;
                 }
-                finally
-                {
-                    lockey.ExitWriteLock();
-                }
-                //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
-                rpc.Result.State = GlobalCacheManagerServer.StateShare;
-                var flushFutureInCallback = flushFuture;
-                flushFuture = null;
-                FlushWhenReduce(r, () =>
-                {
-                    logger.Debug("ReduceShare SendResult 4 {0}", r);
-                    // Must before SendResult
-                    Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
-                    rpc.SendResult();
-                    flushFutureInCallback.SetResult(0);
-                });
-                //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
-                return 0;
             }
             finally
             {
-                if (null != flushFuture)
-                {
-                    Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
-                    flushFuture.SetResult(0);
-                }
+                lockey.ExitWriteLock();
             }
+            //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
+            rpc.Result.State = GlobalCacheManagerServer.StateShare;
+            FlushWhenReduce(r, () =>
+            {
+                logger.Debug("ReduceShare SendResult 4 {0}", r);
+                // Must before SendResult
+                Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                rpc.SendResult();
+                flushFuture.SetResult(0);
+            });
+            //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
+            return 0;
         }
 
         private void FlushWhenReduce(Record r, Action after)
@@ -245,78 +237,71 @@ namespace Zeze.Transaction
 
             TableKey tkey = new TableKey(Name, key);
             var flushFuture = new TaskCompletionSource<int>();
+            if (false == Zeze.FlushWhenReduceFutures.TryAdd(tkey, flushFuture))
+            {
+                rpc.Result.State = GlobalCacheManagerServer.StateReduceDuplicate;
+                logger.Debug("ReduceInvalid SendResult 0");
+                rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
+                return 0;
+            }
+
+            Lockey lockey = Zeze.Locks.Get(tkey);
+            lockey.EnterWriteLock();
+            Record<K, V> r = null;
             try
             {
-                if (false == Zeze.FlushWhenReduceFutures.TryAdd(tkey, flushFuture))
+                r = Cache.Get(key);
+                if (null == r)
                 {
-                    rpc.Result.State = GlobalCacheManagerServer.StateReduceDuplicate;
-                    logger.Debug("ReduceInvalid SendResult 0");
-                    rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
+                    rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                    logger.Debug("ReduceInvalid SendResult 1 {0}", r);
+                    Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                    rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
+                    flushFuture.SetResult(0);
                     return 0;
                 }
-
-                Lockey lockey = Zeze.Locks.Get(tkey);
-                lockey.EnterWriteLock();
-                Record<K, V> r = null;
-                try
+                switch (r.State)
                 {
-                    r = Cache.Get(key);
-                    if (null == r)
-                    {
+                    case GlobalCacheManagerServer.StateInvalid:
                         rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                        logger.Debug("ReduceInvalid SendResult 1 {0}", r);
+                        logger.Debug("ReduceInvalid SendResult 2 {0}", r);
+                        Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
                         rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
+                        flushFuture.SetResult(0);
                         return 0;
-                    }
-                    switch (r.State)
-                    {
-                        case GlobalCacheManagerServer.StateInvalid:
-                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                            logger.Debug("ReduceInvalid SendResult 2 {0}", r);
-                            rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
-                            return 0;
 
-                        case GlobalCacheManagerServer.StateShare:
-                            r.State = GlobalCacheManagerServer.StateInvalid;
-                            r.Timestamp = Record.NextTimestamp;
-                            // 不删除记录，让TableCache.CleanNow处理。 
-                            logger.Debug("ReduceInvalid SendResult 3 {0}", r);
-                            rpc.SendResult();
-                            return 0;
+                    case GlobalCacheManagerServer.StateShare:
+                        r.State = GlobalCacheManagerServer.StateInvalid;
+                        r.Timestamp = Record.NextTimestamp;
+                        // 不删除记录，让TableCache.CleanNow处理。 
+                        logger.Debug("ReduceInvalid SendResult 3 {0}", r);
+                        Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                        rpc.SendResult();
+                        flushFuture.SetResult(0);
+                        return 0;
 
-                        case GlobalCacheManagerServer.StateModify:
-                            r.State = GlobalCacheManagerServer.StateInvalid;
-                            r.Timestamp = Record.NextTimestamp;
-                            break;
-                    }
+                    case GlobalCacheManagerServer.StateModify:
+                        r.State = GlobalCacheManagerServer.StateInvalid;
+                        r.Timestamp = Record.NextTimestamp;
+                        break;
                 }
-                finally
-                {
-                    lockey.ExitWriteLock();
-                }
-                //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
-                rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                var flushFutureInCallback = flushFuture;
-                flushFuture = null;
-                FlushWhenReduce(r, () =>
-                {
-                    logger.Debug("ReduceInvalid SendResult 4 {0}", r);
-                    // Must before SendResult
-                    Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
-                    rpc.SendResult();
-                    flushFutureInCallback.SetResult(0);
-                });
-                //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
-                return 0;
             }
             finally
             {
-                if (null != flushFuture)
-                {
-                    Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
-                    flushFuture.SetResult(0);
-                }
+                lockey.ExitWriteLock();
             }
+            //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
+            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+            FlushWhenReduce(r, () =>
+            {
+                logger.Debug("ReduceInvalid SendResult 4 {0}", r);
+                // Must before SendResult
+                Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                rpc.SendResult();
+                flushFuture.SetResult(0);
+            });
+            //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
+            return 0;
         }
 
         internal override void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)

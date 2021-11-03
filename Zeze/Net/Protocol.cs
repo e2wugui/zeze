@@ -116,8 +116,7 @@ namespace Zeze.Net
 				}
 				else
 				{
-					// SKIP! 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
-					//bb.ReadIndex = readIndexSaved;
+					bb.ReadIndex = readIndexSaved;
 					return;
 				}
 
@@ -157,11 +156,20 @@ namespace Zeze.Net
 					p.Dispatch(service, factoryHandle);
 					continue;
 				}
+
 				// 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
 				if (null != toLua)
 				{
-					if (toLua.DecodeAndDispatch(service, so.SessionId, type, os))
+					var pBuffer = ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size);
+					if (toLua.DecodeAndDispatch(service, so.SessionId, type, pBuffer))
+                    {
+						if (pBuffer.ReadIndex != pBuffer.WriteIndex)
+						{
+							throw new Exception($"toLua p=({moduleId},{protocoId}) size={size} too many data");
+						}
+						os.ReadIndex += size;
 						continue;
+					}
 				}
 				service.DispatchUnknownProtocol(so, moduleId, protocoId, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));
 				os.ReadIndex += size;

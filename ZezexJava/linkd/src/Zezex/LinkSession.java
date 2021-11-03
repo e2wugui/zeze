@@ -139,7 +139,7 @@ public class LinkSession {
 			KeepAliveTask.Cancel();
 		}
 
-		if (getAccount().equals(null)) {
+		if (getAccount() == null) {
 			// 未验证通过的不通告。此时Binds肯定是空的。
 			return;
 		}

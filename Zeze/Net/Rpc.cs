@@ -169,11 +169,16 @@ namespace Zeze.Net
         public void SendResult()
         {
             if (SendResultDone)
+            {
                 return;
+            }
             SendResultDone = true;
 
             IsRequest = false;
-            base.Send(Sender);
+            if (false == base.Send(Sender))
+            {
+                logger.Warn($"Rpc.SendResult Faild {Sender.Socket} {this}");
+            }
         }
 
         public override void SendResultCode(int code)
@@ -184,7 +189,10 @@ namespace Zeze.Net
 
             ResultCode = code;
             IsRequest = false;
-            base.Send(Sender);
+            if (false == base.Send(Sender))
+            {
+                logger.Warn($"Rpc.SendResult Faild {Sender.Socket} {this}");
+            }
         }
 
         internal override void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)

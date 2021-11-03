@@ -18,7 +18,7 @@ public final class ModuleMap extends AbstractModule {
 	public int ProcessCEnterWorld(Protocol _protocol) {
         var protocol = (CEnterWorld)_protocol;
 		Game.Login.Session session = Game.Login.Session.Get(protocol);
-		if (session.getRoleId().equals(null)) {
+		if (session.getRoleId() == null) {
 			return Procedure.LogicError;
 		}
 

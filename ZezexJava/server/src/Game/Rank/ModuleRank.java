@@ -380,7 +380,7 @@ public class ModuleRank extends AbstractModule {
 		var session = Game.Login.Session.Get(protocol);
 
 		var result = new SGetRankList();
-		if (session.getRoleId().equals(null)) {
+		if (session.getRoleId() == null) {
 			result.setResultCode(-1);
 			session.SendResponse(result);
 			return Procedure.LogicError;

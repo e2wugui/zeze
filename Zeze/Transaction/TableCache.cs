@@ -184,6 +184,7 @@ namespace Zeze.Transaction
                 // 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
                 // see GetOrAdd
                 p.Value.State = GlobalCacheManagerServer.StateRemoved;
+                p.Value.Timestamp = Record.NextTimestamp;
                 // 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
                 p.Value.LruNode.TryRemove(p);
                 return true;

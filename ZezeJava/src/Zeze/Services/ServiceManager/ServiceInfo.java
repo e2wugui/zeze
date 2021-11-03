@@ -83,7 +83,7 @@ public final class ServiceInfo extends Zeze.Transaction.Bean implements Comparab
 	public ServiceInfo(String name, String identity, String ip, int port, Binary extrainfo) {
 		setServiceName(name);
 		setServiceIdentity(identity);
-		if (!ip.equals(null)) {
+		if (ip != null) {
 			setPassiveIp(ip);
 		}
 		setPassivePort(port);

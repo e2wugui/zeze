@@ -318,7 +318,7 @@ public final class ModuleProvider extends AbstractModule {
             // 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
             // 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。
             var linkSession = (Zezex.LinkSession) socket.getUserState();
-            if (null != linkSession && !linkSession.getAccount().equals(null) && !linkSession.getUserStates().isEmpty()) {
+            if (null != linkSession && !linkSession.getAccount() == null && !linkSession.getUserStates().isEmpty()) {
                 socket.Send(protocol.Argument.getProtocolWholeData());
             }
         });
