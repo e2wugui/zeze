@@ -1,5 +1,6 @@
 package Zezex;
 
+import Zeze.Net.Protocol;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -56,7 +57,7 @@ public final class LinkdService extends LinkdServiceBase {
 		var dispatch = new Zezex.Provider.Dispatch();
 		dispatch.Argument.setLinkSid(so.getSessionId());
 		dispatch.Argument.setAccount(linkSession.getAccount());
-		dispatch.Argument.setProtocolType((long)moduleId << 32 | (protocolId & 0xffff_ffff));
+		dispatch.Argument.setProtocolType(Protocol.MakeTypeId(moduleId, protocolId));
 		dispatch.Argument.setProtocolData(new Zeze.Net.Binary(data));
 		dispatch.Argument.getStates().addAll(linkSession.getUserStates());
 		dispatch.Argument.setStatex(linkSession.getUserStatex());

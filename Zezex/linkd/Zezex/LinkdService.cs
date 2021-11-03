@@ -1,5 +1,6 @@
 ﻿
 using System.Collections.Generic;
+using Zeze.Net;
 
 namespace Zezex
 {
@@ -53,7 +54,7 @@ namespace Zezex
             var dispatch = new Provider.Dispatch();
             dispatch.Argument.LinkSid = so.SessionId;
             dispatch.Argument.Account = linkSession.Account;
-            dispatch.Argument.ProtocolType = (long)moduleId << 32 | (protocolId & 0xffff_ffff);
+            dispatch.Argument.ProtocolType = Protocol.MakeTypeId(moduleId, protocolId);
             dispatch.Argument.ProtocolData = new Zeze.Net.Binary(data);
             dispatch.Argument.States.AddRange(linkSession.UserStates);
             dispatch.Argument.Statex = linkSession.UserStatex;

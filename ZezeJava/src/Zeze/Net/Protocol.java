@@ -19,6 +19,10 @@ public abstract class Protocol implements Serializable {
 		return (int)(typeId & 0xffff_ffff);
 	}
 
+	public static long MakeTypeId(int moduleId, int protocolId) {
+		return (long)moduleId << 32 | (protocolId & 0xffff_ffff);
+	}
+
 	public Service Service;
 
 	private AsyncSocket Sender;
@@ -137,7 +141,7 @@ public abstract class Protocol implements Serializable {
 			// 以前写过的实现在数据不够之前会根据type检查size是否太大。
 			// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
 			// 参考 AsyncSocket
-			long type = (long)moduleId << 32 | (protocolId & 0xffff_ffff);
+			long type = MakeTypeId(moduleId, protocolId);
 			if (size < 0 || size > os.Size()) {
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
 				if (size < 0 || size > service.getSocketOptions().getInputBufferMaxProtocolSize()) {

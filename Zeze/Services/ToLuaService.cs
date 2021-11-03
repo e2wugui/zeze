@@ -435,7 +435,7 @@ namespace Zeze.Services.ToLuaService
             int resultCode = (int)Lua.ToInteger(-1);
             Lua.Pop(1);
 
-            long type = (long)ModuleId << 32 | (ProtocolId & 0xffff_ffff);
+            long type = Protocol.MakeTypeId(ModuleId, ProtocolId);
             if (false == ProtocolMetas.TryGetValue(type, out var pa))
                 throw new Exception($"protocol not found in meta. ({ModuleId},{ProtocolId})");
 
