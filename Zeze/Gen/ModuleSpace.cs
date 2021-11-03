@@ -80,11 +80,11 @@ namespace Zeze.Gen
             bool exists = System.IO.File.Exists(fullFileName);
             if (!exists || overwrite)
             {
-                Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
+                //Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
                 System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
                 return sw;
             }
-            Program.Print("file skip '" + fullFileName + "'");
+            //Program.Print("file skip '" + fullFileName + "'");
             return null;
         }
 

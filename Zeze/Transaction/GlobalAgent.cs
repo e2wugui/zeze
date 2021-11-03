@@ -11,7 +11,7 @@ namespace Zeze.Transaction
 {
     public sealed class GlobalAgent
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public GlobalClient Client { get; private set; } // 未启用cache-sync时为空。
 
         public class Agent
@@ -121,6 +121,9 @@ namespace Zeze.Transaction
                     }
                     Socket = null;
                 }
+
+                GlobalAgent.logger.Warn(ex, $"GlobalAgent({Host}:{Port}) Passive Close.");
+
                 if (Logined.Task.IsCompletedSuccessfully)
                 {
                     foreach (var database in client.Zeze.Databases.Values)

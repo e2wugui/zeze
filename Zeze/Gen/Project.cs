@@ -224,6 +224,7 @@ namespace Zeze.Gen
                 default:
                     throw new Exception("unsupport platform: " + Platform);
             }
+            Program.FlushOutputs();
         }
     }
 }

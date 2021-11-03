@@ -11,10 +11,9 @@ namespace UnitTest.Zeze.Trans
     [TestClass]
     public class TestGlobal
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public class PrintLog : Log<demo.Module1.Value, demo.Module1.Value>
         {
-            private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
             static volatile int lastInt = -1;
             int oldInt;
             int appId;
@@ -33,7 +32,7 @@ namespace UnitTest.Zeze.Trans
             {
                 if (eq)
                 {
-                    logger.Debug("xxxeq " + oldInt + " " + appId);
+                    logger.Fatal("xxxeq " + oldInt + " " + appId);
                 }
                 else
                 {
@@ -89,20 +88,26 @@ namespace UnitTest.Zeze.Trans
                 task2[1] = global::Zeze.Util.Task.Run(() => ConcurrentAdd(app2, count, 2), "TestGlobal.ConcurrentAdd2");
                 Task.WaitAll(task2);
                 int countall = count * 2;
-                Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(() =>
+
+                var result1 = app1.Zeze.NewProcedure(() =>
                 {
                     int last1 = app1.demo_Module1.Table1.Get(6785).Int1;
                     Assert.AreEqual(countall, last1);
                     //Console.WriteLine("app1 " + last1);
                     return Procedure.Success;
-                }, "CheckResult1").Call());
-                Assert.IsTrue(Procedure.Success == app2.Zeze.NewProcedure(() =>
+                }, "CheckResult1").Call();
+                logger.Warn("result1=" + result1);
+                Assert.IsTrue(Procedure.Success == result1);
+
+                var result2 = app2.Zeze.NewProcedure(() =>
                 {
                     int last2 = app2.demo_Module1.Table1.Get(6785).Int1;
                     Assert.AreEqual(countall, last2);
                     //Console.WriteLine("app1 " + last2);
                     return Procedure.Success;
-                }, "CheckResult2").Call());
+                }, "CheckResult2").Call();
+                logger.Warn("result2=" + result2);
+                Assert.IsTrue(Procedure.Success == result2);
             }
             finally
             {

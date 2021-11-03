@@ -30,8 +30,7 @@ namespace Zeze.Gen.lua
             string genDir = System.IO.Path.Combine(projectDir, "LuaGen");
             string srcDir = System.IO.Path.Combine(projectDir, "LuaSrc");
 
-            if (System.IO.Directory.Exists(genDir))
-                System.IO.Directory.Delete(genDir, true);
+            Program.AddGenDir(genDir);
 
             HashSet<ModuleSpace> allRefModules = new HashSet<ModuleSpace>();
             foreach (Module mod in Project.AllModules.Values)

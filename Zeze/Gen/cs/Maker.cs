@@ -21,8 +21,7 @@ namespace Zeze.Gen.cs
             string genDir = System.IO.Path.Combine(projectDir, "Gen");
             string srcDir = projectDir;
 
-            if (System.IO.Directory.Exists(genDir))
-                System.IO.Directory.Delete(genDir, true);
+            Program.AddGenDir(genDir);
 
             foreach (Types.Bean bean in Project.AllBeans.Values)
             {

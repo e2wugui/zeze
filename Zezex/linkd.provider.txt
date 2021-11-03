@@ -37,7 +37,7 @@ linkd 转发方案说明
 
 【总结一】
 	1) 每一个module只能在一个provider实现
-	2) 每个privider只有一个进程。
+	2) 每个provider只有一个进程。
 	这样即可完成转发服务了。
 
 【cache-sync】

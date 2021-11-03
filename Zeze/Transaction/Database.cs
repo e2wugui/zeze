@@ -113,7 +113,7 @@ namespace Zeze.Transaction
             {
                 countFlush += storage.Flush(trans);
             }
-            logger.Info("Checkpoint Flush count={0}", countFlush);
+            //logger.Info("Checkpoint Flush count={0}", countFlush);
         }
 
         internal void Cleanup()

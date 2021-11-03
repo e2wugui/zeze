@@ -118,6 +118,8 @@ namespace Zeze.Gen
                 solutions.TryGetValue(file, out sol);
                 sol.Make();
             }
+
+            DeleteOldFileInGenDirs();
         }
 
         public static void Print(object obj)
@@ -221,18 +223,74 @@ namespace Zeze.Gen
             bool exists = System.IO.File.Exists(fullFileName);
             if (!exists || overwrite)
             {
-                Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
+                //Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
                 System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
                 return sw;
             }
-            Program.Print("file skip '" + fullFileName + "'");
+            //Program.Print("file skip '" + fullFileName + "'");
             return null;
         }
 
-        public static Encoding EncodingUtf8NoBom = new UTF8Encoding(false);
-        public static StreamWriter OpenStreamWriter(string file, bool append = false)
+        private static Dictionary<string, StreamWriterOverwriteWhenChange> Outputs { get; }
+            = new Dictionary<string, StreamWriterOverwriteWhenChange>();
+
+        private static HashSet<string> GenDirs { get; } = new HashSet<string>();
+        private static HashSet<string> OutputsAll { get; } = new HashSet<string>();
+
+        public static StreamWriter OpenStreamWriter(string file)
         {
-            return new StreamWriter(file, append, EncodingUtf8NoBom) { NewLine = "\n" };
+            var sw = new StreamWriterOverwriteWhenChange(file);
+            Outputs.Add(sw.FileName, sw);
+            return sw;
+        }
+
+        public static void AddGenDir(string dir)
+        {
+            var full = Path.GetFullPath(dir);
+            // gen 目录也是源码，都会加入Project，即使完全没有输出，也应该存在。
+            Directory.CreateDirectory(full);
+            if (false == Zeze.Util.FileSystem.IsDirectory(full))
+                throw new Exception($"{dir} Is Not A Directory.");
+            GenDirs.Add(full);
+        }
+
+        public static void FlushOutputs()
+        {
+            foreach (var output in Outputs)
+            {
+                output.Value.Dispose();
+            }
+            OutputsAll.UnionWith(Outputs.Keys);
+            Outputs.Clear();
+        }
+
+        private static void DeleteOldFileInGenDirs()
+        {
+            foreach (var dir in GenDirs)
+            {
+                DeleteOldFileInGenDir(dir);
+            }
+        }
+
+        private static void DeleteOldFileInGenDir(string dir)
+        {
+            foreach (var subdir in Directory.GetDirectories(dir))
+            {
+                DeleteOldFileInGenDir(subdir);
+                if (Directory.GetFiles(subdir).Length == 0)
+                {
+                    // delete empty dir.
+                    Directory.Delete(subdir);
+                    Console.WriteLine($"Delete Empty Dir: {subdir}");
+                }
+            }
+            foreach (var file in Directory.GetFiles(dir))
+            {
+                if (OutputsAll.Contains(file))
+                    continue;
+                File.Delete(file);
+                Console.WriteLine($"Delete File: {file}");
+            }
         }
 
         public static string ToPinyin(string text)

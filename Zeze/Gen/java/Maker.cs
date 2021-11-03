@@ -22,8 +22,7 @@ namespace Zeze.Gen.java
             string srcDir = Project.ScriptDir.Length > 0
                 ? System.IO.Path.Combine(projectDir, Project.ScriptDir) : projectDir;
 
-            if (System.IO.Directory.Exists(genDir))
-                System.IO.Directory.Delete(genDir, true);
+            Program.AddGenDir(genDir);
 
             foreach (Types.Bean bean in Project.AllBeans.Values)
             {
