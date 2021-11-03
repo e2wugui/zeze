@@ -131,7 +131,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine("            " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
                 sw.WriteLine($"            {fullname}.Initialize(this);");
                 sw.WriteLine($"            {fullname} = ({m.Path(".", $"Module{m.Name}")})ReplaceModuleInstance({fullname});");
-                sw.WriteLine($"            if (null != Modules.put({fullname}.getName(), {fullname})) {{");
+                sw.WriteLine($"            if (null != Modules.put({fullname}.getFullName(), {fullname})) {{");
                 sw.WriteLine($"                throw new RuntimeException(\"duplicate module name: {fullname}\");");
                 sw.WriteLine($"            }}");
             }
