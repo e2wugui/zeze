@@ -21,15 +21,16 @@ namespace Zeze.Gen.java
             this.srcDir = srcDir;
         }
 
+        private FileChunkGen FileChunkGen;
         public void Make()
         {
             MakeInterface();
-            var fcg = new FileChunkGen();
+            FileChunkGen = new FileChunkGen();
             string fullDir = module.GetFullPath(srcDir);
             string fullFileName = System.IO.Path.Combine(fullDir, $"Module{module.Name}.java");
-            if (fcg.LoadFile(fullFileName))
+            if (FileChunkGen.LoadFile(fullFileName))
             {
-                fcg.SaveFile(fullFileName, GenChunkByName);
+                FileChunkGen.SaveFile(fullFileName, GenChunkByName);
                 return;
             }
             // new file
@@ -37,9 +38,9 @@ namespace Zeze.Gen.java
             using System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
             sw.WriteLine("package " + module.Path() + ";");
             sw.WriteLine("");
-            sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport);
+            sw.WriteLine(FileChunkGen.ChunkStartTag + " " + ChunkNameImport);
             ImportGen(sw);
-            sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);
+            sw.WriteLine(FileChunkGen.ChunkEndTag + " " + ChunkNameImport);
             sw.WriteLine();
             sw.WriteLine($"public class Module{module.Name} extends AbstractModule {{");
             sw.WriteLine("    public void Start(" + project.Solution.Name + ".App app) {");
@@ -77,9 +78,9 @@ namespace Zeze.Gen.java
                     }
                 }
             }
-            sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNameModuleGen);
+            sw.WriteLine("    " + FileChunkGen.ChunkStartTag + " " + ChunkNameModuleGen);
             ModuleGen(sw);
-            sw.WriteLine("    " + fcg.ChunkEndTag + " " + ChunkNameModuleGen);
+            sw.WriteLine("    " + FileChunkGen.ChunkEndTag + " " + ChunkNameModuleGen);
             sw.WriteLine("");
             sw.WriteLine("}");
         }
@@ -87,11 +88,58 @@ namespace Zeze.Gen.java
         private const string ChunkNameModuleGen = "GEN MODULE";
         private const string ChunkNameImport = "IMPORT GEN";
 
+        private string GetHandleName(Protocol p)
+        {
+            if (p is Rpc rpc)
+                return $"Process{rpc.Name}Request";
+            return $"Process{p.Name}";
+        }
+
+        private void NewProtocolHandle(System.IO.StreamWriter sw)
+        {
+            var handles = GetProcessProtocols();
+            // 找出现有的可能是协议实现的函数
+            var exist = new HashSet<Protocol>();
+            foreach (var chunk in FileChunkGen.Chunks)
+            {
+                if (chunk.State == FileChunkGen.State.Normal)
+                {
+                    foreach (var line in chunk.Lines)
+                    {
+                        if (line.Contains("public int Process"))
+                        {
+                            foreach (var h in handles)
+                            {
+                                if (line.Contains(GetHandleName(h)))
+                                    exist.Add(h);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // New Protocol
+            foreach (var h in handles)
+            {
+                if (exist.Contains(h))
+                    continue;
+
+                var hName = GetHandleName(h);
+                sw.WriteLine("    @Override");
+                sw.WriteLine("    public int Process" + hName + "(Zeze.Net.Protocol _p) {");
+                sw.WriteLine($"        var p = ({h.ShortNameIf(module)})_p;");
+                sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
+                sw.WriteLine("    }");
+                sw.WriteLine("");
+            }
+        }
+
         private void GenChunkByName(System.IO.StreamWriter writer, Zeze.Util.FileChunkGen.Chunk chunk)
         {
             switch (chunk.Name)
             {
                 case ChunkNameModuleGen:
+                    NewProtocolHandle(writer);
                     ModuleGen(writer);
                     break;
                 case ChunkNameImport:
@@ -224,6 +272,23 @@ namespace Zeze.Gen.java
                 sw.WriteLine("");
             }
 
+            foreach (Protocol p in GetProcessProtocols())
+            {
+                if (p is Rpc rpc)
+                {
+                    sw.WriteLine("    public abstract int Process" + rpc.Name + "Request(Zeze.Net.Protocol _p);");
+                    sw.WriteLine("");
+                    continue;
+                }
+                sw.WriteLine("    public abstract int Process" + p.Name + "(Zeze.Net.Protocol _p);");
+                sw.WriteLine("");
+            }
+            sw.WriteLine("}");
+        }
+
+        private List<Protocol> GetProcessProtocols()
+        {
+            var result = new List<Protocol>();
             if (module.ReferenceService != null)
             {
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
@@ -233,19 +298,17 @@ namespace Zeze.Gen.java
                     {
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
-                            sw.WriteLine("    public abstract int Process" + rpc.Name + "Request(Zeze.Net.Protocol _p);");
-                            sw.WriteLine("");
+                            result.Add(rpc);
                         }
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine("    public abstract int Process" + p.Name + "(Zeze.Net.Protocol _p);");
-                        sw.WriteLine("");
+                        result.Add(p);
                     }
                 }
             }
-            sw.WriteLine("}");
+            return result;
         }
     }
 }
