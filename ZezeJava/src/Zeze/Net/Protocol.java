@@ -134,7 +134,7 @@ public abstract class Protocol implements Serializable {
 			}
 			else {
 				// SKIP! 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
-				//bb.ReadIndex = readIndexSaved;
+				bb.ReadIndex = readIndexSaved;
 				return;
 			}
 

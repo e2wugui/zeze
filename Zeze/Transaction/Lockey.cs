@@ -130,6 +130,7 @@ namespace Zeze.Transaction
             }
 
         }
+
 		public int CompareTo(Lockey other)
         {
 			if (other == null)

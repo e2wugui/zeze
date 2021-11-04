@@ -54,9 +54,18 @@ namespace Zeze.Net
                     context.ResultCode = Zeze.Transaction.Procedure.Timeout;
 
                     if (null != context.Future)
+                    {
                         context.Future.TrySetException(new RpcTimeoutException());
-                    else
-                        this.ResponseHandle?.Invoke(context);
+                    }
+                    else if (context.ResponseHandle != null)
+                    {
+                        // 本来Schedule已经在Task中执行了，这里又派发一次。
+                        // 主要是为了让应用能拦截修改Response的处理方式。
+                        // Timeout 应该是少的，先这样了。
+                        var factoryHandle = service.FindProtocolFactoryHandle(context.TypeId);
+                        if (null != factoryHandle)
+                            service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
+                    }
                 },
                 millisecondsTimeout,
                 -1);
@@ -170,6 +179,7 @@ namespace Zeze.Net
         {
             if (SendResultDone)
             {
+                logger.Warn($"Rpc.SendResult Done {Sender.Socket} {this}");
                 return;
             }
             SendResultDone = true;

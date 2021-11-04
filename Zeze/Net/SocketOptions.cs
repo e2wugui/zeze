@@ -33,6 +33,7 @@ namespace Zeze.Net
             InputBufferMaxProtocolSize = 2 * 1024 * 1024; // 2M
             OutputBufferMaxSize = int.MaxValue;
             Backlog = 128;
+            NoDelay = true;
 
             SocketLogLevel = NLog.LogLevel.Trace; // 可以使用 NLog.LogLevel.FromString 从配置中读取
         }

@@ -830,7 +830,7 @@ namespace Zeze.Services.GlobalCacheManager
 
         public override string ToString()
         {
-            return GlobalTableKey.ToString() + ":" + State;
+            return GlobalTableKey + ":" + State;
         }
     }
     public sealed class Acquire : Zeze.Net.Rpc<Param, Param>

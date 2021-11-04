@@ -205,27 +205,41 @@ namespace Zeze.Net
                 if (null == Socket)
                     return false;
 
-                if (null == _outputBufferList)
+                if (null != outputCodecChain)
                 {
-                    _outputBufferList = new List<ArraySegment<byte>>();
+                    // 压缩加密等 codec 链操作。
+                    outputCodecBuffer.Buffer.EnsureWrite(length); // reserve
+                    outputCodecChain.update(bytes, offset, length);
+                    outputCodecChain.flush();
+
+                    // 修改参数，后面继续使用处理过的数据继续发送。
+                    bytes = outputCodecBuffer.Buffer.Bytes;
+                    offset = outputCodecBuffer.Buffer.ReadIndex;
+                    length = outputCodecBuffer.Buffer.Size;
+
+                    // outputBufferCodec 释放对byte[]的引用。
+                    outputCodecBuffer.Buffer.FreeInternalBuffer();
                 }
 
-                if (_outputBufferListCountSum + length > Service.SocketOptions.OutputBufferMaxSize)
-                    return false;
-
+                if (null == _outputBufferList)
+                    _outputBufferList = new List<ArraySegment<byte>>();
                 _outputBufferList.Add(new ArraySegment<byte>(bytes, offset, length));
                 _outputBufferListCountSum += length;
 
-                if (null == _outputBufferListSending)
+                if (null == _outputBufferListSending) // 没有在发送中，马上请求发送，否则等回调处理。
                 {
-                    // 没有在发送中，马上请求发送，否则等回调处理。
-                    doCodecAndPrepareSend();
+                    _outputBufferListSending = _outputBufferList;
+                    _outputBufferList = null;
+                    _outputBufferListSendingCountSum = _outputBufferListCountSum;
+                    _outputBufferListCountSum = 0;
+
                     if (null == eventArgsSend)
                     {
                         eventArgsSend = new SocketAsyncEventArgs();
                         eventArgsSend.Completed += OnAsyncIOCompleted;
                     }
                     eventArgsSend.BufferList = _outputBufferListSending;
+                    Console.WriteLine($"SendAsync {this}");
                     if (false == Socket.SendAsync(eventArgsSend))
                         ProcessSend(eventArgsSend);
                 }
@@ -236,46 +250,6 @@ namespace Zeze.Net
         public bool Send(string str)
         {
             return Send(Encoding.UTF8.GetBytes(str));
-        }
-
-        private void doCodecAndPrepareSend()
-        {
-            if (null != outputCodecChain)
-            {
-                if (null != _outputBufferList)
-                {
-                    if (null == _outputBufferListSending)
-                        _outputBufferListSending = new List<ArraySegment<byte>>();
-
-                    foreach (var buffer in _outputBufferList)
-                    {
-                        // 压缩加密等 codec 链操作。
-                        outputCodecBuffer.Buffer.EnsureWrite(buffer.Count); // reserve
-                        outputCodecChain.update(buffer.Array, buffer.Offset, buffer.Count);
-                        outputCodecChain.flush();
-
-                        var codec = outputCodecBuffer.Buffer;
-                        var size = codec.Size;
-                        _outputBufferListSending.Add(new ArraySegment<byte>(codec.Bytes, codec.ReadIndex, size));
-                        _outputBufferListSendingCountSum += size;
-                        // 加入Sending后outputBufferCodec需要释放对byte[]的引用。
-                        codec.FreeInternalBuffer();
-                    }
-                    _outputBufferList = null;
-                    _outputBufferListCountSum = 0;
-                }
-            }
-            else if (null != _outputBufferList)
-            {
-                if (null == _outputBufferListSending)
-                    _outputBufferListSending = _outputBufferList;
-                else
-                    _outputBufferListSending.AddRange(_outputBufferList);
-                _outputBufferListSendingCountSum += _outputBufferListCountSum;
-
-                _outputBufferList = null;
-                _outputBufferListCountSum = 0;
-            }
         }
 
         private void OnAsyncIOCompleted(object sender, SocketAsyncEventArgs e)
@@ -380,12 +354,14 @@ namespace Zeze.Net
             }
 
             eventArgsReceive.SetBuffer(_inputBuffer, 0, _inputBuffer.Length);
+            Console.WriteLine($"BeginReceiveAsync {this}");
             if (false == this.Socket.ReceiveAsync(eventArgsReceive))
                 ProcessReceive(eventArgsReceive);
         }
 
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
+            Console.WriteLine($"ProcessReceive {this} {e.BytesTransferred}");
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
                 if (null != inputCodecChain)
@@ -438,6 +414,7 @@ namespace Zeze.Net
 
         private void ProcessSend(SocketAsyncEventArgs e)
         {
+            Console.WriteLine($"ProcessSend {this} {e.BytesTransferred}");
             if (e.BytesTransferred >= 0 && e.SocketError == SocketError.Success)
             {
                 BeginSendAsync(e.BytesTransferred);
@@ -493,30 +470,35 @@ namespace Zeze.Net
                 if (_outputBufferListSending.Count == 0)
                 {
                     // 全部发送完
-                    _outputBufferListSendingCountSum = 0;
-                    doCodecAndPrepareSend();
-                    if (_outputBufferListSending.Count == 0)
-                        _outputBufferListSending = null; // free
+                    _outputBufferListSending = _outputBufferList; // maybe null
+                    _outputBufferList = null;
+                    _outputBufferListSendingCountSum = _outputBufferListCountSum;
+                    _outputBufferListCountSum = 0;
                 }
                 else if (null != _outputBufferList)
                 {
                     // 没有发送完，并且有要发送的
-                    // 需要先调整剩余数量，然后doCodecAndPrepareSend会统计新的。
-                    _outputBufferListSendingCountSum -= _bytesTransferred;
-                    doCodecAndPrepareSend();
+                    _outputBufferListSending.AddRange(_outputBufferList);
+                    _outputBufferList = null;
+                    _outputBufferListSendingCountSum = _outputBufferListCountSum
+                        + (_outputBufferListSendingCountSum - _bytesTransferred);
+                    _outputBufferListCountSum = 0;
                 }
                 else
                 {
                     // 没有发送完，也没有要发送的
-                    _outputBufferListSendingCountSum -= _bytesTransferred;
+                    _outputBufferListSendingCountSum = _outputBufferListSendingCountSum - _bytesTransferred;
                 }
 
                 if (null != _outputBufferListSending) // 全部发送完，并且 _outputBufferList == null 时，可能为 null
                 {
                     eventArgsSend.BufferList = _outputBufferListSending;
+                    Console.WriteLine($"BeginSendAsync {this} {_outputBufferListSending.Count}");
                     if (false == Socket.SendAsync(eventArgsSend))
                         ProcessSend(eventArgsSend);
                 }
+                else
+                    Console.WriteLine($"BeginSendAsync Done {this}");
             }
         }
 
@@ -576,5 +558,11 @@ namespace Zeze.Net
                 throw new Exception($"Not Exist In Service {this}");
             }
         }
+
+        public override string ToString()
+        {
+            return $"({Socket?.LocalEndPoint}-{Socket?.RemoteEndPoint})";
+        }
+
     }
 }
