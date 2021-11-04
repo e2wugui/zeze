@@ -63,7 +63,7 @@ public final class PSet1<E> extends PSet<E> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public boolean remove(E item) {
+	public boolean remove(Object item) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
@@ -72,7 +72,7 @@ public final class PSet1<E> extends PSet<E> {
 			var news = olds.minus(item);
 			if (news != olds) {
 				txn.PutLog(NewLog(news));
-				((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this))).LogRemove(item);
+				((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this))).LogRemove((E)item);
 				return true;
 			}
 
@@ -90,7 +90,7 @@ public final class PSet1<E> extends PSet<E> {
 	}
 
 	@Override
-	public void addAll(Collection<? extends E> c) {
+	public boolean addAll(Collection<? extends E> c) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
@@ -111,10 +111,11 @@ public final class PSet1<E> extends PSet<E> {
 		else {
 			set = set.plusAll(c);
 		}
+		return true;
 	}
 
 	@Override
-	public boolean removeAll(Collection<? extends E> c) {
+	public boolean removeAll(Collection<?> c) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			txn.VerifyRecordAccessed(this);
@@ -127,7 +128,7 @@ public final class PSet1<E> extends PSet<E> {
 				@SuppressWarnings("unchecked")
 				var note = ((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this)));
                 for (var item : c) {
-                    note.LogRemove(item);
+                    note.LogRemove((E)item);
                 }
                 return true;
 			}
@@ -139,4 +140,5 @@ public final class PSet1<E> extends PSet<E> {
 			return olds != set;
 		}
 	}
+
 }

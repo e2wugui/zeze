@@ -92,8 +92,25 @@ public abstract class PList<E> extends PCollection implements List<E> {
 
 	@Override
 	public final Iterator<E> iterator() {
-		// TODO readonly
-		return getData().iterator();
+		return new Iterator<E>() {
+			private Iterator<E> it = getData().iterator();
+			private E next;
+
+			@Override
+			public boolean hasNext() {
+				return it.hasNext();
+			}
+
+			@Override
+			public E next() {
+				return next = it.next();
+			}
+			
+			@Override
+			public void remove() {
+				PList.this.remove(next);
+			}
+		};
 	}
 
 	public final int indexOf(Object item) {
@@ -132,6 +149,7 @@ public abstract class PList<E> extends PCollection implements List<E> {
 
 	@Override
 	public ListIterator<E> listIterator() {
+		//TODO
 		throw new UnsupportedOperationException();
 	}
 

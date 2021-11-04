@@ -88,15 +88,99 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
 	}
 
     public Set<K> keySet() {
-        return Collections.unmodifiableSet(getData().keySet());
+        return new AbstractSet<K>() {
+
+			@Override
+			public Iterator<K> iterator() {
+				return new Iterator<K>() {
+					private Iterator<Entry<K, V>> it = entrySet().iterator();
+
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					@Override
+					public K next() {
+						return it.next().getKey();
+					}
+					
+					@Override
+					public void remove() {
+						it.remove();
+					}
+				};
+			}
+
+			@Override
+			public int size() {
+				return getData().size();
+			}
+		};
     }
 
     public Collection<V> values() {
-        return Collections.unmodifiableCollection(getData().values());
+        return new AbstractCollection<V>() {
+
+			@Override
+			public Iterator<V> iterator() {
+				return new Iterator<V>() {
+					private Iterator<Entry<K, V>> it = entrySet().iterator();
+
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					@Override
+					public V next() {
+						return it.next().getValue();
+					}
+					
+					public void remove() {
+						it.remove();
+					};
+				} ;
+			}
+
+			@Override
+			public int size() {
+				return getData().size();
+			}
+		};
     }
 
     public Set<Map.Entry<K, V>> entrySet() {
-        return Collections.unmodifiableSet(getData().entrySet());
+    	return new AbstractSet<Map.Entry<K,V>>() {
+    		
+			@Override
+			public Iterator<Entry<K, V>> iterator() {
+				return new Iterator<Map.Entry<K,V>>() {
+					
+					private Iterator<Map.Entry<K,V>> it = getData().entrySet().iterator();
+					Map.Entry<K,V> next;
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					@Override
+					public Entry<K, V> next() {
+						return next = it.next();
+					}
+					
+					@Override
+					public void remove() {
+						PMap.this.remove(next.getKey());
+					}
+				};
+			}
+
+			@Override
+			public int size() {
+				return getData().size();
+			}
+		};
     }
 
 	@Override

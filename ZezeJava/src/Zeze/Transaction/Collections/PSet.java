@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import org.pcollections.Empty;
 
-public abstract class PSet<E> extends PCollection implements Iterable<E> {
+public abstract class PSet<E> extends PCollection implements Set<E> {
 	private final LogFactory<org.pcollections.PSet<E>> _logFactory;
 
 	protected org.pcollections.PSet<E> set;
@@ -62,15 +62,30 @@ public abstract class PSet<E> extends PCollection implements Iterable<E> {
 		return getData().isEmpty();
 	}
 	
+	@Override
+	public Object[] toArray() {
+		return getData().toArray();
+	}
+
+	@Override
+	public <T> T[] toArray(T[] a) {
+		return getData().toArray(a);
+	}
+
+
+	@Override
+	public boolean containsAll(Collection<?> c) {
+		return getData().containsAll(c);
+	}
+
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		return false;
+	}
+	
 	public final boolean isReadOnly() {
 		return false;
 	}
-
-	public abstract boolean add(E item);
-	public abstract void addAll(Collection<? extends E> c);
-	public abstract void clear();
-	public abstract boolean remove(E item);
-	public abstract boolean removeAll(Collection<? extends E> c);
 
 	public final boolean contains(Object item) {
 		return getData().contains(item);
@@ -85,6 +100,24 @@ public abstract class PSet<E> extends PCollection implements Iterable<E> {
 	
 	@Override
 	public Iterator<E> iterator() {
-		return getData().iterator();
+		return new Iterator<E>() {
+			private Iterator<E> it = getData().iterator();
+			private E next;
+
+			@Override
+			public boolean hasNext() {
+				return it.hasNext();
+			}
+
+			@Override
+			public E next() {
+				return next = it.next();
+			}
+			
+			@Override
+			public void remove() {
+				PSet.this.remove(next);
+			}
+		};
 	}
 }
