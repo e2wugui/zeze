@@ -227,6 +227,11 @@ namespace Zeze.Net
             logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketConnectError");
         }
 
+        public virtual void OnSocketAcceptError(AsyncSocket listener, Exception e)
+        {
+            logger.Log(SocketOptions.SocketLogLevel, e, $"OnSocketAcceptError {listener}");
+        }
+
         /// <summary>
         /// 连接成功回调。
         /// </summary>

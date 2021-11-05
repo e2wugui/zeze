@@ -100,7 +100,6 @@ namespace Zeze.Net
 		internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb, Zeze.Services.ToLuaService.ToLua toLua = null)
         {
 			ByteBuffer os = ByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.Size); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
-			Console.WriteLine($"Decode {so} Size={bb.Size}");
 			while (os.Size > 0)
 			{
 				// 尝试读取协议类型和大小
@@ -118,7 +117,6 @@ namespace Zeze.Net
 				else
 				{
 					bb.ReadIndex = readIndexSaved;
-					Console.WriteLine($"Decode Small Header {so} Size={bb.Size}");
 					return;
 				}
 
@@ -137,7 +135,6 @@ namespace Zeze.Net
 
 					// not enough data. try next time.
 					bb.ReadIndex = readIndexSaved;
-					Console.WriteLine($"Decode Not Enough {so} Size={bb.Size}");
 					return;
 				}
 
@@ -156,7 +153,6 @@ namespace Zeze.Net
                     }
 					p.Sender = so;
 					p.UserState = so.UserState;
-					Console.WriteLine($"Decode Dispatch {so} Size={bb.Size} {p}");
 					p.Dispatch(service, factoryHandle);
 					continue;
 				}
@@ -179,7 +175,6 @@ namespace Zeze.Net
 				os.ReadIndex += size;
 			}
 			bb.ReadIndex = os.ReadIndex;
-			Console.WriteLine($"Decode End {so} Size={bb.Size}");
 		}
 
 		public override string ToString()

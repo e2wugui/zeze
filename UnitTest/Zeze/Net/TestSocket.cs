@@ -153,6 +153,22 @@ namespace UnitTest.Zeze.Net
             }
         }
 
+        private void SimulateUserSendAndWait(byte[] copy)
+        {
+            Task.Run(() =>
+            {
+                BeginSendAsync(copy, 0, copy.Length); // 里面掉了 SendAsync                
+                // 下面这个会挂起.net socket
+                //Thread.Sleep(10000);
+                /*
+                var future = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                //future.Task.ConfigureAwait(false);
+                Task.Run(() => { Thread.Sleep(10000); future.SetResult(true); });
+                future.Task.Wait();
+                // */
+            });
+        }
+
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
             Console.WriteLine($"{DateTime.Now} ProcessReceive: {Socket.LocalEndPoint}-{Socket.RemoteEndPoint} {e.BytesTransferred}");
@@ -162,15 +178,8 @@ namespace UnitTest.Zeze.Net
                 Console.WriteLine($"{DateTime.Now} ProcessReceive: {s}");
                 var copy = new byte[e.BytesTransferred];
                 Array.Copy(inputBuffer, 0, copy, 0, copy.Length);
-                Task.Run(() =>
-                {
-                    BeginSendAsync(copy, 0, copy.Length);
-                    // 下面这个会挂起.net socket
-                    var future = new TaskCompletionSource<bool>();
-                    Task.Run(() => { Thread.Sleep(10000); future.SetResult(true); });
-                    future.Task.Wait();
-                });
                 BeginReceiveAsync();
+                SimulateUserSendAndWait(copy);
                 return;
             }
             Console.WriteLine($"{DateTime.Now} ProcessReceive: Peer Close?");

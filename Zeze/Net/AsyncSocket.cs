@@ -239,7 +239,6 @@ namespace Zeze.Net
                         eventArgsSend.Completed += OnAsyncIOCompleted;
                     }
                     eventArgsSend.BufferList = _outputBufferListSending;
-                    Console.WriteLine($"SendAsync {this}");
                     if (false == Socket.SendAsync(eventArgsSend))
                         ProcessSend(eventArgsSend);
                 }
@@ -354,14 +353,12 @@ namespace Zeze.Net
             }
 
             eventArgsReceive.SetBuffer(_inputBuffer, 0, _inputBuffer.Length);
-            Console.WriteLine($"BeginReceiveAsync {this}");
             if (false == this.Socket.ReceiveAsync(eventArgsReceive))
                 ProcessReceive(eventArgsReceive);
         }
 
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
-            Console.WriteLine($"ProcessReceive {this} {e.BytesTransferred}");
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
                 if (null != inputCodecChain)
@@ -414,7 +411,6 @@ namespace Zeze.Net
 
         private void ProcessSend(SocketAsyncEventArgs e)
         {
-            Console.WriteLine($"ProcessSend {this} {e.BytesTransferred}");
             if (e.BytesTransferred >= 0 && e.SocketError == SocketError.Success)
             {
                 BeginSendAsync(e.BytesTransferred);
@@ -493,12 +489,9 @@ namespace Zeze.Net
                 if (null != _outputBufferListSending) // 全部发送完，并且 _outputBufferList == null 时，可能为 null
                 {
                     eventArgsSend.BufferList = _outputBufferListSending;
-                    Console.WriteLine($"BeginSendAsync {this} {_outputBufferListSending.Count}");
                     if (false == Socket.SendAsync(eventArgsSend))
                         ProcessSend(eventArgsSend);
                 }
-                else
-                    Console.WriteLine($"BeginSendAsync Done {this}");
             }
         }
 
