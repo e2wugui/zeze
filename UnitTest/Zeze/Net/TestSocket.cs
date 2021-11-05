@@ -160,7 +160,16 @@ namespace UnitTest.Zeze.Net
             {
                 var s = Encoding.UTF8.GetString(inputBuffer, 0, e.BytesTransferred);
                 Console.WriteLine($"{DateTime.Now} ProcessReceive: {s}");
-                BeginSendAsync(inputBuffer, 0, e.BytesTransferred);
+                var copy = new byte[e.BytesTransferred];
+                Array.Copy(inputBuffer, 0, copy, 0, copy.Length);
+                Task.Run(() =>
+                {
+                    BeginSendAsync(copy, 0, copy.Length);
+                    // 下面这个会挂起.net socket
+                    var future = new TaskCompletionSource<bool>();
+                    Task.Run(() => { Thread.Sleep(10); future.SetResult(true); });
+                    future.Task.Wait();
+                });
                 BeginReceiveAsync();
                 return;
             }

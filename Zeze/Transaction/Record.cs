@@ -94,7 +94,7 @@ namespace Zeze.Transaction
 
         public override string ToString()
         {
-            return $"T {TTable.Name} K {Key} S {State} T {Timestamp}";// V {Value}";
+            return $"T {TTable.Name} K {Key} S {State} T {Timestamp} Dirty {Dirty}";// V {Value}";
             // 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
         }
 

@@ -531,12 +531,14 @@ namespace Zeze.Transaction
                         return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
                     case GlobalCacheManagerServer.StateModify:
-                        return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
+                        return e.Timestamp != e.OriginRecord.Timestamp
+                            ? CheckResult.Redo : CheckResult.Success;
 
                     case GlobalCacheManagerServer.StateShare:
                         // 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                         // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                        if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify) != GlobalCacheManagerServer.StateModify)
+                        if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify)
+                            != GlobalCacheManagerServer.StateModify)
                         {
                             logger.Warn("Acquire Faild. Maybe DeadLock Found {0}", e.OriginRecord);
                             e.OriginRecord.State = GlobalCacheManagerServer.StateInvalid;
@@ -544,9 +546,11 @@ namespace Zeze.Transaction
                             return CheckResult.RedoAndReleaseLock;
                         }
                         e.OriginRecord.State = GlobalCacheManagerServer.StateModify;
-                        return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
+                        return e.Timestamp != e.OriginRecord.Timestamp
+                            ? CheckResult.Redo : CheckResult.Success;
                 }
-                return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success; // imposible
+                return e.Timestamp != e.OriginRecord.Timestamp
+                    ? CheckResult.Redo : CheckResult.Success; // imposible
             }
             else
             {
@@ -557,7 +561,8 @@ namespace Zeze.Transaction
                     RecentTableKeyOfRedoAndRelease = e.TableKey;
                     return CheckResult.RedoAndReleaseLock;
                 }
-                return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
+                return e.Timestamp != e.OriginRecord.Timestamp
+                    ? CheckResult.Redo : CheckResult.Success;
             }
         }
 

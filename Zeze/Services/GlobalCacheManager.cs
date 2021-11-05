@@ -54,7 +54,7 @@ namespace Zeze.Services
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public static GlobalCacheManagerServer Instance { get; } = new GlobalCacheManagerServer();
         public ServerService Server { get; private set; }
-        private AsyncSocket ServerSocket;
+        public AsyncSocket ServerSocket { get; private set; }
         private ConcurrentDictionary<GlobalTableKey, CacheState> global;
         /*
          * 会话。

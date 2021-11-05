@@ -39,6 +39,7 @@ public final class ModuleProvider extends AbstractModule {
 				return Procedure.LogicError;
 			}
 			var p2 = factoryHandle.Factory.create();
+			p2.Service = p.Service;
 			p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.getProtocolData()));
 			p2.setSender(p.getSender());
 

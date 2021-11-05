@@ -170,6 +170,7 @@ namespace Zeze.Transaction
                 }
                 switch (r.State)
                 {
+                    case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
                     case GlobalCacheManagerServer.StateInvalid:
                         rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                         logger.Debug("ReduceShare SendResult 2 {0}", r);
@@ -188,7 +189,6 @@ namespace Zeze.Transaction
 
                     case GlobalCacheManagerServer.StateModify:
                         r.State = GlobalCacheManagerServer.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
-                        r.Timestamp = Record.NextTimestamp;
                         break;
                 }
             }
@@ -262,7 +262,9 @@ namespace Zeze.Transaction
                 }
                 switch (r.State)
                 {
+                    case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
                     case GlobalCacheManagerServer.StateInvalid:
+                        Console.WriteLine($"ReduceInvalid 1 Local=Invalid Change Now.");
                         rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                         logger.Debug("ReduceInvalid SendResult 2 {0}", r);
                         Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
@@ -271,8 +273,8 @@ namespace Zeze.Transaction
                         return 0;
 
                     case GlobalCacheManagerServer.StateShare:
+                        Console.WriteLine($"ReduceInvalid 2 Local=Share Change Now.");
                         r.State = GlobalCacheManagerServer.StateInvalid;
-                        r.Timestamp = Record.NextTimestamp;
                         // 不删除记录，让TableCache.CleanNow处理。 
                         logger.Debug("ReduceInvalid SendResult 3 {0}", r);
                         Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
@@ -281,8 +283,8 @@ namespace Zeze.Transaction
                         return 0;
 
                     case GlobalCacheManagerServer.StateModify:
+                        Console.WriteLine($"ReduceInvalid 3 Local=Modify Change Now.");
                         r.State = GlobalCacheManagerServer.StateInvalid;
-                        r.Timestamp = Record.NextTimestamp;
                         break;
                 }
             }
@@ -294,7 +296,7 @@ namespace Zeze.Transaction
             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
             FlushWhenReduce(r, () =>
             {
-                logger.Debug("ReduceInvalid SendResult 4 {0}", r);
+                logger.Debug("ReduceInvalid SendResult 4 {0} ", r);
                 // Must before SendResult
                 Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
                 rpc.SendResult();
@@ -320,6 +322,7 @@ namespace Zeze.Transaction
                 lockey.EnterWriteLock();
                 try
                 {
+                    Console.WriteLine($"ReduceInvalidAllLocalOnly {e.Value}.");
                     // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
                     e.Value.State = GlobalCacheManagerServer.StateInvalid;
                 }
