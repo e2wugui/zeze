@@ -167,7 +167,7 @@ namespace UnitTest.Zeze.Net
                     BeginSendAsync(copy, 0, copy.Length);
                     // 下面这个会挂起.net socket
                     var future = new TaskCompletionSource<bool>();
-                    Task.Run(() => { Thread.Sleep(10); future.SetResult(true); });
+                    Task.Run(() => { Thread.Sleep(10000); future.SetResult(true); });
                     future.Task.Wait();
                 });
                 BeginReceiveAsync();
