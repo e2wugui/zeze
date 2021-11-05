@@ -142,7 +142,7 @@ namespace Zeze
             throw new Exception($"database not exist name={name}");
         }
 
-        public Procedure NewProcedure(Func<int> action, string actionName, object userState = null)
+        public Procedure NewProcedure(Func<long> action, string actionName, object userState = null)
         {
             if (IsStart)
             {
@@ -262,9 +262,9 @@ namespace Zeze
 
         public Zeze.Util.TaskOneByOneByKey TaskOneByOneByKey { get; } = new Zeze.Util.TaskOneByOneByKey();
 
-        public TaskCompletionSource<int> Run(Func<int> func, string actionName, TransactionModes mode, object oneByOneKey = null)
+        public TaskCompletionSource<long> Run(Func<long> func, string actionName, TransactionModes mode, object oneByOneKey = null)
         {
-            var future = new TaskCompletionSource<int>();
+            var future = new TaskCompletionSource<long>();
             switch (mode)
             {
                 case TransactionModes.ExecuteInTheCallerTransaction:

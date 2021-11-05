@@ -27,7 +27,7 @@ namespace Zezex
                     try
                     {
                         var isReqeustSaved = p.IsRequest;
-                        int result = factoryHandle.Handle(p); 
+                        var result = factoryHandle.Handle(p); 
                         global::Zeze.Util.Task.LogAndStatistics(result, p, isReqeustSaved);
                     }
                     catch (System.Exception ex)

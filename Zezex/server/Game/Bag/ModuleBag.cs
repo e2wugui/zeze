@@ -77,7 +77,7 @@ namespace Game.Bag
         }
 
         // protocol handles
-        public override int ProcessMoveRequest(Protocol p)
+        public override long ProcessMoveRequest(Protocol p)
         {
             var rpc = p as Move;
             Login.Session session = Login.Session.Get(rpc);
@@ -87,23 +87,23 @@ namespace Game.Bag
                 rpc.Argument.PositionTo,
                 rpc.Argument.Number);
             if (moduleCode != 0)
-                return ReturnCode((ushort)moduleCode);
+                return ErrorCode((ushort)moduleCode);
             session.SendResponse(rpc);
             return 0;
         }
 
-        public override int ProcessDestroyRequest(Protocol p)
+        public override long ProcessDestroyRequest(Protocol p)
         {
             var rpc = p as Destroy;
             Login.Session session = Login.Session.Get(rpc);
             var moduleCode = GetBag(session.RoleId.Value).Destory(rpc.Argument.Position);
             if (0 != moduleCode)
-                return ReturnCode((ushort)moduleCode);
+                return ErrorCode((ushort)moduleCode);
             session.SendResponse(rpc);
             return 0;
         }
 
-        public override int ProcessSortRequest(Protocol p)
+        public override long ProcessSortRequest(Protocol p)
         {
             var rpc = p as Sort;
             Login.Session session = Login.Session.Get(rpc);
@@ -113,7 +113,7 @@ namespace Game.Bag
             return Procedure.Success;
         }
 
-        public override int ProcessGetBagRequest(Protocol p)
+        public override long ProcessGetBagRequest(Protocol p)
         {
             var rpc = p as GetBag;
             Login.Session session = Login.Session.Get(rpc);
@@ -131,7 +131,7 @@ namespace Game.Bag
             return new Bag(roleid, _tbag.GetOrAdd(roleid));
         }
 
-        public override int ProcessCUse(Protocol p)
+        public override long ProcessCUse(Protocol p)
         {
             var protocol = p as CUse;
             Login.Session session = Login.Session.Get(protocol);

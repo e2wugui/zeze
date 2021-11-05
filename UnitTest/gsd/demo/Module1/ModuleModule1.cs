@@ -14,7 +14,7 @@ namespace demo.Module1
         {
         }
 
-        public override int ProcessProtocol1(Protocol p)
+        public override long ProcessProtocol1(Protocol p)
         {
             var protocol = p as Protocol1;
             protocol.Send(protocol.Sender);
@@ -23,12 +23,12 @@ namespace demo.Module1
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessProtocol3(Protocol p)
+        public override long ProcessProtocol3(Protocol p)
         {
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
-        public override int ProcessRpc1Request(Protocol p)
+        public override long ProcessRpc1Request(Protocol p)
         {
             var rpc = p as Rpc1;
             rpc.SendResult();

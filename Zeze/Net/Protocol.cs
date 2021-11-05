@@ -75,7 +75,7 @@ namespace Zeze.Net
 
 		// 用于Rpc自动发送结果。
 		// Rpc会重载实现。
-		public virtual void SendResultCode(int code)
+		public virtual void SendResultCode(long code)
         {
 			ResultCode = code;
 		}
@@ -90,7 +90,7 @@ namespace Zeze.Net
 		/// </summary>
 		public long UniqueRequestId { get; protected set; }
 
-		public int ResultCode { get; set; }
+		public long ResultCode { get; set; }
 
 		/// <summary>
 		/// Id + size + protocol.bytes
@@ -189,14 +189,14 @@ namespace Zeze.Net
 
 		public override void Decode(ByteBuffer bb)
         {
-			ResultCode = bb.ReadInt();
+			ResultCode = bb.ReadLong();
 			UniqueRequestId = bb.ReadLong();
 			Argument.Decode(bb);
 		}
 
 		public override void Encode(ByteBuffer bb)
         {
-			bb.WriteInt(ResultCode);
+			bb.WriteLong(ResultCode);
 			bb.WriteLong(UniqueRequestId);
 			Argument.Encode(bb);
 		}

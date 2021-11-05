@@ -30,7 +30,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessDispatch(Protocol _p) {
+	public long ProcessDispatch(Protocol _p) {
 		var p = (Dispatch)_p;
 		try {
 			var factoryHandle = App.Server.FindProtocolFactoryHandle(p.Argument.getProtocolType());
@@ -78,7 +78,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessLinkBroken(Protocol _protocol) {
+	public long ProcessLinkBroken(Protocol _protocol) {
 		var protocol = (LinkBroken)_protocol;
 		// 目前仅需设置online状态。
 		if (false == protocol.Argument.getStates().isEmpty()) {
@@ -89,7 +89,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessModuleRedirectRequest(Protocol _rpc) {
+	public long ProcessModuleRedirectRequest(Protocol _rpc) {
 		var rpc = (ModuleRedirect)_rpc;
 		try {
 			// replace RootProcedure.ActionName. 为了统计和日志输出。
@@ -133,7 +133,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessModuleRedirectAllRequest(Protocol _protocol) {
+	public long ProcessModuleRedirectAllRequest(Protocol _protocol) {
 		var protocol = (ModuleRedirectAllRequest)_protocol;
 		var result = new ModuleRedirectAllResult();
 		try {
@@ -234,7 +234,7 @@ public final class ModuleProvider extends AbstractModule {
 		 2) 需要时初始化UserState并传给action；
 		 3) 处理完成时删除Context
 		*/
-		public final <T> int ProcessHash(int hash, Zeze.Util.Factory<T> factory, Zeze.Util.Func1<T, Integer> action) {
+		public final <T> long ProcessHash(int hash, Zeze.Util.Factory<T> factory, Zeze.Util.Func1<T, Long> action) {
 			synchronized (this) {
 				try {
 					if (null == getUserState()) {
@@ -263,13 +263,13 @@ public final class ModuleProvider extends AbstractModule {
 		}
 
 		// 生成代码实现。see Zezex.ModuleRedirect.cs
-		public int ProcessHashResult(int _hash_, int _returnCode_, Binary _params, List<Zezex.Provider.BActionParam> _actions_) {
+		public long ProcessHashResult(int _hash_, long _returnCode_, Binary _params, List<Zezex.Provider.BActionParam> _actions_) {
 			return Procedure.NotImplement;
 		}
 	}
 
 	@Override
-	public int ProcessModuleRedirectAllResult(Protocol _protocol) {
+	public long ProcessModuleRedirectAllResult(Protocol _protocol) {
 		var protocol = (ModuleRedirectAllResult)_protocol;
 		// replace RootProcedure.ActionName. 为了统计和日志输出。
 		Transaction.getCurrent().getTopProcedure().setActionName(protocol.Argument.getMethodFullName());
@@ -281,7 +281,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessTransmit(Protocol _protocol) {
+	public long ProcessTransmit(Protocol _protocol) {
 		var protocol = (Transmit)_protocol;
 		App.Game_Login.getOnlines().ProcessTransmit(
 				protocol.Argument.getSender(),
@@ -291,7 +291,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessAnnounceLinkInfo(Protocol _protocol) {
+	public long ProcessAnnounceLinkInfo(Protocol _protocol) {
 		var protocol = (AnnounceLinkInfo)_protocol;
 		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
 		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
@@ -299,7 +299,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessSendConfirm(Protocol _protocol) {
+	public long ProcessSendConfirm(Protocol _protocol) {
 		var protocol = (SendConfirm)_protocol;
 		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
 		var ctx = App.Server.<Game.Login.Onlines.ConfirmContext>TryGetManualContext(

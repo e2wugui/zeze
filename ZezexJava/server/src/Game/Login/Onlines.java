@@ -31,7 +31,7 @@ public class Onlines {
 					}
 					App.getInstance().getLoad().getLogoutCount().incrementAndGet();
 
-					return Procedure.Success;
+					return (long)Procedure.Success;
 				}, "Onlines.OnLinkBroken", null).Call();
 		}, 10 * 60 * 1000, -1); // 10 minuts for relogin
 	}
@@ -127,10 +127,10 @@ public class Onlines {
 				App.getInstance().Zeze.NewProcedure(() -> {
 					BOnline online = table.get(roleId);
 					if (null == online || online.getState() == BOnline.StateOffline) {
-						return Procedure.Success;
+						return (long)Procedure.Success;
 					}
 					if (false == online.getReliableNotifyMark().contains(listenerName)) {
-						return Procedure.Success; // 相关数据装载的时候要同步设置这个。
+						return (long)Procedure.Success; // 相关数据装载的时候要同步设置这个。
 					}
 
 					// 先保存在再发送，然后客户端还会确认。
@@ -144,7 +144,7 @@ public class Onlines {
 						SendInProcedure(new ArrayList<Long>(Arrays.asList(roleId)), notify.getTypeId(), new Binary(notify.Encode()), future);
 					}
 					online.setReliableNotifyTotalCount(online.getReliableNotifyConfirmCount() + 1); // 后加，start 是 Queue.Add 之前的。
-					return Procedure.Success;
+					return (long)Procedure.Success;
 		}, "SendReliableNotify." + listenerName, null), null);
 
 		if (future != null) {
@@ -267,7 +267,7 @@ public class Onlines {
 		// 发送协议请求在另外的事务中执行。
 		Zeze.Util.Task.Run(App.Instance.Zeze.NewProcedure(() -> {
 				SendInProcedure(roleIds, typeId, fullEncodedProtocol, future);
-				return Procedure.Success;
+				return (long)Procedure.Success;
 		}, "Onlines.Send", null), null, null);
 
 		if (future != null) {
@@ -343,8 +343,8 @@ public class Onlines {
 	 target: 查询目标角色。
 	 result: 返回值，int，按普通事务处理过程返回值处理。
 	*/
-	private ConcurrentHashMap<String, Zeze.Util.Func2<Long, Long, Integer>> TransmitActions = new ConcurrentHashMap<> ();
-	public final ConcurrentHashMap<String, Zeze.Util.Func2<Long, Long, Integer>> getTransmitActions() {
+	private ConcurrentHashMap<String, Zeze.Util.Func2<Long, Long, Long>> TransmitActions = new ConcurrentHashMap<> ();
+	public final ConcurrentHashMap<String, Zeze.Util.Func2<Long, Long, Long>> getTransmitActions() {
 		return TransmitActions;
 	}
 
@@ -419,7 +419,7 @@ public class Onlines {
 		// 发送协议请求在另外的事务中执行。
 		Zeze.Util.Task.Run(App.getInstance().Zeze.NewProcedure(() -> {
 				TransmitInProcedure(sender, actionName, roleIds);
-				return Procedure.Success;
+				return (long)Procedure.Success;
 		}, "Onlines.Transmit", null), null, null);
 	}
 

@@ -7,14 +7,14 @@ public abstract class Protocol1<TArgument extends Zeze.Transaction.Bean> extends
 
 	@Override
 	public void Decode(ByteBuffer bb) {
-		setResultCode(bb.ReadInt());
+		setResultCode(bb.ReadLong());
 		setUniqueRequestId(bb.ReadLong());
 		Argument.Decode(bb);
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
-		bb.WriteInt(getResultCode());
+		bb.WriteLong(getResultCode());
 		bb.WriteLong(getUniqueRequestId());
 		Argument.Encode(bb);
 	}

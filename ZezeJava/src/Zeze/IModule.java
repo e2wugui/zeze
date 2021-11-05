@@ -10,14 +10,10 @@ public abstract class IModule {
 	public void UnRegister() { // 为了重新装载 Module 的补丁。注册在构造函数里面进行。
 	}
 
-	public final int ReturnCode(int code) {
-		if (code < 0 || code > Short.MAX_VALUE)
-			throw new RuntimeException("return code too big");
-		return ReturnCode((short)code);
-	}
-
-	public final int ReturnCode(short code) {
-		return getId() << 16 | (code & 0xffff);
+	public final long ErrorCode(int code) {
+		if (code < 0 )
+			throw new RuntimeException("code must greater than 0.");
+		return Zeze.Net.Protocol.MakeTypeId(getId(), code);
 	}
 
 	private ConcurrentHashMap<String, Class<?>> ClassMap = new ConcurrentHashMap<>();
@@ -37,11 +33,11 @@ public abstract class IModule {
 
 	}
 
-	public static int GetModuleId(int result) {
-		return (result >> 16) & 0xffff;
+	public static int GetModuleId(long result) {
+		return Zeze.Net.Protocol.GetModuleId(result);
 	}
 
-	public static int GetReturnCode(int result) {
-		return result & 0xffff;
+	public static int GetErrorCode(long result) {
+		return Zeze.Net.Protocol.GetProtocolId(result);
 	}
 }

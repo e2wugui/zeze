@@ -224,7 +224,7 @@
 			rpc.ResultCode == ResultCodeSuccess 时，才使用下面两个变量，此时表示rpc调用流程正确了。
 			处理结果是否正确，还需要进一步查看 ReturnCode。
 			-->
-			<variable name="ReturnCode" id="4" type="int"/> 实现函数的返回。
+			<variable name="ReturnCode" id="4" type="long"/> 实现函数的返回。
 			<variable name="Params"     id="5" type="binary"/>
 			<variable name="Actions"    id="6" type="list" value="BActionParam"/> 按回调顺序。！不是定义顺序！
 		</bean>
@@ -260,7 +260,7 @@
 		</bean>
 
 		<bean name="BModuleRedirectAllHash">
-			<variable name="ReturnCode" id="4" type="int"/> 实现函数的返回。
+			<variable name="ReturnCode" id="4" type="long"/> 实现函数的返回。
 			<variable name="Params"     id="5" type="binary"/> 目前不支持out|ref，这个先保留。
 			<variable name="Actions"    id="6" type="list" value="BActionParam"/> 按回调顺序。！不是定义顺序！
 		</bean>

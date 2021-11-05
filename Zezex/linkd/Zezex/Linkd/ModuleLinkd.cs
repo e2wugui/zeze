@@ -13,7 +13,7 @@ namespace Zezex.Linkd
         {
         }
 
-        public override int ProcessAuthRequest(Protocol p)
+        public override long ProcessAuthRequest(Protocol p)
         {
             var rpc = p as Auth;
             /*
@@ -34,7 +34,7 @@ namespace Zezex.Linkd
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessKeepAlive(Protocol p)
+        public override long ProcessKeepAlive(Protocol p)
         {
             var protocol = p as KeepAlive;
             var linkSession = protocol.Sender.UserState as LinkSession;

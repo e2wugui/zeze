@@ -262,9 +262,13 @@ namespace Zezex
         /// 4) (int ReturnCode, Zeze.Net.Binary encoded-parameters) [return]
         ///     Func不能使用ref，而Zeze.Net.Binary是只读的。就这样吧。
         /// </summary>
-        public Dictionary<string, Func<long, int, Zeze.Net.Binary, IList<Zezex.Provider.BActionParam>,
-            (int, Zeze.Net.Binary)>> Handles { get; }
-            = new Dictionary<string, Func<long, int, Zeze.Net.Binary, IList<Zezex.Provider.BActionParam>, (int, Zeze.Net.Binary)>>();
+        public Dictionary<string,
+            Func<long, int, Zeze.Net.Binary, IList<Zezex.Provider.BActionParam>,
+            (long, Zeze.Net.Binary)>> Handles { get; }
+            = new Dictionary<string, Func<
+                long, int, Zeze.Net.Binary,
+                IList<Zezex.Provider.BActionParam>,
+                (long, Zeze.Net.Binary)>>();
 
         enum ReturnType
         {
@@ -275,9 +279,9 @@ namespace Zezex
         {
             if (type == typeof(void))
                 return (ReturnType.Void, "void");
-            if (type == typeof(TaskCompletionSource<int>))
-                return (ReturnType.TaskCompletionSource, "System.Threading.Tasks.TaskCompletionSource<int>");
-            throw new Exception("ReturnType Must Be void Or TaskCompletionSource<int>");
+            if (type == typeof(TaskCompletionSource<long>))
+                return (ReturnType.TaskCompletionSource, "System.Threading.Tasks.TaskCompletionSource<long>");
+            throw new Exception("ReturnType Must Be void Or TaskCompletionSource<long>");
         }
 
         private string GetMethodNameWithHash(string name)
@@ -489,7 +493,7 @@ namespace Zezex
                             throw new Exception("RedirectAll callback first parameter muse be long(sessionId)");
                         if (action.GenericArguments[1] != typeof(int))
                             throw new Exception("RedirectAll callback second parameter muse be int(hash-index)");
-                        if (action.GenericArguments[2] != typeof(int))
+                        if (action.GenericArguments[2] != typeof(long))
                             throw new Exception("RedirectAll callback thrid parameter muse be int(return-code)");
                     }
                     if (end > 1)
@@ -504,7 +508,7 @@ namespace Zezex
             sb.AppendLine($"public class {genClassName} : {module.FullName}.Module{module.Name}");
             sb.AppendLine($"{{");
 
-            // TaskCompletionSource<int> void
+            // TaskCompletionSource<long> void
             StringBuilder sbHandles = new StringBuilder();
             StringBuilder sbContexts = new StringBuilder();
             foreach (var methodOverride in overrides)
@@ -559,7 +563,7 @@ namespace Zezex
                 string sessionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
                 string futureVarName = "tmp" + TmpVarNameId.IncrementAndGet();
                 sb.AppendLine($"        var {sessionVarName} = Zezex.ModuleRedirect.GetLoginSession();");
-                sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource<int>();");
+                sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource<long>();");
                 sb.AppendLine($"");
                 foreach (var outOrRef in parametersOutOrRef)
                 {
@@ -800,7 +804,7 @@ namespace Zezex
             }
             sb.AppendLine($"        }}");
             sb.AppendLine($"");
-            sb.AppendLine($"        public override int ProcessHashResult(int _hash_, int _returnCode_, Zeze.Net.Binary _params, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_)");
+            sb.AppendLine($"        public override long ProcessHashResult(int _hash_, long _returnCode_, Zeze.Net.Binary _params, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_)");
             sb.AppendLine($"        {{");
             if (actionCountSkipOnHashEnd > 0)
             {

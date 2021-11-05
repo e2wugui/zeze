@@ -51,7 +51,7 @@ namespace Zeze.Util
         }
 
 
-		public void Execute(object key, Func<int> action, string actionName = null, Action cancel = null)
+		public void Execute(object key, Func<long> action, string actionName = null, Action cancel = null)
 		{
 			if (null == action)
 				throw new ArgumentNullException();
@@ -192,7 +192,7 @@ namespace Zeze.Util
 				}
 			}
 
-			internal void Execute(Func<int> action, string actionName, Action cancel)
+			internal void Execute(Func<long> action, string actionName, Action cancel)
 			{
 				lock (this)
 				{

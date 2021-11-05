@@ -1,7 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.concurrent.Callable;
-import Zeze.Net.Protocol;
+
 import Zeze.Util.TaskCanceledException;
 
 import org.apache.logging.log4j.LogManager;
@@ -10,20 +10,20 @@ import org.apache.logging.log4j.Logger;
 import Zeze.*;
 
 public class Procedure {
-	public static final int Success = 0;
-	public static final int Excption = -1;
-	public static final int TooManyTry = -2;
-	public static final int NotImplement = -3;
-	public static final int Unknown = -4;
-	public static final int ErrorSavepoint = -5;
-	public static final int LogicError = -6;
-	public static final int RedoAndRelease = -7;
-	public static final int AbortException = -8;
-	public static final int ProviderNotExist = -9;
-	public static final int Timeout = -10;
-	public static final int CancelExcption = -11;
-	public static final int DuplicateRequest = -12;
-	public static final int ErrorRequestId = -13;
+	public static final long Success = 0;
+	public static final long Excption = -1;
+	public static final long TooManyTry = -2;
+	public static final long NotImplement = -3;
+	public static final long Unknown = -4;
+	public static final long ErrorSavepoint = -5;
+	public static final long LogicError = -6;
+	public static final long RedoAndRelease = -7;
+	public static final long AbortException = -8;
+	public static final long ProviderNotExist = -9;
+	public static final long Timeout = -10;
+	public static final long CancelExcption = -11;
+	public static final long DuplicateRequest = -12;
+	public static final long ErrorRequestId = -13;
 	// >0 用户自定义。
 
 	private static final Logger logger = LogManager.getLogger(Procedure.class);
@@ -33,11 +33,11 @@ public class Procedure {
 		return Zeze;
 	}
 
-	private Callable<Integer> Action;
-	public final Callable<Integer> getAction() {
+	private Callable<Long> Action;
+	public final Callable<Long> getAction() {
 		return Action;
 	}
-	public final void setAction(Callable<Integer> value) {
+	public final void setAction(Callable<Long> value) {
 		Action = value;
 	}
 
@@ -62,7 +62,7 @@ public class Procedure {
 		UserState = value;
 	}
 
-	public Procedure(Application app, Callable<Integer> action, String actionName, Object userState) {
+	public Procedure(Application app, Callable<Long> action, String actionName, Object userState) {
 		Zeze = app;
 		setAction(action);
 		setActionName(actionName);
@@ -80,7 +80,7 @@ public class Procedure {
 	 
 	 @return 
 	*/
-	public final int Call() {
+	public final long Call() {
 		if (null == Transaction.getCurrent()) {
 			try {
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
@@ -96,7 +96,7 @@ public class Procedure {
 		currentT.getProcedureStack().add(this);
 
 		try {
-			int result = Process();
+			var result = Process();
 			if (Success == result) {
 				currentT.Commit();
 
@@ -108,7 +108,7 @@ public class Procedure {
 
 			var module = "";
 			if (result > 0) {
-				module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetReturnCode(result);
+				module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
 			}
 			logger.log(getZeze().getConfig().getProcessReturnErrorLogLevel(),
 					"Procedure {} Return{}@{} UserState={}", this, result, module, getUserState());
@@ -159,7 +159,7 @@ public class Procedure {
 		}
 	}
 
-	protected int Process() {
+	protected long Process() {
 		if (null != Action) {
 			try {
 				return Action.call();

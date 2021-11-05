@@ -65,7 +65,7 @@ namespace Zeze.Raft
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private int GetCurrentCount()
+        private long GetCurrentCount()
         {
             var r = new GetCount();
             while (true)
@@ -81,10 +81,10 @@ namespace Zeze.Raft
             }
         }
 
-        private int ExpectCount { get; set; }
-        private Dictionary<int, int> Errors { get; } = new Dictionary<int, int>();
+        private long ExpectCount { get; set; }
+        private Dictionary<long, long> Errors { get; } = new Dictionary<long, long>();
 
-        private void ErrorsAdd(int resultCode)
+        private void ErrorsAdd(long resultCode)
         {
             if (0 == resultCode)
                 return;
@@ -94,9 +94,9 @@ namespace Zeze.Raft
                 Errors[resultCode] = 1;
         }
 
-        private int ErrorsSum()
+        private long ErrorsSum()
         {
-            int sum = 0;
+            long sum = 0;
             foreach (var e in Errors.Values)
             {
                 sum += e;
@@ -370,7 +370,7 @@ namespace Zeze.Raft
             // Start Background FailActions
             Util.Task.Run(RandomTriggerFailActions, "RandomTriggerFailActions");
             var testname = "RealConcurrentDoRequest";
-            int lastExpectCount = ExpectCount;
+            var lastExpectCount = ExpectCount;
             while (false == Console.KeyAvailable)
             {
                 int count = 5;
@@ -641,7 +641,7 @@ namespace Zeze.Raft
                 StartRaft(true);
             }
 
-            private int ProcessAddCount(Zeze.Net.Protocol p)
+            private long ProcessAddCount(Zeze.Net.Protocol p)
             {
                 if (false == Raft.IsLeader)
                     return Procedure.CancelExcption; // fast fail
@@ -655,7 +655,7 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
-            private int ProcessGetCount(Zeze.Net.Protocol p)
+            private long ProcessGetCount(Zeze.Net.Protocol p)
             {
                 var r = p as GetCount;
                 lock (StateMachine)

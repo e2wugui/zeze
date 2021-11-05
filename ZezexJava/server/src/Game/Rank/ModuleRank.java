@@ -44,7 +44,7 @@ public class ModuleRank extends AbstractModule {
 	 @param value
 	 @return Procudure.Success...
 	*/
-	protected final int UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
+	protected final long UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		int maxCount = GetRankComputeCount(keyHint.getRankType());
 
@@ -213,7 +213,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	// 名字必须和RunUpdateRankWithHash匹配，内部使用一样的实现。
-	protected final int UpdateRankWithHash(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
+	protected final long UpdateRankWithHash(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
 		return UpdateRank(hash, keyHint, roleId, value, valueEx);
 	}
 
@@ -300,7 +300,7 @@ public class ModuleRank extends AbstractModule {
 								rank2.TableValue.getRankList().remove(ir);
 							//rank.TableValue.RankList.RemoveRange(countNeed, rank.TableValue.RankList.Count - countNeed);
 						}
-						return Procedure.Success;
+						return (long)Procedure.Success;
 					});
 				},
 				// Action OnHashEnd
@@ -375,7 +375,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessCGetRankList(Protocol _protocol) {
+	public long ProcessCGetRankList(Protocol _protocol) {
 		var protocol = (CGetRankList)_protocol;
 		var session = Game.Login.Session.Get(protocol);
 
@@ -464,12 +464,12 @@ public class ModuleRank extends AbstractModule {
 
 	/******************************** ModuleRedirect 测试 *****************************************/
 	@Redirect()
-	public Zeze.Util.TaskCompletionSource<Integer> RunTest1(Zeze.TransactionModes mode) {
+	public Zeze.Util.TaskCompletionSource<Long> RunTest1(Zeze.TransactionModes mode) {
 		int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
 		return App.Zeze.Run(() -> Test1(hash), "Test1", mode, hash);
 	}
 
-	protected final int Test1(int hash) {
+	protected final long Test1(int hash) {
 		return Procedure.Success;
 	}
 
@@ -482,7 +482,7 @@ public class ModuleRank extends AbstractModule {
 		future.Wait();
 	}
 
-	protected final int Test2(int hash, int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData) {
+	protected final long Test2(int hash, int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData) {
 		outData.Value = 1;
 		++refData.Value;
 		return Procedure.Success;
@@ -508,7 +508,7 @@ public class ModuleRank extends AbstractModule {
 	 * 
 	 * ref|out 方式需要同步等待，【不建议使用这种方式】【不建议使用这种方式】【不建议使用这种方式】
 	 */
-	protected final int Test3(int hash,
+	protected final long Test3(int hash,
 							  int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData,
 							  Zeze.Util.Action1<Integer> resultCallback) {
 		outData.Value = 1;

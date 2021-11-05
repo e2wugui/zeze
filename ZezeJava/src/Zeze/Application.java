@@ -95,7 +95,8 @@ public final class Application {
 		if (null == Conf) {
 			Conf = Config.Load();
 		}
-		final var core = getConfig().getInternalThreadPoolWorkerCount();
+		var core = getConfig().getInternalThreadPoolWorkerCount();
+		core = core > 0 ? core : Runtime.getRuntime().availableProcessors() * 30;
 		InternalThreadPool = new ThreadPoolExecutor(core, core, 0, TimeUnit.NANOSECONDS, new LinkedBlockingQueue<>());
 
 		getConfig().CreateDatabase(getDatabases());
@@ -131,11 +132,11 @@ public final class Application {
 	}
 
 
-	public Procedure NewProcedure(Callable<Integer> action, String actionName) {
+	public Procedure NewProcedure(Callable<Long> action, String actionName) {
 		return NewProcedure(action, actionName, null);
 	}
 
-	public Procedure NewProcedure(Callable<Integer> action, String actionName, Object userState) {
+	public Procedure NewProcedure(Callable<Long> action, String actionName, Object userState) {
 		if (isStart()) {
 			return new Procedure(this, action, actionName, userState);
 		}
@@ -250,12 +251,12 @@ public final class Application {
 	}
 
 
-	public TaskCompletionSource<Integer> Run(Callable<Integer> func, String actionName, TransactionModes mode) {
+	public TaskCompletionSource<Long> Run(Callable<Long> func, String actionName, TransactionModes mode) {
 		return Run(func, actionName, mode, null);
 	}
 
-	public TaskCompletionSource<Integer> Run(Callable<Integer> func, String actionName, TransactionModes mode, Object oneByOneKey) {
-		var future = new TaskCompletionSource<Integer>();
+	public TaskCompletionSource<Long> Run(Callable<Long> func, String actionName, TransactionModes mode, Object oneByOneKey) {
+		var future = new TaskCompletionSource<Long>();
 		try {
 			switch (mode) {
 				case ExecuteInTheCallerTransaction:

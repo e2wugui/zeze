@@ -12,7 +12,7 @@ public class EventDispatcher {
 
 	@FunctionalInterface
 	public interface EventHandle {
-		int invoke(Object sender, EventArg arg);
+		long invoke(Object sender, EventArg arg);
 	}
 
 	public static class EventArg {

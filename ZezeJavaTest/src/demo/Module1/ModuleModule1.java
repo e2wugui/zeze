@@ -11,19 +11,19 @@ public class ModuleModule1 extends AbstractModule {
     }
 
     @Override
-    public int ProcessProtocol3(Zeze.Net.Protocol _p) {
+    public long ProcessProtocol3(Zeze.Net.Protocol _p) {
         var p = (Protocol3)_p;
         return Zeze.Transaction.Procedure.NotImplement;
     }
 
     @Override
-    public int ProcessProtocol4(Zeze.Net.Protocol _p) {
+    public long ProcessProtocol4(Zeze.Net.Protocol _p) {
         var p = (Protocol4)_p;
         return Zeze.Transaction.Procedure.NotImplement;
     }
 
     @Override
-    public int ProcessRpc1Request(Zeze.Net.Protocol _r) {
+    public long ProcessRpc1Request(Zeze.Net.Protocol _r) {
         var r = (Rpc1)_r;
         return Zeze.Transaction.Procedure.NotImplement;
     }

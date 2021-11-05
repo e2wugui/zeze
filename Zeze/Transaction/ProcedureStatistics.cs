@@ -23,9 +23,10 @@ namespace Zeze.Transaction
 
         public class Statistics
         {
-            public ConcurrentDictionary<int, Zeze.Util.AtomicLong> Results { get; } = new ConcurrentDictionary<int, Util.AtomicLong>();
+            public ConcurrentDictionary<long, Zeze.Util.AtomicLong> Results { get; }
+                = new ConcurrentDictionary<long, Util.AtomicLong>();
 
-            public Zeze.Util.AtomicLong GetOrAdd(int result)
+            public Zeze.Util.AtomicLong GetOrAdd(long result)
             {
                 return Results.GetOrAdd(result, (key) => new Util.AtomicLong());
             }

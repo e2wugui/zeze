@@ -114,13 +114,13 @@ public final class App extends Zeze.AppBase {
             Zezex_Linkd = new Zezex.Linkd.ModuleLinkd(this);
             Zezex_Linkd.Initialize(this);
             Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)ReplaceModuleInstance(Zezex_Linkd);
-            if (null != Modules.put(Zezex_Linkd.getName(), Zezex_Linkd)) {
+            if (null != Modules.put(Zezex_Linkd.getFullName(), Zezex_Linkd)) {
                 throw new RuntimeException("duplicate module name: Zezex_Linkd");
             }
             Zezex_Provider = new Zezex.Provider.ModuleProvider(this);
             Zezex_Provider.Initialize(this);
             Zezex_Provider = (Zezex.Provider.ModuleProvider)ReplaceModuleInstance(Zezex_Provider);
-            if (null != Modules.put(Zezex_Provider.getName(), Zezex_Provider)) {
+            if (null != Modules.put(Zezex_Provider.getFullName(), Zezex_Provider)) {
                 throw new RuntimeException("duplicate module name: Zezex_Provider");
             }
 

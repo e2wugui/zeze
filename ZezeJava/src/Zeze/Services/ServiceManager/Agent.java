@@ -340,7 +340,7 @@ public final class Agent implements Closeable {
 		return subState;
 	}
 
-	private int ProcessSubscribeFirstCommit(Protocol p) {
+	private long ProcessSubscribeFirstCommit(Protocol p) {
 		var r = p instanceof SubscribeFirstCommit ? (SubscribeFirstCommit) p : null;
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
@@ -365,7 +365,7 @@ public final class Agent implements Closeable {
 		}
 	}
 
-	private int ProcessNotifyServiceList(Protocol p) {
+	private long ProcessNotifyServiceList(Protocol p) {
 		var r = p instanceof NotifyServiceList ? (NotifyServiceList) p : null;
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
@@ -376,7 +376,7 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	private int ProcessCommitServiceList(Protocol p) {
+	private long ProcessCommitServiceList(Protocol p) {
 		var r = p instanceof CommitServiceList ? (CommitServiceList) p : null;
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
@@ -387,7 +387,7 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	private int ProcessKeepalive(Protocol p) {
+	private long ProcessKeepalive(Protocol p) {
 		var r = p instanceof Keepalive ? (Keepalive) p : null;
 		if (getOnKeepAlive() != null) {
 			getOnKeepAlive().run();

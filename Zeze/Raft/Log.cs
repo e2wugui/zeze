@@ -766,7 +766,7 @@ namespace Zeze.Raft
             }
         }
 
-        private int ProcessAppendEntriesResult(Server.ConnectorEx connector, Protocol p)
+        private long ProcessAppendEntriesResult(Server.ConnectorEx connector, Protocol p)
         {
             // 这个rpc处理流程总是返回 Success，需要统计观察不同的分支的发生情况，再来定义不同的返回值。
 
@@ -923,7 +923,7 @@ namespace Zeze.Raft
             }
         }
 
-        internal int FollowerOnAppendEntries(AppendEntries r)
+        internal long FollowerOnAppendEntries(AppendEntries r)
         {
             LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
             r.Result.Term = Term;

@@ -30,7 +30,7 @@ namespace Game.Login
                 throw new System.Exception($"Duplicate Protocol({Zeze.Net.Protocol.GetModuleId(protocolTypeId)}, {Zeze.Net.Protocol.GetProtocolId(protocolTypeId)})");
         }
 
-        public override int ProcessSReliableNotify(Protocol p)
+        public override long ProcessSReliableNotify(Protocol p)
         {
             var protocol = p as SReliableNotify;
             // TODO

@@ -152,61 +152,61 @@ public final class App extends Zeze.AppBase {
             Game_Bag = new Game.Bag.ModuleBag(this);
             Game_Bag.Initialize(this);
             Game_Bag = (Game.Bag.ModuleBag)ReplaceModuleInstance(Game_Bag);
-            if (null != Modules.put(Game_Bag.getName(), Game_Bag)) {
+            if (null != Modules.put(Game_Bag.getFullName(), Game_Bag)) {
                 throw new RuntimeException("duplicate module name: Game_Bag");
             }
             Game_Buf = new Game.Buf.ModuleBuf(this);
             Game_Buf.Initialize(this);
             Game_Buf = (Game.Buf.ModuleBuf)ReplaceModuleInstance(Game_Buf);
-            if (null != Modules.put(Game_Buf.getName(), Game_Buf)) {
+            if (null != Modules.put(Game_Buf.getFullName(), Game_Buf)) {
                 throw new RuntimeException("duplicate module name: Game_Buf");
             }
             Game_Equip = new Game.Equip.ModuleEquip(this);
             Game_Equip.Initialize(this);
             Game_Equip = (Game.Equip.ModuleEquip)ReplaceModuleInstance(Game_Equip);
-            if (null != Modules.put(Game_Equip.getName(), Game_Equip)) {
+            if (null != Modules.put(Game_Equip.getFullName(), Game_Equip)) {
                 throw new RuntimeException("duplicate module name: Game_Equip");
             }
             Game_Fight = new Game.Fight.ModuleFight(this);
             Game_Fight.Initialize(this);
             Game_Fight = (Game.Fight.ModuleFight)ReplaceModuleInstance(Game_Fight);
-            if (null != Modules.put(Game_Fight.getName(), Game_Fight)) {
+            if (null != Modules.put(Game_Fight.getFullName(), Game_Fight)) {
                 throw new RuntimeException("duplicate module name: Game_Fight");
             }
             Game_Item = new Game.Item.ModuleItem(this);
             Game_Item.Initialize(this);
             Game_Item = (Game.Item.ModuleItem)ReplaceModuleInstance(Game_Item);
-            if (null != Modules.put(Game_Item.getName(), Game_Item)) {
+            if (null != Modules.put(Game_Item.getFullName(), Game_Item)) {
                 throw new RuntimeException("duplicate module name: Game_Item");
             }
             Game_Login = new Game.Login.ModuleLogin(this);
             Game_Login.Initialize(this);
             Game_Login = (Game.Login.ModuleLogin)ReplaceModuleInstance(Game_Login);
-            if (null != Modules.put(Game_Login.getName(), Game_Login)) {
+            if (null != Modules.put(Game_Login.getFullName(), Game_Login)) {
                 throw new RuntimeException("duplicate module name: Game_Login");
             }
             Game_Map = new Game.Map.ModuleMap(this);
             Game_Map.Initialize(this);
             Game_Map = (Game.Map.ModuleMap)ReplaceModuleInstance(Game_Map);
-            if (null != Modules.put(Game_Map.getName(), Game_Map)) {
+            if (null != Modules.put(Game_Map.getFullName(), Game_Map)) {
                 throw new RuntimeException("duplicate module name: Game_Map");
             }
             Game_Rank = new Game.Rank.ModuleRank(this);
             Game_Rank.Initialize(this);
             Game_Rank = (Game.Rank.ModuleRank)ReplaceModuleInstance(Game_Rank);
-            if (null != Modules.put(Game_Rank.getName(), Game_Rank)) {
+            if (null != Modules.put(Game_Rank.getFullName(), Game_Rank)) {
                 throw new RuntimeException("duplicate module name: Game_Rank");
             }
             Game_Skill = new Game.Skill.ModuleSkill(this);
             Game_Skill.Initialize(this);
             Game_Skill = (Game.Skill.ModuleSkill)ReplaceModuleInstance(Game_Skill);
-            if (null != Modules.put(Game_Skill.getName(), Game_Skill)) {
+            if (null != Modules.put(Game_Skill.getFullName(), Game_Skill)) {
                 throw new RuntimeException("duplicate module name: Game_Skill");
             }
             Zezex_Provider = new Zezex.Provider.ModuleProvider(this);
             Zezex_Provider.Initialize(this);
             Zezex_Provider = (Zezex.Provider.ModuleProvider)ReplaceModuleInstance(Zezex_Provider);
-            if (null != Modules.put(Zezex_Provider.getName(), Zezex_Provider)) {
+            if (null != Modules.put(Zezex_Provider.getFullName(), Zezex_Provider)) {
                 throw new RuntimeException("duplicate module name: Zezex_Provider");
             }
 

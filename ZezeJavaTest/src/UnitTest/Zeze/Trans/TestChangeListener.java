@@ -35,7 +35,7 @@ public class TestChangeListener{
 	private void Prepare() {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 					demo.App.getInstance().demo_Module1.getTable1().remove(1L);
-					return Procedure.Success;
+					return (long)Procedure.Success;
 		}, "TestChangeListener.Remove", null).Call();
 
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {

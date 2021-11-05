@@ -79,7 +79,7 @@ public abstract class Protocol implements Serializable {
 
 	// 用于Rpc自动发送结果。
 	// Rpc会重载实现。
-	public void SendResultCode(int code) {
+	public void SendResultCode(long code) {
 		setResultCode(code);
 	}
 
@@ -105,11 +105,11 @@ public abstract class Protocol implements Serializable {
 		UniqueRequestId = value;
 	}
 
-	private int ResultCode;
-	public final int getResultCode() {
+	private long ResultCode;
+	public final long getResultCode() {
 		return ResultCode;
 	}
-	public final void setResultCode(int value) {
+	public final void setResultCode(long value) {
 		ResultCode = value;
 	}
 

@@ -30,13 +30,13 @@ public class TestCheckpoint{
 		assert value.equals(bytesInTrans);
 	}
 
-	private int ProcClear() {
+	private long ProcClear() {
 		demo.App.getInstance().demo_Module1.getTable1().remove(56L);
 		return Procedure.Success;
 	}
 
 	private ByteBuffer bytesInTrans;
-	private int ProcChange() {
+	private long ProcChange() {
 		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(56L);
 		v.setInt1(1);
 		bytesInTrans = ByteBuffer.Allocate();

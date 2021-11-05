@@ -1,5 +1,7 @@
 package Zezex;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -38,7 +40,7 @@ public class ModuleRedirect {
 	}
 
 	public static Game.Login.Session GetLoginSession() {
-		return (Game.Login.Session)Transaction.getCurrent().getTopProcedure().getUserState();
+		return (Game.Login.Session) Objects.requireNonNull(Transaction.getCurrent()).getTopProcedure().getUserState();
 	}
 
 	public static ModuleRedirect Instance = new ModuleRedirect();
@@ -205,7 +207,7 @@ public class ModuleRedirect {
 
 		String genClassName = Str.format("_ModuleRedirect_{}_", module.getFullName().replace('.', '_'));
 		String code = GenModuleCode(module, genClassName, overrides);
-		/*
+		//*
 		try {
 			var tmp = new FileWriter(genClassName + ".java", java.nio.charset.StandardCharsets.UTF_8);
 			tmp.write(code);
@@ -214,7 +216,7 @@ public class ModuleRedirect {
 			e.printStackTrace();
 		}
 		return module;
-		*/
+		/*/
 		module.UnRegister();
 		try {
 			Class<?> moduleClass = compiler.compile(genClassName, code);
@@ -222,132 +224,15 @@ public class ModuleRedirect {
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
-		//return CompileCode(code, genClassName);
+		// */
 	}
 
 	private org.mdkt.compiler.InMemoryJavaCompiler compiler;
-	/*
-	private Zeze.IModule CompileCode(String code, String genClassName) {
-		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-		StandardJavaFileManager stdManager = compiler.getStandardFileManager(null, null, null);
-		try (var manager = new MemoryJavaFileManager(stdManager)) {
-			var javaFileObject = manager.makeStringSource(genClassName, code);
-			var optionList = new ArrayList<String>();
-			optionList.add("-classpath");
-			optionList.add(System.getProperty("java.class.path"));
-			var task = compiler.getTask(null, manager, null, optionList, null, Arrays.asList(javaFileObject));
-			if (false == task.call())
-				throw new RuntimeException("compile failed.");
-			try (MemoryClassLoader classLoader = new MemoryClassLoader(manager.getClassBytes())) {
-				return (Zeze.IModule)classLoader.loadClass(genClassName).getDeclaredConstructor(new Class[0]).newInstance();
-			}
-		}
-		catch (Throwable e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	static class MemoryJavaFileManager extends ForwardingJavaFileManager<JavaFileManager> {
-
-		// compiled classes in bytes:
-		final Map<String, byte[]> classBytes = new HashMap<String, byte[]>();
-
-		MemoryJavaFileManager(JavaFileManager fileManager) {
-			super(fileManager);
-		}
-
-		public Map<String, byte[]> getClassBytes() {
-			return new HashMap<String, byte[]>(this.classBytes);
-		}
-
-		@Override
-		public void flush() throws IOException {
-		}
-
-		@Override
-		public void close() throws IOException {
-			classBytes.clear();
-		}
-
-		@Override
-		public JavaFileObject getJavaFileForOutput(JavaFileManager.Location location, String className, Kind kind,
-												   FileObject sibling) throws IOException {
-			if (kind == Kind.CLASS) {
-				return new MemoryOutputJavaFileObject(className);
-			} else {
-				return super.getJavaFileForOutput(location, className, kind, sibling);
-			}
-		}
-
-		JavaFileObject makeStringSource(String name, String code) {
-			return new MemoryInputJavaFileObject(name, code);
-		}
-
-		static class MemoryInputJavaFileObject extends SimpleJavaFileObject {
-
-			final String code;
-
-			MemoryInputJavaFileObject(String name, String code) {
-				super(URI.create("string:///" + name), Kind.SOURCE);
-				this.code = code;
-			}
-
-			@Override
-			public CharBuffer getCharContent(boolean ignoreEncodingErrors) {
-				return CharBuffer.wrap(code);
-			}
-		}
-
-		class MemoryOutputJavaFileObject extends SimpleJavaFileObject {
-			final String name;
-
-			MemoryOutputJavaFileObject(String name) {
-				super(URI.create("string:///" + name), Kind.CLASS);
-				this.name = name;
-			}
-
-			@Override
-			public OutputStream openOutputStream() {
-				return new FilterOutputStream(new ByteArrayOutputStream()) {
-					@Override
-					public void close() throws IOException {
-						out.close();
-						ByteArrayOutputStream bos = (ByteArrayOutputStream) out;
-						classBytes.put(name, bos.toByteArray());
-					}
-				};
-			}
-		}
-	}
-
-	static class MemoryClassLoader extends URLClassLoader {
-
-		Map<String, byte[]> classBytes = new HashMap<String, byte[]>();
-
-		public MemoryClassLoader(Map<String, byte[]> classBytes) {
-			super(new URL[0], MemoryClassLoader.class.getClassLoader());
-			this.classBytes.putAll(classBytes);
-		}
-
-		@Override
-		protected Class<?> findClass(String name) throws ClassNotFoundException {
-			//System.err.println("----------->" + name + classBytes.keySet());
-			//if (!name.startsWith("Zezex."))
-			//	name = "Zezex." + name;
-			byte[] buf = classBytes.get(name);
-			if (buf == null) {
-				return super.findClass(name);
-			}
-			classBytes.remove(name);
-			return defineClass(name, buf, 0, buf.length);
-		}
-	}
-	*/
 
 	public static class Return {
-		public int ReturnCode;
+		public long ReturnCode;
 		public Binary EncodedParameters;
-		public Return(int rc, Binary params) {
+		public Return(long rc, Binary params) {
 			ReturnCode = rc;
 			EncodedParameters = params;
 		}
@@ -382,10 +267,10 @@ public class ModuleRedirect {
 		if (type == void.class)
 			return new ReturnTypeAndName(ReturnType.Void, "void");
 		if (type == Zeze.Util.TaskCompletionSource.class) {
-			// java 怎么获得模板参数列表，检查一下模板参数类型必须Integer.
-			return new ReturnTypeAndName(ReturnType.TaskCompletionSource, "Zeze.Util.TaskCompletionSource<Integer>");
+			// java 怎么获得模板参数列表，检查一下模板参数类型必须Long.
+			return new ReturnTypeAndName(ReturnType.TaskCompletionSource, "Zeze.Util.TaskCompletionSource<Long>");
 		}
-		throw new RuntimeException("ReturnType Must Be void Or TaskCompletionSource<Integer>");
+		throw new RuntimeException("ReturnType Must Be void Or TaskCompletionSource<Long>");
 	}
 
 	private String GetMethodNameWithHash(String name) {
@@ -469,7 +354,7 @@ public class ModuleRedirect {
 			String sessionVarName = "tmp" + TmpVarNameId.incrementAndGet();
 			String futureVarName = "tmp" + TmpVarNameId.incrementAndGet();
 			sb.AppendLine(Str.format("        var {} = Zezex.ModuleRedirect.GetLoginSession();", sessionVarName));
-			sb.AppendLine(Str.format("        var {} = new Zeze.Util.TaskCompletionSource<Integer>();", futureVarName));
+			sb.AppendLine(Str.format("        var {} = new Zeze.Util.TaskCompletionSource<Long>();", futureVarName));
 			sb.AppendLine(Str.format(""));
 			sb.AppendLine(Str.format("        {}.Send({}.getLink(), (thisRpc) ->", rpcVarName, sessionVarName));
 			sb.AppendLine(Str.format("        {"));
@@ -620,7 +505,7 @@ public class ModuleRedirect {
 			sbHandles.AppendLine("                var _bb1_ = Zeze.Serialize.ByteBuffer.Allocate();");
 			GenEncode(sbHandles, "                ", "_bb1_", long.class, session);
 			GenEncode(sbHandles, "                ", "_bb1_", int.class, hash);
-			GenEncode(sbHandles, "                ", "_bb1_", int.class, rc);
+			GenEncode(sbHandles, "                ", "_bb1_", long.class, rc);
 			var resultClass = module.getClassByMethodName(m.Method.getName());
 			GenEncode(sbHandles, "                ", "_bb1_", resultClass, result);
 			var paramVarName = "tmp" + TmpVarNameId.incrementAndGet();
@@ -658,7 +543,7 @@ public class ModuleRedirect {
 		sb.AppendLine("        }");
 		sb.AppendLine("");
 		sb.AppendLine("        @Override");
-		sb.AppendLine("        public int ProcessHashResult(int _hash_, int _returnCode_, Binary _params, List<BActionParam> _actions_)");
+		sb.AppendLine("        public long ProcessHashResult(int _hash_, long _returnCode_, Binary _params, List<BActionParam> _actions_)");
 		sb.AppendLine("        {");
 		if (null != m.ParameterRedirectAllResultHandle) {
 			sb.AppendLine("            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_actions_.get(0).getParams());");

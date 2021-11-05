@@ -26,7 +26,7 @@ namespace Zeze.Util
             return System.Threading.Tasks.Task.Run(() => Call(action, actionName));
         }
 
-        public static void LogAndStatistics(int result, Net.Protocol p, bool IsRequestSaved)
+        public static void LogAndStatistics(long result, Net.Protocol p, bool IsRequestSaved)
         {
             var actionName = p.GetType().FullName;
             if (IsRequestSaved == false)
@@ -39,7 +39,7 @@ namespace Zeze.Util
                     : NLog.LogLevel.Info;
                 var module = "";
                 if (result > 0)
-                    module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetReturnCode(result);
+                    module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
                 logger.Log(logLevel,
                     "Task {0} Return={1}{2} UserState={3}",
                     actionName, result, module, p.UserState);
@@ -49,13 +49,13 @@ namespace Zeze.Util
 #endif
         }
 
-        public static int Call(Func<int> func, Net.Protocol p,
-            Action<Net.Protocol, int> actionWhenError = null)
+        public static long Call(Func<long> func, Net.Protocol p,
+            Action<Net.Protocol, long> actionWhenError = null)
         {
             bool IsRequestSaved = p.IsRequest; // 记住这个，以后可能会被改变。
             try
             {
-                int result = func();
+                long result = func();
                 if (result != 0 && IsRequestSaved)
                 {
                     actionWhenError?.Invoke(p, result);
@@ -89,24 +89,24 @@ namespace Zeze.Util
         }
 
         public static System.Threading.Tasks.Task Run(
-            Func<int> func,
+            Func<long> func,
             Zeze.Net.Protocol p,
-            Action<Net.Protocol, int> actionWhenError = null)
+            Action<Net.Protocol, long> actionWhenError = null)
         {
             return System.Threading.Tasks.Task.Run(() => Call(func, p, actionWhenError));
         }
 
-        public static int Call(
+        public static long Call(
             Procedure procdure,
             Net.Protocol from = null,
-            Action<Net.Protocol, int> actionWhenError = null)
+            Action<Net.Protocol, long> actionWhenError = null)
         {
             bool? isRequestSaved = from?.IsRequest;
             try
             {
                 // 日志在Call里面记录。因为要支持嵌套。
                 // 统计在Call里面实现。
-                int result = procdure.Call();
+                long result = procdure.Call();
                 if (result != 0 && null != isRequestSaved && isRequestSaved.Value)
                 {
                     actionWhenError?.Invoke(from, result);
@@ -128,7 +128,7 @@ namespace Zeze.Util
         public static System.Threading.Tasks.Task Run(
             Procedure procdure,
             Net.Protocol from = null,
-            Action<Net.Protocol, int> actionWhenError = null)
+            Action<Net.Protocol, long> actionWhenError = null)
         {
             return System.Threading.Tasks.Task.Run(() => Call(procdure, from, actionWhenError));
         }

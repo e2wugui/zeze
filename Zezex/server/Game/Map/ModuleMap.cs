@@ -14,7 +14,7 @@ namespace Game.Map
         {
         }
 
-        public override int ProcessCEnterWorld(Protocol p)
+        public override long ProcessCEnterWorld(Protocol p)
         {
             var protocol = p as CEnterWorld;
             Game.Login.Session session = Game.Login.Session.Get(protocol);
@@ -27,7 +27,7 @@ namespace Game.Map
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
-        public override int ProcessCEnterWorldDone(Protocol _p)
+        public override long ProcessCEnterWorldDone(Protocol _p)
         {
             var p = _p as CEnterWorldDone;
             // TODO map

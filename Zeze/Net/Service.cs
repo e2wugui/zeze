@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
-using Zeze.Transaction;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.NetworkInformation;
@@ -255,7 +251,7 @@ namespace Zeze.Net
 
         // 用来派发异步rpc回调。
         public virtual void DispatchRpcResponse(Protocol rpc,
-            Func<Protocol, int> responseHandle,
+            Func<Protocol, long> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
             if (null != Zeze && false == factoryHandle.NoProcedure)
@@ -334,7 +330,7 @@ namespace Zeze.Net
         public class ProtocolFactoryHandle
         { 
             public Func<Protocol> Factory { get; set; }
-            public Func<Protocol, int> Handle { get; set; }
+            public Func<Protocol, long> Handle { get; set; }
             public bool NoProcedure { get; set; } = false;
         }
 

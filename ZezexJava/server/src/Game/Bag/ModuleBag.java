@@ -75,7 +75,7 @@ public final class ModuleBag extends AbstractModule {
 
 	// protocol handles
 	@Override
-	public int ProcessMoveRequest(Protocol _rpc) {
+	public long ProcessMoveRequest(Protocol _rpc) {
 		var rpc = (Move)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 		// throw exception if not login
@@ -84,28 +84,28 @@ public final class ModuleBag extends AbstractModule {
 		if (moduleCode != 0) {
 //C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
 //ORIGINAL LINE: return ReturnCode((ushort)moduleCode);
-			return ReturnCode((short)moduleCode);
+			return ErrorCode(moduleCode);
 		}
 		session.SendResponse(rpc);
 		return 0;
 	}
 
 	@Override
-	public int ProcessDestroyRequest(Protocol _rpc) {
+	public long ProcessDestroyRequest(Protocol _rpc) {
 		var rpc = (Destroy)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 		var moduleCode = GetBag(session.getRoleId().longValue()).Destory(rpc.Argument.getPosition());
 		if (0 != moduleCode) {
 //C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
 //ORIGINAL LINE: return ReturnCode((ushort)moduleCode);
-			return ReturnCode((short)moduleCode);
+			return ErrorCode(moduleCode);
 		}
 		session.SendResponse(rpc);
 		return 0;
 	}
 
 	@Override
-	public int ProcessSortRequest(Protocol _rpc) {
+	public long ProcessSortRequest(Protocol _rpc) {
 		var rpc = (Sort)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 		Bag bag = GetBag(session.getRoleId().longValue());
@@ -115,7 +115,7 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessGetBagRequest(Protocol _rpc) {
+	public long ProcessGetBagRequest(Protocol _rpc) {
 		var rpc = (GetBag)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 
@@ -131,7 +131,7 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessCUse(Protocol _protocol) {
+	public long ProcessCUse(Protocol _protocol) {
 		var protocol = (CUse)_protocol;
 		var session = Game.Login.Session.Get(protocol);
 		Bag bag = GetBag(session.getRoleId().longValue());

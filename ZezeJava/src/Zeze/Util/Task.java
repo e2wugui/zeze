@@ -4,7 +4,6 @@ import Zeze.Transaction.*;
 
 import java.util.concurrent.*;
 
-import org.apache.commons.dbcp2.DelegatingResultSet;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -76,7 +75,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 		}
 	}
 
-	public static int Call(Callable<Integer> action, String actionName) {
+	public static long Call(Callable<Integer> action, String actionName) {
 		try {
 			return action.call();
 		}
@@ -140,14 +139,14 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 		return task;
 	}
 
-	public static void LogAndStatistics(int result, Zeze.Net.Protocol p, boolean IsRequestSaved) {
+	public static void LogAndStatistics(long result, Zeze.Net.Protocol p, boolean IsRequestSaved) {
 		final var actionName = IsRequestSaved ? p.getClass().getName() : p.getClass().getName() + ":Response";
 		if (result != 0) {
 			var logLevel = (null != p.Service.getZeze())
 					? p.Service.getZeze().getConfig().getProcessReturnErrorLogLevel()
 					: Level.INFO;
 			final var module = result > 0
-					? "@" + Zeze.IModule.GetModuleId(result) + ":" + Zeze.IModule.GetReturnCode(result)
+					? "@" + Zeze.IModule.GetModuleId(result) + ":" + Zeze.IModule.GetErrorCode(result)
 					: "";
 			logger.log(logLevel, () -> "Task " + actionName + " Return=" + result + module + " UserState=" + p.getUserState());
 		}
@@ -155,15 +154,15 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	}
 
 
-	public static int Call(Callable<Integer> func, Zeze.Net.Protocol p) {
+	public static long Call(Callable<Long> func, Zeze.Net.Protocol p) {
 		return Call(func, p, null);
 	}
 
-	public static int Call(Callable<Integer> func, Zeze.Net.Protocol p,
-			Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
+	public static long Call(Callable<Long> func, Zeze.Net.Protocol p,
+			Action2<Zeze.Net.Protocol, Long> actionWhenError) {
 		boolean IsRequestSaved = p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
-			int result = func.call();
+			var result = func.call();
 			if (result != 0 && IsRequestSaved) {
 				if (actionWhenError != null) {
 					actionWhenError.run(p, result);
@@ -180,7 +179,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 				ex = cause;
 			}
 
-			var errorCode = ex instanceof TaskCanceledException ? Procedure.CancelExcption : Procedure.Excption;
+			long errorCode = ex instanceof TaskCanceledException ? Procedure.CancelExcption : Procedure.Excption;
 
 			if (IsRequestSaved) {
 				if (actionWhenError != null) {
@@ -196,33 +195,33 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	}
 
 
-	public static Task Run(Callable<Integer> func, Zeze.Net.Protocol p) {
+	public static Task Run(Callable<Long> func, Zeze.Net.Protocol p) {
 		return Run(func, p, null);
 	}
 
-	public static Task Run(Callable<Integer> func, Zeze.Net.Protocol p,
-			Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
+	public static Task Run(Callable<Long> func, Zeze.Net.Protocol p,
+			Action2<Zeze.Net.Protocol, Long> actionWhenError) {
 		var task = new Task(() -> Call(func, p, actionWhenError));
 		threadPoolDefault.execute(task);
 		return task;
 	}
 
 
-	public static int Call(Procedure procdure, Zeze.Net.Protocol from) {
+	public static long Call(Procedure procdure, Zeze.Net.Protocol from) {
 		return Call(procdure, from, null);
 	}
 
-	public static int Call(Procedure procdure) {
+	public static long Call(Procedure procdure) {
 		return Call(procdure, null, null);
 	}
 
-	public static int Call(Procedure procdure, Zeze.Net.Protocol from,
-			Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
+	public static long Call(Procedure procdure, Zeze.Net.Protocol from,
+			Action2<Zeze.Net.Protocol, Long> actionWhenError) {
 		Boolean isRequestSaved = from == null ? null : from.isRequest();
 		try {
 			// 日志在Call里面记录。因为要支持嵌套。
 			// 统计在Call里面实现。
-			int result = procdure.Call();
+			long result = procdure.Call();
 			if (result != 0 && isRequestSaved != null && isRequestSaved) {
 				if (actionWhenError != null) {
 					actionWhenError.run(from, result);
@@ -234,7 +233,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
 			if (isRequestSaved != null && isRequestSaved) {
 				if (actionWhenError != null) {
-					actionWhenError.run(from, Procedure.Excption);
+					actionWhenError.run(from, (long)Procedure.Excption);
 				}
 			}
 			logger.error(procdure.getActionName(), ex);
@@ -253,7 +252,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 
 	public static Task Run(Procedure procdure,
 			Zeze.Net.Protocol from,
-			Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
+			Action2<Zeze.Net.Protocol, Long> actionWhenError) {
 		var task = new Task(() -> Call(procdure, from, actionWhenError));
 		threadPoolDefault.execute(task);
 		return task;
@@ -261,7 +260,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 
 	public static Task Create(Procedure procdure,
 							  Zeze.Net.Protocol from,
-							  Action2<Zeze.Net.Protocol, Integer> actionWhenError) {
+							  Action2<Zeze.Net.Protocol, Long> actionWhenError) {
 		return new Task(() -> Call(procdure, from, actionWhenError));
 	}
 

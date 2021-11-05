@@ -35,7 +35,7 @@ namespace Game.Rank
         /// <param name="roleId"></param>
         /// <param name="value"></param>
         /// <returns>Procudure.Success...</returns>
-        protected int UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
+        protected long UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
         {
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
             int maxCount = GetRankComputeCount(keyHint.RankType);
@@ -218,7 +218,7 @@ namespace Game.Rank
         }
 
         // 名字必须和RunUpdateRankWithHash匹配，内部使用一样的实现。
-        protected int UpdateRankWithHash(
+        protected long UpdateRankWithHash(
             int hash, BConcurrentKey keyHint,
             long roleId, long value, Zeze.Net.Binary valueEx)
         {
@@ -248,7 +248,7 @@ namespace Game.Rank
         ///    d) 剩下的是自定义参数。
         /// </summary>
         protected int GetRank(long sessionId, int hash, BConcurrentKey keyHint,
-            System.Action<long, int, int, BRankList> onHashResult)
+            System.Action<long, int, long, BRankList> onHashResult)
         {
             // 根据hash获取分组rank。
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
@@ -263,7 +263,7 @@ namespace Game.Rank
         // 需要注意在子类上下文中可以编译通过。可以是常量。
         [Zezex.ModuleRedirectAll("GetConcurrentLevel(keyHint.RankType)")]
         public virtual void RunGetRank(BConcurrentKey keyHint,
-            System.Action<long, int, int, BRankList> onHashResult,
+            System.Action<long, int, long, BRankList> onHashResult,
             Action<ModuleRedirectAllContext> onHashEnd
             )
         {
@@ -391,7 +391,7 @@ namespace Game.Rank
             RunUpdateRank(keyHint, roleId, counter.Value, valueEx);
         }
 
-        public override int ProcessCGetRankList(Protocol p)
+        public override long ProcessCGetRankList(Protocol p)
         {
             var protocol = p as CGetRankList;
             Login.Session session = Login.Session.Get(protocol);
@@ -466,7 +466,7 @@ namespace Game.Rank
 
         /******************************** ModuleRedirect 测试 *****************************************/
         [Zezex.ModuleRedirect()]
-        public virtual TaskCompletionSource<int> RunTest1(Zeze.TransactionModes mode)
+        public virtual TaskCompletionSource<long> RunTest1(Zeze.TransactionModes mode)
         {
             int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
             return App.Zeze.Run(() => Test1(hash), nameof(Test1), mode, hash);
@@ -489,7 +489,7 @@ namespace Game.Rank
             outData = outDataTmp;
         }
 
-        protected int Test2(int hash, int inData, ref int refData, out int outData)
+        protected long Test2(int hash, int inData, ref int refData, out int outData)
         {
             outData = 1;
             ++refData;

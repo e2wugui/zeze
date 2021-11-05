@@ -92,13 +92,13 @@ namespace Zeze.Services
             }
         }
 
-        private int ProcessCHandshakeDone(Protocol p)
+        private long ProcessCHandshakeDone(Protocol p)
         {
             OnHandshakeDone(p.Sender);
             return 0;
         }
 
-        private int ProcessCHandshake(Protocol _p)
+        private long ProcessCHandshake(Protocol _p)
         {
             Handshake.CHandshake p = (Handshake.CHandshake)_p;
             int group = p.Argument.dh_group;
@@ -153,7 +153,7 @@ namespace Zeze.Services
             });
         }
 
-        private int ProcessSHandshake(Protocol _p)
+        private long ProcessSHandshake(Protocol _p)
         {
             Handshake.SHandshake p = (Handshake.SHandshake)_p;
             if (DHContext.TryGetValue(p.Sender.SessionId, out var dhRandom))

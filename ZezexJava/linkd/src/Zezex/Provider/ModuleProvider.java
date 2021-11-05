@@ -208,7 +208,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessBindRequest(Protocol _rpc) {
+    public long ProcessBindRequest(Protocol _rpc) {
         var rpc = (Bind) _rpc;
         if (rpc.Argument.getLinkSids().size() == 0) {
             var providerSession = (Zezex.ProviderSession) rpc.getSender().getUserState();
@@ -263,7 +263,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessUnBindRequest(Protocol _rpc) {
+    public long ProcessUnBindRequest(Protocol _rpc) {
         var rpc = (UnBind) _rpc;
         if (rpc.Argument.getLinkSids().size() == 0) {
             UnBindModules(rpc.getSender(), rpc.Argument.getModules().keySet());
@@ -282,7 +282,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessSend(Protocol _p) {
+    public long ProcessSend(Protocol _p) {
         var protocol = (Send) _p;
         // 这个是拿来处理乱序问题的：多个逻辑服务器之间，给客户端发送协议排队。
         // 所以不用等待真正发送给客户端，收到就可以发送结果。
@@ -305,7 +305,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessBroadcast(Protocol _protocol) {
+    public long ProcessBroadcast(Protocol _protocol) {
         var protocol = (Broadcast) _protocol;
         if (protocol.Argument.getConfirmSerialId() != 0) {
             var confirm = new SendConfirm();
@@ -318,7 +318,7 @@ public final class ModuleProvider extends AbstractModule {
             // 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
             // 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。
             var linkSession = (Zezex.LinkSession) socket.getUserState();
-            if (null != linkSession && !linkSession.getAccount() == null && !linkSession.getUserStates().isEmpty()) {
+            if (null != linkSession && linkSession.getAccount() == null && !linkSession.getUserStates().isEmpty()) {
                 socket.Send(protocol.Argument.getProtocolWholeData());
             }
         });
@@ -326,7 +326,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessKick(Protocol _p) {
+    public long ProcessKick(Protocol _p) {
         var protocol = (Kick) _p;
         App.Instance.LinkdService.ReportError(
                 protocol.Argument.getLinksid(),
@@ -337,7 +337,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessSetUserState(Protocol _p) {
+    public long ProcessSetUserState(Protocol _p) {
         var protocol = (SetUserState) _p;
         var socket = App.LinkdService.GetSocket(protocol.Argument.getLinkSid());
         var linkSession = (Zezex.LinkSession) socket.getUserState();
@@ -348,7 +348,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessModuleRedirectRequest(Protocol _rpc) {
+    public long ProcessModuleRedirectRequest(Protocol _rpc) {
         var rpc = (ModuleRedirect) _rpc;
         long SourceProvider = rpc.getSender().getSessionId();
         var provider = new Zeze.Util.OutObject<Long>();
@@ -371,7 +371,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessModuleRedirectAllRequest(Protocol _protocol) {
+    public long ProcessModuleRedirectAllRequest(Protocol _protocol) {
         var protocol = (ModuleRedirectAllRequest) _protocol;
         HashMap<Long, ModuleRedirectAllRequest> transmits = new HashMap<Long, ModuleRedirectAllRequest>();
 
@@ -428,7 +428,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessModuleRedirectAllResult(Protocol _protocol) {
+    public long ProcessModuleRedirectAllResult(Protocol _protocol) {
         var protocol = (ModuleRedirectAllResult) _protocol;
         var sourcerProvider = App.ProviderService.GetSocket(protocol.Argument.getSourceProvider());
         if (null != sourcerProvider) {
@@ -438,7 +438,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessReportLoad(Protocol _protocol) {
+    public long ProcessReportLoad(Protocol _protocol) {
         var protocol = (ReportLoad) _protocol;
         var providerSession = (Zezex.ProviderSession) protocol.getSender().getUserState();
         if (providerSession != null) {
@@ -448,7 +448,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessTransmit(Protocol _protocol) {
+    public long ProcessTransmit(Protocol _protocol) {
         var protocol = (Transmit) _protocol;
         // 查询 role 所在的 provider 并转发。
         var transmits = new HashMap<Long, Transmit>();
@@ -521,7 +521,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public int ProcessAnnounceProviderInfo(Protocol _protocol) {
+    public long ProcessAnnounceProviderInfo(Protocol _protocol) {
         var protocol = (AnnounceProviderInfo) _protocol;
         var session = (Zezex.ProviderSession) protocol.getSender().getUserState();
         session.setInfo(protocol.Argument);

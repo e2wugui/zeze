@@ -209,7 +209,7 @@ namespace Zeze.Services
             /// 订阅时候返回的ServiceInfos，必须和Notify流程互斥。
             /// 原子的得到当前信息并发送，然后加入订阅(simple or readycommit)。
             /// </summary>
-            public int SubscribeAndSend(Subscribe r, Session session)
+            public long SubscribeAndSend(Subscribe r, Session session)
             {
                 lock (this)
                 {
@@ -343,7 +343,7 @@ namespace Zeze.Services
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private int ProcessRegister(Protocol p)
+        private long ProcessRegister(Protocol p)
         {
             var r = p as Register;
             var session = r.Sender.UserState as Session;
@@ -390,7 +390,7 @@ namespace Zeze.Services
             return null;
         }
 
-        private int ProcessUnRegister(Protocol p)
+        private long ProcessUnRegister(Protocol p)
         {
             var r = p as UnRegister;
             var session = r.Sender.UserState as Session;
@@ -406,7 +406,7 @@ namespace Zeze.Services
             return Procedure.Success;
         }
 
-        private int ProcessSubscribe(Protocol p)
+        private long ProcessSubscribe(Protocol p)
         {
             var r = p as Subscribe;
             var session = r.Sender.UserState as Session;
@@ -439,7 +439,7 @@ namespace Zeze.Services
             return null;
         }
 
-        private int ProcessUnSubscribe(Protocol p)
+        private long ProcessUnSubscribe(Protocol p)
         {
             var r = p as UnSubscribe;
             var session = r.Sender.UserState as Session;
@@ -466,7 +466,7 @@ namespace Zeze.Services
             return Procedure.Success;
         }
 
-        private int ProcessReadyServiceList(Protocol p)
+        private long ProcessReadyServiceList(Protocol p)
         {
             var r = p as ReadyServiceList;
             var session = r.Sender.UserState as Session;
@@ -597,7 +597,7 @@ namespace Zeze.Services
             }
         }
 
-        private int ProcessAllocateId(Protocol p)
+        private long ProcessAllocateId(Protocol p)
         {
             var r = p as AllocateId;
             var n = r.Argument.Name;
@@ -930,7 +930,7 @@ namespace Zeze.Services.ServiceManager
             return subState;
         }
 
-        private int ProcessSubscribeFirstCommit(Protocol p)
+        private long ProcessSubscribeFirstCommit(Protocol p)
         {
             var r = p as SubscribeFirstCommit;
             if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
@@ -959,7 +959,7 @@ namespace Zeze.Services.ServiceManager
             }
         }
 
-        private int ProcessNotifyServiceList(Protocol p)
+        private long ProcessNotifyServiceList(Protocol p)
         {
             var r = p as NotifyServiceList;
             if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
@@ -973,7 +973,7 @@ namespace Zeze.Services.ServiceManager
             return Procedure.Success;
         }
 
-        private int ProcessCommitServiceList(Protocol p)
+        private long ProcessCommitServiceList(Protocol p)
         {
             var r = p as CommitServiceList;
             if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
@@ -987,7 +987,7 @@ namespace Zeze.Services.ServiceManager
             return Procedure.Success;
         }
 
-        private int ProcessKeepalive(Protocol p)
+        private long ProcessKeepalive(Protocol p)
         {
             var r = p as Keepalive;
             OnKeepAlive?.Invoke();

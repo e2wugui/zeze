@@ -7,27 +7,27 @@ namespace Zeze.Transaction
 {
     public class Procedure
     {
-        public const int Success = 0;
-        public const int Excption = -1;
-        public const int TooManyTry = -2;
-        public const int NotImplement = -3;
-        public const int Unknown = -4;
-        public const int ErrorSavepoint = -5;
-        public const int LogicError = -6;
-        public const int RedoAndRelease = -7;
-        public const int AbortException = -8;
-        public const int ProviderNotExist = -9;
-        public const int Timeout = -10;
-        public const int CancelExcption = -11;
-        public const int DuplicateRequest = -12;
-        public const int ErrorRequestId = -13;
+        public const long Success = 0;
+        public const long Excption = -1;
+        public const long TooManyTry = -2;
+        public const long NotImplement = -3;
+        public const long Unknown = -4;
+        public const long ErrorSavepoint = -5;
+        public const long LogicError = -6;
+        public const long RedoAndRelease = -7;
+        public const long AbortException = -8;
+        public const long ProviderNotExist = -9;
+        public const long Timeout = -10;
+        public const long CancelExcption = -11;
+        public const long DuplicateRequest = -12;
+        public const long ErrorRequestId = -13;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public Application Zeze { get; }
 
-        public Func<int> Action { get; set; }
+        public Func<long> Action { get; set; }
 
         public string ActionName { get; set; } // 用来统计或者日志
 
@@ -39,7 +39,7 @@ namespace Zeze.Transaction
 
         public object UserState { get; set; }
 
-        public Procedure(Application app, Func<int> action, string actionName, object userState)
+        public Procedure(Application app, Func<long> action, string actionName, object userState)
         {
             Zeze = app;
             Action = action;
@@ -54,7 +54,7 @@ namespace Zeze.Transaction
         /// 嵌套 Procedure 实现，
         /// </summary>
         /// <returns></returns>
-        public int Call()
+        public long Call()
         {
             if (null == Transaction.Current)
             {
@@ -75,7 +75,7 @@ namespace Zeze.Transaction
 
             try
             {
-                int result = Process();
+                long result = Process();
                 if (Success == result)
                 {
                     currentT.Commit();
@@ -89,7 +89,7 @@ namespace Zeze.Transaction
                 var module = "";
                 if (result > 0)
                     module = "@" + IModule.GetModuleId(result)
-                        + ":" + IModule.GetReturnCode(result);
+                        + ":" + IModule.GetErrorCode(result);
                 logger.Log(Zeze.Config.ProcessReturnErrorLogLevel,
                     "Procedure {0} Return{1}@{2} UserState={3}",
                     ToString(), result, module, UserState);
@@ -147,7 +147,7 @@ namespace Zeze.Transaction
             }
         }
 
-        protected virtual int Process()
+        protected virtual long Process()
         {
             if (null != Action)
                 return Action();

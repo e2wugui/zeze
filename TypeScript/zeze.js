@@ -248,11 +248,11 @@ var Zeze;
             this.Argument = argument;
         }
         Encode(_os_) {
-            _os_.WriteInt(this.ResultCode);
+            _os_.WriteLong(this.ResultCode);
             this.Argument.Encode(_os_);
         }
         Decode(_os_) {
-            this.ResultCode = _os_.ReadInt();
+            this.ResultCode = _os_.ReadLong();
             this.Argument.Decode(_os_);
         }
     }
@@ -320,7 +320,7 @@ var Zeze;
         Decode(bb) {
             this.IsRequest = bb.ReadBool();
             this.sid = bb.ReadLong();
-            this.ResultCode = bb.ReadInt();
+            this.ResultCode = bb.ReadLong();
             if (this.IsRequest) {
                 this.Argument.Decode(bb);
             }
@@ -331,7 +331,7 @@ var Zeze;
         Encode(bb) {
             bb.WriteBool(this.IsRequest);
             bb.WriteLong(this.sid);
-            bb.WriteInt(this.ResultCode);
+            bb.WriteLong(this.ResultCode);
             if (this.IsRequest) {
                 this.Argument.Encode(bb);
             }

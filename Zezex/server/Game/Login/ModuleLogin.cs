@@ -18,7 +18,7 @@ namespace Game.Login
 
         public Onlines Onlines { get; private set; }
 
-        public override int ProcessCreateRoleRequest(Protocol p)
+        public override long ProcessCreateRoleRequest(Protocol p)
         {
             var rpc = p as CreateRole;
             Session session = Session.Get(rpc);
@@ -30,7 +30,7 @@ namespace Game.Login
 
             // duplicate name check
             if (false == _trolename.TryAdd(rpc.Argument.Name, new BRoleId() { Id = roleid }))
-                return ReturnCode(ResultCodeCreateRoleDuplicateRoleName);
+                return ErrorCode(ResultCodeCreateRoleDuplicateRoleName);
 
             var account = _taccount.GetOrAdd(session.Account);
             account.Roles.Add(roleid);
@@ -42,7 +42,7 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        public override int ProcessGetRoleListRequest(Protocol p)
+        public override long ProcessGetRoleListRequest(Protocol p)
         {
             var rpc = p as GetRoleList;
             Session session = Session.Get(rpc);
@@ -69,19 +69,19 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        public override int ProcessLoginRequest(Protocol p)
+        public override long ProcessLoginRequest(Protocol p)
         {
             var rpc = p as Login;
             Session session = Session.Get(rpc);
 
             BAccount account = _taccount.Get(session.Account);
             if (null == account)
-                return ReturnCode(ResultCodeAccountNotExist);
+                return ErrorCode(ResultCodeAccountNotExist);
 
             account.LastLoginRoleId = rpc.Argument.RoleId;
             BRoleData role = _trole.Get(rpc.Argument.RoleId);
             if (null == role)
-                return ReturnCode(ResultCodeRoleNotExist);
+                return ErrorCode(ResultCodeRoleNotExist);
 
             BOnline online = _tonline.GetOrAdd(rpc.Argument.RoleId);
             online.LinkName = session.LinkName;
@@ -111,25 +111,25 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        public override int ProcessReLoginRequest(Protocol p)
+        public override long ProcessReLoginRequest(Protocol p)
         {
             var rpc = p as ReLogin;
             Session session = Session.Get(rpc);
 
             BAccount account = _taccount.Get(session.Account);
             if (null == account)
-                return ReturnCode(ResultCodeAccountNotExist);
+                return ErrorCode(ResultCodeAccountNotExist);
 
             if (account.LastLoginRoleId != rpc.Argument.RoleId)
-                return ReturnCode(ResultCodeNotLastLoginRoleId);
+                return ErrorCode(ResultCodeNotLastLoginRoleId);
 
             BRoleData role = _trole.Get(rpc.Argument.RoleId);
             if (null == role)
-                return ReturnCode(ResultCodeRoleNotExist);
+                return ErrorCode(ResultCodeRoleNotExist);
 
             BOnline online = _tonline.Get(rpc.Argument.RoleId);
             if (null == online)
-                return ReturnCode(ResultCodeOnlineDataNotFound);
+                return ErrorCode(ResultCodeOnlineDataNotFound);
 
             online.LinkName = session.LinkName;
             online.LinkSid = session.SessionId;
@@ -151,7 +151,7 @@ namespace Game.Login
                 online);
 
             if (syncResultCode != ResultCodeSuccess)
-                return ReturnCode((ushort)syncResultCode);
+                return ErrorCode((ushort)syncResultCode);
 
             App.Load.LoginCount.IncrementAndGet();
             return Procedure.Success;
@@ -181,14 +181,14 @@ namespace Game.Login
             return ResultCodeSuccess;
         }
 
-        public override int ProcessReliableNotifyConfirmRequest(Protocol p)
+        public override long ProcessReliableNotifyConfirmRequest(Protocol p)
         {
             var rpc = p as ReliableNotifyConfirm;
             Session session = Session.Get(rpc);
 
             BOnline online = _tonline.Get(session.RoleId.Value);
             if (null == online || online.State == BOnline.StateOffline)
-                return ReturnCode(ResultCodeOnlineDataNotFound);
+                return ErrorCode(ResultCodeOnlineDataNotFound);
 
             session.SendResponseWhileCommit(rpc); // 同步前提交。
             var syncResultCode = ReliableNotifySync(
@@ -198,18 +198,18 @@ namespace Game.Login
                 false);
 
             if (ResultCodeSuccess != syncResultCode)
-                return ReturnCode((ushort)syncResultCode);
+                return ErrorCode((ushort)syncResultCode);
 
             return Procedure.Success;
         }
 
-        public override int ProcessLogoutRequest(Protocol p)
+        public override long ProcessLogoutRequest(Protocol p)
         {
             var rpc = p as Logout;
             Session session = Session.Get(rpc);
 
             if (session.RoleId == null)
-                return ReturnCode(ResultCodeNotLogin);
+                return ErrorCode(ResultCodeNotLogin);
 
             _tonline.Remove(session.RoleId.Value);
 

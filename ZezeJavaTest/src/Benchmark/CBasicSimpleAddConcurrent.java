@@ -45,7 +45,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
         }
     }
 
-    private int Check() {
+    private long Check() {
         long sum = 0;
         for (long i = 0; i < ConcurrentLevel; ++i) {
             var r = App.Instance.demo_Module1.getTable1().getOrAdd(i);
@@ -56,20 +56,20 @@ public class CBasicSimpleAddConcurrent extends TestCase {
         return 0;
     }
 
-    private int Add() {
+    private long Add() {
         var r = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
         r.setLong2(r.getLong2() + 1);
         return 0;
     }
 
-    private int Add(long key) {
+    private long Add(long key) {
         var r = App.Instance.demo_Module1.getTable1().getOrAdd(key);
         r.setLong2(r.getLong2() + 1);
         //System.out.println("Add=" + key);
         return 0;
     }
 
-    private int Remove(long key) {
+    private long Remove(long key) {
         App.Instance.demo_Module1.getTable1().remove(key);
         return 0;
     }

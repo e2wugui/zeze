@@ -24,12 +24,12 @@ public class TestTableNest{
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcTableAdd, "ProcTableAdd", null).Call();
 	}
 
-	private int ProcTableRemove() {
+	private long ProcTableRemove() {
 		demo.App.getInstance().demo_Module1.getTable1().remove(4321L);
 		return Procedure.Success;
 	}
 
-	private int ProcTableAdd() {
+	private long ProcTableAdd() {
 		demo.Module1.Value v1 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(4321L);
 		assert v1 != null;
 		assert Procedure.Success != demo.App.getInstance().Zeze.NewProcedure(this::ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback", null).Call();
@@ -39,7 +39,7 @@ public class TestTableNest{
 		return Procedure.Success;
 	}
 
-	private int ProcTablePutNestAndRollback() {
+	private long ProcTablePutNestAndRollback() {
 		demo.Module1.Value v = new demo.Module1.Value();
 		demo.App.getInstance().demo_Module1.getTable1().put(4321L, v);
 		return Procedure.Unknown;

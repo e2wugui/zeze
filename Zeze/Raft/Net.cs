@@ -106,7 +106,7 @@ namespace Zeze.Raft
         }
 
         public override void DispatchRpcResponse(Protocol p,
-            Func<Protocol, int> responseHandle,
+            Func<Protocol, long> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
             if (IsImportantProtocol(p.TypeId))
@@ -122,7 +122,7 @@ namespace Zeze.Raft
 
         public Util.TaskOneByOneByKey TaskOneByOne { get; } = new Util.TaskOneByOneByKey();
 
-        private int ProcessRequest(Protocol p, ProtocolFactoryHandle factoryHandle)
+        private long ProcessRequest(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             return Util.Task.Call(() =>
             {
@@ -253,7 +253,7 @@ namespace Zeze.Raft
         /// <returns></returns>
         public bool Send<TArgument, TResult>(
             Rpc<TArgument, TResult> rpc,
-            Func<Protocol, int> handle,
+            Func<Protocol, long> handle,
             bool autoResend = true,
             int timeout = -1)
             where TArgument : Bean, new()
@@ -286,7 +286,7 @@ namespace Zeze.Raft
             timeout);
         }
 
-        private int SendForWaitHandle<TArgument, TResult>(
+        private long SendForWaitHandle<TArgument, TResult>(
             TaskCompletionSource<Rpc<TArgument, TResult>> future,
             Rpc<TArgument, TResult> rpc)
             where TArgument : Bean, new()
@@ -420,7 +420,7 @@ namespace Zeze.Raft
             });
         }
 
-        private int ProcessLeaderIs(Protocol p)
+        private long ProcessLeaderIs(Protocol p)
         {
             var r = p as LeaderIs;
             logger.Debug("{0}: {1}", Name, r);

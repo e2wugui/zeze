@@ -191,7 +191,7 @@ namespace Zezex.Provider
             }
         }
 
-        public override int ProcessBindRequest(Protocol p)
+        public override long ProcessBindRequest(Protocol p)
         {
             var rpc = p as Bind;
             if (rpc.Argument.LinkSids.Count == 0)
@@ -250,7 +250,7 @@ namespace Zezex.Provider
                 volatileProviders.SetServiceIdentityReadyState(providerSession.Info.ServiceIndentity, null);
             }
         }
-        public override int ProcessUnBindRequest(Protocol p)
+        public override long ProcessUnBindRequest(Protocol p)
         {
             var rpc = p as UnBind;
             if (rpc.Argument.LinkSids.Count == 0)
@@ -274,7 +274,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessSend(Protocol p)
+        public override long ProcessSend(Protocol p)
         {
             var protocol = p as Send;
             // 这个是拿来处理乱序问题的：多个逻辑服务器之间，给客户端发送协议排队。
@@ -297,7 +297,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessBroadcast(Protocol p)
+        public override long ProcessBroadcast(Protocol p)
         {
             var protocol = p as Broadcast;
             if (protocol.Argument.ConfirmSerialId != 0)
@@ -323,7 +323,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessKick(Protocol p)
+        public override long ProcessKick(Protocol p)
         {
             var protocol = p as Kick;
             App.Instance.LinkdService.ReportError(
@@ -332,7 +332,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessSetUserState(Protocol p)
+        public override long ProcessSetUserState(Protocol p)
         {
             var protocol = p as SetUserState;
             var socket = App.Instance.LinkdService.GetSocket(protocol.Argument.LinkSid);
@@ -341,7 +341,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessModuleRedirectRequest(Protocol p)
+        public override long ProcessModuleRedirectRequest(Protocol p)
         {
             var rpc = p as ModuleRedirect;
             long SourceProvider = rpc.Sender.SessionId;
@@ -367,7 +367,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessModuleRedirectAllRequest(Protocol p)
+        public override long ProcessModuleRedirectAllRequest(Protocol p)
         {
             var protocol = p as ModuleRedirectAllRequest;
             Dictionary<long, ModuleRedirectAllRequest> transmits = new Dictionary<long, ModuleRedirectAllRequest>();
@@ -435,7 +435,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessModuleRedirectAllResult(Protocol p)
+        public override long ProcessModuleRedirectAllResult(Protocol p)
         {
             var protocol = p as ModuleRedirectAllResult;
             var sourcerProvider = App.ProviderService.GetSocket(protocol.Argument.SourceProvider);
@@ -446,7 +446,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessReportLoad(Protocol p)
+        public override long ProcessReportLoad(Protocol p)
         {
             var protocol = p as ReportLoad;
             var providerSession = protocol.Sender.UserState as ProviderSession;
@@ -454,7 +454,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        public override int ProcessTransmit(Protocol p)
+        public override long ProcessTransmit(Protocol p)
         {
             var protocol = p as Transmit;
             // 查询 role 所在的 provider 并转发。
@@ -516,7 +516,7 @@ namespace Zezex.Provider
         // 不建议在一个项目里面使用多个Prefix。
         public string ServerServiceNamePrefix { get; private set; } = "";
 
-        public override int ProcessAnnounceProviderInfo(Protocol p)
+        public override long ProcessAnnounceProviderInfo(Protocol p)
         {
             var protocol = p as AnnounceProviderInfo;
             var session = protocol.Sender.UserState as ProviderSession;

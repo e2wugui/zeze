@@ -39,19 +39,19 @@ public class TestConflict {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcRemove, "ProcRemove", null).Call();
 	}
 
-	private int ProcRemove() {
+	private long ProcRemove() {
 		demo.App.getInstance().demo_Module1.getTable1().remove(123123l);
 		return Procedure.Success;
 	}
 
-	private int ProcAdd() {
+	private long ProcAdd() {
 		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
 		v.setInt1(v.getInt1() + 1);
 		sum++;
 		return Procedure.Success;
 	}
 
-	private int ProcVerify() {
+	private long ProcVerify() {
 		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
 		assert v.getInt1() == sum;
 		return Procedure.Success;

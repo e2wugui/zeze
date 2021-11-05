@@ -129,7 +129,7 @@ public final class Transaction {
 	 
 	 @param procedure
 	*/
-	public int Perform(Procedure procedure) {
+	public long Perform(Procedure procedure) {
 		try {
 			for (int tryCount = 0; tryCount < 256; ++tryCount) { // 最多尝试次数
 				try {
@@ -139,7 +139,7 @@ public final class Transaction {
 					for (; tryCount < 256; ++tryCount) { // 最多尝试次数
 						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
 						try {
-							int result = procedure.Call();
+							var result = procedure.Call();
 							if ((result == Procedure.Success && Savepoints.size() != 1) || (result != Procedure.Success && !Savepoints.isEmpty())) {
 								// 这个错误不应该重做
 								logger.fatal("Transaction.Perform:{}. savepoints.Count != 1.", procedure);

@@ -68,13 +68,13 @@ public class TestCheckpointModeTable{
 		}
 	}
 
-	private int Add() {
+	private long Add() {
 		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1l);
 		value.setInt1 (value.getInt1() + 1);
 		return Procedure.Success;
 	}
 
-	private int Add2() {
+	private long Add2() {
 		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1l);
 		value.setInt1(value.getInt1() + 1);
 		var value2 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1l);

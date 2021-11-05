@@ -39,7 +39,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").Call());
         }
 
-        int ProcGetUpdate()
+        long ProcGetUpdate()
         {
             demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.Get(1);
 
@@ -58,7 +58,7 @@ namespace UnitTest.Zeze.Trans
             return Procedure.Success;
         }
 
-        int ProcGetUpdateCheckRemove()
+        long ProcGetUpdateCheckRemove()
         {
             demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.Get(1);
 
@@ -87,7 +87,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").Call());
         }
 
-        int ProcGetOrAdd()
+        long ProcGetOrAdd()
         {
             demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
 
@@ -107,7 +107,7 @@ namespace UnitTest.Zeze.Trans
             return Procedure.Success;
         }
 
-        int ProcGetOrAddCheckAndRemove()
+        long ProcGetOrAddCheckAndRemove()
         {
             var v = demo.App.Instance.demo_Module1.Table1.Get(1);
             Assert.IsNotNull(v);
@@ -145,7 +145,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet22, "ProcGet22").Call());
         }
 
-        int ProcGet21()
+        long ProcGet21()
         {
             ProcGet11();
             demo.Module1.Key key = new demo.Module1.Key(1);
@@ -170,7 +170,7 @@ namespace UnitTest.Zeze.Trans
             return Procedure.Success;
         }
 
-        int ProcGet22()
+        long ProcGet22()
         {
             ProcGet12();
             demo.Module1.Key key = new demo.Module1.Key(1);
@@ -196,7 +196,7 @@ namespace UnitTest.Zeze.Trans
             return Procedure.Success;
         }
 
-        int ProcGet11()
+        long ProcGet11()
         {
             Assert.IsNull(demo.App.Instance.demo_Module1.Table1.Get(1));
             demo.Module1.Value v = new demo.Module1.Value();
@@ -219,7 +219,7 @@ namespace UnitTest.Zeze.Trans
             return Procedure.Success;
         }
 
-        int ProcGet12()
+        long ProcGet12()
         {
             var v = demo.App.Instance.demo_Module1.Table1.Get(1);
             Assert.IsNotNull(v);

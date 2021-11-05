@@ -199,7 +199,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	}
 
 	@Override
-	public void SendResultCode(int code) {
+	public void SendResultCode(long code) {
 		if (SendResultDone) {
 			return;
 		}
@@ -244,7 +244,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	public void Decode(ByteBuffer bb) {
 		setRequest(bb.ReadBool());
 		SessionId = bb.ReadLong();
-		setResultCode(bb.ReadInt());
+		setResultCode(bb.ReadLong());
 		setUniqueRequestId(bb.ReadLong());
 
 		if (isRequest()) {
@@ -259,7 +259,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	public void Encode(ByteBuffer bb) {
 		bb.WriteBool(isRequest());
 		bb.WriteLong(SessionId);
-		bb.WriteInt(getResultCode());
+		bb.WriteLong(getResultCode());
 		bb.WriteLong(getUniqueRequestId());
 
 		if (isRequest()) {

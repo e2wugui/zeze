@@ -84,7 +84,7 @@ namespace Zeze.Transaction
                     }
 
                     var normalClose = new NormalClose();
-                    var future = new TaskCompletionSource<int>();
+                    var future = new TaskCompletionSource<long>();
                     normalClose.Send(tmp,
                         (_) =>
                         {
@@ -175,7 +175,7 @@ namespace Zeze.Transaction
             return state;
         }
 
-        public int ProcessReduceRequest(Zeze.Net.Protocol p)
+        public long ProcessReduceRequest(Zeze.Net.Protocol p)
         {
             var rpc = (Reduce)p;
             switch (rpc.Argument.State)

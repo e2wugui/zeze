@@ -134,7 +134,7 @@ namespace Zeze.Services
         /// </summary>
         /// <param name="p"></param>
         /// <returns></returns>
-        private int ProcessCleanup(Zeze.Net.Protocol p)
+        private long ProcessCleanup(Zeze.Net.Protocol p)
         {
             var rpc = p as GlobalCacheManager.Cleanup;
 
@@ -178,7 +178,7 @@ namespace Zeze.Services
             return 0;
         }
 
-        private int ProcessLogin(Zeze.Net.Protocol p)
+        private long ProcessLogin(Zeze.Net.Protocol p)
         {
             var rpc = p as GlobalCacheManager.Login;
             var session = GetSession(rpc.Argument.ServerId);
@@ -199,7 +199,7 @@ namespace Zeze.Services
             return 0;
         }
 
-        private int ProcessReLogin(Zeze.Net.Protocol p)
+        private long ProcessReLogin(Zeze.Net.Protocol p)
         {
             var rpc = p as GlobalCacheManager.ReLogin;
             var session = GetSession(rpc.Argument.ServerId);
@@ -212,7 +212,7 @@ namespace Zeze.Services
             return 0;
         }
         
-        private int ProcessNormalClose(Zeze.Net.Protocol p)
+        private long ProcessNormalClose(Zeze.Net.Protocol p)
         {
             var rpc = p as GlobalCacheManager.NormalClose;
             var session = rpc.Sender.UserState as CacheHolder;
@@ -236,7 +236,7 @@ namespace Zeze.Services
             return 0;
         }
 
-        private int ProcessAcquireRequest(Zeze.Net.Protocol p)
+        private long ProcessAcquireRequest(Zeze.Net.Protocol p)
         {
             var rpc = p as GlobalCacheManager.Acquire;
             if (rpc.Sender.UserState == null)

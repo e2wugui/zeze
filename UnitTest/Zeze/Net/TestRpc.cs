@@ -44,7 +44,7 @@ namespace UnitTest.Zeze.Net
 
         ManualResetEvent connected = new ManualResetEvent(false);
 
-        public int ProcessFirstRpcRequest(Protocol p)
+        public long ProcessFirstRpcRequest(Protocol p)
         {
             var rpc = p as FirstRpc;
             rpc.Result.Assign(rpc.Argument);

@@ -120,7 +120,7 @@ namespace Zeze.Raft
             AppDomain.CurrentDomain.ProcessExit += ProcessExit;
         }
 
-        private int ProcessAppendEntries(Protocol p)
+        private long ProcessAppendEntries(Protocol p)
         {
             var r = p as AppendEntries;
             lock (this)
@@ -138,7 +138,7 @@ namespace Zeze.Raft
         private ConcurrentDictionary<long, FileStream> ReceiveSnapshotting
             = new ConcurrentDictionary<long, FileStream>();
 
-        private int ProcessInstallSnapshot(Protocol p)
+        private long ProcessInstallSnapshot(Protocol p)
         {
             var r = p as InstallSnapshot;
             lock (this)
@@ -318,7 +318,7 @@ namespace Zeze.Raft
             return lastIndex >= last.Index;
         }
 
-        private int ProcessRequestVote(Protocol p)
+        private long ProcessRequestVote(Protocol p)
         {
             lock (this)
             {
@@ -350,7 +350,7 @@ namespace Zeze.Raft
             }
         }
 
-        private int ProcessLeaderIs(Protocol p)
+        private long ProcessLeaderIs(Protocol p)
         {
             var r = p as LeaderIs;
 
@@ -362,7 +362,7 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
-        private int ProcessRequestVoteResult(RequestVote rpc, Connector c)
+        private long ProcessRequestVoteResult(RequestVote rpc, Connector c)
         {
             lock (this)
             {

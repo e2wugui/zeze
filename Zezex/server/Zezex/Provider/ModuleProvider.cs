@@ -28,7 +28,7 @@ namespace Zezex.Provider
             p.Send(sender);
         }
 
-        public override int ProcessDispatch(Protocol _p)
+        public override long ProcessDispatch(Protocol _p)
         {
             var p = _p as Dispatch;
             try
@@ -40,6 +40,7 @@ namespace Zezex.Provider
                     return Procedure.LogicError;
                 }
                 var p2 = factoryHandle.Factory();
+                p2.Service = p.Service;
                 p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.ProtocolData));
                 p2.Sender = p.Sender;
                 
@@ -87,7 +88,7 @@ namespace Zezex.Provider
             }
         }
 
-        public override int ProcessLinkBroken(Protocol p)
+        public override long ProcessLinkBroken(Protocol p)
         {
             var protocol = p as LinkBroken;
             // 目前仅需设置online状态。
@@ -99,7 +100,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        public override int ProcessModuleRedirectRequest(Protocol p)
+        public override long ProcessModuleRedirectRequest(Protocol p)
         {
             var rpc = p as ModuleRedirect;
             try
@@ -149,7 +150,7 @@ namespace Zezex.Provider
             }
         }
 
-        public override int ProcessModuleRedirectAllRequest(Protocol p)
+        public override long ProcessModuleRedirectAllRequest(Protocol p)
         {
             var protocol = p as ModuleRedirectAllRequest;
             var result = new ModuleRedirectAllResult();
@@ -246,7 +247,7 @@ namespace Zezex.Provider
             /// 2) 需要时初始化UserState并传给action；
             /// 3) 处理完成时删除Context
             /// </summary>
-            public int ProcessHash<T>(int hash, Func<T> factory, Func<T, int> action)
+            public long ProcessHash<T>(int hash, Func<T> factory, Func<T, long> action)
             {
                 lock (this)
                 {
@@ -281,9 +282,9 @@ namespace Zezex.Provider
             }
 
             // 生成代码实现。see Game.ModuleRedirect.cs
-            public virtual int ProcessHashResult(
+            public virtual long ProcessHashResult(
                 int _hash_,
-                int _returnCode_,
+                long _returnCode_,
                 Zeze.Net.Binary _params,
                 IList<Zezex.Provider.BActionParam> _actions_)
             {
@@ -291,7 +292,7 @@ namespace Zezex.Provider
             }
         }
 
-        public override int ProcessModuleRedirectAllResult(Protocol p)
+        public override long ProcessModuleRedirectAllResult(Protocol p)
         {
             var protocol = p as ModuleRedirectAllResult;
             // replace RootProcedure.ActionName. 为了统计和日志输出。
@@ -301,7 +302,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        public override int ProcessTransmit(Protocol p)
+        public override long ProcessTransmit(Protocol p)
         {
             var protocol = p as Transmit;
             App.Game_Login.Onlines.ProcessTransmit(protocol.Argument.Sender,
@@ -309,7 +310,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        public override int ProcessAnnounceLinkInfo(Protocol p)
+        public override long ProcessAnnounceLinkInfo(Protocol p)
         {
             var protocol = p as AnnounceLinkInfo;
             var linkSession = protocol.Sender.UserState as Game.Server.LinkSession;
@@ -317,7 +318,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        public override int ProcessSendConfirm(Protocol p)
+        public override long ProcessSendConfirm(Protocol p)
         {
             var protocol = p as SendConfirm;
             var linkSession = protocol.Sender.UserState as Game.Server.LinkSession;

@@ -73,14 +73,14 @@ namespace UnitTest.Zeze.Trans
             }
         }
 
-        private int Add()
+        private long Add()
         {
             var value = demo.App.Instance.demo_Module1.TableImportant.GetOrAdd(1);
             value.Int1++;
             return Procedure.Success;
         }
 
-        private int Add2()
+        private long Add2()
         {
             var value = demo.App.Instance.demo_Module1.TableImportant.GetOrAdd(1);
             value.Int1++;

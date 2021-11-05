@@ -297,8 +297,8 @@ namespace Game.Login
         /// target: 查询目标角色。
         /// result: 返回值，int，按普通事务处理过程返回值处理。
         /// </summary>
-        public ConcurrentDictionary<string, Func<long, long, int>> TransmitActions { get; }
-            = new ConcurrentDictionary<string, Func<long, long, int>>();
+        public ConcurrentDictionary<string, Func<long, long, long>> TransmitActions { get; }
+            = new ConcurrentDictionary<string, Func<long, long, long>>();
 
         /// <summary>
         /// 转发查询请求给RoleId。

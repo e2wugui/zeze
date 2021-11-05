@@ -11,7 +11,7 @@ namespace Zeze
 		class Protocol : public Zeze::Serialize::Serializable
 		{
 		public:
-			int ResultCode = 0;
+			long ResultCode = 0;
 			std::shared_ptr<Socket> Sender;
 
 			Protocol() : Sender(NULL) { }
@@ -53,13 +53,13 @@ namespace Zeze
 
 			virtual void Decode(Zeze::Serialize::ByteBuffer& bb) override
 			{
-				ResultCode = bb.ReadInt();
+				ResultCode = bb.ReadLong();
 				Argument.Decode(bb);
 			}
 
 			virtual void Encode(Zeze::Serialize::ByteBuffer& bb) override
 			{
-				bb.WriteInt(ResultCode);
+				bb.WriteLong(ResultCode);
 				Argument.Encode(bb);
 			}
 		};

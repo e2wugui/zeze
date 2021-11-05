@@ -24,20 +24,20 @@ public class ABasicSimpleAddOneThread extends TestCase {
         }
     }
 
-    private int Check() {
+    private long Check() {
         var r = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
         assert r.getLong2() == AddCount;
         //System.out.println(r.getLong2());
         return 0;
     }
 
-    private int Add() {
+    private long Add() {
         var r = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
         r.setLong2(r.getLong2() + 1);
         return 0;
     }
 
-    private int Remove() {
+    private long Remove() {
         App.Instance.demo_Module1.getTable1().remove(1L);
         return 0;
     }

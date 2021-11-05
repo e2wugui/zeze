@@ -17,7 +17,7 @@ public final class ModuleFight extends AbstractModule {
 		return new Fighter(fighterId, _tfighters.getOrAdd(fighterId));
 	}
 
-	public int CalculateFighter(BFighterId fighterId) {
+	public long CalculateFighter(BFighterId fighterId) {
 		// fighter 计算属性现在不主动通知客户端，需要客户端需要的时候来读取。
 
 		Fighter fighter = new Fighter(fighterId, new BFighter());

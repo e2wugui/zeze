@@ -43,7 +43,7 @@ namespace Benchmark
             }
         }
 
-        private int Check() {
+        private long Check() {
             long sum = 0;
             for (long i = 0; i < ConcurrentLevel; ++i) {
                 var r = demo.App.Instance.demo_Module1.Table1.GetOrAdd(i);
@@ -53,14 +53,14 @@ namespace Benchmark
             return 0;
         }
 
-        private int Add(long key) {
+        private long Add(long key) {
             var r = demo.App.Instance.demo_Module1.Table1.GetOrAdd(key);
             r.Long2 += 1;
             //System.out.println("Add=" + key);
             return 0;
         }
 
-        private int Remove(long key) {
+        private long Remove(long key) {
             demo.App.Instance.demo_Module1.Table1.Remove(key);
             return 0;
         }

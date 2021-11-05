@@ -34,20 +34,20 @@ namespace Benchmark
             }
         }
 
-        private int Check() {
+        private long Check() {
             var r = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
             Assert.AreEqual(r.Long2, AddCount);
             //System.out.println(r.getLong2());
             return 0;
         }
 
-        private int Add() {
+        private long Add() {
             var r = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
             r.Long2 += 1;
             return 0;
         }
 
-        private int Remove() {
+        private long Remove() {
             demo.App.Instance.demo_Module1.Table1.Remove(1L);
             return 0;
         }

@@ -68,7 +68,7 @@ namespace Game.Equip
         }
         // 装备只有装上取下两个操作，没有公开的需求，先不提供包装类了。
 
-        public override int ProcessEquipementRequest(Protocol p)
+        public override long ProcessEquipementRequest(Protocol p)
         {
             var rpc = p as Equipement;
             Login.Session session = Login.Session.Get(rpc);
@@ -78,7 +78,7 @@ namespace Game.Equip
             {
                 int equipPos = GetEquipPosition(bItem.Id);
                 if (equipPos < 0)
-                    return ReturnCode(ResultCodeCannotEquip);
+                    return ErrorCode(ResultCodeCannotEquip);
 
                 BEquips equips = _tequip.GetOrAdd(session.RoleId.Value);
                 Game.Bag.BItem bEquipAdd;
@@ -106,10 +106,10 @@ namespace Game.Equip
                 session.SendResponse(rpc);
                 return Procedure.Success;
             }
-            return ReturnCode(ResultCodeItemNotFound);
+            return ErrorCode(ResultCodeItemNotFound);
         }
 
-        public override int ProcessUnequipementRequest(Protocol p)
+        public override long ProcessUnequipementRequest(Protocol p)
         {
             var rpc = p as Unequipement;
             Login.Session session = Login.Session.Get(rpc);
@@ -121,12 +121,12 @@ namespace Game.Equip
                 Bag.Bag bag = App.Instance.Game_Bag.GetBag(session.RoleId.Value);
                 Bag.BItem bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() };
                 if (0 != bag.Add(-1, bItemAdd))
-                    return ReturnCode(ResultCodeBagIsFull); // bag is full
+                    return ErrorCode(ResultCodeBagIsFull); // bag is full
                 session.SendResponse(rpc);
                 return Procedure.Success;
             }
 
-            return ReturnCode(ResultCodeEquipNotFound);
+            return ErrorCode(ResultCodeEquipNotFound);
         }
 
         public Game.Item.Item GetEquipItem(long roleId, int position)

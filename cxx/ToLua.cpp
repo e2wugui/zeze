@@ -54,7 +54,7 @@ namespace Zeze
             Lua.Pop(1);
 
             Lua.GetField(-1, "ResultCode");
-            int resultCode = (int)Lua.ToInteger(-1);
+            long long resultCode = Lua.ToInteger(-1);
             Lua.Pop(1);
 
 			long typeId = (long long)ModuleId << 32 | (ProtocolId & 0xffffffff);
@@ -90,13 +90,13 @@ namespace Zeze
 
                 // see Rpc.Encode
                 Zeze::Serialize::ByteBuffer bb(1024);
-                bb.WriteInt4(moduleId);
-				bb.WriteInt4(protocolId);
+                bb.WriteInt4(ModuleId);
+				bb.WriteInt4(ProtocolId);
                 int outstate;
                 bb.BeginWriteWithSize4(outstate);
                 bb.WriteBool(isRequest);
                 bb.WriteLong(sid);
-                bb.WriteInt(resultCode);
+                bb.WriteLong(resultCode);
                 Lua.GetField(-1, argumentName);
                 EncodeBean(bb, argumentBeanTypeId);
                 Lua.Pop(1);
@@ -112,11 +112,11 @@ namespace Zeze
             {
                 // see Protocol.Encode
                 Zeze::Serialize::ByteBuffer bb(1024);
-                bb.WriteInt4(moduleId);
-				bb.WriteInt4(protocolId);
+                bb.WriteInt4(ModuleId);
+				bb.WriteInt4(ProtocolId);
                 int outstate;
                 bb.BeginWriteWithSize4(outstate);
-                bb.WriteInt(resultCode);
+                bb.WriteLong(resultCode);
                 Lua.GetField(-1, "Argument");
                 EncodeBean(bb, pit->second.ArgumentBeanTypeId);
                 Lua.Pop(1);
@@ -278,7 +278,7 @@ namespace Zeze
             {
                 bool IsRequest = _os_.ReadBool();
                 long long sid = _os_.ReadLong();
-                int resultCode = _os_.ReadInt();
+                long long resultCode = _os_.ReadLong();
                 const char * argument;
                 if (IsRequest)
                 {
@@ -307,7 +307,7 @@ namespace Zeze
             else
             {
                 Lua.PushString("ResultCode");
-                Lua.PushInteger(_os_.ReadInt());
+                Lua.PushInteger(_os_.ReadLong());
                 Lua.SetTable(-3);
 
                 Lua.PushString("Argument");

@@ -91,7 +91,7 @@ public final class LinkdService extends LinkdServiceBase {
 		if (null != factoryHandle.Handle) {
 			try {
 				var isRequestSaved = p.isRequest();
-				int result = factoryHandle.Handle.handle(p); // 不启用新的Task，直接在io-thread里面执行。
+				var result = factoryHandle.Handle.handle(p); // 不启用新的Task，直接在io-thread里面执行。
 				Zeze.Util.Task.LogAndStatistics(result, p, isRequestSaved);
 			}
 			catch (RuntimeException ex) {

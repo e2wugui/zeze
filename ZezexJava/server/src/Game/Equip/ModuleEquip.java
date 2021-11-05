@@ -68,7 +68,7 @@ public final class ModuleEquip extends AbstractModule {
 	// 装备只有装上取下两个操作，没有公开的需求，先不提供包装类了。
 
 	@Override
-	public int ProcessEquipementRequest(Protocol _rpc) {
+	public long ProcessEquipementRequest(Protocol _rpc) {
 		var rpc = (Equipement)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 
@@ -77,7 +77,7 @@ public final class ModuleEquip extends AbstractModule {
 		if (null != bItem) {
 			int equipPos = GetEquipPosition(bItem.getId());
 			if (equipPos < 0) {
-				return ReturnCode(ResultCodeCannotEquip);
+				return ErrorCode(ResultCodeCannotEquip);
 			}
 
 			BEquips equips = _tequip.getOrAdd(session.getRoleId().longValue());
@@ -113,11 +113,11 @@ public final class ModuleEquip extends AbstractModule {
 			session.SendResponse(rpc);
 			return Procedure.Success;
 		}
-		return ReturnCode(ResultCodeItemNotFound);
+		return ErrorCode(ResultCodeItemNotFound);
 	}
 
 	@Override
-	public int ProcessUnequipementRequest(Protocol _rpc) {
+	public long ProcessUnequipementRequest(Protocol _rpc) {
 		var rpc = (Unequipement)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 
@@ -131,13 +131,13 @@ public final class ModuleEquip extends AbstractModule {
 			bItemAdd.setNumber(1);
 			bItemAdd.setExtra((BEquipExtra)eItem.getExtra().CopyBean());
 			if (0 != bag.Add(-1, bItemAdd)) {
-				return ReturnCode(ResultCodeBagIsFull); // bag is full
+				return ErrorCode(ResultCodeBagIsFull); // bag is full
 			}
 			session.SendResponse(rpc);
 			return Procedure.Success;
 		}
 
-		return ReturnCode(ResultCodeEquipNotFound);
+		return ErrorCode(ResultCodeEquipNotFound);
 	}
 
 	public Game.Item.Item GetEquipItem(long roleId, int position) {

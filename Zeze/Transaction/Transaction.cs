@@ -151,7 +151,7 @@ namespace Zeze.Transaction
         /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
         /// </summary>
         /// <param name="procedure"></param>
-        internal int Perform(Procedure procedure)
+        internal long Perform(Procedure procedure)
         {
             try
             {
@@ -166,7 +166,7 @@ namespace Zeze.Transaction
                             CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
                             try
                             {
-                                int result = procedure.Call();
+                                var result = procedure.Call();
                                 if ((result == Procedure.Success && Savepoints.Count != 1) || (result != Procedure.Success && Savepoints.Count != 0))
                                 {
                                     // 这个错误不应该重做

@@ -211,7 +211,7 @@ export module Zeze {
 	}
 
 	export abstract class Protocol implements Serializable {
-		public ResultCode: number; // int
+		public ResultCode: bigint; // int
 		public Sender: Socket;
 
 		public abstract ModuleId(): number;
@@ -292,12 +292,12 @@ export module Zeze {
 		}
 
 		public Encode(_os_: ByteBuffer): void {
-			_os_.WriteInt(this.ResultCode);
+			_os_.WriteLong(this.ResultCode);
 			this.Argument.Encode(_os_);
 		}
 
 		public Decode(_os_: ByteBuffer): void {
-			this.ResultCode = _os_.ReadInt();
+			this.ResultCode = _os_.ReadLong();
 			this.Argument.Decode(_os_);
 		}
     }
@@ -358,7 +358,7 @@ export module Zeze {
 			super.Send(this.Sender);
 		}
 
-		public SendResultCode(code: number): void {
+		public SendResultCode(code: bigint): void {
 			this.ResultCode = code;
 			this.SendResult();
 		}
@@ -386,7 +386,7 @@ export module Zeze {
 		Decode(bb: Zeze.ByteBuffer): void {
 			this.IsRequest = bb.ReadBool();
 			this.sid = bb.ReadLong();
-			this.ResultCode = bb.ReadInt();
+			this.ResultCode = bb.ReadLong();
 			if (this.IsRequest) {
 				this.Argument.Decode(bb);
 			} else {
@@ -397,7 +397,7 @@ export module Zeze {
 		Encode(bb: Zeze.ByteBuffer): void {
 			bb.WriteBool(this.IsRequest);
 			bb.WriteLong(this.sid);
-			bb.WriteInt(this.ResultCode);
+			bb.WriteLong(this.ResultCode);
 			if (this.IsRequest) {
 				this.Argument.Encode(bb);
 			} else {

@@ -14,26 +14,21 @@ namespace Zeze
         {
         }
 
-        public int ReturnCode(uint code)
+        public long ErrorCode(int code)
         {
-            if (code > ushort.MaxValue)
-                throw new Exception("return code too big");
-            return ReturnCode((ushort)code);
+            if (code < 0)
+                throw new Exception("code < 0");
+            return Zeze.Net.Protocol.MakeTypeId(Id, code);
         }
 
-        public int ReturnCode(ushort code)
+        public static int GetModuleId(long result)
         {
-            return Id << 16 | code;
+            return Zeze.Net.Protocol.GetModuleId(result);
         }
 
-        public static int GetModuleId(int result)
+        public static int GetErrorCode(long result)
         {
-            return (result >> 16) & 0xffff;
-        }
-
-        public static int GetReturnCode(int result)
-        {
-            return (result >> 16) & 0xffff;
+            return Zeze.Net.Protocol.GetProtocolId(result);
         }
     }
 }

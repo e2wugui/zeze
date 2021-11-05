@@ -432,7 +432,7 @@ namespace Zeze.Services.ToLuaService
             int ProtocolId = (int)Lua.ToInteger(-1);
             Lua.Pop(1);
             Lua.GetField(-1, "ResultCode");
-            int resultCode = (int)Lua.ToInteger(-1);
+            long resultCode = Lua.ToInteger(-1);
             Lua.Pop(1);
 
             long type = Protocol.MakeTypeId(ModuleId, ProtocolId);
@@ -471,7 +471,7 @@ namespace Zeze.Services.ToLuaService
                 bb.BeginWriteWithSize4(out var outstate);
                 bb.WriteBool(isRequest);
                 bb.WriteLong(sid);
-                bb.WriteInt(resultCode);
+                bb.WriteLong(resultCode);
                 Lua.GetField(-1, argumentName);
                 EncodeBean(bb, argumentBeanTypeId);
                 Lua.Pop(1);
@@ -488,7 +488,7 @@ namespace Zeze.Services.ToLuaService
                 bb.WriteInt4(ModuleId);
                 bb.WriteInt4(ProtocolId);
                 bb.BeginWriteWithSize4(out var state);
-                bb.WriteInt(resultCode);
+                bb.WriteLong(resultCode);
                 Lua.GetField(-1, "Argument");
                 EncodeBean(bb, pa.ArgumentBeanTypeId);
                 Lua.Pop(1);
@@ -759,7 +759,7 @@ namespace Zeze.Services.ToLuaService
             {
                 bool IsRequest = _os_.ReadBool();
                 long sid = _os_.ReadLong();
-                int resultCode = _os_.ReadInt();
+                long resultCode = _os_.ReadLong();
                 string argument;
                 if (IsRequest)
                 {
@@ -788,7 +788,7 @@ namespace Zeze.Services.ToLuaService
             else
             {
                 Lua.PushString("ResultCode");
-                Lua.PushInteger(_os_.ReadInt());
+                Lua.PushInteger(_os_.ReadLong());
                 Lua.SetTable(-3);
                 Lua.PushString("Argument");
                 DecodeBean(_os_);

@@ -24,7 +24,7 @@ public final class ProviderService extends ProviderServiceBase {
 				// 直接执行，少一次线程切换。
 				try {
 					var isReqeustSaved = p.isRequest();
-					int result = factoryHandle.Handle.handle(p);
+					var result = factoryHandle.Handle.handle(p);
 					Zeze.Util.Task.LogAndStatistics(result, p, isReqeustSaved);
 				}
 				catch (RuntimeException ex) {

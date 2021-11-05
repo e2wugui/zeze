@@ -122,10 +122,10 @@ public final class GlobalAgent {
 				}
 
 				var normalClose = new NormalClose();
-				var future = new TaskCompletionSource<Integer>();
+				var future = new TaskCompletionSource<Long>();
 				normalClose.Send(tmp, (ThisRpc) -> {
 						if (normalClose.isTimeout()) {
-							future.SetResult(-100); // 关闭错误就不抛异常了。
+							future.SetResult(-100L); // 关闭错误就不抛异常了。
 						}
 						else {
 							future.SetResult(normalClose.getResultCode());
@@ -188,10 +188,9 @@ public final class GlobalAgent {
 			    logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
 			}
 			*/
-			switch (rpc.getResultCode()) {
-				case GlobalCacheManagerServer.AcquireModifyFaild:
-				case GlobalCacheManagerServer.AcquireShareFaild:
-					throw new AbortException("GlobalAgent.Acquire Faild");
+			if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFaild
+					|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFaild) {
+				throw new AbortException("GlobalAgent.Acquire Faild");
 			}
 			return rpc.Result.State;
 		}

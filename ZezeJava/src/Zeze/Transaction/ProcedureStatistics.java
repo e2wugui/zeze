@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** 
  在Procedure中统计，由于嵌套存储过程存在，总数会比实际事务数多。
@@ -13,8 +14,8 @@ public class ProcedureStatistics {
 		return Instance;
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<String, Statistics> Procedures = new java.util.concurrent.ConcurrentHashMap<String, Statistics> ();
-	public final java.util.concurrent.ConcurrentHashMap<String, Statistics> getProcedures() {
+	private ConcurrentHashMap<String, Statistics> Procedures = new ConcurrentHashMap<> ();
+	public final ConcurrentHashMap<String, Statistics> getProcedures() {
 		return Procedures;
 	}
 
@@ -23,12 +24,12 @@ public class ProcedureStatistics {
 	}
 
 	public static class Statistics {
-		private java.util.concurrent.ConcurrentHashMap<Integer, AtomicLong> Results = new java.util.concurrent.ConcurrentHashMap<Integer, AtomicLong> ();
-		public final java.util.concurrent.ConcurrentHashMap<Integer, AtomicLong> getResults() {
+		private ConcurrentHashMap<Long, AtomicLong> Results = new ConcurrentHashMap<> ();
+		public final ConcurrentHashMap<Long, AtomicLong> getResults() {
 			return Results;
 		}
 
-		public final AtomicLong GetOrAdd(int result) {
+		public final AtomicLong GetOrAdd(long result) {
 			return getResults().computeIfAbsent(result, (key) -> new AtomicLong());
 		}
 	}

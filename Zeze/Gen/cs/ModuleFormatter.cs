@@ -149,7 +149,7 @@ namespace Zeze.Gen.cs
                     {
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
-                            sw.WriteLine("        public override int Process" + rpc.Name + "Request(Zeze.Net.Protocol _p)");
+                            sw.WriteLine("        public override long Process" + rpc.Name + "Request(Zeze.Net.Protocol _p)");
                             sw.WriteLine("        {");
                             sw.WriteLine($"            var p = _p as {rpc.ShortNameIf(module)};");
                             sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
@@ -160,7 +160,7 @@ namespace Zeze.Gen.cs
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine("        public override int Process" + p.Name + "(Zeze.Net.Protocol _p)");
+                        sw.WriteLine("        public override long Process" + p.Name + "(Zeze.Net.Protocol _p)");
                         sw.WriteLine("        {");
                         sw.WriteLine($"            var p = _p as {p.ShortNameIf(module)};");
                         sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
@@ -206,14 +206,14 @@ namespace Zeze.Gen.cs
                     {
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
-                            sw.WriteLine("        public abstract int Process" + rpc.Name + "Request(Zeze.Net.Protocol p);");
+                            sw.WriteLine("        public abstract long Process" + rpc.Name + "Request(Zeze.Net.Protocol p);");
                             sw.WriteLine("");
                         }
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine("        public abstract int Process" + p.Name + "(Zeze.Net.Protocol p);");
+                        sw.WriteLine("        public abstract long Process" + p.Name + "(Zeze.Net.Protocol p);");
                         sw.WriteLine("");
                     }
                 }

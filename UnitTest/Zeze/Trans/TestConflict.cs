@@ -39,20 +39,20 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").Call());
         }
 
-        int ProcRemove()
+        long ProcRemove()
         {
             demo.App.Instance.demo_Module1.Table1.Remove(123123);
             return Procedure.Success;
         }
 
-        int ProcAdd()
+        long ProcAdd()
         {
             demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.GetOrAdd(123123);
             v.Int1 += 1;
             return Procedure.Success;
         }
 
-        int ProcVerify()
+        long ProcVerify()
         {
             demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.GetOrAdd(123123);
             Assert.IsTrue(v.Int1 == sum);

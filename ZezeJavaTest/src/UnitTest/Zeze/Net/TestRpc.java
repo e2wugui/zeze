@@ -39,7 +39,7 @@ public class TestRpc extends TestCase{
 
 	
 
-	public final int ProcessFirstRpcRequest(Protocol p) {
+	public final long ProcessFirstRpcRequest(Protocol p) {
 		FirstRpc rpc = (FirstRpc) p;
 		rpc.Result.Assign(rpc.Argument);
 		rpc.SendResult();

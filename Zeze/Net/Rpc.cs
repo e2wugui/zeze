@@ -17,7 +17,7 @@ namespace Zeze.Net
         public bool IsTimeout { get; private set; }
         public long SessionId { get; set; }
 
-        public Func<Protocol, int> ResponseHandle { get; set; }
+        public Func<Protocol, long> ResponseHandle { get; set; }
         public int Timeout { get; set; } = 5000;
 
         public TaskCompletionSource<TResult> Future { get; private set; }
@@ -81,7 +81,7 @@ namespace Zeze.Net
         /// <param name="millisecondsTimeout"></param>
         /// <returns></returns>
         public bool Send(AsyncSocket so,
-            Func<Protocol, int> responseHandle,
+            Func<Protocol, long> responseHandle,
             int millisecondsTimeout = 5000)
         {
             if (so == null || so.Service == null)
@@ -119,7 +119,7 @@ namespace Zeze.Net
         /// <param name="responseHandle"></param>
         /// <param name="millisecondsTimeout"></param>
         public void SendReturnVoid(Service service, AsyncSocket so,
-            Func<Protocol, int> responseHandle,
+            Func<Protocol, long> responseHandle,
             int millisecondsTimeout = 5000)
         {
             if (null != so && so.Service != service)
@@ -191,7 +191,7 @@ namespace Zeze.Net
             }
         }
 
-        public override void SendResultCode(int code)
+        public override void SendResultCode(long code)
         {
             if (SendResultDone)
                 return;
@@ -243,7 +243,7 @@ namespace Zeze.Net
         {
             IsRequest = bb.ReadBool();
             SessionId = bb.ReadLong();
-            ResultCode = bb.ReadInt();
+            ResultCode = bb.ReadLong();
             UniqueRequestId = bb.ReadLong();
 
             if (IsRequest)
@@ -260,7 +260,7 @@ namespace Zeze.Net
         {
             bb.WriteBool(IsRequest);
             bb.WriteLong(SessionId);
-            bb.WriteInt(ResultCode);
+            bb.WriteLong(ResultCode);
             bb.WriteLong(UniqueRequestId);
 
             if (IsRequest)

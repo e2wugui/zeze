@@ -5,6 +5,10 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;USE_KERA_LUA</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="KeraLua" Version="1.2.8" />
   </ItemGroup>

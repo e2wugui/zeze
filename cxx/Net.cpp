@@ -252,7 +252,7 @@ namespace Net
 
 	void Service::DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int moduleId, int protocolId, Zeze::Serialize::ByteBuffer& data)
 	{
-		sender; typeId; data;
+		sender; protocolId; data;
 	}
 
 	void Service::StartConnect(const std::string& host, int port, int delay, int timeoutSecondsPerConnect)

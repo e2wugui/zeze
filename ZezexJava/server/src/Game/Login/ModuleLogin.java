@@ -24,7 +24,7 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessCreateRoleRequest(Protocol _rpc) {
+	public long ProcessCreateRoleRequest(Protocol _rpc) {
 		var rpc = (CreateRole)_rpc;
 		var session = Session.Get(rpc);
 
@@ -36,7 +36,7 @@ public final class ModuleLogin extends AbstractModule {
 		BRoleId tempVar2 = new BRoleId();
 		tempVar2.setId(roleid);
 		if (false == _trolename.tryAdd(rpc.Argument.getName(), tempVar2)) {
-			return ReturnCode(ResultCodeCreateRoleDuplicateRoleName);
+			return ErrorCode(ResultCodeCreateRoleDuplicateRoleName);
 		}
 
 		var account = _taccount.getOrAdd(session.getAccount());
@@ -50,7 +50,7 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessGetRoleListRequest(Protocol _rpc) {
+	public long ProcessGetRoleListRequest(Protocol _rpc) {
 		var rpc = (GetRoleList)_rpc;
 		var session = Session.Get(rpc);
 
@@ -73,19 +73,19 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessLoginRequest(Protocol _rpc) {
+	public long ProcessLoginRequest(Protocol _rpc) {
 		var rpc = (Login)_rpc;
 		var session = Session.Get(rpc);
 
 		BAccount account = _taccount.get(session.getAccount());
 		if (null == account) {
-			return ReturnCode(ResultCodeAccountNotExist);
+			return ErrorCode(ResultCodeAccountNotExist);
 		}
 
 		account.setLastLoginRoleId(rpc.Argument.getRoleId());
 		BRoleData role = _trole.get(rpc.Argument.getRoleId());
 		if (null == role) {
-			return ReturnCode(ResultCodeRoleNotExist);
+			return ErrorCode(ResultCodeRoleNotExist);
 		}
 
 		BOnline online = _tonline.getOrAdd(rpc.Argument.getRoleId());
@@ -116,27 +116,27 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessReLoginRequest(Protocol _rpc) {
+	public long ProcessReLoginRequest(Protocol _rpc) {
 		var rpc = (ReLogin)_rpc;
 		var session = Session.Get(rpc);
 
 		BAccount account = _taccount.get(session.getAccount());
 		if (null == account) {
-			return ReturnCode(ResultCodeAccountNotExist);
+			return ErrorCode(ResultCodeAccountNotExist);
 		}
 
 		if (account.getLastLoginRoleId() != rpc.Argument.getRoleId()) {
-			return ReturnCode(ResultCodeNotLastLoginRoleId);
+			return ErrorCode(ResultCodeNotLastLoginRoleId);
 		}
 
 		BRoleData role = _trole.get(rpc.Argument.getRoleId());
 		if (null == role) {
-			return ReturnCode(ResultCodeRoleNotExist);
+			return ErrorCode(ResultCodeRoleNotExist);
 		}
 
 		BOnline online = _tonline.get(rpc.Argument.getRoleId());
 		if (null == online) {
-			return ReturnCode(ResultCodeOnlineDataNotFound);
+			return ErrorCode(ResultCodeOnlineDataNotFound);
 		}
 
 		online.setLinkName(session.getLinkName());
@@ -156,7 +156,7 @@ public final class ModuleLogin extends AbstractModule {
 		var syncResultCode = ReliableNotifySync(session, rpc.Argument.getReliableNotifyConfirmCount(), online);
 
 		if (syncResultCode != ResultCodeSuccess) {
-			return ReturnCode(syncResultCode);
+			return ErrorCode(syncResultCode);
 		}
 
 		App.getLoad().getLoginCount().incrementAndGet();
@@ -193,32 +193,32 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public int ProcessReliableNotifyConfirmRequest(Protocol _rpc) {
+	public long ProcessReliableNotifyConfirmRequest(Protocol _rpc) {
 		var rpc = (ReliableNotifyConfirm)_rpc;
 		var session = Session.Get(rpc);
 
 		BOnline online = _tonline.get(session.getRoleId().longValue());
 		if (null == online || online.getState() == BOnline.StateOffline) {
-			return ReturnCode(ResultCodeOnlineDataNotFound);
+			return ErrorCode(ResultCodeOnlineDataNotFound);
 		}
 
 		session.SendResponseWhileCommit(rpc); // 同步前提交。
 		var syncResultCode = ReliableNotifySync(session, rpc.Argument.getReliableNotifyConfirmCount(), online, false);
 
 		if (ResultCodeSuccess != syncResultCode) {
-			return ReturnCode(syncResultCode);
+			return ErrorCode(syncResultCode);
 		}
 
 		return Procedure.Success;
 	}
 
 	@Override
-	public int ProcessLogoutRequest(Protocol _rpc) {
+	public long ProcessLogoutRequest(Protocol _rpc) {
 		var rpc = (Logout)_rpc;
 		var session = Session.Get(rpc);
 
 		if (session.getRoleId() == null) {
-			return ReturnCode(ResultCodeNotLogin);
+			return ErrorCode(ResultCodeNotLogin);
 		}
 
 		_tonline.remove(session.getRoleId().longValue());

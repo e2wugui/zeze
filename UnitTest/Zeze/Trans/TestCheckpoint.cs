@@ -34,14 +34,14 @@ namespace UnitTest.Zeze.Trans
             Assert.AreEqual(value, bytesInTrans);
         }
 
-        int ProcClear()
+        long ProcClear()
         {
             demo.App.Instance.demo_Module1.Table1.Remove(56);
             return Procedure.Success;
         }
 
         ByteBuffer bytesInTrans;
-        int ProcChange()
+        long ProcChange()
         {
             demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.GetOrAdd(56);
             v.Int1 = 1;
