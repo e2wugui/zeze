@@ -22,7 +22,7 @@ namespace Zeze
 
         // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
         internal Util.SimpleThreadPool InternalThreadPool;
-        internal Locks Locks { get; } = new Locks();
+        internal Locks Locks { get; private set; }
 
         private Checkpoint _checkpoint;
         public Checkpoint Checkpoint
@@ -165,6 +165,8 @@ namespace Zeze
                     return;
                 IsStart = true;
 
+                Locks = new Locks();
+
                 var serviceConf = Config.GetServiceConf(Agent.DefaultServiceName);
                 if (null != serviceConf) {
                     ServiceManagerAgent.Client.Start();
@@ -226,13 +228,15 @@ namespace Zeze
                 Config?.ClearInUseAndIAmSureAppStopped(this, Databases);
                 IsStart = false;
 
-                Checkpoint?.StopAndJoin();
+                _checkpoint?.StopAndJoin();
+                _checkpoint = null;
                 foreach (var db in Databases.Values)
                 {
                     db.Close();
                 }
                 Databases.Clear();
                 ServiceManagerAgent.Stop();
+                Locks = null;
             }
         }
  

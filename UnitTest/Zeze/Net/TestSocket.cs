@@ -16,6 +16,7 @@ namespace UnitTest.Zeze.Net
         [TestMethod]
         public void TestReceiveAsync()
         {
+            ThreadPool.SetMinThreads(500, 500);
             ServerSocket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             ServerSocket.Blocking = false;
             ServerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
@@ -159,7 +160,7 @@ namespace UnitTest.Zeze.Net
             {
                 BeginSendAsync(copy, 0, copy.Length); // 里面掉了 SendAsync                
                 // 下面这个会挂起.net socket
-                //Thread.Sleep(10000);
+                Thread.Sleep(10000);
                 /*
                 var future = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                 //future.Task.ConfigureAwait(false);

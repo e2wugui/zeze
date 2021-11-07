@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Net.Sockets;
-using System.Diagnostics;
 using Zeze.Serialize;
 using System.Net;
+using Zeze.Util;
 
 namespace Zeze.Net
 {
@@ -16,10 +15,10 @@ namespace Zeze.Net
     public sealed class AsyncSocket : IDisposable
     {
         private byte[] _inputBuffer;
-        private List<System.ArraySegment<byte>> _outputBufferList = null;
+        private List<ArraySegment<byte>> _outputBufferList = null;
         private int _outputBufferListCountSum = 0;
-        private List<System.ArraySegment<byte>> _outputBufferListSending = null; // 正在发送的 buffers.
-        private int _outputBufferListSendingCountSum = 0;
+        private List<ArraySegment<byte>> _outputBufferListSending = null; // 正在发送的 buffers.
+
         public Service Service { get; private set; }
         public Connector Connector { get; set; }
         public Acceptor Acceptor { get; set; }
@@ -33,14 +32,10 @@ namespace Zeze.Net
         /// 简单变量，没有考虑线程安全问题。
         /// 内部不使用。
         /// </summary>
-        public Object UserState { get; set; } 
+        public object UserState { get; set; }
         public bool IsHandshakeDone { get; set; }
 
-        private static global::Zeze.Util.AtomicLong SessionIdGen = new global::Zeze.Util.AtomicLong();
-
-        private SocketAsyncEventArgs eventArgsAccept;
-        private SocketAsyncEventArgs eventArgsReceive;
-        private SocketAsyncEventArgs eventArgsSend;
+        private static AtomicLong SessionIdGen = new AtomicLong();
 
         private BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
         private BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
@@ -53,7 +48,7 @@ namespace Zeze.Net
         /// <summary>
         /// for server socket
         /// </summary>
-        public AsyncSocket(Service service, System.Net.EndPoint localEP)
+        public AsyncSocket(Service service, EndPoint localEP)
         {
             this.Service = service;
 
@@ -71,17 +66,38 @@ namespace Zeze.Net
 
             this.SessionId = SessionIdGen.IncrementAndGet();
 
-            eventArgsAccept = new SocketAsyncEventArgs();
-            eventArgsAccept.Completed += OnAsyncIOCompleted;
+            Socket.BeginAccept(OnAsyncAccept, null);
+        }
 
-            BeginAcceptAsync();
+        private void OnAsyncAccept(IAsyncResult ar)
+        {
+            Socket raw = null;
+            AsyncSocket Accepted = null;
+            try
+            {
+                byte[] Buffer;
+                int bytesTransferred;
+                raw = Socket.EndAccept(out Buffer, out bytesTransferred, ar);
+                Accepted = new AsyncSocket(Service, raw);
+                Accepted.Acceptor = this.Acceptor;
+                this.Service.OnSocketAccept(Accepted);
+                Accepted.BeginReceive(Buffer, bytesTransferred);
+
+                Socket.BeginAccept(OnAsyncAccept, null);
+            }
+            catch (Exception ex)
+            {
+                raw?.Dispose();
+                Accepted?.Dispose(); // dispose raw twice.
+                Service.OnSocketAcceptError(this, ex);
+            }
         }
 
         /// <summary>
         /// use inner. create when accept;
         /// </summary>
         /// <param name="accepted"></param>
-        AsyncSocket(Service service, Socket accepted)
+        private AsyncSocket(Service service, Socket accepted)
         {
             this.Service = service;
 
@@ -101,8 +117,78 @@ namespace Zeze.Net
             this._inputBuffer = new byte[service.SocketOptions.InputBufferSize];
 
             RemoteAddress = (Socket.RemoteEndPoint as IPEndPoint).Address.ToString();
+        }
 
-            BeginReceiveAsync();
+        private void BeginReceive(byte[] bytes, int length)
+        {
+            if (null != bytes && length > 0)
+                ProcessInput(bytes, length);
+            Socket.BeginReceive(_inputBuffer, 0, _inputBuffer.Length, 0, OnAsyncReceive, null);
+        }
+
+        private void ProcessInput(byte[] buffer, int length)
+        {
+            if (null != inputCodecChain)
+            {
+                // 解密解压处理，处理结果直接加入 inputCodecBuffer。
+                inputCodecBuffer.Buffer.EnsureWrite(length);
+                inputCodecChain.update(buffer, 0, length);
+                inputCodecChain.flush();
+
+                this.Service.OnSocketProcessInputBuffer(this, inputCodecBuffer.Buffer);
+            }
+            else if (inputCodecBuffer.Buffer.Size > 0)
+            {
+                // 上次解析有剩余数据（不完整的协议），把新数据加入。
+                inputCodecBuffer.Buffer.Append(buffer, 0, length);
+
+                this.Service.OnSocketProcessInputBuffer(this, inputCodecBuffer.Buffer);
+            }
+            else
+            {
+                ByteBuffer avoidCopy = ByteBuffer.Wrap(buffer, 0, length);
+
+                this.Service.OnSocketProcessInputBuffer(this, avoidCopy);
+
+                if (avoidCopy.Size > 0) // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
+                    inputCodecBuffer.Buffer.Append(avoidCopy.Bytes, avoidCopy.ReadIndex, avoidCopy.Size);
+            }
+
+            // 1 检测 buffer 是否满，2 剩余数据 Campact，3 需要的话，释放buffer内存。
+            int remain = inputCodecBuffer.Buffer.Size;
+            if (remain > 0)
+            {
+                if (remain >= Service.SocketOptions.InputBufferMaxProtocolSize)
+                    throw new Exception("InputBufferMaxProtocolSize " + Service.SocketOptions.InputBufferMaxProtocolSize);
+
+                inputCodecBuffer.Buffer.Campact();
+            }
+            else
+            {
+                // 解析缓冲如果为空，马上释放内部bytes[]。
+                inputCodecBuffer.Buffer.FreeInternalBuffer();
+            }
+        }
+
+        private void OnAsyncReceive(IAsyncResult ar)
+        {
+            try
+            {
+                int bytesRead = Socket.EndReceive(ar);
+                if (bytesRead > 0)
+                {
+                    ProcessInput(_inputBuffer, bytesRead);
+                    Socket.BeginReceive(_inputBuffer, 0, _inputBuffer.Length, 0, OnAsyncReceive, null);
+                }
+                else
+                {
+                    Close(null);
+                }
+            }
+            catch (Exception ex)
+            {
+                Close(ex);
+            }
         }
 
         /// <summary>
@@ -110,7 +196,9 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="hostNameOrAddress"></param>
         /// <param name="port"></param>
-        public AsyncSocket(Service service, string hostNameOrAddress, int port, object userState = null)
+        public AsyncSocket(Service service,
+            string hostNameOrAddress, int port,
+            object userState = null)
         {
             this.Service = service;
 
@@ -127,7 +215,7 @@ namespace Zeze.Net
 
             this.SessionId = SessionIdGen.IncrementAndGet();
 
-            System.Net.Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
+            Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
         }
 
         public void SetOutputSecurityCodec(byte[] key, bool compress)
@@ -205,6 +293,10 @@ namespace Zeze.Net
                 if (null == Socket)
                     return false;
 
+                if (_outputBufferListCountSum + length
+                    > Service.SocketOptions.OutputBufferMaxSize)
+                    return false;
+
                 if (null != outputCodecChain)
                 {
                     // 压缩加密等 codec 链操作。
@@ -226,23 +318,31 @@ namespace Zeze.Net
                 _outputBufferList.Add(new ArraySegment<byte>(bytes, offset, length));
                 _outputBufferListCountSum += length;
 
-                if (null == _outputBufferListSending) // 没有在发送中，马上请求发送，否则等回调处理。
+                if (null == _outputBufferListSending)
                 {
+                    // 没有在发送中，马上请求发送，否则等回调处理。
                     _outputBufferListSending = _outputBufferList;
                     _outputBufferList = null;
-                    _outputBufferListSendingCountSum = _outputBufferListCountSum;
                     _outputBufferListCountSum = 0;
 
-                    if (null == eventArgsSend)
-                    {
-                        eventArgsSend = new SocketAsyncEventArgs();
-                        eventArgsSend.Completed += OnAsyncIOCompleted;
-                    }
-                    eventArgsSend.BufferList = _outputBufferListSending;
-                    if (false == Socket.SendAsync(eventArgsSend))
-                        ProcessSend(eventArgsSend);
+                    Socket.BeginSend(_outputBufferListSending, 0, OnAsyncSend, null);
                 }
                 return true;
+            }
+        }
+
+        private void OnAsyncSend(IAsyncResult ar)
+        {
+            Socket.EndSend(ar);
+            lock (this)
+            {
+                _outputBufferListSending = _outputBufferList;
+                _outputBufferList = null;
+                _outputBufferListCountSum = 0;
+                if (null != _outputBufferListSending)
+                {
+                    Socket.BeginSend(_outputBufferListSending, 0, OnAsyncSend, null);
+                }
             }
         }
 
@@ -251,72 +351,12 @@ namespace Zeze.Net
             return Send(Encoding.UTF8.GetBytes(str));
         }
 
-        private void OnAsyncIOCompleted(object sender, SocketAsyncEventArgs e)
-        {
-            if (Socket == null) // async closed
-                return;
-
-            try
-            {
-                switch (e.LastOperation)
-                {
-                    case SocketAsyncOperation.Accept:
-                        ProcessAccept(e);
-                        break;
-                    case SocketAsyncOperation.Send:
-                        ProcessSend(e);
-                        break;
-                    case SocketAsyncOperation.Receive:
-                        ProcessReceive(e);
-                        break;
-                    default:
-                        throw new ArgumentException();
-                }
-            }
-            catch (Exception ex)
-            {
-                Close(ex);
-            }
-        }
-
-        private void BeginAcceptAsync()
-        {
-            eventArgsAccept.AcceptSocket = null;
-            if (false == Socket.AcceptAsync(eventArgsAccept))
-                ProcessAccept(eventArgsAccept);
-        }
-
-        private void ProcessAccept(SocketAsyncEventArgs e)
-        {
-            if (e.SocketError == SocketError.Success)
-            {
-                AsyncSocket accepted = null;
-                try
-                {
-                    accepted = new AsyncSocket(this.Service, e.AcceptSocket);
-                    accepted.Acceptor = this.Acceptor;
-                    this.Service.OnSocketAccept(accepted);
-                }
-                catch (Exception ce)
-                {
-                    accepted?.Close(ce);
-                }
-                BeginAcceptAsync();
-            }
-            /*
-            else
-            {
-                Console.WriteLine("ProcessAccept " + e.SocketError);
-            }
-            */
-        }
-
         private void OnAsyncGetHostAddresses(IAsyncResult ar)
         {
             try
             {
-                int port = (System.Int32)ar.AsyncState;
-                System.Net.IPAddress[] addrs = System.Net.Dns.EndGetHostAddresses(ar);
+                int port = (int)ar.AsyncState;
+                IPAddress[] addrs = Dns.EndGetHostAddresses(ar);
                 Socket.BeginConnect(addrs, port, OnAsyncConnect, this);
             }
             catch (Exception e)
@@ -335,163 +375,12 @@ namespace Zeze.Net
                 this.RemoteAddress = (this.Socket.RemoteEndPoint as IPEndPoint).Address.ToString();
                 this.Service.OnSocketConnected(this);
                 this._inputBuffer = new byte[Service.SocketOptions.InputBufferSize];
-                BeginReceiveAsync();
+                Socket.BeginReceive(_inputBuffer, 0, _inputBuffer.Length, 0, OnAsyncReceive, null);
             }
             catch (Exception e)
             {
                 this.Service.OnSocketConnectError(this, e);
                 Close(null);
-            }
-        }
-
-        private void BeginReceiveAsync()
-        {
-            if (null == eventArgsReceive)
-            {
-                eventArgsReceive = new SocketAsyncEventArgs();
-                eventArgsReceive.Completed += OnAsyncIOCompleted;
-            }
-
-            eventArgsReceive.SetBuffer(_inputBuffer, 0, _inputBuffer.Length);
-            if (false == this.Socket.ReceiveAsync(eventArgsReceive))
-                ProcessReceive(eventArgsReceive);
-        }
-
-        private void ProcessReceive(SocketAsyncEventArgs e)
-        {
-            if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
-            {
-                if (null != inputCodecChain)
-                {
-                    // 解密解压处理，处理结果直接加入 inputCodecBuffer。
-                    inputCodecBuffer.Buffer.EnsureWrite(e.BytesTransferred);
-                    inputCodecChain.update(_inputBuffer, 0, e.BytesTransferred);
-                    inputCodecChain.flush();
-
-                    this.Service.OnSocketProcessInputBuffer(this, inputCodecBuffer.Buffer);
-                }
-                else if (inputCodecBuffer.Buffer.Size > 0)
-                {
-                    // 上次解析有剩余数据（不完整的协议），把新数据加入。
-                    inputCodecBuffer.Buffer.Append(_inputBuffer, 0, e.BytesTransferred);
-
-                    this.Service.OnSocketProcessInputBuffer(this, inputCodecBuffer.Buffer);
-                }
-                else
-                {
-                    ByteBuffer avoidCopy = ByteBuffer.Wrap(_inputBuffer, 0, e.BytesTransferred);
-
-                    this.Service.OnSocketProcessInputBuffer(this, avoidCopy);
-
-                    if (avoidCopy.Size > 0) // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
-                        inputCodecBuffer.Buffer.Append(avoidCopy.Bytes, avoidCopy.ReadIndex, avoidCopy.Size);
-                }
-
-                // 1 检测 buffer 是否满，2 剩余数据 Campact，3 需要的话，释放buffer内存。
-                int remain = inputCodecBuffer.Buffer.Size;
-                if (remain > 0)
-                {
-                    if (remain >= Service.SocketOptions.InputBufferMaxProtocolSize)
-                        throw new Exception("InputBufferMaxProtocolSize " + Service.SocketOptions.InputBufferMaxProtocolSize);
-
-                    inputCodecBuffer.Buffer.Campact();
-                }
-                else
-                {
-                    inputCodecBuffer.Buffer.FreeInternalBuffer(); // 解析缓冲如果为空，马上释放内部bytes[]。
-                }
-
-                BeginReceiveAsync();
-            }
-            else
-            {
-                Close(null); // 正常关闭，不设置异常
-            }
-        }
-
-        private void ProcessSend(SocketAsyncEventArgs e)
-        {
-            if (e.BytesTransferred >= 0 && e.SocketError == SocketError.Success)
-            {
-                BeginSendAsync(e.BytesTransferred);
-            }
-            else
-            {
-                Close(new SocketException((int)e.SocketError)) ;
-            }
-        }
-
-        private void BeginSendAsync(int _bytesTransferred)
-        {
-            lock(this)
-            {
-                // 听说 BeginSend 成功回调的时候，所有数据都会被发送，这样的话就可以直接清除_outputBufferSending，而不用这么麻烦。
-                // MUST 下面的条件必须满足，不做判断。
-                // _outputBufferSending != null
-                // _outputBufferSending.Count > 0
-                // sum(_outputBufferSending[i].Count) <= bytesTransferred
-                int bytesTransferred = _bytesTransferred; // 后面还要用已经发送的原始值，本来下面计算也可以得到，但这样更容易理解。
-                if (bytesTransferred == _outputBufferListSendingCountSum) // 全部发送完，优化。
-                {
-                    _outputBufferListSending.Clear();
-                }
-                else if (bytesTransferred > _outputBufferListSendingCountSum)
-                {
-                    throw new Exception("hasSend too big.");
-                }
-                else
-                {
-                    // 部分发送
-                    for (int i = 0; i < _outputBufferListSending.Count; ++i)
-                    {
-                        int bytesCount = _outputBufferListSending[i].Count;
-                        if (bytesTransferred >= bytesCount)
-                        {
-                            bytesTransferred -= bytesCount;
-                            if (bytesTransferred > 0)
-                                continue;
-
-                            _outputBufferListSending.RemoveRange(0, i + 1);
-                            break;
-                        }
-                        // 已经发送的数据比数组中的少。
-                        ArraySegment<byte> segment = _outputBufferListSending[i];
-                        // Slice .net framework 没有定义。
-                        _outputBufferListSending[i] = new ArraySegment<byte>(segment.Array, bytesTransferred, segment.Count - bytesTransferred);
-                        _outputBufferListSending.RemoveRange(0, i);
-                        break;
-                    }
-                }
-
-                if (_outputBufferListSending.Count == 0)
-                {
-                    // 全部发送完
-                    _outputBufferListSending = _outputBufferList; // maybe null
-                    _outputBufferList = null;
-                    _outputBufferListSendingCountSum = _outputBufferListCountSum;
-                    _outputBufferListCountSum = 0;
-                }
-                else if (null != _outputBufferList)
-                {
-                    // 没有发送完，并且有要发送的
-                    _outputBufferListSending.AddRange(_outputBufferList);
-                    _outputBufferList = null;
-                    _outputBufferListSendingCountSum = _outputBufferListCountSum
-                        + (_outputBufferListSendingCountSum - _bytesTransferred);
-                    _outputBufferListCountSum = 0;
-                }
-                else
-                {
-                    // 没有发送完，也没有要发送的
-                    _outputBufferListSendingCountSum = _outputBufferListSendingCountSum - _bytesTransferred;
-                }
-
-                if (null != _outputBufferListSending) // 全部发送完，并且 _outputBufferList == null 时，可能为 null
-                {
-                    eventArgsSend.BufferList = _outputBufferListSending;
-                    if (false == Socket.SendAsync(eventArgsSend))
-                        ProcessSend(eventArgsSend);
-                }
             }
         }
 
@@ -556,6 +445,5 @@ namespace Zeze.Net
         {
             return $"({Socket?.LocalEndPoint}-{Socket?.RemoteEndPoint})";
         }
-
     }
 }
