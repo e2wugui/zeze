@@ -129,7 +129,6 @@ public abstract class TableX<K, V extends Bean> extends Table {
 
 				case GlobalCacheManagerServer.StateModify:
 					r.setState(GlobalCacheManagerServer.StateShare); // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
-					r.setTimestamp(Record.getNextTimestamp());
 					break;
 			}
 		}
@@ -192,15 +191,13 @@ public abstract class TableX<K, V extends Bean> extends Table {
 
 				case GlobalCacheManagerServer.StateShare:
 					r.setState(GlobalCacheManagerServer.StateInvalid);
-					r.setTimestamp(Record.getNextTimestamp());
-					// 不删除记录，让TableCache.CleanNow处理。 
+					// 不删除记录，让TableCache.CleanNow处理。
 					logger.debug("Reduce SendResult 3 {}", r);
 					rpc.SendResult();
 					return 0;
 
 				case GlobalCacheManagerServer.StateModify:
 					r.setState(GlobalCacheManagerServer.StateInvalid);
-					r.setTimestamp(Record.getNextTimestamp());
 					break;
 			}
 		}

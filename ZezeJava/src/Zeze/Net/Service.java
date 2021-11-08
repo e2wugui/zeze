@@ -219,6 +219,9 @@ public class Service {
 		OnHandshakeDone(so);
 	}
 
+	public void OnSocketAcceptError(AsyncSocket listener, Throwable e) {
+		logger.log(getSocketOptions().getSocketLogLevel(), () -> "OnSocketAcceptError" + listener, e);
+	}
 	/** 
 	 连接完成建立调用。
 	 未加密压缩的连接在 OnSocketAccept OnSocketConnected 里面调用这个方法。

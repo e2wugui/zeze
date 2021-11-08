@@ -196,10 +196,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				sc = ssc.accept();
 				if (null != sc)
 					Service.OnSocketAccept(new AsyncSocket(Service, sc));
-
 			} catch (Throwable e) {
 				if (null != sc)
 					sc.close();
+				Service.OnSocketAcceptError(this, e);
 				// skip all error
 			}
 			return;
@@ -604,5 +604,18 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			// 为了简化并发问题，只能加入Service以后的Socket的SessionId。
 			throw new RuntimeException("Not Exist In Service " + this);
 		}
+	}
+
+	@Override
+	public String toString() {
+		var sc =  this.getSocketChannel();
+		if (null != sc) {
+			try {
+				return sc.getLocalAddress() + "-" + sc.getRemoteAddress();
+			} catch (IOException e) {
+				return "-" + e;
+			}
+		}
+		return "-";
 	}
 }

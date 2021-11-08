@@ -106,7 +106,9 @@ public final class Lockey implements java.lang.Comparable<Lockey> {
 	public void EnterLock(boolean isWrite) {
 		if (isWrite) {
 			/*
-			if (rwLock.IsReadLockHeld) { // 需要试试：拥有 readLock 时，再次去锁 writeLock 会怎么样。
+			// 需要试试：拥有 readLock 时，再次去锁 writeLock 会死锁，但java没有提供手段检测。
+			// zeze需要保证不会发生这种情况。
+			if (rwLock.IsReadLockHeld) {
 				throw new AbortException("Invalid Lock State.");
 			}
 			*/

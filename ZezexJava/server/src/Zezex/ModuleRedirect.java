@@ -558,11 +558,11 @@ public class ModuleRedirect {
 		sb.AppendLine("");
 	}
 
+	// loopback 优化
 	public boolean IsLocalServer(String moduleName) {
-		var module = Game.App.Instance.getProviderModuleBinds().getModules().get(moduleName);
-		if (null != module) {
-			return module.getProviders().contains(Game.App.Instance.Zeze.getConfig().getServerId());
-		}
+		// 要实现真正的 loopback，
+		// 需要实现server-server之间直连并且可以得到当前的可用服务。
+		// 通过linkd转发时，当前server没有足够信息做这个优化。
 		return false;
 	}
 

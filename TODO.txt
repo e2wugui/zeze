@@ -111,9 +111,6 @@ Raft.ConcurrentMap 使用 RocksDb 持久化，自己实现快速 Snapshot，解决 RocksDb 没有
 Socket async surpport
 	用来给纯转发服务器用，可以避免使用多线程。
 
-ReentrantReadWriteLock
-	拥有 readLock 时，再次去锁 writeLock 会怎么样。
-
 AsyncSocket c#
 	优化，减少和逻辑层的互斥时间。
 	？？？使用一个空的outputListSending去调用SendAsync???好像不可行。
@@ -123,13 +120,9 @@ AsyncSocket c#
 默认最大吞吐量为单个数据执行+1计算并且cache命中100%时的值。
 当然这个值仅对全局共享的数据的访问有用，对于天然并发的事务是没有参考价值的。
 
+整体并发测试，需要包含 TableCache.Cleanup。
+Global.Release并发问题
+
 确认zezex islocal loopback redirect 的实现
-
-c# 发布 exe dll
-    for unity ： 使用 framework.
-    有一些 .net 5 才有的 api 需要处理。
-
-性能测试表现，一秒一个事务，TableCache.Cleanup刚好一秒执行一次。改成了不忙等，至少Sleep一秒。需要确认效果。
-########################### Global.Release并发问题 ###########################
-########################### Java 去掉多余的 Timestamp 设置。
-OnSocketAcceptError Java
+1,2,3
+hash%3

@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Trans;
 
 import java.lang.ref.WeakReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import Zeze.Transaction.Lockey;
 import Zeze.Transaction.Locks;
@@ -103,5 +104,13 @@ public class TestLock extends TestCase{
 		lockey.ExitWriteLock();
 		lockey.ExitReadLock();
 		*/
+	}
+
+	public final void testRwlock() {
+		var rw = new ReentrantReadWriteLock();
+		rw.readLock().lock();;
+		//rw.writeLock().lock(); // 会死锁。java没有对这种情况报错。
+		//rw.writeLock().unlock();
+		rw.readLock().unlock();
 	}
 }

@@ -834,12 +834,12 @@ namespace Zezex
             sb.AppendLine($"");
         }
 
+        // loopback 优化。
         public bool IsLocalServer(string moduleName)
         {
-            if (Game.App.Instance.ProviderModuleBinds.Modules.TryGetValue(moduleName, out var module))
-            {
-                return module.Providers.Contains(Game.App.Instance.Zeze.Config.ServerId);
-            }
+            // 要实现真正的 loopback，
+            // 需要实现server-server之间直连并且可以得到当前的可用服务。
+            // 通过linkd转发时，当前server没有足够信息做这个优化。
             return false;
         }
 
