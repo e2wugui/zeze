@@ -71,25 +71,27 @@ namespace Zeze.Net
 
         private void OnAsyncAccept(IAsyncResult ar)
         {
-            Socket raw = null;
-            AsyncSocket Accepted = null;
+            Socket newsocket = null;
+            AsyncSocket accepted = null;
             try
             {
                 byte[] Buffer;
                 int bytesTransferred;
-                raw = Socket.EndAccept(out Buffer, out bytesTransferred, ar);
-                Accepted = new AsyncSocket(Service, raw);
-                Accepted.Acceptor = this.Acceptor;
-                this.Service.OnSocketAccept(Accepted);
-                Accepted.BeginReceive(Buffer, bytesTransferred);
-
-                Socket.BeginAccept(OnAsyncAccept, null);
+                newsocket = Socket.EndAccept(out Buffer, out bytesTransferred, ar);
+                accepted = new AsyncSocket(Service, newsocket);
+                accepted.Acceptor = this.Acceptor;
+                this.Service.OnSocketAccept(accepted);
+                accepted.BeginReceive(Buffer, bytesTransferred);
             }
             catch (Exception ex)
             {
-                raw?.Dispose();
-                Accepted?.Dispose(); // dispose raw twice.
+                newsocket?.Dispose();
+                accepted?.Dispose(); // dispose newsocket twice.
                 Service.OnSocketAcceptError(this, ex);
+            }
+            finally
+            {
+                Socket.BeginAccept(OnAsyncAccept, null);
             }
         }
 

@@ -44,12 +44,8 @@ namespace Zeze.Util
 
         public delegate void ChunkProcess(System.IO.StreamWriter writer, Chunk chunk);
 
-        public void SaveFile(string fileName, ChunkProcess cp)
-        {
-            SaveFile(fileName, cp, new UTF8Encoding(false));
-        }
-
-        public void SaveFile(string fileName, ChunkProcess cp, Encoding encoding)
+        public void SaveFile(string fileName, ChunkProcess chunkProcess,
+            ChunkProcess before = null, ChunkProcess after = null)
         {
             using System.IO.StreamWriter sw = Gen.Program.OpenStreamWriter(fileName);
             foreach (var chunk in Chunks)
@@ -63,9 +59,11 @@ namespace Zeze.Util
                     case State.ChunkStart:
                         throw new Exception("chunk is not closed");
                     case State.ChunkEnd:
+                        before?.Invoke(sw, chunk);
                         sw.WriteLine(chunk.StartLine);
-                        cp(sw, chunk);
+                        chunkProcess(sw, chunk);
                         sw.WriteLine(chunk.EndLine);
+                        after?.Invoke(sw, chunk);
                         break;
                 }
             }

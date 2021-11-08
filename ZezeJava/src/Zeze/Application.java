@@ -66,7 +66,7 @@ public final class Application {
 		}
 	}
 
-	private Locks Locks = new Locks();
+	private Locks Locks;
 	public Locks getLocks() {
 		return Locks;
 	}
@@ -156,6 +156,7 @@ public final class Application {
 				return;
 			}
 			setStart(true);
+			Locks = new Locks();
 			Zeze.Util.Task.tryInitThreadPool(this, null, null);
 
 			var serviceManagerConf = getConfig().GetServiceConf(Agent.DefaultServiceName);
@@ -228,6 +229,7 @@ public final class Application {
 			}
 			getDatabases().clear();
 			getServiceManagerAgent().Stop();
+			Locks = null;
 		}
 	}
 

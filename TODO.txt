@@ -132,4 +132,4 @@ c# 发布 exe dll
 性能测试表现，一秒一个事务，TableCache.Cleanup刚好一秒执行一次。改成了不忙等，至少Sleep一秒。需要确认效果。
 ########################### Global.Release并发问题 ###########################
 ########################### Java 去掉多余的 Timestamp 设置。
-
+OnSocketAcceptError Java

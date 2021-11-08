@@ -30,7 +30,7 @@ namespace Zeze.Gen.java
             string fullFileName = System.IO.Path.Combine(fullDir, $"Module{module.Name}.java");
             if (FileChunkGen.LoadFile(fullFileName))
             {
-                FileChunkGen.SaveFile(fullFileName, GenChunkByName);
+                FileChunkGen.SaveFile(fullFileName, GenChunkByName, GenBeforeChunkByName);
                 return;
             }
             // new file
@@ -134,12 +134,11 @@ namespace Zeze.Gen.java
             }
         }
 
-        private void GenChunkByName(System.IO.StreamWriter writer, Zeze.Util.FileChunkGen.Chunk chunk)
+        private void GenChunkByName(System.IO.StreamWriter writer, FileChunkGen.Chunk chunk)
         {
             switch (chunk.Name)
             {
                 case ChunkNameModuleGen:
-                    //NewProtocolHandle(writer);
                     ModuleGen(writer);
                     break;
                 case ChunkNameImport:
@@ -147,6 +146,16 @@ namespace Zeze.Gen.java
                     break;
                 default:
                     throw new Exception("unknown Chunk.Name=" + chunk.Name);
+            }
+        }
+
+        private void GenBeforeChunkByName(System.IO.StreamWriter writer, FileChunkGen.Chunk chunk)
+        {
+            switch (chunk.Name)
+            {
+                case ChunkNameModuleGen:
+                    NewProtocolHandle(writer);
+                    break;
             }
         }
 
