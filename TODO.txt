@@ -110,19 +110,9 @@ Raft.ConcurrentMap 使用 RocksDb 持久化，自己实现快速 Snapshot，解决 RocksDb 没有
 
 Socket async surpport
 	用来给纯转发服务器用，可以避免使用多线程。
-
 AsyncSocket c#
 	优化，减少和逻辑层的互斥时间。
 	？？？使用一个空的outputListSending去调用SendAsync???好像不可行。
 
-对于全局模块的请求在优化前通过压力测试得到最大吞吐量。
-考虑zeze增加协议最大吞吐量配置，达到60%时自动发送警告。
-默认最大吞吐量为单个数据执行+1计算并且cache命中100%时的值。
-当然这个值仅对全局共享的数据的访问有用，对于天然并发的事务是没有参考价值的。
-
 整体并发测试，需要包含 TableCache.Cleanup。
 Global.Release并发问题
-
-确认zezex islocal loopback redirect 的实现
-1,2,3
-hash%3
