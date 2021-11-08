@@ -636,7 +636,7 @@ public final class ByteBuffer {
 					| ((Bytes[ReadIndex + 3] & 0xff)<< 8) | (Bytes[ReadIndex + 4] & 0xff);
 			int xh = h & 0x07;
 			ReadIndex += 5;
-			return ((long)xh << 32) | xl;
+			return ((long)xh << 32) | xl & 0xffffffffl;
 		}
 
 		if (h < 0xfc) {
@@ -645,7 +645,7 @@ public final class ByteBuffer {
 					| ((Bytes[ReadIndex + 4] & 0xff) << 8) | (Bytes[ReadIndex + 5] & 0xff);
 			int xh = ((h & 0x03) << 8) | (Bytes[ReadIndex + 1] & 0xff);
 			ReadIndex += 6;
-			return ((long)xh << 32) | xl;
+			return ((long)xh << 32) | xl & 0xffffffffl;
 		}
 
 		if (h < 0xfe) {
@@ -654,7 +654,7 @@ public final class ByteBuffer {
 					| ((Bytes[ReadIndex + 5] & 0xff) << 8) | (Bytes[ReadIndex + 6] & 0xff);
 			int xh = ((h & 0x01) << 16) | ((Bytes[ReadIndex + 1] & 0xff) << 8) | (Bytes[ReadIndex + 2] & 0xff);
 			ReadIndex += 7;
-			return ((long)xh << 32) | xl;
+			return ((long)xh << 32) | xl & 0xffffffffl;
 		}
 
 		if (h < 0xff) {
@@ -664,7 +664,7 @@ public final class ByteBuffer {
 			int xh = ((Bytes[ReadIndex + 1] & 0xff) << 16) | ((Bytes[ReadIndex + 2] & 0xff) << 8)
 					| (Bytes[ReadIndex + 3] & 0xff);
 			ReadIndex += 8;
-			return ((long)xh << 32) | xl;
+			return ((long)xh << 32) | xl & 0xffffffffl;
 		}
 
 		EnsureRead(9);
@@ -673,7 +673,7 @@ public final class ByteBuffer {
 		int xh = ((Bytes[ReadIndex + 1] & 0xff) << 24) | ((Bytes[ReadIndex + 2] & 0xff) << 16)
 				| ((Bytes[ReadIndex + 3] & 0xff) << 8) | (Bytes[ReadIndex + 4] & 0xff);
 		ReadIndex += 9;
-		return ((long)xh << 32) | xl;
+		return ((long)xh << 32) | xl & 0xffffffffl;
 	}
 
 	public void WriteFloat(float x) {
