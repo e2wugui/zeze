@@ -42,72 +42,6 @@ war？
 Connector.WaitReady
 	GlobalAgent 重构？
 
-Raft
-	增加ConcurrentMapOnRocksDb
-GlobalCacheManagerWithRaft
-	改成ConcurrentMapOnRocksDb
-
-RocksDb hot-copy 这样写？
-
-// maindb
-DB* maindb;
-DB::Open(options, "/maindb", &db);
-
-// bacup
-BackupEngine* backup_engine;
-BackupEngine::Open(Env::Default(), BackupableDBOptions("/backupdir"), &backup_engine);
-backup_engine->CreateNewBackup(maindb);
-delete backup_engine;
-delete checkpointdb;
-
-#include"rocksdb/db.h"
-#include"rocksdb/utilities/backupable_db.h" 
-#include<vector>
-using namespace rocksdb;
-int main()
-{ 
-	Options options; 
-	options.create_if_missing = true; 
-	DB* db; 
-	Status s = DB::Open(options, "/tmp/rocksdb", &db); 
-	assert(s.ok()); 
-	db->Put(...); // do your thing 
-	BackupEngine* backup_engine; 
-	s = BackupEngine::Open(Env::Default(), BackupableDBOptions("/tmp/rocksdb_backup"), &backup_engine); 
-	assert(s.ok()); 
-	s = backup_engine->CreateNewBackup(db); 
-	assert(s.ok()); 
-	db->Put(...); // make some more changes 
-	s = backup_engine->CreateNewBackup(db); 
-	assert(s.ok()); 
-	std::vector<BackupInfo> backup_info; 
-	backup_engine->GetBackupInfo(&backup_info); // you can get IDs from backup_info if there are more than two 
-	s = backup_engine->VerifyBackup(1); 
-	assert(s.ok()); 
-	s = backup_engine->VerifyBackup(2); 
-	assert(s.ok()); 
-	delete db; 
-	delete backup_engine; 
-}
-
-#include"rocksdb/db.h" 
-#include"rocksdb/utilities/backupable_db.h"
-using namespace rocksdb;
-int main() 
-{ 
-	BackupEngineReadOnly* backup_engine; 
-	Status s = BackupEngineReadOnly::Open(Env::Default(), BackupableDBOptions("/tmp/rocksdb_backup"), &backup_engine); 
-	assert(s.ok()); 
-	s = backup_engine->RestoreDBFromBackup(1, "/tmp/rocksdb", "/tmp/rocksdb"); // RestoreDBFromLatestBackup
-	assert(s.ok()); 
-	delete backup_engine; 
-}
-
-ConcurrentMap 并发
-	1. lock(value)
-	2. duplicate key
-Raft.ConcurrentMap 使用 RocksDb 持久化，自己实现快速 Snapshot，解决 RocksDb 没有这个功能的问题。
-
 Socket async surpport
 	用来给纯转发服务器用，可以避免使用多线程。
 AsyncSocket c#
@@ -116,3 +50,4 @@ AsyncSocket c#
 
 整体并发测试，需要包含 TableCache.Cleanup。
 Global.Release并发问题
+Raft.ConcurrentMaps 测试

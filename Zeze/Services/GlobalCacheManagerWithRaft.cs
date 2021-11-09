@@ -10,6 +10,7 @@ using System.Threading;
 using System.Text;
 using Zeze.Raft;
 using Zeze.Services.GlobalCacheManager;
+using System.IO;
 
 namespace Zeze.Services
 {
@@ -680,17 +681,21 @@ namespace Zeze.Services
 
         public class RaftDatas : Zeze.Raft.StateMachine
         {
-            public ConcurrentMap<GlobalCacheManager.GlobalTableKey, CacheState> Global { get; }
+            public ConcurrentMaps Storage { get; }
 
-            public ConcurrentMap<int, CacheHolder> Sessions { get; }
+            public ConcurrentMaps.Map<GlobalTableKey, CacheState> Global { get; }
+            public ConcurrentMaps.Map<int, CacheHolder> Sessions { get; }
 
             public RaftDatas(GlobalCacheManagerServer.GCMConfig config)
             {
-                /*
-                Global = new ConcurrentMap<GlobalCacheManager.GlobalTableKey, CacheState>
-                    (config.ConcurrencyLevel, (int)config.InitialCapacity);
-                Sessions = new ConcurrentMap<int, CacheHolder>(config.ConcurrencyLevel, 4096);
-                */
+                Storage = new ConcurrentMaps(".");
+
+                Global = Storage.GetOrAdd<GlobalTableKey, CacheState>(
+                    "Global", config.InitialCapacity, config.InitialCapacity, config.ConcurrencyLevel);
+
+                Sessions = Storage.GetOrAdd<int, CacheHolder>(
+                    "Sessions", 10_0000, 10_0000, config.ConcurrencyLevel);
+
                 AddFactory(new OperatesLog("", 0).TypeId, () => new OperatesLog("", 0));
             }
 
@@ -698,9 +703,7 @@ namespace Zeze.Services
             {
                 lock (Raft)
                 {
-                    using var file = new System.IO.FileStream(path, System.IO.FileMode.Open);
-                    Global.UnSerializeFrom(file);
-                    Sessions.UnSerializeFrom(file);
+                    Storage.Restore(path);
                 }
             }
 
@@ -709,28 +712,23 @@ namespace Zeze.Services
                 out long LastIncludedIndex,
                 out long LastIncludedTerm)
             {
-                using var file = new System.IO.FileStream(path, System.IO.FileMode.Create);
+                string checkpointDir = null;
                 lock (Raft)
                 {
                     var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
                     LastIncludedIndex = lastAppliedLog.Index;
                     LastIncludedTerm = lastAppliedLog.Term;
-                    if (!Global.StartSerialize())
-                        return false;
-                    if (!Sessions.StartSerialize())
-                        return false;
+                    checkpointDir = Storage.Checkpoint();
                 }
-                Global.SerializeTo(file);
-                Sessions.SerializeTo(file);
+                Storage.Backup(checkpointDir, path);
+                Directory.Delete(checkpointDir, true);
+
                 long oldFirstIndex = 0;
                 lock (Raft)
                 {
-                    Global.EndSerialize();
-                    Sessions.EndSerialize();
                     // 先关闭文件，结束Snapshot。
                     // 马上调整FirstIndex允许请求在新的状态上工作。
                     // 然后在锁外，慢慢删除旧的日志。
-                    file.Close();
                     oldFirstIndex = Raft.LogSequence.GetAndSetFirstIndex(LastIncludedIndex);
                 }
                 Raft.LogSequence.RemoveLogBeforeLastApplied(oldFirstIndex);
@@ -1099,13 +1097,14 @@ namespace Zeze.Services
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
             // 已分配给这个cache的记录。【需要系列化】。
-            public ConcurrentDictionary<GlobalCacheManager.GlobalTableKey, int> Acquired { get; }
+            public ConcurrentDictionary<GlobalTableKey, int> Acquired { get; }
                 
             public CacheHolder(GlobalCacheManagerServer.GCMConfig config)
             {
-                Acquired = new ConcurrentDictionary<GlobalCacheManager.GlobalTableKey, int>
-                    (config.ConcurrencyLevel, (int)config.InitialCapacity);
+                Acquired = new ConcurrentDictionary<GlobalTableKey, int>
+                    (config.ConcurrencyLevel, config.InitialCapacity);
             }
+
             // 【需要系列化】。
             public int Id { get; private set; }
 
