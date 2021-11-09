@@ -1,4 +1,3 @@
-
 #### TODO
 
 Zeze
@@ -43,7 +42,6 @@ Connector.WaitReady
 	GlobalAgent 重构？
 
 Socket async surpport
-	用来给纯转发服务器用，可以避免使用多线程。
 AsyncSocket c#
 	优化，减少和逻辑层的互斥时间。
 	？？？使用一个空的outputListSending去调用SendAsync???好像不可行。

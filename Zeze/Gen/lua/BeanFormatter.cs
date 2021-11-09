@@ -38,6 +38,17 @@ namespace Zeze.Gen.lua
             sw.WriteLine($"    [0] = \"{beanFullName}\", ");
             foreach (var v in vars)
             {
+                // 生成动态Bean的类型（TypeId）常量。
+                if (v.VariableType is Types.TypeDynamic d)
+                {
+                    foreach (var real in d.RealBeans)
+                    {
+                        sw.WriteLine($"    [\"DynamicTypeId{v.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)}\"] = {real.Key},");
+                    }
+                    if (d.RealBeans.Count > 0)
+                        sw.WriteLine();
+                }
+
                 sw.WriteLine($"    [{v.Id}] = {TypeMeta.Get(v, v.VariableType)},");
             }
             sw.WriteLine("}");

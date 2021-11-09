@@ -143,6 +143,13 @@ namespace Zeze.Gen.java
         {
             // TypeDynamic 使用写好的类 Zeze.Transaction.DynamicBean，
             // 不再需要生成Log。在这里生成 DynamicBean 需要的两个方法。
+            foreach (var real in type.RealBeans)
+            {
+                sw.WriteLine($"{prefix}public final static long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
+            }
+            if (type.RealBeans.Count > 0)
+                sw.WriteLine();
+
             sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean) {{");
             sw.WriteLine($"{prefix}    var _typeId_ = bean.getTypeId();");
             sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)");
