@@ -1033,7 +1033,7 @@ namespace Zeze.Services
             }
         }
 
-        public sealed class CacheState : Copyable<CacheState>
+        public sealed class CacheState : Serializable
         {
             internal int AcquireStatePending { get; set; } = GlobalCacheManagerServer.StateInvalid;
             internal int Modify { get; set; } // AutoKeyLocalId
@@ -1060,11 +1060,6 @@ namespace Zeze.Services
                 }
             }
 
-            public CacheState Copy()
-            {
-                return new CacheState(this);
-            }
-
             public void Decode(ByteBuffer bb)
             {
                 AcquireStatePending = bb.ReadInt();
@@ -1088,7 +1083,7 @@ namespace Zeze.Services
             }
         }
 
-        public sealed class CacheHolder : Copyable<CacheHolder>
+        public sealed class CacheHolder : Serializable
         {
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
@@ -1240,11 +1235,6 @@ namespace Zeze.Services
                 {
                     Acquired.TryAdd(e.Key, e.Value);
                 }
-            }
-
-            public CacheHolder Copy()
-            {
-                return new CacheHolder(this);
             }
 
             public void Decode(ByteBuffer bb)

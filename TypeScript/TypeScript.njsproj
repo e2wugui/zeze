@@ -37,6 +37,7 @@
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="config.ts" />
+    <TypeScriptCompile Include="gen.ts" />
     <TypeScriptCompile Include="test.ts" />
     <TypeScriptCompile Include="zeze.ts" />
   </ItemGroup>

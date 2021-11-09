@@ -7,11 +7,6 @@ using RocksDbSharp;
 
 namespace Zeze.Raft
 {
-    public interface Copyable<T> : Serializable
-    {
-        public T Copy();
-    }
-
     public class ConcurrentMaps
     {
         public abstract class Map
@@ -27,7 +22,7 @@ namespace Zeze.Raft
             internal abstract void Close();
         }
 
-        public class Map<K, V> : Map where V : Copyable<V>, new()
+        public class Map<K, V> : Map where V : Serializable, new()
         {
             public ConcurrentMaps Maps { get; }
             private ConcurrentLruLike<K, Record> Lru { get; set; }
@@ -109,6 +104,7 @@ namespace Zeze.Raft
                             updator(r.Value);
                             var bb = EncodeValue(r.Value);
                             Maps.Db.Put(r.EncodedKey, r.EncodedKey.Length, bb.Bytes, bb.Size, ColumnFamily);
+                            return;
                         }
                     }
                 }
@@ -118,13 +114,13 @@ namespace Zeze.Raft
                 }
             }
 
-            public void Remove(K key)
+            public bool Remove(K key)
             {
-                Remove(key, (v) => null != v);
+                return Remove(key, (v) => null != v);
             }
 
             // checker(value) value maybe null if not exist
-            public void Remove(K key, Func<V, bool> checker)
+            public bool Remove(K key, Func<V, bool> checker)
             {
                 Maps.rwLock.EnterReadLock();
                 try
@@ -143,7 +139,9 @@ namespace Zeze.Raft
                                 r.Value = default(V);
                                 r.Removed = true;
                                 Lru.TryRemove(key, out _);
+                                return true;
                             }
+                            return false;
                         }
                     }
                 }
@@ -236,10 +234,13 @@ namespace Zeze.Raft
             var dbName = Path.Combine(DbHome, "datas");
 
             var columns = new ColumnFamilies();
-            foreach (var column in RocksDb.ListColumnFamilies(options, dbName))
+            if (Directory.Exists(dbName))
             {
-                columns.Add(column, new ColumnFamilyOptions());
-                Columns[column] = column;
+                foreach (var column in RocksDb.ListColumnFamilies(options, dbName))
+                {
+                    columns.Add(column, new ColumnFamilyOptions());
+                    Columns[column] = column;
+                }
             }
 
             Db = RocksDb.Open(options, dbName, columns);
@@ -252,7 +253,7 @@ namespace Zeze.Raft
             int initialCapacity = 10000_0000,
             int concurrentcyLevel = 1024
             )
-            where V : Copyable<V>, new()
+            where V : Serializable, new()
         {
             return (Map<K, V>)maps.GetOrAdd(name, (key) =>
             {
@@ -295,11 +296,11 @@ namespace Zeze.Raft
             try
             {
                 IntPtr err = IntPtr.Zero;
-                Rocks.rocksdb_options_set_create_if_missing(options, true);
                 src = Rocks.rocksdb_open(options, checkpintDir, out err);
                 if (err != IntPtr.Zero)
                     return false;
 
+                Rocks.rocksdb_options_set_create_if_missing(options, true);
                 backup = Rocks.rocksdb_backup_engine_open(options, backupDir, out err);
                 if (err != IntPtr.Zero)
                     return false;
@@ -312,9 +313,12 @@ namespace Zeze.Raft
             }
             finally
             {
-                Rocks.rocksdb_backup_engine_close(backup);
-                Rocks.rocksdb_close(src);
-                Rocks.rocksdb_options_destroy(options);
+                if (backup != IntPtr.Zero)
+                    Rocks.rocksdb_backup_engine_close(backup);
+                if (src != IntPtr.Zero)
+                    Rocks.rocksdb_close(src);
+                if (options != IntPtr.Zero)
+                    Rocks.rocksdb_options_destroy(options);
             }
         }
 
@@ -355,9 +359,12 @@ namespace Zeze.Raft
                 }
                 finally
                 {
-                    Rocks.rocksdb_backup_engine_close(backup);
-                    Rocks.rocksdb_restore_options_destroy(restore_options);
-                    Rocks.rocksdb_options_destroy(options);
+                    if (backup != IntPtr.Zero)
+                        Rocks.rocksdb_backup_engine_close(backup);
+                    if (restore_options != IntPtr.Zero)
+                        Rocks.rocksdb_restore_options_destroy(restore_options);
+                    if (options != IntPtr.Zero)
+                        Rocks.rocksdb_options_destroy(options);
                 }
             }
             finally
