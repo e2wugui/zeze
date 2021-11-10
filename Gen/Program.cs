@@ -8,8 +8,8 @@ namespace Gen
     {
         public static void Main(string[] args)
         {
-            new UnitTest.Zeze.Net.TestSocketBeginXXX().Test();
-            return;
+            //new UnitTest.Zeze.Net.TestSocketBeginXXX().Test();
+            //return;
             /*
             new UnitTest.Zeze.Trans.TestGlobal().Test2App();
             return;
