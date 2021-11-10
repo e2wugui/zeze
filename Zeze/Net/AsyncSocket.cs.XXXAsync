@@ -313,6 +313,9 @@ namespace Zeze.Net
 
         private void OnAsyncGetHostAddresses(IAsyncResult ar)
         {
+            if (Socket == null)
+                return; // async close?
+
             try
             {
                 int port = (System.Int32)ar.AsyncState;
@@ -328,6 +331,9 @@ namespace Zeze.Net
 
         private void OnAsyncConnect(IAsyncResult ar)
         {
+            if (Socket == null)
+                return; // async close?
+
             try
             {
                 this.Socket.EndConnect(ar);

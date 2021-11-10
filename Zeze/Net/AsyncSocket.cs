@@ -71,6 +71,9 @@ namespace Zeze.Net
 
         private void OnAsyncAccept(IAsyncResult ar)
         {
+            if (Socket == null)
+                return; // async close?
+
             Socket newsocket = null;
             AsyncSocket accepted = null;
             try
@@ -174,6 +177,9 @@ namespace Zeze.Net
 
         private void OnAsyncReceive(IAsyncResult ar)
         {
+            if (Socket == null)
+                return; // async close?
+
             try
             {
                 int bytesRead = Socket.EndReceive(ar);
@@ -335,6 +341,8 @@ namespace Zeze.Net
 
         private void OnAsyncSend(IAsyncResult ar)
         {
+            if (Socket == null)
+                return; // async close?
             Socket.EndSend(ar);
             lock (this)
             {
@@ -355,6 +363,9 @@ namespace Zeze.Net
 
         private void OnAsyncGetHostAddresses(IAsyncResult ar)
         {
+            if (Socket == null)
+                return; // async close?
+
             try
             {
                 int port = (int)ar.AsyncState;
@@ -370,6 +381,9 @@ namespace Zeze.Net
 
         private void OnAsyncConnect(IAsyncResult ar)
         {
+            if (Socket == null)
+                return; // async close?
+
             try
             {
                 this.Socket.EndConnect(ar);

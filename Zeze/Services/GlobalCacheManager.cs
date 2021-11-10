@@ -55,6 +55,7 @@ namespace Zeze.Services
         public static GlobalCacheManagerServer Instance { get; } = new GlobalCacheManagerServer();
         public ServerService Server { get; private set; }
         public AsyncSocket ServerSocket { get; private set; }
+        public AsyncSocket ServerSocketIpv6Any { get; private set; }
         private ConcurrentDictionary<GlobalTableKey, CacheState> global;
         /*
          * 会话。
@@ -169,6 +170,8 @@ namespace Zeze.Services
                     });
 
                 ServerSocket = Server.NewServerSocket(ipaddress, port);
+                if (ipaddress == IPAddress.Any)
+                    ServerSocketIpv6Any = Server.NewServerSocket(IPAddress.IPv6Any, port);
             }
         }
 

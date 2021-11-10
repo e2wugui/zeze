@@ -54,6 +54,7 @@ public final class Application {
 	public Checkpoint getCheckpoint() {
 		return _checkpoint;
 	}
+	/*
 	public void setCheckpoint(Checkpoint value) {
 		synchronized (this) {
 			if (null == value) {
@@ -65,6 +66,7 @@ public final class Application {
 			_checkpoint = value;
 		}
 	}
+	*/
 
 	private Locks Locks;
 	public Locks getLocks() {

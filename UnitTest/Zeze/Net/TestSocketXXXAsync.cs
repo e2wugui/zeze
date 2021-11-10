@@ -11,12 +11,18 @@ using System.Threading;
 namespace UnitTest.Zeze.Net
 {
     [TestClass]
-    public class TestSocket
+    public class TestSocketXXXAsync
     {
         [TestMethod]
         public void TestReceiveAsync()
         {
+            // Async 模式下，io事件看起来没有使用独立线程池，
+            // 而是共享了worker线程池，这个原因可能是Async
+            // 不会有线程在同步等待中，而且Task调度上也需要使用worker线程池。
+            // 当多线程都在同步等待，没有空闲线程时，
+            // io事件会由于worker线程池最快一秒启动一个新线程，响应变慢。
             ThreadPool.SetMinThreads(500, 500);
+
             ServerSocket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             ServerSocket.Blocking = false;
             ServerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
@@ -28,19 +34,19 @@ namespace UnitTest.Zeze.Net
             eventArgsAccept.Completed += OnAsyncIOCompleted;
             BeginAcceptAsync();
 
-            var ClientSocket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-            ClientSocket.Connect(localEP);
+            var TestClientSocket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            TestClientSocket.Connect(localEP);
             int count = 500;
             for (int i = 0; i < count; ++i)
             {
                 var s = $"{i} {new string('_', 30)}";
                 var sendbytes = Encoding.UTF8.GetBytes(s);
-                ClientSocket.Send(sendbytes);
+                TestClientSocket.Send(sendbytes);
                 byte[] buffer = new byte[8192];
                 int recvlength = 0;
                 while (recvlength < sendbytes.Length)
                 {
-                    int rc = ClientSocket.Receive(buffer, recvlength, buffer.Length - recvlength, SocketFlags.None);
+                    int rc = TestClientSocket.Receive(buffer, recvlength, buffer.Length - recvlength, SocketFlags.None);
                     if (rc <= 0)
                     {
                         Console.WriteLine($"{DateTime.Now} ClientSocket.Receive Peer Close");
@@ -51,17 +57,15 @@ namespace UnitTest.Zeze.Net
                 Console.WriteLine($"{DateTime.Now} ClientSocket Recv {i} Ok!");
                 //Thread.Sleep(1);
             }
-            ClientSocket.Close();
-            Socket?.Close();
+            TestClientSocket.Close();
+            this.ClientSocket?.Close();
             ServerSocket.Close();
         }
 
         private SocketAsyncEventArgs eventArgsAccept;
         private SocketAsyncEventArgs eventArgsReceive;
-
         private Socket ServerSocket;
-
-        private Socket Socket;
+        private Socket ClientSocket;
         private byte[] inputBuffer = new byte[8192];
 
         private void BeginAcceptAsync()
@@ -80,8 +84,8 @@ namespace UnitTest.Zeze.Net
             }
 
             eventArgsReceive.SetBuffer(inputBuffer, 0, inputBuffer.Length);
-            Console.WriteLine($"{DateTime.Now} BeginReceiveAsync: {Socket.LocalEndPoint}-{Socket.RemoteEndPoint}");
-            if (false == this.Socket.ReceiveAsync(eventArgsReceive))
+            Console.WriteLine($"{DateTime.Now} BeginReceiveAsync: {ClientSocket.LocalEndPoint}-{ClientSocket.RemoteEndPoint}");
+            if (false == this.ClientSocket.ReceiveAsync(eventArgsReceive))
                 ProcessReceive(eventArgsReceive);
         }
 
@@ -93,7 +97,7 @@ namespace UnitTest.Zeze.Net
             outputList.Add(new ArraySegment<byte>(bytes, offset, length));
             eventArgsSend.BufferList = outputList;
             Console.WriteLine($"{DateTime.Now} BeginSendAsync {bytes.Length}");
-            if (false == Socket.SendAsync(eventArgsSend))
+            if (false == ClientSocket.SendAsync(eventArgsSend))
                 ProcessSend(eventArgsSend);
         }
 
@@ -132,14 +136,14 @@ namespace UnitTest.Zeze.Net
                 {
                     Console.WriteLine($"{DateTime.Now} ProcessSend Retry");
                     e.BufferList = outputList;
-                    if (false == Socket.SendAsync(e))
+                    if (false == ClientSocket.SendAsync(e))
                         ProcessSend(e);
                 }
             }
             else
             {
                 Console.WriteLine($"{DateTime.Now} ProcessSend: Fail!");
-                Socket?.Close();
+                ClientSocket?.Close();
             }
         }
 
@@ -147,8 +151,8 @@ namespace UnitTest.Zeze.Net
         {
             if (e.SocketError == SocketError.Success)
             {
-                Socket = e.AcceptSocket;
-                Console.WriteLine($"{DateTime.Now} ProcessAccept: {Socket.LocalEndPoint}-{Socket.RemoteEndPoint}");
+                ClientSocket = e.AcceptSocket;
+                Console.WriteLine($"{DateTime.Now} ProcessAccept: {ClientSocket.LocalEndPoint}-{ClientSocket.RemoteEndPoint}");
                 BeginReceiveAsync();
                 //BeginAcceptAsync();
             }
@@ -172,7 +176,7 @@ namespace UnitTest.Zeze.Net
 
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
-            Console.WriteLine($"{DateTime.Now} ProcessReceive: {Socket.LocalEndPoint}-{Socket.RemoteEndPoint} {e.BytesTransferred}");
+            Console.WriteLine($"{DateTime.Now} ProcessReceive: {ClientSocket.LocalEndPoint}-{ClientSocket.RemoteEndPoint} {e.BytesTransferred}");
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
                 var s = Encoding.UTF8.GetString(inputBuffer, 0, e.BytesTransferred);
@@ -184,8 +188,8 @@ namespace UnitTest.Zeze.Net
                 return;
             }
             Console.WriteLine($"{DateTime.Now} ProcessReceive: Peer Close?");
-            Socket?.Close();
-            Socket = null;
+            ClientSocket?.Close();
+            ClientSocket = null;
         }
 
         private void OnAsyncIOCompleted(object sender, SocketAsyncEventArgs e)

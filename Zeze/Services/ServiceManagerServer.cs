@@ -67,6 +67,7 @@ namespace Zeze.Services
         private ConcurrentDictionary<string, ServerState> ServerStates = new ConcurrentDictionary<string, ServerState>();
         public NetServer Server { get; private set; }
         private AsyncSocket ServerSocket;
+        private AsyncSocket ServerSocketIpv6Any;
         private volatile Util.SchedulerTask StartNotifyDelayTask;
 
         public sealed class Conf : Zeze.Config.ICustomize
@@ -542,6 +543,8 @@ namespace Zeze.Services
 
             // 允许配置多个acceptor，如果有冲突，通过日志查看。
             ServerSocket = Server.NewServerSocket(ipaddress, port);
+            if (ipaddress == IPAddress.Any)
+                ServerSocketIpv6Any = Server.NewServerSocket(IPAddress.IPv6Any, port);
             Server.Start();
         }
 
