@@ -22,6 +22,7 @@ namespace Zeze
             MySql,
             SqlServer,
             Tikv,
+            RocksDb,
         }
 
         public int WorkerThreads { get; set; }
@@ -95,6 +96,8 @@ namespace Zeze
                     return new Transaction.DatabaseSqlServer(zeze, url);
                 case DbType.Tikv:
                     return new Tikv.DatabaseTikv(zeze, url);
+                case DbType.RocksDb:
+                    return new Transaction.DatabaseRocksDb(zeze, url);
 #endif
                 default:
                     throw new Exception("unknown database type.");
@@ -262,6 +265,7 @@ namespace Zeze
                     case "MySql": DatabaseType = DbType.MySql; break;
                     case "SqlServer": DatabaseType = DbType.SqlServer; break;
                     case "Tikv": DatabaseType = DbType.Tikv; break;
+                    case "RocksDb": DatabaseType = DbType.RocksDb; break;
                     default: throw new Exception("unknown database type.");
                 }
                 DatabaseUrl = self.GetAttribute("DatabaseUrl");

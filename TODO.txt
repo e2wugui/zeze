@@ -48,7 +48,6 @@ AsyncSocket c#
 
 整体并发测试，需要包含 TableCache.Cleanup。
 Global.Release并发问题
-Raft.ConcurrentMaps 测试
 
 Global BUG?
 Raft BUG?
