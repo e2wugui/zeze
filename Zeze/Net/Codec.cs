@@ -172,7 +172,7 @@ namespace Zeze.Net
         {
             this.sink = sink;
             _iv = Digest.Md5(key);
-            AesManaged aes = new AesManaged
+            AesManaged aes = new AesManaged()
             {
                 Mode = CipherMode.ECB
             };
