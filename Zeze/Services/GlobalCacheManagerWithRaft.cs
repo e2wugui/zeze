@@ -681,14 +681,14 @@ namespace Zeze.Services
 
         public class RaftDatas : Zeze.Raft.StateMachine
         {
-            public ConcurrentMaps Storage { get; }
+            public MapsOnRocksDb Storage { get; }
 
-            public ConcurrentMaps.Map<GlobalTableKey, CacheState> Global { get; }
-            public ConcurrentMaps.Map<int, CacheHolder> Sessions { get; }
+            public MapsOnRocksDb.Map<GlobalTableKey, CacheState> Global { get; }
+            public MapsOnRocksDb.Map<int, CacheHolder> Sessions { get; }
 
             public RaftDatas(GlobalCacheManagerServer.GCMConfig config)
             {
-                Storage = new ConcurrentMaps(".");
+                Storage = new MapsOnRocksDb(".");
 
                 Global = Storage.GetOrAdd<GlobalTableKey, CacheState>(
                     "Global", config.InitialCapacity, config.InitialCapacity, config.ConcurrencyLevel);

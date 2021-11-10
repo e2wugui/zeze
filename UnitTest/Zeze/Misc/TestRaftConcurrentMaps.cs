@@ -31,7 +31,7 @@ namespace UnitTest.Zeze.Misc
         [TestMethod]
         public void TestRocksDbColumn()
         {
-            var storage = new ConcurrentMaps(".");
+            var storage = new MapsOnRocksDb(".");
             var map = storage.GetOrAdd<int, Value>("int2int");
             map.Update(1, (v) => v.Int = 0);
             Assert.AreEqual(0, map.GetOrAdd(1).Int);
@@ -40,7 +40,7 @@ namespace UnitTest.Zeze.Misc
             var cpdir = storage.Checkpoint();
             try
             {
-                storage.Backup(cpdir, "backup");
+                Assert.IsTrue(storage.Backup(cpdir, "backup"));
             }
             finally
             {
@@ -48,7 +48,8 @@ namespace UnitTest.Zeze.Misc
             }
             map.Update(1, (v) => v.Int++);
             Assert.AreEqual(2, map.GetOrAdd(1).Int);
-            storage.Restore("backup");
+            Assert.IsTrue(storage.Restore("backup"));
+            map = storage.GetOrAdd<int, Value>("int2int");
             Assert.AreEqual(1, map.GetOrAdd(1).Int);
         }
     }
