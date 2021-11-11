@@ -144,8 +144,7 @@ namespace Zeze.Net
 
                 IsConnected = false;
                 HandshakeDoneEvent.Reset();
-                Socket = Service.NewClientSocket(HostNameOrAddress, Port);
-                Socket.Connector = this;
+                Socket = Service.NewClientSocket(HostNameOrAddress, Port, this);
             }
         }
 

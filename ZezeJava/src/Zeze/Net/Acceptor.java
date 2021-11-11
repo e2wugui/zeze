@@ -59,9 +59,8 @@ public class Acceptor {
 			}
 
 			setSocket(getIp().length() > 0
-					? getService().NewServerSocket(getIp(), getPort())
-					: getService().NewServerSocket(new InetSocketAddress(0).getAddress(), getPort()));
-			getSocket().setAcceptor(this);
+					? getService().NewServerSocket(getIp(), getPort(), this)
+					: getService().NewServerSocket(new InetSocketAddress(0).getAddress(), getPort(), this));
 		}
 	}
 

@@ -85,7 +85,7 @@ public final class GlobalAgent {
 				}
 
 				if (null == getSocket()) {
-					setSocket(client.NewClientSocket(getHost(), getPort(), this));
+					setSocket(client.NewClientSocket(getHost(), getPort(), null,null));
 					// 每次新建连接创建future，没并发问题吧，还没仔细考虑。
 					setLogined(new TaskCompletionSource<AsyncSocket>());
 				}

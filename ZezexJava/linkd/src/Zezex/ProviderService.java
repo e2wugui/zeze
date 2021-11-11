@@ -39,8 +39,8 @@ public final class ProviderService extends ProviderServiceBase {
 
 	@Override
 	public void OnHandshakeDone(Zeze.Net.AsyncSocket sender) {
-		super.OnHandshakeDone(sender);
 		sender.setUserState(new ProviderSession(sender.getSessionId()));
+		super.OnHandshakeDone(sender);
 
 		var announce = new Zezex.Provider.AnnounceLinkInfo();
 		announce.Argument.setLinkId(0); // reserve

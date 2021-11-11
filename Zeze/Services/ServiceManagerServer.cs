@@ -67,7 +67,6 @@ namespace Zeze.Services
         private ConcurrentDictionary<string, ServerState> ServerStates = new ConcurrentDictionary<string, ServerState>();
         public NetServer Server { get; private set; }
         private AsyncSocket ServerSocket;
-        private AsyncSocket ServerSocketIpv6Any;
         private volatile Util.SchedulerTask StartNotifyDelayTask;
 
         public sealed class Conf : Zeze.Config.ICustomize
@@ -297,15 +296,15 @@ namespace Zeze.Services
                 KeepAliveTimerTask = Util.Scheduler.Instance.Schedule(
                     (ThisTask) =>
                     {
+                        var s = ServiceManager.Server.GetSocket(SessionId);
                         try
                         {
                             var r = new Keepalive();
-                            var s = ServiceManager.Server.GetSocket(SessionId);
                             r.SendAndWaitCheckResultCode(s);
                         }
                         catch (Exception ex)
                         {
-                            ServiceManager.Server.GetSocket(SessionId)?.Dispose();
+                            s?.Dispose();
                             logger.Error(ex, "ServiceManager.KeepAlive");
                         }
                     },
@@ -472,7 +471,7 @@ namespace Zeze.Services
             var r = p as ReadyServiceList;
             var session = r.Sender.UserState as Session;
             var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
-            state?.SetReady(r, session);
+            state.SetReady(r, session);
             return Procedure.Success;
         }
 
@@ -542,9 +541,14 @@ namespace Zeze.Services
             AutoKeysDb = RocksDb.Open(options, Path.Combine(Config.DbHome, "autokeys"));
 
             // 允许配置多个acceptor，如果有冲突，通过日志查看。
-            ServerSocket = Server.NewServerSocket(ipaddress, port);
-            if (ipaddress == IPAddress.Any)
-                ServerSocketIpv6Any = Server.NewServerSocket(IPAddress.IPv6Any, port);
+            ServerSocket = Server.NewServerSocket(ipaddress, port, null);
+
+            if (!IPAddress.IsLoopback(ipaddress))
+            {
+                Server.NewServerSocket(IPAddress.Parse("127.0.0.1"), port, null);
+                Server.NewServerSocket(IPAddress.Parse("::1"), port, null);
+            }
+
             Server.Start();
         }
 

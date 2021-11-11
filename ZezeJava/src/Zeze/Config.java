@@ -137,7 +137,10 @@ public final class Config {
 	*/
 	@SuppressWarnings("unchecked")
 	public <T extends ICustomize> T GetCustomize(T customize) {
-		return (T)(getCustomize().get(customize.getName()));
+		var exist = getCustomize().get(customize.getName());
+		if (null == exist)
+			return customize;
+		return (T)exist;
 	}
 
 	public void AddCustomize(ICustomize c) {

@@ -47,9 +47,8 @@ namespace Zeze.Net
                     return;
 
                 Socket = Ip.Length > 0
-                    ? Service.NewServerSocket(Ip, Port)
-                    : Service.NewServerSocket(System.Net.IPAddress.Any, Port);
-                Socket.Acceptor = this;
+                    ? Service.NewServerSocket(Ip, Port, this)
+                    : Service.NewServerSocket(System.Net.IPAddress.Any, Port, this);
             }
         }
 

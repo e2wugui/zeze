@@ -24,7 +24,7 @@ namespace UnitTest.Zeze.Net
                 Handle = ProcessFirstRpcRequest,
             });
 
-            AsyncSocket servetrSocket = server.NewServerSocket(IPAddress.Any, 5000);
+            AsyncSocket servetrSocket = server.NewServerSocket(IPAddress.Any, 5000, null);
             Client client = new Client(this);
             client.AddFactoryHandle(forid.TypeId, new Service.ProtocolFactoryHandle()
             {

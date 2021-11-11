@@ -40,8 +40,11 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	}
 
 	private Zeze.Util.TaskCompletionSource<TResult> Future;
+	public Zeze.Util.TaskCompletionSource<TResult> getFuture() {
+		return Future;
+	}
 
-	/** 
+	/**
 	 使用当前 rpc 中设置的参数发送。
 	 总是建立上下文，总是返回true。
 	 这个方法是 Protocol 的重载。

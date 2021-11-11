@@ -20,8 +20,8 @@ namespace Zeze.Net
         private List<ArraySegment<byte>> _outputBufferListSending = null; // 正在发送的 buffers.
 
         public Service Service { get; private set; }
-        public Connector Connector { get; set; }
-        public Acceptor Acceptor { get; set; }
+        public Connector Connector { get; }
+        public Acceptor Acceptor { get; }
 
         public Exception LastException { get; private set; }
         public long SessionId { get; private set; }
@@ -48,9 +48,10 @@ namespace Zeze.Net
         /// <summary>
         /// for server socket
         /// </summary>
-        public AsyncSocket(Service service, EndPoint localEP)
+        public AsyncSocket(Service service, EndPoint localEP, Acceptor acceptor)
         {
             this.Service = service;
+            this.Acceptor = acceptor;
 
             Socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             Socket.Blocking = false;
@@ -81,8 +82,7 @@ namespace Zeze.Net
                 byte[] Buffer;
                 int bytesTransferred;
                 newsocket = Socket.EndAccept(out Buffer, out bytesTransferred, ar);
-                accepted = new AsyncSocket(Service, newsocket);
-                accepted.Acceptor = this.Acceptor;
+                accepted = new AsyncSocket(Service, newsocket, this.Acceptor);
                 this.Service.OnSocketAccept(accepted);
                 accepted.BeginReceive(Buffer, bytesTransferred);
             }
@@ -102,9 +102,10 @@ namespace Zeze.Net
         /// use inner. create when accept;
         /// </summary>
         /// <param name="accepted"></param>
-        private AsyncSocket(Service service, Socket accepted)
+        private AsyncSocket(Service service, Socket accepted, Acceptor acceptor)
         {
             this.Service = service;
+            this.Acceptor = acceptor;
 
             Socket = accepted;
             Socket.Blocking = false;
@@ -206,9 +207,10 @@ namespace Zeze.Net
         /// <param name="port"></param>
         public AsyncSocket(Service service,
             string hostNameOrAddress, int port,
-            object userState = null)
+            object userState = null, Connector connector = null)
         {
             this.Service = service;
+            this.Connector = connector;
 
             Socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             Socket.Blocking = false;

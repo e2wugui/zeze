@@ -92,16 +92,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public Connector getConnector() {
 		return Connector;
 	}
-	public void setConnector(Connector value) {
-		Connector = value;
-	}
 
 	private Acceptor Acceptor;
 	public Acceptor getAcceptor() {
 		return Acceptor;
-	}
-	public void setAcceptor(Acceptor value) {
-		Acceptor = value;
 	}
 
 	private RuntimeException LastException;
@@ -164,8 +158,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/** 
 	 for server socket
 	*/
-	public AsyncSocket(Service service, InetSocketAddress localEP) {
+	public AsyncSocket(Service service, InetSocketAddress localEP, Acceptor acceptor) {
 		this.setService(service);
+		this.Acceptor = acceptor;
 
 		try {
 			ServerSocketChannel ssc = ServerSocketChannel.open();
@@ -195,7 +190,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				ServerSocketChannel ssc = (ServerSocketChannel) key.channel();
 				sc = ssc.accept();
 				if (null != sc)
-					Service.OnSocketAccept(new AsyncSocket(Service, sc));
+					Service.OnSocketAccept(new AsyncSocket(Service, sc, this.Acceptor));
 			} catch (Throwable e) {
 				if (null != sc)
 					sc.close();
@@ -221,16 +216,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				Service.OnSocketConnectError(this, e);
 				close();
 			}
+			return;
 		}
 
 		if (key.isWritable()) {
 			doWrite(key);
-			return;
 		}
 
 		if (key.isReadable()) {
 			ProcessReceive((SocketChannel) key.channel());
-			return;
 		}
 	}
 
@@ -243,9 +237,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/** 
 	 use inner. create when accept;
 	*/
-	private AsyncSocket(Service service, SocketChannel sc) throws IOException {
+	private AsyncSocket(Service service, SocketChannel sc, Acceptor acceptor) throws IOException {
 		this.setService(service);
-
+		this.Acceptor = acceptor;
 
 		// 据说连接接受以后设置无效，应该从 ServerSocket 继承
 		Socket so = sc.socket();
@@ -267,11 +261,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/** 
 	 for client socket. connect
 	*/
-
-	public AsyncSocket(Service service, String hostNameOrAddress, int port) {
-		this(service, hostNameOrAddress, port, null);
-	}
-
 	private void doConnectSuccess(SocketChannel sc) {
 		if (Connector != null) {
 			Connector.OnSocketConnected(this);
@@ -280,8 +269,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		Service.OnSocketConnected(this);
 	}
 
-	public AsyncSocket(Service service, String hostNameOrAddress, int port, Object userState) {
+	public AsyncSocket(Service service, String hostNameOrAddress, int port, Object userState, Connector connector) {
 		this.setService(service);
+		this.Connector = connector;
 
 		UserState = userState;
 		this.SessionId = SessionIdGen.incrementAndGet();

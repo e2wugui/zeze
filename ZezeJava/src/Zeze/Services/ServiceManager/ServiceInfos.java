@@ -43,6 +43,14 @@ public final class ServiceInfos extends Bean {
 		return null;
 	}
 
+	public ServiceInfos(String serviceName, Zeze.Services.ServiceManagerServer.ServerState state, long serialId) {
+		ServiceName = serviceName;
+		for (var e : state.getServiceInfos().entrySet()) {
+			_ServiceInfoListSortedByIdentity.add(e.getValue());
+		}
+		SerialId = serialId;
+	}
+
 	@Override
 	public void Decode(ByteBuffer bb) {
 		setServiceName(bb.ReadString());

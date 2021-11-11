@@ -22,7 +22,7 @@ public class TestRpc extends TestCase{
 		System.out.println(forid.getTypeId());
 		server.AddFactoryHandle(forid.getTypeId(), new Service.ProtocolFactoryHandle(f,x-> ProcessFirstRpcRequest(x)));
 
-		AsyncSocket servetrSocket = server.NewServerSocket("127.0.0.1", 5000);
+		AsyncSocket servetrSocket = server.NewServerSocket("127.0.0.1", 5000, null);
 		Client client = new Client(this);
 		client.AddFactoryHandle(forid.getTypeId(), new Service.ProtocolFactoryHandle(() -> new FirstRpc()));
 

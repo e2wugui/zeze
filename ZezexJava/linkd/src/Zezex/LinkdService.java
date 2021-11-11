@@ -106,8 +106,8 @@ public final class LinkdService extends LinkdServiceBase {
 
 	@Override
 	public void OnHandshakeDone(Zeze.Net.AsyncSocket sender) {
-		super.OnHandshakeDone(sender);
 		sender.setUserState(new LinkSession(sender.getSessionId()));
+		super.OnHandshakeDone(sender);
 	}
 
 	@Override

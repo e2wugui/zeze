@@ -196,8 +196,7 @@ public class Connector {
 
 			setConnected(false);
 			getHandshakeDoneEvent().Reset();
-			setSocket(getService().NewClientSocket(getHostNameOrAddress(), getPort()));
-			getSocket().setConnector(this);
+			setSocket(getService().NewClientSocket(getHostNameOrAddress(), getPort(), this));
 		}
 	}
 

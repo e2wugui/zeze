@@ -103,24 +103,24 @@ namespace Zeze.Net
             // _RpcContexts.Clear();
         }
 
-        public AsyncSocket NewServerSocket(string ipaddress, int port)
+        public AsyncSocket NewServerSocket(string ipaddress, int port, Acceptor acceptor)
         {
-            return NewServerSocket(IPAddress.Parse(ipaddress), port);
+            return new AsyncSocket(this, new IPEndPoint(IPAddress.Parse(ipaddress), port), acceptor);
         }
 
-        public AsyncSocket NewServerSocket(IPAddress ipaddress, int port)
+        public AsyncSocket NewServerSocket(IPAddress ipaddress, int port, Acceptor acceptor)
         {
-            return NewServerSocket(new IPEndPoint(ipaddress, port));
+            return new AsyncSocket(this, new IPEndPoint(ipaddress, port), acceptor);
         }
 
-        public AsyncSocket NewServerSocket(EndPoint localEP)
+        public AsyncSocket NewServerSocket(EndPoint localEP, Acceptor acceptor)
         {
-            return new AsyncSocket(this, localEP);
+            return new AsyncSocket(this, localEP, acceptor);
         }
 
-        public AsyncSocket NewClientSocket(string hostNameOrAddress, int port, object userState = null)
+        public AsyncSocket NewClientSocket(string hostNameOrAddress, int port, object userState = null, Connector connector = null)
         {
-            return new AsyncSocket(this, hostNameOrAddress, port, userState);
+            return new AsyncSocket(this, hostNameOrAddress, port, userState, connector);
         }
 
         /// <summary>
