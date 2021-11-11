@@ -118,7 +118,7 @@ namespace Zeze.Net
             return new AsyncSocket(this, localEP, acceptor);
         }
 
-        public AsyncSocket NewClientSocket(string hostNameOrAddress, int port, object userState = null, Connector connector = null)
+        public AsyncSocket NewClientSocket(string hostNameOrAddress, int port, object userState, Connector connector)
         {
             return new AsyncSocket(this, hostNameOrAddress, port, userState, connector);
         }

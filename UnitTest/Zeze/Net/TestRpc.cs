@@ -31,7 +31,7 @@ namespace UnitTest.Zeze.Net
                 Factory = () => new FirstRpc(),
             });
 
-            AsyncSocket clientSocket = client.NewClientSocket("127.0.0.1", 5000);
+            AsyncSocket clientSocket = client.NewClientSocket("127.0.0.1", 5000, null, null);
             connected.WaitOne();
 
             FirstRpc first = new FirstRpc();

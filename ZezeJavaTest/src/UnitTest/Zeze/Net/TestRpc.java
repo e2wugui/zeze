@@ -26,7 +26,7 @@ public class TestRpc extends TestCase{
 		Client client = new Client(this);
 		client.AddFactoryHandle(forid.getTypeId(), new Service.ProtocolFactoryHandle(() -> new FirstRpc()));
 
-		AsyncSocket clientSocket = client.NewClientSocket("127.0.0.1", 5000, null);
+		AsyncSocket clientSocket = client.NewClientSocket("127.0.0.1", 5000, null, null);
 		connected.WaitOne();
 
 		FirstRpc first = new FirstRpc();

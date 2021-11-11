@@ -41,7 +41,7 @@ public class TestAsyncSocket extends TestCase {
 
 	public final void testConnect() {
 		ServiceClient client = new ServiceClient();
-		try (AsyncSocket so = client.NewClientSocket("www.163.com", 80, null)) {
+		try (AsyncSocket so = client.NewClientSocket("www.163.com", 80, null, null)) {
 			client.Future.Wait();
 		}
 	}

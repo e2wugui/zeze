@@ -18,6 +18,7 @@
 			<pathelement path="${lib}/commons-logging-1.2.jar"/>
             <pathelement path="${lib}/pcollections-3.1.4.jar"/>
 			<pathelement path="${lib}/mysql-connector-java-6.0.2.jar"/>
+			<pathelement path="${lib}/rocksdbjni-6.25.3.jar"/>
         </path>
         <javac encoding="utf8" srcdir="${src}" destdir="${build}" includeantruntime="false"
                classpathref="classpath" debug="true" debuglevel="lines,source">
@@ -39,6 +40,7 @@
 			<zipgroupfileset dir="${lib}" includes="commons-logging-1.2.jar"/>
             <zipgroupfileset dir="${lib}" includes="pcollections-3.1.4.jar"/>
 			<zipgroupfileset dir="${lib}" includes="mysql-connector-java-6.0.2.jar"/>
+			<zipgroupfileset dir="${lib}" includes="rocksdbjni-6.25.3.jar"/>
         </jar>
         <delete dir="${build}"/>
     </target>

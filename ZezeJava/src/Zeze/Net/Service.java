@@ -140,10 +140,6 @@ public class Service {
 		return new AsyncSocket(this, localEP, acceptor);
 	}
 
-	public final AsyncSocket NewClientSocket(String hostNameOrAddress, int port, Connector connector) {
-		return NewClientSocket(hostNameOrAddress, port, null, connector);
-	}
-
 	public final AsyncSocket NewClientSocket(String hostNameOrAddress, int port, Object userState, Connector connector) {
 		return new AsyncSocket(this, hostNameOrAddress, port, userState, connector);
 	}

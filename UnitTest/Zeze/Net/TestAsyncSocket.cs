@@ -43,7 +43,7 @@ namespace UnitTest.Zeze.Net
         public void TestConnect()
         {
             ServiceClient client = new ServiceClient();
-            using AsyncSocket so = client.NewClientSocket("www.163.com", 80);
+            using AsyncSocket so = client.NewClientSocket("www.163.com", 80, null, null);
             client.Future.Task.Wait();
         }
         /*
