@@ -170,11 +170,6 @@ namespace Zeze.Services
 
                 ServerSocket = Server.NewServerSocket(ipaddress, port, null);
 
-                if (!IPAddress.IsLoopback(ipaddress))
-                {
-                    Server.NewServerSocket(IPAddress.Parse("127.0.0.1"), port, null);
-                    Server.NewServerSocket(IPAddress.Parse("::1"), port, null);
-                }
             }
         }
 

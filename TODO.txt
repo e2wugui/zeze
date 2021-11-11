@@ -56,3 +56,4 @@ GlobalWithRaft TODO
 加密没有生效 BUG?
 
 ModuleRedirectToServer
+WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.

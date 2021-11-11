@@ -543,12 +543,6 @@ namespace Zeze.Services
             // 允许配置多个acceptor，如果有冲突，通过日志查看。
             ServerSocket = Server.NewServerSocket(ipaddress, port, null);
 
-            if (!IPAddress.IsLoopback(ipaddress))
-            {
-                Server.NewServerSocket(IPAddress.Parse("127.0.0.1"), port, null);
-                Server.NewServerSocket(IPAddress.Parse("::1"), port, null);
-            }
-
             Server.Start();
         }
 
