@@ -574,9 +574,12 @@ public final class ServiceManagerServer implements Closeable {
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		ServerSocket = getServer().NewServerSocket(ipaddress, port, null);
 		getServer().Start();
-		// try
-		Server.NewServerSocket("127.0.0.1", port, null);
-		Server.NewServerSocket("::1", port, null);
+		try {
+			Server.NewServerSocket("127.0.0.1", port, null);
+			Server.NewServerSocket("::1", port, null);
+		} catch (Throwable skip) {
+
+		}
 	}
 
 	private final org.rocksdb.RocksDB AutoKeysDb;
@@ -732,6 +735,8 @@ public final class ServiceManagerServer implements Closeable {
 
 			}
 		}
+
+		Zeze.Util.Task.tryInitThreadPool(null, null, null);
 
 		InetAddress address = (null == ip || ip.isEmpty()) ?
 				new InetSocketAddress(0).getAddress() : InetAddress.getByName(ip);

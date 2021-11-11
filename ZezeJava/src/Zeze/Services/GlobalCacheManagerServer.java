@@ -1,6 +1,7 @@
 package Zeze.Services;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.*;
 import Zeze.Serialize.*;
 import Zeze.Net.*;
@@ -170,9 +171,12 @@ public final class GlobalCacheManagerServer {
 					new Service.ProtocolFactoryHandle(Cleanup::new, this::ProcessCleanup));
 
 			setServerSocket(getServer().NewServerSocket(ipaddress, port, null));
-			// try
-			Server.NewServerSocket("127.0.0.1", port, null);
-			Server.NewServerSocket("::1", port, null);
+			try {
+				Server.NewServerSocket("127.0.0.1", port, null);
+				Server.NewServerSocket("::1", port, null);
+			} catch (Throwable skip) {
+
+			}
 		}
 	}
 
@@ -757,6 +761,32 @@ public final class GlobalCacheManagerServer {
 		public void OnSocketAccept(AsyncSocket so) {
 			// so.UserState = new CacheHolder(so.SessionId); // Login ReLogin 的时候初始化。
 			super.OnSocketAccept(so);
+		}
+	}
+
+	public static void main(String[] args) throws Exception {
+		String ip = null;
+		int port = 5555;
+
+		Zeze.Util.Task.tryInitThreadPool(null, null, null);
+
+		for (int i = 0; i < args.length; ++i)
+		{
+			switch (args[i])
+			{
+				case "-ip": ip = args[++i]; break;
+				case "-port": port = Integer.parseInt(args[++i]); break;
+
+			}
+		}
+		InetAddress address = (null == ip || ip.isEmpty()) ?
+				new InetSocketAddress(0).getAddress() : InetAddress.getByName(ip);
+
+		var GlobalServer = Zeze.Services.GlobalCacheManagerServer.Instance;
+		GlobalServer.Start(address, port);
+		System.out.println("Start");
+		while (true) {
+			Thread.sleep(10000);
 		}
 	}
 }

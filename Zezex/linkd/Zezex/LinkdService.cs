@@ -111,8 +111,8 @@ namespace Zezex
 
         public override void OnHandshakeDone(Zeze.Net.AsyncSocket sender)
         {
-            base.OnHandshakeDone(sender);
             sender.UserState = new LinkSession(sender.SessionId);
+            base.OnHandshakeDone(sender);
         }
 
         public override void OnSocketClose(Zeze.Net.AsyncSocket so, System.Exception e)

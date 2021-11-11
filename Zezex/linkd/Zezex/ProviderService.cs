@@ -44,8 +44,8 @@ namespace Zezex
 
         public override void OnHandshakeDone(Zeze.Net.AsyncSocket sender)
         {
-            base.OnHandshakeDone(sender);
             sender.UserState = new ProviderSession(sender.SessionId);
+            base.OnHandshakeDone(sender);
 
             var announce = new Provider.AnnounceLinkInfo();
             announce.Argument.LinkId = 0; // reserve
