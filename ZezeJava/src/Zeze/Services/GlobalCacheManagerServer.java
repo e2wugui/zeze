@@ -171,12 +171,18 @@ public final class GlobalCacheManagerServer {
 					new Service.ProtocolFactoryHandle(Cleanup::new, this::ProcessCleanup));
 
 			setServerSocket(getServer().NewServerSocket(ipaddress, port, null));
+			/*
 			try {
 				Server.NewServerSocket("127.0.0.1", port, null);
+			} catch (Throwable skip) {
+				skip.printStackTrace();
+			}
+			try {
 				Server.NewServerSocket("::1", port, null);
 			} catch (Throwable skip) {
-
+				skip.printStackTrace();
 			}
+			*/
 		}
 	}
 

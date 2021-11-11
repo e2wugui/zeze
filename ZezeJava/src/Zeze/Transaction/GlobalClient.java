@@ -60,8 +60,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 	@Override
 	public void OnSocketConnectError(AsyncSocket so, RuntimeException e) {
 		super.OnSocketConnectError(so, e);
-		Object tempVar = so.getUserState();
-		var agent = tempVar instanceof GlobalAgent.Agent ? (GlobalAgent.Agent)tempVar : null;
+		var agent = (GlobalAgent.Agent)so.getUserState();
 		if (null == e) {
 			e = new RuntimeException("Normal Connect Error???"); // ConnectError 应该 e != null 吧，懒得确认了。
 		}

@@ -237,7 +237,7 @@ public class ModuleRank extends AbstractModule {
 		c) 第三个参数是returnCode，
 		d) 剩下的是自定义参数。
 	*/
-	protected final int GetRank(long sessionId, int hash, BConcurrentKey keyHint,
+	protected final long GetRank(long sessionId, int hash, BConcurrentKey keyHint,
 								Zezex.RedirectAllResultHandle onHashResult) {
 		// 根据hash获取分组rank。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
