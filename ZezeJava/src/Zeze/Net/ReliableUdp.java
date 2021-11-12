@@ -37,7 +37,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
         return Sessions;
     }
 
-    private int MaxPacketLength;
+    private int MaxPacketLength = 2048;
     public int getMaxPacketLength() {
         return MaxPacketLength;
     }
