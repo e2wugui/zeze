@@ -1,7 +1,10 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
+import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Util.Str;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public abstract class Protocol implements Serializable {
 	public abstract int getModuleId();
@@ -113,10 +116,10 @@ public abstract class Protocol implements Serializable {
 		ResultCode = value;
 	}
 
-	/** 
+	private static final Logger logger = LogManager.getLogger(AsyncSocket.class);
+	/**
 	 Id + size + protocol.bytes
 	*/
-
 	public static void Decode(Service service, AsyncSocket so, ByteBuffer bb) {
 		ByteBuffer os = ByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.Size());
 		// 创建一个新的ByteBuffer，解码确认了才修改bb索引。
@@ -142,6 +145,8 @@ public abstract class Protocol implements Serializable {
 			// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
 			// 参考 AsyncSocket
 			long type = MakeTypeId(moduleId, protocolId);
+			if (protocolId == Reduce.ProtocolId_)
+				logger.error("<--- Protocol.Decode Reduce " + protocolId);
 			if (size < 0 || size > os.Size()) {
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
 				if (size < 0 || size > service.getSocketOptions().getInputBufferMaxProtocolSize()) {
@@ -165,6 +170,8 @@ public abstract class Protocol implements Serializable {
 				Protocol p = factoryHandle.Factory.create();
 				p.Service = service;
 				p.Decode(pBuffer);
+				if (protocolId == Reduce.ProtocolId_)
+					logger.error("<--- Protocol.Decode Reduce " + p);
 				if (pBuffer.ReadIndex != pBuffer.WriteIndex) {
 					throw new RuntimeException(Zeze.Util.Str.format("type={} size={} too many data", type, size));
 				}

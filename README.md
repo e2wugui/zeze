@@ -60,7 +60,7 @@
 	   GlobalCacheManager知道所有记录的权限的分布状态。它根据申请的权限，向现拥有者发送降级请求，
 	   然后给申请者返回合适结果。
 	   核心算法：
-	   Zeze/Services/GlobalCacheManager.cs -> AcquireModify, AcquireShare
+	   Zeze/Services/GlobalCacheManager.cs -> AcquireModify, AcquireShare, Release
 	   Zeze/Transaction/Table.cs -> ReduceShare, ReduceInvalid, FindInCacheOrStorage
 	   当主逻辑服务器收到降级请求时，会把相关记录保存到后端数据库以后才给GlobalCacheManager返回结果。see 下面的持久化模式。
 
@@ -71,6 +71,8 @@
 	   核心算法：
 	   Zeze/Transaction/Checkpoint.cs
 	   Zeze/Transaction/RelativeRecordSet.cs
+
+	4) TableCache.Cleanup
 
 #### 安装教程
 

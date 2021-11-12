@@ -57,3 +57,5 @@ GlobalWithRaft TODO
 
 ModuleRedirectToServer
 WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
+Reduce 实现需要判断数据是否Dirty.
+Global加上数据，可以减少一次后端数据库访问。

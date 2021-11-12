@@ -759,6 +759,7 @@ public final class GlobalCacheManagerServer {
 	}
 
 	public final static class ServerService extends Zeze.Net.Service {
+
 		public ServerService(Zeze.Config config) {
 			super("GlobalCacheManager", config);
 		}

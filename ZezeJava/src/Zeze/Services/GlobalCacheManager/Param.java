@@ -25,6 +25,6 @@ public class Param extends Zeze.Transaction.Bean {
 
     @Override
     public String toString() {
-        return GlobalTableKey.toString() + ":" + State;
+        return GlobalTableKey + ":" + State;
     }
 }
