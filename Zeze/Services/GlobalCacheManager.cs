@@ -509,6 +509,7 @@ namespace Zeze.Services
                             sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
                             rpc.SendResultCode(AcquireModifyAlreadyIsModify);
                             cs.AcquireStatePending = StateInvalid;
+                            Monitor.Pulse(cs);
                             return 0;
                         }
 
@@ -546,6 +547,7 @@ namespace Zeze.Services
                         }
 
                         cs.Modify = sender;
+                        cs.Share.Remove(sender);
                         sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
                         cs.AcquireStatePending = StateInvalid;
                         Monitor.Pulse(cs);

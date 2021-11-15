@@ -432,20 +432,17 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				inputCodecChain.update(buffer.array(), 0, BytesTransferred);
 				inputCodecChain.flush();
 
-				logger.error("<--- ProcessReceive 1" + BytesTransferred + " this=" + this);
 				this.getService().OnSocketProcessInputBuffer(this, inputCodecBuffer.getBuffer());
 			}
 			else if (inputCodecBuffer.getBuffer().Size() > 0) {
 				// 上次解析有剩余数据（不完整的协议），把新数据加入。
 				inputCodecBuffer.getBuffer().Append(buffer.array(), 0, BytesTransferred);
 
-				logger.error("<--- ProcessReceive 2" + BytesTransferred + " this=" + this);
 				this.getService().OnSocketProcessInputBuffer(this, inputCodecBuffer.getBuffer());
 			}
 			else {
 				ByteBuffer avoidCopy = ByteBuffer.Wrap(buffer.array(), 0, BytesTransferred);
 
-				logger.error("<--- ProcessReceive 3" + BytesTransferred + " this=" + this);
 				this.getService().OnSocketProcessInputBuffer(this, avoidCopy);
 
 				if (avoidCopy.Size() > 0) { // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。

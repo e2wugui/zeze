@@ -153,7 +153,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
             Sessions.put(peer, this);
         }
 
-        public void send(byte[] bytes, int offset, int length) {
+        public boolean send(byte[] bytes, int offset, int length) {
             if (length > MaxPacketLength)
                 throw new RuntimeException("length > MaxPacketLength: " + MaxPacketLength);
 
@@ -164,6 +164,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
             // start auto resend timer.
             packet.ResendTimerTask = Zeze.Util.Task.schedule((ThisTask)->sendTo(Peer, packet), 3000, 3000);
             sendTo(Peer, packet);
+            return true;
         }
     }
 

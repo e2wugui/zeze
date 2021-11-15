@@ -128,7 +128,9 @@ public final class PSet1<E> extends PSet<E> {
 				@SuppressWarnings("unchecked")
 				var note = ((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this)));
                 for (var item : c) {
-                    note.LogRemove((E)item);
+					@SuppressWarnings("unchecked")
+					var e = (E)item;
+                    note.LogRemove(e);
                 }
                 return true;
 			}

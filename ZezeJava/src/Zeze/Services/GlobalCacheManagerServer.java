@@ -480,6 +480,7 @@ public final class GlobalCacheManagerServer {
 						sender.getAcquired().put(rpc.Argument.GlobalTableKey, StateModify);
 						rpc.SendResultCode(AcquireModifyAlreadyIsModify);
 						cs.setAcquireStatePending(StateInvalid);
+						cs.notify();
 						return 0;
 					}
 
@@ -513,6 +514,7 @@ public final class GlobalCacheManagerServer {
 					}
 
 					cs.setModify(sender);
+					cs.getShare().remove(sender);
 					sender.getAcquired().put(rpc.Argument.GlobalTableKey, StateModify);
 					cs.setAcquireStatePending(StateInvalid);
 					cs.notify();

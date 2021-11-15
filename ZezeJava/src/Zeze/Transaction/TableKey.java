@@ -28,8 +28,7 @@ public final class TableKey implements java.lang.Comparable<TableKey> {
 
 	@Override
 	public String toString() {
-		return Zeze.Util.Str.format("tkey({}:{},{})",
-				Name, getKey());
+		return Zeze.Util.Str.format("tkey({}:{})", Name, getKey());
 	}
 
 	@Override
