@@ -231,7 +231,9 @@ public final class Application {
 			}
 			getDatabases().clear();
 			getServiceManagerAgent().Stop();
+			InternalThreadPool = null;
 			Locks = null;
+			Conf = null;
 		}
 	}
 

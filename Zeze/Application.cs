@@ -15,7 +15,7 @@ namespace Zeze
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public Dictionary<string, Database> Databases { get; private set; } = new Dictionary<string, Database>();
-        public Config Config { get; }
+        public Config Config { get; private set; }
         public bool IsStart { get; private set; }
         public Agent ServiceManagerAgent { get; private set; }
         internal GlobalAgent GlobalAgent { get; }
@@ -236,7 +236,9 @@ namespace Zeze
                 }
                 Databases.Clear();
                 ServiceManagerAgent.Stop();
+                InternalThreadPool = null;
                 Locks = null;
+                Config = null;
             }
         }
  

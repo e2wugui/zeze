@@ -47,7 +47,7 @@ public final class GlobalCacheManagerServer {
 
 	public static final int LoginBindSocketFail = 60;
 
-	static final Logger logger = LogManager.getLogger(ServiceManagerServer.class);
+	static final Logger logger = LogManager.getLogger(GlobalCacheManagerServer.class);
 	private final static GlobalCacheManagerServer Instance = new GlobalCacheManagerServer();
 	public static GlobalCacheManagerServer getInstance() {
 		return Instance;
@@ -774,6 +774,7 @@ public final class GlobalCacheManagerServer {
 	}
 
 	public static void main(String[] args) throws Exception {
+		System.setProperty("log4j.configurationFile", "log4j2.xml");
 		String ip = null;
 		int port = 5555;
 

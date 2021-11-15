@@ -730,6 +730,7 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	public static void main(String[] args) throws Exception {
+		System.setProperty("log4j.configurationFile", "log4j2.xml");
 		String ip = null;
 		int port = 5001;
 

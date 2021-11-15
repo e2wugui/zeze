@@ -48,8 +48,6 @@ AsyncSocket c#
 
 整体并发测试，需要包含 TableCache.Cleanup。
 Global.Release并发问题
-DatabaseRocksDb Test
-
 Global BUG?
 Raft BUG?
 GlobalWithRaft TODO
@@ -57,7 +55,5 @@ GlobalWithRaft TODO
 
 ModuleRedirectToServer
 Global加上数据，可以减少一次后端数据库访问。
-RocksDb Transaction 模式接口不完善，看看能不能用Batch模式实现。
-
 
 WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.

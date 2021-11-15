@@ -89,7 +89,7 @@ namespace Zeze.Transaction
                     if (null != TStorage)
                     {
 #if ENABLE_STATISTICS
-                            TableStatistics.Instance.GetOrAdd(Name).StorageFindCount.IncrementAndGet();
+                        TableStatistics.Instance.GetOrAdd(Name).StorageFindCount.IncrementAndGet();
 #endif
                         r.Value = TStorage.Find(key, this); // r.Value still maybe null
 
@@ -255,7 +255,6 @@ namespace Zeze.Transaction
                 {
                     case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
                     case GlobalCacheManagerServer.StateInvalid:
-                        Console.WriteLine($"ReduceInvalid 1 Local=Invalid Change Now.");
                         rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                         rpc.ResultCode = GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid;
                         if (r.Dirty)
@@ -267,7 +266,6 @@ namespace Zeze.Transaction
                         return 0;
 
                     case GlobalCacheManagerServer.StateShare:
-                        Console.WriteLine($"ReduceInvalid 2 Local=Share Change Now.");
                         r.State = GlobalCacheManagerServer.StateInvalid;
                         // 不删除记录，让TableCache.CleanNow处理。 
                         if (r.Dirty)
@@ -279,7 +277,6 @@ namespace Zeze.Transaction
                         return 0;
 
                     case GlobalCacheManagerServer.StateModify:
-                        Console.WriteLine($"ReduceInvalid 3 Local=Modify Change Now.");
                         r.State = GlobalCacheManagerServer.StateInvalid;
                         if (r.Dirty)
                             break;
@@ -323,7 +320,6 @@ namespace Zeze.Transaction
                 lockey.EnterWriteLock();
                 try
                 {
-                    Console.WriteLine($"ReduceInvalidAllLocalOnly {e.Value}.");
                     // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
                     e.Value.State = GlobalCacheManagerServer.StateInvalid;
                 }
