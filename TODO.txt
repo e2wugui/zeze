@@ -56,10 +56,8 @@ GlobalWithRaft TODO
 加密没有生效 BUG?
 
 ModuleRedirectToServer
-WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
-Reduce 实现需要判断数据是否Dirty.
 Global加上数据，可以减少一次后端数据库访问。
 RocksDb Transaction 模式接口不完善，看看能不能用Batch模式实现。
-Global Login 没有重启无法登录
+
 
 WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.

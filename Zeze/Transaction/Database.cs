@@ -1058,12 +1058,12 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private IntPtr Db = IntPtr.Zero;
-        private IntPtr DbOptions = IntPtr.Zero;
-        private IntPtr WriteOptions = IntPtr.Zero;
-        private IntPtr ReadOptions = IntPtr.Zero;
-        private IntPtr TxnOptions = IntPtr.Zero;
-        private IntPtr CfOptions = IntPtr.Zero;
+        private RocksDb Db;
+        private WriteOptions WriteOptions = new WriteOptions();
+        private ReadOptions ReadOptions = new ReadOptions();
+        private ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
+        private DbOptions DbOptions = new DbOptions();
+        private ConcurrentDictionary<string, string> ColumnFamilies = new ConcurrentDictionary<string, string>();
 
         public DatabaseRocksDb(Application zeze, string url) : base(zeze, url)
         {
@@ -1071,93 +1071,56 @@ namespace Zeze.Transaction
             {
                 throw new Exception("RocksDb Can Not Work With GlobalCacheManager.");
             }
-            var Rocks = Native.Instance;
-
-            DbOptions = Rocks.rocksdb_options_create();
-            Rocks.rocksdb_options_set_create_if_missing(DbOptions, true);
-            WriteOptions = Rocks.rocksdb_writeoptions_create();
-            ReadOptions = Rocks.rocksdb_readoptions_create();
-            TxnOptions = Rocks.rocksdb_transaction_options_create();
-            CfOptions = Rocks.rocksdb_options_create();
-
+            DbOptions.SetCreateIfMissing(true);
+            var columnFamilies = new ColumnFamilies();
+            foreach (var cf in RocksDb.ListColumnFamilies(DbOptions, DatabaseUrl))
+            {
+                columnFamilies.Add(cf, CfOptions);
+                ColumnFamilies[cf] = cf;
+            }
             // DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
-            IntPtr err;
-            Db = Rocks.rocksdb_transactiondb_open(DbOptions, TxnOptions, DatabaseUrl, out err);
-            if (err != IntPtr.Zero)
-                throw new RocksDbException(err);
-
+            Db = RocksDb.Open(DbOptions, url, columnFamilies);
             DirectOperates = new OperatesRocksDb(this);
         }
 
         public override void Close()
         {
             base.Close();
-
-            var Rocks = Native.Instance;
-
-            if (Db != IntPtr.Zero)
-                Rocks.rocksdb_transactiondb_close(Db);
-
-            if (CfOptions != IntPtr.Zero)
-                Rocks.rocksdb_options_destroy(CfOptions);
-            if (TxnOptions != IntPtr.Zero)
-                Rocks.rocksdb_transaction_options_destroy(TxnOptions);
-            if (ReadOptions != IntPtr.Zero)
-                Rocks.rocksdb_readoptions_destroy(ReadOptions);
-            if (WriteOptions != IntPtr.Zero)
-                Rocks.rocksdb_writeoptions_destroy(WriteOptions);
-            if (DbOptions != IntPtr.Zero)
-                Rocks.rocksdb_options_destroy(DbOptions);
+            Db.Dispose();
         }
 
         public class RockdsDbTrans : Transaction
         {
             private DatabaseRocksDb Database;
-            private IntPtr Txn;
+            private WriteBatch Batch;
 
             public RockdsDbTrans(DatabaseRocksDb database)
             {
                 Database = database;
-                Txn = Native.Instance.rocksdb_transaction_begin(
-                    Database.Db, Database.WriteOptions, Database.TxnOptions, IntPtr.Zero);
+                Batch = new WriteBatch();
             }
 
             public void Dispose()
             {
-                if (Txn != IntPtr.Zero)
-                    Native.Instance.rocksdb_transaction_destroy(Txn);
-                Txn = IntPtr.Zero;
             }
 
-            internal void Put(byte[] key, int keylen, byte[] value, int valuelen, IntPtr family)
+            internal void Put(byte[] key, int keylen, byte[] value, int valuelen, ColumnFamilyHandle family)
             {
-                IntPtr err;
-                Native.Instance.rocksdb_transaction_put_cf(
-                    Txn, family, key, new UIntPtr((uint)keylen),
-                    value, new UIntPtr((uint)valuelen), out err);
-
-                if (err != IntPtr.Zero)
-                    throw new RocksDbException(err);
+                Batch.Put(key, (ulong)keylen, value, (ulong)valuelen, family);
             }
 
-            internal void Remove(byte[] key, int keylen, IntPtr family)
+            internal void Remove(byte[] key, int keylen, ColumnFamilyHandle family)
             {
-                IntPtr err;
-                Native.Instance.rocksdb_transactiondb_delete_cf(
-                    Txn, Database.WriteOptions, family, key, new UIntPtr((uint)keylen), out err);
-
-                if (err != IntPtr.Zero)
-                    throw new RocksDbException(err);
+                Batch.Delete(key, (ulong)(keylen), family);
             }
 
             public void Commit()
             {
-                Native.Instance.rocksdb_transaction_commit(Txn);
+                Database.Db.Write(Batch, Database.WriteOptions);
             }
 
             public void Rollback()
             {
-                Native.Instance.rocksdb_transaction_rollback(Txn);
             }
         }
 
@@ -1168,8 +1131,12 @@ namespace Zeze.Transaction
 
         public override Table OpenTable(string name)
         {
-            var family = Native.Instance.rocksdb_transactiondb_create_column_family(Db, CfOptions, name);
-            return new TableRocksDb(this, name, family);
+            ColumnFamilies.GetOrAdd(name, (key) =>
+            {
+                Db.CreateColumnFamily(CfOptions, key);
+                return key;
+            });
+            return new TableRocksDb(this, name);
         }
 
         public sealed class TableRocksDb : Database.Table
@@ -1177,13 +1144,13 @@ namespace Zeze.Transaction
             public DatabaseRocksDb DatabaseReal { get; }
             public Database Database => DatabaseReal;
             public string Name { get; }
-            private IntPtr ColumnFamily { get; }
+            private ColumnFamilyHandle ColumnFamily { get; }
 
-            public TableRocksDb(DatabaseRocksDb database, string name, IntPtr family)
+            public TableRocksDb(DatabaseRocksDb database, string name)
             {
                 DatabaseReal = database;
                 Name = name;
-                ColumnFamily = family;
+                ColumnFamily = DatabaseReal.Db.GetColumnFamily(name);
             }
 
             public void Close()
@@ -1210,21 +1177,10 @@ namespace Zeze.Transaction
             public ByteBuffer Find(ByteBuffer _key)
             {
                 var (key, keylen) = GetBytes(_key);
-
-                IntPtr err;
-                UIntPtr valuelen;
-                IntPtr value = Native.Instance.rocksdb_transactiondb_get_cf(
-                    DatabaseReal.Db, DatabaseReal.ReadOptions, ColumnFamily,
-                    key, new UIntPtr((uint)keylen),
-                    out valuelen, out err);
-
-                if (err != IntPtr.Zero)
-                    throw new RocksDbException(err);
-
-                byte[] valueManaged = MarshalCopyAndFree(value, valuelen);
-                if (valueManaged == null)
+                var value = DatabaseReal.Db.Get(key, keylen, ColumnFamily, DatabaseReal.ReadOptions);
+                if (null == value)
                     return null;
-                return ByteBuffer.Wrap(valueManaged);
+                return ByteBuffer.Wrap(value);
             }
 
             public void Remove(Transaction t, ByteBuffer _key)
@@ -1242,43 +1198,25 @@ namespace Zeze.Transaction
                 txn.Put(key, keylen, value, valuelen, ColumnFamily);
             }
 
-            private byte[] MarshalCopyAndFree(IntPtr pointer, UIntPtr length)
-            {
-                if (pointer == IntPtr.Zero)
-                    return null;
-
-                var bytes = new byte[length.ToUInt32()];
-                Marshal.Copy(pointer, bytes, 0, bytes.Length);
-                Native.Instance.rocksdb_free(pointer);
-                return bytes;
-            }
-
             public long Walk(Func<byte[], byte[], bool> callback)
             {
-                var Rocks = Native.Instance;
-                var it = Rocks.rocksdb_transactiondb_create_iterator_cf(
-                    DatabaseReal.Db, DatabaseReal.ReadOptions, ColumnFamily);
+                var it = DatabaseReal.Db.NewIterator(ColumnFamily, DatabaseReal.ReadOptions);
                 try
                 {
                     long countWalked = 0;
-                    Rocks.rocksdb_iter_seek_to_first(it);
-                    while (Rocks.rocksdb_iter_valid(it))
+                    it.SeekToFirst();
+                    while (it.Valid())
                     {
                         ++countWalked;
-                        UIntPtr keylen, valuelen;
-                        var key = Rocks.rocksdb_iter_key(it, out keylen);
-                        var value = Rocks.rocksdb_iter_value(it, out valuelen);
-                        byte[] keyManaged = MarshalCopyAndFree(key, keylen);
-                        byte[] valueManaged = MarshalCopyAndFree(value, valuelen);
-                        if (false == callback(keyManaged, valueManaged))
+                        if (false == callback(it.Key(), it.Value()))
                             return countWalked;
-                        Rocks.rocksdb_iter_next(it);
+                        it.Next();
                     }
                     return countWalked;
                 }
                 finally
                 {
-                    Rocks.rocksdb_iter_destroy(it);
+                    it.Dispose();
                 }
             }
         }
