@@ -3,9 +3,11 @@ package Game.Rank;
 import Zeze.Net.Protocol;
 import Zeze.Transaction.*;
 import Game.*;
+import Zeze.TransactionModes;
 import Zeze.Util.Str;
 import Zezex.Redirect;
 import Zezex.RedirectAll;
+import Zezex.RedirectToServer;
 import Zezex.RedirectWithHash;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -226,7 +228,19 @@ public class ModuleRank extends AbstractModule {
 				hash);
 	}
 
-	/** 
+	@RedirectToServer()
+	public void RunTestToServer(int serverId) {
+		App.Zeze.Run(
+				() -> TestToServer(serverId),
+				"RunTestToServer",
+				TransactionModes.ExecuteInAnotherThread,
+				serverId);
+	}
+
+	protected final long TestToServer(int serverId) {
+		return 0L;
+	}
+	/**
 	 ModuleRedirectAll 实现要求：
 	 1）第一个参数是调用会话id；
 	 2）第二个参数是hash-index；

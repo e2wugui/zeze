@@ -24,7 +24,6 @@ GlobalCacheManagerWithRaft
 
 DatabaseRocksDb
 	OperatesRocksDb
-	atomic flush
 DatabaseTikv
 	OperatesTikv
 

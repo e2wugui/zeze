@@ -31,7 +31,7 @@ public final class ModuleProvider extends AbstractModule {
         }
 
         Object tempVar = list.get(Integer.remainderUnsigned(hash, list.size())).getLocalState();
-        var providerModuleState = tempVar instanceof ProviderModuleState ? (ProviderModuleState) tempVar : null;
+        var providerModuleState = (ProviderModuleState)tempVar;
         if (null == providerModuleState) {
             return false;
         }
@@ -50,8 +50,7 @@ public final class ModuleProvider extends AbstractModule {
 
         // 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
         for (int i = list.size() - 1; i >= 0; --i) {
-            Object tempVar = list.get(i).getLocalState();
-            var providerModuleState = tempVar instanceof ProviderModuleState ? (ProviderModuleState) tempVar : null;
+            var providerModuleState = (ProviderModuleState)list.get(i).getLocalState();
             if (null == providerModuleState) {
                 continue;
             }
@@ -100,6 +99,23 @@ public final class ModuleProvider extends AbstractModule {
             return false;
         }
         return ChoiceHash(volatileProviders, hash, provider);
+    }
+
+    public boolean ChoiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, Zeze.Util.OutObject<Long> provider) {
+        var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
+
+        var volatileProviders = App.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+        if (null == volatileProviders) {
+            provider.Value = 0L;
+            return false;
+        }
+        var si = volatileProviders.getServiceInfos().findServiceInfoByServerId(serverId);
+        if (null != si) {
+            var state = (ProviderModuleState)si.getLocalState();
+            provider.Value = state.getSessionId();
+            return true;
+        }
+        return false;
     }
 
     public boolean ChoiceProviderAndBind(int moduleId, Zeze.Net.AsyncSocket link, Zeze.Util.OutObject<Long> provider) {
@@ -352,6 +368,27 @@ public final class ModuleProvider extends AbstractModule {
         var rpc = (ModuleRedirect) _rpc;
         long SourceProvider = rpc.getSender().getSessionId();
         var provider = new Zeze.Util.OutObject<Long>();
+
+        // ModuleRedirectToServer
+        if (rpc.Argument.getRedirectType() == ModuleRedirect.RedirectTypeToServer) {
+            if (ChoiceProviderByServerId(rpc.Argument.getServiceNamePrefix(), rpc.Argument.getModuleId(),
+                    rpc.Argument.getHashCode(), provider)) {
+                rpc.Send(App.ProviderService.GetSocket(provider.Value), (context) -> {
+                    // process result。context == rpc
+                    if (rpc.isTimeout()) {
+                        rpc.setResultCode(ModuleRedirect.ResultCodeLinkdTimeout);
+                    }
+
+                    rpc.Send(App.ProviderService.GetSocket(SourceProvider)); // send back to src provider
+                    return Zeze.Transaction.Procedure.Success;
+                });
+                // async mode
+            } else {
+                rpc.SendResultCode(ModuleRedirect.ResultCodeLinkdNoProvider); // send back direct
+            }
+            return 0;
+        }
+        // ModuleRedirect Or ModuleRedirectWithHash
         if (ChoiceProvider(rpc.Argument.getServiceNamePrefix(), rpc.Argument.getModuleId(),
                 rpc.Argument.getHashCode(), provider)) {
             rpc.Send(App.ProviderService.GetSocket(provider.Value), (context) -> {

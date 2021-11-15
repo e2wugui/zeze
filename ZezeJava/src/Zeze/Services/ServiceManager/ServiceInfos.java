@@ -1,6 +1,7 @@
 package Zeze.Services.ServiceManager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
@@ -25,6 +26,17 @@ public final class ServiceInfos extends Bean {
 	}
 	public void setSerialId(long value) {
 		SerialId = value;
+	}
+	public ServiceInfo findServiceInfoByIndentity(String identity) {
+		// _ServiceInfoListSortedByIdentity 排序的，可以优化为binarySearch。
+		for (var si : _ServiceInfoListSortedByIdentity) {
+			if (si.getServiceIdentity().equals(identity))
+				return si;
+		}
+		return null;
+	}
+	public ServiceInfo findServiceInfoByServerId(int serverId) {
+		return findServiceInfoByIndentity(String.valueOf(serverId));
 	}
 
 	public ServiceInfos() {

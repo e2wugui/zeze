@@ -7,7 +7,6 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Func4;
@@ -49,6 +48,7 @@ public class ModuleRedirect {
 		Redirect,
 		RedirectWithHash,
 		RedirectAll,
+		RedirectToServer,
 	}
 
 	public static class MethodOverride {
@@ -62,7 +62,7 @@ public class ModuleRedirect {
 			Attribute = attribute;
 		}
 
-		public java.lang.reflect.Parameter ParameterFirstWithHash;
+		public java.lang.reflect.Parameter ParameterHashOrServer;
 		public ArrayList<java.lang.reflect.Parameter> ParametersNormal = new ArrayList<> ();
 		public java.lang.reflect.Parameter ParameterLastWithMode;
 		public java.lang.reflect.Parameter[] ParametersAll;
@@ -74,9 +74,9 @@ public class ModuleRedirect {
 			ParametersAll = Method.getParameters();
 			ParametersNormal.addAll(Arrays.asList(ParametersAll));
 
-			if (OverrideType == OverrideType.RedirectWithHash) {
-				ParameterFirstWithHash = ParametersAll[0];
-				if (ParameterFirstWithHash.getType() != int.class) {
+			if (OverrideType == OverrideType.RedirectToServer || OverrideType == OverrideType.RedirectWithHash) {
+				ParameterHashOrServer = ParametersAll[0];
+				if (ParameterHashOrServer.getType() != int.class) {
 					throw new RuntimeException("ModuleRedirectWithHash: type of first parameter must be 'int'");
 				}
 				//System.out.println(ParameterFirstWithHash.getName() + "<-----");
@@ -135,24 +135,38 @@ public class ModuleRedirect {
 			return Str.format(", {}", ParameterLastWithMode.getName());
 		}
 
-		public final String GetHashCallString() {
-			if (ParameterFirstWithHash == null) {
+		public final String GetHashOrServerCallString() {
+			if (ParameterHashOrServer == null) {
 				return "";
 			}
 			if (ParametersAll.length == 1) { // 除了hash，没有其他参数。
-				return ParameterFirstWithHash.getName();
+				return ParameterHashOrServer.getName();
 			}
-			return Str.format("{}, ", ParameterFirstWithHash.getName());
+			return Str.format("{}, ", ParameterHashOrServer.getName());
 		}
 
 		public final String GetBaseCallString() {
-			return Str.format("{}{}{}", GetHashCallString(), GetNarmalCallString(), GetModeCallString());
+			return Str.format("{}{}{}", GetHashOrServerCallString(), GetNarmalCallString(), GetModeCallString());
 		}
 
-		public final String GetChoiceHashCodeSource() {
+		public final String getRedirectType() {
 			switch (OverrideType) {
+				case Redirect: // fall down
 				case RedirectWithHash:
-					return ParameterFirstWithHash.getName(); // parameter name
+					return "Zezex.Provider.ModuleRedirect.RedirectTypeWithHash";
+
+				case RedirectToServer:
+					return "Zezex.Provider.ModuleRedirect.RedirectTypeToServer";
+				default:
+					throw new RuntimeException("unkown OverrideType");
+			}
+		}
+
+		public final String GetChoiceHashOrServerCodeSource() {
+			switch (OverrideType) {
+				case RedirectToServer:
+				case RedirectWithHash:
+					return ParameterHashOrServer.getName(); // parameter name
 
 				case Redirect:
 					var attr = (Zezex.Redirect)Attribute;
@@ -191,6 +205,11 @@ public class ModuleRedirect {
 				if (null != annotation3)
 					result.add(new MethodOverride(method, OverrideType.RedirectWithHash, annotation3));
 				break;
+			case RedirectToServer:
+				var annotation4 = method.getAnnotation(RedirectToServer.class);
+				if (null != annotation4)
+					result.add(new MethodOverride(method, OverrideType.RedirectToServer, annotation4));
+				break;
 		}
 	}
 	public final Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
@@ -200,6 +219,7 @@ public class ModuleRedirect {
 			tryCollectMethod(overrides, OverrideType.Redirect, method);
 			tryCollectMethod(overrides, OverrideType.RedirectWithHash, method);
 			tryCollectMethod(overrides, OverrideType.RedirectAll, method);
+			tryCollectMethod(overrides, OverrideType.RedirectToServer, method);
 		}
 		if (overrides.isEmpty()) {
 			return module; // 没有需要重定向的方法。
@@ -207,7 +227,7 @@ public class ModuleRedirect {
 
 		String genClassName = Str.format("_ModuleRedirect_{}_", module.getFullName().replace('.', '_'));
 		String code = GenModuleCode(module, genClassName, overrides);
-		//*
+		/*
 		try {
 			var tmp = new FileWriter(genClassName + ".java", java.nio.charset.StandardCharsets.UTF_8);
 			tmp.write(code);
@@ -220,7 +240,7 @@ public class ModuleRedirect {
 		module.UnRegister();
 		try {
 			Class<?> moduleClass = compiler.compile(genClassName, code);
-			return (IModule) moduleClass.getDeclaredConstructor(new Class[0]).newInstance();
+			return (Zeze.IModule) moduleClass.getDeclaredConstructor(new Class[0]).newInstance();
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
@@ -339,7 +359,8 @@ public class ModuleRedirect {
 			var rpcVarName = "tmp" + TmpVarNameId.incrementAndGet();
 			sb.AppendLine(Str.format("        var {} = new Zezex.Provider.ModuleRedirect();", rpcVarName));
 			sb.AppendLine(Str.format("        {}.Argument.setModuleId({});", rpcVarName, module.getId()));
-			sb.AppendLine(Str.format("        {}.Argument.setHashCode({});", rpcVarName, methodOverride.GetChoiceHashCodeSource()));
+			sb.AppendLine(Str.format("        {}.Argument.setRedirectType({});", rpcVarName, methodOverride.getRedirectType()));
+			sb.AppendLine(Str.format("        {}.Argument.setHashCode({});", rpcVarName, methodOverride.GetChoiceHashOrServerCodeSource()));
 			sb.AppendLine(Str.format("        {}.Argument.setMethodFullName(\"{}:{}\");", rpcVarName, module.getFullName(), methodOverride.Method.getName()));
 			sb.AppendLine(Str.format("        {}.Argument.setServiceNamePrefix(Game.App.ServerServiceNamePrefix);", rpcVarName));
 			if (methodOverride.ParametersNormal.size() > 0) {

@@ -206,8 +206,9 @@
 		<!-- both: link, gs -->
 
 		<bean name="BModuleRedirectArgument">
-			<variable name="ModuleId"   id="1" type="int"/>
-			<variable name="HashCode"   id="2" type="int"/> server 计算。see BBind.ChoiceType。
+			<variable name="ModuleId"     id="1" type="int"/>
+			<variable name="HashCode"     id="2" type="int"/> server 计算。see BBind.ChoiceType。
+			<variable name="RedirectType" id="3" type="int"/> 如果是ToServer，ServerId存在HashCode中。
 
 			<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"
 			<variable name="Params"         id="5" type="binary"/>
@@ -216,7 +217,7 @@
 		</bean>
 
 		<bean name="BModuleRedirectResult">
-			<variable name="ModuleId"       id="1" type="int"/>
+			<variable name="ModuleId" id="1" type="int"/>
 			<variable name="ServerId" id="2" type="int"/> 目标server的id。
 			<!-- 上面两个参数用来调试，不是必要的。 -->
 
@@ -236,6 +237,9 @@
 
 		<!-- 转发只定义一个rpc，以后可能需要实现server之间的直连，不再通过转发 -->
 		<rpc name="ModuleRedirect" argument="BModuleRedirectArgument" result="BModuleRedirectResult" handle="server,client">
+			<enum name="RedirectTypeWithHash" value="0"/>
+			<enum name="RedirectTypeToServer" value="1"/>
+
 			<enum name="ResultCodeSuccess" value="0"/>
 			<enum name="ResultCodeMethodFullNameNotFound" value="1"/>
 			<enum name="ResultCodeHandleException" value="2"/>
