@@ -102,6 +102,26 @@ namespace Zezex.Provider
             return ChoiceHash(volatileProviders, hash, out provider);
         }
 
+        public bool ChoiceProviderByServerId(string serviceNamePrefix, int moduleId, int hash, out long provider)
+        {
+            var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
+            if (false == App.Instance.ServiceManagerAgent.SubscribeStates.TryGetValue(
+                serviceName, out var volatileProviders))
+            {
+                provider = 0;
+                return false;
+            }
+            var si = volatileProviders.ServiceInfos.FindServiceInfoByServerId(hash);
+            if (null != si)
+            {
+                var state = (ProviderModuleState)si.LocalState;
+                provider = state.SessionId;
+                return true;
+            }
+            provider = 0;
+            return false;
+        }
+        
         public bool ChoiceProviderAndBind(int moduleId, Zeze.Net.AsyncSocket link, out long provider)
         {
             var serviceName = MakeServiceName(ServerServiceNamePrefix, moduleId);
@@ -346,6 +366,28 @@ namespace Zezex.Provider
             var rpc = p as ModuleRedirect;
             long SourceProvider = rpc.Sender.SessionId;
             long provider;
+
+            if (rpc.Argument.RedirectType == Zezex.Provider.ModuleRedirect.RedirectTypeToServer)
+            {
+                if (ChoiceProviderByServerId(rpc.Argument.ServiceNamePrefix, rpc.Argument.ModuleId, rpc.Argument.HashCode, out provider))
+                {
+                    rpc.Send(App.ProviderService.GetSocket(provider), (context) =>
+                    {
+                        // process result。context == rpc
+                        if (rpc.IsTimeout)
+                            rpc.ResultCode = ModuleRedirect.ResultCodeLinkdTimeout;
+
+                        rpc.Send(App.ProviderService.GetSocket(SourceProvider)); // send back to src provider
+                        return Zeze.Transaction.Procedure.Success;
+                    });
+                    // async mode
+                }
+                else
+                {
+                    rpc.SendResultCode(ModuleRedirect.ResultCodeLinkdNoProvider); // send back direct
+                }
+                return Zeze.Transaction.Procedure.Success;
+            }
 
             if (ChoiceProvider(rpc.Argument.ServiceNamePrefix, rpc.Argument.ModuleId, rpc.Argument.HashCode, out provider))
             {

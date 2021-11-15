@@ -1397,6 +1397,19 @@ namespace Zeze.Services.ServiceManager
         public IReadOnlyList<ServiceInfo> ServiceInfoListSortedByIdentity => _ServiceInfoListSortedByIdentity;
         public long SerialId { get; set; }
 
+        public ServiceInfo FindServiceInfoByIdentity(string identity)
+        {
+            var i = _ServiceInfoListSortedByIdentity.BinarySearch(new ServiceInfo(ServiceName, identity));
+            if (i >= 0 && i < _ServiceInfoListSortedByIdentity.Count)
+                return _ServiceInfoListSortedByIdentity[i];
+            return null;
+        }
+
+        public ServiceInfo FindServiceInfoByServerId(int serverId)
+        {
+            return FindServiceInfoByIdentity(serverId.ToString());
+        }
+
         public ServiceInfos()
         {
         }

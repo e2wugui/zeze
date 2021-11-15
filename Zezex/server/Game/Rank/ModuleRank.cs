@@ -236,6 +236,19 @@ namespace Game.Rank
                 Zeze.TransactionModes.ExecuteInAnotherThread, hash);
         }
 
+        [Zezex.ModuleRedirectToServer()]
+        public virtual void RunTestToServer(int serverId)
+        {
+            App.Zeze.Run(() => TestToServer(serverId),
+                nameof(RunTestToServer),
+                Zeze.TransactionModes.ExecuteInAnotherThread, serverId);
+        }
+
+        protected long TestToServer(int serverId)
+        {
+            return 0;
+        }
+
         /// <summary>
         /// ModuleRedirectAll 实现要求：
         /// 1）第一个参数是调用会话id；
@@ -247,7 +260,7 @@ namespace Game.Rank
         ///    c) 第三个参数是returnCode，
         ///    d) 剩下的是自定义参数。
         /// </summary>
-        protected int GetRank(long sessionId, int hash, BConcurrentKey keyHint,
+        protected long GetRank(long sessionId, int hash, BConcurrentKey keyHint,
             System.Action<long, int, long, BRankList> onHashResult)
         {
             // 根据hash获取分组rank。
@@ -472,7 +485,7 @@ namespace Game.Rank
             return App.Zeze.Run(() => Test1(hash), nameof(Test1), mode, hash);
         }
 
-        protected int Test1(int hash)
+        protected long Test1(int hash)
         {
             return Procedure.Success;
         }
@@ -517,7 +530,7 @@ namespace Game.Rank
          * 
          * ref|out 方式需要同步等待，【不建议使用这种方式】【不建议使用这种方式】【不建议使用这种方式】
          */
-        protected int Test3(int hash, int inData, ref int refData, out int outData, System.Action<int> resultCallback)
+        protected long Test3(int hash, int inData, ref int refData, out int outData, System.Action<int> resultCallback)
         {
             outData = 1;
             ++refData;

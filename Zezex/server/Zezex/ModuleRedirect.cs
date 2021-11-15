@@ -46,6 +46,7 @@ namespace Zezex
             Redirect,
             RedirectWithHash,
             RedirectAll,
+            RedirectToServer,
         }
 
         public class MethodOverride
@@ -63,7 +64,7 @@ namespace Zezex
                 Attribute = attribute;
             }
 
-            public ParameterInfo ParameterFirstWithHash { get; private set; } // only setup when OverrideType.RedirectWithHash
+            public ParameterInfo ParameterHashOrServer { get; private set; } // only setup when OverrideType.RedirectWithHash
             public List<ParameterInfo> ParametersNormal { get; } = new List<ParameterInfo>();
             public ParameterInfo ParameterLastWithMode { get; private set; } // maybe null
 
@@ -74,13 +75,15 @@ namespace Zezex
                 ParametersAll = Method.GetParameters();
                 ParametersNormal.AddRange(ParametersAll);
 
-                if (OverrideType == OverrideType.RedirectWithHash)
+                if (OverrideType == OverrideType.RedirectToServer || OverrideType == OverrideType.RedirectWithHash)
                 {
-                    ParameterFirstWithHash = ParametersAll[0];
-                    if (ParameterFirstWithHash.ParameterType != typeof(int))
-                        throw new Exception("ModuleRedirectWithHash: type of first parameter must be 'int'");
-                    if (false == ParameterFirstWithHash.Name.Equals("hash"))
+                    ParameterHashOrServer = ParametersAll[0];
+                    if (ParameterHashOrServer.ParameterType != typeof(int))
+                        throw new Exception("ModuleRedirectWithHash|ModuleRedirectToServer: type of first parameter must be 'int'");
+                    if (OverrideType == OverrideType.RedirectWithHash && false == ParameterHashOrServer.Name.Equals("hash"))
                         throw new Exception("ModuleRedirectWithHash: name of first parameter must be 'hash'");
+                    if (OverrideType == OverrideType.RedirectToServer && false == ParameterHashOrServer.Name.Equals("serverId"))
+                        throw new Exception("ModuleRedirectToServer: name of first parameter must be 'serverId'");
                     ParametersNormal.RemoveAt(0);
                 }
 
@@ -128,24 +131,53 @@ namespace Zezex
                 return $", {ParameterLastWithMode.Name}";
             }
 
-            public string GetHashCallString(string varname)
+            private string GetHashOrServerParameterName()
             {
-                if (ParameterFirstWithHash == null)
+                switch (OverrideType)
+                {
+                    case OverrideType.RedirectWithHash: return "hash";
+                    case OverrideType.RedirectToServer: return "serverId";
+                    default: throw new Exception("error override type");
+                }
+            }
+            public string GetHashOrServerCallString()
+            {
+                if (ParameterHashOrServer == null)
                     return "";
                 if (ParametersAll.Length == 1) // 除了hash，没有其他参数。
-                    return varname;
-                return $"{varname}, ";
+                    return GetHashOrServerParameterName();
+                return $"{GetHashOrServerParameterName()}, ";
             }
 
             public string GetBaseCallString()
             {
-                return $"{GetHashCallString("hash")}{GetNarmalCallString()}{GetModeCallString()}";
+                return $"{GetHashOrServerCallString()}{GetNarmalCallString()}{GetModeCallString()}";
             }
 
-            public string GetChoiceHashCodeSource()
+            public string GetRedirectType()
             {
                 switch (OverrideType)
                 {
+                    case OverrideType.Redirect: // fall down
+                    case OverrideType.RedirectWithHash:
+                        return "Zezex.Provider.ModuleRedirect.RedirectTypeWithHash";
+
+                    case OverrideType.RedirectToServer:
+                        return "Zezex.Provider.ModuleRedirect.RedirectTypeToServer";
+
+                    default:
+                        throw new Exception("unkown OverrideType");
+                }
+            }
+
+
+            public string GetChoiceHashOrServerCodeSource()
+            {
+                switch (OverrideType)
+                {
+                    case OverrideType.RedirectToServer:
+                        return "serverId";
+
                     case OverrideType.RedirectWithHash:
                         return "hash"; // parameter name
 
@@ -190,6 +222,8 @@ namespace Zezex
                 if (CheckAddMethod(method, OverrideType.RedirectWithHash, method.GetCustomAttributes(typeof(ModuleRedirectWithHashAttribute), false), overrides))
                     continue;
                 if (CheckAddMethod(method, OverrideType.RedirectAll, method.GetCustomAttributes(typeof(ModuleRedirectAllAttribute), false), overrides))
+                    continue;
+                if (CheckAddMethod(method, OverrideType.RedirectToServer, method.GetCustomAttributes(typeof(ModuleRedirectToServerAttribute), false), overrides))
                     continue;
             }
             if (overrides.Count == 0)
@@ -547,7 +581,8 @@ namespace Zezex
                 string rpcVarName = "tmp" + TmpVarNameId.IncrementAndGet();
                 sb.AppendLine($"        var {rpcVarName} = new Zezex.Provider.ModuleRedirect();");
                 sb.AppendLine($"        {rpcVarName}.Argument.ModuleId = {module.Id};");
-                sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {methodOverride.GetChoiceHashCodeSource()};");
+                sb.AppendLine($"        {rpcVarName}.Argument.RedirectType = {methodOverride.GetRedirectType()};");
+                sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {methodOverride.GetChoiceHashOrServerCodeSource()};");
                 sb.AppendLine($"        {rpcVarName}.Argument.MethodFullName = \"{module.FullName}:{methodOverride.Method.Name}\";");
                 sb.AppendLine($"        {rpcVarName}.Argument.ServiceNamePrefix = Game.App.ServerServiceNamePrefix;");
                 if (methodOverride.ParametersNormal.Count > 0)
@@ -1446,6 +1481,15 @@ namespace Zezex
         public ModuleRedirectAllAttribute(string source)
         {
             GetConcurrentLevelSource = source;
+        }
+    }
+
+    [System.AttributeUsage(System.AttributeTargets.Method)]
+    public class ModuleRedirectToServerAttribute : System.Attribute
+    {
+        public ModuleRedirectToServerAttribute()
+        {
+
         }
     }
 }

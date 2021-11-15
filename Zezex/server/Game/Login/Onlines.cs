@@ -429,7 +429,7 @@ namespace Game.Login
                 }
             }
 
-            public int ProcessLinkConfirm(string linkName)
+            public long ProcessLinkConfirm(string linkName)
             {
                 lock (this)
                 {
