@@ -153,37 +153,40 @@ namespace Zeze.Transaction
                     flushFuture.SetResult(0);
                     return 0;
                 }
-                switch (r.State)
+                lock (r)
                 {
-                    case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
-                    case GlobalCacheManagerServer.StateInvalid:
-                        rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                        logger.Debug("ReduceShare SendResult 2 {0}", r);
-                        Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
-                        rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-                        flushFuture.SetResult(0);
-                        return 0;
+                    switch (r.State)
+                    {
+                        case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
+                        case GlobalCacheManagerServer.StateInvalid:
+                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                            logger.Debug("ReduceShare SendResult 2 {0}", r);
+                            Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                            rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
+                            flushFuture.SetResult(0);
+                            return 0;
 
-                    case GlobalCacheManagerServer.StateShare:
-                        rpc.Result.State = GlobalCacheManagerServer.StateShare;
-                        rpc.ResultCode = GlobalCacheManagerServer.ReduceShareAlreadyIsShare;
-                        if (r.Dirty)
-                            break;
-                        logger.Debug("ReduceShare SendResult 3 {0}", r);
-                        Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
-                        rpc.SendResult();
-                        flushFuture.SetResult(0);
-                        return 0;
+                        case GlobalCacheManagerServer.StateShare:
+                            rpc.Result.State = GlobalCacheManagerServer.StateShare;
+                            rpc.ResultCode = GlobalCacheManagerServer.ReduceShareAlreadyIsShare;
+                            if (r.Dirty)
+                                break;
+                            logger.Debug("ReduceShare SendResult 3 {0}", r);
+                            Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                            rpc.SendResult();
+                            flushFuture.SetResult(0);
+                            return 0;
 
-                    case GlobalCacheManagerServer.StateModify:
-                        r.State = GlobalCacheManagerServer.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
-                        if (r.Dirty)
-                            break;
-                        logger.Debug("ReduceShare SendResult * {0}", r);
-                        Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
-                        rpc.SendResult();
-                        flushFuture.SetResult(0);
-                        return 0;
+                        case GlobalCacheManagerServer.StateModify:
+                            r.State = GlobalCacheManagerServer.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
+                            if (r.Dirty)
+                                break;
+                            logger.Debug("ReduceShare SendResult * {0}", r);
+                            Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                            rpc.SendResult();
+                            flushFuture.SetResult(0);
+                            return 0;
+                    }
                 }
             }
             finally
@@ -255,39 +258,42 @@ namespace Zeze.Transaction
                     flushFuture.SetResult(0);
                     return 0;
                 }
-                switch (r.State)
+                lock (r)
                 {
-                    case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
-                    case GlobalCacheManagerServer.StateInvalid:
-                        rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                        rpc.ResultCode = GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid;
-                        if (r.Dirty)
-                            break;
-                        logger.Debug("ReduceInvalid SendResult 2 {0}", r);
-                        Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
-                        rpc.SendResult();
-                        flushFuture.SetResult(0);
-                        return 0;
+                    switch (r.State)
+                    {
+                        case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
+                        case GlobalCacheManagerServer.StateInvalid:
+                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                            rpc.ResultCode = GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid;
+                            if (r.Dirty)
+                                break;
+                            logger.Debug("ReduceInvalid SendResult 2 {0}", r);
+                            Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                            rpc.SendResult();
+                            flushFuture.SetResult(0);
+                            return 0;
 
-                    case GlobalCacheManagerServer.StateShare:
-                        r.State = GlobalCacheManagerServer.StateInvalid;
-                        // 不删除记录，让TableCache.CleanNow处理。 
-                        if (r.Dirty)
-                            break;
-                        logger.Debug("ReduceInvalid SendResult 3 {0}", r);
-                        Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
-                        rpc.SendResult();
-                        flushFuture.SetResult(0);
-                        return 0;
+                        case GlobalCacheManagerServer.StateShare:
+                            r.State = GlobalCacheManagerServer.StateInvalid;
+                            // 不删除记录，让TableCache.CleanNow处理。 
+                            if (r.Dirty)
+                                break;
+                            logger.Debug("ReduceInvalid SendResult 3 {0}", r);
+                            Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                            rpc.SendResult();
+                            flushFuture.SetResult(0);
+                            return 0;
 
-                    case GlobalCacheManagerServer.StateModify:
-                        r.State = GlobalCacheManagerServer.StateInvalid;
-                        if (r.Dirty)
-                            break;
-                        Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
-                        rpc.SendResult();
-                        flushFuture.SetResult(0);
-                        return 0;
+                        case GlobalCacheManagerServer.StateModify:
+                            r.State = GlobalCacheManagerServer.StateInvalid;
+                            if (r.Dirty)
+                                break;
+                            Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
+                            rpc.SendResult();
+                            flushFuture.SetResult(0);
+                            return 0;
+                    }
                 }
             }
             finally

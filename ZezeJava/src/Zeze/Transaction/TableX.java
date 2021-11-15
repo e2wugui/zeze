@@ -28,7 +28,8 @@ public abstract class TableX<K, V extends Bean> extends Table {
 		var tkey = new TableKey(Name, key);
 		while (true) {
 			Record1<K, V> r = getCache().GetOrAdd(key, () -> new Record1<K, V>(this, key, null));
-			synchronized (r) { // 对同一个记录，不允许重入。
+			r.EnterFairLock(); // 对同一个记录，不允许重入。
+			try {
 				if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
 					continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
 				}
@@ -68,6 +69,8 @@ public abstract class TableX<K, V extends Bean> extends Table {
 					}
 				}
 				logger.debug("FindInCacheOrStorage {}", r);
+			} finally {
+				r.ExitFairLock();
 			}
 			return r;
 		}
@@ -93,34 +96,39 @@ public abstract class TableX<K, V extends Bean> extends Table {
 				rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
 				return 0;
 			}
-			switch (r.getState()) {
-				case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
-				case GlobalCacheManagerServer.StateInvalid:
-					rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-					rpc.setResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-					if (r.getDirty())
-						break;
-					logger.debug("Reduce SendResult 2 {}", r);
-					rpc.SendResult();
-					return 0;
+			r.EnterFairLock();
+			try {
+				switch (r.getState()) {
+					case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
+					case GlobalCacheManagerServer.StateInvalid:
+						rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+						rpc.setResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
+						if (r.getDirty())
+							break;
+						logger.debug("Reduce SendResult 2 {}", r);
+						rpc.SendResult();
+						return 0;
 
-				case GlobalCacheManagerServer.StateShare:
-					rpc.Result.State = GlobalCacheManagerServer.StateShare;
-					rpc.setResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsShare);
-					if (r.getDirty())
-						break;
-					logger.debug("Reduce SendResult 3 {}", r);
-					rpc.SendResult();
-					return 0;
+					case GlobalCacheManagerServer.StateShare:
+						rpc.Result.State = GlobalCacheManagerServer.StateShare;
+						rpc.setResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsShare);
+						if (r.getDirty())
+							break;
+						logger.debug("Reduce SendResult 3 {}", r);
+						rpc.SendResult();
+						return 0;
 
-				case GlobalCacheManagerServer.StateModify:
-					r.setState(GlobalCacheManagerServer.StateShare); // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
-					rpc.Result.State = GlobalCacheManagerServer.StateShare;
-					if (r.getDirty())
-						break;
-					logger.debug("Reduce SendResult * {}", r);
-					rpc.SendResult();
-					return 0;
+					case GlobalCacheManagerServer.StateModify:
+						r.setState(GlobalCacheManagerServer.StateShare); // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
+						rpc.Result.State = GlobalCacheManagerServer.StateShare;
+						if (r.getDirty())
+							break;
+						logger.debug("Reduce SendResult * {}", r);
+						rpc.SendResult();
+						return 0;
+				}
+			} finally {
+				r.ExitFairLock();
 			}
 		} finally {
 			lockey.ExitWriteLock();
@@ -171,33 +179,38 @@ public abstract class TableX<K, V extends Bean> extends Table {
 				rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
 				return 0;
 			}
-			switch (r.getState()) {
-				case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
-				case GlobalCacheManagerServer.StateInvalid:
-					rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-					rpc.setResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
-					if (r.getDirty())
-						break;
-					logger.debug("Reduce SendResult 2 {}", r);
-					rpc.SendResult();
-					return 0;
+			r.EnterFairLock();
+			try {
+				switch (r.getState()) {
+					case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
+					case GlobalCacheManagerServer.StateInvalid:
+						rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+						rpc.setResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
+						if (r.getDirty())
+							break;
+						logger.debug("Reduce SendResult 2 {}", r);
+						rpc.SendResult();
+						return 0;
 
-				case GlobalCacheManagerServer.StateShare:
-					r.setState(GlobalCacheManagerServer.StateInvalid);
-					// 不删除记录，让TableCache.CleanNow处理。
-					if (r.getDirty())
-						break;
-					logger.debug("Reduce SendResult 3 {}", r);
-					rpc.SendResult();
-					return 0;
+					case GlobalCacheManagerServer.StateShare:
+						r.setState(GlobalCacheManagerServer.StateInvalid);
+						// 不删除记录，让TableCache.CleanNow处理。
+						if (r.getDirty())
+							break;
+						logger.debug("Reduce SendResult 3 {}", r);
+						rpc.SendResult();
+						return 0;
 
-				case GlobalCacheManagerServer.StateModify:
-					r.setState(GlobalCacheManagerServer.StateInvalid);
-					if (r.getDirty())
-						break;
-					logger.debug("Reduce SendResult * {}", r);
-					rpc.SendResult();
-					return 0;
+					case GlobalCacheManagerServer.StateModify:
+						r.setState(GlobalCacheManagerServer.StateInvalid);
+						if (r.getDirty())
+							break;
+						logger.debug("Reduce SendResult * {}", r);
+						rpc.SendResult();
+						return 0;
+				}
+			} finally {
+				r.ExitFairLock();
 			}
 		}
 		finally {

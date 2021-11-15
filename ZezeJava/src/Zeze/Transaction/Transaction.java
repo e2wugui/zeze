@@ -405,37 +405,40 @@ public final class Transaction {
 	}
 
 	private CheckResult _check_(boolean writeLock, RecordAccessed e) {
-		if (writeLock) {
-			switch (e.OriginRecord.getState()) {
-				case GlobalCacheManagerServer.StateRemoved:
-					// fall down
-				case GlobalCacheManagerServer.StateInvalid:
-					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
+		e.OriginRecord.EnterFairLock();
+		try {
+			if (writeLock) {
+				switch (e.OriginRecord.getState()) {
+					case GlobalCacheManagerServer.StateRemoved:
+						// fall down
+					case GlobalCacheManagerServer.StateInvalid:
+						return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
-				case GlobalCacheManagerServer.StateModify:
-					return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
-
-				case GlobalCacheManagerServer.StateShare:
-					// 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
-					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-					synchronized (e.OriginRecord) {
-						if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify) != GlobalCacheManagerServer.StateModify) {
-							logger.warn("Acquire Faild. Maybe DeadLock Found {}", e.OriginRecord);
-							e.OriginRecord.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
-							return CheckResult.RedoAndReleaseLock;
-						}
-						e.OriginRecord.setState(GlobalCacheManagerServer.StateModify);
+					case GlobalCacheManagerServer.StateModify:
 						return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
-					}
+
+					case GlobalCacheManagerServer.StateShare:
+						// 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
+						// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
+							if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify) != GlobalCacheManagerServer.StateModify) {
+								logger.warn("Acquire Faild. Maybe DeadLock Found {}", e.OriginRecord);
+								e.OriginRecord.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
+								return CheckResult.RedoAndReleaseLock;
+							}
+							e.OriginRecord.setState(GlobalCacheManagerServer.StateModify);
+							return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+				}
+				return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // imposible
 			}
-			return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // imposible
-		}
-		else {
-			if (e.OriginRecord.getState() == GlobalCacheManagerServer.StateInvalid
-					|| e.OriginRecord.getState() == GlobalCacheManagerServer.StateRemoved) {
-				return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
+			else {
+				if (e.OriginRecord.getState() == GlobalCacheManagerServer.StateInvalid
+						|| e.OriginRecord.getState() == GlobalCacheManagerServer.StateRemoved) {
+					return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
+				}
+				return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 			}
-			return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+		} finally {
+			e.OriginRecord.ExitFairLock();
 		}
 	}
 

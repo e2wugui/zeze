@@ -518,25 +518,25 @@ namespace Zeze.Transaction
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private CheckResult _check_(bool writeLock, RecordAccessed e)
         {
-            if (writeLock)
+            lock (e.OriginRecord)
             {
-                switch (e.OriginRecord.State)
+                if (writeLock)
                 {
-                    case GlobalCacheManagerServer.StateRemoved:
+                    switch (e.OriginRecord.State)
+                    {
+                        case GlobalCacheManagerServer.StateRemoved:
                         // fall down
-                    case GlobalCacheManagerServer.StateInvalid:
-                        RecentTableKeyOfRedoAndRelease = e.TableKey;
-                        return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
+                        case GlobalCacheManagerServer.StateInvalid:
+                            RecentTableKeyOfRedoAndRelease = e.TableKey;
+                            return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
-                    case GlobalCacheManagerServer.StateModify:
-                        return e.Timestamp != e.OriginRecord.Timestamp
-                            ? CheckResult.Redo : CheckResult.Success;
+                        case GlobalCacheManagerServer.StateModify:
+                            return e.Timestamp != e.OriginRecord.Timestamp
+                                ? CheckResult.Redo : CheckResult.Success;
 
-                    case GlobalCacheManagerServer.StateShare:
-                        // 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
-                        // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                        lock (e.OriginRecord)
-                        {
+                        case GlobalCacheManagerServer.StateShare:
+                            // 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
+                            // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
                             if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify)
                                 != GlobalCacheManagerServer.StateModify)
                             {
@@ -548,22 +548,22 @@ namespace Zeze.Transaction
                             e.OriginRecord.State = GlobalCacheManagerServer.StateModify;
                             return e.Timestamp != e.OriginRecord.Timestamp
                                 ? CheckResult.Redo : CheckResult.Success;
-                        }
+                    }
+                    return e.Timestamp != e.OriginRecord.Timestamp
+                        ? CheckResult.Redo : CheckResult.Success; // imposible
                 }
-                return e.Timestamp != e.OriginRecord.Timestamp
-                    ? CheckResult.Redo : CheckResult.Success; // imposible
-            }
-            else
-            {
-                if (e.OriginRecord.State == GlobalCacheManagerServer.StateInvalid
-                    || e.OriginRecord.State == GlobalCacheManagerServer.StateRemoved)
+                else
                 {
-                    // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
-                    RecentTableKeyOfRedoAndRelease = e.TableKey;
-                    return CheckResult.RedoAndReleaseLock;
+                    if (e.OriginRecord.State == GlobalCacheManagerServer.StateInvalid
+                        || e.OriginRecord.State == GlobalCacheManagerServer.StateRemoved)
+                    {
+                        // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
+                        RecentTableKeyOfRedoAndRelease = e.TableKey;
+                        return CheckResult.RedoAndReleaseLock;
+                    }
+                    return e.Timestamp != e.OriginRecord.Timestamp
+                        ? CheckResult.Redo : CheckResult.Success;
                 }
-                return e.Timestamp != e.OriginRecord.Timestamp
-                    ? CheckResult.Redo : CheckResult.Success;
             }
         }
 

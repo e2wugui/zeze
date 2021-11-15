@@ -5,6 +5,8 @@ import Zeze.Services.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
+
 import Zeze.Services.GlobalCacheManager.*;
 
 public class Record1<K, V extends Bean> extends Record {

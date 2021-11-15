@@ -52,7 +52,6 @@ Raft BUG?
 GlobalWithRaft TODO
 加密没有生效 BUG?
 
-ModuleRedirectToServer
 Global加上数据，可以减少一次后端数据库访问。
 
 WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.

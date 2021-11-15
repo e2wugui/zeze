@@ -12,11 +12,6 @@ public class TestTable {
 	@Before
 	public final void testInit() {
 		demo.App.getInstance().Start();
-		demo.App.getInstance().Zeze.NewProcedure(() -> {
-				demo.App.getInstance().demo_Module1.getTable1().remove(1L);
-				demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
-				return Procedure.Success;
-		}, "RemoveDataFirst", null).Call();
 	}
 
 	@After
@@ -25,6 +20,12 @@ public class TestTable {
 	}
 
 	public final void TestUpdate() {
+		demo.App.getInstance().Zeze.NewProcedure(() -> {
+			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
+			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
+			return Procedure.Success;
+		}, "RemoveDataFirst", null).Call();
+
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcGetOrAdd, "ProcGetOrAdd", null).Call();
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcGetUpdate, "ProcGetUpdate", null).Call();
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove", null).Call();
@@ -69,6 +70,12 @@ public class TestTable {
 	}
 	@Test
 	public final void testGetOrAdd() {
+		demo.App.getInstance().Zeze.NewProcedure(() -> {
+			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
+			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
+			return Procedure.Success;
+		}, "RemoveDataFirst", null).Call();
+
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcGetOrAdd, "ProcGetOrAdd", null).Call();
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove", null).Call();
 	}
@@ -116,12 +123,24 @@ public class TestTable {
 
 	@Test
 	public final void test1TableGetPut() {
+		demo.App.getInstance().Zeze.NewProcedure(() -> {
+			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
+			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
+			return Procedure.Success;
+		}, "RemoveDataFirst", null).Call();
+
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcGet11, "ProcGet11", null).Call();
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcGet12, "ProcGet12", null).Call();
 	}
 	
 	@Test
 	public final void test2TableGetPut() {
+		demo.App.getInstance().Zeze.NewProcedure(() -> {
+			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
+			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
+			return Procedure.Success;
+		}, "RemoveDataFirst", null).Call();
+
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcGet21, "ProcGet21", null).Call();
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcGet22, "ProcGet22", null).Call();
 	}

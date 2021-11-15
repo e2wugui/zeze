@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 public abstract class Record {
 	public static class RootInfo {
 		private Record Record;
@@ -33,7 +35,16 @@ public abstract class Record {
 		Timestamp = value;
 	}
 
-	/** 
+	private ReentrantLock FairLock = new ReentrantLock(true);
+
+	public final void EnterFairLock() {
+		FairLock.lock();
+	}
+	public final void ExitFairLock() {
+		FairLock.unlock();
+	}
+
+	/**
 	 Record.Dirty 的问题
 	 对于新的CheckpointMode，需要实现新的Dirty。
 	 CheckpointMode.Period
