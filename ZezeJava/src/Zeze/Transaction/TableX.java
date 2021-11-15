@@ -24,73 +24,52 @@ public abstract class TableX<K, V extends Bean> extends Table {
 		autoKey = value;
 	}
 
-
 	private Record1<K, V> FindInCacheOrStorage(K key) {
-		return FindInCacheOrStorage(key, null);
-	}
+		var tkey = new TableKey(Name, key);
+		while (true) {
+			Record1<K, V> r = getCache().GetOrAdd(key, () -> new Record1<K, V>(this, key, null));
+			synchronized (r) { // 对同一个记录，不允许重入。
+				if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
+					continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
+				}
 
-	private Record1<K, V> FindInCacheOrStorage(K key, Zeze.Util.Action1<V> copy) {
-		TableKey tkey = new TableKey(Name, key);
-		Lockey lockey = getZeze().getLocks().Get(tkey);
-		lockey.EnterReadLock();
-		// 严格来说，这里应该是WriteLock,但是这会涉及Transaction持有的锁的升级问题，
-		// 虽然这里只是临时锁一下也会和持有冲突。
-		// 由于装载仅在StateInvalid或者第一次载入的时候发生，
-		// 还有lock(r)限制线程的重入，所以这里仅加个读锁限制一下state的修改，
-		// 防止和Reduce冲突（由于StateInvalid才会申请权限和从storage装载，
-		// 应该是不会发生Reduce的，加这个锁为了保险起见）。
-		try {
-			while (true) {
-				Record1<K, V> r = getCache().GetOrAdd(key, () -> new Record1<K, V>(this, key, null));
-				synchronized (r) { // 如果外面是 WriteLock 就不需要这个了。
-					if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
-						continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
-					}
+				if (r.getState() == GlobalCacheManagerServer.StateShare
+						|| r.getState() == GlobalCacheManagerServer.StateModify) {
+					return r;
+				}
 
-					if (r.getState() == GlobalCacheManagerServer.StateShare
-							|| r.getState() == GlobalCacheManagerServer.StateModify) {
-						return r;
-					}
+				r.setState(r.Acquire(GlobalCacheManagerServer.StateShare));
+				if (r.getState() == GlobalCacheManagerServer.StateInvalid) {
+					throw new RedoAndReleaseLockException(tkey.toString() + ":" + r.toString());
+					//throw new RedoAndReleaseLockException();
+				}
 
-					r.setState(r.Acquire(GlobalCacheManagerServer.StateShare));
-					if (r.getState() == GlobalCacheManagerServer.StateInvalid) {
-						throw new RedoAndReleaseLockException(tkey.toString() + ":" + r.toString());
-						//throw new RedoAndReleaseLockException();
-					}
+				r.setTimestamp(Record.getNextTimestamp());
 
-					r.setTimestamp(Record.getNextTimestamp());
+				if (null != TStorage) {
+					TableStatistics.getInstance().GetOrAdd(Name).getStorageFindCount().incrementAndGet();
+					r.setValue(TStorage.Find(key, this)); // r.Value still maybe null
 
-					if (null != TStorage) {
-						TableStatistics.getInstance().GetOrAdd(Name).getStorageFindCount().incrementAndGet();
-						r.setValue(TStorage.Find(key, this)); // r.Value still maybe null
+					// 【注意】这个变量不管 OldTable 中是否存在的情况。
+					r.setExistInBackDatabase(null != r.getValue());
 
-						// 【注意】这个变量不管 OldTable 中是否存在的情况。
-						r.setExistInBackDatabase(null != r.getValue());
-
-						// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
-						if (null == r.getValue() && null != getOldTable()) {
-							ByteBuffer old = getOldTable().Find(EncodeKey(key));
-							if (null != old) {
-								r.setValue(DecodeValue(old));
-								// 从旧表装载时，马上设为脏，使得可以写入新表。
-								// TODO CheckpointMode.Immediately 需要特殊处理。
-								r.SetDirty();
-							}
-						}
-						if (null != r.getValue()) {
-							r.getValue().InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+					// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
+					if (null == r.getValue() && null != getOldTable()) {
+						ByteBuffer old = getOldTable().Find(EncodeKey(key));
+						if (null != old) {
+							r.setValue(DecodeValue(old));
+							// 从旧表装载时，马上设为脏，使得可以写入新表。
+							// TODO CheckpointMode.Immediately 需要特殊处理。
+							r.SetDirty();
 						}
 					}
-					logger.debug("FindInCacheOrStorage {}", r);
+					if (null != r.getValue()) {
+						r.getValue().InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+					}
 				}
-				if (copy != null) {
-					copy.run(r.getValueTyped());
-				}
-				return r;
+				logger.debug("FindInCacheOrStorage {}", r);
 			}
-		}
-		finally {
-			lockey.ExitReadLock();
+			return r;
 		}
 	}
 
@@ -513,21 +492,29 @@ public abstract class TableX<K, V extends Bean> extends Table {
 	 @return 
 	*/
 	public final V selectCopy(K key) {
+		TableKey tkey = new TableKey(Name, key);
 		Transaction currentT = Transaction.getCurrent();
 		if (null != currentT) {
-			TableKey tkey = new TableKey(Name, key);
 			Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 			if (null != cr) {
 				@SuppressWarnings("unchecked")
 				var r = (V)(cr.NewestValue() == null ? null : cr.NewestValue().CopyBean());
 				return r;
 			}
+			throw new RuntimeException("SelectCopy A Not Accessed Record In Transaction Is Danger!");
 		}
 
-		final var copy = new Zeze.Util.OutObject<Bean>();
-		FindInCacheOrStorage(key, (v) -> copy.Value = v == null ? null : v.CopyBean());
-		@SuppressWarnings("unchecked")
-		var r = (V)copy.Value;
-		return r;
+		var lockey = getZeze().getLocks().Get(tkey);
+		lockey.EnterReadLock();
+		try {
+			var r= FindInCacheOrStorage(key);
+			if (null == r.getValue())
+				return null;
+			@SuppressWarnings("unchecked")
+			var v = (V)r.getValue().CopyBean();
+			return v;
+		} finally {
+			lockey.ExitReadLock();
+		}
 	}
 }

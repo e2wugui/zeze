@@ -535,17 +535,20 @@ namespace Zeze.Transaction
                     case GlobalCacheManagerServer.StateShare:
                         // 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                         // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                        if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify)
-                            != GlobalCacheManagerServer.StateModify)
+                        lock (e.OriginRecord)
                         {
-                            logger.Warn("Acquire Faild. Maybe DeadLock Found {0}", e.OriginRecord);
-                            e.OriginRecord.State = GlobalCacheManagerServer.StateInvalid;
-                            RecentTableKeyOfRedoAndRelease = e.TableKey;
-                            return CheckResult.RedoAndReleaseLock;
+                            if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify)
+                                != GlobalCacheManagerServer.StateModify)
+                            {
+                                logger.Warn("Acquire Faild. Maybe DeadLock Found {0}", e.OriginRecord);
+                                e.OriginRecord.State = GlobalCacheManagerServer.StateInvalid;
+                                RecentTableKeyOfRedoAndRelease = e.TableKey;
+                                return CheckResult.RedoAndReleaseLock;
+                            }
+                            e.OriginRecord.State = GlobalCacheManagerServer.StateModify;
+                            return e.Timestamp != e.OriginRecord.Timestamp
+                                ? CheckResult.Redo : CheckResult.Success;
                         }
-                        e.OriginRecord.State = GlobalCacheManagerServer.StateModify;
-                        return e.Timestamp != e.OriginRecord.Timestamp
-                            ? CheckResult.Redo : CheckResult.Success;
                 }
                 return e.Timestamp != e.OriginRecord.Timestamp
                     ? CheckResult.Redo : CheckResult.Success; // imposible

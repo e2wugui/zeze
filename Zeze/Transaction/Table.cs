@@ -58,80 +58,64 @@ namespace Zeze.Transaction
 
         protected Zeze.Services.ServiceManager.Agent.AutoKey AutoKey { get; private set;  }
 
-        private Record<K, V> FindInCacheOrStorage(K key, Action<V> copy = null)
+        private Record<K, V> FindInCacheOrStorage(K key)
         {
             TableKey tkey = new TableKey(Name, key);
-            Lockey lockey = Zeze.Locks.Get(tkey);
-            lockey.EnterReadLock();
-            // 严格来说，这里应该是WriteLock,但是这会涉及Transaction持有的锁的升级问题，
-            // 虽然这里只是临时锁一下也会和持有冲突。
-            // 由于装载仅在StateInvalid或者第一次载入的时候发生，
-            // 还有lock(r)限制线程的重入，所以这里仅加个读锁限制一下state的修改，
-            // 防止和Reduce冲突（由于StateInvalid才会申请权限和从storage装载，
-            // 应该是不会发生Reduce的，加这个锁为了保险起见）。
-            try
+            while (true)
             {
-                while (true)
+                Record<K, V> r = Cache.GetOrAdd(key,
+                    (key) => new Record<K, V>(this, key, null));
+                lock (r) // 对同一个记录，不允许重入。
                 {
-                    Record<K, V> r = Cache.GetOrAdd(key,
-                        (key) => new Record<K, V>(this, key, null));
-                    lock (r) // 如果外面是 WriteLock 就不需要这个了。
+                    if (r.State == GlobalCacheManagerServer.StateRemoved)
+                        continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
+
+                    if (r.State == GlobalCacheManagerServer.StateShare
+                        || r.State == GlobalCacheManagerServer.StateModify)
                     {
-                        if (r.State == GlobalCacheManagerServer.StateRemoved)
-                            continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
+                        return r;
+                    }
 
-                        if (r.State == GlobalCacheManagerServer.StateShare
-                            || r.State == GlobalCacheManagerServer.StateModify)
-                        {
-                            return r;
-                        }
+                    r.State = r.Acquire(GlobalCacheManagerServer.StateShare);
+                    if (r.State == GlobalCacheManagerServer.StateInvalid)
+                    {
+                        throw new RedoAndReleaseLockException(tkey,
+                            tkey.ToString() + ":" + r.ToString());
+                        //throw new RedoAndReleaseLockException();
+                    }
 
-                        r.State = r.Acquire(GlobalCacheManagerServer.StateShare);
-                        if (r.State == GlobalCacheManagerServer.StateInvalid)
-                        {
-                            throw new RedoAndReleaseLockException(tkey,
-                                tkey.ToString() + ":" + r.ToString());
-                            //throw new RedoAndReleaseLockException();
-                        }
+                    r.Timestamp = Record.NextTimestamp;
 
-                        r.Timestamp = Record.NextTimestamp;
-
-                        if (null != TStorage)
-                        {
+                    if (null != TStorage)
+                    {
 #if ENABLE_STATISTICS
                             TableStatistics.Instance.GetOrAdd(Name).StorageFindCount.IncrementAndGet();
 #endif
-                            r.Value = TStorage.Find(key, this); // r.Value still maybe null
+                        r.Value = TStorage.Find(key, this); // r.Value still maybe null
 
-                            // 【注意】这个变量不管 OldTable 中是否存在的情况。
-                            r.ExistInBackDatabase = null != r.Value;
+                        // 【注意】这个变量不管 OldTable 中是否存在的情况。
+                        r.ExistInBackDatabase = null != r.Value;
 
-                            // 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
-                            if (null == r.Value && null != OldTable)
+                        // 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
+                        if (null == r.Value && null != OldTable)
+                        {
+                            ByteBuffer old = OldTable.Find(EncodeKey(key));
+                            if (null != old)
                             {
-                                ByteBuffer old = OldTable.Find(EncodeKey(key));
-                                if (null != old)
-                                {
-                                    r.Value = DecodeValue(old);
-                                    // 从旧表装载时，马上设为脏，使得可以写入新表。
-                                    // TODO CheckpointMode.Immediately 需要特殊处理。
-                                    r.SetDirty();
-                                }
-                            }
-                            if (null != r.Value)
-                            {
-                                r.Value.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+                                r.Value = DecodeValue(old);
+                                // 从旧表装载时，马上设为脏，使得可以写入新表。
+                                // TODO CheckpointMode.Immediately 需要特殊处理。
+                                r.SetDirty();
                             }
                         }
-                        logger.Debug("FindInCacheOrStorage {0}", r);
+                        if (null != r.Value)
+                        {
+                            r.Value.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+                        }
                     }
-                    copy?.Invoke(r.ValueTyped);
-                    return r;
+                    logger.Debug("FindInCacheOrStorage {0}", r);
                 }
-            }
-            finally
-            {
-                lockey.ExitReadLock();
+                return r;
             }
         }
 
@@ -601,20 +585,29 @@ namespace Zeze.Transaction
         /// <returns></returns>
         public V SelectCopy(K key)
         {
+            var tkey = new TableKey(Name, key);
             Transaction currentT = Transaction.Current;
             if (null != currentT)
             {
-                TableKey tkey = new TableKey(Name, key);
                 Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
                 if (null != cr)
                 {
                     return (V)cr.NewestValue()?.CopyBean();
                 }
+                throw new Exception("SelectCopy A Not Accessed Record In Transaction Is Danger!");
             }
 
-            Bean copy = null;
-            FindInCacheOrStorage(key, (v) => copy = v?.CopyBean());
-            return (V)copy;
+            var lockey = Zeze.Locks.Get(tkey);
+            lockey.EnterReadLock();
+            try
+            {
+                var r = FindInCacheOrStorage(key);
+                return (V)r.Value.CopyBean();
+            }
+            finally
+            {
+                lockey.ExitReadLock();
+            }
         }
     }
 }
