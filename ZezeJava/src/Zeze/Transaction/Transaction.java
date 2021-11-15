@@ -53,6 +53,7 @@ public final class Transaction {
 			threadLocal.set(t);
 			return t;
 		}
+		t.Locks = locks;
 		t.Created = true;
 		return t;
 	}
@@ -409,7 +410,7 @@ public final class Transaction {
 				case GlobalCacheManagerServer.StateRemoved:
 					// fall down
 				case GlobalCacheManagerServer.StateInvalid:
-					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
+					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
 				case GlobalCacheManagerServer.StateModify:
 					return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
@@ -419,7 +420,7 @@ public final class Transaction {
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
 					if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify) != GlobalCacheManagerServer.StateModify) {
 						logger.warn("Acquire Faild. Maybe DeadLock Found {}", e.OriginRecord);
-						e.OriginRecord.setState(GlobalCacheManagerServer.StateInvalid);
+						e.OriginRecord.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
 						return CheckResult.RedoAndReleaseLock;
 					}
 					e.OriginRecord.setState(GlobalCacheManagerServer.StateModify);
@@ -430,7 +431,7 @@ public final class Transaction {
 		else {
 			if (e.OriginRecord.getState() == GlobalCacheManagerServer.StateInvalid
 					|| e.OriginRecord.getState() == GlobalCacheManagerServer.StateRemoved) {
-				return CheckResult.RedoAndReleaseLock; // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
+				return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
 			}
 			return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 		}

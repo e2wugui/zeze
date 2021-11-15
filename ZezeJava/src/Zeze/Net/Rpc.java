@@ -164,8 +164,6 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 		if (false == Send(so, null, millisecondsTimeout)) {
 			Future.TrySetException(new RuntimeException("Send Failed."));
 		}
-		if (getProtocolId() == Reduce.ProtocolId_)
-			logger.error("---> Reduce Request " + this.getSessionId() + this);
 		return Future;
 	}
 
@@ -222,9 +220,6 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 			service.DispatchProtocol(this, factoryHandle);
 			return;
 		}
-
-		if (getProtocolId() == Reduce.ProtocolId_)
-			logger.error("<--- Reduce Response " + this.getSessionId() + this);
 
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
 		Rpc<TArgument, TResult> context = service.<Rpc<TArgument, TResult>>RemoveRpcContext(SessionId);

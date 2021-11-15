@@ -48,22 +48,20 @@ namespace Zeze.Transaction
         }
 
         private Locks Locks;
-        private Transaction(Locks locks)
-        {
-            Locks = locks;
-        }
 
         public static Transaction Create(Locks locks)
         {
             if (null == threadLocal.Value)
             {
-                var tmp = new Transaction(locks);
+                var tmp = new Transaction();
+                tmp.Locks = locks;
                 threadLocal.Value = tmp;
                 return tmp;
             }
             else
             {
                 var tmp = threadLocal.Value;
+                tmp.Locks = locks;
                 tmp.Created = true;
                 return tmp;
             }
