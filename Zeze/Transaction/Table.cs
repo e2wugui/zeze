@@ -148,6 +148,7 @@ namespace Zeze.Transaction
                 {
                     rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                     logger.Debug("ReduceShare SendResult 1 {0}", r);
+                    Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
                     flushFuture.SetResult(0);
                     return 0;
@@ -179,7 +180,9 @@ namespace Zeze.Transaction
                         if (r.Dirty)
                             break;
                         logger.Debug("ReduceShare SendResult * {0}", r);
+                        Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
                         rpc.SendResult();
+                        flushFuture.SetResult(0);
                         return 0;
                 }
             }
@@ -246,6 +249,7 @@ namespace Zeze.Transaction
                 {
                     rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                     logger.Debug("ReduceInvalid SendResult 1 {0}", r);
+                    Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
                     Zeze.FlushWhenReduceFutures.TryRemove(tkey, out _);
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
                     flushFuture.SetResult(0);
