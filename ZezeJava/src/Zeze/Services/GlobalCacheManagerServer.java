@@ -47,6 +47,10 @@ public final class GlobalCacheManagerServer {
 
 	public static final int LoginBindSocketFail = 60;
 
+	static{
+		System.setProperty("log4j.configurationFile", "log4j2.xml");
+	}
+
 	static final Logger logger = LogManager.getLogger(GlobalCacheManagerServer.class);
 	private final static GlobalCacheManagerServer Instance = new GlobalCacheManagerServer();
 	public static GlobalCacheManagerServer getInstance() {
@@ -794,7 +798,7 @@ public final class GlobalCacheManagerServer {
 
 		var GlobalServer = Zeze.Services.GlobalCacheManagerServer.Instance;
 		GlobalServer.Start(address, port);
-		System.out.println("Start");
+		logger.info("Start .");
 		while (true) {
 			Thread.sleep(10000);
 		}

@@ -2,8 +2,8 @@
 
 <configuration status="WARN" monitorInterval="30">
 	<Properties>
-		<Property name="out">log</Property>
-		<Property name="name">gs</Property>
+		<Property name="out">./</Property>
+		<Property name="name">zeze</Property>
 		<Property name="logname">.log</Property>
 	</Properties>
 	<!--先定义所有的appender -->
