@@ -1,4 +1,4 @@
 
-..\Gen\bin\Debug\net5.0\Gen.exe
+..\Gen\bin\Debug\net6.0\Gen.exe
 
 pause

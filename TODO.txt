@@ -1,57 +1,40 @@
 #### TODO
-
 Zeze
 	打包和更新工具
 	async await?
 	GlobalTaskOneByOneByKey？？？
 	AsyncSocket.Connect Timeout 可配置，不是很有必要，外面需要同步等待时，可以设置自己的等待时间，不需要依赖Socket.Timeout。
 	lua beankey 问题。
-
 Zezex
 	client: 可靠消息实现的错误检查。
 	Bag里面的Money移走。
-
 ConfigEditor
 	自动完成: Foreign
 	自动完成：id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
 	更多自动完成？普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
 	增加一个工作线程，所有数据操作都放到这里面，和UI线程交互。看情况再决定做不做。
 	enum 现在不支持引用在其他文档定义的，有需要了再来加。
-
 GlobalCacheManagerWithRaft
 	优化。改成一次AppendLog。
 	关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
-
 DatabaseRocksDb
 	OperatesRocksDb
 DatabaseTikv
 	OperatesTikv
-
 Raft.Agent
 	重发现在在收到LeaderIs时马上重新发送。改成延迟？
 	Agent的请求lost context，但是Task.Wait怎么返回的。
-
 war？
 	一个module集合。
 	定义export？private？
 	App.Instance？生成代码使用基类，不再使用具体类型，实际上就是把具体类型的功能尽量放到基类。
 	感觉没必要：应用使用独立进程更加安全灵活些。
-
-Connector.WaitReady
-	GlobalAgent 重构？
-
-Socket async surpport
 AsyncSocket c#
 	优化，减少和逻辑层的互斥时间。
 	？？？使用一个空的outputListSending去调用SendAsync???好像不可行。
-
 整体并发测试，需要包含 TableCache.Cleanup。
-Global.Release并发问题
-Global BUG?
+Global.Release并发问题确认？
 Raft BUG?
 GlobalWithRaft TODO
 加密没有生效 BUG?
-
 Global加上数据，可以减少一次后端数据库访问。
-
-WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
