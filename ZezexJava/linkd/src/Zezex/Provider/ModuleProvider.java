@@ -3,6 +3,7 @@ package Zezex.Provider;
 import java.util.*;
 import Zeze.Net.Protocol;
 import Zeze.Services.ServiceManager.Agent;
+import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -226,7 +227,7 @@ public final class ModuleProvider extends AbstractModule {
     @Override
     public long ProcessBindRequest(Protocol _rpc) {
         var rpc = (Bind) _rpc;
-        if (rpc.Argument.getLinkSids().size() == 0) {
+        if (rpc.Argument.getLinkSids().isEmpty()) {
             var providerSession = (Zezex.ProviderSession) rpc.getSender().getUserState();
             for (var module : rpc.Argument.getModules().entrySet()) {
                 if (getFirstModuleWithConfigTypeDefault() == 0 && module.getValue().getConfigType() == BModule.ConfigTypeDefault) {
@@ -255,6 +256,25 @@ public final class ModuleProvider extends AbstractModule {
         return Zeze.Transaction.Procedure.Success;
     }
 
+    @Override
+    public long ProcessSubscribeRequest(Zeze.Net.Protocol _p) {
+        var rpc = (Subscribe)_p;
+
+        var providerSession = (Zezex.ProviderSession) rpc.getSender().getUserState();
+        for (var module : rpc.Argument.getModules().entrySet()) {
+            var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
+                    module.getKey(), module.getValue().getChoiceType(), module.getValue().getConfigType());
+            var serviceName = MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), module.getKey());
+            var subState = App.getServiceManagerAgent().SubscribeService(
+                    serviceName, module.getValue().getSubscribeType(), providerModuleState);
+            // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
+            if (Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit == module.getValue().getSubscribeType())
+                subState.SetServiceIdentityReadyState(providerSession.getInfo().getServiceIndentity(), providerModuleState);
+        }
+
+        rpc.SendResult();
+        return Procedure.Success;
+    }
 
     private void UnBindModules(Zeze.Net.AsyncSocket provider, java.lang.Iterable<Integer> modules) {
         UnBindModules(provider, modules, false);
@@ -638,6 +658,12 @@ public final class ModuleProvider extends AbstractModule {
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.Subscribe();
+            factoryHandle.Handle = (_p) -> ProcessSubscribeRequest(_p);
+            App.ProviderService.AddFactoryHandle(42957202240366L, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Transmit();
             factoryHandle.Handle = (_p) -> ProcessTransmit(_p);
             factoryHandle.NoProcedure = true;
@@ -663,6 +689,7 @@ public final class ModuleProvider extends AbstractModule {
         App.ProviderService.getFactorys().remove(42955910777365L);
         App.ProviderService.getFactorys().remove(42954209982100L);
         App.ProviderService.getFactorys().remove(42956391073392L);
+        App.ProviderService.getFactorys().remove(42957202240366L);
         App.ProviderService.getFactorys().remove(42954614917260L);
         App.ProviderService.getFactorys().remove(42955764678922L);
     }

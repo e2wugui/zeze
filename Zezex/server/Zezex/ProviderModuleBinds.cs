@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using Zeze.Services.ServiceManager;
+using Zezex.Provider;
 
 namespace Zezex
 {
@@ -41,6 +43,27 @@ namespace Zezex
             return Zezex.Provider.BModule.ChoiceTypeDefault;
         }
 
+        public void BuildDynamicBinds(Dictionary<string, Zeze.IModule> AllModules, int serverId, Dictionary<int, Zezex.Provider.BModule> result)
+        {
+            foreach (var m in AllModules)
+            {
+                if (Modules.TryGetValue(m.Value.FullName, out var cm))
+                {
+                    if (cm.ConfigType != BModule.ConfigTypeDynamic)
+                        continue;
+
+                    if (cm.Providers.Count > 0 && !cm.Providers.Contains(serverId))
+                        continue; // dynamic providers. isEmpty means enable in all server.
+
+                    var tempVar = new Zezex.Provider.BModule();
+                    tempVar.ChoiceType = cm.ChoiceType;
+                    tempVar.ConfigType = BModule.ConfigTypeDynamic;
+                    tempVar.SubscribeType = cm.SubscribeType;
+                    result.Add(m.Value.Id, tempVar);
+                }
+            }
+        }
+
         public void BuildStaticBinds(Dictionary<string, Zeze.IModule> AllModules,
             int AutoKeyLocalId, Dictionary<int, Zezex.Provider.BModule> modules)
         {
@@ -49,7 +72,7 @@ namespace Zezex
             // special binds
             foreach (var m in Modules.Values)
             {
-                if (m.Providers.Contains(AutoKeyLocalId))
+                if (m.ConfigType == BModule.ConfigTypeSpecial && m.Providers.Contains(AutoKeyLocalId))
                     binds.Add(m.FullName, Zezex.Provider.BModule.ConfigTypeSpecial);
             }
 
@@ -74,6 +97,7 @@ namespace Zezex
                     {
                         ChoiceType = GetModuleChoiceType(bind.Key),
                         ConfigType = bind.Value,
+                        SubscribeType = SubscribeInfo.SubscribeTypeReadyCommit,
                     });
             }
         }
@@ -84,18 +108,35 @@ namespace Zezex
             public int ChoiceType { get; }
             public HashSet<int> Providers { get; } = new HashSet<int>();
 
+            public int SubscribeType { get; }
+            public int ConfigType { get; }
+
             private int GetChoiceType(XmlElement self)
             {
                 switch (self.GetAttribute("ChoiceType"))
                 {
                     case "ChoiceTypeHashAccount":
-                        return Zezex.Provider.BModule.ChoiceTypeHashAccount;
+                        return BModule.ChoiceTypeHashAccount;
 
                     case "ChoiceTypeHashRoleId":
-                        return Zezex.Provider.BModule.ChoiceTypeHashRoleId;
+                        return BModule.ChoiceTypeHashRoleId;
 
                     default:
-                        return Zezex.Provider.BModule.ChoiceTypeDefault;
+                        return BModule.ChoiceTypeDefault;
+                }
+            }
+
+            // 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。
+            private int GetSubscribeType(XmlElement self)
+            {
+                switch (self.GetAttribute("SubscribeType"))
+                {
+                    case "SubscribeTypeReadyCommit":
+                        return SubscribeInfo.SubscribeTypeReadyCommit;
+                    //case "SubscribeTypeSimple":
+                    //	return SubscribeInfo.SubscribeTypeSimple;
+                    default:
+                        return SubscribeInfo.SubscribeTypeSimple;
                 }
             }
 
@@ -103,7 +144,33 @@ namespace Zezex
             {
                 FullName = self.GetAttribute("name");
                 ChoiceType = GetChoiceType(self);
+                SubscribeType = GetSubscribeType(self);
+
                 ProviderModuleBinds.SplitIntoSet(self.GetAttribute("providers"), Providers);
+
+                String attr = self.GetAttribute("ConfigType").Trim();
+                switch (attr)
+                {
+                    case "":
+                        // 兼容，如果没有配置
+                        ConfigType = Providers.Count == 0 ? BModule.ConfigTypeDynamic : BModule.ConfigTypeSpecial;
+                        break;
+
+                    case "Special":
+                        ConfigType = BModule.ConfigTypeSpecial;
+                        break;
+
+                    case "Dynamic":
+                        ConfigType = BModule.ConfigTypeDynamic;
+                        break;
+
+                    case "Default":
+                        ConfigType = BModule.ConfigTypeDefault;
+                        break;
+
+                    default:
+                        throw new Exception("unknown ConfigType " + attr);
+                }
             }
         }
 

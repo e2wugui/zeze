@@ -6,7 +6,7 @@ import Zeze.Transaction.Bean;
 public final class SubscribeInfo extends Bean {
 	public static final int SubscribeTypeSimple = 0;
 	public static final int SubscribeTypeReadyCommit = 1;
-	
+
 	private String ServiceName;
 	public String getServiceName() {
 		return ServiceName;

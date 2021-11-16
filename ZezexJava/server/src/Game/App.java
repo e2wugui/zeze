@@ -23,6 +23,9 @@ public final class App extends Zeze.AppBase {
 	public HashMap<Integer, Zezex.Provider.BModule> getStaticBinds() {
 		return StaticBinds;
 	}
+    private HashMap<Integer, Zezex.Provider.BModule> DynamicModules = new HashMap<>();
+    public HashMap<Integer, Zezex.Provider.BModule> getDynamicModules() { return DynamicModules; }
+
 	private Zezex.ProviderModuleBinds ProviderModuleBinds;
 	public Zezex.ProviderModuleBinds getProviderModuleBinds() {
 		return ProviderModuleBinds;
@@ -81,6 +84,7 @@ public final class App extends Zeze.AppBase {
 
 		setProviderModuleBinds(Zezex.ProviderModuleBinds.Load());
 		getProviderModuleBinds().BuildStaticBinds(Modules, Zeze.getConfig().getServerId(), StaticBinds);
+        getProviderModuleBinds().BuildDynamicBinds(Modules, Zeze.getConfig().getServerId(), DynamicModules);
 
 		Zeze.getServiceManagerAgent().setOnChanged((subscribeState) -> {
 				Server.ApplyLinksChanged(subscribeState.getServiceInfos());

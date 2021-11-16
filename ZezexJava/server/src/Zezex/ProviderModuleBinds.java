@@ -1,5 +1,7 @@
 package Zezex;
 
+import Zeze.Services.ServiceManager.SubscribeInfo;
+import Zezex.Provider.BModule;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -55,12 +57,31 @@ public class ProviderModuleBinds {
 		return Zezex.Provider.BModule.ChoiceTypeDefault;
 	}
 
+	public final void BuildDynamicBinds(HashMap<String, Zeze.IModule> AllModules, int serverId, HashMap<Integer, Zezex.Provider.BModule> out) {
+		for (var m : AllModules.values()) {
+			var cm = Modules.get(m.getFullName());
+			if (null == cm)
+				continue; // dynamic must exist in config
+			if (cm.getConfigType() != BModule.ConfigTypeDynamic)
+				continue;
+
+			if (!cm.Providers.isEmpty() && !cm.Providers.contains(serverId))
+				continue; // dynamic providers. isEmpty means enable in all server.
+
+			var tempVar = new Zezex.Provider.BModule();
+			tempVar.setChoiceType(cm.getChoiceType());
+			tempVar.setConfigType(BModule.ConfigTypeDynamic);
+			tempVar.setSubscribeType(cm.getSubscribeType());
+			out.put(m.getId(), tempVar);
+		}
+	}
+
 	public final void BuildStaticBinds(HashMap<String, Zeze.IModule> AllModules, int serverId, HashMap<Integer, Zezex.Provider.BModule> modules) {
 		HashMap<String, Integer> binds = new HashMap<String, Integer>();
 
 		// special binds
 		for (var m : getModules().values()) {
-			if (m.Providers.contains(serverId)) {
+			if (m.getConfigType() == BModule.ConfigTypeSpecial && m.Providers.contains(serverId)) {
 				binds.put(m.FullName, Zezex.Provider.BModule.ConfigTypeSpecial);
 			}
 		}
@@ -85,6 +106,7 @@ public class ProviderModuleBinds {
 				Zezex.Provider.BModule tempVar = new Zezex.Provider.BModule();
 				tempVar.setChoiceType(GetModuleChoiceType(bind.getKey()));
 				tempVar.setConfigType(bind.getValue());
+				tempVar.setSubscribeType(Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit);
 				modules.put(m.getId(), tempVar);
 			}
 		}
@@ -99,6 +121,11 @@ public class ProviderModuleBinds {
 		public final int getChoiceType() {
 			return ChoiceType;
 		}
+		private int SubscribeType;
+		public final int getSubscribeType() { return SubscribeType; }
+		private int ConfigType; // 为了兼容，没有配置的话，从其他条件推导出来。
+		public final int getConfigType() { return ConfigType; }
+
 		private HashSet<Integer> Providers = new HashSet<Integer> ();
 		public final HashSet<Integer> getProviders() {
 			return Providers;
@@ -117,10 +144,47 @@ public class ProviderModuleBinds {
 			}
 		}
 
+		// 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。
+		private int GetSubscribeType(Element self) {
+			switch (self.getAttribute("SubscribeType")) {
+				case "SubscribeTypeReadyCommit":
+					return SubscribeInfo.SubscribeTypeReadyCommit;
+				//case "SubscribeTypeSimple":
+				//	return SubscribeInfo.SubscribeTypeSimple;
+				default:
+					return SubscribeInfo.SubscribeTypeSimple;
+			}
+		}
+
 		public Module(Element self) {
 			FullName = self.getAttribute("name");
 			ChoiceType = GetChoiceType(self);
+			SubscribeType = GetSubscribeType(self);
+
 			ProviderModuleBinds.SplitIntoSet(self.getAttribute("providers"), getProviders());
+
+			String attr = self.getAttribute("ConfigType").trim();
+			switch (attr) {
+				case "":
+					// 兼容，如果没有配置
+					ConfigType = Providers.isEmpty() ? BModule.ConfigTypeDynamic : BModule.ConfigTypeSpecial;
+					break;
+
+				case "Special":
+					ConfigType = BModule.ConfigTypeSpecial;
+					break;
+
+				case "Dynamic":
+					ConfigType = BModule.ConfigTypeDynamic;
+					break;
+
+				case "Default":
+					ConfigType = BModule.ConfigTypeDefault;
+					break;
+
+				default:
+					throw new RuntimeException("unknown ConfigType " + attr);
+			}
 		}
 	}
 

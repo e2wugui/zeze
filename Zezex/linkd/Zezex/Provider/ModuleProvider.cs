@@ -252,6 +252,27 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
+        public override long ProcessSubscribeRequest(Zeze.Net.Protocol _p)
+        {
+            var rpc = (Subscribe)_p;
+
+            var providerSession = (Zezex.ProviderSession)rpc.Sender.UserState;
+            foreach (var module in rpc.Argument.Modules)
+            {
+                var providerModuleState = new ProviderModuleState(providerSession.SessionId,
+                        module.Key, module.Value.ChoiceType, module.Value.ConfigType);
+                var serviceName = MakeServiceName(providerSession.Info.ServiceNamePrefix, module.Key);
+                var subState = App.ServiceManagerAgent.SubscribeService(
+                        serviceName, module.Value.SubscribeType, providerModuleState);
+                // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
+                if (Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit == module.Value.SubscribeType)
+                    subState.SetServiceIdentityReadyState(providerSession.Info.ServiceIndentity, providerModuleState);
+            }
+
+            rpc.SendResult();
+            return 0;
+        }
+
         private void UnBindModules(Zeze.Net.AsyncSocket provider, IEnumerable<int> modules, bool isOnProviderClose = false)
         {
             var providerSession = provider.UserState as ProviderSession;

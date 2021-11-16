@@ -104,6 +104,7 @@ public final class Server extends ServerBase {
 
 	// 用来同步等待Provider的静态绑定完成。
 	public Zeze.Util.ManualResetEvent ProviderStaticBindCompleted = new Zeze.Util.ManualResetEvent(false);
+	public Zeze.Util.ManualResetEvent ProviderDynamicSubscribeCompleted = new Zeze.Util.ManualResetEvent(false);
 
 	@Override
 	public void OnHandshakeDone(AsyncSocket sender) {
@@ -122,6 +123,12 @@ public final class Server extends ServerBase {
 		rpc.Send(sender, (protocol) -> {
 				ProviderStaticBindCompleted.Set();
 				return 0;
+		});
+		var sub = new Zezex.Provider.Subscribe();
+		sub.Argument.getModules().putAll(Game.App.getInstance().getDynamicModules());
+		sub.Send(sender, (protocol) -> {
+			ProviderDynamicSubscribeCompleted.Set();
+			return 0;
 		});
 	}
 
