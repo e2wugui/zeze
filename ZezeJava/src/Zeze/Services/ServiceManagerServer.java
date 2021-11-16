@@ -647,9 +647,7 @@ public final class ServiceManagerServer implements Closeable {
 				var bb = ByteBuffer.Allocate();
 				bb.WriteLong(getCurrent());
 				try {
-					SMS.AutoKeysDb.put(SMS.WriteOptions,
-							java.nio.ByteBuffer.wrap(getKey(), 0, getKey().length),
-							java.nio.ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.Size()));
+					SMS.AutoKeysDb.put(SMS.WriteOptions,getKey(),bb.Copy());
 				} catch (RocksDBException e) {
 					throw new RuntimeException(e);
 				}
