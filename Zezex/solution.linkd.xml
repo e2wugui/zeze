@@ -38,17 +38,25 @@
 	<module name="Provider" id="10001">
 		<!-- gs to link -->
 		<bean name="BModule">
+			<!-- ChoiceType -->
 			<enum name="ChoiceTypeDefault"     value="0"/>
 			<enum name="ChoiceTypeHashAccount" value="1"/>
 			<enum name="ChoiceTypeHashRoleId"  value="2"/>
 
 			<variable name="ChoiceType" id="1" type="int"/>
 
+			<!-- ConfigType 目前没有实际逻辑需要这个类型，根据模块绑定配置文件生成类型 -->
 			<enum name="ConfigTypeDefault" value="0"/>
 			<enum name="ConfigTypeSpecial" value="1"/>
 			<enum name="ConfigTypeDynamic" value="2"/>
 
 			<variable name="ConfigType" id="2" type="int"/>
+
+			<!-- SubscribeType
+			定义于： Zeze.Services.ServiceManager.SubscribeInfo.
+			静态绑定忽略这个参数，总是使用Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit.
+			-->
+			<variable name="SubscribeType" id="3" type="int"/>
 		</bean>
 
 		<bean name="BBind">
@@ -68,6 +76,12 @@
 
 		<rpc name="Bind"   argument="BBind" handle="client"/>
 		<rpc name="UnBind" argument="BBind" handle="client"/>
+
+		<bean name="BSubscribe">
+			<variable name="modules" id="1" type="map" key="int" value="BModule"/> moduleId -> BModule
+		</bean>
+
+		<rpc name="Subscribe" argument="BSubscribe" handle="client"/> 通知linkd订阅模块的服务列表。
 
 		<bean name="BKick">
 			<enum name="ErrorProtocolUnkown"    value="1"/>

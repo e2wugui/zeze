@@ -370,6 +370,11 @@ public final class ModuleProvider extends AbstractModule {
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new Zezex.Provider.Subscribe();
+            App.Server.AddFactoryHandle(42957202240366L, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Transmit();
             factoryHandle.Handle = (_p) -> ProcessTransmit(_p);
             factoryHandle.NoProcedure = true;
@@ -392,6 +397,7 @@ public final class ModuleProvider extends AbstractModule {
         App.Server.getFactorys().remove(42954995920679L);
         App.Server.getFactorys().remove(42956729630485L);
         App.Server.getFactorys().remove(42954102918470L);
+        App.Server.getFactorys().remove(42957202240366L);
         App.Server.getFactorys().remove(42954614917260L);
         App.Server.getFactorys().remove(42955764678922L);
     }

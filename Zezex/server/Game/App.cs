@@ -9,6 +9,8 @@ namespace Game
     public sealed partial class App
     {
         public Dictionary<int, Zezex.Provider.BModule> StaticBinds { get; } = new Dictionary<int, Zezex.Provider.BModule>();
+        public Dictionary<int, Zezex.Provider.BModule> DynamicModules { get; } = new Dictionary<int,Zezex.Provider.BModule>();
+
         public Zezex.ProviderModuleBinds ProviderModuleBinds { get; private set; }
 
         public override Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
@@ -59,6 +61,7 @@ namespace Game
 
             ProviderModuleBinds = Zezex.ProviderModuleBinds.Load();
             ProviderModuleBinds.BuildStaticBinds(Modules, Zeze.Config.ServerId, StaticBinds);
+            ProviderModuleBinds.BuildDynamicBinds(Modules, Zeze.Config.ServerId, DynamicModules);
 
             Zeze.ServiceManagerAgent.OnChanged = (subscribeState) =>
             {

@@ -79,7 +79,7 @@ public final class ServiceManagerServer implements Closeable {
 			return "Zeze.Services.ServiceManager";
 		}
 
-		private int KeepAlivePeriod = 300 * 1000;
+		private int KeepAlivePeriod = -1;
 		public int getKeepAlivePeriod() {
 			return KeepAlivePeriod;
 		}
@@ -350,23 +350,24 @@ public final class ServiceManagerServer implements Closeable {
 		public Session(ServiceManagerServer sm, long ssid) {
 			ServiceManager = sm;
 			SessionId = ssid;
-			KeepAliveTimerTask = Zeze.Util.Task.schedule(
-					(ThisTask) -> {
-						AsyncSocket s = null;
-						try {
-							s = getServiceManager().getServer().GetSocket(getSessionId());
-							var r = new Keepalive();
-							r.SendAndWaitCheckResultCode(s);
-						}
-						catch (Throwable ex) {
-							if (s != null) {
-								s.Close(null);
+			if (getServiceManager().getConfig().getKeepAlivePeriod() > 0) {
+				KeepAliveTimerTask = Zeze.Util.Task.schedule(
+						(ThisTask) -> {
+							AsyncSocket s = null;
+							try {
+								s = getServiceManager().getServer().GetSocket(getSessionId());
+								var r = new Keepalive();
+								r.SendAndWaitCheckResultCode(s);
+							} catch (Throwable ex) {
+								if (s != null) {
+									s.Close(null);
+								}
+								logger.error("ServiceManager.KeepAlive", ex);
 							}
-							logger.error("ServiceManager.KeepAlive", ex);
-						}
-					},
-					Zeze.Util.Random.getInstance().nextInt(getServiceManager().getConfig().getKeepAlivePeriod()),
-					getServiceManager().getConfig().getKeepAlivePeriod());
+						},
+						Zeze.Util.Random.getInstance().nextInt(getServiceManager().getConfig().getKeepAlivePeriod()),
+						getServiceManager().getConfig().getKeepAlivePeriod());
+			}
 		}
 
 		public void OnClose() {

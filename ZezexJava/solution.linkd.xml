@@ -38,21 +38,29 @@
 	<module name="Provider" id="10001">
 		<!-- gs to link -->
 		<bean name="BModule">
+			<!-- ChoiceType -->
 			<enum name="ChoiceTypeDefault"    value="0"/>
 			<enum name="ChoiceTypeHashAccount" value="1"/>
 			<enum name="ChoiceTypeHashRoleId" value="2"/>
 
 			<variable name="ChoiceType" id="1" type="int"/>
 
+			<!-- ConfigType 目前没有实际逻辑需要这个类型，根据模块绑定配置文件生成类型 -->
 			<enum name="ConfigTypeDefault" value="0"/>
 			<enum name="ConfigTypeSpecial" value="1"/>
 			<enum name="ConfigTypeDynamic" value="2"/>
 
 			<variable name="ConfigType" id="2" type="int"/>
+
+			<!-- SubscribeType
+			定义于： Zeze.Services.ServiceManager.SubscribeInfo.
+			静态绑定忽略这个参数，总是使用Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit.
+			-->
+			<variable name="SubscribeType" id="3" type="int"/>
 		</bean>
 
 		<bean name="BBind">
-			<variable name="modules" id="1" type="map" key="int" value="BModule"/> moduleId -> type
+			<variable name="modules" id="1" type="map" key="int" value="BModule"/> moduleId -> BModule
 			<!--
 			模式一，静态绑定，用于启用cache同步的多个gs（gameserver）。
 			此时 lindSids 为空。同一个moduleId可以绑定多个内部服务。客户端第一次访问时，随便选择一个内部服务，以后都用这个。
@@ -68,6 +76,12 @@
 
 		<rpc name="Bind"   argument="BBind" handle="client"/>
 		<rpc name="UnBind" argument="BBind" handle="client"/>
+
+		<bean name="BSubscribe">
+			<variable name="modules" id="1" type="map" key="int" value="BModule"/> moduleId -> BModule
+		</bean>
+
+		<rpc name="Subscribe" argument="BSubscribe" handle="client"/> 通知linkd订阅模块的服务列表。
 
 		<bean name="BKick">
 			<enum name="ErrorProtocolUnkown"    value="1"/>
