@@ -3,11 +3,9 @@ Zeze
 	打包和更新工具
 	async await?
 	GlobalTaskOneByOneByKey？？？
-	AsyncSocket.Connect Timeout 可配置，不是很有必要，外面需要同步等待时，可以设置自己的等待时间，不需要依赖Socket.Timeout。
 	lua beankey 问题。
 Zezex
 	client: 可靠消息实现的错误检查。
-	Bag里面的Money移走。
 ConfigEditor
 	自动完成: Foreign
 	自动完成：id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
