@@ -150,8 +150,8 @@ public final class GlobalCacheManagerServer {
 				config.AddCustomize(getConfig());
 				config.LoadAndParse();
 			}
-			Sessions = new ConcurrentHashMap<>(getConfig().getConcurrencyLevel(), 4096);
-			global = new ConcurrentHashMap<> (getConfig().getConcurrencyLevel(), getConfig().getInitialCapacity());
+			Sessions = new ConcurrentHashMap<>(4096, 0.75f, getConfig().getConcurrencyLevel());
+			global = new ConcurrentHashMap<> (getConfig().getInitialCapacity(), 0.75f, getConfig().getConcurrencyLevel());
 
 			setServer(new ServerService(config));
 
@@ -202,7 +202,7 @@ public final class GlobalCacheManagerServer {
 		}
 	}
 
-	/** 
+	/**
 	 报告错误的时候带上相关信息（包括GlobalCacheManager和LogicServer等等）
 	 手动Cleanup时，连接正确的服务器执行。
 	 */
@@ -696,7 +696,7 @@ public final class GlobalCacheManagerServer {
 		}
 
 		public CacheHolder(GCMConfig config) {
-			Acquired = new ConcurrentHashMap<>(config.getConcurrencyLevel(), config.getInitialCapacity());
+			Acquired = new ConcurrentHashMap<>(config.getInitialCapacity(), 0.75f, config.getConcurrencyLevel());
 		}
 
 		public boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
@@ -772,7 +772,7 @@ public final class GlobalCacheManagerServer {
 				}
 			}
 		}
-		/** 
+		/**
 		 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
 		public Reduce ReduceWaitLater(GlobalTableKey gkey, int state) {

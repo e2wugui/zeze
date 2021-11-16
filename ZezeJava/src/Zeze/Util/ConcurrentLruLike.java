@@ -120,7 +120,7 @@ public class ConcurrentLruLike<K, V> {
 		setNewLruHotPeriod(newLruHotPeriod);
 		setCleanPeriod(cleanPeriod);
 
-		DataMap = new ConcurrentHashMap<>(concurrencyLevel, initialCapacity);
+		DataMap = new ConcurrentHashMap<>(initialCapacity, 0.75f, concurrencyLevel);
 		NewLruHot();
 
 		Task.schedule((task) -> {
@@ -159,9 +159,9 @@ public class ConcurrentLruLike<K, V> {
 		}
 	}
 
-	/** 
+	/**
 	 @param key key
-	 @return 
+	 @return
 	*/
 
 	public final V get(K key) {
@@ -186,7 +186,7 @@ public class ConcurrentLruLike<K, V> {
 
 	private void NewLruHot() {
 		LruHot = new ConcurrentHashMap<>(
-				ConcurrencyLevel, GetLruInitialCapaicty());
+				(int)GetLruInitialCapaicty(), 0.75f, ConcurrencyLevel);
 		LruQueue.add(LruHot);
 	}
 
