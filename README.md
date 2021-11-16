@@ -53,6 +53,10 @@
 	   存储过程执行过程中不加锁，所有修改仅当前事务可见。
 	   提交的时候对所有访问的记录排序并且加锁并进行冲突检查。
 	   核心算法：Zeze/Transaction/Transaction.cs -> _lock_and_check_()
+	   【并发正确性】
+	   事务内所有访问（读写）的记录在冲突检查时需要确保Timestamp没有变化。
+	   事务成功，相当于独占所有访问的记录，这个并发策略是严格，但显然是正确的。
+	   暂时不考虑实现其他并发级别。
 
 	2) 缓存同步
 	   参考了CPU缓存同步算法（MESI），使用了其中3个状态：Modify,Share,Invalid。
@@ -63,6 +67,14 @@
 	   Zeze/Services/GlobalCacheManager.cs -> AcquireModify, AcquireShare, Release
 	   Zeze/Transaction/Table.cs -> ReduceShare, ReduceInvalid, FindInCacheOrStorage
 	   当主逻辑服务器收到降级请求时，会把相关记录保存到后端数据库以后才给GlobalCacheManager返回结果。see 下面的持久化模式。
+	   【当前实现规则】
+	   a) GlobalCacheManager在多个记录上并发执行Acquire操作。对单个记录，所有的申请排队，一个一个处理。
+	   b) GlobalCacheManager处理Acquire时，除了死锁检测会马上返回失败，正常情况下会返回成功。
+	      如果逻辑服务器没有响应Reduce请求（超时），此时实际发生的情况没法预测，Acquire会失败。
+	      see zeze\GlobalCacheManager\Cleanup.txt
+	   c) 允许GlobalCacheManager认为记录权限已经分配个某个逻辑服务器，但逻辑服务器实际上没有（比如逻辑服务器不正常重启了）或拥有较低权限。
+	      所以，逻辑服务器处理Reduce，必须能正确处理Recude的目标状态和自己实际状态，并且返回成功。
+	   d) 逻辑服务器在多个记录上并发处理权限申请；对单个记录，所有的Acquire排队。对同一个记录，不会同时发送Acquire给GlobalCacheManager。
 
 	3) 持久化模式
 	   Period 定时保存修改到后端数据库，如果保存前进程异常退出，修改会丢失，相当于上一次保存以来的所有事务回滚，数据不会被破坏。
