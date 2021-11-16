@@ -347,13 +347,8 @@ namespace Zeze.Services
         {
             var r = p as Register;
             var session = r.Sender.UserState as Session;
-            if (false == session.Registers.TryAdd(r.Argument, r.Argument))
-            {
-                // 允许重复登录，断线重连Agent不好原子实现重发。
-                // r.SendResultCode(Register.DuplicateRegister);
-                r.SendResultCode(Register.Success);
-                return Procedure.Success;
-            }
+            // 允许重复登录，断线重连Agent不好原子实现重发。
+            session.Registers.TryAdd(r.Argument, r.Argument);
             var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
 
             // 【警告】
@@ -410,12 +405,8 @@ namespace Zeze.Services
         {
             var r = p as Subscribe;
             var session = r.Sender.UserState as Session;
-            if (!session.Subscribes.TryAdd(r.Argument.ServiceName, r.Argument))
-            {
-                r.ResultCode = Subscribe.DuplicateSubscribe;
-                r.SendResult();
-                return Procedure.LogicError;
-            }
+            // 允许重复订阅。
+            session.Subscribes.TryAdd(r.Argument.ServiceName, r.Argument);
             var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
             return state.SubscribeAndSend(r, session);
         }

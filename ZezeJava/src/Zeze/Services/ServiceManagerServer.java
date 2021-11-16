@@ -403,12 +403,8 @@ public final class ServiceManagerServer implements Closeable {
 		var r = (Register)p;
 		var session = (Session)r.getSender().getUserState();
 
-		if (null != session.getRegisters().putIfAbsent(r.Argument, r.Argument)) {
-			// 允许重复登录，断线重连Agent不好原子实现重发。
-			// r.SendResultCode(Register.DuplicateRegister);
-			r.SendResultCode(Register.Success);
-			return Procedure.Success;
-		}
+		// 允许重复登录，断线重连Agent不好原子实现重发。
+		session.getRegisters().putIfAbsent(r.Argument, r.Argument);
 		var state = ServerStates.computeIfAbsent(r.Argument.getServiceName(),
 				(name) -> new ServerState(this, name));
 
@@ -461,11 +457,7 @@ public final class ServiceManagerServer implements Closeable {
 	private long ProcessSubscribe(Protocol p) {
 		var r = (Subscribe)p;
 		var session = (Session)r.getSender().getUserState();
-		if (null == session.getSubscribes().putIfAbsent(r.Argument.getServiceName(), r.Argument)) {
-			r.setResultCode(Subscribe.DuplicateSubscribe);
-			r.SendResult();
-			return Procedure.LogicError;
-		}
+		session.getSubscribes().putIfAbsent(r.Argument.getServiceName(), r.Argument);
 		var state = ServerStates.computeIfAbsent(r.Argument.getServiceName(),
 				(name) -> new ServerState(this, name));
 		return state.SubscribeAndSend(r, session);
