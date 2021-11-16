@@ -346,13 +346,23 @@ public final class GlobalCacheManagerServer {
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) -> new CacheState());
 			synchronized (cs) {
+
 				if (cs.getAcquireStatePending() == StateRemoved) {
 					continue;
+				}
+
+				if (cs.getModify() != null && cs.getShare().size() > 0) {
+					logger.error("cs modify:{} and share:{} exists at the same time", cs.getModify(), cs.getShare());
+					throw new RuntimeException("CacheState state error");
 				}
 
 				while (cs.getAcquireStatePending() != StateInvalid) {
 					switch (cs.getAcquireStatePending()) {
 						case StateShare:
+							if (cs.getModify() == null) {
+								logger.error("cs state must be modify");
+								throw new RuntimeException("CacheState state error");
+							}
 							if (cs.getModify() == sender) {
 								logger.debug("1 {} {} {}", sender, rpc.Argument.State, cs);
 								rpc.Result.State = StateInvalid;
@@ -371,6 +381,10 @@ public final class GlobalCacheManagerServer {
 					}
 					logger.debug("3 {} {} {}", sender, rpc.Argument.State, cs);
 					cs.wait();
+					if (cs.getModify() != null && cs.getShare().size() > 0) {
+						logger.error("CacheState modify {} and share {} exists at the same time", cs.getModify(), cs.getShare());
+						throw new RuntimeException("CacheState state error");
+					}
 				}
 				cs.setAcquireStatePending(StateShare);
 
@@ -434,6 +448,7 @@ public final class GlobalCacheManagerServer {
 				sender.getAcquired().put(rpc.Argument.GlobalTableKey, StateShare);
 				cs.getShare().add(sender);
 				cs.setAcquireStatePending(StateInvalid);
+				cs.notify();
 				logger.debug("7 {} {} {}", sender, rpc.Argument.State, cs);
 				rpc.SendResult();
 				return 0;
@@ -452,9 +467,19 @@ public final class GlobalCacheManagerServer {
 					continue;
 				}
 
+				if (cs.getModify() != null && cs.getShare().size() > 0) {
+					logger.error("CacheState modify {} and share {} exists at the same time", cs.getModify(), cs.getShare());
+					throw new RuntimeException("CacheState state error");
+				}
+
 				while (cs.getAcquireStatePending() != StateInvalid) {
 					switch (cs.getAcquireStatePending()) {
 						case StateShare:
+							if (cs.getModify() == null) {
+								logger.error("cs state must be modify");
+								throw new RuntimeException("CacheState state error");
+							}
+
 							if (cs.getModify() == sender) {
 								logger.debug("1 {} {} {}", sender, rpc.Argument.State, cs);
 								rpc.Result.State = StateInvalid;
@@ -473,6 +498,10 @@ public final class GlobalCacheManagerServer {
 					}
 					logger.debug("3 {} {} {}", sender, rpc.Argument.State, cs);
 					cs.wait();
+					if (cs.getModify() != null && cs.getShare().size() > 0) {
+						logger.error("CacheState modify {} and share {} exists at the same time", cs.getModify(), cs.getShare());
+						throw new RuntimeException("CacheState state error");
+					}
 				}
 				cs.setAcquireStatePending(StateModify);
 
@@ -549,35 +578,40 @@ public final class GlobalCacheManagerServer {
 					}
 				}
 
-				Zeze.Util.Task.Run(() -> {
-							// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
-							// 应该也会等待所有任务结束（包括错误）。
-							for (var reduce : reducePending) {
-								try {
-									reduce.getValue().getFuture().Wait();
-									if (reduce.getValue().Result.State == StateInvalid) {
-										// 后面还有个成功的处理循环，但是那里可能包含sender，
-										// 在这里更新吧。
-										reduce.getKey().getAcquired().remove(rpc.Argument.GlobalTableKey);
-										reduceSuccessed.add(reduce.getKey());
-									}
-									else {
-										reduce.getKey().SetError();
-									}
+				// 两种情况不需要发reduce
+				// 1. share是空的, 可以直接升为Modify
+				// 2. sender是share, 而且reducePending的size是0
+				if (!cs.getShare().isEmpty() && (!senderIsShare || reducePending.size() > 0)) {
+					Zeze.Util.Task.Run(() -> {
+						// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
+						// 应该也会等待所有任务结束（包括错误）。
+						for (var reduce : reducePending) {
+							try {
+								reduce.getValue().getFuture().Wait();
+								if (reduce.getValue().Result.State == StateInvalid) {
+									// 后面还有个成功的处理循环，但是那里可能包含sender，
+									// 在这里更新吧。
+									reduce.getKey().getAcquired().remove(rpc.Argument.GlobalTableKey);
+									reduceSuccessed.add(reduce.getKey());
 								}
-								catch (RuntimeException ex) {
+								else {
 									reduce.getKey().SetError();
-									// 等待失败不再看作成功。
-									logger.error("Reduce {} {} {} {}", sender, rpc.Argument.State, cs, reduce.getValue().Argument, ex);
 								}
 							}
-							synchronized (cs) {
-								// 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
-								cs.notifyAll();
+							catch (RuntimeException ex) {
+								reduce.getKey().SetError();
+								// 等待失败不再看作成功。
+								logger.error("Reduce {} {} {} {}", sender, rpc.Argument.State, cs, reduce.getValue().Argument, ex);
 							}
-				}, "GlobalCacheManager.AcquireModify.WaitReduce");
-				logger.debug("7 {} {} {}", sender, rpc.Argument.State, cs);
-				cs.wait();
+						}
+						synchronized (cs) {
+							// 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
+							cs.notifyAll();
+						}
+					}, "GlobalCacheManager.AcquireModify.WaitReduce");
+					logger.debug("7 {} {} {}", sender, rpc.Argument.State, cs);
+					cs.wait();
+				}
 
 				// 移除成功的。
 				for (CacheHolder successed : reduceSuccessed) {

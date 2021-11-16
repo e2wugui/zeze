@@ -355,11 +355,22 @@ namespace Zeze.Services
                     if (cs.AcquireStatePending == StateRemoved)
                         continue;
 
+                    if (cs.Modify != null && cs.Share.Count > 0)
+                    {
+                        logger.Error("CacheState modify {0} and share {1} exists at the same time", cs.Modify, cs.Share);
+                        throw new Exception("CacheState state error");
+                    }
+
                     while (cs.AcquireStatePending != StateInvalid)
                     {
                         switch (cs.AcquireStatePending)
                         {
                             case StateShare:
+                                if (cs.Modify == null)
+                                {
+                                    logger.Error("cs state must be modify");
+                                    throw new Exception("CacheState state error");
+                                }
                                 if (cs.Modify == sender)
                                 {
                                     logger.Debug("1 {0} {1} {2}", sender, rpc.Argument.State, cs);
@@ -380,6 +391,11 @@ namespace Zeze.Services
                         }
                         logger.Debug("3 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
+                        if (cs.Modify != null && cs.Share.Count > 0)
+                        {
+                            logger.Error("CacheState modify {0} and share {1} exists at the same time", cs.Modify, cs.Share);
+                            throw new Exception("CacheState state error");
+                        }
                     }
                     cs.AcquireStatePending = StateShare;
 
@@ -451,8 +467,10 @@ namespace Zeze.Services
                     sender.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
                     cs.Share.Add(sender);
                     cs.AcquireStatePending = StateInvalid;
+                    Monitor.Pulse(cs);
                     logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.SendResult();
+
                     return 0;
                 }
             }
@@ -471,11 +489,22 @@ namespace Zeze.Services
                     if (cs.AcquireStatePending == StateRemoved)
                         continue;
 
+                    if (cs.Modify != null && cs.Share.Count > 0)
+                    {
+                        logger.Error("CacheState modify {0} and share {1} exists at the same time", cs.Modify, cs.Share);
+                        throw new Exception("CacheState state error");
+                    }
+
                     while (cs.AcquireStatePending != StateInvalid)
                     {
                         switch (cs.AcquireStatePending)
                         {
                             case StateShare:
+                                if (cs.Modify == null)
+                                {
+                                    logger.Error("cs state must be modify");
+                                    throw new Exception("CacheState state error");
+                                }
                                 if (cs.Modify == sender)
                                 {
                                     logger.Debug("1 {0} {1} {2}", sender, rpc.Argument.State, cs);
@@ -496,6 +525,12 @@ namespace Zeze.Services
                         }
                         logger.Debug("3 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
+
+                        if (cs.Modify != null && cs.Share.Count > 0)
+                        {
+                            logger.Error("CacheState modify {0} and share {1} exists at the same time", cs.Modify, cs.Share);
+                            throw new Exception("CacheState state error");
+                        }
                     }
                     cs.AcquireStatePending = StateModify;
 
@@ -582,8 +617,12 @@ namespace Zeze.Services
                             break;
                         }
                     }
-
-                    Zeze.Util.Task.Run(
+                    // 两种情况不需要发reduce
+                    // 1. share是空的, 可以直接升为Modify
+                    // 2. sender是share, 而且reducePending的size是0
+                    if (!(cs.Share.Count == 0) && (!senderIsShare || reducePending.Count > 0))
+                    {
+                        Zeze.Util.Task.Run(
                         () =>
                         {
                             // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
@@ -619,8 +658,9 @@ namespace Zeze.Services
                             }
                         },
                         "GlobalCacheManager.AcquireModify.WaitReduce");
-                    logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                    Monitor.Wait(cs);
+                        logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                        Monitor.Wait(cs);
+                    }
 
                     // 移除成功的。
                     foreach (CacheHolder successed in reduceSuccessed)
