@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import Zeze.Services.GlobalCacheManager.*;
 
-public class Record1<K, V extends Bean> extends Record {
+public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private static final Logger logger = LogManager.getLogger(Record1.class);
 
 	private K Key;

@@ -26,7 +26,7 @@ import Zeze.Util.Task;
  <typeparam name="K"></typeparam>
  <typeparam name="V"></typeparam>
 */
-public class TableCache<K, V extends Bean> {
+public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private static final Logger logger = LogManager.getLogger(TableCache.class);
 
 	private ConcurrentHashMap<K, Record1<K, V>> DataMap;

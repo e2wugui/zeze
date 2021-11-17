@@ -9,7 +9,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Services.GlobalCacheManager.*;
 
-public abstract class TableX<K, V extends Bean> extends Table {
+public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
 	private static final Logger logger = LogManager.getLogger(TableX.class);
 
 	public TableX(String name) {

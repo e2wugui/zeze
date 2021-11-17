@@ -3,7 +3,7 @@ package Zeze.Transaction;
 import Zeze.Serialize.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class Storage1<K, V extends Bean> extends Storage {
+public final class Storage1<K extends Comparable<K>, V extends Bean> extends Storage {
 	private Table Table;
 	public Table getTable() {
 		return Table;
