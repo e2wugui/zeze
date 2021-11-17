@@ -1,11 +1,11 @@
 {
   "runtimeTarget": {
-    "name": ".NETCoreApp,Version=v5.0",
+    "name": ".NETCoreApp,Version=v6.0",
     "signature": ""
   },
   "compilationOptions": {},
   "targets": {
-    ".NETCoreApp,Version=v5.0": {
+    ".NETCoreApp,Version=v6.0": {
       "Gen/1.0.0": {
         "dependencies": {
           "Zeze": "1.0.0"
@@ -327,6 +327,14 @@
             "rid": "win-x86",
             "assetType": "native",
             "fileVersion": "4.6.25512.1"
+          }
+        }
+      },
+      "Scriban/5.0.0": {
+        "runtime": {
+          "lib/net5.0/Scriban.dll": {
+            "assemblyVersion": "5.0.0.0",
+            "fileVersion": "5.0.0.0"
           }
         }
       },
@@ -1055,6 +1063,7 @@
           "NLog": "4.7.10",
           "RocksDbNative": "6.2.2",
           "RocksDbSharp": "6.2.2",
+          "Scriban": "5.0.0",
           "System.Collections.Immutable": "5.0.0",
           "System.Data.SqlClient": "4.8.2",
           "System.Diagnostics.PerformanceCounter": "5.0.1"
@@ -1322,6 +1331,13 @@
       "sha512": "sha512-YhEdSQUsTx+C8m8Bw7ar5/VesXvCFMItyZF7G1AUY+OM0VPZUOeAVpJ4Wl6fydBGUYZxojTDR3I6Bj/+BPkJNA==",
       "path": "runtime.win-x86.runtime.native.system.data.sqlclient.sni/4.4.0",
       "hashPath": "runtime.win-x86.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512"
+    },
+    "Scriban/5.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-/kqARxHaYytWngSOqwHvXZkvTGgh6gbFgUiMrg1jbxATSkmHAB1KAfr+d6Dy92rloAynUPveAJBqijL1Vr2Ttw==",
+      "path": "scriban/5.0.0",
+      "hashPath": "scriban.5.0.0.nupkg.sha512"
     },
     "System.AppContext/4.3.0": {
       "type": "package",
