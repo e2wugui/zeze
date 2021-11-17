@@ -57,11 +57,24 @@ namespace Zeze.Gen.Types
 
 		public void Add(Variable var)
 		{
-			Variables.Add(var); // check duplicate
+			foreach (var vv in Variables)
+            {
+				if (vv.Id.Equals(var.Id))
+					throw new ArgumentException("duplicate Variable.Id: " + var.Id);
+				if (vv.Name.Equals(var.Name))
+					throw new ArgumentException("duplicate Variable.Name: " + var.Name);
+			}
+			Variables.Add(var);
 		}
+
 		public void Add(Enum e)
 		{
-			Enums.Add(e); // check duplicate
+			foreach (var ee in Enums)
+            {
+				if (ee.Name.Equals(e.Name))
+					throw new ArgumentException("duplicate Enum Name: " + e.Name);
+            }
+			Enums.Add(e);
 		}
 
 		public ModuleSpace Space { get; private set; }
