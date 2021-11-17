@@ -239,31 +239,44 @@ namespace Zeze.Services
 
         private long ProcessAcquireRequest(Zeze.Net.Protocol p)
         {
-            var rpc = p as GlobalCacheManager.Acquire;
+            var rpc = (Acquire)p;
+            rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+            rpc.Result.State = rpc.Argument.State; // default success
+
             if (rpc.Sender.UserState == null)
             {
+                rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                 rpc.SendResultCode(GlobalCacheManagerServer.AcquireNotLogin);
                 return 0;
             }
-            switch (rpc.Argument.State)
+            try
             {
-                case GlobalCacheManagerServer.StateInvalid: // realease
-                    var session = rpc.Sender.UserState as CacheHolder;
-                    Release(rpc.Sender.RemoteAddress, rpc.UniqueRequestId, session, rpc.Argument.GlobalTableKey);
-                    rpc.Result = rpc.Argument;
-                    rpc.SendResult();
-                    return 0;
+                switch (rpc.Argument.State)
+                {
+                    case GlobalCacheManagerServer.StateInvalid: // realease
+                        var session = rpc.Sender.UserState as CacheHolder;
+                        Release(rpc.Sender.RemoteAddress, rpc.UniqueRequestId, session, rpc.Argument.GlobalTableKey);
+                        rpc.SendResult();
+                        return 0;
 
-                case GlobalCacheManagerServer.StateShare:
-                    return AcquireShare(rpc);
+                    case GlobalCacheManagerServer.StateShare:
+                        return AcquireShare(rpc);
 
-                case GlobalCacheManagerServer.StateModify:
-                    return AcquireModify(rpc);
+                    case GlobalCacheManagerServer.StateModify:
+                        return AcquireModify(rpc);
 
-                default:
-                    rpc.Result = rpc.Argument;
-                    rpc.SendResultCode(GlobalCacheManagerServer.AcquireErrorState);
-                    return 0;
+                    default:
+                        rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                        rpc.SendResultCode(GlobalCacheManagerServer.AcquireErrorState);
+                        return 0;
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+                rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                rpc.SendResultCode(GlobalCacheManagerServer.AcquireException);
+                return 0;
             }
         }
 
@@ -301,10 +314,9 @@ namespace Zeze.Services
             }
         }
 
-        private int AcquireShare(GlobalCacheManager.Acquire rpc)
+        private int AcquireShare(Acquire rpc)
         {
             var sender = rpc.Sender.UserState as CacheHolder;
-            rpc.Result = rpc.Argument;
             var gkey = rpc.Argument.GlobalTableKey;
             while (true)
             {
@@ -344,6 +356,7 @@ namespace Zeze.Services
                     step0.SetCacheStateAcquireStatePending(gkey, GlobalCacheManagerServer.StateShare);
                     Raft.AppendLog(step0);
                     // cs.AcquireStatePending = GlobalCacheManager.StateShare;
+                    cs.GlobalSerialId = RaftData.SerialIdGenerator.IncrementAndGet(); // TODO
 
                     if (cs.Modify != -1)
                     {
@@ -361,13 +374,13 @@ namespace Zeze.Services
                             return 0;
                         }
 
-                        int stateReduceResult = GlobalCacheManagerServer.StateReduceException;
+                        Reduce reduceRpc = null; ;
                         var modifyHolder = GetSession(cs.Modify);
                         Zeze.Util.Task.Run(
                             () =>
                             {
-                                stateReduceResult = modifyHolder.Reduce(
-                                    gkey, GlobalCacheManagerServer.StateShare);
+                                reduceRpc = modifyHolder.Reduce(
+                                    gkey, GlobalCacheManagerServer.StateShare, cs.GlobalSerialId);
 
                                 lock (cs)
                                 {
@@ -379,7 +392,7 @@ namespace Zeze.Services
                         Monitor.Wait(cs);
 
                         var step2 = new OperatesLog(rpc.Sender.RemoteAddress, rpc.UniqueRequestId);
-                        switch (stateReduceResult)
+                        switch (reduceRpc.Result.State)
                         {
                             case GlobalCacheManagerServer.StateShare:
                                 step2.PutCacheHolderAcquired(cs.Modify, gkey,
@@ -438,10 +451,9 @@ namespace Zeze.Services
             }
         }
 
-        private int AcquireModify(GlobalCacheManager.Acquire rpc)
+        private int AcquireModify(Acquire rpc)
         {
             var sender = rpc.Sender.UserState as CacheHolder;
-            rpc.Result = rpc.Argument;
             var gkey = rpc.Argument.GlobalTableKey;
             while (true)
             {
@@ -481,6 +493,7 @@ namespace Zeze.Services
                     step0.SetCacheStateAcquireStatePending(gkey, GlobalCacheManagerServer.StateModify);
                     //cs.AcquireStatePending = GlobalCacheManager.StateModify;
                     Raft.AppendLog(step0);
+                    cs.GlobalSerialId = RaftData.SerialIdGenerator.IncrementAndGet(); // TODO
 
                     if (cs.Modify != -1)
                     {
@@ -498,13 +511,13 @@ namespace Zeze.Services
                             return 0;
                         }
 
-                        int stateReduceResult = GlobalCacheManagerServer.StateReduceException;
+                        Reduce reduceRpc = null;
                         var modifyHolder = GetSession(cs.Modify);
                         Zeze.Util.Task.Run(
                             () =>
                             {
-                                stateReduceResult = modifyHolder.Reduce(
-                                    gkey, GlobalCacheManagerServer.StateInvalid);
+                                reduceRpc = modifyHolder.Reduce(
+                                    gkey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId);
                                 lock (cs)
                                 {
                                     Monitor.PulseAll(cs);
@@ -516,7 +529,7 @@ namespace Zeze.Services
 
                         var step2 = new OperatesLog(rpc.Sender.RemoteAddress, rpc.UniqueRequestId);
 
-                        switch (stateReduceResult)
+                        switch (reduceRpc.Result.State)
                         {
                             case GlobalCacheManagerServer.StateInvalid:
                                 step2.RemoveCacheHolderAcquired(cs.Modify, gkey);
@@ -570,7 +583,7 @@ namespace Zeze.Services
                         }
                         var shareHolder = GetSession(c);
                         var reduce = shareHolder.ReduceWaitLater(
-                            gkey, GlobalCacheManagerServer.StateInvalid);
+                            gkey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId);
                         if (null != reduce)
                         {
                             reducePending.Add(Util.KV.Create(shareHolder, reduce));
@@ -684,6 +697,7 @@ namespace Zeze.Services
             public MapsOnRocksDb Storage { get; }
 
             public MapsOnRocksDb.Map<GlobalTableKey, CacheState> Global { get; }
+            public Zeze.Util.AtomicLong SerialIdGenerator = new Util.AtomicLong();
             public MapsOnRocksDb.Map<int, CacheHolder> Sessions { get; }
 
             public RaftDatas(GlobalCacheManagerServer.GCMConfig config)
@@ -1036,6 +1050,7 @@ namespace Zeze.Services
         public sealed class CacheState : Serializable
         {
             internal int AcquireStatePending { get; set; } = GlobalCacheManagerServer.StateInvalid;
+            internal long GlobalSerialId { get; set; }
             internal int Modify { get; set; } // AutoKeyLocalId
             internal HashSet<int> Share { get; } = new HashSet<int>(); // AutoKeyLocalIds
 
@@ -1152,29 +1167,32 @@ namespace Zeze.Services
                 return "" + SessionId;
             }
 
-            public int Reduce(GlobalCacheManager.GlobalTableKey gkey, int state)
+            public Reduce Reduce(GlobalTableKey gkey, int state, long globalSerialId)
             {
+                var reduce = ReduceWaitLater(gkey, state, globalSerialId);
                 try
                 {
-                    var reduce = ReduceWaitLater(gkey, state);
                     if (null != reduce)
                     {
                         reduce.Future.Task.Wait();
                         // 如果rpc返回错误的值，外面能处理。
-                        return reduce.Result.State;
+                        return reduce;
                     }
-                    return GlobalCacheManagerServer.StateReduceNetError;
+                    reduce.Result.State = GlobalCacheManagerServer.StateReduceNetError;
+                    return reduce;
                 }
                 catch (Zeze.Net.RpcTimeoutException timeoutex)
                 {
                     // 等待超时，应该报告错误。
                     logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1}", state, SessionId);
-                    return GlobalCacheManagerServer.StateReduceRpcTimeout;
+                    reduce.Result.State = GlobalCacheManagerServer.StateReduceRpcTimeout;
+                    return reduce;
                 }
                 catch (Exception ex)
                 {
                     logger.Error(ex, "Reduce Exception {0} target={1}", state, SessionId);
-                    return GlobalCacheManagerServer.StateReduceException;
+                    reduce.Result.State = GlobalCacheManagerServer.StateReduceException;
+                    return reduce;
                 }
             }
 
@@ -1197,7 +1215,7 @@ namespace Zeze.Services
             /// <param name="state"></param>
             /// <returns></returns>
             public GlobalCacheManager.Reduce ReduceWaitLater(
-                GlobalCacheManager.GlobalTableKey gkey, int state)
+                GlobalCacheManager.GlobalTableKey gkey, int state, long globalSerialId)
             {
                 try
                 {
@@ -1209,7 +1227,7 @@ namespace Zeze.Services
                     Zeze.Net.AsyncSocket peer = Services.GlobalCacheManagerWithRaft.Instance.Raft.Server.GetSocket(SessionId);
                     if (null != peer)
                     {
-                        var reduce = new Services.GlobalCacheManager.Reduce(gkey, state);
+                        var reduce = new Reduce(gkey, state, globalSerialId);
                         reduce.SendForWait(peer, 10000);
                         return reduce;
                     }

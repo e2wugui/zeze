@@ -57,6 +57,8 @@ namespace Zeze.Services
         public ServerService Server { get; private set; }
         public AsyncSocket ServerSocket { get; private set; }
         private ConcurrentDictionary<GlobalTableKey, CacheState> global;
+        private Zeze.Util.AtomicLong SerialIdGenerator = new Util.AtomicLong();
+
         /*
          * 会话。
          * key是 LogicServer.Id，现在的实现就是Zeze.Config.ServerId。
@@ -296,8 +298,12 @@ namespace Zeze.Services
         private long ProcessAcquireRequest(Zeze.Net.Protocol p)
         {
             Acquire rpc = (Acquire)p;
+            rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+            rpc.Result.State = rpc.Argument.State; // default success
+
             if (rpc.Sender.UserState == null)
             {
+                rpc.Result.State = StateInvalid;
                 rpc.SendResultCode(AcquireNotLogin);
                 return 0;
             }
@@ -307,7 +313,6 @@ namespace Zeze.Services
                 {
                     case StateInvalid: // realease
                         Release(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey);
-                        rpc.Result = rpc.Argument;
                         rpc.SendResult();
                         return 0;
 
@@ -318,7 +323,7 @@ namespace Zeze.Services
                         return AcquireModify(rpc);
 
                     default:
-                        rpc.Result = rpc.Argument;
+                        rpc.Result.State = StateInvalid;
                         rpc.SendResultCode(AcquireErrorState);
                         return 0;
                 }
@@ -326,6 +331,7 @@ namespace Zeze.Services
             catch (Exception e)
             {
                 logger.Error(e);
+                rpc.Result.State = StateInvalid;
                 rpc.SendResultCode(AcquireException);
                 return 0;
             }
@@ -355,7 +361,7 @@ namespace Zeze.Services
         private int AcquireShare(Acquire rpc)
         {
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
-            rpc.Result = rpc.Argument;
+
             while (true)
             {
                 CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey,
@@ -380,6 +386,7 @@ namespace Zeze.Services
                                 {
                                     logger.Debug("1 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                     rpc.Result.State = StateInvalid;
+                                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                                     rpc.SendResultCode(AcquireShareDeadLockFound);
                                     return 0;
                                 }
@@ -389,6 +396,7 @@ namespace Zeze.Services
                                 {
                                     logger.Debug("2 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                     rpc.Result.State = StateInvalid;
+                                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                                     rpc.SendResultCode(AcquireShareDeadLockFound);
                                     return 0;
                                 }
@@ -400,6 +408,7 @@ namespace Zeze.Services
                             throw new Exception("CacheState state error");
                     }
                     cs.AcquireStatePending = StateShare;
+                    cs.GlobalSerialId = SerialIdGenerator.IncrementAndGet();
 
                     if (cs.Modify != null)
                     {
@@ -411,15 +420,16 @@ namespace Zeze.Services
                             // 已经是Modify又申请，可能是sender异常关闭，
                             // 又重启连上。更新一下。应该是不需要的。
                             sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
+                            rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                             rpc.SendResultCode(AcquireShareAlreadyIsModify);
                             return 0;
                         }
 
-                        int stateReduceResult = StateReduceException;
+                        Reduce reduceRpc = null;
                         Zeze.Util.Task.Run(
                             () =>
                             {
-                                stateReduceResult = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare);
+                                reduceRpc = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare, cs.GlobalSerialId);
 
                                 lock (cs)
                                 {
@@ -430,7 +440,7 @@ namespace Zeze.Services
                         logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
 
-                        switch (stateReduceResult)
+                        switch (reduceRpc.Result.State)
                         {
                             case StateShare:
                                 cs.Modify.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
@@ -452,6 +462,7 @@ namespace Zeze.Services
 
                                 logger.Error("XXX 8 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                 rpc.Result.State = StateInvalid;
+                                rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                                 rpc.SendResultCode(AcquireShareFaild);
                                 return 0;
                         }
@@ -462,6 +473,7 @@ namespace Zeze.Services
                         cs.AcquireStatePending = StateInvalid;
                         Monitor.Pulse(cs);
                         logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                        rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         rpc.SendResult();
                         return 0;
                     }
@@ -471,6 +483,7 @@ namespace Zeze.Services
                     cs.AcquireStatePending = StateInvalid;
                     Monitor.Pulse(cs);
                     logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                     rpc.SendResult();
 
                     return 0;
@@ -481,8 +494,6 @@ namespace Zeze.Services
         private int AcquireModify(Acquire rpc)
         {
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
-            rpc.Result = rpc.Argument;
-
             while (true)
             {
                 CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
@@ -508,6 +519,7 @@ namespace Zeze.Services
                                 {
                                     logger.Debug("1 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                     rpc.Result.State = StateInvalid;
+                                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                                     rpc.SendResultCode(AcquireModifyDeadLockFound);
                                     return 0;
                                 }
@@ -517,6 +529,7 @@ namespace Zeze.Services
                                 {
                                     logger.Debug("2 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                     rpc.Result.State = StateInvalid;
+                                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                                     rpc.SendResultCode(AcquireModifyDeadLockFound);
                                     return 0;
                                 }
@@ -529,6 +542,7 @@ namespace Zeze.Services
                             throw new Exception("CacheState state error");
                     }
                     cs.AcquireStatePending = StateModify;
+                    cs.GlobalSerialId = SerialIdGenerator.IncrementAndGet();
 
                     if (cs.Modify != null)
                     {
@@ -538,17 +552,18 @@ namespace Zeze.Services
                             // 已经是Modify又申请，可能是sender异常关闭，又重启连上。
                             // 更新一下。应该是不需要的。
                             sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
+                            rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                             rpc.SendResultCode(AcquireModifyAlreadyIsModify);
                             cs.AcquireStatePending = StateInvalid;
                             Monitor.Pulse(cs);
                             return 0;
                         }
 
-                        int stateReduceResult = StateReduceException;
+                        Reduce reduceRpc = null;
                         Zeze.Util.Task.Run(
                             () =>
                             {
-                                stateReduceResult = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
+                                reduceRpc = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId);
                                 lock (cs)
                                 {
                                     Monitor.PulseAll(cs);
@@ -558,7 +573,7 @@ namespace Zeze.Services
                         logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
 
-                        switch (stateReduceResult)
+                        switch (reduceRpc.Result.State)
                         {
                             case StateInvalid:
                                 cs.Modify.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out _);
@@ -573,6 +588,7 @@ namespace Zeze.Services
 
                                 logger.Error("XXX 9 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                 rpc.Result.State = StateInvalid;
+                                rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                                 rpc.SendResultCode(AcquireModifyFaild);
                                 return 0;
                         }
@@ -584,6 +600,7 @@ namespace Zeze.Services
                         Monitor.Pulse(cs);
 
                         logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                        rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         rpc.SendResult();
                         return 0;
                     }
@@ -601,7 +618,7 @@ namespace Zeze.Services
                             reduceSuccessed.Add(sender);
                             continue;
                         }
-                        Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid);
+                        Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId);
                         if (null != reduce)
                         {
                             reducePending.Add(Util.KV.Create(c, reduce));
@@ -673,6 +690,7 @@ namespace Zeze.Services
                         Monitor.Pulse(cs); // Pending 结束，唤醒一个进来就可以了。
 
                         logger.Debug("8 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                        rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         rpc.SendResult();
                     }
                     else
@@ -688,6 +706,7 @@ namespace Zeze.Services
                         logger.Error("XXX 10 {0} {1} {2}", sender, rpc.Argument.State, cs);
 
                         rpc.Result.State = StateInvalid;
+                        rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         rpc.SendResultCode(AcquireModifyFaild);
                     }
                     // 很好，网络失败不再看成成功，发现除了加break，
@@ -701,6 +720,7 @@ namespace Zeze.Services
         {
             internal CacheHolder Modify { get; set; }
             internal int AcquireStatePending { get; set; } = StateInvalid;
+            internal long GlobalSerialId { get; set; }
             internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
             public override string ToString()
             {
@@ -768,29 +788,32 @@ namespace Zeze.Services
                 return "" + SessionId;
             }
 
-            public int Reduce(GlobalTableKey gkey, int state)
+            public Reduce Reduce(GlobalTableKey gkey, int state, long globalSerialId)
             {
+                Reduce reduce = ReduceWaitLater(gkey, state, globalSerialId);
                 try
                 {
-                    Reduce reduce = ReduceWaitLater(gkey, state);
                     if (null != reduce)
                     {
                         reduce.Future.Task.Wait();
                         // 如果rpc返回错误的值，外面能处理。
-                        return reduce.Result.State;
+                        return reduce;
                     }
-                    return StateReduceNetError;
+                    reduce.Result.State = StateReduceNetError;
+                    return reduce;
                 }
                 catch (RpcTimeoutException timeoutex)
                 {
                     // 等待超时，应该报告错误。
                     logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1} '{2}'", state, SessionId, gkey);
-                    return StateReduceRpcTimeout;
+                    reduce.Result.State = StateReduceRpcTimeout;
+                    return reduce;
                 }
                 catch (Exception ex)
                 {
                     logger.Error(ex, "Reduce Exception {0} target={1} '{2}'", state, SessionId, gkey);
-                    return StateReduceException;
+                    reduce.Result.State = StateReduceException;
+                    return reduce;
                 }
             }
 
@@ -812,7 +835,7 @@ namespace Zeze.Services
             /// <param name="gkey"></param>
             /// <param name="state"></param>
             /// <returns></returns>
-            public Reduce ReduceWaitLater(GlobalTableKey gkey, int state)
+            public Reduce ReduceWaitLater(GlobalTableKey gkey, int state, long globalSerialId)
             {
                 try
                 {
@@ -824,7 +847,7 @@ namespace Zeze.Services
                     AsyncSocket peer = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
                     if (null != peer)
                     {
-                        Reduce reduce = new Reduce(gkey, state);
+                        Reduce reduce = new Reduce(gkey, state, globalSerialId);
                         reduce.SendForWait(peer, 10000);
                         return reduce;
                     }
@@ -872,7 +895,43 @@ namespace Zeze.Services.GlobalCacheManager
             return GlobalTableKey + ":" + State;
         }
     }
-    public sealed class Acquire : Zeze.Net.Rpc<Param, Param>
+
+    public sealed class Param2 : Zeze.Transaction.Bean
+    {
+        public GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
+        public int State { get; set; }
+        public long GlobalSerialId { get; set; }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            if (null == GlobalTableKey)
+                GlobalTableKey = new GlobalTableKey();
+            GlobalTableKey.Decode(bb);
+            State = bb.ReadInt();
+
+            GlobalSerialId = bb.ReadLong();
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            GlobalTableKey.Encode(bb);
+            bb.WriteInt(State);
+
+            bb.WriteLong(GlobalSerialId);
+        }
+
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            return GlobalTableKey + ":" + State;
+        }
+    }
+
+    public sealed class Acquire : Zeze.Net.Rpc<Param, Param2>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(Acquire).FullName);
 
@@ -890,7 +949,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class Reduce : Zeze.Net.Rpc<Param, Param>
+    public sealed class Reduce : Zeze.Net.Rpc<Param2, Param2>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(Reduce).FullName);
 
@@ -901,10 +960,11 @@ namespace Zeze.Services.GlobalCacheManager
         {
         }
 
-        public Reduce(GlobalTableKey gkey, int state)
+        public Reduce(GlobalTableKey gkey, int state, long globalSerialId)
         {
             Argument.GlobalTableKey = gkey;
             Argument.State = state;
+            Argument.GlobalSerialId = globalSerialId;
         }
     }
 

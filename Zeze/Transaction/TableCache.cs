@@ -226,8 +226,7 @@ namespace Zeze.Transaction
 
                 if (p.Value.State != GlobalCacheManagerServer.StateInvalid)
                 {
-                    if (p.Value.Acquire(GlobalCacheManagerServer.StateInvalid)
-                        != GlobalCacheManagerServer.StateInvalid)
+                    if (p.Value.Acquire(GlobalCacheManagerServer.StateInvalid).Result.State != GlobalCacheManagerServer.StateInvalid)
                     {
                         return false;
                     }

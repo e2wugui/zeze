@@ -66,7 +66,7 @@ namespace Zeze.Transaction
 
         internal abstract void Commit(Transaction.RecordAccessed accessed);
 
-        internal abstract int Acquire(int state);
+        internal abstract Acquire Acquire(int state);
 
         internal abstract void Encode0();
         internal abstract bool Flush(Database.Transaction t);
@@ -98,10 +98,10 @@ namespace Zeze.Transaction
             // 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
         }
 
-        internal override int Acquire(int state)
+        internal override Acquire Acquire(int state)
         {
             if (null == TTable.TStorage)
-                return state; // 不支持内存表cache同步。
+                return new Acquire(null, state); // 不支持内存表cache同步。
 
             var gkey = new GlobalTableKey(TTable.Name, TTable.EncodeKey(Key));
             logger.Debug("Acquire NewState={0} {1}", state, this);
