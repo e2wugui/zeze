@@ -1,0 +1,47 @@
+{{-
+    func toname(name)
+        ret 'msg.' + name
+    end
+-}}
+local message_init = require('msg.message_init')
+local message = {}
+
+message.EmptyBean = message_init.EmptyBean
+{{_set = [solution.name]}}
+{{- 
+modules_list = []
+solution_in_module = false
+for module in modules
+    modules_list = array.add modules_list module
+    if module == solution
+        solution_in_module = true
+    end
+end
+-}}
+{{-if solution_in_module}}
+message.{{solution.name}} = require "{{toname solution.name}}"
+{{-else}}
+message.{{solution.name}} = {}
+{{-end}}
+{{-module_names = modules_list | array.map 'full_name'| array.sort }}
+{{-for module_name in module_names}}
+{{- name_space_array = string.split(module_name, '.') 
+   name_space_array =  array.remove_at(name_space_array, -1)
+   name_space_s = []
+}}
+{{-for name_space_p in name_space_array
+    name_space_s = array.add(name_space_s, name_space_p)
+    name_space = array.join(name_space_s, '.')
+    if array.contains _set name_space
+        continue
+    else}}
+message.{{name_space}} = {}
+    {{-end}}
+{{-end}}
+message.{{module_name}} = require "{{toname module_name}}"
+{{-_set = array.add _set module_name }}
+{{-end}}
+
+message_init.init(message)
+
+return message

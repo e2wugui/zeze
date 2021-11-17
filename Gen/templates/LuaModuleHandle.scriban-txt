@@ -1,0 +1,21 @@
+{{-
+    func toname(name)
+        ret 'msg.' + name
+    end
+-}}
+local msg = require('{{toname "message"}}')
+local {{module.name}} = {}
+
+function {{module.name}}.Init()
+    {{-for protocol in protocols}}
+    msg.{{protocol.full_name}}.Handle = {{module.name}}.OnMsg_{{protocol.name}}
+    {{-end}}
+end
+{{-for protocol in protocols}}
+
+---@param p {{toname protocol.full_name}}
+function {{module.name}}.OnMsg_{{protocol.name}}(p)
+end
+{{-end}}
+
+return {{module.name}} 

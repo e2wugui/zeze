@@ -202,9 +202,16 @@ namespace Zeze.Gen
                 case "lua":
                     new Zeze.Gen.lua.Maker(this).Make();
                     break;
+                case "luaclient":
+                    new Zeze.Gen.luaClient.Maker(this).Make();
+                    break;
                 case "cs+lua":
                     new global::Zeze.Gen.cs.Maker(this).Make();
                     new Zeze.Gen.lua.Maker(this).Make();
+                    break;
+                case "cs+luaclient":
+                    new global::Zeze.Gen.cs.Maker(this).Make();
+                    new Zeze.Gen.luaClient.Maker(this).Make();
                     break;
                 case "cxx+lua":
                     new cxx.Maker(this).Make();

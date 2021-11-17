@@ -1,0 +1,192 @@
+{{-
+    func toname(name)
+        ret 'msg.' + name
+    end
+-}}
+{{- func beantype(type)
+        ret type?.full_name ?? "EmptyBean"
+    end
+-}}
+
+{{func typestr(type)
+    case type.name
+    when "binary" 
+        ret "userdata"
+    when "bool" 
+        ret "boolean"
+    when "byte" 
+        ret "userdata"
+    when "double", "float" 
+        ret "number"
+    when "int", "short" 
+        ret "integer"
+    when "long" 
+        ret "long"
+    when "string" 
+        ret "string"
+    when "map" -}}
+        table<{{ typestr type.key_type }}, {{ typestr type.value_type}}>
+    {{- when "list","set" }}table<{{typestr type.value_type}}>
+    {{- when "dynamic" }}
+        {{- for real_bean_kv in variable.variable_type.real_beans}}{{if !for.first}}|{{end}}msg.{{real_bean_kv.value.full_name}}
+        {{- end}}
+    {{- else
+        ret toname(type.full_name?? type)
+    end
+end}}
+
+{{-func defaultvalue(variable)
+    case variable.variable_type.name
+    when "bool"
+        if variable.initial != ''
+            ret string.emptystring.downcase(variable.initial)
+        else
+            ret 'false'
+        end
+    when "byte", 'binary'
+        ret 'nil'
+    when "double", "float"
+        if variable.initial != '' 
+            ret variable.initial 
+        else
+            ret "0.0"
+        end
+    when "int", "short"
+        if variable.initial !='' 
+            ret variable.initial 
+        else 
+            ret "0"
+        end
+    when "long"
+        if variable.initial !='' 
+            ret variable.initial 
+        else 
+            ret "0"
+    end
+    when "string"
+        if variable.initial !='' 
+            ret variable.initial 
+    else 
+        ret "''"
+    end
+    when "map",'list', 'set', 'dynamic'
+        ret "{}"
+    end
+end}}
+
+{{- l = array.add_range beankeys beans }}
+local message_init = require 'msg.message_init'
+
+local {{module.name}} = {}
+{{ for bean in l }}
+---@class {{toname bean.full_name}} : msg.Bean
+{{- for e in  bean.enums}}
+---@field {{e.name}} integer
+{{- end }}
+{{- for variable in bean.variables }}
+---@field {{variable.name}} {{ typestr(variable.variable_type) }}
+{{- end }}
+---@field new fun(t: table):{{toname bean.full_name}}
+local {{bean.name}} = {
+    __type_name__ = '{{bean.full_name}}',
+    __type_id__ = '{{bean.type_id}}',
+    new = message_init.new,
+    {{- for e in  bean.enums}}
+    {{e.name}} = {{e.value}},
+    {{- end }}
+    {{- for variable in bean.variables }}
+    {{- d = defaultvalue variable
+    if d}}
+    {{variable.name}} = {{d}},
+    {{-end}}
+    {{- end }}
+}
+{{bean_variables = []
+for variable in bean.variables
+    if variable.variable_type.is_bean
+        bean_variables = array.add(bean_variables, variable)
+    end
+end -}}
+
+{{- if bean_variables.size > 0 }}
+{{bean.name}}.__index = function(t, k)
+    {{-for variable in bean_variables}}
+        {{-if for.first}}
+    if k == '{{variable.name}}' then
+        {{-else}}
+    elseif k == '{{variable.name}}' then
+        {{-end}}
+        local {{variable.name}} = message_init.{{variable.variable_type.full_name}}:new()
+        rawset(t, '{{variable.name}}', {{variable.name}})
+        return {{variable.name}}
+        {{-if for.last}}
+    else
+        return {{bean.name}}[k]
+    end
+        {{-end}}
+    {{-end}}
+end
+{{-else}}
+{{bean.name}}.__index = {{bean.name}}
+{{-end}}
+{{end }}
+
+{{- for protocol in protocols }}
+---@class {{toname protocol.full_name}} : msg.Protocol
+---@field argument {{toname beantype(protocol.argument_type)}}
+{{- if protocol.result}}
+---@field result {{toname beantype(protocol.result_type)}}
+{{- end}}
+---@field new fun(t: table):{{toname protocol.full_name}}
+---@field send fun(self: {{toname protocol.full_name}}):void
+{{- for e in  protocol.enums}}
+---@field {{e.name}} integer
+{{- end }}
+local {{protocol.name}} = {
+    __type_name__ = '{{protocol.full_name}}',
+    __type_id__ = '{{protocol.type_id}}',
+    protocolId = {{protocol.id}},
+    moduleId = {{protocol.space.id}},
+    resultCode = 0,
+    {{- if protocol.result}}
+    send = message_init.send_rpc,
+    resultCode = 0,
+    isRequest = false,
+    {{- else}}
+    send = message_init.send,
+    {{- end}}
+    new = message_init.new,
+    {{- for e in  protocol.enums}}
+    {{e.name}} = {{e.value}},
+    {{- end }}
+}
+
+{{protocol.name}}.__index = function(t, k)
+    if k == 'argument' then
+        local argument = message_init.{{protocol.argument_type?.full_name ?? "EmptyBean"}}:new()
+        rawset(t, 'argument', argument)
+        return argument
+    {{- if protocol.result}}
+    elseif k == 'result' then
+        local result = message_init.{{protocol.result_type?.full_name ?? "EmptyBean"}}:new()
+        rawset(t, 'result', result)
+        return result
+    {{- end}}
+    else
+        return {{protocol.name}}[k]
+    end
+end
+{{ end }}
+{{- for enum in module.enums }}
+{{module.name}}.{{enum.name}} = {{enum.value}}
+{{- end}}
+
+{{- for bean in l }}
+{{module.name}}.{{bean.name}} = {{bean.name}}
+{{- end }}
+
+{{- for protocol in protocols }}
+{{module.name}}.{{protocol.name}} = {{protocol.name}}
+{{- end }}
+
+return {{module.name}} 
