@@ -146,7 +146,7 @@ namespace Zeze.Transaction
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        internal int Acquire(GlobalTableKey gkey, int state)
+        internal Acquire Acquire(GlobalTableKey gkey, int state)
         {
             if (null != Client)
             {
@@ -169,10 +169,10 @@ namespace Zeze.Transaction
                     case GlobalCacheManagerServer.AcquireShareFaild:
                         throw new AbortException("GlobalAgent.Acquire Faild");
                 }
-                return rpc.Result.State;
+                return rpc;
             }
             logger.Debug("Acquire local ++++++");
-            return state;
+            return new Acquire(gkey, state);
         }
 
         public long ProcessReduceRequest(Zeze.Net.Protocol p)
@@ -187,7 +187,7 @@ namespace Zeze.Transaction
                         {
                             logger.Warn($"ReduceInvalid Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zeze.Config.ServerId}");
                             // 本地没有找到表格看作成功。
-                            rpc.Result = rpc.Argument;
+                            rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             rpc.SendResultCode(0);
                             return 0;
@@ -202,7 +202,7 @@ namespace Zeze.Transaction
                         {
                             logger.Warn($"ReduceShare Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zeze.Config.ServerId}");
                             // 本地没有找到表格看作成功。
-                            rpc.Result = rpc.Argument;
+                            rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             rpc.SendResultCode(0);
                             return 0;
@@ -211,7 +211,8 @@ namespace Zeze.Transaction
                     }
 
                 default:
-                    rpc.Result = rpc.Argument;
+                    rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+                    rpc.Result.State = rpc.Argument.State;
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
                     return 0;
             }

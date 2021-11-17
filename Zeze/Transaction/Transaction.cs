@@ -143,7 +143,8 @@ namespace Zeze.Transaction
             RollbackActions.Add(action);
         }
 
-        private TableKey RecentTableKeyOfRedoAndRelease = null;
+        private TableKey RecentTableKeyOfRedoAndRelease { get; set; } = null;
+        private long RecentGlobalSerialIdOfRedoAndRelease { get; set; } = 0;
 
         /// <summary>
         /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
@@ -155,10 +156,10 @@ namespace Zeze.Transaction
             {
                 for (int tryCount = 0; tryCount < 256; ++tryCount) // 最多尝试次数
                 {
+                    // 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
+                    procedure.Zeze.Checkpoint.EnterFlushReadLock();
                     try
                     {
-                        // 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
-                        procedure.Zeze.Checkpoint.EnterFlushReadLock();
                         for (/* out loop */; tryCount < 256; ++tryCount) // 最多尝试次数
                         {
                             CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
@@ -194,6 +195,7 @@ namespace Zeze.Transaction
                             catch (RedoAndReleaseLockException redorelease)
                             {
                                 RecentTableKeyOfRedoAndRelease = redorelease.TableKey;
+                                RecentGlobalSerialIdOfRedoAndRelease = redorelease.GlobalSerialId;
                                 checkResult = CheckResult.RedoAndReleaseLock;
                                 logger.Debug(redorelease, "RedoAndReleaseLockException");
                             }
@@ -264,7 +266,7 @@ namespace Zeze.Transaction
                         procedure.Zeze.Checkpoint.ExitFlushReadLock();
                     }
                     //logger.Debug("Checkpoint.WaitRun {0}", procedure);
-                    procedure.Zeze.TryWaitFlushWhenReduce(RecentTableKeyOfRedoAndRelease);
+                    procedure.Zeze.GetOrAddLastFlushWhenReduce(RecentTableKeyOfRedoAndRelease).TryWait(RecentGlobalSerialIdOfRedoAndRelease);
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 _final_rollback_(procedure);
@@ -528,6 +530,7 @@ namespace Zeze.Transaction
                         // fall down
                         case GlobalCacheManagerServer.StateInvalid:
                             RecentTableKeyOfRedoAndRelease = e.TableKey;
+                            RecentGlobalSerialIdOfRedoAndRelease = 0;
                             return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
                         case GlobalCacheManagerServer.StateModify:
@@ -537,17 +540,17 @@ namespace Zeze.Transaction
                         case GlobalCacheManagerServer.StateShare:
                             // 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                             // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                            if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify)
-                                != GlobalCacheManagerServer.StateModify)
+                            var acquire = e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify);
+                            if (acquire.Result.State  != GlobalCacheManagerServer.StateModify)
                             {
                                 logger.Warn("Acquire Faild. Maybe DeadLock Found {0}", e.OriginRecord);
                                 e.OriginRecord.State = GlobalCacheManagerServer.StateInvalid;
                                 RecentTableKeyOfRedoAndRelease = e.TableKey;
+                                RecentGlobalSerialIdOfRedoAndRelease = acquire.Result.GlobalSerialId;
                                 return CheckResult.RedoAndReleaseLock;
                             }
                             e.OriginRecord.State = GlobalCacheManagerServer.StateModify;
-                            return e.Timestamp != e.OriginRecord.Timestamp
-                                ? CheckResult.Redo : CheckResult.Success;
+                            return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
                     }
                     return e.Timestamp != e.OriginRecord.Timestamp
                         ? CheckResult.Redo : CheckResult.Success; // imposible
@@ -559,6 +562,7 @@ namespace Zeze.Transaction
                     {
                         // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
                         RecentTableKeyOfRedoAndRelease = e.TableKey;
+                        RecentGlobalSerialIdOfRedoAndRelease = 0;
                         return CheckResult.RedoAndReleaseLock;
                     }
                     return e.Timestamp != e.OriginRecord.Timestamp

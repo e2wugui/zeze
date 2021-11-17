@@ -46,22 +46,41 @@ namespace Zeze
             */
         }
 
-        internal ConcurrentDictionary<TableKey, TaskCompletionSource<int>> FlushWhenReduceFutures
-            = new ConcurrentDictionary<TableKey, TaskCompletionSource<int>>();
-
-        public bool TryWaitFlushWhenReduce(TableKey tkey)
+        internal class LastFlushWhenReduce
         {
-            _checkpoint.RunOnce();
-            return true;
-            // TODO
-            /*
-            if (FlushWhenReduceFutures.TryGetValue(tkey, out var future))
+            public long LastGlobalSerialId { get; private set; }
+
+            public void SetLastGlobalSerialId(long last)
             {
-                future.Task.Wait();
-                return true;
+                lock (this)
+                {
+                    LastGlobalSerialId = last;
+                    Monitor.PulseAll(this);
+                }
             }
-            return false;
-            */
+
+            public bool TryWait(long hope)
+            {
+                lock (this)
+                {
+                    while (LastGlobalSerialId < hope)
+                    {
+                        // 超时的时候，马上返回。
+                        // 这个机制的是为了防止忙等。
+                        // 所以不需要严格等待成功。
+                        if (false == Monitor.Wait(this, 5000))
+                            return false;
+                    }
+                    return true;
+                }
+            }
+        }
+
+        private ConcurrentDictionary<TableKey, LastFlushWhenReduce> FlushWhenReduceFutures { get; } = new ConcurrentDictionary<TableKey, LastFlushWhenReduce>();
+
+        internal LastFlushWhenReduce GetOrAddLastFlushWhenReduce(TableKey tkey)
+        {
+            return FlushWhenReduceFutures.GetOrAdd(tkey, (k) => new LastFlushWhenReduce());
         }
 
         public Schemas Schemas { get; set; } // no thread protected
