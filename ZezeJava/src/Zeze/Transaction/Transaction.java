@@ -432,7 +432,7 @@ public final class Transaction {
 							logger.warn("Acquire Faild. Maybe DeadLock Found {}", e.OriginRecord);
 							e.OriginRecord.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
 							RecentTableKeyOfRedoAndRelease = e.getTableKey();
-							RecentGlobalSerialIdOfRedoAndRelease = 0;
+							RecentGlobalSerialIdOfRedoAndRelease = acquire.Result.GlobalSerialId;
 							return CheckResult.RedoAndReleaseLock;
 						}
 						e.OriginRecord.setState(GlobalCacheManagerServer.StateModify);
