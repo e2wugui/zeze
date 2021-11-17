@@ -125,7 +125,10 @@ public final class Transaction {
 		RollbackActions.add(action);
 	}
 
-	/** 
+	private TableKey RecentTableKeyOfRedoAndRelease;
+	private long RecentGlobalSerialIdOfRedoAndRelease;
+
+	/**
 	 Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
 	 
 	 @param procedure
@@ -164,6 +167,8 @@ public final class Transaction {
 						}
 						catch (RedoAndReleaseLockException redorelease) {
 							checkResult = CheckResult.RedoAndReleaseLock;
+							RecentTableKeyOfRedoAndRelease = redorelease.TableKey;
+							RecentGlobalSerialIdOfRedoAndRelease = redorelease.GlobalSerialId;
 							logger.debug("RedoAndReleaseLockException", redorelease);
 						}
 						catch (RedoException redo) {
@@ -222,7 +227,8 @@ public final class Transaction {
 					procedure.getZeze().getCheckpoint().ExitFlushReadLock();
 				}
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
-				procedure.getZeze().getCheckpoint().RunOnce();
+				procedure.getZeze().__GetOrAddLastFlushWhenReduce(RecentTableKeyOfRedoAndRelease)
+						.TryWait(RecentGlobalSerialIdOfRedoAndRelease);
 			}
 			logger.error("Transaction.Perform:{}. too many try.", procedure);
 			_final_rollback_(procedure);
@@ -411,6 +417,8 @@ public final class Transaction {
 					case GlobalCacheManagerServer.StateRemoved:
 						// fall down
 					case GlobalCacheManagerServer.StateInvalid:
+						RecentTableKeyOfRedoAndRelease = e.getTableKey();
+						RecentGlobalSerialIdOfRedoAndRelease = 0;
 						return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
 					case GlobalCacheManagerServer.StateModify:
@@ -419,19 +427,24 @@ public final class Transaction {
 					case GlobalCacheManagerServer.StateShare:
 						// 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 						// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-							if (e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify) != GlobalCacheManagerServer.StateModify) {
-								logger.warn("Acquire Faild. Maybe DeadLock Found {}", e.OriginRecord);
-								e.OriginRecord.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
-								return CheckResult.RedoAndReleaseLock;
-							}
-							e.OriginRecord.setState(GlobalCacheManagerServer.StateModify);
-							return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+						var acquire = e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify);
+						if (acquire.Result.State != GlobalCacheManagerServer.StateModify) {
+							logger.warn("Acquire Faild. Maybe DeadLock Found {}", e.OriginRecord);
+							e.OriginRecord.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
+							RecentTableKeyOfRedoAndRelease = e.getTableKey();
+							RecentGlobalSerialIdOfRedoAndRelease = 0;
+							return CheckResult.RedoAndReleaseLock;
+						}
+						e.OriginRecord.setState(GlobalCacheManagerServer.StateModify);
+						return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 				}
 				return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // imposible
 			}
 			else {
 				if (e.OriginRecord.getState() == GlobalCacheManagerServer.StateInvalid
 						|| e.OriginRecord.getState() == GlobalCacheManagerServer.StateRemoved) {
+					RecentTableKeyOfRedoAndRelease = e.getTableKey();
+					RecentGlobalSerialIdOfRedoAndRelease = 0;
 					return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
 				}
 				return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;

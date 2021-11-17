@@ -3,10 +3,7 @@ package Zeze;
 import Zeze.Transaction.*;
 import Zeze.Util.TaskCompletionSource;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -239,6 +236,47 @@ public final class Application {
 
 	public void CheckpointRun() {
 		_checkpoint.RunOnce();
+	}
+
+	public static class LastFlushWhenReduce
+	{
+		private long LastGlobalSerialId;
+
+		public void SetLastGlobalSerialId(long last)
+		{
+			synchronized (this)
+			{
+				LastGlobalSerialId = last;
+				this.notifyAll();
+			}
+		}
+
+		public boolean TryWait(long hope)
+		{
+			synchronized (this)
+			{
+				while (LastGlobalSerialId < hope)
+				{
+					// 超时的时候，马上返回。
+					// 这个机制的是为了防止忙等。
+					// 所以不需要严格等待成功。
+					try {
+						this.wait(5000);
+					} catch (InterruptedException skip) {
+						// skip
+					}
+					return false;
+				}
+				return true;
+			}
+		}
+	}
+
+	private ConcurrentHashMap<TableKey, LastFlushWhenReduce> FlushWhenReduceFutures = new ConcurrentHashMap<>();
+
+	public LastFlushWhenReduce __GetOrAddLastFlushWhenReduce(TableKey tkey)
+	{
+		return FlushWhenReduceFutures.computeIfAbsent(tkey, (k) -> new LastFlushWhenReduce());
 	}
 
 	public Application() {

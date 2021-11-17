@@ -169,7 +169,7 @@ public final class GlobalAgent {
 		return gkey.hashCode() % Agents.length;
 	}
 
-	public int Acquire(GlobalTableKey gkey, int state) {
+	public Acquire Acquire(GlobalTableKey gkey, int state) {
 		if (null != getClient()) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
 			var socket = agent.Connect(getClient());
@@ -192,20 +192,42 @@ public final class GlobalAgent {
 					|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFaild) {
 				throw new AbortException("GlobalAgent.Acquire Faild");
 			}
-			return rpc.Result.State;
+			return rpc;
 		}
 		logger.debug("Acquire local ++++++");
-		return state;
+		return new Acquire(null, state);
 	}
 
 	public int ProcessReduceRequest(Protocol p) {
 		var rpc = (Reduce)p;
 		switch (rpc.Argument.State) {
 			case GlobalCacheManagerServer.StateInvalid:
-				return getZeze().GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceInvalid(rpc);
+				var table1 = getZeze().GetTable(rpc.Argument.GlobalTableKey.TableName);
+				if (null == table1) {
+					logger.warn("ReduceInvalid Table Not Found={},ServerId={}",
+							rpc.Argument.GlobalTableKey.TableName, getZeze().getConfig().getServerId());
+					// 本地没有找到表格看作成功。
+					rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+					rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+					rpc.SendResultCode(0);
+					return 0;
+				}
+				return table1.ReduceInvalid(rpc);
 
 			case GlobalCacheManagerServer.StateShare:
-				return getZeze().GetTable(rpc.Argument.GlobalTableKey.TableName).ReduceShare(rpc);
+				var table2 = Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName);
+				if (table2 == null)
+				{
+					logger.warn("ReduceShare Table Not Found={},ServerId={}",
+							rpc.Argument.GlobalTableKey.TableName, getZeze().getConfig().getServerId());
+
+					// 本地没有找到表格看作成功。
+					rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+					rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+					rpc.SendResultCode(0);
+					return 0;
+				}
+				return table2.ReduceShare(rpc);
 
 			default:
 				rpc.Result = rpc.Argument;
