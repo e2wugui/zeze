@@ -211,8 +211,7 @@ namespace Zeze.Transaction
                     }
 
                 default:
-                    rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
-                    rpc.Result.State = rpc.Argument.State;
+                    rpc.Result = rpc.Argument;
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
                     return 0;
             }

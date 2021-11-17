@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.w3c.dom.Element;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class GlobalCacheManagerServer {
 	public static final int StateInvalid = 0;
@@ -71,6 +72,9 @@ public final class GlobalCacheManagerServer {
 		ServerSocket = value;
 	}
 	private ConcurrentHashMap<GlobalTableKey, CacheState> global;
+	private AtomicLong SerialIdGenerator = new AtomicLong();
+
+
 	/*
 	 * 会话。
 	 * key是 LogicServer.Id，现在的实现就是Zeze.Config.ServerId。
@@ -294,7 +298,12 @@ public final class GlobalCacheManagerServer {
 
 	private long ProcessAcquireRequest(Zeze.Net.Protocol p) {
 		Acquire rpc = (Acquire)p;
+
+		rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+		rpc.Result.State = rpc.Argument.State; // default success
+
 		if (rpc.getSender().getUserState() == null) {
+			rpc.Result.State = StateInvalid;
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0;
 		}
@@ -302,7 +311,6 @@ public final class GlobalCacheManagerServer {
 			switch (rpc.Argument.State) {
 				case StateInvalid: // realease
 					Release((CacheHolder) rpc.getSender().getUserState(), rpc.Argument.GlobalTableKey);
-					rpc.Result = rpc.Argument;
 					rpc.SendResult();
 					return 0;
 
@@ -313,12 +321,13 @@ public final class GlobalCacheManagerServer {
 					return AcquireModify(rpc);
 
 				default:
-					rpc.Result = rpc.Argument;
+					rpc.Result.State = StateInvalid;
 					rpc.SendResultCode(AcquireErrorState);
 					return 0;
 			}
 		} catch (Throwable ex) {
 			logger.error(ex);
+			rpc.Result.State = StateInvalid;
 			rpc.SendResultCode(AcquireException);
 		}
 		return 0;
@@ -343,7 +352,7 @@ public final class GlobalCacheManagerServer {
 
 	private int AcquireShare(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
-		rpc.Result = rpc.Argument;
+
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) -> new CacheState());
 			synchronized (cs) {
@@ -365,6 +374,7 @@ public final class GlobalCacheManagerServer {
 							if (cs.getModify() == sender) {
 								logger.debug("1 {} {} {}", sender, rpc.Argument.State, cs);
 								rpc.Result.State = StateInvalid;
+								rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 								rpc.SendResultCode(AcquireShareDeadLockFound);
 								return 0;
 							}
@@ -373,6 +383,7 @@ public final class GlobalCacheManagerServer {
 							if (cs.getModify() == sender || cs.getShare().contains(sender)) {
 								logger.debug("2 {} {} {}", sender, rpc.Argument.State, cs);
 								rpc.Result.State = StateInvalid;
+								rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 								rpc.SendResultCode(AcquireShareDeadLockFound);
 								return 0;
 							}
@@ -385,6 +396,7 @@ public final class GlobalCacheManagerServer {
 					}
 				}
 				cs.setAcquireStatePending(StateShare);
+				cs.GlobalSerialId = SerialIdGenerator.incrementAndGet();
 
 				if (cs.getModify() != null) {
 					if (cs.getModify() == sender) {
@@ -394,20 +406,21 @@ public final class GlobalCacheManagerServer {
 						// 已经是Modify又申请，可能是sender异常关闭，
 						// 又重启连上。更新一下。应该是不需要的。
 						sender.getAcquired().put(rpc.Argument.GlobalTableKey, StateModify);
+						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 						rpc.SendResultCode(AcquireShareAlreadyIsModify);
 						return 0;
 					}
 
-					final var out = new Zeze.Util.OutObject<Integer>();
+					final var out = new Zeze.Util.OutObject<Reduce>();
 					Zeze.Util.Task.Run(() -> {
-						out.Value = cs.getModify().Reduce(rpc.Argument.GlobalTableKey, StateShare);
+						out.Value = cs.getModify().Reduce(rpc.Argument.GlobalTableKey, StateShare, cs.GlobalSerialId);
 						synchronized (cs) {
 							cs.notifyAll();
 						}
 					}, "GlobalCacheManager.AcquireShare.Reduce");
 					logger.debug("5 {} {} {}", sender, rpc.Argument.State, cs);
 					cs.wait();
-					int stateReduceResult = out.Value;
+					int stateReduceResult = out.Value.Result.State;
 					switch (stateReduceResult) {
 						case StateShare:
 							cs.getModify().getAcquired().put(rpc.Argument.GlobalTableKey, StateShare);
@@ -429,6 +442,7 @@ public final class GlobalCacheManagerServer {
 
 							logger.error("XXX 8 {} {} {}", sender, rpc.Argument.State, cs);
 							rpc.Result.State = StateInvalid;
+							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 							rpc.SendResultCode(AcquireShareFaild);
 							return 0;
 					}
@@ -439,6 +453,7 @@ public final class GlobalCacheManagerServer {
 					cs.setAcquireStatePending(StateInvalid);
 					cs.notify();
 					logger.debug("6 {} {} {}", sender, rpc.Argument.State, cs);
+					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResult();
 					return 0;
 				}
@@ -448,6 +463,7 @@ public final class GlobalCacheManagerServer {
 				cs.setAcquireStatePending(StateInvalid);
 				cs.notify();
 				logger.debug("7 {} {} {}", sender, rpc.Argument.State, cs);
+				rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 				rpc.SendResult();
 				return 0;
 			}
@@ -456,7 +472,6 @@ public final class GlobalCacheManagerServer {
 
 	private int AcquireModify(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
-		rpc.Result = rpc.Argument;
 
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) -> new CacheState());
@@ -479,6 +494,7 @@ public final class GlobalCacheManagerServer {
 							if (cs.getModify() == sender) {
 								logger.debug("1 {} {} {}", sender, rpc.Argument.State, cs);
 								rpc.Result.State = StateInvalid;
+								rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 								rpc.SendResultCode(AcquireModifyDeadLockFound);
 								return 0;
 							}
@@ -487,6 +503,7 @@ public final class GlobalCacheManagerServer {
 							if (cs.getModify() == sender || cs.getShare().contains(sender)) {
 								logger.debug("2 {} {} {}", sender, rpc.Argument.State, cs);
 								rpc.Result.State = StateInvalid;
+								rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 								rpc.SendResultCode(AcquireModifyDeadLockFound);
 								return 0;
 							}
@@ -499,6 +516,7 @@ public final class GlobalCacheManagerServer {
 					}
 				}
 				cs.setAcquireStatePending(StateModify);
+				cs.GlobalSerialId = SerialIdGenerator.incrementAndGet();
 
 				if (cs.getModify() != null) {
 					if (cs.getModify() == sender) {
@@ -506,15 +524,16 @@ public final class GlobalCacheManagerServer {
 						// 已经是Modify又申请，可能是sender异常关闭，又重启连上。
 						// 更新一下。应该是不需要的。
 						sender.getAcquired().put(rpc.Argument.GlobalTableKey, StateModify);
+						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 						rpc.SendResultCode(AcquireModifyAlreadyIsModify);
 						cs.setAcquireStatePending(StateInvalid);
 						cs.notify();
 						return 0;
 					}
 
-					final var out = new Zeze.Util.OutObject<Integer>();
+					final var out = new Zeze.Util.OutObject<Reduce>();
 					Zeze.Util.Task.Run(() -> {
-								out.Value = cs.getModify().Reduce(rpc.Argument.GlobalTableKey, StateInvalid);
+								out.Value = cs.getModify().Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId);
 								synchronized (cs) {
 									cs.notifyAll();
 								}
@@ -522,7 +541,7 @@ public final class GlobalCacheManagerServer {
 					logger.debug("5 {} {} {}", sender, rpc.Argument.State, cs);
 					cs.wait();
 
-					int stateReduceResult = out.Value;
+					int stateReduceResult = out.Value.Result.State;
 					switch (stateReduceResult) {
 						case StateInvalid:
 							cs.getModify().getAcquired().remove(rpc.Argument.GlobalTableKey);
@@ -537,6 +556,7 @@ public final class GlobalCacheManagerServer {
 
 							logger.error("XXX 9 {} {} {}", sender, rpc.Argument.State, cs);
 							rpc.Result.State = StateInvalid;
+							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 							rpc.SendResultCode(AcquireModifyFaild);
 							return 0;
 					}
@@ -548,6 +568,7 @@ public final class GlobalCacheManagerServer {
 					cs.notify();
 
 					logger.debug("6 {} {} {}", sender, rpc.Argument.State, cs);
+					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResult();
 					return 0;
 				}
@@ -562,7 +583,7 @@ public final class GlobalCacheManagerServer {
 						reduceSuccessed.add(sender);
 						continue;
 					}
-					Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid);
+					Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId);
 					if (null != reduce) {
 						reducePending.add(Zeze.Util.KV.Create(c, reduce));
 					}
@@ -621,6 +642,7 @@ public final class GlobalCacheManagerServer {
 					cs.notify(); // Pending 结束，唤醒一个进来就可以了。
 
 					logger.debug("8 {} {} {}", sender, rpc.Argument.State, cs);
+					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResult();
 				}
 				else {
@@ -636,6 +658,7 @@ public final class GlobalCacheManagerServer {
 					logger.error("XXX 10 {} {} {}", sender, rpc.Argument.State, cs);
 
 					rpc.Result.State = StateInvalid;
+					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(AcquireModifyFaild);
 				}
 				// 很好，网络失败不再看成成功，发现除了加break，
@@ -654,6 +677,7 @@ public final class GlobalCacheManagerServer {
 			Modify = value;
 		}
 		private int AcquireStatePending = StateInvalid;
+		public long GlobalSerialId;
 		public int getAcquireStatePending() {
 			return AcquireStatePending;
 		}
@@ -735,24 +759,27 @@ public final class GlobalCacheManagerServer {
 			return "" + getSessionId();
 		}
 
-		public int Reduce(GlobalTableKey gkey, int state) {
+		public Reduce Reduce(GlobalTableKey gkey, int state, long globalSerialId) {
+			Reduce reduce = ReduceWaitLater(gkey, state, globalSerialId);
 			try {
-				Reduce reduce = ReduceWaitLater(gkey, state);
 				if (null != reduce) {
 					reduce.getFuture().Wait();
 					// 如果rpc返回错误的值，外面能处理。
-					return reduce.Result.State;
+					return reduce;
 				}
-				return StateReduceNetError;
+				reduce.Result.State = StateReduceNetError;
+				return reduce;
 			}
 			catch (RpcTimeoutException timeoutex) {
 				// 等待超时，应该报告错误。
 				logger.error( "Reduce RpcTimeoutException {} target={} '{}'", state, getSessionId(), gkey, timeoutex);
-				return StateReduceRpcTimeout;
+				reduce.Result.State = StateReduceRpcTimeout;
+				return reduce;
 			}
 			catch (RuntimeException ex) {
 				logger.error("Reduce Exception {} target={} '{}'", state, getSessionId(), gkey, ex);
-				return StateReduceException;
+				reduce.Result.State = StateReduceException;
+				return reduce;
 			}
 		}
 
@@ -770,7 +797,7 @@ public final class GlobalCacheManagerServer {
 		/**
 		 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		public Reduce ReduceWaitLater(GlobalTableKey gkey, int state) {
+		public Reduce ReduceWaitLater(GlobalTableKey gkey, int state, long globalSerialId) {
 			try {
 				synchronized (this) {
 					if (System.currentTimeMillis() - LastErrorTime < ForbitPeriod) {
@@ -779,7 +806,7 @@ public final class GlobalCacheManagerServer {
 				}
 				AsyncSocket peer = GlobalCacheManagerServer.getInstance().getServer().GetSocket(getSessionId());
 				if (null != peer) {
-					Reduce reduce = new Reduce(gkey, state);
+					Reduce reduce = new Reduce(gkey, state, globalSerialId);
 					reduce.SendForWait(peer, 10000);
 					return reduce;
 				}

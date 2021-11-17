@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import Zeze.Services.GlobalCacheManager.Acquire;
+
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class Record {
@@ -103,7 +105,7 @@ public abstract class Record {
 
 	public abstract void Commit(Zeze.Transaction.RecordAccessed accessed);
 
-	public abstract int Acquire(int state);
+	public abstract Acquire Acquire(int state);
 
 	public abstract void Encode0();
 	public abstract boolean Flush(Database.Transaction t);

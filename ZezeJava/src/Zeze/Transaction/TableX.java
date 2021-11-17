@@ -39,9 +39,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					return r;
 				}
 
-				r.setState(r.Acquire(GlobalCacheManagerServer.StateShare));
+				var acquire = r.Acquire(GlobalCacheManagerServer.StateShare);
+				r.setState(acquire.Result.State);
 				if (r.getState() == GlobalCacheManagerServer.StateInvalid) {
-					throw new RedoAndReleaseLockException(tkey.toString() + ":" + r.toString());
+					throw new RedoAndReleaseLockException(tkey, acquire.Result.GlobalSerialId, tkey.toString() + ":" + r.toString());
 					//throw new RedoAndReleaseLockException();
 				}
 
@@ -78,7 +79,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	int ReduceShare(Reduce rpc) {
-		rpc.Result = rpc.Argument;
+		rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+		rpc.Result.State = rpc.Argument.State;
+		rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
+
 		K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
 		logger.debug("Reduce NewState={}", rpc);
@@ -94,6 +98,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
 				logger.debug("Reduce SendResult 1 {}", r);
 				rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
+				getZeze().__GetOrAddLastFlushWhenReduce(tkey).SetLastGlobalSerialId(rpc.Argument.GlobalSerialId);
 				return 0;
 			}
 			r.EnterFairLock();
@@ -107,6 +112,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult 2 {}", r);
 						rpc.SendResult();
+						getZeze().__GetOrAddLastFlushWhenReduce(tkey).SetLastGlobalSerialId(rpc.Argument.GlobalSerialId);
 						return 0;
 
 					case GlobalCacheManagerServer.StateShare:
@@ -116,6 +122,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult 3 {}", r);
 						rpc.SendResult();
+						getZeze().__GetOrAddLastFlushWhenReduce(tkey).SetLastGlobalSerialId(rpc.Argument.GlobalSerialId);
 						return 0;
 
 					case GlobalCacheManagerServer.StateModify:
@@ -125,6 +132,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult * {}", r);
 						rpc.SendResult();
+						getZeze().__GetOrAddLastFlushWhenReduce(tkey).SetLastGlobalSerialId(rpc.Argument.GlobalSerialId);
 						return 0;
 				}
 			} finally {
@@ -138,6 +146,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		FlushWhenReduce(r, () -> {
 				logger.debug("Reduce SendResult 4 {}", fr);
 				rpc.SendResult();
+				getZeze().__GetOrAddLastFlushWhenReduce(tkey).SetLastGlobalSerialId(rpc.Argument.GlobalSerialId);
 		});
 		//logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
 		return 0;
@@ -161,7 +170,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	int ReduceInvalid(Reduce rpc) {
-		rpc.Result= rpc.Argument;
+		rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+		rpc.Result.State = rpc.Argument.State;
+		rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
+
 		K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
 		//logger.Debug("Reduce NewState={0}", rpc.Argument.State);
@@ -177,6 +189,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
 				logger.debug("Reduce SendResult 1 {}", r);
 				rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
+				getZeze().__GetOrAddLastFlushWhenReduce(tkey).SetLastGlobalSerialId(rpc.Argument.GlobalSerialId);
 				return 0;
 			}
 			r.EnterFairLock();
@@ -190,6 +203,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult 2 {}", r);
 						rpc.SendResult();
+						getZeze().__GetOrAddLastFlushWhenReduce(tkey).SetLastGlobalSerialId(rpc.Argument.GlobalSerialId);
 						return 0;
 
 					case GlobalCacheManagerServer.StateShare:
@@ -199,6 +213,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult 3 {}", r);
 						rpc.SendResult();
+						getZeze().__GetOrAddLastFlushWhenReduce(tkey).SetLastGlobalSerialId(rpc.Argument.GlobalSerialId);
 						return 0;
 
 					case GlobalCacheManagerServer.StateModify:
@@ -207,6 +222,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult * {}", r);
 						rpc.SendResult();
+						getZeze().__GetOrAddLastFlushWhenReduce(tkey).SetLastGlobalSerialId(rpc.Argument.GlobalSerialId);
 						return 0;
 				}
 			} finally {
@@ -222,6 +238,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		FlushWhenReduce(r, () -> {
 				logger.debug("Reduce SendResult 4 {}", fr);
 				rpc.SendResult();
+				getZeze().__GetOrAddLastFlushWhenReduce(tkey).SetLastGlobalSerialId(rpc.Argument.GlobalSerialId);
 		});
 		//logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
 		return 0;
