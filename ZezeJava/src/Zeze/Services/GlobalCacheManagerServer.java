@@ -318,6 +318,7 @@ public final class GlobalCacheManagerServer {
 					return 0;
 			}
 		} catch (Throwable ex) {
+			logger.error(ex);
 			rpc.SendResultCode(AcquireException);
 		}
 		return 0;
@@ -352,7 +353,6 @@ public final class GlobalCacheManagerServer {
 				}
 
 				if (cs.getModify() != null && cs.getShare().size() > 0) {
-					logger.error("cs modify:{} and share:{} exists at the same time", cs.getModify(), cs.getShare());
 					throw new RuntimeException("CacheState state error");
 				}
 
@@ -360,7 +360,6 @@ public final class GlobalCacheManagerServer {
 					switch (cs.getAcquireStatePending()) {
 						case StateShare:
 							if (cs.getModify() == null) {
-								logger.error("cs state must be modify");
 								throw new RuntimeException("CacheState state error");
 							}
 							if (cs.getModify() == sender) {
@@ -382,7 +381,6 @@ public final class GlobalCacheManagerServer {
 					logger.debug("3 {} {} {}", sender, rpc.Argument.State, cs);
 					cs.wait();
 					if (cs.getModify() != null && cs.getShare().size() > 0) {
-						logger.error("CacheState modify {} and share {} exists at the same time", cs.getModify(), cs.getShare());
 						throw new RuntimeException("CacheState state error");
 					}
 				}
@@ -468,7 +466,6 @@ public final class GlobalCacheManagerServer {
 				}
 
 				if (cs.getModify() != null && cs.getShare().size() > 0) {
-					logger.error("CacheState modify {} and share {} exists at the same time", cs.getModify(), cs.getShare());
 					throw new RuntimeException("CacheState state error");
 				}
 
@@ -476,7 +473,6 @@ public final class GlobalCacheManagerServer {
 					switch (cs.getAcquireStatePending()) {
 						case StateShare:
 							if (cs.getModify() == null) {
-								logger.error("cs state must be modify");
 								throw new RuntimeException("CacheState state error");
 							}
 
@@ -499,7 +495,6 @@ public final class GlobalCacheManagerServer {
 					logger.debug("3 {} {} {}", sender, rpc.Argument.State, cs);
 					cs.wait();
 					if (cs.getModify() != null && cs.getShare().size() > 0) {
-						logger.error("CacheState modify {} and share {} exists at the same time", cs.getModify(), cs.getShare());
 						throw new RuntimeException("CacheState state error");
 					}
 				}

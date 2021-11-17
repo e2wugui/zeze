@@ -1225,29 +1225,87 @@ namespace Zeze.Transaction
         {
             public DatabaseRocksDb DatabaseReal { get; }
             public Database Database => DatabaseReal;
+            public const string ColumnFamilyName = "zeze.OperatesRocksDb.Schemas";
+            private ColumnFamilyHandle ColumnFamily;
 
             public OperatesRocksDb(DatabaseRocksDb database)
             {
                 DatabaseReal = database;
+                if (DatabaseReal.ColumnFamilies.ContainsKey(""))
+                {
+                    DatabaseReal.Db.CreateColumnFamily(DatabaseReal.CfOptions, ColumnFamilyName);
+                }
+                ColumnFamily = DatabaseReal.Db.GetColumnFamily(ColumnFamilyName);
             }
 
             public int ClearInUse(int localId, string global)
             {
+                // rocksdb 独占由它自己打开的时候保证。
                 return 0;
+            }
+
+            private class DataWithVersion : Zeze.Serialize.Serializable
+            {
+                public ByteBuffer Data { get; set; }
+                public long Version { get; set; }
+
+                public void Decode(ByteBuffer bb)
+                {
+                    Data = ByteBuffer.Wrap(bb.ReadBytes());
+                    Version = bb.ReadLong();
+                }
+
+                public void Encode(ByteBuffer bb)
+                {
+                    bb.WriteByteBuffer(Data);
+                    bb.WriteLong(Version);
+                }
+
+                public static DataWithVersion Decode(byte[] bytes)
+                {
+                    if (null == bytes)
+                        return new DataWithVersion();
+                    var dv = new DataWithVersion();
+                    dv.Decode(ByteBuffer.Wrap(bytes));
+                    return dv;
+                }
+
+                public byte[] Encode()
+                {
+                    var bb = ByteBuffer.Allocate();
+                    this.Encode(bb);
+                    return bb.Copy();
+                }
             }
 
             public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key)
             {
-                return (null, 0);
+                lock (this)
+                {
+                    var dv = DataWithVersion.Decode(DatabaseReal.Db.Get(key.Copy(), ColumnFamily));
+                    return (dv.Data, dv.Version);
+                }
             }
 
             public bool SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, ref long version)
             {
-                return true;
+                lock (this)
+                {
+                    var dv = DataWithVersion.Decode(DatabaseReal.Db.Get(key.Copy(), ColumnFamily));
+                    if (dv.Version != version)
+                        return false;
+
+                    version++;
+                    dv.Version = version;
+                    dv.Data = data;
+                    DatabaseReal.Db.Put(key.Copy(), dv.Encode(), ColumnFamily);
+                    return true;
+                }
             }
 
             public void SetInUse(int localId, string global)
             {
+                // rocksdb 独占由它自己打开的时候保证。
             }
         }
     }

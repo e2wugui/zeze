@@ -33,6 +33,7 @@ namespace Zeze.Services
         public const int AcquireModifyAlreadyIsModify = 5;
         public const int AcquireShareFaild = 6;
         public const int AcquireModifyFaild = 7;
+        public const int AcquireException = 8;
 
         public const int ReduceErrorState = 11;
         public const int ReduceShareAlreadyIsInvalid = 12;
@@ -300,24 +301,33 @@ namespace Zeze.Services
                 rpc.SendResultCode(AcquireNotLogin);
                 return 0;
             }
-            switch (rpc.Argument.State)
+            try
             {
-                case StateInvalid: // realease
-                    Release(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey);
-                    rpc.Result = rpc.Argument;
-                    rpc.SendResult();
-                    return 0;
+                switch (rpc.Argument.State)
+                {
+                    case StateInvalid: // realease
+                        Release(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey);
+                        rpc.Result = rpc.Argument;
+                        rpc.SendResult();
+                        return 0;
 
-                case StateShare:
-                    return AcquireShare(rpc);
+                    case StateShare:
+                        return AcquireShare(rpc);
 
-                case StateModify:
-                    return AcquireModify(rpc);
+                    case StateModify:
+                        return AcquireModify(rpc);
 
-                default:
-                    rpc.Result = rpc.Argument;
-                    rpc.SendResultCode(AcquireErrorState);
-                    return 0;
+                    default:
+                        rpc.Result = rpc.Argument;
+                        rpc.SendResultCode(AcquireErrorState);
+                        return 0;
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+                rpc.SendResultCode(AcquireException);
+                return 0;
             }
         }
 
@@ -356,10 +366,7 @@ namespace Zeze.Services
                         continue;
 
                     if (cs.Modify != null && cs.Share.Count > 0)
-                    {
-                        logger.Error("CacheState modify {0} and share {1} exists at the same time", cs.Modify, cs.Share);
                         throw new Exception("CacheState state error");
-                    }
 
                     while (cs.AcquireStatePending != StateInvalid)
                     {
@@ -367,10 +374,8 @@ namespace Zeze.Services
                         {
                             case StateShare:
                                 if (cs.Modify == null)
-                                {
-                                    logger.Error("cs state must be modify");
                                     throw new Exception("CacheState state error");
-                                }
+
                                 if (cs.Modify == sender)
                                 {
                                     logger.Debug("1 {0} {1} {2}", sender, rpc.Argument.State, cs);
@@ -392,10 +397,7 @@ namespace Zeze.Services
                         logger.Debug("3 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
                         if (cs.Modify != null && cs.Share.Count > 0)
-                        {
-                            logger.Error("CacheState modify {0} and share {1} exists at the same time", cs.Modify, cs.Share);
                             throw new Exception("CacheState state error");
-                        }
                     }
                     cs.AcquireStatePending = StateShare;
 
@@ -490,10 +492,7 @@ namespace Zeze.Services
                         continue;
 
                     if (cs.Modify != null && cs.Share.Count > 0)
-                    {
-                        logger.Error("CacheState modify {0} and share {1} exists at the same time", cs.Modify, cs.Share);
                         throw new Exception("CacheState state error");
-                    }
 
                     while (cs.AcquireStatePending != StateInvalid)
                     {
@@ -527,10 +526,7 @@ namespace Zeze.Services
                         Monitor.Wait(cs);
 
                         if (cs.Modify != null && cs.Share.Count > 0)
-                        {
-                            logger.Error("CacheState modify {0} and share {1} exists at the same time", cs.Modify, cs.Share);
                             throw new Exception("CacheState state error");
-                        }
                     }
                     cs.AcquireStatePending = StateModify;
 

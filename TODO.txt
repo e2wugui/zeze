@@ -15,8 +15,6 @@ ConfigEditor
 GlobalCacheManagerWithRaft
 	优化。改成一次AppendLog。
 	关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
-DatabaseRocksDb
-	OperatesRocksDb
 DatabaseTikv
 	OperatesTikv
 Raft.Agent
@@ -27,13 +25,11 @@ war？
 	定义export？private？
 	App.Instance？生成代码使用基类，不再使用具体类型，实际上就是把具体类型的功能尽量放到基类。
 	感觉没必要：应用使用独立进程更加安全灵活些。
-AsyncSocket c#
-	优化，减少和逻辑层的互斥时间。
-	？？？使用一个空的outputListSending去调用SendAsync???好像不可行。
 整体并发测试，需要包含 TableCache.Cleanup。
-Global.Release并发问题确认？
-Raft BUG?
+Global.Release并发问题确认
+Raft BUG
 GlobalWithRaft TODO
 加密没有生效 BUG?
 Global加上数据，可以减少一次后端数据库访问。
 Java Run All Test（单独跑没遇到过）：TestTable 有时候会Global.Login失败。确认是不是idea-unittest同时起多个引起的，这是对的。如果其他问题，可能测是案例本身，或者BUG。抽空帮忙确认。
+Java Database
