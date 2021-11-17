@@ -60,9 +60,9 @@ namespace Zeze.Gen.Types
 			foreach (var vv in Variables)
             {
 				if (vv.Id.Equals(var.Id))
-					throw new ArgumentException("duplicate Variable.Id: " + var.Id);
+					throw new ArgumentException($"duplicate Variable.Id: {var.Id} in {FullName}");
 				if (vv.Name.Equals(var.Name))
-					throw new ArgumentException("duplicate Variable.Name: " + var.Name);
+					throw new ArgumentException($"duplicate Variable.Name: {var.Name} in {FullName}");
 			}
 			Variables.Add(var);
 		}
