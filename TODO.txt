@@ -30,5 +30,4 @@ Global.Release并发问题确认
 Raft BUG
 GlobalWithRaft TODO
 加密没有生效 BUG?
-Java Run All Test（单独跑没遇到过）：其中 TestTable 有时候会Global.Login失败。需要确认是不是idea-unittest同时起多个实例引起的。
 Java Database

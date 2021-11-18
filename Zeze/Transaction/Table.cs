@@ -80,6 +80,7 @@ namespace Zeze.Transaction
                     r.State = acquire.Result.State;
                     if (r.State == GlobalCacheManagerServer.StateInvalid)
                     {
+                        r.LastErrorGlobalSerialId = acquire.Result.GlobalSerialId; // save
                         throw new RedoAndReleaseLockException(tkey, acquire.Result.GlobalSerialId, tkey.ToString() + ":" + r.ToString());
                         //throw new RedoAndReleaseLockException();
                     }

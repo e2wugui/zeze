@@ -23,6 +23,10 @@ namespace Game.Login
             var rpc = p as CreateRole;
             Session session = Session.Get(rpc);
 
+            /*
+             【警告】这里使用了AutoKey，这个是用来给游戏分服运营方式生成服务器之间唯一Id用的。方便未来合服用的。
+             如果你的项目没有分服合服这种操作，不建议使用。
+             */
             long roleid = _trole.Insert(new BRoleData()
             {
                 Name = rpc.Argument.Name
