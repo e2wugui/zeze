@@ -217,7 +217,12 @@ namespace Zezex
         private static void SplitIntoSet(string providers, HashSet<int> set)
         {
             foreach (var provider in providers.Split(','))
-                set.Add(int.Parse(provider));
+            {
+                var p = provider.Trim();
+                if (p.Length == 0)
+                    continue;
+                set.Add(int.Parse(p));
+            }
         }
     }
 }

@@ -234,7 +234,10 @@ public class ProviderModuleBinds {
 
 	private static void SplitIntoSet(String providers, HashSet<Integer> set) {
 		for (var provider : providers.split("[,]", -1)) {
-			set.add(Integer.parseInt(provider));
+			var p = provider.trim();
+			if (p.isEmpty())
+				continue;
+			set.add(Integer.parseInt(p));
 		}
 	}
 }
