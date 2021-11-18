@@ -48,27 +48,59 @@ namespace Zeze
 
         internal class LastFlushWhenReduce
         {
-            public long LastGlobalSerialId { get; private set; }
+            public TableKey Key { get; set; }
+            public long LastGlobalSerialId { get; set; }
+            public long Ticks { get; set; }
+            public bool Removed { get; set; } = false;
 
-            public void SetLastGlobalSerialId(long last)
+            public LastFlushWhenReduce(TableKey tkey)
             {
-                lock (this)
+                Key = tkey;
+            }
+        }
+
+        private ConcurrentDictionary<TableKey, LastFlushWhenReduce> FlushWhenReduce { get; }
+            = new ConcurrentDictionary<TableKey, LastFlushWhenReduce>();
+        private ConcurrentDictionary<long, Util.IdentityHashSet<LastFlushWhenReduce>> FlushWhenReduceActives { get; }
+            = new ConcurrentDictionary<long, Util.IdentityHashSet<LastFlushWhenReduce>>();
+        private Util.SchedulerTask FlushWhenReduceTimerTask;
+
+        internal void SetLastGlobalSerialId(TableKey tkey, long globalSerialId)
+        {
+            while (true)
+            {
+                var last = FlushWhenReduce.GetOrAdd(tkey, (k) => new LastFlushWhenReduce(k));
+                lock (last)
                 {
-                    LastGlobalSerialId = last;
-                    Monitor.PulseAll(this);
+                    if (last.Removed)
+                        continue;
+
+                    last.LastGlobalSerialId = globalSerialId;
+                    last.Ticks = DateTime.Now.Ticks;
+                    Monitor.PulseAll(last);
+                    var minutes = last.Ticks / TimeSpan.TicksPerMinute;
+                    FlushWhenReduceActives.GetOrAdd(minutes, (key) => new Util.IdentityHashSet<LastFlushWhenReduce>()).Add(last);
+                    return;
                 }
             }
+        }
 
-            public bool TryWait(long hope)
+        internal bool TryWaitFlushWhenReduce(TableKey tkey, long hope)
+        {
+            while (true)
             {
-                lock (this)
+                var last = FlushWhenReduce.GetOrAdd(tkey, (k) => new LastFlushWhenReduce(k));
+                lock (last)
                 {
-                    while (LastGlobalSerialId < hope)
+                    if (last.Removed)
+                        continue;
+
+                    while (last.LastGlobalSerialId < hope)
                     {
                         // 超时的时候，马上返回。
                         // 这个机制的是为了防止忙等。
                         // 所以不需要严格等待成功。
-                        if (false == Monitor.Wait(this, 5000))
+                        if (false == Monitor.Wait(last, 5000))
                             return false;
                     }
                     return true;
@@ -76,11 +108,34 @@ namespace Zeze
             }
         }
 
-        private ConcurrentDictionary<TableKey, LastFlushWhenReduce> FlushWhenReduceFutures { get; } = new ConcurrentDictionary<TableKey, LastFlushWhenReduce>();
+        public const long FlushWhenReduceIdleMinuts = 30;
 
-        internal LastFlushWhenReduce GetOrAddLastFlushWhenReduce(TableKey tkey)
+        private void FlushWhenReduceTimer(Util.SchedulerTask ThisTask)
         {
-            return FlushWhenReduceFutures.GetOrAdd(tkey, (k) => new LastFlushWhenReduce());
+            var minuts = DateTime.Now.Ticks / TimeSpan.TicksPerMinute;
+
+            foreach (var active in FlushWhenReduceActives)
+            {
+                if (active.Key - minuts > FlushWhenReduceIdleMinuts)
+                {
+                    foreach (var last in active.Value)
+                    {
+                        lock (last)
+                        {
+                            if (last.Removed)
+                                continue;
+
+                            if (last.Ticks / TimeSpan.TicksPerMinute > FlushWhenReduceIdleMinuts)
+                            {
+                                if (FlushWhenReduce.TryRemove(last.Key, out _))
+                                {
+                                    last.Removed = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         public Schemas Schemas { get; set; } // no thread protected
@@ -233,6 +288,7 @@ namespace Zeze
                     if (defaultDb.DirectOperates.SaveDataWithSameVersion(keyOfSchemas, newdata, ref version))
                         break;
                 }
+                FlushWhenReduceTimerTask = Util.Scheduler.Instance.Schedule(FlushWhenReduceTimer, 60 * 1000, 60 * 1000);
             }
         }
 
@@ -244,6 +300,9 @@ namespace Zeze
 
                 if (false == IsStart)
                     return;
+                FlushWhenReduceTimerTask?.Cancel();
+                FlushWhenReduceTimerTask = null;
+
                 Config?.ClearInUseAndIAmSureAppStopped(this, Databases);
                 IsStart = false;
 

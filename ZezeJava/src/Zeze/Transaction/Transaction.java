@@ -227,8 +227,7 @@ public final class Transaction {
 					procedure.getZeze().getCheckpoint().ExitFlushReadLock();
 				}
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
-				procedure.getZeze().__GetOrAddLastFlushWhenReduce(LastTableKeyOfRedoAndRelease)
-						.TryWait(LastGlobalSerialIdOfRedoAndRelease);
+				procedure.getZeze().__TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
 			}
 			logger.error("Transaction.Perform:{}. too many try.", procedure);
 			_final_rollback_(procedure);

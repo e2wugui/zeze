@@ -37,7 +37,7 @@
 	<module name="Game.Map" providers=""/> providers为空表示动态绑定，不会注册到StaticBinds中。
 
 	<!--
-	表明该AutoKeyLocalId指定的服务器不注册默认模块。这个配置和module配置配合起来就能实现专用服务器。
+	表明该ServerId指定的服务器不注册默认模块。这个配置和module配置配合起来就能实现专用服务器。
 	-->
 	<ProviderNoDefaultModule providers="10"/>
 

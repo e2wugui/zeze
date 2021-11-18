@@ -203,6 +203,7 @@ public final class Application {
 				if (versionRc.getValue())
 					break;
 			}
+			FlushWhenReduceTimerTask = Zeze.Util.Task.schedule(this::FlushWhenReduceTimer, 60 * 1000, 60 * 1000);
 		}
 	}
 
@@ -215,6 +216,11 @@ public final class Application {
 			if (!isStart()) {
 				return;
 			}
+			if (null != FlushWhenReduceTimerTask) {
+				FlushWhenReduceTimerTask.Cancel();
+				FlushWhenReduceTimerTask = null;
+			}
+
 			if (getConfig() != null) {
 				getConfig().ClearInUseAndIAmSureAppStopped(getDatabases());
 			}
@@ -240,43 +246,86 @@ public final class Application {
 
 	public static class LastFlushWhenReduce
 	{
-		private long LastGlobalSerialId;
+		public TableKey Key;
+		public long LastGlobalSerialId;
+		public long Ticks; // System.currentTimeMillis()
+		public boolean Removed;
 
-		public void SetLastGlobalSerialId(long last)
-		{
-			synchronized (this)
-			{
-				LastGlobalSerialId = last;
-				this.notifyAll();
+		public LastFlushWhenReduce(TableKey tkey) {
+			Key = tkey;
+		}
+	}
+
+	private ConcurrentHashMap<TableKey, LastFlushWhenReduce> FlushWhenReduce = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<Long, Zeze.Util.IdentityHashSet<LastFlushWhenReduce>> FlushWhenReduceActives = new ConcurrentHashMap<>();
+	private Zeze.Util.Task FlushWhenReduceTimerTask;
+
+	public final static long MillisPerMinute = 60 * 1000;
+
+	public void __SetLastGlobalSerialId(TableKey tkey, long globalSerialId)
+	{
+		while (true) {
+			var last = FlushWhenReduce.computeIfAbsent(tkey, (k) -> new LastFlushWhenReduce(k));
+			synchronized (last) {
+				if (last.Removed)
+					continue;
+
+				last.LastGlobalSerialId = globalSerialId;
+				last.Ticks = System.currentTimeMillis();
+				last.notifyAll();
+				var minutes = last.Ticks / MillisPerMinute;
+				FlushWhenReduceActives.computeIfAbsent(minutes, (k) -> new Zeze.Util.IdentityHashSet<>()).Add(last);
+				return;
 			}
 		}
+	}
 
-		public boolean TryWait(long hope)
+	public boolean __TryWaitFlushWhenReduce(TableKey tkey, long hope)
+	{
+		while (true)
 		{
-			synchronized (this)
-			{
-				while (LastGlobalSerialId < hope)
-				{
+			var last = FlushWhenReduce.computeIfAbsent(tkey, (k) -> new LastFlushWhenReduce(k));
+			synchronized (last) {
+				if (last.Removed)
+					continue;
+
+				while (last.LastGlobalSerialId < hope) {
 					// 超时的时候，马上返回。
 					// 这个机制的是为了防止忙等。
 					// 所以不需要严格等待成功。
 					try {
-						this.wait(5000);
+						last.wait(5000);
 					} catch (InterruptedException skip) {
 						// skip
+						return false;
 					}
-					return false;
 				}
 				return true;
 			}
 		}
 	}
 
-	private ConcurrentHashMap<TableKey, LastFlushWhenReduce> FlushWhenReduceFutures = new ConcurrentHashMap<>();
+	public final static long FlushWhenReduceIdleMinuts = 30;
 
-	public LastFlushWhenReduce __GetOrAddLastFlushWhenReduce(TableKey tkey)
-	{
-		return FlushWhenReduceFutures.computeIfAbsent(tkey, (k) -> new LastFlushWhenReduce());
+	private void FlushWhenReduceTimer(Zeze.Util.Task ThisTask) {
+		var minuts = System.currentTimeMillis() / MillisPerMinute;
+
+		for  (var active : FlushWhenReduceActives.entrySet()) {
+			if (active.getKey() - minuts > FlushWhenReduceIdleMinuts) {
+				for  (var last : active.getValue()) {
+					synchronized (last) {
+						if (last.Removed)
+							continue;
+
+						if (last.Ticks / MillisPerMinute > FlushWhenReduceIdleMinuts) {
+							if (FlushWhenReduce.remove(last.Key) != null) {
+								last.Removed = true;
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	public Application() {
