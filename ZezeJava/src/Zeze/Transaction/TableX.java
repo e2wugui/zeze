@@ -42,6 +42,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				var acquire = r.Acquire(GlobalCacheManagerServer.StateShare);
 				r.setState(acquire.Result.State);
 				if (r.getState() == GlobalCacheManagerServer.StateInvalid) {
+					r.LastErrorGlobalSerialId = acquire.Result.GlobalSerialId; // save
 					throw new RedoAndReleaseLockException(tkey, acquire.Result.GlobalSerialId, tkey.toString() + ":" + r.toString());
 					//throw new RedoAndReleaseLockException();
 				}

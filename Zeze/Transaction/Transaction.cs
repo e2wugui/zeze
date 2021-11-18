@@ -143,8 +143,8 @@ namespace Zeze.Transaction
             RollbackActions.Add(action);
         }
 
-        private TableKey RecentTableKeyOfRedoAndRelease { get; set; } = null;
-        private long RecentGlobalSerialIdOfRedoAndRelease { get; set; } = 0;
+        private TableKey LastTableKeyOfRedoAndRelease { get; set; } = null;
+        private long LastGlobalSerialIdOfRedoAndRelease { get; set; } = 0;
 
         /// <summary>
         /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
@@ -194,8 +194,8 @@ namespace Zeze.Transaction
                             }
                             catch (RedoAndReleaseLockException redorelease)
                             {
-                                RecentTableKeyOfRedoAndRelease = redorelease.TableKey;
-                                RecentGlobalSerialIdOfRedoAndRelease = redorelease.GlobalSerialId;
+                                LastTableKeyOfRedoAndRelease = redorelease.TableKey;
+                                LastGlobalSerialIdOfRedoAndRelease = redorelease.GlobalSerialId;
                                 checkResult = CheckResult.RedoAndReleaseLock;
                                 logger.Debug(redorelease, "RedoAndReleaseLockException");
                             }
@@ -266,7 +266,7 @@ namespace Zeze.Transaction
                         procedure.Zeze.Checkpoint.ExitFlushReadLock();
                     }
                     //logger.Debug("Checkpoint.WaitRun {0}", procedure);
-                    procedure.Zeze.GetOrAddLastFlushWhenReduce(RecentTableKeyOfRedoAndRelease).TryWait(RecentGlobalSerialIdOfRedoAndRelease);
+                    procedure.Zeze.GetOrAddLastFlushWhenReduce(LastTableKeyOfRedoAndRelease).TryWait(LastGlobalSerialIdOfRedoAndRelease);
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 _final_rollback_(procedure);
@@ -529,8 +529,8 @@ namespace Zeze.Transaction
                         case GlobalCacheManagerServer.StateRemoved:
                         // fall down
                         case GlobalCacheManagerServer.StateInvalid:
-                            RecentTableKeyOfRedoAndRelease = e.TableKey;
-                            RecentGlobalSerialIdOfRedoAndRelease = 0;
+                            LastTableKeyOfRedoAndRelease = e.TableKey;
+                            LastGlobalSerialIdOfRedoAndRelease = e.OriginRecord.LastErrorGlobalSerialId;
                             return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
                         case GlobalCacheManagerServer.StateModify:
@@ -545,8 +545,10 @@ namespace Zeze.Transaction
                             {
                                 logger.Warn("Acquire Faild. Maybe DeadLock Found {0}", e.OriginRecord);
                                 e.OriginRecord.State = GlobalCacheManagerServer.StateInvalid;
-                                RecentTableKeyOfRedoAndRelease = e.TableKey;
-                                RecentGlobalSerialIdOfRedoAndRelease = acquire.Result.GlobalSerialId;
+                                LastTableKeyOfRedoAndRelease = e.TableKey;
+                                e.OriginRecord.LastErrorGlobalSerialId = acquire.Result.GlobalSerialId; // save
+                                LastGlobalSerialIdOfRedoAndRelease = acquire.Result.GlobalSerialId;
+
                                 return CheckResult.RedoAndReleaseLock;
                             }
                             e.OriginRecord.State = GlobalCacheManagerServer.StateModify;
@@ -561,8 +563,8 @@ namespace Zeze.Transaction
                         || e.OriginRecord.State == GlobalCacheManagerServer.StateRemoved)
                     {
                         // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
-                        RecentTableKeyOfRedoAndRelease = e.TableKey;
-                        RecentGlobalSerialIdOfRedoAndRelease = 0;
+                        LastTableKeyOfRedoAndRelease = e.TableKey;
+                        LastGlobalSerialIdOfRedoAndRelease = e.OriginRecord.LastErrorGlobalSerialId;
                         return CheckResult.RedoAndReleaseLock;
                     }
                     return e.Timestamp != e.OriginRecord.Timestamp

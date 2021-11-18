@@ -46,6 +46,7 @@ namespace Zeze.Transaction
 
         internal Bean Value { get; set; }
         internal int State { get; set; }
+        internal long LastErrorGlobalSerialId { get; set; }
 
         public abstract Table Table { get; }
 
