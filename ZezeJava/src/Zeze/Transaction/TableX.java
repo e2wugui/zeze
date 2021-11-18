@@ -104,11 +104,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			}
 			r.EnterFairLock();
 			try {
+				r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
 				switch (r.getState()) {
 					case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
 					case GlobalCacheManagerServer.StateInvalid:
 						rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
 						rpc.setResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
+
 						if (r.getDirty())
 							break;
 						logger.debug("Reduce SendResult 2 {}", r);
@@ -195,6 +197,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			}
 			r.EnterFairLock();
 			try {
+				r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
 				switch (r.getState()) {
 					case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
 					case GlobalCacheManagerServer.StateInvalid:
@@ -259,7 +262,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			lockey.EnterWriteLock();
 			try {
 				// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
-				e.getValue().setState(GlobalCacheManagerServer.StateInvalid);
+				e.getValue().setState(GlobalCacheManagerServer.StateInvalid); 
 			}
 			finally {
 				lockey.ExitWriteLock();

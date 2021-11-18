@@ -150,6 +150,7 @@ namespace Zeze.Transaction
                 }
                 lock (r)
                 {
+                    r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
                     switch (r.State)
                     {
                         case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
@@ -243,6 +244,7 @@ namespace Zeze.Transaction
                 }
                 lock (r)
                 {
+                    r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
                     switch (r.State)
                     {
                         case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
