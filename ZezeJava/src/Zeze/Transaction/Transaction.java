@@ -118,10 +118,16 @@ public final class Transaction {
 	private final ArrayList<Runnable> RollbackActions = new ArrayList<Runnable>();
 
 	public void RunWhileCommit(Runnable action) {
+		if (isCompleted()) {
+			throw new RuntimeException("Transaction Is Completed.");
+		}
 		CommitActions.add(action);
 	}
 
 	public void RunWhileRollback(Runnable action) {
+		if (isCompleted()) {
+			throw new RuntimeException("Transaction Is Completed.");
+		}
 		RollbackActions.add(action);
 	}
 
@@ -180,7 +186,7 @@ public final class Transaction {
 							_final_rollback_(procedure);
 							return Procedure.AbortException;
 						}
-						catch (RuntimeException e) {
+						catch (Throwable e) {
 							// Procedure.Call 里面已经处理了异常。只有 unit test 或者内部错误会到达这里。
 							// 在 unit test 下，异常日志会被记录两次。
 							logger.error("Transaction.Perform:{} exception. run count:{}", procedure, tryCount, e);
@@ -282,7 +288,7 @@ public final class Transaction {
 
 			cc.Notify();
 		}
-		catch (RuntimeException ex) {
+		catch (Throwable ex) {
 			logger.error("ChangeListener Collect And Notify", ex);
 		}
 	}
@@ -292,7 +298,7 @@ public final class Transaction {
 			try {
 				action.run();
 			}
-			catch (RuntimeException e) {
+			catch (Throwable e) {
 				logger.error("Commit Procedure {} Action {}", procedure, action.getClass().getName(), e);
 			}
 		}
@@ -314,7 +320,7 @@ public final class Transaction {
 						}
 					}
 				}
-				catch (RuntimeException e) {
+				catch (Throwable e) {
 					logger.error("Transaction._final_commit_ {}", procedure, e);
 					System.exit(54321);
 				}
@@ -333,7 +339,7 @@ public final class Transaction {
 			try {
 				action.run();
 			}
-			catch (RuntimeException e) {
+			catch (Throwable e) {
 				logger.error("Rollback Procedure {0} Action {1}", procedure, action.getClass().getName(), e);
 			}
 		}
