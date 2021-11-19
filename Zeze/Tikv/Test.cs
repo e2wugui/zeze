@@ -22,7 +22,7 @@ namespace Zeze.Tikv
             key.WriteString("key");
             var value = Zeze.Serialize.ByteBuffer.Allocate(64);
             value.WriteString("value");
-            var trans = tikvDb.BeginTransaction();
+            using var trans = tikvDb.BeginTransaction();
             tikvDb.Flush(trans);
             trans.Commit();
             var outvalue = table.Find(key);
@@ -53,12 +53,14 @@ namespace Zeze.Tikv
             var trans = tikvDb.BeginTransaction();
             tikvDb.Flush(trans);
             trans.Commit();
+            trans.Dispose();
 
             outvalue = table.Find(key);
             Console.WriteLine("Find2 " + outvalue);
             trans = tikvDb.BeginTransaction();
             tikvDb.Flush(trans);
             trans.Commit();
+            trans.Dispose();
 
             outvalue = table.Find(key);
             Console.WriteLine("Find3 " + outvalue);

@@ -191,22 +191,32 @@ namespace Zeze.Transaction
             }
             // flush
             var dts = new Dictionary<Database, Database.Transaction>();
-            foreach (var db in Databases)
+            try
             {
-                dts[db] = db.BeginTransaction();
+                foreach (var db in Databases)
+                {
+                    dts[db] = db.BeginTransaction();
+                }
+                foreach (var e in dts)
+                {
+                    e.Key.Flush(e.Value);
+                }
+                foreach (var e in dts)
+                {
+                    e.Value.Commit();
+                }
+                // cleanup
+                foreach (var db in Databases)
+                {
+                    db.Cleanup();
+                }
             }
-            foreach (var e in dts)
+            finally
             {
-                e.Key.Flush(e.Value);
-            }
-            foreach (var e in dts)
-            {
-                e.Value.Commit();
-            }
-            // cleanup
-            foreach (var db in Databases)
-            {
-                db.Cleanup();
+                foreach (var dt in dts)
+                {
+                    dt.Value.Dispose();
+                }
             }
         }
 
@@ -219,19 +229,19 @@ namespace Zeze.Transaction
         internal void Flush(IEnumerable<Record> rs)
         {
             var dts = new Dictionary<Database, Database.Transaction>();
-            // prepare: 编码并且为每一个数据库创建一个数据库事务。
-            foreach (var r in rs)
-            {
-                Database database = r.Table.Storage.DatabaseTable.Database;
-                if (false == dts.TryGetValue(database, out var t))
-                {
-                    t = database.BeginTransaction();
-                    dts.Add(database, t);
-                }
-                r.DatabaseTransactionTmp = t;
-            }
             try
             {
+                // prepare: 编码并且为每一个数据库创建一个数据库事务。
+                foreach (var r in rs)
+                {
+                    Database database = r.Table.Storage.DatabaseTable.Database;
+                    if (false == dts.TryGetValue(database, out var t))
+                    {
+                        t = database.BeginTransaction();
+                        dts.Add(database, t);
+                    }
+                    r.DatabaseTransactionTmp = t;
+                }
                 // 编码
                 foreach (var r in rs)
                 {

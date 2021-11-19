@@ -207,18 +207,28 @@ public final class Checkpoint {
 		}
 		// flush
 		var dts = new HashMap<Database, Database.Transaction>();
-		for (var db : getDatabases()) {
-			dts.put(db, db.BeginTransaction());
-		}
-		for (var e : dts.entrySet()) {
-			e.getKey().Flush(e.getValue());
-		}
-		for (var e : dts.entrySet()) {
-			e.getValue().Commit();
-		}
-		// cleanup
-		for (var db : getDatabases()) {
-			db.Cleanup();
+		try {
+			for (var db : getDatabases()) {
+				dts.put(db, db.BeginTransaction());
+			}
+			for (var e : dts.entrySet()) {
+				e.getKey().Flush(e.getValue());
+			}
+			for (var e : dts.entrySet()) {
+				e.getValue().Commit();
+			}
+			// cleanup
+			for (var db : getDatabases()) {
+				db.Cleanup();
+			}
+		} finally {
+			for (var t : dts.values()) {
+				try {
+					t.close();
+				} catch (Exception ex) {
+					logger.error(ex);
+				}
+			}
 		}
 	}
 
@@ -231,17 +241,17 @@ public final class Checkpoint {
 
 	public void Flush(java.lang.Iterable<Record> rs) {
 		var dts = new HashMap<Database, Database.Transaction>();
-		// prepare: 编码并且为每一个数据库创建一个数据库事务。
-		for (var r : rs) {
-			var database = r.getTable().GetStorage().getDatabaseTable().getDatabase();
-			var t = dts.get(database);
-			if (null == t) {
-				t = database.BeginTransaction();
-				dts.put(database, t);
-			}
-			r.setDatabaseTransactionTmp(t);
-		}
 		try {
+			// prepare: 编码并且为每一个数据库创建一个数据库事务。
+			for (var r : rs) {
+				var database = r.getTable().GetStorage().getDatabaseTable().getDatabase();
+				var t = dts.get(database);
+				if (null == t) {
+					t = database.BeginTransaction();
+					dts.put(database, t);
+				}
+				r.setDatabaseTransactionTmp(t);
+			}
 			// 编码
 			for (var r : rs) {
 				r.Encode0();
@@ -269,7 +279,7 @@ public final class Checkpoint {
 			for (var t : dts.values()) {
 				try {
 					t.close();
-				} catch (IOException e) {
+				} catch (Exception e) {
 					logger.error("Checkpoint.Flush: close transacton{}", t, e);
 				}
 			}

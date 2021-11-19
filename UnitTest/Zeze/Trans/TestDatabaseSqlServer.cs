@@ -30,7 +30,7 @@ namespace UnitTest.Zeze.Trans
             DatabaseSqlServer sqlserver = new DatabaseSqlServer(demo.App.Instance.Zeze, url);
             Database.Table table = sqlserver.OpenTable("test1");
             {
-                var trans = sqlserver.BeginTransaction();
+                using var trans = sqlserver.BeginTransaction();
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
                     key.WriteInt(1);
@@ -45,7 +45,7 @@ namespace UnitTest.Zeze.Trans
             }
             Assert.AreEqual(0, table.Walk(PrintRecord));
             {
-                var trans = sqlserver.BeginTransaction();
+                using var trans = sqlserver.BeginTransaction();
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
                     key.WriteInt(1);

@@ -108,7 +108,7 @@ public abstract class Database {
 
 	public abstract Database.Table OpenTable(String name);
 
-	public interface Transaction extends Closeable {
+	public interface Transaction extends AutoCloseable {
 		public void Commit();
 		public void Rollback();
 	}
