@@ -236,7 +236,7 @@ public class Service {
 	 @param so
 	 @param e
 	*/
-	public void OnSocketConnectError(AsyncSocket so, RuntimeException e) {
+	public void OnSocketConnectError(AsyncSocket so, Throwable e) {
 		SocketMap.remove(so.getSessionId(), so);
 		logger.log(getSocketOptions().getSocketLogLevel(), "OnSocketConnectError", e);
 	}
