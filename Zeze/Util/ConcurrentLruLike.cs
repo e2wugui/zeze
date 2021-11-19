@@ -26,7 +26,7 @@ namespace Zeze.Util
         private ConcurrentDictionary<K, LruItem> DataMap { get; }
         private ConcurrentQueue<ConcurrentDictionary<K, LruItem>> LruQueue { get; }
             = new ConcurrentQueue<ConcurrentDictionary<K, LruItem>>();
-        private ConcurrentDictionary<K, LruItem> LruHot { get; set; }
+        private volatile ConcurrentDictionary<K, LruItem> LruHot;
 
         public int Capacity { get; set; }
         public int InitialCapacity { get; set; } // 创建以后再修改，只影响lru，不影响cache。
@@ -77,8 +77,9 @@ namespace Zeze.Util
             {
                 V value = factory(k);
                 isNew = true;
-                var lruItem = new LruItem(value, LruHot);
-                LruHot[k] = lruItem; // MUST replace
+                var volatiletmp = LruHot;
+                var lruItem = new LruItem(value, volatiletmp);
+                volatiletmp[k] = lruItem; // MUST replace
                 return lruItem;
             });
 
@@ -91,13 +92,14 @@ namespace Zeze.Util
 
         private void AdjustLru(K key, LruItem lruItem)
         {
-            if (lruItem.LruNode != LruHot)
+            var volatiletmp = LruHot;
+            if (lruItem.LruNode != volatiletmp)
             {
                 // compare key and value
                 lruItem.LruNode.TryRemove(KeyValuePair.Create(key, lruItem));
-                if (LruHot.TryAdd(key, lruItem)) // maybe fail
+                if (volatiletmp.TryAdd(key, lruItem)) // maybe fail
                 {
-                    lruItem.LruNode = LruHot;
+                    lruItem.LruNode = volatiletmp;
                 }
             }
         }
@@ -131,9 +133,9 @@ namespace Zeze.Util
 
         private void NewLruHot()
         {
-            LruHot = new ConcurrentDictionary<K, LruItem>(
-                ConcurrencyLevel, GetLruInitialCapaicty());
-            LruQueue.Enqueue(LruHot);
+            var volatiletmp = new ConcurrentDictionary<K, LruItem>(ConcurrencyLevel, GetLruInitialCapaicty());
+            LruHot = volatiletmp;
+            LruQueue.Enqueue(volatiletmp);
         }
 
         // 自定义TryRemoveCallback时，需要调用这个方法真正删除。

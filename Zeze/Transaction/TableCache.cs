@@ -31,7 +31,7 @@ namespace Zeze.Transaction
         private ConcurrentQueue<ConcurrentDictionary<K, Record<K, V>>> LruQueue { get; }
             = new ConcurrentQueue<ConcurrentDictionary<K, Record<K, V>>>();
 
-        private ConcurrentDictionary<K, Record<K, V>> LruHot { get; set; }
+        private volatile ConcurrentDictionary<K, Record<K, V>> LruHot;
 
         public Table<K, V> Table { get; }
 
@@ -76,9 +76,9 @@ namespace Zeze.Transaction
 
         private void NewLruHot()
         {
-            LruHot = new ConcurrentDictionary<K, Record<K, V>>(
-                GetCacheConcurrencyLevel(), GetLruInitialCapaicty());
-            LruQueue.Enqueue(LruHot);
+            var volatiletmp = new ConcurrentDictionary<K, Record<K, V>>(GetCacheConcurrencyLevel(), GetLruInitialCapaicty());
+            LruHot = volatiletmp;
+            LruQueue.Enqueue(volatiletmp);
         }
 
         public Record<K, V> GetOrAdd(K key, Func<K, Record<K, V>> valueFactory)
@@ -88,23 +88,25 @@ namespace Zeze.Transaction
                 (k) =>
                 {
                     var r = valueFactory(k);
-                    LruHot[k] = r; // replace: add or update see this.Remove
-                    r.LruNode = LruHot;
+                    var volatiletmp = LruHot;
+                    volatiletmp[k] = r; // replace: add or update see this.Remove
+                    r.LruNode = volatiletmp;
                     isNew = true;
                     return r;
                 });
 
-            if (false == isNew && result.LruNode != LruHot)
+            var volatiletmp = LruHot;
+            if (false == isNew && result.LruNode != volatiletmp)
             {
                 result.LruNode.TryRemove(KeyValuePair.Create(key, result));
-                if (LruHot.TryAdd(key, result))
+                if (volatiletmp.TryAdd(key, result))
                 {
-                    result.LruNode = LruHot;
+                    result.LruNode = volatiletmp;
                 }
                 // else maybe fail in concurrent access.
                 // 并发访问导致重复的TryAdd，这里先这样写吧。可能会快点。
-                // LruHot[key] = result;
-                // result.LruNode = LruHot;
+                // volatiletmp[key] = result;
+                // result.LruNode = volatiletmp;
             }
             return result;
         }
@@ -201,37 +203,40 @@ namespace Zeze.Transaction
             }
             try
             {
-                var storage = Table.TStorage;
-                if (null == storage)
+                lock (p.Value)
                 {
-                    /* 不支持内存表cache同步。
-                    if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
+                    var storage = Table.TStorage;
+                    if (null == storage)
+                    {
+                        /* 不支持内存表cache同步。
+                        if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
+                            return false;
+                        */
+                        return Remove(p);
+                    }
+
+                    // 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
+                    // case CheckpointMode.Immediately
+                    // 永远不会为false。记录Commit的时候就Flush到数据库。
+                    // case CheckpointMode.Period
+                    // 修改的时候需要记录锁（lockey）。
+                    // 这里只是读取，就不加锁了。
+                    // case CheckpointMode.Table 修改的时候需要RelativeRecordSet锁。
+                    // （修改为true的时也在记录锁（lockey）下）。
+                    // 这里只是读取，就不加锁了。
+
+                    if (p.Value.Dirty)
                         return false;
-                    */
+
+                    if (p.Value.State != GlobalCacheManagerServer.StateInvalid)
+                    {
+                        if (p.Value.Acquire(GlobalCacheManagerServer.StateInvalid).Result.State != GlobalCacheManagerServer.StateInvalid)
+                        {
+                            return false;
+                        }
+                    }
                     return Remove(p);
                 }
-
-                // 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
-                // case CheckpointMode.Immediately
-                // 永远不会为false。记录Commit的时候就Flush到数据库。
-                // case CheckpointMode.Period
-                // 修改的时候需要记录锁（lockey）。
-                // 这里只是读取，就不加锁了。
-                // case CheckpointMode.Table 修改的时候需要RelativeRecordSet锁。
-                // （修改为true的时也在记录锁（lockey）下）。
-                // 这里只是读取，就不加锁了。
-
-                if (p.Value.Dirty)
-                    return false;
-
-                if (p.Value.State != GlobalCacheManagerServer.StateInvalid)
-                {
-                    if (p.Value.Acquire(GlobalCacheManagerServer.StateInvalid).Result.State != GlobalCacheManagerServer.StateInvalid)
-                    {
-                        return false;
-                    }
-                }
-                return Remove(p);
             }
             finally
             {
