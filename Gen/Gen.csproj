@@ -15,6 +15,7 @@
     <EmbeddedResource Include="templates\LuaRoot.scriban-txt" />
     <EmbeddedResource Include="templates\LuaMeta.scriban-txt" />
     <EmbeddedResource Include="templates\message_init.lua" />
+    <EmbeddedResource Include="templates\LuaModuleMeta.scriban-txt" />
   </ItemGroup>
 
 </Project>

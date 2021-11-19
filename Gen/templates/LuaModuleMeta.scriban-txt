@@ -1,0 +1,57 @@
+{{-
+    func toname(name)
+        ret 'msg.' + name
+    end
+-}}
+local message = require '{{toname 'message'}}'
+local {{module.name}} = { }
+
+{{- beansandbeankeys = array.add_range beankeys beans }}
+
+{{- for bean in beansandbeankeys }}
+
+{{module.name}}.{{ bean.name }} = {
+    name = '{{ bean.full_name }}',
+    type_id = '{{ bean.type_id }}',
+    metatable = message.{{ bean.full_name }},
+    variables = {
+    {{- for variable in bean.variables }}
+        {{ variable.name }} = { id = {{ variable.id }}, type = '{{ variable.variable_type.full_name?? variable.variable_type }}',
+        {{- case variable.type }}
+            {{- when "map" }} key = '{{variable.variable_type.key_type.full_name?? variable.variable_type.key_type}}', value = '{{variable.variable_type.value_type.full_name?? variable.variable_type.value_type}}', 
+            {{- when "list","set" }} value = '{{variable.variable_type.value_type.full_name?? variable.variable_type.value_type}}', 
+            {{- when "dynamic" }} dynamcic_meta = { 
+                {{- for real_bean_kv in variable.variable_type.real_beans}} ['{{real_bean_kv.key}}'] = '{{real_bean_kv.value.full_name}}',
+                {{- end}} },
+            {{- end -}}
+            {{- if variable.initial != '' }} default = {{ variable.initial }},{{ end }}
+            {{- }} },
+    {{- end }}
+    },
+}
+{{- end }}
+
+{{- for protocol in protocols }}
+
+{{module.name}}.{{ protocol.name }} = {
+    name = '{{ protocol.full_name }}',
+    id = '{{ protocol.id }}',
+    type_id = '{{ protocol.type_id }}',
+    metatable = message.{{ protocol.full_name }},
+    argument = '{{protocol.argument_type?.full_name ?? "EmptyBean" }}',
+    {{- if protocol.result }} 
+    result = '{{ protocol.result_type?.full_name ?? "EmptyBean" }}',
+    {{- end }}
+}
+{{- end }}
+
+function {{module.name}}.__reg__(meta)
+{{- for bean in beansandbeankeys }}
+    meta.beans['{{bean.full_name}}'] = {{module.name}}.{{bean.name}}
+{{- end }}
+{{- for protocol in protocols }}
+    meta.protocols['{{protocol.full_name}}'] = {{module.name}}.{{protocol.name}}
+{{- end }}
+end
+
+return {{module.name}}

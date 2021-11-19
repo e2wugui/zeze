@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -60,23 +61,27 @@ namespace Zeze.Gen.luaClient
             }
             string projectBasedir = Project.Gendir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
+            string metaDir = Path.Combine(projectDir, "msgmeta");
             string genDir = Path.Combine(projectDir, "msg");
             string srcDir = Path.Combine(projectDir, "module");
             Program.AddGenDir(genDir);
-            
-            string luaMetaTemplateString = GetTemplate("LuaMeta.scriban-txt");
-            Template template = Template.Parse(luaMetaTemplateString);
-            string luaMeta = template.Render(new
             {
-                beans = Project.AllBeans.Values, 
-                beankeys = Project.AllBeanKeys.Values, 
-                protocols = Project.AllProtocols.Values
-            });
+                string luaMetaTemplateString = GetTemplate("LuaMeta.scriban-txt");
+                Template template = Template.Parse(luaMetaTemplateString);
+                string luaMeta = template.Render(new
+                {
+                    modules = allRefModulesList,
+                    beans = Project.AllBeans.Values, 
+                    beankeys = Project.AllBeanKeys.Values, 
+                    protocols = Project.AllProtocols.Values
+                });
 
-            string metaFileName = Path.Combine(genDir, "ZezeMeta.lua");
-            using StreamWriter swMeta = Program.OpenStreamWriter(metaFileName);
-            swMeta.Write(luaMeta);
-            swMeta.Close();
+                string metaFileName = Path.Combine(genDir, "ZezeMeta.lua");
+                using StreamWriter swMeta = Program.OpenStreamWriter(metaFileName);
+                swMeta.Write(luaMeta);
+                swMeta.Close();
+            }
+            
             
             {
                 string luaModuleTemplateString = GetTemplate("LuaModule.scriban-txt");
@@ -105,8 +110,35 @@ namespace Zeze.Gen.luaClient
                     sw.Close();
                 }
             }
-           
-
+            
+            {
+                string luaModuleTemplateString = GetTemplate("LuaModuleMeta.scriban-txt");
+                Template moduleTemplate = Template.Parse(luaModuleTemplateString);
+                foreach (var module in allRefModulesList)
+                {
+                    var beans = Project.AllBeans.Values.Intersect(module.Beans.Values).ToList();
+                    var beanKeys = Project.AllBeanKeys.Values.Intersect(module.BeanKeys.Values).ToList();
+                    var protocols = Project.AllProtocols.Values.Intersect(module.Protocols.Values).ToList();
+                    if (!beans.Any() && !beanKeys.Any() && !protocols.Any())
+                    {
+                        continue;
+                    }
+                    string fullFileName = module.GetFullPath(metaDir) + "Meta.lua";
+                    string fullDir = Path.GetDirectoryName(fullFileName);
+                    string luaModule = moduleTemplate.Render(new
+                    {
+                        module,
+                        beans, 
+                        beankeys = beanKeys,
+                        protocols
+                    });
+                    if (fullDir != null) Directory.CreateDirectory(fullDir);
+                    using var sw = Program.OpenStreamWriter(fullFileName);
+                    sw.Write(luaModule);
+                    sw.Close();
+                }
+            }
+            
             {
                 string luaRootTemplateString = GetTemplate("LuaRoot.scriban-txt");
                 Template rootTemplate = Template.Parse(luaRootTemplateString);
@@ -120,13 +152,14 @@ namespace Zeze.Gen.luaClient
                 sw.Write(luaRoot);
                 sw.Close();
             }
-            
+
             {
+                var solutions = allRefModulesList.Select(m=>m.Solution).ToHashSet();
                 string luaInitTemplateText = GetTemplate("message_init.lua");
                 Template luaInitTemplate = Template.Parse(luaInitTemplateText);
                 string luaRoot = luaInitTemplate.Render(new
                 {
-                    solution = Project.Solution
+                    solutions
                 });
                 
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(genDir, "message_init.lua"));

@@ -43,5 +43,8 @@ message.{{module_name}} = require "{{toname module_name}}"
 {{-end}}
 
 message_init.init(message)
+{{for module_name in module_names}}
+message.{{module_name}}.__reg__()
+{{-end}}
 
 return message

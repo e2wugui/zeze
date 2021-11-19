@@ -8,7 +8,7 @@
     end
 -}}
 
-{{func typestr(type)
+{{-func typestr(type)
     case type.name
     when "binary" 
         ret "userdata"
@@ -75,10 +75,14 @@ end}}
 end}}
 
 {{- l = array.add_range beankeys beans }}
+local message_core = require 'common.message_core'
 local message_init = require 'msg.message_init'
 
 local {{module.name}} = {}
 {{ for bean in l }}
+{{- for e in  bean.enums}}
+local {{e.name}} = {{e.value}}
+{{- end }}
 ---@class {{toname bean.full_name}} : msg.Bean
 {{- for e in  bean.enums}}
 ---@field {{e.name}} integer
@@ -90,9 +94,9 @@ local {{module.name}} = {}
 local {{bean.name}} = {
     __type_name__ = '{{bean.full_name}}',
     __type_id__ = '{{bean.type_id}}',
-    new = message_init.new,
+    new = message_core.bean_new,
     {{- for e in  bean.enums}}
-    {{e.name}} = {{e.value}},
+    {{e.name}} = {{e.name}},
     {{- end }}
     {{- for variable in bean.variables }}
     {{- d = defaultvalue variable
@@ -101,34 +105,18 @@ local {{bean.name}} = {
     {{-end}}
     {{- end }}
 }
-{{bean_variables = []
+{{- bean_variables = []
 for variable in bean.variables
     if variable.variable_type.is_bean
         bean_variables = array.add(bean_variables, variable)
     end
 end -}}
-
 {{- if bean_variables.size > 0 }}
-{{bean.name}}.__index = function(t, k)
-    {{-for variable in bean_variables}}
-        {{-if for.first}}
-    if k == '{{variable.name}}' then
-        {{-else}}
-    elseif k == '{{variable.name}}' then
-        {{-end}}
-        local {{variable.name}} = message_init.{{variable.variable_type.full_name}}:new()
-        rawset(t, '{{variable.name}}', {{variable.name}})
-        return {{variable.name}}
-        {{-if for.last}}
-    else
-        return {{bean.name}}[k]
-    end
-        {{-end}}
-    {{-end}}
-end
-{{-else}}
+{{bean.name}}.__index = message_core.build_index({{bean.name}})
+{{bean.name}}.__newindex = message_core.build_newindex({{bean.name}})
+{{- else }}
 {{bean.name}}.__index = {{bean.name}}
-{{-end}}
+{{- end}}
 {{end }}
 
 {{- for protocol in protocols }}
@@ -149,34 +137,23 @@ local {{protocol.name}} = {
     moduleId = {{protocol.space.id}},
     resultCode = 0,
     {{- if protocol.result}}
-    send = message_init.send_rpc,
+    send = message_core.send_rpc,
     resultCode = 0,
     isRequest = false,
+    new = message_core.rpc_new,
     {{- else}}
-    send = message_init.send,
+    send = message_core.send,
+    new = message_core.protocol_new,
     {{- end}}
-    new = message_init.new,
     {{- for e in  protocol.enums}}
     {{e.name}} = {{e.value}},
     {{- end }}
 }
 
-{{protocol.name}}.__index = function(t, k)
-    if k == 'argument' then
-        local argument = message_init.{{protocol.argument_type?.full_name ?? "EmptyBean"}}:new()
-        rawset(t, 'argument', argument)
-        return argument
-    {{- if protocol.result}}
-    elseif k == 'result' then
-        local result = message_init.{{protocol.result_type?.full_name ?? "EmptyBean"}}:new()
-        rawset(t, 'result', result)
-        return result
-    {{- end}}
-    else
-        return {{protocol.name}}[k]
-    end
-end
-{{ end }}
+{{protocol.name}}.__index = message_core.build_index({{protocol.name}})
+{{protocol.name}}.__newindex = message_core.build_newindex({{protocol.name}})
+
+{{- end }}
 {{- for enum in module.enums }}
 {{module.name}}.{{enum.name}} = {{enum.value}}
 {{- end}}
@@ -188,5 +165,29 @@ end
 {{- for protocol in protocols }}
 {{module.name}}.{{protocol.name}} = {{protocol.name}}
 {{- end }}
+
+function {{module.name}}.__reg__()
+{{- for bean in l }}
+{{- bean_variables = []
+for variable in bean.variables
+    if variable.variable_type.is_bean
+        bean_variables = array.add(bean_variables, variable)
+    end
+end -}}
+    {{- if bean_variables.size > 0 }}
+    {{module.name}}.{{bean.name}}.__reg_beans = {}
+        {{- for variable in bean_variables}}
+    {{module.name}}.{{bean.name}}.__reg_beans.{{variable.name}} = message_init.{{variable.variable_type.full_name}}
+        {{- end }}
+    {{- end }}
+{{- end }}
+{{- for protocol in protocols }}
+    {{module.name}}.{{protocol.name}}.__reg_beans = {}
+    {{module.name}}.{{protocol.name}}.__reg_beans.argument = message_init.{{protocol.argument_type?.full_name ?? "EmptyBean"}}
+    {{- if protocol.result}}
+    {{module.name}}.{{protocol.name}}.__reg_beans.result = message_init.{{protocol.result_type?.full_name ?? "EmptyBean"}}
+    {{- end}}
+{{- end }}
+end
 
 return {{module.name}} 
