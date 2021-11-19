@@ -172,7 +172,9 @@ namespace Zeze.Transaction
                 return rpc;
             }
             logger.Debug("Acquire local ++++++");
-            return new Acquire(gkey, state);
+			var result = new Acquire();
+			result.Result.State = state;
+            return result;
         }
 
         public long ProcessReduceRequest(Zeze.Net.Protocol p)

@@ -195,7 +195,9 @@ public final class GlobalAgent {
 			return rpc;
 		}
 		logger.debug("Acquire local ++++++");
-		return new Acquire(null, state);
+		var result = new Acquire();
+		result.Result.State = state;
+		return result;
 	}
 
 	public int ProcessReduceRequest(Protocol p) {
