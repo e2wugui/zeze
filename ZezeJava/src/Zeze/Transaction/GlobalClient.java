@@ -58,7 +58,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 	}
 
 	@Override
-	public void OnSocketConnectError(AsyncSocket so, RuntimeException e) {
+	public void OnSocketConnectError(AsyncSocket so, Throwable e) {
 		super.OnSocketConnectError(so, e);
 		var agent = (GlobalAgent.Agent)so.getUserState();
 		if (null == e) {
