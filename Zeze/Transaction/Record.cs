@@ -242,7 +242,7 @@ namespace Zeze.Transaction
                 // 如果要纳入完整事务，有点麻烦。这里反正是个例外，那就再例外一次了。
                 if (null != TTable.OldTable)
                 {
-                    var transTmp = TTable.OldTable.Database.BeginTransaction();
+                    using var transTmp = TTable.OldTable.Database.BeginTransaction();
                     TTable.OldTable.Remove(transTmp, snapshotKey);
                     transTmp.Commit();
                 }

@@ -38,7 +38,7 @@ namespace UnitTest.Zeze.Trans
             var db = new DatabaseRocksDb(demo.App.Instance.Zeze, url);
             Database.Table table = db.OpenTable("test_1");
             {
-                var trans = db.BeginTransaction();
+                using var trans = db.BeginTransaction();
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
                     key.WriteInt(1);
@@ -53,7 +53,7 @@ namespace UnitTest.Zeze.Trans
             }
             Assert.AreEqual(0, table.Walk(PrintRecord));
             {
-                var trans = db.BeginTransaction();
+                using var trans = db.BeginTransaction();
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
                     key.WriteInt(1);

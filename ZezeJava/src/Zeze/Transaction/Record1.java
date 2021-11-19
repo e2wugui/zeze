@@ -204,9 +204,12 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 			// XXX 从旧表中删除，使用独立临时事务。
 			// 如果要纳入完整事务，有点麻烦。这里反正是个例外，那就再例外一次了。
 			if (null != getTTable().getOldTable()) {
-				var transTmp = getTTable().getOldTable().getDatabase().BeginTransaction();
-				getTTable().getOldTable().Remove(transTmp, snapshotKey);
-				transTmp.Commit();
+				try (var transTmp = getTTable().getOldTable().getDatabase().BeginTransaction()) {
+					getTTable().getOldTable().Remove(transTmp, snapshotKey);
+					transTmp.Commit();
+				} catch (Exception e) {
+					logger.error(e);
+				}
 			}
 		}
 		return true;
