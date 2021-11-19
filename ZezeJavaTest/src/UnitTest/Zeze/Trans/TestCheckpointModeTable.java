@@ -43,7 +43,7 @@ public class TestCheckpointModeTable{
 			for (int i = 0; i < tasks.length; ++i) {
 				try {
 					tasks[i].get();
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					e.printStackTrace();
 				}
 			}

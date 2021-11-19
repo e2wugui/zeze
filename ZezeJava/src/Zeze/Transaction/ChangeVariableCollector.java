@@ -16,7 +16,7 @@ public abstract class ChangeVariableCollector {
 			try {
 				l.OnChanged(key, value);
 			}
-			catch (RuntimeException ex) {
+			catch (Throwable ex) {
 				logger.error("NotifyRecordChanged", ex);
 			}
 		}
@@ -27,7 +27,7 @@ public abstract class ChangeVariableCollector {
 			try {
 				l.OnRemoved(key);
 			}
-			catch (RuntimeException ex) {
+			catch (Throwable ex) {
 				logger.error("NotifyRecordRemoved", ex);
 			}
 		}

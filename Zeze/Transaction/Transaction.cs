@@ -135,11 +135,19 @@ namespace Zeze.Transaction
 
         public void RunWhileCommit(Action action)
         {
+            if (IsCompleted)
+            {
+                throw new Exception("Transaction Is Completed.");
+            }
             CommitActions.Add(action);
         }
 
         public void RunWhileRollback(Action action)
         {
+            if (IsCompleted)
+            {
+                throw new Exception("Transaction Is Completed.");
+            }
             RollbackActions.Add(action);
         }
 

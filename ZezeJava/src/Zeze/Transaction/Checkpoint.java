@@ -225,7 +225,7 @@ public final class Checkpoint {
 			for (var t : dts.values()) {
 				try {
 					t.close();
-				} catch (Exception ex) {
+				} catch (Throwable ex) {
 					logger.error(ex);
 				}
 			}
@@ -269,7 +269,7 @@ public final class Checkpoint {
 				r.Cleanup();
 			}
 		}
-		catch (RuntimeException e) {
+		catch (Throwable e) {
 			for (var t : dts.values()) {
 				t.Rollback();
 			}
@@ -279,7 +279,7 @@ public final class Checkpoint {
 			for (var t : dts.values()) {
 				try {
 					t.close();
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					logger.error("Checkpoint.Flush: close transacton{}", t, e);
 				}
 			}

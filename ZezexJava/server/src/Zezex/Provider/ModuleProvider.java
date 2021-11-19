@@ -71,7 +71,7 @@ public final class ModuleProvider extends AbstractModule {
 					p2, (p3, code) -> { p3.setResultCode(code); session.SendResponse(p3);
 					});
 		}
-		catch (RuntimeException ex) {
+		catch (Throwable ex) {
 			SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolException, ex.toString());
 			throw ex;
 		}
@@ -112,7 +112,7 @@ public final class ModuleProvider extends AbstractModule {
 			rpc.SendResultCode(ModuleRedirect.ResultCodeSuccess);
 			return rpc.Result.getReturnCode();
 		}
-		catch (RuntimeException e) {
+		catch (Throwable e) {
 			rpc.SendResultCode(ModuleRedirect.ResultCodeHandleException);
 			throw e;
 		}
@@ -187,7 +187,7 @@ public final class ModuleProvider extends AbstractModule {
 			}
 			return Procedure.Success;
 		}
-		catch (RuntimeException e) {
+		catch (Throwable e) {
 			result.setResultCode(ModuleRedirect.ResultCodeHandleException);
 			result.Send(protocol.getSender());
 			throw e;

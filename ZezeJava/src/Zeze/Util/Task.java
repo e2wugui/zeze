@@ -229,7 +229,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			}
 			return result;
 		}
-		catch (RuntimeException ex) {
+		catch (Throwable ex) {
 			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
 			if (isRequestSaved != null && isRequestSaved) {
 				if (actionWhenError != null) {

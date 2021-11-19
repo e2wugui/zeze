@@ -170,7 +170,7 @@ public final class TaskOneByOneByKey {
 						e.Cancel.run();
 					}
 				}
-				catch (RuntimeException ex) {
+				catch (Throwable ex) {
 					logger.error("CancelAction={}", e.Name, ex);
 				}
 			}
@@ -232,7 +232,7 @@ public final class TaskOneByOneByKey {
 					() -> {
 						try {
 							action.call();
-						} catch (Exception skip) {
+						} catch (Throwable skip) {
 							// Zeze.Util.Task has handle error.
 						}
 						finally {

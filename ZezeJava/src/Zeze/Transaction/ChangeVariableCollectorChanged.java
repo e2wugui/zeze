@@ -24,7 +24,7 @@ public final class ChangeVariableCollectorChanged extends ChangeVariableCollecto
 			try {
 				l.OnChanged(key, value, null);
 			}
-			catch (RuntimeException ex) {
+			catch (Throwable ex) {
 				logger.error("NotifyVariableChanged", ex);
 			}
 		}
