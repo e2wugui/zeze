@@ -25,6 +25,7 @@ namespace Zeze.Gen
         public static global::Zeze.Util.Ranges GlobalModuleIdChecker { get; private set; } = new global::Zeze.Util.Ranges();
 
         public static bool Debug { get; private set; } = false;
+        public static bool DeleteOldFile { get; private set; } = true;
 
         // 用来保存可命名对象（bean,protocol,rpc,table,Project,Service,Module...)，用来 1 检查命名是否重复，2 查找对象。
         // key 为全名：包含完整的名字空间。
@@ -84,6 +85,10 @@ namespace Zeze.Gen
                     case "-debug":
                         Debug = true;
                         break;
+                    case "-DeleteOldFile":
+                        DeleteOldFile = bool.Parse(args[++i]);
+                        break;
+
                     default:
                         xmlFileList.Add(args[i]);
                         break;
@@ -119,7 +124,8 @@ namespace Zeze.Gen
                 sol.Make();
             }
 
-            DeleteOldFileInGenDirs();
+            if (DeleteOldFile)
+                DeleteOldFileInGenDirs();
         }
 
         public static void Print(object obj)

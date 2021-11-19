@@ -19,26 +19,32 @@ namespace Zeze.Gen.java
             string projectBasedir = Project.Gendir;
             string projectDir = System.IO.Path.Combine(projectBasedir, Project.Name);
             string genDir = System.IO.Path.Combine(projectDir, Project.GenRelativeDir, "Gen");
+            string genCommonDir = string.IsNullOrEmpty(Project.GenCommonRelativeDir)
+                ? genDir : System.IO.Path.Combine(projectDir, Project.GenCommonRelativeDir, "Gen");
+
             string srcDir = Project.ScriptDir.Length > 0
                 ? System.IO.Path.Combine(projectDir, Project.ScriptDir) : projectDir;
 
             Program.AddGenDir(genDir);
 
+            // gen common
             foreach (Types.Bean bean in Project.AllBeans.Values)
             {
-                new BeanFormatter(bean).Make(genDir);
+                new BeanFormatter(bean).Make(genCommonDir);
             }
             foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
             {
-                new BeanKeyFormatter(beanKey).Make(genDir);
+                new BeanKeyFormatter(beanKey).Make(genCommonDir);
             }
             foreach (Protocol protocol in Project.AllProtocols.Values)
             {
                 if (protocol is Rpc rpc)
-                    new RpcFormatter(rpc).Make(genDir);
+                    new RpcFormatter(rpc).Make(genCommonDir);
                 else
-                    new ProtocolFormatter(protocol).Make(genDir);
+                    new ProtocolFormatter(protocol).Make(genCommonDir);
             }
+
+            // gen project
             foreach (Module mod in Project.AllModules.Values)
             {
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
