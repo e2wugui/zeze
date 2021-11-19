@@ -12,6 +12,8 @@ import Zeze.Transaction.Procedure;
 import Zeze.Net.*;
 import Zeze.Net.Service.ProtocolFactoryHandle;
 
+import javax.swing.plaf.basic.BasicTreeUI;
+
 public final class Agent implements Closeable {
 	static final Logger logger = LogManager.getLogger(Agent.class);
 
@@ -278,7 +280,7 @@ public final class Agent implements Closeable {
 				var r = new Register();
 				r.Argument = info;
 				r.SendAndWaitCheckResultCode(getClient().getSocket());
-			} catch (RuntimeException e) {
+			} catch (Throwable e) {
 				getRegisters().remove(info, info); // rollback
 				throw e;
 			}
@@ -299,7 +301,7 @@ public final class Agent implements Closeable {
 				var r = new UnRegister();
 				r.Argument = info;
 				r.SendAndWaitCheckResultCode(getClient().getSocket());
-			} catch (RuntimeException e) {
+			} catch (Throwable e) {
 				getRegisters().putIfAbsent(exist, exist); // rollback
 				throw e;
 			}
@@ -358,7 +360,7 @@ public final class Agent implements Closeable {
 				var r = new UnSubscribe();
 				r.Argument = state.subscribeInfo;
 				r.SendAndWaitCheckResultCode(getClient().getSocket());
-			} catch (RuntimeException e) {
+			} catch (Throwable e) {
 				getSubscribeStates().putIfAbsent(serviceName, state); // rollback
 				throw e;
 			}

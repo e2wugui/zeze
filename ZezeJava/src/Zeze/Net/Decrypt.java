@@ -27,7 +27,7 @@ public class Decrypt implements Codec {
 		try {
 			cipher = Cipher.getInstance("AES/ECB/NoPadding");
 			cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(iv, "AES"));
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			throw new CodecException(e);
 		}
 	}

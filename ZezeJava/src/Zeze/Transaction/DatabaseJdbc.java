@@ -50,7 +50,7 @@ public abstract class DatabaseJdbc extends Database {
 		public void close() {
 			try {
 				Connection.close();
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				logger.error("JdbcTrans.close", e);
 			}
 		}

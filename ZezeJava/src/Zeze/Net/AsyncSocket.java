@@ -212,7 +212,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				}
 				Service.OnSocketConnectError(this, null);
 			}
-			catch (RuntimeException e) {
+			catch (Throwable e) {
 				Service.OnSocketConnectError(this, e);
 				close();
 			}
@@ -563,7 +563,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					selectionKey.channel().close();
 					selectionKey = null;
 				}
-				catch (RuntimeException e) {
+				catch (Throwable e) {
 					// skip Dispose error
 				}
 			}
@@ -572,7 +572,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				try {
 					Service.OnSocketDisposed(this);
 				}
-				catch (RuntimeException e2) {
+				catch (Throwable e2) {
 					// skip Dispose error
 				}
 			}

@@ -188,7 +188,7 @@ public final class Application {
 						SchemasPrevious.Decode(dataVersion.Data);
 						SchemasPrevious.Compile();
 					}
-					catch (RuntimeException ex) {
+					catch (Throwable ex) {
 						SchemasPrevious = null;
 						logger.error("Schemas Implement Changed?", ex);
 					}
@@ -373,7 +373,7 @@ public final class Application {
 					}
 					break;
 			}
-		} catch (Exception ex) {
+		} catch (Throwable ex) {
 			throw new RuntimeException(ex);
 		}
 		return future;
