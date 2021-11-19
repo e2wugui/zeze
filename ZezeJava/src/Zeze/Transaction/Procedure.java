@@ -141,7 +141,7 @@ public class Procedure {
 
 			return CancelExcption; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
 		}
-		catch (RuntimeException e4) {
+		catch (Throwable e4) {
 			currentT.Rollback();
 			logger.error("Procedure {} Exception UserState={}", this, getUserState(), e4);
 
@@ -163,7 +163,7 @@ public class Procedure {
 		if (null != Action) {
 			try {
 				return Action.call();
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}
 		}

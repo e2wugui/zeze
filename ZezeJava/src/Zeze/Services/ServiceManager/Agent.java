@@ -424,7 +424,7 @@ public final class Agent implements Closeable {
 				var r = new Register();
 				r.Argument = e.getValue();
 				r.SendAndWaitCheckResultCode(getClient().getSocket());
-			} catch (RuntimeException ex) {
+			} catch (Throwable ex) {
 				logger.debug("OnConnected.Register={}", e.getValue(), ex);
 			}
 		}
@@ -434,7 +434,7 @@ public final class Agent implements Closeable {
 				var r = new Subscribe();
 				r.Argument = e.getValue().subscribeInfo;
 				r.SendAndWaitCheckResultCode(getClient().getSocket());
-			} catch (RuntimeException ex) {
+			} catch (Throwable ex) {
 				logger.debug("OnConnected.Subscribe={}", e.getValue().subscribeInfo, ex);
 			}
 		}

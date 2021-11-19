@@ -94,7 +94,7 @@ public final class LinkdService extends LinkdServiceBase {
 				var result = factoryHandle.Handle.handle(p); // 不启用新的Task，直接在io-thread里面执行。
 				Zeze.Util.Task.LogAndStatistics(result, p, isRequestSaved);
 			}
-			catch (RuntimeException ex) {
+			catch (Throwable ex) {
 				p.getSender().Close(ex); // link 在异常时关闭连接。
 			}
 		}

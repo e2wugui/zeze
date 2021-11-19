@@ -98,11 +98,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return Acceptor;
 	}
 
-	private RuntimeException LastException;
-	public RuntimeException getLastException() {
+	private Throwable LastException;
+	public Throwable getLastException() {
 		return LastException;
 	}
-	private void setLastException(RuntimeException value) {
+	private void setLastException(Throwable value) {
 		LastException = value;
 	}
 
@@ -543,7 +543,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	public void Close(RuntimeException e) {
+	public void Close(Throwable e) {
 		this.setLastException(e);
 		close();
 	}

@@ -27,7 +27,7 @@ public final class ProviderService extends ProviderServiceBase {
 					var result = factoryHandle.Handle.handle(p);
 					Zeze.Util.Task.LogAndStatistics(result, p, isReqeustSaved);
 				}
-				catch (RuntimeException ex) {
+				catch (Throwable ex) {
 					logger.log(getSocketOptions().getSocketLogLevel(), () -> "Protocol.Handle. " + p, ex);
 				}
 			}

@@ -614,7 +614,7 @@ public final class GlobalCacheManagerServer {
 									reduce.getKey().SetError();
 								}
 							}
-							catch (RuntimeException ex) {
+							catch (Throwable ex) {
 								reduce.getKey().SetError();
 								// 等待失败不再看作成功。
 								logger.error("Reduce {} {} {} {}", sender, rpc.Argument.State, cs, reduce.getValue().Argument, ex);
@@ -776,7 +776,7 @@ public final class GlobalCacheManagerServer {
 				reduce.Result.State = StateReduceRpcTimeout;
 				return reduce;
 			}
-			catch (RuntimeException ex) {
+			catch (Throwable ex) {
 				logger.error("Reduce Exception {} target={} '{}'", state, getSessionId(), gkey, ex);
 				reduce.Result.State = StateReduceException;
 				return reduce;
@@ -811,7 +811,7 @@ public final class GlobalCacheManagerServer {
 					return reduce;
 				}
 			}
-			catch (RuntimeException ex) {
+			catch (Throwable ex) {
 				// 这里的异常只应该是网络发送异常。
 				logger.error("ReduceWaitLater Exception {}", gkey, ex);
 			}

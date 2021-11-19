@@ -305,7 +305,7 @@ public final class GlobalAgent {
 				try {
 					agent.Connect(getClient());
 				}
-				catch (RuntimeException ex) {
+				catch (Throwable ex) {
 					// 允许部分GlobalCacheManager连接错误时，继续启动程序，虽然后续相关事务都会失败。
 					logger.error("GlobalAgent.Connect", ex);
 				}

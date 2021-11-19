@@ -48,7 +48,7 @@ public final class ChangeVariableCollectorMap extends ChangeVariableCollector {
 			try {
 				l.OnChanged(key, value, note);
 			}
-			catch (RuntimeException ex) {
+			catch (Throwable ex) {
 				logger.error("NotifyVariableChanged", ex);
 			}
 		}
