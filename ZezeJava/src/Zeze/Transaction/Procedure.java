@@ -163,7 +163,7 @@ public class Procedure {
 		if (null != Action) {
 			try {
 				return Action.call();
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
 		}
