@@ -37,7 +37,7 @@ public final class LinkdService extends LinkdServiceBase {
 				var so = this.GetSocket(linkSid);
 				if (so != null)
 					so.close();
-			}, 2000, -1);
+			}, 2000);
 		}
 	}
 
