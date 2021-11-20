@@ -29,17 +29,17 @@ import Zeze.Util.Task;
 public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private static final Logger logger = LogManager.getLogger(TableCache.class);
 
-	private ConcurrentHashMap<K, Record1<K, V>> DataMap;
+	private final ConcurrentHashMap<K, Record1<K, V>> DataMap;
 	public final ConcurrentHashMap<K, Record1<K, V>> getDataMap() {
 		return DataMap;
 	}
 
-	private ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> LruQueue = new ConcurrentLinkedQueue<> ();
+	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> LruQueue = new ConcurrentLinkedQueue<> ();
 	private ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> getLruQueue() {
 		return LruQueue;
 	}
 
-	private ConcurrentHashMap<K, Record1<K, V>> LruHot;
+	private volatile ConcurrentHashMap<K, Record1<K, V>> LruHot;
 	private ConcurrentHashMap<K, Record1<K, V>> getLruHot() {
 		return LruHot;
 	}
@@ -87,9 +87,10 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	private void NewLruHot() {
-		setLruHot(new ConcurrentHashMap<K, Record1<K, V>>(
-				GetLruInitialCapaicty(), 0.75f, GetCacheConcurrencyLevel()));
-		getLruQueue().add(getLruHot());
+		var newLru = new ConcurrentHashMap<K, Record1<K, V>>(
+				GetLruInitialCapaicty(), 0.75f, GetCacheConcurrencyLevel());
+		LruHot = newLru;
+		getLruQueue().add(newLru);
 	}
 
 	public final Record1<K, V> GetOrAdd(K key, Zeze.Util.Factory<Record1<K, V>> valueFactory) {
@@ -97,16 +98,18 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		isNew.Value = false;
 		Record1<K, V> result = DataMap.computeIfAbsent(key, (k) -> {
 					var r = valueFactory.create();
-					getLruHot().put(k, r); // replace: add or update see this.Remove
-					r.setLruNode(getLruHot());
+					var lruHot = getLruHot();
+					lruHot.put(k, r); // replace: add or update see this.Remove
+					r.setLruNode(lruHot);
 					isNew.Value = true;
 					return r;
 		});
 
 		if (false == isNew.Value && result.getLruNode() != getLruHot()) {
 			result.getLruNode().remove(key, result);
-			if (null == getLruHot().putIfAbsent(key, result)) {
-				result.setLruNode(getLruHot());
+			var lruHot = getLruHot();
+			if (null == lruHot.putIfAbsent(key, result)) {
+				result.setLruNode(lruHot);
 			}
 			// else maybe fail in concurrent access.
 			// 并发访问导致重复的TryAdd，这里先这样写吧。可能会快点。
@@ -175,7 +178,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod());
 	}
 
-	// under lockey.writelock
+	// under lockey.writelock and record.fairLock
 	private boolean Remove(Map.Entry<K, Record1<K, V>> p) {
 		if (DataMap.remove(p.getKey(), p.getValue())) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
@@ -196,36 +199,43 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			return false;
 		}
 		try {
-			var storage = getTable().TStorage;
-			if (null == storage) {
+			//p.getValue().EnterFairLock();
+			try {
+
+				var storage = getTable().TStorage;
+				if (null == storage) {
 				/* 不支持内存表cache同步。
 				if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
 				    return false;
 				*/
-				return Remove(p);
-			}
+					return Remove(p);
+				}
 
-			// 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
-			// case CheckpointMode.Immediately
-			// 永远不会为false。记录Commit的时候就Flush到数据库。
-			// case CheckpointMode.Period
-			// 修改的时候需要记录锁（lockey）。
-			// 这里只是读取，就不加锁了。
-			// case CheckpointMode.Table 修改的时候需要RelativeRecordSet锁。
-			// （修改为true的时也在记录锁（lockey）下）。
-			// 这里只是读取，就不加锁了。
+				// 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
+				// case CheckpointMode.Immediately
+				// 永远不会为false。记录Commit的时候就Flush到数据库。
+				// case CheckpointMode.Period
+				// 修改的时候需要记录锁（lockey）。
+				// 这里只是读取，就不加锁了。
+				// case CheckpointMode.Table 修改的时候需要RelativeRecordSet锁。
+				// （修改为true的时也在记录锁（lockey）下）。
+				// 这里只是读取，就不加锁了。
 
-			if (p.getValue().getDirty()) {
-				return false;
-			}
-
-			if (p.getValue().getState() != GlobalCacheManagerServer.StateInvalid) {
-				if (p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid).Result.State
-						!= GlobalCacheManagerServer.StateInvalid) {
+				if (p.getValue().getDirty()) {
 					return false;
 				}
+
+				if (p.getValue().getState() != GlobalCacheManagerServer.StateInvalid) {
+					if (p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid).Result.State
+							!= GlobalCacheManagerServer.StateInvalid) {
+						return false;
+					}
+				}
+				return Remove(p);
 			}
-			return Remove(p);
+			finally {
+				//p.getValue().ExitFairLock();
+			}
 		}
 		finally {
 			lockey.ExitWriteLock();

@@ -12,7 +12,7 @@ public class ConcurrentLruLike<K, V> {
 	private final ConcurrentHashMap<K, ConcurrentLruItem<K, V>> DataMap;
 	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, ConcurrentLruItem<K, V>>> LruQueue
 		= new ConcurrentLinkedQueue<> ();
-	private ConcurrentHashMap<K, ConcurrentLruItem<K, V>> LruHot;
+	private volatile ConcurrentHashMap<K, ConcurrentLruItem<K, V>> LruHot;
 
 	private int Capacity;
 	public final int getCapacity() {
@@ -138,8 +138,9 @@ public class ConcurrentLruLike<K, V> {
 		var lruItem = DataMap.computeIfAbsent(k, (k2) -> {
 				V value = factory.create();
 				isNew.Value = true;
-				var lruItemNew = new ConcurrentLruItem<>(value, LruHot);
-				LruHot.put(k, lruItemNew); // MUST replace
+				var curLruHot = LruHot;
+				var lruItemNew = new ConcurrentLruItem<>(value, curLruHot);
+				curLruHot.put(k, lruItemNew); // MUST replace
 				return lruItemNew;
 		});
 
@@ -153,8 +154,9 @@ public class ConcurrentLruLike<K, V> {
 		if (lruItem.LruNode != LruHot) {
 			// compare key and value
 			lruItem.LruNode.remove(key, lruItem);
-			if (LruHot.putIfAbsent(key, lruItem) == null) { // maybe fail
-				lruItem.LruNode = LruHot;
+			var curLruHot = LruHot;
+			if (curLruHot.putIfAbsent(key, lruItem) == null) { // maybe fail
+				lruItem.LruNode = curLruHot;
 			}
 		}
 	}
@@ -185,8 +187,9 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	private void NewLruHot() {
-		LruHot = new ConcurrentHashMap<>(
-				(int)GetLruInitialCapaicty(), 0.75f, ConcurrencyLevel);
+		var newLru = new ConcurrentHashMap<K, ConcurrentLruItem<K, V>>(
+				(int)GetLruInitialCapaicty(), 0.75f, ConcurrencyLevel);;
+		LruHot = newLru;
 		LruQueue.add(LruHot);
 	}
 
