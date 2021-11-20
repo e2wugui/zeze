@@ -11,17 +11,17 @@ public class TestConflict {
 	private int sum;
 
 	@Before
-	public final void testInit() {
+	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() {
+	public final void testCleanup() throws Throwable {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public final void testConflictAdd() {
+	public final void testConflictAdd() throws Throwable {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcRemove, "ProcRemove", null).Call();
 		Task[] tasks = new Task[2000];
 		for (int i = 0; i < 2000; ++i) {

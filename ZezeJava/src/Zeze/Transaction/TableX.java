@@ -24,7 +24,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		autoKey = value;
 	}
 
-	private Record1<K, V> FindInCacheOrStorage(K key) throws Throwable {
+	private Record1<K, V> FindInCacheOrStorage(K key) {
 		var tkey = new TableKey(Name, key);
 		while (true) {
 			Record1<K, V> r = getCache().GetOrAdd(key, () -> new Record1<K, V>(this, key, null));
@@ -270,7 +270,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
-	public final V get(K key) throws Throwable {
+	public final V get(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
@@ -286,7 +286,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return r.getValueTyped();
 	}
 
-	public final V getOrAdd(K key) throws Throwable {
+	public final V getOrAdd(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
@@ -316,7 +316,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return add;
 	}
 
-	public final boolean tryAdd(K key, V value) throws Throwable {
+	public final boolean tryAdd(K key, V value) {
 		if (null != get(key)) {
 			return false;
 		}
@@ -329,14 +329,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return true;
 	}
 
-	public final void insert(K key, V value) throws Throwable {
+	public final void insert(K key, V value) {
 		if (false == tryAdd(key, value)) {
 			throw new IllegalArgumentException(Str.format("table:{} insert key:{} exists",
 					this.getClass().getName(), key));
 		}
 	}
 
-	public final void put(K key, V value) throws Throwable {
+	public final void put(K key, V value) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
@@ -353,7 +353,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	// 几乎和Put一样，还是独立开吧。
-	public final void remove(K key) throws Throwable {
+	public final void remove(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
@@ -525,7 +525,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 @param key
 	 @return 
 	*/
-	public final V selectCopy(K key) throws Throwable {
+	public final V selectCopy(K key) {
 		TableKey tkey = new TableKey(Name, key);
 		Transaction currentT = Transaction.getCurrent();
 		if (null != currentT) {

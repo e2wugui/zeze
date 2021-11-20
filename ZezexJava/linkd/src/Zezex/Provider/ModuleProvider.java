@@ -299,7 +299,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessUnBindRequest(Protocol _rpc) {
+    public long ProcessUnBindRequest(Protocol _rpc) throws Throwable {
         var rpc = (UnBind) _rpc;
         if (rpc.Argument.getLinkSids().size() == 0) {
             UnBindModules(rpc.getSender(), rpc.Argument.getModules().keySet());
@@ -362,7 +362,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessKick(Protocol _p) {
+    public long ProcessKick(Protocol _p) throws Throwable {
         var protocol = (Kick) _p;
         App.Instance.LinkdService.ReportError(
                 protocol.Argument.getLinksid(),

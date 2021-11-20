@@ -14,7 +14,7 @@ public class TestRpc extends TestCase{
 	
 	 ManualResetEvent connected = new ManualResetEvent(false);
 	
-	public final void testRpcSimple() throws InterruptedException {
+	public final void testRpcSimple() throws Throwable {
 		Service server = new Service("TestRpc.Server");
 		Zeze.Util.Task.tryInitThreadPool(null, null, null);
 		FirstRpc forid = new FirstRpc();
@@ -39,7 +39,7 @@ public class TestRpc extends TestCase{
 
 	
 
-	public final long ProcessFirstRpcRequest(Protocol p) {
+	public final long ProcessFirstRpcRequest(Protocol p) throws Throwable {
 		FirstRpc rpc = (FirstRpc) p;
 		rpc.Result.Assign(rpc.Argument);
 		rpc.SendResult();
@@ -70,7 +70,7 @@ public class TestRpc extends TestCase{
 			this.test = test;
 		}
 		@Override
-		public void OnSocketConnected(AsyncSocket so) {
+		public void OnSocketConnected(AsyncSocket so) throws Throwable {
 			super.OnSocketConnected(so);
 			test.connected.Set();
 		}

@@ -11,7 +11,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
     public final static int AddCount = 1_000_000;
     public final static int ConcurrentLevel = 1_000;
 
-    public void testBenchmark() throws ExecutionException, InterruptedException {
+    public void testBenchmark() throws Throwable {
         App.Instance.Start();
         try {
             for (int i = 0; i < ConcurrentLevel; ++i) {

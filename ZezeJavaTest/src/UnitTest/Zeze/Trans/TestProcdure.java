@@ -23,7 +23,7 @@ public class TestProcdure{
 		return Procedure.Unknown;
 	}
 
-	public final long ProcNest() {
+	public final long ProcNest() throws Throwable {
 		assert bean.getI() == 0;
 		bean.setI(1);
 		assert bean.getI() == 1; {
@@ -42,17 +42,17 @@ public class TestProcdure{
 	}
 
 	@Before
-	public final void testInit() {
+	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() {
+	public final void testCleanup() throws Throwable {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public final void test1() {
+	public final void test1() throws Throwable {
 		TableKey root = new TableKey("1", 1);
 		// 特殊测试，拼凑一个record用来提供需要的信息。
 		var r = new Record1<Long, TestBegin.MyBean>(null, 1L, bean);

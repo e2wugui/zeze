@@ -30,7 +30,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessDispatch(Protocol _p) {
+	public long ProcessDispatch(Protocol _p) throws Throwable {
 		var p = (Dispatch)_p;
 		try {
 			var factoryHandle = App.Server.FindProtocolFactoryHandle(p.Argument.getProtocolType());
@@ -78,7 +78,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessLinkBroken(Protocol _protocol) {
+	public long ProcessLinkBroken(Protocol _protocol) throws Throwable {
 		var protocol = (LinkBroken)_protocol;
 		// 目前仅需设置online状态。
 		if (false == protocol.Argument.getStates().isEmpty()) {
@@ -89,7 +89,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessModuleRedirectRequest(Protocol _rpc) {
+	public long ProcessModuleRedirectRequest(Protocol _rpc) throws Throwable {
 		var rpc = (ModuleRedirect)_rpc;
 		try {
 			// replace RootProcedure.ActionName. 为了统计和日志输出。
@@ -281,7 +281,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessTransmit(Protocol _protocol) {
+	public long ProcessTransmit(Protocol _protocol) throws Throwable {
 		var protocol = (Transmit)_protocol;
 		App.Game_Login.getOnlines().ProcessTransmit(
 				protocol.Argument.getSender(),
@@ -291,7 +291,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessAnnounceLinkInfo(Protocol _protocol) {
+	public long ProcessAnnounceLinkInfo(Protocol _protocol) throws Throwable {
 		var protocol = (AnnounceLinkInfo)_protocol;
 		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
 		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
@@ -299,7 +299,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessSendConfirm(Protocol _protocol) {
+	public long ProcessSendConfirm(Protocol _protocol) throws Throwable {
 		var protocol = (SendConfirm)_protocol;
 		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
 		var ctx = App.Server.<Game.Login.Onlines.ConfirmContext>TryGetManualContext(

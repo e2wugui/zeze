@@ -472,7 +472,7 @@ public class Onlines {
 			}
 		}
 
-		public final long ProcessLinkConfirm(String linkName) {
+		public final long ProcessLinkConfirm(String linkName) throws Throwable {
 			synchronized (this) {
 				getLinkNames().remove(linkName);
 				if (getLinkNames().isEmpty()) {

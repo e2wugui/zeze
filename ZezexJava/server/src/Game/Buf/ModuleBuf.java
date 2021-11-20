@@ -60,7 +60,7 @@ public class ModuleBuf extends AbstractModule {
 	// 如果宠物什么的如果也有buf，看情况处理：
 	// 统一存到一个表格中（使用BFighetId），或者分开存储。
 	// 【建议分开处理】。
-	public final Bufs GetBufs(long roleId) throws Throwable {
+	public final Bufs GetBufs(long roleId) {
 		return new Bufs(roleId, _tbufs.getOrAdd(roleId));
 	}
 

@@ -22,7 +22,7 @@ public class TestAsyncSocket extends TestCase {
 		}
 
 		@Override
-		public void OnSocketConnected(AsyncSocket so) {
+		public void OnSocketConnected(AsyncSocket so) throws Throwable {
 			super.OnSocketConnected(so);
 			System.out.println("OnSocketConnected: " + so.getSessionId());
 			String head = "GET http://www.163.com/\r\nHost: www.163.com\r\nAccept:*/*\r\n\r\n";
@@ -31,7 +31,7 @@ public class TestAsyncSocket extends TestCase {
 		}
 
 		@Override
-		public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) {
+		public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Throwable {
 			System.out.println("input size=" + input.Size());
 			System.out.println(input.ReadString());
 			input.ReadIndex = input.WriteIndex;
@@ -39,7 +39,7 @@ public class TestAsyncSocket extends TestCase {
 		}
 	}
 
-	public final void testConnect() {
+	public final void testConnect() throws Throwable {
 		ServiceClient client = new ServiceClient();
 		try (AsyncSocket so = client.NewClientSocket("www.163.com", 80, null, null)) {
 			client.Future.Wait();

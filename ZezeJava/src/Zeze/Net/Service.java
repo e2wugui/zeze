@@ -448,7 +448,11 @@ public class Service {
 		@SuppressWarnings("unchecked")
 		var r = (T)ManualContexts.remove(sessionId);
 		if (null != r) {
-			r.OnRemoved();
+			try {
+				r.OnRemoved();
+			} catch (Throwable skip) {
+				logger.error(skip);
+			}
 		}
 		return r;
 	}

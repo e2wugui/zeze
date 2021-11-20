@@ -102,11 +102,11 @@ public class ModuleRedirect {
 			}
 		}
 
-		public final String GetNarmalCallString() {
+		public final String GetNarmalCallString() throws Throwable {
 			return GetNarmalCallString(null);
 		}
 
-		public final String GetNarmalCallString(Zeze.Util.Func1<java.lang.reflect.Parameter, Boolean> skip) {
+		public final String GetNarmalCallString(Zeze.Util.Func1<java.lang.reflect.Parameter, Boolean> skip) throws Throwable {
 			StringBuilder sb = new StringBuilder();
 			boolean first = true;
 			for (int i = 0; i < ParametersNormal.size(); ++i) {
@@ -145,7 +145,7 @@ public class ModuleRedirect {
 			return Str.format("{}, ", ParameterHashOrServer.getName());
 		}
 
-		public final String GetBaseCallString() {
+		public final String GetBaseCallString() throws Throwable {
 			return Str.format("{}{}{}", GetHashOrServerCallString(), GetNarmalCallString(), GetModeCallString());
 		}
 
@@ -226,25 +226,25 @@ public class ModuleRedirect {
 		}
 
 		String genClassName = Str.format("_ModuleRedirect_{}_", module.getFullName().replace('.', '_'));
-		String code = GenModuleCode(module, genClassName, overrides);
-		/*
 		try {
-			var tmp = new FileWriter(genClassName + ".java", java.nio.charset.StandardCharsets.UTF_8);
-			tmp.write(code);
-			tmp.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return module;
-		/*/
-		module.UnRegister();
-		try {
+			String code = GenModuleCode(module, genClassName, overrides);
+			/*
+			try {
+				var tmp = new FileWriter(genClassName + ".java", java.nio.charset.StandardCharsets.UTF_8);
+				tmp.write(code);
+				tmp.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return module;
+			/*/
+			module.UnRegister();
 			Class<?> moduleClass = compiler.compile(genClassName, code);
 			return (Zeze.IModule) moduleClass.getDeclaredConstructor(new Class[0]).newInstance();
+			// */
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
-		// */
 	}
 
 	private org.mdkt.compiler.InMemoryJavaCompiler compiler;
@@ -310,7 +310,7 @@ public class ModuleRedirect {
 		}
 	}
 
-	private String GenModuleCode(Zeze.IModule module, String genClassName, List<MethodOverride> overrides)  {
+	private String GenModuleCode(Zeze.IModule module, String genClassName, List<MethodOverride> overrides) throws Throwable {
 		var sb = new Zeze.Util.StringBuilderCs();
 		sb.AppendLine("");
 		sb.AppendLine("import java.util.List;");
@@ -470,7 +470,7 @@ public class ModuleRedirect {
 	}
 
 	void GenRedirectAll(Zeze.Util.StringBuilderCs sb, Zeze.Util.StringBuilderCs sbHandles,
-						Zeze.IModule module, MethodOverride m) {
+						Zeze.IModule module, MethodOverride m) throws Throwable {
 		var reqVarName = "tmp" + TmpVarNameId.incrementAndGet();
 		sb.AppendLine(Str.format("        var {} = new Zezex.Provider.ModuleRedirectAllRequest();", reqVarName));
 		sb.AppendLine(Str.format("        {}.Argument.setModuleId({});", reqVarName, module.getId()));
@@ -547,7 +547,7 @@ public class ModuleRedirect {
 		sbHandles.AppendLine(Str.format(""));
 	}
 
-	void GenRedirectAllContext(Zeze.Util.StringBuilderCs sb, Zeze.IModule module, MethodOverride m) {
+	void GenRedirectAllContext(Zeze.Util.StringBuilderCs sb, Zeze.IModule module, MethodOverride m) throws Throwable {
 		sb.AppendLine(Str.format("    public static class Context{} extends Zezex.Provider.ModuleProvider.ModuleRedirectAllContext", m.Method.getName()));
 		sb.AppendLine(Str.format("    {"));
 		if (null != m.ParameterRedirectAllResultHandle)
@@ -721,7 +721,7 @@ public class ModuleRedirect {
 		);
 	}
 
-	public String GetTypeName(Class<?> type) {
+	public String GetTypeName(Class<?> type) throws Throwable {
 		var kn = Serializer.get(type);
 		if (null != kn)
 			return kn.TypeName.call();
@@ -732,7 +732,7 @@ public class ModuleRedirect {
 		return type.getTypeName();
 	}
 
-	public void GenLocalVariable(Zeze.Util.StringBuilderCs sb, String prefix, Class<?> type, String varName) {
+	public void GenLocalVariable(Zeze.Util.StringBuilderCs sb, String prefix, Class<?> type, String varName) throws Throwable {
 		var kn = Serializer.get(type);
 		if (null != kn) {
 			kn.Define.run(sb, prefix, varName);
@@ -748,7 +748,7 @@ public class ModuleRedirect {
 		sb.AppendLine(Str.format("{}{} {} = null;", prefix, type.getTypeName(), varName));
 	}
 
-	public void GenEncode(Zeze.Util.StringBuilderCs sb, String prefix, String bbName, Class<?> type, String varName) {
+	public void GenEncode(Zeze.Util.StringBuilderCs sb, String prefix, String bbName, Class<?> type, String varName) throws Throwable {
 		var kn = Serializer.get(type);
 		if (null != kn) {
 			kn.Encoder.run(sb, prefix, varName, bbName);
@@ -771,7 +771,7 @@ public class ModuleRedirect {
 		sb.AppendLine(Str.format("{}}", prefix));
 	}
 
-	public void GenDecode(Zeze.Util.StringBuilderCs sb, String prefix, Class<?> type, String varName) {
+	public void GenDecode(Zeze.Util.StringBuilderCs sb, String prefix, Class<?> type, String varName) throws Throwable {
 		var kn = Serializer.get(type);
 		if (null != kn) {
 			kn.Decoder.run(sb, prefix, varName);
@@ -806,7 +806,7 @@ public class ModuleRedirect {
 		//return type == Zeze.Util.RefObject.class;
 	}
 
-	public void GenEncode(Zeze.Util.StringBuilderCs sb, String prefix, String bbName, List<java.lang.reflect.Parameter> parameters) {
+	public void GenEncode(Zeze.Util.StringBuilderCs sb, String prefix, String bbName, List<java.lang.reflect.Parameter> parameters) throws Throwable {
 		for (int i = 0; i < parameters.size(); ++i)  {
 			var p = parameters.get(i);
 			if (IsOut(p.getType()))
@@ -817,7 +817,7 @@ public class ModuleRedirect {
 		}
 	}
 
-	public void GenDecode(Zeze.Util.StringBuilderCs sb, String prefix, List<java.lang.reflect.Parameter> parameters) {
+	public void GenDecode(Zeze.Util.StringBuilderCs sb, String prefix, List<java.lang.reflect.Parameter> parameters) throws Throwable {
 		for (int i = 0; i < parameters.size(); ++i) {
 			var p = parameters.get(i);
 			if (IsOut(p.getType()))
@@ -828,7 +828,7 @@ public class ModuleRedirect {
 		}
 	}
 
-	public String ToDefineString(java.lang.reflect.Parameter[] parameters) {
+	public String ToDefineString(java.lang.reflect.Parameter[] parameters) throws Throwable {
 		var sb = new Zeze.Util.StringBuilderCs();
 		boolean first = true;
 		for (var p : parameters) {

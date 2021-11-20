@@ -46,7 +46,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	}
 
 	@Override
-	public Acquire Acquire(int state) throws Throwable {
+	public Acquire Acquire(int state) {
 		if (null == getTTable().TStorage) {
 			return new Acquire(null, state); // 不支持内存表cache同步。
 		}

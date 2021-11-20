@@ -67,7 +67,7 @@ public final class GlobalAgent {
 			GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 		}
 
-		public final AsyncSocket Connect(GlobalClient client) throws Throwable {
+		public final AsyncSocket Connect(GlobalClient client) {
 			synchronized (this) {
 				if (null != Logined) {
 					try {
@@ -86,7 +86,11 @@ public final class GlobalAgent {
 
 				if (null == getSocket()) {
 					setLogined(new TaskCompletionSource<AsyncSocket>());
-					setSocket(client.NewClientSocket(getHost(), getPort(), this,null));
+					try {
+						setSocket(client.NewClientSocket(getHost(), getPort(), this,null));
+					} catch (Throwable e) {
+						throw new RuntimeException(e); // TODO 确认网络错误怎么抛出。
+					}
 					// 每次新建连接创建future，没并发问题吧，还没仔细考虑。
 				}
 			}
@@ -169,7 +173,7 @@ public final class GlobalAgent {
 		return gkey.hashCode() % Agents.length;
 	}
 
-	public Acquire Acquire(GlobalTableKey gkey, int state) throws Throwable {
+	public Acquire Acquire(GlobalTableKey gkey, int state) {
 		if (null != getClient()) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
 			var socket = agent.Connect(getClient());

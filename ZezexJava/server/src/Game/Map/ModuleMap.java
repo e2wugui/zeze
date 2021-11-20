@@ -15,7 +15,7 @@ public final class ModuleMap extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessCEnterWorld(Protocol _protocol) {
+	public long ProcessCEnterWorld(Protocol _protocol) throws Throwable {
         var protocol = (CEnterWorld)_protocol;
 		Game.Login.Session session = Game.Login.Session.Get(protocol);
 		if (session.getRoleId() == null) {
@@ -27,7 +27,7 @@ public final class ModuleMap extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessCEnterWorldDone(Protocol _protocol) {
+	public long ProcessCEnterWorldDone(Protocol _protocol) throws Throwable {
         var protocol = (CEnterWorldDone)_protocol;
 		// TODO map
 		return Procedure.NotImplement;

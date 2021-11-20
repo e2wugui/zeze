@@ -3,6 +3,8 @@ package Game;
 import Zeze.Net.*;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+
+import javax.swing.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 
@@ -29,7 +31,7 @@ public final class Server extends ServerBase {
 	}
 
 	@Override
-	public void Start() {
+	public void Start() throws Throwable {
 		// copy Config.Connector to Links
 		getConfig().ForEachConnector((c) -> getLinks().putIfAbsent(c.getName(), c));
 		super.Start();
@@ -42,7 +44,12 @@ public final class Server extends ServerBase {
 			current.add(getLinks().computeIfAbsent(linkName, (key) -> {
 				var outc = new Zeze.Util.OutObject<Connector>();
 					if (getConfig().TryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outc)) {
-						outc.Value.Start();
+						try {
+							outc.Value.Start();
+						} catch (Throwable e) {
+							logger.error(e);
+							return null;
+						}
 					}
 					return outc.Value;
 			}).getName());
@@ -107,7 +114,7 @@ public final class Server extends ServerBase {
 	public Zeze.Util.ManualResetEvent ProviderDynamicSubscribeCompleted = new Zeze.Util.ManualResetEvent(false);
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket sender) {
+	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
 		super.OnHandshakeDone(sender);
 		var linkName = GetLinkName(sender);
 		sender.setUserState(new LinkSession(linkName, sender.getSessionId()));
@@ -133,7 +140,7 @@ public final class Server extends ServerBase {
 	}
 
 	@Override
-	public void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle) {
+	public void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle) throws Throwable {
 		// 防止Client不进入加密，直接发送用户协议。
 		if (false == IsHandshakeProtocol(p.getTypeId())) {
 			p.getSender().VerifySecurity();
@@ -179,7 +186,7 @@ public final class Server extends ServerBase {
 	}
 
 
-	public Server(Zeze.Application zeze) {
+	public Server(Zeze.Application zeze) throws Throwable {
 		super(zeze);
 	}
 

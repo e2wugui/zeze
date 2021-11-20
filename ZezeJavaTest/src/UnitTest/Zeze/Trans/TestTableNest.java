@@ -9,17 +9,17 @@ import Zeze.Transaction.*;
 public class TestTableNest{
 	
 	@Before
-	public final void testInit() {
+	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() {
+	public final void testCleanup() throws Throwable {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public final void testNest() {
+	public final void testNest() throws Throwable {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcTableRemove, "ProcTableRemove", null).Call();
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcTableAdd, "ProcTableAdd", null).Call();
 	}
@@ -29,7 +29,7 @@ public class TestTableNest{
 		return Procedure.Success;
 	}
 
-	private long ProcTableAdd() {
+	private long ProcTableAdd() throws Throwable {
 		demo.Module1.Value v1 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(4321L);
 		assert v1 != null;
 		assert Procedure.Success != demo.App.getInstance().Zeze.NewProcedure(this::ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback", null).Call();

@@ -126,7 +126,7 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	// for other module
-	public Bag GetBag(long roleid) throws Throwable {
+	public Bag GetBag(long roleid) {
 		return new Bag(roleid, _tbag.getOrAdd(roleid));
 	}
 

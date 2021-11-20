@@ -140,7 +140,7 @@ public final class ModuleEquip extends AbstractModule {
 		return ErrorCode(ResultCodeEquipNotFound);
 	}
 
-	public Game.Item.Item GetEquipItem(long roleId, int position) throws Throwable {
+	public Game.Item.Item GetEquipItem(long roleId, int position) {
 		BEquips equips = _tequip.getOrAdd(roleId);
 		return GetEquipItem(equips, position);
 	}
@@ -156,7 +156,7 @@ public final class ModuleEquip extends AbstractModule {
 		return null;
 	}
 
-	public void CalculateFighter(Fighter fighter) throws Throwable {
+	public void CalculateFighter(Fighter fighter) {
 		if (fighter.getId().getType() != BFighterId.TypeRole) {
 			return;
 		}

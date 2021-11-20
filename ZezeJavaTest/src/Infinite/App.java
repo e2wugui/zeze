@@ -12,11 +12,11 @@ public class App {
         app = new demo.App();
     }
 
-    public void Start() {
+    public void Start() throws Throwable {
         app.Start(config);
     }
 
-    public void Stop() {
+    public void Stop() throws Throwable {
         app.Stop();
     }
 

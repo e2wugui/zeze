@@ -17,7 +17,7 @@ public class App extends Zeze.AppBase {
         return Instance;
     }
 
-    public void Start() {
+    public void Start() throws Throwable {
     	Start(Config.Load("./zeze.xml"));
     }
 
@@ -30,7 +30,7 @@ public class App extends Zeze.AppBase {
         }
     }
 
-    public void Start(Config config) {
+    public void Start(Config config) throws Throwable {
         System.setProperty("log4j.configurationFile", "log4j2.xml");
         // 测试本地事务性能需要容量大一点
         adjustTableConf(config.getDefaultTableConf());
@@ -42,7 +42,7 @@ public class App extends Zeze.AppBase {
         StartService(); // 启动网络
     }
 
-    public void Stop() {
+    public void Stop() throws Throwable {
         StopService(); // 关闭网络
         StopModules(); // 关闭模块,，卸载配置什么的。
         Zeze.Stop(); // 关闭数据库
@@ -59,11 +59,11 @@ public class App extends Zeze.AppBase {
 
     public demo.Server Server;
 
-    public void Create() {
+    public void Create() throws Throwable {
         Create(null);
     }
 
-    public void Create(Zeze.Config config) {
+    public void Create(Zeze.Config config) throws Throwable {
         synchronized (this) {
             if (null != Zeze)
                 return;
@@ -99,7 +99,7 @@ public class App extends Zeze.AppBase {
         }
     }
 
-    public void StartModules() {
+    public void StartModules() throws Throwable {
         synchronized(this) {
             demo_Module1.Start(this);
             demo_Module1_Module11.Start(this);
@@ -107,20 +107,20 @@ public class App extends Zeze.AppBase {
         }
     }
 
-    public void StopModules() {
+    public void StopModules() throws Throwable {
         synchronized(this) {
             demo_Module1.Stop(this);
             demo_Module1_Module11.Stop(this);
         }
     }
 
-    public void StartService() {
+    public void StartService() throws Throwable {
         synchronized(this) {
             Server.Start();
         }
     }
 
-    public void StopService() {
+    public void StopService() throws Throwable {
         synchronized(this) {
             Server.Stop();
         }

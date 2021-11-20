@@ -8,7 +8,7 @@ import java.util.concurrent.ExecutionException;
 public class BBasicSimpleAddConcurrentWithConflict  extends TestCase {
     public final static int AddCount = 1_000_000;
 
-    public void testBenchmark() throws ExecutionException, InterruptedException {
+    public void testBenchmark() throws Throwable {
         App.Instance.Start();
         try {
             App.Instance.Zeze.NewProcedure(this::Remove, "remove").Call();

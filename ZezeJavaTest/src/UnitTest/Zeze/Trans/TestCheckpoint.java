@@ -10,17 +10,17 @@ import Zeze.Transaction.Procedure;
 public class TestCheckpoint{
 	
 	@Before
-	public final void testInit() {
+	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() {
+	public final void testCleanup() throws Throwable {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public final void testCp() {
+	public final void testCp() throws Throwable {
 		assert demo.App.getInstance().Zeze.NewProcedure(this::ProcClear, "ProcClear", null).Call() == Procedure.Success;
 		assert demo.App.getInstance().Zeze.NewProcedure(this::ProcChange, "ProcChange", null).Call() == Procedure.Success;
 		demo.App.getInstance().Zeze.CheckpointRun();

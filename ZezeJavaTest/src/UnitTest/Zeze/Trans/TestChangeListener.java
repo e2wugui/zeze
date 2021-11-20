@@ -23,16 +23,16 @@ import Zeze.Transaction.Collections.PSet1;
 public class TestChangeListener{
 	
 	@Before
-	public final void testInit() {
+	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() {
+	public final void testCleanup() throws Throwable {
 		demo.App.getInstance().Stop();
 	}
 
-	private void Prepare() {
+	private void Prepare() throws Throwable {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 					demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 					return (long)Procedure.Success;
@@ -70,7 +70,7 @@ public class TestChangeListener{
 	}
 
 	@Test
-	public final void testAllType() {
+	public final void testAllType() throws Throwable {
 		Prepare();
 		AddListener();
 
@@ -187,7 +187,7 @@ public class TestChangeListener{
 
 	private demo.Module1.Value localValue;
 
-	private void Init() {
+	private void Init() throws Throwable {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 					demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 					localValue = value == null ? null : value.Copy();
@@ -212,7 +212,7 @@ public class TestChangeListener{
 		_CLMap15.Init(localValue);
 	}
 
-	private void Verify() {
+	private void Verify() throws Throwable {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 					demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 					localValue = value == null ? null : value.Copy();
