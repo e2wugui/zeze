@@ -48,7 +48,7 @@ public final class ServiceConf {
 		return Connectors;
 	}
 
-	public void SetService(Service service) {
+	public void SetService(Service service) throws Throwable {
 		synchronized (this) {
 			if (getService() != null) {
 				throw new RuntimeException(Str.format("ServiceConf of '{}' Service != null", getName()));
@@ -103,7 +103,7 @@ public final class ServiceConf {
 		getConnectors().remove(c.getName(), c);
 	}
 
-	public void ForEachConnector(Zeze.Util.Action1<Connector> action) {
+	public void ForEachConnector(Zeze.Util.Action1<Connector> action) throws Throwable {
 		for (var c : getConnectors().values()) {
 			action.run(c);
 		}
@@ -113,9 +113,9 @@ public final class ServiceConf {
 		return getConnectors().size();
 	}
 
-	public boolean ForEachConnector2(Function<Connector, Boolean> func) {
+	public boolean ForEachConnector2(Zeze.Util.Func1<Connector, Boolean> func) throws Throwable {
 		for (var c : getConnectors().values()) {
-			if (false == func.apply(c)) {
+			if (false == func.call(c)) {
 				return false;
 			}
 		}
@@ -133,7 +133,7 @@ public final class ServiceConf {
 		getAcceptors().remove(a.getName(), a);
 	}
 
-	public void ForEachAcceptor(Zeze.Util.Action1<Acceptor> action) {
+	public void ForEachAcceptor(Zeze.Util.Action1<Acceptor> action) throws Throwable {
 		for (var a : getAcceptors().values()) {
 			action.run(a);
 		}
@@ -260,17 +260,17 @@ public final class ServiceConf {
 		}
 	}
 
-	public void Start() {
+	public void Start() throws Throwable {
 		ForEachAcceptor(Acceptor::Start);
 		ForEachConnector(Connector::Start);
 	}
 
-	public void Stop() {
+	public void Stop() throws Throwable {
 		ForEachAcceptor(Acceptor::Stop);
 		ForEachConnector(Connector::Stop);
 	}
 
-	public void StopListen() {
+	public void StopListen() throws Throwable {
 		ForEachAcceptor(Acceptor::Stop);
 	}
 }

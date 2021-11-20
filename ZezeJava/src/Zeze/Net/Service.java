@@ -56,7 +56,7 @@ public class Service {
 		return getSocketMap();
 	}
 
-	private void InitConfig(Zeze.Config config) {
+	private void InitConfig(Zeze.Config config) throws Throwable {
 		Config = config == null ? null : config.GetServiceConf(getName());
 		if (null == Config) {
 			// setup program default
@@ -71,12 +71,12 @@ public class Service {
 		SocketOptions= Config.getSocketOptions();
 	}
 
-	public Service(String name, Zeze.Config config) {
+	public Service(String name, Zeze.Config config) throws Throwable {
 		Name = name;
 		InitConfig(config);
 	}
 
-	public Service(String name, Application app) {
+	public Service(String name, Application app) throws Throwable {
 		Name = name;
 		Zeze = app;
 		InitConfig(app == null ? null : app.getConfig());
@@ -103,13 +103,13 @@ public class Service {
 		return null;
 	}
 
-	public void Start() {
+	public void Start() throws Throwable {
 		if (Config != null) {
 			Config.Start();
 		}
 	}
 
-	public void Stop() {
+	public void Stop() throws Throwable {
 		if (Config != null) {
 			Config.Stop();
 		}
@@ -124,23 +124,19 @@ public class Service {
 		// _RpcContexts.Clear();
 	}
 
-	public final AsyncSocket NewServerSocket(String ipaddress, int port, Acceptor acceptor) {
-		try {
-			return NewServerSocket(InetAddress.getByName(ipaddress), port, acceptor);
-		} catch (UnknownHostException e) {
-			throw new RuntimeException(e);
-		}
+	public final AsyncSocket NewServerSocket(String ipaddress, int port, Acceptor acceptor) throws Throwable {
+		return NewServerSocket(InetAddress.getByName(ipaddress), port, acceptor);
 	}
 
-	public final AsyncSocket NewServerSocket(InetAddress ipaddress, int port, Acceptor acceptor) {
+	public final AsyncSocket NewServerSocket(InetAddress ipaddress, int port, Acceptor acceptor) throws Throwable {
 		return NewServerSocket(new InetSocketAddress(ipaddress, port), acceptor);
 	}
 
-	public final AsyncSocket NewServerSocket(InetSocketAddress localEP, Acceptor acceptor) {
+	public final AsyncSocket NewServerSocket(InetSocketAddress localEP, Acceptor acceptor) throws Throwable {
 		return new AsyncSocket(this, localEP, acceptor);
 	}
 
-	public final AsyncSocket NewClientSocket(String hostNameOrAddress, int port, Object userState, Connector connector) {
+	public final AsyncSocket NewClientSocket(String hostNameOrAddress, int port, Object userState, Connector connector) throws Throwable {
 		return new AsyncSocket(this, hostNameOrAddress, port, userState, connector);
 	}
 
@@ -150,7 +146,7 @@ public class Service {
 	 @param so
 	 @param e
 	*/
-	public void OnSocketClose(AsyncSocket so, Throwable e) {
+	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 		SocketMap.remove(so.getSessionId(), so);
 		if (null != e) {
 			logger.log(getSocketOptions().getSocketLogLevel(), "OnSocketClose", e);
@@ -166,7 +162,7 @@ public class Service {
 	 
 	 @param so
 	*/
-	public void OnSocketDisposed(AsyncSocket so) {
+	public void OnSocketDisposed(AsyncSocket so) throws Throwable {
 		// 一般实现：遍历RpcContexts，
 		/*
 		var ctxSends = GetRpcContextsToSender(so);
@@ -209,12 +205,12 @@ public class Service {
 	 
 	 @param so
 	*/
-	public void OnSocketAccept(AsyncSocket so) {
+	public void OnSocketAccept(AsyncSocket so) throws Throwable {
 		SocketMap.putIfAbsent(so.getSessionId(), so);
 		OnHandshakeDone(so);
 	}
 
-	public void OnSocketAcceptError(AsyncSocket listener, Throwable e) {
+	public void OnSocketAcceptError(AsyncSocket listener, Throwable e) throws Throwable {
 		logger.log(getSocketOptions().getSocketLogLevel(), () -> "OnSocketAcceptError" + listener, e);
 	}
 	/** 
@@ -223,7 +219,7 @@ public class Service {
 	 加密压缩的连接在相应的方法中调用（see Services\Handshake.cs）。
 	 注意：修改OnHandshakeDone的时机，需要重载OnSocketAccept OnSocketConnected，并且不再调用Service的默认实现。
 	*/
-	public void OnHandshakeDone(AsyncSocket sender) {
+	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
 		sender.setHandshakeDone(true);
 		if (sender.getConnector() != null) {
 			sender.getConnector().OnSocketHandshakeDone(sender);
@@ -236,7 +232,7 @@ public class Service {
 	 @param so
 	 @param e
 	*/
-	public void OnSocketConnectError(AsyncSocket so, Throwable e) {
+	public void OnSocketConnectError(AsyncSocket so, Throwable e) throws Throwable {
 		SocketMap.remove(so.getSessionId(), so);
 		logger.log(getSocketOptions().getSocketLogLevel(), "OnSocketConnectError", e);
 	}
@@ -246,7 +242,7 @@ public class Service {
 	 
 	 @param so
 	*/
-	public void OnSocketConnected(AsyncSocket so) {
+	public void OnSocketConnected(AsyncSocket so) throws Throwable {
 		SocketMap.putIfAbsent(so.getSessionId(), so);
 		OnHandshakeDone(so);
 	}
@@ -258,12 +254,12 @@ public class Service {
 	 @param so
 	 @param input
 	*/
-	public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) {
+	public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Throwable {
 		Protocol.Decode(this, so, input);
 	}
 
 	// 用来派发异步rpc回调。
-	public void DispatchRpcResponse(Protocol rpc, ProtocolHandle responseHandle, ProtocolFactoryHandle factoryHandle) {
+	public void DispatchRpcResponse(Protocol rpc, ProtocolHandle responseHandle, ProtocolFactoryHandle factoryHandle) throws Throwable {
 		if (null != getZeze() && false == factoryHandle.NoProcedure) {
 			Task.Run(getZeze().NewProcedure(
 					() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response", rpc.getUserState()));
@@ -273,7 +269,7 @@ public class Service {
 		}
 	}
 
-	public final void DispatchProtocol2(Object key, Protocol p, ProtocolFactoryHandle factoryHandle) {
+	public final void DispatchProtocol2(Object key, Protocol p, ProtocolFactoryHandle factoryHandle) throws Throwable {
 		if (null != factoryHandle.Handle) {
 			if (null != getZeze() && false == factoryHandle.NoProcedure) {
 				getZeze().getTaskOneByOneByKey().Execute(key, () ->
@@ -296,7 +292,7 @@ public class Service {
 		}
 	}
 
-	public void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle) {
+	public void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle) throws Throwable {
 		if (null != factoryHandle.Handle) {
 			if (null != getZeze() && false == factoryHandle.NoProcedure) {
 				Task.Run(getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
@@ -312,7 +308,7 @@ public class Service {
 		}
 	}
 
-	public void DispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) {
+	public void DispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Throwable {
 		throw new RuntimeException("Unknown Protocol (" + moduleId + ", " + protocolId + ") size=" + data.Size());
 	}
 
@@ -410,12 +406,12 @@ public class Service {
 			UserState = value;
 		}
 
-		public void OnRemoved() {
+		public void OnRemoved() throws Throwable {
 		}
 
 		// after OnRemoved if Timeout
-		public void OnTimeout() {
-		}
+		public void OnTimeout() throws Throwable {
+	}
 
 	}
 
@@ -459,7 +455,7 @@ public class Service {
 
 	// 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
 
-	public final void Foreach(Zeze.Util.Action1<AsyncSocket> action) {
+	public final void Foreach(Zeze.Util.Action1<AsyncSocket> action) throws Throwable {
 		for (var socket : getSocketMap().values()) {
 			action.run(socket);
 		}

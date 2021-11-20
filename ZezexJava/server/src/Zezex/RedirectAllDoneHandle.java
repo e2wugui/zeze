@@ -2,5 +2,5 @@ package Zezex;
 
 @FunctionalInterface
 public interface RedirectAllDoneHandle {
-    public void handle(Zezex.Provider.ModuleProvider.ModuleRedirectAllContext ctx);
+    public void handle(Zezex.Provider.ModuleProvider.ModuleRedirectAllContext ctx) throws Throwable;
 }

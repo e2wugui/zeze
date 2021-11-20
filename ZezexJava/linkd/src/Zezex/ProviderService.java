@@ -4,7 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public final class ProviderService extends ProviderServiceBase {
-	public ProviderService(Zeze.Application zeze) {
+	public ProviderService(Zeze.Application zeze) throws Throwable {
 		super(zeze);
 	}
 
@@ -38,7 +38,7 @@ public final class ProviderService extends ProviderServiceBase {
 	}
 
 	@Override
-	public void OnHandshakeDone(Zeze.Net.AsyncSocket sender) {
+	public void OnHandshakeDone(Zeze.Net.AsyncSocket sender) throws Throwable {
 		sender.setUserState(new ProviderSession(sender.getSessionId()));
 		super.OnHandshakeDone(sender);
 
@@ -49,7 +49,7 @@ public final class ProviderService extends ProviderServiceBase {
 	}
 
 	@Override
-	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) {
+	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) throws Throwable {
 		// 先unbind。这样避免有时间窗口。
 		Zezex.App.getInstance().Zezex_Provider.OnProviderClose(so);
 		super.OnSocketClose(so, e);

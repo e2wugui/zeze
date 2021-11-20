@@ -16,7 +16,7 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
-	public void Start() {
+	public void Start() throws Throwable {
 		LoadConfig();
 		Create();
 		StartModules(); // 启动模块，装载配置什么的。
@@ -33,7 +33,7 @@ public final class App extends Zeze.AppBase {
                 getProviderServicePassiveIp(), getProviderServicePasivePort(), null);
 	}
 
-	public void Stop() {
+	public void Stop() throws Throwable {
 		StopService(); // 关闭网络
 		Zeze.Stop(); // 关闭数据库
 		StopModules(); // 关闭模块,，卸载配置什么的。
@@ -97,11 +97,11 @@ public final class App extends Zeze.AppBase {
 
     public Zezex.ProviderService ProviderService;
 
-    public void Create() {
+    public void Create() throws Throwable {
         Create(null);
     }
 
-    public void Create(Zeze.Config config) {
+    public void Create(Zeze.Config config) throws Throwable {
         synchronized (this) {
             if (null != Zeze)
                 return;
@@ -139,7 +139,7 @@ public final class App extends Zeze.AppBase {
         }
     }
 
-    public void StartModules() {
+    public void StartModules() throws Throwable {
         synchronized(this) {
             Zezex_Linkd.Start(this);
             Zezex_Provider.Start(this);
@@ -147,21 +147,21 @@ public final class App extends Zeze.AppBase {
         }
     }
 
-    public void StopModules() {
+    public void StopModules() throws Throwable {
         synchronized(this) {
             Zezex_Linkd.Stop(this);
             Zezex_Provider.Stop(this);
         }
     }
 
-    public void StartService() {
+    public void StartService() throws Throwable {
         synchronized(this) {
             LinkdService.Start();
             ProviderService.Start();
         }
     }
 
-    public void StopService() {
+    public void StopService() throws Throwable {
         synchronized(this) {
             LinkdService.Stop();
             ProviderService.Stop();

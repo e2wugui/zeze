@@ -75,7 +75,7 @@ public final class ModuleBag extends AbstractModule {
 
 	// protocol handles
 	@Override
-	public long ProcessMoveRequest(Protocol _rpc) {
+	public long ProcessMoveRequest(Protocol _rpc) throws Throwable {
 		var rpc = (Move)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 		// throw exception if not login
@@ -91,7 +91,7 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessDestroyRequest(Protocol _rpc) {
+	public long ProcessDestroyRequest(Protocol _rpc) throws Throwable {
 		var rpc = (Destroy)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 		var moduleCode = GetBag(session.getRoleId().longValue()).Destory(rpc.Argument.getPosition());
@@ -105,7 +105,7 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessSortRequest(Protocol _rpc) {
+	public long ProcessSortRequest(Protocol _rpc) throws Throwable {
 		var rpc = (Sort)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 		Bag bag = GetBag(session.getRoleId().longValue());
@@ -115,7 +115,7 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessGetBagRequest(Protocol _rpc) {
+	public long ProcessGetBagRequest(Protocol _rpc) throws Throwable {
 		var rpc = (GetBag)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 
@@ -126,12 +126,12 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	// for other module
-	public Bag GetBag(long roleid) {
+	public Bag GetBag(long roleid) throws Throwable {
 		return new Bag(roleid, _tbag.getOrAdd(roleid));
 	}
 
 	@Override
-	public long ProcessCUse(Protocol _protocol) {
+	public long ProcessCUse(Protocol _protocol) throws Throwable {
 		var protocol = (CUse)_protocol;
 		var session = Game.Login.Session.Get(protocol);
 		Bag bag = GetBag(session.getRoleId().longValue());

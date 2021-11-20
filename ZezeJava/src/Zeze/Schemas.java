@@ -84,7 +84,7 @@ public class Schemas implements Serializable {
 			}
 		}
 
-		public final void Update() {
+		public final void Update() throws Throwable {
 			for (var update : getUpdates()) {
 				update.run(getBean());
 			}
@@ -149,7 +149,7 @@ public class Schemas implements Serializable {
 				throw new RuntimeException("duplicate bean in CopyBeanIfRemoved Map");
 		}
 
-		public final void Update() {
+		public final void Update() throws Throwable {
 			for (var result : getChecked().values()) {
 				result.Update();
 			}
@@ -634,7 +634,7 @@ public class Schemas implements Serializable {
 
     private final static Logger logger = LogManager.getLogger(Table.class);
 
-    public boolean IsCompatible(Schemas other, Config config) {
+    public boolean IsCompatible(Schemas other, Config config) throws Throwable {
         if (null == other)
             return true;
 

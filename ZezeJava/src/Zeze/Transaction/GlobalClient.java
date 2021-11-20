@@ -7,13 +7,13 @@ import Zeze.Services.GlobalCacheManager.*;
 public final class GlobalClient extends Zeze.Net.Service {
 	private GlobalAgent agent;
 
-	public GlobalClient(GlobalAgent agent, Application zeze) {
+	public GlobalClient(GlobalAgent agent, Application zeze) throws Throwable {
 		super(Zeze.Util.Str.format("{}.GlobalClient", agent.getZeze().getSolutionName()), zeze);
 		this.agent = agent;
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket so) {
+	public void OnHandshakeDone(AsyncSocket so) throws Throwable {
 		super.OnHandshakeDone(so);
 		
 		var agent = (GlobalAgent.Agent)so.getUserState();
@@ -58,7 +58,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 	}
 
 	@Override
-	public void OnSocketConnectError(AsyncSocket so, Throwable e) {
+	public void OnSocketConnectError(AsyncSocket so, Throwable e) throws Throwable {
 		super.OnSocketConnectError(so, e);
 		var agent = (GlobalAgent.Agent)so.getUserState();
 		if (null == e) {
@@ -77,7 +77,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket so, Throwable e) {
+	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 		super.OnSocketClose(so, e);
 		Object tempVar = so.getUserState();
 		var agent = tempVar instanceof GlobalAgent.Agent ? (GlobalAgent.Agent)tempVar : null;

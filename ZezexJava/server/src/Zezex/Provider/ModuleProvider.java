@@ -133,7 +133,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessModuleRedirectAllRequest(Protocol _protocol) {
+	public long ProcessModuleRedirectAllRequest(Protocol _protocol) throws Throwable {
 		var protocol = (ModuleRedirectAllRequest)_protocol;
 		var result = new ModuleRedirectAllResult();
 		try {
@@ -219,7 +219,7 @@ public final class ModuleProvider extends AbstractModule {
 		}
 
 		@Override
-		public void OnRemoved() {
+		public void OnRemoved() throws Throwable {
 			synchronized (this) {
 				if (OnHashEnd != null) {
 					OnHashEnd.handle(this);
@@ -234,7 +234,7 @@ public final class ModuleProvider extends AbstractModule {
 		 2) 需要时初始化UserState并传给action；
 		 3) 处理完成时删除Context
 		*/
-		public final <T> long ProcessHash(int hash, Zeze.Util.Factory<T> factory, Zeze.Util.Func1<T, Long> action) {
+		public final <T> long ProcessHash(int hash, Zeze.Util.Factory<T> factory, Zeze.Util.Func1<T, Long> action) throws Throwable {
 			synchronized (this) {
 				try {
 					if (null == getUserState()) {
@@ -252,7 +252,7 @@ public final class ModuleProvider extends AbstractModule {
 		}
 
 		// 这里处理真正redirect发生时，从远程返回的结果。
-		public final void ProcessResult(ModuleRedirectAllResult result) {
+		public final void ProcessResult(ModuleRedirectAllResult result) throws Throwable {
 			for (var h : result.Argument.getHashs().entrySet()) {
 				// 嵌套存储过程，单个分组的结果处理不影响其他分组。
 				// 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
@@ -269,7 +269,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessModuleRedirectAllResult(Protocol _protocol) {
+	public long ProcessModuleRedirectAllResult(Protocol _protocol) throws Throwable {
 		var protocol = (ModuleRedirectAllResult)_protocol;
 		// replace RootProcedure.ActionName. 为了统计和日志输出。
 		Transaction.getCurrent().getTopProcedure().setActionName(protocol.Argument.getMethodFullName());

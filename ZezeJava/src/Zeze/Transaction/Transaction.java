@@ -139,7 +139,7 @@ public final class Transaction {
 	 
 	 @param procedure
 	*/
-	public long Perform(Procedure procedure) {
+	public long Perform(Procedure procedure) throws Throwable {
 		try {
 			for (int tryCount = 0; tryCount < 256; ++tryCount) { // 最多尝试次数
 				// 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
@@ -414,7 +414,7 @@ public final class Transaction {
 		RedoAndReleaseLock;
 	}
 
-	private CheckResult _check_(boolean writeLock, RecordAccessed e) {
+	private CheckResult _check_(boolean writeLock, RecordAccessed e) throws Throwable {
 		e.OriginRecord.EnterFairLock();
 		try {
 			if (writeLock) {
@@ -460,7 +460,7 @@ public final class Transaction {
 		}
 	}
 
-	private CheckResult _lock_and_check_(Map.Entry<TableKey, RecordAccessed> e) {
+	private CheckResult _lock_and_check_(Map.Entry<TableKey, RecordAccessed> e) throws Throwable {
 		Lockey lockey = Locks.Get(e.getKey());
 		boolean writeLock = e.getValue().Dirty;
 		lockey.EnterLock(writeLock);
@@ -468,7 +468,7 @@ public final class Transaction {
 		return _check_(writeLock, e.getValue());
 	}
 
-	private CheckResult _lock_and_check_() {
+	private CheckResult _lock_and_check_() throws Throwable {
 		if (!Savepoints.isEmpty()) {
 			// 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；
 			// 其他情况属于Begin,Commit,Rollback不匹配。外面检查。

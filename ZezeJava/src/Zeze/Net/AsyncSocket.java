@@ -19,7 +19,7 @@ import java.nio.channels.SocketChannel;
 public final class AsyncSocket implements SelectorHandle, Closeable {
 	private static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 
-	final class OperateSend implements Runnable {
+	final class OperateSend implements Zeze.Util.Action0 {
 		private byte[] bytes;
 		private int offset;
 		private int length;
@@ -32,13 +32,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 
 		@Override
-		public void run() {
+		public void run() throws Throwable {
 			_prepareSending(bytes, offset, length);
 			_outputBufferListCountSum.addAndGet(-length);
 		}
 	}
 
-	final class OperateSetOutputSecurityCodec implements Runnable {
+	final class OperateSetOutputSecurityCodec implements Zeze.Util.Action0 {
 		private byte[] key;
 		private boolean compress;
 		private Runnable callback;
@@ -50,33 +50,33 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 
 		@Override
-		public void run() {
+		public void run() throws Throwable {
 			_SetOutputSecurityCodec(key, compress);
 			if (null != callback)
 				callback.run();
 		}
 	}
 
-	final class OperateSetInputSecurityCodec implements Runnable {
+	final class OperateSetInputSecurityCodec implements Zeze.Util.Action0 {
 		private byte[] key;
 		private boolean compress;
-		private Runnable callback;
+		private Zeze.Util.Action0 callback;
 
-		public OperateSetInputSecurityCodec(byte[] key, boolean compress, Runnable callback) {
+		public OperateSetInputSecurityCodec(byte[] key, boolean compress, Zeze.Util.Action0 callback) {
 			this.key = key;
 			this.compress = compress;
 			this.callback = callback;
 		}
 
 		@Override
-		public void run() {
+		public void run() throws Throwable {
 			_SetInputSecurityCodec(key, compress);
 			if (null != callback)
 				callback.run();
 		}
 	}
 
-	private LinkedBlockingQueue<Runnable> _operates = new LinkedBlockingQueue<>();
+	private LinkedBlockingQueue<Zeze.Util.Action0> _operates = new LinkedBlockingQueue<>();
 	private AtomicInteger _outputBufferListCountSum = new AtomicInteger();
 	private ArrayList<java.nio.ByteBuffer> _outputBufferListSending = null; // 正在发送的 buffers.
 
@@ -158,28 +158,23 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/** 
 	 for server socket
 	*/
-	public AsyncSocket(Service service, InetSocketAddress localEP, Acceptor acceptor) {
+	public AsyncSocket(Service service, InetSocketAddress localEP, Acceptor acceptor) throws Throwable {
 		this.setService(service);
 		this.Acceptor = acceptor;
 
-		try {
-			ServerSocketChannel ssc = ServerSocketChannel.open();
-			ServerSocket ss = ssc.socket();
-			ssc.configureBlocking(false);
-			ss.setReuseAddress(true);
-			// xxx 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
-			if (null != service.getSocketOptions().getReceiveBuffer())
-				ss.setReceiveBufferSize(service.getSocketOptions().getReceiveBuffer());
-			ss.bind(localEP, service.getSocketOptions().getBacklog());
+		ServerSocketChannel ssc = ServerSocketChannel.open();
+		ServerSocket ss = ssc.socket();
+		ssc.configureBlocking(false);
+		ss.setReuseAddress(true);
+		// xxx 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
+		if (null != service.getSocketOptions().getReceiveBuffer())
+			ss.setReceiveBufferSize(service.getSocketOptions().getReceiveBuffer());
+		ss.bind(localEP, service.getSocketOptions().getBacklog());
 
-			SessionId = SessionIdGen.incrementAndGet();
+		SessionId = SessionIdGen.incrementAndGet();
 
-			selector = Selectors.getInstance().choice();
-			selectionKey = selector.register(ssc, SelectionKey.OP_ACCEPT, this);	
-		}
-		catch (Throwable ex) {
-			throw new RuntimeException(ex);
-		}
+		selector = Selectors.getInstance().choice();
+		selectionKey = selector.register(ssc, SelectionKey.OP_ACCEPT, this);
 	}
 
 	@Override
@@ -195,12 +190,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				if (null != sc)
 					sc.close();
 				Service.OnSocketAcceptError(this, e);
-				// skip all error
 			}
 			return;
 		}
 
 		if (key.isConnectable()) {
+			Throwable e = null;
 			try {
 				SocketChannel sc = (SocketChannel) key.channel();
 				if (sc.finishConnect()) {
@@ -210,12 +205,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					doConnectSuccess(sc);
 					return;
 				}
-				Service.OnSocketConnectError(this, null);
+			} catch (Throwable ex) {
+				e = ex;
 			}
-			catch (Throwable e) {
-				Service.OnSocketConnectError(this, e);
-				close();
-			}
+			close();
+			Service.OnSocketConnectError(this, e);
 			return;
 		}
 
@@ -237,7 +231,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/** 
 	 use inner. create when accept;
 	*/
-	private AsyncSocket(Service service, SocketChannel sc, Acceptor acceptor) throws IOException {
+	private AsyncSocket(Service service, SocketChannel sc, Acceptor acceptor) throws Throwable {
 		this.setService(service);
 		this.Acceptor = acceptor;
 
@@ -261,7 +255,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/** 
 	 for client socket. connect
 	*/
-	private void doConnectSuccess(SocketChannel sc) {
+	private void doConnectSuccess(SocketChannel sc) throws Throwable{
 		if (Connector != null) {
 			Connector.OnSocketConnected(this);
 		}
@@ -269,7 +263,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		Service.OnSocketConnected(this);
 	}
 
-	public AsyncSocket(Service service, String hostNameOrAddress, int port, Object userState, Connector connector) {
+	public AsyncSocket(Service service, String hostNameOrAddress, int port, Object userState, Connector connector) throws Throwable{
 		this.setService(service);
 		this.Connector = connector;
 
@@ -280,7 +274,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		try {
 			sc = SocketChannel.open();
 			sc.configureBlocking(false);
-			Socket so = sc.socket();			
+			Socket so = sc.socket();
 			if (null != Service.getSocketOptions().getNoDelay())
 				so.setTcpNoDelay(Service.getSocketOptions().getNoDelay());
 			if (null != Service.getSocketOptions().getReceiveBuffer())
@@ -299,12 +293,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			}
 		} catch (Throwable e) {
 			if (null != sc)
-				try {
-					sc.close();
-				} catch (Throwable e2) {
-					// skip
-				}
-			throw new RuntimeException(e);
+				sc.close();
+			throw e;
 		}
 	}
 
@@ -358,7 +348,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	public void SetInputSecurityCodec(byte[] key, boolean compress, Runnable callback) {
+	public void SetInputSecurityCodec(byte[] key, boolean compress, Zeze.Util.Action0 callback) {
 		synchronized (this) {
 			_operates.add(new OperateSetInputSecurityCodec(key, compress, callback));
 			this.interestOps(0, SelectionKey.OP_WRITE); // try
@@ -422,7 +412,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return Send(str.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 	}
 
-	private void ProcessReceive(SocketChannel sc) throws IOException {
+	private void ProcessReceive(SocketChannel sc) throws Throwable {
 		var buffer = java.nio.ByteBuffer.allocate(32 * 1024);
 		int BytesTransferred = sc.read(buffer);
 		if (BytesTransferred > 0) {
@@ -497,7 +487,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	private void doWrite(SelectionKey key) {
+	private void doWrite(SelectionKey key) throws Throwable {
 		while (true) {
 			for (var op = _operates.poll(); op != null; op = _operates.poll()) {
 				op.run();

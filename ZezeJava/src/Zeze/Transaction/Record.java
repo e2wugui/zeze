@@ -106,7 +106,7 @@ public abstract class Record {
 
 	public abstract void Commit(Zeze.Transaction.RecordAccessed accessed);
 
-	public abstract Acquire Acquire(int state);
+	public abstract Acquire Acquire(int state) throws Throwable;
 
 	public abstract void Encode0();
 	public abstract boolean Flush(Database.Transaction t);

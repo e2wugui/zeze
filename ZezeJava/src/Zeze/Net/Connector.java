@@ -143,7 +143,7 @@ public class Connector {
 		throw new RuntimeException("Connnector.WaitReady fail. " + getName());
 	}
 
-	public void OnSocketClose(AsyncSocket closed) {
+	public void OnSocketClose(AsyncSocket closed) throws Throwable {
 		synchronized (this) {
 			if (getSocket() != closed) {
 				return;
@@ -164,7 +164,7 @@ public class Connector {
 		getHandshakeDoneEvent().Set();
 	}
 
-	public void TryReconnect() {
+	public void TryReconnect() throws Throwable{
 		synchronized (this) {
 			if (!isAutoReconnect() || null != getSocket() || null != getReconnectTask()) {
 				return;
@@ -183,7 +183,7 @@ public class Connector {
 		}
 	}
 
-	public void Start() {
+	public void Start() throws Throwable {
 		synchronized (this) {
 			if (getReconnectTask() != null) {
 				getReconnectTask().Cancel();

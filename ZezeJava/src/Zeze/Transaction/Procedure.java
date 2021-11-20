@@ -33,11 +33,11 @@ public class Procedure {
 		return Zeze;
 	}
 
-	private Callable<Long> Action;
-	public final Callable<Long> getAction() {
+	private Zeze.Util.Func0<Long> Action;
+	public final Zeze.Util.Func0<Long> getAction() {
 		return Action;
 	}
-	public final void setAction(Callable<Long> value) {
+	public final void setAction(Zeze.Util.Func0<Long> value) {
 		Action = value;
 	}
 
@@ -62,7 +62,7 @@ public class Procedure {
 		UserState = value;
 	}
 
-	public Procedure(Application app, Callable<Long> action, String actionName, Object userState) {
+	public Procedure(Application app, Zeze.Util.Func0<Long> action, String actionName, Object userState) {
 		Zeze = app;
 		setAction(action);
 		setActionName(actionName);
@@ -80,7 +80,7 @@ public class Procedure {
 	 
 	 @return 
 	*/
-	public final long Call() {
+	public final long Call() throws Throwable {
 		if (null == Transaction.getCurrent()) {
 			try {
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
@@ -159,13 +159,9 @@ public class Procedure {
 		}
 	}
 
-	protected long Process() {
+	protected long Process() throws Throwable{
 		if (null != Action) {
-			try {
-				return Action.call();
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
+			return Action.call();
 		}
 		return NotImplement;
 	}

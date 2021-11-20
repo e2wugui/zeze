@@ -21,11 +21,11 @@ public class HandshakeBase extends Service {
 	// For Client Only
 	private final ConcurrentHashMap<Long, BigInteger> DHContext = new ConcurrentHashMap<>();
 
-	public HandshakeBase(String name, Zeze.Config config) {
+	public HandshakeBase(String name, Zeze.Config config) throws Throwable {
 		super(name, config);
 	}
 
-	public HandshakeBase(String name, Application app) {
+	public HandshakeBase(String name, Application app) throws Throwable {
 		super(name, app);
 	}
 
@@ -50,12 +50,12 @@ public class HandshakeBase extends Service {
 		}
 	}
 	
-	private int ProcessCHandshakeDone(Protocol p) {
+	private int ProcessCHandshakeDone(Protocol p) throws Throwable {
 		OnHandshakeDone(p.getSender());
 		return 0;
 	}
 
-	private int ProcessCHandshake(Protocol _p) {
+	private int ProcessCHandshake(Protocol _p) throws Throwable {
 		Zeze.Services.Handshake.CHandshake p = (Zeze.Services.Handshake.CHandshake)_p;
 		int group = p.Argument.dh_group;
 		if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
@@ -99,7 +99,7 @@ public class HandshakeBase extends Service {
 				, this::ProcessSHandshake, true));
 	}
 
-	private int ProcessSHandshake(Protocol _p) {
+	private int ProcessSHandshake(Protocol _p) throws Throwable {
 		Zeze.Services.Handshake.SHandshake p = (Zeze.Services.Handshake.SHandshake)_p;
 		var dhRandom = DHContext.get(p.getSender().getSessionId());
 		if ( dhRandom != null ) {

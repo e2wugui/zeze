@@ -174,7 +174,7 @@ public final class Agent implements Closeable {
 			TrySendReadyServiceList();
 		}
 
-		private void PrepareAndTriggerOnchanged() {
+		private void PrepareAndTriggerOnchanged() throws Throwable {
 			for (var info : getServiceInfos().getServiceInfoListSortedByIdentity()) {
 				var state = getServiceIdentityReadyStates().get(info.getServiceIdentity());
 				if (null != state) // 需要确认里面会不会存null。
@@ -185,7 +185,7 @@ public final class Agent implements Closeable {
 			}
 		}
 
-		public void OnNotify(ServiceInfos infos) {
+		public void OnNotify(ServiceInfos infos) throws Throwable {
 			synchronized (this) {
 				switch (getSubscribeType()) {
 				case SubscribeInfo.SubscribeTypeSimple:
@@ -216,7 +216,7 @@ public final class Agent implements Closeable {
 			return true;
 		}
 
-		public void OnCommit(ServiceInfos infos) {
+		public void OnCommit(ServiceInfos infos) throws Throwable {
 			synchronized (this) {
 				// ServiceInfosPending 和 Commit.infos 应该一样，否则肯定哪里出错了。
 				// 这里总是使用最新的 Commit.infos，检查记录日志。
@@ -231,7 +231,7 @@ public final class Agent implements Closeable {
 			}
 		}
 
-		public void OnFirstCommit(ServiceInfos infos) {
+		public void OnFirstCommit(ServiceInfos infos) throws Throwable {
 			synchronized (this) {
 				if (getCommitted()) {
 					return;
@@ -244,28 +244,28 @@ public final class Agent implements Closeable {
 		}
 	}
 
-	public ServiceInfo RegisterService(String name, String identity, String ip, int port) {
+	public ServiceInfo RegisterService(String name, String identity, String ip, int port) throws Throwable {
 		return RegisterService(name, identity, ip, port, null);
 	}
 
-	public ServiceInfo RegisterService(String name, String identity, String ip) {
+	public ServiceInfo RegisterService(String name, String identity, String ip) throws Throwable {
 		return RegisterService(name, identity, ip, 0, null);
 	}
 
-	public ServiceInfo RegisterService(String name, String identity) {
+	public ServiceInfo RegisterService(String name, String identity) throws Throwable {
 		return RegisterService(name, identity, null, 0, null);
 	}
 
-	public ServiceInfo RegisterService(String name, String identity, String ip, int port, Binary extrainfo) {
+	public ServiceInfo RegisterService(String name, String identity, String ip, int port, Binary extrainfo) throws Throwable {
 		return RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
 	}
 
-	public void WaitConnectorReady() {
+	public void WaitConnectorReady() throws Throwable {
 		// 实际上只有一个连接，这样就不用查找了。
 		getClient().getConfig().ForEachConnector(Connector::WaitReady);
 	}
 
-	private ServiceInfo RegisterService(ServiceInfo info) {
+	private ServiceInfo RegisterService(ServiceInfo info) throws Throwable {
 		WaitConnectorReady();
 
 		var regNew = new Zeze.Util.OutObject<Boolean>();
@@ -288,11 +288,11 @@ public final class Agent implements Closeable {
 		return regServInfo;
 	}
 
-	public void UnRegisterService(String name, String identity) {
+	public void UnRegisterService(String name, String identity) throws Throwable {
 		UnRegisterService(new ServiceInfo(name, identity));
 	}
 
-	private void UnRegisterService(ServiceInfo info) {
+	private void UnRegisterService(ServiceInfo info) throws Throwable {
 		WaitConnectorReady();
 
 		var exist = getRegisters().remove(info);
@@ -308,11 +308,11 @@ public final class Agent implements Closeable {
 		}
 	}
 
-	public SubscribeState SubscribeService(String serviceName, int type) {
+	public SubscribeState SubscribeService(String serviceName, int type) throws Throwable {
 		return SubscribeService(serviceName, type, null);
 	}
 
-	public SubscribeState SubscribeService(String serviceName, int type, Object state) {
+	public SubscribeState SubscribeService(String serviceName, int type, Object state) throws Throwable {
 		if (type != SubscribeInfo.SubscribeTypeSimple && type != SubscribeInfo.SubscribeTypeReadyCommit) {
 			throw new RuntimeException("Unkown SubscribeType");
 		}
@@ -324,7 +324,7 @@ public final class Agent implements Closeable {
 		return SubscribeService(tempVar);
 	}
 
-	private SubscribeState SubscribeService(SubscribeInfo info) {
+	private SubscribeState SubscribeService(SubscribeInfo info) throws Throwable {
 		WaitConnectorReady();
 
 		final var newAdd = new Zeze.Util.OutObject<Boolean>();
@@ -342,7 +342,7 @@ public final class Agent implements Closeable {
 		return subState;
 	}
 
-	private long ProcessSubscribeFirstCommit(Protocol p) {
+	private long ProcessSubscribeFirstCommit(Protocol p) throws Throwable {
 		var r = p instanceof SubscribeFirstCommit ? (SubscribeFirstCommit) p : null;
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
@@ -351,7 +351,7 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	public void UnSubscribeService(String serviceName) {
+	public void UnSubscribeService(String serviceName) throws Throwable {
 		WaitConnectorReady();
 
 		var state = getSubscribeStates().remove(serviceName);
@@ -367,7 +367,7 @@ public final class Agent implements Closeable {
 		}
 	}
 
-	private long ProcessNotifyServiceList(Protocol p) {
+	private long ProcessNotifyServiceList(Protocol p) throws Throwable {
 		var r = p instanceof NotifyServiceList ? (NotifyServiceList) p : null;
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
@@ -378,7 +378,7 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessCommitServiceList(Protocol p) {
+	private long ProcessCommitServiceList(Protocol p) throws Throwable {
 		var r = p instanceof CommitServiceList ? (CommitServiceList) p : null;
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
@@ -389,7 +389,7 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessKeepalive(Protocol p) {
+	private long ProcessKeepalive(Protocol p) throws Throwable {
 		var r = p instanceof Keepalive ? (Keepalive) p : null;
 		if (getOnKeepAlive() != null) {
 			getOnKeepAlive().run();
@@ -408,7 +408,7 @@ public final class Agent implements Closeable {
 		return getAutoKeys().computeIfAbsent(name, (k) -> new AutoKey(k, this));
 	}
 
-	public void Stop() {
+	public void Stop() throws Throwable {
 		synchronized (this) {
 			if (null == Client) {
 				return;
@@ -446,11 +446,11 @@ public final class Agent implements Closeable {
 	 */
 
 	public final static String DefaultServiceName = "Zeze.Services.ServiceManager.Agent";
-	public Agent(Zeze.Application zeze) {
+	public Agent(Zeze.Application zeze) throws Throwable {
 		this(zeze, null);
 	}
 
-	public Agent(Zeze.Application zeze, String netServiceName) {
+	public Agent(Zeze.Application zeze, String netServiceName) throws Throwable {
 		this.zeze = zeze;
 
 		var config = zeze.getConfig();
@@ -490,6 +490,10 @@ public final class Agent implements Closeable {
 	}
 
 	public void close() throws IOException {
-		Stop();
+		try {
+			Stop();
+		} catch (Throwable e) {
+			throw new IOException(e);
+		}
 	}
 }

@@ -83,11 +83,11 @@ public final class Application {
 	}
 
 
-	public Application(String solutionName) {
+	public Application(String solutionName) throws Throwable {
 		this(solutionName, null);
 	}
 
-	public Application(String solutionName, Config config) {
+	public Application(String solutionName, Config config) throws Throwable {
 		SolutionName = solutionName;
 
 		Conf = config;
@@ -131,18 +131,18 @@ public final class Application {
 	}
 
 
-	public Procedure NewProcedure(Callable<Long> action, String actionName) {
+	public Procedure NewProcedure(Zeze.Util.Func0<Long> action, String actionName) {
 		return NewProcedure(action, actionName, null);
 	}
 
-	public Procedure NewProcedure(Callable<Long> action, String actionName, Object userState) {
+	public Procedure NewProcedure(Zeze.Util.Func0<Long> action, String actionName, Object userState) {
 		if (isStart()) {
 			return new Procedure(this, action, actionName, userState);
 		}
 		throw new RuntimeException("App Not Start");
 	}
 
-	public void Start() {
+	public void Start() throws Throwable {
 		synchronized (this) {
 			if (getConfig() != null) {
 				getConfig().ClearInUseAndIAmSureAppStopped(getDatabases());
@@ -207,7 +207,7 @@ public final class Application {
 		}
 	}
 
-	public void Stop() {
+	public void Stop() throws Throwable {
 		synchronized (this) {
 			if (getGlobalAgent() != null) {
 				getGlobalAgent().Stop();
@@ -333,7 +333,11 @@ public final class Application {
 			@Override
 			public void run() {
 				logger.fatal("zeze stop start ... from ShutdownHook.");
-				Stop();
+				try {
+					Stop();
+				} catch (Throwable e) {
+					logger.error(e);
+				}
 			}
 		});
 	}
@@ -344,37 +348,37 @@ public final class Application {
 	}
 
 
-	public TaskCompletionSource<Long> Run(Callable<Long> func, String actionName, TransactionModes mode) {
+	public TaskCompletionSource<Long> Run(Zeze.Util.Func0<Long> func, String actionName, TransactionModes mode) {
 		return Run(func, actionName, mode, null);
 	}
 
-	public TaskCompletionSource<Long> Run(Callable<Long> func, String actionName, TransactionModes mode, Object oneByOneKey) {
-		var future = new TaskCompletionSource<Long>();
+	public TaskCompletionSource<Long> Run(Zeze.Util.Func0<Long> func, String actionName, TransactionModes mode, Object oneByOneKey) {
+		final var future = new TaskCompletionSource<Long>();
 		try {
 			switch (mode) {
 				case ExecuteInTheCallerTransaction:
 					future.SetResult(func.call());
 					break;
-	
+
 				case ExecuteInNestedCall:
 					future.SetResult(NewProcedure(func, actionName).Call());
 					break;
-	
+
 				case ExecuteInAnotherThread:
 					if (null != oneByOneKey) {
-						getTaskOneByOneByKey().Execute(oneByOneKey,
+						getTaskOneByOneByKey().Execute(
+								oneByOneKey,
 								() -> future.SetResult(NewProcedure(func, actionName).Call()),
 								actionName);
-					}
-					else {
+					} else {
 						Zeze.Util.Task.Run(
 								() -> future.SetResult(NewProcedure(func, actionName).Call()),
 								actionName);
 					}
 					break;
 			}
-		} catch (Throwable ex) {
-			throw new RuntimeException(ex);
+		} catch (Throwable e) {
+			future.SetException(e);
 		}
 		return future;
 	}

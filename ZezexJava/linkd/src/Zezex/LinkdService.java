@@ -7,7 +7,7 @@ import org.apache.logging.log4j.Logger;
 public final class LinkdService extends LinkdServiceBase {
 	private static final Logger logger = LogManager.getLogger(LinkdService.class);
 
-	public LinkdService(Zeze.Application zeze) {
+	public LinkdService(Zeze.Application zeze) throws Throwable {
 		super(zeze);
 	}
 
@@ -105,13 +105,13 @@ public final class LinkdService extends LinkdServiceBase {
 	}
 
 	@Override
-	public void OnHandshakeDone(Zeze.Net.AsyncSocket sender) {
+	public void OnHandshakeDone(Zeze.Net.AsyncSocket sender) throws Throwable {
 		sender.setUserState(new LinkSession(sender.getSessionId()));
 		super.OnHandshakeDone(sender);
 	}
 
 	@Override
-	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) {
+	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) throws Throwable {
 		super.OnSocketClose(so, e);
 		if (so.getUserState() != null) {
 			((Zezex.LinkSession)so.getUserState()).OnClose();

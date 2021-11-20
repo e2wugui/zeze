@@ -67,7 +67,7 @@ public final class GlobalAgent {
 			GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 		}
 
-		public final AsyncSocket Connect(GlobalClient client) {
+		public final AsyncSocket Connect(GlobalClient client) throws Throwable {
 			synchronized (this) {
 				if (null != Logined) {
 					try {
@@ -169,7 +169,7 @@ public final class GlobalAgent {
 		return gkey.hashCode() % Agents.length;
 	}
 
-	public Acquire Acquire(GlobalTableKey gkey, int state) {
+	public Acquire Acquire(GlobalTableKey gkey, int state) throws Throwable {
 		if (null != getClient()) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
 			var socket = agent.Connect(getClient());
@@ -247,7 +247,7 @@ public final class GlobalAgent {
 		Zeze = app;
 	}
 
-	public void Start(String hostNameOrAddress, int port) {
+	public void Start(String hostNameOrAddress, int port) throws Throwable {
 		synchronized (this) {
 			if (null != getClient()) {
 				return;
@@ -313,7 +313,7 @@ public final class GlobalAgent {
 		}
 	}
 
-	public void Stop() {
+	public void Stop() throws Throwable {
 		synchronized (this) {
 			if (null == getClient()) {
 				return;

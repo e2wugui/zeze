@@ -46,7 +46,7 @@ public class ModuleRank extends AbstractModule {
 	 @param value
 	 @return Procudure.Success...
 	*/
-	protected final long UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
+	protected final long UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) throws Throwable {
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		int maxCount = GetRankComputeCount(keyHint.getRankType());
 
@@ -144,7 +144,7 @@ public class ModuleRank extends AbstractModule {
 		return result;
 	}
 
-	private Rank GetRank(BConcurrentKey keyHint) {
+	private Rank GetRank(BConcurrentKey keyHint) throws Throwable {
 		var Rank = Ranks.computeIfAbsent(keyHint, (key) -> new Rank());
 		synchronized (Rank) {
 			long now = System.currentTimeMillis();
@@ -215,12 +215,12 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	// 名字必须和RunUpdateRankWithHash匹配，内部使用一样的实现。
-	protected final long UpdateRankWithHash(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
+	protected final long UpdateRankWithHash(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) throws Throwable {
 		return UpdateRank(hash, keyHint, roleId, value, valueEx);
 	}
 
 	@RedirectWithHash()
-	public void RunUpdateRankWithHash(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
+	public void RunUpdateRankWithHash(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) throws Throwable {
 		App.Zeze.Run(
 				() -> UpdateRankWithHash(hash, keyHint, roleId, value, valueEx),
 				"RunUpdateRankWithHash",
@@ -229,7 +229,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@RedirectToServer()
-	public void RunTestToServer(int serverId) {
+	public void RunTestToServer(int serverId) throws Throwable {
 		App.Zeze.Run(
 				() -> TestToServer(serverId),
 				"RunTestToServer",
@@ -237,7 +237,7 @@ public class ModuleRank extends AbstractModule {
 				serverId);
 	}
 
-	protected final long TestToServer(int serverId) {
+	protected final long TestToServer(int serverId) throws Throwable {
 		return 0L;
 	}
 	/**
@@ -252,7 +252,7 @@ public class ModuleRank extends AbstractModule {
 		d) 剩下的是自定义参数。
 	*/
 	protected final long GetRank(long sessionId, int hash, BConcurrentKey keyHint,
-								Zezex.RedirectAllResultHandle onHashResult) {
+								Zezex.RedirectAllResultHandle onHashResult) throws Throwable {
 		// 根据hash获取分组rank。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel, keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
@@ -265,7 +265,7 @@ public class ModuleRank extends AbstractModule {
 	@RedirectAll(GetConcurrentLevelSource="GetConcurrentLevel(arg0.getRankType())")
 	public void RunGetRank(BConcurrentKey keyHint,
 						   Zezex.RedirectAllResultHandle onHashResult,
-						   Zezex.RedirectAllDoneHandle onHashEnd) {
+						   Zezex.RedirectAllDoneHandle onHashEnd) throws Throwable {
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var ctx = new Zezex.Provider.ModuleProvider.ModuleRedirectAllContext(concurrentLevel,
@@ -279,7 +279,7 @@ public class ModuleRank extends AbstractModule {
 
 	// 使用异步方案构建rank。
 	private void GetRankAsync(BConcurrentKey keyHint,
-							  Zeze.Util.Action1<Rank> callback) {
+							  Zeze.Util.Action1<Rank> callback) throws Throwable {
 		var rank = Ranks.get(keyHint);
 		if (null != rank) {
 			long now = System.currentTimeMillis();
@@ -360,7 +360,7 @@ public class ModuleRank extends AbstractModule {
 		}
 	}
 
-	public final long GetCounter(long roleId, BConcurrentKey keyHint) {
+	public final long GetCounter(long roleId, BConcurrentKey keyHint) throws Throwable {
 		var counters = _trankcounters.getOrAdd(roleId);
 		var counter = counters.getCounters().get(keyHint);
 		if (null == counter)
@@ -368,11 +368,11 @@ public class ModuleRank extends AbstractModule {
 		return counter.getValue();
 	}
 
-	public final void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint) {
+	public final void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint) throws Throwable {
 		AddCounterAndUpdateRank(roleId, delta, keyHint, null);
 	}
 
-	public final void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint, Zeze.Net.Binary valueEx) {
+	public final void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint, Zeze.Net.Binary valueEx) throws Throwable {
 		var counters = _trankcounters.getOrAdd(roleId);
 		var counter = counters.getCounters().get(keyHint);
 		if (null == counter) {
@@ -389,7 +389,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessCGetRankList(Protocol _protocol) {
+	public long ProcessCGetRankList(Protocol _protocol) throws Throwable {
 		var protocol = (CGetRankList)_protocol;
 		var session = Game.Login.Session.Get(protocol);
 
@@ -524,7 +524,7 @@ public class ModuleRank extends AbstractModule {
 	 */
 	protected final long Test3(int hash,
 							  int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData,
-							  Zeze.Util.Action1<Integer> resultCallback) {
+							  Zeze.Util.Action1<Integer> resultCallback) throws Throwable {
 		outData.Value = 1;
 		++refData.Value;
 		resultCallback.run(1);

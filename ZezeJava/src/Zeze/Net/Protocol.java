@@ -43,7 +43,7 @@ public abstract class Protocol implements Serializable {
 		UserState = userState;
 	}
 
-	public void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle) {
+	public void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle) throws Throwable {
 		service.DispatchProtocol(this, factoryHandle);
 	}
 
@@ -120,7 +120,7 @@ public abstract class Protocol implements Serializable {
 	/**
 	 Id + size + protocol.bytes
 	*/
-	public static void Decode(Service service, AsyncSocket so, ByteBuffer bb) {
+	public static void Decode(Service service, AsyncSocket so, ByteBuffer bb) throws Throwable {
 		ByteBuffer os = ByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.Size());
 		// 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 		while (os.Size() > 0) {

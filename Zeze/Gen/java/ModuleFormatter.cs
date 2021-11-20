@@ -43,10 +43,10 @@ namespace Zeze.Gen.java
             sw.WriteLine(FileChunkGen.ChunkEndTag + " " + ChunkNameImport);
             sw.WriteLine();
             sw.WriteLine($"public class Module{module.Name} extends AbstractModule {{");
-            sw.WriteLine("    public void Start(" + project.Solution.Name + ".App app) {");
+            sw.WriteLine("    public void Start(" + project.Solution.Name + ".App app) throws Throwable {");
             sw.WriteLine("    }");
             sw.WriteLine("");
-            sw.WriteLine("    public void Stop(" + project.Solution.Name + ".App app) {");
+            sw.WriteLine("    public void Stop(" + project.Solution.Name + ".App app) throws Throwable {");
             sw.WriteLine("    }");
             sw.WriteLine("");
             if (module.ReferenceService != null)
@@ -285,11 +285,11 @@ namespace Zeze.Gen.java
             {
                 if (p is Rpc rpc)
                 {
-                    sw.WriteLine("    public abstract long Process" + rpc.Name + "Request(Zeze.Net.Protocol _p);");
+                    sw.WriteLine("    public abstract long Process" + rpc.Name + "Request(Zeze.Net.Protocol _p) throws Throwable;");
                     sw.WriteLine("");
                     continue;
                 }
-                sw.WriteLine("    public abstract long Process" + p.Name + "(Zeze.Net.Protocol _p);");
+                sw.WriteLine("    public abstract long Process" + p.Name + "(Zeze.Net.Protocol _p) throws Throwable;");
                 sw.WriteLine("");
             }
             sw.WriteLine("}");

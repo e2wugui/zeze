@@ -65,7 +65,7 @@ public final class App extends Zeze.AppBase {
 	}
 
 
-	public void Start(String[] args) {
+	public void Start(String[] args) throws Throwable {
 		int ServerId = -1;
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
@@ -107,7 +107,7 @@ public final class App extends Zeze.AppBase {
 		Zeze.getServiceManagerAgent().SubscribeService(LinkdServiceName, SubscribeInfo.SubscribeTypeSimple, null);
 	}
 
-	public void Stop() {
+	public void Stop() throws Throwable {
 		StopService(); // 关闭网络
 		StopModules(); // 关闭模块,，卸载配置什么的。
 		Zeze.Stop(); // 关闭数据库
@@ -140,11 +140,11 @@ public final class App extends Zeze.AppBase {
 
     public Game.Server Server;
 
-    public void Create() {
+    public void Create() throws Throwable {
         Create(null);
     }
 
-    public void Create(Zeze.Config config) {
+    public void Create(Zeze.Config config) throws Throwable {
         synchronized (this) {
             if (null != Zeze)
                 return;
@@ -236,7 +236,7 @@ public final class App extends Zeze.AppBase {
         }
     }
 
-    public void StartModules() {
+    public void StartModules() throws Throwable {
         synchronized(this) {
             Game_Bag.Start(this);
             Game_Buf.Start(this);
@@ -252,7 +252,7 @@ public final class App extends Zeze.AppBase {
         }
     }
 
-    public void StopModules() {
+    public void StopModules() throws Throwable {
         synchronized(this) {
             Game_Bag.Stop(this);
             Game_Buf.Stop(this);
@@ -267,13 +267,13 @@ public final class App extends Zeze.AppBase {
         }
     }
 
-    public void StartService() {
+    public void StartService() throws Throwable {
         synchronized(this) {
             Server.Start();
         }
     }
 
-    public void StopService() {
+    public void StopService() throws Throwable {
         synchronized(this) {
             Server.Stop();
         }

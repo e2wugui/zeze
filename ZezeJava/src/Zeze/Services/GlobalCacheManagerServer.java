@@ -139,11 +139,11 @@ public final class GlobalCacheManagerServer {
 	}
 
 
-	public void Start(InetAddress ipaddress, int port) {
+	public void Start(InetAddress ipaddress, int port) throws Throwable {
 		Start(ipaddress, port, null);
 	}
 
-	public void Start(InetAddress ipaddress, int port, Zeze.Config config) {
+	public void Start(InetAddress ipaddress, int port, Zeze.Config config) throws Throwable {
 		synchronized (this) {
 			if (getServer() != null) {
 				return;
@@ -194,7 +194,7 @@ public final class GlobalCacheManagerServer {
 		}
 	}
 
-	public void Stop() {
+	public void Stop() throws Throwable {
 		synchronized (this) {
 			if (null == getServer()) {
 				return;
@@ -210,7 +210,7 @@ public final class GlobalCacheManagerServer {
 	 报告错误的时候带上相关信息（包括GlobalCacheManager和LogicServer等等）
 	 手动Cleanup时，连接正确的服务器执行。
 	 */
-	private long ProcessCleanup(Zeze.Net.Protocol p) {
+	private long ProcessCleanup(Zeze.Net.Protocol p) throws Throwable {
 		var rpc = (Cleanup)p;
 
 		// 安全性以后加强。
@@ -247,7 +247,7 @@ public final class GlobalCacheManagerServer {
 		return 0;
 	}
 
-	private long ProcessLogin(Zeze.Net.Protocol p) {
+	private long ProcessLogin(Zeze.Net.Protocol p) throws Throwable {
 		var rpc = (Login)p;
 		var session = Sessions.computeIfAbsent(
 				rpc.Argument.ServerId, (key) -> new CacheHolder(getConfig()));
@@ -264,7 +264,7 @@ public final class GlobalCacheManagerServer {
 		return 0;
 	}
 
-	private long ProcessReLogin(Zeze.Net.Protocol p) {
+	private long ProcessReLogin(Zeze.Net.Protocol p) throws Throwable {
 		var rpc = (ReLogin)p;
 		var session = Sessions.computeIfAbsent(
 				rpc.Argument.ServerId, (key) -> new CacheHolder(getConfig()));
@@ -276,7 +276,7 @@ public final class GlobalCacheManagerServer {
 		return 0;
 	}
 
-	private long ProcessNormalClose(Zeze.Net.Protocol p) {
+	private long ProcessNormalClose(Zeze.Net.Protocol p) throws Throwable {
 		var rpc = (NormalClose)p;
 		var session = (CacheHolder)rpc.getSender().getUserState();
 		if (null == session) {
@@ -296,7 +296,7 @@ public final class GlobalCacheManagerServer {
 		return 0;
 	}
 
-	private long ProcessAcquireRequest(Zeze.Net.Protocol p) {
+	private long ProcessAcquireRequest(Zeze.Net.Protocol p) throws Throwable {
 		Acquire rpc = (Acquire)p;
 
 		rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
@@ -822,18 +822,18 @@ public final class GlobalCacheManagerServer {
 
 	public final static class ServerService extends Zeze.Net.Service {
 
-		public ServerService(Zeze.Config config) {
+		public ServerService(Zeze.Config config) throws Throwable {
 			super("GlobalCacheManager", config);
 		}
 
 		@Override
-		public void OnSocketAccept(AsyncSocket so) {
+		public void OnSocketAccept(AsyncSocket so) throws Throwable {
 			// so.UserState = new CacheHolder(so.SessionId); // Login ReLogin 的时候初始化。
 			super.OnSocketAccept(so);
 		}
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws Throwable {
 		System.setProperty("log4j.configurationFile", "log4j2.xml");
 		String ip = null;
 		int port = 5555;

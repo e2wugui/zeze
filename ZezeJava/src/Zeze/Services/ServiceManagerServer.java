@@ -400,7 +400,7 @@ public final class ServiceManagerServer implements Closeable {
 
 	private static final Logger logger = LogManager.getLogger(ServiceManagerServer.class);
 
-	private long ProcessRegister(Protocol p) {
+	private long ProcessRegister(Protocol p) throws Throwable {
 		var r = (Register)p;
 		var session = (Session)r.getSender().getUserState();
 
@@ -441,7 +441,7 @@ public final class ServiceManagerServer implements Closeable {
 		return null;
 	}
 
-	private long ProcessUnRegister(Protocol p) {
+	private long ProcessUnRegister(Protocol p) throws Throwable {
 		var r = (UnRegister)p;
 		var session = (Session)r.getSender().getUserState();
 		if (null != UnRegisterNow(r.getSender().getSessionId(), r.Argument)) {
@@ -455,7 +455,7 @@ public final class ServiceManagerServer implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessSubscribe(Protocol p) {
+	private long ProcessSubscribe(Protocol p) throws Throwable {
 		var r = (Subscribe)p;
 		var session = (Session)r.getSender().getUserState();
 		session.getSubscribes().putIfAbsent(r.Argument.getServiceName(), r.Argument);
@@ -483,7 +483,7 @@ public final class ServiceManagerServer implements Closeable {
 		return null;
 	}
 
-	private long ProcessUnSubscribe(Protocol p) {
+	private long ProcessUnSubscribe(Protocol p) throws Throwable {
 		var r = (UnSubscribe)p;
 		var session = (Session)r.getSender().getUserState();
 		var sub = session.getSubscribes().remove(r.Argument.getServiceName());
@@ -507,7 +507,7 @@ public final class ServiceManagerServer implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessReadyServiceList(Protocol p) {
+	private long ProcessReadyServiceList(Protocol p) throws Throwable {
 		var r = (ReadyServiceList)p;
 		var session = (Session)r.getSender().getUserState();
 		var state = ServerStates.computeIfAbsent(
@@ -517,15 +517,19 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	public void close() throws IOException {
-		Stop();
+		try {
+			Stop();
+		} catch (Throwable e) {
+			throw new IOException(e);
+		}
 	}
 
 
-	public ServiceManagerServer(InetAddress ipaddress, int port, Zeze.Config config) {
+	public ServiceManagerServer(InetAddress ipaddress, int port, Zeze.Config config) throws Throwable {
 		this(ipaddress, port, config, -1);
 	}
 
-	public ServiceManagerServer(InetAddress ipaddress, int port, Zeze.Config config, int startNotifyDelay) {
+	public ServiceManagerServer(InetAddress ipaddress, int port, Zeze.Config config, int startNotifyDelay) throws Throwable {
 		Config = config.GetCustomize(new Conf());
 
 		if (startNotifyDelay >= 0) {
@@ -560,12 +564,9 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		var options = (new org.rocksdb.Options()).setCreateIfMissing(true);
-		try {
-			AutoKeysDb = org.rocksdb.RocksDB.open(options, Paths.get(getConfig().getDbHome()).resolve("autokeys").toString());
-			WriteOptions = new org.rocksdb.WriteOptions().setSync(true);
-		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
-		}
+
+		AutoKeysDb = org.rocksdb.RocksDB.open(options, Paths.get(getConfig().getDbHome()).resolve("autokeys").toString());
+		WriteOptions = new org.rocksdb.WriteOptions().setSync(true);
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		ServerSocket = getServer().NewServerSocket(ipaddress, port, null);
@@ -658,7 +659,7 @@ public final class ServiceManagerServer implements Closeable {
 		}
 	}
 
-	private long ProcessAllocateId(Protocol p) {
+	private long ProcessAllocateId(Protocol p) throws Throwable {
 		var r = (AllocateId)p;
 		var n = r.Argument.getName();
 		r.Result.setName(n);
@@ -674,7 +675,7 @@ public final class ServiceManagerServer implements Closeable {
 		}
 	}
 
-	public void Stop() {
+	public void Stop() throws Throwable {
 		synchronized (this) {
 			if (null == getServer()) {
 				return;
@@ -702,19 +703,19 @@ public final class ServiceManagerServer implements Closeable {
 			return ServiceManager;
 		}
 
-		public NetServer(ServiceManagerServer sm, Zeze.Config config) {
+		public NetServer(ServiceManagerServer sm, Zeze.Config config) throws Throwable {
 			super("Zeze.Services.ServiceManager", config);
 			ServiceManager = sm;
 		}
 
 		@Override
-		public void OnSocketAccept(AsyncSocket so) {
+		public void OnSocketAccept(AsyncSocket so) throws Throwable {
 			so.setUserState(new Session(getServiceManager(), so.getSessionId()));
 			super.OnSocketAccept(so);
 		}
 
 		@Override
-		public void OnSocketClose(AsyncSocket so, Throwable e) {
+		public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 			var session = (Session)so.getUserState();
 			if (session != null) {
 				session.OnClose();
@@ -723,7 +724,7 @@ public final class ServiceManagerServer implements Closeable {
 		}
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws Throwable {
 		logger.info("start .");
 		String ip = null;
 		int port = 5001;

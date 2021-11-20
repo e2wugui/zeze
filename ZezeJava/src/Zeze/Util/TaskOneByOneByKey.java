@@ -41,15 +41,15 @@ public final class TaskOneByOneByKey {
 	}
 
 
-	public void Execute(Object key, Runnable action, String actionName) {
+	public void Execute(Object key, Zeze.Util.Action0 action, String actionName) {
 		Execute(key, action, actionName, null);
 	}
 
-	public void Execute(Object key, Runnable action) {
+	public void Execute(Object key, Zeze.Util.Action0 action) {
 		Execute(key, action, null, null);
 	}
 
-	public void Execute(Object key, Runnable action, String actionName, Runnable cancel) {
+	public void Execute(Object key, Zeze.Util.Action0 action, String actionName, Zeze.Util.Action0 cancel) {
 		if (null == action) {
 			throw new NullPointerException();
 		}
@@ -61,15 +61,15 @@ public final class TaskOneByOneByKey {
 
 
 
-	public void Execute(Object key, Callable<Integer> action, String actionName) {
+	public void Execute(Object key, Zeze.Util.Func0<Integer> action, String actionName) {
 		Execute(key, action, actionName, null);
 	}
 
-	public void Execute(Object key, Callable<Integer> action) {
+	public void Execute(Object key, Zeze.Util.Func0<Integer> action) {
 		Execute(key, action, null, null);
 	}
 
-	public void Execute(Object key, Callable<Integer> action, String actionName, Runnable cancel) {
+	public void Execute(Object key, Zeze.Util.Func0<Integer> action, String actionName, Zeze.Util.Action0 cancel) {
 		if (null == action) {
 			throw new NullPointerException();
 		}
@@ -84,7 +84,7 @@ public final class TaskOneByOneByKey {
 		Execute(key, procedure, null);
 	}
 
-	public void Execute(Object key, Zeze.Transaction.Procedure procedure, Runnable cancel) {
+	public void Execute(Object key, Zeze.Transaction.Procedure procedure, Zeze.Util.Action0 cancel) {
 		if (null == procedure) {
 			throw new NullPointerException();
 		}
@@ -124,11 +124,11 @@ public final class TaskOneByOneByKey {
 	}
 
 	static class Task {
-		public Runnable Action;
+		public Zeze.Util.Action0 Action;
 		public String Name;
-		public Runnable Cancel;
+		public Zeze.Util.Action0 Cancel;
 		
-		public Task(Runnable action, String name, Runnable cancel) {
+		public Task(Zeze.Util.Action0 action, String name, Zeze.Util.Action0 cancel) {
 			Action = action;
 			Name = name;
 			Cancel = cancel;
@@ -192,11 +192,15 @@ public final class TaskOneByOneByKey {
 		public TaskOneByOne() {
 		}
 
-		public final void Execute(Runnable action, String actionName, Runnable cancel) {
+		public final void Execute(Zeze.Util.Action0 action, String actionName, Zeze.Util.Action0 cancel) {
 			synchronized (this) {
 				if (IsShutdown) {
 					if (cancel != null) {
-						cancel.run();
+						try {
+							cancel.run();
+						} catch (Throwable e) {
+							throw new RuntimeException(e);
+						}
 					}
 					return;
 				}
@@ -219,11 +223,15 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
-		public final void Execute(Callable<Integer> action, String actionName, Runnable cancel) {
+		public final void Execute(Zeze.Util.Func0<Integer> action, String actionName, Zeze.Util.Action0 cancel) {
 			synchronized (this) {
 				if (IsShutdown) {
 					if (cancel != null) {
-						cancel.run();
+						try {
+							cancel.run();
+						} catch (Throwable e) {
+							throw new RuntimeException(e);
+						}
 					}
 					return;
 				}

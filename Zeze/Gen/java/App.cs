@@ -47,14 +47,14 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return Instance;");
             sw.WriteLine("    }");
             sw.WriteLine("");
-            sw.WriteLine("    public void Start() {");
+            sw.WriteLine("    public void Start() throws Throwable {");
             sw.WriteLine("        Create();");
             sw.WriteLine("        Zeze.Start(); // 启动数据库");
             sw.WriteLine("        StartModules(); // 启动模块，装载配置什么的。");
             sw.WriteLine("        StartService(); // 启动网络");
             sw.WriteLine("    }");
             sw.WriteLine("");
-            sw.WriteLine("    public void Stop() {");
+            sw.WriteLine("    public void Stop() throws Throwable {");
             sw.WriteLine("        StopService(); // 关闭网络");
             sw.WriteLine("        StopModules(); // 关闭模块,，卸载配置什么的。");
             sw.WriteLine("        Zeze.Stop(); // 关闭数据库");
@@ -109,11 +109,11 @@ namespace Zeze.Gen.java
                 sw.WriteLine("");
             }
 
-            sw.WriteLine("    public void Create() {");
+            sw.WriteLine("    public void Create() throws Throwable {");
             sw.WriteLine("        Create(null);");
             sw.WriteLine("    }");
             sw.WriteLine("");
-            sw.WriteLine("    public void Create(Zeze.Config config) {");
+            sw.WriteLine("    public void Create(Zeze.Config config) throws Throwable {");
             sw.WriteLine("        synchronized (this) {");
             sw.WriteLine("            if (null != Zeze)");
             sw.WriteLine("                return;");
@@ -156,7 +156,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("");
-            sw.WriteLine("    public void StartModules() {");
+            sw.WriteLine("    public void StartModules() throws Throwable {");
             sw.WriteLine("        synchronized(this) {");
             foreach (var m in project.ModuleStartOrder)
             {
@@ -172,7 +172,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("");
-            sw.WriteLine("    public void StopModules() {");
+            sw.WriteLine("    public void StopModules() throws Throwable {");
             sw.WriteLine("        synchronized(this) {");
             foreach (Module m in project.AllModules.Values)
             {
@@ -181,7 +181,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("");
-            sw.WriteLine("    public void StartService() {");
+            sw.WriteLine("    public void StartService() throws Throwable {");
             sw.WriteLine("        synchronized(this) {");
             foreach (Service m in project.Services.Values)
             {
@@ -190,7 +190,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("");
-            sw.WriteLine("    public void StopService() {");
+            sw.WriteLine("    public void StopService() throws Throwable {");
             sw.WriteLine("        synchronized(this) {");
             foreach (Service m in project.Services.Values)
             {

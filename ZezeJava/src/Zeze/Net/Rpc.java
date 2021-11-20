@@ -62,22 +62,22 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 
 	private Zeze.Util.Task Schedule(Service service, long sessionId, int millisecondsTimeout) {
 		return Zeze.Util.Task.schedule((ThisTask) -> {
-					Rpc<TArgument, TResult> context = service.<Rpc<TArgument, TResult>>RemoveRpcContext(sessionId);
-					if (null == context) { // 一般来说，此时结果已经返回。
-						return;
-					}
+			Rpc<TArgument, TResult> context = service.<Rpc<TArgument, TResult>>RemoveRpcContext(sessionId);
+			if (null == context) { // 一般来说，此时结果已经返回。
+				return;
+			}
 
-					context.IsTimeout = true;
-					context.setResultCode(Zeze.Transaction.Procedure.Timeout);
+			context.IsTimeout = true;
+			context.setResultCode(Zeze.Transaction.Procedure.Timeout);
 
-					if (null != context.Future) {
-						context.Future.TrySetException(new RpcTimeoutException());
-					}
-					else {
-						if (this.ResponseHandle != null) {
-							this.ResponseHandle.handle(context);
-						}
-					}
+			if (null != context.Future) {
+				context.Future.TrySetException(new RpcTimeoutException());
+				return;
+			}
+			if (this.ResponseHandle == null)
+				return;
+
+			service.DispatchRpcResponse(context, this.ResponseHandle, service.FindProtocolFactoryHandle(context.getTypeId()));
 		}, millisecondsTimeout, millisecondsTimeout);
 	}
 
@@ -215,7 +215,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	}
 
 	@Override
-	public void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle) {
+	public void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle) throws Throwable {
 		if (isRequest()) {
 			service.DispatchProtocol(this, factoryHandle);
 			return;

@@ -12,7 +12,7 @@ public final class ModuleSkill extends AbstractModule {
 	public void Stop(App app) {
 	}
 
-	public Skills GetSkills(long roleId) {
+	public Skills GetSkills(long roleId) throws Throwable {
 		return new Skills(roleId, _tskills.getOrAdd(roleId));
 	}
 

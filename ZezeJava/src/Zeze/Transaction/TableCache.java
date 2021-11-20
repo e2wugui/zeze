@@ -138,7 +138,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 	*/
 
-	public final void CleanNow(Task ThisTask) {
+	public final void CleanNow(Task ThisTask) throws Throwable {
 		// 这个任务的执行时间可能很长，
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。
@@ -192,14 +192,14 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return true; // 没有删除成功，仍然返回true。
 	}
 
-	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) {
+	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) throws Throwable {
 		TableKey tkey = new TableKey(this.getTable().getName(), p.getKey());
 		Lockey lockey = Table.getZeze().getLocks().Get(tkey);
 		if (false == lockey.TryEnterWriteLock(0)) {
 			return false;
 		}
 		try {
-			//p.getValue().EnterFairLock();
+			p.getValue().EnterFairLock();
 			try {
 
 				var storage = getTable().TStorage;
@@ -234,7 +234,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				return Remove(p);
 			}
 			finally {
-				//p.getValue().ExitFairLock();
+				p.getValue().ExitFairLock();
 			}
 		}
 		finally {
