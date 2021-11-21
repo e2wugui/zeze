@@ -124,19 +124,23 @@ public class Service {
 		// _RpcContexts.Clear();
 	}
 
-	public final AsyncSocket NewServerSocket(String ipaddress, int port, Acceptor acceptor) throws Throwable {
-		return NewServerSocket(InetAddress.getByName(ipaddress), port, acceptor);
+	public final AsyncSocket NewServerSocket(String ipaddress, int port, Acceptor acceptor) {
+		try {
+			return NewServerSocket(InetAddress.getByName(ipaddress), port, acceptor);
+		} catch (UnknownHostException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
-	public final AsyncSocket NewServerSocket(InetAddress ipaddress, int port, Acceptor acceptor) throws Throwable {
+	public final AsyncSocket NewServerSocket(InetAddress ipaddress, int port, Acceptor acceptor) {
 		return NewServerSocket(new InetSocketAddress(ipaddress, port), acceptor);
 	}
 
-	public final AsyncSocket NewServerSocket(InetSocketAddress localEP, Acceptor acceptor) throws Throwable {
+	public final AsyncSocket NewServerSocket(InetSocketAddress localEP, Acceptor acceptor) {
 		return new AsyncSocket(this, localEP, acceptor);
 	}
 
-	public final AsyncSocket NewClientSocket(String hostNameOrAddress, int port, Object userState, Connector connector) throws Throwable {
+	public final AsyncSocket NewClientSocket(String hostNameOrAddress, int port, Object userState, Connector connector) {
 		return new AsyncSocket(this, hostNameOrAddress, port, userState, connector);
 	}
 

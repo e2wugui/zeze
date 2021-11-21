@@ -158,23 +158,33 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/** 
 	 for server socket
 	*/
-	public AsyncSocket(Service service, InetSocketAddress localEP, Acceptor acceptor) throws Throwable {
+	public AsyncSocket(Service service, InetSocketAddress localEP, Acceptor acceptor) {
 		this.setService(service);
 		this.Acceptor = acceptor;
 
-		ServerSocketChannel ssc = ServerSocketChannel.open();
-		ServerSocket ss = ssc.socket();
-		ssc.configureBlocking(false);
-		ss.setReuseAddress(true);
-		// xxx 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
-		if (null != service.getSocketOptions().getReceiveBuffer())
-			ss.setReceiveBufferSize(service.getSocketOptions().getReceiveBuffer());
-		ss.bind(localEP, service.getSocketOptions().getBacklog());
+		ServerSocketChannel ssc = null;
+		try {
+			ssc = ServerSocketChannel.open();
+			ServerSocket ss = ssc.socket();
+			ssc.configureBlocking(false);
+			ss.setReuseAddress(true);
+			// xxx 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
+			if (null != service.getSocketOptions().getReceiveBuffer())
+				ss.setReceiveBufferSize(service.getSocketOptions().getReceiveBuffer());
+			ss.bind(localEP, service.getSocketOptions().getBacklog());
 
-		SessionId = SessionIdGen.incrementAndGet();
+			SessionId = SessionIdGen.incrementAndGet();
 
-		selector = Selectors.getInstance().choice();
-		selectionKey = selector.register(ssc, SelectionKey.OP_ACCEPT, this);
+			selector = Selectors.getInstance().choice();
+			selectionKey = selector.register(ssc, SelectionKey.OP_ACCEPT, this);
+		} catch (IOException e) {
+			try {
+				if (null != ssc)
+					ssc.close();
+			} catch (IOException skip) {
+			}
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
@@ -231,19 +241,23 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/** 
 	 use inner. create when accept;
 	*/
-	private AsyncSocket(Service service, SocketChannel sc, Acceptor acceptor) throws Throwable {
+	private AsyncSocket(Service service, SocketChannel sc, Acceptor acceptor) {
 		this.setService(service);
 		this.Acceptor = acceptor;
 
 		// 据说连接接受以后设置无效，应该从 ServerSocket 继承
 		Socket so = sc.socket();
-		if (null != Service.getSocketOptions().getReceiveBuffer())
-			so.setReceiveBufferSize(Service.getSocketOptions().getReceiveBuffer());
-		if (null != Service.getSocketOptions().getSendBuffer())
-			so.setSendBufferSize(Service.getSocketOptions().getSendBuffer());
-		if (null != Service.getSocketOptions().getNoDelay())
-			so.setTcpNoDelay(Service.getSocketOptions().getNoDelay());
-		sc.configureBlocking(false);
+		try {
+			if (null != Service.getSocketOptions().getReceiveBuffer())
+				so.setReceiveBufferSize(Service.getSocketOptions().getReceiveBuffer());
+			if (null != Service.getSocketOptions().getSendBuffer())
+				so.setSendBufferSize(Service.getSocketOptions().getSendBuffer());
+			if (null != Service.getSocketOptions().getNoDelay())
+				so.setTcpNoDelay(Service.getSocketOptions().getNoDelay());
+			sc.configureBlocking(false);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 
 		this.SessionId = SessionIdGen.incrementAndGet();
 		RemoteAddress = so.getRemoteSocketAddress().toString();
@@ -263,7 +277,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		Service.OnSocketConnected(this);
 	}
 
-	public AsyncSocket(Service service, String hostNameOrAddress, int port, Object userState, Connector connector) throws Throwable{
+	public AsyncSocket(Service service, String hostNameOrAddress, int port, Object userState, Connector connector) {
 		this.setService(service);
 		this.Connector = connector;
 
@@ -292,9 +306,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				selectionKey = selector.register(sc, SelectionKey.OP_CONNECT, this);
 			}
 		} catch (Throwable e) {
-			if (null != sc)
-				sc.close();
-			throw e;
+			try {
+				if (null != sc)
+					sc.close();
+			} catch (Throwable skip) {
+			}
+			throw new RuntimeException(e);
 		}
 	}
 

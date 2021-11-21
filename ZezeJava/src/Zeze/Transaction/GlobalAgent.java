@@ -86,11 +86,7 @@ public final class GlobalAgent {
 
 				if (null == getSocket()) {
 					setLogined(new TaskCompletionSource<AsyncSocket>());
-					try {
-						setSocket(client.NewClientSocket(getHost(), getPort(), this,null));
-					} catch (Throwable e) {
-						throw new RuntimeException(e); // TODO 确认网络错误怎么抛出。
-					}
+					setSocket(client.NewClientSocket(getHost(), getPort(), this,null));
 					// 每次新建连接创建future，没并发问题吧，还没仔细考虑。
 				}
 			}
