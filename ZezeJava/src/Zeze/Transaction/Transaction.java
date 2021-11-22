@@ -196,7 +196,7 @@ public final class Transaction {
 										return Procedure.ErrorSavepoint;
 									}
 									// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
-									if (e.getClass().getSimpleName().equals("AssertFailedException")) {
+									if (e instanceof AssertionError) {
 										_final_rollback_(procedure);
 										throw e;
 									}
