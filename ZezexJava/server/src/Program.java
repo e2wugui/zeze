@@ -1,6 +1,6 @@
 
 public class Program {
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws Throwable {
 		Game.App.getInstance().Start(args);
 		try {
 			while (true) {

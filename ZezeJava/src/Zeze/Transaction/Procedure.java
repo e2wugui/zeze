@@ -74,11 +74,11 @@ public class Procedure {
 		}
 	}
 
-	/** 
+	/**
 	 创建 Savepoint 并执行。
 	 嵌套 Procedure 实现，
-	 
-	 @return 
+
+	 @return
 	*/
 	public final long Call() throws Throwable {
 		if (null == Transaction.getCurrent()) {
@@ -128,7 +128,7 @@ public class Procedure {
 			// 验证状态：Running状态将吃掉所有异常。
 			currentT.VerifyRunning();
 			// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
-			if (e.getClass().getSimpleName().equals("AssertFailedException")) {
+			if (e instanceof AssertionError) {
 				throw e;
 			}
 			// 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
