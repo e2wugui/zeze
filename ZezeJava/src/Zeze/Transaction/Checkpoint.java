@@ -14,12 +14,12 @@ import org.apache.logging.log4j.Logger;
 public final class Checkpoint {
 	private static final Logger logger = LogManager.getLogger(Checkpoint.class);
 
-	private HashSet<Database> Databases = new HashSet<Database> ();
+	private final HashSet<Database> Databases = new HashSet<Database> ();
 	private HashSet<Database> getDatabases() {
 		return Databases;
 	}
 
-	private ReentrantReadWriteLock FlushReadWriteLock = new ReentrantReadWriteLock();
+	private final ReentrantReadWriteLock FlushReadWriteLock = new ReentrantReadWriteLock();
 
 	private boolean IsRunning;
 	public boolean isRunning() {
@@ -119,31 +119,32 @@ public final class Checkpoint {
 
 	private void Run() {
 		while (isRunning()) {
-			switch (Mode) {
-				case Period:
-					CheckpointPeriod();
-					for (var action : actionCurrent) {
-						action.run();
-					}
-					synchronized (this) {
-						if (!actionPending.isEmpty()) {
-							continue; // 如果有未决的任务，马上开始下一次 DoCheckpoint。
+			try {
+				switch (Mode) {
+					case Period:
+						CheckpointPeriod();
+						for (var action : actionCurrent) {
+							action.run();
 						}
-					}
-					break;
+						synchronized (this) {
+							if (!actionPending.isEmpty()) {
+								continue; // 如果有未决的任务，马上开始下一次 DoCheckpoint。
+							}
+						}
+						break;
 
-				case Table:
-					RelativeRecordSet.FlushWhenCheckpoint(this);
-					break;
-					
-				default:
-					break;
-			}
-			synchronized (this) {
-				try {
-					this.wait(Period);
-				} catch (InterruptedException skip) {
+					case Table:
+							RelativeRecordSet.FlushWhenCheckpoint(this);
+						break;
+
+					default:
+						break;
 				}
+				synchronized (this) {
+					this.wait(Period);
+				}
+			} catch (Throwable ex) {
+				logger.error(ex);
 			}
 		}
 		//logger.Fatal("final checkpoint start.");
@@ -163,7 +164,7 @@ public final class Checkpoint {
 	}
 
 	private ArrayList<Runnable> actionCurrent;
-	private ArrayList<Runnable> actionPending = new ArrayList<>();
+	private volatile ArrayList<Runnable> actionPending = new ArrayList<>();
 
 	/** 
 	 增加 checkpoint 完成一次以后执行的动作，每次 FlushReadWriteLock.EnterWriteLock()
@@ -221,6 +222,11 @@ public final class Checkpoint {
 			for (var db : getDatabases()) {
 				db.Cleanup();
 			}
+		} catch (Throwable e) {
+			for (var t : dts.values()) {
+				t.Rollback();
+			}
+			throw e;
 		} finally {
 			for (var t : dts.values()) {
 				try {

@@ -102,28 +102,35 @@ namespace Zeze.Transaction
         {
             while (IsRunning)
             {
-                switch (CheckpointMode)
+                try
                 {
-                    case CheckpointMode.Period:
-                        CheckpointPeriod();
-                        foreach (Action action in actionCurrent)
-                        {
-                            action();
-                        }
-                        lock (this)
-                        {
-                            if (actionPending.Count > 0)
-                                continue; // 如果有未决的任务，马上开始下一次 DoCheckpoint。
-                        }
-                        break;
+                    switch (CheckpointMode)
+                    {
+                        case CheckpointMode.Period:
+                            CheckpointPeriod();
+                            foreach (Action action in actionCurrent)
+                            {
+                                action();
+                            }
+                            lock (this)
+                            {
+                                if (actionPending.Count > 0)
+                                    continue; // 如果有未决的任务，马上开始下一次 DoCheckpoint。
+                            }
+                            break;
 
-                    case CheckpointMode.Table:
-                        RelativeRecordSet.FlushWhenCheckpoint(this);
-                        break;
+                        case CheckpointMode.Table:
+                            RelativeRecordSet.FlushWhenCheckpoint(this);
+                            break;
+                    }
+                    lock (this)
+                    {
+                        Monitor.Wait(this, Period);
+                    }
                 }
-                lock (this)
+                catch (Exception ex)
                 {
-                    Monitor.Wait(this, Period);
+                    logger.Error(ex);
                 }
             }
             //logger.Fatal("final checkpoint start.");
@@ -141,7 +148,7 @@ namespace Zeze.Transaction
         }
 
         private List<Action> actionCurrent;
-        private List<Action> actionPending = new List<Action>();
+        private volatile List<Action> actionPending = new List<Action>();
 
         /// <summary>
         /// 增加 checkpoint 完成一次以后执行的动作，每次 FlushReadWriteLock.EnterWriteLock()
@@ -210,6 +217,14 @@ namespace Zeze.Transaction
                 {
                     db.Cleanup();
                 }
+            }
+            catch (Exception)
+            {
+                foreach (var t in dts.Values)
+                {
+                    t.Rollback();
+                }
+                throw;
             }
             finally
             {
