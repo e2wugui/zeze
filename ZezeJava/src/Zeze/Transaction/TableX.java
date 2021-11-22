@@ -43,7 +43,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				r.setState(acquire.Result.State);
 				if (r.getState() == GlobalCacheManagerServer.StateInvalid) {
 					r.LastErrorGlobalSerialId = acquire.Result.GlobalSerialId; // save
-					throw new RedoAndReleaseLockException(tkey, acquire.Result.GlobalSerialId, tkey.toString() + ":" + r.toString());
+					var txn = Transaction.getCurrent();
+					txn.LastTableKeyOfRedoAndRelease = tkey;
+					txn.LastGlobalSerialIdOfRedoAndRelease = acquire.Result.GlobalSerialId;
+					txn.ThrowRedoAndReleaseLock(tkey.toString() + ":" + r.toString(), null);
 					//throw new RedoAndReleaseLockException();
 				}
 

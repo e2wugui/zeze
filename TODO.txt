@@ -32,15 +32,4 @@ GlobalWithRaft TODO
 加密没有生效 BUG?
 Java Database
 
-Java throws Throwable 规则
-0. 目的：不要捕捉任何异常，也不要包装成RuntimeException再次抛出。
-1. 所有给zeze用的handle，action，callback声明throws Throwable。方便实现的时候，可以调用任何可能会抛出异常的方法。
-2. Table.getOrAdd 等操作不声明抛出异常，方便应用对数据操作包装自己的方法。
-3. Zeze.Net 所有的可重载方法throws Throwable。和第一点类似。
-4. Zeze.Net 所有的api throws Throwable，这个一般框架，问题不大。如果Net.Api在handle等内实现，不需要额外处理，如果自己的框架，需要自己处理异常。
-5. Zeze.App 等，throws Throwable，这个一般用于程序启动退出，所有的错误抛出main（在main定义throws即可）。
-6. Zeze.Procedure.Call throws Throwable。需要创建时，一般用于框架，或者嵌套，或者提供给Zeze.Util.Task执行。不会有问题。
-   当需要直接调用Call时，比如 UnitTest ，建议在调用方法中直接定义throws。
-7. ModuleRedirect 的接口，现在基本想法是也全部声明throws Throwable，这个还没有开始使用(也还没改)，考虑考虑。
-8. 只要你的函数有异常抛出，直接加声明throws Throwable。
-*. 全部改完，单元测试通过。新增协议需要使用新的Gen重新生成。serverdev提交不了，等周一。
+Checkpoint 失败错误处理策略。超过多少时间无法恢复，停止应用？

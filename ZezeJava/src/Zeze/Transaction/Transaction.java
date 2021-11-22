@@ -37,7 +37,7 @@ public final class Transaction {
 		this.AccessedRecords.clear();
 		this.CommitActions.clear();
 		//this.holdLocks.Clear(); // 执行完肯定清理了。
-		this.IsCompleted = false;
+		this.State = TransactionState.Running;
 		this.ProcedureStack.clear();
 		this.RollbackActions.clear();
 		this.Savepoints.clear();
@@ -96,9 +96,7 @@ public final class Transaction {
 	}
 
 	public void PutLog(Log log) {
-		if (isCompleted()) {
-			throw new RuntimeException("Transaction Is Completed.");
-		}
+		VerifyRunning();
 		Savepoints.get(Savepoints.size() - 1).PutLog(log);
 	}
 
@@ -118,21 +116,17 @@ public final class Transaction {
 	private final ArrayList<Runnable> RollbackActions = new ArrayList<Runnable>();
 
 	public void RunWhileCommit(Runnable action) {
-		if (isCompleted()) {
-			throw new RuntimeException("Transaction Is Completed.");
-		}
+		VerifyRunning();
 		CommitActions.add(action);
 	}
 
 	public void RunWhileRollback(Runnable action) {
-		if (isCompleted()) {
-			throw new RuntimeException("Transaction Is Completed.");
-		}
+		VerifyRunning();
 		RollbackActions.add(action);
 	}
 
-	private TableKey LastTableKeyOfRedoAndRelease;
-	private long LastGlobalSerialIdOfRedoAndRelease;
+	TableKey LastTableKeyOfRedoAndRelease;
+	long LastGlobalSerialIdOfRedoAndRelease;
 
 	/**
 	 Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
@@ -149,64 +143,82 @@ public final class Transaction {
 						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
 						try {
 							var result = procedure.Call();
-							if ((result == Procedure.Success && Savepoints.size() != 1) || (result != Procedure.Success && !Savepoints.isEmpty())) {
-								// 这个错误不应该重做
-								logger.fatal("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
-								_final_rollback_(procedure);
-								return Procedure.ErrorSavepoint;
-							}
-							checkResult = _lock_and_check_();
-							if (checkResult == CheckResult.Success) {
-								if (result == Procedure.Success) {
-									_final_commit_(procedure);
-									// 正常一次成功的不统计，用来观察redo多不多。
-									// 失败在 Procedure.cs 中的统计。
-									if (tryCount > 0) {
-										ProcedureStatistics.getInstance().GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).incrementAndGet();
+							switch (State) {
+								case Running:
+									if ((result == Procedure.Success && Savepoints.size() != 1) || (result != Procedure.Success && !Savepoints.isEmpty())) {
+										// 这个错误不应该重做
+										logger.fatal("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
+										_final_rollback_(procedure);
+										return Procedure.ErrorSavepoint;
 									}
-									return Procedure.Success;
-								}
-								_final_rollback_(procedure);
-								return result;
+									checkResult = _lock_and_check_();
+									if (checkResult == CheckResult.Success) {
+										if (result == Procedure.Success) {
+											_final_commit_(procedure);
+											// 正常一次成功的不统计，用来观察redo多不多。
+											// 失败在 Procedure.cs 中的统计。
+											if (tryCount > 0) {
+												ProcedureStatistics.getInstance().GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).incrementAndGet();
+											}
+											return Procedure.Success;
+										}
+										_final_rollback_(procedure);
+										return result;
+									}
+									break; // retry
+
+								case Abort:
+									logger.debug("Transaction.Perform: Abort");
+									_final_rollback_(procedure);
+									return Procedure.AbortException;
+
+								case Redo:
+									checkResult = CheckResult.Redo;
+									break; // retry
+
+								case RedoAndReleaseLock:
+									checkResult = CheckResult.RedoAndReleaseLock;
+									break; // retry
 							}
 							// retry clear in finally
 						}
-						catch (RedoAndReleaseLockException redorelease) {
-							checkResult = CheckResult.RedoAndReleaseLock;
-							LastTableKeyOfRedoAndRelease = redorelease.TableKey;
-							LastGlobalSerialIdOfRedoAndRelease = redorelease.GlobalSerialId;
-							logger.debug("RedoAndReleaseLockException", redorelease);
-						}
-						catch (RedoException redo) {
-							checkResult = CheckResult.Redo;
-							logger.debug("RedoException", redo);
-						}
-						catch (AbortException abort) {
-							logger.debug("Transaction.Perform: Abort", abort);
-							_final_rollback_(procedure);
-							return Procedure.AbortException;
-						}
 						catch (Throwable e) {
-							// Procedure.Call 里面已经处理了异常。只有 unit test 或者内部错误会到达这里。
+							// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
 							// 在 unit test 下，异常日志会被记录两次。
-							logger.error("Transaction.Perform:{} exception. run count:{}", procedure, tryCount, e);
-							if (!Savepoints.isEmpty()) {
-								// 这个错误不应该重做
-								logger.fatal("Transaction.Perform:{}. exception. savepoints.Count != 0.", procedure, e);
-								_final_rollback_(procedure);
-								return Procedure.ErrorSavepoint;
-							}
+							switch (State) {
+								case Running:
+									logger.error("Transaction.Perform:{} exception. run count:{}", procedure, tryCount, e);
+									if (!Savepoints.isEmpty()) {
+										// 这个错误不应该重做
+										logger.fatal("Transaction.Perform:{}. exception. savepoints.Count != 0.", procedure, e);
+										_final_rollback_(procedure);
+										return Procedure.ErrorSavepoint;
+									}
+									// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
+									if (e.getClass().getSimpleName().equals("AssertFailedException")) {
+										_final_rollback_(procedure);
+										throw e;
+									}
+									checkResult = _lock_and_check_();
+									if (checkResult == CheckResult.Success) {
+										_final_rollback_(procedure);
+										return Procedure.Excption;
+									}
+									// retry
+									break;
 
-							// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
-							if (e.getClass().getSimpleName().equals("AssertFailedException")) {
-								_final_rollback_(procedure);
-								throw e;
-							}
+								case Abort:
+									logger.debug("Transaction.Perform: Abort");
+									_final_rollback_(procedure);
+									return Procedure.AbortException;
 
-							checkResult = _lock_and_check_();
-							if (checkResult == CheckResult.Success) {
-								_final_rollback_(procedure);
-								return Procedure.Excption;
+								case Redo:
+									checkResult = CheckResult.Redo;
+									break;
+
+								case RedoAndReleaseLock:
+									checkResult = CheckResult.RedoAndReleaseLock;
+									break;
 							}
 							// retry
 						}
@@ -222,7 +234,10 @@ public final class Transaction {
 							Savepoints.clear();
 							CommitActions.clear();
 							RollbackActions.clear();
+
+							State = TransactionState.Running; // prepare to retry
 						}
+
 						if (checkResult == CheckResult.RedoAndReleaseLock) {
 							//logger.Debug("CheckResult.RedoAndReleaseLock break {0}", procedure);
 							break;
@@ -328,13 +343,14 @@ public final class Transaction {
 
 		// 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
 		// 不再支持在回调中再次执行事务。
-		setCompleted(true); // 在Notify之前设置的。
+		// 在Notify之前设置的。
+		State = TransactionState.Completed;
 		_notify_listener_(cc);
 		_trigger_commit_actions_(procedure);
 	}
 
 	private void _final_rollback_(Procedure procedure) {
-		setCompleted(true);
+		State = TransactionState.Completed;
 		for (var action : RollbackActions) {
 			try {
 				action.run();
@@ -354,32 +370,19 @@ public final class Transaction {
 	}
 	private final ArrayList<Savepoint> Savepoints = new ArrayList<Savepoint>();
 
-	private boolean IsCompleted = false;
-	public boolean isCompleted() {
-		return IsCompleted;
-	}
-	private void setCompleted(boolean value) {
-		IsCompleted = value;
-	}
-
 	/** 
 	 只能添加一次。
 	 @param r
 	*/
 	public void AddRecordAccessed(Record.RootInfo root, RecordAccessed r) {
-		if (isCompleted()) {
-			throw new RuntimeException("Transaction Is Completed");
-		}
-
+		VerifyRunning();
 		r.InitRootInfo(root, null);
 		getAccessedRecords().put(root.getTableKey(), r);
 	}
 
 	public RecordAccessed GetRecordAccessed(TableKey key) {
 		// 允许读取事务内访问过的记录。
-		//if (IsCompleted)
-		//    throw new Exception("Transaction Is Completed");
-
+		VerifyRunningOrCompleted();
 		return getAccessedRecords().get(key);
 	}
 
@@ -404,8 +407,10 @@ public final class Transaction {
 		// 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
 		// 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
 		if (ra.OriginRecord.getTable().getZeze().getConfig().getFastRedoWhenConfict()
-				&&  false == IsCompleted && ra.OriginRecord.getTimestamp() != ra.Timestamp)
-			throw new RedoException();
+				&& State != TransactionState.Completed
+				&& ra.OriginRecord.getTimestamp() != ra.Timestamp) {
+			ThrowRedo();
+		}
 	}
 
 	private enum CheckResult {
@@ -580,5 +585,51 @@ public final class Transaction {
 		}
 		holdLocks.subList(index, nLast).clear();
 		return holdLocks.size();
+	}
+
+	private TransactionState State = TransactionState.Running;
+
+	public TransactionState getState() {
+		return State;
+	}
+
+	public void ThrowAbort(String msg, Throwable cause) {
+		if (State != TransactionState.Running)
+			throw new IllegalStateException("Abort: State Is Not Running.");
+		State = TransactionState.Abort;
+		GoBackZeze.Throw(msg, cause);
+	}
+
+	public void ThrowRedoAndReleaseLock(String msg, Throwable cause) {
+		if (State != TransactionState.Running)
+			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running.");
+		State = TransactionState.RedoAndReleaseLock;
+		ProcedureStatistics.getInstance().GetOrAdd(getTopProcedure().getActionName()).GetOrAdd(Procedure.RedoAndRelease).incrementAndGet();
+		GoBackZeze.Throw(msg, cause);
+	}
+
+	public void ThrowRedo() {
+		if (State != TransactionState.Running)
+			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running.");
+		State = TransactionState.Redo;
+		GoBackZeze.Throw("Redo", null);
+	}
+
+	public void VerifyRunning() {
+		switch (State) {
+			case Running:
+				return;
+			default:
+				throw new IllegalStateException("State Is Not Running");
+		}
+	}
+
+	public void VerifyRunningOrCompleted() {
+		switch (State) {
+			case Running: case Completed:
+				return;
+			default:
+				throw new IllegalStateException("State Is Not Running");
+		}
 	}
 }

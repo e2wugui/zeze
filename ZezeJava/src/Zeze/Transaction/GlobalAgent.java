@@ -76,12 +76,12 @@ public final class GlobalAgent {
 					catch (TimeoutException skipAndContinue) {
 					}
 					catch (InterruptedException | ExecutionException abort) {
-						throw new AbortException(abort);
+						Transaction.getCurrent().ThrowAbort(null, abort);
 					}
 				}
 
 				if (System.currentTimeMillis() - LastErrorTime < ForbitPeriod) {
-					throw new AbortException("GloalAgent.Connect: In Forbit Login Period");
+					Transaction.getCurrent().ThrowAbort("GloalAgent.Connect: In Forbit Period", null);
 				}
 
 				if (null == getSocket()) {
@@ -105,8 +105,9 @@ public final class GlobalAgent {
 						LastErrorTime = now;
 					}
 				}
-				throw new AbortException("GloalAgent Login Failed", abort);
+				Transaction.getCurrent().ThrowAbort("GloalAgent Login Failed", abort);
 			}
+			return null; // never go here.
 		}
 
 		public final void Close() {
@@ -180,7 +181,7 @@ public final class GlobalAgent {
 			try {
 				rpc.SendForWait(socket, 12000).get();
 			} catch (InterruptedException | ExecutionException e) {
-				throw new AbortException("Acquire", e);
+				Transaction.getCurrent().ThrowAbort("Acquire", e);
 			}
 			/*
 			if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
@@ -190,7 +191,7 @@ public final class GlobalAgent {
 			*/
 			if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFaild
 					|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFaild) {
-				throw new AbortException("GlobalAgent.Acquire Faild");
+				Transaction.getCurrent().ThrowAbort("GlobalAgent.Acquire Faild", null);
 			}
 			return rpc;
 		}

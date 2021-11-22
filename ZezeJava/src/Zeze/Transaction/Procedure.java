@@ -97,62 +97,42 @@ public class Procedure {
 
 		try {
 			var result = Process();
+			currentT.VerifyRunning(); // 防止应用抓住了异常，通过return方式返回。
+
 			if (Success == result) {
 				currentT.Commit();
-
 				ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(result).incrementAndGet();
-
 				return Success;
 			}
 			currentT.Rollback();
-
 			var module = "";
 			if (result > 0) {
 				module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
 			}
 			logger.log(getZeze().getConfig().getProcessReturnErrorLogLevel(),
 					"Procedure {} Return{}@{} UserState={}", this, result, module, getUserState());
-
 			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(result).incrementAndGet();
-
 			return result;
 		}
-		catch (RedoException e) {
+		catch (GoBackZeze gobackzeze) {
+			// 单独抓住这个异常，是为了能原样抛出，并且使用不同的级别记录日志。
+			// 对状态正确性没有影响。
 			currentT.Rollback();
-			throw e;
+			logger.debug(gobackzeze);
+			throw gobackzeze;
 		}
-		catch (AbortException e) {
+		catch (Throwable e) {
 			currentT.Rollback();
-			throw e;
-			// 抛出这个异常，中断事务，跳过所有嵌套过程直到最外面。 e;
-		}
-		catch (RedoAndReleaseLockException e2) {
-			currentT.Rollback();
-
-			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(RedoAndRelease).incrementAndGet();
-
-			throw e2; // 抛出这个异常，打断事务，跳过所有嵌套过程直到最外面。会重做。
-		}
-		catch (TaskCanceledException e3) {
-			currentT.Rollback();
-			logger.error("Procedure {} Exception UserState={}", this, getUserState(), e3);
-
+			logger.error("Procedure {} Exception UserState={}", this, getUserState(), e);
 			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(Excption).incrementAndGet();
-
-			return CancelExcption; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
-		}
-		catch (Throwable e4) {
-			currentT.Rollback();
-			logger.error("Procedure {} Exception UserState={}", this, getUserState(), e4);
-
-			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(Excption).incrementAndGet();
-
+			// 验证状态：Running状态将吃掉所有异常。
+			currentT.VerifyRunning();
 			// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
-			if (e4.getClass().getSimpleName().equals("AssertFailedException")) {
-				throw e4;
+			if (e.getClass().getSimpleName().equals("AssertFailedException")) {
+				throw e;
 			}
-
-			return Excption; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
+			// 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
+			return e instanceof TaskCanceledException ? CancelExcption : Excption;
 		}
 		finally {
 			currentT.getProcedureStack().remove(currentT.getProcedureStack().size() - 1);
