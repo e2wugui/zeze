@@ -41,7 +41,7 @@ namespace Zeze.Transaction
             this.AccessedRecords.Clear();
             this.CommitActions.Clear();
             //this.holdLocks.Clear(); // 执行完肯定清理了。
-            this.IsCompleted = false;
+            this.State = TransactionState.Running;
             this.ProcedureStack.Clear();
             this.RollbackActions.Clear();
             this.Savepoints.Clear();
@@ -106,14 +106,14 @@ namespace Zeze.Transaction
 
         public Log GetLog(long key)
         {
+            VerifyRunningOrCompleted();
             // 允许没有 savepoint 时返回 null. 就是说允许在保存点不存在时进行读取操作。
             return Savepoints.Count > 0 ? Savepoints[Savepoints.Count - 1].GetLog(key) : null;
         }
 
         public void PutLog(Log log)
         {
-            if (IsCompleted)
-                throw new Exception("Transaction Is Completed.");
+            VerifyRunning();
             Savepoints[Savepoints.Count - 1].PutLog(log);
         }
 
@@ -135,24 +135,18 @@ namespace Zeze.Transaction
 
         public void RunWhileCommit(Action action)
         {
-            if (IsCompleted)
-            {
-                throw new Exception("Transaction Is Completed.");
-            }
+            VerifyRunning();
             CommitActions.Add(action);
         }
 
         public void RunWhileRollback(Action action)
         {
-            if (IsCompleted)
-            {
-                throw new Exception("Transaction Is Completed.");
-            }
+            VerifyRunning();
             RollbackActions.Add(action);
         }
 
-        private TableKey LastTableKeyOfRedoAndRelease { get; set; } = null;
-        private long LastGlobalSerialIdOfRedoAndRelease { get; set; } = 0;
+        internal TableKey LastTableKeyOfRedoAndRelease { get; set; } = null;
+        internal long LastGlobalSerialIdOfRedoAndRelease { get; set; } = 0;
 
         /// <summary>
         /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
@@ -174,75 +168,93 @@ namespace Zeze.Transaction
                             try
                             {
                                 var result = procedure.Call();
-                                if ((result == Procedure.Success && Savepoints.Count != 1) || (result != Procedure.Success && Savepoints.Count != 0))
+                                switch (State)
                                 {
-                                    // 这个错误不应该重做
-                                    logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
-                                    _final_rollback_(procedure);
-                                    return Procedure.ErrorSavepoint;
-                                }
-                                checkResult = _lock_and_check_();
-                                if (checkResult == CheckResult.Success)
-                                {
-                                    if (result == Procedure.Success)
-                                    {
-                                        _final_commit_(procedure);
+                                    case TransactionState.Running:
+                                        if ((result == Procedure.Success && Savepoints.Count != 1) || (result != Procedure.Success && Savepoints.Count != 0))
+                                        {
+                                            // 这个错误不应该重做
+                                            logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
+                                            _final_rollback_(procedure);
+                                            return Procedure.ErrorSavepoint;
+                                        }
+                                        checkResult = _lock_and_check_();
+                                        if (checkResult == CheckResult.Success)
+                                        {
+                                            if (result == Procedure.Success)
+                                            {
+                                                _final_commit_(procedure);
 #if ENABLE_STATISTICS
                                         // 正常一次成功的不统计，用来观察redo多不多。
                                         // 失败在 Procedure.cs 中的统计。
                                         if (tryCount > 0)
                                             ProcedureStatistics.Instance.GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).IncrementAndGet();
 #endif
-                                        return Procedure.Success;
-                                    }
-                                    _final_rollback_(procedure);
-                                    return result;
+                                                return Procedure.Success;
+                                            }
+                                            _final_rollback_(procedure);
+                                            return result;
+                                        }
+                                        break; // retry
+
+                                    case TransactionState.Abort:
+                                        logger.Debug("Transaction.Perform: Abort");
+                                        _final_rollback_(procedure);
+                                        return Procedure.AbortException;
+
+                                    case TransactionState.Redo:
+                                        checkResult = CheckResult.Redo;
+                                        break; // retry
+
+                                    case TransactionState.RedoAndReleaseLock:
+                                        checkResult = CheckResult.RedoAndReleaseLock;
+                                        break; // retry
                                 }
                                 // retry clear in finally
                             }
-                            catch (RedoAndReleaseLockException redorelease)
-                            {
-                                LastTableKeyOfRedoAndRelease = redorelease.TableKey;
-                                LastGlobalSerialIdOfRedoAndRelease = redorelease.GlobalSerialId;
-                                checkResult = CheckResult.RedoAndReleaseLock;
-                                logger.Debug(redorelease, "RedoAndReleaseLockException");
-                            }
-                            catch (RedoException redo)
-                            {
-                                checkResult = CheckResult.Redo;
-                                logger.Debug(redo, "RedoException");
-                            }
-                            catch (AbortException abort)
-                            {
-                                logger.Debug(abort, "Transaction.Perform: Abort");
-                                _final_rollback_(procedure);
-                                return Procedure.AbortException;
-                            }
                             catch (Exception e)
                             {
-                                // Procedure.Call 里面已经处理了异常。只有 unit test 或者内部错误会到达这里。
+                                // Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
                                 // 在 unit test 下，异常日志会被记录两次。
-                                logger.Error(e, "Transaction.Perform:{0} exception. run count:{1}", procedure, tryCount);
-                                if (Savepoints.Count != 0)
+                                switch (State)
                                 {
-                                    // 这个错误不应该重做
-                                    logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 0.", procedure);
-                                    _final_rollback_(procedure);
-                                    return Procedure.ErrorSavepoint;
-                                }
+                                    case TransactionState.Running:
+                                        logger.Error(e, "Transaction.Perform:{0} exception. run count:{1}", procedure, tryCount);
+                                        if (Savepoints.Count != 0)
+                                        {
+                                            // 这个错误不应该重做
+                                            logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 0.", procedure);
+                                            _final_rollback_(procedure);
+                                            return Procedure.ErrorSavepoint;
+                                        }
 #if DEBUG
-                                // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
-                                if (e.GetType().Name == "AssertFailedException")
-                                {
-                                    _final_rollback_(procedure);
-                                    throw;
-                                }
+                                        // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
+                                        if (e.GetType().Name == "AssertFailedException")
+                                        {
+                                            _final_rollback_(procedure);
+                                            throw;
+                                        }
 #endif
-                                checkResult = _lock_and_check_();
-                                if (checkResult == CheckResult.Success)
-                                {
-                                    _final_rollback_(procedure);
-                                    return Procedure.Excption;
+                                        checkResult = _lock_and_check_();
+                                        if (checkResult == CheckResult.Success)
+                                        {
+                                            _final_rollback_(procedure);
+                                            return Procedure.Excption;
+                                        }
+                                        break; // retry
+
+                                    case TransactionState.Abort:
+                                        logger.Debug("Transaction.Perform: Abort");
+                                        _final_rollback_(procedure);
+                                        return Procedure.AbortException;
+
+                                    case TransactionState.Redo:
+                                        checkResult = CheckResult.Redo;
+                                        break;
+
+                                    case TransactionState.RedoAndReleaseLock:
+                                        checkResult = CheckResult.RedoAndReleaseLock;
+                                        break;
                                 }
                                 // retry
                             }
@@ -261,7 +273,10 @@ namespace Zeze.Transaction
                                 Savepoints.Clear();
                                 CommitActions.Clear();
                                 RollbackActions.Clear();
+
+                                State = TransactionState.Running; // prepare to retry
                             }
+
                             if (checkResult == CheckResult.RedoAndReleaseLock)
                             {
                                 //logger.Debug("CheckResult.RedoAndReleaseLock break {0}", procedure);
@@ -382,14 +397,14 @@ namespace Zeze.Transaction
 
             // 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
             // 不再支持在回调中再次执行事务。
-            IsCompleted = true; // 在Notify之前设置的。
+            State = TransactionState.Completed; // 在Notify之前设置的。
             _notify_listener_(cc);
             _trigger_commit_actions_(procedure);
         }
 
         private void _final_rollback_(Procedure procedure)
         {
-            IsCompleted = true;
+            State = TransactionState.Completed;
             foreach (Action action in RollbackActions)
             {
                 try
@@ -471,8 +486,6 @@ namespace Zeze.Transaction
             = new SortedDictionary<TableKey, RecordAccessed>();
         private readonly List<Savepoint> Savepoints = new List<Savepoint>();
 
-        public bool IsCompleted { get; private set; } = false;
-
         /// <summary>
         /// 只能添加一次。
         /// </summary>
@@ -480,9 +493,7 @@ namespace Zeze.Transaction
         /// <param name="r"></param>
         internal void AddRecordAccessed(Record.RootInfo root, RecordAccessed r)
         {
-            if (IsCompleted)
-                throw new Exception("Transaction Is Completed");
-
+            VerifyRunning();
             r.InitRootInfo(root, null);
             AccessedRecords.Add(root.TableKey, r);
         }
@@ -490,13 +501,11 @@ namespace Zeze.Transaction
         internal RecordAccessed GetRecordAccessed(TableKey key)
         {
             // 允许读取事务内访问过的记录。
-            //if (IsCompleted)
-            //    throw new Exception("Transaction Is Completed");
+            VerifyRunningOrCompleted();
 
             if (AccessedRecords.TryGetValue(key, out var record))
-            {
                 return record;
-            }
+
             return null;
         }
 
@@ -515,8 +524,10 @@ namespace Zeze.Transaction
             // 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
             // 【注意】这个提前检测更容易忙等，因为都没去尝试锁（这会阻塞）。
             if (ra.OriginRecord.Table.Zeze.Config.FastRedoWhenConfict
-                && false == IsCompleted && ra.OriginRecord.Timestamp != ra.Timestamp)
-                throw new RedoException();
+                && State != TransactionState.Completed && ra.OriginRecord.Timestamp != ra.Timestamp)
+            {
+                ThrowRedo();
+            }
         }
 
         enum CheckResult
@@ -720,6 +731,58 @@ namespace Zeze.Transaction
             }
             holdLocks.RemoveRange(index, nLast - index);
             return holdLocks.Count;
+        }
+
+        public TransactionState State { get; private set; } = TransactionState.Running;
+
+        public void ThrowAbort(string msg = null, Exception cause = null)
+        {
+            if (State != TransactionState.Running)
+                throw new InvalidOperationException("Abort: State Is Not Running.");
+            State = TransactionState.Abort;
+            throw new GoBackZezeException(msg, cause);
+        }
+
+        public void ThrowRedoAndReleaseLock(string msg = null, Exception cause = null)
+        {
+            if (State != TransactionState.Running)
+                throw new InvalidOperationException("RedoAndReleaseLock: State Is Not Running.");
+            State = TransactionState.RedoAndReleaseLock;
+#if ENABLE_STATISTICS
+            ProcedureStatistics.Instance.GetOrAdd(TopProcedure.ActionName).GetOrAdd(Procedure.RedoAndRelease).IncrementAndGet();
+#endif
+            throw new GoBackZezeException(msg, cause);
+        }
+
+        public void ThrowRedo()
+        {
+            if (State != TransactionState.Running)
+                throw new InvalidOperationException("RedoAndReleaseLock: State Is Not Running.");
+            State = TransactionState.Redo;
+            throw new GoBackZezeException("Redo");
+        }
+
+        public void VerifyRunning()
+        {
+            switch (State)
+            {
+                case TransactionState.Running:
+                    return;
+                default:
+                    throw new InvalidOperationException("State Is Not Running");
+            }
+        }
+
+        public void VerifyRunningOrCompleted()
+        {
+            switch (State)
+            {
+                case TransactionState.Running:
+                case TransactionState.Completed:
+                    return;
+                default:
+                    throw new InvalidOperationException("State Is Not RunningOrCompleted");
+            }
         }
     }
 }

@@ -76,6 +76,8 @@ namespace Zeze.Transaction
             try
             {
                 long result = Process();
+                currentT.VerifyRunning(); // 防止应用抓住了异常，通过return方式返回。
+
                 if (Success == result)
                 {
                     currentT.Commit();
@@ -85,7 +87,6 @@ namespace Zeze.Transaction
                     return Success;
                 }
                 currentT.Rollback();
-
                 var module = "";
                 if (result > 0)
                     module = "@" + IModule.GetModuleId(result)
@@ -98,32 +99,13 @@ namespace Zeze.Transaction
 #endif
                 return result;
             }
-            catch (RedoException)
+            catch (GoBackZezeException gobackzeze)
             {
+                // 单独抓住这个异常，是为了能原样抛出，并且使用不同的级别记录日志。
+                // 对状态正确性没有影响。
                 currentT.Rollback();
-                throw; // 抛出这个异常，重做，提前检测数据发生了改变。
-            }
-            catch (AbortException)
-            {
-                currentT.Rollback();
-                throw; // 抛出这个异常，中断事务，跳过所有嵌套过程直到最外面。
-            }
-            catch (RedoAndReleaseLockException)
-            {
-                currentT.Rollback();
-#if ENABLE_STATISTICS
-                ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(RedoAndRelease).IncrementAndGet();
-#endif
-                throw; // 抛出这个异常，打断事务，跳过所有嵌套过程直到最外面。会重做。
-            }
-            catch (TaskCanceledException ce)
-            {
-                currentT.Rollback();
-                logger.Error(ce, "Procedure {0} Exception UserState={1}", ToString(), UserState);
-#if ENABLE_STATISTICS
-                ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(Excption).IncrementAndGet();
-#endif
-                return CancelExcption; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
+                logger.Debug(gobackzeze);
+                throw gobackzeze;
             }
             catch (Exception e)
             {
@@ -132,6 +114,7 @@ namespace Zeze.Transaction
 #if ENABLE_STATISTICS
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(Excption).IncrementAndGet();
 #endif
+                currentT.VerifyRunning();
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (e.GetType().Name == "AssertFailedException")
@@ -139,7 +122,7 @@ namespace Zeze.Transaction
                     throw;
                 }
 #endif
-                return Excption; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
+                return e is TaskCanceledException ? CancelExcption : Excption; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
             }
             finally
             {

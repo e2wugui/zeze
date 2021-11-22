@@ -43,7 +43,7 @@ namespace Zeze.Transaction
                         return Logined.Task.Result;
 
                     if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbitPeriod)
-                        throw new AbortException("GloalAgent.Connect: In Forbit Login Period");
+                        Transaction.Current.ThrowAbort("GloalAgent.Connect: In Forbit Login Period");
 
                     if (null == Socket)
                     {
@@ -64,7 +64,7 @@ namespace Zeze.Transaction
                         if (now - LastErrorTime > ForbitPeriod)
                             LastErrorTime = now;
                     }
-                    throw new AbortException("GloalAgent.Connect: Login Timeout");
+                    Transaction.Current.ThrowAbort("GloalAgent.Connect: Login Timeout");
                 }
                 return Socket;
             }
@@ -167,7 +167,8 @@ namespace Zeze.Transaction
                 {
                     case GlobalCacheManagerServer.AcquireModifyFaild:
                     case GlobalCacheManagerServer.AcquireShareFaild:
-                        throw new AbortException("GlobalAgent.Acquire Faild");
+                        Transaction.Current.ThrowAbort("GlobalAgent.Acquire Faild");
+                        break;
                 }
                 return rpc;
             }

@@ -91,6 +91,7 @@ public final class Transaction {
 	}
 
 	public Log GetLog(long key) {
+		VerifyRunningOrCompleted();
 		// 允许没有 savepoint 时返回 null. 就是说允许在保存点不存在时进行读取操作。
 		return !Savepoints.isEmpty() ? Savepoints.get(Savepoints.size() - 1).GetLog(key) : null;
 	}
@@ -629,7 +630,7 @@ public final class Transaction {
 			case Running: case Completed:
 				return;
 			default:
-				throw new IllegalStateException("State Is Not Running");
+				throw new IllegalStateException("State Is Not RunningOrCompleted");
 		}
 	}
 }

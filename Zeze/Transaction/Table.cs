@@ -81,7 +81,10 @@ namespace Zeze.Transaction
                     if (r.State == GlobalCacheManagerServer.StateInvalid)
                     {
                         r.LastErrorGlobalSerialId = acquire.Result.GlobalSerialId; // save
-                        throw new RedoAndReleaseLockException(tkey, acquire.Result.GlobalSerialId, tkey.ToString() + ":" + r.ToString());
+                        var txn = Transaction.Current;
+                        txn.LastTableKeyOfRedoAndRelease = tkey;
+                        txn.LastGlobalSerialIdOfRedoAndRelease = acquire.Result.GlobalSerialId;
+                        txn.ThrowRedoAndReleaseLock(tkey.ToString() + ":" + r.ToString());
                         //throw new RedoAndReleaseLockException();
                     }
 

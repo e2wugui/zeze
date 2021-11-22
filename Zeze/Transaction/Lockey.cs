@@ -100,7 +100,7 @@ namespace Zeze.Transaction
 			if (isWrite)
 			{
 				if (rwLock.IsReadLockHeld)
-					throw new AbortException("Invalid Lock State.");
+					Transaction.Current.ThrowAbort("Invalid Lock State.");
 
 				//logger.Debug("EnterLock::EnterWriteLock {0}", TableKey);
 				EnterWriteLock();
