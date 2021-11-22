@@ -556,36 +556,40 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public void close() {
-		try {
-			synchronized (this) {
-				if (selectionKey == null) {
-					return;
-				}
-
-				try {
-					if (Connector != null) {
-						Connector.OnSocketClose(this);
-					}
-					Service.OnSocketClose(this, this.getLastException());
-					selectionKey.channel().close();
-					selectionKey = null;
-				}
-				catch (Throwable e) {
-					// skip Dispose error
+		synchronized (this) {
+			if (selectionKey == null) {
+				return;
+			}
+			try {
+				if (Connector != null) {
+					Connector.OnSocketClose(this);
 				}
 			}
-
-			synchronized (this) {
-				try {
-					Service.OnSocketDisposed(this);
-				}
-				catch (Throwable e2) {
-					// skip Dispose error
-				}
+			catch (Throwable skip) {
+				logger.error(skip);
 			}
+			try {
+				Service.OnSocketClose(this, this.getLastException());
+			}
+			catch (Throwable skip) {
+				logger.error(skip);
+			}
+			try {
+				selectionKey.channel().close();
+			}
+			catch (Throwable skip) {
+				logger.error(skip);
+			}
+			selectionKey = null;
 		}
-		catch (Throwable ex) {
-			throw new RuntimeException(ex); // TODO skip close exception?
+
+		synchronized (this) {
+			try {
+				Service.OnSocketDisposed(this);
+			}
+			catch (Throwable skip) {
+				logger.error(skip);
+			}
 		}
 	}
 

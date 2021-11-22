@@ -15,6 +15,8 @@ namespace Zeze.Net
     /// </summary>
     public sealed class AsyncSocket : IDisposable
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         private byte[] _inputBuffer;
         private List<System.ArraySegment<byte>> _outputBufferList = null;
         private int _outputBufferListCountSum = 0;
@@ -519,14 +521,28 @@ namespace Zeze.Net
                 try
                 {
                     Connector?.OnSocketClose(this);
-                    Service.OnSocketClose(this, this.LastException);
-                    Socket?.Dispose();
-                    Socket = null;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    // skip Dispose error
+                    logger.Error(e);
                 }
+                try
+                {
+                    Service.OnSocketClose(this, this.LastException);
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e);
+                }
+                try
+                {
+                    Socket?.Dispose();
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e);
+                }
+                Socket = null;
             }
 
             lock (this)
@@ -535,9 +551,9 @@ namespace Zeze.Net
                 {
                     Service.OnSocketDisposed(this);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    // skip Dispose error
+                    logger.Error(e);
                 }
             }
         }
