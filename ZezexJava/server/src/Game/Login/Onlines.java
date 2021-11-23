@@ -56,8 +56,6 @@ public class Onlines {
 		SendReliableNotifyWhileCommit(roleId, listenerName, p, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendReliableNotifyWhileCommit(long roleId, string listenerName, Protocol p, bool WaitConfirm = false)
 	public final void SendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol p, boolean WaitConfirm) {
 		Transaction.getCurrent().RunWhileCommit(() -> SendReliableNotify(roleId, listenerName, p, WaitConfirm));
 	}
@@ -67,19 +65,14 @@ public class Onlines {
 		SendReliableNotifyWhileCommit(roleId, listenerName, typeId, fullEncodedProtocol, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendReliableNotifyWhileCommit(long roleId, string listenerName, int typeId, Binary fullEncodedProtocol, bool WaitConfirm = false)
 	public final void SendReliableNotifyWhileCommit(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
 		Transaction.getCurrent().RunWhileCommit(() -> SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm));
 	}
-
 
 	public final void SendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol p) {
 		SendReliableNotifyWhileRollback(roleId, listenerName, p, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendReliableNotifyWhileRollback(long roleId, string listenerName, Protocol p, bool WaitConfirm = false)
 	public final void SendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol p, boolean WaitConfirm) {
 		Transaction.getCurrent().RunWhileRollback(() -> SendReliableNotify(roleId, listenerName, p, WaitConfirm));
 	}
@@ -89,8 +82,6 @@ public class Onlines {
 		SendReliableNotifyWhileRollback(roleId, listenerName, typeId, fullEncodedProtocol, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendReliableNotifyWhileRollback(long roleId, string listenerName, int typeId, Binary fullEncodedProtocol, bool WaitConfirm = false)
 	public final void SendReliableNotifyWhileRollback(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
 		Transaction.getCurrent().RunWhileRollback(() -> SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm));
 	}
@@ -100,8 +91,6 @@ public class Onlines {
 		SendReliableNotify(roleId, listenerName, p, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendReliableNotify(long roleId, string listenerName, Protocol p, bool WaitConfirm = false)
 	public final void SendReliableNotify(long roleId, String listenerName, Protocol p, boolean WaitConfirm) {
 		SendReliableNotify(roleId, listenerName, p.getTypeId(), new Binary(p.Encode()), WaitConfirm);
 	}
@@ -118,8 +107,6 @@ public class Onlines {
 		SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendReliableNotify(long roleId, string listenerName, int typeId, Binary fullEncodedProtocol, bool WaitConfirm = false)
 	public final void SendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
 		final TaskCompletionSource<Long> future = WaitConfirm ? new TaskCompletionSource<Long>() : null;
 
@@ -298,8 +285,6 @@ public class Onlines {
 		SendWhileCommit(roleId, p, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendWhileCommit(long roleId, Protocol p, bool WaitConfirm = false)
 	public final void SendWhileCommit(long roleId, Protocol p, boolean WaitConfirm) {
 		Transaction.getCurrent().RunWhileCommit(() -> Send(roleId, p, WaitConfirm));
 	}
@@ -309,8 +294,6 @@ public class Onlines {
 		SendWhileCommit(roleIds, p, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendWhileCommit(ICollection<long> roleIds, Protocol p, bool WaitConfirm = false)
 	public final void SendWhileCommit(Collection<Long> roleIds, Protocol p, boolean WaitConfirm) {
 		Transaction.getCurrent().RunWhileCommit(() -> Send(roleIds, p, WaitConfirm));
 	}
@@ -320,8 +303,6 @@ public class Onlines {
 		SendWhileRollback(roleId, p, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendWhileRollback(long roleId, Protocol p, bool WaitConfirm = false)
 	public final void SendWhileRollback(long roleId, Protocol p, boolean WaitConfirm) {
 		Transaction.getCurrent().RunWhileRollback(() -> Send(roleId, p, WaitConfirm));
 	}
@@ -331,8 +312,6 @@ public class Onlines {
 		SendWhileRollback(roleIds, p, false);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public void SendWhileRollback(ICollection<long> roleIds, Protocol p, bool WaitConfirm = false)
 	public final void SendWhileRollback(Collection<Long> roleIds, Protocol p, boolean WaitConfirm) {
 		Transaction.getCurrent().RunWhileRollback(() -> Send(roleIds, p, WaitConfirm));
 	}

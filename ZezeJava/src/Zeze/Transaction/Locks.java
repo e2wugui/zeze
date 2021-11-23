@@ -13,8 +13,6 @@ public final class Locks {
 	 */
 	private static final int MAX_SEGMENTS = 1 << 16; // slightly conservative
 	private final int segmentShift;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private readonly uint segmentMask;
 	private final int segmentMask;
 	private final Segment[] segments;
 
@@ -34,24 +32,14 @@ public final class Locks {
 		 */
 		// Spread bits to regularize both segment and index locations,
 		// using variant of single-word Wang/Jenkins hash.
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint h = (uint)lockey.GetHashCode();
 		int h = (int)lockey.hashCode();
 		h += (h << 15) ^ 0xffffcd7d;
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
 		h ^= (h >>> 10);
 		h += (h << 3);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
 		h ^= (h >>> 6);
 		h += (h << 2) + (h << 14);
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint hash = h ^ (h >> 16);
 		int hash = h ^ (h >>> 16);
 
-//C# TO JAVA CONVERTER WARNING: The right shift operator was replaced by Java's logical right shift operator since the left operand was originally of an unsigned type, but you should confirm this replacement:
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: uint index = (hash >> segmentShift) & segmentMask;
 		int index = (hash >>> segmentShift) & segmentMask;
 		return segments[index];
 	}
@@ -77,8 +65,6 @@ public final class Locks {
 			ssize <<= 1;
 		}
 		this.segmentShift = 32 - sshift;
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: this.segmentMask = (uint)(ssize - 1);
 		this.segmentMask = (int)(ssize - 1);
 		this.segments = new Segment[ssize];
 		for (int i = 0; i < this.segments.length; ++i) {

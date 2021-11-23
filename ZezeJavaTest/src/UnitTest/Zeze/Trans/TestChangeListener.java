@@ -364,13 +364,9 @@ public class TestChangeListener{
 	}
 
 	private static class CLByte13 implements ChangeListener {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: private byte newValue;
 		private byte newValue;
 
 		public final void Init(demo.Module1.Value current) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: newValue = (null != current) ? current.Byte13 : (byte)255;
 			newValue = (null != current) ? current.getByte13() : (byte)255;
 		}
 
@@ -391,8 +387,6 @@ public class TestChangeListener{
 		}
 
 		public final void OnRemoved(Object key) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: newValue = 255;
 			newValue = (byte)255;
 		}
 	}

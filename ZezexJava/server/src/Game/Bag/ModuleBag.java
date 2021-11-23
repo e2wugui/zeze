@@ -82,8 +82,6 @@ public final class ModuleBag extends AbstractModule {
 		var moduleCode = GetBag(session.getRoleId().longValue()).Move(
 				rpc.Argument.getPositionFrom(), rpc.Argument.getPositionTo(), rpc.Argument.getNumber());
 		if (moduleCode != 0) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: return ReturnCode((ushort)moduleCode);
 			return ErrorCode(moduleCode);
 		}
 		session.SendResponse(rpc);
@@ -96,8 +94,6 @@ public final class ModuleBag extends AbstractModule {
 		var session = Game.Login.Session.Get(rpc);
 		var moduleCode = GetBag(session.getRoleId().longValue()).Destory(rpc.Argument.getPosition());
 		if (0 != moduleCode) {
-//C# TO JAVA CONVERTER WARNING: Unsigned integer types have no direct equivalent in Java:
-//ORIGINAL LINE: return ReturnCode((ushort)moduleCode);
 			return ErrorCode(moduleCode);
 		}
 		session.SendResponse(rpc);

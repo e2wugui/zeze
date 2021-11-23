@@ -280,8 +280,6 @@ public final class ModuleProvider extends AbstractModule {
         UnBindModules(provider, modules, false);
     }
 
-    //C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: private void UnBindModules(Zeze.Net.AsyncSocket provider, IEnumerable<int> modules, bool isOnProviderClose = false)
     private void UnBindModules(Zeze.Net.AsyncSocket provider, java.lang.Iterable<Integer> modules, boolean isOnProviderClose) {
         var providerSession = (Zezex.ProviderSession) provider.getUserState();
         for (var moduleId : modules) {
