@@ -33,8 +33,22 @@ namespace Zeze.Tikv
 
             public void Dispose()
             {
-                Transaction.Dispose();
-                Connection.Dispose();
+                try
+                {
+                    Transaction.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex);
+                }
+                try
+                {
+                    Connection.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex);
+                }
             }
 
 

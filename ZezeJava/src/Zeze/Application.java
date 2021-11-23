@@ -296,7 +296,7 @@ public final class Application {
 					try {
 						last.wait(5000);
 					} catch (InterruptedException skip) {
-						// skip
+						logger.error(skip);
 						return false;
 					}
 				}

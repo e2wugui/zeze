@@ -468,7 +468,14 @@ namespace Zeze.Services
 
         public void Dispose()
         {
-            Stop();
+            try
+            {
+                Stop();
+            }
+            catch(Exception ex)
+            {
+                logger.Error(ex);
+            }
         }
 
         public ServiceManagerServer(IPAddress ipaddress, int port, Config config, int startNotifyDelay = -1)
@@ -1142,7 +1149,14 @@ namespace Zeze.Services.ServiceManager
 
         public void Dispose()
         {
-            Stop();
+            try
+            {
+                Stop();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
+            }
         }
 
         public const string DefaultServiceName = "Zeze.Services.ServiceManager.Agent";

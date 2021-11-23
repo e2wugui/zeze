@@ -304,6 +304,14 @@ namespace Zeze.Net
                 catch (Exception ce)
                 {
                     accepted?.Close(ce);
+                    try
+                    {
+                        this.Service.OnSocketAcceptError(this, ce);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex);
+                    }
                 }
                 BeginAcceptAsync();
             }
@@ -328,8 +336,15 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-                this.Service.OnSocketConnectError(this, e);
                 Close(null);
+                try
+                {
+                    this.Service.OnSocketConnectError(this, e);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex);
+                }
             }
         }
 
@@ -349,8 +364,15 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-                this.Service.OnSocketConnectError(this, e);
                 Close(null);
+                try
+                {
+                    this.Service.OnSocketConnectError(this, e);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex);
+                }
             }
         }
 

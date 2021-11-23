@@ -230,8 +230,22 @@ namespace Zeze.Transaction
 
             public void Dispose()
             {
-                Transaction.Dispose();
-                Connection.Dispose();
+                try
+                {
+                    Transaction.Dispose();
+                }
+                catch(Exception ex)
+                {
+                    logger.Error(ex);
+                }
+                try
+                {
+                    Connection.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex);
+                }
             }
 
             public void Commit()
@@ -652,8 +666,22 @@ namespace Zeze.Transaction
 
             public void Dispose()
             {
-                Transaction.Dispose();
-                Connection.Dispose();
+                try
+                {
+                    Transaction.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex);
+                }
+                try
+                {
+                    Connection.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex);
+                }
             }
 
             public void Commit()

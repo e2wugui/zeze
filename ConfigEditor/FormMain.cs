@@ -44,9 +44,9 @@ namespace ConfigEditor
                 string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(GetConfigFileFullName()));
                 ConfigEditor = JsonSerializer.Deserialize<EditorConfig>(json);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                //MessageBox.Show(ex.ToString());
+                MessageBox.Show(ex.ToString());
             }
             if (null == ConfigEditor)
                 ConfigEditor = new EditorConfig() { RecentHomes = new List<string>() };
@@ -60,9 +60,9 @@ namespace ConfigEditor
                     System.IO.Path.Combine(ConfigEditor.GetHome(), "ProjectConfig.json")));
                 ConfigProject = JsonSerializer.Deserialize<ProjectConfig>(json);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                //MessageBox.Show(ex.ToString());
+                MessageBox.Show(ex.ToString());
             }
             if (null == ConfigProject)
                 ConfigProject = new ProjectConfig();

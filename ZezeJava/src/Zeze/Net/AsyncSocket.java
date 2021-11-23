@@ -182,6 +182,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				if (null != ssc)
 					ssc.close();
 			} catch (IOException skip) {
+				logger.error(skip);
 			}
 			throw new RuntimeException(e);
 		}
@@ -310,6 +311,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				if (null != sc)
 					sc.close();
 			} catch (Throwable skip) {
+				logger.error(skip);
 			}
 			throw new RuntimeException(e);
 		}

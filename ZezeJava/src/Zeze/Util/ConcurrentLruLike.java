@@ -248,7 +248,7 @@ public class ConcurrentLruLike<K, V> {
 			try {
 				Thread.sleep(sleepms);
 			} catch (InterruptedException skip) {
-				// skip ?
+				logger.error(skip);
 			}
 			Task.schedule(this::CleanNow, getCleanPeriod(), -1);
 		}

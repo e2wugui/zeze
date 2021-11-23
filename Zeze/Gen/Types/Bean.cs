@@ -48,9 +48,10 @@ namespace Zeze.Gen.Types
 						if (null != type)
 							includes.Add(type); // type.depends(type); 肯定是 Bean，不需要递归包含。 
 					}
-					catch (Exception)
+					catch (Exception ex)
 					{
-						// skip depends error
+						// 这里为什么try-catch了，需要确认。
+						Console.WriteLine(ex.ToString());
 					}
 				}
 		}

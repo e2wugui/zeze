@@ -242,6 +242,7 @@ public final class TaskOneByOneByKey {
 							action.call();
 						} catch (Throwable skip) {
 							// Zeze.Util.Task has handle error.
+							logger.error(skip);
 						}
 						finally {
 							RunNext();

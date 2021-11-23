@@ -89,7 +89,14 @@ namespace Zeze.Net
             {
                 raw?.Dispose();
                 Accepted?.Dispose(); // dispose raw twice.
-                Service.OnSocketAcceptError(this, ex);
+                try
+                {
+                    Service.OnSocketAcceptError(this, ex);
+                }
+                catch (Exception ex2)
+                {
+                    logger.Error(ex2);
+                }
             }
         }
 
@@ -361,8 +368,15 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-                this.Service.OnSocketConnectError(this, e);
                 Close(null);
+                try
+                {
+                    this.Service.OnSocketConnectError(this, e);
+                }
+                catch (Exception e2)
+                {
+                    logger.Error(e2);
+                }
             }
         }
 
@@ -379,8 +393,15 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-                this.Service.OnSocketConnectError(this, e);
                 Close(null);
+                try
+                {
+                    this.Service.OnSocketConnectError(this, e);
+                }
+                catch (Exception e2)
+                {
+                    logger.Error(e2);
+                }
             }
         }
 
@@ -400,14 +421,28 @@ namespace Zeze.Net
                 try
                 {
                     Connector?.OnSocketClose(this);
-                    Service.OnSocketClose(this, this.LastException);
-                    Socket?.Dispose();
-                    Socket = null;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    // skip Dispose error
+                    logger.Error(e);
                 }
+                try
+                {
+                    Service.OnSocketClose(this, this.LastException);
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e);
+                }
+                try
+                {
+                    Socket?.Dispose();
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e);
+                }
+                Socket = null;
             }
 
             lock (this)
@@ -416,9 +451,9 @@ namespace Zeze.Net
                 {
                     Service.OnSocketDisposed(this);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    // skip Dispose error
+                    logger.Error(e);
                 }
             }
         }

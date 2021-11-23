@@ -74,6 +74,7 @@ public final class GlobalAgent {
 						return Logined.get(0, TimeUnit.MILLISECONDS);
 					}
 					catch (TimeoutException skipAndContinue) {
+						// 这里为什么 skipAndContinue, 忘了！
 					}
 					catch (InterruptedException | ExecutionException abort) {
 						Transaction.getCurrent().ThrowAbort(null, abort);

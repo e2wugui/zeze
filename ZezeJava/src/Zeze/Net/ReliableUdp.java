@@ -333,6 +333,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
             try {
                 selectionKey.channel().close();
             } catch (IOException skip) {
+                logger.error(skip);
             }
             selectionKey = null;
         }
