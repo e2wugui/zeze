@@ -209,7 +209,7 @@ namespace Zeze.Net
             {
                 if (null == Socket)
                     return false;
-
+                Console.WriteLine(BitConverter.ToString(bytes, offset, length));
                 if (null != outputCodecChain)
                 {
                     // 压缩加密等 codec 链操作。
@@ -225,6 +225,7 @@ namespace Zeze.Net
                     // outputBufferCodec 释放对byte[]的引用。
                     outputCodecBuffer.Buffer.FreeInternalBuffer();
                 }
+                Console.WriteLine(BitConverter.ToString(bytes, offset, length));
 
                 if (null == _outputBufferList)
                     _outputBufferList = new List<ArraySegment<byte>>();
