@@ -219,8 +219,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			} catch (Throwable ex) {
 				e = ex;
 			}
-			close();
 			Service.OnSocketConnectError(this, e);
+			close(); // if OnSocketConnectError throw Exception, this will close in Selector
 			return;
 		}
 

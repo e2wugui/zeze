@@ -336,7 +336,6 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-                Close(null);
                 try
                 {
                     this.Service.OnSocketConnectError(this, e);
@@ -345,6 +344,7 @@ namespace Zeze.Net
                 {
                     logger.Error(ex);
                 }
+                Close(null);
             }
         }
 
@@ -364,7 +364,6 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-                Close(null);
                 try
                 {
                     this.Service.OnSocketConnectError(this, e);
@@ -373,6 +372,7 @@ namespace Zeze.Net
                 {
                     logger.Error(ex);
                 }
+                Close(null);
             }
         }
 
