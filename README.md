@@ -513,10 +513,16 @@
 	  比如对同一个用户的请求进行排队。
 
 	. Transaction Api
-	  a) GetLog & PutLog 自定义日志。
-	  b) RunWhileCommit  事务结束并且提交后执行。此时还在锁内，可以让操作和事务原子化。
-	  c) RunWhileRollback 事务结束并且回滚后执行。此时还在锁内，可以让操作和事务原子化。
-	  ...
+	  a) GetLog & PutLog
+	     自定义日志。
+	  b) RunWhileCommit
+	     事务结束并且提交后执行。此时还在锁内，可以让操作和事务原子化。
+	  c) RunWhileRollback
+	     事务结束并且回滚后执行。此时还在锁内，可以让操作和事务原子化。
+	  bc) RunWhileCommit RunWhileRollback 提交的Action的限制（会抛异常）
+	      不能修改数据；
+	      不能再次提交新的Action;
+	      不能嵌套执行事务；
 
 	. 事务内创建的 Zeze.Application.NewProcedure 的执行方式
 	  var newp = Zeze.Application.NewProcedure(...);
