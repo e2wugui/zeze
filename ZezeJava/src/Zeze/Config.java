@@ -337,6 +337,49 @@ public final class Config {
 		}
 	}
 
+	public final static class DbcpConf {
+		public String  DriverClassName;
+		public Integer InitialSize;
+		public Integer MaxTotal;
+		public Integer MaxIdle;
+		public Integer MinIdle;
+		public Long    MaxWaitMillis;
+
+		public String UserName;
+		public String Password;
+
+		private String EmptyToNullString(String attr) {
+			var trim = attr.trim();
+			return trim.isEmpty() ? null : trim;
+		}
+
+		private Integer EmptyToNullInteger(String attr) {
+			var str = EmptyToNullString(attr);
+			return null == str ? null : Integer.parseInt(str);
+		}
+
+		private Long EmptyToNullLong(String attr) {
+			var str = EmptyToNullString(attr);
+			return null == str ? null : Long.parseLong(str);
+		}
+
+		public DbcpConf(Element self) {
+			DriverClassName = EmptyToNullString(self.getAttribute("DriverClassName"));
+			InitialSize = EmptyToNullInteger(self.getAttribute("InitialSize"));
+			MaxTotal = EmptyToNullInteger(self.getAttribute("MaxTotal"));
+			MaxIdle = EmptyToNullInteger(self.getAttribute("MaxIdle"));
+			MinIdle = EmptyToNullInteger(self.getAttribute("MinIdle"));
+			MaxWaitMillis = EmptyToNullLong(self.getAttribute("MaxWaitMillis"));
+
+			UserName = EmptyToNullString(self.getAttribute("UserName"));
+			Password = EmptyToNullString(self.getAttribute("Password"));
+		}
+
+		public DbcpConf() {
+
+		}
+	}
+
 	public final static class DatabaseConf {
 		private String Name = "";
 		public String getName() {
@@ -363,6 +406,15 @@ public final class Config {
 			DatabaseUrl = databaseUrl;
 		}
 
+		private DbcpConf DbcpConf; // only valid when jdbc: mysql, sqlserver,
+		public DbcpConf getDbcpConf() {
+			return DbcpConf;
+		}
+
+		public void setDbcpConf(DbcpConf conf) {
+			DbcpConf = conf;
+		}
+
 		public DatabaseConf() {
 		}
 
@@ -374,9 +426,15 @@ public final class Config {
 					break;
 				case "MySql":
 					DatabaseType = DbType.MySql;
+					DbcpConf = new DbcpConf(self);
+					if (null == DbcpConf.DriverClassName)
+						DbcpConf.DriverClassName = "com.mysql.cj.jdbc.Driver";
 					break;
 				case "SqlServer":
 					DatabaseType = DbType.SqlServer;
+					DbcpConf = new DbcpConf(self);
+					if (null == DbcpConf.DriverClassName)
+						DbcpConf.DriverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 					break;
 				case "Tikv":
 					DatabaseType = DbType.Tikv;
@@ -385,6 +443,7 @@ public final class Config {
 					throw new RuntimeException("unknown database type.");
 			}
 			DatabaseUrl = self.getAttribute("DatabaseUrl");
+
 			if (null != conf.getDatabaseConfMap().putIfAbsent(getName(), this)) {
 				throw new RuntimeException("Duplicate Database '" + getName() + "'");
 			}

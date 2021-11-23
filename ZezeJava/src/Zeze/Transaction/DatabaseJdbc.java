@@ -13,10 +13,34 @@ public abstract class DatabaseJdbc extends Database {
 	
 	public DatabaseJdbc(DatabaseConf conf) {
 		super(conf);
+
 		dataSource = new BasicDataSource();
+		var dbcpconf = conf.getDbcpConf();
+
 		BasicDataSource pool = this.dataSource;// 连接池
+
+		// must present
 		pool.setUrl(conf.getDatabaseUrl());
-		pool.setDriverClassName("com.mysql.cj.jdbc.Driver");
+		pool.setDriverClassName(dbcpconf.DriverClassName); // setup in Zeze.Config.DatabaseConf
+
+		// always on
+		pool.setPoolPreparedStatements(true);
+
+		// options
+		if (dbcpconf.UserName != null)
+			pool.setUsername(dbcpconf.UserName);
+		if (dbcpconf.Password !=  null)
+			pool.setPassword(dbcpconf.Password);
+		if (dbcpconf.InitialSize != null)
+			pool.setInitialSize(dbcpconf.InitialSize); // 初始的连接数；
+		if (dbcpconf.MaxTotal != null)
+			pool.setMaxTotal(dbcpconf.MaxTotal);
+		if (dbcpconf.MaxIdle != null)
+			pool.setMaxIdle(dbcpconf.MaxIdle);
+		if (dbcpconf.MinIdle != null)
+			pool.setMinIdle(dbcpconf.MinIdle);
+		if (dbcpconf.MaxWaitMillis != null)
+			pool.setMaxWaitMillis(dbcpconf.MaxWaitMillis);
 	}
 	
 	@Override

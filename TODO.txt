@@ -29,6 +29,5 @@ war？
 Global.Release并发问题确认
 Raft BUG
 GlobalWithRaft TODO
-Java Database
 
 Checkpoint 失败错误处理策略。超过多少时间无法恢复，停止应用？

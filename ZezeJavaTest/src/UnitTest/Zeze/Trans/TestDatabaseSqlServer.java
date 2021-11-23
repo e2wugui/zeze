@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import Zeze.Config;
 import Zeze.Config.DatabaseConf;
 import Zeze.Config.DbType;
 import Zeze.Serialize.ByteBuffer;
@@ -8,13 +9,19 @@ import Zeze.Transaction.DatabaseSqlServer;
 import junit.framework.TestCase;
 
 public class TestDatabaseSqlServer extends TestCase {
-	
+
 	public final void test1() {
-		String url = "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true";
+		System.err.println("sqlserver jdbc 不能连接 vs 自带的 LocalDB(不用配置的）。所以这个测试先不管了。");
+		if (!TestDatabaseMySql.checkDriverClassExist("com.microsoft.sqlserver.jdbc.SQLServerDriver"))
+			return;
+
+		String url = "jdbc:sqlserver://localhost;user=MyUserName;password=*****;";
 		DatabaseConf databaseConf = new DatabaseConf();
 		databaseConf.setDatabaseType(DbType.SqlServer);
 		databaseConf.setDatabaseUrl(url);
 		databaseConf.setName("sqlserver");
+		databaseConf.setDbcpConf(new Config.DbcpConf());
+
 		DatabaseSqlServer sqlserver = new DatabaseSqlServer(databaseConf);
 		Database.Table table = sqlserver.OpenTable("test1"); {
 			var trans = sqlserver.BeginTransaction(); {
