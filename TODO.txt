@@ -32,9 +32,3 @@ GlobalWithRaft TODO
 
 Checkpoint 失败错误处理策略。超过多少时间无法恢复，停止应用？
 
-
-<scm>
-  <connection>scm:git:git://github.com/simpligility/ossrh-demo.git</connection>
-  <developerConnection>scm:git:ssh://github.com:simpligility/ossrh-demo.git</developerConnection>
-  <url>http://github.com/simpligility/ossrh-demo/tree/master</url>
-</scm>

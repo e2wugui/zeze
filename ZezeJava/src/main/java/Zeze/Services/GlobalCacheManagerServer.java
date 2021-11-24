@@ -831,6 +831,17 @@ public final class GlobalCacheManagerServer {
 			// so.UserState = new CacheHolder(so.SessionId); // Login ReLogin 的时候初始化。
 			super.OnSocketAccept(so);
 		}
+
+		@Override
+		public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
+			var session = (CacheHolder)so.getUserState();
+			if (null == session) {
+				return; // skip not login
+			}
+			session.TryUnBindSocket(so);
+
+			super.OnSocketClose(so, e);
+		}
 	}
 
 	public static void main(String[] args) throws Throwable {
