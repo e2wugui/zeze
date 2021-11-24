@@ -7,10 +7,16 @@ local msg = require('{{toname "message"}}')
 local {{module.name}} = {}
 
 function {{module.name}}.Init()
+    {{module.name}}.RegisterHandlers()
+end
+
+--- [[ AUTO GENERATE START ]] ---
+function {{module.name}}.RegisterHandlers()
     {{-for protocol in protocols}}
     msg.{{protocol.full_name}}.Handle = {{module.name}}.OnMsg_{{protocol.name}}
     {{-end}}
 end
+--- [[ AUTO GENERATE END ]] ---
 {{-for protocol in protocols}}
 
 ---@param p {{toname protocol.full_name}}
