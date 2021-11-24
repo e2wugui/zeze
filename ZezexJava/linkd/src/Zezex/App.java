@@ -3,8 +3,11 @@ package Zezex;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+
+import Zeze.Net.AsyncSocket;
 import Zeze.Util.Str;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import Zeze.Util.PersistentAtomicLong;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 
@@ -16,17 +19,24 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
+    private PersistentAtomicLong SocketSessinIdGen;
+
 	public void Start() throws Throwable {
 		LoadConfig();
 		Create();
 		StartModules(); // 启动模块，装载配置什么的。
 		Zeze.Start(); // 启动数据库
-		StartService(); // 启动网络
 
 		var ipp = ProviderService.GetOnePassiveAddress();
 		setProviderServicePassiveIp(ipp.getKey());
 		setProviderServicePasivePort(ipp.getValue());
+
         var linkName = Str.format("{}:{}", getProviderServicePassiveIp(), getProviderServicePasivePort());
+        SocketSessinIdGen = PersistentAtomicLong.getOrAdd("Linkd." + linkName);
+        AsyncSocket.setSessionIdGenFunc(SocketSessinIdGen::next);
+
+        StartService(); // 启动网络. after setSessionIdGenFunc
+
 		setServiceManagerAgent(new Zeze.Services.ServiceManager.Agent(Zeze));
 		getServiceManagerAgent().RegisterService(LinkdServiceName,
                 linkName, getProviderServicePassiveIp(), getProviderServicePasivePort(), null);

@@ -3,8 +3,11 @@ package Game;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+
+import Zeze.Net.AsyncSocket;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Config;
+import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Str;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -63,6 +66,7 @@ public final class App extends Zeze.AppBase {
 		}
 	}
 
+    private PersistentAtomicLong SocketSessinIdGen;
 
 	public void Start(String[] args) throws Throwable {
 		int ServerId = -1;
@@ -91,6 +95,10 @@ public final class App extends Zeze.AppBase {
 
 		Zeze.Start(); // 启动数据库
 		StartModules(); // 启动模块，装载配置什么的。
+
+        SocketSessinIdGen = PersistentAtomicLong.getOrAdd("Server." + config.getServerId());
+        AsyncSocket.setSessionIdGenFunc(SocketSessinIdGen::next);
+
 		StartService(); // 启动网络
 		getLoad().StartTimerTask();
 

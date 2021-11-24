@@ -143,6 +143,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	private static final AtomicLong SessionIdGen = new AtomicLong();
+	private static Zeze.Util.Func0<Long> SessionIdGenFunc;
+	public static void setSessionIdGenFunc(Zeze.Util.Func0<Long> seed) {
+		SessionIdGenFunc = seed;
+	}
 
 	private final BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
 	private final BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
@@ -155,6 +159,16 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return RemoteAddress;
 	}
 
+	private long nextSessionId() {
+		if (null != SessionIdGenFunc) {
+			try {
+				return SessionIdGenFunc.call();
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return SessionIdGen.incrementAndGet();
+	}
 	/** 
 	 for server socket
 	*/
@@ -173,7 +187,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				ss.setReceiveBufferSize(service.getSocketOptions().getReceiveBuffer());
 			ss.bind(localEP, service.getSocketOptions().getBacklog());
 
-			SessionId = SessionIdGen.incrementAndGet();
+			SessionId = nextSessionId();
 
 			selector = Selectors.getInstance().choice();
 			selectionKey = selector.register(ssc, SelectionKey.OP_ACCEPT, this);
@@ -260,7 +274,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			throw new RuntimeException(e);
 		}
 
-		this.SessionId = SessionIdGen.incrementAndGet();
+		this.SessionId = nextSessionId();
 		RemoteAddress = so.getRemoteSocketAddress().toString();
 
 		selector = Selectors.getInstance().choice();
@@ -283,7 +297,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		this.Connector = connector;
 
 		UserState = userState;
-		this.SessionId = SessionIdGen.incrementAndGet();
+		this.SessionId = nextSessionId();
 
 		SocketChannel sc = null;
 		try {
