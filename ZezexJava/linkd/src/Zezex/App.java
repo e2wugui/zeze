@@ -26,11 +26,10 @@ public final class App extends Zeze.AppBase {
 		var ipp = ProviderService.GetOnePassiveAddress();
 		setProviderServicePassiveIp(ipp.getKey());
 		setProviderServicePasivePort(ipp.getValue());
-
+        var linkName = Str.format("{}:{}", getProviderServicePassiveIp(), getProviderServicePasivePort());
 		setServiceManagerAgent(new Zeze.Services.ServiceManager.Agent(Zeze));
 		getServiceManagerAgent().RegisterService(LinkdServiceName,
-                Str.format("{}:{}", getProviderServicePassiveIp(), getProviderServicePasivePort()),
-                getProviderServicePassiveIp(), getProviderServicePasivePort(), null);
+                linkName, getProviderServicePassiveIp(), getProviderServicePasivePort(), null);
 	}
 
 	public void Stop() throws Throwable {
