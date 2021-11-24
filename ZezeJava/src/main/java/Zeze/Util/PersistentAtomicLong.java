@@ -28,8 +28,9 @@ public class PersistentAtomicLong {
      * 对于网络程序，可以使用"进程名+Main.Acceptor.Name"
      */
     public static PersistentAtomicLong getOrAdd(final String ProgramInstanceName, final int allocateSize) {
+        var name = ProgramInstanceName.replace(':', '.');
         // 这样写，不小心重名也能工作。
-        return pals.computeIfAbsent(ProgramInstanceName, (k) -> new PersistentAtomicLong(k, allocateSize));
+        return pals.computeIfAbsent(name, (k) -> new PersistentAtomicLong(k, allocateSize));
     }
 
     public static PersistentAtomicLong getOrAdd(final String ProgramInstanceName) {

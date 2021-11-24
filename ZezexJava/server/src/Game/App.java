@@ -96,7 +96,7 @@ public final class App extends Zeze.AppBase {
 		Zeze.Start(); // 启动数据库
 		StartModules(); // 启动模块，装载配置什么的。
 
-        SocketSessinIdGen = PersistentAtomicLong.getOrAdd("Server." + config.getServerId());
+        SocketSessinIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
         AsyncSocket.setSessionIdGenFunc(SocketSessinIdGen::next);
 
 		StartService(); // 启动网络

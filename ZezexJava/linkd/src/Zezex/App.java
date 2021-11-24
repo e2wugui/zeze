@@ -32,7 +32,7 @@ public final class App extends Zeze.AppBase {
 		setProviderServicePasivePort(ipp.getValue());
 
         var linkName = Str.format("{}:{}", getProviderServicePassiveIp(), getProviderServicePasivePort());
-        SocketSessinIdGen = PersistentAtomicLong.getOrAdd("Linkd." + linkName);
+        SocketSessinIdGen = PersistentAtomicLong.getOrAdd("Game.Linkd." + linkName);
         AsyncSocket.setSessionIdGenFunc(SocketSessinIdGen::next);
 
         StartService(); // 启动网络. after setSessionIdGenFunc

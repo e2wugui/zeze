@@ -26,8 +26,9 @@ namespace Zeze.Util
          */
         public static PersistentAtomicLong GetOrAdd(string ProgramInstanceName, int allocateSize)
         {
+            var name = ProgramInstanceName.Replace(':', '.');
             // 这样写，不小心重名也能工作。
-            return pals.GetOrAdd(ProgramInstanceName, (k) => new PersistentAtomicLong(k, allocateSize));
+            return pals.GetOrAdd(name, (k) => new PersistentAtomicLong(k, allocateSize));
         }
 
         public static PersistentAtomicLong GetOrAdd(string ProgramInstanceName)
