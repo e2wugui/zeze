@@ -64,3 +64,4 @@ Gen
 /ZezeJava/classes
 autokeys
 *.log
+/ZezeJava/target
