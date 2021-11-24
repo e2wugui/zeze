@@ -1,2 +1,2 @@
-mvn clean deploy -P release
+mvn -e clean deploy
 pause

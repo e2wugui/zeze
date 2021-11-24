@@ -158,6 +158,7 @@ public class LinkSession {
 		linkBroken.Argument.setReason(Zezex.Provider.BLinkBroken.REASON_PEERCLOSE); // 这个保留吧。现在没什么用。
 
 		// 需要在锁外执行，因为如果 ProviderSocket 和 LinkdSocket 同时关闭。都需要去清理自己和对方，可能导致死锁。
+		HashSet<Zeze.Net.AsyncSocket> bindProviders = new HashSet<>();
 		for (var e : bindsSwap.entrySet()) {
 			var provider = App.getInstance().ProviderService.GetSocket(e.getValue());
 			if (null == provider) {
@@ -167,8 +168,11 @@ public class LinkSession {
 			if (null == providerSession) {
 				continue;
 			}
-			provider.Send(linkBroken);
 			providerSession.RemoveLinkSession(e.getKey(), getSessionId());
+			bindProviders.add(provider); // 先收集， 去重。
+		}
+		for (var provider : bindProviders) {
+			provider.Send(linkBroken);
 		}
 	}
 }

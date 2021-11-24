@@ -5,10 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.zezeno</groupId>
-    <artifactId>zeze</artifactId>
+    <artifactId>zeze-java</artifactId>
     <version>0.9.9</version>
 
-    <name>zeze</name>
+    <name>zeze-java</name>
     <url>https://github.com/e2wugui/zeze</url>
 
     <licenses>
@@ -46,10 +46,7 @@
                         <goals>
                             <goal>sign</goal>
                         </goals>
-                        <configuration>
-                            <keyname>${gpg.keyname}</keyname>
-                            <passphraseServerId>${gpg.keyname}</passphraseServerId>
-                        </configuration>                    </execution>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -103,8 +100,6 @@
         <pcollectons.version>3.1.4</pcollectons.version>
         <junit.version>4.13.2</junit.version>
         <rocksdbjni.version>6.26.1</rocksdbjni.version>
-
-        <gpg.keyname>e2wugui</gpg.keyname>
     </properties>
 
     <dependencies>
