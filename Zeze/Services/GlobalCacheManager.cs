@@ -295,6 +295,7 @@ namespace Zeze.Services
             return 0;
         }
 
+
         private long ProcessAcquireRequest(Zeze.Net.Protocol p)
         {
             Acquire rpc = (Acquire)p;
@@ -1083,6 +1084,18 @@ namespace Zeze.Services.GlobalCacheManager
         {
             // so.UserState = new CacheHolder(so.SessionId); // Login ReLogin 的时候初始化。
             base.OnSocketAccept(so);
+        }
+
+        public override void OnSocketClose(AsyncSocket so, Exception e)
+        {
+            var session = (GlobalCacheManagerServer.CacheHolder)so.UserState;
+            if (null == session)
+            {
+                return; // skip not login
+            }
+            session.TryUnBindSocket(so);
+
+            base.OnSocketClose(so, e);
         }
     }
 
