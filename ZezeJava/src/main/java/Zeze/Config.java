@@ -455,11 +455,11 @@ public final class Config {
 		public String getName() {
 			return Name;
 		}
-		private long CacheCapacity = 20000;
-		public long getCacheCapacity() {
+		private int CacheCapacity = 20000;
+		public int getCacheCapacity() {
 			return CacheCapacity;
 		}
-		public void setCacheCapacity(long value) {
+		public void setCacheCapacity(int value) {
 			CacheCapacity = value;
 		}
 		private int CacheConcurrencyLevel;
@@ -545,7 +545,7 @@ public final class Config {
 
 			String attr = self.getAttribute("CacheCapacity");
 			if (attr.length() > 0) {
-				setCacheCapacity(Long.parseLong(attr));
+				setCacheCapacity(Integer.parseInt(attr));
 			}
 
 			attr = self.getAttribute("CacheCleanPeriod");
