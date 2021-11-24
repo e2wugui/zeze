@@ -4,7 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import Zeze.Util.Str;
-import jason.JasonReader;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 
@@ -60,7 +60,7 @@ public final class App extends Zeze.AppBase {
 	private void LoadConfig() {
 		try {
             byte [] bytes = Files.readAllBytes(Paths.get("linkd.json"));
-            setLinkConfig(new JasonReader().buf(bytes).parse(Zezex.LinkConfig.class));
+			setLinkConfig(new ObjectMapper().readValue(bytes, Zezex.LinkConfig.class));
 		}
 		catch (Exception e) {
 			//MessageBox.Show(ex.ToString());

@@ -12,7 +12,6 @@
         <path id="classpath">
             <pathelement path="${lib}/commons-dbcp2-2.9.0.jar"/>
             <pathelement path="${lib}/commons-pool2-2.11.1.jar"/>
-            <pathelement path="${lib}/jason.jar"/>
             <pathelement path="${lib}/log4j-api-2.14.1.jar"/>
             <pathelement path="${lib}/log4j-core-2.14.1.jar"/>
 			<pathelement path="${lib}/commons-logging-1.2.jar"/>
@@ -36,7 +35,6 @@
         <jar jarfile="zeze.jar" basedir="${build}">
             <zipgroupfileset dir="${lib}" includes="commons-dbcp2-2.9.0.jar"/>
             <zipgroupfileset dir="${lib}" includes="commons-pool2-2.11.1.jar"/>
-            <zipgroupfileset dir="${lib}" includes="jason.jar"/>
             <zipgroupfileset dir="${lib}" includes="log4j-api-2.14.1.jar"/>
             <zipgroupfileset dir="${lib}" includes="log4j-core-2.14.1.jar"/>
 			<zipgroupfileset dir="${lib}" includes="commons-logging-1.2.jar"/>

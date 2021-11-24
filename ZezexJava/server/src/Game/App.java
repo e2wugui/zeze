@@ -1,13 +1,12 @@
 package Game;
 
-import jason.JasonReader;
-
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Config;
 import Zeze.Util.Str;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 
@@ -54,7 +53,7 @@ public final class App extends Zeze.AppBase {
 	private void LoadConfig() {
 		try {
             byte [] bytes = Files.readAllBytes(Paths.get("Game.json"));
-            MyConfig = new JasonReader().buf(bytes).parse(MyConfig.class);
+			MyConfig = new ObjectMapper().readValue(bytes, MyConfig.class);
 		}
 		catch (Exception e) {
 			//MessageBox.Show(ex.ToString());
