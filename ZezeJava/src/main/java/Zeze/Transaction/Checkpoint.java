@@ -21,7 +21,7 @@ public final class Checkpoint {
 
 	private final ReentrantReadWriteLock FlushReadWriteLock = new ReentrantReadWriteLock();
 
-	private boolean IsRunning;
+	private volatile boolean IsRunning;
 	public boolean isRunning() {
 		return IsRunning;
 	}

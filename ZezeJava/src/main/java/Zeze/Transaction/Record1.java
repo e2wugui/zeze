@@ -239,7 +239,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 		snapshotValue = null;
 	}
 
-	private ConcurrentHashMap<K, Record1<K, V>> LruNode;
+	private volatile ConcurrentHashMap<K, Record1<K, V>> LruNode;
 	public final ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
 		return LruNode;
 	}

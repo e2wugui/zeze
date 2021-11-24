@@ -29,7 +29,7 @@ public abstract class Record {
 		return cur;
 	}
 
-	private long Timestamp;
+	private volatile long Timestamp;
 	public final long getTimestamp() {
 		return Timestamp;
 	}
@@ -37,7 +37,7 @@ public abstract class Record {
 		Timestamp = value;
 	}
 
-	private ReentrantLock FairLock = new ReentrantLock(true);
+	private final ReentrantLock FairLock = new ReentrantLock(true);
 
 	public final void EnterFairLock() {
 		FairLock.lock();
