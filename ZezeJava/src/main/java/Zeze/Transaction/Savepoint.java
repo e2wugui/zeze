@@ -3,13 +3,13 @@ package Zeze.Transaction;
 import java.util.*;
 
 public final class Savepoint {
-	private HashMap<Long, Log> Logs = new HashMap<Long, Log> ();
+	private final HashMap<Long, Log> Logs = new HashMap<Long, Log> ();
 	public HashMap<Long, Log> getLogs() {
 		return Logs;
 	}
 	//private readonly Dictionary<long, Log> Newly = new Dictionary<long, Log>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
 
-	private HashMap<Long, ChangeNote> ChangeNotes = new HashMap<Long, ChangeNote> ();
+	private final HashMap<Long, ChangeNote> ChangeNotes = new HashMap<Long, ChangeNote> ();
 	public HashMap<Long, ChangeNote> getChangeNotes() {
 		return ChangeNotes;
 	}
