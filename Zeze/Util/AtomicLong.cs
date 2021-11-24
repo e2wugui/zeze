@@ -28,6 +28,11 @@ namespace Zeze.Util
             return System.Threading.Interlocked.CompareExchange(ref _value, newValue, expectedValue);
         }
 
+        public bool CompareAndSet(long expectedValue, long newValue)
+        {
+            return CompareAndExchange(expectedValue, newValue) == expectedValue;
+        }
+
         public long Get()
         {
             return System.Threading.Interlocked.Read(ref _value);

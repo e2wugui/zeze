@@ -39,6 +39,7 @@ namespace Zeze.Net
         public bool IsHandshakeDone { get; set; }
 
         private static global::Zeze.Util.AtomicLong SessionIdGen = new global::Zeze.Util.AtomicLong();
+        public static Func<long> SessionIdGenFunc;
 
         private SocketAsyncEventArgs eventArgsAccept;
         private SocketAsyncEventArgs eventArgsReceive;
@@ -52,6 +53,12 @@ namespace Zeze.Net
 
         public string RemoteAddress { get; private set; }
 
+        private long NextSessionId()
+        {
+            if (null != SessionIdGenFunc)
+                return SessionIdGenFunc();
+            return SessionIdGen.IncrementAndGet();
+        }
         /// <summary>
         /// for server socket
         /// </summary>
@@ -72,7 +79,7 @@ namespace Zeze.Net
             Socket.Bind(localEP);
             Socket.Listen(service.SocketOptions.Backlog);
 
-            this.SessionId = SessionIdGen.IncrementAndGet();
+            this.SessionId = NextSessionId();
 
             eventArgsAccept = new SocketAsyncEventArgs();
             eventArgsAccept.Completed += OnAsyncIOCompleted;
@@ -100,7 +107,7 @@ namespace Zeze.Net
             if (null != service.SocketOptions.NoDelay)
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
-            this.SessionId = SessionIdGen.IncrementAndGet();
+            this.SessionId = NextSessionId();
 
             this._inputBuffer = new byte[service.SocketOptions.InputBufferSize];
 
@@ -130,7 +137,7 @@ namespace Zeze.Net
             if (null != service.SocketOptions.NoDelay)
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
-            this.SessionId = SessionIdGen.IncrementAndGet();
+            this.SessionId = NextSessionId();
 
             System.Net.Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
         }
@@ -209,7 +216,6 @@ namespace Zeze.Net
             {
                 if (null == Socket)
                     return false;
-                Console.WriteLine(BitConverter.ToString(bytes, offset, length));
                 if (null != outputCodecChain)
                 {
                     // 压缩加密等 codec 链操作。
@@ -225,7 +231,6 @@ namespace Zeze.Net
                     // outputBufferCodec 释放对byte[]的引用。
                     outputCodecBuffer.Buffer.FreeInternalBuffer();
                 }
-                Console.WriteLine(BitConverter.ToString(bytes, offset, length));
 
                 if (null == _outputBufferList)
                     _outputBufferList = new List<ArraySegment<byte>>();

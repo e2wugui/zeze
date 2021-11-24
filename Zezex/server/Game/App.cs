@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
+using Zeze.Util;
+using Zeze.Net;
 
 namespace Game
 {
@@ -39,6 +41,7 @@ namespace Game
                 Config = new Config();
         }
 
+        private PersistentAtomicLong AsyncSocketSessionIdGen;
 
         public void Start(string[] args)
         {
@@ -70,6 +73,10 @@ namespace Game
 
             Zeze.Start(); // 启动数据库
             StartModules(); // 启动模块，装载配置什么的。
+
+            AsyncSocketSessionIdGen = PersistentAtomicLong.GetOrAdd("Server." + config.ServerId);
+            AsyncSocket.SessionIdGenFunc = AsyncSocketSessionIdGen.Next;
+
             StartService(); // 启动网络
             Load.StartTimerTask();
 

@@ -3,6 +3,8 @@ using System;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Text.Json;
+using Zeze.Util;
+using Zeze.Net;
 
 namespace Zezex
 {
@@ -20,6 +22,7 @@ namespace Zezex
         public Zeze.Services.ServiceManager.Agent ServiceManagerAgent { get; private set; }
         public const string ServerServiceNamePrefix = "Game.Server.Module#";
         public const string LinkdServiceName = "Game.Linkd";
+        private PersistentAtomicLong AsyncSocketSessionIdGen;
 
         private void LoadConfig()
         {
@@ -45,15 +48,20 @@ namespace Zezex
             Create();
             StartModules(); // 启动模块，装载配置什么的。
             Zeze.Start(); // 启动数据库
-            StartService(); // 启动网络
 
             var (ip, port) = ProviderService.GetOnePassiveAddress();
             ProviderServicePassiveIp = ip;
             ProviderServicePasivePort = port;
 
+            var linkName = $"{ProviderServicePassiveIp}:{ProviderServicePasivePort}";
+            AsyncSocketSessionIdGen = PersistentAtomicLong.GetOrAdd("Linkd." + linkName);
+            AsyncSocket.SessionIdGenFunc = AsyncSocketSessionIdGen.Next;
+
+            StartService(); // 启动网络
+
             ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(Zeze);
             ServiceManagerAgent.RegisterService(LinkdServiceName,
-                $"{ProviderServicePassiveIp}:{ProviderServicePasivePort}",
+                ,
                 ProviderServicePassiveIp, ProviderServicePasivePort);
         }
 

@@ -10,11 +10,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class PersistentAtomicLong {
-    private AtomicLong currentId;
-    private long allocated;
+    private final AtomicLong currentId = new AtomicLong();
+    private volatile long allocated;
 
-    private String FileName;
-    private int AllocateSize;
+    private final String FileName;
+    private final int AllocateSize;
 
     private static ConcurrentHashMap<String, PersistentAtomicLong> pals = new ConcurrentHashMap<>();
 
