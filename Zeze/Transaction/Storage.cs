@@ -25,6 +25,8 @@ namespace Zeze.Transaction
 
     public sealed class Storage<K, V> : Storage where V : Bean, new()
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public Table Table { get; }
 
         public Storage(Table<K, V> table, Database database, string tableName)
@@ -92,9 +94,12 @@ namespace Zeze.Transaction
         /// <returns></returns>
         public override int Snapshot()
         {
-            var tmp = snapshot;
-            snapshot = encoded;
-            encoded = tmp;
+            // 如果上一次checkpoint写到数据库失败，这里需要合并新的修改集。
+            foreach (var e in encoded)
+            {
+                snapshot.TryAdd(e.Key, e.Value); // key 相同的时候，实际上记录也是相同的。TryAdd快一点。
+            }
+            encoded.Clear();
             int cc = snapshot.Count;
             return cc;
         }
@@ -123,9 +128,17 @@ namespace Zeze.Transaction
         /// </summary>
         public override void Cleanup()
         {
-            foreach (var e in snapshot)
+            try
             {
-                e.Value.Cleanup();
+                foreach (var e in snapshot)
+                {
+                    e.Value.Cleanup();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Fatal(ex);
+                Environment.Exit(54321);
             }
             snapshot.Clear();
         }
