@@ -31,5 +31,3 @@ Raft BUG
 GlobalWithRaft TODO
 
 Checkpoint 失败错误处理策略。超过多少时间无法恢复，停止应用？
-
-linkd AsyncSocket.SessionIdGen 自定义，持久化。

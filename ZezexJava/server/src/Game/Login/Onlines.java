@@ -128,7 +128,7 @@ public class Onlines {
 						notify.Argument.setReliableNotifyTotalCountStart(online.getReliableNotifyTotalCount());
 						notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-						SendInProcedure(new ArrayList<Long>(Arrays.asList(roleId)), notify.getTypeId(), new Binary(notify.Encode()), future);
+						SendInProcedure(roleId, notify.getTypeId(), new Binary(notify.Encode()), future);
 					}
 					online.setReliableNotifyTotalCount(online.getReliableNotifyConfirmCount() + 1); // 后加，start 是 Queue.Add 之前的。
 					return (long)Procedure.Success;
@@ -214,8 +214,9 @@ public class Onlines {
 		return groups.values();
 	}
 
-	private void SendInProcedure(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol, TaskCompletionSource<Long> future) {
-		var groups = GroupByLink(roleIds);
+	private void SendInProcedure(Long roleId, long typeId, Binary fullEncodedProtocol, TaskCompletionSource<Long> future) {
+		// 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
+		var groups = GroupByLink(Arrays.asList(roleId));
 		long serialId = 0;
 		if (null != future) {
 			var confrmContext = new ConfirmContext(future);
@@ -248,14 +249,15 @@ public class Onlines {
 		}
 	}
 
-	private void Send(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
+	private void Send(Long roleId, long typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
 		final TaskCompletionSource<Long> future = WaitConfirm ? new TaskCompletionSource<Long>() : null;
 
 		// 发送协议请求在另外的事务中执行。
-		Zeze.Util.Task.Run(App.Instance.Zeze.NewProcedure(() -> {
-				SendInProcedure(roleIds, typeId, fullEncodedProtocol, future);
-				return (long)Procedure.Success;
-		}, "Onlines.Send", null), null, null);
+		App.Instance.Zeze.getTaskOneByOneByKey().Execute(roleId, () ->
+			Zeze.Util.Task.Call(App.Instance.Zeze.NewProcedure(() -> {
+					SendInProcedure(roleId, typeId, fullEncodedProtocol, future);
+					return (long)Procedure.Success;
+			}, "Onlines.Send", null), null, null));
 
 		if (future != null) {
 			future.Wait();
@@ -268,16 +270,13 @@ public class Onlines {
 	}
 
 	public final void Send(long roleId, Protocol p, boolean WaitConfirm) {
-		Send(new ArrayList<Long>(Arrays.asList(roleId)), p.getTypeId(), new Binary(p.Encode()), WaitConfirm);
+		Send(roleId, p.getTypeId(), new Binary(p.Encode()), WaitConfirm);
 	}
 
-
-	public final void Send(java.util.Collection<Long> roleIds, Protocol p) {
-		Send(roleIds, p, false);
-	}
-
-	public final void Send(Collection<Long> roleIds, Protocol p, boolean WaitConfirm) {
-		Send(roleIds, p.getTypeId(), new Binary(p.Encode()), WaitConfirm);
+	// 广播不支持 WaitConfirm
+	public final void Send(Collection<Long> roleIds, Protocol p) {
+		for (var roleId : roleIds)
+			Send(roleId, p.getTypeId(), new Binary(p.Encode()), false);
 	}
 
 
@@ -289,13 +288,8 @@ public class Onlines {
 		Transaction.getCurrent().RunWhileCommit(() -> Send(roleId, p, WaitConfirm));
 	}
 
-
-	public final void SendWhileCommit(java.util.Collection<Long> roleIds, Protocol p) {
-		SendWhileCommit(roleIds, p, false);
-	}
-
-	public final void SendWhileCommit(Collection<Long> roleIds, Protocol p, boolean WaitConfirm) {
-		Transaction.getCurrent().RunWhileCommit(() -> Send(roleIds, p, WaitConfirm));
+	public final void SendWhileCommit(Collection<Long> roleIds, Protocol p) {
+		Transaction.getCurrent().RunWhileCommit(() -> Send(roleIds, p));
 	}
 
 
@@ -307,13 +301,8 @@ public class Onlines {
 		Transaction.getCurrent().RunWhileRollback(() -> Send(roleId, p, WaitConfirm));
 	}
 
-
-	public final void SendWhileRollback(java.util.Collection<Long> roleIds, Protocol p) {
-		SendWhileRollback(roleIds, p, false);
-	}
-
-	public final void SendWhileRollback(Collection<Long> roleIds, Protocol p, boolean WaitConfirm) {
-		Transaction.getCurrent().RunWhileRollback(() -> Send(roleIds, p, WaitConfirm));
+	public final void SendWhileRollback(Collection<Long> roleIds, Protocol p) {
+		Transaction.getCurrent().RunWhileRollback(() -> Send(roleIds, p));
 	}
 
 	/** 

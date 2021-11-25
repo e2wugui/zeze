@@ -132,9 +132,7 @@ namespace Game.Login
                         notify.Argument.ReliableNotifyTotalCountStart = online.ReliableNotifyTotalCount;
                         notify.Argument.Notifies.Add(fullEncodedProtocol);
 
-                        SendInProcedure(new List<long>() { roleId },
-                            notify.TypeId, new Binary(notify.Encode()),
-                            future);
+                        SendInProcedure(roleId, notify.TypeId, new Binary(notify.Encode()), future);
                     }
                     online.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
                     return Procedure.Success;
@@ -204,10 +202,11 @@ namespace Game.Login
         }
 
         private void SendInProcedure(
-            ICollection<long> roleIds, long typeId, Binary fullEncodedProtocol,
+            long roleId, long typeId, Binary fullEncodedProtocol,
             TaskCompletionSource<long> future)
         {
-            var groups = GroupByLink(roleIds);
+            // 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
+            var groups = GroupByLink(new List<long> { roleId });
             long serialId = 0;
             if (null != future)
             {
@@ -243,7 +242,7 @@ namespace Game.Login
         }
 
         private void Send(
-            ICollection<long> roleIds, long typeId, Binary fullEncodedProtocol,
+            long roleId, long typeId, Binary fullEncodedProtocol,
             bool WaitConfirm)
         {
             TaskCompletionSource<long> future = null;
@@ -252,23 +251,25 @@ namespace Game.Login
                 future = new TaskCompletionSource<long>();
 
             // 发送协议请求在另外的事务中执行。
-            Zeze.Util.Task.Run(Game.App.Instance.Zeze.NewProcedure(() =>
-            {
-                SendInProcedure(roleIds, typeId, fullEncodedProtocol, future);
-                return Procedure.Success;
-            }, "Onlines.Send"));
+            Game.App.Instance.Zeze.TaskOneByOneByKey.Execute(roleId, () =>
+                Zeze.Util.Task.Call(Game.App.Instance.Zeze.NewProcedure(() =>
+                {
+                    SendInProcedure(roleId, typeId, fullEncodedProtocol, future);
+                    return Procedure.Success;
+                }, "Onlines.Send")));
 
             future?.Task.Wait();
         }
 
         public void Send(long roleId, Protocol p, bool WaitConfirm = false)
         {
-            Send(new List<long>() { roleId }, p.TypeId, new Binary(p.Encode()), WaitConfirm);
+            Send(roleId, p.TypeId, new Binary(p.Encode()), WaitConfirm);
         }
 
-        public void Send(ICollection<long> roleIds, Protocol p, bool WaitConfirm = false)
+        public void Send(ICollection<long> roleIds, Protocol p)
         {
-            Send(roleIds, p.TypeId, new Binary(p.Encode()), WaitConfirm);
+            foreach (var roleId in roleIds)
+                Send(roleId, p.TypeId, new Binary(p.Encode()), false);
         }
 
         public void SendWhileCommit(long roleId, Protocol p, bool WaitConfirm = false)
@@ -276,9 +277,9 @@ namespace Game.Login
             Transaction.Current.RunWhileCommit(() => Send(roleId, p, WaitConfirm));
         }
 
-        public void SendWhileCommit(ICollection<long> roleIds, Protocol p, bool WaitConfirm = false)
+        public void SendWhileCommit(ICollection<long> roleIds, Protocol p)
         {
-            Transaction.Current.RunWhileCommit(() => Send(roleIds, p, WaitConfirm));
+            Transaction.Current.RunWhileCommit(() => Send(roleIds, p));
         }
 
         public void SendWhileRollback(long roleId, Protocol p, bool WaitConfirm = false)
@@ -286,9 +287,9 @@ namespace Game.Login
             Transaction.Current.RunWhileRollback(() => Send(roleId, p, WaitConfirm));
         }
 
-        public void SendWhileRollback(ICollection<long> roleIds, Protocol p, bool WaitConfirm = false)
+        public void SendWhileRollback(ICollection<long> roleIds, Protocol p)
         {
-            Transaction.Current.RunWhileRollback(() => Send(roleIds, p, WaitConfirm));
+            Transaction.Current.RunWhileRollback(() => Send(roleIds, p));
         }
 
         /// <summary>
