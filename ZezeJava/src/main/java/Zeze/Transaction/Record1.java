@@ -12,12 +12,12 @@ import Zeze.Services.GlobalCacheManager.*;
 public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private static final Logger logger = LogManager.getLogger(Record1.class);
 
-	private K Key;
+	private final K Key;
 	public final K getKey() {
 		return Key;
 	}
 
-	private TableX<K, V> TTable;
+	private final TableX<K, V> TTable;
 	public final TableX<K, V> getTTable() {
 		return TTable;
 	}

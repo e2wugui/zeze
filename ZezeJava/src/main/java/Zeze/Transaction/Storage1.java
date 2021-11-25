@@ -1,10 +1,15 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class Storage1<K extends Comparable<K>, V extends Bean> extends Storage {
-	private Table Table;
+
+	private static final Logger logger = LogManager.getLogger(Storage1.class);
+	private final Table Table;
 	public Table getTable() {
 		return Table;
 	}
@@ -14,9 +19,9 @@ public final class Storage1<K extends Comparable<K>, V extends Bean> extends Sto
 		setDatabaseTable(database.OpenTable(tableName));
 	}
 
-	private ConcurrentHashMap<K, Record1<K, V>> changed = new ConcurrentHashMap<>();
-	private ConcurrentHashMap<K, Record1<K, V>> encoded = new ConcurrentHashMap<>();
-	private ConcurrentHashMap<K, Record1<K, V>> snapshot = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<K, Record1<K, V>> changed = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<K, Record1<K, V>> encoded = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<K, Record1<K, V>> snapshot = new ConcurrentHashMap<>();
 
 	public void OnRecordChanged(Record1<K, V> r) {
 		changed.put(r.getKey(), r);
@@ -74,9 +79,8 @@ public final class Storage1<K extends Comparable<K>, V extends Bean> extends Sto
 	*/
 	@Override
 	public int Snapshot() {
-		var tmp = snapshot;
-		snapshot = encoded;
-		encoded = tmp;
+		snapshot.putAll(encoded);
+		encoded.clear();
 		int cc = snapshot.size();
 		for (var e : snapshot.entrySet()) {
 			e.getValue().setSavedTimestampForCheckpointPeriod(e.getValue().getTimestamp());
@@ -107,8 +111,13 @@ public final class Storage1<K extends Comparable<K>, V extends Bean> extends Sto
 	*/
 	@Override
 	public void Cleanup() {
-		for (var e : snapshot.entrySet()) {
-			e.getValue().Cleanup();
+		try {
+			for (var e : snapshot.entrySet()) {
+				e.getValue().Cleanup();
+			}
+		} catch (Throwable fatal) {
+			logger.error(fatal);
+			Runtime.getRuntime().halt(54321);
 		}
 		snapshot.clear();
 	}
