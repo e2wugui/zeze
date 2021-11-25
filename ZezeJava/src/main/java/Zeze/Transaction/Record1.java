@@ -184,7 +184,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	*/
 
 	@Override
-	public boolean Flush(Database.Transaction t) {
+	public void Flush(Database.Transaction t) {
 		if (null != snapshotValue) {
 			// changed
 			if (getTTable().TStorage != null) {
@@ -212,7 +212,6 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 				}
 			}
 		}
-		return true;
 	}
 
 	@Override

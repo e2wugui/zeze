@@ -96,13 +96,10 @@ public final class Storage1<K extends Comparable<K>, V extends Bean> extends Sto
 	*/
 	@Override
 	public int Flush(Database.Transaction t) {
-		int count = 0;
 		for (var e : snapshot.entrySet()) {
-			if (e.getValue().Flush(t)) {
-				++count;
-			}
+			e.getValue().Flush(t);
 		}
-		return count;
+		return snapshot.size();
 	}
 
 	/** 

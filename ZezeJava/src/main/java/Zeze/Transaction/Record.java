@@ -109,7 +109,7 @@ public abstract class Record {
 	public abstract Acquire Acquire(int state) throws Throwable;
 
 	public abstract void Encode0();
-	public abstract boolean Flush(Database.Transaction t);
+	public abstract void Flush(Database.Transaction t);
 	public abstract void Cleanup();
 
 	private Database.Transaction DatabaseTransactionTmp;

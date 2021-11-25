@@ -111,15 +111,11 @@ namespace Zeze.Transaction
         /// <returns></returns>
         public override int Flush(Database.Transaction t)
         {
-            int count = 0;
             foreach (var e in snapshot)
             {
-                if (e.Value.Flush(t))
-                {
-                    ++count;
-                }
+                e.Value.Flush(t);
             }
-            return count;
+            return snapshot.Count;
         }
 
         /// <summary>

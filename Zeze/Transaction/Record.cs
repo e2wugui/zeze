@@ -70,7 +70,7 @@ namespace Zeze.Transaction
         internal abstract Acquire Acquire(int state);
 
         internal abstract void Encode0();
-        internal abstract bool Flush(Database.Transaction t);
+        internal abstract void Flush(Database.Transaction t);
         internal abstract void Cleanup();
 
         internal Database.Transaction DatabaseTransactionTmp { get; set; }
@@ -223,7 +223,7 @@ namespace Zeze.Transaction
         }
         */
 
-        internal override bool Flush(Database.Transaction t)
+        internal override void Flush(Database.Transaction t)
         {
             if (null != snapshotValue)
             {
@@ -247,7 +247,6 @@ namespace Zeze.Transaction
                     transTmp.Commit();
                 }
             }
-            return true;
         }
 
         internal override void Cleanup()
