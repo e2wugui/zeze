@@ -216,11 +216,13 @@ namespace Zeze
             throw new Exception($"database not exist name={name}");
         }
 
-        public Procedure NewProcedure(Func<long> action, string actionName, object userState = null)
+        public Procedure NewProcedure(Func<long> action, string actionName,
+            TransactionLevel level = TransactionLevel.Serializable,
+            object userState = null)
         {
             if (IsStart)
             {
-                return new Procedure(this, action, actionName, userState);
+                return new Procedure(this, action, actionName, level, userState);
             }
             throw new Exception("App Not Start");
         }

@@ -77,7 +77,7 @@ namespace Zeze.Services
                 {
                     Factory = () => new Handshake.CHandshake(),
                     Handle = ProcessCHandshake,
-                    NoProcedure = true,
+                    TransactionLevel = TransactionLevel.None,
                 });
             }
             {
@@ -87,7 +87,7 @@ namespace Zeze.Services
                 {
                     Factory = () => new Handshake.CHandshakeDone(),
                     Handle = ProcessCHandshakeDone,
-                    NoProcedure = true,
+                    TransactionLevel = TransactionLevel.None,
                 });
             }
         }
@@ -149,7 +149,7 @@ namespace Zeze.Services
             {
                 Factory = () => new Handshake.SHandshake(),
                 Handle = ProcessSHandshake,
-                NoProcedure = true,
+                TransactionLevel = TransactionLevel.None,
             });
         }
 

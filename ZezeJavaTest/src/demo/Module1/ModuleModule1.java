@@ -44,6 +44,12 @@ public class ModuleModule1 extends AbstractModule {
 		return _TableImportant;
 	}
 
+    @Override
+    public long ProcessProtocolNoProcedure(Zeze.Net.Protocol _p) {
+        var p = (ProtocolNoProcedure)_p;
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
     public static final int ModuleId = 1;
 
@@ -72,6 +78,13 @@ public class ModuleModule1 extends AbstractModule {
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
+            factoryHandle.Factory = () -> new demo.Module1.ProtocolNoProcedure();
+            factoryHandle.Handle = (_p) -> ProcessProtocolNoProcedure(_p);
+            factoryHandle.Level = Zeze.Transaction.TransactionLevel.None;
+            App.Server.AddFactoryHandle(5645907125L, factoryHandle);
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Rpc1();
             factoryHandle.Handle = (_p) -> ProcessRpc1Request(_p);
             App.Server.AddFactoryHandle(5635082623L, factoryHandle);
@@ -92,6 +105,7 @@ public class ModuleModule1 extends AbstractModule {
     public void UnRegister() {
         App.Server.getFactorys().remove(7815467220L);
         App.Server.getFactorys().remove(5222864529L);
+        App.Server.getFactorys().remove(5645907125L);
         App.Server.getFactorys().remove(5635082623L);
         App.Server.getFactorys().remove(7854078040L);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_Autokey_.getName()).getDatabaseName(), _Autokey_);

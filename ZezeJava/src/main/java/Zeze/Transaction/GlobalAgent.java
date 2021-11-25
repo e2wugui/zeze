@@ -262,35 +262,35 @@ public final class GlobalAgent {
 					new Service.ProtocolFactoryHandle(
 							() -> new Reduce(),
 							(p) -> ProcessReduceRequest(p),
-							true));
+							TransactionLevel.None));
 
 			getClient().AddFactoryHandle(
 					(new Acquire()).getTypeId(),
 					new Service.ProtocolFactoryHandle(
 							() -> new Acquire(),
 							null,
-							true));
+							TransactionLevel.None));
 
 			getClient().AddFactoryHandle(
 					(new Login()).getTypeId(),
 					new Service.ProtocolFactoryHandle(
 							() -> new Login(),
 							null,
-							true));
+							TransactionLevel.None));
 
 			getClient().AddFactoryHandle(
 					(new ReLogin()).getTypeId(),
 					new Service.ProtocolFactoryHandle(
 							() -> new ReLogin(),
 							null,
-							true));
+							TransactionLevel.None));
 
 			getClient().AddFactoryHandle(
 					(new NormalClose()).getTypeId(),
 					new Service.ProtocolFactoryHandle(
 							() -> new NormalClose(),
 							null,
-							true));
+							TransactionLevel.None));
 
 			var globals = hostNameOrAddress.split("[;]", -1);
 			Agents = new Agent[globals.length];

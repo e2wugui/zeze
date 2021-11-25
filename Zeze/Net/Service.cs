@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.NetworkInformation;
+using Zeze.Transaction;
 
 namespace Zeze.Net
 {
@@ -254,12 +255,13 @@ namespace Zeze.Net
             Func<Protocol, long> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
-            if (null != Zeze && false == factoryHandle.NoProcedure)
+            if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
             {
                 global::Zeze.Util.Task.Run(
                     Zeze.NewProcedure(
                         () => responseHandle(rpc),
                         rpc.GetType().FullName + ":Response",
+                        factoryHandle.TransactionLevel,
                         rpc.UserState));
             }
             else
@@ -272,11 +274,12 @@ namespace Zeze.Net
         {
             if (null != factoryHandle.Handle)
             {
-                if (null != Zeze && false == factoryHandle.NoProcedure)
+                if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
                     Zeze.TaskOneByOneByKey.Execute(key,
                         () => global::Zeze.Util.Task.Call(Zeze.NewProcedure(
-                            () => factoryHandle.Handle(p), p.GetType().FullName, p.UserState),
+                            () => factoryHandle.Handle(p), p.GetType().FullName,
+                            factoryHandle.TransactionLevel, p.UserState),
                             p,
                             (p, code) => p.SendResultCode(code))
                         );
@@ -301,12 +304,13 @@ namespace Zeze.Net
         {
             if (null != factoryHandle.Handle)
             {
-                if (null != Zeze && false == factoryHandle.NoProcedure)
+                if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
                     global::Zeze.Util.Task.Run(
                         Zeze.NewProcedure(
                             () => factoryHandle.Handle(p),
                             p.GetType().FullName,
+                            factoryHandle.TransactionLevel,
                             p.UserState), p);
                 }
                 else
@@ -331,7 +335,7 @@ namespace Zeze.Net
         { 
             public Func<Protocol> Factory { get; set; }
             public Func<Protocol, long> Handle { get; set; }
-            public bool NoProcedure { get; set; } = false;
+            public TransactionLevel TransactionLevel { get; set; } = TransactionLevel.Serializable;
         }
 
         public ConcurrentDictionary<long, ProtocolFactoryHandle> Factorys { get; }

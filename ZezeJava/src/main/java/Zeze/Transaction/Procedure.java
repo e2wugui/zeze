@@ -61,11 +61,17 @@ public class Procedure {
 	public final void setUserState(Object value) {
 		UserState = value;
 	}
+	private TransactionLevel Level;
+	public final TransactionLevel getTransactionLevel() {
+		return Level;
+	}
 
-	public Procedure(Application app, Zeze.Util.Func0<Long> action, String actionName, Object userState) {
+	public Procedure(Application app, Zeze.Util.Func0<Long> action, String actionName,
+					 TransactionLevel level, Object userState) {
 		Zeze = app;
 		setAction(action);
 		setActionName(actionName);
+		Level = level;
 		setUserState(userState);
 		if (null == getUserState()) { // 没指定，就从当前存储过程继承。嵌套时发生。
 			setUserState(Transaction.getCurrent() == null

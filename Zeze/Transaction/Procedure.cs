@@ -30,6 +30,7 @@ namespace Zeze.Transaction
         public Func<long> Action { get; set; }
 
         public string ActionName { get; set; } // 用来统计或者日志
+        public TransactionLevel TransactionLevel { get;}
 
         // 用于继承方式实现 Procedure。
         public Procedure(Application app)
@@ -39,11 +40,12 @@ namespace Zeze.Transaction
 
         public object UserState { get; set; }
 
-        public Procedure(Application app, Func<long> action, string actionName, object userState)
+        public Procedure(Application app, Func<long> action, string actionName, TransactionLevel level, object userState)
         {
             Zeze = app;
             Action = action;
             ActionName = actionName;
+            TransactionLevel = level;
             UserState = userState;
             if (null == UserState) // 没指定，就从当前存储过程继承。嵌套时发生。
                 UserState = Transaction.Current?.TopProcedure?.UserState;

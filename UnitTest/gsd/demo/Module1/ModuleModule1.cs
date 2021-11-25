@@ -35,6 +35,11 @@ namespace demo.Module1
             return Zeze.Transaction.Procedure.Success;
         }
 
+        public override long ProcessProtocolNoProcedure(Protocol p)
+        {
+            throw new NotImplementedException();
+        }
+
         public Table1 Table1 => _Table1;
         public Table2 Table2 => _Table2;
         public TableImportant TableImportant => _TableImportant;

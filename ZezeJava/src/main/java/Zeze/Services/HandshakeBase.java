@@ -8,6 +8,7 @@ import Zeze.*;
 import java.util.*;
 
 import Zeze.Services.Handshake.SHandshake;
+import Zeze.Transaction.TransactionLevel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.math.*;
@@ -39,14 +40,14 @@ public class HandshakeBase extends Service {
 			HandshakeProtocols.add(tmp.getTypeId());
 			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(CHandshake::new
 					, this::ProcessCHandshake
-					, true));
+					, TransactionLevel.None));
 		} 
 		{
 			var tmp = new Zeze.Services.Handshake.CHandshakeDone();
 			HandshakeProtocols.add(tmp.getTypeId());
 			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(CHandshakeDone::new
 					, this::ProcessCHandshakeDone
-					, true));
+					, TransactionLevel.None));
 		}
 	}
 	
@@ -96,7 +97,7 @@ public class HandshakeBase extends Service {
 		var tmp = new Zeze.Services.Handshake.SHandshake();
 		HandshakeProtocols.add(tmp.getTypeId());
 		AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(SHandshake::new
-				, this::ProcessSHandshake, true));
+				, this::ProcessSHandshake, TransactionLevel.None));
 	}
 
 	private int ProcessSHandshake(Protocol _p) throws Throwable {

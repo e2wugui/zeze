@@ -242,28 +242,28 @@ namespace Zeze.Transaction
                 {
                     Factory = () => new Reduce(),
                     Handle = ProcessReduceRequest,
-                    NoProcedure = true
+                    TransactionLevel = TransactionLevel.None
                 });
                 Client.AddFactoryHandle(new Acquire().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new Acquire(),
-                    NoProcedure = true
+                    TransactionLevel = TransactionLevel.None
                     // 同步方式调用，不需要设置Handle: Response Timeout 
                 });
                 Client.AddFactoryHandle(new Login().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = ()=>new Login(),
-                    NoProcedure = true
+                    TransactionLevel = TransactionLevel.None
                 });
                 Client.AddFactoryHandle(new ReLogin().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new ReLogin(),
-                    NoProcedure = true
+                    TransactionLevel = TransactionLevel.None
                 });
                 Client.AddFactoryHandle(new NormalClose().TypeId, new Service.ProtocolFactoryHandle()
                 {
                     Factory = () => new NormalClose(),
-                    NoProcedure = true
+                    TransactionLevel = TransactionLevel.None
                 });
 
                 var globals = hostNameOrAddress.Split(';');

@@ -65,8 +65,8 @@ namespace Zeze.Gen.cs
                         sw.WriteLine($"                Factory = () => new {rpc.Space.Path(".", rpc.Name)}(),");
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                             sw.WriteLine($"                Handle = Process{rpc.Name}Request,");
-                        if (p.NoProcedure)
-                            sw.WriteLine($"                NoProcedure = true,");
+                        if (p.TransactionLevel != Transaction.TransactionLevel.Serializable)
+                            sw.WriteLine($"                TransactionLevel = Zeze.Transaction.TransactionLevel.{p.TransactionLevel},");
                         sw.WriteLine("            });");
                         continue;
                     }
@@ -76,8 +76,8 @@ namespace Zeze.Gen.cs
                         sw.WriteLine( "            {");
                         sw.WriteLine($"                Factory = () => new {p.Space.Path(".", p.Name)}(),");
                         sw.WriteLine($"                Handle = Process{p.Name},");
-                        if (p.NoProcedure)
-                            sw.WriteLine($"                NoProcedure = true,");
+                        if (p.TransactionLevel != Transaction.TransactionLevel.Serializable)
+                            sw.WriteLine($"                TransactionLevel = Zeze.Transaction.TransactionLevel.{p.TransactionLevel},");
                         sw.WriteLine( "            });");
                     }
                 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
+using Zeze.Transaction;
 
 namespace Zeze.Gen
 {
@@ -20,7 +21,7 @@ namespace Zeze.Gen
         public string Argument { get; private set; }
         public string Handle { get; private set; }
         public int HandleFlags { get; }
-        public bool NoProcedure { get; }
+        public TransactionLevel TransactionLevel { get; } = TransactionLevel.Serializable;
         public List<Types.Enum> Enums { get; private set; } = new List<Types.Enum>();
         public string FullName => Space.Path(".", Name);
 
@@ -42,7 +43,20 @@ namespace Zeze.Gen
             Argument = self.GetAttribute("argument");
             Handle = self.GetAttribute("handle");
             HandleFlags = Program.ToHandleFlags(Handle);
-            NoProcedure = "true".Equals(self.GetAttribute("NoProcedure"));
+
+            var tlevel = self.GetAttribute("NoProcedure"); // 兼容旧的配置
+            if (tlevel.Length > 0)
+            {
+                TransactionLevel = "true".Equals(tlevel)
+                    ? TransactionLevel.None
+                    : (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), tlevel);
+            }
+            else
+            {
+                tlevel = self.GetAttribute("TransactionLevel");
+                if (tlevel.Length > 0)
+                    TransactionLevel = (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), tlevel);
+            }
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

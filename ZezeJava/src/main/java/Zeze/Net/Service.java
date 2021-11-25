@@ -1,6 +1,7 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
 import java.net.InetAddress;
@@ -264,9 +265,12 @@ public class Service {
 
 	// 用来派发异步rpc回调。
 	public void DispatchRpcResponse(Protocol rpc, ProtocolHandle responseHandle, ProtocolFactoryHandle factoryHandle) throws Throwable {
-		if (null != getZeze() && false == factoryHandle.NoProcedure) {
+		if (null != getZeze() && TransactionLevel.None != factoryHandle.Level) {
 			Task.Run(getZeze().NewProcedure(
-					() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response", rpc.getUserState()));
+					() -> responseHandle.handle(rpc),
+					rpc.getClass().getName() + ":Response",
+					factoryHandle.Level,
+					rpc.getUserState()));
 		}
 		else {
 			Task.Run(() -> responseHandle.handle(rpc), rpc);
@@ -275,10 +279,13 @@ public class Service {
 
 	public final void DispatchProtocol2(Object key, Protocol p, ProtocolFactoryHandle factoryHandle) throws Throwable {
 		if (null != factoryHandle.Handle) {
-			if (null != getZeze() && false == factoryHandle.NoProcedure) {
+			if (null != getZeze() && TransactionLevel.None != factoryHandle.Level) {
 				getZeze().getTaskOneByOneByKey().Execute(key, () ->
 					Task.Call(getZeze().NewProcedure(
-							() -> factoryHandle.Handle.handle(p), p.getClass().getName(), p.getUserState()),
+							() -> factoryHandle.Handle.handle(p),
+							p.getClass().getName(),
+							factoryHandle.Level,
+							p.getUserState()),
 							p,
 							Protocol::SendResultCode
 							)
@@ -298,8 +305,11 @@ public class Service {
 
 	public void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle) throws Throwable {
 		if (null != factoryHandle.Handle) {
-			if (null != getZeze() && false == factoryHandle.NoProcedure) {
-				Task.Run(getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
+			if (null != getZeze() && TransactionLevel.None != factoryHandle.Level) {
+				Task.Run(getZeze().NewProcedure(
+						() -> factoryHandle.Handle.handle(p),
+						p.getClass().getName(),
+						factoryHandle.Level,
 						p.getUserState()),
 						p);
 			}
@@ -322,7 +332,7 @@ public class Service {
 	public static class ProtocolFactoryHandle {
 		public Zeze.Util.Factory<Protocol> Factory;
 		public ProtocolHandle Handle;
-		public boolean NoProcedure = false;
+		public TransactionLevel Level = TransactionLevel.Serializable;
 		public ProtocolFactoryHandle() { }
 
 		public ProtocolFactoryHandle(Zeze.Util.Factory<Protocol> factory) {
@@ -334,10 +344,10 @@ public class Service {
 			this.Handle = handle;
 		}
 
-		public ProtocolFactoryHandle(Zeze.Util.Factory<Protocol> factory, ProtocolHandle handle, boolean noProcedure) {
+		public ProtocolFactoryHandle(Zeze.Util.Factory<Protocol> factory, ProtocolHandle handle, TransactionLevel level) {
 			this.Factory = factory;
 			this.Handle = handle;
-			this.NoProcedure = noProcedure;
+			this.Level = level;
 		}
 	}
 

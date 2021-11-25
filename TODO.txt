@@ -31,3 +31,6 @@ Raft BUG
 GlobalWithRaft TODO
 
 Checkpoint 失败错误处理策略。超过多少时间无法恢复，停止应用？
+
+[脏读]刚才吃饭的时候对脏读想到了一个方案。就是transaction里面设置一个AllowDirtyWhenAllRead，
+然后事务结束的将要结束的时候，看事务里面访问的所有记录是否都是read，然后锁都不锁就成功。

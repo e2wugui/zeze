@@ -132,12 +132,16 @@ public final class Application {
 
 
 	public Procedure NewProcedure(Zeze.Util.Func0<Long> action, String actionName) {
-		return NewProcedure(action, actionName, null);
+		return NewProcedure(action, actionName, TransactionLevel.Serializable, null);
 	}
 
 	public Procedure NewProcedure(Zeze.Util.Func0<Long> action, String actionName, Object userState) {
+		return NewProcedure(action, actionName, TransactionLevel.Serializable, userState);
+	}
+
+	public Procedure NewProcedure(Zeze.Util.Func0<Long> action, String actionName, TransactionLevel level, Object userState) {
 		if (isStart()) {
-			return new Procedure(this, action, actionName, userState);
+			return new Procedure(this, action, actionName, level, userState);
 		}
 		throw new RuntimeException("App Not Start");
 	}

@@ -193,8 +193,8 @@ namespace Zeze.Gen.java
                         sw.WriteLine($"            factoryHandle.Factory = () -> new {rpc.Space.Path(".", rpc.Name)}();");
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                             sw.WriteLine($"            factoryHandle.Handle = (_p) -> Process{rpc.Name}Request(_p);");
-                        if (p.NoProcedure)
-                            sw.WriteLine($"            factoryHandle.NoProcedure = true;");
+                        if (p.TransactionLevel != Transaction.TransactionLevel.Serializable)
+                            sw.WriteLine($"            factoryHandle.Level = Zeze.Transaction.TransactionLevel.{p.TransactionLevel};");
                         sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({rpc.TypeId}L, factoryHandle);");
                         sw.WriteLine("        }");
                         continue;
@@ -205,8 +205,8 @@ namespace Zeze.Gen.java
                         sw.WriteLine("            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();");
                         sw.WriteLine($"            factoryHandle.Factory = () -> new {p.Space.Path(".", p.Name)}();");
                         sw.WriteLine($"            factoryHandle.Handle = (_p) -> Process{p.Name}(_p);");
-                        if (p.NoProcedure)
-                            sw.WriteLine($"            factoryHandle.NoProcedure = true;");
+                        if (p.TransactionLevel != Transaction.TransactionLevel.Serializable)
+                            sw.WriteLine($"            factoryHandle.Level = Zeze.Transaction.TransactionLevel.{p.TransactionLevel};");
                         sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({p.TypeId}L, factoryHandle);");
                         sw.WriteLine( "        }");
                     }
