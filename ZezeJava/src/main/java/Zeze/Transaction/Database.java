@@ -128,7 +128,7 @@ public abstract class Database {
 		public void Close();
 	}
 
-	public final static class DataWithVersion {
+	public static class DataWithVersion {
 		public ByteBuffer Data;
 		public long Version;
 	}

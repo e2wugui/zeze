@@ -1259,7 +1259,7 @@ namespace Zeze.Transaction
             public OperatesRocksDb(DatabaseRocksDb database)
             {
                 DatabaseReal = database;
-                if (DatabaseReal.ColumnFamilies.ContainsKey(""))
+                if (false == DatabaseReal.ColumnFamilies.ContainsKey(ColumnFamilyName))
                 {
                     DatabaseReal.Db.CreateColumnFamily(DatabaseReal.CfOptions, ColumnFamilyName);
                 }
