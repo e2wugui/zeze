@@ -27,13 +27,13 @@ public class TestProcdure{
 		assert bean.getI() == 0;
 		bean.setI(1);
 		assert bean.getI() == 1; {
-			long r = demo.App.getInstance().Zeze.NewProcedure(this::ProcFalse, "ProcFalse", null).Call();
+			long r = demo.App.getInstance().Zeze.NewProcedure(this::ProcFalse, "ProcFalse").Call();
 			assert r != Procedure.Success;
 			assert bean.getI() == 1;
 		}
 
 		{
-			long r = demo.App.getInstance().Zeze.NewProcedure(this::ProcTrue, "ProcFalse", null).Call();
+			long r = demo.App.getInstance().Zeze.NewProcedure(this::ProcTrue, "ProcFalse").Call();
 			assert r == Procedure.Success;
 			assert bean.getI() == 123;
 		}
@@ -57,7 +57,7 @@ public class TestProcdure{
 		// 特殊测试，拼凑一个record用来提供需要的信息。
 		var r = new Record1<Long, TestBegin.MyBean>(null, 1L, bean);
 		bean.InitRootInfo(r.CreateRootInfoIfNeed(root), null);
-		long rc = demo.App.getInstance().Zeze.NewProcedure(this::ProcNest, "ProcNest", null).Call();
+		long rc = demo.App.getInstance().Zeze.NewProcedure(this::ProcNest, "ProcNest").Call();
 		assert rc == Procedure.Success;
 		// 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。
 		assert bean._i == 123;

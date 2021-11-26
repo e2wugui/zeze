@@ -67,7 +67,7 @@ public class TestGlobal extends TestCase{
 			assert Procedure.Success == app1.Zeze.NewProcedure(() -> {
 					app1.demo_Module1.getTable1().remove(6785L);
 					return Procedure.Success;
-			}, "RemoveClean", null).Call();
+			}, "RemoveClean").Call();
 
 			Zeze.Util.Task[] task2 = new Task[2];
 			int count = 2000;
@@ -85,13 +85,13 @@ public class TestGlobal extends TestCase{
 					assert countall == last1;
 					//Console.WriteLine("app1 " + last1);
 					return Procedure.Success;
-			}, "CheckResult1", null).Call();
+			}, "CheckResult1").Call();
 			assert Procedure.Success == app2.Zeze.NewProcedure(() -> {
 					int last2 = app2.demo_Module1.getTable1().get(6785L).getInt1();
 					assert countall == last2;
 					//Console.WriteLine("app1 " + last2);
 					return Procedure.Success;
-			}, "CheckResult2", null).Call();
+			}, "CheckResult2").Call();
 		}
 		finally {
 			app1.Stop();
@@ -108,7 +108,7 @@ public class TestGlobal extends TestCase{
 					PrintLog log = new PrintLog(b, b, appId);
 					Transaction.getCurrent().PutLog(log);
 					return Procedure.Success;
-			}, "ConcurrentAdd" + appId, null), null, null);
+			}, "ConcurrentAdd" + appId), null, null);
 		}
 		for (int i = 0; i < tasks.length; ++i) {
 			try {

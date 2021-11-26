@@ -22,10 +22,10 @@ public class TestConflict {
 
 	@Test
 	public final void testConflictAdd() throws Throwable {
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcRemove, "ProcRemove", null).Call();
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcRemove, "ProcRemove").Call();
 		Task[] tasks = new Task[2000];
 		for (int i = 0; i < 2000; ++i) {
-			tasks[i]=Zeze.Util.Task.Run(demo.App.getInstance().Zeze.NewProcedure(this::ProcAdd, "ProcAdd", null), null, null);
+			tasks[i]=Zeze.Util.Task.Run(demo.App.getInstance().Zeze.NewProcedure(this::ProcAdd, "ProcAdd"), null, null);
 		}
 		for (int i = 0; i < tasks.length; ++i) {
 			try {
@@ -35,8 +35,8 @@ public class TestConflict {
 			}
 		}
 		sum = tasks.length;
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcVerify, "ProcVerify", null).Call();
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcRemove, "ProcRemove", null).Call();
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcVerify, "ProcVerify").Call();
+		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcRemove, "ProcRemove").Call();
 	}
 
 	private long ProcRemove() {

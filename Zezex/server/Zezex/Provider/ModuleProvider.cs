@@ -76,6 +76,7 @@ namespace Zezex.Provider
                     p2.Sender.Service.Zeze.NewProcedure(
                         () => factoryHandle.Handle(p2),
                         p2.GetType().FullName,
+                        factoryHandle.TransactionLevel,
                         p2.UserState),
                     p2,
                     (p, code) => { p.ResultCode = code; session.SendResponse(p); }

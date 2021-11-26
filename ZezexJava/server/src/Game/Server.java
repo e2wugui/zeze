@@ -1,10 +1,10 @@
 package Game;
 
 import Zeze.Net.*;
+import Zeze.Transaction.TransactionLevel;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-import javax.swing.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 
@@ -149,11 +149,11 @@ public final class Server extends ServerBase {
 		if (p.getTypeId() == Zezex.Provider.ModuleRedirect.TypeId_) {
 			if (null != factoryHandle.Handle) {
 				var modureRecirect = p instanceof Zezex.Provider.ModuleRedirect ? (Zezex.Provider.ModuleRedirect)p : null;
-				if (null != getZeze() && false == factoryHandle.NoProcedure) {
+				if (null != getZeze() && factoryHandle.Level == TransactionLevel.None) {
 					getZeze().getTaskOneByOneByKey().Execute(
 							modureRecirect.Argument.getHashCode(),
 							() -> Zeze.Util.Task.Call(getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p),
-									p.getClass().getName(), p.getUserState()),
+									p.getClass().getName(), factoryHandle.Level, p.getUserState()),
 									p, (p2, code) -> p2.SendResultCode(code)));
 				}
 				else {

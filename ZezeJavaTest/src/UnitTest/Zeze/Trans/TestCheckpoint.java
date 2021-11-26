@@ -21,8 +21,8 @@ public class TestCheckpoint{
 
 	@Test
 	public final void testCp() throws Throwable {
-		assert demo.App.getInstance().Zeze.NewProcedure(this::ProcClear, "ProcClear", null).Call() == Procedure.Success;
-		assert demo.App.getInstance().Zeze.NewProcedure(this::ProcChange, "ProcChange", null).Call() == Procedure.Success;
+		assert demo.App.getInstance().Zeze.NewProcedure(this::ProcClear, "ProcClear").Call() == Procedure.Success;
+		assert demo.App.getInstance().Zeze.NewProcedure(this::ProcChange, "ProcChange").Call() == Procedure.Success;
 		demo.App.getInstance().Zeze.CheckpointRun();
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
 		ByteBuffer value = table.InternalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().Find(table.EncodeKey(56L));

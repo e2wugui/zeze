@@ -130,6 +130,7 @@ namespace Game
                                 Zeze.NewProcedure(
                                     () => factoryHandle.Handle(p),
                                     p.GetType().FullName,
+                                    factoryHandle.TransactionLevel,
                                     p.UserState),
                                 p,
                                 (p, code) => p.SendResultCode(code)

@@ -421,8 +421,6 @@ namespace Zeze.Transaction
 
         private readonly List<Lockey> holdLocks = new List<Lockey>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
 
-        // 这里继承Bean有点大了，应该把需要的东西，比如bean.objectid自己生成一个，然后用来记录log就行了。
-        // 先这样吧。懒得改了。
         public class RecordAccessed : Bean
         {
             public Record OriginRecord { get; }

@@ -61,7 +61,7 @@ namespace Zezex
 
             ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(Zeze);
             ServiceManagerAgent.RegisterService(LinkdServiceName,
-                ,
+                linkName,
                 ProviderServicePassiveIp, ProviderServicePasivePort);
         }
 

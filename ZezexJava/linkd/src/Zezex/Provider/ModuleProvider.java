@@ -597,7 +597,7 @@ public final class ModuleProvider extends AbstractModule {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.AnnounceProviderInfo();
             factoryHandle.Handle = (_p) -> ProcessAnnounceProviderInfo(_p);
-            factoryHandle.NoProcedure = true;
+            factoryHandle.Level = Zeze.Transaction.TransactionLevel.None;
             App.ProviderService.AddFactoryHandle(42957140516486L, factoryHandle);
         }
         {
@@ -664,7 +664,7 @@ public final class ModuleProvider extends AbstractModule {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Transmit();
             factoryHandle.Handle = (_p) -> ProcessTransmit(_p);
-            factoryHandle.NoProcedure = true;
+            factoryHandle.Level = Zeze.Transaction.TransactionLevel.None;
             App.ProviderService.AddFactoryHandle(42954614917260L, factoryHandle);
         }
         {

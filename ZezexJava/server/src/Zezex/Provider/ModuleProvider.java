@@ -56,7 +56,7 @@ public final class ModuleProvider extends AbstractModule {
 				});
 			}
 
-			if (p2.getSender().getService().getZeze() == null || factoryHandle.NoProcedure) {
+			if (p2.getSender().getService().getZeze() == null || factoryHandle.Level == TransactionLevel.None) {
 				// 应用框架不支持事务或者协议配置了"不需要事务”
 				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p2), p2, (p3, code) -> {
 						p3.setResultCode(code);
@@ -67,7 +67,7 @@ public final class ModuleProvider extends AbstractModule {
 			// 创建存储过程并且在当前线程中调用。
 			return Zeze.Util.Task.Call(
 					p2.getSender().getService().getZeze().NewProcedure(
-							() -> factoryHandle.Handle.handle(p2), p2.getClass().getName(), p2.getUserState()),
+							() -> factoryHandle.Handle.handle(p2), p2.getClass().getName(), factoryHandle.Level, p2.getUserState()),
 					p2, (p3, code) -> { p3.setResultCode(code); session.SendResponse(p3);
 					});
 		}
@@ -171,7 +171,7 @@ public final class ModuleProvider extends AbstractModule {
 								protocol.Argument.getSessionId(), hash, protocol.Argument.getParams(), hashResult.getActions());
 						Params.Value = rp.EncodedParameters;
 						return rp.ReturnCode;
-				}, Transaction.getCurrent().getTopProcedure().getActionName(), null).Call());
+				}, Transaction.getCurrent().getTopProcedure().getActionName()).Call());
 
 				// 单个分组处理失败继续执行。XXX
 				if (hashResult.getReturnCode() == Procedure.Success) {
@@ -258,7 +258,7 @@ public final class ModuleProvider extends AbstractModule {
 				// 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
 				Game.App.getInstance().Zeze.NewProcedure(() -> ProcessHashResult(
 						h.getKey(), h.getValue().getReturnCode(), h.getValue().getParams(), h.getValue().getActions()),
-						getMethodFullName(), null).Call();
+						getMethodFullName()).Call();
 			}
 		}
 
@@ -324,7 +324,7 @@ public final class ModuleProvider extends AbstractModule {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.AnnounceLinkInfo();
             factoryHandle.Handle = (_p) -> ProcessAnnounceLinkInfo(_p);
-            factoryHandle.NoProcedure = true;
+            factoryHandle.Level = Zeze.Transaction.TransactionLevel.None;
             App.Server.AddFactoryHandle(42956386019790L, factoryHandle);
         }
         {
@@ -377,7 +377,7 @@ public final class ModuleProvider extends AbstractModule {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Transmit();
             factoryHandle.Handle = (_p) -> ProcessTransmit(_p);
-            factoryHandle.NoProcedure = true;
+            factoryHandle.Level = Zeze.Transaction.TransactionLevel.None;
             App.Server.AddFactoryHandle(42954614917260L, factoryHandle);
         }
         {

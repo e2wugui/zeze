@@ -35,7 +35,7 @@ public class TestProcedureRedo {
             v.getMap15().put(1L, 100L);
             return Procedure.Success;
 
-        }, "TestProcedureRedoFirst", null).Call();
+        }, "TestProcedureRedoFirst").Call();
 
         Task.Run(App.getInstance().Zeze.NewProcedure(()  -> {
 
@@ -56,7 +56,7 @@ public class TestProcedureRedo {
             });
             return Procedure.Success;
 
-        }, "TestProcedureRedoTask1", null));
+        }, "TestProcedureRedoTask1"));
 
         Task.Run(App.getInstance().Zeze.NewProcedure(()  -> {
 
@@ -73,7 +73,7 @@ public class TestProcedureRedo {
             });
             return Procedure.Success;
 
-        }, "TestProcedureRedoTask2", null));
+        }, "TestProcedureRedoTask2"));
     }
 }
 

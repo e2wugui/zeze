@@ -336,6 +336,7 @@ namespace Zeze.Net
             public Func<Protocol> Factory { get; set; }
             public Func<Protocol, long> Handle { get; set; }
             public TransactionLevel TransactionLevel { get; set; } = TransactionLevel.Serializable;
+            public bool NoProcedure => TransactionLevel == TransactionLevel.None;
         }
 
         public ConcurrentDictionary<long, ProtocolFactoryHandle> Factorys { get; }
