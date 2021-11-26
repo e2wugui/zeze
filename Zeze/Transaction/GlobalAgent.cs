@@ -33,6 +33,14 @@ namespace Zeze.Transaction
                 GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
             }
 
+            private void ThrowException(string msg, Exception cause = null)
+            {
+                var txn = Transaction.Current;
+                if (txn != null)
+                    txn.ThrowAbort(msg, cause);
+                throw new Exception(msg, cause);
+            }
+
             public AsyncSocket Connect(GlobalClient client)
             {
                 lock (this)
@@ -43,7 +51,7 @@ namespace Zeze.Transaction
                         return Logined.Task.Result;
 
                     if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbitPeriod)
-                        Transaction.Current.ThrowAbort("GloalAgent.Connect: In Forbit Login Period");
+                        ThrowException("GloalAgent.Connect: In Forbit Login Period");
 
                     if (null == Socket)
                     {
@@ -64,7 +72,7 @@ namespace Zeze.Transaction
                         if (now - LastErrorTime > ForbitPeriod)
                             LastErrorTime = now;
                     }
-                    Transaction.Current.ThrowAbort("GloalAgent.Connect: Login Timeout");
+                    ThrowException("GloalAgent.Connect: Login Timeout");
                 }
                 return Socket;
             }

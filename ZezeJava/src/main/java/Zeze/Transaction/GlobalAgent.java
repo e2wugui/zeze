@@ -67,6 +67,13 @@ public final class GlobalAgent {
 			GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 		}
 
+		private void ThrowException(String msg, Throwable cause) {
+			var txn = Transaction.getCurrent();
+			if (null != txn)
+				txn.ThrowAbort(msg, cause);
+			throw new RuntimeException(msg, cause);
+		}
+
 		public final AsyncSocket Connect(GlobalClient client) {
 			synchronized (this) {
 				if (null != Logined) {
@@ -77,12 +84,12 @@ public final class GlobalAgent {
 						// 这里为什么 skipAndContinue, 忘了！
 					}
 					catch (InterruptedException | ExecutionException abort) {
-						Transaction.getCurrent().ThrowAbort(null, abort);
+						ThrowException(null, abort);
 					}
 				}
 
 				if (System.currentTimeMillis() - LastErrorTime < ForbitPeriod) {
-					Transaction.getCurrent().ThrowAbort("GloalAgent.Connect: In Forbit Period", null);
+					ThrowException("GloalAgent.Connect: In Forbit Period", null);
 				}
 
 				if (null == getSocket()) {
@@ -106,7 +113,7 @@ public final class GlobalAgent {
 						LastErrorTime = now;
 					}
 				}
-				Transaction.getCurrent().ThrowAbort("GloalAgent Login Failed", abort);
+				ThrowException("GloalAgent Login Failed", abort);
 			}
 			return null; // never go here.
 		}

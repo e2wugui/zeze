@@ -483,14 +483,14 @@ public final class Config {
 		public void setCacheNewAccessHotThreshold(int value) {
 			CacheNewAccessHotThreshold = value;
 		}
-		private int CacheCleanPeriod = 1000;
+		private int CacheCleanPeriod = 5000;
 		public int getCacheCleanPeriod() {
 			return CacheCleanPeriod;
 		}
 		public void setCacheCleanPeriod(int value) {
 			CacheCleanPeriod = value;
 		}
-		private int CacheNewLruHotPeriod = 1000;
+		private int CacheNewLruHotPeriod = 10000;
 		public int getCacheNewLruHotPeriod() {
 			return CacheNewLruHotPeriod;
 		}

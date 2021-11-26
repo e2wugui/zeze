@@ -281,8 +281,8 @@ namespace Zeze
             public int CacheConcurrencyLevel { get; set; }
             public int CacheInitialCapaicty { get; set; }
             public int CacheNewAccessHotThreshold { get; set; }
-            public int CacheCleanPeriod { get; set; } = 1000;
-            public int CacheNewLruHotPeriod { get; set; } = 1000;
+            public int CacheCleanPeriod { get; set; } = 5000;
+            public int CacheNewLruHotPeriod { get; set; } = 10000;
             public int CacheMaxLruInitialCapaicty { get; set; } = 100000;
             public int CacheCleanPeriodWhenExceedCapacity { get; set; }
             public bool CheckpointWhenCommit { get; set; } = false;
