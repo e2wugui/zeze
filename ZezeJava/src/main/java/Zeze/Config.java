@@ -24,7 +24,8 @@ public final class Config {
 		Memory,
 		MySql,
 		SqlServer,
-		Tikv
+		Tikv,
+		RocksDb,
 	}
 
 	private int WorkerThreads;
@@ -161,7 +162,7 @@ public final class Config {
 		return DatabaseConfMap;
 	}
 
-	private Zeze.Transaction.Database CreateDatabase(DatabaseConf conf) {
+	private Zeze.Transaction.Database CreateDatabase(Application zeze, DatabaseConf conf) {
 		switch (conf.DatabaseType) {
 			case Memory:
 				return new Zeze.Transaction.DatabaseMemory(conf);
@@ -170,34 +171,30 @@ public final class Config {
 			case SqlServer:
 				return new Zeze.Transaction.DatabaseSqlServer(conf);
 			//case Tikv:
-			//	return new Zeze.Tikv.DatabaseTikv(conf.getDatabaseUrl());
+			//	return new Zeze.Tikv.DatabaseTikv(conf);
+			case RocksDb:
+				return new Zeze.Transaction.DatabaseRocksDb(zeze, conf);
 			default:
 				throw new RuntimeException("unknown database type.");
 		}
 	}
 
-	public void CreateDatabase(HashMap<String, Zeze.Transaction.Database> map) {
+	public void CreateDatabase(Application zeze, HashMap<String, Zeze.Transaction.Database> map) {
 		// add other database
 		for (var db : getDatabaseConfMap().values()) {
-			map.put(db.Name, CreateDatabase(db));
+			map.put(db.Name, CreateDatabase(zeze, db));
 		}
 	}
 
-
-	public void ClearInUseAndIAmSureAppStopped() {
-		ClearInUseAndIAmSureAppStopped(null);
-	}
-
-	public void ClearInUseAndIAmSureAppStopped(HashMap<String, Zeze.Transaction.Database> databases) {
+	public void ClearInUseAndIAmSureAppStopped(Application zeze, HashMap<String, Zeze.Transaction.Database> databases) {
 		if (null == databases) {
 			databases = new HashMap<>();
-			CreateDatabase(databases);
+			CreateDatabase(zeze, databases);
 		}
 		for (var db : databases.values()) {
 			db.getDirectOperates().ClearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
 		}
 	}
-
 
 	private final ConcurrentHashMap<String, ServiceConf> ServiceConfMap = new ConcurrentHashMap<>();
 	public ConcurrentHashMap<String, ServiceConf> getServiceConfMap() {

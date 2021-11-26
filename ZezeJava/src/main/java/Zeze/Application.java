@@ -98,7 +98,7 @@ public final class Application {
 		core = core > 0 ? core : Runtime.getRuntime().availableProcessors() * 30;
 		InternalThreadPool = new ThreadPoolExecutor(core, core, 0, TimeUnit.NANOSECONDS, new LinkedBlockingQueue<>());
 
-		getConfig().CreateDatabase(getDatabases());
+		getConfig().CreateDatabase(this, getDatabases());
 		GlobalAgent = new GlobalAgent(this);
 		_checkpoint = new Checkpoint(getConfig().getCheckpointMode(), getDatabases().values());
 		setServiceManagerAgent(new Agent(this));
@@ -145,7 +145,7 @@ public final class Application {
 	public void Start() throws Throwable {
 		synchronized (this) {
 			if (getConfig() != null) {
-				getConfig().ClearInUseAndIAmSureAppStopped(getDatabases());
+				getConfig().ClearInUseAndIAmSureAppStopped(this, getDatabases());
 			}
 			for (var db : getDatabases().values()) {
 				db.getDirectOperates().SetInUse(getConfig().getServerId(), getConfig().getGlobalCacheManagerHostNameOrAddress());
@@ -222,7 +222,7 @@ public final class Application {
 			}
 
 			if (getConfig() != null) {
-				getConfig().ClearInUseAndIAmSureAppStopped(getDatabases());
+				getConfig().ClearInUseAndIAmSureAppStopped(this, getDatabases());
 			}
 			setStart(false);
 
