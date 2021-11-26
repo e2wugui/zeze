@@ -82,14 +82,14 @@ public class TestGlobal extends TestCase{
 			int countall = count * 2;
 			assert Procedure.Success == app1.Zeze.NewProcedure(() -> {
 					int last1 = app1.demo_Module1.getTable1().get(6785L).getInt1();
+					System.out.println("app1 " + last1);
 					assert countall == last1;
-					//Console.WriteLine("app1 " + last1);
 					return Procedure.Success;
 			}, "CheckResult1").Call();
 			assert Procedure.Success == app2.Zeze.NewProcedure(() -> {
 					int last2 = app2.demo_Module1.getTable1().get(6785L).getInt1();
+				System.out.println("app2 " + last2);
 					assert countall == last2;
-					//Console.WriteLine("app1 " + last2);
 					return Procedure.Success;
 			}, "CheckResult2").Call();
 		}

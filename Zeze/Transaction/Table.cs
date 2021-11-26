@@ -63,8 +63,7 @@ namespace Zeze.Transaction
             TableKey tkey = new TableKey(Name, key);
             while (true)
             {
-                Record<K, V> r = Cache.GetOrAdd(key,
-                    (key) => new Record<K, V>(this, key, null));
+                Record<K, V> r = Cache.GetOrAdd(key, (key) => new Record<K, V>(this, key, null));
                 lock (r) // 对同一个记录，不允许重入。
                 {
                     if (r.State == GlobalCacheManagerServer.StateRemoved)

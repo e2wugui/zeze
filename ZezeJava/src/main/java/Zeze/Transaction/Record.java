@@ -94,7 +94,7 @@ public abstract class Record {
 	public Record(Bean value) {
 		setState(Zeze.Services.GlobalCacheManagerServer.StateInvalid);
 		setValue(value);
-		//Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 初始化
+		//Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 可能发生数据变化，这里初始化一次不够。
 	}
 
 	// 时戳生成器，运行时状态，需要持久化时，再考虑保存到数据库。
