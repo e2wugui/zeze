@@ -66,22 +66,29 @@ namespace UnitTest.Zeze.Net
 
         private void OnAsyncReceive(IAsyncResult ar)
         {
-            Console.WriteLine($"{DateTime.Now} OnAsyncReceive: {ClientSocket.LocalEndPoint}-{ClientSocket.RemoteEndPoint}");
-            int bytesRead = ClientSocket.EndReceive(ar);
-
-            if (bytesRead <= 0)
+            try
             {
-                ClientSocket.Close();
-                ClientSocket = null;
-                return;
+                Console.WriteLine($"{DateTime.Now} OnAsyncReceive: {ClientSocket.LocalEndPoint}-{ClientSocket.RemoteEndPoint}");
+                int bytesRead = ClientSocket.EndReceive(ar);
+
+                if (bytesRead <= 0)
+                {
+                    ClientSocket.Close();
+                    ClientSocket = null;
+                    return;
+                }
+
+                var copy = new byte[bytesRead];
+                Array.Copy(inputBuffer, 0, copy, 0, copy.Length);
+                SimulateUserSendAndWait(copy);
+
+                inputBuffer = new byte[8192];
+                ClientSocket.BeginReceive(inputBuffer, 0, inputBuffer.Length, 0, OnAsyncReceive, null);
             }
-
-            var copy = new byte[bytesRead];
-            Array.Copy(inputBuffer, 0, copy, 0, copy.Length);
-            SimulateUserSendAndWait(copy);
-
-            inputBuffer = new byte[8192];
-            ClientSocket.BeginReceive(inputBuffer, 0, inputBuffer.Length, 0, OnAsyncReceive, null);
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
         }
 
         private List<ArraySegment<byte>> _outputBufferList = null;
@@ -108,17 +115,24 @@ namespace UnitTest.Zeze.Net
 
         private void OnAsyncSend(IAsyncResult ar)
         {
-            Console.WriteLine($"{DateTime.Now} OnAsyncSend");
-            ClientSocket.EndSend(ar);
-
-            lock (this)
+            try
             {
-                _outputBufferListSending = _outputBufferList;
-                _outputBufferList = null;
-                if (null != _outputBufferListSending)
+                Console.WriteLine($"{DateTime.Now} OnAsyncSend");
+                ClientSocket.EndSend(ar);
+
+                lock (this)
                 {
-                    ClientSocket.BeginSend(_outputBufferListSending, 0, OnAsyncSend, null);
+                    _outputBufferListSending = _outputBufferList;
+                    _outputBufferList = null;
+                    if (null != _outputBufferListSending)
+                    {
+                        ClientSocket.BeginSend(_outputBufferListSending, 0, OnAsyncSend, null);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
             }
         }
 
