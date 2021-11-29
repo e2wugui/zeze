@@ -44,14 +44,14 @@ public class ConcurrentLruLike<K, V> {
 		MaxLruInitialCapaicty = value;
 	}
 
-	private long NewLruHotPeriod = 1000;
+	private long NewLruHotPeriod = 10000;
 	public final long getNewLruHotPeriod() {
 		return NewLruHotPeriod;
 	}
 	public final void setNewLruHotPeriod(long value) {
 		NewLruHotPeriod = value;
 	}
-	private long CleanPeriod = 1000;
+	private long CleanPeriod = 10000;
 	public final long getCleanPeriod() {
 		return CleanPeriod;
 	}
@@ -59,7 +59,7 @@ public class ConcurrentLruLike<K, V> {
 		CleanPeriod = value;
 	}
 
-	private int CleanPeriodWhenExceedCapacity = 0;
+	private int CleanPeriodWhenExceedCapacity = 1000;
 	public final int getCleanPeriodWhenExceedCapacity() {
 		return CleanPeriodWhenExceedCapacity;
 	}
@@ -243,10 +243,8 @@ public class ConcurrentLruLike<K, V> {
 				logger.warn("remain record when clean oldest lrunode.");
 			}
 
-			int sleepms = CleanPeriodWhenExceedCapacity > 1000
-					? CleanPeriodWhenExceedCapacity : 1000;
 			try {
-				Thread.sleep(sleepms);
+				Thread.sleep(CleanPeriodWhenExceedCapacity);
 			} catch (InterruptedException skip) {
 				logger.error(skip);
 			}

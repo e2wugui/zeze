@@ -33,10 +33,10 @@ namespace Zeze.Util
         public int ConcurrencyLevel { get; set; } // 创建以后再修改，只影响lru，不影响cache。
         public int MaxLruInitialCapaicty { get; set; } = 100000;
 
-        public long NewLruHotPeriod { get; set; } = 1000;
-        public long CleanPeriod { get; set; } = 1000;
+        public long NewLruHotPeriod { get; set; } = 10000;
+        public long CleanPeriod { get; set; } = 10000;
 
-        public int CleanPeriodWhenExceedCapacity { get; set; } = 0;
+        public int CleanPeriodWhenExceedCapacity { get; set; } = 1000;
         public bool ContinueWhenTryRemoveCallbackFail { get; set; } = true;
         public Func<K, V, bool> TryRemoveCallback { get; set; } = null;
 

@@ -281,10 +281,10 @@ namespace Zeze
             public int CacheConcurrencyLevel { get; set; }
             public int CacheInitialCapaicty { get; set; }
             public int CacheNewAccessHotThreshold { get; set; }
-            public int CacheCleanPeriod { get; set; } = 5000;
+            public int CacheCleanPeriod { get; set; } = 10000;
             public int CacheNewLruHotPeriod { get; set; } = 10000;
             public int CacheMaxLruInitialCapaicty { get; set; } = 100000;
-            public int CacheCleanPeriodWhenExceedCapacity { get; set; }
+            public int CacheCleanPeriodWhenExceedCapacity { get; set; } = 1000;
             public bool CheckpointWhenCommit { get; set; } = false;
 
             // 自动倒库，当新库(DatabaseName)没有找到记录时，从旧库(DatabaseOldName)中读取，

@@ -480,7 +480,7 @@ public final class Config {
 		public void setCacheNewAccessHotThreshold(int value) {
 			CacheNewAccessHotThreshold = value;
 		}
-		private int CacheCleanPeriod = 5000;
+		private int CacheCleanPeriod = 10000;
 		public int getCacheCleanPeriod() {
 			return CacheCleanPeriod;
 		}
@@ -501,7 +501,7 @@ public final class Config {
 		public void setCacheMaxLruInitialCapaicty(int value) {
 			CacheMaxLruInitialCapaicty = value;
 		}
-		private int CacheCleanPeriodWhenExceedCapacity;
+		private int CacheCleanPeriodWhenExceedCapacity = 1000;
 		public int getCacheCleanPeriodWhenExceedCapacity() {
 			return CacheCleanPeriodWhenExceedCapacity;
 		}
