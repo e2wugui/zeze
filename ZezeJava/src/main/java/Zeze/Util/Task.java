@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import Zeze.Transaction.*;
 
+import java.util.Collection;
 import java.util.concurrent.*;
 
 import org.apache.logging.log4j.Level;
@@ -275,5 +276,25 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	public static Task Run(Task task) {
 		threadPoolDefault.execute(task);
 		return task;
+	}
+
+	public static void WaitAll(Collection<Task> tasks) {
+		for (var task : tasks) {
+			try {
+				task.get();
+			} catch (InterruptedException | ExecutionException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public static void WaitAll(Task[] tasks) {
+		for (var task : tasks) {
+			try {
+				task.get();
+			} catch (InterruptedException | ExecutionException e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 }

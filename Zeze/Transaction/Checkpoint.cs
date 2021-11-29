@@ -230,7 +230,14 @@ namespace Zeze.Transaction
             {
                 foreach (var t in dts.Values)
                 {
-                    t.Rollback();
+                    try
+                    {
+                        t.Rollback();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex);
+                    }
                 }
                 throw;
             }
@@ -238,7 +245,14 @@ namespace Zeze.Transaction
             {
                 foreach (var dt in dts)
                 {
-                    dt.Value.Dispose();
+                    try
+                    {
+                        dt.Value.Dispose();
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error(e);
+                    }
                 }
             }
         }
@@ -298,7 +312,14 @@ namespace Zeze.Transaction
             {
                 foreach (var t in dts.Values)
                 {
-                    t.Rollback();
+                    try
+                    {
+                        t.Rollback();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex);
+                    }
                 }
                 throw;
             }
@@ -306,7 +327,14 @@ namespace Zeze.Transaction
             {
                 foreach (var t in dts.Values)
                 {
-                    t.Dispose();
+                    try
+                    {
+                        t.Dispose();
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error(e);
+                    }
                 }
             }
         }

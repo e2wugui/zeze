@@ -47,9 +47,12 @@ namespace Zeze.Gen
             var tlevel = self.GetAttribute("NoProcedure"); // 兼容旧的配置
             if (tlevel.Length > 0)
             {
-                TransactionLevel = "true".Equals(tlevel)
-                    ? TransactionLevel.None
-                    : (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), tlevel);
+                if ("true".Equals(tlevel))
+                    TransactionLevel = TransactionLevel.None;
+                else if ("false".Equals(tlevel))
+                    TransactionLevel = TransactionLevel.Serializable;
+                else
+                    TransactionLevel = (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), tlevel);
             }
             else
             {
