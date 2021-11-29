@@ -128,6 +128,12 @@ public final class Transaction {
 
 	TableKey LastTableKeyOfRedoAndRelease;
 	long LastGlobalSerialIdOfRedoAndRelease;
+	private boolean AlwaysReleaseLockWhenRedo = false;
+	void SetAlwaysReleaseLockWhenRedo() {
+		AlwaysReleaseLockWhenRedo = true;
+		if (holdLocks.size() > 0)
+			this.ThrowRedo();
+	}
 
 	/**
 	 Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
@@ -152,7 +158,7 @@ public final class Transaction {
 										_final_rollback_(procedure);
 										return Procedure.ErrorSavepoint;
 									}
-									checkResult = _lock_and_check_();
+									checkResult = _lock_and_check_(procedure.getTransactionLevel());
 									if (checkResult == CheckResult.Success) {
 										if (result == Procedure.Success) {
 											_final_commit_(procedure);
@@ -182,6 +188,8 @@ public final class Transaction {
 									break; // retry
 							}
 							// retry clear in finally
+							if (AlwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
+								checkResult = CheckResult.RedoAndReleaseLock;
 						}
 						catch (Throwable e) {
 							// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
@@ -200,7 +208,7 @@ public final class Transaction {
 										_final_rollback_(procedure);
 										throw e;
 									}
-									checkResult = _lock_and_check_();
+									checkResult = _lock_and_check_(TransactionLevel.Serializable);
 									if (checkResult == CheckResult.Success) {
 										_final_rollback_(procedure);
 										return Procedure.Excption;
@@ -474,7 +482,8 @@ public final class Transaction {
 		return _check_(writeLock, e.getValue());
 	}
 
-	private CheckResult _lock_and_check_() throws Throwable {
+	private CheckResult _lock_and_check_(TransactionLevel level) throws Throwable {
+		boolean allRead = true;
 		if (!Savepoints.isEmpty()) {
 			// 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；
 			// 其他情况属于Begin,Commit,Rollback不匹配。外面检查。
@@ -489,12 +498,16 @@ public final class Transaction {
 				var record = AccessedRecords.get(tkey);
 				if (null != record) {
 					record.Dirty = true;
+					allRead = false;
 				} else {
 					// 只有测试代码会把非 Managed 的 Bean 的日志加进来。
 					logger.fatal("impossible! record not found.");
 				}
 			}
 		}
+
+		if (allRead && level == TransactionLevel.AllowDirtyWhenAllRead)
+			return CheckResult.Success; // 使用一个新的enum表示一下？
 
 		boolean conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
 		if (holdLocks.isEmpty()) {

@@ -567,7 +567,7 @@ namespace Zeze.Transaction
         /// 1. 一般在事务外使用。
         /// 2. 如果在事务内使用：
         ///    a)已经访问过的记录，得到最新值的拷贝。不建议这种用法。
-        ///    b)没有访问过的记录，从后台查询并拷贝，但不会加入RecordAccessed。【有死锁风险，已废弃】
+        ///    b)没有访问过的记录，从后台查询并拷贝，但不会加入RecordAccessed。
         /// 3. 得到的结果一般不用于修改，应用传递时可以使用ReadOnly接口修饰保护一下。
         /// </summary>
         /// <param name="key"></param>
@@ -583,7 +583,7 @@ namespace Zeze.Transaction
                 {
                     return (V)cr.NewestValue()?.CopyBean();
                 }
-                throw new Exception("SelectCopy A Not Accessed Record In Transaction Is Danger!");
+                currentT.SetAlwaysReleaseLockWhenRedo();
             }
 
             var lockey = Zeze.Locks.Get(tkey);
@@ -597,6 +597,21 @@ namespace Zeze.Transaction
             {
                 lockey.ExitReadLock();
             }
+        }
+
+        public V SelectDirty(K key)
+        {
+            var tkey = new TableKey(Name, key);
+            Transaction currentT = Transaction.Current;
+            if (null != currentT)
+            {
+                Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+                if (null != cr)
+                {
+                    return (V)cr.NewestValue();
+                }
+            }
+            return (V)FindInCacheOrStorage(key).Value;
         }
     }
 }

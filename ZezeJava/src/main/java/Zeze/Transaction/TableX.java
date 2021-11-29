@@ -522,7 +522,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 1. 一般在事务外使用。
 	 2. 如果在事务内使用：
 		a)已经访问过的记录，得到最新值的拷贝。不建议这种用法。
-		b)没有访问过的记录，从后台查询并拷贝，但不会加入RecordAccessed。【有死锁风险，已废弃】
+		b)没有访问过的记录，从后台查询并拷贝，但不会加入RecordAccessed。
 	 3. 得到的结果一般不用于修改，应用传递时可以使用ReadOnly接口修饰保护一下。
 	 
 	 @param key
@@ -538,7 +538,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				var r = (V)(cr.NewestValue() == null ? null : cr.NewestValue().CopyBean());
 				return r;
 			}
-			throw new RuntimeException("SelectCopy A Not Accessed Record In Transaction Is Danger!");
+			currentT.SetAlwaysReleaseLockWhenRedo();
 		}
 
 		var lockey = getZeze().getLocks().Get(tkey);
@@ -553,5 +553,21 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		} finally {
 			lockey.ExitReadLock();
 		}
+	}
+
+	public final V selectDirty(K key) {
+		TableKey tkey = new TableKey(Name, key);
+		Transaction currentT = Transaction.getCurrent();
+		if (null != currentT) {
+			Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+			if (null != cr) {
+				@SuppressWarnings("unchecked")
+				var r = (V)(cr.NewestValue() == null ? null : cr.NewestValue());
+				return r;
+			}
+		}
+		@SuppressWarnings("unchecked")
+		var v = (V)FindInCacheOrStorage(key).getValue();
+		return v;
 	}
 }

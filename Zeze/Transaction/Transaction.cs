@@ -147,6 +147,13 @@ namespace Zeze.Transaction
 
         internal TableKey LastTableKeyOfRedoAndRelease { get; set; } = null;
         internal long LastGlobalSerialIdOfRedoAndRelease { get; set; } = 0;
+        private bool AlwaysReleaseLockWhenRedo = false;
+        internal void SetAlwaysReleaseLockWhenRedo()
+        {
+            AlwaysReleaseLockWhenRedo = true;
+            if (holdLocks.Count > 0)
+                this.ThrowRedo();
+        }
 
         /// <summary>
         /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
@@ -178,17 +185,19 @@ namespace Zeze.Transaction
                                             _final_rollback_(procedure);
                                             return Procedure.ErrorSavepoint;
                                         }
-                                        checkResult = _lock_and_check_();
+                                        checkResult = _lock_and_check_(procedure.TransactionLevel);
                                         if (checkResult == CheckResult.Success)
                                         {
                                             if (result == Procedure.Success)
                                             {
                                                 _final_commit_(procedure);
 #if ENABLE_STATISTICS
-                                        // 正常一次成功的不统计，用来观察redo多不多。
-                                        // 失败在 Procedure.cs 中的统计。
-                                        if (tryCount > 0)
-                                            ProcedureStatistics.Instance.GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).IncrementAndGet();
+                                                if (tryCount > 0)
+                                                {
+                                                    // 正常一次成功的不统计，用来观察redo多不多。
+                                                    // 失败在 Procedure.cs 中的统计。
+                                                    ProcedureStatistics.Instance.GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).IncrementAndGet();
+                                                }
 #endif
                                                 return Procedure.Success;
                                             }
@@ -235,7 +244,7 @@ namespace Zeze.Transaction
                                             throw;
                                         }
 #endif
-                                        checkResult = _lock_and_check_();
+                                        checkResult = _lock_and_check_(TransactionLevel.Serializable);
                                         if (checkResult == CheckResult.Success)
                                         {
                                             _final_rollback_(procedure);
@@ -257,6 +266,8 @@ namespace Zeze.Transaction
                                         break;
                                 }
                                 // retry
+                                if (AlwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
+                                    checkResult = CheckResult.RedoAndReleaseLock;
                             }
                             finally
                             {
@@ -602,8 +613,9 @@ namespace Zeze.Transaction
             return _check_(writeLock, e.Value);
         }
 
-        private CheckResult _lock_and_check_()
+        private CheckResult _lock_and_check_(TransactionLevel level)
         {
+            bool allRead = true;
             if (Savepoints.Count > 0)
             {
                 // 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；
@@ -619,6 +631,7 @@ namespace Zeze.Transaction
                     if (AccessedRecords.TryGetValue(tkey, out var record))
                     {
                         record.Dirty = true;
+                        allRead = false;
                     }
                     else
                     {
@@ -627,6 +640,9 @@ namespace Zeze.Transaction
                     }
                 }
             }
+
+            if (allRead && level == TransactionLevel.AllowDirtyWhenAllRead)
+                return CheckResult.Success; // 使用一个新的enum表示一下？
 
             bool conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
             if (holdLocks.Count == 0)
