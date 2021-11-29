@@ -124,17 +124,9 @@ namespace Zeze.Transaction
         /// </summary>
         public override void Cleanup()
         {
-            try
+            foreach (var e in snapshot)
             {
-                foreach (var e in snapshot)
-                {
-                    e.Value.Cleanup();
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Fatal(ex);
-                Environment.Exit(54321);
+                e.Value.Cleanup();
             }
             snapshot.Clear();
         }

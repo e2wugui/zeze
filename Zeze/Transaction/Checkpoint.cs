@@ -212,10 +212,18 @@ namespace Zeze.Transaction
                 {
                     e.Value.Commit();
                 }
-                // cleanup
-                foreach (var db in Databases)
+                try
                 {
-                    db.Cleanup();
+                    // cleanup
+                    foreach (var db in Databases)
+                    {
+                        db.Cleanup();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Fatal(ex);
+                    Environment.Exit(54321);
                 }
             }
             catch (Exception)
@@ -272,10 +280,18 @@ namespace Zeze.Transaction
                 {
                     t.Commit();
                 }
-                // 清除状态
-                foreach (var r in rs)
+                try
                 {
-                    r.Cleanup();
+                    // 清除状态
+                    foreach (var r in rs)
+                    {
+                        r.Cleanup();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Fatal(ex);
+                    Environment.Exit(54321);
                 }
             }
             catch (Exception)

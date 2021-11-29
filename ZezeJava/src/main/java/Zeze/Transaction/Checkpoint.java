@@ -219,8 +219,13 @@ public final class Checkpoint {
 				e.getValue().Commit();
 			}
 			// cleanup
-			for (var db : getDatabases()) {
-				db.Cleanup();
+			try {
+				for (var db : getDatabases()) {
+					db.Cleanup();
+				}
+			} catch (Throwable fatal) {
+				logger.error(fatal);
+				Runtime.getRuntime().halt(54321);
 			}
 		} catch (Throwable e) {
 			for (var t : dts.values()) {
@@ -270,9 +275,14 @@ public final class Checkpoint {
 			for (var t : dts.values()) {
 				t.Commit();
 			}
-			// 清除编码状态
-			for (var r : rs) {
-				r.Cleanup();
+			try {
+				// 清除编码状态
+				for (var r : rs) {
+					r.Cleanup();
+				}
+			} catch (Throwable fatal) {
+				logger.error(fatal);
+				Runtime.getRuntime().halt(54321);
 			}
 		}
 		catch (Throwable e) {

@@ -108,13 +108,8 @@ public final class Storage1<K extends Comparable<K>, V extends Bean> extends Sto
 	*/
 	@Override
 	public void Cleanup() {
-		try {
-			for (var e : snapshot.entrySet()) {
-				e.getValue().Cleanup();
-			}
-		} catch (Throwable fatal) {
-			logger.error(fatal);
-			Runtime.getRuntime().halt(54321);
+		for (var e : snapshot.entrySet()) {
+			e.getValue().Cleanup();
 		}
 		snapshot.clear();
 	}
