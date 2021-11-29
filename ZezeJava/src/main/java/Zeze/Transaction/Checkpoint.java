@@ -229,7 +229,11 @@ public final class Checkpoint {
 			}
 		} catch (Throwable e) {
 			for (var t : dts.values()) {
-				t.Rollback();
+				try {
+					t.Rollback();
+				} catch (Throwable ex) {
+					logger.error(ex);
+				}
 			}
 			throw e;
 		} finally {
@@ -287,7 +291,11 @@ public final class Checkpoint {
 		}
 		catch (Throwable e) {
 			for (var t : dts.values()) {
-				t.Rollback();
+				try {
+					t.Rollback();
+				} catch (Throwable ex) {
+					logger.error(ex);
+				}
 			}
 			throw e;
 		}

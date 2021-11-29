@@ -65,14 +65,14 @@ public abstract class Record {
 		Dirty = value;
 	}
 
-	private Bean Value;
+	private volatile Bean Value;
 	public final Bean getValue() {
 		return Value;
 	}
 	public final void setValue(Bean value) {
 		Value = value;
 	}
-	private int State;
+	private volatile int State;
 	public final int getState() {
 		return State;
 	}
