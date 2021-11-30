@@ -6,6 +6,7 @@
 
     <target name="init">
         <mkdir dir="${build}"/>
+		<delete file="zeze.jar"/>
     </target>
 
     <target name="compile" depends="init">

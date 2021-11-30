@@ -148,31 +148,33 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			return; // 容量不限
 		}
 
-		while (DataMap.size() > getTable().getTableConf().getCacheCapacity()) { // 超出容量，循环尝试
-			var node = getLruQueue().peek();
-			if (null == node || node == getLruHot()) { // 热点。不回收。
-				break;
-			}
+		try {
+			while (DataMap.size() > getTable().getTableConf().getCacheCapacity()) { // 超出容量，循环尝试
+				var node = getLruQueue().peek();
+				if (null == node || node == getLruHot()) { // 热点。不回收。
+					break;
+				}
 
-			for (var e : node.entrySet()) {
-				if (false == TryRemoveRecord(e)) {
-					// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
-					getTable().getZeze().CheckpointRun();
+				for (var e : node.entrySet()) {
+					if (false == TryRemoveRecord(e)) {
+						// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
+						getTable().getZeze().CheckpointRun();
+					}
+				}
+				if (node.size() == 0) {
+					getLruQueue().poll();
+				} else {
+					logger.warn("remain record when clean oldest lrunode.");
+				}
+
+				try {
+					Thread.sleep(getTable().getTableConf().getCacheCleanPeriodWhenExceedCapacity());
+				} catch (InterruptedException skip) {
 				}
 			}
-			if (node.size() == 0) {
-				getLruQueue().poll();
-			}
-			else {
-				logger.warn("remain record when clean oldest lrunode.");
-			}
-
-			try {
-				Thread.sleep(getTable().getTableConf().getCacheCleanPeriodWhenExceedCapacity());
-			} catch (InterruptedException skip) {
-			}
+		} finally {
+			Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod());
 		}
-		Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod());
 	}
 
 	// under lockey.writelock and record.fairLock
@@ -223,8 +225,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				}
 
 				if (p.getValue().getState() != GlobalCacheManagerServer.StateInvalid) {
-					if (p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid).Result.State
-							!= GlobalCacheManagerServer.StateInvalid) {
+					var r = p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid);
+					if (r.getResultCode() != 0 || r.Result.State != GlobalCacheManagerServer.StateInvalid) {
 						return false;
 					}
 				}

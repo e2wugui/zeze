@@ -28,7 +28,7 @@ namespace Zezex.Provider
             p.Send(sender);
         }
 
-        public override long ProcessDispatch(Protocol _p)
+        protected override long ProcessDispatch(Protocol _p)
         {
             var p = _p as Dispatch;
             try
@@ -89,7 +89,7 @@ namespace Zezex.Provider
             }
         }
 
-        public override long ProcessLinkBroken(Protocol p)
+        protected override long ProcessLinkBroken(Protocol p)
         {
             var protocol = p as LinkBroken;
             // 目前仅需设置online状态。
@@ -101,7 +101,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        public override long ProcessModuleRedirectRequest(Protocol p)
+        protected override long ProcessModuleRedirectRequest(Protocol p)
         {
             var rpc = p as ModuleRedirect;
             try
@@ -151,7 +151,7 @@ namespace Zezex.Provider
             }
         }
 
-        public override long ProcessModuleRedirectAllRequest(Protocol p)
+        protected override long ProcessModuleRedirectAllRequest(Protocol p)
         {
             var protocol = p as ModuleRedirectAllRequest;
             var result = new ModuleRedirectAllResult();
@@ -293,7 +293,7 @@ namespace Zezex.Provider
             }
         }
 
-        public override long ProcessModuleRedirectAllResult(Protocol p)
+        protected override long ProcessModuleRedirectAllResult(Protocol p)
         {
             var protocol = p as ModuleRedirectAllResult;
             // replace RootProcedure.ActionName. 为了统计和日志输出。
@@ -303,7 +303,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        public override long ProcessTransmit(Protocol p)
+        protected override long ProcessTransmit(Protocol p)
         {
             var protocol = p as Transmit;
             App.Game_Login.Onlines.ProcessTransmit(protocol.Argument.Sender,
@@ -311,7 +311,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        public override long ProcessAnnounceLinkInfo(Protocol p)
+        protected override long ProcessAnnounceLinkInfo(Protocol p)
         {
             var protocol = p as AnnounceLinkInfo;
             var linkSession = protocol.Sender.UserState as Game.Server.LinkSession;
@@ -319,7 +319,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        public override long ProcessSendConfirm(Protocol p)
+        protected override long ProcessSendConfirm(Protocol p)
         {
             var protocol = p as SendConfirm;
             var linkSession = protocol.Sender.UserState as Game.Server.LinkSession;

@@ -28,7 +28,7 @@ namespace Game.Bag
             }
         }
 
-        public override long ProcessSChanged(Protocol p)
+        protected override long ProcessSChanged(Protocol p)
         {
             var protocol = p as SChanged;
             switch (protocol.Argument.ChangeTag)
@@ -55,7 +55,7 @@ namespace Game.Bag
 
         private BBag bag;
 
-        public override long ProcessSBag(Protocol p)
+        protected override long ProcessSBag(Protocol p)
         {
             var protocol = p as SBag;
             bag = protocol.Argument;

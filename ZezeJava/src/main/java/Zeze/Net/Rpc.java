@@ -174,22 +174,11 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	}
 
 	public final void SendAndWaitCheckResultCode(AsyncSocket so, int millisecondsTimeout) {
-		var tmpFuture = new Zeze.Util.TaskCompletionSource<Integer>();
-		if (false == Send(so,
-			(rpc) -> {
-				if (IsTimeout) {
-					tmpFuture.TrySetException(new RpcTimeoutException("RpcTimeout " + this));
-				} else if (getResultCode() != 0) {
-					tmpFuture.TrySetException(new RuntimeException(Zeze.Util.Str.format("Rpc Invalid ResultCode={} {}", getResultCode(), this)));
-				} else {
-					tmpFuture.SetResult(0);
-				}
-				return Zeze.Transaction.Procedure.Success;
-			}, millisecondsTimeout)) {
-			throw new RuntimeException("Send Failed.");
-		}
-		tmpFuture.Wait();
+		SendForWait(so, millisecondsTimeout).Wait();
+		if (getResultCode() != 0)
+			throw new RuntimeException(Zeze.Util.Str.format("Rpc Invalid ResultCode={} {}", getResultCode(), this));
 	}
+
 	private boolean SendResultDone = false; // XXX ugly
 
 	public final void SendResult() {

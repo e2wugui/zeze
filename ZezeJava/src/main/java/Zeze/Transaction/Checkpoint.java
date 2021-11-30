@@ -43,13 +43,19 @@ public final class Checkpoint {
 
 	private Thread CheckpointThread;
 
-	public Checkpoint(CheckpointMode mode) {
+	public Checkpoint(CheckpointMode mode, int serverId) {
 		Mode = mode;
+		CheckpointThread = new Thread(
+				() -> Task.Call(() -> Run(), "Checkpoint.Run"),
+				"ChectpointThread-" + serverId);
 	}
 
-	public Checkpoint(CheckpointMode mode, java.lang.Iterable<Database> dbs) {
+	public Checkpoint(CheckpointMode mode, java.lang.Iterable<Database> dbs, int serverId) {
 		Mode = mode;
 		Add(dbs);
+		CheckpointThread = new Thread(
+				() -> Task.Call(() -> Run(), "Checkpoint.Run"),
+				"ChectpointThread-" + serverId);
 	}
 
 	public void EnterFlushReadLock() {
@@ -79,9 +85,6 @@ public final class Checkpoint {
 
 			setRunning(true);
 			setPeriod(period);
-			CheckpointThread = new Thread(
-					() -> Task.Call(() -> Run(), "Checkpoint.Run"),
-					"ChectpointThread");
 			CheckpointThread.start();
 		}
 	}

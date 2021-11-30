@@ -148,29 +148,9 @@ namespace Zeze.Net
         // 使用异步方式实现的同步等待版本
         public void SendAndWaitCheckResultCode(AsyncSocket so, int millisecondsTimeout = 5000)
         {
-            var tmpFuture = new TaskCompletionSource<int>();
-            if (false == Send(so, 
-                (_) =>
-                {
-                    if (IsTimeout)
-                    {
-                        tmpFuture.TrySetException(new RpcTimeoutException($"RpcTimeout {this}"));
-                    }
-                    else if (ResultCode != 0)
-                    {
-                        tmpFuture.TrySetException(new Exception($"Rpc Invalid ResultCode={ResultCode} {this}"));
-                    }
-                    else
-                    {
-                        tmpFuture.SetResult(0);
-                    }
-                    return Zeze.Transaction.Procedure.Success;
-                },
-                millisecondsTimeout))
-            {
-                throw new Exception("Send Failed.");
-            }
-            tmpFuture.Task.Wait();
+            SendForWait(so, millisecondsTimeout).Task.Wait();
+            if (ResultCode != 0)
+                throw new Exception($"Rpc Invalid ResultCode={ResultCode} {this}");
         }
 
         private bool SendResultDone = false; // XXX ugly

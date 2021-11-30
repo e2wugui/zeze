@@ -18,7 +18,7 @@ namespace Game.Login
 
         public Onlines Onlines { get; private set; }
 
-        public override long ProcessCreateRoleRequest(Protocol p)
+        protected override long ProcessCreateRoleRequest(Protocol p)
         {
             var rpc = p as CreateRole;
             Session session = Session.Get(rpc);
@@ -46,7 +46,7 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        public override long ProcessGetRoleListRequest(Protocol p)
+        protected override long ProcessGetRoleListRequest(Protocol p)
         {
             var rpc = p as GetRoleList;
             Session session = Session.Get(rpc);
@@ -73,7 +73,7 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        public override long ProcessLoginRequest(Protocol p)
+        protected override long ProcessLoginRequest(Protocol p)
         {
             var rpc = p as Login;
             Session session = Session.Get(rpc);
@@ -115,7 +115,7 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        public override long ProcessReLoginRequest(Protocol p)
+        protected override long ProcessReLoginRequest(Protocol p)
         {
             var rpc = p as ReLogin;
             Session session = Session.Get(rpc);
@@ -185,7 +185,7 @@ namespace Game.Login
             return ResultCodeSuccess;
         }
 
-        public override long ProcessReliableNotifyConfirmRequest(Protocol p)
+        protected override long ProcessReliableNotifyConfirmRequest(Protocol p)
         {
             var rpc = p as ReliableNotifyConfirm;
             Session session = Session.Get(rpc);
@@ -207,7 +207,7 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        public override long ProcessLogoutRequest(Protocol p)
+        protected override long ProcessLogoutRequest(Protocol p)
         {
             var rpc = p as Logout;
             Session session = Session.Get(rpc);

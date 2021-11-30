@@ -167,40 +167,46 @@ namespace Zeze.Util
                 return; // 容量不限
             }
 
-            while (DataMap.Count > Capacity) // 超出容量，循环尝试
+            try
             {
-                if (false == LruQueue.TryPeek(out var node))
-                    break;
-
-                if (node == LruHot) // 热点。不回收。
-                    break;
-
-                foreach (var e in node)
+                while (DataMap.Count > Capacity) // 超出容量，循环尝试
                 {
-                    if (null != TryRemoveCallback)
-                    {
-                        if (TryRemoveCallback(e.Key, e.Value.Value))
-                            continue;
-                        if (ContinueWhenTryRemoveCallbackFail)
-                            continue;
+                    if (false == LruQueue.TryPeek(out var node))
                         break;
-                    }
-                    TryRemove(e.Key, out var _);
-                }
-                if (node.Count == 0)
-                {
-                    LruQueue.TryDequeue(out var _);
-                }
-                else
-                {
-                    logger.Warn($"remain record when clean oldest lrunode.");
-                }
 
-                int sleepms = CleanPeriodWhenExceedCapacity > 1000
-                    ? CleanPeriodWhenExceedCapacity : 1000;
-                System.Threading.Thread.Sleep(sleepms);
+                    if (node == LruHot) // 热点。不回收。
+                        break;
+
+                    foreach (var e in node)
+                    {
+                        if (null != TryRemoveCallback)
+                        {
+                            if (TryRemoveCallback(e.Key, e.Value.Value))
+                                continue;
+                            if (ContinueWhenTryRemoveCallbackFail)
+                                continue;
+                            break;
+                        }
+                        TryRemove(e.Key, out var _);
+                    }
+                    if (node.Count == 0)
+                    {
+                        LruQueue.TryDequeue(out var _);
+                    }
+                    else
+                    {
+                        logger.Warn($"remain record when clean oldest lrunode.");
+                    }
+
+                    int sleepms = CleanPeriodWhenExceedCapacity > 1000
+                        ? CleanPeriodWhenExceedCapacity : 1000;
+                    System.Threading.Thread.Sleep(sleepms);
+                }
             }
-            Util.Scheduler.Instance.Schedule(CleanNow, CleanPeriod);
+            finally
+            {
+                Util.Scheduler.Instance.Schedule(CleanNow, CleanPeriod);
+            }
         }
     }
 }

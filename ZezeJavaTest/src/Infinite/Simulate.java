@@ -11,7 +11,7 @@ public class Simulate {
 
     @Before
     public void Before() throws Throwable {
-        for (int serverId = 0; serverId < 10; ++serverId) {
+        for (int serverId = 0; serverId < 2; ++serverId) {
             Apps.add(new App(serverId));
         }
         for (var app : Apps) {
@@ -38,8 +38,9 @@ public class Simulate {
     public static long BatchNumber = 0;
 
     @Test
-    public void testMain() {
-        while (Infinite) {
+    public void testMain() throws Throwable {
+        Tasks.prepare();
+        while (true) {
             ++BatchNumber;
             for (int i = 0; i < BatchTaskCount; ++i) {
                 randApp().Run(Tasks.randCreateTask());
@@ -48,6 +49,8 @@ public class Simulate {
                 app.WaitAllRunningTasksAndClear();
             }
             Tasks.verifyBatch();
+            if (!Infinite)
+                break;
         }
         App.logger.fatal("Simulate Done.");
     }

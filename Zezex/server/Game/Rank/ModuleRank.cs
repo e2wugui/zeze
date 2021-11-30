@@ -404,7 +404,7 @@ namespace Game.Rank
             RunUpdateRank(keyHint, roleId, counter.Value, valueEx);
         }
 
-        public override long ProcessCGetRankList(Protocol p)
+        protected override long ProcessCGetRankList(Protocol p)
         {
             var protocol = p as CGetRankList;
             Login.Session session = Login.Session.Get(protocol);

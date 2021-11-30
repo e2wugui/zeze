@@ -47,19 +47,25 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 				int workerThreads = null == app ? 240 : (app.getConfig().getWorkerThreads() > 0
 						? app.getConfig().getWorkerThreads()
 						: Runtime.getRuntime().availableProcessors() * 30);
+				var poolName = "ZezeTaskPool";
+				//if (null != app)
+				//	poolName = poolName + "-" + app.getConfig().getServerId();
 				threadPoolDefault = new java.util.concurrent.ThreadPoolExecutor(
 						workerThreads, workerThreads, 0,
-						TimeUnit.NANOSECONDS, new LinkedBlockingQueue<>());
+						TimeUnit.NANOSECONDS, new LinkedBlockingQueue<>(), new ThreadFactoryWithName(poolName));
 			}
 			else {
 				threadPoolDefault = pool;
 			}
 
 			if (null == scheduled) {
-				int workerThreads = null == app ? 240 : (app.getConfig().getWorkerThreads() > 0
+				int workerThreads = null == app ? 120 : (app.getConfig().getWorkerThreads() > 0
 						? app.getConfig().getWorkerThreads()
-						: Runtime.getRuntime().availableProcessors() * 30);
-				threadPoolScheduled = new ScheduledThreadPoolExecutor(workerThreads);
+						: Runtime.getRuntime().availableProcessors() * 15);
+				var poolName = "ZezeScheduledPool";
+				//if (null != app)
+				//	poolName = poolName + "-" + app.getConfig().getServerId();
+				threadPoolScheduled = new ScheduledThreadPoolExecutor(workerThreads, new ThreadFactoryWithName(poolName));
 			} else {
 				threadPoolScheduled = scheduled;
 			}

@@ -143,34 +143,39 @@ namespace Zeze.Transaction
                 Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
                 return; // 容量不限
             }
-
-            while (DataMap.Count > Table.TableConf.CacheCapacity) // 超出容量，循环尝试
+            try
             {
-                if (false == LruQueue.TryPeek(out var node))
-                    break;
-
-                if (node == LruHot) // 热点。不回收。
-                    break;
-
-                foreach (var e in node)
+                while (DataMap.Count > Table.TableConf.CacheCapacity) // 超出容量，循环尝试
                 {
-                    if (false == TryRemoveRecord(e))
+                    if (false == LruQueue.TryPeek(out var node))
+                        break;
+
+                    if (node == LruHot) // 热点。不回收。
+                        break;
+
+                    foreach (var e in node)
                     {
-                        // 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
-                        Table.Zeze.CheckpointRun();
+                        if (false == TryRemoveRecord(e))
+                        {
+                            // 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
+                            Table.Zeze.CheckpointRun();
+                        }
                     }
+                    if (node.Count == 0)
+                    {
+                        LruQueue.TryDequeue(out var _);
+                    }
+                    else
+                    {
+                        logger.Warn($"remain record when clean oldest lrunode.");
+                    }
+                    System.Threading.Thread.Sleep(Table.TableConf.CacheCleanPeriodWhenExceedCapacity);
                 }
-                if (node.Count == 0)
-                {
-                    LruQueue.TryDequeue(out var _);
-                }
-                else
-                {
-                    logger.Warn($"remain record when clean oldest lrunode.");
-                }
-                System.Threading.Thread.Sleep(Table.TableConf.CacheCleanPeriodWhenExceedCapacity);
             }
-            Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
+            finally
+            {
+                Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
+            }
         }
 
         // under lockey.writelock
@@ -226,7 +231,8 @@ namespace Zeze.Transaction
 
                     if (p.Value.State != GlobalCacheManagerServer.StateInvalid)
                     {
-                        if (p.Value.Acquire(GlobalCacheManagerServer.StateInvalid).Result.State != GlobalCacheManagerServer.StateInvalid)
+                        var r = p.Value.Acquire(GlobalCacheManagerServer.StateInvalid);
+                        if (r.ResultCode != 0 || r.Result.State != GlobalCacheManagerServer.StateInvalid)
                         {
                             return false;
                         }

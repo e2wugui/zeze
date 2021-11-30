@@ -60,7 +60,7 @@ public class Tasks {
     static {
         // 新的操作数据的测试任务在这里注册。weith是权重，see randCreateTask();
         taskFactorys.add(new TaskFactory(Table1Long2Add1.class, Table1Long2Add1::new, 100));
-        taskFactorys.add(new TaskFactory(Table1List9AddOrRemove.class, Table1List9AddOrRemove::new, 100));
+        //taskFactorys.add(new TaskFactory(Table1List9AddOrRemove.class, Table1List9AddOrRemove::new, 100));
 
         taskFactorys.sort(Comparator.comparingInt(a -> a.Weight));
         for (var task : taskFactorys) {
@@ -78,7 +78,19 @@ public class Tasks {
         throw new RuntimeException("impossible");
     }
 
-    static void verifyBatch() {
+    static void prepare() throws Throwable {
+        for (var tf : taskFactorys) {
+            try {
+                var prepare = tf.Class.getMethod("prepare");
+                prepare.invoke(null);
+            } catch (NoSuchMethodException skip) {
+            } catch (Throwable ex) {
+                throw ex;
+            }
+        }
+    }
+
+    static void verifyBatch() throws Throwable {
         for (var tf : taskFactorys) {
             try {
                 var verify = tf.Class.getMethod("verify");
@@ -95,8 +107,7 @@ public class Tasks {
                     assert r.getValue().get() == s.get();
                 }
             } catch (Throwable ex) {
-                App.logger.fatal(ex);
-                assert false;
+                throw ex;
             }
         }
     }
@@ -118,6 +129,17 @@ public class Tasks {
             for (var e : getRunCounters(name).entrySet()) {
                 assert app.demo_Module1.getTable1().selectDirty(e.getKey()).getLong2() == success.get(e.getKey()).get();
             }
+            Infinite.App.logger.fatal("Table1Long2Add1.verify Ok.");
+        }
+
+        public static void prepare() throws Throwable {
+            var app = Simulate.randApp().app;
+            app.Zeze.NewProcedure(() -> {
+                for (long key = 0; key < Simulate.AccessKeyBound; ++key) {
+                    app.demo_Module1.getTable1().remove(key);
+                }
+                return 0L;
+            }, "Table1Long2Add1.prepare").Call();
         }
     }
 

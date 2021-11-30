@@ -59,7 +59,7 @@ namespace Zeze.Gen.java
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
                             sw.WriteLine("    @Override");
-                            sw.WriteLine("    public long Process" + rpc.Name + "Request(Zeze.Net.Protocol _r) {");
+                            sw.WriteLine("    protected long Process" + rpc.Name + "Request(Zeze.Net.Protocol _r) {");
                             sw.WriteLine($"        var r = ({rpc.ShortNameIf(module)})_r;");
                             sw.WriteLine($"        return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("    }");
@@ -70,7 +70,7 @@ namespace Zeze.Gen.java
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
                         sw.WriteLine("    @Override");
-                        sw.WriteLine("    public long Process" + p.Name + "(Zeze.Net.Protocol _p) {");
+                        sw.WriteLine("    protected long Process" + p.Name + "(Zeze.Net.Protocol _p) {");
                         sw.WriteLine($"        var p = ({p.ShortNameIf(module)})_p;");
                         sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
                         sw.WriteLine("    }");
@@ -106,7 +106,7 @@ namespace Zeze.Gen.java
                 {
                     foreach (var line in chunk.Lines)
                     {
-                        if (line.Contains("public long Process"))
+                        if (line.Contains("protected long Process"))
                         {
                             foreach (var h in handles)
                             {
@@ -285,11 +285,11 @@ namespace Zeze.Gen.java
             {
                 if (p is Rpc rpc)
                 {
-                    sw.WriteLine("    public abstract long Process" + rpc.Name + "Request(Zeze.Net.Protocol _p) throws Throwable;");
+                    sw.WriteLine("    protected abstract long Process" + rpc.Name + "Request(Zeze.Net.Protocol _p) throws Throwable;");
                     sw.WriteLine("");
                     continue;
                 }
-                sw.WriteLine("    public abstract long Process" + p.Name + "(Zeze.Net.Protocol _p) throws Throwable;");
+                sw.WriteLine("    protected abstract long Process" + p.Name + "(Zeze.Net.Protocol _p) throws Throwable;");
                 sw.WriteLine("");
             }
             sw.WriteLine("}");

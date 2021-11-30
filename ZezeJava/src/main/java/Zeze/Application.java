@@ -96,11 +96,14 @@ public final class Application {
 		}
 		var core = getConfig().getInternalThreadPoolWorkerCount();
 		core = core > 0 ? core : Runtime.getRuntime().availableProcessors() * 30;
-		InternalThreadPool = new ThreadPoolExecutor(core, core, 0, TimeUnit.NANOSECONDS, new LinkedBlockingQueue<>());
+		var poolName = "ZezeInternalPool-" + Conf.getServerId();
+		InternalThreadPool = new ThreadPoolExecutor(core, core,
+				0, TimeUnit.NANOSECONDS, new LinkedBlockingQueue<>(),
+				new Zeze.Util.ThreadFactoryWithName(poolName));
 
 		getConfig().CreateDatabase(this, getDatabases());
 		GlobalAgent = new GlobalAgent(this);
-		_checkpoint = new Checkpoint(getConfig().getCheckpointMode(), getDatabases().values());
+		_checkpoint = new Checkpoint(getConfig().getCheckpointMode(), getDatabases().values(), Conf.getServerId());
 		setServiceManagerAgent(new Agent(this));
 	}
 

@@ -16,6 +16,8 @@ public final class GlobalCacheManagerServer {
 	public static final int StateInvalid = 0;
 	public static final int StateShare = 1;
 	public static final int StateModify = 2;
+	public static final int StateRemoving = 3;
+
 	public static final int StateRemoved = -1; // 从容器(Cache或Global)中删除后设置的状态，最后一个状态。
 	public static final int StateReduceRpcTimeout = -2; // 用来表示 reduce 超时失败。不是状态。
 	public static final int StateReduceException = -3; // 用来表示 reduce 异常失败。不是状态。
@@ -30,6 +32,7 @@ public final class GlobalCacheManagerServer {
 	public static final int AcquireShareFaild = 6;
 	public static final int AcquireModifyFaild = 7;
 	public static final int AcquireException = 8;
+	public static final int AcquireInvalidFaild = 9;
 
 	public static final int ReduceErrorState = 11;
 	public static final int ReduceShareAlreadyIsInvalid = 12;
@@ -239,7 +242,7 @@ public final class GlobalCacheManagerServer {
 		Zeze.Util.Task.schedule((ThisTask) -> {
 					for (var e : session.getAcquired().entrySet()) {
 						// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-						Release(session, e.getKey());
+						Release(session, e.getKey(), false);
 					}
 					rpc.SendResultCode(0);
 		}, 5 * 60 * 1000); // delay 5 mins
@@ -258,7 +261,7 @@ public final class GlobalCacheManagerServer {
 		// new login, 比如逻辑服务器重启。release old acquired.
 		for (var e : session.getAcquired().entrySet()) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-			Release(session, e.getKey());
+			Release(session, e.getKey(), false);
 		}
 		rpc.SendResultCode(0);
 		return 0;
@@ -289,7 +292,7 @@ public final class GlobalCacheManagerServer {
 		}
 		for (var e : session.getAcquired().entrySet()) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-			Release(session, e.getKey());
+			Release(session, e.getKey(), false);
 		}
 		rpc.SendResultCode(0);
 		logger.debug("After NormalClose global.Count={}", global.size());
@@ -309,8 +312,9 @@ public final class GlobalCacheManagerServer {
 		}
 		try {
 			switch (rpc.Argument.State) {
-				case StateInvalid: // realease
-					Release((CacheHolder) rpc.getSender().getUserState(), rpc.Argument.GlobalTableKey);
+				case StateInvalid: // release
+					var sender = (CacheHolder) rpc.getSender().getUserState();
+					rpc.Result.State = Release(sender, rpc.Argument.GlobalTableKey, true);
 					rpc.SendResult();
 					return 0;
 
@@ -333,20 +337,50 @@ public final class GlobalCacheManagerServer {
 		return 0;
 	}
 
-	private void Release(CacheHolder holder, GlobalTableKey gkey) {
+	private int Release(CacheHolder sender, GlobalTableKey gkey, boolean noWait) throws InterruptedException {
 		final CacheState cs = global.computeIfAbsent(gkey, (tabkeKeyNotUsed) -> new CacheState());
-		synchronized (cs) {
-			if (cs.getModify() == holder) {
-				cs.setModify(null);
-			}
-			cs.getShare().remove(holder); // always try remove
+		while (true) {
+			synchronized (cs) {
+				if (cs.getAcquireStatePending() == StateRemoved) {
+					// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
+					continue;
+				}
 
-			if (cs.getModify() == null && cs.getShare().isEmpty() && cs.getAcquireStatePending() == StateInvalid) {
-				// 安全的从global中删除，没有并发问题。
-				cs.setAcquireStatePending(StateRemoved);
-				global.remove(gkey);
+				while (cs.getAcquireStatePending() != StateInvalid && cs.getAcquireStatePending() != StateRemoved) {
+					switch (cs.getAcquireStatePending()) {
+						case StateShare:
+						case StateModify:
+							logger.debug("Release 0 {} {} {}", sender, gkey, cs);
+							if (noWait)
+								return cs.getStateBySender(sender);
+							break;
+						case StateRemoving:
+							// release 不会导致死锁，等待即可。
+							break;
+					}
+					cs.wait();
+				}
+				if (cs.getAcquireStatePending() == StateRemoved) {
+					continue;
+				}
+				cs.setAcquireStatePending(StateRemoving);
+
+				if (cs.getModify() == sender) {
+					cs.setModify(null);
+				}
+				cs.getShare().remove(sender); // always try remove
+
+				if (cs.getModify() == null && cs.getShare().isEmpty()) {
+					// 安全的从global中删除，没有并发问题。
+					cs.setAcquireStatePending(StateRemoved);
+					global.remove(gkey);
+				} else {
+					cs.setAcquireStatePending(StateInvalid);
+				}
+				sender.getAcquired().remove(gkey);
+				cs.notify();
+				return cs.getStateBySender(sender);
 			}
-			holder.getAcquired().remove(gkey);
 		}
 	}
 
@@ -365,7 +399,7 @@ public final class GlobalCacheManagerServer {
 					throw new RuntimeException("CacheState state error");
 				}
 
-				while (cs.getAcquireStatePending() != StateInvalid) {
+				while (cs.getAcquireStatePending() != StateInvalid && cs.getAcquireStatePending() != StateRemoved) {
 					switch (cs.getAcquireStatePending()) {
 						case StateShare:
 							if (cs.getModify() == null) {
@@ -388,6 +422,8 @@ public final class GlobalCacheManagerServer {
 								return 0;
 							}
 							break;
+						case StateRemoving:
+							break;
 					}
 					logger.debug("3 {} {} {}", sender, rpc.Argument.State, cs);
 					cs.wait();
@@ -395,6 +431,9 @@ public final class GlobalCacheManagerServer {
 						throw new RuntimeException("CacheState state error");
 					}
 				}
+				if (cs.getAcquireStatePending() == StateRemoved)
+					continue; // concurrent release
+
 				cs.setAcquireStatePending(StateShare);
 				cs.GlobalSerialId = SerialIdGenerator.incrementAndGet();
 
@@ -484,7 +523,7 @@ public final class GlobalCacheManagerServer {
 					throw new RuntimeException("CacheState state error");
 				}
 
-				while (cs.getAcquireStatePending() != StateInvalid) {
+				while (cs.getAcquireStatePending() != StateInvalid && cs.getAcquireStatePending() != StateRemoved) {
 					switch (cs.getAcquireStatePending()) {
 						case StateShare:
 							if (cs.getModify() == null) {
@@ -508,6 +547,8 @@ public final class GlobalCacheManagerServer {
 								return 0;
 							}
 							break;
+						case StateRemoving:
+							break;
 					}
 					logger.debug("3 {} {} {}", sender, rpc.Argument.State, cs);
 					cs.wait();
@@ -515,6 +556,9 @@ public final class GlobalCacheManagerServer {
 						throw new RuntimeException("CacheState state error");
 					}
 				}
+				if (cs.getAcquireStatePending() == StateRemoved)
+					continue; // concurrent release
+
 				cs.setAcquireStatePending(StateModify);
 				cs.GlobalSerialId = SerialIdGenerator.incrementAndGet();
 
@@ -693,6 +737,14 @@ public final class GlobalCacheManagerServer {
 			StringBuilder sb = new StringBuilder();
 			ByteBuffer.BuildString(sb, getShare());
 			return String.format("P%1$s M%2$s S%3$s", getAcquireStatePending(), getModify(), sb);
+		}
+
+		public int getStateBySender(CacheHolder sender) {
+			if (Modify == sender)
+				return StateModify;
+			if (Share.contains(sender))
+				return StateShare;
+			return StateInvalid;
 		}
 	}
 

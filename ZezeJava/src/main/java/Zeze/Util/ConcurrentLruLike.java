@@ -217,37 +217,39 @@ public class ConcurrentLruLike<K, V> {
 			return; // 容量不限
 		}
 
-		while (DataMap.size() > getCapacity()) { // 超出容量，循环尝试
-			var node = LruQueue.peek();
-			if (null == node || node == LruHot) { // 热点。不回收。
-				break;
-			}
-
-			for (var e : node.entrySet()) {
-				if (null != getTryRemoveCallback()) {
-					if (TryRemoveCallback.tryRemove(e.getKey(), e.getValue().Value)) {
-						continue;
-					}
-					if (getContinueWhenTryRemoveCallbackFail()) {
-						continue;
-					}
+		try {
+			while (DataMap.size() > getCapacity()) { // 超出容量，循环尝试
+				var node = LruQueue.peek();
+				if (null == node || node == LruHot) { // 热点。不回收。
 					break;
 				}
-				remove(e.getKey());
-			}
 
-			if (node.size() == 0) {
-				LruQueue.poll();
-			}
-			else {
-				logger.warn("remain record when clean oldest lrunode.");
-			}
+				for (var e : node.entrySet()) {
+					if (null != getTryRemoveCallback()) {
+						if (TryRemoveCallback.tryRemove(e.getKey(), e.getValue().Value)) {
+							continue;
+						}
+						if (getContinueWhenTryRemoveCallbackFail()) {
+							continue;
+						}
+						break;
+					}
+					remove(e.getKey());
+				}
 
-			try {
-				Thread.sleep(CleanPeriodWhenExceedCapacity);
-			} catch (InterruptedException skip) {
-				logger.error(skip);
+				if (node.size() == 0) {
+					LruQueue.poll();
+				} else {
+					logger.warn("remain record when clean oldest lrunode.");
+				}
+
+				try {
+					Thread.sleep(CleanPeriodWhenExceedCapacity);
+				} catch (InterruptedException skip) {
+					logger.error(skip);
+				}
 			}
+		} finally {
 			Task.schedule(this::CleanNow, getCleanPeriod(), -1);
 		}
 	}

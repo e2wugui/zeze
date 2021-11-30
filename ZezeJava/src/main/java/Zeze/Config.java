@@ -28,6 +28,10 @@ public final class Config {
 		RocksDb,
 	}
 
+	private int ScheduledThreads;
+	public int getScheduledThreads() {
+		return ScheduledThreads;
+	}
 	private int WorkerThreads;
 	public int getWorkerThreads() {
 		return WorkerThreads;
@@ -281,6 +285,9 @@ public final class Config {
 
 		attr = self.getAttribute("WorkerThreads");
 		setWorkerThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);
+
+		attr = self.getAttribute("ScheduledThreads");
+		ScheduledThreads = attr.length() > 0 ? Integer.parseInt(attr) : -1;
 
 		attr = self.getAttribute("CompletionPortThreads");
 		setCompletionPortThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);

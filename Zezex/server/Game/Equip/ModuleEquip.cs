@@ -68,7 +68,7 @@ namespace Game.Equip
         }
         // 装备只有装上取下两个操作，没有公开的需求，先不提供包装类了。
 
-        public override long ProcessEquipementRequest(Protocol p)
+        protected override long ProcessEquipementRequest(Protocol p)
         {
             var rpc = p as Equipement;
             Login.Session session = Login.Session.Get(rpc);
@@ -109,7 +109,7 @@ namespace Game.Equip
             return ErrorCode(ResultCodeItemNotFound);
         }
 
-        public override long ProcessUnequipementRequest(Protocol p)
+        protected override long ProcessUnequipementRequest(Protocol p)
         {
             var rpc = p as Unequipement;
             Login.Session session = Login.Session.Get(rpc);

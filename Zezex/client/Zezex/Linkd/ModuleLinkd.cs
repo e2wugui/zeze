@@ -13,13 +13,13 @@ namespace Zezex.Linkd
         {
         }
 
-        public override long ProcessKeepAlive(Protocol _p)
+        protected override long ProcessKeepAlive(Protocol _p)
         {
             var p = _p as KeepAlive;
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
-        public override long ProcessReportError(Protocol _p)
+        protected override long ProcessReportError(Protocol _p)
         {
             var p = _p as ReportError;
             return Zeze.Transaction.Procedure.NotImplement;
