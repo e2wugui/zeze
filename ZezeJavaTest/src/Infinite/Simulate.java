@@ -11,7 +11,7 @@ public class Simulate {
 
     @Before
     public void Before() throws Throwable {
-        for (int serverId = 0; serverId < 2; ++serverId) {
+        for (int serverId = 0; serverId < 10; ++serverId) {
             Apps.add(new App(serverId));
         }
         for (var app : Apps) {

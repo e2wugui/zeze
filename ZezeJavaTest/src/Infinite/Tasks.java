@@ -60,7 +60,7 @@ public class Tasks {
     static {
         // 新的操作数据的测试任务在这里注册。weith是权重，see randCreateTask();
         taskFactorys.add(new TaskFactory(Table1Long2Add1.class, Table1Long2Add1::new, 100));
-        //taskFactorys.add(new TaskFactory(Table1List9AddOrRemove.class, Table1List9AddOrRemove::new, 100));
+        taskFactorys.add(new TaskFactory(Table1List9AddOrRemove.class, Table1List9AddOrRemove::new, 100));
 
         taskFactorys.sort(Comparator.comparingInt(a -> a.Weight));
         for (var task : taskFactorys) {
