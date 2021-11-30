@@ -244,6 +244,7 @@ public class RelativeRecordSet {
 			TreeMap<Long, RelativeRecordSet> RelativeRecordSets) {
 
 		while (true) {
+			var GotoLabelLockRelativeRecordSets = false;
 			int index = 0;
 			int n = LockedRelativeRecordSets.size();
 			for (var rrs : RelativeRecordSets.values()) {
@@ -251,7 +252,7 @@ public class RelativeRecordSet {
 					if (_lock_and_check_(LockedRelativeRecordSets, RelativeRecordSets, rrs)) {
 						continue;
 					}
-
+					GotoLabelLockRelativeRecordSets = true;
 					break;
 				}
 				var curset = LockedRelativeRecordSets.get(index);
@@ -281,6 +282,8 @@ public class RelativeRecordSet {
 				LockedRelativeRecordSets.subList(index, n).clear();
 				n = LockedRelativeRecordSets.size();
 			}
+			if (!GotoLabelLockRelativeRecordSets)
+				break; // success
 		}
 	}
 

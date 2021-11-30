@@ -300,10 +300,13 @@ public final class Config {
 		attr = self.getAttribute("FastRedoWhenConfict");
 		setFastRedoWhenConfict((attr.length() <= 0 || Boolean.parseBoolean(attr)));
 
+		setCheckpointMode(CheckpointMode.Table);
+		/*
 		attr = self.getAttribute("CheckpointMode");
 		if (attr.length() > 0) {
 			setCheckpointMode(Zeze.Transaction.CheckpointMode.valueOf(attr));
 		}
+		*/
 
 		NodeList childnodes = self.getChildNodes();
 		for (int i = 0; i < childnodes.getLength(); ++i) {
