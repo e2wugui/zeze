@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 import Zeze.Services.ServiceManager.Agent;
 
 public final class Application {
-	private static final Logger logger = LogManager.getLogger(Application.class);
+	static final Logger logger = LogManager.getLogger(Application.class);
 
 	private final HashMap<String, Database> Databases = new HashMap<> ();
 	public HashMap<String, Database> getDatabases() {

@@ -12,7 +12,7 @@ namespace Zeze
 {
     public sealed class Application
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public Dictionary<string, Database> Databases { get; private set; } = new Dictionary<string, Database>();
         public Config Config { get; private set; }

@@ -25,7 +25,13 @@ public final class DatabaseMemory extends Database {
 
 		public DataWithVersion GetDataWithVersion(ByteBuffer key) {
 			synchronized (DataWithVersions) {
-				return DataWithVersions.get(key);
+				var exist = DataWithVersions.get(key);
+				if (null == exist)
+					return null;
+				var copy = new DataWithVersion();
+				copy.Data = ByteBuffer.Wrap(exist.Data.Copy());
+				copy.Version = exist.Version;
+				return copy;
 			}
 		}
 
@@ -98,7 +104,7 @@ public final class DatabaseMemory extends Database {
 		public ByteBuffer Find(ByteBuffer key) {
 			var value = Map.get(key);
 			if (null != value)
-				return ByteBuffer.Wrap(value);
+				return ByteBuffer.Wrap(ByteBuffer.Copy(value));
 			return null;
 		}
 

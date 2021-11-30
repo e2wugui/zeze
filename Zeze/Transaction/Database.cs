@@ -1385,7 +1385,7 @@ namespace Zeze.Transaction
                 {
                     if (DataWithVersions.TryGetValue(key.Copy(), out var exist))
                     {
-                        return (exist.Data, exist.Version);
+                        return (ByteBuffer.Wrap(exist.Data.Copy()), exist.Version);
                     }
                     return (null, 0);
                 }
@@ -1472,7 +1472,7 @@ namespace Zeze.Transaction
             {
                 if (Map.TryGetValue(key.Copy(), out var value))
                 {
-                    return ByteBuffer.Wrap(value);
+                    return ByteBuffer.Wrap(ByteBuffer.Copy(value));
                 }
                 return null;
             }

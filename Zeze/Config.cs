@@ -207,6 +207,11 @@ namespace Zeze
             attr = self.GetAttribute("CheckpointMode");
             if (attr.Length > 0)
                 CheckpointMode = (Transaction.CheckpointMode)Enum.Parse(typeof(Transaction.CheckpointMode), attr);
+            if (CheckpointMode == Transaction.CheckpointMode.Period && GlobalCacheManagerHostNameOrAddress.Length > 0)
+            {
+                Application.logger.Warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
+                CheckpointMode = Transaction.CheckpointMode.Table;
+            }
 
             attr = self.GetAttribute("FastRedoWhenConfict");
             if (attr.Length > 0)
