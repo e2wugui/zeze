@@ -68,7 +68,7 @@ public final class ModuleEquip extends AbstractModule {
 	// 装备只有装上取下两个操作，没有公开的需求，先不提供包装类了。
 
 	@Override
-	public long ProcessEquipementRequest(Protocol _rpc) throws Throwable {
+	protected long ProcessEquipementRequest(Protocol _rpc) throws Throwable {
 		var rpc = (Equipement)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 
@@ -117,7 +117,7 @@ public final class ModuleEquip extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessUnequipementRequest(Protocol _rpc) throws Throwable {
+	protected long ProcessUnequipementRequest(Protocol _rpc) throws Throwable {
 		var rpc = (Unequipement)_rpc;
 		var session = Game.Login.Session.Get(rpc);
 

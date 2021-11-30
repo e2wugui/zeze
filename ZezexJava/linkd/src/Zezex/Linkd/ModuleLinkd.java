@@ -13,7 +13,7 @@ public final class ModuleLinkd extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessAuthRequest(Zeze.Net.Protocol _rpc) throws Throwable {
+	protected long ProcessAuthRequest(Zeze.Net.Protocol _rpc) throws Throwable {
 		var rpc = (Auth)_rpc;
 		/*
 		BAccount account = _taccount.Get(protocol.Argument.Account);
@@ -34,7 +34,7 @@ public final class ModuleLinkd extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessKeepAlive(Zeze.Net.Protocol _p) throws Throwable {
+	protected long ProcessKeepAlive(Zeze.Net.Protocol _p) throws Throwable {
 		var protocol = (KeepAlive)_p;
 		var linkSession = (LinkSession)protocol.getSender().getUserState();
 		if (null == linkSession) {

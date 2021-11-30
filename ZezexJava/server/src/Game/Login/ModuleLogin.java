@@ -24,7 +24,7 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessCreateRoleRequest(Protocol _rpc) throws Throwable {
+	protected long ProcessCreateRoleRequest(Protocol _rpc) throws Throwable {
 		var rpc = (CreateRole)_rpc;
 		var session = Session.Get(rpc);
 
@@ -50,7 +50,7 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessGetRoleListRequest(Protocol _rpc) throws Throwable {
+	protected long ProcessGetRoleListRequest(Protocol _rpc) throws Throwable {
 		var rpc = (GetRoleList)_rpc;
 		var session = Session.Get(rpc);
 
@@ -73,7 +73,7 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessLoginRequest(Protocol _rpc) throws Throwable {
+	protected long ProcessLoginRequest(Protocol _rpc) throws Throwable {
 		var rpc = (Login)_rpc;
 		var session = Session.Get(rpc);
 
@@ -116,7 +116,7 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessReLoginRequest(Protocol _rpc) throws Throwable {
+	protected long ProcessReLoginRequest(Protocol _rpc) throws Throwable {
 		var rpc = (ReLogin)_rpc;
 		var session = Session.Get(rpc);
 
@@ -193,7 +193,7 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessReliableNotifyConfirmRequest(Protocol _rpc) throws Throwable {
+	protected long ProcessReliableNotifyConfirmRequest(Protocol _rpc) throws Throwable {
 		var rpc = (ReliableNotifyConfirm)_rpc;
 		var session = Session.Get(rpc);
 
@@ -213,7 +213,7 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessLogoutRequest(Protocol _rpc) throws Throwable {
+	protected long ProcessLogoutRequest(Protocol _rpc) throws Throwable {
 		var rpc = (Logout)_rpc;
 		var session = Session.Get(rpc);
 

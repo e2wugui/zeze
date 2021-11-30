@@ -257,7 +257,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessSubscribeRequest(Zeze.Net.Protocol _p) throws Throwable {
+    protected long ProcessSubscribeRequest(Zeze.Net.Protocol _p) throws Throwable {
         var rpc = (Subscribe)_p;
 
         var providerSession = (Zezex.ProviderSession) rpc.getSender().getUserState();
@@ -297,7 +297,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessUnBindRequest(Protocol _rpc) throws Throwable {
+    protected long ProcessUnBindRequest(Protocol _rpc) throws Throwable {
         var rpc = (UnBind) _rpc;
         if (rpc.Argument.getLinkSids().size() == 0) {
             UnBindModules(rpc.getSender(), rpc.Argument.getModules().keySet());
@@ -316,7 +316,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessSend(Protocol _p) throws Throwable {
+    protected long ProcessSend(Protocol _p) throws Throwable {
         var protocol = (Send) _p;
         // 这个是拿来处理乱序问题的：多个逻辑服务器之间，给客户端发送协议排队。
         // 所以不用等待真正发送给客户端，收到就可以发送结果。
@@ -339,7 +339,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessBroadcast(Protocol _protocol) throws Throwable {
+    protected long ProcessBroadcast(Protocol _protocol) throws Throwable {
         var protocol = (Broadcast) _protocol;
         if (protocol.Argument.getConfirmSerialId() != 0) {
             var confirm = new SendConfirm();
@@ -360,7 +360,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessKick(Protocol _p) throws Throwable {
+    protected long ProcessKick(Protocol _p) throws Throwable {
         var protocol = (Kick) _p;
         App.Instance.LinkdService.ReportError(
                 protocol.Argument.getLinksid(),
@@ -371,7 +371,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessSetUserState(Protocol _p) throws Throwable {
+    protected long ProcessSetUserState(Protocol _p) throws Throwable {
         var protocol = (SetUserState) _p;
         var socket = App.LinkdService.GetSocket(protocol.Argument.getLinkSid());
         var linkSession = (Zezex.LinkSession) socket.getUserState();
@@ -382,7 +382,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessModuleRedirectRequest(Protocol _rpc) throws Throwable {
+    protected long ProcessModuleRedirectRequest(Protocol _rpc) throws Throwable {
         var rpc = (ModuleRedirect) _rpc;
         long SourceProvider = rpc.getSender().getSessionId();
         var provider = new Zeze.Util.OutObject<Long>();
@@ -426,7 +426,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessModuleRedirectAllRequest(Protocol _protocol) throws Throwable {
+    protected long ProcessModuleRedirectAllRequest(Protocol _protocol) throws Throwable {
         var protocol = (ModuleRedirectAllRequest) _protocol;
         HashMap<Long, ModuleRedirectAllRequest> transmits = new HashMap<Long, ModuleRedirectAllRequest>();
 
@@ -483,7 +483,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessModuleRedirectAllResult(Protocol _protocol) throws Throwable {
+    protected long ProcessModuleRedirectAllResult(Protocol _protocol) throws Throwable {
         var protocol = (ModuleRedirectAllResult) _protocol;
         var sourcerProvider = App.ProviderService.GetSocket(protocol.Argument.getSourceProvider());
         if (null != sourcerProvider) {
@@ -493,7 +493,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessReportLoad(Protocol _protocol) throws Throwable {
+    protected long ProcessReportLoad(Protocol _protocol) throws Throwable {
         var protocol = (ReportLoad) _protocol;
         var providerSession = (Zezex.ProviderSession) protocol.getSender().getUserState();
         if (providerSession != null) {
@@ -503,7 +503,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessTransmit(Protocol _protocol) throws Throwable {
+    protected long ProcessTransmit(Protocol _protocol) throws Throwable {
         var protocol = (Transmit) _protocol;
         // 查询 role 所在的 provider 并转发。
         var transmits = new HashMap<Long, Transmit>();
@@ -576,7 +576,7 @@ public final class ModuleProvider extends AbstractModule {
     }
 
     @Override
-    public long ProcessAnnounceProviderInfo(Protocol _protocol) throws Throwable {
+    protected long ProcessAnnounceProviderInfo(Protocol _protocol) throws Throwable {
         var protocol = (AnnounceProviderInfo) _protocol;
         var session = (Zezex.ProviderSession) protocol.getSender().getUserState();
         session.setInfo(protocol.Argument);

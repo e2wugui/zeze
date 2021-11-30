@@ -30,7 +30,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessDispatch(Protocol _p) throws Throwable {
+	protected long ProcessDispatch(Protocol _p) throws Throwable {
 		var p = (Dispatch)_p;
 		try {
 			var factoryHandle = App.Server.FindProtocolFactoryHandle(p.Argument.getProtocolType());
@@ -78,7 +78,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessLinkBroken(Protocol _protocol) throws Throwable {
+	protected long ProcessLinkBroken(Protocol _protocol) throws Throwable {
 		var protocol = (LinkBroken)_protocol;
 		// 目前仅需设置online状态。
 		if (false == protocol.Argument.getStates().isEmpty()) {
@@ -89,7 +89,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessModuleRedirectRequest(Protocol _rpc) throws Throwable {
+	protected long ProcessModuleRedirectRequest(Protocol _rpc) throws Throwable {
 		var rpc = (ModuleRedirect)_rpc;
 		try {
 			// replace RootProcedure.ActionName. 为了统计和日志输出。
@@ -133,7 +133,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessModuleRedirectAllRequest(Protocol _protocol) throws Throwable {
+	protected long ProcessModuleRedirectAllRequest(Protocol _protocol) throws Throwable {
 		var protocol = (ModuleRedirectAllRequest)_protocol;
 		var result = new ModuleRedirectAllResult();
 		try {
@@ -269,7 +269,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessModuleRedirectAllResult(Protocol _protocol) throws Throwable {
+	protected long ProcessModuleRedirectAllResult(Protocol _protocol) throws Throwable {
 		var protocol = (ModuleRedirectAllResult)_protocol;
 		// replace RootProcedure.ActionName. 为了统计和日志输出。
 		Transaction.getCurrent().getTopProcedure().setActionName(protocol.Argument.getMethodFullName());
@@ -281,7 +281,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessTransmit(Protocol _protocol) throws Throwable {
+	protected long ProcessTransmit(Protocol _protocol) throws Throwable {
 		var protocol = (Transmit)_protocol;
 		App.Game_Login.getOnlines().ProcessTransmit(
 				protocol.Argument.getSender(),
@@ -291,7 +291,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessAnnounceLinkInfo(Protocol _protocol) throws Throwable {
+	protected long ProcessAnnounceLinkInfo(Protocol _protocol) throws Throwable {
 		var protocol = (AnnounceLinkInfo)_protocol;
 		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
 		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
@@ -299,7 +299,7 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	public long ProcessSendConfirm(Protocol _protocol) throws Throwable {
+	protected long ProcessSendConfirm(Protocol _protocol) throws Throwable {
 		var protocol = (SendConfirm)_protocol;
 		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
 		var ctx = App.Server.<Game.Login.Onlines.ConfirmContext>TryGetManualContext(

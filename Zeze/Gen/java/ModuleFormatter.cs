@@ -106,7 +106,7 @@ namespace Zeze.Gen.java
                 {
                     foreach (var line in chunk.Lines)
                     {
-                        if (line.Contains("protected long Process"))
+                        if (line.Contains("long Process"))
                         {
                             foreach (var h in handles)
                             {
