@@ -26,11 +26,13 @@ public class Simulate {
         }
     }
 
-    public App randApp() {
+    public static App randApp() {
         return Apps.get(Zeze.Util.Random.getInstance().nextInt(Apps.size()));
     }
 
     public final static int BatchTaskCount = 50000;
+    public final static int CacheCapacity = 1000;
+    public final static int AccessKeyBound = (int)(CacheCapacity * 1.20f);
 
     public boolean Infinite = false; // 当使用本目录的Main独立启动时，会设置为true。
     public static long BatchNumber = 0;
@@ -39,16 +41,14 @@ public class Simulate {
     public void testMain() {
         while (Infinite) {
             ++BatchNumber;
-            for (var app : Apps) {
-                app.ClearRunningTasks();
-            }
             for (int i = 0; i < BatchTaskCount; ++i) {
                 randApp().Run(Tasks.randCreateTask());
             }
             for (var app : Apps) {
-                app.WaitAllRunningTasks();
+                app.WaitAllRunningTasksAndClear();
             }
             Tasks.verifyBatch();
         }
+        App.logger.fatal("Simulate Done.");
     }
 }

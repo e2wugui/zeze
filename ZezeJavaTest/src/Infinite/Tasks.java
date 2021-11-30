@@ -2,22 +2,29 @@ package Infinite;
 
 import Zeze.Transaction.Transaction;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Tasks {
-    static ConcurrentHashMap<String, AtomicLong> TaskCounterRun = new ConcurrentHashMap<>();
-    static ConcurrentHashMap<String, AtomicLong> TaskCounterSuccess = new ConcurrentHashMap<>();
-    static void increace(Task task) {
-        getSuccessTaskCounter(task.getClass().getName()).incrementAndGet();
+    static ConcurrentHashMap<String, ConcurrentHashMap<Long, AtomicLong>> CounterRun = new ConcurrentHashMap<>();
+    static ConcurrentHashMap<String, ConcurrentHashMap<Long, AtomicLong>> CounterSuccess = new ConcurrentHashMap<>();
+
+    static ConcurrentHashMap<Long, AtomicLong> getSuccessCounters(String name) {
+        return CounterSuccess.computeIfAbsent(name, (_key) -> new ConcurrentHashMap());
     }
-    static AtomicLong getSuccessTaskCounter(String name) {
-        return TaskCounterSuccess.computeIfAbsent(name, (key) -> new AtomicLong());
+    static AtomicLong getSuccessCounter(String name, long key) {
+        return getSuccessCounters(name).computeIfAbsent(key, (_key) -> new AtomicLong());
     }
-    static AtomicLong getRunTaskCounter(String name) {
-        return TaskCounterRun.computeIfAbsent(name, (key) -> new AtomicLong());
+
+    static ConcurrentHashMap<Long, AtomicLong> getRunCounters(String name) {
+        return CounterRun.computeIfAbsent(name, (_key) -> new ConcurrentHashMap());
+    }
+
+    static AtomicLong getRunCounter(String name, long key) {
+        return getRunCounters(name).computeIfAbsent(key, (_key) -> new AtomicLong());
     }
 
     // 所有以long为key的记录访问可以使用这个基类。
@@ -28,9 +35,8 @@ public class Tasks {
 
         @Override
         public void run() {
-            getRunTaskCounter(this.getClass().getName()).incrementAndGet();
             if (0L == process()) {
-                Transaction.getCurrent().RunWhileCommit(() -> increace(this));
+                Transaction.getCurrent().RunWhileCommit(() -> getSuccessCounter(this.getClass().getName(), Key).incrementAndGet());
             }
         }
 
@@ -38,19 +44,14 @@ public class Tasks {
     }
 
     public static class TaskFactory {
+        public Class<?> Class;
         public Zeze.Util.Factory<Task> Factory;
         public int Weight;
-        public Zeze.Util.Action0 Verify = null;
 
-        public TaskFactory(Zeze.Util.Factory<Task> factory, int weight) {
+        public TaskFactory(Class<?> cls, Zeze.Util.Factory<Task> factory, int weight) {
+            Class = cls;
             Factory = factory;
             Weight = weight;
-        }
-
-        public TaskFactory(Zeze.Util.Factory<Task> factory, int weight, Zeze.Util.Action0 verify) {
-            Factory = factory;
-            Weight = weight;
-            Verify = verify;
         }
     }
 
@@ -58,8 +59,8 @@ public class Tasks {
     static int TotalWeight = 0;
     static {
         // 新的操作数据的测试任务在这里注册。weith是权重，see randCreateTask();
-        taskFactorys.add(new TaskFactory(Table1Long2Add1::new, 100, Table1Long2Add1::verify));
-        taskFactorys.add(new TaskFactory(Table1List9AddOrRemove::new, 100, Table1List9AddOrRemove::verify));
+        taskFactorys.add(new TaskFactory(Table1Long2Add1.class, Table1Long2Add1::new, 100));
+        taskFactorys.add(new TaskFactory(Table1List9AddOrRemove.class, Table1List9AddOrRemove::new, 100));
 
         taskFactorys.sort(Comparator.comparingInt(a -> a.Weight));
         for (var task : taskFactorys) {
@@ -79,12 +80,23 @@ public class Tasks {
 
     static void verifyBatch() {
         for (var tf : taskFactorys) {
-            if (null != tf.Verify) {
-                try {
-                    tf.Verify.run();
-                } catch (Throwable e) {
-                    App.logger.error(e);
+            try {
+                var verify = tf.Class.getMethod("verify");
+                verify.invoke(null);
+            } catch (NoSuchMethodException skip) {
+                // verify default.
+                var name = tf.Factory.create().getClass().getName();
+                var runs = getRunCounters(name);
+                var success = getSuccessCounters(name);
+                assert runs.size() == success.size();
+                for (var r : runs.entrySet()) {
+                    var s = success.get(r.getKey());
+                    assert null != s;
+                    assert r.getValue().get() == s.get();
                 }
+            } catch (Throwable ex) {
+                App.logger.fatal(ex);
+                assert false;
             }
         }
     }
@@ -98,16 +110,13 @@ public class Tasks {
         }
 
         public static void verify() {
+
             // verify 时，所有任务都执行完毕，不需要考虑并发。
-            long total = 0L;
-            for (long key = 0; key < Infinite.App.AccessKeyBound; ++key) {
-                for (var app : Simulate.Apps) {
-                    total += app.app.demo_Module1.getTable1().selectDirty(key).getLong2();
-                }
-            }
-            if (total != Simulate.BatchTaskCount * Simulate.BatchNumber) {
-                Infinite.App.logger.error(Table1List9AddOrRemove.class.getName());
-                System.exit(123);
+            var name = Table1Long2Add1.class.getName();
+            var app = Simulate.randApp().app; // 任何一个app都能查到相同的结果。
+            var success = getSuccessCounters(name);
+            for (var e : getRunCounters(name).entrySet()) {
+                assert app.demo_Module1.getTable1().selectDirty(e.getKey()).getLong2() == success.get(e.getKey()).get();
             }
         }
     }
@@ -129,14 +138,6 @@ public class Tasks {
                     value.setBool4(true); // 改成删除模式。
             }
             return 0L;
-        }
-
-        public static void verify() {
-            var name= Table1List9AddOrRemove.class.getName();
-            if (getSuccessTaskCounter(name).get() != getRunTaskCounter(name).get()) {
-                Infinite.App.logger.error(name);
-                System.exit(123);
-            }
         }
     }
 }

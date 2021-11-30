@@ -14,16 +14,13 @@ public class App {
     demo.App app;
     Config config;
 
-    public final static int CacheCapacity = 1000;
-    public final static int AccessKeyBound = (int)(CacheCapacity * 1.20f);
-
     public App(int serverId) {
         config = Config.Load("zeze.xml");
         config.setServerId(serverId);
         var tdef = config.getDefaultTableConf();
         tdef.setCacheCleanPeriod(1000); // 提高并发
         tdef.setCacheCleanPeriodWhenExceedCapacity(0); // 超出容量时，快速尝试。
-        tdef.setCacheCapacity(CacheCapacity); // 减少容量，实际使用记录数要超过一些。让TableCache.Cleanup能并发起来。
+        tdef.setCacheCapacity(Simulate.CacheCapacity); // 减少容量，实际使用记录数要超过一些。让TableCache.Cleanup能并发起来。
         app = new demo.App();
     }
 
@@ -39,18 +36,16 @@ public class App {
 
     public void Run(Tasks.Task task) {
         task.App = app;
-        task.Key = Zeze.Util.Random.getInstance().nextInt(AccessKeyBound);
+        task.Key = Zeze.Util.Random.getInstance().nextInt(Simulate.AccessKeyBound);
+        Tasks.getRunCounter(task.getClass().getName(), task.Key).incrementAndGet();
         RunningTasks.add(Zeze.Util.Task.Run(app.Zeze.NewProcedure(
                 ()-> { task.run(); return 0L; },
                 task.getClass().getName() + "-" + task.Key)
         ));
     }
 
-    public void WaitAllRunningTasks() {
+    public void WaitAllRunningTasksAndClear() {
         Task.WaitAll(RunningTasks);
-    }
-
-    public void ClearRunningTasks() {
         RunningTasks.clear();
     }
 }
