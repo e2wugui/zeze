@@ -16,7 +16,12 @@ namespace Zeze.Transaction
 
         private ReaderWriterLockSlim FlushReadWriteLock { get; } = new ReaderWriterLockSlim();
 
-        public bool IsRunning { get; private set; }
+        private volatile bool _IsRunning;
+        public bool IsRunning
+        {
+            get { return _IsRunning; }
+            private set { _IsRunning = value; }
+        }
         public int Period { get; private set; }
 
         public CheckpointMode CheckpointMode { get; }

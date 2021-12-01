@@ -30,7 +30,12 @@ namespace Zeze.Transaction
             return cur;
         }
 
-        internal long Timestamp { get; set; }
+        private long _Timestamp; // CS0677 volatile cannot apply to long
+        internal long Timestamp
+        {
+            get { return _Timestamp; }
+            set { _Timestamp = value; }
+        }
 
         /// <summary>
         /// Record.Dirty 的问题
@@ -43,14 +48,28 @@ namespace Zeze.Transaction
         /// Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
         /// </summary>
         internal bool Dirty { get; set; } = false;
-
-        internal Bean Value { get; set; }
-        internal int State { get; set; }
+        private volatile Bean _Value;
+        internal Bean Value
+        {
+            get { return _Value; }
+            set { _Value = value; }
+        }
+        private volatile int _State;
+        internal int State
+        {
+            get { return _State; }
+            set { _State = value; }
+        }
         internal long LastErrorGlobalSerialId { get; set; }
 
         public abstract Table Table { get; }
+        private volatile RelativeRecordSet _RelativeRecordSet = new RelativeRecordSet();;
 
-        internal RelativeRecordSet RelativeRecordSet { get; set; } = new RelativeRecordSet();
+        internal RelativeRecordSet RelativeRecordSet
+        {
+            get { return _RelativeRecordSet; }
+            set { _RelativeRecordSet = value; }
+        }
 
         public Record(Bean value)
         {
@@ -304,6 +323,11 @@ namespace Zeze.Transaction
             }
         }
 
-        public ConcurrentDictionary<K, Record<K, V>> LruNode { get; set; }
+        private volatile ConcurrentDictionary<K, Record<K, V>> _LruNode;
+        public ConcurrentDictionary<K, Record<K, V>> LruNode
+        { 
+            get { return _LruNode; }
+            set { _LruNode = value; }
+        }
     }
 }

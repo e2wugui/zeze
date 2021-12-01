@@ -14,7 +14,12 @@ namespace Zeze.Util
         class LruItem
         {
             public V Value { get; }
-            public ConcurrentDictionary<K, LruItem> LruNode { get; set; }
+            private volatile ConcurrentDictionary<K, LruItem> _LruNode;
+            public ConcurrentDictionary<K, LruItem> LruNode
+            {
+                get { return _LruNode; }
+                set { _LruNode = value; }
+            }
 
             public LruItem(V value, ConcurrentDictionary<K, LruItem> lruNode)
             {

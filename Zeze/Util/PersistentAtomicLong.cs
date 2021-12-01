@@ -8,7 +8,7 @@ namespace Zeze.Util
     public class PersistentAtomicLong
     {
         private readonly AtomicLong CurrentId = new AtomicLong();
-        private long allocated;
+        private volatile long allocated;
 
         private readonly string FileName;
         private readonly int AllocateSize;
