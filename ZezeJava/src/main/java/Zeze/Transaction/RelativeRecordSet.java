@@ -197,8 +197,10 @@ public class RelativeRecordSet {
 					mergedSet.Delete();
 					//logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
 				}
-				// else
-				// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
+				else {
+					// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
+					RelativeRecordSetMap.put(mergedSet, mergedSet);
+				}
 			}
 			// else
 			// 本次事务没有访问任何数据。
@@ -230,7 +232,7 @@ public class RelativeRecordSet {
 		// 合并当前事务中访问的孤立记录。
 		for (var ar : trans.getAccessedRecords().values()) {
 			// 记录访问 已经存在关联集合 需要额外合并记录
-			// 读取     不存在          不需要（仅仅读取孤立记录，不需要加入关联集合）
+			// 读取     不存在          不需要（仅仅读取孤立记录，不需要加入关联集合）TODO XXX
 			// 读取     存在（已有修改） 不需要（存在的集合前面合并了）
 			// 修改     不存在（第一次） 【需要】
 			// 修改     存在（继续修改） 不需要（存在的集合前面合并了）
@@ -315,6 +317,7 @@ public class RelativeRecordSet {
 			rrs.Lock();
 			try {
 				if (rrs.MergeTo != null) {
+					RelativeRecordSetMap.remove(rrs);
 					continue;
 				}
 

@@ -140,6 +140,8 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 
 	@Override
 	public void Encode0() {
+		if (!getDirty())
+			return;
 		// Under Lock：this.TryEncodeN & Storage.Snapshot
 
 		// 【注意】可能保存多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
@@ -183,6 +185,9 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 
 	@Override
 	public void Flush(Database.Transaction t) {
+		if (!getDirty())
+			return;
+
 		if (null != snapshotValue) {
 			// changed
 			if (getTTable().TStorage != null) {

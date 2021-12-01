@@ -182,6 +182,9 @@ namespace Zeze.Transaction
 
         internal override void Encode0()
         {
+            if (false == Dirty)
+                return;
+
             // Under Lock：this.TryEncodeN & Storage.Snapshot
 
             // 【注意】可能保存多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
@@ -225,6 +228,9 @@ namespace Zeze.Transaction
 
         internal override void Flush(Database.Transaction t)
         {
+            if (false == Dirty)
+                return;
+
             if (null != snapshotValue)
             {
                 // changed

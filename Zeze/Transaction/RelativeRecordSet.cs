@@ -200,8 +200,11 @@ namespace Zeze.Transaction
                         mergedSet.Delete();
                         //logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
                     }
-                    // else
-                    // 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
+                    else
+                    {
+                        // 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
+                        RelativeRecordSetMap[mergedSet] = mergedSet;
+                    }
                 }
                 // else
                 // 本次事务没有访问任何数据。
@@ -337,7 +340,10 @@ namespace Zeze.Transaction
                 try
                 {
                     if (rrs.MergeTo != null)
+                    {
+                        RelativeRecordSetMap.TryRemove(rrs, out var _);
                         continue;
+                    }
 
                     checkpoint.Flush(rrs);
                     rrs.Delete();

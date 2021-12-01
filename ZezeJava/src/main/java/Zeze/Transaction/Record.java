@@ -83,7 +83,7 @@ public abstract class Record {
 
 	public abstract Table getTable();
 
-	private RelativeRecordSet RelativeRecordSet = new RelativeRecordSet();
+	private volatile RelativeRecordSet RelativeRecordSet = new RelativeRecordSet();
 	public final RelativeRecordSet getRelativeRecordSet() {
 		return RelativeRecordSet;
 	}
