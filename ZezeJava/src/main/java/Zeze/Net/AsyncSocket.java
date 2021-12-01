@@ -226,7 +226,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				if (sc.finishConnect()) {
 					// 先修改事件，防止doConnectSuccess发送数据注册了新的事件导致OP_CONNECT重新触发。
 					// 虽然实际上在回调中应该不会唤醒Selector重入。
-					interestOps(SelectionKey.OP_CONNECT, SelectionKey.OP_READ);
 					doConnectSuccess(sc);
 					return;
 				}
@@ -284,12 +283,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/** 
 	 for client socket. connect
 	*/
-	private void doConnectSuccess(SocketChannel sc) throws Throwable{
+	private void doConnectSuccess(SocketChannel sc) throws Throwable {
 		if (Connector != null) {
 			Connector.OnSocketConnected(this);
 		}
-		RemoteAddress = sc.socket().getRemoteSocketAddress().toString();
 		Service.OnSocketConnected(this);
+		RemoteAddress = sc.socket().getRemoteSocketAddress().toString();
+		interestOps(SelectionKey.OP_CONNECT, SelectionKey.OP_READ);
 	}
 
 	public AsyncSocket(Service service, String hostNameOrAddress, int port, Object userState, Connector connector) {
@@ -313,12 +313,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 			selector = Selectors.getInstance().choice();
 			var address = InetAddress.getByName(hostNameOrAddress); // TODO async dns lookup
+			// 必须在connect前设置，否则selectionKey没初始化，有可能事件丢失？（现象好像是doHandle触发了）。
+			selectionKey = selector.register(sc, SelectionKey.OP_CONNECT, this);
 			if (sc.connect(new InetSocketAddress(address, port))) {
 				// 马上成功时，还没有注册到Selector中。
-				selectionKey = selector.register(sc, SelectionKey.OP_READ, this);
 				doConnectSuccess(sc);
-			} else {
-				selectionKey = selector.register(sc, SelectionKey.OP_CONNECT, this);
 			}
 		} catch (Throwable e) {
 			try {
