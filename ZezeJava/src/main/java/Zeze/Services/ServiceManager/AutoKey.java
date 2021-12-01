@@ -1,7 +1,7 @@
 package Zeze.Services.ServiceManager;
 
 public final class AutoKey {
-	private String Name;
+	private final String Name;
 	public String getName() {
 		return Name;
 	}
@@ -19,7 +19,7 @@ public final class AutoKey {
 	private void setCount(int value) {
 		Count = value;
 	}
-	private Agent Agent;
+	private final Agent Agent;
 	public Agent getAgent() {
 		return Agent;
 	}

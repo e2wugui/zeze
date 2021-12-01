@@ -6,11 +6,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class Record {
 	public static class RootInfo {
-		private Record Record;
+		private final Record Record;
 		public final Record getRecord() {
 			return Record;
 		}
-		private TableKey TableKey;
+		private final TableKey TableKey;
 		public final TableKey getTableKey() {
 			return TableKey;
 		}
@@ -99,7 +99,7 @@ public abstract class Record {
 
 	// 时戳生成器，运行时状态，需要持久化时，再考虑保存到数据库。
 	// 0 保留给不存在记录的的时戳。
-	private static java.util.concurrent.atomic.AtomicLong _TimestampGen = new java.util.concurrent.atomic.AtomicLong();
+	private final static java.util.concurrent.atomic.AtomicLong _TimestampGen = new java.util.concurrent.atomic.AtomicLong();
 	public static long getNextTimestamp() {
 		return _TimestampGen.incrementAndGet();
 	}

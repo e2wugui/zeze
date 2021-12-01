@@ -1,2 +1,2 @@
-mvn -e clean deploy
+mvn -X clean deploy
 pause

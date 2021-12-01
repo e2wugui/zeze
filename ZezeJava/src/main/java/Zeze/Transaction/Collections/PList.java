@@ -92,8 +92,8 @@ public abstract class PList<E> extends PCollection implements List<E> {
 
 	@Override
 	public final Iterator<E> iterator() {
-		return new Iterator<E>() {
-			private Iterator<E> it = getData().iterator();
+		return new Iterator<>() {
+			private final Iterator<E> it = getData().iterator();
 			private E next;
 
 			@Override
@@ -128,7 +128,7 @@ public abstract class PList<E> extends PCollection implements List<E> {
 	}
 
 	@Override
-	public <E> E[] toArray(E[] a) {
+	public <T> T[] toArray(T[] a) {
 		return getData().toArray(a);
 	}
 

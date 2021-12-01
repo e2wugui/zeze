@@ -11,11 +11,11 @@ import java.util.*;
  <typeparam name="V"></typeparam>
 */
 public class ChangeNoteMap1<K, V> extends ChangeNote {
-	private HashMap<K, V> Replaced = new HashMap<K, V> ();
+	private final HashMap<K, V> Replaced = new HashMap<> ();
 	public final HashMap<K, V> getReplaced() {
 		return Replaced;
 	}
-	private HashSet<K> Removed = new HashSet<K> ();
+	private final HashSet<K> Removed = new HashSet<> ();
 	public final HashSet<K> getRemoved() {
 		return Removed;
 	}

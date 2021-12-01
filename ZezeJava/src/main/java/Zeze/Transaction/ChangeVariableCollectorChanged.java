@@ -16,7 +16,7 @@ public final class ChangeVariableCollectorChanged extends ChangeVariableCollecto
 
 	@Override
 	public void NotifyVariableChanged(Object key, Bean value) {
-		if (false == changed) {
+		if (!changed) {
 			return;
 		}
 

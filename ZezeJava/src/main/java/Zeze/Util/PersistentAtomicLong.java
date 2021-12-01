@@ -16,7 +16,7 @@ public class PersistentAtomicLong {
     private final String FileName;
     private final int AllocateSize;
 
-    private static ConcurrentHashMap<String, PersistentAtomicLong> pals = new ConcurrentHashMap<>();
+    private final static ConcurrentHashMap<String, PersistentAtomicLong> pals = new ConcurrentHashMap<>();
 
     /**
      * 【小优化】请保存返回值，重复使用。

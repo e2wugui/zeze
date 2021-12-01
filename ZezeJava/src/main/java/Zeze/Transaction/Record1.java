@@ -5,8 +5,6 @@ import Zeze.Services.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
-
 import Zeze.Services.GlobalCacheManager.*;
 
 public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
@@ -126,7 +124,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 
 	public final boolean TryEncodeN(ConcurrentHashMap<K, Record1<K, V>> changed, ConcurrentHashMap<K, Record1<K, V>> encoded) {
 		Lockey lockey = getTable().getZeze().getLocks().Get(new TableKey(getTTable().getName(), getKey()));
-		if (false == lockey.TryEnterReadLock(0)) {
+		if (!lockey.TryEnterReadLock(0)) {
 			return false;
 		}
 		try {

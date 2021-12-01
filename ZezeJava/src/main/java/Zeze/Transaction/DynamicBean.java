@@ -5,7 +5,7 @@ import Zeze.Serialize.*;
 public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	@Override
 	public long getTypeId() {
-		if (false == this.isManaged()) {
+		if (!this.isManaged()) {
 			return _TypeId;
 		}
 		var txn = Transaction.getCurrent();
@@ -19,7 +19,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	public final Bean getBean() {
-		if (false == this.isManaged()) {
+		if (!this.isManaged()) {
 			return _Bean;
 		}
 		var txn = Transaction.getCurrent();
@@ -36,7 +36,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			throw new NullPointerException();
 		}
 
-		if (false == this.isManaged()) {
+		if (!this.isManaged()) {
 			_TypeId = GetSpecialTypeIdFromBean.toId(value);
 			_Bean = value;
 			return;
@@ -51,11 +51,11 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	private long _TypeId;
 	private Bean _Bean;
 
-	private DynamicBeanToId GetSpecialTypeIdFromBean;
+	private final DynamicBeanToId GetSpecialTypeIdFromBean;
 	public final DynamicBeanToId getGetSpecialTypeIdFromBean() {
 		return GetSpecialTypeIdFromBean;
 	}
-	private DynamicIdToBean CreateBeanFromSpecialTypeId;
+	private final DynamicIdToBean CreateBeanFromSpecialTypeId;
 	public final DynamicIdToBean getCreateBeanFromSpecialTypeId() {
 		return CreateBeanFromSpecialTypeId;
 	}
@@ -92,7 +92,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	private void SetBeanWithSpecialTypeId(long specialTypeId, Bean bean) {
-		if (false == this.isManaged()) {
+		if (!this.isManaged()) {
 			_TypeId = specialTypeId;
 			_Bean = bean;
 			return;
@@ -136,7 +136,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	private final static class LogV extends Log1<DynamicBean, Bean> {
-		private long SpecialTypeId;
+		private final long SpecialTypeId;
 		public long getSpecialTypeId() {
 			return SpecialTypeId;
 		}

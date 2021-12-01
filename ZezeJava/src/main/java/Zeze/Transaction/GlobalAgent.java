@@ -41,19 +41,19 @@ public final class GlobalAgent {
 		private void setLogined(TaskCompletionSource<AsyncSocket> value) {
 			Logined = value;
 		}
-		private String Host;
+		private final String Host;
 		public final String getHost() {
 			return Host;
 		}
-		private int Port;
+		private final int Port;
 		public final int getPort() {
 			return Port;
 		}
-		private AtomicLong LoginedTimes = new AtomicLong();
+		private final AtomicLong LoginedTimes = new AtomicLong();
 		public final AtomicLong getLoginedTimes() {
 			return LoginedTimes;
 		}
-		private int GlobalCacheManagerHashIndex;
+		private final int GlobalCacheManagerHashIndex;
 		public final int getGlobalCacheManagerHashIndex() {
 			return GlobalCacheManagerHashIndex;
 		}
@@ -93,7 +93,7 @@ public final class GlobalAgent {
 				}
 
 				if (null == getSocket()) {
-					setLogined(new TaskCompletionSource<AsyncSocket>());
+					setLogined(new TaskCompletionSource<>());
 					setSocket(client.NewClientSocket(getHost(), getPort(), this,null));
 					// 每次新建连接创建future，没并发问题吧，还没仔细考虑。
 				}
@@ -247,7 +247,7 @@ public final class GlobalAgent {
 		}
 	}
 
-	private Application Zeze;
+	private final Application Zeze;
 	public Application getZeze() {
 		return Zeze;
 	}
@@ -268,7 +268,7 @@ public final class GlobalAgent {
 					(new Reduce()).getTypeId(),
 					new Service.ProtocolFactoryHandle(
 							() -> new Reduce(),
-							(p) -> ProcessReduceRequest(p),
+							this::ProcessReduceRequest,
 							TransactionLevel.None));
 
 			getClient().AddFactoryHandle(

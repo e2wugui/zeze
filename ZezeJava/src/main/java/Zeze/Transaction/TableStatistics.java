@@ -1,18 +1,18 @@
 package Zeze.Transaction;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TableStatistics {
 	// 为了使用的地方可以方便访问，定义成全局的。
 	// 这里的tableId也是全局分配的，即时起多个Zeze.Application，也是没问题的。see Table.cs
-	private static TableStatistics Instance = new TableStatistics();
+	private final static TableStatistics Instance = new TableStatistics();
 	public static TableStatistics getInstance() {
 		return Instance;
 	}
 
-	private java.util.concurrent.ConcurrentHashMap<String, Statistics> Tables
-			= new java.util.concurrent.ConcurrentHashMap<> ();
-	public final java.util.concurrent.ConcurrentHashMap<String, Statistics> getTables() {
+	private final ConcurrentHashMap<String, Statistics> Tables = new ConcurrentHashMap<> ();
+	public final ConcurrentHashMap<String, Statistics> getTables() {
 		return Tables;
 	}
 
@@ -21,39 +21,39 @@ public class TableStatistics {
 	}
 
 	public static class Statistics {
-		private AtomicLong ReadLockTimes = new AtomicLong();
+		private final AtomicLong ReadLockTimes = new AtomicLong();
 		public final AtomicLong getReadLockTimes() {
 			return ReadLockTimes;
 		}
-		private AtomicLong WriteLockTimes = new AtomicLong();
+		private final AtomicLong WriteLockTimes = new AtomicLong();
 		public final AtomicLong getWriteLockTimes() {
 			return WriteLockTimes;
 		}
-		private AtomicLong StorageFindCount = new AtomicLong();
+		private final AtomicLong StorageFindCount = new AtomicLong();
 		public final AtomicLong getStorageFindCount() {
 			return StorageFindCount;
 		}
 
 		// 这两个统计用来观察cache清理的影响，
-		private AtomicLong TryReadLockTimes = new AtomicLong();
+		private final AtomicLong TryReadLockTimes = new AtomicLong();
 		public final AtomicLong getTryReadLockTimes() {
 			return TryReadLockTimes;
 		}
-		private AtomicLong TryWriteLockTimes = new AtomicLong();
+		private final AtomicLong TryWriteLockTimes = new AtomicLong();
 		public final AtomicLong getTryWriteLockTimes() {
 			return TryWriteLockTimes;
 		}
 
 		// global acquire 的次数，即时没有开启cache-sync，也会有一点点计数，因为没人抢，所以以后总是成功了。
-		private AtomicLong GlobalAcquireShare = new AtomicLong();
+		private final AtomicLong GlobalAcquireShare = new AtomicLong();
 		public final AtomicLong getGlobalAcquireShare() {
 			return GlobalAcquireShare;
 		}
-		private AtomicLong GlobalAcquireModify = new AtomicLong();
+		private final AtomicLong GlobalAcquireModify = new AtomicLong();
 		public final AtomicLong getGlobalAcquireModify() {
 			return GlobalAcquireModify;
 		}
-		private AtomicLong GlobalAcquireInvalid = new AtomicLong();
+		private final AtomicLong GlobalAcquireInvalid = new AtomicLong();
 		public final AtomicLong getGlobalAcquireInvalid() {
 			return GlobalAcquireInvalid;
 		}

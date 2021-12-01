@@ -48,8 +48,6 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 						? app.getConfig().getWorkerThreads()
 						: Runtime.getRuntime().availableProcessors() * 30);
 				var poolName = "ZezeTaskPool";
-				//if (null != app)
-				//	poolName = poolName + "-" + app.getConfig().getServerId();
 				threadPoolDefault = new java.util.concurrent.ThreadPoolExecutor(
 						workerThreads, workerThreads, 0,
 						TimeUnit.NANOSECONDS, new LinkedBlockingQueue<>(), new ThreadFactoryWithName(poolName));
@@ -63,8 +61,6 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 						? app.getConfig().getWorkerThreads()
 						: Runtime.getRuntime().availableProcessors() * 15);
 				var poolName = "ZezeScheduledPool";
-				//if (null != app)
-				//	poolName = poolName + "-" + app.getConfig().getServerId();
 				threadPoolScheduled = new ScheduledThreadPoolExecutor(workerThreads, new ThreadFactoryWithName(poolName));
 			} else {
 				threadPoolScheduled = scheduled;
@@ -166,32 +162,33 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	}
 
 	public static long Call(Zeze.Util.Func0<Long> func, Zeze.Net.Protocol p,
-			Action2<Zeze.Net.Protocol, Long> actionWhenError) {
+							Zeze.Net.ProtocolErrorHandle actionWhenError) {
 		boolean IsRequestSaved = p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
 			var result = func.call();
 			if (result != 0 && IsRequestSaved) {
 				if (actionWhenError != null) {
-					actionWhenError.run(p, result);
+					actionWhenError.handle(p, result);
 				}
 			}
 			LogAndStatistics(result, p, IsRequestSaved);
 			return result;
 		}
-		catch (Throwable ex) {
+		catch (Throwable _ex) {
+			var localex = _ex;
 			while (true) {
-				var cause = ex.getCause();
+				var cause = localex.getCause();
 				if (null == cause)
 					break;
-				ex = cause;
+				localex = cause;
 			}
 
-			long errorCode = ex instanceof TaskCanceledException ? Procedure.CancelExcption : Procedure.Excption;
+			long errorCode = localex instanceof TaskCanceledException ? Procedure.CancelExcption : Procedure.Excption;
 
 			if (IsRequestSaved) {
 				if (actionWhenError != null) {
 					try {
-						actionWhenError.run(p, errorCode);
+						actionWhenError.handle(p, errorCode);
 					} catch (Throwable skip) {
 						logger.error(skip);
 					}
@@ -200,7 +197,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 
 			LogAndStatistics(errorCode, p, IsRequestSaved);
 			// 使用 InnerException
-			logger.error(() -> "Task " + p.getClass().getName() + " Exception UserState=" + p.getUserState(), ex);
+			logger.error(() -> "Task " + p.getClass().getName() + " Exception UserState=" + p.getUserState(), localex);
 			return errorCode;
 		}
 	}
@@ -211,7 +208,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	}
 
 	public static Task Run(Zeze.Util.Func0<Long> func, Zeze.Net.Protocol p,
-			Action2<Zeze.Net.Protocol, Long> actionWhenError) {
+			Zeze.Net.ProtocolErrorHandle actionWhenError) {
 		var task = new Task(() -> Call(func, p, actionWhenError));
 		threadPoolDefault.execute(task);
 		return task;
@@ -245,7 +242,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			if (isRequestSaved != null && isRequestSaved) {
 				if (actionWhenError != null) {
 					try {
-						actionWhenError.run(from, (long)Procedure.Excption);
+						actionWhenError.run(from, Procedure.Excption);
 					} catch (Throwable skip) {
 						logger.error(skip);
 					}

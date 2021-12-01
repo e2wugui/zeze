@@ -52,12 +52,11 @@ public final class PList2<E extends Bean> extends PList<E> {
 			@SuppressWarnings("unchecked")
 			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.plus(item)));
-			return true;
 		}
 		else {
 			list = list.plus(item);
-			return true;
 		}
+		return true;
 	}
 
 	@Override
@@ -73,12 +72,11 @@ public final class PList2<E extends Bean> extends PList<E> {
 			@SuppressWarnings("unchecked")
 			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.plusAll(items)));
-			return true;
 		}
 		else {
 			list = list.plusAll(items);
-			return true;
 		}
+		return true;
 	}
 
 	@Override

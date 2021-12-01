@@ -40,7 +40,9 @@ public class InMemoryJavaCompiler {
 	 * Options used by the compiler, e.g. '-Xlint:unchecked'.
 	 *
 	 * @param options
+	 * options
 	 * @return
+	 * this
 	 */
 	public InMemoryJavaCompiler useOptions(String... options) {
 		this.options = Arrays.asList(options);
@@ -52,6 +54,7 @@ public class InMemoryJavaCompiler {
 	 * warnings.
 	 *
 	 * @return
+	 * this
 	 */
 	public InMemoryJavaCompiler ignoreWarnings() {
 		ignoreWarnings = true;
@@ -63,6 +66,7 @@ public class InMemoryJavaCompiler {
 	 *
 	 * @return Map containing instances of all compiled classes
 	 * @throws Exception
+	 * exception
 	 */
 	public Map<String, Class<?>> compileAll() throws Exception {
 		if (sourceCodes.size() == 0) {
@@ -118,9 +122,13 @@ public class InMemoryJavaCompiler {
 	 * Compile single source
 	 *
 	 * @param className
+	 * className
 	 * @param sourceCode
+	 * sourceCode
 	 * @return
+	 * compile result class
 	 * @throws Exception
+	 * exception
 	 */
 	public Class<?> compile(String className, String sourceCode) throws Exception {
 		return addSource(className, sourceCode).compileAll().get(className);
@@ -130,9 +138,13 @@ public class InMemoryJavaCompiler {
 	 * Add source code to the compiler
 	 *
 	 * @param className
+	 * class name
 	 * @param sourceCode
+	 * source code
 	 * @return
+	 * this
 	 * @throws Exception
+	 * exception
 	 * @see {@link #compileAll()}
 	 */
 	public InMemoryJavaCompiler addSource(String className, String sourceCode) throws Exception {

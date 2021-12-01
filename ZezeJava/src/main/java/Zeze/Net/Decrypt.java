@@ -11,12 +11,12 @@ public class Decrypt implements Codec {
 	private final Cipher cipher;
 	private final ByteBuffer ivr;
 	private final ByteBuffer ivw;
-	private final byte iv[];
-	private final byte in[];
-	private final byte out[];
+	private final byte []iv;
+	private final byte []in;
+	private final byte []out;
 	private int count = 0;
 
-	public Decrypt(Codec sink, byte key[]) throws CodecException {
+	public Decrypt(Codec sink, byte []key) throws CodecException {
 		this.sink = sink;
 		iv = new byte[16];
 		in = new byte[16];
@@ -38,6 +38,7 @@ public class Decrypt implements Codec {
 			ivr.clear();
 			ivw.clear();
 		} catch (ShortBufferException e) {
+			// skip
 		}
 	}
 

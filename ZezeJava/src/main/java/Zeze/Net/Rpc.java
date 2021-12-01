@@ -1,7 +1,6 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
-import Zeze.Services.GlobalCacheManager.Reduce;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -53,7 +52,9 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	 或者重新发送已经设置过 ResponseHandle 等的请求。
 	 
 	 @param so
-	 @return 
+	 socket to sendTo
+	 @return
+	 true: success.
 	*/
 	@Override
 	public boolean Send(AsyncSocket so) {
@@ -62,7 +63,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 
 	private Zeze.Util.Task Schedule(Service service, long sessionId, int millisecondsTimeout) {
 		return Zeze.Util.Task.schedule((ThisTask) -> {
-			Rpc<TArgument, TResult> context = service.<Rpc<TArgument, TResult>>RemoveRpcContext(sessionId);
+			Rpc<TArgument, TResult> context = service.RemoveRpcContext(sessionId);
 			if (null == context) { // 一般来说，此时结果已经返回。
 				return;
 			}
@@ -87,8 +88,11 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	 2. 如果返回false，请求没有发送成功，上下文也没有保留。
 	 
 	 @param so
+	 socket to sendTo
 	 @param responseHandle
+	 response handle for this rpc
 	 @return
+	 true: success
 	*/
 
 	public final boolean Send(AsyncSocket so, ProtocolHandle responseHandle) {
@@ -121,7 +125,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 		// 【注意】当上下文已经其他并发过程删除（得到了处理），那么这里就返回成功。
 		// see OnSocketDisposed
 		// 这里返回 false 表示真的没有发送成功，外面根据自己需要决定是否重连并再次发送。
-		Rpc<TArgument, TResult> context = so.getService().<Rpc<TArgument, TResult>>RemoveRpcContext(this.SessionId);
+		Rpc<TArgument, TResult> context = so.getService().RemoveRpcContext(this.SessionId);
 		return context == null;
 	}
 
@@ -130,8 +134,11 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	 连接(so)可以为null，此时Rpc请求将在Timeout后回调。
 	 
 	 @param service
+	 service
 	 @param so
+	 socket
 	 @param responseHandle
+	 response handle
 	*/
 
 	public final void SendReturnVoid(Service service, AsyncSocket so, ProtocolHandle responseHandle) {
@@ -160,8 +167,8 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 	}
 
 	public final Zeze.Util.TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout) {
-		Future = new Zeze.Util.TaskCompletionSource<TResult>();
-		if (false == Send(so, null, millisecondsTimeout)) {
+		Future = new Zeze.Util.TaskCompletionSource<>();
+		if (!Send(so, null, millisecondsTimeout)) {
 			Future.TrySetException(new RuntimeException("Send Failed."));
 		}
 		return Future;
@@ -211,7 +218,7 @@ public abstract class Rpc<TArgument extends Zeze.Transaction.Bean, TResult exten
 		}
 
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
-		Rpc<TArgument, TResult> context = service.<Rpc<TArgument, TResult>>RemoveRpcContext(SessionId);
+		Rpc<TArgument, TResult> context = service.RemoveRpcContext(SessionId);
 		if (null == context) {
 			logger.info("rpc response: lost context, maybe timeout. {}", this);
 			return;

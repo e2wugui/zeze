@@ -1,11 +1,11 @@
 package Zeze.Transaction;
 
 public final class TableKey implements java.lang.Comparable<TableKey> {
-	private String Name;
+	private final String Name;
 	public String getName() {
 		return Name;
 	}
-	private Object Key;
+	private final Object Key;
 	public Object getKey() {
 		return Key;
 	}

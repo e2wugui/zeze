@@ -100,8 +100,8 @@ public abstract class PSet<E> extends PCollection implements Set<E> {
 	
 	@Override
 	public Iterator<E> iterator() {
-		return new Iterator<E>() {
-			private Iterator<E> it = getData().iterator();
+		return new Iterator<>() {
+			private final Iterator<E> it = getData().iterator();
 			private E next;
 
 			@Override

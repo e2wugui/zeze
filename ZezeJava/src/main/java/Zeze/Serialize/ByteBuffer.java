@@ -636,7 +636,7 @@ public final class ByteBuffer {
 					| ((Bytes[ReadIndex + 3] & 0xff)<< 8) | (Bytes[ReadIndex + 4] & 0xff);
 			int xh = h & 0x07;
 			ReadIndex += 5;
-			return ((long)xh << 32) | xl & 0xffffffffl;
+			return ((long)xh << 32) | xl & 0xffffffffL;
 		}
 
 		if (h < 0xfc) {
@@ -645,7 +645,7 @@ public final class ByteBuffer {
 					| ((Bytes[ReadIndex + 4] & 0xff) << 8) | (Bytes[ReadIndex + 5] & 0xff);
 			int xh = ((h & 0x03) << 8) | (Bytes[ReadIndex + 1] & 0xff);
 			ReadIndex += 6;
-			return ((long)xh << 32) | xl & 0xffffffffl;
+			return ((long)xh << 32) | xl & 0xffffffffL;
 		}
 
 		if (h < 0xfe) {
@@ -654,7 +654,7 @@ public final class ByteBuffer {
 					| ((Bytes[ReadIndex + 5] & 0xff) << 8) | (Bytes[ReadIndex + 6] & 0xff);
 			int xh = ((h & 0x01) << 16) | ((Bytes[ReadIndex + 1] & 0xff) << 8) | (Bytes[ReadIndex + 2] & 0xff);
 			ReadIndex += 7;
-			return ((long)xh << 32) | xl & 0xffffffffl;
+			return ((long)xh << 32) | xl & 0xffffffffL;
 		}
 
 		if (h < 0xff) {
@@ -664,7 +664,7 @@ public final class ByteBuffer {
 			int xh = ((Bytes[ReadIndex + 1] & 0xff) << 16) | ((Bytes[ReadIndex + 2] & 0xff) << 8)
 					| (Bytes[ReadIndex + 3] & 0xff);
 			ReadIndex += 8;
-			return ((long)xh << 32) | xl & 0xffffffffl;
+			return ((long)xh << 32) | xl & 0xffffffffL;
 		}
 
 		EnsureRead(9);
@@ -673,7 +673,7 @@ public final class ByteBuffer {
 		int xh = ((Bytes[ReadIndex + 1] & 0xff) << 24) | ((Bytes[ReadIndex + 2] & 0xff) << 16)
 				| ((Bytes[ReadIndex + 3] & 0xff) << 8) | (Bytes[ReadIndex + 4] & 0xff);
 		ReadIndex += 9;
-		return ((long)xh << 32) | xl & 0xffffffffl;
+		return ((long)xh << 32) | xl & 0xffffffffL;
 	}
 
 	public void WriteFloat(float x) {
@@ -838,7 +838,11 @@ public final class ByteBuffer {
 	}
 
 	// 只能增加新的类型定义，增加时记得同步 SkipUnknownField
-	public static final int INT = 0, LONG = 1, STRING = 2, BOOL = 3, BYTE = 4, SHORT = 5, FLOAT = 6, DOUBLE = 7, BYTES = 8, LIST = 9, SET = 10, MAP = 11, BEAN = 12, DYNAMIC = 13, TAG_MAX = 31;
+	public static final int INT = 0, LONG = 1, STRING = 2, BOOL = 3, BYTE = 4, SHORT = 5,
+			FLOAT = 6, DOUBLE = 7, BYTES = 8,
+			LIST = 9, SET = 10, MAP = 11,
+			BEAN = 12, DYNAMIC = 13,
+			TAG_MAX = 31;
 
 	public static final int TAG_SHIFT = 5;
 	public static final int TAG_MASK = (1 << TAG_SHIFT) - 1;
@@ -916,8 +920,7 @@ public final class ByteBuffer {
 		}
 		sb.append("]");
 	}
-
-
+	
 	public static <TK, TV> void BuildString(StringBuilder sb, Map<TK, TV> dic) {
 		sb.append("{");
 		for (var e : dic.entrySet()) {

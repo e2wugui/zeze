@@ -2,7 +2,6 @@ package Zeze.Transaction;
 
 import Zeze.Services.GlobalCacheManager.*;
 import Zeze.*;
-import java.util.*;
 
 public abstract class Table {
 	public Table(String name) {
@@ -51,7 +50,7 @@ public abstract class Table {
 		throw new UnsupportedOperationException();
 	}
 
-	private ChangeListenerMap ChangeListenerMap = new ChangeListenerMap();
+	private final ChangeListenerMap ChangeListenerMap = new ChangeListenerMap();
 	public final ChangeListenerMap getChangeListenerMap() {
 		return ChangeListenerMap;
 	}

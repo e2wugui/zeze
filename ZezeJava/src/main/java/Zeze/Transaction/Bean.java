@@ -3,7 +3,7 @@ package Zeze.Transaction;
 import java.util.*;
 
 public abstract class Bean implements Zeze.Serialize.Serializable {
-	private static java.util.concurrent.atomic.AtomicLong _objectIdGen = new java.util.concurrent.atomic.AtomicLong();
+	private final static java.util.concurrent.atomic.AtomicLong _objectIdGen = new java.util.concurrent.atomic.AtomicLong();
 
 	public static final int ObjectIdStep = 4096; // 自增长步长。低位保留给Variable.Id。也就是，Variable.Id 最大只能是4095.
 	public static final int MaxVariableId = ObjectIdStep - 1;
@@ -12,7 +12,7 @@ public abstract class Bean implements Zeze.Serialize.Serializable {
 		return _objectIdGen.addAndGet(ObjectIdStep);
 	}
 
-	private long ObjectId = getNextObjectId();
+	private final long ObjectId = getNextObjectId();
 	public final long getObjectId() {
 		return ObjectId;
 	}
@@ -56,7 +56,7 @@ public abstract class Bean implements Zeze.Serialize.Serializable {
 	 构建 ChangeListener 链。其中第一个KeyValuePair在调用前加入，这个由Log或者ChangeNote提供。
 	 
 	 @param path
-	 @return 
+	 path
 	*/
 	public final void BuildChangeListenerPath(ArrayList<Zeze.Util.KV<Bean, Integer>> path) {
 		for (Bean parent = getParent(); parent != null; parent = parent.Parent) {
@@ -115,12 +115,12 @@ public abstract class Bean implements Zeze.Serialize.Serializable {
 			hashedValue += name.charAt(i);
 			hashedValue *= 3074457345618258799L;
 		}
-		return (long)hashedValue;
+		return hashedValue;
 	}
 
 	public static int Hash32(String name) {
-		long hash64 = (long)Hash64(name);
-		long hash32 = (hash64 & 0xffffffff) ^ (hash64 >>> 32);
+		long hash64 = Hash64(name);
+		long hash32 = (hash64 & 0xffffffffL) ^ (hash64 >>> 32);
 		return (int)hash32;
 	}
 }

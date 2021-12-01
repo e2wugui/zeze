@@ -23,8 +23,11 @@ public abstract class Cube<TObject> {
 	 under lock(cube)
 	 
 	 @param index
+	 index
 	 @param obj
-	 @return 
+	 object
+	 @return
+	 true|false
 	*/
 	public abstract boolean Remove(CubeIndex index, TObject obj);
 }

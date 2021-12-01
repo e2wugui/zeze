@@ -24,7 +24,7 @@ public final class Locks {
 	 * @return the segment
 	 */
 	private Segment segmentFor(Lockey lockey) {
-		/**
+		/*
 		 * Applies a supplemental hash function to a given hashCode, which defends
 		 * against poor quality hash functions. This is critical because
 		 * ConcurrentHashMap uses power-of-two length hash tables, that otherwise
@@ -32,7 +32,7 @@ public final class Locks {
 		 */
 		// Spread bits to regularize both segment and index locations,
 		// using variant of single-word Wang/Jenkins hash.
-		int h = (int)lockey.hashCode();
+		int h = lockey.hashCode();
 		h += (h << 15) ^ 0xffffcd7d;
 		h ^= (h >>> 10);
 		h += (h << 3);
@@ -65,7 +65,7 @@ public final class Locks {
 			ssize <<= 1;
 		}
 		this.segmentShift = 32 - sshift;
-		this.segmentMask = (int)(ssize - 1);
+		this.segmentMask = ssize - 1;
 		this.segments = new Segment[ssize];
 		for (int i = 0; i < this.segments.length; ++i) {
 			this.segments[i] = new Segment();
@@ -74,7 +74,7 @@ public final class Locks {
 
 	/* ------------- 实现 --------------- */
 	private final static class Segment {
-		private final Zeze.Util.WeakHashSet<Lockey> locks = new Zeze.Util.WeakHashSet<Lockey>();
+		private final Zeze.Util.WeakHashSet<Lockey> locks = new Zeze.Util.WeakHashSet<>();
 
 		public Segment() {
 		}

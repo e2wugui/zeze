@@ -75,7 +75,7 @@ public final class GlobalCacheManagerServer {
 		ServerSocket = value;
 	}
 	private ConcurrentHashMap<GlobalTableKey, CacheState> global;
-	private AtomicLong SerialIdGenerator = new AtomicLong();
+	private final AtomicLong SerialIdGenerator = new AtomicLong();
 
 
 	/*
@@ -182,18 +182,6 @@ public final class GlobalCacheManagerServer {
 					new Service.ProtocolFactoryHandle(Cleanup::new, this::ProcessCleanup));
 
 			setServerSocket(getServer().NewServerSocket(ipaddress, port, null));
-			/*
-			try {
-				Server.NewServerSocket("127.0.0.1", port, null);
-			} catch (Throwable skip) {
-				skip.printStackTrace();
-			}
-			try {
-				Server.NewServerSocket("::1", port, null);
-			} catch (Throwable skip) {
-				skip.printStackTrace();
-			}
-			*/
 		}
 	}
 
@@ -728,7 +716,7 @@ public final class GlobalCacheManagerServer {
 		public void setAcquireStatePending(int value) {
 			AcquireStatePending = value;
 		}
-		private final HashSet<CacheHolder> Share = new HashSet<CacheHolder> ();
+		private final HashSet<CacheHolder> Share = new HashSet<> ();
 		public HashSet<CacheHolder> getShare() {
 			return Share;
 		}
@@ -813,26 +801,25 @@ public final class GlobalCacheManagerServer {
 
 		public Reduce Reduce(GlobalTableKey gkey, int state, long globalSerialId) {
 			Reduce reduce = ReduceWaitLater(gkey, state, globalSerialId);
-			try {
-				if (null != reduce) {
-					reduce.getFuture().Wait();
-					// 如果rpc返回错误的值，外面能处理。
-					return reduce;
-				}
+			if (null == reduce) {
+				reduce = new Reduce(); // create one for return error.
 				reduce.Result.State = StateReduceNetError;
 				return reduce;
+			}
+			try {
+				reduce.getFuture().Wait();
+				// 如果rpc返回错误的值，外面能处理。
 			}
 			catch (RpcTimeoutException timeoutex) {
 				// 等待超时，应该报告错误。
 				logger.error( "Reduce RpcTimeoutException {} target={} '{}'", state, getSessionId(), gkey, timeoutex);
 				reduce.Result.State = StateReduceRpcTimeout;
-				return reduce;
 			}
 			catch (Throwable ex) {
 				logger.error("Reduce Exception {} target={} '{}'", state, getSessionId(), gkey, ex);
 				reduce.Result.State = StateReduceException;
-				return reduce;
 			}
+			return reduce;
 		}
 
 		public static final long ForbitPeriod = 10 * 1000; // 10 seconds
@@ -915,8 +902,7 @@ public final class GlobalCacheManagerServer {
 		InetAddress address = (null == ip || ip.isEmpty()) ?
 				new InetSocketAddress(0).getAddress() : InetAddress.getByName(ip);
 
-		var GlobalServer = Zeze.Services.GlobalCacheManagerServer.Instance;
-		GlobalServer.Start(address, port);
+		GlobalCacheManagerServer.Instance.Start(address, port);
 		logger.info("Start .");
 		while (true) {
 			Thread.sleep(10000);

@@ -5,7 +5,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public final class Lockey implements java.lang.Comparable<Lockey> {
 	
-	private TableKey TableKey;
+	private final TableKey TableKey;
 	public TableKey getTableKey() {
 		return TableKey;
 	}
@@ -16,7 +16,7 @@ public final class Lockey implements java.lang.Comparable<Lockey> {
 	 相同值的 TableKey 要得到同一个 Lock 引用，必须使用 Locks 查询。
 	 不要自己构造这个对象。开放出去仅仅为了测试。
 	 
-	 @param key
+	 @param key table key
 	*/
 	public Lockey(TableKey key) {
 		TableKey = key;
@@ -25,7 +25,7 @@ public final class Lockey implements java.lang.Comparable<Lockey> {
 	/** 
 	 创建真正的锁对象。
 	 
-	 @return 
+	 @return Lockey
 	*/
 	public Lockey Alloc() {
 		//rwLock = new System.Threading.ReaderWriterLockSlim();
@@ -53,7 +53,7 @@ public final class Lockey implements java.lang.Comparable<Lockey> {
 	public void EnterWriteLock() {
 		//logger.Debug("EnterWriteLock {0}", TableKey);
 
-		if (false == rwLock.isWriteLocked()) { // 第一次才计数
+		if (!rwLock.isWriteLocked()) { // 第一次才计数
 			TableStatistics.getInstance().GetOrAdd(getTableKey().getName()).getWriteLockTimes().incrementAndGet();
 		}
 
@@ -81,7 +81,7 @@ public final class Lockey implements java.lang.Comparable<Lockey> {
 
 	public boolean TryEnterWriteLock(int millisecondsTimeout) {
 
-		if (false == rwLock.isWriteLocked()) { // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
+		if (!rwLock.isWriteLocked()) { // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
 			TableStatistics.getInstance().GetOrAdd(getTableKey().getName()).getTryWriteLockTimes().incrementAndGet();
 		}
 
@@ -101,7 +101,7 @@ public final class Lockey implements java.lang.Comparable<Lockey> {
 	 进入写锁时如果已经获得读锁，会先释放，使用时注意竞争条件。
 	 EnterUpgradeableReadLock 看起来不好用，慢慢研究。
 	 
-	 @param isWrite
+	 @param isWrite Write Lock Need.
 	*/
 	public void EnterLock(boolean isWrite) {
 		if (isWrite) {

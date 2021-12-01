@@ -23,7 +23,7 @@ public final class ChangeVariableCollectorMap extends ChangeVariableCollector {
 		}
 		else {
 			if (null == changedValue) {
-				changedValue = new IdentityHashMap<Bean, Bean>();
+				changedValue = new IdentityHashMap<>();
 			}
 			// Value 不是 Bean 的 Map 不会走到这里。
 			Bean value = path.get(path.size() - 1).getKey();

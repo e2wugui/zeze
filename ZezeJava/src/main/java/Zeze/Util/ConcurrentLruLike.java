@@ -129,7 +129,7 @@ public class ConcurrentLruLike<K, V> {
 				NewLruHot();
 			}
 		}, getNewLruHotPeriod(), getNewLruHotPeriod());
-		Task.schedule((thisTask) -> CleanNow(thisTask), getCleanPeriod(), -1);
+		Task.schedule(this::CleanNow, getCleanPeriod(), -1);
 	}
 
 	public final V GetOrAdd(K k, Factory<V> factory) {
@@ -144,7 +144,7 @@ public class ConcurrentLruLike<K, V> {
 				return lruItemNew;
 		});
 
-		if (false == isNew.Value) {
+		if (!isNew.Value) {
 			AdjustLru(k, lruItem);
 		}
 		return lruItem.Value;
@@ -164,6 +164,7 @@ public class ConcurrentLruLike<K, V> {
 	/**
 	 @param key key
 	 @return
+	 value
 	*/
 
 	public final V get(K key) {
@@ -188,9 +189,9 @@ public class ConcurrentLruLike<K, V> {
 
 	private void NewLruHot() {
 		var newLru = new ConcurrentHashMap<K, ConcurrentLruItem<K, V>>(
-				(int)GetLruInitialCapaicty(), 0.75f, ConcurrencyLevel);;
+				(int)GetLruInitialCapaicty(), 0.75f, ConcurrencyLevel);
 		LruHot = newLru;
-		LruQueue.add(LruHot);
+		LruQueue.add(newLru);
 	}
 
 	// 自定义TryRemoveCallback时，需要调用这个方法真正删除。

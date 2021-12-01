@@ -5,14 +5,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
-import Zeze.Config;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Transaction.Procedure;
 import Zeze.Net.*;
 import Zeze.Net.Service.ProtocolFactoryHandle;
-
-import javax.swing.plaf.basic.BasicTreeUI;
 
 public final class Agent implements Closeable {
 	static final Logger logger = LogManager.getLogger(Agent.class);
@@ -31,7 +28,7 @@ public final class Agent implements Closeable {
 		return Client;
 	}
 
-	private Zeze.Application zeze;
+	private final Zeze.Application zeze;
 	public Zeze.Application getZeze() {
 		return zeze;
 	}
@@ -343,7 +340,7 @@ public final class Agent implements Closeable {
 	}
 
 	private long ProcessSubscribeFirstCommit(Protocol p) throws Throwable {
-		var r = p instanceof SubscribeFirstCommit ? (SubscribeFirstCommit) p : null;
+		var r = (SubscribeFirstCommit) p;
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
 			state.OnFirstCommit(r.Argument);
@@ -368,7 +365,7 @@ public final class Agent implements Closeable {
 	}
 
 	private long ProcessNotifyServiceList(Protocol p) throws Throwable {
-		var r = p instanceof NotifyServiceList ? (NotifyServiceList) p : null;
+		var r = (NotifyServiceList) p;
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
 			state.OnNotify(r.Argument);
@@ -379,7 +376,7 @@ public final class Agent implements Closeable {
 	}
 
 	private long ProcessCommitServiceList(Protocol p) throws Throwable {
-		var r = p instanceof CommitServiceList ? (CommitServiceList) p : null;
+		var r = (CommitServiceList) p;
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
 			state.OnCommit(r.Argument);
@@ -390,7 +387,7 @@ public final class Agent implements Closeable {
 	}
 
 	private long ProcessKeepalive(Protocol p) throws Throwable {
-		var r = p instanceof Keepalive ? (Keepalive) p : null;
+		var r = (Keepalive) p;
 		if (getOnKeepAlive() != null) {
 			getOnKeepAlive().run();
 		}

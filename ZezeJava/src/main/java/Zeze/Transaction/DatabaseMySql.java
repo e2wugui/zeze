@@ -16,7 +16,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	}
 
 	public final static class OperatesMySql implements Operates {
-		private DatabaseMySql Database;
+		private final DatabaseMySql Database;
 		public DatabaseMySql getDatabase() {
 			return Database;
 		}
@@ -62,7 +62,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					cmd.registerOutParameter(3, java.sql.Types.INTEGER);
 					cmd.executeUpdate();
 					// Clear 不报告错误，直接返回。
-					return (int)cmd.getInt(3);
+					return cmd.getInt(3);
 				}
 			} catch (java.sql.SQLException e) {
 				throw new RuntimeException(e);
@@ -75,8 +75,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement("SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?")) {
 					cmd.setBytes(1, key.Copy());
 					try (java.sql.ResultSet rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							byte[] value = (byte[])rs.getBytes(1);
+						if (rs.next()) {
+							byte[] value = rs.getBytes(1);
 							long version = rs.getLong(2);
 							var result = new DataWithVersion();
 							result.Data = ByteBuffer.Wrap(value);
@@ -296,14 +296,14 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	}
 
 	public final static class TableMysql implements Database.Table {
-		private DatabaseMySql DatabaseReal;
+		private final DatabaseMySql DatabaseReal;
 		public DatabaseMySql getDatabaseReal() {
 			return DatabaseReal;
 		}
 		public Database getDatabase() {
 			return getDatabaseReal();
 		}
-		private String Name;
+		private final String Name;
 		public String getName() {
 			return Name;
 		}
@@ -334,8 +334,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.setBytes(1, key.Copy());
 					try (var rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							byte[] value = (byte[])rs.getBytes(1);
+						if (rs.next()) {
+							byte[] value = rs.getBytes(1);
 							return ByteBuffer.Wrap(value);
 						}
 						return null;
@@ -378,10 +378,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					long count = 0;
 					try (var rs = cmd.executeQuery()) {
 						while (rs.next()) {
-							byte[] key = (byte[])rs.getBytes(1);
-							byte[] value = (byte[])rs.getBytes(2);
+							byte[] key = rs.getBytes(1);
+							byte[] value = rs.getBytes(2);
 							++count;
-							if (false == callback.handle(key, value)) {
+							if (!callback.handle(key, value)) {
 								break;
 							}
 						}

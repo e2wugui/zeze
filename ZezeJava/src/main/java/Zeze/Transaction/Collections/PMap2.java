@@ -34,7 +34,7 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			if (newm != oldm) {
 				txn.PutLog(NewLog(newm));
 				@SuppressWarnings("unchecked")
-				ChangeNoteMap2<K, V> note = (ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<K, V>(this));
+				ChangeNoteMap2<K, V> note = (ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<>(this));
 				for (var p : m.entrySet()) {
 					note.LogPut(p.getKey(), p.getValue());
 				}
@@ -66,7 +66,7 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			var newm = oldm.plus(key, value);
 			if (newm != oldm) {
 				txn.PutLog(NewLog(newm));
-				((ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<K, V>(this))).LogPut(key, value);
+				((ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<>(this))).LogPut(key, value);
 			}
 			return oldv;
 		}
@@ -87,7 +87,7 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
 			if (!oldm.isEmpty()) {
 				@SuppressWarnings("unchecked")
-				ChangeNoteMap2<K, V> note = (ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<K, V>(this));
+				ChangeNoteMap2<K, V> note = (ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<>(this));
 				for (var e : oldm.entrySet()) {
 					note.LogRemove(e.getKey());
 				}
@@ -112,7 +112,7 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			if (newm != oldm) {
 				txn.PutLog(NewLog(newm));
 				((ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(),
-						() -> new ChangeNoteMap2<K, V>(this))).LogRemove((K)key);
+						() -> new ChangeNoteMap2<>(this))).LogRemove((K)key);
 			}
 			return exist;
 		}
@@ -138,7 +138,7 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			if (olde.equals(item.getValue())) {
 				var newm = oldm.minus(item.getKey());
 				txn.PutLog(NewLog(newm));
-				((ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<K, V>(this))).LogRemove(item.getKey());
+				((ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<>(this))).LogRemove(item.getKey());
 				return true;
 			}
 			else {

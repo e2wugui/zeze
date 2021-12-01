@@ -164,7 +164,7 @@ public class Connector {
 		getHandshakeDoneEvent().Set();
 	}
 
-	public void TryReconnect() throws Throwable{
+	public void TryReconnect() {
 		synchronized (this) {
 			if (!isAutoReconnect() || null != getSocket() || null != getReconnectTask()) {
 				return;

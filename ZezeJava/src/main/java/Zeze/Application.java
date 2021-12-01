@@ -51,6 +51,7 @@ public final class Application {
 	public Checkpoint getCheckpoint() {
 		return _checkpoint;
 	}
+
 	/*
 	public void setCheckpoint(Checkpoint value) {
 		synchronized (this) {
@@ -147,9 +148,7 @@ public final class Application {
 
 	public void Start() throws Throwable {
 		synchronized (this) {
-			if (getConfig() != null) {
-				getConfig().ClearInUseAndIAmSureAppStopped(this, getDatabases());
-			}
+			getConfig().ClearInUseAndIAmSureAppStopped(this, getDatabases());
 			for (var db : getDatabases().values()) {
 				db.getDirectOperates().SetInUse(getConfig().getServerId(), getConfig().getGlobalCacheManagerHostNameOrAddress());
 			}
@@ -259,8 +258,8 @@ public final class Application {
 		}
 	}
 
-	private ConcurrentHashMap<TableKey, LastFlushWhenReduce> FlushWhenReduce = new ConcurrentHashMap<>();
-	private ConcurrentHashMap<Long, Zeze.Util.IdentityHashSet<LastFlushWhenReduce>> FlushWhenReduceActives = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<TableKey, LastFlushWhenReduce> FlushWhenReduce = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, Zeze.Util.IdentityHashSet<LastFlushWhenReduce>> FlushWhenReduceActives = new ConcurrentHashMap<>();
 	private Zeze.Util.Task FlushWhenReduceTimerTask;
 
 	public final static long MillisPerMinute = 60 * 1000;
@@ -268,7 +267,7 @@ public final class Application {
 	public void __SetLastGlobalSerialId(TableKey tkey, long globalSerialId)
 	{
 		while (true) {
-			var last = FlushWhenReduce.computeIfAbsent(tkey, (k) -> new LastFlushWhenReduce(k));
+			var last = FlushWhenReduce.computeIfAbsent(tkey, LastFlushWhenReduce::new);
 			synchronized (last) {
 				if (last.Removed)
 					continue;
@@ -287,7 +286,7 @@ public final class Application {
 	{
 		while (true)
 		{
-			var last = FlushWhenReduce.computeIfAbsent(tkey, (k) -> new LastFlushWhenReduce(k));
+			var last = FlushWhenReduce.computeIfAbsent(tkey, LastFlushWhenReduce::new);
 			synchronized (last) {
 				if (last.Removed)
 					continue;

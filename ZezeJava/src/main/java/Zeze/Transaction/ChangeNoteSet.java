@@ -3,16 +3,17 @@ package Zeze.Transaction;
 import java.util.*;
 
 public final class ChangeNoteSet<K> extends ChangeNote {
-	private HashSet<K> Added = new HashSet<K> ();
+	private final HashSet<K> Added = new HashSet<> ();
 	public HashSet<K> getAdded() {
 		return Added;
 	}
-	private HashSet<K> Removed = new HashSet<K> ();
+	private final HashSet<K> Removed = new HashSet<> ();
 	public HashSet<K> getRemoved() {
 		return Removed;
 	}
 
-	private Zeze.Transaction.Collections.PSet<K> Set;
+	private final Zeze.Transaction.Collections.PSet<K> Set;
+
 	@Override
 	public Bean getBean() {
 		return Set;

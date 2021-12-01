@@ -5,5 +5,5 @@ package Zeze.Util;
 */
 @FunctionalInterface
 public interface SchedulerHandle {
-	public void handle(Task thisTask) throws Throwable;
+	void handle(Task thisTask) throws Throwable;
 }

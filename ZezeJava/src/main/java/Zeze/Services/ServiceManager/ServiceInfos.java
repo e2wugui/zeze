@@ -1,7 +1,6 @@
 package Zeze.Services.ServiceManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
@@ -16,7 +15,7 @@ public final class ServiceInfos extends Bean {
 		ServiceName = value;
 	}
 	// sorted by ServiceIdentity
-	private ArrayList<ServiceInfo> _ServiceInfoListSortedByIdentity = new ArrayList<ServiceInfo> ();
+	private final ArrayList<ServiceInfo> _ServiceInfoListSortedByIdentity = new ArrayList<> ();
 	public ArrayList<ServiceInfo> getServiceInfoListSortedByIdentity() {
 		return _ServiceInfoListSortedByIdentity;
 	}

@@ -304,9 +304,9 @@ public final class Config {
 		if (attr.length() > 0) {
 			setCheckpointMode(Zeze.Transaction.CheckpointMode.valueOf(attr));
 		}
-		if (CheckpointMode == CheckpointMode.Period && !GlobalCacheManagerHostNameOrAddress.isEmpty()) {
+		if (CheckpointMode == Zeze.Transaction.CheckpointMode.Period && !GlobalCacheManagerHostNameOrAddress.isEmpty()) {
 			Application.logger.warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
-			CheckpointMode = CheckpointMode.Table;
+			CheckpointMode = Zeze.Transaction.CheckpointMode.Table;
 		}
 
 		NodeList childnodes = self.getChildNodes();

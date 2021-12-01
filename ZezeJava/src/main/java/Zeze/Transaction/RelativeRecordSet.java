@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** 
  see zeze/README.md -> 18) 事务提交模式
@@ -19,7 +20,7 @@ public class RelativeRecordSet {
 	private void setRecordSet(HashSet<Record> value) {
 		RecordSet = value;
 	}
-	private long Id;
+	private final long Id;
 	public final long getId() {
 		return Id;
 	}
@@ -36,7 +37,7 @@ public class RelativeRecordSet {
 	public final static AtomicLong IdGenerator = new AtomicLong();
 	public final static RelativeRecordSet Deleted = new RelativeRecordSet();
 
-	private final static java.util.concurrent.ConcurrentHashMap<RelativeRecordSet, RelativeRecordSet> RelativeRecordSetMap = new java.util.concurrent.ConcurrentHashMap<RelativeRecordSet, RelativeRecordSet>();
+	private final static ConcurrentHashMap<RelativeRecordSet, RelativeRecordSet> RelativeRecordSetMap = new ConcurrentHashMap<>();
 
 	public RelativeRecordSet() {
 		Id = IdGenerator.incrementAndGet();
@@ -52,7 +53,7 @@ public class RelativeRecordSet {
 		}
 
 		if (getRecordSet() == null) {
-			setRecordSet(new HashSet<Record>());
+			setRecordSet(new HashSet<>());
 		}
 
 		for (var r : rrs.getRecordSet()) {
@@ -65,7 +66,7 @@ public class RelativeRecordSet {
 
 	private void Merge(Record r) {
 		if (getRecordSet() == null) {
-			setRecordSet(new HashSet<Record>());
+			setRecordSet(new HashSet<>());
 		}
 
 		getRecordSet().add(r);
@@ -80,7 +81,7 @@ public class RelativeRecordSet {
 			// 在原孤立集合中添加当前记录的引用。
 			// 并发访问时，可以从这里重新得到新的集合的引用。
 			// 孤立集合初始化时没有包含自己。
-			r.getRelativeRecordSet().setRecordSet(new HashSet<Record>());
+			r.getRelativeRecordSet().setRecordSet(new HashSet<>());
 			r.getRelativeRecordSet().getRecordSet().add(r);
 
 			// setup new ref
@@ -98,7 +99,7 @@ public class RelativeRecordSet {
 		}
 	}
 
-	private ReentrantLock mutex = new ReentrantLock();
+	private final ReentrantLock mutex = new ReentrantLock();
 
 	public final void Lock() {
 		mutex.lock();
@@ -265,7 +266,7 @@ public class RelativeRecordSet {
 					// 释放掉不需要的锁（已经被Delete了，Has Flush）。
 					int unlockEndIndex = index;
 					for (; unlockEndIndex < n
-							&& Long.compare(LockedRelativeRecordSets.get(unlockEndIndex).getId(), rrs.Id) < 0;
+							&& LockedRelativeRecordSets.get(unlockEndIndex).getId() < rrs.Id;
 							++unlockEndIndex) {
 
 						LockedRelativeRecordSets.get(unlockEndIndex).UnLock();

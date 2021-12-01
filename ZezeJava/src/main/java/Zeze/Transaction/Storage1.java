@@ -43,7 +43,7 @@ public final class Storage1<K extends Comparable<K>, V extends Bean> extends Sto
 	 仅在 Checkpoint 中调用，同时只有一个线程执行。
 	 没有得到任何锁。
 	 
-	 @return 
+	 @return encoded record count
 	*/
 	@Override
 	public int EncodeN() {
@@ -59,7 +59,7 @@ public final class Storage1<K extends Comparable<K>, V extends Bean> extends Sto
 	/** 
 	 仅在 Checkpoint 中调用，在 flushWriteLock 下执行。
 	 
-	 @return 
+	 @return encoded record count
 	*/
 	@Override
 	public int Encode0() {
@@ -75,7 +75,7 @@ public final class Storage1<K extends Comparable<K>, V extends Bean> extends Sto
 	/** 
 	 仅在 Checkpoint 中调用，在 flushWriteLock 下执行。
 	 
-	 @return 
+	 @return snapshot record count
 	*/
 	@Override
 	public int Snapshot() {
@@ -92,7 +92,7 @@ public final class Storage1<K extends Comparable<K>, V extends Bean> extends Sto
 	 仅在 Checkpoint 中调用。
 	 没有拥有任何锁。
 	 
-	 @return 
+	 @return flush record count
 	*/
 	@Override
 	public int Flush(Database.Transaction t) {

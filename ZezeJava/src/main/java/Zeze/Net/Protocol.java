@@ -1,10 +1,7 @@
 package Zeze.Net;
 
 import Zeze.Serialize.*;
-import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Util.Str;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public abstract class Protocol implements Serializable {
 	public abstract int getModuleId();
@@ -19,7 +16,7 @@ public abstract class Protocol implements Serializable {
 	}
 
 	public static int GetProtocolId(long typeId) {
-		return (int)(typeId & 0xffff_ffff);
+		return (int)(typeId & 0xffff_ffffL);
 	}
 
 	public static long MakeTypeId(int moduleId, int protocolId) {

@@ -3,7 +3,7 @@ package Zeze.Transaction;
 import java.util.*;
 
 public final class ChangeRecordCollector {
-	private final HashMap<Integer, ChangeVariableCollector> variables = new HashMap<Integer, ChangeVariableCollector>(); // key is VariableId
+	private final HashMap<Integer, ChangeVariableCollector> variables = new HashMap<>(); // key is VariableId
 	private final Zeze.Transaction.RecordAccessed recordAccessed;
 	private final Object key;
 

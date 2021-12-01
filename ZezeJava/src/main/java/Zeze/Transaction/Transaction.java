@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 public final class Transaction {
 	private static final Logger logger = LogManager.getLogger(Transaction.class);
 
-	private static ThreadLocal<Transaction> threadLocal = new ThreadLocal<Transaction>();
+	private final static ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
 
 	public static Transaction getCurrent() {
 		var t = threadLocal.get();
@@ -19,7 +19,7 @@ public final class Transaction {
 	}
 
 	// 嵌套存储过程栈。
-	private ArrayList<Procedure> ProcedureStack = new ArrayList<Procedure> ();
+	private final ArrayList<Procedure> ProcedureStack = new ArrayList<> ();
 	public ArrayList<Procedure> getProcedureStack() {
 		return ProcedureStack;
 	}
@@ -75,12 +75,8 @@ public final class Transaction {
 			Savepoints.remove(lastIndex);
 			Savepoints.get(Savepoints.size() - 1).Merge(last);
 		}
-		/*
-		else
-		{
+		// else
 		    // 最外层存储过程提交在 Perform 中处理
-		}
-		*/
 	}
 
 	public void Rollback() {
@@ -113,8 +109,8 @@ public final class Transaction {
 	}
 	*/
 
-	private final ArrayList<Runnable> CommitActions = new ArrayList<Runnable>();
-	private final ArrayList<Runnable> RollbackActions = new ArrayList<Runnable>();
+	private final ArrayList<Runnable> CommitActions = new ArrayList<>();
+	private final ArrayList<Runnable> RollbackActions = new ArrayList<>();
 
 	public void RunWhileCommit(Runnable action) {
 		VerifyRunning();
@@ -138,7 +134,7 @@ public final class Transaction {
 	/**
 	 Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
 	 
-	 @param procedure
+	 @param procedure first procedure
 	*/
 	public long Perform(Procedure procedure) throws Throwable {
 		try {
@@ -180,7 +176,7 @@ public final class Transaction {
 									return Procedure.AbortException;
 
 								case Redo:
-									checkResult = CheckResult.Redo;
+									//checkResult = CheckResult.Redo;
 									break; // retry
 
 								case RedoAndReleaseLock:
@@ -283,7 +279,7 @@ public final class Transaction {
 				cc.CollectChanged(log.getBean().getTableKey(),
 					() -> {
 						var pn = new ChangePathAndNote();
-						pn.path = new ArrayList<Zeze.Util.KV<Bean, Integer>>();
+						pn.path = new ArrayList<>();
 						pn.note = null;
 						pn.path.add(Zeze.Util.KV.Create(log.getBean(), log.getVariableId()));
 						log.getBean().BuildChangeListenerPath(pn.path);
@@ -299,7 +295,7 @@ public final class Transaction {
 				cc.CollectChanged(cn.getBean().getTableKey(),
 						() -> {
 							var pn = new ChangePathAndNote();
-							pn.path = new ArrayList<Zeze.Util.KV<Bean, Integer>>();
+							pn.path = new ArrayList<>();
 							pn.note = cn;
 							pn.path.add(Zeze.Util.KV.Create(cn.getBean().getParent(), cn.getBean().getVariableId()));
 							cn.getBean().getParent().BuildChangeListenerPath(pn.path);
@@ -365,25 +361,25 @@ public final class Transaction {
 				action.run();
 			}
 			catch (Throwable e) {
-				logger.error("Rollback Procedure {0} Action {1}", procedure, action.getClass().getName(), e);
+				logger.error("Rollback Procedure {0} Action {1} {2}", procedure, action.getClass().getName(), e);
 			}
 		}
 		RollbackActions.clear();
 	}
 
-	private final ArrayList<Lockey> holdLocks = new ArrayList<Lockey>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
+	private final ArrayList<Lockey> holdLocks = new ArrayList<>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
 
-	private TreeMap<TableKey, RecordAccessed> AccessedRecords = new TreeMap<TableKey, RecordAccessed> ();
+	private final TreeMap<TableKey, RecordAccessed> AccessedRecords = new TreeMap<> ();
 	public TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
 		return AccessedRecords;
 	}
-	private final ArrayList<Savepoint> Savepoints = new ArrayList<Savepoint>();
+	private final ArrayList<Savepoint> Savepoints = new ArrayList<>();
 
 	/** 
 	 只能添加一次。
-	 @param r
+	 @param r record accessed
 	*/
-	public void AddRecordAccessed(Record.RootInfo root, RecordAccessed r) {
+	void AddRecordAccessed(Record.RootInfo root, RecordAccessed r) {
 		VerifyRunning();
 		r.InitRootInfo(root, null);
 		getAccessedRecords().put(root.getTableKey(), r);
@@ -425,7 +421,7 @@ public final class Transaction {
 	private enum CheckResult {
 		Success,
 		Redo,
-		RedoAndReleaseLock;
+		RedoAndReleaseLock
 	}
 
 	private CheckResult _check_(boolean writeLock, RecordAccessed e) throws Throwable {
@@ -549,7 +545,7 @@ public final class Transaction {
 			// needlocks a  b  ...
 			if (c == 0) {
 				// 这里可能发生读写锁提升
-				if (e.getValue().Dirty && false == curLock.isWriteLockHeld()) {
+				if (e.getValue().Dirty && !curLock.isWriteLockHeld()) {
 					// 必须先全部释放，再升级当前记录锁，再锁后面的记录。
 					// 直接 unlockRead，lockWrite会死锁。
 					n = _unlock_start_(index, n);

@@ -3,13 +3,13 @@ package Zeze.Transaction;
 import java.util.*;
 
 public final class Savepoint {
-	private final HashMap<Long, Log> Logs = new HashMap<Long, Log> ();
+	private final HashMap<Long, Log> Logs = new HashMap<> ();
 	public HashMap<Long, Log> getLogs() {
 		return Logs;
 	}
-	//private readonly Dictionary<long, Log> Newly = new Dictionary<long, Log>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
+	//private readonly Dictionary<long, Log> Newly = new Dictionary<>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
 
-	private final HashMap<Long, ChangeNote> ChangeNotes = new HashMap<Long, ChangeNote> ();
+	private final HashMap<Long, ChangeNote> ChangeNotes = new HashMap<> ();
 	public HashMap<Long, ChangeNote> getChangeNotes() {
 		return ChangeNotes;
 	}
@@ -42,16 +42,12 @@ public final class Savepoint {
 
 	public Savepoint Duplicate() {
 		Savepoint sp = new Savepoint();
-		for (var e : Logs.entrySet()) {
-			sp.Logs.put(e.getKey(), e.getValue());
-		}
+		sp.Logs.putAll(Logs);
 		return sp;
 	}
 
 	public void Merge(Savepoint other) {
-		for (var e : other.Logs.entrySet()) {
-			Logs.put(e.getKey(), e.getValue());
-		}
+		Logs.putAll(other.Logs);
 
 		for (var e : other.ChangeNotes.entrySet()) {
 			var cur = this.ChangeNotes.get(e.getKey());

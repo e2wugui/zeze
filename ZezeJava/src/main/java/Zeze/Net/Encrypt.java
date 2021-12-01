@@ -11,11 +11,11 @@ public class Encrypt implements Codec {
 	private final Cipher cipher;
 	private final ByteBuffer ivr;
 	private final ByteBuffer ivw;
-	private final byte iv[];
-	private final byte in[];
+	private final byte []iv;
+	private final byte []in;
 	private int count = 0;
 
-	public Encrypt(Codec sink, byte key[]) throws CodecException {
+	public Encrypt(Codec sink, byte []key) throws CodecException {
 		this.sink = sink;
 		iv = new byte[16];
 		in = new byte[16];
@@ -36,6 +36,7 @@ public class Encrypt implements Codec {
 			ivr.clear();
 			ivw.clear();
 		} catch (ShortBufferException e) {
+			// skip
 		}
 	}
 

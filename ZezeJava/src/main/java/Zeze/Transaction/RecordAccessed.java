@@ -3,8 +3,8 @@ package Zeze.Transaction;
 import Zeze.Serialize.ByteBuffer;
 
 public class RecordAccessed extends Bean {
-	Record OriginRecord;
-	long Timestamp;
+	final Record OriginRecord;
+	final long Timestamp;
 	boolean Dirty;
 
 	public final Bean NewestValue() {

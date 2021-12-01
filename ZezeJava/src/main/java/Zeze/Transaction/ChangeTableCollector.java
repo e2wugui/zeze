@@ -7,7 +7,7 @@ public final class ChangeTableCollector {
 	private final Table table;
 	private final boolean tableHasListener;
 
-	public ChangeTableCollector(Table t, TableKey tableKey) {
+	public ChangeTableCollector(Table t) {
 		table = t;
 		tableHasListener = table.getChangeListenerMap().HasListener();
 	}
@@ -20,7 +20,7 @@ public final class ChangeTableCollector {
 	}
 
 	public void CollectChanged(TableKey tableKey, ChangeCollector.Collect collect) {
-		if (false == this.tableHasListener) {
+		if (!this.tableHasListener) {
 			return; // 优化，表格没有监听者时，不收集改变。
 		}
 
@@ -32,7 +32,7 @@ public final class ChangeTableCollector {
 	}
 
 	public void Notify() {
-		if (false == this.tableHasListener) {
+		if (!this.tableHasListener) {
 			return;
 		}
 

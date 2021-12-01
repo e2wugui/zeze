@@ -20,9 +20,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 
 	final class OperateSend implements Zeze.Util.Action0 {
-		private byte[] bytes;
-		private int offset;
-		private int length;
+		private final byte[] bytes;
+		private final int offset;
+		private final int length;
 
 		public OperateSend(byte[] bytes, int offset, int length) {
 			this.bytes = bytes;
@@ -39,9 +39,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	final class OperateSetOutputSecurityCodec implements Zeze.Util.Action0 {
-		private byte[] key;
-		private boolean compress;
-		private Runnable callback;
+		private final byte[] key;
+		private final boolean compress;
+		private final Runnable callback;
 
 		public OperateSetOutputSecurityCodec(byte[] key, boolean compress, Runnable callback) {
 			this.key = key;
@@ -58,9 +58,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	final class OperateSetInputSecurityCodec implements Zeze.Util.Action0 {
-		private byte[] key;
-		private boolean compress;
-		private Zeze.Util.Action0 callback;
+		private final byte[] key;
+		private final boolean compress;
+		private final Zeze.Util.Action0 callback;
 
 		public OperateSetInputSecurityCodec(byte[] key, boolean compress, Zeze.Util.Action0 callback) {
 			this.key = key;
@@ -76,8 +76,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	private LinkedBlockingQueue<Zeze.Util.Action0> _operates = new LinkedBlockingQueue<>();
-	private AtomicInteger _outputBufferListCountSum = new AtomicInteger();
+	private final LinkedBlockingQueue<Zeze.Util.Action0> _operates = new LinkedBlockingQueue<>();
+	private final AtomicInteger _outputBufferListCountSum = new AtomicInteger();
 	private ArrayList<java.nio.ByteBuffer> _outputBufferListSending = null; // 正在发送的 buffers.
 
 	private Service Service;
@@ -288,7 +288,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (Connector != null) {
 			Connector.OnSocketConnected(this);
 		}
-		RemoteAddress = sc.socket().getInetAddress().getAddress().toString();
+		RemoteAddress = sc.socket().getRemoteSocketAddress().toString();
 		Service.OnSocketConnected(this);
 	}
 
@@ -347,13 +347,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (compress) {
 				chain = new Compress(chain);
 			}
-			/*
-			if (outputCodecChain != null) {
-				outputCodecChain.close();
-			}
-			*/
 			outputCodecChain = chain;
-			setOutputSecurity(true);
+			IsOutputSecurity = true;
 		}
 	}
 
@@ -361,15 +356,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public boolean isInputSecurity() {
 		return IsInputSecurity;
 	}
-	private void setInputSecurity(boolean value) {
-		IsInputSecurity = value;
-	}
 	private boolean IsOutputSecurity;
 	public boolean isOutputSecurity() {
 		return IsOutputSecurity;
-	}
-	private void setOutputSecurity(boolean value) {
-		IsOutputSecurity = value;
 	}
 	public boolean isSecurity() {
 		return isInputSecurity() && isOutputSecurity();
@@ -397,13 +386,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (null != key) {
 				chain = new Decrypt(chain, key);
 			}
-			/*
-			if (inputCodecChain != null) {
-				inputCodecChain.close();
-			}
-			*/
 			inputCodecChain = chain;
-			setInputSecurity(true);
+			IsInputSecurity = true;
 		}
 	}
 

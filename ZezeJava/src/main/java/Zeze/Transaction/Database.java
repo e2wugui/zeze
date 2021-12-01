@@ -7,7 +7,6 @@ import Zeze.Config.DatabaseConf;
 import java.util.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import java.io.*;
 
 /** 
  数据访问的效率主要来自TableCache的命中。根据以往的经验，命中率是很高的。
@@ -16,18 +15,18 @@ import java.io.*;
 public abstract class Database {
 	private static final Logger logger = LogManager.getLogger(Database.class);
 
-	private HashMap<String, Zeze.Transaction.Table> tables = new HashMap<String, Zeze.Transaction.Table>();
-	public ArrayList<Storage> storages = new ArrayList<Storage>();
+	private final HashMap<String, Zeze.Transaction.Table> tables = new HashMap<>();
+	public final ArrayList<Storage> storages = new ArrayList<>();
 	public final Collection<Zeze.Transaction.Table> getTables() {
 		return tables.values();
 	}
 
-	private DatabaseConf Conf;
+	private final DatabaseConf Conf;
 	public final DatabaseConf GetConf() {
 		return Conf;
 	}
 
-	private String DatabaseUrl;
+	private final String DatabaseUrl;
 	public final String getDatabaseUrl() {
 		return DatabaseUrl;
 	}
@@ -109,23 +108,23 @@ public abstract class Database {
 	public abstract Database.Table OpenTable(String name);
 
 	public interface Transaction extends AutoCloseable {
-		public void Commit();
-		public void Rollback();
+		void Commit();
+		void Rollback();
 	}
 
 	public interface Table {
-		public Database getDatabase();
-		public ByteBuffer Find(ByteBuffer key);
-		public void Replace(Transaction t, ByteBuffer key, ByteBuffer value);
-		public void Remove(Transaction t, ByteBuffer key);
+		Database getDatabase();
+		ByteBuffer Find(ByteBuffer key);
+		void Replace(Transaction t, ByteBuffer key, ByteBuffer value);
+		void Remove(Transaction t, ByteBuffer key);
 		/** 
 		 每一条记录回调。回调返回true继续遍历，false中断遍历。
 		 
-		 @param callback
+		 @param callback callback
 		 @return 返回已经遍历的数量
 		*/
-		public long Walk(TableWalkHandleRaw callback);
-		public void Close();
+		long Walk(TableWalkHandleRaw callback);
+		void Close();
 	}
 
 	public static class DataWithVersion {
@@ -165,8 +164,8 @@ public abstract class Database {
 		   commit;
 		   return true;
 		 */
-		public void SetInUse(int localId, String global);
-		public int ClearInUse(int localId, String global);
+		void SetInUse(int localId, String global);
+		int ClearInUse(int localId, String global);
 
 		/** 
 		 if (Exist(key))
@@ -182,12 +181,12 @@ public abstract class Database {
 		 CurrentVersion = version;
 		 return true;
 		 
-		 @param data
-		 @param version
-		 @return 
+		 @param data data
+		 @param version version
+		 @return KV(version, boolean_result)
 		*/
-		public Zeze.Util.KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version);
-		public DataWithVersion GetDataWithVersion(ByteBuffer key);
+		Zeze.Util.KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version);
+		DataWithVersion GetDataWithVersion(ByteBuffer key);
 	}
 
 	private Operates DirectOperates;

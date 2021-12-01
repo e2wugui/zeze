@@ -40,13 +40,7 @@ public final class ServiceConf {
 	}
 
 	private final ConcurrentHashMap<String, Acceptor> Acceptors = new ConcurrentHashMap<>();
-	private ConcurrentHashMap<String, Acceptor> getAcceptors() {
-		return Acceptors;
-	}
-	private ConcurrentHashMap<String, Connector> Connectors = new ConcurrentHashMap<> ();
-	private ConcurrentHashMap<String, Connector> getConnectors() {
-		return Connectors;
-	}
+	private final ConcurrentHashMap<String, Connector> Connectors = new ConcurrentHashMap<> ();
 
 	public void SetService(Service service) throws Throwable {
 		synchronized (this) {
@@ -60,14 +54,14 @@ public final class ServiceConf {
 	}
 
 	public void AddConnector(Connector connector) {
-		if (null != getConnectors().putIfAbsent(connector.getName(), connector)) {
+		if (null != Connectors.putIfAbsent(connector.getName(), connector)) {
 			throw new RuntimeException("Duplicate Connector=" + connector.getName());
 		}
 		connector.SetService(getService());
 	}
 
 	public Connector FindConnector(String name) {
-		return getConnectors().get(name);
+		return Connectors.get(name);
 	}
 
 	public Connector FindConnector(String host, int port) {
@@ -78,9 +72,13 @@ public final class ServiceConf {
 	 查找，不存在则创建。
 	 
 	 @param host
+	 peer address or name
 	 @param port
+	 peer port
 	 @param autoReconnect
+	 auto reconnect when socket close.
 	 @param getOrAdd
+	 out. connector returned.
 	 @return true if addNew
 	*/
 	public boolean TryGetOrAddConnector(String host, int port, boolean autoReconnect,
@@ -88,7 +86,7 @@ public final class ServiceConf {
 
 		var name = host + ":" + port;
 		final var addNew = new Zeze.Util.OutObject<Connector>();
-		getOrAdd.Value = getConnectors().computeIfAbsent(name,
+		getOrAdd.Value = Connectors.computeIfAbsent(name,
 			(key) -> {
 				Connector add = new Connector(host, port, autoReconnect);
 				add.SetService(getService());
@@ -100,22 +98,22 @@ public final class ServiceConf {
 	}
 
 	public void RemoveConnector(Connector c) {
-		getConnectors().remove(c.getName(), c);
+		Connectors.remove(c.getName(), c);
 	}
 
 	public void ForEachConnector(Zeze.Util.Action1<Connector> action) throws Throwable {
-		for (var c : getConnectors().values()) {
+		for (var c : Connectors.values()) {
 			action.run(c);
 		}
 	}
 
 	public int ConnectorCount() {
-		return getConnectors().size();
+		return Connectors.size();
 	}
 
 	public boolean ForEachConnector2(Zeze.Util.Func1<Connector, Boolean> func) throws Throwable {
-		for (var c : getConnectors().values()) {
-			if (false == func.call(c)) {
+		for (var c : Connectors.values()) {
+			if (!func.call(c)) {
 				return false;
 			}
 		}
@@ -123,25 +121,25 @@ public final class ServiceConf {
 	}
 
 	public void AddAcceptor(Acceptor a) {
-		if (null != getAcceptors().putIfAbsent(a.getName(), a)) {
+		if (null != Acceptors.putIfAbsent(a.getName(), a)) {
 			throw new RuntimeException("Duplicate Acceptor=" + a.getName());
 		}
 		a.SetService(getService());
 	}
 
 	public void RemoveAcceptor(Acceptor a) {
-		getAcceptors().remove(a.getName(), a);
+		Acceptors.remove(a.getName(), a);
 	}
 
 	public void ForEachAcceptor(Zeze.Util.Action1<Acceptor> action) throws Throwable {
-		for (var a : getAcceptors().values()) {
+		for (var a : Acceptors.values()) {
 			action.run(a);
 		}
 	}
 
 	public boolean ForEachAcceptor2(Function<Acceptor, Boolean> func) {
-		for (var a : getAcceptors().values()) {
-			if (false == func.apply(a)) {
+		for (var a : Acceptors.values()) {
+			if (!func.apply(a)) {
 				return false;
 			}
 		}
@@ -149,7 +147,7 @@ public final class ServiceConf {
 	}
 
 	public int AcceptorCount() {
-		return getAcceptors().size();
+		return Acceptors.size();
 	}
 
 	public ServiceConf() {

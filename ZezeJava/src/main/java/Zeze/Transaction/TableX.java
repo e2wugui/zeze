@@ -27,7 +27,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private Record1<K, V> FindInCacheOrStorage(K key) {
 		var tkey = new TableKey(Name, key);
 		while (true) {
-			Record1<K, V> r = getCache().GetOrAdd(key, () -> new Record1<K, V>(this, key, null));
+			Record1<K, V> r = getCache().GetOrAdd(key, () -> new Record1<>(this, key, null));
 			r.EnterFairLock(); // 对同一个记录，不允许重入。
 			try {
 				if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
@@ -44,10 +44,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (r.getState() == GlobalCacheManagerServer.StateInvalid) {
 					r.LastErrorGlobalSerialId = acquire.Result.GlobalSerialId; // save
 					var txn = Transaction.getCurrent();
+					if (null == txn)
+						throw new RuntimeException("Acquire Failed");
 					txn.LastTableKeyOfRedoAndRelease = tkey;
 					txn.LastGlobalSerialIdOfRedoAndRelease = acquire.Result.GlobalSerialId;
-					txn.ThrowRedoAndReleaseLock(tkey.toString() + ":" + r.toString(), null);
-					//throw new RedoAndReleaseLockException();
+					txn.ThrowRedoAndReleaseLock(tkey + ":" + r, null);
 				}
 
 				r.setTimestamp(Record.getNextTimestamp());
@@ -92,7 +93,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		logger.debug("Reduce NewState={}", rpc);
 
 		TableKey tkey = new TableKey(Name, key);
-		Record1<K, V> r = null;
+		Record1<K, V> r;
 		Lockey lockey = getZeze().getLocks().Get(tkey);
 		lockey.EnterWriteLock();
 		try {
@@ -100,7 +101,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
 			if (null == r) {
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-				logger.debug("Reduce SendResult 1 {}", r);
+				logger.debug("Reduce SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
 				getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 				return 0;
@@ -185,7 +186,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		//logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
 		TableKey tkey = new TableKey(Name, key);
-		Record1<K, V> r = null;
+		Record1<K, V> r;
 		Lockey lockey = getZeze().getLocks().Get(tkey);
 		lockey.EnterWriteLock();
 		try {
@@ -193,7 +194,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
 			if (null == r) {
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-				logger.debug("Reduce SendResult 1 {}", r);
+				logger.debug("Reduce SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
 				getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 				return 0;
@@ -333,7 +334,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final void insert(K key, V value) {
-		if (false == tryAdd(key, value)) {
+		if (!tryAdd(key, value)) {
 			throw new IllegalArgumentException(Str.format("table:{} insert key:{} exists",
 					this.getClass().getName(), key));
 		}
@@ -413,9 +414,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 
 		super.setTableConf(app.getConfig().GetTableConf(getName()));
-		setCache(new TableCache<K, V>(app, this));
+		setCache(new TableCache<>(app, this));
 
-		TStorage = isMemory() ? null : new Storage1<K, V>(this, database, getName());
+		TStorage = isMemory() ? null : new Storage1<>(this, database, getName());
 		setOldTable(getTableConf().getDatabaseOldMode() == 1
 				? app.GetDatabase(getTableConf().getDatabaseOldName()).OpenTable(getName()) : null);
 		return TStorage;
@@ -445,7 +446,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 解码系列化的数据到对象。
 	 
 	 @param bb bean encoded data
-	 @return 
+	 @return Value
 	*/
 	public final V DecodeValue(Zeze.Serialize.ByteBuffer bb) {
 		V value = NewValue();
@@ -458,8 +459,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 【注意】这里看不到新增的但没有提交(checkpoint)的记录。实现这个有点麻烦。
 	 【并发】每个记录回调时加读锁，回调完成马上释放。
 	 
-	 @param callback
-	 @return 
+	 @param callback walk callback
+	 @return count
 	*/
 	public final long Walk(TableWalkHandle<K, V> callback) {
 		return TStorage.getDatabaseTable().Walk((key, value) -> {
@@ -495,8 +496,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 遍历数据库中的表。看不到本地缓存中的数据。
 	 【并发】后台数据库处理并发。
 	 
-	 @param callback
-	 @return 
+	 @param callback walk callback
+	 @return count
 	*/
 	public final long WalkDatabase(TableWalkHandleRaw callback) {
 		return TStorage.getDatabaseTable().Walk(callback);
@@ -506,8 +507,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 遍历数据库中的表。看不到本地缓存中的数据。
 	 【并发】后台数据库处理并发。
 	 
-	 @param callback
-	 @return 
+	 @param callback walk callback
+	 @return count
 	*/
 	public final long WalkDatabase(TableWalkHandle<K, V> callback) {
 		return TStorage.getDatabaseTable().Walk((key, value) -> {
@@ -525,8 +526,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		b)没有访问过的记录，从后台查询并拷贝，但不会加入RecordAccessed。
 	 3. 得到的结果一般不用于修改，应用传递时可以使用ReadOnly接口修饰保护一下。
 	 
-	 @param key
-	 @return 
+	 @param key record key
+	 @return record value
 	*/
 	public final V selectCopy(K key) {
 		TableKey tkey = new TableKey(Name, key);

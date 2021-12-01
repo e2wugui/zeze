@@ -43,19 +43,15 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private ConcurrentHashMap<K, Record1<K, V>> getLruHot() {
 		return LruHot;
 	}
-	private void setLruHot(ConcurrentHashMap<K, Record1<K, V>> value) {
-		LruHot = value;
-	}
 
-	private TableX<K, V> Table;
+	private final TableX<K, V> Table;
 	public final TableX<K, V> getTable() {
 		return Table;
 	}
 
 	public TableCache(Application app, TableX<K, V> table) {
 		this.Table = table;
-		DataMap = new ConcurrentHashMap<K, Record1<K, V>>(
-				GetCacheInitialCapaicty(), 0.75f, GetCacheConcurrencyLevel());
+		DataMap = new ConcurrentHashMap<>(GetCacheInitialCapaicty(), 0.75f, GetCacheConcurrencyLevel());
 		NewLruHot();
 		Task.schedule((task) -> {
 				// 访问很少的时候不创建新的热点。这个选项没什么意思。
@@ -63,27 +59,24 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					NewLruHot();
 				}
 		}, table.getTableConf().getCacheNewLruHotPeriod(), table.getTableConf().getCacheNewLruHotPeriod());
-		Task.schedule((task)->CleanNow(task), getTable().getTableConf().getCacheCleanPeriod());
+		Task.schedule(this::CleanNow, getTable().getTableConf().getCacheCleanPeriod());
 	}
 
 	private int GetCacheConcurrencyLevel() {
 		// 这样写，当配置修改，可以使用的时候马上生效。
 		var processors = Runtime.getRuntime().availableProcessors();
-		return getTable().getTableConf().getCacheConcurrencyLevel() > processors
-				? getTable().getTableConf().getCacheConcurrencyLevel() : processors;
+		return Math.max(getTable().getTableConf().getCacheConcurrencyLevel(), processors);
 	}
 
 	private int GetCacheInitialCapaicty() {
 		// 31 from c# document
 		// 这样写，当配置修改，可以使用的时候马上生效。
-		return getTable().getTableConf().getCacheInitialCapaicty() < 31
-				? 31 : getTable().getTableConf().getCacheInitialCapaicty();
+		return Math.max(getTable().getTableConf().getCacheInitialCapaicty(), 31);
 	}
 
 	private int GetLruInitialCapaicty() {
 		int c = (int)(GetCacheInitialCapaicty() * 0.2);
-		return c < getTable().getTableConf().getCacheMaxLruInitialCapaicty()
-				? c : getTable().getTableConf().getCacheMaxLruInitialCapaicty();
+		return Math.min(c, getTable().getTableConf().getCacheMaxLruInitialCapaicty());
 	}
 
 	private void NewLruHot() {
@@ -105,7 +98,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					return r;
 		});
 
-		if (false == isNew.Value && result.getLruNode() != getLruHot()) {
+		if (!isNew.Value && result.getLruNode() != getLruHot()) {
 			result.getLruNode().remove(key, result);
 			var lruHot = getLruHot();
 			if (null == lruHot.putIfAbsent(key, result)) {
@@ -122,8 +115,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	/** 
 	 内部特殊使用，不调整 Lru。
 	 
-	 @param key
-	 @return 
+	 @param key key
+	 @return  Record1
 	*/
 	public final Record1<K, V> Get(K key) {
 		return DataMap.get(key);
@@ -144,7 +137,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		// 每次执行完重新调度。
 
 		if (getTable().getTableConf().getCacheCapacity() <= 0) {
-			Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod());
+			Task.schedule(this::CleanNow, getTable().getTableConf().getCacheCleanPeriod());
 			return; // 容量不限
 		}
 
@@ -156,7 +149,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				}
 
 				for (var e : node.entrySet()) {
-					if (false == TryRemoveRecord(e)) {
+					if (!TryRemoveRecord(e)) {
 						// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
 						getTable().getZeze().CheckpointRun();
 					}
@@ -170,10 +163,11 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				try {
 					Thread.sleep(getTable().getTableConf().getCacheCleanPeriodWhenExceedCapacity());
 				} catch (InterruptedException skip) {
+					// skip
 				}
 			}
 		} finally {
-			Task.schedule((task) -> CleanNow(task), getTable().getTableConf().getCacheCleanPeriod());
+			Task.schedule(this::CleanNow, getTable().getTableConf().getCacheCleanPeriod());
 		}
 	}
 
@@ -194,7 +188,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) throws Throwable {
 		TableKey tkey = new TableKey(this.getTable().getName(), p.getKey());
 		Lockey lockey = Table.getZeze().getLocks().Get(tkey);
-		if (false == lockey.TryEnterWriteLock(0)) {
+		if (!lockey.TryEnterWriteLock(0)) {
 			return false;
 		}
 		try {

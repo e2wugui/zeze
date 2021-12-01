@@ -13,23 +13,26 @@ public interface ChangeListener {
 	 新增记录 或 覆盖记录时，进行回调。需要同步所有数据。
 	 
 	 @param key
+	 key
 	 @param value
+	 value
 	*/
-	public void OnChanged(Object key, Bean value);
+	void OnChanged(Object key, Bean value);
 
 	/** 
 	 删除记录时，进行回调。
 	 
 	 @param key
+	 key
 	*/
-	public void OnRemoved(Object key);
+	void OnRemoved(Object key);
 
 	/** 
 	 记录脏了的时候进行回调，监听Map，Set类型的记录项具会有Note信息
 	 Note信息可以用来做增量数据同步。
 	 
-	 @param key
-	 @param note
+	 @param key key
+	 @param note note
 	*/
-	public void OnChanged(Object key, Bean value, ChangeNote note);
+	void OnChanged(Object key, Bean value, ChangeNote note);
 }

@@ -12,13 +12,13 @@ import java.util.concurrent.ConcurrentHashMap;
  另外Transaction在重做时会在这里保存重做次数的统计。通过name和存储过程区分开来。
 */
 public class ProcedureStatistics {
-	private static ProcedureStatistics Instance = new ProcedureStatistics();
+	private final static ProcedureStatistics Instance = new ProcedureStatistics();
 	public static ProcedureStatistics getInstance() {
 		return Instance;
 	}
 	static final Logger logger = LogManager.getLogger(ProcedureStatistics.class);
 
-	private ConcurrentHashMap<String, Statistics> Procedures = new ConcurrentHashMap<> ();
+	private final ConcurrentHashMap<String, Statistics> Procedures = new ConcurrentHashMap<> ();
 	public final ConcurrentHashMap<String, Statistics> getProcedures() {
 		return Procedures;
 	}
@@ -28,7 +28,7 @@ public class ProcedureStatistics {
 	}
 
 	public static class Statistics {
-		private ConcurrentHashMap<Long, AtomicLong> Results = new ConcurrentHashMap<> ();
+		private final ConcurrentHashMap<Long, AtomicLong> Results = new ConcurrentHashMap<> ();
 		public final ConcurrentHashMap<Long, AtomicLong> getResults() {
 			return Results;
 		}
@@ -52,7 +52,7 @@ public class ProcedureStatistics {
 					Watcher.CheckPeriod * 1000, Watcher.CheckPeriod * 1000);
 		}
 
-		public class Watcher {
+		public static class Watcher {
 			public final static int CheckPeriod = 30;
 
 			public long Last;

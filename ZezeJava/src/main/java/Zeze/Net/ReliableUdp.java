@@ -24,26 +24,29 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ReliableUdp implements SelectorHandle, Closeable {
     private static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 
-    private DatagramChannel datagramChannel;
+    private final DatagramChannel datagramChannel;
     private SelectionKey selectionKey;
-    private Selector selector;
-    private InetSocketAddress local;
-    private ConcurrentHashMap<SocketAddress, Session> Sessions = new ConcurrentHashMap<>();
-    private ReliableUdpHandle DefaultHandle;
+    private final Selector selector;
+    private final InetSocketAddress local;
+    private final ConcurrentHashMap<SocketAddress, Session> Sessions = new ConcurrentHashMap<>();
+    private final ReliableUdpHandle DefaultHandle;
 
     // 应用应该需要这个，特别是Server端，免得外面又需要建立一个Map来管理。
     // 【注意】应用直接删除这个Map时需要注意是否会出现问题。
     public ConcurrentHashMap<SocketAddress, Session> getSessions() {
         return Sessions;
     }
-
     private int MaxPacketLength = 2048;
+
     public int getMaxPacketLength() {
         return MaxPacketLength;
     }
     public void setMaxPacketLength(int max) {
         MaxPacketLength = max;
     }
+
+    public final Selector getSelector() { return selector; }
+    public final InetSocketAddress getLocalInetAddress() { return local; }
 
     // bind to (address, port)
     public ReliableUdp(String address, int port, ReliableUdpHandle defaultHandle) {
@@ -138,11 +141,11 @@ public class ReliableUdp implements SelectorHandle, Closeable {
     }
 
     public class Session {
-        private ReliableUdpHandle Handle;
-        private SocketAddress Peer;
-        private ConcurrentHashMap<Long, Packet> SendWindow = new ConcurrentHashMap<>();
-        private AtomicLong SerialIdGenerator = new AtomicLong();
-        private ConcurrentHashMap<Long, Packet> RecvWindow = new ConcurrentHashMap<>();
+        private final ReliableUdpHandle Handle;
+        private final SocketAddress Peer;
+        private final ConcurrentHashMap<Long, Packet> SendWindow = new ConcurrentHashMap<>();
+        private final AtomicLong SerialIdGenerator = new AtomicLong();
+        private final ConcurrentHashMap<Long, Packet> RecvWindow = new ConcurrentHashMap<>();
 
         private long LastDispatchedSerialId;
         private long MaxRecvPacketSerialId;

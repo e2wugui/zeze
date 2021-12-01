@@ -3,9 +3,11 @@ package Zeze.Net;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.BitConverter;
 
-// Bean 类型 binary 的辅助类。
-// 构造之后就是只读的。
-// byte[] bytes 参数传入以后，就不能再修改了。
+/**
+ * Bean 类型 binary 的辅助类。
+ * 构造之后就是只读的。
+ * 【警告】byte[] bytes 参数传入以后，就不能再修改了。
+ */
 public final class Binary {
 	private final byte[] _Bytes;
 

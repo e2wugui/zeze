@@ -16,7 +16,7 @@ public abstract class IModule {
 		return Zeze.Net.Protocol.MakeTypeId(getId(), code);
 	}
 
-	private ConcurrentHashMap<String, Class<?>> ClassMap = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Class<?>> ClassMap = new ConcurrentHashMap<>();
 
 	public Class<?> getClassByMethodName(String name) {
 		var cls = ClassMap.get(name);

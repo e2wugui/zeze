@@ -15,7 +15,7 @@ public class Acceptor {
 	public final int getPort() {
 		return Port;
 	}
-	private String Ip = "";
+	private final String Ip;
 	public final String getIp() {
 		return Ip;
 	}

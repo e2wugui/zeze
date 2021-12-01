@@ -179,7 +179,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	}
 
 	public final ArrayList<TCube> GetCubes(CubeIndex center, int rangeX, int rangeY, int rangeZ) {
-		ArrayList<TCube> result = new ArrayList<TCube>();
+		ArrayList<TCube> result = new ArrayList<>();
 		for (long i = center.getX() - rangeX; i <= center.getX() + rangeX; ++i) {
 			for (long j = center.getY() - rangeY; j <= center.getY() + rangeY; ++j) {
 				for (long k = center.getZ() - rangeZ; k <= center.getZ() + rangeZ; ++k) {

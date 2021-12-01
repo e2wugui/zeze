@@ -113,7 +113,7 @@ public class Schemas implements Serializable {
 		public final HashMap<Checked, CheckResult> getChecked() {
 			return Checked;
 		}
-		private HashMap<Bean, CheckResult> CopyBeanIfRemoved = new HashMap<> ();
+		private final HashMap<Bean, CheckResult> CopyBeanIfRemoved = new HashMap<> ();
 		public final HashMap<Bean, CheckResult> getCopyBeanIfRemoved() {
 			return CopyBeanIfRemoved;
 		}
@@ -184,14 +184,14 @@ public class Schemas implements Serializable {
 				return false;
 			}
 
-			if (false == Name.equals(other.Name)) {
+			if (!Name.equals(other.Name)) {
 				return false;
 			}
 
 			// Name 相同的情况下，下面的 Key Value 仅在 Collection 时有值。
 			// 当 this.Key == null && other.Key != null 在 Name 相同的情况下是不可能发生的。
 			if (null != Key) {
-				if (false == Key.IsCompatible(other.Key, context,
+				if (!Key.IsCompatible(other.Key, context,
 						(bean) -> {
 							KeyName = bean.Name;
 							Key = bean;
@@ -204,13 +204,11 @@ public class Schemas implements Serializable {
 			}
 
 			if (null != Value) {
-				if (false == Value.IsCompatible(other.Value, context,
+				return Value.IsCompatible(other.Value, context,
 						(bean) -> {
 							ValueName = bean.Name;
 							Value = bean;
-						}, UpdateVariable)) {
-					return false;
-				}
+						}, UpdateVariable);
 			}
 			else if (other.Value != null) {
 				throw new RuntimeException("(this.Value == null && other.Value != null) Imposible!");
@@ -342,7 +340,7 @@ public class Schemas implements Serializable {
 	public static class Bean extends Type {
 		private static final Logger logger = LogManager.getLogger(Bean.class);
 
-		private HashMap<Integer, Variable> Variables = new HashMap<> ();
+		private final HashMap<Integer, Variable> Variables = new HashMap<> ();
 		public final HashMap<Integer, Variable> getVariables() {
 			return Variables;
 		}
@@ -358,9 +356,6 @@ public class Schemas implements Serializable {
 		private boolean Deleted = false;
 		public final boolean getDeleted() {
 			return Deleted;
-		}
-		private void setDeleted(boolean value) {
-			Deleted = value;
 		}
 		// 这里记录在当前版本Schemas中Bean的实际名字，只有生成的bean包含这个。
 		private String RealName = "";
@@ -385,7 +380,9 @@ public class Schemas implements Serializable {
 		 并且和谁比较谁没有关系。
 		 
 		 @param other
-		 @return 
+		 another Type
+		 @return
+		 true: compatible
 		*/
 		@Override
 		public boolean IsCompatible(Type other, Context context, Action1<Bean> Update, Action1<Bean> UpdateVariable) {
@@ -393,7 +390,7 @@ public class Schemas implements Serializable {
 				return false;
 			}
 
-			if (false == (other instanceof Bean))
+			if (!(other instanceof Bean))
 				return false;
 
 			Bean beanOther = (Bean)other;
@@ -425,7 +422,7 @@ public class Schemas implements Serializable {
 						logger.error("Not Compatible. bean={} variable={} Can Not Reuse Deleted Variable.Id", Name, vThis.Name);
 						return false;
 					}
-					if (false == vThis.IsCompatible(vOther, context)) {
+					if (!vThis.IsCompatible(vOther, context)) {
 						logger.error("Not Compatible. bean={} variable={}", Name, vOther.Name);
 						return false;
 					}
@@ -456,7 +453,7 @@ public class Schemas implements Serializable {
 						// 当作Key前允许删除变量，所以可能存在已经被删除的变量。
 						continue;
 					}
-					if (false == getVariables().containsKey(vOther.Id)) {
+					if (!getVariables().containsKey(vOther.Id)) {
 						// 被当作Key以后就不能再删除变量了。
 						logger.error("Not Compatible. beankey={} variable={} Not Exist", Name, vOther.Name);
 						return false;
@@ -510,7 +507,7 @@ public class Schemas implements Serializable {
 			}
 
 			var newb2 = ShadowCopy(context);
-			newb2.setDeleted(true);
+			newb2.Deleted = true;
 			context.getCurrent().AddBean(newb2);
 			result.setBean(newb2);
 			result.AddUpdate(Update, UpdateVariable);
@@ -643,12 +640,12 @@ public class Schemas implements Serializable {
             context.setCurrent(this);
             context.setPrevious(other);
             context.setConfig(config);
-        };
+        }
 
         for (var table : Tables.values()) {
         	var otherTable = other.Tables.get(table.Name);
         	if (null != otherTable) {
-                if (false == table.IsCompatible(otherTable, context)) {
+                if (!table.IsCompatible(otherTable, context)) {
                     logger.error("Not Compatible. table={}", table.Name);
                     return false;
                 }

@@ -1,6 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.Util.KV;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.*;
@@ -14,13 +13,11 @@ import Zeze.Serialize.ByteBuffer;
 public class DatabaseRocksDb extends Database {
 	private static final Logger logger = LogManager.getLogger(DatabaseMySql.class);
 
-	private RocksDB Db;
-	private WriteOptions WriteOptions = new WriteOptions();
-	private ReadOptions ReadOptions = new ReadOptions();
-	private ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
-	private Options Options = new Options();
-	private DBOptions DbOptions = new DBOptions();
-	private ConcurrentHashMap<String, ColumnFamilyHandle> ColumnFamilies = new ConcurrentHashMap<>();
+	private final RocksDB Db;
+	private final WriteOptions WriteOptions = new WriteOptions();
+	private final ReadOptions ReadOptions = new ReadOptions();
+	private final ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
+	private final ConcurrentHashMap<String, ColumnFamilyHandle> ColumnFamilies = new ConcurrentHashMap<>();
 
 	public DatabaseRocksDb(Application zeze, Config.DatabaseConf conf) {
 		super(conf);
@@ -28,16 +25,18 @@ public class DatabaseRocksDb extends Database {
 		if (!zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
 			throw new RuntimeException("RocksDb Can Not Work With GlobalCacheManager.");
 		}
-		DbOptions.setCreateIfMissing(true);
+		DBOptions dbOptions = new DBOptions();
+		dbOptions.setCreateIfMissing(true);
 		try {
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-			for (var cf : RocksDB.listColumnFamilies(Options, conf.getDatabaseUrl())) {
+			org.rocksdb.Options options = new Options();
+			for (var cf : RocksDB.listColumnFamilies(options, conf.getDatabaseUrl())) {
 				columnFamilies.add(new ColumnFamilyDescriptor(cf, CfOptions));
 			}
 
 			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 			var outHandles = new ArrayList<ColumnFamilyHandle>();
-			Db = RocksDB.open(DbOptions, conf.getDatabaseUrl(), columnFamilies, outHandles);
+			Db = RocksDB.open(dbOptions, conf.getDatabaseUrl(), columnFamilies, outHandles);
 
 			for (int i = 0; i< columnFamilies.size(); ++i){
 				var cf = columnFamilies.get(i);
@@ -57,8 +56,8 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	public static class RockdsDbTrans implements Transaction {
-		private DatabaseRocksDb Database;
-		private WriteBatch Batch;
+		private final DatabaseRocksDb Database;
+		private final WriteBatch Batch;
 
 		public RockdsDbTrans(DatabaseRocksDb database) {
 			Database = database;
@@ -117,18 +116,18 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	public final static class TableRocksDb implements Database.Table {
-		private DatabaseRocksDb DatabaseReal;
+		private final DatabaseRocksDb DatabaseReal;
 		public DatabaseRocksDb getDatabaseReal() {
 			return DatabaseReal;
 		}
 		public Database getDatabase() {
 			return getDatabaseReal();
 		}
-		private String Name;
+		private final String Name;
 		public String getName() {
 			return Name;
 		}
-		private ColumnFamilyHandle ColumnFamily;
+		private final ColumnFamilyHandle ColumnFamily;
 		private ColumnFamilyHandle getColumnFamily() {
 			return ColumnFamily;
 		}
@@ -142,25 +141,8 @@ public class DatabaseRocksDb extends Database {
 		public void Close() {
 		}
 
-		private KV<byte[], Integer> GetBytes(ByteBuffer bb)
-		{
-			byte[] bytes;
-			int byteslen;
-			if (bb.ReadIndex == 0)
-			{
-				bytes = bb.Bytes;
-				byteslen = bb.Size();
-			}
-			else
-			{
-				bytes = bb.Copy();
-				byteslen = bytes.length;
-			}
-			return KV.Create(bytes, byteslen);
-		}
-
 		public ByteBuffer Find(ByteBuffer key) {
-			byte[] value = new byte[0];
+			byte[] value;
 			try {
 				value = getDatabaseReal().Db.get(
 						getColumnFamily(), getDatabaseReal().ReadOptions, key.Bytes, key.ReadIndex, key.WriteIndex);
@@ -184,26 +166,23 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		public long Walk(TableWalkHandleRaw callback) {
-			var it = getDatabaseReal().Db.newIterator(getColumnFamily(), getDatabaseReal().ReadOptions);
-			try {
+			try (var it = getDatabaseReal().Db.newIterator(getColumnFamily(), getDatabaseReal().ReadOptions)) {
 				long countWalked = 0;
 				it.seekToFirst();
 				while (it.isValid()) {
 					++countWalked;
-					if (false == callback.handle(it.key(), it.value())) {
+					if (!callback.handle(it.key(), it.value())) {
 						return countWalked;
 					}
 					it.next();
 				}
 				return countWalked;
-			} finally {
-				it.close();
 			}
 		}
 	}
 
 	public final static class OperatesRocksDb implements Operates {
-		private DatabaseRocksDb DatabaseReal;
+		private final DatabaseRocksDb DatabaseReal;
 		public DatabaseRocksDb getDatabaseReal() {
 			return DatabaseReal;
 		}
@@ -211,7 +190,7 @@ public class DatabaseRocksDb extends Database {
 			return getDatabaseReal();
 		}
 		public static final String ColumnFamilyName = "zeze.OperatesRocksDb.Schemas";
-		private ColumnFamilyHandle ColumnFamily;
+		private final ColumnFamilyHandle ColumnFamily;
 
 		public OperatesRocksDb(DatabaseRocksDb database) {
 			DatabaseReal = database;
@@ -262,7 +241,7 @@ public class DatabaseRocksDb extends Database {
 
 		public Zeze.Util.KV<Long, Boolean>  SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			synchronized (this) {
-				DVRocks dv = null;
+				DVRocks dv;
 				try {
 					dv = DVRocks.Decode(getDatabaseReal().Db.get(ColumnFamily, key.Copy()));
 				} catch (RocksDBException e) {

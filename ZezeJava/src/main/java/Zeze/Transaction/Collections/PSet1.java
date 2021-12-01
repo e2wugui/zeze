@@ -24,7 +24,7 @@ public final class PSet1<E> extends PSet<E> {
 			var news = olds.plus(item);
 			if (news != olds) {
 				txn.PutLog(NewLog(news));
-				((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this))).LogAdd(item);
+				((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<>(this))).LogAdd(item);
 				return true;
 			}
 			else {
@@ -49,7 +49,7 @@ public final class PSet1<E> extends PSet<E> {
 			if (!olds.isEmpty()) {
 				txn.PutLog(NewLog(Empty.set()));
 				@SuppressWarnings("unchecked")
-				ChangeNoteSet<E> note = (ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this));
+				ChangeNoteSet<E> note = (ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<>(this));
 				for (var item : olds) {
 					note.LogRemove(item);
 				}
@@ -72,7 +72,7 @@ public final class PSet1<E> extends PSet<E> {
 			var news = olds.minus(item);
 			if (news != olds) {
 				txn.PutLog(NewLog(news));
-				((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this))).LogRemove((E)item);
+				((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<>(this))).LogRemove((E)item);
 				return true;
 			}
 
@@ -101,9 +101,9 @@ public final class PSet1<E> extends PSet<E> {
 			if (news != olds) {
 				txn.PutLog(NewLog(news));
 				@SuppressWarnings("unchecked")
-				var note = ((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this)));
+				var note = ((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<>(this)));
                 for (var item : c) {
-                    if (false == olds.contains(item))
+                    if (!olds.contains(item))
                         note.LogAdd(item);
                 }
 			}
@@ -126,7 +126,7 @@ public final class PSet1<E> extends PSet<E> {
 			if (news != olds) {
 				txn.PutLog(NewLog(news));
 				@SuppressWarnings("unchecked")
-				var note = ((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<E>(this)));
+				var note = ((ChangeNoteSet<E>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteSet<>(this)));
                 for (var item : c) {
 					@SuppressWarnings("unchecked")
 					var e = (E)item;

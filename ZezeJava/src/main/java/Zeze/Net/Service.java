@@ -90,11 +90,13 @@ public class Service {
 	/** 
 	 只包含成功建立的连接：服务器Accept和客户端Connected的连接。
 	 
-	 @param serialNo
-	 @return 
+	 @param sessionId
+	 session id
+	 @return
+	 Socket Instance.
 	*/
-	public AsyncSocket GetSocket(long serialNo) {
-		return getSocketMap().get(serialNo);
+	public AsyncSocket GetSocket(long sessionId) {
+		return getSocketMap().get(sessionId);
 	}
 
 	public AsyncSocket GetSocket() {
@@ -149,7 +151,9 @@ public class Service {
 	 ASocket 关闭的时候总是回调。
 	 
 	 @param so
+	 closing socket
 	 @param e
+	 catched exception, null for none.
 	*/
 	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 		SocketMap.remove(so.getSessionId(), so);
@@ -166,6 +170,7 @@ public class Service {
 	 使用时判断返回值：主要是 Send 返回 false。
 	 
 	 @param so
+	 after socket closed. last callback.
 	*/
 	public void OnSocketDisposed(AsyncSocket so) throws Throwable {
 		// 一般实现：遍历RpcContexts，
@@ -197,7 +202,7 @@ public class Service {
 	public final Collection<Protocol> RemoveRpcContets(Collection<Long> sids) {
 		var result = new ArrayList<Protocol>(sids.size());
 		for (var sid : sids) {
-			var ctx = this.<Protocol>RemoveRpcContext(sid);
+			var ctx = this.RemoveRpcContext(sid);
 			if (null != ctx) {
 				result.add(ctx);
 			}
@@ -209,6 +214,7 @@ public class Service {
 	 服务器接受到新连接回调。
 	 
 	 @param so
+	 new socket accepted.
 	*/
 	public void OnSocketAccept(AsyncSocket so) throws Throwable {
 		SocketMap.putIfAbsent(so.getSessionId(), so);
@@ -235,7 +241,9 @@ public class Service {
 	 连接失败回调。同时也会回调OnSocketClose。
 	 
 	 @param so
+	 socket that connect error.
 	 @param e
+	 excepton catched
 	*/
 	public void OnSocketConnectError(AsyncSocket so, Throwable e) throws Throwable {
 		SocketMap.remove(so.getSessionId(), so);
@@ -246,6 +254,7 @@ public class Service {
 	 连接成功回调。
 	 
 	 @param so
+	 connect successed
 	*/
 	public void OnSocketConnected(AsyncSocket so) throws Throwable {
 		SocketMap.putIfAbsent(so.getSessionId(), so);
@@ -257,7 +266,9 @@ public class Service {
 	 在异步线程中回调，要注意线程安全。
 	 
 	 @param so
+	 current socket
 	 @param input
+	 data
 	*/
 	public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Throwable {
 		Protocol.Decode(this, so, input);
@@ -279,7 +290,7 @@ public class Service {
 
 	public final void DispatchProtocol2(Object key, Protocol p, ProtocolFactoryHandle factoryHandle) throws Throwable {
 		if (null != factoryHandle.Handle) {
-			if (null != getZeze() && TransactionLevel.None != factoryHandle.Level) {
+			if (TransactionLevel.None != factoryHandle.Level) {
 				getZeze().getTaskOneByOneByKey().Execute(key, () ->
 					Task.Call(getZeze().NewProcedure(
 							() -> factoryHandle.Handle.handle(p),
@@ -294,8 +305,7 @@ public class Service {
 			else {
 				getZeze().getTaskOneByOneByKey().Execute(key,
 						() -> Task.Call(() -> factoryHandle.Handle.handle(p),
-						p,
-						(p2, code) -> p2.SendResultCode(code)));
+								p, Protocol::SendResultCode));
 			}
 		}
 		else {
@@ -486,7 +496,7 @@ public class Service {
 			while (interfaces.hasMoreElements()) {
 				NetworkInterface networkInterface = interfaces.nextElement();
 				Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
-				while (inetAddresses.hasMoreElements()) {
+				if (inetAddresses.hasMoreElements()) {
 					var inetaddr = inetAddresses.nextElement();
 					return inetaddr.getHostAddress();
 				}

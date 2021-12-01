@@ -1,9 +1,6 @@
 package Zeze.Transaction;
 
-import java.util.concurrent.Callable;
-
 import Zeze.Util.TaskCanceledException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,7 +25,7 @@ public class Procedure {
 
 	private static final Logger logger = LogManager.getLogger(Procedure.class);
 
-	private Application Zeze;
+	private final Application Zeze;
 	public final Application getZeze() {
 		return Zeze;
 	}
@@ -84,7 +81,7 @@ public class Procedure {
 	 创建 Savepoint 并执行。
 	 嵌套 Procedure 实现，
 
-	 @return
+	 @return 0 success; other means error.
 	*/
 	public final long Call() throws Throwable {
 		if (null == Transaction.getCurrent()) {

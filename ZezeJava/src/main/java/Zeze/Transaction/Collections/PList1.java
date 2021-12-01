@@ -6,8 +6,6 @@ import org.pcollections.PVector;
 import Zeze.Transaction.*;
 
 import java.util.Collection;
-import java.util.List;
-import java.util.ListIterator;
 
 public final class PList1<E> extends PList<E> {
 	public PList1(long logKey, LogFactory<PVector<E>> logFactory) {
@@ -50,12 +48,11 @@ public final class PList1<E> extends PList<E> {
 			@SuppressWarnings("unchecked")
 			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.plus(item)));
-			return true;
 		}
 		else {
 			list = list.plus(item);
-			return true;
 		}
+		return true;
 	}
 
 	@Override
@@ -74,12 +71,11 @@ public final class PList1<E> extends PList<E> {
 			@SuppressWarnings("unchecked")
 			var oldv = null != log ? ((LogV<E>)log).Value : list;
 			txn.PutLog(NewLog(oldv.plusAll(items)));
-			return true;
 		}
 		else {
 			list = list.plusAll(items);
-			return true;
 		}
+		return true;
 	}
 
 	@Override

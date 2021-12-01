@@ -1,7 +1,6 @@
 package Zeze.Util;
 
 import java.util.*;
-import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -120,7 +119,7 @@ public final class TaskOneByOneByKey {
 	private static int Hash(int _h) {
 		int h = _h;
 		h ^= (h >>> 20) ^ (h >>> 12);
-		return (int)(h ^ (h >>> 7) ^ (h >>> 4));
+		return (h ^ (h >>> 7) ^ (h >>> 4));
 	}
 
 	static class Task {

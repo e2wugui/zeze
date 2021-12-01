@@ -88,12 +88,12 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
 	}
 
     public Set<K> keySet() {
-        return new AbstractSet<K>() {
+        return new AbstractSet<>() {
 
 			@Override
 			public Iterator<K> iterator() {
-				return new Iterator<K>() {
-					private Iterator<Entry<K, V>> it = entrySet().iterator();
+				return new Iterator<>() {
+					private final Iterator<Entry<K, V>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -120,12 +120,12 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
     }
 
     public Collection<V> values() {
-        return new AbstractCollection<V>() {
+        return new AbstractCollection<>() {
 
 			@Override
 			public Iterator<V> iterator() {
-				return new Iterator<V>() {
-					private Iterator<Entry<K, V>> it = entrySet().iterator();
+				return new Iterator<>() {
+					private final Iterator<Entry<K, V>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -139,7 +139,7 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
 					
 					public void remove() {
 						it.remove();
-					};
+					}
 				} ;
 			}
 
@@ -151,13 +151,13 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
     }
 
     public Set<Map.Entry<K, V>> entrySet() {
-    	return new AbstractSet<Map.Entry<K,V>>() {
+    	return new AbstractSet<>() {
     		
 			@Override
 			public Iterator<Entry<K, V>> iterator() {
-				return new Iterator<Map.Entry<K,V>>() {
+				return new Iterator<>() {
 					
-					private Iterator<Map.Entry<K,V>> it = getData().entrySet().iterator();
+					private final Iterator<Map.Entry<K,V>> it = getData().entrySet().iterator();
 					Map.Entry<K,V> next;
 					@Override
 					public boolean hasNext() {

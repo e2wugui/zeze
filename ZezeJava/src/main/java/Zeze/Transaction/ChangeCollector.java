@@ -15,7 +15,7 @@ public final class ChangeCollector {
 	public void BuildCollect(Application zeze, TableKey tableKey, Zeze.Transaction.RecordAccessed recordAccessed) {
 		var tableCollector = tables.get(tableKey.getName());
 		if (null == tableCollector) {
-			tableCollector = new ChangeTableCollector(zeze.GetTable(tableKey.getName()), tableKey);
+			tableCollector = new ChangeTableCollector(zeze.GetTable(tableKey.getName()));
 			tables.put(tableKey.getName(), tableCollector);
 		}
 		tableCollector.BuildCollect(tableKey, recordAccessed);

@@ -4,13 +4,12 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class IdentityHashSet<E> implements Iterable<E> {
-    private Map<E, E> Impl;
+    private final Map<E, E> Impl;
 
     public IdentityHashSet() {
-        Impl = Collections.synchronizedMap(new IdentityHashMap<E, E>());
+        Impl = Collections.synchronizedMap(new IdentityHashMap<>());
     }
 
     public boolean Add(E e) {

@@ -246,7 +246,7 @@ public final class WeakHashSet<K> {
 		}
 		int n2 = n + n;
 		Entry[] dest = new Entry[n2];
-		/** Transfers all entries from table to dest tables */
+		/* Transfers all entries from table to dest tables */
 		for (Entry<K> entry : table) {
 			Entry<K> e = entry;
 			while (e != null) {

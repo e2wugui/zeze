@@ -15,7 +15,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 	}
 
 	public final static class OperatesSqlServer implements Operates {
-		private DatabaseSqlServer DatabaseReal;
+		private final DatabaseSqlServer DatabaseReal;
 		public DatabaseSqlServer getDatabaseReal() {
 			return DatabaseReal;
 		}
@@ -78,7 +78,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.setBytes(1, key.Copy());
 					try (var reader = cmd.executeQuery()) {
-						while (reader.next()) {
+						if (reader.next()) {
 							var result = new DataWithVersion();
 							result.Data = ByteBuffer.Wrap(reader.getBytes(1));
 							result.Version = reader.getLong(2);
@@ -291,14 +291,14 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 	}
 
 	public final static class TableSqlServer implements Database.Table {
-		private DatabaseSqlServer DatabaseReal;
+		private final DatabaseSqlServer DatabaseReal;
 		public DatabaseSqlServer getDatabaseReal() {
 			return DatabaseReal;
 		}
 		public Database getDatabase() {
 			return getDatabaseReal();
 		}
-		private String Name;
+		private final String Name;
 		public String getName() {
 			return Name;
 		}
@@ -331,8 +331,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.setBytes(1, key.Copy());
 					try (var reader = cmd.executeQuery()) {
-						while (reader.next()) {
-							byte[] value = (byte[])reader.getBytes(1);
+						if (reader.next()) {
+							byte[] value = reader.getBytes(1);
 							return ByteBuffer.Wrap(value);
 						}
 						return null;
@@ -382,7 +382,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 							byte[] key = reader.getBytes(1);
 							byte[] value = reader.getBytes(2);
 							++count;
-							if (false == callback.handle(key, value)) {
+							if (!callback.handle(key, value)) {
 								break;
 							}
 						}

@@ -2,9 +2,7 @@ package Zeze.Transaction;
 
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
-import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
@@ -14,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 public final class Checkpoint {
 	private static final Logger logger = LogManager.getLogger(Checkpoint.class);
 
-	private final HashSet<Database> Databases = new HashSet<Database> ();
+	private final HashSet<Database> Databases = new HashSet<> ();
 	private HashSet<Database> getDatabases() {
 		return Databases;
 	}
@@ -36,17 +34,17 @@ public final class Checkpoint {
 		Period = value;
 	}
 
-	private CheckpointMode Mode = CheckpointMode.Period;
+	private final CheckpointMode Mode;
 	public CheckpointMode getCheckpointMode() {
 		return Mode;
 	}
 
-	private Thread CheckpointThread;
+	private final Thread CheckpointThread;
 
 	public Checkpoint(CheckpointMode mode, int serverId) {
 		Mode = mode;
 		CheckpointThread = new Thread(
-				() -> Task.Call(() -> Run(), "Checkpoint.Run"),
+				() -> Task.Call(this::Run, "Checkpoint.Run"),
 				"ChectpointThread-" + serverId);
 	}
 
@@ -54,7 +52,7 @@ public final class Checkpoint {
 		Mode = mode;
 		Add(dbs);
 		CheckpointThread = new Thread(
-				() -> Task.Call(() -> Run(), "Checkpoint.Run"),
+				() -> Task.Call(this::Run, "Checkpoint.Run"),
 				"ChectpointThread-" + serverId);
 	}
 
@@ -109,7 +107,7 @@ public final class Checkpoint {
 				break;
 
 			case Period:
-				final TaskCompletionSource<Integer> source = new TaskCompletionSource<Integer>();
+				final TaskCompletionSource<Integer> source = new TaskCompletionSource<>();
 				AddActionAndPulse(() -> source.SetResult(0));
 				source.Wait();
 				break;
@@ -174,6 +172,7 @@ public final class Checkpoint {
 	 之前的动作在本次checkpoint完成时执行，之后的动作在下一次DoCheckpoint后执行。
 	 
 	 @param act
+	 action
 	*/
 	public void AddActionAndPulse(Runnable act) {
 		final var r = FlushReadWriteLock.readLock();

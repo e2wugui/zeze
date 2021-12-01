@@ -17,10 +17,4 @@ public class ReLogin extends Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean
         Argument = new LoginParam();
         Result = new Zeze.Transaction.EmptyBean();
     }
-
-    public ReLogin(int id) {
-        Argument = new LoginParam();
-        Result = new Zeze.Transaction.EmptyBean();
-        Argument.ServerId = id;
-    }
 }

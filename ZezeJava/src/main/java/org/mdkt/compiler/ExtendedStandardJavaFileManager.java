@@ -27,6 +27,7 @@ public class ExtendedStandardJavaFileManager extends
 	 * @param fileManager
 	 *            delegate to this file manager
 	 * @param cl
+	 * 			  class loader
 	 */
 	protected ExtendedStandardJavaFileManager(JavaFileManager fileManager,
 			DynamicClassLoader cl) {

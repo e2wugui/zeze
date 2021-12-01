@@ -5,7 +5,7 @@ import Zeze.*;
 import Zeze.Services.GlobalCacheManager.*;
 
 public final class GlobalClient extends Zeze.Net.Service {
-	private GlobalAgent agent;
+	private final GlobalAgent agent;
 
 	public GlobalClient(GlobalAgent agent, Application zeze) throws Throwable {
 		super(Zeze.Util.Str.format("{}.GlobalClient", agent.getZeze().getSolutionName()), zeze);
@@ -24,7 +24,6 @@ public final class GlobalClient extends Zeze.Net.Service {
 			relogin.Send(so, (ThisRpc) -> {
 						if (relogin.isTimeout()) {
 							agent.getLogined().TrySetException(new RuntimeException("GloalAgent.ReLogin Timeout"));
-							;
 						}
 						else if (relogin.getResultCode() != 0) {
 							agent.getLogined().TrySetException(new RuntimeException("GlobalAgent.ReLogoin Error " + relogin.getResultCode()));
@@ -43,7 +42,6 @@ public final class GlobalClient extends Zeze.Net.Service {
 			login.Send(so, (ThisRpc) -> {
 						if (login.isTimeout()) {
 							agent.getLogined().TrySetException(new RuntimeException("GloalAgent.Login Timeout"));
-							;
 						}
 						else if (login.getResultCode() != 0) {
 							agent.getLogined().TrySetException(new RuntimeException("GlobalAgent.Logoin Error " + login.getResultCode()));
@@ -79,8 +77,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 	@Override
 	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 		super.OnSocketClose(so, e);
-		Object tempVar = so.getUserState();
-		var agent = tempVar instanceof GlobalAgent.Agent ? (GlobalAgent.Agent)tempVar : null;
+		var agent = (GlobalAgent.Agent)so.getUserState();
 		if (null == e) {
 			e = new RuntimeException("Peer Normal Close.");
 		}

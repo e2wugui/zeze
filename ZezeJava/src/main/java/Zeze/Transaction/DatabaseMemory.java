@@ -21,7 +21,7 @@ public final class DatabaseMemory extends Database {
 		public final void SetInUse(int localId, String global) {
 		}
 
-		private HashMap<ByteBuffer, DataWithVersion> DataWithVersions = new HashMap<>();
+		private final HashMap<ByteBuffer, DataWithVersion> DataWithVersions = new HashMap<>();
 
 		public DataWithVersion GetDataWithVersion(ByteBuffer key) {
 			synchronized (DataWithVersions) {
@@ -71,25 +71,25 @@ public final class DatabaseMemory extends Database {
 		return new MemTrans(getDatabaseUrl());
 	}
 
-	private static ConcurrentHashMap<String, ConcurrentHashMap<String, TableMemory>> databaseTables = new ConcurrentHashMap<>();
+	private final static ConcurrentHashMap<String, ConcurrentHashMap<String, TableMemory>> databaseTables = new ConcurrentHashMap<>();
 
 	@Override
 	public Database.Table OpenTable(String name) {
 		var tables = databaseTables.computeIfAbsent(getDatabaseUrl(),
-				(urlnotused) -> new java.util.concurrent.ConcurrentHashMap<String, TableMemory>());
+				(urlnotused) -> new java.util.concurrent.ConcurrentHashMap<>());
 
 		return tables.computeIfAbsent(name, (tablenamenotused) -> new TableMemory(this, name));
 	}
 
 	public final static class TableMemory implements Database.Table {
-		private DatabaseMemory DatabaseReal;
+		private final DatabaseMemory DatabaseReal;
 		public DatabaseMemory getDatabaseReal() {
 			return DatabaseReal;
 		}
 		public Database getDatabase() {
 			return getDatabaseReal();
 		}
-		private String Name;
+		private final String Name;
 		public String getName() {
 			return Name;
 		}
@@ -99,7 +99,7 @@ public final class DatabaseMemory extends Database {
 			Name = name;
 		}
 
-		private ConcurrentHashMap<ByteBuffer, byte[]> Map = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<ByteBuffer, byte[]> Map = new ConcurrentHashMap<>();
 
 		public ByteBuffer Find(ByteBuffer key) {
 			var value = Map.get(key);
@@ -122,7 +122,7 @@ public final class DatabaseMemory extends Database {
 				long count = 0;
 				for (var e : Map.entrySet()) {
 					++count;
-					if (false == callback.handle(e.getKey().Bytes, e.getValue())) {
+					if (!callback.handle(e.getKey().Bytes, e.getValue())) {
 						break;
 					}
 				}

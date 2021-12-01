@@ -19,7 +19,7 @@ public class EventDispatcher {
 		public static EventArg Empty = new EventArg();
 	}
 
-	private ConcurrentHashMap<String, EventHandle> Handles = new ConcurrentHashMap<> ();
+	private final ConcurrentHashMap<String, EventHandle> Handles = new ConcurrentHashMap<> ();
 
 	public final void AddEventHandle(EventHandle handle) {
 		AddEventHandle(handle, null);
