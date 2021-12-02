@@ -8,7 +8,7 @@ namespace Zeze.Util
     public class PersistentAtomicLong
     {
         private readonly AtomicLong CurrentId = new AtomicLong();
-        private volatile long allocated;
+        private AtomicLong allocated = new AtomicLong();
 
         private readonly string FileName;
         private readonly int AllocateSize;
@@ -49,8 +49,9 @@ namespace Zeze.Util
                 var lines = File.ReadAllLines(FileName);
                 if (lines.Length > 0)
                 {
-                    allocated = long.Parse(lines[0]);
-                    CurrentId.GetAndSet(allocated);
+                    var alloc = long.Parse(lines[0]);
+                    allocated.GetAndSet(alloc);
+                    CurrentId.GetAndSet(alloc);
                 }
             }
             // 初始化的时候不allocate，如果程序启动，没有分配就退出，保持原来的值。
@@ -61,7 +62,7 @@ namespace Zeze.Util
             for (; ; )
             {
                 long current = CurrentId.Get();
-                if (current >= allocated)
+                if (current >= allocated.Get())
                 {
                     Allocate();
                     continue;
@@ -74,10 +75,10 @@ namespace Zeze.Util
         private void Allocate()
         {
             lock (this) {
-                if (CurrentId.Get() < allocated)
+                if (CurrentId.Get() < allocated.Get())
                     return; // has allocated. concurrent.
 
-                allocated += AllocateSize;
+                allocated.AddAndGet(AllocateSize);
                 // 应该尽量减少allocate的次数，所以这里文件就不保持打开了。
                 File.WriteAllText(FileName, allocated.ToString());
             }

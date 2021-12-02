@@ -37,7 +37,7 @@ public class TestProcedureRedo {
 
         }, "TestProcedureRedoFirst").Call();
 
-        Task.Run(App.getInstance().Zeze.NewProcedure(()  -> {
+        var ftask1 = Task.Run(App.getInstance().Zeze.NewProcedure(()  -> {
 
             var v = App.getInstance().demo_Module1.getTable1().getOrAdd(6785L);
             long vLong = v.getLong2();
@@ -58,7 +58,7 @@ public class TestProcedureRedo {
 
         }, "TestProcedureRedoTask1"));
 
-        Task.Run(App.getInstance().Zeze.NewProcedure(()  -> {
+        var ftask2 = Task.Run(App.getInstance().Zeze.NewProcedure(()  -> {
 
             var v = App.getInstance().demo_Module1.getTable1().getOrAdd(6785L);
             long vInt = v.getLong2();
@@ -74,6 +74,9 @@ public class TestProcedureRedo {
             return Procedure.Success;
 
         }, "TestProcedureRedoTask2"));
+
+        ftask2.get();
+        ftask1.get();
     }
 }
 
