@@ -44,6 +44,9 @@ public class RelativeRecordSet {
 	}
 
 	private void Merge(Record r) {
+		//if (r.getRelativeRecordSet().RecordSet != null)
+		//    return; // 这里仅合并孤立记录。外面检查。
+
 		if (getRecordSet() == null) {
 			setRecordSet(new HashSet<>());
 		}
@@ -221,6 +224,7 @@ public class RelativeRecordSet {
 			largest.Merge(r);
 		}
 
+		// merge 孤立记录。
 		for (var ar : trans.getAccessedRecords().values()) {
 			if (ar.OriginRecord.getRelativeRecordSet().RecordSet == null)
 				largest.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
@@ -296,9 +300,9 @@ public class RelativeRecordSet {
 						all.put(volatileTmp.Id, volatileTmp);
 					}
 				}
-			} else {
-				all.put(mergeTo.Id, mergeTo);
+				return false;
 			}
+			all.put(mergeTo.Id, mergeTo);
 			return false;
 		}
 		locked.add(rrs);
