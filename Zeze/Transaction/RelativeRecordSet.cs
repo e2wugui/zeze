@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Util;
 
 namespace Zeze.Transaction
 {
@@ -33,17 +34,41 @@ namespace Zeze.Transaction
             Id = IdGenerator.IncrementAndGet();
         }
 
-        private void Merge(RelativeRecordSet rrs)
+        private void Merge(KV<Record, RelativeRecordSet> rrrs)
         {
-            // check outside
-            //if (rrs == this)
-            //    throw new Exception("!!!");
+            var rrs = rrrs.Value;
 
-            if (rrs.RecordSet == null)
-                return; // 孤立记录，后面单独合并。
+            if (rrs == this)
+                throw new Exception("!!!");
 
             if (RecordSet == null)
                 RecordSet = new HashSet<Record>();
+
+            if (rrs.RecordSet == null)
+            {
+                // 孤立记录
+                var r = rrrs.Key;
+                RecordSet.Add(r);
+                if (r.RelativeRecordSet != this) // 自己：不需要更新MergeTo和引用。
+                {
+                    // check outside
+                    //if (r.RelativeRecordSet.RecordSet != null)
+                    //    throw new Exception("Error State: Only Isolated Record Need Merge This Way.");
+
+                    r.RelativeRecordSet.MergeTo = this;
+
+                    // 在原孤立集合中添加当前记录的引用。
+                    // 并发访问时，可以从这里重新得到新的集合的引用。
+                    // 孤立集合初始化时没有包含自己。
+                    // 【注意】这个不需要了，_lock_and_check_ 里面直接从MergeTo得到新关联集合。
+                    //r.RelativeRecordSet.RecordSet = new HashSet<Record>();
+                    //r.RelativeRecordSet.RecordSet.Add(r);
+
+                    // setup new ref
+                    r.RelativeRecordSet = this;
+                }
+                return;
+            }
 
             foreach (var r in rrs.RecordSet)
             {
@@ -52,32 +77,6 @@ namespace Zeze.Transaction
             }
 
             rrs.MergeTo = this;
-        }
-
-        private void Merge(Record r)
-        {
-            if (RecordSet == null)
-                RecordSet = new HashSet<Record>();
-
-            RecordSet.Add(r);
-
-            if (r.RelativeRecordSet != this) // 自己：不需要更新MergeTo和引用。
-            {
-                // check outside
-                //if (r.RelativeRecordSet.RecordSet != null)
-                //    throw new Exception("Error State: Only Isolated Record Need Merge This Way.");
-
-                r.RelativeRecordSet.MergeTo = this;
-
-                // 在原孤立集合中添加当前记录的引用。
-                // 并发访问时，可以从这里重新得到新的集合的引用。
-                // 孤立集合初始化时没有包含自己。
-                r.RelativeRecordSet.RecordSet = new HashSet<Record>();
-                r.RelativeRecordSet.RecordSet.Add(r);
-
-                // setup new ref
-                r.RelativeRecordSet = this;
-            }
         }
 
         internal void Delete()
@@ -126,7 +125,7 @@ namespace Zeze.Transaction
             // CheckpointMode.Table
             bool needFlushNow = false;
             bool allCheckpointWhenCommit = true;
-            var RelativeRecordSets = new SortedDictionary<long, RelativeRecordSet>();
+            var RelativeRecordSets = new SortedDictionary<long, KV<Record, RelativeRecordSet>>();
             foreach (var ar in trans.AccessedRecords.Values)
             {
                 if (ar.OriginRecord.Table.TableConf.CheckpointWhenCommit)
@@ -139,8 +138,12 @@ namespace Zeze.Transaction
                 {
                     allCheckpointWhenCommit = false;
                 }
-                RelativeRecordSets[ar.OriginRecord.RelativeRecordSet.Id]
-                    = ar.OriginRecord.RelativeRecordSet;
+                if (false == RelativeRecordSets.ContainsKey(ar.OriginRecord.RelativeRecordSet.Id))
+                {
+                    // 关联集合稳定（访问的记录都在一个关联集合中）的时候。查询存在，少创建一个对象。
+                    RelativeRecordSets.Add(ar.OriginRecord.RelativeRecordSet.Id,
+                        KV.Create(ar.OriginRecord, ar.OriginRecord.RelativeRecordSet));
+                }
             }
 
             if (allCheckpointWhenCommit)
@@ -155,7 +158,7 @@ namespace Zeze.Transaction
                 return;
             }
 
-            var LockedRelativeRecordSets = new List<RelativeRecordSet>();
+            var LockedRelativeRecordSets = new List<KV<Record, RelativeRecordSet>>();
             try
             {
                 _lock_(LockedRelativeRecordSets, RelativeRecordSets);
@@ -192,7 +195,7 @@ namespace Zeze.Transaction
                         return;
                     }
                     */
-                    var mergedSet = _merge_(LockedRelativeRecordSets, trans);
+                    var mergedSet = _merge_(LockedRelativeRecordSets);
                     commit(); // 必须在锁获得并且合并完集合以后才提交修改。
                     if (needFlushNow)
                     {
@@ -211,68 +214,63 @@ namespace Zeze.Transaction
             }
             finally
             {
-                foreach (var relative in LockedRelativeRecordSets)
+                foreach (var rrrs in LockedRelativeRecordSets)
                 {
-                    relative.UnLock();
+                    rrrs.Value.UnLock();
                 }
             }
         }
 
-        private static RelativeRecordSet _merge_(
-            List<RelativeRecordSet> LockedRelativeRecordSets,
-            Transaction trans)
+        private static RelativeRecordSet _merge_(List<KV<Record, RelativeRecordSet>> LockedRelativeRecordSets)
         {
             // find largest
-            RelativeRecordSet largestCountSet = LockedRelativeRecordSets[0];
+            var largest = LockedRelativeRecordSets[0];
             for (int index = 1; index < LockedRelativeRecordSets.Count; ++index)
             {
                 var r = LockedRelativeRecordSets[index];
-                var cur = largestCountSet.RecordSet == null
-                    ? 0 : largestCountSet.RecordSet.Count;
-                if (r.RecordSet != null && r.RecordSet.Count > cur)
+                var cur = largest.Value.RecordSet == null
+                    ? 1 : largest.Value.RecordSet.Count;
+                if (r.Value.RecordSet != null && r.Value.RecordSet.Count > cur)
                 {
-                    largestCountSet = r;
+                    largest = r;
                 }
             }
             // merge all other set to largest
             foreach (var r in LockedRelativeRecordSets)
             {
-                if (r == largestCountSet)
-                    continue; // skip self
-                largestCountSet.Merge(r);
+                if (r == largest)
+                {
+                    if (largest.Value.RecordSet != null)
+                    {
+                        // 当前目标是孤立记录时，需要把自己的记录添加进去。此时不需要修改MergeTo。
+                        largest.Value.RecordSet = new HashSet<Record>();
+                        largest.Value.RecordSet.Add(largest.Key);
+                    }
+                    continue;
+                }
+                largest.Value.Merge(r);
             }
-            // 合并当前事务中访问的孤立记录。
-            foreach (var ar in trans.AccessedRecords.Values)
-            {
-                // 记录访问 已经存在关联集合 需要额外合并记录
-                // 读取     不存在          不需要（仅仅读取孤立记录，不需要加入关联集合）
-                // 读取     存在（已有修改） 不需要（存在的集合前面合并了）
-                // 修改     不存在（第一次） 【需要】
-                // 修改     存在（继续修改） 不需要（存在的集合前面合并了）
-                if (ar.Dirty && ar.OriginRecord.RelativeRecordSet.RecordSet == null)
-                    largestCountSet.Merge(ar.OriginRecord);
-            }
-            return largestCountSet;
+            return largest.Value;
         }
 
         private static void _lock_(
-            List<RelativeRecordSet> LockedRelativeRecordSets,
-            SortedDictionary<long, RelativeRecordSet> RelativeRecordSets)
+            List<KV<Record, RelativeRecordSet>> LockedRelativeRecordSets,
+            SortedDictionary<long, KV<Record, RelativeRecordSet>> RelativeRecordSets)
         {
             LabelLockRelativeRecordSets:
             {
                 int index = 0;
                 int n = LockedRelativeRecordSets.Count;
-                foreach (var rrs in RelativeRecordSets.Values)
+                foreach (var rrrs in RelativeRecordSets.Values)
                 {
                     if (index >= n)
                     {
-                        if (_lock_and_check_(LockedRelativeRecordSets, RelativeRecordSets, rrs))
+                        if (_lock_and_check_(LockedRelativeRecordSets, RelativeRecordSets, rrrs))
                             continue;
                         goto LabelLockRelativeRecordSets;
                     }
                     var curset = LockedRelativeRecordSets[index];
-                    int c = curset.Id.CompareTo(rrs.Id);
+                    int c = curset.Value.Id.CompareTo(rrrs.Value.Id);
                     if (c == 0)
                     {
                         ++index;
@@ -284,10 +282,10 @@ namespace Zeze.Transaction
                         int unlockEndIndex = index;
                         for (;
                             unlockEndIndex < n
-                            && LockedRelativeRecordSets[unlockEndIndex].Id.CompareTo(rrs.Id) < 0;
+                            && LockedRelativeRecordSets[unlockEndIndex].Value.Id < rrrs.Value.Id;
                             ++unlockEndIndex)
                         {
-                            LockedRelativeRecordSets[unlockEndIndex].UnLock();
+                            LockedRelativeRecordSets[unlockEndIndex].Value.UnLock();
                         }
                         LockedRelativeRecordSets.RemoveRange(index, unlockEndIndex - index);
                         n = LockedRelativeRecordSets.Count;
@@ -297,7 +295,7 @@ namespace Zeze.Transaction
                     // 从当前位置释放锁，再次尝试。
                     for (int i = index; i < n; ++i)
                     {
-                        LockedRelativeRecordSets[i].UnLock();
+                        LockedRelativeRecordSets[i].Value.UnLock();
                     }
                     LockedRelativeRecordSets.RemoveRange(index, n - index);
                     n = LockedRelativeRecordSets.Count;
@@ -306,29 +304,34 @@ namespace Zeze.Transaction
         }
 
         private static bool _lock_and_check_(
-            List<RelativeRecordSet> locked,
-            SortedDictionary<long, RelativeRecordSet> all,
-            RelativeRecordSet rrs)
+            List<KV<Record, RelativeRecordSet>> locked,
+            SortedDictionary<long, KV<Record, RelativeRecordSet>> all,
+            KV<Record, RelativeRecordSet> rrrs)
         {
+            var rrs = rrrs.Value;
             rrs.Lock();
+            var mergeTo = rrs.MergeTo;
             if (rrs.MergeTo != null)
             {
                 rrs.UnLock();
 
-                if (rrs.MergeTo == rrs)
+                if (mergeTo == Deleted)
+                {
+                    // 拿到被删除的关联集合，此时处于其关联集合处于重新设置过程中。
+                    // 需要重新读取。由于并发访问可能会循环多次。
+                    rrrs.Value = rrrs.Key.RelativeRecordSet; // volatile
+                    return false;
+                }
+
+                if (mergeTo == rrs)
                     throw new Exception("Impossible!");
 
-                all.Remove(rrs.Id);
-
-                // 重新读取记录的关联集合的引用（并发）。
-                foreach (var r in rrs.RecordSet)
-                {
-                    var tmp = r.RelativeRecordSet; // concurrent
-                    all[tmp.Id] = tmp;
-                }
+                // 这个和上面Deleted相比会快一点，MergeTo是锁内获得的，肯定是新的。
+                // 当然，由于并发访问，也可能会循环多次。
+                rrrs.Value = mergeTo;
                 return false;
             }
-            locked.Add(rrs);
+            locked.Add(rrrs);
             return true;
         }
 

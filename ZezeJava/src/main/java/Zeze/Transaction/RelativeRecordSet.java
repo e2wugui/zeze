@@ -135,8 +135,11 @@ public class RelativeRecordSet {
 				allCheckpointWhenCommit = false;
 			}
 			// 读写都需要收集。
-			RelativeRecordSets.put(ar.OriginRecord.getRelativeRecordSet().getId(),
-					KV.Create(ar.OriginRecord, ar.OriginRecord.getRelativeRecordSet()));
+			if (!RelativeRecordSets.containsKey(ar.OriginRecord.getRelativeRecordSet().Id)) {
+				// 关联集合稳定（访问的记录都在一个关联集合中）的时候。查询存在，少创建一个对象。
+				RelativeRecordSets.put(ar.OriginRecord.getRelativeRecordSet().Id,
+						KV.Create(ar.OriginRecord, ar.OriginRecord.getRelativeRecordSet()));
+			}
 		}
 
 		if (allCheckpointWhenCommit) {
