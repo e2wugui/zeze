@@ -32,6 +32,8 @@ Raft
 RelativeRecordSet
     当自己是合并目标，并且自己是孤立记录的时候的处理调整。【不爽】
 
+CheckpointMode.Table Merge 逻辑BUG：c#修改。
+
 【新改动】
 	整体并发测试，需要包含 TableCache.Cleanup。
 	Global.Release并发问题确认

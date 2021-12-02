@@ -63,7 +63,7 @@ namespace Zeze.Transaction
         internal long LastErrorGlobalSerialId { get; set; }
 
         public abstract Table Table { get; }
-        private volatile RelativeRecordSet _RelativeRecordSet = new RelativeRecordSet();;
+        private volatile RelativeRecordSet _RelativeRecordSet = new RelativeRecordSet();
 
         internal RelativeRecordSet RelativeRecordSet
         {
