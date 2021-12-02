@@ -444,7 +444,7 @@ public final class Transaction {
 						// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
 						var acquire = e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify);
 						if (acquire.Result.State != GlobalCacheManagerServer.StateModify) {
-							logger.warn("Acquire Faild. Maybe DeadLock Found {}", e.OriginRecord);
+							logger.debug("Acquire Faild. Maybe DeadLock Found {}", e.OriginRecord);
 							e.OriginRecord.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
 							LastTableKeyOfRedoAndRelease = e.getTableKey();
 							e.OriginRecord.LastErrorGlobalSerialId = acquire.Result.GlobalSerialId; // save

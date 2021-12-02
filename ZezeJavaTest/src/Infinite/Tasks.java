@@ -1,5 +1,6 @@
 package Infinite;
 
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 
 import java.lang.reflect.Method;
@@ -104,7 +105,11 @@ public class Tasks {
                 for (var r : runs.entrySet()) {
                     var s = success.get(r.getKey());
                     assert null != s;
-                    assert r.getValue().get() == s.get();
+                    // ignore toomanytrys error
+                    var toomanytrys = Zeze.Transaction.ProcedureStatistics.getInstance().GetOrAdd(tf.Class.getName()).GetOrAdd(Procedure.TooManyTry).get();
+                    assert r.getValue().get() == s.get() + toomanytrys;
+                    if (toomanytrys != 0)
+                        Infinite.App.logger.fatal("TOOMANYTRS=" + toomanytrys + " " + tf.Class.getName());
                 }
             } catch (Throwable ex) {
                 throw ex;
@@ -129,7 +134,7 @@ public class Tasks {
             for (var e : getRunCounters(name).entrySet()) {
                 assert app.demo_Module1.getTable1().selectDirty(e.getKey()).getLong2() == success.get(e.getKey()).get();
             }
-            Infinite.App.logger.fatal("Table1Long2Add1.verify Ok.");
+            Infinite.App.logger.debug("Table1Long2Add1.verify Ok.");
         }
 
         public static void prepare() throws Throwable {
@@ -149,7 +154,7 @@ public class Tasks {
             var value = App.demo_Module1.getTable1().getOrAdd(Key);
             // 使用 bool4 变量：用来决定添加或者删除。
             if (value.isBool4()) {
-                Infinite.App.logger.error("list9.size()=" + value.getList9().size());
+                //Infinite.App.logger.error("list9.size()=" + value.getList9().size());
                 if (!value.getList9().isEmpty())
                     value.getList9().remove(value.getList9().size() - 1);
 

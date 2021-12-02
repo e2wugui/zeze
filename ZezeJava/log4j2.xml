@@ -37,7 +37,7 @@
 		<logger name="org" level="INFO"></logger>
 		<logger name="io.netty" level="INFO"></logger>
 
-		<root level="debug">
+		<root level="info">
 			<appender-ref ref="Console" />
 			<appender-ref ref="infolog" />
 			<appender-ref ref="errorlog" />
