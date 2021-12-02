@@ -47,13 +47,17 @@ public class RelativeRecordSet {
 	private void Merge(KV<Record, RelativeRecordSet> rrrs) {
 		final var rrs = rrrs.getValue();
 
+		if (rrs == this) // 这个方法仅用于合并其他rrs，自己是孤立记录时外面特别处理。
+			throw new RuntimeException("Merge Self! " + rrs);
+
+		if (getRecordSet() == null) {
+			setRecordSet(new HashSet<>());
+		}
+
 		if (rrs.getRecordSet() == null) {
 			// 合并孤立记录
 			final var r = rrrs.getKey();
 			// 必须在这里创建，因为使用的地方有自己合并自己。【慢慢调整】
-			if (getRecordSet() == null) {
-				setRecordSet(new HashSet<>());
-			}
 			getRecordSet().add(r);
 			if (r.getRelativeRecordSet() != this) { // 自己：不需要更新MergeTo和引用。
 				r.getRelativeRecordSet().setMergeTo(this);
@@ -67,10 +71,6 @@ public class RelativeRecordSet {
 				r.setRelativeRecordSet(this);
 			}
 			return; // 孤立记录，后面单独合并。
-		}
-
-		if (getRecordSet() == null) {
-			setRecordSet(new HashSet<>());
 		}
 
 		for (var r : rrs.getRecordSet()) {
@@ -222,9 +222,11 @@ public class RelativeRecordSet {
 		// merge all other set to largest
 		for (var r : LockedRelativeRecordSets) {
 			if (r == largest) {
-				// 当前目标是孤立记录时，需要把自己的记录添加进去。
-				if (largest.getValue().RecordSet == null)
-					largest.getValue().Merge(r);
+				if (largest.getValue().RecordSet == null) {
+					// 当前目标是孤立记录时，需要把自己的记录添加进去。此时不需要修改MergeTo。
+					largest.getValue().RecordSet = new HashSet<>();
+					largest.getValue().RecordSet.add(largest.getKey());
+				}
 				continue;
 			}
 			largest.getValue().Merge(r);
