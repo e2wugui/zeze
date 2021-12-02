@@ -58,11 +58,10 @@ namespace Zeze.Transaction
                     r.RelativeRecordSet.MergeTo = this;
 
                     // 在原孤立集合中添加当前记录的引用。
-                    // 并发访问时，可以从这里重新得到新的集合的引用。
+                    // 并发访问时，需要从这里重新得到新的集合的引用。
                     // 孤立集合初始化时没有包含自己。
-                    // 【注意】这个不需要了，_lock_and_check_ 里面直接从MergeTo得到新关联集合。
-                    //r.RelativeRecordSet.RecordSet = new HashSet<Record>();
-                    //r.RelativeRecordSet.RecordSet.Add(r);
+                    r.RelativeRecordSet.RecordSet = new HashSet<Record>();
+                    r.RelativeRecordSet.RecordSet.Add(r);
 
                     // setup new ref
                     r.RelativeRecordSet = this;
@@ -408,6 +407,38 @@ namespace Zeze.Transaction
             {
                 rrs.UnLock();
             }
+        }
+
+        public override string ToString()
+        {
+            Lock();
+            try
+            {
+                if (MergeTo != null)
+                {
+                    return "[MergeTo-" + MergeTo.Id + "]";
+                }
+
+                if (null == RecordSet)
+                {
+                    return Id + "-[Isolated]";
+                }
+                var sb = new StringBuilder();
+                sb.Append(Id).Append("-");
+                Zeze.Serialize.ByteBuffer.BuildString(sb, RecordSet);
+                return sb.ToString();
+            }
+            finally
+            {
+                UnLock();
+            }
+        }
+
+        public static String RelativeRecordSetMapToString()
+        {
+            var sb = new StringBuilder();
+            Zeze.Serialize.ByteBuffer.BuildString(sb, RelativeRecordSetMap.Keys);
+            return sb.ToString();
         }
     }
 }
