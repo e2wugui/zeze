@@ -29,4 +29,9 @@ public class KV<K, V> {
 		tempVar.setValue(value);
 		return tempVar;
 	}
+
+	@Override
+	public String toString() {
+		return "(" + Key + "," + Value + ")";
+	}
 }

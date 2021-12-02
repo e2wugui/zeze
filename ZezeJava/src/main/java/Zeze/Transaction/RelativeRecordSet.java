@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Util.KV;
 
 /** 
  see zeze/README.md -> 18) 事务提交模式
@@ -26,7 +27,7 @@ public class RelativeRecordSet {
 	}
 
 	// 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
-	private RelativeRecordSet MergeTo;
+	private volatile RelativeRecordSet MergeTo;
 	public final RelativeRecordSet getMergeTo() {
 		return MergeTo;
 	}
@@ -43,12 +44,28 @@ public class RelativeRecordSet {
 		Id = IdGenerator.incrementAndGet();
 	}
 
-	private void Merge(RelativeRecordSet rrs) {
-		// check outside
-		//if (rrs == this)
-		//    throw new Exception("!!!");
+	private void Merge(KV<Record, RelativeRecordSet> rrrs) {
+		final var rrs = rrrs.getValue();
 
 		if (rrs.getRecordSet() == null) {
+			// 合并孤立记录
+			final var r = rrrs.getKey();
+			// 必须在这里创建，因为使用的地方有自己合并自己。【慢慢调整】
+			if (getRecordSet() == null) {
+				setRecordSet(new HashSet<>());
+			}
+			getRecordSet().add(r);
+			if (r.getRelativeRecordSet() != this) { // 自己：不需要更新MergeTo和引用。
+				r.getRelativeRecordSet().setMergeTo(this);
+				// 在原孤立集合中添加当前记录的引用。
+				// 并发访问时，可以从这里重新得到新的集合的引用。
+				// 孤立集合初始化时没有包含自己。
+				// 【注意】这个不需要了，_lock_and_check_ 里面直接从MergeTo得到新关联集合。
+				//r.getRelativeRecordSet().setRecordSet(new HashSet<>());
+				//r.getRelativeRecordSet().getRecordSet().add(r);
+				// setup new ref
+				r.setRelativeRecordSet(this);
+			}
 			return; // 孤立记录，后面单独合并。
 		}
 
@@ -62,31 +79,6 @@ public class RelativeRecordSet {
 		}
 
 		rrs.setMergeTo(this);
-	}
-
-	private void Merge(Record r) {
-		if (getRecordSet() == null) {
-			setRecordSet(new HashSet<>());
-		}
-
-		getRecordSet().add(r);
-
-		if (r.getRelativeRecordSet() != this) { // 自己：不需要更新MergeTo和引用。
-			// check outside
-			//if (r.RelativeRecordSet.RecordSet != null)
-			//    throw new Exception("Error State: Only Isolated Record Need Merge This Way.");
-
-			r.getRelativeRecordSet().setMergeTo(this);
-
-			// 在原孤立集合中添加当前记录的引用。
-			// 并发访问时，可以从这里重新得到新的集合的引用。
-			// 孤立集合初始化时没有包含自己。
-			r.getRelativeRecordSet().setRecordSet(new HashSet<>());
-			r.getRelativeRecordSet().getRecordSet().add(r);
-
-			// setup new ref
-			r.setRelativeRecordSet(this);
-		}
 	}
 
 	public final void Delete() {
@@ -130,7 +122,8 @@ public class RelativeRecordSet {
 		// CheckpointMode.Table
 		boolean needFlushNow = false;
 		boolean allCheckpointWhenCommit = true;
-		var RelativeRecordSets = new TreeMap<Long, RelativeRecordSet>();
+		// 原来就是想少创建一个对象，没有记住Record，这个用来处理孤立记录。看来这个KV对象省不掉。【慢慢优化】
+		var RelativeRecordSets = new TreeMap<Long, KV<Record, RelativeRecordSet>>();
 		for (var ar : trans.getAccessedRecords().values()) {
 			if (ar.OriginRecord.getTable().getTableConf().getCheckpointWhenCommit()) {
 				// 修改了需要马上提交的记录。
@@ -141,7 +134,9 @@ public class RelativeRecordSet {
 			else {
 				allCheckpointWhenCommit = false;
 			}
-			RelativeRecordSets.put(ar.OriginRecord.getRelativeRecordSet().getId(), ar.OriginRecord.getRelativeRecordSet());
+			// 读写都需要收集。
+			RelativeRecordSets.put(ar.OriginRecord.getRelativeRecordSet().getId(),
+					KV.Create(ar.OriginRecord, ar.OriginRecord.getRelativeRecordSet()));
 		}
 
 		if (allCheckpointWhenCommit) {
@@ -155,7 +150,7 @@ public class RelativeRecordSet {
 			return;
 		}
 
-		var LockedRelativeRecordSets = new ArrayList<RelativeRecordSet>();
+		var LockedRelativeRecordSets = new ArrayList<KV<Record, RelativeRecordSet>>();
 		try {
 			_lock_(LockedRelativeRecordSets, RelativeRecordSets);
 			if (!LockedRelativeRecordSets.isEmpty()) {
@@ -190,7 +185,7 @@ public class RelativeRecordSet {
 				    return;
 				}
 				*/
-				var mergedSet = _merge_(LockedRelativeRecordSets, trans);
+				var mergedSet = _merge_(LockedRelativeRecordSets);
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
 				if (needFlushNow) {
 					procedure.getZeze().getCheckpoint().Flush(mergedSet);
@@ -207,59 +202,53 @@ public class RelativeRecordSet {
 		}
 		finally {
 			for (var relative : LockedRelativeRecordSets) {
-				relative.UnLock();
+				relative.getValue().UnLock();
 			}
 		}
 	}
 
-	private static RelativeRecordSet _merge_(ArrayList<RelativeRecordSet> LockedRelativeRecordSets, Transaction trans) {
+	private static RelativeRecordSet _merge_(
+			ArrayList<KV<Record, RelativeRecordSet>> LockedRelativeRecordSets) {
 		// find largest
-		RelativeRecordSet largestCountSet = LockedRelativeRecordSets.get(0);
+		var largest = LockedRelativeRecordSets.get(0);
 		for (int index = 1; index < LockedRelativeRecordSets.size(); ++index) {
 			var r = LockedRelativeRecordSets.get(index);
-			var cur = largestCountSet.getRecordSet() == null ? 0 : largestCountSet.getRecordSet().size();
-			if (r.getRecordSet() != null && r.getRecordSet().size() > cur) {
-				largestCountSet = r;
+			var cur = largest.getValue().getRecordSet() == null ? 1 : largest.getValue().getRecordSet().size();
+			if (r.getValue().getRecordSet() != null && r.getValue().getRecordSet().size() > cur) {
+				largest = r;
 			}
 		}
+
 		// merge all other set to largest
 		for (var r : LockedRelativeRecordSets) {
-			if (r == largestCountSet) {
-				continue; // skip self
+			if (r == largest) {
+				// 当前目标是孤立记录时，需要把自己的记录添加进去。
+				if (largest.getValue().RecordSet == null)
+					largest.getValue().Merge(r);
+				continue;
 			}
-			largestCountSet.Merge(r);
+			largest.getValue().Merge(r);
 		}
-		// 合并当前事务中访问的孤立记录。
-		for (var ar : trans.getAccessedRecords().values()) {
-			// 记录访问 已经存在关联集合 需要额外合并记录
-			// 读取     不存在          不需要（仅仅读取孤立记录，不需要加入关联集合）TODO XXX
-			// 读取     存在（已有修改） 不需要（存在的集合前面合并了）
-			// 修改     不存在（第一次） 【需要】
-			// 修改     存在（继续修改） 不需要（存在的集合前面合并了）
-			if (ar.Dirty && ar.OriginRecord.getRelativeRecordSet().RecordSet == null) {
-				largestCountSet.Merge(ar.OriginRecord);
-			}
-		}
-		return largestCountSet;
+		return largest.getValue();
 	}
 
-	private static void _lock_(ArrayList<RelativeRecordSet> LockedRelativeRecordSets,
-			TreeMap<Long, RelativeRecordSet> RelativeRecordSets) {
+	private static void _lock_(ArrayList<KV<Record, RelativeRecordSet>> LockedRelativeRecordSets,
+							   TreeMap<Long, KV<Record, RelativeRecordSet>> RelativeRecordSets) {
 
 		while (true) {
 			var GotoLabelLockRelativeRecordSets = false;
 			int index = 0;
 			int n = LockedRelativeRecordSets.size();
-			for (var rrs : RelativeRecordSets.values()) {
+			for (var rrrs : RelativeRecordSets.values()) {
 				if (index >= n) {
-					if (_lock_and_check_(LockedRelativeRecordSets, RelativeRecordSets, rrs)) {
+					if (_lock_and_check_(LockedRelativeRecordSets, RelativeRecordSets, rrrs)) {
 						continue;
 					}
 					GotoLabelLockRelativeRecordSets = true;
 					break;
 				}
 				var curset = LockedRelativeRecordSets.get(index);
-				int c = Long.compare(curset.getId(), rrs.Id);
+				int c = Long.compare(curset.getValue().Id, rrrs.getValue().Id);
 				if (c == 0) {
 					++index;
 					continue;
@@ -268,10 +257,10 @@ public class RelativeRecordSet {
 					// 释放掉不需要的锁（已经被Delete了，Has Flush）。
 					int unlockEndIndex = index;
 					for (; unlockEndIndex < n
-							&& LockedRelativeRecordSets.get(unlockEndIndex).getId() < rrs.Id;
+							&& LockedRelativeRecordSets.get(unlockEndIndex).getValue().Id < rrrs.getValue().Id;
 							++unlockEndIndex) {
 
-						LockedRelativeRecordSets.get(unlockEndIndex).UnLock();
+						LockedRelativeRecordSets.get(unlockEndIndex).getValue().UnLock();
 					}
 					LockedRelativeRecordSets.subList(index, unlockEndIndex).clear();
 					n = LockedRelativeRecordSets.size();
@@ -280,7 +269,7 @@ public class RelativeRecordSet {
 				// RelativeRecordSets发生了变化，并且出现排在当前已经锁住对象前面的集合。
 				// 从当前位置释放锁，再次尝试。
 				for (int i = index; i < n; ++i) {
-					LockedRelativeRecordSets.get(i).UnLock();
+					LockedRelativeRecordSets.get(i).getValue().UnLock();
 				}
 				LockedRelativeRecordSets.subList(index, n).clear();
 				n = LockedRelativeRecordSets.size();
@@ -290,25 +279,38 @@ public class RelativeRecordSet {
 		}
 	}
 
-	private static boolean _lock_and_check_(ArrayList<RelativeRecordSet> locked, TreeMap<Long, RelativeRecordSet> all, RelativeRecordSet rrs) {
+	private static boolean _lock_and_check_(ArrayList<KV<Record, RelativeRecordSet>> locked,
+											TreeMap<Long, KV<Record, RelativeRecordSet>> all,
+											KV<Record, RelativeRecordSet> rrrs) {
+		final var rrs = rrrs.getValue();
 		rrs.Lock();
-		if (rrs.getMergeTo() != null) {
+		var mergeTo = rrs.getMergeTo();
+		if (mergeTo != null) {
 			rrs.UnLock();
 
-			if (rrs.getMergeTo() == rrs) {
-				throw new RuntimeException("Impossible!");
+			if (mergeTo == Deleted) {
+				// 拿到被删除的关联集合，此时处于其关联集合处于重新设置过程中。
+				// 需要重新读取。由于并发访问可能会循环多次。
+				rrrs.setValue(rrrs.getKey().getRelativeRecordSet()); // volatile
+				return false;
 			}
 
-			all.remove(rrs.getId());
-
-			// 重新读取记录的关联集合的引用（并发）。
+			if (mergeTo == rrs) {
+				throw new RuntimeException("Impossible!");
+			}
+			// 这个和上面Deleted相比会快一点，MergeTo是锁内获得的，肯定是新的。
+			// 当然，由于并发访问，也可能会循环多次。
+			rrrs.setValue(mergeTo);
+			/*
 			for (var r : rrs.getRecordSet()) {
 				var tmp = r.getRelativeRecordSet(); // concurrent
 				all.put(tmp.Id, tmp);
 			}
+			// TODO XXX 原来为什么写成，所有记录重新获取一次，应该都存在于合并后MergeTo里面了。
+			*/
 			return false;
 		}
-		locked.add(rrs);
+		locked.add(rrrs);
 		return true;
 	}
 
@@ -369,5 +371,29 @@ public class RelativeRecordSet {
 		finally {
 			rrs.UnLock();
 		}
+	}
+
+	@Override
+	public String toString() {
+		Lock();
+		try {
+			if (MergeTo != null) {
+				return "[MergeTo-" + MergeTo.Id + "]";
+			}
+
+			if (null == RecordSet) {
+				return Id + "-[Isolated]";
+			}
+			var sb = new StringBuilder();
+			sb.append(Id).append("-");
+			sb.append(RecordSet);
+			return sb.toString();
+		} finally {
+			UnLock();
+		}
+	}
+
+	public static String RelativeRecordSetMapToString() {
+		return RelativeRecordSetMap.keySet().toString();
 	}
 }
