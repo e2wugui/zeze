@@ -185,48 +185,75 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return true; // 没有删除成功，仍然返回true。
 	}
 
-	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) throws Throwable {
-		TableKey tkey = new TableKey(this.getTable().getName(), p.getKey());
-		Lockey lockey = Table.getZeze().getLocks().Get(tkey);
-		if (!lockey.TryEnterWriteLock(0)) {
-			return false;
-		}
-		try {
-			p.getValue().EnterFairLock();
-			try {
-
-				var storage = getTable().TStorage;
-				if (null == storage) {
+	private boolean TryRemoveRecordUnderLocks(Map.Entry<K, Record1<K, V>> p) throws Throwable {
+		var storage = getTable().TStorage;
+		if (null == storage) {
 				/* 不支持内存表cache同步。
 				if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
 				    return false;
 				*/
-					return Remove(p);
-				}
+			return Remove(p);
+		}
+		// 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
+		// case CheckpointMode.Immediately
+		// 永远不会为false。记录Commit的时候就Flush到数据库。
+		// case CheckpointMode.Period
+		// 修改的时候需要记录锁（lockey）。
+		// 这里只是读取，就不加锁了。
+		// case CheckpointMode.Table 修改的时候需要RelativeRecordSet锁。
+		// （修改为true的时也在记录锁（lockey）下）。
+		// 这里只是读取，就不加锁了。
 
-				// 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
-				// case CheckpointMode.Immediately
-				// 永远不会为false。记录Commit的时候就Flush到数据库。
-				// case CheckpointMode.Period
-				// 修改的时候需要记录锁（lockey）。
-				// 这里只是读取，就不加锁了。
-				// case CheckpointMode.Table 修改的时候需要RelativeRecordSet锁。
-				// （修改为true的时也在记录锁（lockey）下）。
-				// 这里只是读取，就不加锁了。
+		if (p.getValue().getDirty()) {
+			return false;
+		}
 
-				if (p.getValue().getDirty()) {
-					return false;
-				}
+		if (p.getValue().getState() != GlobalCacheManagerServer.StateInvalid) {
+			var r = p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid);
+			if (r.getResultCode() != 0 || r.Result.State != GlobalCacheManagerServer.StateInvalid) {
+				return false;
+			}
+		}
+		return Remove(p);
+	}
 
-				if (p.getValue().getState() != GlobalCacheManagerServer.StateInvalid) {
-					var r = p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid);
-					if (r.getResultCode() != 0 || r.Result.State != GlobalCacheManagerServer.StateInvalid) {
+	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) throws Throwable {
+		// lockey 第一优先，和事务并发。
+		final TableKey tkey = new TableKey(this.getTable().getName(), p.getKey());
+		final Lockey lockey = Table.getZeze().getLocks().Get(tkey);
+		if (!lockey.TryEnterWriteLock(0)) {
+			return false;
+		}
+		try {
+			// record.lock 和事务并发。
+			/*
+			if (!p.getValue().TryEnterFairLock())
+				return false;
+			*/
+			p.getValue().EnterFairLock();
+			try {
+				return TryRemoveRecordUnderLocks(p);
+				/*
+				// rrs.lock
+				while (true) {
+					final var volatilerrs = p.getValue().getRelativeRecordSet();
+					if (!volatilerrs.TryLock())
 						return false;
+
+					try {
+						if (volatilerrs.getMergeTo() != null)
+							continue; // merged or deleted. retry
+
+						if (volatilerrs.getRecordSet() != null)
+							return false; // 属于关联集合的记录不能清理。
+
+						return TryRemoveRecordUnderLocks(p);
+					} finally {
+						volatilerrs.UnLock();
 					}
 				}
-				return Remove(p);
-			}
-			finally {
+				*/
+			} finally {
 				p.getValue().ExitFairLock();
 			}
 		}

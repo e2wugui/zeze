@@ -194,50 +194,75 @@ namespace Zeze.Transaction
             return false;
         }
 
+        private bool TryRemoveRecordUnderLocks(KeyValuePair<K, Record<K, V>> p)
+        {
+            var storage = Table.TStorage;
+            if (null == storage)
+            {
+                /* 不支持内存表cache同步。
+                if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
+                    return false;
+                */
+                return Remove(p);
+            }
+
+            // 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
+            // case CheckpointMode.Immediately
+            // 永远不会为false。记录Commit的时候就Flush到数据库。
+            // case CheckpointMode.Period
+            // 修改的时候需要记录锁（lockey）。
+            // 这里只是读取，就不加锁了。
+            // case CheckpointMode.Table 修改的时候需要RelativeRecordSet锁。
+            // （修改为true的时也在记录锁（lockey）下）。
+            // 这里只是读取，就不加锁了。
+
+            if (p.Value.Dirty)
+                return false;
+
+            if (p.Value.State != GlobalCacheManagerServer.StateInvalid)
+            {
+                var r = p.Value.Acquire(GlobalCacheManagerServer.StateInvalid);
+                if (r.ResultCode != 0 || r.Result.State != GlobalCacheManagerServer.StateInvalid)
+                {
+                    return false;
+                }
+            }
+            return Remove(p);
+        }
+
         private bool TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)
         {
+            // lockey 第一优先，和事务并发。
             TableKey tkey = new TableKey(this.Table.Name, p.Key);
             Lockey lockey = Table.Zeze.Locks.Get(tkey);
+
             if (false == lockey.TryEnterWriteLock(0))
-            {
                 return false;
-            }
+
             try
             {
-                lock (p.Value)
+                // record.lock 和事务并发。
+                if (false == System.Threading.Monitor.TryEnter(p.Value))
+                    return false;
+                try
                 {
-                    var storage = Table.TStorage;
-                    if (null == storage)
-                    {
-                        /* 不支持内存表cache同步。
-                        if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
-                            return false;
-                        */
-                        return Remove(p);
-                    }
-
-                    // 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
-                    // case CheckpointMode.Immediately
-                    // 永远不会为false。记录Commit的时候就Flush到数据库。
-                    // case CheckpointMode.Period
-                    // 修改的时候需要记录锁（lockey）。
-                    // 这里只是读取，就不加锁了。
-                    // case CheckpointMode.Table 修改的时候需要RelativeRecordSet锁。
-                    // （修改为true的时也在记录锁（lockey）下）。
-                    // 这里只是读取，就不加锁了。
-
-                    if (p.Value.Dirty)
+                    // rrs.lock
+                    var volatilerrs = p.Value.RelativeRecordSet;
+                    if (false == volatilerrs.TryLock())
                         return false;
 
-                    if (p.Value.State != GlobalCacheManagerServer.StateInvalid)
+                    try
                     {
-                        var r = p.Value.Acquire(GlobalCacheManagerServer.StateInvalid);
-                        if (r.ResultCode != 0 || r.Result.State != GlobalCacheManagerServer.StateInvalid)
-                        {
-                            return false;
-                        }
+                        return TryRemoveRecordUnderLocks(p);
                     }
-                    return Remove(p);
+                    finally
+                    {
+                        volatilerrs.UnLock();
+                    }
+                }
+                finally
+                {
+                    System.Threading.Monitor.Exit(p.Value);
                 }
             }
             finally

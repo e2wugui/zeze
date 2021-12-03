@@ -87,10 +87,14 @@ public class RelativeRecordSet {
 		}
 	}
 
-	private final ReentrantLock mutex = new ReentrantLock();
+	private final ReentrantLock mutex = new ReentrantLock(true);
 
 	public final void Lock() {
 		mutex.lock();
+	}
+
+	public final boolean TryLock() {
+		return mutex.tryLock();
 	}
 
 	// 必须且仅调用一次。
@@ -328,6 +332,7 @@ public class RelativeRecordSet {
 		}
 	}
 
+	/*
 	public static void FlushWhenReduce(Record r, Checkpoint checkpoint, Runnable after) {
 		while (true) {
 			if (_FlushWhenReduce(r.getRelativeRecordSet(), checkpoint, after)) {
@@ -358,7 +363,6 @@ public class RelativeRecordSet {
 				after.run();
 				return true;
 			}
-			// */
 
 			// return rrs.MergeTo; // 返回这个能更快得到新集合的引用。
 			return false;
@@ -367,6 +371,7 @@ public class RelativeRecordSet {
 			rrs.UnLock();
 		}
 	}
+	*/
 
 	@Override
 	public String toString() {

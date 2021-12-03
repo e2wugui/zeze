@@ -11,12 +11,14 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private static final Logger logger = LogManager.getLogger(Record1.class);
 
 	private final K Key;
-	public final K getKey() {
+	final K getKey() {
 		return Key;
 	}
+	@Override
+	public final Object getObjectKey() { return Key; }
 
 	private final TableX<K, V> TTable;
-	public final TableX<K, V> getTTable() {
+	final TableX<K, V> getTTable() {
 		return TTable;
 	}
 
@@ -26,7 +28,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	}
 
 	@SuppressWarnings("unchecked")
-	public final V getValueTyped() {
+	final V getValueTyped() {
 		return (V)getValue();
 	}
 
@@ -71,26 +73,17 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	}
 
 	private long SavedTimestampForCheckpointPeriod;
-	public final long getSavedTimestampForCheckpointPeriod() {
+	final long getSavedTimestampForCheckpointPeriod() {
 		return SavedTimestampForCheckpointPeriod;
 	}
-	public final void setSavedTimestampForCheckpointPeriod(long value) {
+	final void setSavedTimestampForCheckpointPeriod(long value) {
 		SavedTimestampForCheckpointPeriod = value;
 	}
 	private boolean ExistInBackDatabase;
-	public final boolean getExistInBackDatabase() {
-		return ExistInBackDatabase;
-	}
-	public final void setExistInBackDatabase(boolean value) {
+	final void setExistInBackDatabase(boolean value) {
 		ExistInBackDatabase = value;
 	}
 	private boolean ExistInBackDatabaseSavedForFlushRemove;
-	public final boolean getExistInBackDatabaseSavedForFlushRemove() {
-		return ExistInBackDatabaseSavedForFlushRemove;
-	}
-	public final void setExistInBackDatabaseSavedForFlushRemove(boolean value) {
-		ExistInBackDatabaseSavedForFlushRemove = value;
-	}
 
 	@Override
 	public void Commit(Zeze.Transaction.RecordAccessed accessed) {

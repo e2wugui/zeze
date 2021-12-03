@@ -55,20 +55,84 @@ public final class DatabaseMemory extends Database {
 		}
 	}
 
-	public static class MemTrans implements Transaction {
-		public MemTrans(String DatabaseUrl) {
+	public final static byte[] NullBytes = new byte[0];
+
+	public class MemTrans implements Transaction {
+		private ConcurrentHashMap<String, ConcurrentHashMap<ByteBuffer, byte[]>> batch = new ConcurrentHashMap<>();
+
+		public MemTrans() {
 		}
+
 		public final void Commit() {
+			// 整个db同步。
+			synchronized (DatabaseMemory.this) {
+				for (var e : batch.entrySet()) {
+					final var db = databaseTables.computeIfAbsent(DatabaseMemory.this.getDatabaseUrl(), url -> new ConcurrentHashMap<>());
+					final var table = db.computeIfAbsent(e.getKey(), tn -> new TableMemory(DatabaseMemory.this, tn));
+					for (var r : e.getValue().entrySet()) {
+						if (r.getValue() == NullBytes) {
+							table.Map.remove(r.getKey());
+						} else {
+							table.Map.put(r.getKey(), r.getValue());
+						}
+					}
+				}
+			}
 		}
+
 		public final void Rollback() {
 		}
-		public final void close() {			
+
+		public final void close() {
+		}
+
+		public final void Remove(String tableName, ByteBuffer key) {
+			var table = batch.computeIfAbsent(tableName, tn -> new ConcurrentHashMap<>());
+			table.put(ByteBuffer.Wrap(key.Copy()), NullBytes);
+		}
+
+		public final void Replace(String tableName, ByteBuffer key, ByteBuffer value) {
+			var table = batch.computeIfAbsent(tableName, tn -> new ConcurrentHashMap<>());
+			table.put(ByteBuffer.Wrap(key.Copy()), value.Copy());
+		}
+
+		// 仅支持从一个db原子的查询数据。
+
+		// 多表原子查询。
+		public Map<String, Map<ByteBuffer, ByteBuffer>> Finds(Map<String, Set<ByteBuffer>> tableKeys) {
+			var result = new HashMap<String, Map<ByteBuffer, ByteBuffer>>();
+			synchronized (DatabaseMemory.this) {
+				for (var tks : tableKeys.entrySet()) {
+					final var tableName = tks.getKey();
+					final var db = databaseTables.computeIfAbsent(DatabaseMemory.this.getDatabaseUrl(), url -> new ConcurrentHashMap<>());
+					final var table = db.computeIfAbsent(tableName, tn -> new TableMemory(DatabaseMemory.this, tn));
+					final var tableFinds = new HashMap<ByteBuffer, ByteBuffer>();
+					result.put(tableName, tableFinds);
+					for (var key : tks.getValue()) {
+						tableFinds.put(key, table.Find(key)); // also put null value
+					}
+				}
+			}
+			return result;
+		}
+
+		// 单表原子查询
+		public Map<ByteBuffer, ByteBuffer> Finds(String tableName, Set<ByteBuffer> keys) {
+			var result = new HashMap<ByteBuffer, ByteBuffer>();
+			synchronized (DatabaseMemory.this) {
+				final var db = databaseTables.computeIfAbsent(DatabaseMemory.this.getDatabaseUrl(), url -> new ConcurrentHashMap<>());
+				final var table = db.computeIfAbsent(tableName, tn -> new TableMemory(DatabaseMemory.this, tn));
+				for (var key : keys) {
+					result.put(key, table.Find(key)); // also put null value
+				}
+			}
+			return result;
 		}
 	}
 
 	@Override
 	public Transaction BeginTransaction() {
-		return new MemTrans(getDatabaseUrl());
+		return new MemTrans();
 	}
 
 	private final static ConcurrentHashMap<String, ConcurrentHashMap<String, TableMemory>> databaseTables = new ConcurrentHashMap<>();
@@ -99,7 +163,7 @@ public final class DatabaseMemory extends Database {
 			Name = name;
 		}
 
-		private final ConcurrentHashMap<ByteBuffer, byte[]> Map = new ConcurrentHashMap<>();
+		final ConcurrentHashMap<ByteBuffer, byte[]> Map = new ConcurrentHashMap<>();
 
 		public ByteBuffer Find(ByteBuffer key) {
 			var value = Map.get(key);
@@ -109,25 +173,25 @@ public final class DatabaseMemory extends Database {
 		}
 
 		public void Remove(Transaction t, ByteBuffer key) {
-			Map.remove(key);
+			var mt = (MemTrans)t;
+			mt.Remove(Name, key);
 		}
 
 		public void Replace(Transaction t, ByteBuffer key, ByteBuffer value) {
-			Map.put(ByteBuffer.Wrap(key.Copy()), value.Copy());
+			var mt = (MemTrans)t;
+			mt.Replace(Name, key, value);
 		}
 
 		public long Walk(TableWalkHandleRaw callback) {
-			synchronized (this) {
-				// 不允许并发？
-				long count = 0;
-				for (var e : Map.entrySet()) {
-					++count;
-					if (!callback.handle(e.getKey().Bytes, e.getValue())) {
-						break;
-					}
+			// 不允许并发？
+			long count = 0;
+			for (var e : Map.entrySet()) {
+				++count;
+				if (!callback.handle(e.getKey().Bytes, e.getValue())) {
+					break;
 				}
-				return count;
 			}
+			return count;
 		}
 
 		public void Close() {

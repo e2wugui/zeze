@@ -92,6 +92,11 @@ namespace Zeze.Transaction
             System.Threading.Monitor.Enter(this);
         }
 
+        internal bool TryLock()
+        {
+            return System.Threading.Monitor.TryEnter(this);
+        }
+
         // 必须且仅调用一次。
         internal void UnLock()
         {

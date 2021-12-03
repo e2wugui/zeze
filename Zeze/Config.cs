@@ -29,7 +29,7 @@ namespace Zeze
         public int CompletionPortThreads { get; set; }
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
         public Transaction.CheckpointMode CheckpointMode { get; set; }
-            = Transaction.CheckpointMode.Period;
+            = Transaction.CheckpointMode.Table;
 
         public NLog.LogLevel ProcessReturnErrorLogLevel { get; set; } = NLog.LogLevel.Info;
         public int InternalThreadPoolWorkerCount { get; set; }

@@ -874,11 +874,10 @@ public final class GlobalCacheManagerServer {
 		@Override
 		public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 			var session = (CacheHolder)so.getUserState();
-			if (null == session) {
-				return; // skip not login
+			if (null != session) {
+				// unbind when login
+				session.TryUnBindSocket(so);
 			}
-			session.TryUnBindSocket(so);
-
 			super.OnSocketClose(so, e);
 		}
 	}
