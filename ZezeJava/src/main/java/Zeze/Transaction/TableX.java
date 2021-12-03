@@ -170,7 +170,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				break;
 
 			case Table:
-				r.FlushWhenReduceRelativeRecordSet(after);
+				RelativeRecordSet.FlushWhenReduce(r, getZeze().getCheckpoint(), after);
 				break;
 		}
 	}

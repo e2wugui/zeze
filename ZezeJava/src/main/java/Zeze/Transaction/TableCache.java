@@ -232,8 +232,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			*/
 			p.getValue().EnterFairLock();
 			try {
-				return TryRemoveRecordUnderLocks(p);
-				/*
+				//return TryRemoveRecordUnderLocks(p);
+				//*
 				// rrs.lock
 				while (true) {
 					final var volatilerrs = p.getValue().getRelativeRecordSet();
@@ -252,7 +252,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 						volatilerrs.UnLock();
 					}
 				}
-				*/
+				// */
 			} finally {
 				p.getValue().ExitFairLock();
 			}

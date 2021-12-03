@@ -332,16 +332,17 @@ public class RelativeRecordSet {
 		}
 	}
 
-	/*
 	public static void FlushWhenReduce(Record r, Checkpoint checkpoint, Runnable after) {
+		var rrs = r.getRelativeRecordSet();
 		while (true) {
-			if (_FlushWhenReduce(r.getRelativeRecordSet(), checkpoint, after)) {
+			rrs = _FlushWhenReduce(rrs, checkpoint, after);
+			if (null == rrs) {
 				break;
 			}
 		}
 	}
 
-	private static boolean _FlushWhenReduce(RelativeRecordSet rrs, Checkpoint checkpoint, Runnable after) {
+	private static RelativeRecordSet _FlushWhenReduce(RelativeRecordSet rrs, Checkpoint checkpoint, Runnable after) {
 		rrs.Lock();
 		try {
 			if (rrs.getMergeTo() == null) {
@@ -350,7 +351,7 @@ public class RelativeRecordSet {
 					rrs.Delete();
 				}
 				after.run();
-				return true;
+				return null;
 			}
 
 			// 这个方法是在 Reduce 获得记录锁，并降级（设置状态）以后才调用。
@@ -361,17 +362,15 @@ public class RelativeRecordSet {
 			if (rrs.getMergeTo() == RelativeRecordSet.Deleted) {
 				// has flush
 				after.run();
-				return true;
+				return null;
 			}
 
-			// return rrs.MergeTo; // 返回这个能更快得到新集合的引用。
-			return false;
+			return rrs.MergeTo; // 返回这个能更快得到新集合的引用。
 		}
 		finally {
 			rrs.UnLock();
 		}
 	}
-	*/
 
 	@Override
 	public String toString() {

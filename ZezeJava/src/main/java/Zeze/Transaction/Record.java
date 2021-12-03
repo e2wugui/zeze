@@ -97,48 +97,7 @@ public abstract class Record {
 		return RelativeRecordSet;
 	}
 	final void setRelativeRecordSet(RelativeRecordSet value) {
-		synchronized (this) {
-			RelativeRecordSet = value;
-			this.notifyAll();
-		}
-	}
-
-	final void FlushWhenReduceRelativeRecordSet(Runnable after) {
-		synchronized (this) {
-			while (true) {
-				final var volatilerrs = RelativeRecordSet;
-				volatilerrs.Lock();
-				try {
-					final var mergeTo = volatilerrs.getMergeTo();
-					if (mergeTo == null) {
-						if (volatilerrs.getRecordSet() != null) {
-							getTable().getZeze().getCheckpoint().Flush(volatilerrs);
-							volatilerrs.Delete();
-						}
-						after.run();
-						return;
-					}
-					// 这个方法是在 Reduce 获得记录锁，并降级（设置状态）以后才调用。
-					// 已经不会有后续的修改（但可能有读取并且被合并然后又被Flush），
-					// 或者被 Checkpoint Flush。
-					// 此时可以认为直接成功了吧？
-					// 或者不判断这个，总是由上面的步骤中处理。
-					if (mergeTo == RelativeRecordSet.Deleted) {
-						// has flush
-						after.run();
-						return;
-					}
-					// go on
-				} finally {
-					volatilerrs.UnLock();
-				}
-				try {
-					this.wait();
-				} catch (InterruptedException e) {
-					logger.error(e);
-				}
-			}
-		}
+		RelativeRecordSet = value;
 	}
 
 	public Record(Bean value) {
