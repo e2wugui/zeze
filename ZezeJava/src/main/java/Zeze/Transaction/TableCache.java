@@ -226,18 +226,15 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		}
 		try {
 			// record.lock 和事务并发。
-			/*
-			if (!p.getValue().TryEnterFairLock())
+			if (!p.getValue().TryEnterFairLockWhenIdle())
 				return false;
-			*/
-			p.getValue().EnterFairLock();
 			try {
 				//return TryRemoveRecordUnderLocks(p);
 				//*
 				// rrs.lock
 				while (true) {
 					final var volatilerrs = p.getValue().getRelativeRecordSet();
-					if (!volatilerrs.TryLock())
+					if (!volatilerrs.TryLockWhenIdle())
 						return false;
 
 					try {

@@ -93,7 +93,9 @@ public class RelativeRecordSet {
 		mutex.lock();
 	}
 
-	public final boolean TryLock() {
+	public final boolean TryLockWhenIdle() {
+		if (mutex.hasQueuedThreads())
+			return false;
 		return mutex.tryLock();
 	}
 

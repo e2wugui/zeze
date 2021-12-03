@@ -47,7 +47,9 @@ public abstract class Record {
 		FairLock.lock();
 	}
 
-	public final boolean TryEnterFairLock() {
+	public final boolean TryEnterFairLockWhenIdle() {
+		if (FairLock.hasQueuedThreads())
+			return false;
 		return FairLock.tryLock();
 	}
 
