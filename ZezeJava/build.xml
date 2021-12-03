@@ -20,6 +20,7 @@
 			<pathelement path="${lib}/mysql-connector-java-8.0.12.jar"/>
 			<pathelement path="${lib}/rocksdbjni-6.25.3.jar"/>
 			<pathelement path="${lib}/tikv-client-java-3.1.2.jar"/>
+			<pathelement path="${lib}/slf4j-api-1.7.16.jar"/>
 			
         </path>
         <javac encoding="utf8" srcdir="${src}" destdir="${build}" includeantruntime="false"
@@ -43,7 +44,7 @@
 			<zipgroupfileset dir="${lib}" includes="mysql-connector-java-8.0.12.jar"/>
 			<zipgroupfileset dir="${lib}" includes="rocksdbjni-6.25.3.jar"/>
 			<zipgroupfileset dir="${lib}" includes="tikv-client-java-3.1.2.jar"/>
-			
+			<zipgroupfileset dir="${lib}" includes="slf4j-api-1.7.16.jar"/>
         </jar>
         <delete dir="${build}"/>
     </target>

@@ -174,8 +174,8 @@ public final class Config {
 				return new Zeze.Transaction.DatabaseMySql(conf);
 			case SqlServer:
 				return new Zeze.Transaction.DatabaseSqlServer(conf);
-			//case Tikv:
-			//	return new Zeze.Tikv.DatabaseTikv(conf);
+			case Tikv:
+				return new Zeze.Transaction.DatabaseTikv(conf);
 			case RocksDb:
 				return new Zeze.Transaction.DatabaseRocksDb(zeze, conf);
 			default:
