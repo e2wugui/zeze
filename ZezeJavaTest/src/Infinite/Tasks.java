@@ -1,11 +1,15 @@
 package Infinite;
 
+import Zeze.Transaction.DatabaseMemory;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -31,14 +35,25 @@ public class Tasks {
     // 所有以long为key的记录访问可以使用这个基类。
     // 其他类型的key需要再定义新的基类。
     public static abstract class Task implements Runnable {
-        long Key;
+        Set<Long> Keys = new HashSet<>();
         demo.App App;
 
         @Override
         public void run() {
             if (0L == process()) {
-                Transaction.getCurrent().RunWhileCommit(() -> getSuccessCounter(this.getClass().getName(), Key).incrementAndGet());
+                Transaction.getCurrent().RunWhileCommit(() -> {
+                    for (var key : Keys)
+                        getSuccessCounter(this.getClass().getName(), key).incrementAndGet();
+                });
             }
+        }
+
+        public int getKeyNumber() {
+            return 1;
+        }
+
+        public int getKeyBound() {
+            return Simulate.AccessKeyBound;
         }
 
         public abstract long process();
@@ -62,6 +77,8 @@ public class Tasks {
         // 新的操作数据的测试任务在这里注册。weith是权重，see randCreateTask();
         taskFactorys.add(new TaskFactory(Table1Long2Add1.class, Table1Long2Add1::new, 100));
         taskFactorys.add(new TaskFactory(Table1List9AddOrRemove.class, Table1List9AddOrRemove::new, 100));
+        taskFactorys.add(new TaskFactory(Table1Int1Trade.class, Table1Int1Trade::new, 100));
+        //taskFactorys.add(new TaskFactory(Table1Int1TradeConcurrentVerify.class, Table1Int1TradeConcurrentVerify::new, 100));
 
         taskFactorys.sort(Comparator.comparingInt(a -> a.Weight));
         for (var task : taskFactorys) {
@@ -120,7 +137,7 @@ public class Tasks {
     public static class Table1Long2Add1 extends Task {
         @Override
         public long process() {
-            var value = App.demo_Module1.getTable1().getOrAdd(Key);
+            var value = App.demo_Module1.getTable1().getOrAdd(Keys.iterator().next());
             value.setLong2(value.getLong2() + 1);
             return 0L;
         }
@@ -151,7 +168,7 @@ public class Tasks {
     public static class Table1List9AddOrRemove extends Task {
         @Override
         public long process() {
-            var value = App.demo_Module1.getTable1().getOrAdd(Key);
+            var value = App.demo_Module1.getTable1().getOrAdd(Keys.iterator().next());
             // 使用 bool4 变量：用来决定添加或者删除。
             if (value.isBool4()) {
                 //Infinite.App.logger.error("list9.size()=" + value.getList9().size());
@@ -163,6 +180,87 @@ public class Tasks {
                 value.getList9().add(new demo.Bean1());
                 if (value.getList9().size() > 50)
                     value.setBool4(true); // 改成删除模式。
+            }
+            return 0L;
+        }
+    }
+
+    // 在随机两个记录内进行交易。
+    public static class Table1Int1Trade extends Task {
+        @Override
+        public int getKeyNumber() {
+            return 2;
+        }
+
+        public final static int KeyBoundTrade = Simulate.AccessKeyBound;
+
+        @Override
+        public int getKeyBound() {
+            return KeyBoundTrade;
+        }
+
+        @Override
+        public long process() {
+            final var keys = Keys.toArray();
+            final var k1 = (long)keys[0];
+            final var k2 = (long)keys[1];
+            var v1 = App.demo_Module1.getTable1().getOrAdd(k1);
+            var v2 = App.demo_Module1.getTable1().getOrAdd(k2);
+            final var money = Zeze.Util.Random.getInstance().nextInt(1000);
+            if (Zeze.Util.Random.getInstance().nextBoolean()) {
+                // random swap
+                var tmp = v1;
+                v1 = v2;
+                v2 = tmp;
+            }
+            v1.setInt1(v1.getInt1() - money);
+            v2.setInt1(v2.getInt1() + money);
+            return 0L;
+        }
+
+        public static void verify() {
+            var app = Simulate.randApp().app; // 任何一个app都能查到相同的结果。
+            int sum = 0;
+            for (int key = 0; key < KeyBoundTrade; ++key) {
+                var value = app.demo_Module1.getTable1().selectDirty((long)key);
+                if (null != value)
+                    sum += value.getInt1();
+            }
+            assert sum == 0;
+        }
+    }
+
+    public static class Table1Int1TradeConcurrentVerify extends Task {
+        @Override
+        public int getKeyNumber() {
+            return 0;
+        }
+
+        @Override
+        public long process() {
+            final var table1 = App.demo_Module1.getTable1();
+            var keys = new HashSet<Zeze.Serialize.ByteBuffer>();
+            for (int key = 0; key < Table1Int1Trade.KeyBoundTrade; ++key) {
+                keys.add(table1.EncodeKey((long)key));
+            }
+            try (var t = table1.getDatabase().BeginTransaction()) {
+                if (t instanceof DatabaseMemory.MemTrans) {
+                    final var mt = (DatabaseMemory.MemTrans)t;
+                    final var all = mt.Finds(table1.getName(), keys);
+                    final var values = new ArrayList<demo.Module1.Value>();
+                    for (var valueBytes : all.values()) {
+                        if (valueBytes != null)
+                            values.add(table1.DecodeValue(valueBytes));
+                    }
+                    int sum = 0;
+                    for (var value : values) {
+                        sum += value.getInt1();
+                    }
+                    assert sum == 0;
+                }
+            } catch (Exception e) {
+                Infinite.App.logger.error(e);
+                assert false;
             }
             return 0L;
         }

@@ -170,7 +170,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				break;
 
 			case Table:
-				RelativeRecordSet.FlushWhenReduce(r, getZeze().getCheckpoint(), after);
+				r.FlushWhenReduceRelativeRecordSet(after);
 				break;
 		}
 	}
@@ -409,6 +409,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			throw new RuntimeException("table has opened." + getName());
 		}
 		setZeze(app);
+		setDatabase(database);
+
 		if (this.isAutoKey()) {
 			setAutoKey(app.getServiceManagerAgent().GetAutoKey(getName()));
 		}

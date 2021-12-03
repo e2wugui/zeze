@@ -58,4 +58,8 @@ public abstract class Table {
 	public abstract ChangeVariableCollector CreateChangeVariableCollector(int variableId);
 
 	abstract Storage GetStorage();
+
+	private Database _Database;
+	public final Database getDatabase() { return _Database; }
+	protected final void setDatabase(Database db) { _Database = db; }
 }

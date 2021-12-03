@@ -1,10 +1,14 @@
 package Zeze.Transaction;
 
 import Zeze.Services.GlobalCacheManager.Acquire;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class Record {
+	private static final Logger logger = LogManager.getLogger(TableCache.class);
+
 	public static class RootInfo {
 		private final Record Record;
 		public final Record getRecord() {
@@ -42,6 +46,11 @@ public abstract class Record {
 	public final void EnterFairLock() {
 		FairLock.lock();
 	}
+
+	public final boolean TryEnterFairLock() {
+		return FairLock.tryLock();
+	}
+
 	public final void ExitFairLock() {
 		FairLock.unlock();
 	}
@@ -84,11 +93,52 @@ public abstract class Record {
 	public abstract Table getTable();
 
 	private volatile RelativeRecordSet RelativeRecordSet = new RelativeRecordSet();
-	public final RelativeRecordSet getRelativeRecordSet() {
+	final RelativeRecordSet getRelativeRecordSet() {
 		return RelativeRecordSet;
 	}
-	public final void setRelativeRecordSet(RelativeRecordSet value) {
-		RelativeRecordSet = value;
+	final void setRelativeRecordSet(RelativeRecordSet value) {
+		synchronized (this) {
+			RelativeRecordSet = value;
+			this.notifyAll();
+		}
+	}
+
+	final void FlushWhenReduceRelativeRecordSet(Runnable after) {
+		synchronized (this) {
+			while (true) {
+				final var volatilerrs = RelativeRecordSet;
+				volatilerrs.Lock();
+				try {
+					final var mergeTo = volatilerrs.getMergeTo();
+					if (mergeTo == null) {
+						if (volatilerrs.getRecordSet() != null) {
+							getTable().getZeze().getCheckpoint().Flush(volatilerrs);
+							volatilerrs.Delete();
+						}
+						after.run();
+						return;
+					}
+					// 这个方法是在 Reduce 获得记录锁，并降级（设置状态）以后才调用。
+					// 已经不会有后续的修改（但可能有读取并且被合并然后又被Flush），
+					// 或者被 Checkpoint Flush。
+					// 此时可以认为直接成功了吧？
+					// 或者不判断这个，总是由上面的步骤中处理。
+					if (mergeTo == RelativeRecordSet.Deleted) {
+						// has flush
+						after.run();
+						return;
+					}
+					// go on
+				} finally {
+					volatilerrs.UnLock();
+				}
+				try {
+					this.wait();
+				} catch (InterruptedException e) {
+					logger.error(e);
+				}
+			}
+		}
 	}
 
 	public Record(Bean value) {
@@ -120,4 +170,5 @@ public abstract class Record {
 		DatabaseTransactionTmp = value;
 	}
 	public abstract void SetDirty();
+	public abstract Object getObjectKey();
 }

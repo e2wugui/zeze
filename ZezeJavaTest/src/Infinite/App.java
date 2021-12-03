@@ -17,6 +17,8 @@ public class App {
     public App(int serverId) {
         config = Config.Load("zeze.xml");
         config.setServerId(serverId);
+        config.setFastRedoWhenConfict(false);
+        config.setCheckpointPeriod(1000);
         var tdef = config.getDefaultTableConf();
         tdef.setCacheCleanPeriod(1000); // 提高并发
         tdef.setCacheCleanPeriodWhenExceedCapacity(0); // 超出容量时，快速尝试。
@@ -36,12 +38,18 @@ public class App {
 
     public void Run(Tasks.Task task) {
         task.App = app;
-        task.Key = Zeze.Util.Random.getInstance().nextInt(Simulate.AccessKeyBound);
-        Tasks.getRunCounter(task.getClass().getName(), task.Key).incrementAndGet();
+        final int keyNumber = task.getKeyNumber();
+        final int keyBound = task.getKeyBound();
+        while (task.Keys.size() < keyNumber) {
+            task.Keys.add((long)Zeze.Util.Random.getInstance().nextInt(keyBound));
+        }
+        for (var key : task.Keys) {
+            Tasks.getRunCounter(task.getClass().getName(), key).incrementAndGet();
+        }
         RunningTasks.add(Zeze.Util.Task.Run(app.Zeze.NewProcedure(
                 ()-> { task.run(); return 0L; },
-                task.getClass().getName() + "-" + task.Key)
-        ));
+                task.getClass().getName()
+                )));
     }
 
     public void WaitAllRunningTasksAndClear() {

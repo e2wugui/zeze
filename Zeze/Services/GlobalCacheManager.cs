@@ -1147,10 +1147,9 @@ namespace Zeze.Services.GlobalCacheManager
             var session = (GlobalCacheManagerServer.CacheHolder)so.UserState;
             if (null == session)
             {
-                return; // skip not login
+                // unbind when login
+                session.TryUnBindSocket(so);
             }
-            session.TryUnBindSocket(so);
-
             base.OnSocketClose(so, e);
         }
     }

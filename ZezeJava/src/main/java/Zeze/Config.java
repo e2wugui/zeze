@@ -53,7 +53,7 @@ public final class Config {
 	public void setCheckpointPeriod(int value) {
 		CheckpointPeriod = value;
 	}
-	private Zeze.Transaction.CheckpointMode CheckpointMode = Zeze.Transaction.CheckpointMode.Period;
+	private Zeze.Transaction.CheckpointMode CheckpointMode = Zeze.Transaction.CheckpointMode.Table;
 	public Zeze.Transaction.CheckpointMode getCheckpointMode() {
 		return CheckpointMode;
 	}
