@@ -362,16 +362,14 @@ namespace Zeze.Transaction
         internal static void FlushWhenReduce(
             Record r, Checkpoint checkpoint, Action after)
         {
-            while (true)
+            var rrs = r.RelativeRecordSet;
+            while (rrs != null)
             {
-                if (_FlushWhenReduce(r.RelativeRecordSet, checkpoint, after))
-                {
-                    break;
-                }
+                rrs = _FlushWhenReduce(rrs, checkpoint, after);
             }
         }
 
-        private static bool _FlushWhenReduce(
+        private static RelativeRecordSet _FlushWhenReduce(
             RelativeRecordSet rrs, Checkpoint checkpoint, Action after)
         {
             rrs.Lock();
@@ -385,7 +383,7 @@ namespace Zeze.Transaction
                         rrs.Delete();
                     }
                     after();
-                    return true;
+                    return null;
                 }
                 
                 // 这个方法是在 Reduce 获得记录锁，并降级（设置状态）以后才调用。
@@ -397,12 +395,11 @@ namespace Zeze.Transaction
                 {
                     // has flush
                     after();
-                    return true;
+                    return null;
                 }
                 // */
 
-                // return rrs.MergeTo; // 返回这个能更快得到新集合的引用。
-                return false;
+                return rrs.MergeTo; // 返回这个能更快得到新集合的引用。
             }
             finally
             {

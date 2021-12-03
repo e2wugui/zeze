@@ -31,8 +31,6 @@ Raft
 	关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 
 Java Socket Rpc Response 没有唤醒，还是会饥饿？write 提供多个buffer，有没有可能其中一个有剩余。
-c# RRS.FlushWhenReduce 移到Record中。
-c# DatabaseMemory
 
 【新改动】
 	整体并发测试，需要包含 TableCache.Cleanup。
@@ -40,4 +38,4 @@ c# DatabaseMemory
 	CheckpointMode.Table Merge 逻辑BUG
 	CheckpointMode.Table Merge 逻辑BUG：c#修改。
 	TestCheckpoint java to c#
-
+	c# DatabaseMemory

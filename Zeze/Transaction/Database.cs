@@ -1416,11 +1416,17 @@ namespace Zeze.Transaction
             }
         }
 
+        internal static byte[] NullBytes = new byte[0];
+
         public class MemTrans : Transaction
         {
-            public MemTrans(string DatabaseUrl)
-            {
+            private DatabaseMemory Database;
+            private ConcurrentDictionary<string, ConcurrentDictionary<ByteBuffer, byte[]>> batch
+                = new ConcurrentDictionary<string, ConcurrentDictionary<ByteBuffer, byte[]>>();
 
+            public MemTrans(DatabaseMemory db)
+            {
+                Database = db;
             }
 
             public void Dispose()
@@ -1431,6 +1437,81 @@ namespace Zeze.Transaction
 
             public void Commit()
             {
+                // 整个db同步。
+                lock(Database)
+                {
+                    foreach (var e in batch)
+                    {
+                        var db = databaseTables.GetOrAdd(Database.DatabaseUrl,
+                            url => new ConcurrentDictionary<string, TableMemory>());
+                        var table = db.GetOrAdd(e.Key, tn => new TableMemory(Database, tn));
+                        foreach (var r in e.Value)
+                        {
+                            if (r.Value == NullBytes)
+                            {
+                                table.Map.TryRemove(r.Key, out _);
+                            }
+                            else
+                            {
+                                table.Map[r.Key] = r.Value;
+                            }
+                        }
+                    }
+                }
+            }
+
+            public void Remove(string tableName, ByteBuffer key)
+            {
+                var table = batch.GetOrAdd(tableName, tn => new ConcurrentDictionary<ByteBuffer, byte[]>());
+                table[ByteBuffer.Wrap(key.Copy())] = NullBytes;
+            }
+
+            public void Replace(string tableName, ByteBuffer key, ByteBuffer value)
+            {
+                var table = batch.GetOrAdd(tableName, tn => new ConcurrentDictionary<ByteBuffer, byte[]>());
+                table[ByteBuffer.Wrap(key.Copy())] = value.Copy();
+            }
+
+            // 仅支持从一个db原子的查询数据。
+
+            // 多表原子查询。
+            public IDictionary<string, IDictionary<ByteBuffer, ByteBuffer>> Finds(IDictionary<string, ISet<ByteBuffer>> tableKeys)
+            {
+                var result = new Dictionary<string, IDictionary<ByteBuffer, ByteBuffer>>();
+                lock (Database)
+                {
+                    foreach (var tks in tableKeys)
+                    {
+                        var tableName = tks.Key;
+                        var db = databaseTables.GetOrAdd(Database.DatabaseUrl,
+                            url => new ConcurrentDictionary<string, TableMemory>());
+                        var table = db.GetOrAdd(tableName, tn => new TableMemory(Database, tn));
+                        var tableFinds = new Dictionary<ByteBuffer, ByteBuffer>();
+                        result.Add(tableName, tableFinds);
+                        foreach (var key in tks.Value)
+                        {
+                            tableFinds.Add(key, table.Find(key)); // also put null value
+                        }
+                    }
+                }
+                return result;
+            }
+
+            // 单表原子查询
+            public IDictionary<ByteBuffer, ByteBuffer> Finds(string tableName, ISet<ByteBuffer> keys)
+            {
+                var result = new Dictionary<ByteBuffer, ByteBuffer>();
+                lock (Database)
+                {
+                    var db = databaseTables.GetOrAdd(Database.DatabaseUrl,
+                        url => new ConcurrentDictionary<string, TableMemory>());
+                    var table = db.GetOrAdd(tableName, tn => new TableMemory(Database, tn));
+                    foreach (var key in keys)
+                    {
+                        result.Add(key, table.Find(key)); // also put null value
+                    }
+                }
+                return result;
             }
 
             public void Rollback()
@@ -1440,7 +1521,7 @@ namespace Zeze.Transaction
 
         public override Transaction BeginTransaction()
         {
-            return new MemTrans(DatabaseUrl);
+            return new MemTrans(this);
         }
 
         private static ConcurrentDictionary<string, ConcurrentDictionary<string, TableMemory>> databaseTables
@@ -1466,11 +1547,11 @@ namespace Zeze.Transaction
                 Name = name;
             }
 
-            public ConcurrentDictionary<byte[], byte[]> Map { get; } = new ConcurrentDictionary<byte[], byte[]>(new ByteArrayComparer());
+            public ConcurrentDictionary<ByteBuffer, byte[]> Map { get; } = new ConcurrentDictionary<ByteBuffer, byte[]>();
 
             public ByteBuffer Find(ByteBuffer key)
             {
-                if (Map.TryGetValue(key.Copy(), out var value))
+                if (Map.TryGetValue(key, out var value))
                 {
                     return ByteBuffer.Wrap(ByteBuffer.Copy(value));
                 }
@@ -1479,12 +1560,14 @@ namespace Zeze.Transaction
 
             public void Remove(Transaction t, ByteBuffer key)
             {
-                Map.TryRemove(key.Copy(), out var notused);
+                var mt = (MemTrans)t;
+                mt.Remove(Name, key);
             }
 
             public void Replace(Transaction t, ByteBuffer key, ByteBuffer value)
             {
-                Map[key.Copy()] = value.Copy();
+                var mt = (MemTrans)t;
+                mt.Replace(Name, key, value);
             }
 
             public long Walk(Func<byte[], byte[], bool> callback)
@@ -1496,7 +1579,7 @@ namespace Zeze.Transaction
                     foreach (var e in Map)
                     {
                         ++count;
-                        if (false == callback(e.Key, e.Value))
+                        if (false == callback(e.Key.Copy(), e.Value))
                             break;
                     }
                     return count;

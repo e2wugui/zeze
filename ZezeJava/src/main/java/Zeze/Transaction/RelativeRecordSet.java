@@ -336,11 +336,8 @@ public class RelativeRecordSet {
 
 	public static void FlushWhenReduce(Record r, Checkpoint checkpoint, Runnable after) {
 		var rrs = r.getRelativeRecordSet();
-		while (true) {
+		while (rrs != null) {
 			rrs = _FlushWhenReduce(rrs, checkpoint, after);
-			if (null == rrs) {
-				break;
-			}
 		}
 	}
 

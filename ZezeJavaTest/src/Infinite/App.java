@@ -46,10 +46,7 @@ public class App {
         for (var key : task.Keys) {
             Tasks.getRunCounter(task.getClass().getName(), key).incrementAndGet();
         }
-        RunningTasks.add(Zeze.Util.Task.Run(app.Zeze.NewProcedure(
-                ()-> { task.run(); return 0L; },
-                task.getClass().getName()
-                )));
+        RunningTasks.add(Zeze.Util.Task.Run(app.Zeze.NewProcedure(task::call, task.getClass().getName())));
     }
 
     public void WaitAllRunningTasksAndClear() {

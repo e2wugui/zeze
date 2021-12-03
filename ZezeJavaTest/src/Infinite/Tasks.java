@@ -34,18 +34,20 @@ public class Tasks {
 
     // 所有以long为key的记录访问可以使用这个基类。
     // 其他类型的key需要再定义新的基类。
-    public static abstract class Task implements Runnable {
+    public static abstract class Task implements Zeze.Util.Func0<Long> {
         Set<Long> Keys = new HashSet<>();
         demo.App App;
 
         @Override
-        public void run() {
-            if (0L == process()) {
+        public Long call() {
+            var result = process();
+            if (0L == result) {
                 Transaction.getCurrent().RunWhileCommit(() -> {
                     for (var key : Keys)
                         getSuccessCounter(this.getClass().getName(), key).incrementAndGet();
                 });
             }
+            return result;
         }
 
         public int getKeyNumber() {
@@ -155,6 +157,7 @@ public class Tasks {
         }
 
         public static void prepare() throws Throwable {
+            // 所有使用 Table1 的测试都可以依赖这个 prepare，不需要单独写了。
             var app = Simulate.randApp().app;
             app.Zeze.NewProcedure(() -> {
                 for (long key = 0; key < Simulate.AccessKeyBound; ++key) {
