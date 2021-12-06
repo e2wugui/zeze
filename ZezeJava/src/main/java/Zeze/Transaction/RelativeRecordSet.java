@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import Zeze.Services.GlobalCacheManagerServer;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -336,8 +338,19 @@ public class RelativeRecordSet {
 
 	public static void FlushWhenReduce(Record r, Checkpoint checkpoint, Runnable after) {
 		var rrs = r.getRelativeRecordSet();
+		long deletedcount = 0;
 		while (rrs != null) {
+			if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
+				after.run();
+				return;
+			}
 			rrs = _FlushWhenReduce(rrs, checkpoint, after);
+			if (rrs == RelativeRecordSet.Deleted) {
+				rrs = r.getRelativeRecordSet(); // 只能忙等了。
+				deletedcount++;
+				if (deletedcount % 100000 == 0)
+					System.err.println("deleted loop " + rrs);
+			}
 		}
 	}
 
@@ -353,6 +366,7 @@ public class RelativeRecordSet {
 				return null;
 			}
 
+			/*
 			// 这个方法是在 Reduce 获得记录锁，并降级（设置状态）以后才调用。
 			// 已经不会有后续的修改（但可能有读取并且被合并然后又被Flush），
 			// 或者被 Checkpoint Flush。
@@ -363,6 +377,7 @@ public class RelativeRecordSet {
 				after.run();
 				return null;
 			}
+			*/
 
 			return rrs.MergeTo; // 返回这个能更快得到新集合的引用。
 		}
