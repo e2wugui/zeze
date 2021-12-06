@@ -141,7 +141,8 @@ public class RelativeRecordSet {
 			}
 			// 读写都需要收集。
 			transAccessRecords.add(ar.OriginRecord);
-			RelativeRecordSets.put(ar.OriginRecord.getRelativeRecordSet().Id, ar.OriginRecord.getRelativeRecordSet());
+			final var volatilerrs = ar.OriginRecord.getRelativeRecordSet();
+			RelativeRecordSets.put(volatilerrs.Id, volatilerrs);
 		}
 
 		if (allCheckpointWhenCommit) {
@@ -249,9 +250,12 @@ public class RelativeRecordSet {
 			var GotoLabelLockRelativeRecordSets = false;
 			int index = 0;
 			int n = LockedRelativeRecordSets.size();
-			for (var rrs : RelativeRecordSets.values()) {
+			final var itrrs = RelativeRecordSets.values().iterator();
+			var rrs = itrrs.hasNext() ? itrrs.next() : null;
+			while (null != rrs) {
 				if (index >= n) {
 					if (_lock_and_check_(LockedRelativeRecordSets, RelativeRecordSets, rrs, transAccessRecords)) {
+						rrs = itrrs.hasNext() ? itrrs.next() : null;
 						continue;
 					}
 					GotoLabelLockRelativeRecordSets = true;
@@ -261,6 +265,7 @@ public class RelativeRecordSet {
 				int c = Long.compare(curset.Id, rrs.Id);
 				if (c == 0) {
 					++index;
+					rrs = itrrs.hasNext() ? itrrs.next() : null;
 					continue;
 				}
 				if (c < 0) {
@@ -274,6 +279,7 @@ public class RelativeRecordSet {
 					}
 					LockedRelativeRecordSets.subList(index, unlockEndIndex).clear();
 					n = LockedRelativeRecordSets.size();
+					// 重新从当前 rrs 继续锁。
 					continue;
 				}
 				// RelativeRecordSets发生了变化，并且出现排在当前已经锁住对象前面的集合。
@@ -283,6 +289,7 @@ public class RelativeRecordSet {
 				}
 				LockedRelativeRecordSets.subList(index, n).clear();
 				n = LockedRelativeRecordSets.size();
+				// 重新从当前 rrs 继续锁。
 			}
 			if (!GotoLabelLockRelativeRecordSets)
 				break; // success

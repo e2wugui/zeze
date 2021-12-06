@@ -140,7 +140,8 @@ namespace Zeze.Transaction
                     allCheckpointWhenCommit = false;
                 }
                 transAccessRecords.Add(ar.OriginRecord);
-                RelativeRecordSets[ar.OriginRecord.RelativeRecordSet.Id] = ar.OriginRecord.RelativeRecordSet;
+                var volatilerrs = ar.OriginRecord.RelativeRecordSet;
+                RelativeRecordSets[volatilerrs.Id] = volatilerrs;
             }
 
             if (allCheckpointWhenCommit)
@@ -257,12 +258,18 @@ namespace Zeze.Transaction
             {
                 int index = 0;
                 int n = LockedRelativeRecordSets.Count;
-                foreach (var rrs in RelativeRecordSets.Values)
+                var itrrs = RelativeRecordSets.Values.GetEnumerator();
+                bool hasNext = itrrs.MoveNext();
+                while (hasNext)
                 {
+                    var rrs = itrrs.Current;
                     if (index >= n)
                     {
                         if (_lock_and_check_(LockedRelativeRecordSets, RelativeRecordSets, rrs, transAccessRecords))
+                        {
+                            hasNext = itrrs.MoveNext();
                             continue;
+                        }
                         goto LabelLockRelativeRecordSets;
                     }
                     var curset = LockedRelativeRecordSets[index];
@@ -270,6 +277,7 @@ namespace Zeze.Transaction
                     if (c == 0)
                     {
                         ++index;
+                        hasNext = itrrs.MoveNext();
                         continue;
                     }
                     if (c < 0)
@@ -285,6 +293,7 @@ namespace Zeze.Transaction
                         }
                         LockedRelativeRecordSets.RemoveRange(index, unlockEndIndex - index);
                         n = LockedRelativeRecordSets.Count;
+                        // 重新从当前 rrs 继续锁。
                         continue;
                     }
                     // RelativeRecordSets发生了变化，并且出现排在当前已经锁住对象前面的集合。
@@ -295,6 +304,7 @@ namespace Zeze.Transaction
                     }
                     LockedRelativeRecordSets.RemoveRange(index, n - index);
                     n = LockedRelativeRecordSets.Count;
+                    // 重新从当前 rrs 继续锁。
                 }
             }
         }

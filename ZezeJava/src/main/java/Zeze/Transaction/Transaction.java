@@ -523,7 +523,9 @@ public final class Transaction {
 
 		int index = 0;
 		int n = holdLocks.size();
-		for (var e : getAccessedRecords().entrySet()) {
+		final var ite = getAccessedRecords().entrySet().iterator();
+		var e = ite.hasNext() ? ite.next() : null;
+		while (null != e) {
 			// 如果 holdLocks 全部被对比完毕，直接锁定它
 			if (index >= n) {
 				switch (_lock_and_check_(e)) {
@@ -535,6 +537,7 @@ public final class Transaction {
 					case RedoAndReleaseLock:
 						return CheckResult.RedoAndReleaseLock;
 				}
+				e = ite.hasNext() ? ite.next() : null;
 				continue;
 			}
 
@@ -549,21 +552,14 @@ public final class Transaction {
 					// 必须先全部释放，再升级当前记录锁，再锁后面的记录。
 					// 直接 unlockRead，lockWrite会死锁。
 					n = _unlock_start_(index, n);
-					switch (_lock_and_check_(e)) {
-						case Success:
-							break;
-						case Redo:
-							conflict = true;
-							break; // continue lock
-						case RedoAndReleaseLock:
-							return CheckResult.RedoAndReleaseLock;
-					}
 					// 从当前index之后都是新加锁，并且index和n都不会再发生变化。
+					// 重新从当前 e 继续锁。
 					continue;
 				}
 				// else 已经持有读锁，不可能被修改也不可能降级(reduce)，所以不做检测了。                    
 				// 已经锁定了，跳过当前锁，比较下一个。
 				++index;
+				e = ite.hasNext() ? ite.next() : null;
 				continue;
 			}
 			// holdlocks a  b  ...
@@ -577,6 +573,7 @@ public final class Transaction {
 				}
 				holdLocks.subList(index, unlockEndIndex).clear();
 				n = holdLocks.size();
+				// 重新从当前 e 继续锁。
 				continue;
 			}
 
@@ -584,6 +581,7 @@ public final class Transaction {
 			// needlocks a  b  ...
 			// 为了不违背锁序，释放从当前锁开始的所有锁
 			n = _unlock_start_(index, n);
+			// 重新从当前 e 继续锁。
 		}
 		return conflict ? CheckResult.Redo : CheckResult.Success;
 	}
