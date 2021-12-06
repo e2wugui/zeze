@@ -447,6 +447,9 @@ public final class Config {
 				case "Tikv":
 					DatabaseType = DbType.Tikv;
 					break;
+				case "RocksDB":
+					DatabaseType = DbType.RocksDb;
+					break;
 				default:
 					throw new RuntimeException("unknown database type.");
 			}

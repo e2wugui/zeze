@@ -19,6 +19,10 @@ public class DatabaseRocksDb extends Database {
 	private final ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
 	private final ConcurrentHashMap<String, ColumnFamilyHandle> ColumnFamilies = new ConcurrentHashMap<>();
 
+	static{
+		RocksDB.loadLibrary();
+	}
+
 	public DatabaseRocksDb(Application zeze, Config.DatabaseConf conf) {
 		super(conf);
 
@@ -27,16 +31,20 @@ public class DatabaseRocksDb extends Database {
 		}
 		DBOptions dbOptions = new DBOptions();
 		dbOptions.setCreateIfMissing(true);
+		final String dbHome = conf.getDatabaseUrl().isEmpty()?"db":conf.getDatabaseUrl();
 		try {
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 			org.rocksdb.Options options = new Options();
-			for (var cf : RocksDB.listColumnFamilies(options, conf.getDatabaseUrl())) {
+			for (var cf : RocksDB.listColumnFamilies(options, dbHome)) {
 				columnFamilies.add(new ColumnFamilyDescriptor(cf, CfOptions));
+			}
+			if (columnFamilies.isEmpty()) {
+				columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), CfOptions));
 			}
 
 			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 			var outHandles = new ArrayList<ColumnFamilyHandle>();
-			Db = RocksDB.open(dbOptions, conf.getDatabaseUrl(), columnFamilies, outHandles);
+			Db = RocksDB.open(dbOptions, dbHome, columnFamilies, outHandles);
 
 			for (int i = 0; i< columnFamilies.size(); ++i){
 				var cf = columnFamilies.get(i);
