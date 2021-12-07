@@ -6,7 +6,7 @@
 
     <groupId>com.zezeno</groupId>
     <artifactId>zeze-java</artifactId>
-    <version>0.9.9</version>
+    <version>0.9.9-SNAPSHOT</version>
 
     <name>zeze-java</name>
     <url>https://github.com/e2wugui/zeze</url>
@@ -22,44 +22,20 @@
         <url>https://github.com/e2wugui/zeze</url>
     </scm>
 
+
     <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
         <repository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>releases</id>
+            <url>http://10.12.7.230:9081/repository/maven-releases/</url>
         </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <url>http://10.12.7.230:9081/repository/maven-snapshots/</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.5</version>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>sign</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.8</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -96,19 +72,7 @@
 					<target>11</target>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.9.1</version>
-				<executions>
-					<execution>
-						<id>attach-javadocs</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+
 		</plugins>
     </build>
 
