@@ -59,6 +59,10 @@ public class Tasks {
         }
 
         public abstract long process();
+
+        public boolean IsProcedure() {
+            return true;
+        }
     }
 
     public static class TaskFactory {
@@ -237,6 +241,9 @@ public class Tasks {
         @Override
         public int getKeyNumber() {
             return 0;
+        }
+        public boolean IsProcedure() {
+            return false;
         }
 
         @Override
