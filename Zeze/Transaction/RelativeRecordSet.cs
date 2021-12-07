@@ -377,6 +377,14 @@ namespace Zeze.Transaction
             var rrs = r.RelativeRecordSet;
             while (rrs != null)
             {
+                lock (r)
+                {
+                    if (r.State == Services.GlobalCacheManagerServer.StateRemoved)
+                    {
+                        after();
+                        return;
+                    }
+                }
                 rrs = _FlushWhenReduce(rrs, checkpoint, after);
             }
         }

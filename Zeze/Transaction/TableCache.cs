@@ -254,7 +254,7 @@ namespace Zeze.Transaction
                         if (rrs.MergeTo != null)
                             return false; // 刚刚被合并或者删除（flushed）的记录认为是活跃的，不删除。
 
-                        if (rrs.RecordSet != null)
+                        if (rrs.RecordSet != null && rrs.RecordSet.Count > 1)
                             return false; // 只包含自己的时候才可以删除，多个记录关联起来时不删除。
 
                         return TryRemoveRecordUnderLocks(p);
