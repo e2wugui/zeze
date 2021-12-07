@@ -69,7 +69,7 @@ public final class DatabaseMemory extends Database {
 				for (var e : batch.entrySet()) {
 					final var db = databaseTables.computeIfAbsent(DatabaseMemory.this.getDatabaseUrl(), url -> new ConcurrentHashMap<>());
 					final var table = db.computeIfAbsent(e.getKey(), tn -> new TableMemory(DatabaseMemory.this, tn));
-					System.err.println("commit for: " + e.getKey() + " keys:" + e.getValue().keySet());
+					//System.err.println("commit for: " + e.getKey() + " keys:" + e.getValue().keySet());
 					for (var r : e.getValue().entrySet()) {
 						if (r.getValue() == NullBytes) {
 							table.Map.remove(r.getKey());
