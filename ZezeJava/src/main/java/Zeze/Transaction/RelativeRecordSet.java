@@ -235,7 +235,8 @@ public class RelativeRecordSet {
 
 		// merge 孤立记录。
 		for (var ar : trans.getAccessedRecords().values()) {
-			if (ar.OriginRecord.getRelativeRecordSet().RecordSet == null)
+			if (ar.OriginRecord.getRelativeRecordSet().RecordSet == null
+					|| ar.OriginRecord.getRelativeRecordSet() == largest)
 				largest.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
 		}
 
@@ -345,18 +346,20 @@ public class RelativeRecordSet {
 
 	public static void FlushWhenReduce(Record r, Checkpoint checkpoint, Runnable after) {
 		var rrs = r.getRelativeRecordSet();
-		long deletedcount = 0;
 		while (rrs != null) {
-			if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
-				after.run();
-				return;
+			r.EnterFairLock(); // 用来保护State的查看。
+			try {
+				if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
+					after.run();
+					return;
+				}
+			} finally {
+				r.ExitFairLock();
 			}
 			rrs = _FlushWhenReduce(rrs, checkpoint, after);
+			// _FlushWhenReduce 内部那个提前检测Deleted如果没问题，下面这个判断就不需要了。
 			if (rrs == RelativeRecordSet.Deleted) {
 				rrs = r.getRelativeRecordSet(); // 只能忙等了。
-				deletedcount++;
-				if (deletedcount % 100000 == 0)
-					System.err.println("deleted loop " + rrs);
 			}
 		}
 	}

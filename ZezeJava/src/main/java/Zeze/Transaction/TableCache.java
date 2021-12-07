@@ -217,6 +217,28 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return Remove(p);
 	}
 
+	private void TryRemoveRecord(Zeze.Util.KV<RelativeRecordSet, Boolean> rrskv, Map.Entry<K, Record1<K, V>> p) throws Throwable {
+		final var rrs = rrskv.getKey();
+		rrskv.setKey(null); // set up break loop condition first
+		if (!rrs.TryLockWhenIdle())
+			return;
+
+		try {
+			if (rrs.getMergeTo() != null) {
+				if (rrs.getMergeTo() == RelativeRecordSet.Deleted)
+					return;
+				rrskv.setKey(rrs.getMergeTo()); // merged. retry
+				return;
+			}
+
+			if (rrs.getRecordSet() != null)
+				return; // 只包含自己的时候才可以删除，多个记录关联起来时不删除。
+
+			rrskv.setValue(TryRemoveRecordUnderLocks(p));
+		} finally {
+			rrs.UnLock();
+		}
+	}
 	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) throws Throwable {
 		// lockey 第一优先，和事务并发。
 		final TableKey tkey = new TableKey(this.getTable().getName(), p.getKey());
@@ -232,23 +254,11 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				//return TryRemoveRecordUnderLocks(p);
 				//*
 				// rrs.lock
-				while (true) {
-					final var volatilerrs = p.getValue().getRelativeRecordSet();
-					if (!volatilerrs.TryLockWhenIdle())
-						return false;
-
-					try {
-						if (volatilerrs.getMergeTo() != null)
-							continue; // merged or deleted. retry
-
-						if (volatilerrs.getRecordSet() != null)
-							return false; // 属于关联集合的记录不能清理。
-
-						return TryRemoveRecordUnderLocks(p);
-					} finally {
-						volatilerrs.UnLock();
-					}
+				var rrskv = Zeze.Util.KV.Create(p.getValue().getRelativeRecordSet(), false);
+				while (null != rrskv.getKey()) {
+					TryRemoveRecord(rrskv, p);
 				}
+				return rrskv.getValue();
 				// */
 			} finally {
 				p.getValue().ExitFairLock();
