@@ -107,7 +107,7 @@ public final class GlobalCacheManagerServer {
 		}
 		// 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
 		// 尽量不重新调整ConcurrentDictionary。
-		private int InitialCapacity = 100000000;
+		private int InitialCapacity = 10000000;
 		public final int getInitialCapacity() {
 			return InitialCapacity;
 		}
