@@ -23,12 +23,8 @@ public class DatabaseRocksDb extends Database {
 		RocksDB.loadLibrary();
 	}
 
-	public DatabaseRocksDb(Application zeze, Config.DatabaseConf conf) {
+	public DatabaseRocksDb(Config.DatabaseConf conf) {
 		super(conf);
-
-		if (!zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
-			throw new RuntimeException("RocksDb Can Not Work With GlobalCacheManager.");
-		}
 		DBOptions dbOptions = new DBOptions();
 		dbOptions.setCreateIfMissing(true);
 		final String dbHome = conf.getDatabaseUrl().isEmpty()?"db":conf.getDatabaseUrl();

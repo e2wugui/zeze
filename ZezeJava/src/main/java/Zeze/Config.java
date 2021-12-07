@@ -177,7 +177,10 @@ public final class Config {
 			case Tikv:
 				return new Zeze.Transaction.DatabaseTikv(conf);
 			case RocksDb:
-				return new Zeze.Transaction.DatabaseRocksDb(zeze, conf);
+				if (!zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
+					throw new RuntimeException("RocksDb Can Not Work With GlobalCacheManager.");
+				}
+				return new Zeze.Transaction.DatabaseRocksDb(conf);
 			default:
 				throw new RuntimeException("unknown database type.");
 		}
