@@ -217,49 +217,32 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return Remove(p);
 	}
 
-	private void TryRemoveRecord(Zeze.Util.KV<RelativeRecordSet, Boolean> rrskv, Map.Entry<K, Record1<K, V>> p) throws Throwable {
-		final var rrs = rrskv.getKey();
-		rrskv.setKey(null); // set up break loop condition first
-		if (!rrs.TryLockWhenIdle())
-			return;
-
-		try {
-			if (rrs.getMergeTo() != null) {
-				if (rrs.getMergeTo() == RelativeRecordSet.Deleted)
-					return;
-				rrskv.setKey(rrs.getMergeTo()); // merged. retry
-				return;
-			}
-
-			if (rrs.getRecordSet() != null)
-				return; // 只包含自己的时候才可以删除，多个记录关联起来时不删除。
-
-			rrskv.setValue(TryRemoveRecordUnderLocks(p));
-		} finally {
-			rrs.UnLock();
-		}
-	}
 	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) throws Throwable {
 		// lockey 第一优先，和事务并发。
 		final TableKey tkey = new TableKey(this.getTable().getName(), p.getKey());
 		final Lockey lockey = Table.getZeze().getLocks().Get(tkey);
-		if (!lockey.TryEnterWriteLock(0)) {
+		if (!lockey.TryEnterWriteLock(0))
 			return false;
-		}
 		try {
 			// record.lock 和事务并发。
 			if (!p.getValue().TryEnterFairLockWhenIdle())
 				return false;
 			try {
-				//return TryRemoveRecordUnderLocks(p);
-				//*
 				// rrs.lock
-				var rrskv = Zeze.Util.KV.Create(p.getValue().getRelativeRecordSet(), false);
-				while (null != rrskv.getKey()) {
-					TryRemoveRecord(rrskv, p);
+				var rrs = p.getValue().getRelativeRecordSet();
+				if (!rrs.TryLockWhenIdle())
+					return false;
+				try {
+					if (rrs.getMergeTo() != null)
+						return false; // // 刚刚被合并或者删除（flushed）的记录认为是活跃的，不删除。
+
+					if (rrs.getRecordSet() != null)
+						return false; // 只包含自己的时候才可以删除，多个记录关联起来时不删除。
+
+					return TryRemoveRecordUnderLocks(p);
+				} finally {
+					rrs.UnLock();
 				}
-				return rrskv.getValue();
-				// */
 			} finally {
 				p.getValue().ExitFairLock();
 			}
