@@ -357,11 +357,8 @@ public class RelativeRecordSet {
 			} finally {
 				r.ExitFairLock();
 			}
+
 			rrs = _FlushWhenReduce(rrs, checkpoint, after);
-			// _FlushWhenReduce 内部那个提前检测Deleted如果没问题，下面这个判断就不需要了。
-			if (rrs == RelativeRecordSet.Deleted) {
-				rrs = r.getRelativeRecordSet(); // 只能忙等了。
-			}
 		}
 	}
 
@@ -377,7 +374,6 @@ public class RelativeRecordSet {
 				return null;
 			}
 
-			/*
 			// 这个方法是在 Reduce 获得记录锁，并降级（设置状态）以后才调用。
 			// 已经不会有后续的修改（但可能有读取并且被合并然后又被Flush），
 			// 或者被 Checkpoint Flush。
@@ -388,7 +384,6 @@ public class RelativeRecordSet {
 				after.run();
 				return null;
 			}
-			*/
 
 			return rrs.MergeTo; // 返回这个能更快得到新集合的引用。
 		}

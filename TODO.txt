@@ -32,9 +32,7 @@ Raft
 
 Java Socket Rpc Response 没有唤醒，还是会饥饿？write 提供多个buffer，有没有可能其中一个有剩余。
 
-FlushWhenReduce & _FlushWhenReduce & TableCache.TryRemoveRecord
 RelativeRecordSet._merge_ 第二步合并孤立记录临时补丁：largest是孤立记录时，把当前记录加进去。现在的写法有点丑。
-RelativeRecordSet? 只要记录被访问一次，Record 就不是孤立的了，现在无法从 TableCache 清除。
 
 【新改动】
 	整体并发测试，需要包含 TableCache.Cleanup。
@@ -43,3 +41,5 @@ RelativeRecordSet? 只要记录被访问一次，Record 就不是孤立的了，现在无法从 TableCa
 	CheckpointMode.Table Merge 逻辑BUG：c#修改。
 	TestCheckpoint java to c#
 	c# DatabaseMemory
+	RelativeRecordSet? 只要记录被访问一次，Record 就不是孤立的了，现在无法从 TableCache 清除。
+	FlushWhenReduce & _FlushWhenReduce & TableCache.TryRemoveRecord
