@@ -238,7 +238,6 @@ namespace Zeze.Transaction
 
             if (false == lockey.TryEnterWriteLock(0))
                 return false;
-
             try
             {
                 // record.lock 和事务并发。
@@ -246,18 +245,23 @@ namespace Zeze.Transaction
                     return false;
                 try
                 {
-                    // rrs.lock
-                    var volatilerrs = p.Value.RelativeRecordSet;
-                    if (false == volatilerrs.TryLock())
+                    // rrs lock
+                    var rrs = p.Value.RelativeRecordSet;
+                    if (false == rrs.TryLock())
                         return false;
-
                     try
                     {
+                        if (rrs.MergeTo != null)
+                            return false; // 刚刚被合并或者删除（flushed）的记录认为是活跃的，不删除。
+
+                        if (rrs.RecordSet != null)
+                            return false; // 只包含自己的时候才可以删除，多个记录关联起来时不删除。
+
                         return TryRemoveRecordUnderLocks(p);
                     }
                     finally
                     {
-                        volatilerrs.UnLock();
+                        rrs.UnLock();
                     }
                 }
                 finally

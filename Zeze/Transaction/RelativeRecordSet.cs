@@ -243,7 +243,9 @@ namespace Zeze.Transaction
             // merge 孤立记录。
             foreach (var ar in trans.AccessedRecords.Values)
             {
-                if (ar.OriginRecord.RelativeRecordSet.RecordSet == null)
+                if (ar.OriginRecord.RelativeRecordSet.RecordSet == null
+                    || ar.OriginRecord.RelativeRecordSet == largest // urgly
+                    )
                     largest.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
             }
             return largest;

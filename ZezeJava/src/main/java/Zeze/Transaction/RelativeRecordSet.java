@@ -236,7 +236,8 @@ public class RelativeRecordSet {
 		// merge 孤立记录。
 		for (var ar : trans.getAccessedRecords().values()) {
 			if (ar.OriginRecord.getRelativeRecordSet().RecordSet == null
-					|| ar.OriginRecord.getRelativeRecordSet() == largest)
+					|| ar.OriginRecord.getRelativeRecordSet() == largest // urgly
+			)
 				largest.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
 		}
 
