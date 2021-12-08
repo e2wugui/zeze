@@ -18,49 +18,61 @@ public class TestDatabaseRocksDB extends TestCase{
 
 	public final void test1() throws UnknownHostException {
 		DatabaseRocksDb db = getDatabaseRocksDb();
-		Database.Table table = db.OpenTable("test_1"); {
-			var trans = db.BeginTransaction(); {
+		try {
+			Database.Table table = db.OpenTable("test_1");
+			{
+				var trans = db.BeginTransaction();
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(1);
+					table.Remove(trans, key);
+				}
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(2);
+					table.Remove(trans, key);
+				}
+				trans.Commit();
+			}
+			assert 0 == table.Walk(this::PrintRecord);
+			{
+				var trans = db.BeginTransaction();
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(1);
+					ByteBuffer value = ByteBuffer.Allocate();
+					value.WriteInt(1);
+					table.Replace(trans, key, value);
+				}
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(2);
+					ByteBuffer value = ByteBuffer.Allocate();
+					value.WriteInt(2);
+					table.Replace(trans, key, value);
+				}
+				trans.Commit();
+			}
+			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(1);
-				table.Remove(trans, key);
-			} {
+				ByteBuffer value = table.Find(key);
+				assert value != null;
+				assert 1 == value.ReadInt();
+				assert value.ReadIndex == value.WriteIndex;
+			}
+			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(2);
-				table.Remove(trans, key);
+				ByteBuffer value = table.Find(key);
+				assert value != null;
+				assert 2 == value.ReadInt();
+				assert value.ReadIndex == value.WriteIndex;
 			}
-			trans.Commit();
+			assert 2 == table.Walk(this::PrintRecord);
+		} finally {
+			db.Close();
 		}
-		assert 0 == table.Walk(this::PrintRecord); {
-			var trans = db.BeginTransaction(); {
-				ByteBuffer key = ByteBuffer.Allocate();
-				key.WriteInt(1);
-				ByteBuffer value = ByteBuffer.Allocate();
-				value.WriteInt(1);
-				table.Replace(trans, key, value);
-			} {
-				ByteBuffer key = ByteBuffer.Allocate();
-				key.WriteInt(2);
-				ByteBuffer value = ByteBuffer.Allocate();
-				value.WriteInt(2);
-				table.Replace(trans, key, value);
-			}
-			trans.Commit();
-		} {
-			ByteBuffer key = ByteBuffer.Allocate();
-			key.WriteInt(1);
-			ByteBuffer value = table.Find(key);
-			assert value != null;
-			assert 1 == value.ReadInt();
-			assert value.ReadIndex == value.WriteIndex;
-		} {
-			ByteBuffer key = ByteBuffer.Allocate();
-			key.WriteInt(2);
-			ByteBuffer value = table.Find(key);
-			assert value != null;
-			assert 2 == value.ReadInt();
-			assert value.ReadIndex == value.WriteIndex;
-		}
-		assert 2 == table.Walk(this::PrintRecord);
 	}
 
 	/**
@@ -68,8 +80,12 @@ public class TestDatabaseRocksDB extends TestCase{
 	 */
 	public final void test2(){
 		DatabaseRocksDb db = getDatabaseRocksDb();
-		Database.Table table = db.OpenTable("test_1");
-		assert 2 == table.Walk(this::PrintRecord);
+		try {
+			Database.Table table = db.OpenTable("test_1");
+			assert 2 == table.Walk(this::PrintRecord);
+		} finally {
+			db.Close();
+		}
 	}
 
 	private DatabaseRocksDb getDatabaseRocksDb() {
