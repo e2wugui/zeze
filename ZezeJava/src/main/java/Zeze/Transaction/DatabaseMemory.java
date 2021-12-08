@@ -9,9 +9,10 @@ import java.util.concurrent.ConcurrentHashMap;
  Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
 */
 public final class DatabaseMemory extends Database {
+	private static ProceduresMemory ProceduresMemory = new ProceduresMemory();
 	public DatabaseMemory(DatabaseConf conf) {
 		super(conf);
-		setDirectOperates(new ProceduresMemory());
+		setDirectOperates(ProceduresMemory);
 	}
 
 	public static class ProceduresMemory implements Operates {
@@ -65,7 +66,7 @@ public final class DatabaseMemory extends Database {
 
 		public final void Commit() {
 			// 整个db同步。
-			synchronized (DatabaseMemory.this) {
+			synchronized (DatabaseMemory.databaseTables) {
 				for (var e : batch.entrySet()) {
 					final var db = databaseTables.computeIfAbsent(DatabaseMemory.this.getDatabaseUrl(), url -> new ConcurrentHashMap<>());
 					final var table = db.computeIfAbsent(e.getKey(), tn -> new TableMemory(DatabaseMemory.this, tn));
@@ -102,7 +103,7 @@ public final class DatabaseMemory extends Database {
 		// 多表原子查询。
 		public Map<String, Map<ByteBuffer, ByteBuffer>> Finds(Map<String, Set<ByteBuffer>> tableKeys) {
 			var result = new HashMap<String, Map<ByteBuffer, ByteBuffer>>();
-			synchronized (DatabaseMemory.this) {
+			synchronized (DatabaseMemory.databaseTables) {
 				for (var tks : tableKeys.entrySet()) {
 					final var tableName = tks.getKey();
 					final var db = databaseTables.computeIfAbsent(DatabaseMemory.this.getDatabaseUrl(), url -> new ConcurrentHashMap<>());
@@ -120,7 +121,7 @@ public final class DatabaseMemory extends Database {
 		// 单表原子查询
 		public Map<ByteBuffer, ByteBuffer> Finds(String tableName, Set<ByteBuffer> keys) {
 			var result = new HashMap<ByteBuffer, ByteBuffer>();
-			synchronized (DatabaseMemory.this) {
+			synchronized (DatabaseMemory.databaseTables) {
 				//System.err.println("finds for: " + tableName + " keys.size=" +keys.size());
 				final var db = databaseTables.computeIfAbsent(DatabaseMemory.this.getDatabaseUrl(), url -> new ConcurrentHashMap<>());
 				final var table = db.computeIfAbsent(tableName, tn -> new TableMemory(DatabaseMemory.this, tn));

@@ -42,10 +42,17 @@ public class Tasks {
         public Long call() {
             var result = process();
             if (0L == result) {
-                Transaction.getCurrent().RunWhileCommit(() -> {
+                var txn = Transaction.getCurrent();
+                if (null != txn) {
+                    txn.RunWhileCommit(() -> {
+                        for (var key : Keys)
+                            getSuccessCounter(this.getClass().getName(), key).incrementAndGet();
+                    });
+                }
+                else {
                     for (var key : Keys)
                         getSuccessCounter(this.getClass().getName(), key).incrementAndGet();
-                });
+                }
             }
             return result;
         }
@@ -84,7 +91,7 @@ public class Tasks {
         taskFactorys.add(new TaskFactory(Table1Long2Add1.class, Table1Long2Add1::new, 100));
         taskFactorys.add(new TaskFactory(Table1List9AddOrRemove.class, Table1List9AddOrRemove::new, 100));
         taskFactorys.add(new TaskFactory(Table1Int1Trade.class, Table1Int1Trade::new, 100));
-        //taskFactorys.add(new TaskFactory(Table1Int1TradeConcurrentVerify.class, Table1Int1TradeConcurrentVerify::new, 100));
+        taskFactorys.add(new TaskFactory(Table1Int1TradeConcurrentVerify.class, Table1Int1TradeConcurrentVerify::new, 100));
 
         taskFactorys.sort(Comparator.comparingInt(a -> a.Weight));
         for (var task : taskFactorys) {
@@ -269,7 +276,7 @@ public class Tasks {
                     assert sum == 0;
                 }
             } catch (Exception e) {
-                Infinite.App.logger.error(e);
+                Infinite.App.logger.error("", e);
                 assert false;
             }
             return 0L;
