@@ -3,6 +3,7 @@ package Game.Bag;
 import Zeze.Net.Protocol;
 import Zeze.Transaction.*;
 import Game.*;
+import Zeze.Util.Reflect;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -151,34 +152,40 @@ public final class ModuleBag extends AbstractModule {
     public ModuleBag(Game.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.CUse();
             factoryHandle.Handle = (_p) -> ProcessCUse(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCUse", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(10451394608L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.Destroy();
             factoryHandle.Handle = (_p) -> ProcessDestroyRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessDestroyRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(12623633363L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.GetBag();
             factoryHandle.Handle = (_p) -> ProcessGetBagRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessGetBagRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(12175658342L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.Move();
             factoryHandle.Handle = (_p) -> ProcessMoveRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessMoveRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(8838578012L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Bag.Sort();
             factoryHandle.Handle = (_p) -> ProcessSortRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSortRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(12620192448L, factoryHandle);
         }
         // register table

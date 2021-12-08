@@ -4,6 +4,8 @@ import Zeze.Serialize.*;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
+
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
@@ -526,19 +528,19 @@ public class Service {
 	}
 
 	public Zeze.Util.KV<String, Integer> GetOnePassiveAddress() {
-			var ipport = GetOneAcceptorAddress();
-			if (ipport.getValue() == 0)
-				throw new RuntimeException("Acceptor: No Config.");
+		var ipport = GetOneAcceptorAddress();
+		if (ipport.getValue() == 0)
+			throw new RuntimeException("Acceptor: No Config.");
 
+		if (ipport.getKey().isEmpty()) {
+			// 可能绑定在任意地址上。尝试获得网卡的地址。
+			ipport.setKey(GetOneNetworkInterfaceIpAddress());
 			if (ipport.getKey().isEmpty()) {
-				// 可能绑定在任意地址上。尝试获得网卡的地址。
-				ipport.setKey(GetOneNetworkInterfaceIpAddress());
-				if (ipport.getKey().isEmpty()) {
-					// 实在找不到ip地址，就设置成loopback。
-					logger.warn("PassiveAddress No Config. set ip to 127.0.0.1");
-					ipport.setKey("127.0.0.1");
-				}
+				// 实在找不到ip地址，就设置成loopback。
+				logger.warn("PassiveAddress No Config. set ip to 127.0.0.1");
+				ipport.setKey("127.0.0.1");
 			}
-			return ipport;
 		}
+		return ipport;
+	}
 }

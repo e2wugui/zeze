@@ -593,84 +593,96 @@ public final class ModuleProvider extends AbstractModule {
     public ModuleProvider(Zezex.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.AnnounceProviderInfo();
             factoryHandle.Handle = (_p) -> ProcessAnnounceProviderInfo(_p);
-            factoryHandle.Level = Zeze.Transaction.TransactionLevel.None;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAnnounceProviderInfo", Zeze.Transaction.TransactionLevel.None);
             App.ProviderService.AddFactoryHandle(42957140516486L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Bind();
             factoryHandle.Handle = (_p) -> ProcessBindRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessBindRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.ProviderService.AddFactoryHandle(42956370435684L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Broadcast();
             factoryHandle.Handle = (_p) -> ProcessBroadcast(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessBroadcast", Zeze.Transaction.TransactionLevel.Serializable);
             App.ProviderService.AddFactoryHandle(42958165849675L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Kick();
             factoryHandle.Handle = (_p) -> ProcessKick(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessKick", Zeze.Transaction.TransactionLevel.Serializable);
             App.ProviderService.AddFactoryHandle(42956181853084L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirect();
             factoryHandle.Handle = (_p) -> ProcessModuleRedirectRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessModuleRedirectRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.ProviderService.AddFactoryHandle(42957157812299L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirectAllRequest();
             factoryHandle.Handle = (_p) -> ProcessModuleRedirectAllRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessModuleRedirectAllRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.ProviderService.AddFactoryHandle(42954995920679L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.ModuleRedirectAllResult();
             factoryHandle.Handle = (_p) -> ProcessModuleRedirectAllResult(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessModuleRedirectAllResult", Zeze.Transaction.TransactionLevel.Serializable);
             App.ProviderService.AddFactoryHandle(42956729630485L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.ReportLoad();
             factoryHandle.Handle = (_p) -> ProcessReportLoad(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReportLoad", Zeze.Transaction.TransactionLevel.Serializable);
             App.ProviderService.AddFactoryHandle(42955910777365L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Send();
             factoryHandle.Handle = (_p) -> ProcessSend(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSend", Zeze.Transaction.TransactionLevel.Serializable);
             App.ProviderService.AddFactoryHandle(42954209982100L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.SetUserState();
             factoryHandle.Handle = (_p) -> ProcessSetUserState(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSetUserState", Zeze.Transaction.TransactionLevel.Serializable);
             App.ProviderService.AddFactoryHandle(42956391073392L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Subscribe();
             factoryHandle.Handle = (_p) -> ProcessSubscribeRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSubscribeRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.ProviderService.AddFactoryHandle(42957202240366L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.Transmit();
             factoryHandle.Handle = (_p) -> ProcessTransmit(_p);
-            factoryHandle.Level = Zeze.Transaction.TransactionLevel.None;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessTransmit", Zeze.Transaction.TransactionLevel.None);
             App.ProviderService.AddFactoryHandle(42954614917260L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Provider.UnBind();
             factoryHandle.Handle = (_p) -> ProcessUnBindRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessUnBindRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.ProviderService.AddFactoryHandle(42955764678922L, factoryHandle);
         }
         // register table

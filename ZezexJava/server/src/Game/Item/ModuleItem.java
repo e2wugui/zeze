@@ -22,6 +22,7 @@ public final class ModuleItem extends AbstractModule {
     public ModuleItem(Game.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         // register table
     }
 

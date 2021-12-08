@@ -56,16 +56,19 @@ public final class ModuleLinkd extends AbstractModule {
     public ModuleLinkd(Zezex.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Linkd.Auth();
             factoryHandle.Handle = (_p) -> ProcessAuthRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAuthRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.LinkdService.AddFactoryHandle(42952970027574L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Zezex.Linkd.KeepAlive();
             factoryHandle.Handle = (_p) -> ProcessKeepAlive(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessKeepAlive", Zeze.Transaction.TransactionLevel.Serializable);
             App.LinkdService.AddFactoryHandle(42951249029979L, factoryHandle);
         }
         // register table

@@ -74,6 +74,7 @@ public class ModuleBuf extends AbstractModule {
     public ModuleBuf(Game.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tbufs.getName()).getDatabaseName(), _tbufs);
     }

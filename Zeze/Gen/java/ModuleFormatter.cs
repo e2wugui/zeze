@@ -179,6 +179,7 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    public Module{module.Name}({project.Solution.Name}.App app) {{");
             sw.WriteLine("        App = app;");
             sw.WriteLine("        // register protocol factory and handles");
+            sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(this.getClass());");
             Service serv = module.ReferenceService;
             if (serv != null)
             {
@@ -193,8 +194,7 @@ namespace Zeze.Gen.java
                         sw.WriteLine($"            factoryHandle.Factory = () -> new {rpc.Space.Path(".", rpc.Name)}();");
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                             sw.WriteLine($"            factoryHandle.Handle = (_p) -> Process{rpc.Name}Request(_p);");
-                        if (p.TransactionLevel != Transaction.TransactionLevel.Serializable)
-                            sw.WriteLine($"            factoryHandle.Level = Zeze.Transaction.TransactionLevel.{p.TransactionLevel};");
+                        sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}Request\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
                         sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({rpc.TypeId}L, factoryHandle);");
                         sw.WriteLine("        }");
                         continue;
@@ -205,8 +205,7 @@ namespace Zeze.Gen.java
                         sw.WriteLine("            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();");
                         sw.WriteLine($"            factoryHandle.Factory = () -> new {p.Space.Path(".", p.Name)}();");
                         sw.WriteLine($"            factoryHandle.Handle = (_p) -> Process{p.Name}(_p);");
-                        if (p.TransactionLevel != Transaction.TransactionLevel.Serializable)
-                            sw.WriteLine($"            factoryHandle.Level = Zeze.Transaction.TransactionLevel.{p.TransactionLevel};");
+                        sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{p.Name}\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
                         sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({p.TypeId}L, factoryHandle);");
                         sw.WriteLine( "        }");
                     }

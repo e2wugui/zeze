@@ -26,6 +26,7 @@ public final class ModuleSkill extends AbstractModule {
     public ModuleSkill(Game.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tskills.getName()).getDatabaseName(), _tskills);
     }
