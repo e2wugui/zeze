@@ -1343,9 +1343,10 @@ namespace Zeze.Transaction
     /// </summary>
     public sealed class DatabaseMemory : Database
     {
+        private readonly ProceduresMemory _ProceduresMemory = new ProceduresMemory();
         public DatabaseMemory(Application zeze, string url) : base(zeze, url)
         {
-            DirectOperates = new ProceduresMemory();
+            DirectOperates = _ProceduresMemory;
         }
 
         public class ByteArrayComparer : IEqualityComparer<byte[]>
@@ -1438,7 +1439,7 @@ namespace Zeze.Transaction
             public void Commit()
             {
                 // 整个db同步。
-                lock(Database)
+                lock(databaseTables)
                 {
                     foreach (var e in batch)
                     {
@@ -1478,7 +1479,7 @@ namespace Zeze.Transaction
             public IDictionary<string, IDictionary<ByteBuffer, ByteBuffer>> Finds(IDictionary<string, ISet<ByteBuffer>> tableKeys)
             {
                 var result = new Dictionary<string, IDictionary<ByteBuffer, ByteBuffer>>();
-                lock (Database)
+                lock (databaseTables)
                 {
                     foreach (var tks in tableKeys)
                     {
@@ -1501,7 +1502,7 @@ namespace Zeze.Transaction
             public IDictionary<ByteBuffer, ByteBuffer> Finds(string tableName, ISet<ByteBuffer> keys)
             {
                 var result = new Dictionary<ByteBuffer, ByteBuffer>();
-                lock (Database)
+                lock (databaseTables)
                 {
                     var db = databaseTables.GetOrAdd(Database.DatabaseUrl,
                         url => new ConcurrentDictionary<string, TableMemory>());
