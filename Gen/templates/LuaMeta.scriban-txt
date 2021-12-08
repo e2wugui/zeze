@@ -7,7 +7,7 @@
 use_empty = false
 for protocol in protocols 
     if protocol.argument_type == null
-        need_require_core = true
+        use_empty = true
         break
     end
     if protocol.result 
