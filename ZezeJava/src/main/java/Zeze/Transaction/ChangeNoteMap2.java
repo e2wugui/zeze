@@ -7,6 +7,10 @@ public final class ChangeNoteMap2<K, V extends Bean> extends ChangeNoteMap1<K, V
 	// Notify 的时候由 Collector 设置。
 	private IdentityHashMap<Bean, Bean> ChangedValue;
 
+	public IdentityHashMap<Bean, Bean> getChangedValue() {
+	    return ChangedValue;
+    }
+
 	public ChangeNoteMap2(Zeze.Transaction.Collections.PMap<K, V> map) {
 		super(map);
 	}
