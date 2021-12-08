@@ -42,16 +42,19 @@ public final class ModuleMap extends AbstractModule {
     public ModuleMap(Game.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Map.CEnterWorld();
             factoryHandle.Handle = (_p) -> ProcessCEnterWorld(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCEnterWorld", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(35514358966L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Map.CEnterWorldDone();
             factoryHandle.Handle = (_p) -> ProcessCEnterWorldDone(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCEnterWorldDone", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(35705348604L, factoryHandle);
         }
         // register table

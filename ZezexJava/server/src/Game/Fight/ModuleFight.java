@@ -46,6 +46,7 @@ public final class ModuleFight extends AbstractModule {
     public ModuleFight(Game.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         // register table
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tfighters.getName()).getDatabaseName(), _tfighters);
     }

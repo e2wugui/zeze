@@ -248,40 +248,47 @@ public final class ModuleLogin extends AbstractModule {
     public ModuleLogin(Game.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.CreateRole();
             factoryHandle.Handle = (_p) -> ProcessCreateRoleRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCreateRoleRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(8319355361L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.GetRoleList();
             factoryHandle.Handle = (_p) -> ProcessGetRoleListRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessGetRoleListRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(4551632983L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.Login();
             factoryHandle.Handle = (_p) -> ProcessLoginRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessLoginRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(4704197912L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.Logout();
             factoryHandle.Handle = (_p) -> ProcessLogoutRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessLogoutRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(7963174805L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.ReliableNotifyConfirm();
             factoryHandle.Handle = (_p) -> ProcessReliableNotifyConfirmRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReliableNotifyConfirmRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(4656410606L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Login.ReLogin();
             factoryHandle.Handle = (_p) -> ProcessReLoginRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReLoginRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(6271065515L, factoryHandle);
         }
         // register table

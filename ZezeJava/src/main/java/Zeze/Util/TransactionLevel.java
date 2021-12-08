@@ -1,4 +1,4 @@
-package Zezex;
+package Zeze.Util;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,6 +7,6 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface RedirectAll {
-    String GetConcurrentLevelSource() default "";
+public @interface TransactionLevel {
+    String Level() default "Serializable";
 }

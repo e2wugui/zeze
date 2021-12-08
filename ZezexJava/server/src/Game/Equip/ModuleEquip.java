@@ -177,16 +177,19 @@ public final class ModuleEquip extends AbstractModule {
     public ModuleEquip(Game.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Equip.Equipement();
             factoryHandle.Handle = (_p) -> ProcessEquipementRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessEquipementRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(32772485238L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new Game.Equip.Unequipement();
             factoryHandle.Handle = (_p) -> ProcessUnequipementRequest(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessUnequipementRequest", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(30979741226L, factoryHandle);
         }
         // register table
