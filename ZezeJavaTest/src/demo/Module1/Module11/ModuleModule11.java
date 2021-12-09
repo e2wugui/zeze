@@ -19,6 +19,7 @@ public class ModuleModule11 extends AbstractModule {
     public ModuleModule11(demo.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         // register table
     }
 

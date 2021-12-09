@@ -27,7 +27,13 @@ public class Simulate {
     }
 
     public static App randApp() {
-        return Apps.get(Zeze.Util.Random.getInstance().nextInt(Apps.size()));
+        return randApp(Apps.size());
+    }
+
+    public static App randApp(int max) {
+        if (max > Apps.size())
+            max = Apps.size();
+        return Apps.get(Zeze.Util.Random.getInstance().nextInt(max));
     }
 
     public final static int BatchTaskCount = 50000;
@@ -43,7 +49,7 @@ public class Simulate {
         while (true) {
             ++BatchNumber;
             for (int i = 0; i < BatchTaskCount; ++i) {
-                randApp().Run(Tasks.randCreateTask());
+                Tasks.randCreateTask().Run();
             }
             for (var app : Apps) {
                 app.WaitAllRunningTasksAndClear();

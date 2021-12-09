@@ -19,10 +19,23 @@ public class App {
         config.setServerId(serverId);
         config.setFastRedoWhenConfict(false);
         config.setCheckpointPeriod(1000);
+
         var tdef = config.getDefaultTableConf();
-        tdef.setCacheCleanPeriod(1000); // 提高并发
-        tdef.setCacheCleanPeriodWhenExceedCapacity(0); // 超出容量时，快速尝试。
-        tdef.setCacheCapacity(Simulate.CacheCapacity); // 减少容量，实际使用记录数要超过一些。让TableCache.Cleanup能并发起来。
+        // 提高并发
+        tdef.setCacheCleanPeriod(1000);
+        // 超出容量时，快速尝试。
+        tdef.setCacheCleanPeriodWhenExceedCapacity(0);
+        // 减少容量，实际使用记录数要超过一些。让TableCache.Cleanup能并发起来。
+        tdef.setCacheCapacity(Simulate.CacheCapacity);
+
+        var tflush = config.getTableConfMap().get("demo_Module1_tflush");
+        // 提高并发
+        tflush.setCacheCleanPeriod(1000);
+        // 超出容量时，快速尝试。
+        tflush.setCacheCleanPeriodWhenExceedCapacity(0);
+        // 减少容量，实际使用记录数要超过一些。让TableCache.Cleanup能并发起来。
+        tflush.setCacheCapacity(Tasks.tflushInt1Trade.CacheCapacity);
+
         app = new demo.App();
     }
 

@@ -4,8 +4,6 @@ import Zeze.Transaction.DatabaseMemory;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 
-import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -37,6 +35,10 @@ public class Tasks {
     public static abstract class Task implements Zeze.Util.Func0<Long> {
         Set<Long> Keys = new HashSet<>();
         demo.App App;
+
+        public void Run() {
+            Simulate.randApp().Run(this);
+        }
 
         @Override
         public Long call() {
@@ -90,8 +92,8 @@ public class Tasks {
         // 新的操作数据的测试任务在这里注册。weith是权重，see randCreateTask();
         taskFactorys.add(new TaskFactory(Table1Long2Add1.class, Table1Long2Add1::new, 100));
         taskFactorys.add(new TaskFactory(Table1List9AddOrRemove.class, Table1List9AddOrRemove::new, 100));
-        taskFactorys.add(new TaskFactory(Table1Int1Trade.class, Table1Int1Trade::new, 100));
-        taskFactorys.add(new TaskFactory(Table1Int1TradeConcurrentVerify.class, Table1Int1TradeConcurrentVerify::new, 100));
+        taskFactorys.add(new TaskFactory(tflushInt1Trade.class, tflushInt1Trade::new, 100));
+        taskFactorys.add(new TaskFactory(tflushInt1TradeConcurrentVerify.class, tflushInt1TradeConcurrentVerify::new, 100));
 
         taskFactorys.sort(Comparator.comparingInt(a -> a.Weight));
         for (var task : taskFactorys) {
@@ -200,13 +202,19 @@ public class Tasks {
     }
 
     // 在随机两个记录内进行交易。
-    public static class Table1Int1Trade extends Task {
+    public static class tflushInt1Trade extends Task {
         @Override
         public int getKeyNumber() {
             return 2;
         }
 
-        public final static int KeyBoundTrade = Simulate.AccessKeyBound;
+        @Override
+        public void Run() {
+            Simulate.randApp(2).Run(this);
+        }
+
+        public final static int KeyBoundTrade = Simulate.AccessKeyBound / 2;
+        public final static int CacheCapacity = Simulate.CacheCapacity / 2;
 
         @Override
         public int getKeyBound() {
@@ -218,8 +226,8 @@ public class Tasks {
             final var keys = Keys.toArray();
             final var k1 = (long)keys[0];
             final var k2 = (long)keys[1];
-            var v1 = App.demo_Module1.getTable1().getOrAdd(k1);
-            var v2 = App.demo_Module1.getTable1().getOrAdd(k2);
+            var v1 = App.demo_Module1.getTflush().getOrAdd(k1);
+            var v2 = App.demo_Module1.getTflush().getOrAdd(k2);
             final var money = Zeze.Util.Random.getInstance().nextInt(1000);
             if (Zeze.Util.Random.getInstance().nextBoolean()) {
                 // random swap
@@ -244,7 +252,7 @@ public class Tasks {
         }
     }
 
-    public static class Table1Int1TradeConcurrentVerify extends Task {
+    public static class tflushInt1TradeConcurrentVerify extends Task {
         @Override
         public int getKeyNumber() {
             return 0;
@@ -255,9 +263,9 @@ public class Tasks {
 
         @Override
         public long process() {
-            final var table1 = App.demo_Module1.getTable1();
+            final var table1 = App.demo_Module1.getTflush();
             var keys = new HashSet<Zeze.Serialize.ByteBuffer>();
-            for (int key = 0; key < Table1Int1Trade.KeyBoundTrade; ++key) {
+            for (int key = 0; key < tflushInt1Trade.KeyBoundTrade; ++key) {
                 keys.add(table1.EncodeKey((long)key));
             }
             try (var t = table1.getDatabase().BeginTransaction()) {

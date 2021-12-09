@@ -27,7 +27,11 @@ public class ModuleModule1 extends AbstractModule {
         var r = (Rpc1)_r;
         return Zeze.Transaction.Procedure.NotImplement;
     }
-    
+
+    public tflush getTflush() {
+        return _tflush;
+    }
+
     public Table1 getTable1() {
 		return _Table1;
 	}
@@ -58,40 +62,46 @@ public class ModuleModule1 extends AbstractModule {
     private Table2 _Table2 = new Table2();
     private Table3 _Table3 = new Table3();
     private TableImportant _TableImportant = new TableImportant();
+    private tflush _tflush = new tflush();
 
     public demo.App App;
 
     public ModuleModule1(demo.App app) {
         App = app;
         // register protocol factory and handles
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Protocol3();
             factoryHandle.Handle = (_p) -> ProcessProtocol3(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessProtocol3", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(7815467220L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Protocol4();
             factoryHandle.Handle = (_p) -> ProcessProtocol4(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessProtocol4", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(5222864529L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.ProtocolNoProcedure();
             factoryHandle.Handle = (_p) -> ProcessProtocolNoProcedure(_p);
-            factoryHandle.Level = Zeze.Transaction.TransactionLevel.None;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessProtocolNoProcedure", Zeze.Transaction.TransactionLevel.None);
             App.Server.AddFactoryHandle(5645907125L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Rpc1();
             factoryHandle.Handle = (_p) -> ProcessRpc1Request(_p);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRpc1Request", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(5635082623L, factoryHandle);
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();
             factoryHandle.Factory = () -> new demo.Module1.Rpc2();
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRpc2Request", Zeze.Transaction.TransactionLevel.Serializable);
             App.Server.AddFactoryHandle(7854078040L, factoryHandle);
         }
         // register table
@@ -100,6 +110,7 @@ public class ModuleModule1 extends AbstractModule {
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_Table2.getName()).getDatabaseName(), _Table2);
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_Table3.getName()).getDatabaseName(), _Table3);
         App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_TableImportant.getName()).getDatabaseName(), _TableImportant);
+        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_tflush.getName()).getDatabaseName(), _tflush);
     }
 
     public void UnRegister() {
@@ -113,6 +124,7 @@ public class ModuleModule1 extends AbstractModule {
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_Table2.getName()).getDatabaseName(), _Table2);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_Table3.getName()).getDatabaseName(), _Table3);
         App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_TableImportant.getName()).getDatabaseName(), _TableImportant);
+        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_tflush.getName()).getDatabaseName(), _tflush);
     }
     // ZEZE_FILE_CHUNK }}} GEN MODULE
 

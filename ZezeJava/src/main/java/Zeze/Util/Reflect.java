@@ -7,7 +7,7 @@ import Zeze.Transaction.TransactionLevel;
 public class Reflect {
     private HashMap<String, Method> Methods = new HashMap<>();
     public Reflect(Class<?> cls) {
-        for (var method : cls.getMethods()) {
+        for (var method : cls.getDeclaredMethods()) {
             Methods.put(method.getName(), method);
         }
     }
@@ -15,7 +15,7 @@ public class Reflect {
     public TransactionLevel getTransactionLevel(String methodName, TransactionLevel def) {
         var method = Methods.get(methodName);
         if (null == method)
-            throw new RuntimeException("method not found: " + methodName);
+            return def;
 
         var annotation = method.getAnnotation(Zeze.Util.TransactionLevel.class);
         if (null == annotation)
