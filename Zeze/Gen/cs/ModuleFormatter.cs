@@ -51,6 +51,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            App = app;");
             sw.WriteLine("            // register protocol factory and handles");
+            sw.WriteLine("            var _reflect = new Zeze.Util.Reflect(this.GetType());");
             Service serv = module.ReferenceService;
             if (serv != null)
             {
@@ -65,8 +66,7 @@ namespace Zeze.Gen.cs
                         sw.WriteLine($"                Factory = () => new {rpc.Space.Path(".", rpc.Name)}(),");
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                             sw.WriteLine($"                Handle = Process{rpc.Name}Request,");
-                        if (p.TransactionLevel != Transaction.TransactionLevel.Serializable)
-                            sw.WriteLine($"                TransactionLevel = Zeze.Transaction.TransactionLevel.{p.TransactionLevel},");
+                        sw.WriteLine($"                TransactionLevel = _reflect.GetTransactionLevel(\"Process{rpc.Name}Request\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel}),");
                         sw.WriteLine("            });");
                         continue;
                     }
@@ -76,8 +76,7 @@ namespace Zeze.Gen.cs
                         sw.WriteLine( "            {");
                         sw.WriteLine($"                Factory = () => new {p.Space.Path(".", p.Name)}(),");
                         sw.WriteLine($"                Handle = Process{p.Name},");
-                        if (p.TransactionLevel != Transaction.TransactionLevel.Serializable)
-                            sw.WriteLine($"                TransactionLevel = Zeze.Transaction.TransactionLevel.{p.TransactionLevel},");
+                        sw.WriteLine($"                TransactionLevel = _reflect.GetTransactionLevel(\"Process{p.Name}p\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel}),");
                         sw.WriteLine( "            });");
                     }
                 }
