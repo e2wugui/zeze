@@ -222,7 +222,7 @@ namespace Zeze.Gen.luaClient
 
                     fileChunkGen.SaveFile(fullFileName, (writer, chunk) =>
                         {
-                            writer.WriteLine($"function {module.Name}.RegisterHandler()");
+                            writer.WriteLine($"function {module.Name}.RegisterHandlers()");
                             foreach (var protocol in protocols)
                             {
                                 writer.WriteLine(
