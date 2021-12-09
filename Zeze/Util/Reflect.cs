@@ -14,7 +14,7 @@ namespace Zeze.Util
 
         public Reflect(Type type)
         {
-            foreach (var method in type.GetMethods())
+            foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
             {
                 Methods.Add(method.Name, method);
             }
