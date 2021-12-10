@@ -250,6 +250,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public void doException(SelectionKey key, Throwable e) throws Throwable {
 		var This = (AsyncSocket)key.attachment();
 		logger.error("doException {}", This.RemoteAddress, e);
+		Close(e);
 	}
 
 	/** 

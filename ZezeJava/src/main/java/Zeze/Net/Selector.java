@@ -73,18 +73,18 @@ public class Selector extends Thread {
 					}
 					catch (Throwable e) {
 						try {
-							key.channel().close();
-						}
-						catch (Throwable e2) {
-							logger.error(e2);
-						}
-						try {
 							if (null != handle)
 								handle.doException(key, e);
 						}
 						catch (Throwable e3) {
 							logger.error("doHandle", e);
 							logger.error("doException" + e, e3);
+						}
+						try {
+							key.channel().close();
+						}
+						catch (Throwable e2) {
+							logger.error(e2);
 						}
 					}
 				}
