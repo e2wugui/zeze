@@ -33,8 +33,11 @@ Raft
 RelativeRecordSet._merge_ 第二步合并孤立记录临时补丁：largest是孤立记录时，把当前记录加进去。现在的写法有点丑。
 UnitTest 失败或者强制中断测试程序，再次运行测试Global.Login Fail。看看有没有什么情况没有处理，还是UnitTest连接没有关闭造成的。
 为每个测试写测试目的
+CheckpointMode.Table 如果当前事务对记录都是只读的，并且读取的记录原来都是孤立的，不要Merge（关联起来）。这个是否正确。
 
-【新改动】
+【新变动】
+
+【2021/12/9 以前】
 	整体并发测试，需要包含 TableCache.Cleanup。
 	Global.Release并发问题确认
 	CheckpointMode.Table Merge 逻辑BUG
