@@ -125,6 +125,8 @@ public final class App extends Zeze.AppBase {
     public Zeze.Application Zeze;
     public HashMap<String, Zeze.IModule> Modules = new HashMap<>();
 
+    public Game.AutoKey.ModuleAutoKey Game_AutoKey;
+
     public Game.Bag.ModuleBag Game_Bag;
 
     public Game.Buf.ModuleBuf Game_Buf;
@@ -137,11 +139,15 @@ public final class App extends Zeze.AppBase {
 
     public Game.Login.ModuleLogin Game_Login;
 
+    public Game.LongSet.ModuleLongSet Game_LongSet;
+
     public Game.Map.ModuleMap Game_Map;
 
     public Game.Rank.ModuleRank Game_Rank;
 
     public Game.Skill.ModuleSkill Game_Skill;
+
+    public Game.Timer.ModuleTimer Game_Timer;
 
     public Zezex.Provider.ModuleProvider Zezex_Provider;
 
@@ -160,6 +166,12 @@ public final class App extends Zeze.AppBase {
 
             Server = new Game.Server(Zeze);
 
+            Game_AutoKey = new Game.AutoKey.ModuleAutoKey(this);
+            Game_AutoKey.Initialize(this);
+            Game_AutoKey = (Game.AutoKey.ModuleAutoKey)ReplaceModuleInstance(Game_AutoKey);
+            if (null != Modules.put(Game_AutoKey.getFullName(), Game_AutoKey)) {
+                throw new RuntimeException("duplicate module name: Game_AutoKey");
+            }
             Game_Bag = new Game.Bag.ModuleBag(this);
             Game_Bag.Initialize(this);
             Game_Bag = (Game.Bag.ModuleBag)ReplaceModuleInstance(Game_Bag);
@@ -196,6 +208,12 @@ public final class App extends Zeze.AppBase {
             if (null != Modules.put(Game_Login.getFullName(), Game_Login)) {
                 throw new RuntimeException("duplicate module name: Game_Login");
             }
+            Game_LongSet = new Game.LongSet.ModuleLongSet(this);
+            Game_LongSet.Initialize(this);
+            Game_LongSet = (Game.LongSet.ModuleLongSet)ReplaceModuleInstance(Game_LongSet);
+            if (null != Modules.put(Game_LongSet.getFullName(), Game_LongSet)) {
+                throw new RuntimeException("duplicate module name: Game_LongSet");
+            }
             Game_Map = new Game.Map.ModuleMap(this);
             Game_Map.Initialize(this);
             Game_Map = (Game.Map.ModuleMap)ReplaceModuleInstance(Game_Map);
@@ -214,6 +232,12 @@ public final class App extends Zeze.AppBase {
             if (null != Modules.put(Game_Skill.getFullName(), Game_Skill)) {
                 throw new RuntimeException("duplicate module name: Game_Skill");
             }
+            Game_Timer = new Game.Timer.ModuleTimer(this);
+            Game_Timer.Initialize(this);
+            Game_Timer = (Game.Timer.ModuleTimer)ReplaceModuleInstance(Game_Timer);
+            if (null != Modules.put(Game_Timer.getFullName(), Game_Timer)) {
+                throw new RuntimeException("duplicate module name: Game_Timer");
+            }
             Zezex_Provider = new Zezex.Provider.ModuleProvider(this);
             Zezex_Provider.Initialize(this);
             Zezex_Provider = (Zezex.Provider.ModuleProvider)ReplaceModuleInstance(Zezex_Provider);
@@ -227,15 +251,18 @@ public final class App extends Zeze.AppBase {
 
     public void Destroy() {
         synchronized(this) {
+            Game_AutoKey = null;
             Game_Bag = null;
             Game_Buf = null;
             Game_Equip = null;
             Game_Fight = null;
             Game_Item = null;
             Game_Login = null;
+            Game_LongSet = null;
             Game_Map = null;
             Game_Rank = null;
             Game_Skill = null;
+            Game_Timer = null;
             Zezex_Provider = null;
             Modules.clear();
             Server = null;
@@ -245,15 +272,18 @@ public final class App extends Zeze.AppBase {
 
     public void StartModules() throws Throwable {
         synchronized(this) {
+            Game_AutoKey.Start(this);
             Game_Bag.Start(this);
             Game_Buf.Start(this);
             Game_Equip.Start(this);
             Game_Fight.Start(this);
             Game_Item.Start(this);
             Game_Login.Start(this);
+            Game_LongSet.Start(this);
             Game_Map.Start(this);
             Game_Rank.Start(this);
             Game_Skill.Start(this);
+            Game_Timer.Start(this);
             Zezex_Provider.Start(this);
 
         }
@@ -261,15 +291,18 @@ public final class App extends Zeze.AppBase {
 
     public void StopModules() throws Throwable {
         synchronized(this) {
+            Game_AutoKey.Stop(this);
             Game_Bag.Stop(this);
             Game_Buf.Stop(this);
             Game_Equip.Stop(this);
             Game_Fight.Stop(this);
             Game_Item.Stop(this);
             Game_Login.Stop(this);
+            Game_LongSet.Stop(this);
             Game_Map.Stop(this);
             Game_Rank.Stop(this);
             Game_Skill.Stop(this);
+            Game_Timer.Stop(this);
             Zezex_Provider.Stop(this);
         }
     }

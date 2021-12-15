@@ -214,7 +214,7 @@ public class ModuleRedirect {
 	}
 	public final Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
 		var overrides = new ArrayList<MethodOverride>();
-		var methods = module.getClass().getMethods();
+		var methods = module.getClass().getDeclaredMethods();
 		for (var method : methods) {
 			tryCollectMethod(overrides, OverrideType.Redirect, method);
 			tryCollectMethod(overrides, OverrideType.RedirectWithHash, method);
