@@ -4,15 +4,19 @@ package Game.Timer;
 // ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 import Game.AutoKey.ModuleAutoKey;
+import Game.LongSet.NameValue;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutObject;
 import Zezex.RedirectToServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
+import Game.LongSet.ModuleLongSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ModuleTimer extends AbstractModule {
+    // TODO 需要一个全局Timer（所有服务器只有一个）执行逻辑。
+    public final static String GC_LinkedNodesName = "Zezex.GcLinkedNodesName";
+
     private static final Logger logger = LogManager.getLogger(ModuleTimer.class);
 
     public static final int TimerCountPerNode = 200;
@@ -124,9 +128,10 @@ public class ModuleTimer extends AbstractModule {
             prev.setNextNodeId(node.getNextNodeId());
             next.setPrevNodeId(node.getPrevNodeId());
 
-            // TODO 把当前空的Node加入垃圾回收。
+            // 把当前空的Node加入垃圾回收。
             // 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
             // 不删除的话就会在数据库留下垃圾。
+            ModuleLongSet.add(GC_LinkedNodesName, new NameValue(_tNodes.getName(), nodeId));
         }
     }
 
@@ -219,7 +224,7 @@ public class ModuleTimer extends AbstractModule {
 
     private long LoadTimerLocal() {
         var serverId = App.Zeze.getConfig().getServerId();
-        final Zeze.Util.OutObject<NodeRoot> out = new OutObject<>();
+        final var out = new OutObject<NodeRoot>();
         Zeze.Util.Task.Call(App.Zeze.NewProcedure(() ->
         {
             var root = _tNodeRoot.getOrAdd(serverId);
@@ -243,8 +248,8 @@ public class ModuleTimer extends AbstractModule {
         if (serverId == App.Zeze.getConfig().getServerId())
             throw new IllegalArgumentException();
 
-        final var first = new Zeze.Util.OutObject<Long>();
-        final var last = new Zeze.Util.OutObject<Long>();
+        final var first = new OutObject<Long>();
+        final var last = new OutObject<Long>();
 
         var result = Zeze.Util.Task.Call(App.Zeze.NewProcedure(() ->
         {
@@ -255,7 +260,7 @@ public class ModuleTimer extends AbstractModule {
             if (src.getLoadSerialNo() != loadSerialNo)
                 return 0L; // 需要接管的机器已经活过来了。
 
-            // splice
+            // prepare splice
             var root = _tNodeRoot.getOrAdd(App.Zeze.getConfig().getServerId());
             var srchead = _tNodes.get(src.getHeadNodeId());
             var srctail = _tNodes.get(src.getTailNodeId());
@@ -265,12 +270,6 @@ public class ModuleTimer extends AbstractModule {
             // 先保存存储过程退出以后需要装载的timer范围。
             first.Value = src.getHeadNodeId();
             last.Value = root.getHeadNodeId();
-
-            // root: 0 - 1 - 2 - 0
-            // src : 0 - 3 - 4 - 0
-            // ->
-            // root: 0 - 3 - 4 - 1 - 2 - 0
-            // src : 0 - 0
             // splice
             srctail.setNextNodeId(root.getHeadNodeId());
             root.setHeadNodeId(src.getHeadNodeId());

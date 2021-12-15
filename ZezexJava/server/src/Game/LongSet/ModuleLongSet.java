@@ -4,9 +4,12 @@ package Game.LongSet;
 // ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 import Game.AutoKey.ModuleAutoKey;
+import Game.Timer.ModuleTimer;
 import com.mysql.cj.result.ZeroDateTimeToDefaultValueFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.util.Map;
 
 public class ModuleLongSet extends AbstractModule {
     private static final Logger logger = LogManager.getLogger(ModuleLongSet.class);
@@ -33,7 +36,7 @@ public class ModuleLongSet extends AbstractModule {
         Game.App.Instance.Game_LongSet._clear(name);
     }
 
-    public static void foreach(String name, Zeze.Util.Func1<NameValue, Boolean> func1) throws Throwable {
+    public static void foreach(String name, Zeze.Util.Func1<Map.Entry<NameValue, Timestamp>, Boolean> func1) throws Throwable {
         Game.App.Instance.Game_LongSet._foreach(name, func1);
     }
 
@@ -72,7 +75,8 @@ public class ModuleLongSet extends AbstractModule {
             if (node.getSet().size() < CountPerNode) {
                 var indexNodeId = new NodeId();
                 indexNodeId.setNodeId(nodeId);
-                return _tIndexs.tryAdd(indexKey, indexNodeId) && node.getSet().add(value);
+                return _tIndexs.tryAdd(indexKey, indexNodeId)
+                        && null == node.getSet().putIfAbsent(value, new Timestamp(System.currentTimeMillis()));
             }
             nodeId = NodeIdGenerator.nextId();
         }
@@ -89,7 +93,7 @@ public class ModuleLongSet extends AbstractModule {
         if (null == node)
             return false;
 
-        var result = node.getSet().remove(value);
+        var result = node.getSet().remove(value) != null;
         if (node.getSet().isEmpty()) {
             var prev = _tNodes.get(node.getPrevNodeId());
             var next = _tNodes.get(node.getNextNodeId());
@@ -109,22 +113,23 @@ public class ModuleLongSet extends AbstractModule {
             prev.setNextNodeId(node.getNextNodeId());
             next.setPrevNodeId(node.getPrevNodeId());
 
-            // TODO 把当前空的Node加入垃圾回收。
+            // 把当前空的Node加入垃圾回收。
             // 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
             // 不删除的话就会在数据库留下垃圾。
+            ModuleLongSet.add(ModuleTimer.GC_LinkedNodesName, new NameValue(_tNodes.getName(), index.getNodeId()));
         }
         return result;
     }
 
     private void _clear(String name) {
         try {
-            _foreach(name, (value) -> _remove(name, value));
+            _foreach(name, (e) -> _remove(name, e.getKey()));
         } catch (Throwable ex) {
             logger.error("_clear", ex);
         }
     }
 
-    private void _foreach(String name, Zeze.Util.Func1<NameValue, Boolean> func1) throws Throwable {
+    private void _foreach(String name, Zeze.Util.Func1<Map.Entry<NameValue, Timestamp>, Boolean> func1) throws Throwable {
         var root = _tNodeRoot.get(name);
         if (null == root)
             return;
@@ -132,19 +137,19 @@ public class ModuleLongSet extends AbstractModule {
         _foreach(root.getHeadNodeId(), root.getHeadNodeId(), func1);
     }
 
-    private void _foreach(long first, long last, Zeze.Util.Func1<NameValue, Boolean> func1) throws Throwable {
+    private void _foreach(long first, long last, Zeze.Util.Func1<Map.Entry<NameValue, Timestamp>, Boolean> func1) throws Throwable {
         while (true) {
             var node = _tNodes.selectDirty(first);
             if (null == node)
                 break; // when root is empty。no node。
 
-            for (var value : node.getSet()) {
+            for (var e : node.getSet().entrySet()) {
                 final var breakNow = new Zeze.Util.OutObject<Boolean>();
                 breakNow.Value = false;
 
                 if (0L != Zeze.Util.Task.Call(App.Zeze.NewProcedure(() ->
                         {
-                            breakNow.Value = func1.call(value);
+                            breakNow.Value = func1.call(e);
                             return 0L;
                         }, "_foreach.callback")))
                     break;

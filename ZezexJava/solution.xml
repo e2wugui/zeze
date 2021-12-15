@@ -375,10 +375,13 @@
 			<variable id="1" name="Name" type="string"/>
 			<variable id="2" name="Value" type="long"/>
 		</beankey>
+		<beankey name="Timestamp">
+			<variable id="1" name="Time" type="long"/>
+		</beankey>
 		<bean name="Node">
 			<variable id="1" name="PrevNodeId" type="long"/>
 			<variable id="2" name="NextNodeId" type="long"/>
-			<variable id="3" name="Set" type="set" value="NameValue"/>
+			<variable id="3" name="Set" type="map" key="NameValue" value="Timestamp"/>
 		</bean>
 		<table name="tNodes" key="long" value="Node"/>
 		<table name="tNodeRoot" key="string" value="NodeRoot"/>
