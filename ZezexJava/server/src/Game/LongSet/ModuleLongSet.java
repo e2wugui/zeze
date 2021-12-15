@@ -21,11 +21,11 @@ public class ModuleLongSet extends AbstractModule {
     public void Stop(Game.App app) throws Throwable {
     }
 
-    public static boolean add(String name, long value) {
+    public static boolean add(String name, NameValue value) {
         return Game.App.Instance.Game_LongSet._add(name, value);
     }
 
-    public static boolean remove(String name, long value) {
+    public static boolean remove(String name, NameValue value) {
         return Game.App.Instance.Game_LongSet._remove(name, value);
     }
 
@@ -33,17 +33,17 @@ public class ModuleLongSet extends AbstractModule {
         Game.App.Instance.Game_LongSet._clear(name);
     }
 
-    public static void foreach(String name, Zeze.Util.Func1<Long, Boolean> func1) throws Throwable {
+    public static void foreach(String name, Zeze.Util.Func1<NameValue, Boolean> func1) throws Throwable {
         Game.App.Instance.Game_LongSet._foreach(name, func1);
     }
 
-    private boolean _add(String name, long value) {
+    private boolean _add(String name, NameValue value) {
         var root = _tNodeRoot.getOrAdd(name);
         var nodeId = root.getHeadNodeId();
         if (nodeId == 0) { // no node
             nodeId = NodeIdGenerator.nextId();
         }
-        var indexKey = name + "#" + value;
+        var indexKey = name + "#" + value.getName() + "=" + value.getValue();
         var index = _tIndexs.get(indexKey);
         if (null != index)
             return false;
@@ -69,17 +69,17 @@ public class ModuleLongSet extends AbstractModule {
                 }
             }
 
-            if (node.getLongSet().size() < CountPerNode) {
+            if (node.getSet().size() < CountPerNode) {
                 var indexNodeId = new NodeId();
                 indexNodeId.setNodeId(nodeId);
-                return _tIndexs.tryAdd(indexKey, indexNodeId) && node.getLongSet().add(value);
+                return _tIndexs.tryAdd(indexKey, indexNodeId) && node.getSet().add(value);
             }
             nodeId = NodeIdGenerator.nextId();
         }
     }
 
-    private boolean _remove(String name, long value) {
-        var indexKey = name + "#" + value;
+    private boolean _remove(String name, NameValue value) {
+        var indexKey = name + "#" + value.getName() + "=" + value.getValue();
         var index = _tIndexs.get(indexKey);
         if (null == index)
             return false;
@@ -89,8 +89,8 @@ public class ModuleLongSet extends AbstractModule {
         if (null == node)
             return false;
 
-        var result = node.getLongSet().remove(value);
-        if (node.getLongSet().isEmpty()) {
+        var result = node.getSet().remove(value);
+        if (node.getSet().isEmpty()) {
             var prev = _tNodes.get(node.getPrevNodeId());
             var next = _tNodes.get(node.getNextNodeId());
 
@@ -124,7 +124,7 @@ public class ModuleLongSet extends AbstractModule {
         }
     }
 
-    private void _foreach(String name, Zeze.Util.Func1<Long, Boolean> func1) throws Throwable {
+    private void _foreach(String name, Zeze.Util.Func1<NameValue, Boolean> func1) throws Throwable {
         var root = _tNodeRoot.get(name);
         if (null == root)
             return;
@@ -132,13 +132,13 @@ public class ModuleLongSet extends AbstractModule {
         _foreach(root.getHeadNodeId(), root.getHeadNodeId(), func1);
     }
 
-    private void _foreach(long first, long last, Zeze.Util.Func1<Long, Boolean> func1) throws Throwable {
+    private void _foreach(long first, long last, Zeze.Util.Func1<NameValue, Boolean> func1) throws Throwable {
         while (true) {
             var node = _tNodes.selectDirty(first);
             if (null == node)
                 break; // when root is empty。no node。
 
-            for (var value : node.getLongSet()) {
+            for (var value : node.getSet()) {
                 final var breakNow = new Zeze.Util.OutObject<Boolean>();
                 breakNow.Value = false;
 
