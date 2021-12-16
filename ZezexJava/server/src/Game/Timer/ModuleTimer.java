@@ -34,14 +34,14 @@ public class ModuleTimer extends AbstractModule {
     }
 
     // 保存所有可用的timer处理回调，由于可能需要把timer的触发派发到其他服务器执行，必须静态注册。
-    // 一般在Module.Start中注册即可。
-    private ConcurrentHashMap<String, Zeze.Util.Action0> TimerHandles = new ConcurrentHashMap<>();
+    // 一般在Module.Initialize中注册即可。
+    private ConcurrentHashMap<String, Zeze.Util.Action2<Long, String>> TimerHandles = new ConcurrentHashMap<>();
 
     public static void removeTimerHandle(String name) {
         Game.App.Instance.Game_Timer.TimerHandles.remove(name);
     }
 
-    public static void addTimerHandle(String name, Zeze.Util.Action0 action) {
+    public static void addTimerHandle(String name, Zeze.Util.Action2<Long, String> action) {
         if (null != Game.App.Instance.Game_Timer.TimerHandles.putIfAbsent(name, action))
             throw new RuntimeException("duplicate timer handle name of: " + name);
     }
@@ -198,16 +198,21 @@ public class ModuleTimer extends AbstractModule {
     }
 
     private long TriggerTimerLocal(int serverId, long timerId, long nodeId, String name) {
-        return Zeze.Util.Task.Call(App.Zeze.NewProcedure(()->{
-            try {
-                var handle = TimerHandles.get(name);
-                if (null != handle)
-                    handle.run();
-            } finally {
-                var index = _tIndexs.get(timerId);
-                if (null != index) {
-                    var node = _tNodes.get(index.getNodeId());
-                    if (null != node) {
+        final var handle = TimerHandles.get(name);
+        if (null != handle) {
+            Zeze.Util.Task.Call(App.Zeze.NewProcedure(()-> {
+                handle.run(timerId, name);
+                return 0L;
+            }, "TriggerTimerLocal"));
+        }
+        Zeze.Util.Task.Call(App.Zeze.NewProcedure(()-> {
+            var index = _tIndexs.get(timerId);
+            if (null != index) {
+                var node = _tNodes.get(index.getNodeId());
+                if (null != node) {
+                    if (handle == null) {
+                        CancelTimerLocal(serverId, timerId, nodeId, node);
+                    } else {
                         var timer = node.getTimers().get(timerId);
                         if (timer.getRemainTimes() > 0) {
                             timer.setRemainTimes(timer.getRemainTimes() - 1);
@@ -219,7 +224,8 @@ public class ModuleTimer extends AbstractModule {
                 }
             }
             return 0L;
-        }, "TriggerTimerLocal"));
+        }, "AfterTriggerTimerLocal"));
+        return 0L;
     }
 
     private long LoadTimerLocal() {
@@ -228,7 +234,7 @@ public class ModuleTimer extends AbstractModule {
         Zeze.Util.Task.Call(App.Zeze.NewProcedure(() ->
         {
             var root = _tNodeRoot.getOrAdd(serverId);
-            // 本地每次load都递增。用来阻止其他服务器抢这台服务器Nodes。
+            // 本地每次load都递增。用来处理和接管的并发。
             root.setLoadSerialNo(root.getLoadSerialNo() + 1);
             out.Value = root.Copy();
             return 0L;
