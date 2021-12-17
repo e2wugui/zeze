@@ -34,7 +34,7 @@ public class ModuleAutoKey extends AbstractModule {
 
     public class AutoKey {
         private final String name;
-        private Range range;
+        private volatile Range range;
         private long logKey;
 
         public AutoKey(String name) {
