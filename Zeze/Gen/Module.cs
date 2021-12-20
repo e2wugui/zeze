@@ -83,6 +83,16 @@ namespace Zeze.Gen
                 module.Depends(modules);
             }
         }
+        
+        public void Depends(List<Module> modules)
+        {
+            modules.Add(this);
+
+            foreach (Module module in this.Modules.Values)
+            {
+                module.Depends(modules);
+            }
+        }
 
         public void Depends(HashSet<Protocol> depends)
         {

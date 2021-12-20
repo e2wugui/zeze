@@ -23,6 +23,7 @@ namespace Zeze.Gen
 
         private XmlElement self;
 
+        public List<Module> OrderModules { get; private set; }
         public HashSet<Module> GetAllModules()
         {
             HashSet<Module> all = new HashSet<Module>();
@@ -38,6 +39,22 @@ namespace Zeze.Gen
                 }
             }
             return all;
+        }
+        
+        public void InitOrderModules()
+        {
+            OrderModules = new List<Module>();
+            foreach (Module m in Modules)
+            {
+                m.Depends(OrderModules);
+            }
+            foreach (Service service in Services.Values)
+            {
+                foreach (Module m in service.Modules)
+                {
+                    m.Depends(OrderModules);
+                }
+            }
         }
 
         public Project(Solution solution, XmlElement self)
@@ -125,7 +142,9 @@ namespace Zeze.Gen
         {
             foreach (var m in GetAllModules())
                 AllModules[m.FullName] = m;
-
+            
+            InitOrderModules();
+            
             var _AllProtocols = new HashSet<Protocol>();
             foreach (Module mod in AllModules.Values) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
             {

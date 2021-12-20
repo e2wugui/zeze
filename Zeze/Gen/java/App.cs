@@ -125,7 +125,8 @@ namespace Zeze.Gen.java
                 sw.WriteLine("            " + m.Name + " = new " + m.FullName + "(Zeze);");
             }
             sw.WriteLine("");
-            foreach (Module m in project.AllModules.Values)
+            
+            foreach (Module m in project.OrderModules)
             {
                 var fullname = m.Path("_");
                 sw.WriteLine("            " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
@@ -162,7 +163,7 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine("            " + m.Path("_") + ".Start(this);");
             }
-            foreach (Module m in project.AllModules.Values)
+            foreach (Module m in project.OrderModules)
             {
                 if (project.ModuleStartOrder.Contains(m))
                     continue;
@@ -174,7 +175,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("");
             sw.WriteLine("    public void StopModules() throws Throwable {");
             sw.WriteLine("        synchronized(this) {");
-            foreach (Module m in project.AllModules.Values)
+            foreach (Module m in project.OrderModules)
             {
                 sw.WriteLine("            " + m.Path("_") + ".Stop(this);");
             }
