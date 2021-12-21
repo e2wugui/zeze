@@ -80,11 +80,15 @@ public class ModuleTimer extends AbstractModule {
         if (index.getServerId() == App.Zeze.getConfig().getServerId()) {
             CancelTimerLocal(App.Zeze.getConfig().getServerId(), timerId, index.getNodeId(), _tNodes.get(index.getNodeId()));
         } else {
-            Cancel(index.getServerId(), timerId);
+            RunCancel(index.getServerId(), timerId);
         }
     }
 
     @RedirectToServer
+    protected void RunCancel(int serverId, long timerId) {
+        Cancel(serverId, timerId);
+    }
+
     protected void Cancel(int serverId, long timerId) {
         // 尽可能的执行取消操作，不做严格判断。
         var index = _tIndexs.get(timerId);
