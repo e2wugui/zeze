@@ -34,8 +34,6 @@ RelativeRecordSet._merge_ µÚ¶ş²½ºÏ²¢¹ÂÁ¢¼ÇÂ¼ÁÙÊ±²¹¶¡£ºlargestÊÇ¹ÂÁ¢¼ÇÂ¼Ê±£¬°Ñµ±Ç
 ÎªÃ¿¸ö²âÊÔĞ´²âÊÔÄ¿µÄ
 CheckpointMode.Table Èç¹ûµ±Ç°ÊÂÎñ¶Ô¼ÇÂ¼¶¼ÊÇÖ»¶ÁµÄ£¬²¢ÇÒ¶ÁÈ¡µÄ¼ÇÂ¼Ô­À´¶¼ÊÇ¹ÂÁ¢µÄ£¬²»ÒªMerge£¨¹ØÁªÆğÀ´£©¡£Õâ¸öÊÇ·ñÕıÈ·¡£
 
-GlobalAgent.Connect Ê§°ÜÃ»ÓĞÖĞ¶ÏÊÂÎñ¡£
-
 ¡¾ĞÂ±ä¶¯¡¿
 	Connector WaitReady ÖØĞÂÊµÏÖ¡£
 	GlobalAgent ĞŞ¸Ä³ÉÊ¹ÓÃĞÂµÄ Connector.WaitReady¡£

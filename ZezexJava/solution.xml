@@ -417,6 +417,9 @@
 			<module ref="Timer"/>
 			<module ref="LongSet"/>
 		</service>
+		<ModuleStartOrder>
+			<start module="Zezex.Provider"/>
+		</ModuleStartOrder>
 	</project>
 
 </solution>

@@ -21,7 +21,7 @@ namespace Zeze.Transaction
             public Zeze.Util.AtomicLong LoginedTimes { get; } = new Util.AtomicLong();
             public int GlobalCacheManagerHashIndex { get; }
 
-            private long LastErrorTime = 0;
+            private Zeze.Util.AtomicLong LastErrorTime = new Zeze.Util.AtomicLong();
             public const long FastErrorPeriod = 10 * 1000; // 10 seconds
 
             public Agent(GlobalClient client, string host, int port, int _GlobalCacheManagerHashIndex)
@@ -46,11 +46,8 @@ namespace Zeze.Transaction
                 if (null != so)
                     return so;
 
-                lock (this)
-                {
-                    if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < FastErrorPeriod)
-                        ThrowException("GloalAgent.Connect: In Forbit Login Period");
-                }
+                if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime.Get() < FastErrorPeriod)
+                    ThrowException("GloalAgent.Connect: In Forbit Login Period");
 
                 try
                 {
@@ -62,8 +59,8 @@ namespace Zeze.Transaction
                     long now = global::Zeze.Util.Time.NowUnixMillis;
                     lock (this)
                     {
-                        if (now - LastErrorTime > FastErrorPeriod)
-                            LastErrorTime = now;
+                        if (now - LastErrorTime.Get() > FastErrorPeriod)
+                            LastErrorTime.GetAndSet(now);
                     }
                     ThrowException("GloalAgent.Connect: Login Timeout", e);
                 }

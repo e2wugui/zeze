@@ -38,7 +38,7 @@ namespace Zeze.Gen.cs
                 else
                     new ProtocolFormatter(protocol).Make(genDir);
             }
-            foreach (Module mod in Project.AllModules.Values)
+            foreach (Module mod in Project.AllOrderDefineModules)
             {
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
             }

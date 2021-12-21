@@ -96,7 +96,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public HashMap<String, Zeze.IModule> Modules = new HashMap<>();");
             sw.WriteLine("");
 
-            foreach (Module m in project.AllModules.Values)
+            foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
                 sw.WriteLine($"    public {m.Path(".", $"Module{m.Name}")} {fullname};");
@@ -126,7 +126,7 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine("");
             
-            foreach (Module m in project.OrderModules)
+            foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
                 sw.WriteLine("            " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
@@ -143,8 +143,9 @@ namespace Zeze.Gen.java
             sw.WriteLine("");
             sw.WriteLine("    public void Destroy() {");
             sw.WriteLine("        synchronized(this) {");
-            foreach (Module m in project.AllModules.Values)
+            for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
+                var m = project.AllOrderDefineModules[i];
                 var fullname = m.Path("_");
                 sw.WriteLine("            " + fullname + " = null;");
             }
@@ -163,7 +164,7 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine("            " + m.Path("_") + ".Start(this);");
             }
-            foreach (Module m in project.OrderModules)
+            foreach (Module m in project.AllOrderDefineModules)
             {
                 if (project.ModuleStartOrder.Contains(m))
                     continue;
@@ -175,8 +176,16 @@ namespace Zeze.Gen.java
             sw.WriteLine("");
             sw.WriteLine("    public void StopModules() throws Throwable {");
             sw.WriteLine("        synchronized(this) {");
-            foreach (Module m in project.OrderModules)
+            for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
+                var m = project.AllOrderDefineModules[i];
+                if (project.ModuleStartOrder.Contains(m))
+                    continue; // Stop later
+                sw.WriteLine("            " + m.Path("_") + ".Stop(this);");
+            }
+            for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
+            {
+                var m= project.ModuleStartOrder[i];
                 sw.WriteLine("            " + m.Path("_") + ".Stop(this);");
             }
             sw.WriteLine("        }");

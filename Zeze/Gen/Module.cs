@@ -73,27 +73,18 @@ namespace Zeze.Gen
             }
         }
 
-        public void Depends(HashSet<Module> modules)
+        public void Depends(HashSet<Module> unique, List<Module> ordered)
         {
-            if (false == modules.Add(this))
+            if (false == unique.Add(this))
                 throw new Exception("Module ref duplicate: " + Path());
+            ordered.Add(this);
 
             foreach (Module module in this.Modules.Values)
             {
-                module.Depends(modules);
+                module.Depends(unique, ordered);
             }
         }
         
-        public void Depends(List<Module> modules)
-        {
-            modules.Add(this);
-
-            foreach (Module module in this.Modules.Values)
-            {
-                module.Depends(modules);
-            }
-        }
-
         public void Depends(HashSet<Protocol> depends)
         {
             foreach (Protocol p in Protocols.Values)

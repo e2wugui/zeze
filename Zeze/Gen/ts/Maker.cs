@@ -43,7 +43,7 @@ namespace Zeze.Gen.ts
                 else
                     new ProtocolFormatter(protocol).Make(sw);
             }
-            foreach (Module mod in Project.AllModules.Values)
+            foreach (Module mod in Project.AllOrderDefineModules)
             {
                 new ModuleFormatter(Project, mod, genDir).Make();
             }

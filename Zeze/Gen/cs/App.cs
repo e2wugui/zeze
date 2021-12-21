@@ -42,7 +42,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public Dictionary<string, Zeze.IModule> Modules { get; } = new Dictionary<string, Zeze.IModule>();");
             sw.WriteLine("");
 
-            foreach (Module m in project.AllModules.Values)
+            foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
                 sw.WriteLine($"        public {m.Path(".", $"Module{m.Name}")} {fullname} {{ get; set; }}");
@@ -69,7 +69,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("                " + m.Name + " = new " + m.FullName + "(Zeze);");
             }
             sw.WriteLine("");
-            foreach (Module m in project.OrderModules)
+            foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
                 sw.WriteLine("                " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
@@ -85,8 +85,9 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
-            foreach (Module m in project.AllModules.Values)
+            for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
+                var m = project.AllOrderDefineModules[i];
                 var fullname = m.Path("_");
                 sw.WriteLine("                " + fullname + " = null;");
             }
@@ -107,7 +108,7 @@ namespace Zeze.Gen.cs
             {
                 sw.WriteLine("                " + m.Path("_") + ".Start(this);");
             }
-            foreach (Module m in project.OrderModules)
+            foreach (Module m in project.AllOrderDefineModules)
             {
                 if (project.ModuleStartOrder.Contains(m))
                     continue;
@@ -121,8 +122,16 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
-            foreach (Module m in project.OrderModules)
+            for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
+                var m = project.AllOrderDefineModules[i];
+                if (project.ModuleStartOrder.Contains(m))
+                    continue; // Stop later
+                sw.WriteLine("                " + m.Path("_") + ".Stop(this);");
+            }
+            for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
+            {
+                var m = project.ModuleStartOrder[i];
                 sw.WriteLine("                " + m.Path("_") + ".Stop(this);");
             }
             sw.WriteLine("            }");

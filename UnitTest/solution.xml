@@ -97,6 +97,9 @@
 		<service name="Server" handle="server" base="Zeze.Services.HandshakeServer">
 			<module ref="Module1"/>
 		</service>
+		<ModuleStartOrder>
+			<start module="demo.Module1.Module11"/>
+		</ModuleStartOrder>
 	</project>
 
 	<project name="UnitTestClient" gendir=".." platform="cs+lua" GenTables="client">

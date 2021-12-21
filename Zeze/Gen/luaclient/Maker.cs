@@ -30,7 +30,7 @@ namespace Zeze.Gen.luaClient
         public void Make()
         {
             HashSet<ModuleSpace> allRefModules = new HashSet<ModuleSpace>();
-            foreach (Module mod in Project.AllModules.Values)
+            foreach (Module mod in Project.AllOrderDefineModules)
                 allRefModules.Add(mod);
 
             foreach (BeanKey beanKey in Project.AllBeanKeys.Values)

@@ -33,7 +33,7 @@ namespace Zeze.Gen.lua
             Program.AddGenDir(genDir);
 
             HashSet<ModuleSpace> allRefModules = new HashSet<ModuleSpace>();
-            foreach (Module mod in Project.AllModules.Values)
+            foreach (Module mod in Project.AllOrderDefineModules)
                 allRefModules.Add(mod);
 
             System.IO.Directory.CreateDirectory(genDir);

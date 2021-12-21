@@ -21,42 +21,27 @@ namespace Zeze.Gen
         // setup when compile
         public List<Module> Modules { get; private set; }
 
-        private XmlElement self;
+        private XmlElement Self;
+        private XmlElement ModuleStartSelf;
 
-        public List<Module> OrderModules { get; private set; }
-        public HashSet<Module> GetAllModules()
+        public List<Module> GetAllDefineOrderModules()
         {
-            HashSet<Module> all = new HashSet<Module>();
+            HashSet<Module> unique = new HashSet<Module>();
+            List<Module> modules = new List<Module>();
             foreach (Module m in Modules)
             {
-                m.Depends(all);
+                m.Depends(unique, modules);
             }
             foreach (Service service in Services.Values)
             {
                 foreach (Module m in service.Modules)
                 {
-                    m.Depends(all);
+                    m.Depends(unique, modules);
                 }
             }
-            return all;
+            return modules;
         }
         
-        public void InitOrderModules()
-        {
-            OrderModules = new List<Module>();
-            foreach (Module m in Modules)
-            {
-                m.Depends(OrderModules);
-            }
-            foreach (Service service in Services.Values)
-            {
-                foreach (Module m in service.Modules)
-                {
-                    m.Depends(OrderModules);
-                }
-            }
-        }
-
         public Project(Solution solution, XmlElement self)
         {
             Solution = solution;
@@ -75,7 +60,7 @@ namespace Zeze.Gen
 
             //Program.AddNamedObject(FullName, this);
 
-            this.self = self; // 保存，在编译的时候使用。
+            this.Self = self; // 保存，在编译的时候使用。
 
             if (Solution.Projects.ContainsKey(Name))
                 throw new Exception("duplicate project name: " + Name);
@@ -97,10 +82,7 @@ namespace Zeze.Gen
                         new Service(this, e);
                         break;
                     case "ModuleStartOrder":
-                        var refs = Program.Refs(e, "start", "module");
-                        List<string> refFulNames = Program.ToFullNameIfNot(Solution.Name, refs);
-                        for (int i = 0; i < refFulNames.Count; ++i)
-                            ModuleStartOrderNames.Add(Program.FullModuleNameToFullClassName(refFulNames[i]));
+                        ModuleStartSelf = e;
                         break;
                     case "bean":
                     case "beankey":
@@ -112,18 +94,26 @@ namespace Zeze.Gen
             }
         }
 
-        public List<string> ModuleStartOrderNames { get; private set; } = new List<string>();
-        public List<Module> ModuleStartOrder { get; private set; }
+        public List<Module> ModuleStartOrder { get; private set; } = new List<Module>();
 
         public void Compile()
         {
-            ICollection<string> refs = Program.Refs(self, "module");
-            List<string> refFulNames = Program.ToFullNameIfNot(Solution.Name, refs);            
-            for (int i = 0; i < refFulNames.Count; ++i)
-                refFulNames[i] = Program.FullModuleNameToFullClassName(refFulNames[i]);
+            {
+                ICollection<string> refs = Program.Refs(Self, "module");
+                List<string> refFulNames = Program.ToFullNameIfNot(Solution.Name, refs);
+                for (int i = 0; i < refFulNames.Count; ++i)
+                    refFulNames[i] = Program.FullModuleNameToFullClassName(refFulNames[i]);
 
-            Modules = Program.CompileModuleRef(refFulNames);
-            ModuleStartOrder = Program.CompileModuleRef(ModuleStartOrderNames);
+                Modules = Program.CompileModuleRef(refFulNames, $"Project={Name} module ref ");
+            }
+            if (null != ModuleStartSelf)
+            {
+                var refs = Program.Refs(ModuleStartSelf, "start", "module");
+                List<string> refFulNames = Program.ToFullNameIfNot(Solution.Name, refs);
+                for (int i = 0; i < refFulNames.Count; ++i)
+                    refFulNames[i] = Program.FullModuleNameToFullClassName(refFulNames[i]);
+                ModuleStartOrder = Program.CompileModuleRef(refFulNames, $"Project={Name} ModuleStartOrder");
+            }
 
             foreach (Service service in Services.Values)
             {
@@ -132,7 +122,8 @@ namespace Zeze.Gen
         }
 
         /// setup in make
-        public SortedDictionary<string, Module> AllModules { get; } = new SortedDictionary<string, Module>();
+        public List<Module> AllOrderDefineModules { get; private set; }
+
         public SortedDictionary<string, Protocol> AllProtocols { get; } = new SortedDictionary<string, Protocol>();
         public SortedDictionary<string, Table> AllTables { get; } = new SortedDictionary<string, Table>();
         public SortedDictionary<string, Types.Bean> AllBeans { get; } = new SortedDictionary<string, Types.Bean>();
@@ -140,13 +131,10 @@ namespace Zeze.Gen
 
         public void Make()
         {
-            foreach (var m in GetAllModules())
-                AllModules[m.FullName] = m;
-            
-            InitOrderModules();
-            
+            AllOrderDefineModules = GetAllDefineOrderModules();
+                        
             var _AllProtocols = new HashSet<Protocol>();
-            foreach (Module mod in AllModules.Values) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
+            foreach (Module mod in AllOrderDefineModules) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
             {
                 mod.Depends(_AllProtocols);
             }
@@ -154,7 +142,7 @@ namespace Zeze.Gen
                 AllProtocols[p.FullName] = p;
 
             var _AllTables = new HashSet<Table>();
-            foreach (Module mod in AllModules.Values) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
+            foreach (Module mod in AllOrderDefineModules) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
             {
                 mod.Depends(_AllTables);
             }
@@ -174,7 +162,7 @@ namespace Zeze.Gen
                     table.Depends(depends);
                 }
                 // 加入模块中定义的所有bean和beankey。
-                foreach (Module mod in AllModules.Values)
+                foreach (Module mod in AllOrderDefineModules)
                 {
                     foreach (var b in mod.BeanKeys.Values)
                         depends.Add(b);
@@ -182,11 +170,11 @@ namespace Zeze.Gen
                         depends.Add(b);
                 }
                 // 加入额外引用的bean,beankey，一般引入定义在不是本项目模块中的。
-                foreach (string n in Program.Refs(self, "bean"))
+                foreach (string n in Program.Refs(Self, "bean"))
                 {
                     depends.Add(Program.GetNamedObject<Types.Bean>(n));
                 }
-                foreach (string n in Program.Refs(self, "beankey"))
+                foreach (string n in Program.Refs(Self, "beankey"))
                 {
                     depends.Add(Program.GetNamedObject<Types.BeanKey>(n));
                 }

@@ -133,11 +133,16 @@ namespace Zeze.Gen
             Console.WriteLine(obj);
         }
 
-        public static List<Module> CompileModuleRef(ICollection<string> fullNames)
+        public static List<Module> CompileModuleRef(ICollection<string> fullNames, string context)
         {
             List<Module> result = new List<Module>();
             foreach (string fullName in fullNames)
-                result.Add(GetNamedObject<Module>(fullName));
+            {
+                var module = GetNamedObject<Module>(fullName);
+                if (result.Contains(module))
+                    throw new Exception("CompileModuleRef duplicate module" + context);
+                result.Add(module);
+            }
             return result;
         }
 
@@ -182,10 +187,13 @@ namespace Zeze.Gen
                 if (e.Name.Equals(nodename))
                 {
                     var attr = e.GetAttribute(refName);
+                    // 由于名字有局部名字和全名区别，这里唯一判断没有意义。
+                    /*
                     if (refs.Contains(attr))
                     {
                         throw new Exception("duplicate ref name " + attr);
                     }
+                    */
                     refs.Add(attr);
                 }
             }

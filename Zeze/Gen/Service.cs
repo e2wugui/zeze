@@ -84,7 +84,7 @@ namespace Zeze.Gen
             List<string> refFulNames = Program.ToFullNameIfNot(Project.Solution.Name, refs);
             for (int i = 0; i < refFulNames.Count; ++i)
                 refFulNames[i] = Program.FullModuleNameToFullClassName(refFulNames[i]);
-            Modules = Program.CompileModuleRef(refFulNames);
+            Modules = Program.CompileModuleRef(refFulNames, $"Service={Name} module ref");
         }
 
         public void SetModuleReference()

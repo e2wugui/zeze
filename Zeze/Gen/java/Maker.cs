@@ -45,7 +45,7 @@ namespace Zeze.Gen.java
             }
 
             // gen project
-            foreach (Module mod in Project.AllModules.Values)
+            foreach (Module mod in Project.AllOrderDefineModules)
             {
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
             }

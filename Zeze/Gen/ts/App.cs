@@ -44,7 +44,7 @@ namespace Zeze.Gen.ts
 
         private void PropertyGen(System.IO.StreamWriter sw)
         {
-            foreach (Module m in project.AllModules.Values)
+            foreach (Module m in project.AllOrderDefineModules)
             {
                 sw.WriteLine("    public " + m.Path("_") + ": " + m.Path("_") + ";");
             }
@@ -61,7 +61,7 @@ namespace Zeze.Gen.ts
             {
                 sw.WriteLine("        this." + m.Name + " = new Zeze.Service(\"" + m.Name + "\");");
             }
-            foreach (Module m in project.AllModules.Values)
+            foreach (Module m in project.AllOrderDefineModules)
             {
                 sw.WriteLine("        this." + m.Path("_") + " = new " + m.Path("_") + "(this);");
             }
@@ -70,7 +70,7 @@ namespace Zeze.Gen.ts
         private void ImportGen(System.IO.StreamWriter sw)
         {
             sw.WriteLine("import { Zeze } from \"zeze\"");
-            foreach (Module m in project.AllModules.Values)
+            foreach (Module m in project.AllOrderDefineModules)
             {
                 sw.WriteLine("import { " + m.Path("_")  + " } from \"" + m.Path("/", $"Module{m.Name}") + "\"");
             }
@@ -82,7 +82,7 @@ namespace Zeze.Gen.ts
             {
                 sw.WriteLine("        this." + m.Path("_") + ".Start(this);");
             }
-            foreach (Module m in project.AllModules.Values)
+            foreach (Module m in project.AllOrderDefineModules)
             {
                 if (project.ModuleStartOrder.Contains(m))
                     continue;
@@ -92,7 +92,7 @@ namespace Zeze.Gen.ts
 
         private void StopGen(System.IO.StreamWriter sw)
         {
-            foreach (Module m in project.AllModules.Values)
+            foreach (Module m in project.AllOrderDefineModules)
             {
                 sw.WriteLine("        this." + m.Path("_") + ".Stop(this);");
             }

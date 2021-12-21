@@ -139,8 +139,8 @@ public final class App extends Zeze.AppBase {
 
     public void Destroy() {
         synchronized(this) {
-            Zezex_Linkd = null;
             Zezex_Provider = null;
+            Zezex_Linkd = null;
             Modules.clear();
             LinkdService = null;
             ProviderService = null;
@@ -158,8 +158,8 @@ public final class App extends Zeze.AppBase {
 
     public void StopModules() throws Throwable {
         synchronized(this) {
-            Zezex_Linkd.Stop(this);
             Zezex_Provider.Stop(this);
+            Zezex_Linkd.Stop(this);
         }
     }
 
