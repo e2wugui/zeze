@@ -70,6 +70,20 @@ public class ModuleRedirect {
 		public java.lang.reflect.Parameter ParameterRedirectAllResultHandle;
 		public java.lang.reflect.Parameter ParameterRedirectAllDoneHandle;
 
+		public String getThrows() {
+			var throwsexp = Method.getGenericExceptionTypes();
+			if (throwsexp.length == 0)
+				return "";
+			var sb = new StringBuilder();
+			sb.append(" throws ");
+			for (int i = 0; i < throwsexp.length; ++i) {
+				if (i > 0)
+					sb.append(", ");
+				sb.append(throwsexp[i].getTypeName());
+			}
+			return sb.toString();
+		}
+
 		public final void PrepareParameters() {
 			ParametersAll = Method.getParameters();
 			ParametersNormal.addAll(Arrays.asList(ParametersAll));
@@ -331,8 +345,8 @@ public class ModuleRedirect {
 			Verify(methodOverride);
 
 			sb.AppendLine("    @Override");
-			sb.AppendLine(Str.format("    public {} {} ({})",
-					rtn.ReturnTypeName, methodOverride.Method.getName(), parametersDefine));
+			sb.AppendLine(Str.format("    public {} {} ({}){}",
+					rtn.ReturnTypeName, methodOverride.Method.getName(), parametersDefine, methodOverride.getThrows()));
 			sb.AppendLine("    {");
 			sb.AppendLine(Str.format("        if (Zezex.ModuleRedirect.Instance.IsLocalServer(\"{}\"))", module.getFullName()));
 			sb.AppendLine("        {");

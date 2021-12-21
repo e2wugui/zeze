@@ -30,7 +30,7 @@ Raft
 	优化。改成一次AppendLog。
 	关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 
-RelativeRecordSet._merge_ 第二步合并孤立记录临时补丁：largest是孤立记录时，把当前记录加进去。现在的写法有点丑。
+RelativeRecordSet._merge_ 第二步合并孤立记录临时补丁：largest原来是孤立记录时，把当前记录加进去。现在的写法有点丑。
 为每个测试写测试目的
 CheckpointMode.Table 如果当前事务对记录都是只读的，并且读取的记录原来都是孤立的，不要Merge（关联起来）。这个是否正确。
 
