@@ -3,6 +3,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Zeze.Net;
+using System.Threading.Tasks;
 
 namespace Game
 {
@@ -88,8 +89,8 @@ namespace Game
             = new ConcurrentDictionary<string, Connector>();
 
         // 用来同步等待Provider的静态绑定完成。
-        public System.Threading.ManualResetEvent ProviderStaticBindCompleted = new System.Threading.ManualResetEvent(false);
-        public System.Threading.ManualResetEvent ProviderDynamicSubscribeCompleted = new System.Threading.ManualResetEvent(false);
+        public TaskCompletionSource<bool> ProviderStaticBindCompleted = new TaskCompletionSource<bool>();
+        public TaskCompletionSource<bool> ProviderDynamicSubscribeCompleted = new TaskCompletionSource<bool>();
 
         public override void OnHandshakeDone(AsyncSocket sender)
         {
@@ -105,10 +106,10 @@ namespace Game
             // static binds
             var rpc = new Zezex.Provider.Bind();
             rpc.Argument.Modules.AddRange(Game.App.Instance.StaticBinds);
-            rpc.Send(sender, (protocol) => { ProviderStaticBindCompleted.Set(); return 0; });
+            rpc.Send(sender, (protocol) => { ProviderStaticBindCompleted.SetResult(true); return 0; });
             var sub = new Zezex.Provider.Subscribe();
             sub.Argument.Modules.AddRange(Game.App.Instance.DynamicModules);
-            sub.Send(sender, (protocol)=> { ProviderDynamicSubscribeCompleted.Set(); return 0; });
+            sub.Send(sender, (protocol)=> { ProviderDynamicSubscribeCompleted.SetResult(true); return 0; });
         }
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)

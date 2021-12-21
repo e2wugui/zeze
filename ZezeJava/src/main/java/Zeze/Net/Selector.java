@@ -84,7 +84,7 @@ public class Selector extends Thread {
 							key.channel().close();
 						}
 						catch (Throwable e2) {
-							logger.error(e2);
+							logger.error("", e2);
 						}
 					}
 				}

@@ -23,15 +23,30 @@ namespace Zeze.Net
         public string HostNameOrAddress { get; }
         public int Port { get; } = 0;
         public bool IsAutoReconnect { get; set; } = true;
-        public int MaxReconnectDelay { get; set; }
+        private int _MaxReconnectDelay = 8000;
+        public int MaxReconnectDelay
+        {
+            get
+            {
+                return _MaxReconnectDelay;
+            }
+
+            set
+            {
+                _MaxReconnectDelay = value;
+                if (_MaxReconnectDelay < 8000)
+                    _MaxReconnectDelay = 8000;
+            }
+        }
         public bool IsConnected { get; private set; } = false;
         private int ConnectDelay;
-        public bool IsHandshakeDone => HandshakeDoneEvent.WaitOne(0);
-        public ManualResetEvent HandshakeDoneEvent { get; } = new ManualResetEvent(false);
+        public bool IsHandshakeDone => TryGetReadySocket() != null;
+        private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new TaskCompletionSource<AsyncSocket>();
         public string Name => $"{HostNameOrAddress}:{Port}";
 
         public AsyncSocket Socket { get; private set; }
         public Util.SchedulerTask ReconnectTask { get; private set; }
+        public object UserState;
 
         public Connector(string host, int port = 0, bool autoReconnect = true)
         {
@@ -60,8 +75,6 @@ namespace Zeze.Net
             attr = self.GetAttribute("MaxReconnectDelay");
             if (attr.Length > 0)
                 MaxReconnectDelay = int.Parse(attr) * 1000;
-            if (MaxReconnectDelay < 8000)
-                MaxReconnectDelay = 8000;
         }
 
         internal void SetService(Service service)
@@ -75,20 +88,33 @@ namespace Zeze.Net
         }
 
         // 允许子类重新定义Ready.
-        public virtual void WaitReady(int timeout = 5000)
+        public virtual AsyncSocket WaitReady()
         {
-            if (HandshakeDoneEvent.WaitOne(timeout))
-                return;
-            throw new Exception($"Connnector.WaitReady fail. {Name}");
+            return GetReadySocket();
         }
 
-        public virtual void OnSocketClose(AsyncSocket closed)
+        public AsyncSocket GetReadySocket()
+        {
+            var volatileTmp = FutureSocket;
+            volatileTmp.Task.Wait();
+            return volatileTmp.Task.Result;
+        }
+
+        public AsyncSocket TryGetReadySocket()
+        {
+            var volatileTmp = FutureSocket;
+            if (volatileTmp.Task.Wait(0))
+                return volatileTmp.Task.Result;
+            return null;
+        }
+
+        public virtual void OnSocketClose(AsyncSocket closed, Exception e)
         {
             lock (this)
             {
                 if (Socket != closed)
                     return;
-                Stop();
+                Stop(e);
                 TryReconnect();
             }
         }
@@ -104,7 +130,7 @@ namespace Zeze.Net
 
         public virtual void OnSocketHandshakeDone(AsyncSocket so)
         {
-            HandshakeDoneEvent.Set();
+            FutureSocket.TrySetResult(so);
         }
 
         public virtual void TryReconnect()
@@ -142,23 +168,23 @@ namespace Zeze.Net
                 if (null != Socket)
                     return;
 
-                IsConnected = false;
-                HandshakeDoneEvent.Reset();
-                Socket = Service.NewClientSocket(HostNameOrAddress, Port, null, this);
+                Socket = Service.NewClientSocket(HostNameOrAddress, Port, UserState, this);
             }
         }
 
-        public virtual void Stop()
+        public virtual void Stop(Exception e = null)
         {
             lock (this)
             {
                 if (null == Socket)
-                    return;
-                HandshakeDoneEvent.Reset();
-                var tmp = Socket;
-                Socket = null;
-                tmp.Dispose();
+                    return; // not start or has stopped.
+
                 IsConnected = false;
+                FutureSocket.TrySetException(null != e ? e : new Exception("Connector Stopped: " + Name));
+                FutureSocket = new TaskCompletionSource<AsyncSocket>();
+                var tmp = Socket;
+                Socket = null; // 阻止递归。
+                tmp.Dispose();
             }
         }
     }

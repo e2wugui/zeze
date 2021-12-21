@@ -41,38 +41,30 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	final class OperateSetOutputSecurityCodec implements Zeze.Util.Action0 {
 		private final byte[] key;
 		private final boolean compress;
-		private final Runnable callback;
 
-		public OperateSetOutputSecurityCodec(byte[] key, boolean compress, Runnable callback) {
+		public OperateSetOutputSecurityCodec(byte[] key, boolean compress) {
 			this.key = key;
 			this.compress = compress;
-			this.callback = callback;
 		}
 
 		@Override
 		public void run() throws Throwable {
 			_SetOutputSecurityCodec(key, compress);
-			if (null != callback)
-				callback.run();
 		}
 	}
 
 	final class OperateSetInputSecurityCodec implements Zeze.Util.Action0 {
 		private final byte[] key;
 		private final boolean compress;
-		private final Zeze.Util.Action0 callback;
 
-		public OperateSetInputSecurityCodec(byte[] key, boolean compress, Zeze.Util.Action0 callback) {
+		public OperateSetInputSecurityCodec(byte[] key, boolean compress) {
 			this.key = key;
 			this.compress = compress;
-			this.callback = callback;
 		}
 
 		@Override
 		public void run() throws Throwable {
 			_SetInputSecurityCodec(key, compress);
-			if (null != callback)
-				callback.run();
 		}
 	}
 
@@ -232,8 +224,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			} catch (Throwable ex) {
 				e = ex;
 			}
+
 			Service.OnSocketConnectError(this, e);
-			close(); // if OnSocketConnectError throw Exception, this will close in Selector
+			close(); // if OnSocketConnectError throw Exception, this will close in doException
 			return;
 		}
 
@@ -248,9 +241,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	@Override
 	public void doException(SelectionKey key, Throwable e) throws Throwable {
-		var This = (AsyncSocket)key.attachment();
-		logger.error("doException {}", This.RemoteAddress, e);
 		Close(e);
+		logger.error("doException {}", RemoteAddress, e);
 	}
 
 	/** 
@@ -331,9 +323,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	public void SetOutputSecurityCodec(byte[] key, boolean compress, Runnable callback) {
+	public void SetOutputSecurityCodec(byte[] key, boolean compress) {
 		synchronized (this) {
-			_operates.add(new OperateSetOutputSecurityCodec(key, compress, callback));
+			_operates.add(new OperateSetOutputSecurityCodec(key, compress));
 			this.interestOps(0, SelectionKey.OP_WRITE); // try
 		}
 	}
@@ -370,9 +362,16 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	public void SetInputSecurityCodec(byte[] key, boolean compress, Zeze.Util.Action0 callback) {
+	public void SubmitAction(Zeze.Util.Action0 callback) {
 		synchronized (this) {
-			_operates.add(new OperateSetInputSecurityCodec(key, compress, callback));
+			_operates.add(callback);
+			this.interestOps(0, SelectionKey.OP_WRITE); // try
+		}
+	}
+
+	public void SetInputSecurityCodec(byte[] key, boolean compress) {
+		synchronized (this) {
+			_operates.add(new OperateSetInputSecurityCodec(key, compress));
 			this.interestOps(0, SelectionKey.OP_WRITE); // try
 		}
 	}
@@ -560,27 +559,29 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (selectionKey == null) {
 				return;
 			}
+			var tmp = selectionKey;
+			selectionKey = null; // 阻止递归关闭。
+
 			try {
 				if (Connector != null) {
-					Connector.OnSocketClose(this);
+					Connector.OnSocketClose(this, LastException);
 				}
 			}
 			catch (Throwable skip) {
-				logger.error(skip);
+				logger.error("", skip);
 			}
 			try {
 				Service.OnSocketClose(this, this.getLastException());
 			}
 			catch (Throwable skip) {
-				logger.error(skip);
+				logger.error("", skip);
 			}
 			try {
-				selectionKey.channel().close();
+				tmp.channel().close();
 			}
 			catch (Throwable skip) {
-				logger.error(skip);
+				logger.error("", skip);
 			}
-			selectionKey = null;
 		}
 
 		synchronized (this) {
@@ -588,7 +589,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				Service.OnSocketDisposed(this);
 			}
 			catch (Throwable skip) {
-				logger.error(skip);
+				logger.error("", skip);
 			}
 		}
 	}

@@ -31,11 +31,15 @@ Raft
 	¹Ø¼ü£ºCacheState.AcquireStatePending ½öÔÚLeaderÉÏÊ¹ÓÃ£¬²»ĞèÒªÍ¬²½µ½Follower¡£
 
 RelativeRecordSet._merge_ µÚ¶ş²½ºÏ²¢¹ÂÁ¢¼ÇÂ¼ÁÙÊ±²¹¶¡£ºlargestÊÇ¹ÂÁ¢¼ÇÂ¼Ê±£¬°Ñµ±Ç°¼ÇÂ¼¼Ó½øÈ¥¡£ÏÖÔÚµÄĞ´·¨ÓĞµã³ó¡£
-UnitTest Ê§°Ü»òÕßÇ¿ÖÆÖĞ¶Ï²âÊÔ³ÌĞò£¬ÔÙ´ÎÔËĞĞ²âÊÔGlobal.Login Fail¡£¿´¿´ÓĞÃ»ÓĞÊ²Ã´Çé¿öÃ»ÓĞ´¦Àí£¬»¹ÊÇUnitTestÁ¬½ÓÃ»ÓĞ¹Ø±ÕÔì³ÉµÄ¡£
 ÎªÃ¿¸ö²âÊÔĞ´²âÊÔÄ¿µÄ
 CheckpointMode.Table Èç¹ûµ±Ç°ÊÂÎñ¶Ô¼ÇÂ¼¶¼ÊÇÖ»¶ÁµÄ£¬²¢ÇÒ¶ÁÈ¡µÄ¼ÇÂ¼Ô­À´¶¼ÊÇ¹ÂÁ¢µÄ£¬²»ÒªMerge£¨¹ØÁªÆğÀ´£©¡£Õâ¸öÊÇ·ñÕıÈ·¡£
 
+GlobalAgent.Connect Ê§°ÜÃ»ÓĞÖĞ¶ÏÊÂÎñ¡£
+
 ¡¾ĞÂ±ä¶¯¡¿
+	Connector WaitReady ÖØĞÂÊµÏÖ¡£
+	GlobalAgent ĞŞ¸Ä³ÉÊ¹ÓÃĞÂµÄ Connector.WaitReady¡£
+	¡¾GlobalÖ®¼äµÄÁ¬½Ó¹Ø±Õ×´Ì¬Ã»ÓĞÉèÖÃ³É¹¦µ¼ÖÂµÄ¡¿UnitTest Ê§°Ü»òÕßÇ¿ÖÆÖĞ¶Ï²âÊÔ³ÌĞò£¬ÔÙ´ÎÔËĞĞ²âÊÔGlobal.Login Fail¡£¿´¿´ÓĞÃ»ÓĞÊ²Ã´Çé¿öÃ»ÓĞ´¦Àí£¬»¹ÊÇUnitTestÁ¬½ÓÃ»ÓĞ¹Ø±ÕÔì³ÉµÄ¡£
 
 ¡¾2021/12/9 ÒÔÇ°¡¿
 	ÕûÌå²¢·¢²âÊÔ£¬ĞèÒª°üº¬ TableCache.Cleanup¡£
@@ -46,4 +50,4 @@ CheckpointMode.Table Èç¹ûµ±Ç°ÊÂÎñ¶Ô¼ÇÂ¼¶¼ÊÇÖ»¶ÁµÄ£¬²¢ÇÒ¶ÁÈ¡µÄ¼ÇÂ¼Ô­À´¶¼ÊÇ¹ÂÁ¢µÄ£
 	c# DatabaseMemory
 	RelativeRecordSet? Ö»Òª¼ÇÂ¼±»·ÃÎÊÒ»´Î£¬Record ¾Í²»ÊÇ¹ÂÁ¢µÄÁË£¬ÏÖÔÚÎŞ·¨´Ó TableCache Çå³ı¡£
 	FlushWhenReduce & _FlushWhenReduce & TableCache.TryRemoveRecord
-	²»ÊÇÎÊÌâ£¡Java Socket Rpc Response Ã»ÓĞ»½ĞÑ£¬»¹ÊÇ»á¼¢¶ö£¿write Ìá¹©¶à¸öbuffer£¬ÓĞÃ»ÓĞ¿ÉÄÜÆäÖĞÒ»¸öÓĞÊ£Óà¡£
+	¡¾²»ÊÇÎÊÌâ¡¿Java Socket Rpc Response Ã»ÓĞ»½ĞÑ£¬»¹ÊÇ»á¼¢¶ö£¿write Ìá¹©¶à¸öbuffer£¬ÓĞÃ»ÓĞ¿ÉÄÜÆäÖĞÒ»¸öÓĞÊ£Óà¡£

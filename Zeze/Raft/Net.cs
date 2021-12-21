@@ -64,7 +64,7 @@ namespace Zeze.Raft
             /// </summary>
             internal AppendEntries Pending { get; set; }
 
-            public override void OnSocketClose(AsyncSocket closed)
+            public override void OnSocketClose(AsyncSocket closed, Exception e)
             {
                 var server = closed.Service as Server;
                 lock (server.Raft)
@@ -74,7 +74,7 @@ namespace Zeze.Raft
                     InstallSnapshotting = false;
                     server.Raft.LogSequence.InstallSnapshotting.Remove(Name);
                 }
-                base.OnSocketClose(closed);
+                base.OnSocketClose(closed, e);
             }
         }
 
@@ -353,12 +353,12 @@ namespace Zeze.Raft
             {
             }
 
-            public override void OnSocketClose(AsyncSocket closed)
+            public override void OnSocketClose(AsyncSocket closed, Exception e)
             {
                 // 先关闭重连，防止后面重发收集前又连上。
                 // see Agent.NetClient
                 base.IsAutoReconnect = false;
-                base.OnSocketClose(closed);
+                base.OnSocketClose(closed, e);
             }
         }
 

@@ -16,21 +16,20 @@ namespace Zeze.Transaction
 
         public class Agent
         {
-            public AsyncSocket Socket { get; private set; }
-            public TaskCompletionSource<AsyncSocket> Logined { get; private set; }
-            public string Host { get; }
-            public int Port { get; }
+            public bool ActiveClose { get; private set; } = false;
+            public Connector Connector { get; private set; }
             public Zeze.Util.AtomicLong LoginedTimes { get; } = new Util.AtomicLong();
             public int GlobalCacheManagerHashIndex { get; }
 
             private long LastErrorTime = 0;
-            public const long ForbitPeriod = 10 * 1000; // 10 seconds
+            public const long FastErrorPeriod = 10 * 1000; // 10 seconds
 
-            public Agent(string host, int port, int _GlobalCacheManagerHashIndex)
+            public Agent(GlobalClient client, string host, int port, int _GlobalCacheManagerHashIndex)
             {
-                this.Host = host;
-                this.Port = port;
                 GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+                this.Connector = new Connector(host, port, true);
+                this.Connector.UserState = this;
+                client.Config.AddConnector(this.Connector);
             }
 
             private void ThrowException(string msg, Exception cause = null)
@@ -41,80 +40,55 @@ namespace Zeze.Transaction
                 throw new Exception(msg, cause);
             }
 
-            public AsyncSocket Connect(GlobalClient client)
+            public AsyncSocket Connect()
             {
+                var so = Connector.TryGetReadySocket();
+                if (null != so)
+                    return so;
+
                 lock (this)
                 {
-                    // 这个能放到(lock(this)外吗？严格点，放这里更安全。
-                    // TODO IsCompletedSuccessfully net471之类的没有这个方法，先不管。net471之类的unity要用。
-                    if (null != Logined && Logined.Task.IsCompletedSuccessfully)
-                        return Logined.Task.Result;
-
-                    if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbitPeriod)
+                    if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < FastErrorPeriod)
                         ThrowException("GloalAgent.Connect: In Forbit Login Period");
-
-                    if (null == Socket)
-                    {
-                        // 每次新建连接创建future，没并发问题吧，还没仔细考虑。
-                        Logined = new TaskCompletionSource<AsyncSocket>();
-                        Socket = client.NewClientSocket(Host, Port, this, null);
-                    }
                 }
-                // 重新设置一个总超时。整个登录流程有ConnectTimeout,LoginTimeout。
-                // 要注意，这个超时发生时，登录流程可能还在进行中。
-                // 这里先不清理，下一次进来再次等待（需要确认这样可行）。
-                if (false == Logined.Task.Wait(5000))
+
+                try
                 {
+                    return Connector.GetReadySocket();
+                }
+                catch (Exception e)
+                {
+                    // 并发的等待，简单用个规则：在间隔期内不再设置。
+                    long now = global::Zeze.Util.Time.NowUnixMillis;
                     lock (this)
                     {
-                        // 并发的等待，简单用个规则：在间隔期内不再设置。
-                        long now = global::Zeze.Util.Time.NowUnixMillis;
-                        if (now - LastErrorTime > ForbitPeriod)
+                        if (now - LastErrorTime > FastErrorPeriod)
                             LastErrorTime = now;
                     }
-                    ThrowException("GloalAgent.Connect: Login Timeout");
+                    ThrowException("GloalAgent.Connect: Login Timeout", e);
                 }
-                return Socket;
+                return null; // never got here
             }
 
             public void Close()
             {
-                var tmp = Socket;
+                lock (this)
+                {
+                    // 简单保护一下，Close 正常程序退出的时候才调用这个，应该不用保护。
+                    if (ActiveClose)
+                        return;
+                    ActiveClose = true;
+                }
+
                 try
                 {
-                    lock (this)
-                    {
-                        // 简单保护一下，Close 正常程序退出的时候才调用这个，应该不用保护。
-                        if (null == Socket)
-                            return;
-
-                        Socket = null; // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
-                    }
-
-                    var normalClose = new NormalClose();
-                    var future = new TaskCompletionSource<long>();
-                    normalClose.Send(tmp,
-                        (_) =>
-                        {
-                            if (normalClose.IsTimeout)
-                            {
-                                future.SetResult(-100); // 关闭错误就不抛异常了。
-                            }
-                            else
-                            {
-                                future.SetResult(normalClose.ResultCode);
-                                if (normalClose.ResultCode != 0)
-                                    logger.Error("GlobalAgent:NormalClose ResultCode={0}", normalClose.ResultCode);
-                            }
-                            return 0;
-                        });
-                    future.Task.Wait();
+                    var ready = Connector.TryGetReadySocket();
+                    if (null != ready)
+                        new NormalClose().SendForWait(ready).Task.Wait();
                 }
                 finally
                 {
-                    tmp?.Dispose();
-                    // 关闭时，让等待Login的线程全部失败。
-                    Logined.TrySetException(new Exception("GlobalAgent.Close"));
+                    Connector.Stop();
                 }
             }
 
@@ -122,17 +96,16 @@ namespace Zeze.Transaction
             {
                 lock (this)
                 {
-                    if (null == Socket)
+                    if (ActiveClose)
                     {
                         // active close
                         return;
                     }
-                    Socket = null;
                 }
 
-                GlobalAgent.logger.Warn(ex, $"GlobalAgent({Host}:{Port}) Passive Close.");
+                GlobalAgent.logger.Warn(ex, $"GlobalAgent({Connector}) Passive Close.");
 
-                if (Logined.Task.IsCompletedSuccessfully)
+                if (Connector.IsHandshakeDone)
                 {
                     foreach (var database in client.Zeze.Databases.Values)
                     {
@@ -143,7 +116,6 @@ namespace Zeze.Transaction
                     }
                     client.Zeze.CheckpointRun();
                 }
-                Logined.TrySetException(ex); // 连接关闭，这个继续保持。仅在Connect里面需要时创建。
             }
         }
 
@@ -159,7 +131,7 @@ namespace Zeze.Transaction
             if (null != Client)
             {
                 var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
-                var socket = agent.Connect(Client);
+                var socket = agent.Connect();
 
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
                 // 一个请求异常不关闭连接，尝试继续工作。
@@ -280,15 +252,16 @@ namespace Zeze.Transaction
                 {
                     var hp = globals[i].Split(':');
                     if (hp.Length > 1)
-                        Agents[i] = new Agent(hp[0], int.Parse(hp[1]), i);
+                        Agents[i] = new Agent(Client, hp[0], int.Parse(hp[1]), i);
                     else
-                        Agents[i] = new Agent(hp[0], port, i);
+                        Agents[i] = new Agent(Client, hp[0], port, i);
                 }
+                Client.Start();
                 foreach (var agent in Agents)
                 {
                     try
                     {
-                        agent.Connect(Client);
+                        agent.Connect();
                     }
                     catch (Exception ex)
                     {
@@ -310,26 +283,20 @@ namespace Zeze.Transaction
                 {
                     agent.Close();
                 }
-
                 Client.Stop();
-                Client = null;
             }
         }
     }
 
     public sealed class GlobalClient : Zeze.Net.Service
     {
-        GlobalAgent agent;
-
         public GlobalClient(GlobalAgent agent, Application zeze)
             : base($"{agent.Zeze.SolutionName}.GlobalClient", zeze)
         {
-            this.agent = agent;
         }
 
         public override void OnHandshakeDone(AsyncSocket so)
         {
-            base.OnHandshakeDone(so);
             var agent = so.UserState as GlobalAgent.Agent;
             if (agent.LoginedTimes.Get() > 1)
             {
@@ -341,16 +308,16 @@ namespace Zeze.Transaction
                     {
                         if (relogin.IsTimeout)
                         {
-                            agent.Logined.TrySetException(new Exception("GloalAgent.ReLogin Timeout")); ;
+                            so.Close(new Exception("GloalAgent.Relogin Timeout"));
                         }
                         else if (relogin.ResultCode != 0)
                         {
-                            agent.Logined.TrySetException(new Exception($"GlobalAgent.ReLogoin Error {relogin.ResultCode}"));
+                            so.Close(new Exception("GloalAgent.Relogin Fail code=" + relogin.ResultCode));
                         }
                         else
                         {
                             agent.LoginedTimes.IncrementAndGet();
-                            agent.Logined.SetResult(so);
+                            base.OnHandshakeDone(so);
                         }
                         return 0;
                     });
@@ -365,29 +332,20 @@ namespace Zeze.Transaction
                     {
                         if (login.IsTimeout)
                         {
-                            agent.Logined.TrySetException(new Exception("GloalAgent.Login Timeout")); ;
+                            so.Close(new Exception("GloalAgent.Login Timeout"));
                         }
                         else if (login.ResultCode != 0)
                         {
-                            agent.Logined.TrySetException(new Exception($"GlobalAgent.Logoin Error {login.ResultCode}"));
+                            so.Close(new Exception($"GlobalAgent.Logoin Error {login.ResultCode}"));
                         }
                         else
                         {
                             agent.LoginedTimes.IncrementAndGet();
-                            agent.Logined.SetResult(so);
+                            base.OnHandshakeDone(so);
                         }
                         return 0;
                     });
             }
-        }
-
-        public override void OnSocketConnectError(AsyncSocket so, Exception e)
-        {
-            base.OnSocketConnectError(so, e);
-            var agent = so.UserState as GlobalAgent.Agent;
-            if (null == e)
-                e = new Exception("Normal Connect Error???"); // ConnectError 应该 e != null 吧，懒得确认了。
-            agent.Logined.TrySetException(e);
         }
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
@@ -395,7 +353,7 @@ namespace Zeze.Transaction
             // Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
             if (null != factoryHandle.Handle)
             {
-                agent.Zeze.InternalThreadPool.QueueUserWorkItem(
+                Zeze.InternalThreadPool.QueueUserWorkItem(
                     () => Util.Task.Call(() => factoryHandle.Handle(p), p));
             }
         }

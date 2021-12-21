@@ -74,7 +74,7 @@ public class HandshakeBase extends Service {
 		int half = material.length / 2;
 
 		byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-		p.getSender().SetInputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getC2sNeedCompress(), null);
+		p.getSender().SetInputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getC2sNeedCompress());
 
 		byte[] response = Helper.generateDHResponse(group, rand).toByteArray();
 		
@@ -82,7 +82,7 @@ public class HandshakeBase extends Service {
 				getConfig().getHandshakeOptions().getS2cNeedCompress(),
 				getConfig().getHandshakeOptions().getC2sNeedCompress())).Send(p.getSender());
 		hmacMd5 = Digest.HmacMd5(key, material, half, material.length - half);
-		p.getSender().SetOutputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getS2cNeedCompress(), null);
+		p.getSender().SetOutputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getS2cNeedCompress());
 
 		// 为了防止服务器在Handshake以后马上发送数据，
 		// 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
@@ -114,12 +114,13 @@ public class HandshakeBase extends Service {
 			int half = material.length / 2;
 
 			byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-			p.getSender().SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress, null);
+			p.getSender().SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
 			hmacMd5 = Digest.HmacMd5(key, material, half, material.length - half);
 
 			DHContext.remove(p.getSender().getSessionId());
-			p.getSender().SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress, ()->OnHandshakeDone(p.getSender()));
+			p.getSender().SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
 			(new Zeze.Services.Handshake.CHandshakeDone()).Send(p.getSender());
+			p.getSender().SubmitAction(()->OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 			return 0;
 		}
 		throw new RuntimeException("handshake lost context.");

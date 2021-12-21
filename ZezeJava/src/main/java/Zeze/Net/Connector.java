@@ -1,6 +1,11 @@
 package Zeze.Net;
 
 import org.w3c.dom.Element;
+import Zeze.Util.TaskCompletionSource;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /** 
  连接器：建立并保持一个连接，可以设置自动重连及相关参数。
@@ -15,18 +20,17 @@ public class Connector {
 	public final Service getService() {
 		return Service;
 	}
-	private void setService(Service value) {
-		Service = value;
-	}
 
 	private final String HostNameOrAddress;
 	public final String getHostNameOrAddress() {
 		return HostNameOrAddress;
 	}
+
 	private int Port = 0;
 	public final int getPort() {
 		return Port;
 	}
+
 	private boolean IsAutoReconnect = true;
 	public final boolean isAutoReconnect() {
 		return IsAutoReconnect;
@@ -34,47 +38,42 @@ public class Connector {
 	public final void setAutoReconnect(boolean value) {
 		IsAutoReconnect = value;
 	}
-	private int MaxReconnectDelay;
+
+	private int MaxReconnectDelay = 8000;
 	public final int getMaxReconnectDelay() {
 		return MaxReconnectDelay;
 	}
 	public final void setMaxReconnectDelay(int value) {
 		MaxReconnectDelay = value;
+		if (MaxReconnectDelay < 8000) {
+			MaxReconnectDelay = 8000;
+		}
 	}
+
 	private boolean IsConnected = false;
 	public final boolean isConnected() {
 		return IsConnected;
 	}
-	private void setConnected(boolean value) {
-		IsConnected = value;
-	}
+
 	private int ConnectDelay;
+
 	public final boolean isHandshakeDone() {
-		return getHandshakeDoneEvent().WaitOne(0);
+		return null != TryGetReadySocket();
 	}
-	private final Zeze.Util.ManualResetEvent HandshakeDoneEvent = new Zeze.Util.ManualResetEvent(false);
-	public final Zeze.Util.ManualResetEvent getHandshakeDoneEvent() {
-		return HandshakeDoneEvent;
-	}
+
 	public final String getName() {
 		return getHostNameOrAddress() + ":" + getPort();
 	}
 
+	private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new TaskCompletionSource<>();
 	private AsyncSocket Socket;
 	public final AsyncSocket getSocket() {
 		return Socket;
 	}
-	private void setSocket(AsyncSocket value) {
-		Socket = value;
-	}
-	private Zeze.Util.Task ReconnectTask;
-	public final Zeze.Util.Task getReconnectTask() {
-		return ReconnectTask;
-	}
-	private void setReconnectTask(Zeze.Util.Task value) {
-		ReconnectTask = value;
-	}
 
+	private Zeze.Util.Task ReconnectTask;
+
+	public volatile Object UserState;
 
 	public Connector(String host, int port) {
 		this(host, port, true);
@@ -117,9 +116,6 @@ public class Connector {
 		if (attr.length() > 0) {
 			setMaxReconnectDelay(Integer.parseInt(attr) * 1000);
 		}
-		if (getMaxReconnectDelay() < 8000) {
-			setMaxReconnectDelay(8000);
-		}
 	}
 
 	public final void SetService(Service service) {
@@ -127,28 +123,39 @@ public class Connector {
 			if (getService() != null) {
 				throw new RuntimeException("Connector of '" + getName() + "' Service != null");
 			}
-			setService(service);
+			Service = service;
 		}
 	}
 
 	// 允许子类重新定义Ready.
-	public void WaitReady() {
-		WaitReady(5000);
+	public AsyncSocket WaitReady() {
+		return GetReadySocket();
 	}
 
-	public void WaitReady(int timeout) {
-		if (getHandshakeDoneEvent().WaitOne(timeout)) {
-			return;
+	public final AsyncSocket GetReadySocket() {
+		try {
+			return FutureSocket.get();
+		} catch (InterruptedException | ExecutionException e) {
+			throw new RuntimeException(e);
 		}
-		throw new RuntimeException("Connnector.WaitReady fail. " + getName());
 	}
 
-	public void OnSocketClose(AsyncSocket closed) throws Throwable {
+	public final AsyncSocket TryGetReadySocket() {
+		try {
+			return FutureSocket.get(0, TimeUnit.MILLISECONDS);
+		} catch (TimeoutException e) {
+			return null;
+		} catch (InterruptedException | ExecutionException e) {
+			return null;
+		}
+	}
+
+	public void OnSocketClose(AsyncSocket closed, Throwable e) throws Throwable {
 		synchronized (this) {
-			if (getSocket() != closed) {
+			if (Socket != closed) {
 				return;
 			}
-			Stop();
+			Stop(e);
 			TryReconnect();
 		}
 	}
@@ -156,17 +163,18 @@ public class Connector {
 	public void OnSocketConnected(AsyncSocket so) {
 		synchronized (this) {
 			ConnectDelay = 0;
-			setConnected(true);
+			IsConnected = true;
 		}
 	}
 
+	// 需要逻辑相关的握手行为时，重载这个方式。
 	public void OnSocketHandshakeDone(AsyncSocket so) {
-		getHandshakeDoneEvent().Set();
+		FutureSocket.SetResult(so);
 	}
 
 	public void TryReconnect() {
 		synchronized (this) {
-			if (!isAutoReconnect() || null != getSocket() || null != getReconnectTask()) {
+			if (!IsAutoReconnect || null != Socket || null != ReconnectTask) {
 				return;
 			}
 
@@ -175,41 +183,45 @@ public class Connector {
 			}
 			else {
 				ConnectDelay *= 2;
-				if (ConnectDelay > getMaxReconnectDelay()) {
-					ConnectDelay = getMaxReconnectDelay();
+				if (ConnectDelay > MaxReconnectDelay) {
+					ConnectDelay = MaxReconnectDelay;
 				}
 			}
-			setReconnectTask(Zeze.Util.Task.schedule((ThisTask) -> Start(), ConnectDelay, -1));
+			ReconnectTask = Zeze.Util.Task.schedule((ThisTask) -> Start(), ConnectDelay);
 		}
 	}
 
 	public void Start() throws Throwable {
 		synchronized (this) {
-			if (getReconnectTask() != null) {
-				getReconnectTask().Cancel();
+			// always try cancel reconnect task
+			if (ReconnectTask != null) {
+				ReconnectTask.Cancel();
 			}
-			setReconnectTask(null);
+			ReconnectTask = null;
 
-			if (null != getSocket()) {
+			if (null != Socket) {
 				return;
 			}
-
-			setConnected(false);
-			getHandshakeDoneEvent().Reset();
-			setSocket(getService().NewClientSocket(getHostNameOrAddress(), getPort(), null,this));
+			Socket = Service.NewClientSocket(HostNameOrAddress, Port, UserState,this);
 		}
 	}
 
 	public void Stop() {
+		Stop(null);
+	}
+
+	public void Stop(Throwable e) {
 		synchronized (this) {
-			if (null == getSocket()) {
+			if (null == Socket) {
+				// not start or has stopped.
 				return;
 			}
-			getHandshakeDoneEvent().Reset();
-			var tmp = getSocket();
-			setSocket(null);
+			FutureSocket.SetException(null != e ? e : new Exception("Connector Stopped: " + getName())); // try set
+			FutureSocket = new TaskCompletionSource<>(); // prepare future to next connect.
+			IsConnected = false;
+			var tmp = Socket;
+			Socket = null; // 阻止递归。
 			tmp.close();
-			setConnected(false);
 		}
 	}
 }

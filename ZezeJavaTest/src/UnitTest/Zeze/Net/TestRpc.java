@@ -4,15 +4,11 @@ package UnitTest.Zeze.Net;
 import Zeze.Net.*;
 import Zeze.Transaction.*;
 import Zeze.Util.Factory;
-import Zeze.Util.ManualResetEvent;
 import junit.framework.TestCase;
-
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 public class TestRpc extends TestCase{
 	
-	 ManualResetEvent connected = new ManualResetEvent(false);
+	 Zeze.Util.TaskCompletionSource<AsyncSocket> connected = new Zeze.Util.TaskCompletionSource<>();
 	
 	public final void testRpcSimple() throws Throwable {
 		Service server = new Service("TestRpc.Server");
@@ -27,7 +23,7 @@ public class TestRpc extends TestCase{
 		client.AddFactoryHandle(forid.getTypeId(), new Service.ProtocolFactoryHandle(() -> new FirstRpc()));
 
 		AsyncSocket clientSocket = client.NewClientSocket("127.0.0.1", 5000, null, null);
-		connected.WaitOne();
+		connected.get();
 
 		FirstRpc first = new FirstRpc();
 		first.Argument.setInt1(1234);
@@ -72,7 +68,7 @@ public class TestRpc extends TestCase{
 		@Override
 		public void OnSocketConnected(AsyncSocket so) throws Throwable {
 			super.OnSocketConnected(so);
-			test.connected.Set();
+			test.connected.SetResult(so);
 		}
 	}
 }

@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
+import Zeze.Util.TaskCompletionSource;
 
 // auto-generated
 
@@ -110,8 +111,8 @@ public final class Server extends ServerBase {
 	}
 
 	// 用来同步等待Provider的静态绑定完成。
-	public Zeze.Util.ManualResetEvent ProviderStaticBindCompleted = new Zeze.Util.ManualResetEvent(false);
-	public Zeze.Util.ManualResetEvent ProviderDynamicSubscribeCompleted = new Zeze.Util.ManualResetEvent(false);
+	public TaskCompletionSource<Boolean> ProviderStaticBindCompleted = new TaskCompletionSource<>();
+	public TaskCompletionSource<Boolean> ProviderDynamicSubscribeCompleted = new TaskCompletionSource<>();
 
 	@Override
 	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
@@ -128,13 +129,13 @@ public final class Server extends ServerBase {
 		var rpc = new Zezex.Provider.Bind();
 		rpc.Argument.getModules().putAll(Game.App.getInstance().getStaticBinds());
 		rpc.Send(sender, (protocol) -> {
-				ProviderStaticBindCompleted.Set();
+				ProviderStaticBindCompleted.SetResult(true);
 				return 0;
 		});
 		var sub = new Zezex.Provider.Subscribe();
 		sub.Argument.getModules().putAll(Game.App.getInstance().getDynamicModules());
 		sub.Send(sender, (protocol) -> {
-			ProviderDynamicSubscribeCompleted.Set();
+			ProviderDynamicSubscribeCompleted.SetResult(true);
 			return 0;
 		});
 	}

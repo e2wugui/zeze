@@ -546,9 +546,12 @@ namespace Zeze.Net
                 if (Socket == null)
                     return;
 
+                var tmp = Socket;
+                Socket = null; // 阻止递归Dispose
+
                 try
                 {
-                    Connector?.OnSocketClose(this);
+                    Connector?.OnSocketClose(this, LastException);
                 }
                 catch (Exception e)
                 {
@@ -564,13 +567,12 @@ namespace Zeze.Net
                 }
                 try
                 {
-                    Socket?.Dispose();
+                    tmp?.Dispose();
                 }
                 catch (Exception e)
                 {
                     logger.Error(e);
                 }
-                Socket = null;
             }
 
             lock (this)

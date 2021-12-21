@@ -671,7 +671,7 @@ namespace Zeze.Raft
 
                     while (Raft.IsLeader)
                     {
-                        connector.HandshakeDoneEvent.WaitOne();
+                        connector.WaitReady();
                         var future = new TaskCompletionSource<int>();
                         var r = new InstallSnapshot() { Argument = trunkArg };
                         if (!r.Send(connector.Socket,

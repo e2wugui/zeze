@@ -12,6 +12,23 @@ import Benchmark.*;
 
 public class App extends Zeze.AppBase {
 
+    public static void main(String [] args) throws Throwable {
+        System.err.println(System.getProperties().get("user.dir"));
+        Instance.Start();
+        int i = 0;
+        while (args.length == 0) {
+            Thread.sleep(1000);
+            var result = Instance.Zeze.NewProcedure(() ->
+            {
+                Instance.demo_Module1.getTable1().get(1L);
+                return 0L;
+            }, "Global Access").Call();
+            ++ i;
+            System.err.println("" + i + "-" + result);
+        }
+        Instance.Stop();
+    }
+
     public static App Instance = new App();
     public static App getInstance() {
         return Instance;
