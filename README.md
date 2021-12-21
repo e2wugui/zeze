@@ -465,6 +465,20 @@
 	5. 全局模块的Cache命中率和ModuleRedirect（在Zezex中）
 	   see Zezex/README.md
 	   see Zezex/linkd.provider.txt
+	   ModuleRedirect 注解简单说明如下：
+	   ModuleRedirect @Redirect
+		注解参数 ChoiceHashCodeSource
+		1. 如果没有设置，则按 LoginSession.Account.HashCode 进行重定向。
+		2. 如果方法需要非Login的环境下用，必须提供 ChoiceHashCodeSource。
+	   ModuleRedirectWithHash @RedirectWithHash
+		注解没有参数。
+		方法的第一个参数为 HashCode，由调用者提供。
+	   ModuleRedirectToServer @RedirectToServer
+		注解没有参数。
+		方法的第一个参数为 ServerId，这个方法将重定向到该Server。调用者提供。
+	   ModuleRedirectAll @RedirectAll
+		注解参数 GetConcurrentLevelSource，【必须提供】就是 HashArray.Length
+		实现将把请求广播到 HashArray 中所有服务器。【根据配置，服务器数量可能小于HashArray.Length，也就是说同一个服务器可能处理多个hash分组】
 
 	6. 按需行动
 	   如果可以预见请求量，并且代价不大时，可以一开始就优化并发性能。
