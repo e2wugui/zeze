@@ -384,7 +384,8 @@ public final class ModuleProvider extends AbstractModule {
     @Override
     protected long ProcessModuleRedirectRequest(Protocol _rpc) throws Throwable {
         var rpc = (ModuleRedirect) _rpc;
-        long SourceProvider = rpc.getSender().getSessionId();
+        final long SourceProvider = rpc.getSender().getSessionId();
+        final long SourceRpcSessionId = rpc.getSessionId();
         var provider = new Zeze.Util.OutObject<Long>();
 
         // ModuleRedirectToServer
@@ -398,6 +399,7 @@ public final class ModuleProvider extends AbstractModule {
                     }
                     // send back to src provider
                     rpc.setSender(App.ProviderService.GetSocket(SourceProvider));
+                    rpc.setSessionId(SourceRpcSessionId);
                     rpc.SendResult();
                     return Zeze.Transaction.Procedure.Success;
                 });
@@ -418,6 +420,7 @@ public final class ModuleProvider extends AbstractModule {
 
                 // send back to src provider
                 rpc.setSender(App.ProviderService.GetSocket(SourceProvider));
+                rpc.setSessionId(SourceRpcSessionId);
                 rpc.SendResult();
                 return Zeze.Transaction.Procedure.Success;
             });

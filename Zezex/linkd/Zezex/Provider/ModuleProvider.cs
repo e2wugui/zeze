@@ -386,6 +386,7 @@ namespace Zezex.Provider
         {
             var rpc = p as ModuleRedirect;
             long SourceProvider = rpc.Sender.SessionId;
+            long SourceRpcSessionId = rpc.SessionId;
             long provider;
 
             if (rpc.Argument.RedirectType == Zezex.Provider.ModuleRedirect.RedirectTypeToServer)
@@ -400,6 +401,7 @@ namespace Zezex.Provider
 
                         // send back to src provider
                         rpc.Sender = App.ProviderService.GetSocket(SourceProvider);
+                        rpc.SessionId = SourceRpcSessionId;
                         rpc.SendResult();
                         return Zeze.Transaction.Procedure.Success;
                     });
@@ -422,6 +424,7 @@ namespace Zezex.Provider
 
                     // send back to src provider
                     rpc.Sender = App.ProviderService.GetSocket(SourceProvider);
+                    rpc.SessionId = SourceRpcSessionId;
                     rpc.SendResult();
                     return Zeze.Transaction.Procedure.Success;
                 });
