@@ -127,8 +127,12 @@ namespace Zeze.Transaction
             bool allCheckpointWhenCommit = true;
             var RelativeRecordSets = new SortedDictionary<long, RelativeRecordSet>();
             var transAccessRecords = new HashSet<Record>();
+            bool allRead = true;
             foreach (var ar in trans.AccessedRecords.Values)
             {
+                if (ar.Dirty)
+                    allRead = false;
+
                 if (ar.OriginRecord.Table.TableConf.CheckpointWhenCommit)
                 {
                     // 修改了需要马上提交的记录。
@@ -193,7 +197,7 @@ namespace Zeze.Transaction
                         return;
                     }
                     */
-                    var mergedSet = _merge_(LockedRelativeRecordSets, trans);
+                    var mergedSet = _merge_(LockedRelativeRecordSets, trans, allRead);
                     commit(); // 必须在锁获得并且合并完集合以后才提交修改。
                     if (needFlushNow)
                     {
@@ -219,7 +223,7 @@ namespace Zeze.Transaction
             }
         }
 
-        private static RelativeRecordSet _merge_(List<RelativeRecordSet> LockedRelativeRecordSets, Transaction trans)
+        private static RelativeRecordSet _merge_(List<RelativeRecordSet> LockedRelativeRecordSets, Transaction trans, bool allRead)
         {
             // find largest
             var largest = LockedRelativeRecordSets[0];
@@ -240,13 +244,17 @@ namespace Zeze.Transaction
                 largest.Merge(r);
             }
 
-            // merge 孤立记录。
-            foreach (var ar in trans.AccessedRecords.Values)
+            // 所有的记录都是读，并且所有的记录都是孤立的，此时不需要关联起来。
+            if (largest.RecordSet != null || false == allRead)
             {
-                if (ar.OriginRecord.RelativeRecordSet.RecordSet == null
-                    || ar.OriginRecord.RelativeRecordSet == largest // urgly
-                    )
-                    largest.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
+                // merge 孤立记录。
+                foreach (var ar in trans.AccessedRecords.Values)
+                {
+                    if (ar.OriginRecord.RelativeRecordSet.RecordSet == null
+                        || ar.OriginRecord.RelativeRecordSet == largest // urgly
+                        )
+                        largest.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
+                }
             }
             return largest;
         }

@@ -129,7 +129,11 @@ public class RelativeRecordSet {
 
 		var RelativeRecordSets = new TreeMap<Long, RelativeRecordSet>();
 		HashSet<Record> transAccessRecords = new HashSet<>();
+		boolean allRead = true;
 		for (var ar : trans.getAccessedRecords().values()) {
+			if (ar.Dirty)
+				allRead = false;
+
 			if (ar.OriginRecord.getTable().getTableConf().getCheckpointWhenCommit()) {
 				// 修改了需要马上提交的记录。
 				if (ar.Dirty) {
@@ -191,7 +195,7 @@ public class RelativeRecordSet {
 				    return;
 				}
 				*/
-				var mergedSet = _merge_(LockedRelativeRecordSets, trans);
+				var mergedSet = _merge_(LockedRelativeRecordSets, trans, allRead);
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
 				if (needFlushNow) {
 					procedure.getZeze().getCheckpoint().Flush(mergedSet);
@@ -214,7 +218,7 @@ public class RelativeRecordSet {
 	}
 
 	private static RelativeRecordSet _merge_(
-			ArrayList<RelativeRecordSet> LockedRelativeRecordSets, Transaction trans) {
+			ArrayList<RelativeRecordSet> LockedRelativeRecordSets, Transaction trans, boolean allRead) {
 		// find largest
 		var largest = LockedRelativeRecordSets.get(0);
 		for (int index = 1; index < LockedRelativeRecordSets.size(); ++index) {
@@ -233,12 +237,15 @@ public class RelativeRecordSet {
 			largest.Merge(r);
 		}
 
-		// merge 孤立记录。
-		for (var ar : trans.getAccessedRecords().values()) {
-			if (ar.OriginRecord.getRelativeRecordSet().RecordSet == null
-					|| ar.OriginRecord.getRelativeRecordSet() == largest // urgly
-			)
-				largest.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
+		// 所有的记录都是读，并且所有的记录都是孤立的，此时不需要关联起来。
+		if (largest.getRecordSet() != null || !allRead) {
+			// merge 孤立记录。
+			for (var ar : trans.getAccessedRecords().values()) {
+				if (ar.OriginRecord.getRelativeRecordSet().RecordSet == null
+						|| ar.OriginRecord.getRelativeRecordSet() == largest /* is self. urgly */) {
+					largest.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
+				}
+			}
 		}
 
 		return largest;

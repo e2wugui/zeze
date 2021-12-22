@@ -32,9 +32,9 @@ Raft
 
 RelativeRecordSet._merge_ 第二步合并孤立记录临时补丁：largest原来是孤立记录时，把当前记录加进去。现在的写法有点丑。
 为每个测试写测试目的
-CheckpointMode.Table 如果当前事务对记录都是只读的，并且读取的记录原来都是孤立的，不要Merge（关联起来）。这个是否正确。
 
 【新变动】
+	CheckpointMode.Table 如果当前事务对记录都是只读的，并且读取的记录原来都是孤立的，不要Merge（关联起来）。这个是否正确。
 	Connector WaitReady 重新实现。
 	GlobalAgent 修改成使用新的 Connector.WaitReady。
 	【Global之间的连接关闭状态没有设置成功导致的】UnitTest 失败或者强制中断测试程序，再次运行测试Global.Login Fail。看看有没有什么情况没有处理，还是UnitTest连接没有关闭造成的。
