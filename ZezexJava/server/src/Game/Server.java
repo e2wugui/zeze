@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Util.TaskCompletionSource;
 
 // auto-generated
@@ -66,6 +67,7 @@ public final class Server extends ServerBase {
 				removed.Stop();
 			}
 		}
+		LinkConnectors = Links.values().toArray(new Connector[0]);
 	}
 
 	public static class LinkSession {
@@ -106,8 +108,22 @@ public final class Server extends ServerBase {
 	}
 
 	private ConcurrentHashMap<String, Connector> Links = new ConcurrentHashMap<String, Connector> ();
+	private volatile Connector[] LinkConnectors = Links.values().toArray(new Connector[0]);
+	private AtomicInteger LinkRandomIndex = new AtomicInteger();
 	public ConcurrentHashMap<String, Connector> getLinks() {
 		return Links;
+	}
+
+	public AsyncSocket RandomLink() {
+		var volatileTmp = LinkConnectors;
+		if (volatileTmp.length == 0)
+			return null;
+
+		var index = LinkRandomIndex.getAndIncrement();
+		var connector = volatileTmp[Integer.remainderUnsigned(index, volatileTmp.length)];
+		// 如果只选择已经连上的Link，当所有的连接都没准备好时，仍然需要GetReadySocket，
+		// 所以简单处理成总是等待连接完成。
+		return connector.GetReadySocket();
 	}
 
 	// 用来同步等待Provider的静态绑定完成。

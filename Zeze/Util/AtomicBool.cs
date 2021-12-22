@@ -6,7 +6,7 @@ namespace Zeze.Util
 {
     public sealed class AtomicBool
     {
-        private int _value;
+        private volatile int _value;
 
         public AtomicBool(bool initialValue = false)
         {

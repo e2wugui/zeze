@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Func4;
@@ -34,12 +35,12 @@ public class ModuleRedirect {
 	// 本应用：hash分组的一些配置。
 	public static final int ChoiceType = Zezex.Provider.BModule.ChoiceTypeHashAccount;
 	public static int GetChoiceHashCode() {
-		String account = GetLoginSession().getAccount();
+		String account = ((Game.Login.Session) Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();
 		return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
 	}
 
-	public static Game.Login.Session GetLoginSession() {
-		return (Game.Login.Session) Objects.requireNonNull(Transaction.getCurrent()).getTopProcedure().getUserState();
+	public static AsyncSocket RandomLink() {
+		return Game.App.Instance.Server.RandomLink();
 	}
 
 	public static ModuleRedirect Instance = new ModuleRedirect();
@@ -386,12 +387,10 @@ public class ModuleRedirect {
 				sb.AppendLine(Str.format("        }"));
 			}
 			sb.AppendLine(Str.format(""));
-			String sessionVarName = "tmp" + TmpVarNameId.incrementAndGet();
 			String futureVarName = "tmp" + TmpVarNameId.incrementAndGet();
-			sb.AppendLine(Str.format("        var {} = Zezex.ModuleRedirect.GetLoginSession();", sessionVarName));
 			sb.AppendLine(Str.format("        var {} = new Zeze.Util.TaskCompletionSource<Long>();", futureVarName));
 			sb.AppendLine(Str.format(""));
-			sb.AppendLine(Str.format("        {}.Send({}.getLink(), (thisRpc) ->", rpcVarName, sessionVarName));
+			sb.AppendLine(Str.format("        {}.Send(RandomLink(), (thisRpc) ->", rpcVarName));
 			sb.AppendLine(Str.format("        {"));
 			sb.AppendLine(Str.format("            if ({}.isTimeout())", rpcVarName));
 			sb.AppendLine(Str.format("            {"));
@@ -509,9 +508,7 @@ public class ModuleRedirect {
 			sb.AppendLine(Str.format("        }"));
 		}
 		sb.AppendLine(Str.format(""));
-		var sessionVarName = "tmp" + TmpVarNameId.incrementAndGet();
-		sb.AppendLine(Str.format("        var {} = Zezex.ModuleRedirect.GetLoginSession();", sessionVarName));
-		sb.AppendLine(Str.format("        {}.Send({}.getLink());", reqVarName, sessionVarName));
+		sb.AppendLine(Str.format("        {}.Send(RandomLink());", reqVarName));
 		sb.AppendLine(Str.format("    }"));
 		sb.AppendLine(Str.format(""));
 

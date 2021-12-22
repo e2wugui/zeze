@@ -33,6 +33,7 @@ namespace Game
             // copy Config.Connector to Links
             Config.ForEachConnector((c) => Links.TryAdd(c.Name, c));
             base.Start();
+            LinkConnectors = Links.ToArray();
         }
 
         public void ApplyLinksChanged(Zeze.Services.ServiceManager.ServiceInfos serviceInfos)
@@ -61,6 +62,7 @@ namespace Game
                     removed.Stop();
                 }
             }
+            LinkConnectors = Links.ToArray();
         }
 
         public class LinkSession
@@ -87,6 +89,19 @@ namespace Game
 
         public ConcurrentDictionary<string, Connector> Links { get; }
             = new ConcurrentDictionary<string, Connector>();
+        private volatile KeyValuePair<string, Connector>[] LinkConnectors;
+        private Zeze.Util.AtomicInteger LinkRandomIndex = new Zeze.Util.AtomicInteger();
+        public AsyncSocket RandomLink()
+        {
+            var volatileTmp = LinkConnectors;
+            if (volatileTmp.Length == 0)
+                return null;
+            var index = (uint)LinkRandomIndex.IncrementAndGet();
+            var connector = volatileTmp[index % (uint)volatileTmp.Length].Value;
+            // 如果只选择已经连上的Link，当所有的连接都没准备好时，仍然需要GetReadySocket，
+            // 所以简单处理成总是等待连接完成。
+            return connector.GetReadySocket();
+        }
 
         // 用来同步等待Provider的静态绑定完成。
         public TaskCompletionSource<bool> ProviderStaticBindCompleted = new TaskCompletionSource<bool>();

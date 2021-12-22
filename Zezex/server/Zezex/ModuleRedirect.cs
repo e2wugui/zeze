@@ -27,13 +27,13 @@ namespace Zezex
         public const int ChoiceType = Zezex.Provider.BModule.ChoiceTypeHashAccount;
         public static int GetChoiceHashCode()
         {
-            string account = GetLoginSession().Account;
+            string account = ((Game.Login.Session)Zeze.Transaction.Transaction.Current.TopProcedure.UserState).Account;
             return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
         }
 
-        public static Game.Login.Session GetLoginSession()
+        public static Zeze.Net.AsyncSocket RandomLink()
         {
-            return Zeze.Transaction.Transaction.Current.TopProcedure.UserState as Game.Login.Session;
+            return Game.App.Instance.Server.RandomLink();
         }
 
         public static ModuleRedirect Instance = new ModuleRedirect();
@@ -595,9 +595,7 @@ namespace Zezex
                     sb.AppendLine($"        }}");
                 }
                 sb.AppendLine($"");
-                string sessionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
                 string futureVarName = "tmp" + TmpVarNameId.IncrementAndGet();
-                sb.AppendLine($"        var {sessionVarName} = Zezex.ModuleRedirect.GetLoginSession();");
                 sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource<long>();");
                 sb.AppendLine($"");
                 foreach (var outOrRef in parametersOutOrRef)
@@ -606,7 +604,7 @@ namespace Zezex
                     if (!outOrRef.IsOut && outOrRef.ParameterType.IsByRef)
                         sb.AppendLine($"        _{outOrRef.Name}_ = {outOrRef.Name};");
                 }
-                sb.AppendLine($"        {rpcVarName}.Send({sessionVarName}.Link, (_) =>");
+                sb.AppendLine($"        {rpcVarName}.Send(Zezex.ModuleRedirect.RandomLink(), (_) =>");
                 sb.AppendLine($"        {{");
                 sb.AppendLine($"            if ({rpcVarName}.IsTimeout)");
                 sb.AppendLine($"            {{");
@@ -755,9 +753,7 @@ namespace Zezex
                 sb.AppendLine($"        }}");
             }
             sb.AppendLine($"");
-            string sessionVarName = "tmp" + TmpVarNameId.IncrementAndGet();
-            sb.AppendLine($"        var {sessionVarName} = Zezex.ModuleRedirect.GetLoginSession();");
-            sb.AppendLine($"        {reqVarName}.Send({sessionVarName}.Link);");
+            sb.AppendLine($"        {reqVarName}.Send(Zezex.ModuleRedirect.RandomLink());");
             sb.AppendLine($"    }}");
             sb.AppendLine($"");
 
