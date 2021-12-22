@@ -396,8 +396,9 @@ public final class ModuleProvider extends AbstractModule {
                     if (rpc.isTimeout()) {
                         rpc.setResultCode(ModuleRedirect.ResultCodeLinkdTimeout);
                     }
-
-                    rpc.Send(App.ProviderService.GetSocket(SourceProvider)); // send back to src provider
+                    // send back to src provider
+                    rpc.setSender(App.ProviderService.GetSocket(SourceProvider));
+                    rpc.SendResult();
                     return Zeze.Transaction.Procedure.Success;
                 });
                 // async mode
@@ -415,7 +416,9 @@ public final class ModuleProvider extends AbstractModule {
                     rpc.setResultCode(ModuleRedirect.ResultCodeLinkdTimeout);
                 }
 
-                rpc.Send(App.ProviderService.GetSocket(SourceProvider)); // send back to src provider
+                // send back to src provider
+                rpc.setSender(App.ProviderService.GetSocket(SourceProvider));
+                rpc.SendResult();
                 return Zeze.Transaction.Procedure.Success;
             });
             // async mode

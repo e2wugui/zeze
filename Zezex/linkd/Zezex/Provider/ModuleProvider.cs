@@ -398,7 +398,9 @@ namespace Zezex.Provider
                         if (rpc.IsTimeout)
                             rpc.ResultCode = ModuleRedirect.ResultCodeLinkdTimeout;
 
-                        rpc.Send(App.ProviderService.GetSocket(SourceProvider)); // send back to src provider
+                        // send back to src provider
+                        rpc.Sender = App.ProviderService.GetSocket(SourceProvider);
+                        rpc.SendResult();
                         return Zeze.Transaction.Procedure.Success;
                     });
                     // async mode
@@ -418,7 +420,9 @@ namespace Zezex.Provider
                     if (rpc.IsTimeout)
                         rpc.ResultCode = ModuleRedirect.ResultCodeLinkdTimeout;
 
-                    rpc.Send(App.ProviderService.GetSocket(SourceProvider)); // send back to src provider
+                    // send back to src provider
+                    rpc.Sender = App.ProviderService.GetSocket(SourceProvider);
+                    rpc.SendResult();
                     return Zeze.Transaction.Procedure.Success;
                 });
                 // async mode
