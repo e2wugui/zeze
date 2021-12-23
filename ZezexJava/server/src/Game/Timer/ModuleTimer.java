@@ -245,8 +245,6 @@ public class ModuleTimer extends AbstractModule {
         }, "LoadTimerLocal"));
         var root = out.Value;
 
-        // TODO 向ServiceManager注册自己（serverId, root.getLoadSerialNo).
-        // TODO 正常结束进程，不需要别人接管时，需要主动注销自己。
         return LoadTimerLocal(root.getHeadNodeId(), root.getHeadNodeId(), serverId);
     }
 
