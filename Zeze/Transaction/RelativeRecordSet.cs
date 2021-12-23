@@ -205,7 +205,7 @@ namespace Zeze.Transaction
                         mergedSet.Delete();
                         //logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
                     }
-                    else
+                    else if (mergedSet.RecordSet != null) // mergedSet 合并结果是孤立的，不需要Flush。
                     {
                         // 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
                         RelativeRecordSetMap[mergedSet] = mergedSet;
