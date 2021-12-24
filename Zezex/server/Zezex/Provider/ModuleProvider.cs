@@ -303,11 +303,19 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        protected override long ProcessTransmit(Protocol p)
+        protected override long ProcessTransmit(Protocol _p)
         {
-            var protocol = p as Transmit;
-            App.Game_Login.Onlines.ProcessTransmit(protocol.Argument.Sender,
-                protocol.Argument.ActionName, protocol.Argument.Roles.Keys);
+            var p = _p as Transmit;
+            Zeze.Serialize.Serializable parameter = null;
+            if (p.Argument.ParameterBeanName.Length > 0)
+            {
+                if (false == App.Game_Login.Onlines.TransmitParameterFactorys.TryGetValue(p.Argument.ParameterBeanName, out var factory))
+                    return ErrorCode(ErrorTransmitParameterFactoryNotFound);
+
+                parameter = factory(p.Argument.ParameterBeanName);
+            }
+            App.Game_Login.Onlines.ProcessTransmit(p.Argument.Sender,
+                p.Argument.ActionName, p.Argument.Roles.Keys, parameter);
             return Procedure.Success;
         }
 

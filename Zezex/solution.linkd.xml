@@ -36,6 +36,8 @@
 	</module>
 
 	<module name="Provider" id="10001">
+		<enum name="ErrorTransmitParameterFactoryNotFound" value="1" />
+
 		<!-- gs to link -->
 		<bean name="BModule">
 			<!-- ChoiceType -->
@@ -313,7 +315,9 @@
 			<variable name="Roles"      id="2" type="map" key="long" value="BTransmitContext"/> 查询目标角色。
 			<variable name="Sender"     id="3" type="long"/> 结果发送给Sender。
 
-			<variable name="ServiceNamePrefix" id="4" type="string"/>
+			<variable name="ServiceNamePrefix"  id="4" type="string"/>
+			<variable name="ParameterBeanName"  id="5" type="string"/> fullname
+			<variable name="ParameterBeanValue" id="6" type="binary"/> encoded bean
 		</bean>
 
 		<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server,client"/> 默认不启用事务，由协议实现自己控制。

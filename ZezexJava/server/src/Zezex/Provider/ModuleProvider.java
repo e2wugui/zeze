@@ -282,11 +282,21 @@ public final class ModuleProvider extends AbstractModule {
 
 	@Override
 	protected long ProcessTransmit(Protocol _protocol) throws Throwable {
-		var protocol = (Transmit)_protocol;
+		var p = (Transmit)_protocol;
+		Zeze.Serialize.Serializable parameter = null;
+		if (false == p.Argument.getParameterBeanName().isEmpty())
+		{
+			var factory = App.Game_Login.getOnlines().getTransmitParameterFactorys().get(p.Argument.getParameterBeanName());
+			if (null == factory)
+				return ErrorCode(ErrorTransmitParameterFactoryNotFound);
+
+			parameter = factory.call(p.Argument.getParameterBeanName());
+		}
 		App.Game_Login.getOnlines().ProcessTransmit(
-				protocol.Argument.getSender(),
-				protocol.Argument.getActionName(),
-				protocol.Argument.getRoles().keySet());
+				p.Argument.getSender(),
+				p.Argument.getActionName(),
+				p.Argument.getRoles().keySet(),
+				parameter);
 		return Procedure.Success;
 	}
 

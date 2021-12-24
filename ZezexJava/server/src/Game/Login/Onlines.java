@@ -6,6 +6,7 @@ import Game.*;
 import Zeze.Util.TaskCompletionSource;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
+import Zeze.Serialize.Serializable;
 
 public class Onlines {
 	private tonline table;
@@ -311,47 +312,57 @@ public class Onlines {
 	 target: 查询目标角色。
 	 result: 返回值，int，按普通事务处理过程返回值处理。
 	*/
-	private ConcurrentHashMap<String, Zeze.Util.Func2<Long, Long, Long>> TransmitActions = new ConcurrentHashMap<> ();
-	public final ConcurrentHashMap<String, Zeze.Util.Func2<Long, Long, Long>> getTransmitActions() {
+	private ConcurrentHashMap<String, Zeze.Util.Func3<Long, Long, Serializable, Long>> TransmitActions = new ConcurrentHashMap<> ();
+	public final ConcurrentHashMap<String, Zeze.Util.Func3<Long, Long, Serializable, Long>> getTransmitActions() {
 		return TransmitActions;
 	}
 
-	/** 
+	private final ConcurrentHashMap<String, Zeze.Util.Func1<String, Serializable>> transmitParameterFactorys = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<String, Zeze.Util.Func1<String, Serializable>> getTransmitParameterFactorys() {
+		return transmitParameterFactorys;
+	}
+
+	/**
 	 转发查询请求给RoleId。
 	 
 	 @param sender 查询发起者，结果发送给他。
 	 @param actionName 查询处理的实现
 	 @param roleId 目标角色
 	*/
-	public final void Transmit(long sender, String actionName, long roleId) {
-		Transmit(sender, actionName, new ArrayList<Long>(Arrays.asList(roleId)));
+	public final void Transmit(long sender, String actionName, long roleId, Serializable parameter) {
+		Transmit(sender, actionName, Arrays.asList(roleId), parameter);
 	}
 
-	public final void ProcessTransmit(long sender, String actionName, java.lang.Iterable<Long> roleIds) {
+	public final void Transmit(long sender, String actionName, long roleId) {
+		Transmit(sender, actionName, roleId, null);
+	}
+
+	public final void ProcessTransmit(long sender, String actionName, java.lang.Iterable<Long> roleIds, Serializable parameter) {
 		var handle = getTransmitActions().get(actionName);
 		if (null != handle) {
 			for (var target : roleIds) {
 				Zeze.Util.Task.Run(
 						App.Instance.Zeze.NewProcedure(
-								() -> handle.call(sender, target),
+								() -> handle.call(sender, target, parameter),
 								"Game.Online.Transmit:" + actionName),
 						null, null);
 			}
 		}
 	}
 
-	private void TransmitInProcedure(long sender, String actionName, Collection<Long> roleIds) {
+	private void TransmitInProcedure(long sender, String actionName, Collection<Long> roleIds, Serializable parameter) {
 		if (App.getInstance().Zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().length() == 0) {
 			// 没有启用cache-sync，马上触发本地任务。
-			ProcessTransmit(sender, actionName, roleIds);
+			ProcessTransmit(sender, actionName, roleIds, parameter);
 			return;
 		}
 
 		var groups = GroupByLink(roleIds);
 		for (var group : groups) {
-			if (group.getProviderId() == App.getInstance().Zeze.getConfig().getServerId()) {
-				// loopback 就是当前gs.
-				ProcessTransmit(sender, actionName, group.getRoles().keySet());
+			if (group.getProviderId() == App.getInstance().Zeze.getConfig().getServerId() // loopback 就是当前gs.
+					|| null == group.getLinkSocket() // 对于不在线的角色，本机处理。
+			) {
+				ProcessTransmit(sender, actionName, group.getRoles().keySet(), parameter);
 				continue;
 			}
 			var transmit = new Zezex.Provider.Transmit();
@@ -359,64 +370,73 @@ public class Onlines {
 			transmit.Argument.setSender(sender);
 			transmit.Argument.setServiceNamePrefix(App.ServerServiceNamePrefix);
 			transmit.Argument.getRoles().putAll(group.getRoles());
-
-			if (null != group.getLinkSocket()) {
-				group.getLinkSocket().Send(transmit);
-				continue;
+			if (null != parameter)
+			{
+				transmit.Argument.setParameterBeanName(parameter.getClass().getName());
+				transmit.Argument.setParameterBeanValue(new Binary(Zeze.Serialize.ByteBuffer.Encode(parameter)));
 			}
-
-			// 对于不在线的角色，随机选择一个linkd转发。
-			ArrayList<AsyncSocket> readyLinks = new ArrayList<AsyncSocket>();
-			for (var link : App.getInstance().Server.getLinks().values()) {
-				if (link.isHandshakeDone()) {
-					readyLinks.add(link.getSocket());
-				}
-			}
-			if (!readyLinks.isEmpty()) {
-				var randLink = readyLinks.get(Zeze.Util.Random.getInstance().nextInt(readyLinks.size()));
-				randLink.Send(transmit);
-			}
+			group.getLinkSocket().Send(transmit);
 		}
 	}
 
 	public final void Transmit(long sender, String actionName, Collection<Long> roleIds) {
+		Transmit(sender, actionName, roleIds, null);
+	}
+
+	public final void Transmit(long sender, String actionName, Collection<Long> roleIds, Serializable parameter) {
 		if (false == getTransmitActions().containsKey(actionName)) {
 			throw new RuntimeException("Unkown Action Name: " + actionName);
 		}
 
 		// 发送协议请求在另外的事务中执行。
 		Zeze.Util.Task.Run(App.getInstance().Zeze.NewProcedure(() -> {
-				TransmitInProcedure(sender, actionName, roleIds);
+				TransmitInProcedure(sender, actionName, roleIds, parameter);
 				return (long)Procedure.Success;
 		}, "Onlines.Transmit"), null, null);
 	}
 
 	public final void TransmitWhileCommit(long sender, String actionName, long roleId) {
+		TransmitWhileCommit(sender, actionName, roleId, null);
+	}
+
+	public final void TransmitWhileCommit(long sender, String actionName, long roleId, Serializable parameter) {
 		if (false == getTransmitActions().containsKey(actionName)) {
 			throw new RuntimeException("Unkown Action Name: " + actionName);
 		}
-		Transaction.getCurrent().RunWhileCommit(() -> Transmit(sender, actionName, roleId));
+		Transaction.getCurrent().RunWhileCommit(() -> Transmit(sender, actionName, roleId, parameter));
 	}
 
 	public final void TransmitWhileCommit(long sender, String actionName, Collection<Long> roleIds) {
+		TransmitWhileCommit(sender, actionName, roleIds, null);
+	}
+
+	public final void TransmitWhileCommit(long sender, String actionName, Collection<Long> roleIds, Serializable parameter) {
 		if (false == getTransmitActions().containsKey(actionName)) {
 			throw new RuntimeException("Unkown Action Name: " + actionName);
 		}
-		Transaction.getCurrent().RunWhileCommit(() -> Transmit(sender, actionName, roleIds));
+		Transaction.getCurrent().RunWhileCommit(() -> Transmit(sender, actionName, roleIds, parameter));
 	}
 
 	public final void TransmitWhileRollback(long sender, String actionName, long roleId) {
+		TransmitWhileRollback(sender, actionName, roleId, null);
+	}
+
+	public final void TransmitWhileRollback(long sender, String actionName, long roleId, Serializable parameter) {
 		if (false == getTransmitActions().containsKey(actionName)) {
 			throw new RuntimeException("Unkown Action Name: " + actionName);
 		}
-		Transaction.getCurrent().RunWhileRollback(() -> Transmit(sender, actionName, roleId));
+		Transaction.getCurrent().RunWhileRollback(() -> Transmit(sender, actionName, roleId, parameter));
 	}
 
 	public final void TransmitWhileRollback(long sender, String actionName, Collection<Long> roleIds) {
+		TransmitWhileRollback(sender, actionName, roleIds, null);
+	}
+
+	public final void TransmitWhileRollback(long sender, String actionName, Collection<Long> roleIds, Serializable parameter) {
 		if (false == getTransmitActions().containsKey(actionName)) {
 			throw new RuntimeException("Unkown Action Name: " + actionName);
 		}
-		Transaction.getCurrent().RunWhileRollback(() -> Transmit(sender, actionName, roleIds));
+		Transaction.getCurrent().RunWhileRollback(() -> Transmit(sender, actionName, roleIds, parameter));
 	}
 
 	public static class ConfirmContext extends Service.ManualContext {
