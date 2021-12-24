@@ -8,7 +8,10 @@ public class Reflect {
     private HashMap<String, Method> Methods = new HashMap<>();
     public Reflect(Class<?> cls) {
         for (var method : cls.getDeclaredMethods()) {
-            Methods.put(method.getName(), method);
+            if (method.getName().startsWith("Process")) { // 只有协议处理函数能配置TransactionLevel
+                if (null != Methods.putIfAbsent(method.getName(), method))
+                    throw new RuntimeException("Duplicate Method Name Of Protocol Handle: " + method.getName());
+            }
         }
     }
 

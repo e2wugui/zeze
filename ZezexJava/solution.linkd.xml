@@ -39,9 +39,10 @@
 		<!-- gs to link -->
 		<bean name="BModule">
 			<!-- ChoiceType -->
-			<enum name="ChoiceTypeDefault"    value="0"/>
+			<enum name="ChoiceTypeDefault"     value="0"/> choice by load
 			<enum name="ChoiceTypeHashAccount" value="1"/>
-			<enum name="ChoiceTypeHashRoleId" value="2"/>
+			<enum name="ChoiceTypeHashRoleId"  value="2"/>
+			<enum name="ChoiceTypeFeedFullOneByOne" value="3"/>
 
 			<variable name="ChoiceType" id="1" type="int"/>
 

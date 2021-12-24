@@ -90,6 +90,42 @@ namespace Zezex.Provider
             return false;
         }
 
+        private Zeze.Util.AtomicInteger FeedFullOneByOneIndex = new Zeze.Util.AtomicInteger();
+
+        public bool ChoiceFeedFullOneByOne(Agent.SubscribeState providers, out long provider)
+        {
+            // 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
+            lock (this)
+            {
+                provider = 0;
+
+                var list = providers.ServiceInfos.ServiceInfoListSortedByIdentity;
+                // 最多遍历一次。循环里面 continue 时，需要递增索引。
+                for (int i = 0; i < list.Count; ++i, FeedFullOneByOneIndex.IncrementAndGet())
+                {
+                    var index = (int)((uint)FeedFullOneByOneIndex.Get() % (uint)list.Count); // current
+                    var serviceinfo = list[index];
+                    var providerModuleState = serviceinfo.LocalState as ProviderModuleState;
+                    if (providerModuleState == null)
+                        continue;
+                    var ps = App.Instance.ProviderService.GetSocket(providerModuleState.SessionId)?.UserState as ProviderSession;
+                    // 这里发现关闭的服务，仅仅忽略.
+                    if (null == ps)
+                        continue;
+                    // 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
+                    if (ps.OnlineNew > App.Instance.Config.MaxOnlineNew)
+                        continue;
+
+                    provider = ps.SessionId;
+                    if (ps.Online >= ps.ProposeMaxOnline)
+                        FeedFullOneByOneIndex.IncrementAndGet(); // 已经喂饱了一个，下一个。
+
+                    return true;
+                }
+                return false;
+            }
+        }
+
         public bool ChoiceProvider(string serviceNamePrefix, int moduleId, int hash, out long provider)
         {
             var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
@@ -151,7 +187,12 @@ namespace Zezex.Provider
                     {
                         return false;
                     }
+
+                case BModule.ChoiceTypeFeedFullOneByOne:
+                    return ChoiceFeedFullOneByOne(volatileProviders, out provider);
             }
+
+            // default
             if (ChoiceLoad(volatileProviders, out provider))
             {
                 // 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。

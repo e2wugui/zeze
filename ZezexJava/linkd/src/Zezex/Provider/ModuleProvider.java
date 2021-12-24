@@ -1,6 +1,8 @@
 package Zezex.Provider;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import Zeze.Net.Protocol;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Transaction.Procedure;
@@ -91,6 +93,44 @@ public final class ModuleProvider extends AbstractModule {
         return false;
     }
 
+    private AtomicInteger FeedFullOneByOneIndex = new AtomicInteger();
+
+    public boolean ChoiceFeedFullOneByOne(Agent.SubscribeState providers, Zeze.Util.OutObject<Long> provider)
+    {
+        // 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
+        synchronized (this)
+        {
+            provider.Value = 0L;
+
+            var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
+            // 最多遍历一次。循环里面 continue 时，需要递增索引。
+            for (int i = 0; i < list.size(); ++i, FeedFullOneByOneIndex.incrementAndGet())
+            {
+                var index = Integer.remainderUnsigned(FeedFullOneByOneIndex.get(), list.size()); // current
+                var serviceinfo = list.get(index);
+                var providerModuleState = (ProviderModuleState)serviceinfo.getLocalState();
+                if (providerModuleState == null)
+                    continue;
+                var providerSocket = App.Instance.ProviderService.GetSocket(providerModuleState.SessionId);
+                if (null == providerSocket)
+                    continue;
+                var ps = (Zezex.ProviderSession)providerSocket.getUserState();
+                // 这里发现关闭的服务，仅仅忽略.
+                if (null == ps)
+                    continue;
+                // 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
+                if (ps.getOnlineNew() > App.Instance.getLinkConfig().getMaxOnlineNew())
+                    continue;
+
+                provider.Value = ps.getSessionId();
+                if (ps.getOnline() >= ps.getProposeMaxOnline())
+                    FeedFullOneByOneIndex.incrementAndGet(); // 已经喂饱了一个，下一个。
+                return true;
+            }
+            return false;
+        }
+    }
+
     public boolean ChoiceProvider(String serviceNamePrefix, int moduleId, int hash, Zeze.Util.OutObject<Long> provider) {
         var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
 
@@ -141,7 +181,12 @@ public final class ModuleProvider extends AbstractModule {
                 } else {
                     return false;
                 }
+
+            case BModule.ChoiceTypeFeedFullOneByOne:
+                return ChoiceFeedFullOneByOne(volatileProviders, provider);
         }
+
+        // default
         if (ChoiceLoad(volatileProviders, provider)) {
             // 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
             var providerSocket = App.ProviderService.GetSocket(provider.Value);

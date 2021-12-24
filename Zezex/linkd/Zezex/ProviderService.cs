@@ -78,7 +78,7 @@ namespace Zezex
         /// see Zezex.Provider.ModuleProvider
         /// </summary>
         public ConcurrentDictionary<int, int> StaticBinds { get; } = new ConcurrentDictionary<int, int>();
-        private Provider.BLoad Load { get; set; }
+        private volatile Provider.BLoad Load;
         public Provider.BAnnounceProviderInfo Info { get; set; }
         public int ProposeMaxOnline => Load.ProposeMaxOnline;
         public int Online => Load.Online;
@@ -108,13 +108,7 @@ namespace Zezex
                     linkSids = new HashSet<long>();
                     LinkSessionIds.Add(moduleId, linkSids);
                 }
-                if (linkSids.Add(linkSessionId))
-                {
-                    Load.Online += App.Instance.Config.ApproximatelyLinkdCount;
-                    // 在真正的数据报告回来之前，临时增加统计。仅包括本linkd分配的。
-                    // 本来Load应该总是由Provider报告的。
-                    // linkd 的临时增加是为了能快速反应出报告间隔期间的分配。
-                }
+                linkSids.Add(linkSessionId);
             }
         }
 

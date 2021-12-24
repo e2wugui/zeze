@@ -16,7 +16,8 @@ namespace Zeze.Util
         {
             foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
             {
-                Methods.Add(method.Name, method);
+                if (method.Name.StartsWith("Process")) // 只有协议处理函数能配置TransactionLevel
+                    Methods.Add(method.Name, method);
             }
         }
 

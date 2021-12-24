@@ -24,13 +24,7 @@ public class ProviderSession {
 	public final java.util.concurrent.ConcurrentHashMap<Integer, Integer> getStaticBinds() {
 		return StaticBinds;
 	}
-	private Zezex.Provider.BLoad Load;
-	private Zezex.Provider.BLoad getLoad() {
-		return Load;
-	}
-	private void setLoad(Zezex.Provider.BLoad value) {
-		Load = value;
-	}
+	private volatile Zezex.Provider.BLoad Load;
 	private Zezex.Provider.BAnnounceProviderInfo Info;
 	public final Zezex.Provider.BAnnounceProviderInfo getInfo() {
 		return Info;
@@ -39,13 +33,13 @@ public class ProviderSession {
 		Info = value;
 	}
 	public final int getProposeMaxOnline() {
-		return getLoad().getProposeMaxOnline();
+		return Load.getProposeMaxOnline();
 	}
 	public final int getOnline() {
-		return getLoad().getOnline();
+		return Load.getOnline();
 	}
 	public final int getOnlineNew() {
-		return getLoad().getOnlineNew();
+		return Load.getOnlineNew();
 	}
 
 	private long SessionId;
@@ -59,7 +53,7 @@ public class ProviderSession {
 
 	public final void SetLoad(Zezex.Provider.BLoad load) {
 		synchronized (getLinkSessionIds()) {
-			setLoad(load.Copy()); // 复制一次吧。
+			Load = load.Copy(); // 复制一次吧。
 		}
 	}
 
@@ -70,12 +64,7 @@ public class ProviderSession {
 				linkSids = new HashSet<Long>();
 				LinkSessionIds.put(moduleId, linkSids);
 			}
-			if (linkSids.add(linkSessionId)) {
-				Load.setOnline(Load.getOnline() + App.Instance.getLinkConfig().getApproximatelyLinkdCount());
-				// 在真正的数据报告回来之前，临时增加统计。仅包括本linkd分配的。
-				// 本来Load应该总是由Provider报告的。
-				// linkd 的临时增加是为了能快速反应出报告间隔期间的分配。
-			}
+			linkSids.add(linkSessionId);
 		}
 	}
 
