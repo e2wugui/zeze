@@ -21,7 +21,7 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private Dictionary<string, Zeze.Transaction.Table> tables = new Dictionary<string, Zeze.Transaction.Table>();
+        private ConcurrentDictionary<string, Zeze.Transaction.Table> tables = new ConcurrentDictionary<string, Zeze.Transaction.Table>();
         internal List<Storage> storages = new List<Storage>();
         internal ICollection<Zeze.Transaction.Table> Tables => tables.Values;
 
@@ -47,12 +47,14 @@ namespace Zeze.Transaction
 
         public void AddTable(Zeze.Transaction.Table table)
         {
-            tables.Add(table.Name, table);
+            if (false == tables.TryAdd(table.Name, table))
+                throw new Exception($"duplicate table={table.Name}");
         }
 
         public void RemoveTable(Zeze.Transaction.Table table)
         {
-            tables.Remove(table.Name);
+            table.Close();
+            tables.TryRemove(table.Name, out _);
         }
 
         public virtual void Open(Zeze.Application app)
@@ -144,6 +146,7 @@ namespace Zeze.Transaction
             /// <returns>返回已经遍历的数量</returns>
             public long Walk(Func<byte[], byte[], bool> callback);
             public void Close();
+            public abstract bool IsNew { get; }
         }
 
         /// <summary>
@@ -556,18 +559,28 @@ namespace Zeze.Transaction
             public DatabaseMySql DatabaseReal { get; }
             public Database Database => DatabaseReal;
             public string Name { get; }
+            private bool isNew;
+            public bool IsNew => isNew;
 
             public TableMysql(DatabaseMySql database, string name)
             {
                 DatabaseReal = database;
                 Name = name;
-
-                using MySqlConnection connection = new MySqlConnection(database.DatabaseUrl);
-                connection.Open();
-                string sql = "CREATE TABLE IF NOT EXISTS " + Name
-                    + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value MEDIUMBLOB NOT NULL)ENGINE=INNODB";
-                MySqlCommand cmd = new MySqlCommand(sql, connection);
-                cmd.ExecuteNonQuery();
+                {
+                    using var conn = new MySqlConnection(database.DatabaseUrl);
+                    conn.Open();
+                    string sql = $"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '{conn.Database}' AND table_name = '{name}'";
+                    var cmd = new MySqlCommand(sql, conn);
+                    isNew = (long)cmd.ExecuteScalar() == 0;
+                }
+                {
+                    using MySqlConnection connection = new MySqlConnection(database.DatabaseUrl);
+                    connection.Open();
+                    string sql = "CREATE TABLE IF NOT EXISTS " + Name
+                        + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value MEDIUMBLOB NOT NULL)ENGINE=INNODB";
+                    MySqlCommand cmd = new MySqlCommand(sql, connection);
+                    cmd.ExecuteNonQuery();
+                }
             }
 
             public void Close()
@@ -990,20 +1003,30 @@ namespace Zeze.Transaction
             public DatabaseSqlServer DatabaseReal { get; }
             public Database Database => DatabaseReal;
             public string Name { get; }
+            private bool isNew;
+            public bool IsNew => isNew;
 
             public TableSqlServer(DatabaseSqlServer database, string name)
             {
                 DatabaseReal = database;
                 Name = name;
+                {
+                    using var conn = new SqlConnection(DatabaseReal.DatabaseUrl);
+                    conn.Open();
+                    var sql = $"SELECT count(*) FROM dbo.sysobjects where id = object_id('[dbo].[{name}]')";
+                    var cmd = new SqlCommand(sql, conn);
+                    isNew = (int)cmd.ExecuteScalar() == 0;
+                }
+                {
+                    using SqlConnection connection = new SqlConnection(DatabaseReal.DatabaseUrl);
+                    connection.Open();
 
-                using SqlConnection connection = new SqlConnection(DatabaseReal.DatabaseUrl);
-                connection.Open();
-
-                string sql = "if not exists (select * from sysobjects where name='" + Name
-                    + "' and xtype='U') CREATE TABLE " + Name
-                    + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
-                SqlCommand cmd = new SqlCommand(sql, connection);
-                cmd.ExecuteNonQuery();
+                    string sql = "if not exists (select * from sysobjects where name='" + Name
+                        + "' and xtype='U') CREATE TABLE " + Name
+                        + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
+                    SqlCommand cmd = new SqlCommand(sql, connection);
+                    cmd.ExecuteNonQuery();
+                }
             }
 
             public void Close()
@@ -1159,12 +1182,14 @@ namespace Zeze.Transaction
 
         public override Table OpenTable(string name)
         {
+            bool isNew = false;
             ColumnFamilies.GetOrAdd(name, (key) =>
             {
+                isNew = true;
                 Db.CreateColumnFamily(CfOptions, key);
                 return key;
             });
-            return new TableRocksDb(this, name);
+            return new TableRocksDb(this, name, isNew);
         }
 
         public sealed class TableRocksDb : Database.Table
@@ -1173,12 +1198,15 @@ namespace Zeze.Transaction
             public Database Database => DatabaseReal;
             public string Name { get; }
             private ColumnFamilyHandle ColumnFamily { get; }
+            private bool isNew;
+            public bool IsNew => isNew;
 
-            public TableRocksDb(DatabaseRocksDb database, string name)
+            public TableRocksDb(DatabaseRocksDb database, string name, bool isNew)
             {
                 DatabaseReal = database;
                 Name = name;
                 ColumnFamily = DatabaseReal.Db.GetColumnFamily(name);
+                this.isNew = isNew;
             }
 
             public void Close()
@@ -1541,7 +1569,7 @@ namespace Zeze.Transaction
             public DatabaseMemory DatabaseReal { get; }
             public Database Database => DatabaseReal;
             public string Name { get; }
-
+            public bool IsNew => true;
             public TableMemory(DatabaseMemory db, string name)
             {
                 DatabaseReal = db;

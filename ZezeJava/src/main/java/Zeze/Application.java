@@ -109,21 +109,23 @@ public final class Application {
 	}
 
 	public void AddTable(String dbName, Table table) {
-		GetDatabase(dbName).AddTable(table);
+		var db = GetDatabase(dbName);
+		if (db == null)
+			throw new RuntimeException("Db Not Exist. db=" + dbName);
+		if (null != Tables.putIfAbsent(table.getName(), table))
+			throw new RuntimeException("duplicate table name=" + table.getName());
+		db.AddTable(table);
 	}
 
 	public void RemoveTable(String dbName, Table table) {
+		Tables.remove(table.getName());
 		GetDatabase(dbName).RemoveTable(table);
 	}
 
+	private ConcurrentHashMap<String, Table> Tables = new ConcurrentHashMap<>();
+
 	public Table GetTable(String name) {
-		for (Database db : getDatabases().values()) {
-			Table t = db.GetTable(name);
-			if (null != t) {
-				return t;
-			}
-		}
-		return null;
+		return Tables.get(name);
 	}
 
 	public Database GetDatabase(String name) {
@@ -194,9 +196,7 @@ public final class Application {
 						SchemasPrevious = null;
 						logger.error("Schemas Implement Changed?", ex);
 					}
-					if (!getSchemas().IsCompatible(SchemasPrevious, getConfig())) {
-						throw new RuntimeException("Database Struct Not Compatible!");
-					}
+					getSchemas().CheckCompatible(SchemasPrevious, this);
 					version = dataVersion.Version;
 				}
 				var newdata = Zeze.Serialize.ByteBuffer.Allocate();

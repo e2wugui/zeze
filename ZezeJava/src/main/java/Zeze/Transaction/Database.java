@@ -7,6 +7,7 @@ import Zeze.Config.DatabaseConf;
 import java.util.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** 
  数据访问的效率主要来自TableCache的命中。根据以往的经验，命中率是很高的。
@@ -15,7 +16,7 @@ import org.apache.logging.log4j.Logger;
 public abstract class Database {
 	private static final Logger logger = LogManager.getLogger(Database.class);
 
-	private final HashMap<String, Zeze.Transaction.Table> tables = new HashMap<>();
+	private final ConcurrentHashMap<String, Zeze.Transaction.Table> tables = new ConcurrentHashMap<>();
 	public final ArrayList<Storage> storages = new ArrayList<>();
 	public final Collection<Zeze.Transaction.Table> getTables() {
 		return tables.values();
@@ -43,10 +44,12 @@ public abstract class Database {
 	public abstract Transaction BeginTransaction();
 
 	public final void AddTable(Zeze.Transaction.Table table) {
-		tables.put(table.getName(), table);
+		if (null != tables.putIfAbsent(table.getName(), table))
+			throw new RuntimeException("duplicate table=" + table.getName());
 	}
 
 	public final void RemoveTable(Zeze.Transaction.Table table) {
+		table.Close();
 		tables.remove(table.getName());
 	}
 
@@ -113,6 +116,7 @@ public abstract class Database {
 	}
 
 	public interface Table {
+		boolean isNew();
 		Database getDatabase();
 		ByteBuffer Find(ByteBuffer key);
 		void Replace(Transaction t, ByteBuffer key, ByteBuffer value);

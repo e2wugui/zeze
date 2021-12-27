@@ -581,30 +581,30 @@ namespace Zeze
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public bool IsCompatible(Schemas other, Config config)
+        public void CheckCompatible(Schemas other, Application app)
         {
             if (null == other)
-                return true;
+                return;
 
             var context = new Context()
             {
                 Current = this,
                 Previous = other,
-                Config = config,
+                Config = app.Config,
             };
             foreach (var table in Tables.Values)
             {
+                var ztable = app.GetTable(table.Name);
+                if (null != ztable && ztable.IsNew && app.Config.DonotCheckSchemasWhenTableIsNew)
+                    continue;
+
                 if (other.Tables.TryGetValue(table.Name, out var otherTable))
                 {
                     if (false == table.IsCompatible(otherTable, context))
-                    {
-                        logger.Error("Not Compatible. table={0}", table.Name);
-                        return false;
-                    }
+                        throw new Exception($"Not Compatible. table={table.Name}");
                 }
             }
             context.Update();
-            return true;
         }
 
         public void Decode(ByteBuffer bb)

@@ -45,6 +45,8 @@ namespace Zeze
         public ConcurrentDictionary<string, ICustomize> Customize { get; }
             = new ConcurrentDictionary<string, ICustomize>();
 
+        public bool DonotCheckSchemasWhenTableIsNew { get; set; } = false;
+
         /// <summary>
         /// 根据自定义配置名字查找。
         /// 因为外面需要通过AddCustomize注册进来，
@@ -212,6 +214,9 @@ namespace Zeze
                 Application.logger.Warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
                 CheckpointMode = Transaction.CheckpointMode.Table;
             }
+            attr = self.GetAttribute("DonotCheckSchemasWhenTableIsNew");
+            if (attr.Length > 0)
+                DonotCheckSchemasWhenTableIsNew = bool.Parse(attr);
 
             attr = self.GetAttribute("FastRedoWhenConfict");
             if (attr.Length > 0)

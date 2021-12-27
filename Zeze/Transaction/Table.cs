@@ -47,6 +47,8 @@ namespace Zeze.Transaction
         public abstract ChangeVariableCollector CreateChangeVariableCollector(int variableId);
 
         public abstract Storage Storage { get; }
+
+        public abstract bool IsNew { get; }
     }
 
     public abstract class Table<K, V> : Table where V : Bean, new()
@@ -613,5 +615,7 @@ namespace Zeze.Transaction
             }
             return (V)FindInCacheOrStorage(key).Value;
         }
+
+        public override bool IsNew => TStorage == null || TStorage.DatabaseTable.IsNew;
     }
 }

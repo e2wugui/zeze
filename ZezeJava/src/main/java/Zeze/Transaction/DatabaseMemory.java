@@ -167,6 +167,10 @@ public final class DatabaseMemory extends Database {
 			Name = name;
 		}
 
+		public boolean isNew() {
+			return true;
+		}
+
 		final ConcurrentHashMap<ByteBuffer, byte[]> Map = new ConcurrentHashMap<>();
 
 		public ByteBuffer Find(ByteBuffer key) {
