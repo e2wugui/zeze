@@ -175,10 +175,14 @@ namespace Zeze
             ServiceManagerAgent = new Agent(this);
         }
 
+        private ConcurrentDictionary<string, Table> Tables = new ConcurrentDictionary<string, Table>();
+
         public void AddTable(string dbName, Transaction.Table table)
         {
             if (Databases.TryGetValue(dbName, out var db))
             {
+                if (false == Tables.TryAdd(table.Name, table))
+                    throw new Exception($"duplicate table name={table.Name}");
                 db.AddTable(table);
                 return;
             }
@@ -187,6 +191,7 @@ namespace Zeze
 
         public void RemoveTable(string dbName, Transaction.Table table)
         {
+            Tables.TryRemove(table.Name, out _);
             if (Databases.TryGetValue(dbName, out var db))
             {
                 db.RemoveTable(table);
@@ -197,13 +202,8 @@ namespace Zeze
 
         public Table GetTable(string name)
         {
-            // TODO 优化
-            foreach (Database db in Databases.Values)
-            {
-                Table t = db.GetTable(name);
-                if (null != t)
-                    return t;
-            }
+            if (Tables.TryGetValue(name, out var table))
+                return table;
             return null;
         }
 
@@ -283,8 +283,7 @@ namespace Zeze
                             SchemasPrevious = null;
                             logger.Error(ex, "Schemas Implement Changed?");
                         }
-                        if (false == Schemas.IsCompatible(SchemasPrevious, Config))
-                            throw new Exception("Database Struct Not Compatible!");
+                        Schemas.CheckCompatible(SchemasPrevious, this);
                     }
                     var newdata = Serialize.ByteBuffer.Allocate();
                     Schemas.Encode(newdata);

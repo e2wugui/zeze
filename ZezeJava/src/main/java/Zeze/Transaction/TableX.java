@@ -573,4 +573,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var v = (V)FindInCacheOrStorage(key).getValue();
 		return v;
 	}
+
+	@Override
+	public boolean isNew() {
+		return TStorage == null // memory table always return true
+				|| TStorage.getDatabaseTable().isNew();
+	}
 }

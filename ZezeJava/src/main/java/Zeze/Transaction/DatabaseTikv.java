@@ -203,6 +203,11 @@ public class DatabaseTikv extends Database {
 			return name;
 		}
 
+		// 这个属性用来忽略Schemas兼容判断的，而 tikv 不会在测试环境下使用，而且不能直接支持删表操作，所以总是返回false。
+		// 即Schemas兼容总是不会被忽略。
+		public boolean isNew() {
+			return false;
+		}
 
 		public TikvTable(DatabaseTikv database, String name) {
 			this.database = database;

@@ -104,9 +104,14 @@ public class DatabaseRocksDb extends Database {
 		return new RockdsDbTrans(this);
 	}
 
-	ColumnFamilyHandle getOrAddFamily(String name) {
+	ColumnFamilyHandle getOrAddFamily(String name, Zeze.Util.OutObject<Boolean> isNew) {
+		if (null != isNew)
+			isNew.Value = false;
+
 		return ColumnFamilies.computeIfAbsent(name, (key) -> {
 			try {
+				if (null != isNew)
+					isNew.Value = true;
 				return Db.createColumnFamily(new ColumnFamilyDescriptor(key.getBytes(StandardCharsets.UTF_8), CfOptions));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
@@ -116,7 +121,9 @@ public class DatabaseRocksDb extends Database {
 
 	@Override
 	public Table OpenTable(String name) {
-		return new TableRocksDb(this, name, getOrAddFamily(name));
+		var isNew = new Zeze.Util.OutObject<Boolean>();
+		var cfh = getOrAddFamily(name, isNew);
+		return new TableRocksDb(this, name, cfh, isNew.Value);
 	}
 
 	public final static class TableRocksDb implements Database.Table {
@@ -135,11 +142,17 @@ public class DatabaseRocksDb extends Database {
 		private ColumnFamilyHandle getColumnFamily() {
 			return ColumnFamily;
 		}
+		private boolean isNew;
 
-		public TableRocksDb(DatabaseRocksDb database, String name, ColumnFamilyHandle cfh) {
+		public TableRocksDb(DatabaseRocksDb database, String name, ColumnFamilyHandle cfh, boolean isNew) {
 			DatabaseReal = database;
 			Name = name;
 			ColumnFamily = cfh;
+			this.isNew = isNew;
+		}
+
+		public boolean isNew() {
+			return isNew;
 		}
 
 		public void Close() {
@@ -198,7 +211,7 @@ public class DatabaseRocksDb extends Database {
 
 		public OperatesRocksDb(DatabaseRocksDb database) {
 			DatabaseReal = database;
-			ColumnFamily = getDatabaseReal().getOrAddFamily(ColumnFamilyName);
+			ColumnFamily = getDatabaseReal().getOrAddFamily(ColumnFamilyName, null);
 		}
 
 		public int ClearInUse(int localId, String global) {

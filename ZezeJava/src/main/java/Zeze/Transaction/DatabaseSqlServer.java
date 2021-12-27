@@ -3,6 +3,9 @@ package Zeze.Transaction;
 import Zeze.Serialize.*;
 import Zeze.Config.DatabaseConf;
 
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+
 public final class DatabaseSqlServer extends DatabaseJdbc {
 	public DatabaseSqlServer(DatabaseConf conf) {
 		super(conf);
@@ -302,10 +305,24 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		public String getName() {
 			return Name;
 		}
+		private boolean isNew;
+
+		public boolean isNew() {
+			return isNew;
+		}
 
 		public TableSqlServer(DatabaseSqlServer database, String name) {
 			DatabaseReal = database;
 			Name = name;
+
+			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
+				DatabaseMetaData meta = connection.getMetaData();
+				ResultSet resultSet = meta.getTables(null, null, Name, new String[] {"TABLE"});
+				isNew = resultSet.next();
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
+			}
 
 			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);

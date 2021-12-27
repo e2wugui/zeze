@@ -631,28 +631,28 @@ public class Schemas implements Serializable {
 
     private final static Logger logger = LogManager.getLogger(Table.class);
 
-    public boolean IsCompatible(Schemas other, Config config) throws Throwable {
+    public void CheckCompatible(Schemas other, Zeze.Application app) throws Throwable {
         if (null == other)
-            return true;
+            return;
 
         var context = new Context();
         {
             context.setCurrent(this);
             context.setPrevious(other);
-            context.setConfig(config);
+            context.setConfig(app.getConfig());
         }
 
         for (var table : Tables.values()) {
+			var ztable = app.GetTable(table.Name);
+			if (null != ztable && ztable.isNew() && app.getConfig().donotCheckSchemasWhenTableIsNew())
+				continue;
         	var otherTable = other.Tables.get(table.Name);
         	if (null != otherTable) {
-                if (!table.IsCompatible(otherTable, context)) {
-                    logger.error("Not Compatible. table={}", table.Name);
-                    return false;
-                }
+                if (!table.IsCompatible(otherTable, context))
+					throw new RuntimeException("Not Compatible Table=" + table.Name);
             }
         }
         context.Update();
-        return true;
     }
 
     @Override

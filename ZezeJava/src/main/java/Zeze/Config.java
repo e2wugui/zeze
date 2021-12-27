@@ -135,6 +135,8 @@ public final class Config {
 		return Customize;
 	}
 
+	private boolean DonotCheckSchemasWhenTableIsNew = false;
+	public final boolean donotCheckSchemasWhenTableIsNew() { return DonotCheckSchemasWhenTableIsNew; }
 	/** 
 	 根据自定义配置名字查找。
 	 因为外面需要通过AddCustomize注册进来，
@@ -316,6 +318,11 @@ public final class Config {
 		if (CheckpointMode == Zeze.Transaction.CheckpointMode.Period && !GlobalCacheManagerHostNameOrAddress.isEmpty()) {
 			Application.logger.warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
 			CheckpointMode = Zeze.Transaction.CheckpointMode.Table;
+		}
+
+		attr = self.getAttribute("DonotCheckSchemasWhenTableIsNew");
+		if (attr.length() > 0) {
+			DonotCheckSchemasWhenTableIsNew = Boolean.parseBoolean(attr);
 		}
 
 		NodeList childnodes = self.getChildNodes();

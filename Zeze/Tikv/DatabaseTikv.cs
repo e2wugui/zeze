@@ -108,6 +108,7 @@ namespace Zeze.Tikv
             public Database Database => DatabaseReal;
             public string Name { get; }
             public ByteBuffer KeyPrefix { get; }
+            public bool IsNew => false; // always Enable Schemas.Check
 
             public TableTikv(DatabaseTikv database, string name)
             {
