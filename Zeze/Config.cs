@@ -25,6 +25,7 @@ namespace Zeze
             RocksDb,
         }
 
+		public string Name { get; } = "";
         public int WorkerThreads { get; set; }
         public int CompletionPortThreads { get; set; }
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
@@ -178,6 +179,11 @@ namespace Zeze
         {
             if (false == self.Name.Equals("zeze"))
                 throw new Exception("is it a zeze config.");
+			
+			string name = self.GetAttribute("name");
+			if(name.Length > 0){
+				this.name = name;
+			}
 
             CheckpointPeriod = int.Parse(self.GetAttribute("CheckpointPeriod"));
             ServerId = int.Parse(self.GetAttribute("ServerId"));

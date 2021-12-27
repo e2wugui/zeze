@@ -28,6 +28,8 @@ public final class Config {
 		RocksDb,
 	}
 
+	private String name = "";
+	public String getName(){return name;}
 	private int ScheduledThreads;
 	public int getScheduledThreads() {
 		return ScheduledThreads;
@@ -269,6 +271,10 @@ public final class Config {
 	public void Parse(Element self) {
 		if (!self.getNodeName().equals("zeze")) {
 			throw new RuntimeException("is it a zeze config.");
+		}
+		String name = self.getAttribute("name");
+		if(name.length() > 0){
+			this.name = name;
 		}
 
 		setCheckpointPeriod(Integer.parseInt(self.getAttribute("CheckpointPeriod")));
