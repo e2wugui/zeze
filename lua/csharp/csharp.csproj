@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Zeze\Zeze.csproj" />
+    <ProjectReference Include="..\..\Zeze\ZezeNoDatabaseUseKeraLua.csproj" />
   </ItemGroup>
 
 </Project>

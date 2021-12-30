@@ -21,27 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\cxx\BI.c">
-      <Filter>ZezeCxx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\cxx\codec.cpp">
-      <Filter>ZezeCxx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\cxx\dh.cpp">
-      <Filter>ZezeCxx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\cxx\rfc2118.cpp">
-      <Filter>ZezeCxx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\cxx\security.cpp">
-      <Filter>ZezeCxx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\cxx\Net.cpp">
-      <Filter>ZezeCxx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\cxx\octets.cpp">
-      <Filter>ZezeCxx</Filter>
-    </ClCompile>
     <ClCompile Include="lua-5.4.1\src\lapi.c">
       <Filter>LuaLib</Filter>
     </ClCompile>
@@ -138,53 +117,41 @@
     <ClCompile Include="lua-5.4.1\src\lzio.c">
       <Filter>LuaLib</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\utils.cpp">
-      <Filter>ZezeCxx</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\ToLua.cpp">
+    <ClCompile Include="..\..\cxx\BI.c">
       <Filter>ZezeCxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\Protocol.cpp">
+    <ClCompile Include="..\..\cxx\codec.cpp">
+      <Filter>ZezeCxx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\cxx\dh.cpp">
+      <Filter>ZezeCxx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\cxx\Net.cpp">
+      <Filter>ZezeCxx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\cxx\octets.cpp">
+      <Filter>ZezeCxx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\cxx\Protocol.cpp">
+      <Filter>ZezeCxx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\cxx\rfc2118.cpp">
+      <Filter>ZezeCxx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\cxx\security.cpp">
+      <Filter>ZezeCxx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\cxx\ToLua.cpp">
+      <Filter>ZezeCxx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\cxx\utils.cpp">
       <Filter>ZezeCxx</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\cxx\BI.h">
-      <Filter>ZezeCxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\codec.h">
-      <Filter>ZezeCxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\common.h">
-      <Filter>ZezeCxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\dh.h">
-      <Filter>ZezeCxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\osdefine.h">
-      <Filter>ZezeCxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\rfc2118.h">
-      <Filter>ZezeCxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\security.h">
-      <Filter>ZezeCxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\ByteBuffer.h">
-      <Filter>ZezeCxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\Net.h">
-      <Filter>ZezeCxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\octets.h">
-      <Filter>ZezeCxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\byteorder.h">
-      <Filter>ZezeCxx</Filter>
-    </ClInclude>
     <ClInclude Include="lua-5.4.1\src\lapi.h">
       <Filter>LuaLib</Filter>
     </ClInclude>
@@ -269,26 +236,64 @@
     <ClInclude Include="lua-5.4.1\src\lzio.h">
       <Filter>LuaLib</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\utils.h">
+    <ClInclude Include="..\..\cxx\BI.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\ToLua.h">
+    <ClInclude Include="..\..\cxx\ByteBuffer.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\luaheader.h">
+    <ClInclude Include="..\..\cxx\byteorder.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\Protocol.h">
+    <ClInclude Include="..\..\cxx\codec.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\LuaHelper.h">
+    <ClInclude Include="..\..\cxx\common.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\ToLuaService.h">
+    <ClInclude Include="..\..\cxx\dh.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\IDecodeAndDispatcher.h">
+    <ClInclude Include="..\..\cxx\IDecodeAndDispatcher.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\cxx\luaheader.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\LuaHelper.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\Net.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\octets.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\osdefine.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\Protocol.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\rfc2118.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\security.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\ToLua.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\ToLuaService.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\utils.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\cxx\ReadMe.txt">
+      <Filter>ZezeCxx</Filter>
+    </Text>
   </ItemGroup>
 </Project>

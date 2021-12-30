@@ -92,7 +92,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)lua-5.4.1\src;../cxx</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)lua-5.4.1\src;../../cxx</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -151,16 +151,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\cxx\BI.c" />
-    <ClCompile Include="..\cxx\codec.cpp" />
-    <ClCompile Include="..\cxx\dh.cpp" />
-    <ClCompile Include="..\cxx\Net.cpp" />
-    <ClCompile Include="..\cxx\octets.cpp" />
-    <ClCompile Include="..\cxx\Protocol.cpp" />
-    <ClCompile Include="..\cxx\rfc2118.cpp" />
-    <ClCompile Include="..\cxx\security.cpp" />
-    <ClCompile Include="..\cxx\ToLua.cpp" />
-    <ClCompile Include="..\cxx\utils.cpp" />
+    <ClCompile Include="..\..\cxx\BI.c" />
+    <ClCompile Include="..\..\cxx\codec.cpp" />
+    <ClCompile Include="..\..\cxx\dh.cpp" />
+    <ClCompile Include="..\..\cxx\Net.cpp" />
+    <ClCompile Include="..\..\cxx\octets.cpp" />
+    <ClCompile Include="..\..\cxx\Protocol.cpp" />
+    <ClCompile Include="..\..\cxx\rfc2118.cpp" />
+    <ClCompile Include="..\..\cxx\security.cpp" />
+    <ClCompile Include="..\..\cxx\ToLua.cpp" />
+    <ClCompile Include="..\..\cxx\utils.cpp" />
     <ClCompile Include="lua-5.4.1\src\lapi.c" />
     <ClCompile Include="lua-5.4.1\src\lauxlib.c" />
     <ClCompile Include="lua-5.4.1\src\lbaselib.c" />
@@ -196,24 +196,24 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\cxx\BI.h" />
-    <ClInclude Include="..\cxx\ByteBuffer.h" />
-    <ClInclude Include="..\cxx\byteorder.h" />
-    <ClInclude Include="..\cxx\codec.h" />
-    <ClInclude Include="..\cxx\common.h" />
-    <ClInclude Include="..\cxx\dh.h" />
-    <ClInclude Include="..\cxx\IDecodeAndDispatcher.h" />
-    <ClInclude Include="..\cxx\luaheader.h" />
-    <ClInclude Include="..\cxx\LuaHelper.h" />
-    <ClInclude Include="..\cxx\Net.h" />
-    <ClInclude Include="..\cxx\octets.h" />
-    <ClInclude Include="..\cxx\osdefine.h" />
-    <ClInclude Include="..\cxx\Protocol.h" />
-    <ClInclude Include="..\cxx\rfc2118.h" />
-    <ClInclude Include="..\cxx\security.h" />
-    <ClInclude Include="..\cxx\ToLua.h" />
-    <ClInclude Include="..\cxx\ToLuaService.h" />
-    <ClInclude Include="..\cxx\utils.h" />
+    <ClInclude Include="..\..\cxx\BI.h" />
+    <ClInclude Include="..\..\cxx\ByteBuffer.h" />
+    <ClInclude Include="..\..\cxx\byteorder.h" />
+    <ClInclude Include="..\..\cxx\codec.h" />
+    <ClInclude Include="..\..\cxx\common.h" />
+    <ClInclude Include="..\..\cxx\dh.h" />
+    <ClInclude Include="..\..\cxx\IDecodeAndDispatcher.h" />
+    <ClInclude Include="..\..\cxx\luaheader.h" />
+    <ClInclude Include="..\..\cxx\LuaHelper.h" />
+    <ClInclude Include="..\..\cxx\Net.h" />
+    <ClInclude Include="..\..\cxx\octets.h" />
+    <ClInclude Include="..\..\cxx\osdefine.h" />
+    <ClInclude Include="..\..\cxx\Protocol.h" />
+    <ClInclude Include="..\..\cxx\rfc2118.h" />
+    <ClInclude Include="..\..\cxx\security.h" />
+    <ClInclude Include="..\..\cxx\ToLua.h" />
+    <ClInclude Include="..\..\cxx\ToLuaService.h" />
+    <ClInclude Include="..\..\cxx\utils.h" />
     <ClInclude Include="lua-5.4.1\src\lapi.h" />
     <ClInclude Include="lua-5.4.1\src\lauxlib.h" />
     <ClInclude Include="lua-5.4.1\src\lcode.h" />
@@ -242,6 +242,9 @@
     <ClInclude Include="lua-5.4.1\src\lundump.h" />
     <ClInclude Include="lua-5.4.1\src\lvm.h" />
     <ClInclude Include="lua-5.4.1\src\lzio.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\cxx\ReadMe.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
