@@ -19,7 +19,7 @@ public class ThreadFactoryWithName implements ThreadFactory {
         Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement(), 0);
         //if (t.isDaemon())
         //    t.setDaemon(false);
-        t.setDaemon(true); // 先不考虑安全关闭。
+        t.setDaemon(true); // 先不考虑安全关闭，以后再调整。
         if (t.getPriority() != Thread.NORM_PRIORITY)
             t.setPriority(Thread.NORM_PRIORITY);
         return t;
