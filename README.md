@@ -65,12 +65,12 @@
 	   核心算法：Zeze/Transaction/Transaction.cs -> _lock_and_check_()
 	   【并发正确性】
 	   事务内所有访问（读写）的记录在冲突检查时需要确保Timestamp没有变化。
-	   事务成功，相当于独占所有访问的记录，这个并发策略是严格，但显然是正确的。
+	   事务成功，相当于独占所有访问的记录。这个并发策略是严格，但显然是正确的。
 	   暂时不考虑实现其他并发级别。
 
 	2) 缓存同步（GlobalCacheManager）
 	   参考了CPU缓存同步算法（MESI），使用了其中3个状态：Modify,Share,Invalid。
-	   当主逻辑服务器需要访问或修改数据时，向全局权限分配服务器（GlobalCacheManager）申请M或S权限。
+	   当主逻辑服务器需要访问或修改数据时，向全局权限分配服务器（GlobalCacheManager）申请Modify或Share权限。
 	   GlobalCacheManager知道所有记录的权限的分布状态。它根据申请的权限，向现拥有者发送降级请求，
 	   然后给申请者返回合适结果。
 	   核心算法：
@@ -86,10 +86,10 @@
 	      所以，逻辑服务器处理Reduce，必须能正确处理Recude的目标状态和自己实际状态，并且返回成功。
 	   d) 逻辑服务器在多个记录上并发处理权限申请；对单个记录，所有的Acquire排队。对同一个记录，不会同时发送Acquire给GlobalCacheManager。
 
-	3) 持久化模（Checkpoint）
-	   Period 定时保存修改到后端数据库，如果保存前进程异常退出，修改会丢失，相当于上一次保存以来的所有事务回滚，数据不会被破坏。
-           Immediately 事务提交的时候马上保存到后端数据库。
-           Table 可以选择部份表，当事务包含这些表时会马上保存，否则定时保存。这个模式适用范围比较广。
+	3) 持久化模式（Checkpoint）
+	   a. Period 定时保存修改到后端数据库，如果保存前进程异常退出，修改会丢失，相当于上一次保存以来的所有事务回滚，数据不会被破坏。
+           b. Immediately 事务提交的时候马上保存到后端数据库。
+           c. Table 可以选择部份表，当事务包含这些表时会马上保存，否则定时保存。这个模式适用范围比较广。
 	   核心算法：
 	   Zeze/Transaction/Checkpoint.cs
 	   Zeze/Transaction/RelativeRecordSet.cs

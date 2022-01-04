@@ -22,6 +22,22 @@ DatabaseTikv
 关联多用户数据的协议处理自动派发到热点所在Server。
 
 【进行中】
+	RedoableTaskQueue
+App：RedoableTaskQueue 看完下面的，帮忙起个好名。
+1）存储：concurrentKey->queue<Task> 持久化的。
+        concurrentKey 暂定int，一定范围，以后和serverId映射，不直接使用serverId，解耦。
+2）Task.Id：long 递增
+Zeze.ServerApp
+1) zeze.table<concurrentKey, lastTaskId> 记住已经同步的最后的任务id，
+2) 功能：每个concurrentKey，for Queue(lastTaskId, end) { Run(task); zeze.table.lastTaskId = task.Id; }
+* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的lastTaskId开始重做任务。
+比如充值系统等zeze外的交易系统本质上需要zeze.server一起完成一个分布式事务时用。zeze.server执行任务失败需要不停尝试。按顺序处理queue.task。
+参考很多MessageQueue的实现，这里由于重做，更像一个LogQueue。以前sybase的复制备份服务器也有一个差不多这样的logqueue
+concurrentKey是个坑，只有一个肯定没问题，但是无法并发，允许并发，对某些逻辑可能无法使用，或者需要使用者自己把相关的task放到同一个concurrentKey下。
+
+checkpointMode.Period 不能用
+CheckpointMode.Table 能不能用？
+
 	Raft.Agent
 		重发现在在收到LeaderIs时马上重新发送。改成延迟？
 		Agent的请求lost context，但是Task.Wait怎么返回的。
