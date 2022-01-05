@@ -9,6 +9,8 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Services.GlobalCacheManager.*;
 
+import java.util.Map;
+
 public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
 	private static final Logger logger = LogManager.getLogger(TableX.class);
 
@@ -374,7 +376,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	private TableCache<K, V> Cache;
-	public final TableCache<K, V> getCache() {
+	final TableCache<K, V> getCache() {
 		return Cache;
 	}
 	private void setCache(TableCache<K, V> value) {
@@ -518,6 +520,40 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					V v = DecodeValue(ByteBuffer.Wrap(value));
 					return callback.handle(k, v);
 		});
+	}
+
+	/**
+	 * 遍历缓存
+	 * @param callback
+	 * @return count
+	 */
+	public final long WalkCache(TableWalkHandle<K, V> callback) {
+		int count = 0;
+		for (Map.Entry<K, Record1<K, V>> entry : this.getCache().getDataMap().entrySet()) {
+			count++;
+			K k = entry.getKey();
+			Record1<K, V> r = entry.getValue();
+			TableKey tkey = new TableKey(Name, k);
+			Lockey lockey = getZeze().getLocks().Get(tkey);
+			lockey.EnterReadLock();
+			try {
+				if (null != r && r.getState() != GlobalCacheManagerServer.StateRemoved) {
+					if (r.getState() == GlobalCacheManagerServer.StateShare
+							|| r.getState() == GlobalCacheManagerServer.StateModify) {
+
+						if (r.getValue() == null) {
+							continue;
+						}
+						if (!callback.handle(r.getKey(), r.getValueTyped())) {
+							break;
+						}
+					}
+				}
+			} finally {
+				lockey.ExitLock();
+			}
+		}
+		return count;
 	}
 
 	/** 

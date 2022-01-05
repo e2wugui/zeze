@@ -2,6 +2,7 @@ package UnitTest.Zeze.Trans;
 
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import demo.App;
 import demo.Module1.Simple;
@@ -37,6 +38,7 @@ public class TestProcedureRedo {
 
         }, "TestProcedureRedoFirst").Call();
 
+        OutObject<Long> outLong2 = new OutObject<>();
         var ftask1 = Task.Run(App.getInstance().Zeze.NewProcedure(()  -> {
 
             var v = App.getInstance().demo_Module1.getTable1().getOrAdd(6785L);
@@ -48,10 +50,10 @@ public class TestProcedureRedo {
 
             }
 
-            long vlong2 = v.getMap15().get(vLong);
+            outLong2.Value = v.getMap15().get(vLong);
 
             Transaction.getCurrent().RunWhileCommit(() -> {
-                System.out.println("value=" + vlong2);
+                System.out.println("value=" + outLong2.Value);
                 System.out.println("task1 suss");
             });
             return Procedure.Success;
@@ -77,6 +79,7 @@ public class TestProcedureRedo {
 
         ftask2.get();
         ftask1.get();
+        assert outLong2.Value == 200;
     }
 }
 
