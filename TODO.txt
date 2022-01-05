@@ -38,6 +38,7 @@ concurrentKeyÊÇ¸ö¿Ó£¬Ö»ÓĞÒ»¸ö¿Ï¶¨Ã»ÎÊÌâ£¬µ«ÊÇÎŞ·¨²¢·¢£¬ÔÊĞí²¢·¢£¬¶ÔÄ³Ğ©Âß¼­¿ÉÄÜÎ
 checkpointMode.Period ²»ÄÜÓÃ
 CheckpointMode.Table ÄÜ²»ÄÜÓÃ£¿
 
+	Raft.Revote ÓÅÏÈ¼¶
 	Raft.Agent
 		ÖØ·¢ÏÖÔÚÔÚÊÕµ½LeaderIsÊ±ÂíÉÏÖØĞÂ·¢ËÍ¡£¸Ä³ÉÑÓ³Ù£¿
 		AgentµÄÇëÇólost context£¬µ«ÊÇTask.WaitÔõÃ´·µ»ØµÄ¡£
