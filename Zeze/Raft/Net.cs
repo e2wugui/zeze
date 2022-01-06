@@ -69,7 +69,7 @@ namespace Zeze.Raft
                 var server = closed.Service as Server;
                 lock (server.Raft)
                 {
-                    // 安装快照没有续传能力，网络断开以后，重置状态。
+                    // 安装快照服务器端不考虑续传，网络断开以后，重置状态。
                     // 以后需要的时候，再次启动新的安装流程。
                     InstallSnapshotting = false;
                     server.Raft.LogSequence.InstallSnapshotting.Remove(Name);
