@@ -48,7 +48,9 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	@Override
 	public Acquire Acquire(int state) {
 		if (null == getTTable().TStorage) {
-			return new Acquire(null, state); // 不支持内存表cache同步。
+			Acquire acquire = new Acquire(null, state); // 不支持内存表cache同步。
+			acquire.Result.State = state;
+			return acquire;
 		}
 
 		var gkey = new GlobalTableKey(getTTable().getName(), getTTable().EncodeKey(getKey()));

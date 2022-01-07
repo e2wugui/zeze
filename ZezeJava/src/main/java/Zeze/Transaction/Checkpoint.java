@@ -261,13 +261,15 @@ public final class Checkpoint {
 		try {
 			// prepare: 编码并且为每一个数据库创建一个数据库事务。
 			for (var r : rs) {
-				var database = r.getTable().GetStorage().getDatabaseTable().getDatabase();
-				var t = dts.get(database);
-				if (null == t) {
-					t = database.BeginTransaction();
-					dts.put(database, t);
+				if (r.getTable().GetStorage() != null) {
+					var database = r.getTable().GetStorage().getDatabaseTable().getDatabase();
+					var t = dts.get(database);
+					if (null == t) {
+						t = database.BeginTransaction();
+						dts.put(database, t);
+					}
+					r.setDatabaseTransactionTmp(t);
 				}
-				r.setDatabaseTransactionTmp(t);
 			}
 			// 编码
 			for (var r : rs) {

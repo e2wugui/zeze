@@ -6,7 +6,7 @@
 
     <groupId>com.zezeno</groupId>
     <artifactId>zeze-java</artifactId>
-    <version>0.9.11-SNAPSHOT</version>
+    <version>0.9.14-SNAPSHOT</version>
 
     <name>zeze-java</name>
     <url>https://github.com/e2wugui/zeze</url>
