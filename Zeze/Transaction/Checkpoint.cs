@@ -276,6 +276,9 @@ namespace Zeze.Transaction
                 // prepare: 编码并且为每一个数据库创建一个数据库事务。
                 foreach (var r in rs)
                 {
+                    if (r.Table.IsMemory)
+                        continue;
+
                     Database database = r.Table.Storage.DatabaseTable.Database;
                     if (false == dts.TryGetValue(database, out var t))
                     {

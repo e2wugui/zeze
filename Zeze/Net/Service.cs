@@ -158,7 +158,6 @@ namespace Zeze.Net
             */
         }
 
-        // Not Need Now
         public SortedDictionary<long, Protocol> GetRpcContextsToSender(AsyncSocket sender)
         {
             return GetRpcContexts((p) => p.Sender == sender);

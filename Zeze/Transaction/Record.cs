@@ -121,7 +121,12 @@ namespace Zeze.Transaction
         internal override Acquire Acquire(int state)
         {
             if (null == TTable.TStorage)
-                return new Acquire(null, state); // 不支持内存表cache同步。
+            {
+                // 不支持内存表cache同步。
+                var result = new Acquire();
+                result.Result.State = state;
+                return result;
+            }
 
             var gkey = new GlobalTableKey(TTable.Name, TTable.EncodeKey(Key));
             logger.Debug("Acquire NewState={0} {1}", state, this);

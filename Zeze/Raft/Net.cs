@@ -488,6 +488,8 @@ namespace Zeze.Raft
             // ReSendPendingRpc
             var fails = new List<Protocol>();
             List<Protocol> pending = null;
+            List<Protocol> pendingNew = new List<Protocol>();
+            int lastSentPendingNewIndex = 0;
             lock (this)
             {
                 pending = Pending;
@@ -500,6 +502,23 @@ namespace Zeze.Raft
                     if (NotAutoResend.ContainsKey(rpc))
                         continue;
 
+                    if (rpc.UniqueRequestId == 0)
+                    {
+                        // new request
+                        pendingNew.Add(rpc);
+                        continue; // send after old request
+                    }
+
+                    if (false == rpc.Send(_Leader?.Socket))
+                    {
+                        // 这里发送失败，等待新的 LeaderIs 通告再继续。
+                        fails.Add(rpc);
+                    }
+                }
+
+                for (; lastSentPendingNewIndex < pendingNew.Count; ++lastSentPendingNewIndex)
+                {
+                    var rpc = pendingNew[lastSentPendingNewIndex];
                     if (false == rpc.Send(_Leader?.Socket))
                     {
                         // 这里发送失败，等待新的 LeaderIs 通告再继续。
@@ -514,6 +533,10 @@ namespace Zeze.Raft
                     foreach (var fail in fails)
                     {
                         Pending.Add(fail);
+                    }
+                    for (; lastSentPendingNewIndex < pendingNew.Count; ++lastSentPendingNewIndex)
+                    {
+                        Pending.Add(pendingNew[lastSentPendingNewIndex]);
                     }
                 }
             }
