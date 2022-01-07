@@ -128,8 +128,11 @@ namespace Zeze.Net
             }
         }
 
+        //internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public virtual void OnSocketHandshakeDone(AsyncSocket so)
         {
+            //logger.Warn("Socket={0}, Context={1}", Socket, so);
             FutureSocket.TrySetResult(so);
         }
 
@@ -174,6 +177,7 @@ namespace Zeze.Net
 
         public virtual void Stop(Exception e = null)
         {
+            AsyncSocket tmp = null;
             lock (this)
             {
                 if (null == Socket)
@@ -182,10 +186,10 @@ namespace Zeze.Net
                 IsConnected = false;
                 FutureSocket.TrySetException(null != e ? e : new Exception("Connector Stopped: " + Name));
                 FutureSocket = new TaskCompletionSource<AsyncSocket>();
-                var tmp = Socket;
+                tmp = Socket;
                 Socket = null; // 阻止递归。
-                tmp.Dispose();
             }
+            tmp?.Dispose();
         }
     }
 }

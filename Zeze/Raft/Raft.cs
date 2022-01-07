@@ -364,6 +364,9 @@ namespace Zeze.Raft
 
         private long ProcessRequestVoteResult(RequestVote rpc, Connector c)
         {
+            if (rpc.IsTimeout || rpc.ResultCode != 0)
+                return 0; // skip error. re-vote later. 
+
             lock (this)
             {
                 if (LogSequence.TrySetTerm(rpc.Result.Term))
@@ -396,13 +399,14 @@ namespace Zeze.Raft
         {
             lock (this)
             {
+                if (null != WaitMajorityVoteTimoutTask)
+                    return;
+
                 VoteSuccess.Clear(); // 每次选举开始清除。
 
                 LeaderId = string.Empty;
                 LogSequence.SetVoteFor(Name); // Vote Self First.
                 LogSequence.TrySetTerm(LogSequence.Term + 1);
-                WaitMajorityVoteTimoutTask?.Cancel();
-                WaitMajorityVoteTimoutTask = null;
 
                 var arg = new RequestVoteArgument();
                 arg.Term = LogSequence.Term;
@@ -417,8 +421,8 @@ namespace Zeze.Raft
                         if (false == c.IsHandshakeDone)
                             return;
                         var rpc = new RequestVote() { Argument = arg };
-                        rpc.Send(c.Socket, (p) => ProcessRequestVoteResult(rpc, c));
-                        logger.Debug("{0}: SendRequestVote {1}", Name, rpc);
+                        var sendresult = rpc.Send(c.Socket, (p) => ProcessRequestVoteResult(rpc, c));
+                        logger.Debug("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
                     });
 
                 // 定时，如果超时选举还未完成，再次发起选举。
@@ -589,12 +593,18 @@ namespace Zeze.Raft
 
         private void StartRequestVote()
         {
-            if (null != StartRequestVoteDelayTask)
-                return;
+            lock (this)
+            {
+                if (null != StartRequestVoteDelayTask)
+                    return;
 
-            StartRequestVoteDelayTask = Scheduler.Instance.Schedule(
-                SendRequestVote,
-                Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout + 1000));
+                WaitMajorityVoteTimoutTask?.Cancel();
+                WaitMajorityVoteTimoutTask = null;
+
+                StartRequestVoteDelayTask = Scheduler.Instance.Schedule(
+                    SendRequestVote,
+                    Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout + 1000));
+            }
         }
 
         private void RegisterInternalRpc()

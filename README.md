@@ -96,6 +96,8 @@
 
 	4) TableCache.Cleanup
 
+	5) 用户事务层-Checkpoint.Flush层，两层事务，整体事务对吗？
+
 #### 安装教程
 
 	0) Zeze 是一个类库，所有的核心功能都在这里。

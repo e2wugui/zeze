@@ -65,7 +65,7 @@ namespace Zeze.Raft
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private long GetCurrentCount()
+        private int GetCurrentCount()
         {
             var r = new GetCount();
             while (true)
@@ -73,7 +73,7 @@ namespace Zeze.Raft
                 try
                 {
                     Agent.SendForWait(r).Task.Wait();
-                    return r.ResultCode;
+                    return (int)r.ResultCode;
                 }
                 catch (Exception)
                 {
@@ -81,8 +81,8 @@ namespace Zeze.Raft
             }
         }
 
-        private long ExpectCount { get; set; }
-        private Dictionary<long, long> Errors { get; } = new Dictionary<long, long>();
+        private volatile int ExpectCount;
+        private Dictionary<long, int> Errors { get; } = new Dictionary<long, int>();
 
         private void ErrorsAdd(long resultCode)
         {
@@ -94,9 +94,9 @@ namespace Zeze.Raft
                 Errors[resultCode] = 1;
         }
 
-        private long ErrorsSum()
+        private int ErrorsSum()
         {
-            long sum = 0;
+            int sum = 0;
             foreach (var e in Errors.Values)
             {
                 sum += e;
@@ -128,21 +128,27 @@ namespace Zeze.Raft
             return true;
         }
 
-        private void ConcurrentAddCount(string stepName, int concurrent)
+        private int ConcurrentAddCount(string stepName, int concurrent)
         {
             var requests = new List<AddCount>();
+            var tasks = new List<Task>();
             for (int i = 0; i < concurrent; ++i)
-                requests.Add(new AddCount());
-
-            Task[] tasks = new Task[concurrent];
-            for (int i = 0; i < requests.Count; ++i)
             {
-                tasks[i] = Agent.SendForWait(requests[i]).Task;
+                try
+                {
+                    var req = new AddCount();
+                    tasks.Add(Agent.SendForWait(req).Task);
+                    requests.Add(req);
+                }
+                catch (Exception)
+                {
+                    //发送错误不统计。ErrorsAdd(Procedure.ErrorSendFail);
+                }
                 //logger.Debug("+++++++++ REQUEST {0} {1}", stepName, requests[i]);
             }
             try
             {
-                Task.WaitAll(tasks);
+                Task.WaitAll(tasks.ToArray());
             }
             catch (AggregateException)
             {
@@ -158,6 +164,7 @@ namespace Zeze.Raft
                 else
                     ErrorsAdd(request.ResultCode);
             }
+            return tasks.Count;
         }
 
         private void SetLogLevel(NLog.LogLevel level)
@@ -176,8 +183,7 @@ namespace Zeze.Raft
 
         private void TestConcurrent(string testname, int count)
         {
-            ConcurrentAddCount(testname, count);
-            ExpectCount += count;
+            ExpectCount += ConcurrentAddCount(testname, count);
             CheckCurrentCount(testname);
         }
 
@@ -358,9 +364,10 @@ namespace Zeze.Raft
                             System.Threading.Thread.Sleep(10); // wait a Leader
                             continue;
                         }
+                        var startVoteDelay = leader.Raft.RaftConfig.LeaderLostTimeout + 2000;
                         leader.StopRaft();
                         // delay for vote
-                        System.Threading.Thread.Sleep(leader.Raft.RaftConfig.LeaderLostTimeout + 2000);
+                        System.Threading.Thread.Sleep(startVoteDelay);
                         leader.StartRaft();
                         break;
                     }
@@ -373,10 +380,8 @@ namespace Zeze.Raft
             var lastExpectCount = ExpectCount;
             while (false == Console.KeyAvailable)
             {
-                int count = 5;
-                ConcurrentAddCount(testname, count);
-                ExpectCount += count;
-                if (ExpectCount - lastExpectCount > count * 10)
+                ExpectCount += ConcurrentAddCount(testname, 5);
+                if (ExpectCount - lastExpectCount > 5 * 10)
                 {
                     lastExpectCount = ExpectCount;
                     var check = CheckCurrentCount(testname);
@@ -607,7 +612,7 @@ namespace Zeze.Raft
                     if (resetLog)
                     {
                         logger.Warn("------------------------------------------------");
-                        logger.Warn("--------------- Reset Log ----------------------");
+                        logger.Warn($"- Reset Log {raftConfig.DbHome} -");
                         logger.Warn("------------------------------------------------");
                         if (Directory.Exists(raftConfig.DbHome))
                             Directory.Delete(raftConfig.DbHome, true);

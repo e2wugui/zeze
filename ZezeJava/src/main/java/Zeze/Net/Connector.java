@@ -211,6 +211,7 @@ public class Connector {
 	}
 
 	public void Stop(Throwable e) {
+		AsyncSocket tmp = null;
 		synchronized (this) {
 			if (null == Socket) {
 				// not start or has stopped.
@@ -219,9 +220,9 @@ public class Connector {
 			FutureSocket.SetException(null != e ? e : new Exception("Connector Stopped: " + getName())); // try set
 			FutureSocket = new TaskCompletionSource<>(); // prepare future to next connect.
 			IsConnected = false;
-			var tmp = Socket;
+			tmp = Socket;
 			Socket = null; // 阻止递归。
-			tmp.close();
 		}
+		tmp.close();
 	}
 }

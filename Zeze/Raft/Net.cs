@@ -67,13 +67,17 @@ namespace Zeze.Raft
             public override void OnSocketClose(AsyncSocket closed, Exception e)
             {
                 var server = closed.Service as Server;
-                lock (server.Raft)
+                // 不能在网络回调中锁Raft，会死锁。因为在锁内发送数据是常用操作。
+                Util.Task.Run(() =>
                 {
-                    // 安装快照服务器端不考虑续传，网络断开以后，重置状态。
-                    // 以后需要的时候，再次启动新的安装流程。
-                    InstallSnapshotting = false;
-                    server.Raft.LogSequence.InstallSnapshotting.Remove(Name);
-                }
+                    lock (server.Raft)
+                    {
+                        // 安装快照服务器端不考虑续传，网络断开以后，重置状态。
+                        // 以后需要的时候，再次启动新的安装流程。
+                        InstallSnapshotting = false;
+                        server.Raft.LogSequence.InstallSnapshotting.Remove(Name);
+                    }
+                }, "InstallSnapshotting.Remove");
                 base.OnSocketClose(closed, e);
             }
         }
@@ -99,10 +103,10 @@ namespace Zeze.Raft
         {
             return IsHandshakeProtocol(typeId)
                 // 【注意】下面这些模块的Id总是为0。
-                || typeId == RequestVote.ProtocolId_
-                || typeId == AppendEntries.ProtocolId_
-                || typeId == InstallSnapshot.ProtocolId_
-                || typeId == LeaderIs.ProtocolId_;
+                || typeId == RequestVote.TypeId_
+                || typeId == AppendEntries.TypeId_
+                || typeId == InstallSnapshot.TypeId_
+                || typeId == LeaderIs.TypeId_;
         }
 
         public override void DispatchRpcResponse(Protocol p,
@@ -633,6 +637,7 @@ namespace Zeze.Raft
     public sealed class RequestVote : Rpc<RequestVoteArgument, RequestVoteResult>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(RequestVote).FullName);
+        public readonly static long TypeId_ = (uint)ProtocolId_;
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -725,6 +730,7 @@ namespace Zeze.Raft
     public sealed class AppendEntries : Rpc<AppendEntriesArgument, AppendEntriesResult>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(AppendEntries).FullName);
+        public readonly static long TypeId_ = (uint)ProtocolId_;
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -816,6 +822,7 @@ namespace Zeze.Raft
     public sealed class InstallSnapshot : Rpc<InstallSnapshotArgument, InstallSnapshotResult>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(InstallSnapshot).FullName);
+        public readonly static long TypeId_ = (uint)ProtocolId_;
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -885,6 +892,7 @@ namespace Zeze.Raft
     public sealed class LeaderIs : Rpc<LeaderIsArgument, EmptyBean>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(LeaderIs).FullName);
+        public readonly static long TypeId_ = (uint)ProtocolId_;
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
