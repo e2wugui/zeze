@@ -159,14 +159,14 @@ namespace Zeze.Net
         }
 
         // Not Need Now
-        public Dictionary<long, Protocol> GetRpcContextsToSender(AsyncSocket sender)
+        public SortedDictionary<long, Protocol> GetRpcContextsToSender(AsyncSocket sender)
         {
             return GetRpcContexts((p) => p.Sender == sender);
         }
 
-        public Dictionary<long, Protocol> GetRpcContexts(Func<Protocol, bool> filter)
+        public SortedDictionary<long, Protocol> GetRpcContexts(Func<Protocol, bool> filter)
         {
-            var result = new Dictionary<long, Protocol>(RpcContexts.Count);
+            var result = new SortedDictionary<long, Protocol>();
             foreach (var ctx in RpcContexts)
             {
                 if (filter(ctx.Value))

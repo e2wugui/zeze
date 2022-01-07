@@ -73,7 +73,8 @@ namespace Zeze.Raft
                 try
                 {
                     Agent.SendForWait(r).Task.Wait();
-                    return (int)r.ResultCode;
+                    if (r.ResultCode == 0)
+                        return (int)r.Result.Count;
                 }
                 catch (Exception)
                 {
@@ -86,7 +87,7 @@ namespace Zeze.Raft
 
         private void ErrorsAdd(long resultCode)
         {
-            if (0 == resultCode)
+            if (0 == resultCode || Procedure.DuplicateRequest == resultCode)
                 return;
             if (Errors.ContainsKey(resultCode))
                 Errors[resultCode] = Errors[resultCode] + 1;
@@ -160,9 +161,13 @@ namespace Zeze.Raft
             {
                 //logger.Debug("--------- RESPONSE {0} {1}", stepName, request);
                 if (request.IsTimeout)
+                {
                     ErrorsAdd(Procedure.Timeout);
+                }
                 else
+                {
                     ErrorsAdd(request.ResultCode);
+                }
             }
             return tasks.Count;
         }
@@ -487,7 +492,27 @@ namespace Zeze.Raft
             public override int ProtocolId => ProtocolId_;
         }
 
-        public sealed class GetCount : Zeze.Net.Rpc<EmptyBean, EmptyBean>
+        public sealed class GetCountResult : Bean
+        {
+            public long Count { get; set; }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                Count = bb.ReadLong();
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                bb.WriteLong(Count);
+            }
+
+            protected override void InitChildrenRootInfo(Record.RootInfo root)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public sealed class GetCount : Zeze.Net.Rpc<EmptyBean, GetCountResult>
         {
             public readonly static int ProtocolId_ = Bean.Hash32(typeof(GetCount).FullName);
 
@@ -665,7 +690,8 @@ namespace Zeze.Raft
                 var r = p as GetCount;
                 lock (StateMachine)
                 {
-                    r.SendResultCode(StateMachine.Count);
+                    r.Result.Count = StateMachine.Count;
+                    r.SendResult();
                 }
                 return Procedure.Success;
             }

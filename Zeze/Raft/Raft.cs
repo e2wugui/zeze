@@ -431,6 +431,7 @@ namespace Zeze.Raft
                     {
                         lock (this)
                         {
+                            StartRequestVoteDelayTask?.Cancel();
                             StartRequestVoteDelayTask = null;
                             ConvertStateTo(RaftState.Candidate);
                         }

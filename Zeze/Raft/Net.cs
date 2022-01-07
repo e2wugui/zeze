@@ -238,8 +238,7 @@ namespace Zeze.Raft
         private Util.IdentityHashMap<Protocol, Protocol> NotAutoResend { get; }
             = new Util.IdentityHashMap<Protocol, Protocol>();
 
-        private Util.IdentityHashMap<Protocol, Protocol> Pending { get; }
-            = new Util.IdentityHashMap<Protocol, Protocol>();
+        private List<Protocol> Pending = new List<Protocol>();
 
         public Action<Agent, Action> OnLeaderChanged { get; private set; }
 
@@ -276,7 +275,10 @@ namespace Zeze.Raft
 
                 rpc.ResponseHandle = handle;
                 rpc.Timeout = timeout;
-                Pending.TryAdd(rpc, rpc);
+                lock (this)
+                {
+                    Pending.Add(rpc);
+                }
                 return true;
             }
 
@@ -329,7 +331,10 @@ namespace Zeze.Raft
 
                 rpc.ResponseHandle = (p) => SendForWaitHandle(future, rpc);
                 rpc.Timeout = timeout;
-                Pending.TryAdd(rpc, rpc);
+                lock (this)
+                {
+                    Pending.Add(rpc);
+                }
                 return future;
             }
 
@@ -481,15 +486,35 @@ namespace Zeze.Raft
         private void SetReady()
         {
             // ReSendPendingRpc
-            foreach (var rpc in Pending.Values)
+            var fails = new List<Protocol>();
+            List<Protocol> pending = null;
+            lock (this)
             {
-                if (NotAutoResend.ContainsKey(rpc))
-                    continue;
-
-                if (rpc.Send(_Leader?.Socket))
+                pending = Pending;
+                Pending = new List<Protocol>();
+            }
+            try
+            {
+                foreach (var rpc in pending)
                 {
-                    // 这里发送失败，等待新的 LeaderIs 通告再继续。
-                    Pending.TryRemove(rpc, out var _);
+                    if (NotAutoResend.ContainsKey(rpc))
+                        continue;
+
+                    if (false == rpc.Send(_Leader?.Socket))
+                    {
+                        // 这里发送失败，等待新的 LeaderIs 通告再继续。
+                        fails.Add(rpc);
+                    }
+                }
+            }
+            finally
+            {
+                lock (this)
+                {
+                    foreach (var fail in fails)
+                    {
+                        Pending.Add(fail);
+                    }
                 }
             }
         }
@@ -502,9 +527,12 @@ namespace Zeze.Raft
                 // 由于一个时候只有Leader，所以直接使用Sender也足够了吧。
                 var ctxSends = Client.GetRpcContextsToSender(oldSocket);
                 var ctxPending = Client.RemoveRpcContets(ctxSends.Keys);
-                foreach (var rpc in ctxPending)
+                lock (this)
                 {
-                    Pending.TryAdd(rpc, rpc);
+                    foreach (var rpc in ctxPending)
+                    {
+                        Pending.Add(rpc);
+                    }
                 }
             }
         }
