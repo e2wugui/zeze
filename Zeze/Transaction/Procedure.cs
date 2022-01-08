@@ -22,6 +22,7 @@ namespace Zeze.Transaction
         public const long DuplicateRequest = -12;
         public const long ErrorRequestId = -13;
         public const long ErrorSendFail = -14;
+        public const long RaftApplyTimeout = -15;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();

@@ -242,6 +242,9 @@ namespace Zeze.Raft
 
         public Action<Agent, Action> OnLeaderChanged { get; private set; }
 
+        // 发生这些错误，自动重发请求。好像没有public的必要。
+        public ConcurrentDictionary<long, long> RetryErrorCodes { get; } = new ConcurrentDictionary<long, long>();
+
         /// <summary>
         /// 发送Rpc请求。
         /// 如果 autoResend == true，那么总是返回成功。内部会在需要的时候重发请求。
@@ -270,10 +273,10 @@ namespace Zeze.Raft
                 var tmp = _Leader;
                 if (null != tmp
                     && tmp.IsHandshakeDone
-                    && rpc.Send(tmp.Socket, handle, timeout))
+                    && rpc.Send(tmp.Socket, (p) => SendHandle(handle, rpc), timeout))
                     return true;
 
-                rpc.ResponseHandle = handle;
+                rpc.ResponseHandle = (p) => SendHandle(handle, rpc);
                 rpc.Timeout = timeout;
                 lock (this)
                 {
@@ -287,9 +290,35 @@ namespace Zeze.Raft
             return rpc.Send(_Leader?.Socket, (p) =>
             {
                 NotAutoResend.TryRemove(p, out var _);
-                return handle(p);
+                return SendHandle(handle, rpc);
             },
             timeout);
+        }
+
+        private long SendHandle<TArgument, TResult>(Func<Protocol, long> userHandle, Rpc<TArgument, TResult> rpc)
+            where TArgument : Bean, new()
+            where TResult : Bean, new()
+        {
+            if (rpc.IsTimeout)
+            {
+                return userHandle(rpc);
+            }
+
+            if (RetryErrorCodes.ContainsKey(rpc.ResultCode))
+            {
+                lock (this)
+                {
+                    Pending.Add(rpc);
+                }
+
+                return Procedure.Success;
+            }
+
+            // DuplicateRequest as success
+            if (rpc.ResultCode == Procedure.DuplicateRequest)
+                rpc.ResultCode = Procedure.Success;
+
+            return userHandle(rpc);
         }
 
         private long SendForWaitHandle<TArgument, TResult>(
@@ -301,11 +330,25 @@ namespace Zeze.Raft
             if (rpc.IsTimeout)
             {
                 future.TrySetException(new RpcTimeoutException("RaftRpcTimeout"));
+                return Procedure.Success;
             }
-            else
+
+            if (RetryErrorCodes.ContainsKey(rpc.ResultCode))
             {
-                future.SetResult(rpc);
+                lock (this)
+                {
+                    Pending.Add(rpc);
+                }
+
+                return Procedure.Success;
             }
+
+            // DuplicateRequest as success
+            if (rpc.ResultCode == Procedure.DuplicateRequest)
+                rpc.ResultCode = Procedure.Success;
+
+            future.SetResult(rpc);
+
             return Procedure.Success;
         }
 
@@ -427,6 +470,9 @@ namespace Zeze.Raft
                 Factory = () => new LeaderIs(),
                 Handle = ProcessLeaderIs,
             });
+
+            RetryErrorCodes[Procedure.CancelExcption] = Procedure.CancelExcption;
+            RetryErrorCodes[Procedure.RaftApplyTimeout] = Procedure.RaftApplyTimeout;
         }
 
         private long ProcessLeaderIs(Protocol p)
@@ -487,27 +533,26 @@ namespace Zeze.Raft
         {
             // ReSendPendingRpc
             var fails = new List<Protocol>();
-            List<Protocol> pending = null;
-            List<Protocol> pendingNew = new List<Protocol>();
+            var pendingNew = new List<Protocol>();
+            var pendingOld = new SortedDictionary<long, Protocol>(); // 按发送过的顺序发送。
             int lastSentPendingNewIndex = 0;
             lock (this)
             {
-                pending = Pending;
-                Pending = new List<Protocol>();
+                foreach (var rpc in Pending)
+                {
+                    if (rpc.UniqueRequestId == 0)
+                        pendingNew.Add(rpc);
+                    else
+                        pendingOld.Add(rpc.UniqueRequestId, rpc);
+                }
+                Pending.Clear();
             }
             try
             {
-                foreach (var rpc in pending)
+                foreach (var rpc in pendingOld.Values)
                 {
                     if (NotAutoResend.ContainsKey(rpc))
                         continue;
-
-                    if (rpc.UniqueRequestId == 0)
-                    {
-                        // new request
-                        pendingNew.Add(rpc);
-                        continue; // send after old request
-                    }
 
                     if (false == rpc.Send(_Leader?.Socket))
                     {
@@ -519,6 +564,10 @@ namespace Zeze.Raft
                 for (; lastSentPendingNewIndex < pendingNew.Count; ++lastSentPendingNewIndex)
                 {
                     var rpc = pendingNew[lastSentPendingNewIndex];
+
+                    if (NotAutoResend.ContainsKey(rpc))
+                        continue;
+
                     if (false == rpc.Send(_Leader?.Socket))
                     {
                         // 这里发送失败，等待新的 LeaderIs 通告再继续。

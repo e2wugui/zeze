@@ -608,8 +608,6 @@ namespace Zeze.Raft
                 lock (this)
                 {
                     logger.Debug("Raft {0} Stop ...", RaftName);
-                    Raft?.Server.Stop();
-
                     // 在同一个进程中，没法模拟进程退出，
                     // 此时RocksDb应该需要关闭，否则重启回失败吧。
                     Raft?.Shutdown();

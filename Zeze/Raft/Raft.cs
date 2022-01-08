@@ -594,18 +594,16 @@ namespace Zeze.Raft
 
         private void StartRequestVote()
         {
-            lock (this)
-            {
-                if (null != StartRequestVoteDelayTask)
-                    return;
+            // 已经在锁内
+            if (null != StartRequestVoteDelayTask)
+                return;
 
-                WaitMajorityVoteTimoutTask?.Cancel();
-                WaitMajorityVoteTimoutTask = null;
+            WaitMajorityVoteTimoutTask?.Cancel();
+            WaitMajorityVoteTimoutTask = null;
 
-                StartRequestVoteDelayTask = Scheduler.Instance.Schedule(
-                    SendRequestVote,
-                    Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout + 1000));
-            }
+            StartRequestVoteDelayTask = Scheduler.Instance.Schedule(
+                SendRequestVote,
+                Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout + 1000));
         }
 
         private void RegisterInternalRpc()

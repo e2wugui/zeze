@@ -73,9 +73,11 @@ namespace Zeze.Util
                     ex = inner;
                 }
 
-                var errorCode = ex is TaskCanceledException
-                    ? Procedure.CancelExcption
-                    : Procedure.Excption;
+                var errorCode = Procedure.Excption;
+                if (ex is TaskCanceledException)
+                    errorCode = Procedure.CancelExcption;
+                else if (ex is Raft.RaftApplyTimeoutException)
+                    errorCode = Procedure.RaftApplyTimeout;
 
                 if (IsRequestSaved)
                     actionWhenError?.Invoke(p, errorCode);

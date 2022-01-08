@@ -505,10 +505,10 @@ namespace Zeze.Raft
             Raft.Server.Config.ForEachConnector(
                 (connector) => TrySendAppendEntries(connector as Server.ConnectorEx, null));
 
-            if (WaitApply)
-            {
-                future.Task.Wait();
-            }
+            if (WaitApply && future.Task.Wait(Raft.RaftConfig.AppendEntriesTimeout * 2 + 1000))
+                return;
+
+            throw new RaftApplyTimeoutException();
         }
 
         /// <summary>
