@@ -65,7 +65,7 @@ namespace Zeze.Raft
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private int GetCurrentCount()
+        private long GetCurrentCount()
         {
             var r = new GetCount();
             while (true)
@@ -74,7 +74,7 @@ namespace Zeze.Raft
                 {
                     Agent.SendForWait(r).Task.Wait();
                     if (r.ResultCode == 0)
-                        return (int)r.Result.Count;
+                        return r.Result.Count;
                 }
                 catch (Exception)
                 {
@@ -82,8 +82,8 @@ namespace Zeze.Raft
             }
         }
 
-        private volatile int ExpectCount;
-        private Dictionary<long, int> Errors { get; } = new Dictionary<long, int>();
+        private Util.AtomicLong ExpectCount = new Util.AtomicLong();
+        private Dictionary<long, long> Errors { get; } = new Dictionary<long, long>();
 
         private void ErrorsAdd(long resultCode)
         {
@@ -95,9 +95,9 @@ namespace Zeze.Raft
                 Errors[resultCode] = 1;
         }
 
-        private int ErrorsSum()
+        private long ErrorsSum()
         {
-            int sum = 0;
+            long sum = 0;
             foreach (var e in Errors.Values)
             {
                 sum += e;
@@ -105,25 +105,34 @@ namespace Zeze.Raft
             return sum;
         }
 
-        private bool CheckCurrentCount(string stepName)
+        private string GetErrorsString()
+        {
+            var sb = new StringBuilder();
+            ByteBuffer.BuildString(sb, Errors);
+            return sb.ToString();
+        }
+
+        private bool CheckCurrentCount(string stepName, bool resetExpectCount = true)
         {
             var CurrentCount = GetCurrentCount();
-            if (CurrentCount != ExpectCount)
+            if (CurrentCount != ExpectCount.Get())
             {
                 var report = new StringBuilder();
-                var level = ExpectCount != CurrentCount + ErrorsSum()
+                var level = ExpectCount.Get() != CurrentCount + ErrorsSum()
                     ? NLog.LogLevel.Fatal : NLog.LogLevel.Info;
                 report.Append($"{Environment.NewLine}-------------------------------------------");
                 report.Append($"{Environment.NewLine}{stepName},");
                 report.Append($"Expect={ExpectCount},");
                 report.Append($"Now={CurrentCount},");
-                report.Append($"Errors=");
-                ByteBuffer.BuildString(report, Errors);
+                report.Append($"Errors={GetErrorsString()}");
                 report.Append($"{Environment.NewLine}-------------------------------------------");
                 logger.Log(level, report.ToString());
 
-                ExpectCount = CurrentCount; // 下一个测试重新开始。
-                Errors.Clear();
+                if (resetExpectCount)
+                {
+                    ExpectCount.GetAndSet(CurrentCount); // 下一个测试重新开始。
+                    Errors.Clear();
+                }
                 return level == NLog.LogLevel.Info;
             }
             return true;
@@ -188,7 +197,7 @@ namespace Zeze.Raft
 
         private void TestConcurrent(string testname, int count)
         {
-            ExpectCount += ConcurrentAddCount(testname, count);
+            ExpectCount.AddAndGet(ConcurrentAddCount(testname, count));
             CheckCurrentCount(testname);
         }
 
@@ -196,7 +205,7 @@ namespace Zeze.Raft
         {
             // 基本测试
             Agent.SendForWait(new AddCount()).Task.Wait();
-            ExpectCount += 1;
+            ExpectCount.IncrementAndGet();
             CheckCurrentCount("TestAddCount");
 
             // 基本并发请求
@@ -382,24 +391,35 @@ namespace Zeze.Raft
             // Start Background FailActions
             Util.Task.Run(RandomTriggerFailActions, "RandomTriggerFailActions");
             var testname = "RealConcurrentDoRequest";
-            var lastExpectCount = ExpectCount;
+            var lastExpectCount = ExpectCount.Get();
             while (false == Console.KeyAvailable)
             {
-                ExpectCount += ConcurrentAddCount(testname, 5);
-                if (ExpectCount - lastExpectCount > 5 * 10)
+                ExpectCount.AddAndGet(ConcurrentAddCount(testname, 5));
+                if (ExpectCount.Get() - lastExpectCount > 5 * 10)
                 {
-                    lastExpectCount = ExpectCount;
-                    var check = CheckCurrentCount(testname);
-                    logger.Info($"Check={check} ExpectCount={ExpectCount}");
-                    if (false == check)
-                    {
+                    lastExpectCount = ExpectCount.Get();
+                    if (false == Check(testname))
                         break;
-                    }
                 }
             }
             Running = false;
             SetLogLevel(NLog.LogLevel.Debug);
             CheckCurrentCount("Final Check!!!");
+        }
+
+        private bool Check(string testname)
+        {
+            for (int i = 0; i < 2; ++i)
+            {
+                var check = CheckCurrentCount(testname, false);
+                logger.Info($"Check={check} Step={i} ExpectCount={ExpectCount} Errors={GetErrorsString()}");
+                if (check)
+                {
+                    return true;
+                }
+                System.Threading.Thread.Sleep(10000);
+            }
+            return false;
         }
 
         class FailAction
@@ -416,11 +436,11 @@ namespace Zeze.Raft
 
         private void WaitExpectCountGrow(long growing = 20)
         {
-            long oldTaskCount = ExpectCount;
+            long oldTaskCount = ExpectCount.Get();
             while (true)
             {
                 System.Threading.Thread.Sleep(10);
-                if (ExpectCount - oldTaskCount > growing)
+                if (ExpectCount.Get() - oldTaskCount > growing)
                     break;
             }
         }
