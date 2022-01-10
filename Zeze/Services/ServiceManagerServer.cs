@@ -572,6 +572,7 @@ namespace Zeze.Services
                 }
             }
 
+            private WriteOptions WriteOptions = new WriteOptions().SetSync(true);
             public void Allocate(AllocateId rpc)
             {
                 lock (this)
@@ -589,7 +590,7 @@ namespace Zeze.Services
                     Current += count;
                     var bb = ByteBuffer.Allocate();
                     bb.WriteLong(Current);
-                    Db.Put(Key, Key.Length, bb.Bytes, bb.Size, null, new WriteOptions().SetSync(true));
+                    Db.Put(Key, Key.Length, bb.Bytes, bb.Size, null, WriteOptions);
 
                     rpc.Result.Count = count;
                 }

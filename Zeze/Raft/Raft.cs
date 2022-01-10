@@ -277,12 +277,9 @@ namespace Zeze.Raft
         }
 
         internal void ResetLeaderReadyAfterChangeState()
-        { 
-            lock (this)
-            {
-                LeaderReadyEvent.Reset();
-                Monitor.PulseAll(this);
-            }
+        {
+            LeaderReadyEvent.Reset();
+            Monitor.PulseAll(this); // has under lock(this)
         }
 
         internal void SetLeaderReady()
@@ -290,7 +287,7 @@ namespace Zeze.Raft
             if (IsLeader)
             {
                 LeaderReadyEvent.Set();
-                Monitor.PulseAll(this);
+                Monitor.PulseAll(this); // has under lock(this)
 
                 Server.Foreach(
                     (allsocket) =>
@@ -555,7 +552,6 @@ namespace Zeze.Raft
                     logger.Info($"RaftState {Name}: Leader->Follower");
                     State = RaftState.Follower;
                     ResetLeaderReadyAfterChangeState();
-                    Monitor.PulseAll(this);
 
                     HearbeatTimerTask?.Cancel();
                     HearbeatTimerTask = null;

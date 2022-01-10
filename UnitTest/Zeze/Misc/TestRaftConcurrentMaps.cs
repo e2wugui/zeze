@@ -52,5 +52,6 @@ namespace UnitTest.Zeze.Misc
             map = storage.GetOrAdd<int, Value>("int2int");
             Assert.AreEqual(1, map.GetOrAdd(1).Int);
         }
+
     }
 }

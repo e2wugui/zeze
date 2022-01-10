@@ -279,6 +279,7 @@ namespace Zeze.Raft
                     SaveLog(new RaftLog(Term, 0, new HeartbeatLog()));
                     LastIndex = 0;
                 }
+                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} LastIndex={LastIndex}");
 
                 using var itFirst = Logs.NewIterator();
                 itFirst.SeekToFirst();
@@ -294,27 +295,31 @@ namespace Zeze.Raft
 
         private readonly byte[] RaftsTermKey;
         private readonly byte[] RaftsVoteForKey;
-
+        private readonly WriteOptions WriteOptionsSync = new WriteOptions().SetSync(true);
         private void SaveLog(RaftLog log)
         {
-            LastIndex = log.Index; // 记住最后一个Index，用来下一次生成。
-
             var key = ByteBuffer.Allocate();
-            key.WriteLong8(log.Index);
+            key.WriteLong(log.Index);
+
             var value = log.Encode();
 
             // key,value offset must 0
             Logs.Put(
                 key.Bytes, key.Size,
                 value.Bytes, value.Size,
-                null, new WriteOptions().SetSync(true)
+                null, WriteOptionsSync
                 );
+
+            LastIndex = log.Index; // 记住最后一个Index，用来下一次生成。
+
+            if (Raft.IsLeader)
+                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} LastIndex={LastIndex} Key={key}");
         }
 
         private RaftLog ReadLog(long index)
         {
             var key = ByteBuffer.Allocate();
-            key.WriteLong8(index);
+            key.WriteLong(index);
             var value = Logs.Get(key.Bytes, key.Size);
             if (null == value)
                 return null;
@@ -331,7 +336,7 @@ namespace Zeze.Raft
                 Rafts.Put(
                     RaftsTermKey, RaftsTermKey.Length,
                     termValue.Bytes, termValue.Size,
-                    null, new WriteOptions().SetSync(true)
+                    null, WriteOptionsSync
                     );
                 return true;
             }
@@ -353,7 +358,7 @@ namespace Zeze.Raft
                 Rafts.Put(
                     RaftsVoteForKey, RaftsVoteForKey.Length,
                     voteForValue.Bytes, voteForValue.Size,
-                    null, new WriteOptions().SetSync(true)
+                    null, WriteOptionsSync
                     );
             }
         }

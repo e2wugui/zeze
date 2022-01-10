@@ -72,7 +72,7 @@ namespace Zeze.Raft
             {
                 try
                 {
-                    Agent.SendForWait(r).Task.Wait();
+                    Agent.SendForWait(r, false).Task.Wait();
                     if (r.ResultCode == 0)
                         return r.Result.Count;
                 }
@@ -122,7 +122,7 @@ namespace Zeze.Raft
                     ? NLog.LogLevel.Fatal : NLog.LogLevel.Info;
                 report.Append($"{Environment.NewLine}-------------------------------------------");
                 report.Append($"{Environment.NewLine}{stepName},");
-                report.Append($"Expect={ExpectCount},");
+                report.Append($"Expect={ExpectCount.Get()},");
                 report.Append($"Now={CurrentCount},");
                 report.Append($"Errors={GetErrorsString()}");
                 report.Append($"{Environment.NewLine}-------------------------------------------");
@@ -409,15 +409,17 @@ namespace Zeze.Raft
 
         private bool Check(string testname)
         {
-            for (int i = 0; i < 2; ++i)
+            int trycount = 2;
+            for (int i = 0; i < trycount; ++i)
             {
                 var check = CheckCurrentCount(testname, false);
-                logger.Info($"Check={check} Step={i} ExpectCount={ExpectCount} Errors={GetErrorsString()}");
+                logger.Info($"Check={check} Step={i} ExpectCount={ExpectCount.Get()} Errors={GetErrorsString()}");
                 if (check)
                 {
                     return true;
                 }
-                System.Threading.Thread.Sleep(10000);
+                if (i < trycount - 1)
+                    System.Threading.Thread.Sleep(10000);
             }
             return false;
         }
@@ -452,25 +454,29 @@ namespace Zeze.Raft
         {
             while (Running)
             {
-                var fa = FailActions[Util.Random.Instance.Next(FailActions.Count)];
-                try
+                //var fa = FailActions[Util.Random.Instance.Next(FailActions.Count)];
+                foreach (var fa in FailActions)
                 {
-                    fa.Action();
-                    fa.Count++;
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "FailAction {0}", fa.Name);
-                    /*
-                    foreach (var raft in Rafts.Values)
+                    logger.Fatal($"___________________________ {fa.Name} _____________________________");
+                    try
                     {
-                        raft.StartRaft(); // error recover
+                        fa.Action();
+                        fa.Count++;
                     }
-                    // */
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "FailAction {0}", fa.Name);
+                        /*
+                        foreach (var raft in Rafts.Values)
+                        {
+                            raft.StartRaft(); // error recover
+                        }
+                        // */
+                    }
+                    // 等待失败的节点恢复正常并且服务了一些请求。
+                    // 由于一个follower失败时，请求处理是能持续进行的，这个等待可能不够。
+                    WaitExpectCountGrow(100);
                 }
-                // 等待失败的节点恢复正常并且服务了一些请求。
-                // 由于一个follower失败时，请求处理是能持续进行的，这个等待可能不够。
-                WaitExpectCountGrow(100);
             }
             var sb = new StringBuilder();
             ByteBuffer.BuildString(sb, FailActions);
@@ -542,7 +548,7 @@ namespace Zeze.Raft
 
         public class TestStateMachine : StateMachine
         {
-            public int Count { get; set; }
+            public long Count { get; set; }
 
             public void AddCountAndWait(string appInstance, long requestId)
             {
@@ -580,7 +586,7 @@ namespace Zeze.Raft
                     var bytes = new byte[1024];
                     int rc = file.Read(bytes);
                     var bb = ByteBuffer.Wrap(bytes, 0, rc);
-                    Count = bb.ReadInt();
+                    Count = bb.ReadLong();
                 }
             }
 
@@ -594,7 +600,7 @@ namespace Zeze.Raft
                     LastIncludedIndex = lastAppliedLog.Index;
                     LastIncludedTerm = lastAppliedLog.Term;
                     var bb = ByteBuffer.Allocate();
-                    bb.WriteInt(Count);
+                    bb.WriteLong(Count);
                     file.Write(bb.Bytes, bb.ReadIndex, bb.Size);
                     file.Close();
                     oldFirstIndex = Raft.LogSequence.GetAndSetFirstIndex(LastIncludedIndex);
