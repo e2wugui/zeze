@@ -144,7 +144,7 @@ namespace Zeze.Raft
                     return factoryHandle.Handle(p);
                 }
                 TrySendLeaderIs(p.Sender);
-                return Procedure.LogicError;
+                return Procedure.CancelExcption;
             },
             p,
             (p, code) => p.SendResultCode(code)
@@ -232,16 +232,10 @@ namespace Zeze.Raft
         public string Name => Client.Name;
 
         public ConnectorEx Leader => _Leader;
-
         private volatile ConnectorEx _Leader;
-
-        private Util.IdentityHashMap<Protocol, Protocol> NotAutoResend { get; }
-            = new Util.IdentityHashMap<Protocol, Protocol>();
-
         private List<Protocol> Pending = new List<Protocol>();
 
         public Action<Agent, Action> OnLeaderChanged { get; private set; }
-
         // 发生这些错误，自动重发请求。好像没有public的必要。
         public ConcurrentDictionary<long, long> RetryErrorCodes { get; } = new ConcurrentDictionary<long, long>();
 
@@ -260,7 +254,6 @@ namespace Zeze.Raft
         public bool Send<TArgument, TResult>(
             Rpc<TArgument, TResult> rpc,
             Func<Protocol, long> handle,
-            bool autoResend = true,
             int timeout = -1)
             where TArgument : Bean, new()
             where TResult : Bean, new()
@@ -268,31 +261,21 @@ namespace Zeze.Raft
             if (timeout < 0)
                 timeout = RaftConfig.AppendEntriesTimeout + 1000;
 
-            if (autoResend)
+            lock (this)
             {
                 var tmp = _Leader;
                 if (null != tmp
                     && tmp.IsHandshakeDone
+                    && Pending.Count == 0 // has Pending! Send Later!
                     && rpc.Send(tmp.Socket, (p) => SendHandle(handle, rpc), timeout))
                     return true;
 
                 rpc.ResponseHandle = (p) => SendHandle(handle, rpc);
                 rpc.Timeout = timeout;
-                lock (this)
-                {
-                    Pending.Add(rpc);
-                }
+
+                Pending.Add(rpc);
                 return true;
             }
-
-            // 记录不要自动发送的请求。
-            NotAutoResend[rpc] = rpc;
-            return rpc.Send(_Leader?.Socket, (p) =>
-            {
-                NotAutoResend.TryRemove(p, out var _);
-                return SendHandle(handle, rpc);
-            },
-            timeout);
         }
 
         private long SendHandle<TArgument, TResult>(Func<Protocol, long> userHandle, Rpc<TArgument, TResult> rpc)
@@ -355,7 +338,6 @@ namespace Zeze.Raft
         public TaskCompletionSource<Rpc<TArgument, TResult>>
             SendForWait<TArgument, TResult>(
             Rpc<TArgument, TResult> rpc,
-            bool autoResend = true,
             int timeout = -1)
             where TArgument : Bean, new()
             where TResult : Bean, new()
@@ -364,7 +346,7 @@ namespace Zeze.Raft
                 timeout = RaftConfig.AppendEntriesTimeout + 1000;
 
             var future = new TaskCompletionSource<Rpc<TArgument, TResult>>();
-            if (autoResend)
+            lock (this)
             {
                 var tmp = _Leader;
                 if (null != tmp
@@ -374,26 +356,9 @@ namespace Zeze.Raft
 
                 rpc.ResponseHandle = (p) => SendForWaitHandle(future, rpc);
                 rpc.Timeout = timeout;
-                lock (this)
-                {
-                    Pending.Add(rpc);
-                }
+                Pending.Add(rpc);
                 return future;
             }
-
-            // 记录不要自动发送的请求。
-            NotAutoResend[rpc] = rpc;
-            if (false == rpc.Send(_Leader?.Socket,
-                (p) =>
-                {
-                    NotAutoResend.TryRemove(p, out var _);
-                    return SendForWaitHandle(future, rpc);
-                },
-                timeout))
-            {
-                future.TrySetException(new Exception("Send Failed."));
-            };
-            return future;
         }
 
         public class ConnectorEx : Connector
@@ -551,9 +516,6 @@ namespace Zeze.Raft
             {
                 foreach (var rpc in pendingOld.Values)
                 {
-                    if (NotAutoResend.ContainsKey(rpc))
-                        continue;
-
                     if (false == rpc.Send(_Leader?.Socket))
                     {
                         // 这里发送失败，等待新的 LeaderIs 通告再继续。
@@ -564,10 +526,6 @@ namespace Zeze.Raft
                 for (; lastSentPendingNewIndex < pendingNew.Count; ++lastSentPendingNewIndex)
                 {
                     var rpc = pendingNew[lastSentPendingNewIndex];
-
-                    if (NotAutoResend.ContainsKey(rpc))
-                        continue;
-
                     if (false == rpc.Send(_Leader?.Socket))
                     {
                         // 这里发送失败，等待新的 LeaderIs 通告再继续。

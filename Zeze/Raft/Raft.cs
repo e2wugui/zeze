@@ -125,12 +125,6 @@ namespace Zeze.Raft
             var r = p as AppendEntries;
             lock (this)
             {
-                LogSequence.TrySetTerm(r.Argument.Term);
-                // 【注意】只有Leader会发送AppendEntries，总是转到Follower，不管当前状态。
-                // raft.pdf 文档描述仅在 Candidate 才转。
-                if (State != RaftState.Follower)
-                    ConvertStateTo(RaftState.Follower);
-                LeaderId = r.Argument.LeaderId; // always replace
                 return LogSequence.FollowerOnAppendEntries(r);
             }
         }
@@ -143,7 +137,7 @@ namespace Zeze.Raft
             var r = p as InstallSnapshot;
             lock (this)
             {
-                if (LogSequence.TrySetTerm(r.Argument.Term))
+                if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
                 {
                     LeaderId = r.Argument.LeaderId;
                     // new term found.
@@ -320,7 +314,7 @@ namespace Zeze.Raft
             lock (this)
             {
                 var r = p as RequestVote;
-                if (LogSequence.TrySetTerm(r.Argument.Term))
+                if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
                 {
                     // new term found.
                     ConvertStateTo(RaftState.Follower);
@@ -366,7 +360,7 @@ namespace Zeze.Raft
 
             lock (this)
             {
-                if (LogSequence.TrySetTerm(rpc.Result.Term))
+                if (LogSequence.TrySetTerm(rpc.Result.Term) == LogSequence.SetTermResult.Newer)
                 {
                     // new term found
                     ConvertStateTo(RaftState.Follower);

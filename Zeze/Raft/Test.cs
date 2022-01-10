@@ -72,7 +72,7 @@ namespace Zeze.Raft
             {
                 try
                 {
-                    Agent.SendForWait(r, false).Task.Wait();
+                    Agent.SendForWait(r).Task.Wait();
                     if (r.ResultCode == 0)
                         return r.Result.Count;
                 }

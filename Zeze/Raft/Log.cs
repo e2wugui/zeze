@@ -279,7 +279,7 @@ namespace Zeze.Raft
                     SaveLog(new RaftLog(Term, 0, new HeartbeatLog()));
                     LastIndex = 0;
                 }
-                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} LastIndex={LastIndex}");
+                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} LastIndex={LastIndex} Count={GetStateMachineCount()}");
 
                 using var itFirst = Logs.NewIterator();
                 itFirst.SeekToFirst();
@@ -300,20 +300,17 @@ namespace Zeze.Raft
         {
             var key = ByteBuffer.Allocate();
             key.WriteLong(log.Index);
-
             var value = log.Encode();
-
             // key,value offset must 0
             Logs.Put(
                 key.Bytes, key.Size,
                 value.Bytes, value.Size,
                 null, WriteOptionsSync
                 );
-
             LastIndex = log.Index; // 记住最后一个Index，用来下一次生成。
 
             if (Raft.IsLeader)
-                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} LastIndex={LastIndex} Key={key}");
+                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Key={key} Count={GetStateMachineCount()}");
         }
 
         private RaftLog ReadLog(long index)
@@ -326,7 +323,14 @@ namespace Zeze.Raft
             return RaftLog.Decode(new Binary(value), Raft.StateMachine.LogFactory);
         }
 
-        internal bool TrySetTerm(long term)
+        internal enum SetTermResult
+        {
+            Newer,
+            Same,
+            Older
+        }
+
+        internal SetTermResult TrySetTerm(long term)
         {
             if (term > Term)
             {
@@ -338,9 +342,11 @@ namespace Zeze.Raft
                     termValue.Bytes, termValue.Size,
                     null, WriteOptionsSync
                     );
-                return true;
+                return SetTermResult.Newer;
             }
-            return false;
+            if (term == Term)
+                return SetTermResult.Same;
+            return SetTermResult.Older;
         }
 
         internal bool CanVoteFor(string voteFor)
@@ -479,6 +485,12 @@ namespace Zeze.Raft
                 if (WaitApplyFutures.TryRemove(raftLog.Index, out var future))
                     future.SetResult(0);
             }
+            if (Raft.IsLeader)
+                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} RequestId={lastApplyableLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetStateMachineCount()}");
+        }
+        private long GetStateMachineCount()
+        {
+            return (Raft.StateMachine as Test.TestStateMachine).Count;
         }
 
         public ConcurrentDictionary<string, long> LastAppliedAppRpcUniqueRequestId { get; }
@@ -695,7 +707,7 @@ namespace Zeze.Raft
 
                         lock (Raft)
                         {
-                            if (this.TrySetTerm(r.Result.Term))
+                            if (this.TrySetTerm(r.Result.Term) == SetTermResult.Newer)
                             {
                                 // new term found.
                                 Raft.ConvertStateTo(Raft.RaftState.Follower);
@@ -788,7 +800,7 @@ namespace Zeze.Raft
 
             lock (Raft)
             {
-                if (Raft.LogSequence.TrySetTerm(r.Result.Term))
+                if (Raft.LogSequence.TrySetTerm(r.Result.Term) == SetTermResult.Newer)
                 {
                     Raft.LeaderId = string.Empty; // 此时不知道谁是Leader。
                                                   // new term found.
@@ -837,6 +849,8 @@ namespace Zeze.Raft
             {
                 // 按理说，多个Follower设置一次就够了，这里就不做这个处理了。
                 AppendLogActiveTime = Util.Time.NowUnixMillis;
+                if (false == Raft.IsLeader)
+                    return; // skip if is not a leader
 
                 if (connector.Pending != pending)
                     return;
@@ -931,6 +945,19 @@ namespace Zeze.Raft
 
         internal long FollowerOnAppendEntries(AppendEntries r)
         {
+            switch (TrySetTerm(r.Argument.Term))
+            {
+                case SetTermResult.Newer:
+                case SetTermResult.Same:
+                    // see raft.pdf 文档. 仅在 Candidate 才转。
+                    if (Raft.State == Raft.RaftState.Candidate)
+                    {
+                        Raft.ConvertStateTo(Raft.RaftState.Follower);
+                        Raft.LeaderId = r.Argument.LeaderId;
+                    }
+                    break;
+            }
+
             LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
             r.Result.Term = Term;
             r.Result.Success = false; // set default false
