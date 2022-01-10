@@ -78,10 +78,8 @@ namespace Zeze.Net
         {
             this.sink = sink;
             _iv = Digest.Md5(key);
-            AesManaged aes = new AesManaged
-            {
-                Mode = CipherMode.ECB
-            };
+            Aes aes = Aes.Create();
+            aes.Mode = CipherMode.ECB;
             cipher = aes.CreateEncryptor(_iv, _iv);
         }
 
@@ -172,10 +170,8 @@ namespace Zeze.Net
         {
             this.sink = sink;
             _iv = Digest.Md5(key);
-            AesManaged aes = new AesManaged()
-            {
-                Mode = CipherMode.ECB
-            };
+            Aes aes = Aes.Create();
+            aes.Mode = CipherMode.ECB;
             cipher = aes.CreateEncryptor(_iv, _iv);
         }
 
