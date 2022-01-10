@@ -195,7 +195,7 @@ public final class DatabaseMemory extends Database {
 			long count = 0;
 			for (var e : Map.entrySet()) {
 				++count;
-				if (!callback.handle(e.getKey().Bytes, e.getValue().clone())) {
+				if (!callback.handle(e.getKey().Copy(), e.getValue().clone())) {
 					break;
 				}
 			}

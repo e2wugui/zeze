@@ -279,7 +279,7 @@ namespace Zeze.Raft
                     SaveLog(new RaftLog(Term, 0, new HeartbeatLog()));
                     LastIndex = 0;
                 }
-                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} LastIndex={LastIndex} Count={GetStateMachineCount()}");
+                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
 
                 using var itFirst = Logs.NewIterator();
                 itFirst.SeekToFirst();
@@ -310,7 +310,7 @@ namespace Zeze.Raft
             LastIndex = log.Index; // 记住最后一个Index，用来下一次生成。
 
             if (Raft.IsLeader)
-                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Key={key} Count={GetStateMachineCount()}");
+                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Key={key} Count={GetTestStateMachineCount()}");
         }
 
         private RaftLog ReadLog(long index)
@@ -486,9 +486,10 @@ namespace Zeze.Raft
                     future.SetResult(0);
             }
             if (Raft.IsLeader)
-                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} RequestId={lastApplyableLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetStateMachineCount()}");
+                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} RequestId={lastApplyableLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
         }
-        private long GetStateMachineCount()
+
+        internal long GetTestStateMachineCount()
         {
             return (Raft.StateMachine as Test.TestStateMachine).Count;
         }

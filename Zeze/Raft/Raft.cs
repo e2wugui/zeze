@@ -280,6 +280,8 @@ namespace Zeze.Raft
         {
             if (IsLeader)
             {
+                logger.Info($"{Name} {RaftConfig.DbHome} LastIndex={LogSequence.LastIndex} Count={LogSequence.GetTestStateMachineCount()}");
+
                 LeaderReadyEvent.Set();
                 Monitor.PulseAll(this); // has under lock(this)
 

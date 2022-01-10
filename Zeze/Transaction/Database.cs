@@ -1608,7 +1608,7 @@ namespace Zeze.Transaction
                     foreach (var e in Map)
                     {
                         ++count;
-                        if (false == callback(e.Key.Copy(), e.Value))
+                        if (false == callback(e.Key.Copy(), ByteBuffer.Copy(e.Value)))
                             break;
                     }
                     return count;
