@@ -74,7 +74,8 @@ public final class Binary {
 	}
 
 	public void Decode(Zeze.Serialize.Serializable _s_) {
-		Zeze.Serialize.ByteBuffer _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_Bytes, getOffset(), size());
+		var _copy_ = Zeze.Serialize.ByteBuffer.Wrap(_Bytes, getOffset(), size()).Copy();
+		var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_copy_);
 		_s_.Decode(_bb_);
 	}
 
