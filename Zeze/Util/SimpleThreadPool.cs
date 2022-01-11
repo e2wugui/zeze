@@ -24,10 +24,10 @@ namespace Zeze.Util
 
         public void Shutdown()
         {
-            taskQueue.CompleteAdding();
-
             lock (this)
             {
+                taskQueue.CompleteAdding();
+
                 while (taskQueue.IsCompleted == false)
                 {
                     Monitor.Wait(this);
@@ -62,9 +62,9 @@ namespace Zeze.Util
                 Action action = null;
                 try
                 {
-                    if (taskQueue.IsCompleted)
+                    lock (this)
                     {
-                        lock (this)
+                        if (taskQueue.IsCompleted)
                         {
                             Monitor.PulseAll(this);
                             break;

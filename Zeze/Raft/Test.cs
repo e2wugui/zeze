@@ -421,7 +421,9 @@ namespace Zeze.Raft
             for (int i = 0; i < trycount; ++i)
             {
                 var check = CheckCurrentCount(testname, false);
+                logger.Info($"____________________________________________________________________________________________________________________________________");
                 logger.Info($"Check={check} Step={i} ExpectCount={ExpectCount.Get()} Errors={GetErrorsString()}");
+                logger.Info($"____________________________________________________________________________________________________________________________________");
                 if (check)
                 {
                     return true;
@@ -518,7 +520,7 @@ namespace Zeze.Raft
             return Util.Random.Shuffle(Rafts.Values.ToArray());
         }
 
-        public sealed class AddCount : Zeze.Net.Rpc<EmptyBean, EmptyBean>
+        public sealed class AddCount : RaftRpc<EmptyBean, EmptyBean>
         {
             public readonly static int ProtocolId_ = Bean.Hash32(typeof(AddCount).FullName);
 
@@ -546,7 +548,7 @@ namespace Zeze.Raft
             }
         }
 
-        public sealed class GetCount : Zeze.Net.Rpc<EmptyBean, GetCountResult>
+        public sealed class GetCount : RaftRpc<EmptyBean, GetCountResult>
         {
             public readonly static int ProtocolId_ = Bean.Hash32(typeof(GetCount).FullName);
 

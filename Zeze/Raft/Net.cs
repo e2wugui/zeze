@@ -223,6 +223,36 @@ namespace Zeze.Raft
         }
     }
 
+    public abstract class RaftRpc<TArgument, TResult> : Rpc<TArgument, TResult>
+        where TArgument : Bean, new()
+        where TResult : Bean, new()
+    {
+        // 不能直接 Zeze.Net.Rpc.Timeout，因为当 Timeout 发生时可能发送给 Raft-Server 的请求是成功的。
+        // 为了处理这种情况，Agent 在决定重发时自己判断是否超时。
+        // 原则，只要rpc发送出去了，除了应用逻辑错误和重发时发现请求超时，其他错误全部重发。
+        public long RealStartTime { get; internal set; }
+        public int RealTimeout { get; set; }
+        public TaskCompletionSource<RaftRpc<TArgument, TResult>> RealFuture { get; internal set; }
+        public Func<Protocol, long> RealHandle { get; internal set; }
+
+        internal override Action CheckAndGetTimeoutTrigger(long now)
+        {
+            if (now - RealStartTime > RealTimeout)
+            {
+                IsTimeout = true;
+                ResultCode = Procedure.Timeout;
+
+                if (null != RealFuture)
+                {
+                    return () => RealFuture.SetException(new RpcTimeoutException());
+                }
+                return () => RealHandle(this);
+            }
+
+            return null;
+        }
+    }
+
     public sealed class Agent
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -252,14 +282,20 @@ namespace Zeze.Raft
         /// <param name="timeout"></param>
         /// <returns></returns>
         public bool Send<TArgument, TResult>(
-            Rpc<TArgument, TResult> rpc,
+            RaftRpc<TArgument, TResult> rpc,
             Func<Protocol, long> handle,
             int timeout = -1)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
+            if (null == handle)
+                throw new ArgumentException();
+
             if (timeout < 0)
                 timeout = RaftConfig.AppendEntriesTimeout + 1000;
+            rpc.RealStartTime = Util.Time.NowUnixMillis;
+            rpc.RealTimeout = timeout;
+            rpc.RealHandle = handle;
 
             lock (this)
             {
@@ -267,24 +303,30 @@ namespace Zeze.Raft
                 if (null != tmp
                     && tmp.IsHandshakeDone
                     && Pending.Count == 0 // has Pending! Send Later!
-                    && rpc.Send(tmp.Socket, (p) => SendHandle(handle, rpc), timeout))
+                    && rpc.Send(tmp.Socket, (p) => SendHandle(handle, rpc), -1))
                     return true;
 
                 rpc.ResponseHandle = (p) => SendHandle(handle, rpc);
-                rpc.Timeout = timeout;
+                rpc.Timeout = -1;
 
                 Pending.Add(rpc);
                 return true;
             }
         }
 
-        private long SendHandle<TArgument, TResult>(Func<Protocol, long> userHandle, Rpc<TArgument, TResult> rpc)
+        private long SendHandle<TArgument, TResult>(Func<Protocol, long> userHandle, RaftRpc<TArgument, TResult> rpc)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
             if (rpc.IsTimeout)
             {
-                return userHandle(rpc);
+                // never happen
+                // return userHandle(rpc);
+                lock (this)
+                {
+                    Pending.Add(rpc);
+                }
+                return 0;
             }
 
             if (RetryErrorCodes.ContainsKey(rpc.ResultCode))
@@ -305,14 +347,19 @@ namespace Zeze.Raft
         }
 
         private long SendForWaitHandle<TArgument, TResult>(
-            TaskCompletionSource<Rpc<TArgument, TResult>> future,
-            Rpc<TArgument, TResult> rpc)
+            TaskCompletionSource<RaftRpc<TArgument, TResult>> future,
+            RaftRpc<TArgument, TResult> rpc)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
             if (rpc.IsTimeout)
             {
-                future.TrySetException(new RpcTimeoutException("RaftRpcTimeout"));
+                // never happen
+                //future.TrySetException(new RpcTimeoutException("RaftRpcTimeout"));
+                lock (this)
+                {
+                    Pending.Add(rpc);
+                }
                 return Procedure.Success;
             }
 
@@ -335,27 +382,31 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
-        public TaskCompletionSource<Rpc<TArgument, TResult>>
+        public TaskCompletionSource<RaftRpc<TArgument, TResult>>
             SendForWait<TArgument, TResult>(
-            Rpc<TArgument, TResult> rpc,
+            RaftRpc<TArgument, TResult> rpc,
             int timeout = -1)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
             if (timeout < 0)
-                timeout = RaftConfig.AppendEntriesTimeout + 1000;
+                timeout = int.MaxValue; // RaftConfig.AppendEntriesTimeout + 1000;
+            rpc.RealStartTime = Util.Time.NowUnixMillis;
+            rpc.RealTimeout = timeout;
 
-            var future = new TaskCompletionSource<Rpc<TArgument, TResult>>();
+            var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
+            rpc.RealFuture = future;
+
             lock (this)
             {
                 var tmp = _Leader;
                 if (null != tmp
                     && tmp.IsHandshakeDone
-                    && rpc.Send(tmp.Socket, (p) => SendForWaitHandle(future, rpc), timeout))
+                    && rpc.Send(tmp.Socket, (p) => SendForWaitHandle(future, rpc), -1))
                     return future;
 
                 rpc.ResponseHandle = (p) => SendForWaitHandle(future, rpc);
-                rpc.Timeout = timeout;
+                rpc.Timeout = -1;
                 Pending.Add(rpc);
                 return future;
             }
@@ -501,49 +552,77 @@ namespace Zeze.Raft
             var pendingNew = new List<Protocol>();
             var pendingOld = new SortedDictionary<long, Protocol>(); // 按发送过的顺序发送。
             int lastSentPendingNewIndex = 0;
-            lock (this)
-            {
-                foreach (var rpc in Pending)
-                {
-                    if (rpc.UniqueRequestId == 0)
-                        pendingNew.Add(rpc);
-                    else
-                        pendingOld.Add(rpc.UniqueRequestId, rpc);
-                }
-                Pending.Clear();
-            }
+            long now = Util.Time.NowUnixMillis;
+            var timeoutTriggers = new List<Action>();
             try
             {
-                foreach (var rpc in pendingOld.Values)
+                lock (this)
                 {
-                    if (false == rpc.Send(_Leader?.Socket))
+                    try
                     {
-                        // 这里发送失败，等待新的 LeaderIs 通告再继续。
-                        fails.Add(rpc);
-                    }
-                }
+                        foreach (var rpc in Pending)
+                        {
+                            var timeoutTrigger = rpc.CheckAndGetTimeoutTrigger(now);
+                            if (null != timeoutTrigger)
+                            {
+                                timeoutTriggers.Add(timeoutTrigger);
+                            }
+                            else
+                            {
+                                if (rpc.UniqueRequestId == 0)
+                                    pendingNew.Add(rpc);
+                                else
+                                    pendingOld.Add(rpc.UniqueRequestId, rpc);
+                            }
+                        }
+                        Pending.Clear();
 
-                for (; lastSentPendingNewIndex < pendingNew.Count; ++lastSentPendingNewIndex)
-                {
-                    var rpc = pendingNew[lastSentPendingNewIndex];
-                    if (false == rpc.Send(_Leader?.Socket))
+                        foreach (var rpc in pendingOld.Values)
+                        {
+                            if (false == rpc.Send(_Leader?.Socket))
+                            {
+                                // 这里发送失败，等待新的 LeaderIs 通告再继续。
+                                fails.Add(rpc);
+                            }
+                        }
+
+                        for (; lastSentPendingNewIndex < pendingNew.Count; ++lastSentPendingNewIndex)
+                        {
+                            var rpc = pendingNew[lastSentPendingNewIndex];
+                            if (false == rpc.Send(_Leader?.Socket))
+                            {
+                                // 这里发送失败，等待新的 LeaderIs 通告再继续。
+                                fails.Add(rpc);
+                            }
+                        }
+                    }
+                    finally
                     {
-                        // 这里发送失败，等待新的 LeaderIs 通告再继续。
-                        fails.Add(rpc);
+                        lock (this)
+                        {
+                            foreach (var fail in fails)
+                            {
+                                Pending.Add(fail);
+                            }
+                            for (; lastSentPendingNewIndex < pendingNew.Count; ++lastSentPendingNewIndex)
+                            {
+                                Pending.Add(pendingNew[lastSentPendingNewIndex]);
+                            }
+                        }
                     }
                 }
             }
             finally
             {
-                lock (this)
+                foreach (var trigger in timeoutTriggers)
                 {
-                    foreach (var fail in fails)
+                    try
                     {
-                        Pending.Add(fail);
+                        trigger.Invoke();
                     }
-                    for (; lastSentPendingNewIndex < pendingNew.Count; ++lastSentPendingNewIndex)
+                    catch (Exception ex)
                     {
-                        Pending.Add(pendingNew[lastSentPendingNewIndex]);
+                        logger.Error(ex, "Invoke Timeout Handle");
                     }
                 }
             }

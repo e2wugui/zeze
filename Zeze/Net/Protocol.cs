@@ -80,6 +80,12 @@ namespace Zeze.Net
 			ResultCode = code;
 		}
 
+		// 检查是否超时，如果超时返回Func，否则返回null。目前仅RaftRpc需要。
+		internal virtual Action CheckAndGetTimeoutTrigger(long now)
+		{
+			throw new NotImplementedException();
+		}
+
 		// always true for Protocol, Rpc Will override
 		public bool IsRequest { get; set; } = true;
 

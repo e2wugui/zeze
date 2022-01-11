@@ -14,7 +14,7 @@ namespace Zeze.Net
 
         public TResult Result { get; set; } = new TResult();
 
-        public bool IsTimeout { get; private set; }
+        public bool IsTimeout { get; internal set; }
         public long SessionId { get; set; }
 
         public Func<Protocol, long> ResponseHandle { get; set; }
@@ -43,32 +43,36 @@ namespace Zeze.Net
 
         private Util.SchedulerTask Schedule(Service service, long sessionId, int millisecondsTimeout)
         {
-            return global::Zeze.Util.Scheduler.Instance.Schedule(
-                (ThisTask) =>
-                {
-                    Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
-                    if (null == context) // 一般来说，此时结果已经返回。
-                        return;
-
-                    context.IsTimeout = true;
-                    context.ResultCode = Zeze.Transaction.Procedure.Timeout;
-
-                    if (null != context.Future)
+            if (millisecondsTimeout > 0)
+            {
+                return global::Zeze.Util.Scheduler.Instance.Schedule(
+                    (ThisTask) =>
                     {
-                        context.Future.TrySetException(new RpcTimeoutException());
-                    }
-                    else if (context.ResponseHandle != null)
-                    {
-                        // 本来Schedule已经在Task中执行了，这里又派发一次。
-                        // 主要是为了让应用能拦截修改Response的处理方式。
-                        // Timeout 应该是少的，先这样了。
-                        var factoryHandle = service.FindProtocolFactoryHandle(context.TypeId);
-                        if (null != factoryHandle)
-                            service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
-                    }
-                },
-                millisecondsTimeout,
-                -1);
+                        Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
+                        if (null == context) // 一般来说，此时结果已经返回。
+                            return;
+
+                        context.IsTimeout = true;
+                        context.ResultCode = Zeze.Transaction.Procedure.Timeout;
+
+                        if (null != context.Future)
+                        {
+                            context.Future.TrySetException(new RpcTimeoutException());
+                        }
+                        else if (context.ResponseHandle != null)
+                        {
+                            // 本来Schedule已经在Task中执行了，这里又派发一次。
+                            // 主要是为了让应用能拦截修改Response的处理方式。
+                            // Timeout 应该是少的，先这样了。
+                            var factoryHandle = service.FindProtocolFactoryHandle(context.TypeId);
+                            if (null != factoryHandle)
+                                service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
+                        }
+                    },
+                    millisecondsTimeout,
+                    -1);
+            }
+            return null;
         }
 
         /// <summary>
@@ -102,7 +106,7 @@ namespace Zeze.Net
             // 发送失败，一般是连接失效，此时删除上下文。
             // 其中rpc-trigger-result的原子性由RemoveRpcContext保证。
             // Cancel不是必要的。
-            timeoutTask.Cancel(); 
+            timeoutTask?.Cancel(); 
             // 【注意】当上下文已经其他并发过程删除（得到了处理），那么这里就返回成功。
             // see OnSocketDisposed
             // 这里返回 false 表示真的没有发送成功，外面根据自己需要决定是否重连并再次发送。
