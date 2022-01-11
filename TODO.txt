@@ -25,16 +25,19 @@ DatabaseTikv
 【进行中】
 	RedoableTaskQueue
 App：RedoableTaskQueue 看完下面的，帮忙起个好名。
-1）存储：concurrentKey->queue<Task> 持久化的。
-        concurrentKey 暂定int，一定范围，以后和serverId映射，不直接使用serverId，解耦。
-2）Task.Id：long 递增
+1）存储：
+	inT ConcurrentId 暂定int，一定范围，以后和serverId映射，不直接使用serverId，解耦。
+	Queue<Task> 持久化的。
+2）Task.Id
+	long 递增
+	Rpc
 Zeze.ServerApp
 1) zeze.table<concurrentKey, lastTaskId> 记住已经同步的最后的任务id，
-2) 功能：每个concurrentKey，for Queue(lastTaskId, end) { Run(task); zeze.table.lastTaskId = task.Id; }
-* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的lastTaskId开始重做任务。
+2) 功能：每个ConcurrentId，for Queue(lastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
+* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
 比如充值系统等zeze外的交易系统本质上需要zeze.server一起完成一个分布式事务时用。zeze.server执行任务失败需要不停尝试。按顺序处理queue.task。
 参考很多MessageQueue的实现，这里由于重做，更像一个LogQueue。以前sybase的复制备份服务器也有一个差不多这样的logqueue
-concurrentKey是个坑，只有一个肯定没问题，但是无法并发，允许并发，对某些逻辑可能无法使用，或者需要使用者自己把相关的task放到同一个concurrentKey下。
+concurrentId是个坑，只有一个肯定没问题，但是无法并发，允许并发，对某些逻辑可能无法使用，或者需要使用者自己把相关的task放到同一个concurrentId下。
 
 checkpointMode.Period 不能用
 CheckpointMode.Table 能不能用？
@@ -48,6 +51,8 @@ CheckpointMode.Table 能不能用？
 	Zezex.client: 可靠消息实现的错误检查。
 
 【新变动】
+
+【2022/1/10】
 	Zezex.Login.Onlines.Transmit 带参数。
 	Zezex.linkd: 达到Provider预期在线量之前，持续分配给它。
 	【放弃，丑就丑点了】RelativeRecordSet._merge_ 第二步合并孤立记录临时补丁：largest原来是孤立记录时，把当前记录加进去。现在的写法有点丑。
@@ -55,14 +60,3 @@ CheckpointMode.Table 能不能用？
 	Connector WaitReady 重新实现。
 	GlobalAgent 修改成使用新的 Connector.WaitReady。
 	【Global之间的连接关闭状态没有设置成功导致的】UnitTest 失败或者强制中断测试程序，再次运行测试Global.Login Fail。看看有没有什么情况没有处理，还是UnitTest连接没有关闭造成的。
-
-【2021/12/9 以前】
-	整体并发测试，需要包含 TableCache.Cleanup。
-	Global.Release并发问题确认
-	CheckpointMode.Table Merge 逻辑BUG
-	CheckpointMode.Table Merge 逻辑BUG：c#修改。
-	TestCheckpoint java to c#
-	c# DatabaseMemory
-	RelativeRecordSet? 只要记录被访问一次，Record 就不是孤立的了，现在无法从 TableCache 清除。
-	FlushWhenReduce & _FlushWhenReduce & TableCache.TryRemoveRecord
-	【不是问题】Java Socket Rpc Response 没有唤醒，还是会饥饿？write 提供多个buffer，有没有可能其中一个有剩余。

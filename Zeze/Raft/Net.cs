@@ -621,11 +621,14 @@ namespace Zeze.Raft
 
             public override void OnSocketDisposed(AsyncSocket so)
             {
-                var connector = so.Connector as ConnectorEx;
-                Agent.TryClearLeader(connector, so);
                 base.OnSocketDisposed(so);
-                connector.IsAutoReconnect = true;
-                connector.TryReconnect();
+                Util.Task.Run(() =>
+                {
+                    var connector = so.Connector as ConnectorEx;
+                    Agent.TryClearLeader(connector, so);
+                    connector.IsAutoReconnect = true;
+                    connector.TryReconnect();
+                }, "RunOnSocketDisposed");
             }
         }
     }

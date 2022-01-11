@@ -828,7 +828,7 @@ namespace Zeze.Services
                 });
             }
 
-            public override void Apply(Zeze.Raft.StateMachine stateMachine)
+            public override void Apply(RaftLog holder, Zeze.Raft.StateMachine stateMachine)
             {
                 var sm = stateMachine as RaftDatas;
                 foreach (var op in Operates)

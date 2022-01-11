@@ -575,16 +575,13 @@ namespace Zeze.Net
                 }
             }
 
-            lock (this)
+            try
             {
-                try
-                {
-                    Service.OnSocketDisposed(this);
-                }
-                catch (Exception e)
-                {
-                    logger.Error(e);
-                }
+                Service.OnSocketDisposed(this);
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
             }
         }
 

@@ -247,6 +247,8 @@ namespace Zeze.Raft
             = new ConcurrentDictionary<string, Connector>();
         // Leader
         private SchedulerTask HearbeatTimerTask;
+        private long LeaderWaitReadyTerm;
+        private long LeaderWaitReadyIndex;
         internal ManualResetEvent LeaderReadyEvent { get; } = new ManualResetEvent(false);
         // Follower
         private SchedulerTask LeaderLostTimerTask;
@@ -276,10 +278,16 @@ namespace Zeze.Raft
             Monitor.PulseAll(this); // has under lock(this)
         }
 
-        internal void SetLeaderReady()
+        internal void SetLeaderReady(RaftLog heart)
         {
             if (IsLeader)
             {
+                if (heart.Term != LeaderWaitReadyTerm || heart.Index != LeaderWaitReadyIndex)
+                    return;
+
+                LeaderWaitReadyIndex = 0;
+                LeaderWaitReadyTerm = 0;
+
                 logger.Info($"{Name} {RaftConfig.DbHome} LastIndex={LogSequence.LastIndex} Count={LogSequence.GetTestStateMachineCount()}");
 
                 LeaderReadyEvent.Set();
@@ -301,9 +309,10 @@ namespace Zeze.Raft
             }
         }
 
-        private bool IsLastLogUpToDate(long lastTerm, long lastIndex)
+        private bool IsCandidateLastLogUpToDate(long lastTerm, long lastIndex)
         {
             var last = LogSequence.LastRaftLog();
+            logger.Info($"{Name}-{IsLeader} {RaftConfig.DbHome} CTerm={lastTerm} Term={last.Term} LastIndex={last.Index} Count={LogSequence.GetTestStateMachineCount()}");
             if (lastTerm > last.Term)
                 return true;
             if (lastTerm < last.Term)
@@ -331,12 +340,12 @@ namespace Zeze.Raft
                 // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
                 r.Result.VoteGranted = (r.Argument.Term >= LogSequence.Term)
                     && LogSequence.CanVoteFor(r.Argument.CandidateId)
-                    && IsLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
+                    && IsCandidateLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
                 if (r.Result.VoteGranted)
                 {
                     LogSequence.SetVoteFor(r.Argument.CandidateId);
                 }
-                logger.Debug("{0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
+                logger.Info("{0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
                 r.SendResultCode(0);
 
                 return Procedure.Success;
@@ -524,7 +533,8 @@ namespace Zeze.Raft
                     // send initial empty AppendEntries RPCs
                     // (heartbeat)to each server; repeat during
                     // idle periods to prevent election timeouts(§5.2)
-                    LogSequence.AppendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent), false);
+                    LogSequence.AppendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent),
+                        false, out LeaderWaitReadyTerm, out LeaderWaitReadyIndex);
                     HearbeatTimerTask = Scheduler.Instance.Schedule(
                         (ThisTask) =>
                         {

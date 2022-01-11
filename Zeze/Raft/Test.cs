@@ -67,13 +67,13 @@ namespace Zeze.Raft
 
         private long GetCurrentCount()
         {
-            var r = new GetCount();
             while (true)
             {
                 try
                 {
+                    var r = new GetCount();
                     Agent.SendForWait(r).Task.Wait();
-                    if (r.ResultCode == 0)
+                    if (false == r.IsTimeout && r.ResultCode == 0)
                         return r.Result.Count;
                 }
                 catch (Exception)
@@ -204,6 +204,7 @@ namespace Zeze.Raft
         public void RunTrace()
         {
             // 基本测试
+            logger.Debug("基本测试");
             Agent.SendForWait(new AddCount()).Task.Wait();
             ExpectCount.IncrementAndGet();
             CheckCurrentCount("TestAddCount");
@@ -215,6 +216,7 @@ namespace Zeze.Raft
             SetLogLevel(NLog.LogLevel.Trace);
 
             // 普通节点重启网络一。
+            logger.Debug("普通节点重启网络一");
             var NotLeaders = GetNodeNotLeaders();
             if (NotLeaders.Count > 0)
             {
@@ -223,6 +225,7 @@ namespace Zeze.Raft
             TestConcurrent("TestNormalNodeRestartNet1", 1);
 
             // 普通节点重启网络二。
+            logger.Debug("普通节点重启网络二");
             if (NotLeaders.Count > 1)
             {
                 NotLeaders[0].RestartNet();
@@ -231,10 +234,12 @@ namespace Zeze.Raft
             TestConcurrent("TestNormalNodeRestartNet2", 1);
 
             // Leader节点重启网络。
+            logger.Debug("Leader节点重启网络");
             GetLeader().RestartNet();
             TestConcurrent("TestLeaderNodeRestartNet", 1);
 
             // Leader节点重启网络，【选举】。
+            logger.Debug("Leader节点重启网络，【选举】");
             var leader = GetLeader();
             leader.Raft.Server.Stop();
             Util.Scheduler.Instance.Schedule((ThisTask) => leader.Raft.Server.Start(),
@@ -242,6 +247,7 @@ namespace Zeze.Raft
             TestConcurrent("TestLeaderNodeRestartNet_NewVote", 1);
 
             // 普通节点重启一。
+            logger.Debug("普通节点重启一");
             NotLeaders = GetNodeNotLeaders();
             if (NotLeaders.Count > 0)
             {
@@ -251,6 +257,7 @@ namespace Zeze.Raft
             TestConcurrent("TestNormalNodeRestartRaft1", 1);
 
             // 普通节点重启二。
+            logger.Debug("普通节点重启二");
             if (NotLeaders.Count > 1)
             {
                 NotLeaders[0].StopRaft();
@@ -262,6 +269,7 @@ namespace Zeze.Raft
             TestConcurrent("TestNormalNodeRestartRaft2", 1);
 
             // Leader节点重启。
+            logger.Debug("Leader节点重启");
             leader = GetLeader();
             var StartDely = leader.Raft.RaftConfig.LeaderLostTimeout + 2000;
             leader.StopRaft();
@@ -454,8 +462,8 @@ namespace Zeze.Raft
         {
             while (Running)
             {
-                //var fa = FailActions[Util.Random.Instance.Next(FailActions.Count)];
-                foreach (var fa in FailActions)
+                var fa = FailActions[Util.Random.Instance.Next(FailActions.Count)];
+                //foreach (var fa in FailActions)
                 {
                     logger.Fatal($"___________________________ {fa.Name} _____________________________");
                     try
@@ -562,7 +570,7 @@ namespace Zeze.Raft
 
                 }
 
-                public override void Apply(StateMachine stateMachine)
+                public override void Apply(RaftLog holder, StateMachine stateMachine)
                 {
                     (stateMachine as TestStateMachine).Count += 1;
                 }

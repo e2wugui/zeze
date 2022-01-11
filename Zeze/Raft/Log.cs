@@ -49,7 +49,7 @@ namespace Zeze.Raft
         /// 最主要的实现接口。
         /// </summary>
         /// <param name="stateMachine"></param>
-        public abstract void Apply(StateMachine stateMachine);
+        public abstract void Apply(RaftLog holder, StateMachine stateMachine);
 
         public virtual void Decode(ByteBuffer bb)
         {
@@ -75,12 +75,12 @@ namespace Zeze.Raft
             Operate = operate;
         }
 
-        public override void Apply(StateMachine stateMachine)
+        public override void Apply(RaftLog holder, StateMachine stateMachine)
         {
             switch (Operate)
             {
                 case SetLeaderReadyEvent:
-                    stateMachine.Raft.SetLeaderReady();
+                    stateMachine.Raft.SetLeaderReady(holder);
                     break;
             }
         }
@@ -199,7 +199,7 @@ namespace Zeze.Raft
             for (var index = startIndex; index >= firstIndex; --index)
             {
                 var key = ByteBuffer.Allocate();
-                key.WriteLong8(index);
+                key.WriteLong(index);
                 Logs.Remove(key.Bytes, key.Size);
             }
         }
@@ -279,7 +279,7 @@ namespace Zeze.Raft
                     SaveLog(new RaftLog(Term, 0, new HeartbeatLog()));
                     LastIndex = 0;
                 }
-                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
+                logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
 
                 using var itFirst = Logs.NewIterator();
                 itFirst.SeekToFirst();
@@ -296,6 +296,7 @@ namespace Zeze.Raft
         private readonly byte[] RaftsTermKey;
         private readonly byte[] RaftsVoteForKey;
         private readonly WriteOptions WriteOptionsSync = new WriteOptions().SetSync(true);
+
         private void SaveLog(RaftLog log)
         {
             var key = ByteBuffer.Allocate();
@@ -309,8 +310,8 @@ namespace Zeze.Raft
                 );
             LastIndex = log.Index; // 记住最后一个Index，用来下一次生成。
 
-            if (Raft.IsLeader)
-                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Key={key} Count={GetTestStateMachineCount()}");
+            //if (Raft.IsLeader)
+                logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Key={key} Count={GetTestStateMachineCount()}");
         }
 
         private RaftLog ReadLog(long index)
@@ -479,14 +480,14 @@ namespace Zeze.Raft
                     LastAppliedAppRpcUniqueRequestId[raftLog.Log.AppInstance]
                         = raftLog.Log.UniqueRequestId;
                 }
-                raftLog.Log.Apply(Raft.StateMachine);
+                raftLog.Log.Apply(raftLog, Raft.StateMachine);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
 
                 if (WaitApplyFutures.TryRemove(raftLog.Index, out var future))
                     future.SetResult(0);
             }
-            if (Raft.IsLeader)
-                logger.Info($"{Raft.Name} {Raft.RaftConfig.DbHome} RequestId={lastApplyableLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
+            //if (Raft.IsLeader)
+                logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={lastApplyableLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
         }
 
         internal long GetTestStateMachineCount()
@@ -502,6 +503,14 @@ namespace Zeze.Raft
 
         public void AppendLog(Log log, bool WaitApply = true)
         {
+            AppendLog(log, WaitApply, out _, out _);
+        }
+
+        internal void AppendLog(Log log, bool WaitApply, out long term, out long index)
+        {
+            term = 0;
+            index = 0;
+
             if (false == Raft.IsLeader)
                 throw new TaskCanceledException(); // 快速失败
 
@@ -517,6 +526,8 @@ namespace Zeze.Raft
                         throw new Exception("Impossible");
                 }
                 SaveLog(raftLog);
+                term = Term;
+                index = LastIndex;
             }
 
             // 广播给followers并异步等待多数确认
@@ -939,7 +950,7 @@ namespace Zeze.Raft
                 }
 
                 var key = ByteBuffer.Allocate();
-                key.WriteLong8(index);
+                key.WriteLong(index);
                 Logs.Remove(key.Bytes, key.Size);
             }
         }
@@ -967,7 +978,7 @@ namespace Zeze.Raft
             {
                 // 1. Reply false if term < currentTerm (§5.1)
                 r.SendResult();
-                logger.Info("this={0} Leader={1} Index={2} term < currentTerm", Raft.Name, r.Argument.LeaderId, r.Argument.LastEntryIndex);
+                logger.Info("this={0} Leader={1} Index={2} term < currentTerm", Raft.Name, r.Argument.LeaderId, r.Argument.PrevLogIndex);
                 return Procedure.Success;
             }
 
@@ -977,7 +988,7 @@ namespace Zeze.Raft
                 // 2. Reply false if log doesn’t contain an entry
                 // at prevLogIndex whose term matches prevLogTerm(§5.3)
                 r.SendResult();
-                logger.Debug("this={0} Leader={1} Index={2} prevLog mismatch", Raft.Name, r.Argument.LeaderId, r.Argument.LastEntryIndex);
+                logger.Debug("this={0} Leader={1} Index={2} prevLog mismatch", Raft.Name, r.Argument.LeaderId, r.Argument.PrevLogIndex);
                 return Procedure.Success;
             }
 

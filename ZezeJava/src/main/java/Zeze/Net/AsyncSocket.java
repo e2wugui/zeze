@@ -584,13 +584,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			}
 		}
 
-		synchronized (this) {
-			try {
-				Service.OnSocketDisposed(this);
-			}
-			catch (Throwable skip) {
-				logger.error("", skip);
-			}
+		try {
+			Service.OnSocketDisposed(this);
+		}
+		catch (Throwable skip) {
+			logger.error("", skip);
 		}
 	}
 
