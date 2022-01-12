@@ -1006,6 +1006,11 @@ namespace Zeze.Raft
                         RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
                         LastIndex = prevLog.Index;
                     }
+                    else
+                    {
+                        // 复用这个变量。当冲突需要删除时，精确指到前一个日志。
+                        prevLog = conflictCheck;
+                    }
                 }
                 else
                 {
