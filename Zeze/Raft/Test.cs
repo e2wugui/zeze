@@ -708,7 +708,7 @@ namespace Zeze.Raft
             private long ProcessAddCount(Zeze.Net.Protocol p)
             {
                 if (false == Raft.IsLeader)
-                    return Procedure.CancelExcption; // fast fail
+                    return Procedure.RaftRetry; // fast fail
 
                 var r = p as AddCount;
                 lock (StateMachine)

@@ -311,7 +311,7 @@ namespace Zeze.Raft
             LastIndex = log.Index; // 记住最后一个Index，用来下一次生成。
 
             //if (Raft.IsLeader)
-                logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Key={key} Count={GetTestStateMachineCount()}");
+            //    logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Key={key} Count={GetTestStateMachineCount()}");
         }
 
         private RaftLog ReadLog(long index)
@@ -512,7 +512,7 @@ namespace Zeze.Raft
             index = 0;
 
             if (false == Raft.IsLeader)
-                throw new TaskCanceledException(); // 快速失败
+                throw new RaftRetryException(); // 快速失败
 
             TaskCompletionSource<int> future = null;
             lock (Raft)
@@ -537,7 +537,7 @@ namespace Zeze.Raft
             if (WaitApply)
             {
                 if (false == future.Task.Wait(Raft.RaftConfig.AppendEntriesTimeout * 2 + 1000))
-                    throw new RaftApplyTimeoutException();
+                    throw new RaftRetryException();
             }
         }
 

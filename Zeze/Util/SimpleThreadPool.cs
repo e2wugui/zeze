@@ -16,10 +16,7 @@ namespace Zeze.Util
 
         public bool QueueUserWorkItem(Action action)
         {
-            if (false == taskQueue.IsAddingCompleted)
-                taskQueue.Add(action);
-            // skip task
-            return true;
+            return taskQueue.TryAdd(action);
         }
 
         public void Shutdown()

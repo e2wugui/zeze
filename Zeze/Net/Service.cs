@@ -158,11 +158,6 @@ namespace Zeze.Net
             */
         }
 
-        public Dictionary<long, Protocol> GetRpcContextsToSender(AsyncSocket sender)
-        {
-            return GetRpcContexts((p) => p.Sender == sender);
-        }
-
         public Dictionary<long, Protocol> GetRpcContexts(Func<Protocol, bool> filter)
         {
             var result = new Dictionary<long, Protocol>();
@@ -176,7 +171,7 @@ namespace Zeze.Net
             return result;
         }
 
-        public ICollection<Protocol> RemoveRpcContets(ICollection<long> sids)
+        public ICollection<Protocol> RemoveRpcContexts(ICollection<long> sids)
         {
             var result = new List<Protocol>(sids.Count);
             foreach (var sid in sids)

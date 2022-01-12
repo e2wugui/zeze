@@ -16,6 +16,13 @@ namespace Zeze.Util
             return Impl.TryAdd(e, e);
         }
 
+        public int Count => Impl.Count;
+
+        public void Clear()
+        {
+            Impl.Clear();
+        }
+
         public bool Remove(E e)
         {
             if (Impl.TryRemove(e, out var rm))

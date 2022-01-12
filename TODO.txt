@@ -22,6 +22,8 @@ DatabaseTikv
 关联多用户数据的协议处理自动派发到热点所在Server。
 	Global.Release并发问题【再次】确认
 
+Handshake 没有错误处理。
+
 【进行中】
 	RedoableTaskQueue
 App：RedoableTaskQueue 看完下面的，帮忙起个好名。
