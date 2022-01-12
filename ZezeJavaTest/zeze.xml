@@ -14,8 +14,8 @@
 	-->
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 
-	<TableConf CacheCapaicty="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
-	<TableConf Name="demo_Module1_tflush" CacheCapaicty="1000"/>
+	<TableConf CacheCapacity="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
+	<TableConf Name="demo_Module1_tflush" CacheCapacity="1000"/>
 
 	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>

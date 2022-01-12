@@ -292,11 +292,11 @@ namespace Zeze
             public string Name { get; }
             public int CacheCapacity { get; set; } = 20000;
             public int CacheConcurrencyLevel { get; set; }
-            public int CacheInitialCapaicty { get; set; }
+            public int CacheInitialCapacity { get; set; }
             public int CacheNewAccessHotThreshold { get; set; }
             public int CacheCleanPeriod { get; set; } = 10000;
             public int CacheNewLruHotPeriod { get; set; } = 10000;
-            public int CacheMaxLruInitialCapaicty { get; set; } = 100000;
+            public int CacheMaxLruInitialCapacity { get; set; } = 100000;
             public int CacheCleanPeriodWhenExceedCapacity { get; set; } = 1000;
             public bool CheckpointWhenCommit { get; set; } = false;
 
@@ -334,18 +334,18 @@ namespace Zeze
                 attr = self.GetAttribute("CacheConcurrencyLevel");
                 if (attr.Length > 0)
                     CacheConcurrencyLevel = int.Parse(attr);
-                attr = self.GetAttribute("CacheInitialCapaicty");
+                attr = self.GetAttribute("CacheInitialCapacity");
                 if (attr.Length > 0)
-                    CacheInitialCapaicty = int.Parse(attr);
+                    CacheInitialCapacity = int.Parse(attr);
                 attr = self.GetAttribute("CacheNewAccessHotThreshold");
                 if (attr.Length > 0)
                     CacheNewAccessHotThreshold = int.Parse(attr);
                 attr = self.GetAttribute("CacheCleanPeriodWhenExceedCapacity");
                 if (attr.Length > 0)
                     CacheCleanPeriodWhenExceedCapacity = int.Parse(attr);
-                attr = self.GetAttribute("CacheMaxLruInitialCapaicty");
+                attr = self.GetAttribute("CacheMaxLruInitialCapacity");
                 if (attr.Length > 0)
-                    CacheMaxLruInitialCapaicty = int.Parse(attr);
+                    CacheMaxLruInitialCapacity = int.Parse(attr);
 
                 if (Name.Length > 0)
                 {

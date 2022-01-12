@@ -36,7 +36,7 @@ namespace Zeze.Util
         public int Capacity { get; set; }
         public int InitialCapacity { get; set; } // 创建以后再修改，只影响lru，不影响cache。
         public int ConcurrencyLevel { get; set; } // 创建以后再修改，只影响lru，不影响cache。
-        public int MaxLruInitialCapaicty { get; set; } = 100000;
+        public int MaxLruInitialCapacity { get; set; } = 100000;
 
         public long NewLruHotPeriod { get; set; } = 10000;
         public long CleanPeriod { get; set; } = 10000;
@@ -67,7 +67,7 @@ namespace Zeze.Util
             Scheduler.Instance.Schedule((task) =>
             {
                 // 访问很少的时候不创建新的热点。这个选项没什么意思。
-                if (LruHot.Count > GetLruInitialCapaicty() / 2)
+                if (LruHot.Count > GetLruInitialCapacity() / 2)
                 {
                     NewLruHot();
                 }
@@ -129,16 +129,16 @@ namespace Zeze.Util
             return false;
         }
 
-        private int GetLruInitialCapaicty()
+        private int GetLruInitialCapacity()
         {
             int lruInitialCapacity = (int)(InitialCapacity * 0.2);
-            return lruInitialCapacity < MaxLruInitialCapaicty
-                ? lruInitialCapacity : MaxLruInitialCapaicty;
+            return lruInitialCapacity < MaxLruInitialCapacity
+                ? lruInitialCapacity : MaxLruInitialCapacity;
         }
 
         private void NewLruHot()
         {
-            var volatiletmp = new ConcurrentDictionary<K, LruItem>(ConcurrencyLevel, GetLruInitialCapaicty());
+            var volatiletmp = new ConcurrentDictionary<K, LruItem>(ConcurrencyLevel, GetLruInitialCapacity());
             LruHot = volatiletmp;
             LruQueue.Enqueue(volatiletmp);
         }

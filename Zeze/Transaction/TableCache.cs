@@ -39,7 +39,7 @@ namespace Zeze.Transaction
         {
             this.Table = table;
             DataMap = new ConcurrentDictionary<K, Record<K, V>>(
-                GetCacheConcurrencyLevel(), GetCacheInitialCapaicty());
+                GetCacheConcurrencyLevel(), GetCacheInitialCapacity());
             NewLruHot();
             Util.Scheduler.Instance.Schedule((task) =>
             {
@@ -59,24 +59,24 @@ namespace Zeze.Transaction
                 ? Table.TableConf.CacheConcurrencyLevel : Environment.ProcessorCount;
         }
 
-        private int GetCacheInitialCapaicty()
+        private int GetCacheInitialCapacity()
         {
             // 31 from c# document
             // 这样写，当配置修改，可以使用的时候马上生效。
-            return Table.TableConf.CacheInitialCapaicty < 31
-                ? 31 : Table.TableConf.CacheInitialCapaicty;
+            return Table.TableConf.CacheInitialCapacity < 31
+                ? 31 : Table.TableConf.CacheInitialCapacity;
         }
 
-        private int GetLruInitialCapaicty()
+        private int GetLruInitialCapacity()
         {
-            int c = (int)(GetCacheInitialCapaicty() * 0.2);
-            return c < Table.TableConf.CacheMaxLruInitialCapaicty
-                ? c : Table.TableConf.CacheMaxLruInitialCapaicty;
+            int c = (int)(GetCacheInitialCapacity() * 0.2);
+            return c < Table.TableConf.CacheMaxLruInitialCapacity
+                ? c : Table.TableConf.CacheMaxLruInitialCapacity;
         }
 
         private void NewLruHot()
         {
-            var volatiletmp = new ConcurrentDictionary<K, Record<K, V>>(GetCacheConcurrencyLevel(), GetLruInitialCapaicty());
+            var volatiletmp = new ConcurrentDictionary<K, Record<K, V>>(GetCacheConcurrencyLevel(), GetLruInitialCapacity());
             LruHot = volatiletmp;
             LruQueue.Enqueue(volatiletmp);
         }
