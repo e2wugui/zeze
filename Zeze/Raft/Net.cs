@@ -144,7 +144,7 @@ namespace Zeze.Raft
                     return factoryHandle.Handle(p);
                 }
                 TrySendLeaderIs(p.Sender);
-                return Procedure.CancelExcption;
+                return 0;
             },
             p,
             (p, code) => p.SendResultCode(code)
@@ -183,7 +183,7 @@ namespace Zeze.Raft
                 TaskOneByOne.Execute(p.Sender.RemoteAddress,
                     () => ProcessRequest(p, factoryHandle),
                     p.GetType().FullName,
-                    () => p.SendResultCode(Procedure.CancelExcption)
+                    () => p.SendResultCode(Procedure.RaftRetry)
                     );
                 return;
             }
@@ -244,12 +244,20 @@ namespace Zeze.Raft
 
                 if (null != RealFuture)
                 {
-                    return () => RealFuture.SetException(new RpcTimeoutException());
+                    return () => RealFuture.TrySetException(new RpcTimeoutException());
                 }
                 return () => RealHandle(this);
             }
 
             return null;
+        }
+
+        public override bool Send(AsyncSocket so)
+        {
+            // reset before re-send
+            ResultCode = 0;
+            IsTimeout = false;
+            return base.Send(so);
         }
     }
 
@@ -263,7 +271,9 @@ namespace Zeze.Raft
 
         public ConnectorEx Leader => _Leader;
         private volatile ConnectorEx _Leader;
-        private List<Protocol> Pending = new List<Protocol>();
+        private Util.IdentityHashSet<Protocol> Pending = new Util.IdentityHashSet<Protocol>();
+
+        public Util.SimpleThreadPool InternalThreadPool { get; }
 
         public Action<Agent, Action> OnLeaderChanged { get; private set; }
         // 发生这些错误，自动重发请求。好像没有public的必要。
@@ -296,18 +306,18 @@ namespace Zeze.Raft
             rpc.RealStartTime = Util.Time.NowUnixMillis;
             rpc.RealTimeout = timeout;
             rpc.RealHandle = handle;
-
+            var resendTimeout = RaftConfig.AppendEntriesTimeout + 2000;
             lock (this)
             {
                 var tmp = _Leader;
                 if (null != tmp
                     && tmp.IsHandshakeDone
                     && Pending.Count == 0 // has Pending! Send Later!
-                    && rpc.Send(tmp.Socket, (p) => SendHandle(handle, rpc), -1))
+                    && rpc.Send(tmp.Socket, (p) => SendHandle(handle, rpc), resendTimeout))
                     return true;
 
                 rpc.ResponseHandle = (p) => SendHandle(handle, rpc);
-                rpc.Timeout = -1;
+                rpc.Timeout = resendTimeout;
 
                 Pending.Add(rpc);
                 return true;
@@ -320,12 +330,7 @@ namespace Zeze.Raft
         {
             if (rpc.IsTimeout)
             {
-                // never happen
-                // return userHandle(rpc);
-                lock (this)
-                {
-                    Pending.Add(rpc);
-                }
+                CollectAndReSend();
                 return 0;
             }
 
@@ -354,12 +359,7 @@ namespace Zeze.Raft
         {
             if (rpc.IsTimeout)
             {
-                // never happen
-                //future.TrySetException(new RpcTimeoutException("RaftRpcTimeout"));
-                lock (this)
-                {
-                    Pending.Add(rpc);
-                }
+                CollectAndReSend();
                 return Procedure.Success;
             }
 
@@ -397,25 +397,27 @@ namespace Zeze.Raft
             var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
             rpc.RealFuture = future;
 
+            var resendTimeout = RaftConfig.AppendEntriesTimeout + 2000;
+
             lock (this)
             {
                 var tmp = _Leader;
                 if (null != tmp
                     && tmp.IsHandshakeDone
-                    && rpc.Send(tmp.Socket, (p) => SendForWaitHandle(future, rpc), -1))
+                    && rpc.Send(tmp.Socket, (p) => SendForWaitHandle(future, rpc), resendTimeout))
                     return future;
 
                 rpc.ResponseHandle = (p) => SendForWaitHandle(future, rpc);
-                rpc.Timeout = -1;
+                rpc.Timeout = resendTimeout;
                 Pending.Add(rpc);
                 return future;
             }
         }
 
+        public long Term { get; internal set; }
+
         public class ConnectorEx : Connector
         {
-            public long Term { get; internal set; }
-
             public ConnectorEx(string host, int port = 0)
                 : base(host, port)
             {
@@ -430,6 +432,24 @@ namespace Zeze.Raft
             }
         }
 
+        public void Stop()
+        {
+            lock (this)
+            {
+                if (null == Client)
+                    return;
+
+                Client.Stop();
+                Client = null;
+
+                if (null == Client.Zeze)
+                    InternalThreadPool.Shutdown();
+
+                _Leader = null;
+                Pending.Clear();
+            }
+        }
+
         public Agent(
             string name,
             Application zeze,
@@ -437,6 +457,7 @@ namespace Zeze.Raft
             Action<Agent, Action> onLeaderChanged = null
             )
         {
+            InternalThreadPool = zeze.InternalThreadPool;
             Init(new NetClient(this, name, zeze), raftconf, onLeaderChanged);
         }
 
@@ -454,6 +475,7 @@ namespace Zeze.Raft
             Action<Agent, Action> onLeaderChanged = null
             )
         {
+            InternalThreadPool = new Util.SimpleThreadPool(5, "RaftAgentThreadPool");
             if (null == config)
                 config = Config.Load();
 
@@ -487,8 +509,7 @@ namespace Zeze.Raft
                 Handle = ProcessLeaderIs,
             });
 
-            RetryErrorCodes[Procedure.CancelExcption] = Procedure.CancelExcption;
-            RetryErrorCodes[Procedure.RaftApplyTimeout] = Procedure.RaftApplyTimeout;
+            RetryErrorCodes[Procedure.RaftRetry] = Procedure.RaftRetry;
         }
 
         private long ProcessLeaderIs(Protocol p)
@@ -517,11 +538,11 @@ namespace Zeze.Raft
                     // 来自 Leader 的公告。
                     if (null != OnLeaderChanged)
                     {
-                        OnLeaderChanged(this, SetReady);
+                        OnLeaderChanged(this, ReSend);
                     }
                     else
                     {
-                        SetReady();
+                        ReSend();
                     }
                 }
                 else
@@ -532,11 +553,11 @@ namespace Zeze.Raft
                     // 此时Leader可能没有准备好，但是提前给Leader发送请求是可以的。
                     if (null != OnLeaderChanged)
                     {
-                        OnLeaderChanged(this, SetReady);
+                        OnLeaderChanged(this, ReSend);
                     }
                     else
                     {
-                        SetReady();
+                        ReSend();
                     }
                 }
 
@@ -545,21 +566,34 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
-        private void SetReady()
+        private void CollectAndReSend()
+        {
+            lock (this)
+            {
+                CollectPendingRpc(_Leader?.Socket);
+                ReSend();
+            }
+        }
+
+        private void ReSend()
         {
             // ReSendPendingRpc
-            var fails = new List<Protocol>();
-            var pendingNew = new List<Protocol>();
-            var pendingOld = new SortedDictionary<long, Protocol>(); // 按发送过的顺序发送。
-            int lastSentPendingNewIndex = 0;
-            long now = Util.Time.NowUnixMillis;
             var timeoutTriggers = new List<Action>();
             try
             {
+                var fails = new List<Protocol>();
+                var pendingNew = new List<Protocol>();
+                var pendingOld = new SortedDictionary<long, Protocol>(); // 按发送过的顺序发送。
+                int lastSentPendingNewIndex = 0;
+
                 lock (this)
                 {
+                    if (Pending.Count == 0)
+                        return;
+
                     try
                     {
+                        long now = Util.Time.NowUnixMillis;
                         foreach (var rpc in Pending)
                         {
                             var timeoutTrigger = rpc.CheckAndGetTimeoutTrigger(now);
@@ -628,40 +662,28 @@ namespace Zeze.Raft
             }
         }
 
-        private void CollectPendingRpc(ConnectorEx oldLeader, AsyncSocket oldSocket)
-        {
-            if (null != oldLeader)
-            {
-                // 再 Rpc.UserState 里面记录发送目的的ConnectorEx，然后这里严格判断？
-                // 由于一个时候只有Leader，所以直接使用Sender也足够了吧。
-                var ctxSends = Client.GetRpcContextsToSender(oldSocket);
-                var ctxPending = Client.RemoveRpcContets(ctxSends.Keys);
-                lock (this)
-                {
-                    foreach (var rpc in ctxPending)
-                    {
-                        Pending.Add(rpc);
-                    }
-                }
-            }
-        }
-
         internal bool TrySetLeader(LeaderIs r, ConnectorEx newLeader)
         {
             lock (this)
             {
-                if (r.Argument.Term < newLeader.Term)
+                if (r.Argument.Term < Term)
                 {
-                    logger.Warn("{0} Skip LeaderIs {1}", Name, r);
+                    logger.Warn("Skip LeaderIs {0} {1}", Name, r);
                     return false;
                 }
-                if (_Leader != newLeader)
+
+                var oldLeader = _Leader;
+                // 把旧的_Leader的没有返回结果的请求收集起来，准备重新发送。
+                if (   oldLeader != newLeader // leader changed
+                    || r.Argument.Term > Term // 新的任期
+                    || oldLeader.Socket != newLeader.Socket // leader socket changed
+                    )
                 {
-                    // 把旧的_Leader的没有返回结果的请求收集起来，准备重新发送。
-                    CollectPendingRpc(_Leader, _Leader?.Socket);
+                    CollectPendingRpc(oldLeader?.Socket);
                 }
-                newLeader.Term = r.Argument.Term;
-                _Leader = newLeader;
+
+                _Leader = newLeader; // change current Leader
+                Term = r.Argument.Term;
                 return true;
             }
         }
@@ -670,13 +692,26 @@ namespace Zeze.Raft
         {
             lock (this)
             {
+                // Always Collect Pending
+                CollectPendingRpc(oldSocket);
+
                 if (_Leader == oldLeader)
                 {
-                    CollectPendingRpc(_Leader, oldSocket);
                     _Leader = null;
                     return true;
                 }
                 return false;
+            }
+        }
+
+        // under lock
+        private void CollectPendingRpc(AsyncSocket oldSocket)
+        {
+            var ctxSends = Client.GetRpcContexts((p) => p.Sender == oldSocket);
+            var ctxPending = Client.RemoveRpcContexts(ctxSends.Keys);
+            foreach (var rpc in ctxPending)
+            {
+                Pending.Add(rpc);
             }
         }
 
@@ -701,13 +736,19 @@ namespace Zeze.Raft
             public override void OnSocketDisposed(AsyncSocket so)
             {
                 base.OnSocketDisposed(so);
-                Util.Task.Run(() =>
-                {
-                    var connector = so.Connector as ConnectorEx;
-                    Agent.TryClearLeader(connector, so);
-                    connector.IsAutoReconnect = true;
-                    connector.TryReconnect();
-                }, "RunOnSocketDisposed");
+                Agent.InternalThreadPool.QueueUserWorkItem(
+                    () => Util.Task.Call(() =>
+                    {
+                        var connector = so.Connector as ConnectorEx;
+                        Agent.TryClearLeader(connector, so);
+                        connector.IsAutoReconnect = true;
+                        connector.TryReconnect();
+                    }, "OnSocketDisposed"));
+            }
+
+            public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, long> responseHandle, ProtocolFactoryHandle factoryHandle)
+            {
+                Agent.InternalThreadPool.QueueUserWorkItem(() => responseHandle(rpc));
             }
         }
     }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Zeze.Raft
 {
-    public class RaftApplyTimeoutException : Exception
+    public class RaftRetryException : Exception
     {
     }
 }

@@ -47,16 +47,7 @@ namespace Zeze.Raft
             {
                 Server.TaskOneByOne.Shutdown();
             }
-            else
-            {
-                // 如果是 Leader，那么 Shutdown 用户请求任务队列 Server.TaskOneByOne 即可。
-                // 用户请求处理依赖 ImportantThreadPool。
-                // 如果是 Follower，那么安全关闭 ImportantThreadPool，
-                // 但是Follower的请求是来自 Leader，需要考虑一下拒绝方式：
-                // 目前考虑是ImportantThreadPool.Shutdown后，直接丢掉来自 Leader的请求。
-                // 此时认为 Follower 不再能响应了。
-                ImportantThreadPool.Shutdown();
-            }
+            ImportantThreadPool.Shutdown();
 
             // 1. close network.
             Server.Stop();
