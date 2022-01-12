@@ -536,7 +536,10 @@ namespace Zeze.Raft
             if (WaitApply)
             {
                 if (false == future.Task.Wait(Raft.RaftConfig.AppendEntriesTimeout * 2 + 1000))
+                {
+                    WaitApplyFutures.TryRemove(index, out _);
                     throw new RaftRetryException();
+                }
             }
         }
 
