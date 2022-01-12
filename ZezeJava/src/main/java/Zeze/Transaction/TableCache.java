@@ -12,17 +12,17 @@ import Zeze.Util.Task;
 
 // MESI？
 
-/** 
+/**
  ConcurrentLruLike
  普通Lru一般把最新访问的放在列表一端，这直接导致并发上不去。
  基本思路是按块（用ConcurrentDictionary）保存最近访问。
  定时添加新块。
  访问需要访问1 ~3次ConcurrentDictionary。
- 
+
  通用类的写法需要在V外面包装一层。这里直接使用Record来达到这个目的。
  这样，这个类就不通用了。通用类需要包装，多创建一个对象，还需要包装接口。
- 
- 
+
+
  <typeparam name="K"></typeparam>
  <typeparam name="V"></typeparam>
 */
@@ -71,12 +71,12 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private int GetCacheInitialCapaicty() {
 		// 31 from c# document
 		// 这样写，当配置修改，可以使用的时候马上生效。
-		return Math.max(getTable().getTableConf().getCacheInitialCapaicty(), 31);
+		return Math.max(getTable().getTableConf().getCacheInitialCapacity(), 31);
 	}
 
 	private int GetLruInitialCapaicty() {
 		int c = (int)(GetCacheInitialCapaicty() * 0.2);
-		return Math.min(c, getTable().getTableConf().getCacheMaxLruInitialCapaicty());
+		return Math.min(c, getTable().getTableConf().getCacheMaxLruInitialCapacity());
 	}
 
 	private void NewLruHot() {
@@ -112,9 +112,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return result;
 	}
 
-	/** 
+	/**
 	 内部特殊使用，不调整 Lru。
-	 
+
 	 @param key key
 	 @return  Record1
 	*/

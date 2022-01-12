@@ -92,7 +92,7 @@ public abstract class Protocol implements Serializable {
 		IsRequest = value;
 	}
 
-	/** 
+	/**
 	 唯一的请求编号，重发时保持不变。
 	 第一次发送的时候用Service.SessionIdGenerator生成。
 	 Rpc才会实际使用这个。
@@ -127,7 +127,7 @@ public abstract class Protocol implements Serializable {
 			int size;
 			int readIndexSaved = os.ReadIndex;
 
-			if (os.Size() >= 12) { // protocl header size.
+			if (os.Size() >= 12) { // protocol header size.
 				moduleId = os.ReadInt4();
 				protocolId = os.ReadInt4();
 				size = os.ReadInt4();

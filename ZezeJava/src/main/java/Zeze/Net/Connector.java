@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/** 
+/**
  连接器：建立并保持一个连接，可以设置自动重连及相关参数。
  可以继承并重载相关事件函数。重载实现里面需要调用 base.OnXXX。
  继承是为了给链接扩充状态，比如：应用的连接需要login，可以维护额外的状态。
@@ -91,7 +91,7 @@ public class Connector {
 
 	public static Connector Create(Element e) {
 		var className = e.getAttribute("Class");
-		if (className == null || className.isEmpty())
+		if (className.isEmpty())
 			return new Connector(e);
 		try {
 			Class<?> ccls = java.lang.Class.forName(className);
@@ -143,9 +143,7 @@ public class Connector {
 	public final AsyncSocket TryGetReadySocket() {
 		try {
 			return FutureSocket.get(0, TimeUnit.MILLISECONDS);
-		} catch (TimeoutException e) {
-			return null;
-		} catch (InterruptedException | ExecutionException e) {
+		} catch (TimeoutException | InterruptedException | ExecutionException e) {
 			return null;
 		}
 	}
@@ -160,7 +158,7 @@ public class Connector {
 		}
 	}
 
-	public void OnSocketConnected(AsyncSocket so) {
+	public void OnSocketConnected(@SuppressWarnings("unused") AsyncSocket so) {
 		synchronized (this) {
 			ConnectDelay = 0;
 			IsConnected = true;
@@ -211,7 +209,7 @@ public class Connector {
 	}
 
 	public void Stop(Throwable e) {
-		AsyncSocket tmp = null;
+		AsyncSocket tmp;
 		synchronized (this) {
 			if (null == Socket) {
 				// not start or has stopped.

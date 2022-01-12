@@ -5,7 +5,6 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
 
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
@@ -22,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Service {
 	private static final Logger logger = LogManager.getLogger(Service.class);
 
-	/** 
+	/**
 	 同一个 Service 下的所有连接都是用相同配置。
 	*/
 	private SocketOptions SocketOptions = new SocketOptions();
@@ -89,9 +88,9 @@ public class Service {
 		Name = name;
 	}
 
-	/** 
+	/**
 	 只包含成功建立的连接：服务器Accept和客户端Connected的连接。
-	 
+
 	 @param sessionId
 	 session id
 	 @return
@@ -149,13 +148,13 @@ public class Service {
 		return new AsyncSocket(this, hostNameOrAddress, port, userState, connector);
 	}
 
-	/** 
+	/**
 	 ASocket 关闭的时候总是回调。
-	 
+
 	 @param so
 	 closing socket
 	 @param e
-	 catched exception, null for none.
+	 caught exception, null for none.
 	*/
 	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 		SocketMap.remove(so.getSessionId(), so);
@@ -164,21 +163,22 @@ public class Service {
 		}
 	}
 
-	/** 
+	/**
 	 可靠rpc调用：一般用于重新发送没有返回结果的rpc。
 	 在 OnSocketClose 之后调用，此时外面【必须】拿不到此 AsyncSocket 了。
 	 当 OnSocketDisposed 调用发生时，AsyncSocket.Socket已经设为 null。
 	 对于那些在 AsyncSocket.Dispose 时已经得到的 AsyncSocket 引用，
 	 使用时判断返回值：主要是 Send 返回 false。
-	 
+
 	 @param so
 	 after socket closed. last callback.
 	*/
-	public void OnSocketDisposed(AsyncSocket so) throws Throwable {
+	@SuppressWarnings("RedundantThrows")
+	public void OnSocketDisposed(@SuppressWarnings("unused") AsyncSocket so) throws Throwable {
 		// 一般实现：遍历RpcContexts，
 		/*
 		var ctxSends = GetRpcContextsToSender(so);
-		var ctxPending = RemoveRpcContets(ctxSends.Keys);
+		var ctxPending = RemoveRpcContexts(ctxSends.Keys);
 		foreach (var ctx in ctxRemoved)
 		{
 		    // process
@@ -201,7 +201,7 @@ public class Service {
 		return result;
 	}
 
-	public final Collection<Protocol> RemoveRpcContets(Collection<Long> sids) {
+	public final Collection<Protocol> RemoveRpcContexts(Collection<Long> sids) {
 		var result = new ArrayList<Protocol>(sids.size());
 		for (var sid : sids) {
 			var ctx = this.RemoveRpcContext(sid);
@@ -212,9 +212,9 @@ public class Service {
 		return result;
 	}
 
-	/** 
+	/**
 	 服务器接受到新连接回调。
-	 
+
 	 @param so
 	 new socket accepted.
 	*/
@@ -223,10 +223,11 @@ public class Service {
 		OnHandshakeDone(so);
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	public void OnSocketAcceptError(AsyncSocket listener, Throwable e) throws Throwable {
 		logger.log(getSocketOptions().getSocketLogLevel(), () -> "OnSocketAcceptError" + listener, e);
 	}
-	/** 
+	/**
 	 连接完成建立调用。
 	 未加密压缩的连接在 OnSocketAccept OnSocketConnected 里面调用这个方法。
 	 加密压缩的连接在相应的方法中调用（see Services\Handshake.cs）。
@@ -239,34 +240,35 @@ public class Service {
 		}
 	}
 
-	/** 
+	/**
 	 连接失败回调。同时也会回调OnSocketClose。
-	 
+
 	 @param so
 	 socket that connect error.
 	 @param e
-	 excepton catched
+	 exception caught
 	*/
+	@SuppressWarnings("RedundantThrows")
 	public void OnSocketConnectError(AsyncSocket so, Throwable e) throws Throwable {
 		SocketMap.remove(so.getSessionId(), so);
 		logger.log(getSocketOptions().getSocketLogLevel(), "OnSocketConnectError", e);
 	}
 
-	/** 
+	/**
 	 连接成功回调。
-	 
+
 	 @param so
-	 connect successed
+	 connect succeed
 	*/
 	public void OnSocketConnected(AsyncSocket so) throws Throwable {
 		SocketMap.putIfAbsent(so.getSessionId(), so);
 		OnHandshakeDone(so);
 	}
 
-	/** 
+	/**
 	 处理数据。
 	 在异步线程中回调，要注意线程安全。
-	 
+
 	 @param so
 	 current socket
 	 @param input
@@ -277,6 +279,7 @@ public class Service {
 	}
 
 	// 用来派发异步rpc回调。
+	@SuppressWarnings("RedundantThrows")
 	public void DispatchRpcResponse(Protocol rpc, ProtocolHandle responseHandle, ProtocolFactoryHandle factoryHandle) throws Throwable {
 		if (null != getZeze() && TransactionLevel.None != factoryHandle.Level) {
 			Task.Run(getZeze().NewProcedure(
@@ -290,6 +293,7 @@ public class Service {
 		}
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	public final void DispatchProtocol2(Object key, Protocol p, ProtocolFactoryHandle factoryHandle) throws Throwable {
 		if (null != factoryHandle.Handle) {
 			if (TransactionLevel.None != factoryHandle.Level) {
@@ -330,17 +334,18 @@ public class Service {
 			}
 		}
 		else {
-			logger.log(SocketOptions.getSocketLogLevel(), "Protocol Handle Not Found. {0}", p);
+			logger.log(SocketOptions.getSocketLogLevel(), "Protocol Handle Not Found. {}", p);
 		}
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	public void DispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Throwable {
 		throw new RuntimeException("Unknown Protocol (" + moduleId + ", " + protocolId + ") size=" + data.Size());
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	/** 协议工厂
-	*/	
+	*/
 	public static class ProtocolFactoryHandle {
 		public Zeze.Util.Factory<Protocol> Factory;
 		public ProtocolHandle Handle;
@@ -363,14 +368,14 @@ public class Service {
 		}
 	}
 
-	private final ConcurrentHashMap<Long, ProtocolFactoryHandle> Factorys = new ConcurrentHashMap<> ();
+	private final ConcurrentHashMap<Long, ProtocolFactoryHandle> Factorys = new ConcurrentHashMap<>();
 	public final ConcurrentHashMap<Long, ProtocolFactoryHandle> getFactorys() {
 		return Factorys;
 	}
 
 	public final void AddFactoryHandle(long type, ProtocolFactoryHandle factory) {
 		if (null != getFactorys().putIfAbsent(type, factory)) {
-			throw new RuntimeException(Str.format("duplicate factory type={} moduleid={} id={}", type, (type >>> 16) & 0x7fff, type & 0x7fff));
+			throw new RuntimeException(Str.format("duplicate factory type={} moduleId={} id={}", type, (type >>> 16) & 0x7fff, type & 0x7fff));
 		}
 	}
 
@@ -436,9 +441,9 @@ public class Service {
 		}
 
 		// after OnRemoved if Timeout
+		@SuppressWarnings("RedundantThrows")
 		public void OnTimeout() throws Throwable {
-	}
-
+		}
 	}
 
 	private final java.util.concurrent.ConcurrentHashMap<Long, ManualContext> ManualContexts = new java.util.concurrent.ConcurrentHashMap<>();
@@ -499,8 +504,8 @@ public class Service {
 				NetworkInterface networkInterface = interfaces.nextElement();
 				Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
 				if (inetAddresses.hasMoreElements()) {
-					var inetaddr = inetAddresses.nextElement();
-					return inetaddr.getHostAddress();
+					var inetAddr = inetAddresses.nextElement();
+					return inetAddr.getHostAddress();
 				}
 			}
 			return "";
@@ -510,37 +515,37 @@ public class Service {
 	}
 
 	public Zeze.Util.KV<String, Integer> GetOneAcceptorAddress() {
-		final var ipport = KV.Create("", 0);
+		final var ipPort = KV.Create("", 0);
 
 		Config.ForEachAcceptor2((a) -> {
 			if (!a.getIp().isEmpty() && a.getPort() != 0) {
 				// 找到ip，port都配置成明确地址的。
-				ipport.setKey(a.getIp());
-				ipport.setValue(a.getPort());
+				ipPort.setKey(a.getIp());
+				ipPort.setValue(a.getPort());
 				return false;
 			}
 			// 获得最后一个配置的port。允许返回(null, port)。
-			ipport.setValue(a.getPort());
+			ipPort.setValue(a.getPort());
 			return true;
 		});
 
-		return ipport;
+		return ipPort;
 	}
 
 	public Zeze.Util.KV<String, Integer> GetOnePassiveAddress() {
-		var ipport = GetOneAcceptorAddress();
-		if (ipport.getValue() == 0)
+		var ipPort = GetOneAcceptorAddress();
+		if (ipPort.getValue() == 0)
 			throw new RuntimeException("Acceptor: No Config.");
 
-		if (ipport.getKey().isEmpty()) {
+		if (ipPort.getKey().isEmpty()) {
 			// 可能绑定在任意地址上。尝试获得网卡的地址。
-			ipport.setKey(GetOneNetworkInterfaceIpAddress());
-			if (ipport.getKey().isEmpty()) {
+			ipPort.setKey(GetOneNetworkInterfaceIpAddress());
+			if (ipPort.getKey().isEmpty()) {
 				// 实在找不到ip地址，就设置成loopback。
 				logger.warn("PassiveAddress No Config. set ip to 127.0.0.1");
-				ipport.setKey("127.0.0.1");
+				ipPort.setKey("127.0.0.1");
 			}
 		}
-		return ipport;
+		return ipPort;
 	}
 }

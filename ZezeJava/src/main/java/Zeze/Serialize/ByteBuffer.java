@@ -250,7 +250,7 @@ public final class ByteBuffer {
 	 最好仅在全部读取写入处理完成以后调用处理一次，
 	 为下一次写入读取做准备。
 	*/
-	public void Campact() {
+	public void Compact() {
 		int size = this.Size();
 		if (size > 0) {
 			if (ReadIndex > 0) {
@@ -861,12 +861,12 @@ public final class ByteBuffer {
 	    return (id << TAG_SHIFT) | tag;
 	}
 
-	public static int GetTag(int tagid)
+	public static int GetTag(int tagId)
 	{
-	    return tagid & TAG_MASK;
+	    return tagId & TAG_MASK;
 	}
 
-	public static int GetId(int tagid)
+	public static int GetId(int tagId)
 	{
 	}
 	*/
@@ -875,11 +875,11 @@ public final class ByteBuffer {
 		if (offset < 0 || offset > bytes.length) {
 			throw new RuntimeException(Zeze.Util.Str.format("{},{},{}", bytes.length, offset, length));
 		}
-		int endindex = offset + length;
-		if (endindex < 0 || endindex > bytes.length) {
+		int endIndex = offset + length;
+		if (endIndex < 0 || endIndex > bytes.length) {
 			throw new RuntimeException(Zeze.Util.Str.format("{},{},{}", bytes.length, offset, length));
 		}
-		if (offset > endindex) {
+		if (offset > endIndex) {
 			throw new RuntimeException(Zeze.Util.Str.format("{},{},{}", bytes.length, offset, length));
 		}
 	}
@@ -890,8 +890,8 @@ public final class ByteBuffer {
 		return bb;
 	}
 
-	public static void SkipUnknownField(int tagid, ByteBuffer bb) {
-		int tagType = tagid & TAG_MASK;
+	public static void SkipUnknownField(int tagId, ByteBuffer bb) {
+		int tagType = tagId & TAG_MASK;
 		switch (tagType) {
 			case BOOL: bb.ReadBool(); return;
 			case BYTE: bb.ReadByte(); return;
@@ -920,7 +920,7 @@ public final class ByteBuffer {
 		}
 		sb.append("]");
 	}
-	
+
 	public static <TK, TV> void BuildString(StringBuilder sb, Map<TK, TV> dic) {
 		sb.append("{");
 		for (var e : dic.entrySet()) {

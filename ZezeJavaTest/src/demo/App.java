@@ -108,8 +108,8 @@ public class App extends Zeze.AppBase {
 
     public void Destroy() {
         synchronized(this) {
-            demo_Module1 = null;
             demo_Module1_Module11 = null;
+            demo_Module1 = null;
             Modules.clear();
             Server = null;
             Zeze = null;
@@ -126,8 +126,8 @@ public class App extends Zeze.AppBase {
 
     public void StopModules() throws Throwable {
         synchronized(this) {
-            demo_Module1.Stop(this);
             demo_Module1_Module11.Stop(this);
+            demo_Module1.Stop(this);
         }
     }
 

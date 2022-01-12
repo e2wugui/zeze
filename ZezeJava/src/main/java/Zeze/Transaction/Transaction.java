@@ -133,7 +133,7 @@ public final class Transaction {
 
 	/**
 	 Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
-	 
+
 	 @param procedure first procedure
 	*/
 	public long Perform(Procedure procedure) throws Throwable {
@@ -375,7 +375,7 @@ public final class Transaction {
 	}
 	private final ArrayList<Savepoint> Savepoints = new ArrayList<>();
 
-	/** 
+	/**
 	 只能添加一次。
 	 @param r record accessed
 	*/
@@ -411,7 +411,7 @@ public final class Transaction {
 		}
 		// 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
 		// 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
-		if (ra.OriginRecord.getTable().getZeze().getConfig().getFastRedoWhenConfict()
+		if (ra.OriginRecord.getTable().getZeze().getConfig().getFastRedoWhenConflict()
 				&& State != TransactionState.Completed
 				&& ra.OriginRecord.getTimestamp() != ra.Timestamp) {
 			ThrowRedo();
@@ -556,7 +556,7 @@ public final class Transaction {
 					// 重新从当前 e 继续锁。
 					continue;
 				}
-				// else 已经持有读锁，不可能被修改也不可能降级(reduce)，所以不做检测了。                    
+				// else 已经持有读锁，不可能被修改也不可能降级(reduce)，所以不做检测了。
 				// 已经锁定了，跳过当前锁，比较下一个。
 				++index;
 				e = ite.hasNext() ? ite.next() : null;

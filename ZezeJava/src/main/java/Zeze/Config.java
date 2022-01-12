@@ -109,12 +109,12 @@ public final class Config {
 	public void setDefaultTableConf(TableConf value) {
 		DefaultTableConf = value;
 	}
-	private boolean AllowReadWhenRecoredNotAccessed = true;
-	public boolean getAllowReadWhenRecoredNotAccessed() {
-		return AllowReadWhenRecoredNotAccessed;
+	private boolean AllowReadWhenRecordNotAccessed = true;
+	public boolean getAllowReadWhenRecordNotAccessed() {
+		return AllowReadWhenRecordNotAccessed;
 	}
-	public void setAllowReadWhenRecoredNotAccessed(boolean value) {
-		AllowReadWhenRecoredNotAccessed = value;
+	public void setAllowReadWhenRecordNotAccessed(boolean value) {
+		AllowReadWhenRecordNotAccessed = value;
 	}
 	private boolean AllowSchemasReuseVariableIdWithSameType = true;
 	public boolean getAllowSchemasReuseVariableIdWithSameType() {
@@ -123,25 +123,25 @@ public final class Config {
 	public void setAllowSchemasReuseVariableIdWithSameType(boolean value) {
 		AllowSchemasReuseVariableIdWithSameType = value;
 	}
-	private boolean FastRedoWhenConfict = false;
-	public boolean getFastRedoWhenConfict() {
-		return FastRedoWhenConfict;
+	private boolean FastRedoWhenConflict = false;
+	public boolean getFastRedoWhenConflict() {
+		return FastRedoWhenConflict;
 	}
-	public void setFastRedoWhenConfict(boolean value) {
-		FastRedoWhenConfict = value;
+	public void setFastRedoWhenConflict(boolean value) {
+		FastRedoWhenConflict = value;
 	}
 	private final ConcurrentHashMap<String, ICustomize> Customize = new ConcurrentHashMap<> ();
 	public ConcurrentHashMap<String, ICustomize> getCustomize() {
 		return Customize;
 	}
 
-	private boolean DonotCheckSchemasWhenTableIsNew = false;
-	public final boolean donotCheckSchemasWhenTableIsNew() { return DonotCheckSchemasWhenTableIsNew; }
-	/** 
+	private boolean DoNotCheckSchemasWhenTableIsNew = false;
+	public boolean doNotCheckSchemasWhenTableIsNew() { return DoNotCheckSchemasWhenTableIsNew; }
+	/**
 	 根据自定义配置名字查找。
 	 因为外面需要通过AddCustomize注册进来，
 	 如果外面保存了配置引用，是不需要访问这个接口的。
-	 
+
 	 <typeparam name="T"></typeparam>
 	*/
 	@SuppressWarnings("unchecked")
@@ -223,21 +223,21 @@ public final class Config {
 		return getServiceConfMap().get(name);
 	}
 
-	/** 
+	/**
 	 由于这个方法没法加入Customize配置，为了兼容和内部测试保留，
 	 应用应该自己LoadAndParse。
 	 var c = new Config();
 	 c.AddCustomize(...);
 	 c.LoadAndParse();
-	 
+
 	*/
 
 	public static Config Load() {
 		return Load("zeze.xml");
 	}
 
-	public static Config Load(String xmlfile) {
-		return (new Config()).LoadAndParse(xmlfile);
+	public static Config Load(String xmlFile) {
+		return (new Config()).LoadAndParse(xmlFile);
 	}
 
 
@@ -245,13 +245,13 @@ public final class Config {
 		return LoadAndParse("zeze.xml");
 	}
 
-	public Config LoadAndParse(String xmlfile) {
-		if ((new File(xmlfile)).isFile()) {
+	public Config LoadAndParse(String xmlFile) {
+		if ((new File(xmlFile)).isFile()) {
 			DocumentBuilderFactory db = DocumentBuilderFactory.newInstance();
-			db.setXIncludeAware(true);	
+			db.setXIncludeAware(true);
 			db.setNamespaceAware(true);
 			try {
-				Document doc = db.newDocumentBuilder().parse(xmlfile);
+				Document doc = db.newDocumentBuilder().parse(xmlFile);
 				Parse(doc.getDocumentElement());
 			}
 			catch (Throwable ex) {
@@ -261,7 +261,7 @@ public final class Config {
 		if (null == getDefaultTableConf()) {
 			setDefaultTableConf(new TableConf());
 		}
-		if (getDatabaseConfMap().isEmpty()) { // add default databaseconf.
+		if (getDatabaseConfMap().isEmpty()) { // add default databaseConf.
 
 			if (null != getDatabaseConfMap().putIfAbsent("", new DatabaseConf())) {
 				throw new RuntimeException("Concurrent Add Default Database.");
@@ -303,13 +303,13 @@ public final class Config {
 		attr = self.getAttribute("CompletionPortThreads");
 		setCompletionPortThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);
 
-		attr = self.getAttribute("AllowReadWhenRecoredNotAccessed");
-		setAllowReadWhenRecoredNotAccessed(attr.length() <= 0 || Boolean.parseBoolean(attr));
+		attr = self.getAttribute("AllowReadWhenRecordNotAccessed");
+		setAllowReadWhenRecordNotAccessed(attr.length() <= 0 || Boolean.parseBoolean(attr));
 		attr = self.getAttribute("AllowSchemasReuseVariableIdWithSameType");
 		setAllowSchemasReuseVariableIdWithSameType(attr.length() <= 0 || Boolean.parseBoolean(attr));
 
-		attr = self.getAttribute("FastRedoWhenConfict");
-		setFastRedoWhenConfict((attr.length() <= 0 || Boolean.parseBoolean(attr)));
+		attr = self.getAttribute("FastRedoWhenConflict");
+		setFastRedoWhenConflict((attr.length() <= 0 || Boolean.parseBoolean(attr)));
 
 		attr = self.getAttribute("CheckpointMode");
 		if (attr.length() > 0) {
@@ -320,14 +320,14 @@ public final class Config {
 			CheckpointMode = Zeze.Transaction.CheckpointMode.Table;
 		}
 
-		attr = self.getAttribute("DonotCheckSchemasWhenTableIsNew");
+		attr = self.getAttribute("DoNotCheckSchemasWhenTableIsNew");
 		if (attr.length() > 0) {
-			DonotCheckSchemasWhenTableIsNew = Boolean.parseBoolean(attr);
+			DoNotCheckSchemasWhenTableIsNew = Boolean.parseBoolean(attr);
 		}
 
-		NodeList childnodes = self.getChildNodes();
-		for (int i = 0; i < childnodes.getLength(); ++i) {
-			Node node = childnodes.item(i);
+		NodeList childNodes = self.getChildNodes();
+		for (int i = 0; i < childNodes.getLength(); ++i) {
+			Node node = childNodes.item(i);
 			if (Node.ELEMENT_NODE != node.getNodeType()) {
 				continue;
 			}
@@ -417,7 +417,7 @@ public final class Config {
 		public String getDatabaseUrl() {
 			return DatabaseUrl;
 		}
-		
+
 		public void setName(String name) {
 			Name = name;
 		}
@@ -446,7 +446,7 @@ public final class Config {
 			Name = self.getAttribute("Name");
 			switch (self.getAttribute("DatabaseType")) {
 				case "Memory":
-					DatabaseType = DbType.Memory;
+					// DatabaseType = DbType.Memory;
 					break;
 				case "MySql":
 					DatabaseType = DbType.MySql;
@@ -496,12 +496,12 @@ public final class Config {
 		public void setCacheConcurrencyLevel(int value) {
 			CacheConcurrencyLevel = value;
 		}
-		private int CacheInitialCapaicty;
-		public int getCacheInitialCapaicty() {
-			return CacheInitialCapaicty;
+		private int CacheInitialCapacity;
+		public int getCacheInitialCapacity() {
+			return CacheInitialCapacity;
 		}
-		public void setCacheInitialCapaicty(int value) {
-			CacheInitialCapaicty = value;
+		public void setCacheInitialCapacity(int value) {
+			CacheInitialCapacity = value;
 		}
 		private int CacheNewAccessHotThreshold;
 		public int getCacheNewAccessHotThreshold() {
@@ -524,12 +524,12 @@ public final class Config {
 		public void setCacheNewLruHotPeriod(int value) {
 			CacheNewLruHotPeriod = value;
 		}
-		private int CacheMaxLruInitialCapaicty = 100000;
-		public int getCacheMaxLruInitialCapaicty() {
-			return CacheMaxLruInitialCapaicty;
+		private int CacheMaxLruInitialCapacity = 100000;
+		public int getCacheMaxLruInitialCapacity() {
+			return CacheMaxLruInitialCapacity;
 		}
-		public void setCacheMaxLruInitialCapaicty(int value) {
-			CacheMaxLruInitialCapaicty = value;
+		public void setCacheMaxLruInitialCapacity(int value) {
+			CacheMaxLruInitialCapacity = value;
 		}
 		private int CacheCleanPeriodWhenExceedCapacity = 1000;
 		public int getCacheCleanPeriodWhenExceedCapacity() {
@@ -591,9 +591,9 @@ public final class Config {
 			if (attr.length() > 0) {
 				setCacheConcurrencyLevel(Integer.parseInt(attr));
 			}
-			attr = self.getAttribute("CacheInitialCapaicty");
+			attr = self.getAttribute("CacheInitialCapacity");
 			if (attr.length() > 0) {
-				setCacheInitialCapaicty(Integer.parseInt(attr));
+				setCacheInitialCapacity(Integer.parseInt(attr));
 			}
 			attr = self.getAttribute("CacheNewAccessHotThreshold");
 			if (attr.length() > 0) {
@@ -603,9 +603,9 @@ public final class Config {
 			if (attr.length() > 0) {
 				setCacheCleanPeriodWhenExceedCapacity(Integer.parseInt(attr));
 			}
-			attr = self.getAttribute("CacheMaxLruInitialCapaicty");
+			attr = self.getAttribute("CacheMaxLruInitialCapacity");
 			if (attr.length() > 0) {
-				setCacheMaxLruInitialCapaicty(Integer.parseInt(attr));
+				setCacheMaxLruInitialCapacity(Integer.parseInt(attr));
 			}
 
 			if (getName().length() > 0) {

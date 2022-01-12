@@ -17,7 +17,7 @@ public class App {
     public App(int serverId) {
         config = Config.Load("zeze.xml");
         config.setServerId(serverId);
-        config.setFastRedoWhenConfict(false);
+        config.setFastRedoWhenConflict(false);
         config.setCheckpointPeriod(1000);
 
         var tdef = config.getDefaultTableConf();

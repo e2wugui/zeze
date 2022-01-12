@@ -196,7 +196,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
         // session.Handle.handle(session, packet); // 直接在网络线程中执行。
     }
 
-    private void tryDispacthRecvWindow(Session session) {
+    private void tryDispatchRecvWindow(Session session) {
         for (long serialId = session.LastDispatchedSerialId + 1;
              serialId <= session.MaxRecvPacketSerialId;
              ++serialId) {
@@ -238,7 +238,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
                 session.RecvWindow.remove(packet.SerialId);
 
                 // 派发可能收到的原来乱序的包。
-                tryDispacthRecvWindow(session);
+                tryDispatchRecvWindow(session);
                 return;
             }
 
@@ -324,7 +324,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
     }
 
     @Override
-    public void doException(SelectionKey key, Throwable e) throws Throwable {
+    public void doException(SelectionKey key, Throwable e) {
         logger.error("doException", e);
     }
 

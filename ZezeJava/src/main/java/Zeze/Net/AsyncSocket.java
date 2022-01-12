@@ -114,7 +114,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return ((SocketChannel)selectionKey.channel()).socket();
 	}
 
-	/** 
+	/**
 	 保存需要存储在Socket中的状态。
 	 简单变量，没有考虑线程安全问题。
 	 内部不使用。
@@ -161,7 +161,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 		return SessionIdGen.incrementAndGet();
 	}
-	/** 
+	/**
 	 for server socket
 	*/
 	public AsyncSocket(Service service, InetSocketAddress localEP, Acceptor acceptor) {
@@ -240,13 +240,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	@Override
-	public void doException(SelectionKey key, Throwable e) throws Throwable {
+	public void doException(SelectionKey key, Throwable e) {
 		Close(e);
 		logger.error("doException {}", RemoteAddress, e);
 	}
 
-	/** 
-	 use inner. create when accept;
+	/**
+	 use inner. create when accepted;
 	*/
 	private AsyncSocket(Service service, SocketChannel sc, Acceptor acceptor) {
 		this.setService(service);
@@ -273,7 +273,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		selectionKey = selector.register(sc, SelectionKey.OP_READ, this);
 	}
 
-	/** 
+	/**
 	 for client socket. connect
 	*/
 	private void doConnectSuccess(SocketChannel sc) throws Throwable {
@@ -406,7 +406,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return Send(bytes, 0, bytes.length);
 	}
 
-	/** 
+	/**
 	 可能直接加到发送缓冲区，不能再修改bytes了。
 	 */
 	public boolean Send(byte[] bytes, int offset, int length) {
@@ -456,14 +456,14 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				}
 			}
 
-			// 1 检测 buffer 是否满，2 剩余数据 Campact，3 需要的话，释放buffer内存。
+			// 1 检测 buffer 是否满，2 剩余数据 Compact，3 需要的话，释放buffer内存。
 			int remain = inputCodecBuffer.getBuffer().Size();
 			if (remain > 0) {
 				var max = getService().getSocketOptions().getInputBufferMaxProtocolSize();
 				if (remain >= max) {
 					throw new RuntimeException("InputBufferMaxProtocolSize " + max);
 				}
-				inputCodecBuffer.getBuffer().Campact();
+				inputCodecBuffer.getBuffer().Compact();
 			}
 			else {
 				inputCodecBuffer.getBuffer().FreeInternalBuffer(); // 解析缓冲如果为空，马上释放内部bytes[]。
@@ -596,7 +596,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (getService().getSocketMapInternal().remove(SessionId, this)) {
 			if (null != getService().getSocketMapInternal().putIfAbsent(newSessionId, this)) {
 				getService().getSocketMapInternal().putIfAbsent(SessionId, this); // rollback
-				throw new RuntimeException("duplicate sessionid " + this);
+				throw new RuntimeException("duplicate sessionId " + this);
 			}
 			SessionId = newSessionId;
 		}

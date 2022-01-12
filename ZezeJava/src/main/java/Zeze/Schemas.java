@@ -7,7 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Util.Action1;
 
-/** 
+/**
  1 启动数据库时，用来判断当前代码的数据定义结构是否和当前数据库的定义结构兼容。
    当前包含以下兼容检测。
    a) 对于每个 Variable.Id，Type不能修改。
@@ -16,12 +16,12 @@ import Zeze.Util.Action1;
 	  这是为了处理多人使用同一个数据库进行开发时的冲突（具体不解释了）。
    c) beankey 被应用于map.Key或set.Value或table.Key以后就不能再删除变量了。
 	  当作key以后，如果删除变量，beankey.Encode() 就可能不再唯一。
-	  
+
  2 通过查询类型信息，从数据转换到具体实例。合服可能需要。
    如果是通用合并的insert，应该在二进制接口上操作（目前还没有）。
    如果合并时需要处理冲突，此时应用是知道具体类型的。
    所以这个功能暂时先不提供了。
-   
+
 */
 public class Schemas implements Serializable {
 	public static class Checked {
@@ -93,7 +93,7 @@ public class Schemas implements Serializable {
 			}
 		}
 	}
-	
+
 	public static class Context {
 		private Schemas Current;
 		public final Schemas getCurrent() {
@@ -200,7 +200,7 @@ public class Schemas implements Serializable {
 				}
 			}
 			else if (other.Key != null) {
-				throw new RuntimeException("(this.Key == null && other.Key != null) Imposible!");
+				throw new RuntimeException("(this.Key == null && other.Key != null) Impossible!");
 			}
 
 			if (null != Value) {
@@ -211,7 +211,7 @@ public class Schemas implements Serializable {
 						}, UpdateVariable);
 			}
 			else if (other.Value != null) {
-				throw new RuntimeException("(this.Value == null && other.Value != null) Imposible!");
+				throw new RuntimeException("(this.Value == null && other.Value != null) Impossible!");
 			}
 
 			return true;
@@ -280,7 +280,7 @@ public class Schemas implements Serializable {
         public boolean Deleted = false;
 
         public Variable() {
-        	
+
         }
 
         @Override
@@ -367,18 +367,18 @@ public class Schemas implements Serializable {
 		}
 
 		public Bean() {
-			
+
 		}
 
-		public Bean(String name, boolean isbeankey) {
+		public Bean(String name, boolean isBeanKey) {
 			Name = name;
-			IsBeanKey = isbeankey;
+			IsBeanKey = isBeanKey;
 		}
 
-		/** 
+		/**
 		 var可能增加，也可能删除，所以兼容仅判断var.id相同的。
 		 并且和谁比较谁没有关系。
-		 
+
 		 @param other
 		 another Type
 		 @return
@@ -493,10 +493,10 @@ public class Schemas implements Serializable {
 					return;
 				}
 
-				var newb = ShadowCopy(context);
-				newb.setRealName(getRealName()); // 原来是新建的Bean，要使用这个。
-				context.getCurrent().AddBean(newb);
-				result.setBean(newb);
+				var newBean = ShadowCopy(context);
+				newBean.setRealName(getRealName()); // 原来是新建的Bean，要使用这个。
+				context.getCurrent().AddBean(newBean);
+				result.setBean(newBean);
 				result.AddUpdate(Update, UpdateVariable);
 				return;
 			}
@@ -506,10 +506,10 @@ public class Schemas implements Serializable {
 				return;
 			}
 
-			var newb2 = ShadowCopy(context);
-			newb2.Deleted = true;
-			context.getCurrent().AddBean(newb2);
-			result.setBean(newb2);
+			var newBean2 = ShadowCopy(context);
+			newBean2.Deleted = true;
+			context.getCurrent().AddBean(newBean2);
+			result.setBean(newBean2);
 			result.AddUpdate(Update, UpdateVariable);
 
 			for (var v : getVariables().values()) {
@@ -566,7 +566,7 @@ public class Schemas implements Serializable {
 			getVariables().put(var.Id, var);
 		}
 	}
-	
+
     public static class Table implements Serializable
     {
         public String Name; // FullName, sample: demo_Module1_Table1
@@ -576,7 +576,7 @@ public class Schemas implements Serializable {
         public Type ValueType;
 
         public Table() {
-        	
+
         }
 
         public Table(String n, String k, String v) {
@@ -629,7 +629,7 @@ public class Schemas implements Serializable {
     public HashMap<String, Table> Tables = new HashMap<>();
     public HashMap<String, Bean> Beans = new HashMap<>();
 
-    private final static Logger logger = LogManager.getLogger(Table.class);
+    // private final static Logger logger = LogManager.getLogger(Table.class);
 
     public void CheckCompatible(Schemas other, Zeze.Application app) throws Throwable {
         if (null == other)
@@ -643,8 +643,8 @@ public class Schemas implements Serializable {
         }
 
         for (var table : Tables.values()) {
-			var ztable = app.GetTable(table.Name);
-			if (null != ztable && ztable.isNew() && app.getConfig().donotCheckSchemasWhenTableIsNew())
+			var zTable = app.GetTable(table.Name);
+			if (null != zTable && zTable.isNew() && app.getConfig().doNotCheckSchemasWhenTableIsNew())
 				continue;
         	var otherTable = other.Tables.get(table.Name);
         	if (null != otherTable) {
@@ -706,7 +706,7 @@ public class Schemas implements Serializable {
         	return beanExist;
 
         var fullTypeName = type + ":" + key + ":" + value;
-        
+
         // 除了Bean，其他基本类型和容器类型都动态创建。
         var typeExist = BasicTypes.get(fullTypeName);
         if (null != typeExist)

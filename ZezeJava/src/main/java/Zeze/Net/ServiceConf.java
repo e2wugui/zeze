@@ -68,9 +68,9 @@ public final class ServiceConf {
 		return FindConnector(host + ":" + port);
 	}
 
-	/** 
+	/**
 	 查找，不存在则创建。
-	 
+
 	 @param host
 	 peer address or name
 	 @param port
@@ -198,11 +198,11 @@ public final class ServiceConf {
 		if (attr.length() > 0) {
 			getHandshakeOptions().setDhGroups(new HashSet<>());
 			for (String dg : attr.split("[,]", -1)) {
-				String dgtmp = dg.strip();
-				if (dgtmp.length() == 0) {
+				String dgTmp = dg.strip();
+				if (dgTmp.length() == 0) {
 					continue;
 				}
-				getHandshakeOptions().AddDhGroup(Integer.parseInt(dgtmp));
+				getHandshakeOptions().AddDhGroup(Integer.parseInt(dgTmp));
 			}
 		}
 		attr = self.getAttribute("SecureIp");
@@ -228,7 +228,7 @@ public final class ServiceConf {
 		}
 		{
 			String name = getName();
-			if ( name == null || name.isEmpty()) {
+			if (name.isEmpty()) {
 				conf.setDefaultServiceConf(this);
 			}
 			else if (null != conf.getServiceConfMap().putIfAbsent(name, this)) {
@@ -237,9 +237,9 @@ public final class ServiceConf {
 		}
 
 		// connection creator options
-		NodeList childnodes = self.getChildNodes();
-		for (int i = 0; i < childnodes.getLength(); ++i) {
-			Node node = childnodes.item(i);
+		NodeList childNodes = self.getChildNodes();
+		for (int i = 0; i < childNodes.getLength(); ++i) {
+			Node node = childNodes.item(i);
 			if (Node.ELEMENT_NODE != node.getNodeType()) {
 				continue;
 			}

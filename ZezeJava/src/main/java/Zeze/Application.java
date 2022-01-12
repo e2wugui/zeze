@@ -122,7 +122,7 @@ public final class Application {
 		GetDatabase(dbName).RemoveTable(table);
 	}
 
-	private ConcurrentHashMap<String, Table> Tables = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Table> Tables = new ConcurrentHashMap<>();
 
 	public Table GetTable(String name) {
 		return Tables.get(name);
@@ -199,9 +199,9 @@ public final class Application {
 					getSchemas().CheckCompatible(SchemasPrevious, this);
 					version = dataVersion.Version;
 				}
-				var newdata = Zeze.Serialize.ByteBuffer.Allocate();
-				getSchemas().Encode(newdata);
-				var versionRc = defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newdata, version);
+				var newData = Zeze.Serialize.ByteBuffer.Allocate();
+				getSchemas().Encode(newData);
+				var versionRc = defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newData, version);
 				if (versionRc.getValue())
 					break;
 			}
@@ -253,8 +253,8 @@ public final class Application {
 		public long Ticks; // System.currentTimeMillis()
 		public boolean Removed;
 
-		public LastFlushWhenReduce(TableKey tkey) {
-			Key = tkey;
+		public LastFlushWhenReduce(TableKey tKey) {
+			Key = tKey;
 		}
 	}
 
@@ -264,10 +264,11 @@ public final class Application {
 
 	public final static long MillisPerMinute = 60 * 1000;
 
-	public void __SetLastGlobalSerialId(TableKey tkey, long globalSerialId)
+	public void __SetLastGlobalSerialId(TableKey tKey, long globalSerialId)
 	{
 		while (true) {
-			var last = FlushWhenReduce.computeIfAbsent(tkey, LastFlushWhenReduce::new);
+			var last = FlushWhenReduce.computeIfAbsent(tKey, LastFlushWhenReduce::new);
+			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (last) {
 				if (last.Removed)
 					continue;
@@ -282,11 +283,12 @@ public final class Application {
 		}
 	}
 
-	public boolean __TryWaitFlushWhenReduce(TableKey tkey, long hope)
+	public boolean __TryWaitFlushWhenReduce(TableKey tKey, long hope)
 	{
 		while (true)
 		{
-			var last = FlushWhenReduce.computeIfAbsent(tkey, LastFlushWhenReduce::new);
+			var last = FlushWhenReduce.computeIfAbsent(tKey, LastFlushWhenReduce::new);
+			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (last) {
 				if (last.Removed)
 					continue;
@@ -307,19 +309,20 @@ public final class Application {
 		}
 	}
 
-	public final static long FlushWhenReduceIdleMinuts = 30;
+	public final static long FlushWhenReduceIdleMinutes = 30;
 
 	private void FlushWhenReduceTimer(Zeze.Util.Task ThisTask) {
-		var minuts = System.currentTimeMillis() / MillisPerMinute;
+		var minutes = System.currentTimeMillis() / MillisPerMinute;
 
 		for  (var active : FlushWhenReduceActives.entrySet()) {
-			if (active.getKey() - minuts > FlushWhenReduceIdleMinuts) {
-				for  (var last : active.getValue()) {
+			if (active.getKey() - minutes > FlushWhenReduceIdleMinutes) {
+				for (var last : active.getValue()) {
+					//noinspection SynchronizationOnLocalVariableOrMethodParameter
 					synchronized (last) {
 						if (last.Removed)
 							continue;
 
-						if (last.Ticks / MillisPerMinute > FlushWhenReduceIdleMinuts) {
+						if (last.Ticks / MillisPerMinute > FlushWhenReduceIdleMinutes) {
 							if (FlushWhenReduce.remove(last.Key) != null) {
 								last.Removed = true;
 							}
