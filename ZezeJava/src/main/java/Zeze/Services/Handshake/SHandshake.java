@@ -9,7 +9,7 @@ public final class SHandshake extends Zeze.Net.Protocol1<SHandshakeArgument> {
 	public int getModuleId() {
 		return 0;
 	}
-	
+
 	@Override
 	public int getProtocolId() {
 		return ProtocolId_;
@@ -19,10 +19,10 @@ public final class SHandshake extends Zeze.Net.Protocol1<SHandshakeArgument> {
 		Argument = new SHandshakeArgument();
 	}
 
-	public SHandshake(byte[] dh_data, boolean s2cneedcompress, boolean c2sneedcompress) {
+	public SHandshake(byte[] dh_data, boolean s2cNeedCompress, boolean c2sNeedCompress) {
 		Argument = new SHandshakeArgument();
 		Argument.dh_data = dh_data;
-		Argument.s2cneedcompress = s2cneedcompress;
-		Argument.c2sneedcompress = c2sneedcompress;
+		Argument.s2cNeedCompress = s2cNeedCompress;
+		Argument.c2sNeedCompress = c2sNeedCompress;
 	}
 }

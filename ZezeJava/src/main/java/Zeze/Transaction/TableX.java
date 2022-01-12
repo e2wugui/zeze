@@ -268,7 +268,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			lockey.EnterWriteLock();
 			try {
 				// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
-				e.getValue().setState(GlobalCacheManagerServer.StateInvalid); 
+				e.getValue().setState(GlobalCacheManagerServer.StateInvalid);
 			}
 			finally {
 				lockey.ExitWriteLock();
@@ -280,6 +280,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
+		assert currentT != null;
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		if (null != cr) {
 			@SuppressWarnings("unchecked")
@@ -296,6 +297,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
+		assert currentT != null;
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		if (null != cr) {
 			@SuppressWarnings("unchecked")
@@ -329,6 +331,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
+		assert currentT != null;
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, value);
@@ -346,6 +349,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
+		assert currentT != null;
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		if (null != cr) {
 			value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
@@ -363,6 +367,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
+		assert currentT != null;
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		if (null != cr) {
 			cr.Put(currentT, null);
@@ -446,9 +451,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return bb;
 	}
 
-	/** 
+	/**
 	 解码系列化的数据到对象。
-	 
+
 	 @param bb bean encoded data
 	 @return Value
 	*/
@@ -458,11 +463,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return value;
 	}
 
-	/** 
+	/**
 	 遍历表格。能看到记录的最新数据。
 	 【注意】这里看不到新增的但没有提交(checkpoint)的记录。实现这个有点麻烦。
 	 【并发】每个记录回调时加读锁，回调完成马上释放。
-	 
+
 	 @param callback walk callback
 	 @return count
 	*/
@@ -496,10 +501,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		});
 	}
 
-	/** 
+	/**
 	 遍历数据库中的表。看不到本地缓存中的数据。
 	 【并发】后台数据库处理并发。
-	 
+
 	 @param callback walk callback
 	 @return count
 	*/
@@ -507,10 +512,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return TStorage.getDatabaseTable().Walk(callback);
 	}
 
-	/** 
+	/**
 	 遍历数据库中的表。看不到本地缓存中的数据。
 	 【并发】后台数据库处理并发。
-	 
+
 	 @param callback walk callback
 	 @return count
 	*/
@@ -524,7 +529,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	/**
 	 * 遍历缓存
-	 * @param callback
 	 * @return count
 	 */
 	public final long WalkCache(TableWalkHandle<K, V> callback) {
@@ -556,14 +560,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return count;
 	}
 
-	/** 
+	/**
 	 获得记录的拷贝。
 	 1. 一般在事务外使用。
 	 2. 如果在事务内使用：
 		a)已经访问过的记录，得到最新值的拷贝。不建议这种用法。
 		b)没有访问过的记录，从后台查询并拷贝，但不会加入RecordAccessed。
 	 3. 得到的结果一般不用于修改，应用传递时可以使用ReadOnly接口修饰保护一下。
-	 
+
 	 @param key record key
 	 @return record value
 	*/

@@ -3,7 +3,7 @@ package Zeze.Util;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** 
+/**
  把三维空间划分成一个个相邻的Cube。
  地图中的玩家或者物品Id记录在所在的Cube中。
  用来快速找到某个坐标周围的玩家或物体。
@@ -25,7 +25,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	}
 
 	private final Factory<TCube> Factory;
-	
+
 	public final CubeIndex ToIndex(double x, double y, double z) {
 		CubeIndex tempVar = new CubeIndex();
 		tempVar.setX((long)(x / getCubeSizeX()));
@@ -71,13 +71,14 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		void handle(CubeIndex index, TCube cube);
 	}
 
-	/** 
-	 perfrom action if cube exist.
+	/**
+	 perform action if cube exist.
 	 under lock (cube)
 	*/
-	public final void TryPerfrom(CubeIndex index, CubeHandle<TCube> action) {
+	public final void TryPerform(CubeIndex index, CubeHandle<TCube> action) {
 		TCube cube = Cubes.get(index);
 		if (null != cube) {
+			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cube) {
 				if (cube.getState() != Cube.StateRemoved) {
 					action.handle(index, cube);
@@ -86,13 +87,14 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		}
 	}
 
-	/** 
-	 perfrom action for Cubes.GetOrAdd.
+	/**
+	 perform action for Cubes.GetOrAdd.
 	 under lock (cube)
 	*/
 	public final void Perform(CubeIndex index, CubeHandle<TCube> action) {
 		while (true) {
 			TCube cube = Cubes.computeIfAbsent(index, (key) -> Factory.create());
+			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cube) {
 				if (cube.getState() == Cube.StateRemoved) {
 					continue;
@@ -103,7 +105,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		}
 	}
 
-	/** 
+	/**
 	 角色进入地图时
 	*/
 	public final void OnEnter(TObject obj, double x, double y, double z) {
@@ -134,48 +136,48 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 			return false;
 		}
 
-		TryPerfrom(oIndex, (index, cube) -> RemoveObject(index, cube, obj));
+		TryPerform(oIndex, (index, cube) -> RemoveObject(index, cube, obj));
 		Perform(nIndex, (index, cube) -> cube.Add(index, obj));
 		return true;
 	}
 
-	/** 
+	/**
 	 角色位置变化时，
 	 return true 如果cube发生了变化。
 	 return false 还在原来的cube中。
 	*/
-	public final boolean OnMove(TObject obj, double oldx, double oldy, double oldz, double newx, double newy, double newz) {
-		return OnMove(ToIndex(oldx, oldy, oldz), ToIndex(newx, newy, newz), obj);
+	public final boolean OnMove(TObject obj, double oldX, double oldY, double oldZ, double newX, double newY, double newZ) {
+		return OnMove(ToIndex(oldX, oldY, oldZ), ToIndex(newX, newY, newZ), obj);
 	}
 
-	public final boolean OnMove(TObject obj, float oldx, float oldy, float oldz, float newx, float newy, float newz) {
-		return OnMove(ToIndex(oldx, oldy, oldz), ToIndex(newx, newy, newz), obj);
+	public final boolean OnMove(TObject obj, float oldX, float oldY, float oldZ, float newX, float newY, float newZ) {
+		return OnMove(ToIndex(oldX, oldY, oldZ), ToIndex(newX, newY, newZ), obj);
 	}
 
-	public final boolean OnMove(TObject obj, long oldx, long oldy, long oldz, long newx, long newy, long newz) {
-		return OnMove(ToIndex(oldx, oldy, oldz), ToIndex(newx, newy, newz), obj);
+	public final boolean OnMove(TObject obj, long oldX, long oldY, long oldZ, long newX, long newY, long newZ) {
+		return OnMove(ToIndex(oldX, oldY, oldZ), ToIndex(newX, newY, newZ), obj);
 	}
 
 	public final boolean OnMove(TObject obj, CubeIndex oldIndex, CubeIndex newIndex) {
 		return OnMove(oldIndex, newIndex, obj);
 	}
-	/** 
+	/**
 	 角色离开地图时
 	*/
 	public final void OnLeave(TObject obj, double x, double y, double z) {
-		TryPerfrom(ToIndex(x, y, z), (index, cube) -> RemoveObject(index, cube, obj));
+		TryPerform(ToIndex(x, y, z), (index, cube) -> RemoveObject(index, cube, obj));
 	}
 
 	public final void OnLeave(TObject obj, float x, float y, float z) {
-		TryPerfrom(ToIndex(x, y, z), (index, cube) -> RemoveObject(index, cube, obj));
+		TryPerform(ToIndex(x, y, z), (index, cube) -> RemoveObject(index, cube, obj));
 	}
 
 	public final void OnLeave(TObject obj, long x, long y, long z) {
-		TryPerfrom(ToIndex(x, y, z), (index, cube) -> RemoveObject(index, cube, obj));
+		TryPerform(ToIndex(x, y, z), (index, cube) -> RemoveObject(index, cube, obj));
 	}
 
 	public final void OnLeave(TObject obj, CubeIndex index) {
-		TryPerfrom(index, (index2, cube) -> RemoveObject(index2, cube, obj));
+		TryPerform(index, (index2, cube) -> RemoveObject(index2, cube, obj));
 	}
 
 	public final ArrayList<TCube> GetCubes(CubeIndex center, int rangeX, int rangeY, int rangeZ) {
@@ -196,7 +198,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		return result;
 	}
 
-	/** 
+	/**
 	 返回 center 坐标所在的 cube 周围的所有 cube。
 	 可以遍历返回的Cube的所有角色，进一步进行精确的距离判断。
 	*/

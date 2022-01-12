@@ -105,7 +105,7 @@ public final class Transaction {
 	/*
 	public void PutChangeNote(long key, ChangeNote note)
 	{
-	    savepoints[~1].PutChangeNote(key, note);
+	    Savepoints[~1].PutChangeNote(key, note);
 	}
 	*/
 
@@ -207,7 +207,7 @@ public final class Transaction {
 									checkResult = _lock_and_check_(TransactionLevel.Serializable);
 									if (checkResult == CheckResult.Success) {
 										_final_rollback_(procedure);
-										return Procedure.Excption;
+										return Procedure.Exception;
 									}
 									// retry
 									break;
@@ -276,6 +276,7 @@ public final class Transaction {
 				}
 
 				// 写成回调是为了优化，仅在需要的时候才创建path。
+				//noinspection ConstantConditions
 				cc.CollectChanged(log.getBean().getTableKey(),
 					() -> {
 						var pn = new ChangePathAndNote();
@@ -292,6 +293,7 @@ public final class Transaction {
 				}
 
 				// 写成回调是为了优化，仅在需要的时候才创建path。
+				//noinspection ConstantConditions
 				cc.CollectChanged(cn.getBean().getTableKey(),
 						() -> {
 							var pn = new ChangePathAndNote();
@@ -361,7 +363,7 @@ public final class Transaction {
 				action.run();
 			}
 			catch (Throwable e) {
-				logger.error("Rollback Procedure {0} Action {1} {2}", procedure, action.getClass().getName(), e);
+				logger.error("Rollback Procedure {} Action {} {}", procedure, action.getClass().getName(), e);
 			}
 		}
 		RollbackActions.clear();
@@ -396,15 +398,15 @@ public final class Transaction {
 		VerifyRecordAccessed(bean, false);
 	}
 
-	public void VerifyRecordAccessed(Bean bean, boolean IsRead) {
-		//if (IsRead)// && App.Config.AllowReadWhenRecoredNotAccessed)
+	public void VerifyRecordAccessed(Bean bean, @SuppressWarnings("unused") boolean IsRead) {
+		//if (IsRead)// && App.Config.AllowReadWhenRecordNotAccessed)
 		//    return;
 		if (bean.RootInfo.getRecord().getState() == GlobalCacheManagerServer.StateRemoved) {
 			throw new RuntimeException("VerifyRecordAccessed: Record Has Bean Removed From Cache. " + bean.getTableKey());
 		}
 		var ra = GetRecordAccessed(bean.getTableKey());
 		if (ra == null) {
-			throw new RuntimeException("VerifyRecordAccessed: Record Not Control Under Current Transastion. " + bean.getTableKey());
+			throw new RuntimeException("VerifyRecordAccessed: Record Not Control Under Current Transaction. " + bean.getTableKey());
 		}
 		if (bean.RootInfo.getRecord() != ra.OriginRecord) {
 			throw new RuntimeException("VerifyRecordAccessed: Record Reloaded. " + bean.getTableKey());
@@ -427,6 +429,7 @@ public final class Transaction {
 	private CheckResult _check_(boolean writeLock, RecordAccessed e) throws Throwable {
 		e.OriginRecord.EnterFairLock();
 		try {
+			//noinspection IfStatementWithIdenticalBranches
 			if (writeLock) {
 				switch (e.OriginRecord.getState()) {
 					case GlobalCacheManagerServer.StateRemoved:
@@ -440,11 +443,11 @@ public final class Transaction {
 						return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 
 					case GlobalCacheManagerServer.StateShare:
-						// 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
+						// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 						// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
 						var acquire = e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify);
 						if (acquire.Result.State != GlobalCacheManagerServer.StateModify) {
-							logger.debug("Acquire Faild. Maybe DeadLock Found {}", e.OriginRecord);
+							logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.OriginRecord);
 							e.OriginRecord.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
 							LastTableKeyOfRedoAndRelease = e.getTableKey();
 							e.OriginRecord.LastErrorGlobalSerialId = acquire.Result.GlobalSerialId; // save
@@ -454,7 +457,7 @@ public final class Transaction {
 						e.OriginRecord.setState(GlobalCacheManagerServer.StateModify);
 						return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 				}
-				return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // imposible
+				return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // impossible
 			}
 			else {
 				if (e.OriginRecord.getState() == GlobalCacheManagerServer.StateInvalid
@@ -544,8 +547,8 @@ public final class Transaction {
 			Lockey curLock = holdLocks.get(index);
 			int c = curLock.getTableKey().compareTo(e.getKey());
 
-			// holdlocks a  b  ...
-			// needlocks a  b  ...
+			// holdLocks a  b  ...
+			// needLocks a  b  ...
 			if (c == 0) {
 				// 这里可能发生读写锁提升
 				if (e.getValue().Dirty && !curLock.isWriteLockHeld()) {
@@ -562,8 +565,8 @@ public final class Transaction {
 				e = ite.hasNext() ? ite.next() : null;
 				continue;
 			}
-			// holdlocks a  b  ...
-			// needlocks a  c  ...
+			// holdLocks a  b  ...
+			// needLocks a  c  ...
 			if (c < 0) {
 				// 释放掉 比当前锁序小的锁，因为当前事务中不再需要这些锁
 				int unlockEndIndex = index;
@@ -577,8 +580,8 @@ public final class Transaction {
 				continue;
 			}
 
-			// holdlocks a  c  ...
-			// needlocks a  b  ...
+			// holdLocks a  c  ...
+			// needLocks a  b  ...
 			// 为了不违背锁序，释放从当前锁开始的所有锁
 			n = _unlock_start_(index, n);
 			// 重新从当前 e 继续锁。
@@ -605,6 +608,7 @@ public final class Transaction {
 		if (State != TransactionState.Running)
 			throw new IllegalStateException("Abort: State Is Not Running.");
 		State = TransactionState.Abort;
+		//noinspection ConstantConditions
 		GoBackZeze.Throw(msg, cause);
 	}
 
@@ -612,7 +616,9 @@ public final class Transaction {
 		if (State != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running.");
 		State = TransactionState.RedoAndReleaseLock;
+		//noinspection ConstantConditions
 		ProcedureStatistics.getInstance().GetOrAdd(getTopProcedure().getActionName()).GetOrAdd(Procedure.RedoAndRelease).incrementAndGet();
+		//noinspection ConstantConditions
 		GoBackZeze.Throw(msg, cause);
 	}
 
@@ -620,10 +626,12 @@ public final class Transaction {
 		if (State != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running.");
 		State = TransactionState.Redo;
+		//noinspection ConstantConditions
 		GoBackZeze.Throw("Redo", null);
 	}
 
 	public void VerifyRunning() {
+		//noinspection SwitchStatementWithTooFewBranches
 		switch (State) {
 			case Running:
 				return;

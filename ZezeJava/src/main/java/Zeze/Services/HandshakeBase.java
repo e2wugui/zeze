@@ -33,7 +33,7 @@ public class HandshakeBase extends Service {
 	public final boolean IsHandshakeProtocol(long typeId) {
 		return HandshakeProtocols.contains(typeId);
 	}
-	
+
 	protected final void AddHandshakeServerFactoryHandle() {
 		{
 			var tmp = new Zeze.Services.Handshake.CHandshake();
@@ -41,7 +41,7 @@ public class HandshakeBase extends Service {
 			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle(CHandshake::new
 					, this::ProcessCHandshake
 					, TransactionLevel.None));
-		} 
+		}
 		{
 			var tmp = new Zeze.Services.Handshake.CHandshakeDone();
 			HandshakeProtocols.add(tmp.getTypeId());
@@ -50,34 +50,34 @@ public class HandshakeBase extends Service {
 					, TransactionLevel.None));
 		}
 	}
-	
+
 	private int ProcessCHandshakeDone(Protocol p) throws Throwable {
 		OnHandshakeDone(p.getSender());
 		return 0;
 	}
 
-	private int ProcessCHandshake(Protocol _p) throws Throwable {
+	private int ProcessCHandshake(Protocol _p) {
 		Zeze.Services.Handshake.CHandshake p = (Zeze.Services.Handshake.CHandshake)_p;
 		int group = p.Argument.dh_group;
 		if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
 			p.getSender().Close(new RuntimeException("dhGroup Not Supported"));
 			return 0;
 		}
-		
+
 		BigInteger data = new BigInteger(p.Argument.dh_data);
 		BigInteger rand = Helper.makeDHRandom();
 		byte[] material = Helper.computeDHKey(group, data, rand).toByteArray();
-		var localaddress = p.getSender().getSocket().getLocalAddress();
+		var localAddress = p.getSender().getSocket().getLocalAddress();
 		byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null
-			? getConfig().getHandshakeOptions().getSecureIp() : localaddress.getAddress();
-		logger.debug("{} localip={}", p.getSender().getSessionId(), Arrays.toString(key));
+			? getConfig().getHandshakeOptions().getSecureIp() : localAddress.getAddress();
+		logger.debug("{} localIp={}", p.getSender().getSessionId(), Arrays.toString(key));
 		int half = material.length / 2;
 
 		byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
 		p.getSender().SetInputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getC2sNeedCompress());
 
 		byte[] response = Helper.generateDHResponse(group, rand).toByteArray();
-		
+
 		(new Zeze.Services.Handshake.SHandshake(response,
 				getConfig().getHandshakeOptions().getS2cNeedCompress(),
 				getConfig().getHandshakeOptions().getC2sNeedCompress())).Send(p.getSender());
@@ -100,25 +100,25 @@ public class HandshakeBase extends Service {
 				, this::ProcessSHandshake, TransactionLevel.None));
 	}
 
-	private int ProcessSHandshake(Protocol _p) throws Throwable {
+	private int ProcessSHandshake(Protocol _p) {
 		Zeze.Services.Handshake.SHandshake p = (Zeze.Services.Handshake.SHandshake)_p;
 		var dhRandom = DHContext.get(p.getSender().getSessionId());
 		if ( dhRandom != null ) {
 
 			byte[] material = Helper.computeDHKey(getConfig().getHandshakeOptions().getDhGroup(), new BigInteger(p.Argument.dh_data), dhRandom).toByteArray();
-			var remoteaddress = p.getSender().getSocket().getInetAddress();
+			var remoteAddress = p.getSender().getSocket().getInetAddress();
 
-			byte[] key = remoteaddress.getAddress();
-			logger.debug("{} remoteip={}", p.getSender().getSessionId(), Arrays.toString(key));
+			byte[] key = remoteAddress.getAddress();
+			logger.debug("{} remoteIp={}", p.getSender().getSessionId(), Arrays.toString(key));
 
 			int half = material.length / 2;
 
 			byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-			p.getSender().SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
+			p.getSender().SetOutputSecurityCodec(hmacMd5, p.Argument.c2sNeedCompress);
 			hmacMd5 = Digest.HmacMd5(key, material, half, material.length - half);
 
 			DHContext.remove(p.getSender().getSessionId());
-			p.getSender().SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
+			p.getSender().SetInputSecurityCodec(hmacMd5, p.Argument.s2cNeedCompress);
 			(new Zeze.Services.Handshake.CHandshakeDone()).Send(p.getSender());
 			p.getSender().SubmitAction(()->OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 			return 0;

@@ -4,7 +4,7 @@ import Zeze.*;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-/** 
+/**
  这个类恐怕没什么用。写在这里主要是为了一个建议：
  即事件应该在新的事务中执行。不要嵌套到触发者的事务中，否则可能无法控制。
 */
@@ -16,7 +16,7 @@ public class EventDispatcher {
 	}
 
 	public static class EventArg {
-		public static EventArg Empty = new EventArg();
+		// public static EventArg Empty = new EventArg();
 	}
 
 	private final ConcurrentHashMap<String, EventHandle> Handles = new ConcurrentHashMap<> ();

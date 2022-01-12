@@ -40,11 +40,11 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						case 2:
 							throw new RuntimeException("Instance Exist.");
 						case 3:
-							throw new RuntimeException("Insert LocalId Faild");
+							throw new RuntimeException("Insert LocalId Failed");
 						case 4:
 							throw new RuntimeException("Global Not Equals");
 						case 5:
-							throw new RuntimeException("Insert Global Faild");
+							throw new RuntimeException("Insert Global Failed");
 						case 6:
 							throw new RuntimeException("Instance Greater Than One But No Global");
 						default:
@@ -127,65 +127,67 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 			try (var connection = Database.dataSource.getConnection()) {
 				connection.setAutoCommit(false);
-				String TableDataWithVersion = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (" + "\r\n" + 
-"                        id VARBINARY(767) NOT NULL PRIMARY KEY," + "\r\n" + 
-"                        data MEDIUMBLOB NOT NULL," + "\r\n" + 
-"                        version bigint NOT NULL" + "\r\n" + 
+				String TableDataWithVersion = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (" + "\r\n" +
+"                        id VARBINARY(767) NOT NULL PRIMARY KEY," + "\r\n" +
+"                        data MEDIUMBLOB NOT NULL," + "\r\n" +
+"                        version bigint NOT NULL" + "\r\n" +
 "                    )ENGINE=INNODB";
 				try (var cmd = connection.prepareStatement(TableDataWithVersion)) {
 					cmd.executeUpdate();
-				}    
+				}
 				try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_")) {
 					cmd.executeUpdate();
 				}
-				String ProcSaveDataWithSameVersion = "Create procedure _ZezeSaveDataWithSameVersion_ (" + "\r\n" + 
-"                        IN    in_id VARBINARY(767)," + "\r\n" + 
-"                        IN    in_data MEDIUMBLOB," + "\r\n" + 
-"                        INOUT inout_version bigint," + "\r\n" + 
-"                        OUT   ReturnValue int" + "\r\n" + 
-"                    )" + "\r\n" + 
-"                    return_label:begin" + "\r\n" + 
-"                        DECLARE oldversionexsit BIGINT;" + "\r\n" + 
-"                        DECLARE ROWCOUNT int;" + "\r\n" + 
-"\r\n" + 
-"                        START TRANSACTION;" + "\r\n" + 
-"                        set ReturnValue=1;" + "\r\n" + 
-"                        select version INTO oldversionexsit from _ZezeDataWithVersion_ where id=in_id;" + "\r\n" + 
-"                        select FOUND_ROWS() into ROWCOUNT;" + "\r\n" + 
-"                        if ROWCOUNT > 0 then" + "\r\n" + 
-"                            if oldversionexsit <> inout_version then" + "\r\n" + 
-"                                set ReturnValue=2;" + "\r\n" + 
-"                                ROLLBACK;" + "\r\n" + 
-"                                LEAVE return_label;" + "\r\n" + 
-"                            end if;" + "\r\n" + 
-"                            set oldversionexsit = oldversionexsit + 1;" + "\r\n" + 
-"                            update _ZezeDataWithVersion_ set data=in_data, version=oldversionexsit where id=in_id;" + "\r\n" + 
-"                            select ROW_COUNT() into ROWCOUNT;" + "\r\n" + 
-"                            if ROWCOUNT = 1 then" + "\r\n" + 
-"                                set inout_version = oldversionexsit;" + "\r\n" + 
-"                                set ReturnValue=0;" + "\r\n" + 
-"                                COMMIT;" + "\r\n" + 
-"                                LEAVE return_label;" + "\r\n" + 
-"                            end if;" + "\r\n" + 
-"                            set ReturnValue=3;" + "\r\n" + 
-"                            ROLLBACK;" + "\r\n" + 
-"                            LEAVE return_label;" + "\r\n" + 
-"                        end if;" + "\r\n" + 
-"\r\n" + 
-"                        insert into _ZezeDataWithVersion_ values(in_id,in_data,inout_version);" + "\r\n" + 
-"                        select ROW_COUNT() into ROWCOUNT;" + "\r\n" + 
-"                        if ROWCOUNT = 1 then" + "\r\n" + 
-"                            set ReturnValue=0;" + "\r\n" + 
-"                            COMMIT;" + "\r\n" + 
-"                            LEAVE return_label;" + "\r\n" + 
-"                        end if;" + "\r\n" + 
-"                        set ReturnValue=4;" + "\r\n" + 
-"                        ROLLBACK;" + "\r\n" + 
-"                        LEAVE return_label;" + "\r\n" + 
+				//noinspection SpellCheckingInspection
+				String ProcSaveDataWithSameVersion = "Create procedure _ZezeSaveDataWithSameVersion_ (" + "\r\n" +
+"                        IN    in_id VARBINARY(767)," + "\r\n" +
+"                        IN    in_data MEDIUMBLOB," + "\r\n" +
+"                        INOUT inout_version bigint," + "\r\n" +
+"                        OUT   ReturnValue int" + "\r\n" +
+"                    )" + "\r\n" +
+"                    return_label:begin" + "\r\n" +
+"                        DECLARE oldversionexsit BIGINT;" + "\r\n" +
+"                        DECLARE ROWCOUNT int;" + "\r\n" +
+"\r\n" +
+"                        START TRANSACTION;" + "\r\n" +
+"                        set ReturnValue=1;" + "\r\n" +
+"                        select version INTO oldversionexsit from _ZezeDataWithVersion_ where id=in_id;" + "\r\n" +
+"                        select FOUND_ROWS() into ROWCOUNT;" + "\r\n" +
+"                        if ROWCOUNT > 0 then" + "\r\n" +
+"                            if oldversionexsit <> inout_version then" + "\r\n" +
+"                                set ReturnValue=2;" + "\r\n" +
+"                                ROLLBACK;" + "\r\n" +
+"                                LEAVE return_label;" + "\r\n" +
+"                            end if;" + "\r\n" +
+"                            set oldversionexsit = oldversionexsit + 1;" + "\r\n" +
+"                            update _ZezeDataWithVersion_ set data=in_data, version=oldversionexsit where id=in_id;" + "\r\n" +
+"                            select ROW_COUNT() into ROWCOUNT;" + "\r\n" +
+"                            if ROWCOUNT = 1 then" + "\r\n" +
+"                                set inout_version = oldversionexsit;" + "\r\n" +
+"                                set ReturnValue=0;" + "\r\n" +
+"                                COMMIT;" + "\r\n" +
+"                                LEAVE return_label;" + "\r\n" +
+"                            end if;" + "\r\n" +
+"                            set ReturnValue=3;" + "\r\n" +
+"                            ROLLBACK;" + "\r\n" +
+"                            LEAVE return_label;" + "\r\n" +
+"                        end if;" + "\r\n" +
+"\r\n" +
+"                        insert into _ZezeDataWithVersion_ values(in_id,in_data,inout_version);" + "\r\n" +
+"                        select ROW_COUNT() into ROWCOUNT;" + "\r\n" +
+"                        if ROWCOUNT = 1 then" + "\r\n" +
+"                            set ReturnValue=0;" + "\r\n" +
+"                            COMMIT;" + "\r\n" +
+"                            LEAVE return_label;" + "\r\n" +
+"                        end if;" + "\r\n" +
+"                        set ReturnValue=4;" + "\r\n" +
+"                        ROLLBACK;" + "\r\n" +
+"                        LEAVE return_label;" + "\r\n" +
 "                    end;";
 				try (var cmd = connection.prepareStatement(ProcSaveDataWithSameVersion)) {
 					cmd.executeUpdate();
 				}
+				//noinspection SpellCheckingInspection
 				String TableInstances = "CREATE TABLE IF NOT EXISTS _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)ENGINE=INNODB";
 				try (var cmd = connection.prepareStatement(TableInstances)) {
 					cmd.executeUpdate();
@@ -194,64 +196,65 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSetInUse_")) {
 					cmd.executeUpdate();
 				}
-				String ProcSetInUse = "Create procedure _ZezeSetInUse_ (" + "\r\n" + 
-"                        in in_localid int," + "\r\n" + 
-"                        in in_global MEDIUMBLOB," + "\r\n" + 
-"                        out ReturnValue int" + "\r\n" + 
-"                    )" + "\r\n" + 
-"                    return_label:begin" + "\r\n" + 
-"                        DECLARE currentglobal MEDIUMBLOB;" + "\r\n" + 
-"                        declare emptybinary MEDIUMBLOB;" + "\r\n" + 
-"                        DECLARE InstanceCount int;" + "\r\n" + 
-"                        DECLARE ROWCOUNT int;" + "\r\n" + 
-"\r\n" + 
-"                        START TRANSACTION;" + "\r\n" + 
-"                        set ReturnValue=1;" + "\r\n" + 
-"                        if exists (select localid from _ZezeInstances_ where localid=in_localid) then" + "\r\n" + 
-"                            set ReturnValue=2;" + "\r\n" + 
-"                            ROLLBACK;" + "\r\n" + 
-"                            LEAVE return_label;" + "\r\n" + 
-"                        end if;" + "\r\n" + 
-"                        insert into _ZezeInstances_ values(in_localid);" + "\r\n" + 
-"                        select ROW_COUNT() into ROWCOUNT;" + "\r\n" + 
-"                        if ROWCOUNT = 0 then" + "\r\n" + 
-"                            set ReturnValue=3;" + "\r\n" + 
-"                            ROLLBACK;" + "\r\n" + 
-"                            LEAVE return_label;" + "\r\n" + 
-"                        end if;" + "\r\n" + 
-"                        set emptybinary = BINARY '';" + "\r\n" + 
-"                        select data into currentglobal from _ZezeDataWithVersion_ where id=emptybinary;" + "\r\n" + 
-"                        select FOUND_ROWS() into ROWCOUNT;" + "\r\n" + 
-"                        if ROWCOUNT > 0 then" + "\r\n" + 
-"                            if currentglobal <> in_global then" + "\r\n" + 
-"                                set ReturnValue=4;" + "\r\n" + 
-"                                ROLLBACK;" + "\r\n" + 
-"                                LEAVE return_label;" + "\r\n" + 
-"                            end if;" + "\r\n" + 
-"                        else" + "\r\n" + 
-"                            insert into _ZezeDataWithVersion_ values(emptybinary, in_global, 0);" + "\r\n" + 
-"                            select ROW_COUNT() into ROWCOUNT;" + "\r\n" + 
-"                            if ROWCOUNT <> 1 then" + "\r\n" + 
-"                                set ReturnValue=5;" + "\r\n" + 
-"                                ROLLBACK;" + "\r\n" + 
-"                                LEAVE return_label;" + "\r\n" + 
-"                            end if;" + "\r\n" + 
-"                        end if;" + "\r\n" + 
-"                        set InstanceCount=0;" + "\r\n" + 
-"                        select count(*) INTO InstanceCount from _ZezeInstances_;" + "\r\n" + 
-"                        if InstanceCount = 1 then" + "\r\n" + 
-"                            set ReturnValue=0;" + "\r\n" + 
-"                            COMMIT;" + "\r\n" + 
-"                            LEAVE return_label;" + "\r\n" + 
-"                       end if;" + "\r\n" + 
-"                       if LENGTH(in_global)=0 then" + "\r\n" + 
-"                            set ReturnValue=6;" + "\r\n" + 
-"                            ROLLBACK;" + "\r\n" + 
-"                            LEAVE return_label;" + "\r\n" + 
-"                        end if;" + "\r\n" + 
-"                        set ReturnValue=0;" + "\r\n" + 
-"                        COMMIT;" + "\r\n" + 
-"                        LEAVE return_label;" + "\r\n" + 
+				//noinspection SpellCheckingInspection
+				String ProcSetInUse = "Create procedure _ZezeSetInUse_ (" + "\r\n" +
+"                        in in_localid int," + "\r\n" +
+"                        in in_global MEDIUMBLOB," + "\r\n" +
+"                        out ReturnValue int" + "\r\n" +
+"                    )" + "\r\n" +
+"                    return_label:begin" + "\r\n" +
+"                        DECLARE currentglobal MEDIUMBLOB;" + "\r\n" +
+"                        declare emptybinary MEDIUMBLOB;" + "\r\n" +
+"                        DECLARE InstanceCount int;" + "\r\n" +
+"                        DECLARE ROWCOUNT int;" + "\r\n" +
+"\r\n" +
+"                        START TRANSACTION;" + "\r\n" +
+"                        set ReturnValue=1;" + "\r\n" +
+"                        if exists (select localid from _ZezeInstances_ where localid=in_localid) then" + "\r\n" +
+"                            set ReturnValue=2;" + "\r\n" +
+"                            ROLLBACK;" + "\r\n" +
+"                            LEAVE return_label;" + "\r\n" +
+"                        end if;" + "\r\n" +
+"                        insert into _ZezeInstances_ values(in_localid);" + "\r\n" +
+"                        select ROW_COUNT() into ROWCOUNT;" + "\r\n" +
+"                        if ROWCOUNT = 0 then" + "\r\n" +
+"                            set ReturnValue=3;" + "\r\n" +
+"                            ROLLBACK;" + "\r\n" +
+"                            LEAVE return_label;" + "\r\n" +
+"                        end if;" + "\r\n" +
+"                        set emptybinary = BINARY '';" + "\r\n" +
+"                        select data into currentglobal from _ZezeDataWithVersion_ where id=emptybinary;" + "\r\n" +
+"                        select FOUND_ROWS() into ROWCOUNT;" + "\r\n" +
+"                        if ROWCOUNT > 0 then" + "\r\n" +
+"                            if currentglobal <> in_global then" + "\r\n" +
+"                                set ReturnValue=4;" + "\r\n" +
+"                                ROLLBACK;" + "\r\n" +
+"                                LEAVE return_label;" + "\r\n" +
+"                            end if;" + "\r\n" +
+"                        else" + "\r\n" +
+"                            insert into _ZezeDataWithVersion_ values(emptybinary, in_global, 0);" + "\r\n" +
+"                            select ROW_COUNT() into ROWCOUNT;" + "\r\n" +
+"                            if ROWCOUNT <> 1 then" + "\r\n" +
+"                                set ReturnValue=5;" + "\r\n" +
+"                                ROLLBACK;" + "\r\n" +
+"                                LEAVE return_label;" + "\r\n" +
+"                            end if;" + "\r\n" +
+"                        end if;" + "\r\n" +
+"                        set InstanceCount=0;" + "\r\n" +
+"                        select count(*) INTO InstanceCount from _ZezeInstances_;" + "\r\n" +
+"                        if InstanceCount = 1 then" + "\r\n" +
+"                            set ReturnValue=0;" + "\r\n" +
+"                            COMMIT;" + "\r\n" +
+"                            LEAVE return_label;" + "\r\n" +
+"                       end if;" + "\r\n" +
+"                       if LENGTH(in_global)=0 then" + "\r\n" +
+"                            set ReturnValue=6;" + "\r\n" +
+"                            ROLLBACK;" + "\r\n" +
+"                            LEAVE return_label;" + "\r\n" +
+"                        end if;" + "\r\n" +
+"                        set ReturnValue=0;" + "\r\n" +
+"                        COMMIT;" + "\r\n" +
+"                        LEAVE return_label;" + "\r\n" +
 "                    end";
 				try (var cmd = connection.prepareStatement(ProcSetInUse)) {
 					cmd.executeUpdate();
@@ -259,34 +262,35 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeClearInUse_")) {
 					cmd.executeUpdate();
 				}
-				String ProcClearInUse = "Create procedure _ZezeClearInUse_ (" + "\r\n" + 
-"                        in in_localid int," + "\r\n" + 
-"                        in in_global MEDIUMBLOB," + "\r\n" + 
-"                        out ReturnValue int" + "\r\n" + 
-"                    )" + "\r\n" + 
-"                    return_label:begin" + "\r\n" + 
-"                        DECLARE InstanceCount int;" + "\r\n" + 
-"                        declare emptybinary MEDIUMBLOB;" + "\r\n" + 
-"                        DECLARE ROWCOUNT INT;" + "\r\n" + 
-"\r\n" + 
-"                        START TRANSACTION;" + "\r\n" + 
-"                        set ReturnValue=1;" + "\r\n" + 
-"                        delete from _ZezeInstances_ where localid=in_localid;" + "\r\n" + 
-"                        select ROW_COUNT() into ROWCOUNT;" + "\r\n" + 
-"                        if ROWCOUNT = 0 then" + "\r\n" + 
-"                            set ReturnValue=2;" + "\r\n" + 
-"                            ROLLBACK;" + "\r\n" + 
-"                            LEAVE return_label;" + "\r\n" + 
-"                        end if;" + "\r\n" + 
-"                        set InstanceCount=0;" + "\r\n" + 
-"                        select count(*) INTO InstanceCount from _ZezeInstances_;" + "\r\n" + 
-"                        if InstanceCount = 0 then" + "\r\n" + 
-"                            set emptybinary = BINARY '';" + "\r\n" + 
-"                            delete from _ZezeDataWithVersion_ where id=emptybinary;" + "\r\n" + 
-"                        end if;" + "\r\n" + 
-"                        set ReturnValue=0;" + "\r\n" + 
-"                        COMMIT;" + "\r\n" + 
-"                        LEAVE return_label;" + "\r\n" + 
+				//noinspection SpellCheckingInspection
+				String ProcClearInUse = "Create procedure _ZezeClearInUse_ (" + "\r\n" +
+"                        in in_localid int," + "\r\n" +
+"                        in in_global MEDIUMBLOB," + "\r\n" +
+"                        out ReturnValue int" + "\r\n" +
+"                    )" + "\r\n" +
+"                    return_label:begin" + "\r\n" +
+"                        DECLARE InstanceCount int;" + "\r\n" +
+"                        declare emptybinary MEDIUMBLOB;" + "\r\n" +
+"                        DECLARE ROWCOUNT INT;" + "\r\n" +
+"\r\n" +
+"                        START TRANSACTION;" + "\r\n" +
+"                        set ReturnValue=1;" + "\r\n" +
+"                        delete from _ZezeInstances_ where localid=in_localid;" + "\r\n" +
+"                        select ROW_COUNT() into ROWCOUNT;" + "\r\n" +
+"                        if ROWCOUNT = 0 then" + "\r\n" +
+"                            set ReturnValue=2;" + "\r\n" +
+"                            ROLLBACK;" + "\r\n" +
+"                            LEAVE return_label;" + "\r\n" +
+"                        end if;" + "\r\n" +
+"                        set InstanceCount=0;" + "\r\n" +
+"                        select count(*) INTO InstanceCount from _ZezeInstances_;" + "\r\n" +
+"                        if InstanceCount = 0 then" + "\r\n" +
+"                            set emptybinary = BINARY '';" + "\r\n" +
+"                            delete from _ZezeDataWithVersion_ where id=emptybinary;" + "\r\n" +
+"                        end if;" + "\r\n" +
+"                        set ReturnValue=0;" + "\r\n" +
+"                        COMMIT;" + "\r\n" +
+"                        LEAVE return_label;" + "\r\n" +
 "                    end";
 				try (var cmd = connection.prepareStatement(ProcClearInUse)) {
 					cmd.executeUpdate();
@@ -310,7 +314,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public String getName() {
 			return Name;
 		}
-		private boolean isNew;
+		private final boolean isNew;
 
 		public boolean isNew() {
 			return isNew;
@@ -346,7 +350,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public ByteBuffer Find(ByteBuffer key) {
 			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
-    
+
 				String sql = "SELECT value FROM " + getName() + " WHERE id = ?";
 				// 是否可以重用 SqlCommand
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -390,9 +394,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public long Walk(TableWalkHandleRaw callback) {
 			try (var connection = DatabaseReal.dataSource.getConnection()) {
 				connection.setAutoCommit(true);
-    
+
 				String sql = "SELECT id,value FROM " + getName();
-				try (var cmd = connection.prepareStatement(sql)) {    
+				try (var cmd = connection.prepareStatement(sql)) {
 					long count = 0;
 					try (var rs = cmd.executeQuery()) {
 						while (rs.next()) {

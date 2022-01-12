@@ -1,11 +1,5 @@
 package org.mdkt.compiler;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import javax.tools.FileObject;
 import javax.tools.ForwardingJavaFileManager;
 import javax.tools.JavaFileManager;
@@ -18,8 +12,8 @@ import javax.tools.JavaFileObject;
 public class ExtendedStandardJavaFileManager extends
 		ForwardingJavaFileManager<JavaFileManager> {
 
-	private List<CompiledCode> compiledCode = new ArrayList<CompiledCode>();
-	private DynamicClassLoader cl;
+	// private final List<CompiledCode> compiledCode = new ArrayList<>();
+	private final DynamicClassLoader cl;
 
 	/**
 	 * Creates a new instance of ForwardingJavaFileManager.
@@ -38,11 +32,11 @@ public class ExtendedStandardJavaFileManager extends
 	@Override
 	public JavaFileObject getJavaFileForOutput(
 			JavaFileManager.Location location, String className,
-			JavaFileObject.Kind kind, FileObject sibling) throws IOException {
+			JavaFileObject.Kind kind, FileObject sibling) {
 
 		try {
 			CompiledCode innerClass = new CompiledCode(className);
-			compiledCode.add(innerClass);
+			// compiledCode.add(innerClass);
 			cl.addCode(innerClass);
 			return innerClass;
 		} catch (Exception e) {

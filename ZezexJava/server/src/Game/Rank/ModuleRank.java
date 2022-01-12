@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
-/** 
+/**
  基本排行榜，实现了按long value从大到小进榜。
  增加排行被类型。在 solution.xml::beankey::BConcurrentKey中增加类型定义。
  然后在数据变化时调用 RunUpdateRank 方法更行排行榜。
@@ -38,9 +38,9 @@ public class ModuleRank extends AbstractModule {
 	public final void Stop(App app) {
 	}
 
-	/** 
+	/**
 	 根据 value 设置到排行榜中
-	 
+
 	 @param hash
 	 @param roleId
 	 @param value
@@ -196,7 +196,7 @@ public class ModuleRank extends AbstractModule {
 		return Rank;
 	}
 
-	/** 
+	/**
 	 相关数据变化时，更新排行榜。
 	 最好在事务成功结束或者处理快完的时候或者ChangeListener中调用这个方法更新排行榜。
 	 比如使用 Transaction.Current.RunWhileCommit(() => RunUpdateRank(...));
@@ -261,7 +261,7 @@ public class ModuleRank extends AbstractModule {
 			return Procedure.Success;
 		} catch (Throwable e) {
 			logger.error(e);
-			return Procedure.Excption;
+			return Procedure.Exception;
 		}
 	}
 
@@ -340,7 +340,7 @@ public class ModuleRank extends AbstractModule {
 				});
 	}
 
-	/** 
+	/**
 	 为排行榜设置最大并发级别。【有默认值】
 	 【这个参数非常重要】【这个参数非常重要】【这个参数非常重要】【这个参数非常重要】
 	 决定了最大的并发度，改变的时候，旧数据全部失效，需要清除，重建。
@@ -408,7 +408,7 @@ public class ModuleRank extends AbstractModule {
 			session.SendResponse(result);
 			return Procedure.LogicError;
 		}
-		/* 
+		/*
 		//异步方式获取rank
 		GetRankAsync(protocol.Argument.RankType, (rank) =>
 		{
@@ -525,10 +525,10 @@ public class ModuleRank extends AbstractModule {
 	/*
 	 * 一般来说 ref|out 和 Action 回调方式不该一起用。存粹为了测试。
 	 * 如果混用，首先 Action 回调先发生，然后 ref|out 的变量才会被赋值。这个当然吧。
-	 * 
+	 *
 	 * 可以包含多个 Action。纯粹为了...可以用 Empty 表示 null，嗯，总算找到理由了。
 	 * 如果包含多个，按照真正的实现的回调顺序回调，不是定义顺序。这个也当然吧。
-	 * 
+	 *
 	 * ref|out 方式需要同步等待，【不建议使用这种方式】【不建议使用这种方式】【不建议使用这种方式】
 	 */
 	protected final long Test3(int hash,
@@ -541,7 +541,7 @@ public class ModuleRank extends AbstractModule {
 			return Procedure.Success;
 		} catch (Throwable e) {
 			logger.error(e);
-			return Procedure.Excption;
+			return Procedure.Exception;
 		}
 	}
 

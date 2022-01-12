@@ -41,8 +41,8 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
 			txn.VerifyRecordAccessed(this, true);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV<K, V>)log).Value : map;
-			return oldv;
+			var oldV = null != log ? ((LogV<K, V>)log).Value : map;
+			return oldV;
 		}
 		else {
 			return map;
@@ -104,7 +104,7 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
 					public K next() {
 						return it.next().getKey();
 					}
-					
+
 					@Override
 					public void remove() {
 						it.remove();
@@ -136,7 +136,7 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
 					public V next() {
 						return it.next().getValue();
 					}
-					
+
 					public void remove() {
 						it.remove();
 					}
@@ -152,11 +152,11 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
 
     public Set<Map.Entry<K, V>> entrySet() {
     	return new AbstractSet<>() {
-    		
+
 			@Override
 			public Iterator<Entry<K, V>> iterator() {
 				return new Iterator<>() {
-					
+
 					private final Iterator<Map.Entry<K,V>> it = getData().entrySet().iterator();
 					Map.Entry<K,V> next;
 					@Override
@@ -168,7 +168,7 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
 					public Entry<K, V> next() {
 						return next = it.next();
 					}
-					
+
 					@Override
 					public void remove() {
 						PMap.this.remove(next.getKey());

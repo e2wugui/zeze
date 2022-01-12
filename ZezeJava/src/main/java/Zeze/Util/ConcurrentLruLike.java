@@ -36,12 +36,12 @@ public class ConcurrentLruLike<K, V> {
 		ConcurrencyLevel = c;
 	}
 
-	private long MaxLruInitialCapaicty = 100000;
-	public final long getMaxLruInitialCapaicty() {
-		return MaxLruInitialCapaicty;
+	private long MaxLruInitialCapacity = 100000;
+	public final long getMaxLruInitialCapacity() {
+		return MaxLruInitialCapacity;
 	}
-	public final void setMaxLruInitialCapaicty(long value) {
-		MaxLruInitialCapaicty = value;
+	public final void setMaxLruInitialCapacity(long value) {
+		MaxLruInitialCapacity = value;
 	}
 
 	private long NewLruHotPeriod = 10000;
@@ -125,7 +125,7 @@ public class ConcurrentLruLike<K, V> {
 
 		Task.schedule((task) -> {
 			// 访问很少的时候不创建新的热点。这个选项没什么意思。
-			if (LruHot.size() > GetLruInitialCapaicty() / 2) {
+			if (LruHot.size() > GetLruInitialCapacity() / 2) {
 				NewLruHot();
 			}
 		}, getNewLruHotPeriod(), getNewLruHotPeriod());
@@ -182,14 +182,14 @@ public class ConcurrentLruLike<K, V> {
 		return null;
 	}
 
-	private long GetLruInitialCapaicty() {
+	private long GetLruInitialCapacity() {
 		int lruInitialCapacity = (int)(InitialCapacity * 0.2);
-		return Math.min(lruInitialCapacity, getMaxLruInitialCapaicty());
+		return Math.min(lruInitialCapacity, getMaxLruInitialCapacity());
 	}
 
 	private void NewLruHot() {
 		var newLru = new ConcurrentHashMap<K, ConcurrentLruItem<K, V>>(
-				(int)GetLruInitialCapaicty(), 0.75f, ConcurrencyLevel);
+				(int)GetLruInitialCapacity(), 0.75f, ConcurrencyLevel);
 		LruHot = newLru;
 		LruQueue.add(newLru);
 	}
@@ -214,7 +214,7 @@ public class ConcurrentLruLike<K, V> {
 		// 每次执行完重新调度。
 
 		if (getCapacity() <= 0) {
-			Task.schedule((thisTask) -> CleanNow(thisTask), getCleanPeriod(), -1);
+			Task.schedule(this::CleanNow, getCleanPeriod(), -1);
 			return; // 容量不限
 		}
 
@@ -241,10 +241,11 @@ public class ConcurrentLruLike<K, V> {
 				if (node.size() == 0) {
 					LruQueue.poll();
 				} else {
-					logger.warn("remain record when clean oldest lrunode.");
+					logger.warn("remain record when clean oldest lruNode.");
 				}
 
 				try {
+					//noinspection BusyWait
 					Thread.sleep(CleanPeriodWhenExceedCapacity);
 				} catch (InterruptedException skip) {
 					logger.error(skip);

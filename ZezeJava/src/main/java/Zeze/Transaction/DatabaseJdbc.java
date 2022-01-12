@@ -10,39 +10,39 @@ public abstract class DatabaseJdbc extends Database {
 	private static final Logger logger = LogManager.getLogger(DatabaseMySql.class);
 
 	protected BasicDataSource dataSource;
-	
+
 	public DatabaseJdbc(DatabaseConf conf) {
 		super(conf);
 
 		dataSource = new BasicDataSource();
-		var dbcpconf = conf.getDbcpConf();
+		var dbcpConf = conf.getDbcpConf();
 
 		BasicDataSource pool = this.dataSource;// 连接池
 
 		// must present
 		pool.setUrl(conf.getDatabaseUrl());
-		pool.setDriverClassName(dbcpconf.DriverClassName); // setup in Zeze.Config.DatabaseConf
+		pool.setDriverClassName(dbcpConf.DriverClassName); // setup in Zeze.Config.DatabaseConf
 
 		// always on
 		pool.setPoolPreparedStatements(true);
 
 		// options
-		if (dbcpconf.UserName != null)
-			pool.setUsername(dbcpconf.UserName);
-		if (dbcpconf.Password !=  null)
-			pool.setPassword(dbcpconf.Password);
-		if (dbcpconf.InitialSize != null)
-			pool.setInitialSize(dbcpconf.InitialSize); // 初始的连接数；
-		if (dbcpconf.MaxTotal != null)
-			pool.setMaxTotal(dbcpconf.MaxTotal);
-		if (dbcpconf.MaxIdle != null)
-			pool.setMaxIdle(dbcpconf.MaxIdle);
-		if (dbcpconf.MinIdle != null)
-			pool.setMinIdle(dbcpconf.MinIdle);
-		if (dbcpconf.MaxWaitMillis != null)
-			pool.setMaxWaitMillis(dbcpconf.MaxWaitMillis);
+		if (dbcpConf.UserName != null)
+			pool.setUsername(dbcpConf.UserName);
+		if (dbcpConf.Password !=  null)
+			pool.setPassword(dbcpConf.Password);
+		if (dbcpConf.InitialSize != null)
+			pool.setInitialSize(dbcpConf.InitialSize); // 初始的连接数；
+		if (dbcpConf.MaxTotal != null)
+			pool.setMaxTotal(dbcpConf.MaxTotal);
+		if (dbcpConf.MaxIdle != null)
+			pool.setMaxIdle(dbcpConf.MaxIdle);
+		if (dbcpConf.MinIdle != null)
+			pool.setMinIdle(dbcpConf.MinIdle);
+		if (dbcpConf.MaxWaitMillis != null)
+			pool.setMaxWaitMillis(dbcpConf.MaxWaitMillis);
 	}
-	
+
 	@Override
 	public void Close() {
 		super.Close();
@@ -52,13 +52,13 @@ public abstract class DatabaseJdbc extends Database {
 			logger.error(skip);
 		}
 	}
-	
+
 
 	@Override
 	public Transaction BeginTransaction() {
 		return new JdbcTrans();
 	}
-	
+
 	public class JdbcTrans implements Transaction {
 		java.sql.Connection Connection;
 
@@ -97,6 +97,6 @@ public abstract class DatabaseJdbc extends Database {
 				throw new RuntimeException(e);
 			}
 		}
-		
+
 	}
 }

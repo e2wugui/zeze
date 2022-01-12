@@ -23,17 +23,18 @@ public final class PList2<E extends Bean> extends PList<E> {
 			value.InitRootInfo(RootInfo, getParent());
 			value.setVariableId(this.getVariableId());
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			var oldv = null != log ? ((LogV<E>)log).Value : list;
-			var olde = oldv.get(index);
-			txn.PutLog(NewLog(oldv.plus(index, value)));
-			return olde;
+			var oldV = null != log ? ((LogV<E>)log).Value : list;
+			var oldE = oldV.get(index);
+			txn.PutLog(NewLog(oldV.plus(index, value)));
+			return oldE;
 		}
 		else {
-			var olde = list.get(index);
+			var oldE = list.get(index);
 			list = list.plus(index, value);
-			return olde;
+			return oldE;
 		}
 	}
 
@@ -47,11 +48,12 @@ public final class PList2<E extends Bean> extends PList<E> {
 			item.InitRootInfo(RootInfo, getParent());
 			item.setVariableId(this.getVariableId());
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV<E>)log).Value : list;
-			txn.PutLog(NewLog(oldv.plus(item)));
+			var oldV = null != log ? ((LogV<E>)log).Value : list;
+			txn.PutLog(NewLog(oldV.plus(item)));
 		}
 		else {
 			list = list.plus(item);
@@ -67,11 +69,12 @@ public final class PList2<E extends Bean> extends PList<E> {
 				item.setVariableId(this.getVariableId());
 			}
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV<E>)log).Value : list;
-			txn.PutLog(NewLog(oldv.plusAll(items)));
+			var oldV = null != log ? ((LogV<E>)log).Value : list;
+			txn.PutLog(NewLog(oldV.plusAll(items)));
 		}
 		else {
 			list = list.plusAll(items);
@@ -83,11 +86,12 @@ public final class PList2<E extends Bean> extends PList<E> {
 	public void clear() {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV<E>)log).Value : list;
-			if (!oldv.isEmpty()) {
+			var oldV = null != log ? ((LogV<E>)log).Value : list;
+			if (!oldV.isEmpty()) {
 				txn.PutLog(NewLog(Empty.vector()));
 			}
 		}
@@ -106,11 +110,12 @@ public final class PList2<E extends Bean> extends PList<E> {
 			item.InitRootInfo(RootInfo, getParent());
 			item.setVariableId(this.getVariableId());
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV<E>)log).Value : list;
-			txn.PutLog(NewLog(oldv.plus(index, item)));
+			var oldV = null != log ? ((LogV<E>)log).Value : list;
+			txn.PutLog(NewLog(oldV.plus(index, item)));
 		}
 		else {
 			list = list.plus(index, item);
@@ -121,21 +126,22 @@ public final class PList2<E extends Bean> extends PList<E> {
 	public boolean remove(Object item) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV<E>)log).Value : list;
-			var newv = oldv.minus(item);
-			if (oldv != newv) {
-				txn.PutLog(NewLog(newv));
+			var oldV = null != log ? ((LogV<E>)log).Value : list;
+			var newV = oldV.minus(item);
+			if (oldV != newV) {
+				txn.PutLog(NewLog(newV));
 				return true;
 			}
 			return false;
 		}
 		else {
-			var oldv = list;
+			var oldV = list;
 			list = list.minus(item);
-			return oldv != list;
+			return oldV != list;
 		}
 	}
 
@@ -143,12 +149,13 @@ public final class PList2<E extends Bean> extends PList<E> {
 	public E remove(int index) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV<E>)log).Value : list;
-			var exist = oldv.get(index);
-			txn.PutLog(NewLog(oldv.minus(index)));
+			var oldV = null != log ? ((LogV<E>)log).Value : list;
+			var exist = oldV.get(index);
+			txn.PutLog(NewLog(oldV.minus(index)));
 			return exist;
 		}
 		else {
@@ -162,21 +169,22 @@ public final class PList2<E extends Bean> extends PList<E> {
 	public boolean removeAll(Collection<?> c) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldv = null != log ? ((LogV<E>)log).Value : list;
-			var newv = oldv.minusAll(c);
-			if (oldv != newv) {
-				txn.PutLog(NewLog(newv));
+			var oldV = null != log ? ((LogV<E>)log).Value : list;
+			var newV = oldV.minusAll(c);
+			if (oldV != newV) {
+				txn.PutLog(NewLog(newV));
 				return true;
 			}
 			return false;
 		}
 		else {
-			var oldv = list;
+			var oldV = list;
 			list = list.minusAll(c);
-			return oldv != list;
+			return oldV != list;
 		}
 	}
 

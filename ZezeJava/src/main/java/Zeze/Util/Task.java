@@ -84,7 +84,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 		}
 		catch (Throwable ex) {
 			logger.error(actionName, ex);
-			return Zeze.Transaction.Procedure.Excption;
+			return Zeze.Transaction.Procedure.Exception;
 		}
 	}
 
@@ -95,7 +95,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	public Task(Action0 action) {
 		super(() -> Call(action, "Action0"), 0);
 	}
-	
+
 	public Task(Callable<Integer> callable) {
 		super(callable);
 	}
@@ -129,7 +129,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			}
 		}
 	}
-	
+
 	public static Task schedule(SchedulerHandle s, long initialDelay) {
 		var task = new SchedulerTask(s);
 		threadPoolScheduled.schedule(task, initialDelay, TimeUnit.MILLISECONDS);
@@ -175,15 +175,15 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			return result;
 		}
 		catch (Throwable _ex) {
-			var localex = _ex;
+			var localEx = _ex;
 			while (true) {
-				var cause = localex.getCause();
+				var cause = localEx.getCause();
 				if (null == cause)
 					break;
-				localex = cause;
+				localEx = cause;
 			}
 
-			long errorCode = localex instanceof TaskCanceledException ? Procedure.CancelExcption : Procedure.Excption;
+			long errorCode = localEx instanceof TaskCanceledException ? Procedure.CancelException : Procedure.Exception;
 
 			if (IsRequestSaved) {
 				if (actionWhenError != null) {
@@ -197,7 +197,7 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 
 			LogAndStatistics(errorCode, p, IsRequestSaved);
 			// 使用 InnerException
-			logger.error(() -> "Task " + p.getClass().getName() + " Exception UserState=" + p.getUserState(), localex);
+			logger.error(() -> "Task " + p.getClass().getName() + " Exception UserState=" + p.getUserState(), localEx);
 			return errorCode;
 		}
 	}
@@ -215,21 +215,21 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 	}
 
 
-	public static long Call(Procedure procdure, Zeze.Net.Protocol from) {
-		return Call(procdure, from, null);
+	public static long Call(Procedure procedure, Zeze.Net.Protocol from) {
+		return Call(procedure, from, null);
 	}
 
-	public static long Call(Procedure procdure) {
-		return Call(procdure, null, null);
+	public static long Call(Procedure procedure) {
+		return Call(procedure, null, null);
 	}
 
-	public static long Call(Procedure procdure, Zeze.Net.Protocol from,
+	public static long Call(Procedure procedure, Zeze.Net.Protocol from,
 			Action2<Zeze.Net.Protocol, Long> actionWhenError) {
 		Boolean isRequestSaved = from == null ? null : from.isRequest();
 		try {
 			// 日志在Call里面记录。因为要支持嵌套。
 			// 统计在Call里面实现。
-			long result = procdure.Call();
+			long result = procedure.Call();
 			if (result != 0 && isRequestSaved != null && isRequestSaved) {
 				if (actionWhenError != null) {
 					actionWhenError.run(from, result);
@@ -242,38 +242,38 @@ public class Task extends java.util.concurrent.FutureTask<Integer> {
 			if (isRequestSaved != null && isRequestSaved) {
 				if (actionWhenError != null) {
 					try {
-						actionWhenError.run(from, Procedure.Excption);
+						actionWhenError.run(from, Procedure.Exception);
 					} catch (Throwable skip) {
 						logger.error(skip);
 					}
 				}
 			}
-			logger.error(procdure.getActionName(), ex);
-			return Procedure.Excption;
+			logger.error(procedure.getActionName(), ex);
+			return Procedure.Exception;
 		}
 	}
 
 
-	public static Task Run(Procedure procdure, Zeze.Net.Protocol from) {
-		return Run(procdure, from, null);
+	public static Task Run(Procedure procedure, Zeze.Net.Protocol from) {
+		return Run(procedure, from, null);
 	}
 
-	public static Task Run(Procedure procdure) {
-		return Run(procdure, null, null);
+	public static Task Run(Procedure procedure) {
+		return Run(procedure, null, null);
 	}
 
-	public static Task Run(Procedure procdure,
+	public static Task Run(Procedure procedure,
 			Zeze.Net.Protocol from,
 			Action2<Zeze.Net.Protocol, Long> actionWhenError) {
-		var task = new Task(() -> Call(procdure, from, actionWhenError));
+		var task = new Task(() -> Call(procedure, from, actionWhenError));
 		threadPoolDefault.execute(task);
 		return task;
 	}
 
-	public static Task Create(Procedure procdure,
+	public static Task Create(Procedure procedure,
 							  Zeze.Net.Protocol from,
 							  Action2<Zeze.Net.Protocol, Long> actionWhenError) {
-		return new Task(() -> Call(procdure, from, actionWhenError));
+		return new Task(() -> Call(procedure, from, actionWhenError));
 	}
 
 	public static Task Run(Task task) {

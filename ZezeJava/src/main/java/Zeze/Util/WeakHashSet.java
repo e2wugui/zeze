@@ -48,7 +48,7 @@ public final class WeakHashSet<K> {
 	 * @param initialCapacity The initial capacity of the <tt>WeakHashSet</tt>
 	 * @param loadFactor      The load factor of the <tt>WeakHashSet</tt>
 	 * @throws IllegalArgumentException if the initial capacity is negative, or if
-	 *                                  the load factor is nonpositive.
+	 *                                  the load factor is non-positive.
 	 */
 	public WeakHashSet(int initialCapacity, float loadFactor) {
 		if (initialCapacity < 0)

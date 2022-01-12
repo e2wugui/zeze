@@ -49,9 +49,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return Table;
 	}
 
-	public TableCache(Application app, TableX<K, V> table) {
+	public TableCache(Application ignoredApp, TableX<K, V> table) {
 		this.Table = table;
-		DataMap = new ConcurrentHashMap<>(GetCacheInitialCapaicty(), 0.75f, GetCacheConcurrencyLevel());
+		DataMap = new ConcurrentHashMap<>(GetCacheInitialCapacity(), 0.75f, GetCacheConcurrencyLevel());
 		NewLruHot();
 		Task.schedule((task) -> {
 				// 访问很少的时候不创建新的热点。这个选项没什么意思。
@@ -68,20 +68,20 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return Math.max(getTable().getTableConf().getCacheConcurrencyLevel(), processors);
 	}
 
-	private int GetCacheInitialCapaicty() {
+	private int GetCacheInitialCapacity() {
 		// 31 from c# document
 		// 这样写，当配置修改，可以使用的时候马上生效。
 		return Math.max(getTable().getTableConf().getCacheInitialCapacity(), 31);
 	}
 
-	private int GetLruInitialCapaicty() {
-		int c = (int)(GetCacheInitialCapaicty() * 0.2);
+	private int GetLruInitialCapacity() {
+		int c = (int)(GetCacheInitialCapacity() * 0.2);
 		return Math.min(c, getTable().getTableConf().getCacheMaxLruInitialCapacity());
 	}
 
 	private void NewLruHot() {
 		var newLru = new ConcurrentHashMap<K, Record1<K, V>>(
-				GetLruInitialCapaicty(), 0.75f, GetCacheConcurrencyLevel());
+				GetLruInitialCapacity(), 0.75f, GetCacheConcurrencyLevel());
 		LruHot = newLru;
 		getLruQueue().add(newLru);
 	}
@@ -123,7 +123,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	// 不再提供删除，由 Cleaner 集中清理。
-	// under lockey.writelock
+	// under lockey.writeLock
 	/*
 	internal void Remove(K key)
 	{
@@ -131,7 +131,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 	*/
 
-	public final void CleanNow(Task ThisTask) throws Throwable {
+	public final void CleanNow(Task ThisTask) {
 		// 这个任务的执行时间可能很长，
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。
@@ -157,10 +157,11 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				if (node.size() == 0) {
 					getLruQueue().poll();
 				} else {
-					logger.warn("remain record when clean oldest lrunode.");
+					logger.warn("remain record when clean oldest lruNode.");
 				}
 
 				try {
+					//noinspection BusyWait
 					Thread.sleep(getTable().getTableConf().getCacheCleanPeriodWhenExceedCapacity());
 				} catch (InterruptedException skip) {
 					// skip
@@ -171,7 +172,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		}
 	}
 
-	// under lockey.writelock and record.fairLock
+	// under lockey.writeLock and record.fairLock
 	private boolean Remove(Map.Entry<K, Record1<K, V>> p) {
 		if (DataMap.remove(p.getKey(), p.getValue())) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
@@ -185,7 +186,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return true; // 没有删除成功，仍然返回true。
 	}
 
-	private boolean TryRemoveRecordUnderLocks(Map.Entry<K, Record1<K, V>> p) throws Throwable {
+	private boolean TryRemoveRecordUnderLocks(Map.Entry<K, Record1<K, V>> p) {
 		var storage = getTable().TStorage;
 		if (null == storage) {
 				/* 不支持内存表cache同步。
@@ -217,7 +218,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return Remove(p);
 	}
 
-	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) throws Throwable {
+	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) {
 		// lockey 第一优先，和事务并发。
 		final TableKey tkey = new TableKey(this.getTable().getName(), p.getKey());
 		final Lockey lockey = Table.getZeze().getLocks().Get(tkey);

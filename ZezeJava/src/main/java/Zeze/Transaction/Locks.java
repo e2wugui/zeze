@@ -19,7 +19,7 @@ public final class Locks {
 	/* ---------------- hash算法和映射规则都是来自 ConcurrentHashMap. -------------- */
 	/**
 	 * Returns the segment that should be used for key with given hash.
-	 * 
+	 *
 	 * @param lockey the Lockey
 	 * @return the segment
 	 */
@@ -58,15 +58,15 @@ public final class Locks {
 		}
 
 		// Find power-of-two sizes best matching arguments
-		int sshift = 0;
-		int ssize = 1;
-		while (ssize < concurrencyLevel) {
-			++sshift;
-			ssize <<= 1;
+		int sShift = 0;
+		int sSize = 1;
+		while (sSize < concurrencyLevel) {
+			++sShift;
+			sSize <<= 1;
 		}
-		this.segmentShift = 32 - sshift;
-		this.segmentMask = ssize - 1;
-		this.segments = new Segment[ssize];
+		this.segmentShift = 32 - sShift;
+		this.segmentMask = sSize - 1;
+		this.segments = new Segment[sSize];
 		for (int i = 0; i < this.segments.length; ++i) {
 			this.segments[i] = new Segment();
 		}

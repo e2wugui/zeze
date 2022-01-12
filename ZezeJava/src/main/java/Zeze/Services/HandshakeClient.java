@@ -26,7 +26,7 @@ public class HandshakeClient extends HandshakeBase {
 	}
 
 	@Override
-	public void OnSocketConnected(AsyncSocket so) throws Throwable {
+	public void OnSocketConnected(AsyncSocket so) {
 		// 重载这个方法，推迟OnHandshakeDone调用
 		SocketMap.putIfAbsent(so.getSessionId(), so);
 		StartHandshake(so);

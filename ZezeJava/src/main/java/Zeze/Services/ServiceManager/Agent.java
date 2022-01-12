@@ -134,6 +134,7 @@ public final class Agent implements Closeable {
 		}
 
 		// NOT UNDER LOCK
+		@SuppressWarnings("UnusedReturnValue")
 		private boolean TrySendReadyServiceList() {
 			if (null == getServiceInfosPending()) {
 				return false;
@@ -171,7 +172,7 @@ public final class Agent implements Closeable {
 			TrySendReadyServiceList();
 		}
 
-		private void PrepareAndTriggerOnchanged() throws Throwable {
+		private void PrepareAndTriggerOnChanged() throws Throwable {
 			for (var info : getServiceInfos().getServiceInfoListSortedByIdentity()) {
 				var state = getServiceIdentityReadyStates().get(info.getServiceIdentity());
 				if (null != state) // 需要确认里面会不会存null。
@@ -188,7 +189,7 @@ public final class Agent implements Closeable {
 				case SubscribeInfo.SubscribeTypeSimple:
 					setServiceInfos(infos);
 					setCommitted(true);
-					PrepareAndTriggerOnchanged();
+					PrepareAndTriggerOnChanged();
 					break;
 
 				case SubscribeInfo.SubscribeTypeReadyCommit:
@@ -205,7 +206,7 @@ public final class Agent implements Closeable {
 		private boolean SequenceEqual(ArrayList<ServiceInfo> l1, ArrayList<ServiceInfo> l2) {
 			if (l1.size() != l2.size())
 				return false;
-			
+
 			for (int i = 0; i < l1.size(); ++i) {
 				if (!l1.get(i).equals(l2.get(i)))
 					return false;
@@ -224,7 +225,7 @@ public final class Agent implements Closeable {
 				setServiceInfos(infos);
 				setServiceInfosPending(null);
 				setCommitted(true);
-				PrepareAndTriggerOnchanged();
+				PrepareAndTriggerOnChanged();
 			}
 		}
 
@@ -236,7 +237,7 @@ public final class Agent implements Closeable {
 				setCommitted(true);
 				setServiceInfos(infos);
 				setServiceInfosPending(null);
-				PrepareAndTriggerOnchanged();
+				PrepareAndTriggerOnChanged();
 			}
 		}
 	}
@@ -253,8 +254,8 @@ public final class Agent implements Closeable {
 		return RegisterService(name, identity, null, 0, null);
 	}
 
-	public ServiceInfo RegisterService(String name, String identity, String ip, int port, Binary extrainfo) throws Throwable {
-		return RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
+	public ServiceInfo RegisterService(String name, String identity, String ip, int port, Binary extraInfo) throws Throwable {
+		return RegisterService(new ServiceInfo(name, identity, ip, port, extraInfo));
 	}
 
 	public void WaitConnectorReady() throws Throwable {
@@ -311,7 +312,7 @@ public final class Agent implements Closeable {
 
 	public SubscribeState SubscribeService(String serviceName, int type, Object state) throws Throwable {
 		if (type != SubscribeInfo.SubscribeTypeSimple && type != SubscribeInfo.SubscribeTypeReadyCommit) {
-			throw new RuntimeException("Unkown SubscribeType");
+			throw new RuntimeException("Unknown SubscribeType");
 		}
 
 		SubscribeInfo tempVar = new SubscribeInfo();
@@ -386,12 +387,12 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessKeepalive(Protocol p) throws Throwable {
-		var r = (Keepalive) p;
+	private long ProcessKeepAlive(Protocol p) {
+		var r = (KeepAlive) p;
 		if (getOnKeepAlive() != null) {
 			getOnKeepAlive().run();
 		}
-		r.SendResultCode(Keepalive.Success);
+		r.SendResultCode(KeepAlive.Success);
 		return Procedure.Success;
 	}
 
@@ -476,8 +477,8 @@ public final class Agent implements Closeable {
 		Client.AddFactoryHandle((new CommitServiceList()).getTypeId(),
 				new ProtocolFactoryHandle(CommitServiceList::new, this::ProcessCommitServiceList));
 
-		Client.AddFactoryHandle((new Keepalive()).getTypeId(),
-				new ProtocolFactoryHandle(Keepalive::new, this::ProcessKeepalive));
+		Client.AddFactoryHandle((new KeepAlive()).getTypeId(),
+				new ProtocolFactoryHandle(KeepAlive::new, this::ProcessKeepAlive));
 
 		Client.AddFactoryHandle((new SubscribeFirstCommit()).getTypeId(), new Service.ProtocolFactoryHandle(
 				SubscribeFirstCommit::new, this::ProcessSubscribeFirstCommit));

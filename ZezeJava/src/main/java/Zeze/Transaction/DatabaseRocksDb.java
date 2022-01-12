@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.rocksdb.*;
 
 import java.nio.charset.StandardCharsets;
@@ -11,7 +9,7 @@ import Zeze.*;
 import Zeze.Serialize.ByteBuffer;
 
 public class DatabaseRocksDb extends Database {
-	private static final Logger logger = LogManager.getLogger(DatabaseMySql.class);
+	// private static final Logger logger = LogManager.getLogger(DatabaseMySql.class);
 
 	private final RocksDB Db;
 	private final WriteOptions WriteOptions = new WriteOptions();
@@ -48,8 +46,8 @@ public class DatabaseRocksDb extends Database {
 				ColumnFamilies.put(str, outHandles.get(i));
 			}
 			setDirectOperates(new OperatesRocksDb(this));
-		} catch (RocksDBException dbex) {
-			throw new RuntimeException(dbex);
+		} catch (RocksDBException dbEx) {
+			throw new RuntimeException(dbEx);
 		}
 	}
 
@@ -59,11 +57,11 @@ public class DatabaseRocksDb extends Database {
 		super.Close();
 	}
 
-	public static class RockdsDbTrans implements Transaction {
+	public static class RocksDbTrans implements Transaction {
 		private final DatabaseRocksDb Database;
 		private final WriteBatch Batch;
 
-		public RockdsDbTrans(DatabaseRocksDb database) {
+		public RocksDbTrans(DatabaseRocksDb database) {
 			Database = database;
 			Batch = new WriteBatch();
 		}
@@ -101,7 +99,7 @@ public class DatabaseRocksDb extends Database {
 
 	@Override
 	public Transaction BeginTransaction() {
-		return new RockdsDbTrans(this);
+		return new RocksDbTrans(this);
 	}
 
 	ColumnFamilyHandle getOrAddFamily(String name, Zeze.Util.OutObject<Boolean> isNew) {
@@ -142,7 +140,7 @@ public class DatabaseRocksDb extends Database {
 		private ColumnFamilyHandle getColumnFamily() {
 			return ColumnFamily;
 		}
-		private boolean isNew;
+		private final boolean isNew;
 
 		public TableRocksDb(DatabaseRocksDb database, String name, ColumnFamilyHandle cfh, boolean isNew) {
 			DatabaseReal = database;
@@ -173,12 +171,12 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		public void Remove(Transaction t, ByteBuffer key) {
-			var txn = (RockdsDbTrans)t;
+			var txn = (RocksDbTrans)t;
 			txn.Remove(key.Copy(), getColumnFamily());
 		}
 
 		public void Replace(Transaction t, ByteBuffer key, ByteBuffer value) {
-			var txn = (RockdsDbTrans)t;
+			var txn = (RocksDbTrans)t;
 			txn.Put(key.Copy(), value.Copy(), getColumnFamily());
 		}
 

@@ -8,7 +8,7 @@ import Zeze.*;
 
 public class Procedure {
 	public static final long Success = 0;
-	public static final long Excption = -1;
+	public static final long Exception = -1;
 	public static final long TooManyTry = -2;
 	public static final long NotImplement = -3;
 	public static final long Unknown = -4;
@@ -18,7 +18,7 @@ public class Procedure {
 	public static final long AbortException = -8;
 	public static final long ProviderNotExist = -9;
 	public static final long Timeout = -10;
-	public static final long CancelExcption = -11;
+	public static final long CancelException = -11;
 	public static final long DuplicateRequest = -12;
 	public static final long ErrorRequestId = -13;
 	// >0 用户自定义。
@@ -127,7 +127,7 @@ public class Procedure {
 		catch (Throwable e) {
 			currentT.Rollback();
 			logger.error("Procedure {} Exception UserState={}", this, getUserState(), e);
-			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(Excption).incrementAndGet();
+			ProcedureStatistics.getInstance().GetOrAdd(getActionName()).GetOrAdd(Exception).incrementAndGet();
 			// 验证状态：Running状态将吃掉所有异常。
 			currentT.VerifyRunning();
 			// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
@@ -135,7 +135,7 @@ public class Procedure {
 				throw e;
 			}
 			// 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
-			return e instanceof TaskCanceledException ? CancelExcption : Excption;
+			return e instanceof TaskCanceledException ? CancelException : Exception;
 		}
 		finally {
 			currentT.getProcedureStack().remove(currentT.getProcedureStack().size() - 1);

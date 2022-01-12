@@ -105,7 +105,7 @@ public abstract class PList<E> extends PCollection implements List<E> {
 			public E next() {
 				return next = it.next();
 			}
-			
+
 			@Override
 			public void remove() {
 				PList.this.remove(next);
@@ -129,6 +129,7 @@ public abstract class PList<E> extends PCollection implements List<E> {
 
 	@Override
 	public <T> T[] toArray(T[] a) {
+		//noinspection SuspiciousToArrayCall
 		return getData().toArray(a);
 	}
 

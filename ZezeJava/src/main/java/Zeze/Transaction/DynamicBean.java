@@ -44,6 +44,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		value.InitRootInfo(RootInfo, this);
 		value.setVariableId(1); // 只有一个变量
 		var txn = Transaction.getCurrent();
+		assert txn != null;
 		txn.VerifyRecordAccessed(this);
 		txn.PutLog(new LogV(this, value));
 	}
@@ -100,6 +101,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		bean.InitRootInfo(RootInfo, this);
 		bean.setVariableId(1); // 只有一个变量
 		var txn = Transaction.getCurrent();
+		assert txn != null;
 		txn.VerifyRecordAccessed(this);
 		txn.PutLog(new LogV(specialTypeId, this, bean));
 	}

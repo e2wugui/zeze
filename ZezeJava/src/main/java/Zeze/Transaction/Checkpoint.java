@@ -45,7 +45,7 @@ public final class Checkpoint {
 		Mode = mode;
 		CheckpointThread = new Thread(
 				() -> Task.Call(this::Run, "Checkpoint.Run"),
-				"ChectpointThread-" + serverId);
+				"CheckpointThread-" + serverId);
 	}
 
 	public Checkpoint(CheckpointMode mode, java.lang.Iterable<Database> dbs, int serverId) {
@@ -53,7 +53,7 @@ public final class Checkpoint {
 		Add(dbs);
 		CheckpointThread = new Thread(
 				() -> Task.Call(this::Run, "Checkpoint.Run"),
-				"ChectpointThread-" + serverId);
+				"CheckpointThread-" + serverId);
 	}
 
 	public void EnterFlushReadLock() {
@@ -157,7 +157,7 @@ public final class Checkpoint {
 			case Table:
 				RelativeRecordSet.FlushWhenCheckpoint(this);
 				break;
-				
+
 			default:
 				break;
 		}
@@ -167,10 +167,10 @@ public final class Checkpoint {
 	private ArrayList<Runnable> actionCurrent;
 	private volatile ArrayList<Runnable> actionPending = new ArrayList<>();
 
-	/** 
+	/**
 	 增加 checkpoint 完成一次以后执行的动作，每次 FlushReadWriteLock.EnterWriteLock()
 	 之前的动作在本次checkpoint完成时执行，之后的动作在下一次DoCheckpoint后执行。
-	 
+
 	 @param act
 	 action
 	*/
@@ -308,7 +308,7 @@ public final class Checkpoint {
 				try {
 					t.close();
 				} catch (Throwable e) {
-					logger.error("Checkpoint.Flush: close transacton{}", t, e);
+					logger.error("Checkpoint.Flush: close transaction{}", t, e);
 				}
 			}
 		}

@@ -3,10 +3,6 @@ package Zeze.Transaction;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.RocksDBException;
 import org.tikv.common.TiConfiguration;
 import org.tikv.common.TiSession;
 import org.tikv.common.key.Key;
@@ -113,7 +109,7 @@ public class DatabaseTikv extends Database {
 
 
 		public void SetInUse(int localId, String global) {
-			
+
 		}
 	}
 
@@ -212,9 +208,9 @@ public class DatabaseTikv extends Database {
 		public TikvTable(DatabaseTikv database, String name) {
 			this.database = database;
 			this.name = name;
-			var nameutf8 = name.getBytes(StandardCharsets.UTF_8);
-			keyPrefix = ByteBuffer.Allocate(nameutf8.length + 1);
-			keyPrefix.Append(nameutf8);
+			var nameUtf8 = name.getBytes(StandardCharsets.UTF_8);
+			keyPrefix = ByteBuffer.Allocate(nameUtf8.length + 1);
+			keyPrefix.Append(nameUtf8);
 			keyPrefix.WriteByte((byte) 0);
 		}
 

@@ -25,24 +25,24 @@ public final class ServiceManagerServer implements Closeable {
 		 支持更新服务器，这个服务一开始是为了启用cache-sync的服务器的查找。
 	 动态服务器列表使用者(linkd)
 		 当前使用动态服务的客户端主要是Game2/linkd，linkd在hash分配请求的时候需要一致动态服务器列表。
-	
+
 	 【下面的流程都是用现有的服务名字（上面括号中的名字）】
-	 
+
 	 【本控制功能的目标】
 	 所有的linkd的可用动态服务列表的更新并不是原子的。
 	 1. 让所有的linkd的列表保持最新；
 	 2. 尽可能减少linkd上的服务列表不一致的时间（通过ready-commit机制）；
 	 3. 列表不一致时，分发请求可能引起cache不命中，但不影响正确性（cache-sync保证了正确性）；
-	 
+
 	 【主要事件和流程】
 	 1. gs停止时调用 RegisterService,UnRegisterService 向ServiceManager声明自己服务状态。
 	 2. linkd启动时调用 UseService, UnUseService 向ServiceManager申请使用gs-list。
 	 3. ServiceManager在RegisterService,UnRegisterService处理时发送 NotifyServiceList 给所有的 linkd。
 	 4. linkd收到NotifyServiceList先记录到本地，同时持续关注自己和gs之间的连接，
-		当列表中的所有serivce都准备完成时调用 ReadyServiceList。
+		当列表中的所有service都准备完成时调用 ReadyServiceList。
 	 5. ServiceManager收到所有的linkd的ReadyServiceList后，向所有的linkd广播 CommitServiceList。
 	 6. linkd 收到 CommitServiceList 时，启用新的服务列表。
-	 
+
 	 【特别规则和错误处理】
 	 1. linkd 异常停止，ServiceManager 按 UnUseService 处理，仅仅简单移除use-list。相当于减少了以后请求来源。
 	 2. gs 异常停止，ServiceManager 按 UnRegisterService 处理，移除可用服务，并启动列表更新流程（NotifyServiceList）。
@@ -56,7 +56,7 @@ public final class ServiceManagerServer implements Closeable {
 		   实际上raft不需要维护相同数据状态（gs-list），从空的开始即可，启用raft的话仅使用他的选举功能。
 		#) 由于ServiceManager可以较快恢复，暂时不考虑使用Raft，实现无聊了再来加这个吧
 	 5. ServiceManager开启一轮变更通告过程中，有新的gs启动停止，将开启新的通告(NotifyServiceList)。
-		ReadyServiceList时会检查ready中的列表是否和当前ServiceManagerlist一致，不一致直接忽略。
+		ReadyServiceList时会检查ready中的列表是否和当前ServiceManagerList一致，不一致直接忽略。
 		新的通告流程会促使linkd继续发送ready。
 		另外为了更健壮的处理通告，通告加一个超时机制。超时没有全部ready，就启动一次新的通告。
 		原则是：总按最新的gs-list通告。中间不一致的ready全部忽略。
@@ -87,7 +87,7 @@ public final class ServiceManagerServer implements Closeable {
 			KeepAlivePeriod = value;
 		}
 
-		/** 
+		/**
 		 启动以后接收注册和订阅，一段时间内不进行通知。
 		 用来处理ServiceManager异常重启导致服务列表重置的问题。
 		 在Delay时间内，希望所有的服务都重新连接上来并注册和订阅。
@@ -137,7 +137,7 @@ public final class ServiceManagerServer implements Closeable {
 		}
 	}
 
-	/** 
+	/**
 	 需要从配置文件中读取，把这个引用加入： Zeze.Config.AddCustomize
 	*/
 	private final Conf Config;
@@ -247,9 +247,9 @@ public final class ServiceManagerServer implements Closeable {
 			}
 		}
 
-		/** 
+		/**
 		 订阅时候返回的ServiceInfos，必须和Notify流程互斥。
-		 原子的得到当前信息并发送，然后加入订阅(simple or readycommit)。
+		 原子的得到当前信息并发送，然后加入订阅(simple or readyCommit)。
 		*/
 		public long SubscribeAndSend(Subscribe r, Session session) {
 			synchronized (this) {
@@ -303,11 +303,11 @@ public final class ServiceManagerServer implements Closeable {
 					return;
 				}
 
-				var subcribeState = getReadyCommit().get(session.getSessionId());
-				if (null == subcribeState) {
+				var subscribeState = getReadyCommit().get(session.getSessionId());
+				if (null == subscribeState) {
 					return;
 				}
-				subcribeState.Ready = true;
+				subscribeState.Ready = true;
 				TryCommit();
 			}
 		}
@@ -356,7 +356,7 @@ public final class ServiceManagerServer implements Closeable {
 							AsyncSocket s = null;
 							try {
 								s = getServiceManager().getServer().GetSocket(getSessionId());
-								var r = new Keepalive();
+								var r = new KeepAlive();
 								r.SendAndWaitCheckResultCode(s);
 							} catch (Throwable ex) {
 								if (s != null) {
@@ -400,7 +400,7 @@ public final class ServiceManagerServer implements Closeable {
 
 	private static final Logger logger = LogManager.getLogger(ServiceManagerServer.class);
 
-	private long ProcessRegister(Protocol p) throws Throwable {
+	private long ProcessRegister(Protocol p) {
 		var r = (Register)p;
 		var session = (Session)r.getSender().getUserState();
 
@@ -441,7 +441,7 @@ public final class ServiceManagerServer implements Closeable {
 		return null;
 	}
 
-	private long ProcessUnRegister(Protocol p) throws Throwable {
+	private long ProcessUnRegister(Protocol p) {
 		var r = (UnRegister)p;
 		var session = (Session)r.getSender().getUserState();
 		if (null != UnRegisterNow(r.getSender().getSessionId(), r.Argument)) {
@@ -455,7 +455,7 @@ public final class ServiceManagerServer implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessSubscribe(Protocol p) throws Throwable {
+	private long ProcessSubscribe(Protocol p) {
 		var r = (Subscribe)p;
 		var session = (Session)r.getSender().getUserState();
 		session.getSubscribes().putIfAbsent(r.Argument.getServiceName(), r.Argument);
@@ -483,7 +483,7 @@ public final class ServiceManagerServer implements Closeable {
 		return null;
 	}
 
-	private long ProcessUnSubscribe(Protocol p) throws Throwable {
+	private long ProcessUnSubscribe(Protocol p) {
 		var r = (UnSubscribe)p;
 		var session = (Session)r.getSender().getUserState();
 		var sub = session.getSubscribes().remove(r.Argument.getServiceName());
@@ -507,7 +507,7 @@ public final class ServiceManagerServer implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessReadyServiceList(Protocol p) throws Throwable {
+	private long ProcessReadyServiceList(Protocol p) {
 		var r = (ReadyServiceList)p;
 		var session = (Session)r.getSender().getUserState();
 		var state = ServerStates.computeIfAbsent(
@@ -553,8 +553,8 @@ public final class ServiceManagerServer implements Closeable {
 		getServer().AddFactoryHandle((new ReadyServiceList()).getTypeId(),
 				new Service.ProtocolFactoryHandle(ReadyServiceList::new, this::ProcessReadyServiceList));
 
-		getServer().AddFactoryHandle((new Keepalive()).getTypeId(),
-				new Service.ProtocolFactoryHandle(Keepalive::new));
+		getServer().AddFactoryHandle((new KeepAlive()).getTypeId(),
+				new Service.ProtocolFactoryHandle(KeepAlive::new));
 
 		getServer().AddFactoryHandle((new AllocateId()).getTypeId(),
 				new Service.ProtocolFactoryHandle(AllocateId::new, this::ProcessAllocateId));
@@ -659,7 +659,7 @@ public final class ServiceManagerServer implements Closeable {
 		}
 	}
 
-	private long ProcessAllocateId(Protocol p) throws Throwable {
+	private long ProcessAllocateId(Protocol p) {
 		var r = (AllocateId)p;
 		var n = r.Argument.getName();
 		r.Result.setName(n);
@@ -744,12 +744,14 @@ public final class ServiceManagerServer implements Closeable {
 				new InetSocketAddress(0).getAddress() : InetAddress.getByName(ip);
 
 		var config = new Zeze.Config();
-		var smconfig = new Zeze.Services.ServiceManagerServer.Conf();
-		config.AddCustomize(smconfig);
+		var smConfig = new Zeze.Services.ServiceManagerServer.Conf();
+		config.AddCustomize(smConfig);
 		config.LoadAndParse();
 
-		try (var sm = new Zeze.Services.ServiceManagerServer(address, port, config)) {
+		try (var ignored = new Zeze.Services.ServiceManagerServer(address, port, config)) {
+			//noinspection InfiniteLoopStatement
 			while (true) {
+				//noinspection BusyWait
 				Thread.sleep(10000);
 			}
 		}

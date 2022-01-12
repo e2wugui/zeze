@@ -22,9 +22,9 @@ public final class GlobalAgent {
 
 	public static class Agent {
 		Zeze.Net.Connector connector;
-		private final AtomicLong LoginedTimes = new AtomicLong();
-		public final AtomicLong getLoginedTimes() {
-			return LoginedTimes;
+		private final AtomicLong LoginTimes = new AtomicLong();
+		public final AtomicLong getLoginTimes() {
+			return LoginTimes;
 		}
 		private final int GlobalCacheManagerHashIndex;
 		public final int getGlobalCacheManagerHashIndex() {
@@ -56,7 +56,7 @@ public final class GlobalAgent {
 
 				synchronized (this) {
 					if (System.currentTimeMillis() - LastErrorTime < FastErrorPeriod)
-						ThrowException("GloalAgent In FastErrorPeriod", null); // abort
+						ThrowException("GlobalAgent In FastErrorPeriod", null); // abort
 					// else continue
 				}
 
@@ -67,7 +67,7 @@ public final class GlobalAgent {
 					if (now - LastErrorTime > FastErrorPeriod)
 						LastErrorTime = now;
 				}
-				ThrowException("GloalAgent Login Failed", abort);
+				ThrowException("GlobalAgent Login Failed", abort);
 			}
 			return null; // never got here.
 		}
@@ -90,7 +90,7 @@ public final class GlobalAgent {
 			}
 		}
 
-		public final void OnSocketClose(GlobalClient client, Throwable ex) {
+		public final void OnSocketClose(GlobalClient client, Throwable ignoredEx) {
 			synchronized (this) {
 				if (ActiveClose)
 					return; // Connector 的状态在它自己的回调里面处理。
@@ -124,6 +124,7 @@ public final class GlobalAgent {
 			try {
 				rpc.SendForWait(socket, 12000).get();
 			} catch (InterruptedException | ExecutionException e) {
+				//noinspection ConstantConditions
 				Transaction.getCurrent().ThrowAbort("Acquire", e);
 			}
 			/*
@@ -132,9 +133,10 @@ public final class GlobalAgent {
 			    logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
 			}
 			*/
-			if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFaild
-					|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFaild) {
-				Transaction.getCurrent().ThrowAbort("GlobalAgent.Acquire Faild", null);
+			if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFailed
+					|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFailed) {
+				//noinspection ConstantConditions
+				Transaction.getCurrent().ThrowAbort("GlobalAgent.Acquire Failed", null);
 			}
 			return rpc;
 		}

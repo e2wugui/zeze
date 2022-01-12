@@ -18,9 +18,9 @@ public class Benchmark {
         var endTime = System.nanoTime();
         var elapsedTime = endTime - startTime;
         var seconds = (double)elapsedTime / 1_000_000_000;
-        var cpupercent = cpu / seconds;
+        var cpuPercent = cpu / seconds;
         System.out.printf(
                 "%s tasks/s=%.2f time=%.2fs cpu=%.2fs concurrent=%.2f%n",
-                name, (tasks / seconds), seconds, cpu, cpupercent);
+                name, (tasks / seconds), seconds, cpu, cpuPercent);
     }
 }

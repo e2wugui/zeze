@@ -18,6 +18,7 @@ public final class PSet1<E> extends PSet<E> {
 
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			var olds = null != log ? ((LogV<E>)log).Value : set;
@@ -42,6 +43,7 @@ public final class PSet1<E> extends PSet<E> {
 	public void clear() {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
@@ -66,6 +68,7 @@ public final class PSet1<E> extends PSet<E> {
 	public boolean remove(Object item) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			var olds = null != log ? ((LogV<E>)log).Value : set;
@@ -93,6 +96,7 @@ public final class PSet1<E> extends PSet<E> {
 	public boolean addAll(Collection<? extends E> c) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
@@ -118,6 +122,7 @@ public final class PSet1<E> extends PSet<E> {
 	public boolean removeAll(Collection<?> c) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")

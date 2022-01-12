@@ -5,11 +5,11 @@ import Zeze.Serialize.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** 
+/**
  Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
 */
 public final class DatabaseMemory extends Database {
-	private static ProceduresMemory ProceduresMemory = new ProceduresMemory();
+	private static final ProceduresMemory ProceduresMemory = new ProceduresMemory();
 	public DatabaseMemory(DatabaseConf conf) {
 		super(conf);
 		setDirectOperates(ProceduresMemory);
@@ -59,7 +59,7 @@ public final class DatabaseMemory extends Database {
 	public final static byte[] NullBytes = new byte[0];
 
 	public class MemTrans implements Transaction {
-		private ConcurrentHashMap<String, ConcurrentHashMap<ByteBuffer, byte[]>> batch = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, ConcurrentHashMap<ByteBuffer, byte[]>> batch = new ConcurrentHashMap<>();
 
 		public MemTrans() {
 		}
@@ -144,9 +144,9 @@ public final class DatabaseMemory extends Database {
 	@Override
 	public Database.Table OpenTable(String name) {
 		var tables = databaseTables.computeIfAbsent(getDatabaseUrl(),
-				(urlnotused) -> new java.util.concurrent.ConcurrentHashMap<>());
+				(urlNotUsed) -> new java.util.concurrent.ConcurrentHashMap<>());
 
-		return tables.computeIfAbsent(name, (tablenamenotused) -> new TableMemory(this, name));
+		return tables.computeIfAbsent(name, (tableNameNotUsed) -> new TableMemory(this, name));
 	}
 
 	public final static class TableMemory implements Database.Table {

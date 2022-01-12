@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** 
+/**
  see zeze/README.md -> 18) 事务提交模式
  一个事务内访问的记录的集合。如果事务没有没提交，需要合并集合。
 */
@@ -145,8 +145,8 @@ public class RelativeRecordSet {
 			}
 			// 读写都需要收集。
 			transAccessRecords.add(ar.OriginRecord);
-			final var volatilerrs = ar.OriginRecord.getRelativeRecordSet();
-			RelativeRecordSets.put(volatilerrs.Id, volatilerrs);
+			final var volatileRrs = ar.OriginRecord.getRelativeRecordSet();
+			RelativeRecordSets.put(volatileRrs.Id, volatileRrs);
 		}
 
 		if (allCheckpointWhenCommit) {
@@ -260,22 +260,22 @@ public class RelativeRecordSet {
 			var GotoLabelLockRelativeRecordSets = false;
 			int index = 0;
 			int n = LockedRelativeRecordSets.size();
-			final var itrrs = RelativeRecordSets.values().iterator();
-			var rrs = itrrs.hasNext() ? itrrs.next() : null;
+			final var itRrs = RelativeRecordSets.values().iterator();
+			var rrs = itRrs.hasNext() ? itRrs.next() : null;
 			while (null != rrs) {
 				if (index >= n) {
 					if (_lock_and_check_(LockedRelativeRecordSets, RelativeRecordSets, rrs, transAccessRecords)) {
-						rrs = itrrs.hasNext() ? itrrs.next() : null;
+						rrs = itRrs.hasNext() ? itRrs.next() : null;
 						continue;
 					}
 					GotoLabelLockRelativeRecordSets = true;
 					break;
 				}
-				var curset = LockedRelativeRecordSets.get(index);
-				int c = Long.compare(curset.Id, rrs.Id);
+				var curSet = LockedRelativeRecordSets.get(index);
+				int c = Long.compare(curSet.Id, rrs.Id);
 				if (c == 0) {
 					++index;
-					rrs = itrrs.hasNext() ? itrrs.next() : null;
+					rrs = itRrs.hasNext() ? itRrs.next() : null;
 					continue;
 				}
 				if (c < 0) {
@@ -411,10 +411,7 @@ public class RelativeRecordSet {
 			if (null == RecordSet) {
 				return Id + "-[Isolated]";
 			}
-			var sb = new StringBuilder();
-			sb.append(Id).append("-");
-			sb.append(RecordSet);
-			return sb.toString();
+			return Id + "-" + RecordSet;
 		} finally {
 			UnLock();
 		}

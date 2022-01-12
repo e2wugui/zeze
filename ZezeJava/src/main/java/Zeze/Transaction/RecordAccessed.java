@@ -8,6 +8,7 @@ public class RecordAccessed extends Bean {
 	boolean Dirty;
 
 	public final Bean NewestValue() {
+		//noinspection ConstantConditions
 		var log = Transaction.getCurrent().GetLog(getObjectId());
 		if (log instanceof PutLog) {
 			PutLog putlog = (PutLog)log;

@@ -29,10 +29,10 @@ public final class GlobalCacheManagerServer {
 	public static final int AcquireModifyDeadLockFound = 3;
 	public static final int AcquireErrorState = 4;
 	public static final int AcquireModifyAlreadyIsModify = 5;
-	public static final int AcquireShareFaild = 6;
-	public static final int AcquireModifyFaild = 7;
+	public static final int AcquireShareFailed = 6;
+	public static final int AcquireModifyFailed = 7;
 	public static final int AcquireException = 8;
-	public static final int AcquireInvalidFaild = 9;
+	public static final int AcquireInvalidFailed = 9;
 
 	public static final int ReduceErrorState = 11;
 	public static final int ReduceShareAlreadyIsInvalid = 12;
@@ -81,7 +81,7 @@ public final class GlobalCacheManagerServer {
 	/*
 	 * 会话。
 	 * key是 LogicServer.Id，现在的实现就是Zeze.Config.ServerId。
-	 * 在连接建立后收到的Login Or Relogin 中设置。
+	 * 在连接建立后收到的Login Or ReLogin 中设置。
 	 * 每个会话记住分配给自己的GlobalTableKey，用来在正常退出的时候释放。
 	 * 每个会话还需要记录该会话的Socket.SessionId。在连接重新建立时更新。
 	 * 总是GetOrAdd，不删除。按现在的cache-sync设计，
@@ -201,7 +201,7 @@ public final class GlobalCacheManagerServer {
 	 报告错误的时候带上相关信息（包括GlobalCacheManager和LogicServer等等）
 	 手动Cleanup时，连接正确的服务器执行。
 	 */
-	private long ProcessCleanup(Zeze.Net.Protocol p) throws Throwable {
+	private long ProcessCleanup(Zeze.Net.Protocol p) {
 		var rpc = (Cleanup)p;
 
 		// 安全性以后加强。
@@ -255,7 +255,7 @@ public final class GlobalCacheManagerServer {
 		return 0;
 	}
 
-	private long ProcessReLogin(Zeze.Net.Protocol p) throws Throwable {
+	private long ProcessReLogin(Zeze.Net.Protocol p) {
 		var rpc = (ReLogin)p;
 		var session = Sessions.computeIfAbsent(
 				rpc.Argument.ServerId, (key) -> new CacheHolder(getConfig()));
@@ -287,7 +287,7 @@ public final class GlobalCacheManagerServer {
 		return 0;
 	}
 
-	private long ProcessAcquireRequest(Zeze.Net.Protocol p) throws Throwable {
+	private long ProcessAcquireRequest(Zeze.Net.Protocol p) {
 		Acquire rpc = (Acquire)p;
 
 		rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
@@ -326,8 +326,9 @@ public final class GlobalCacheManagerServer {
 	}
 
 	private int Release(CacheHolder sender, GlobalTableKey gkey, boolean noWait) throws InterruptedException {
-		final CacheState cs = global.computeIfAbsent(gkey, (tabkeKeyNotUsed) -> new CacheState());
+		final CacheState cs = global.computeIfAbsent(gkey, (tableKeyNotUsed) -> new CacheState());
 		while (true) {
+			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cs) {
 				if (cs.getAcquireStatePending() == StateRemoved) {
 					// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
@@ -376,7 +377,7 @@ public final class GlobalCacheManagerServer {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 
 		while (true) {
-			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) -> new CacheState());
+			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, (tableKeyNotUsed) -> new CacheState());
 			synchronized (cs) {
 
 				if (cs.getAcquireStatePending() == StateRemoved) {
@@ -470,7 +471,7 @@ public final class GlobalCacheManagerServer {
 							logger.error("XXX 8 {} {} {}", sender, rpc.Argument.State, cs);
 							rpc.Result.State = StateInvalid;
 							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-							rpc.SendResultCode(AcquireShareFaild);
+							rpc.SendResultCode(AcquireShareFailed);
 							return 0;
 					}
 
@@ -501,7 +502,7 @@ public final class GlobalCacheManagerServer {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 
 		while (true) {
-			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) -> new CacheState());
+			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, (tableKeyNotUsed) -> new CacheState());
 			synchronized (cs) {
 				if (cs.getAcquireStatePending() == StateRemoved) {
 					continue;
@@ -574,6 +575,7 @@ public final class GlobalCacheManagerServer {
 					cs.wait();
 
 					int stateReduceResult = out.Value.Result.State;
+					//noinspection SwitchStatementWithTooFewBranches
 					switch (stateReduceResult) {
 						case StateInvalid:
 							cs.getModify().getAcquired().remove(rpc.Argument.GlobalTableKey);
@@ -589,7 +591,7 @@ public final class GlobalCacheManagerServer {
 							logger.error("XXX 9 {} {} {}", sender, rpc.Argument.State, cs);
 							rpc.Result.State = StateInvalid;
 							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-							rpc.SendResultCode(AcquireModifyFaild);
+							rpc.SendResultCode(AcquireModifyFailed);
 							return 0;
 					}
 
@@ -606,13 +608,13 @@ public final class GlobalCacheManagerServer {
 				}
 
 				ArrayList<Zeze.Util.KV<CacheHolder, Reduce >> reducePending = new ArrayList<>();
-				HashSet<CacheHolder> reduceSuccessed = new HashSet<>();
+				HashSet<CacheHolder> reduceSucceed = new HashSet<>();
 				boolean senderIsShare = false;
 				// 先把降级请求全部发送给出去。
 				for (CacheHolder c : cs.getShare()) {
 					if (c == sender) {
 						senderIsShare = true;
-						reduceSuccessed.add(sender);
+						reduceSucceed.add(sender);
 						continue;
 					}
 					Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId);
@@ -640,7 +642,7 @@ public final class GlobalCacheManagerServer {
 									// 后面还有个成功的处理循环，但是那里可能包含sender，
 									// 在这里更新吧。
 									reduce.getKey().getAcquired().remove(rpc.Argument.GlobalTableKey);
-									reduceSuccessed.add(reduce.getKey());
+									reduceSucceed.add(reduce.getKey());
 								}
 								else {
 									reduce.getKey().SetError();
@@ -662,8 +664,8 @@ public final class GlobalCacheManagerServer {
 				}
 
 				// 移除成功的。
-				for (CacheHolder successed : reduceSuccessed) {
-					cs.getShare().remove(successed);
+				for (CacheHolder succeed : reduceSucceed) {
+					cs.getShare().remove(succeed);
 				}
 
 				// 如果前面降级发生中断(break)，这里就不会为0。
@@ -691,7 +693,7 @@ public final class GlobalCacheManagerServer {
 
 					rpc.Result.State = StateInvalid;
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-					rpc.SendResultCode(AcquireModifyFaild);
+					rpc.SendResultCode(AcquireModifyFailed);
 				}
 				// 很好，网络失败不再看成成功，发现除了加break，
 				// 其他处理已经能包容这个改动，都不用动。
@@ -810,9 +812,9 @@ public final class GlobalCacheManagerServer {
 				reduce.getFuture().Wait();
 				// 如果rpc返回错误的值，外面能处理。
 			}
-			catch (RpcTimeoutException timeoutex) {
+			catch (RpcTimeoutException timeoutEx) {
 				// 等待超时，应该报告错误。
-				logger.error( "Reduce RpcTimeoutException {} target={} '{}'", state, getSessionId(), gkey, timeoutex);
+				logger.error( "Reduce RpcTimeoutException {} target={} '{}'", state, getSessionId(), gkey, timeoutEx);
 				reduce.Result.State = StateReduceRpcTimeout;
 			}
 			catch (Throwable ex) {
@@ -822,13 +824,13 @@ public final class GlobalCacheManagerServer {
 			return reduce;
 		}
 
-		public static final long ForbitPeriod = 10 * 1000; // 10 seconds
+		public static final long ForbidPeriod = 10 * 1000; // 10 seconds
 		private long LastErrorTime = 0;
 
 		public void SetError() {
 			synchronized (this) {
 				long now = System.currentTimeMillis();
-				if (now - LastErrorTime > ForbitPeriod) {
+				if (now - LastErrorTime > ForbidPeriod) {
 					LastErrorTime = now;
 				}
 			}
@@ -839,7 +841,7 @@ public final class GlobalCacheManagerServer {
 		public Reduce ReduceWaitLater(GlobalTableKey gkey, int state, long globalSerialId) {
 			try {
 				synchronized (this) {
-					if (System.currentTimeMillis() - LastErrorTime < ForbitPeriod) {
+					if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod) {
 						return null;
 					}
 				}
@@ -903,7 +905,9 @@ public final class GlobalCacheManagerServer {
 
 		GlobalCacheManagerServer.Instance.Start(address, port);
 		logger.info("Start .");
+		//noinspection InfiniteLoopStatement
 		while (true) {
+			//noinspection BusyWait
 			Thread.sleep(10000);
 		}
 	}

@@ -253,8 +253,8 @@ public final class Application {
 		public long Ticks; // System.currentTimeMillis()
 		public boolean Removed;
 
-		public LastFlushWhenReduce(TableKey tKey) {
-			Key = tKey;
+		public LastFlushWhenReduce(TableKey tkey) {
+			Key = tkey;
 		}
 	}
 
@@ -264,10 +264,10 @@ public final class Application {
 
 	public final static long MillisPerMinute = 60 * 1000;
 
-	public void __SetLastGlobalSerialId(TableKey tKey, long globalSerialId)
+	public void __SetLastGlobalSerialId(TableKey tkey, long globalSerialId)
 	{
 		while (true) {
-			var last = FlushWhenReduce.computeIfAbsent(tKey, LastFlushWhenReduce::new);
+			var last = FlushWhenReduce.computeIfAbsent(tkey, LastFlushWhenReduce::new);
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (last) {
 				if (last.Removed)
@@ -283,11 +283,11 @@ public final class Application {
 		}
 	}
 
-	public boolean __TryWaitFlushWhenReduce(TableKey tKey, long hope)
+	public boolean __TryWaitFlushWhenReduce(TableKey tkey, long hope)
 	{
 		while (true)
 		{
-			var last = FlushWhenReduce.computeIfAbsent(tKey, LastFlushWhenReduce::new);
+			var last = FlushWhenReduce.computeIfAbsent(tkey, LastFlushWhenReduce::new);
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (last) {
 				if (last.Removed)

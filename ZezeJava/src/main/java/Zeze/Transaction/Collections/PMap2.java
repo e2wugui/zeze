@@ -26,13 +26,14 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 				p.getValue().setVariableId(this.getVariableId());
 			}
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
-			var newm = oldm.plusAll(m);
-			if (newm != oldm) {
-				txn.PutLog(NewLog(newm));
+			var oldM = null != log ? ((LogV<K, V>)log).Value : map;
+			var newM = oldM.plusAll(m);
+			if (newM != oldM) {
+				txn.PutLog(NewLog(newM));
 				@SuppressWarnings("unchecked")
 				ChangeNoteMap2<K, V> note = (ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<>(this));
 				for (var p : m.entrySet()) {
@@ -59,21 +60,22 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			value.InitRootInfo(RootInfo, getParent());
 			value.setVariableId(this.getVariableId());
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
-			var oldv = oldm.get(key);
-			var newm = oldm.plus(key, value);
-			if (newm != oldm) {
-				txn.PutLog(NewLog(newm));
+			var oldM = null != log ? ((LogV<K, V>)log).Value : map;
+			var oldV = oldM.get(key);
+			var newM = oldM.plus(key, value);
+			if (newM != oldM) {
+				txn.PutLog(NewLog(newM));
 				((ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<>(this))).LogPut(key, value);
 			}
-			return oldv;
+			return oldV;
 		}
 		else {
-			var oldv = map.get(key);
+			var oldV = map.get(key);
 			map = map.plus(key, value);
-			return oldv;
+			return oldV;
 		}
 	}
 
@@ -81,14 +83,15 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public void clear() {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
 			@SuppressWarnings("unchecked")
-			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
-			if (!oldm.isEmpty()) {
+			var oldM = null != log ? ((LogV<K, V>)log).Value : map;
+			if (!oldM.isEmpty()) {
 				@SuppressWarnings("unchecked")
 				ChangeNoteMap2<K, V> note = (ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<>(this));
-				for (var e : oldm.entrySet()) {
+				for (var e : oldM.entrySet()) {
 					note.LogRemove(e.getKey());
 				}
 				txn.PutLog(NewLog(Empty.map()));
@@ -104,13 +107,15 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public V remove(Object key) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
-			var newm = oldm.minus(key);
-			var exist = oldm.get(key);
-			if (newm != oldm) {
-				txn.PutLog(NewLog(newm));
+			var oldM = null != log ? ((LogV<K, V>)log).Value : map;
+			var newM = oldM.minus(key);
+			//noinspection SuspiciousMethodCalls
+			var exist = oldM.get(key);
+			if (newM != oldM) {
+				txn.PutLog(NewLog(newM));
 				((ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(),
 						() -> new ChangeNoteMap2<>(this))).LogRemove((K)key);
 			}
@@ -118,6 +123,7 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 		}
 		else {
 			var old = map;
+			//noinspection SuspiciousMethodCalls
 			var exist = old.get(key);
 			map = map.minus(key);
 			return exist;
@@ -129,15 +135,16 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public boolean remove(Map.Entry<K, V> item) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
+			assert txn != null;
 			txn.VerifyRecordAccessed(this);
 			var log = txn.GetLog(LogKey);
-			var oldm = null != log ? ((LogV<K, V>)log).Value : map;
-			Object olde = oldm.get(item.getKey());
-			if (null == olde)
+			var oldM = null != log ? ((LogV<K, V>)log).Value : map;
+			Object oldE = oldM.get(item.getKey());
+			if (null == oldE)
 				return false;
-			if (olde.equals(item.getValue())) {
-				var newm = oldm.minus(item.getKey());
-				txn.PutLog(NewLog(newm));
+			if (oldE.equals(item.getValue())) {
+				var newM = oldM.minus(item.getKey());
+				txn.PutLog(NewLog(newM));
 				((ChangeNoteMap2<K, V>)txn.GetOrAddChangeNote(this.getObjectId(), () -> new ChangeNoteMap2<>(this))).LogRemove(item.getKey());
 				return true;
 			}
@@ -146,10 +153,10 @@ public final class PMap2<K, V extends Bean> extends PMap<K, V> {
 			}
 		}
 		else {
-			Object oldv = map.get(item.getKey());
-			if (oldv == null)
+			Object oldV = map.get(item.getKey());
+			if (oldV == null)
 				return false;
-			if (oldv.equals(item.getValue())) {
+			if (oldV.equals(item.getValue())) {
 				map = map.minus(item.getKey());
 				return true;
 			}

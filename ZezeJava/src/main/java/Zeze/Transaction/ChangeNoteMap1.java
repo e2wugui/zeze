@@ -2,11 +2,11 @@ package Zeze.Transaction;
 
 import java.util.*;
 
-/** 
+/**
  不精确的 Map 改变细节通告。改变分成两个部分访问：Replaced（add or put）Removed。
  直接改变 Map.Value 的数据细节保存在内部变量 ChangedValue 中，需要调用 MergeChangedToReplaced 合并到 Replaced 中。
  1. 由于添加以后再删除，Removed 这里可能存在一开始不存在的项。
- 
+
  <typeparam name="K"></typeparam>
  <typeparam name="V"></typeparam>
 */
@@ -56,7 +56,7 @@ public class ChangeNoteMap1<K, V> extends ChangeNote {
 		@SuppressWarnings("unchecked")
 		ChangeNoteMap1<K, V> another = (ChangeNoteMap1<K, V>)note;
 		// Put,Remove 需要确认有没有顺序问题
-		// this: replace 1,3 remove 2,4 nest: repalce 2 remove 1
+		// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
 		for (var e : another.getReplaced().entrySet()) {
 			LogPut(e.getKey(), e.getValue()); // replace 1,2,3 remove 4
 		}

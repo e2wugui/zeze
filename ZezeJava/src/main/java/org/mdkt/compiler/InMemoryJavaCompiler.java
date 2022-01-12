@@ -8,12 +8,12 @@ import javax.tools.*;
  * Compile Java sources in-memory
  */
 public class InMemoryJavaCompiler {
-	private JavaCompiler javac;
+	private final JavaCompiler javac;
 	private DynamicClassLoader classLoader;
 	private Iterable<String> options;
 	boolean ignoreWarnings = false;
 
-	private Map<String, SourceCode> sourceCodes = new HashMap<String, SourceCode>();
+	private final Map<String, SourceCode> sourceCodes = new HashMap<>();
 
 	public static InMemoryJavaCompiler newInstance() {
 		return new InMemoryJavaCompiler();
@@ -73,19 +73,19 @@ public class InMemoryJavaCompiler {
 			throw new CompilationException("No source code to compile");
 		}
 		Collection<SourceCode> compilationUnits = sourceCodes.values();
-		CompiledCode[] code;
+		// CompiledCode[] code;
 
-		code = new CompiledCode[compilationUnits.size()];
+		// code = new CompiledCode[compilationUnits.size()];
 		Iterator<SourceCode> iter = compilationUnits.iterator();
-		for (int i = 0; i < code.length; i++) {
-			code[i] = new CompiledCode(iter.next().getClassName());
+		for (int i = 0; i < compilationUnits.size(); i++) {
+			/*code[i] = */new CompiledCode(iter.next().getClassName());
 		}
 		DiagnosticCollector<JavaFileObject> collector = new DiagnosticCollector<>();
 		ExtendedStandardJavaFileManager fileManager = new ExtendedStandardJavaFileManager(javac.getStandardFileManager(null, null, null), classLoader);
 		JavaCompiler.CompilationTask task = javac.getTask(null, fileManager, collector, options, null, compilationUnits);
 		boolean result = task.call();
 		if (!result || collector.getDiagnostics().size() > 0) {
-			StringBuffer exceptionMsg = new StringBuffer();
+			StringBuilder exceptionMsg = new StringBuilder();
 			exceptionMsg.append("Unable to compile the source");
 			boolean hasWarnings = false;
 			boolean hasErrors = false;
@@ -111,7 +111,7 @@ public class InMemoryJavaCompiler {
 			}
 		}
 
-		Map<String, Class<?>> classes = new HashMap<String, Class<?>>();
+		Map<String, Class<?>> classes = new HashMap<>();
 		for (String className : sourceCodes.keySet()) {
 			classes.put(className, classLoader.loadClass(className));
 		}
@@ -145,7 +145,6 @@ public class InMemoryJavaCompiler {
 	 * this
 	 * @throws Exception
 	 * exception
-	 * @see {@link #compileAll()}
 	 */
 	public InMemoryJavaCompiler addSource(String className, String sourceCode) throws Exception {
 		sourceCodes.put(className, new SourceCode(className, sourceCode));

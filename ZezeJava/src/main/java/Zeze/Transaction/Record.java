@@ -1,13 +1,11 @@
 package Zeze.Transaction;
 
 import Zeze.Services.GlobalCacheManager.Acquire;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class Record {
-	private static final Logger logger = LogManager.getLogger(TableCache.class);
+	// private static final Logger logger = LogManager.getLogger(TableCache.class);
 
 	public static class RootInfo {
 		private final Record Record;
@@ -71,7 +69,7 @@ public abstract class Record {
 	public final boolean getDirty() {
 		return Dirty;
 	}
-	
+
 	final void setDirty(boolean value) {
 		Dirty = value;
 	}

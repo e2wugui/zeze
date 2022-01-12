@@ -4,7 +4,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 
 public final class ServiceInfo extends Zeze.Transaction.Bean implements Comparable<ServiceInfo>{
-	/** 
+	/**
 	 服务名，比如"GameServer"
 	*/
 	private String ServiceName;
@@ -15,7 +15,7 @@ public final class ServiceInfo extends Zeze.Transaction.Bean implements Comparab
 		ServiceName = value;
 	}
 
-	/** 
+	/**
 	 服务id，对于 Zeze.Application，一般就是 Config.AutoKeyLocalId.
 	 这里使用类型 string 是为了更好的支持扩展。
 	*/
@@ -27,7 +27,7 @@ public final class ServiceInfo extends Zeze.Transaction.Bean implements Comparab
 		ServiceIdentity = value;
 	}
 
-	/** 
+	/**
 	 服务ip-port，如果没有，保持空和0.
 	*/
 	private String PassiveIp = "";
@@ -80,15 +80,15 @@ public final class ServiceInfo extends Zeze.Transaction.Bean implements Comparab
 		this(name, identity, null, 0, null);
 	}
 
-	public ServiceInfo(String name, String identity, String ip, int port, Binary extrainfo) {
+	public ServiceInfo(String name, String identity, String ip, int port, Binary extraInfo) {
 		setServiceName(name);
 		setServiceIdentity(identity);
 		if (ip != null) {
 			setPassiveIp(ip);
 		}
 		setPassivePort(port);
-		if (extrainfo != null) {
-			setExtraInfo(extrainfo);
+		if (extraInfo != null) {
+			setExtraInfo(extraInfo);
 		}
 	}
 
@@ -142,7 +142,7 @@ public final class ServiceInfo extends Zeze.Transaction.Bean implements Comparab
 		int c = ServiceName.compareTo(o.ServiceName);
 		if (c != 0)
 			return c;
-		
+
 		return ServiceIdentity.compareTo(o.ServiceIdentity);
 	}
 }

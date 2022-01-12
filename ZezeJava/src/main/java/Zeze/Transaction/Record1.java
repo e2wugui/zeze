@@ -54,7 +54,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 		}
 
 		var gkey = new GlobalTableKey(getTTable().getName(), getTTable().EncodeKey(getKey()));
-		logger.debug("Acquire NewState={0} {1}", state, this);
+		logger.debug("Acquire NewState={} {}", state, this);
 
 		var stat = TableStatistics.getInstance().GetOrAdd(getTTable().getName());
 		switch (state) {

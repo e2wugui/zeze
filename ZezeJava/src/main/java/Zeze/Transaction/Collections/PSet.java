@@ -61,7 +61,7 @@ public abstract class PSet<E> extends PCollection implements Set<E> {
 	public final boolean isEmpty() {
 		return getData().isEmpty();
 	}
-	
+
 	@Override
 	public Object[] toArray() {
 		return getData().toArray();
@@ -69,6 +69,7 @@ public abstract class PSet<E> extends PCollection implements Set<E> {
 
 	@Override
 	public <T> T[] toArray(T[] a) {
+		//noinspection SuspiciousToArrayCall
 		return getData().toArray(a);
 	}
 
@@ -82,7 +83,7 @@ public abstract class PSet<E> extends PCollection implements Set<E> {
 	public boolean retainAll(Collection<?> c) {
 		return false;
 	}
-	
+
 	public final boolean isReadOnly() {
 		return false;
 	}
@@ -97,7 +98,7 @@ public abstract class PSet<E> extends PCollection implements Set<E> {
 			array[index++] = e;
 		}
 	}
-	
+
 	@Override
 	public Iterator<E> iterator() {
 		return new Iterator<>() {
@@ -113,7 +114,7 @@ public abstract class PSet<E> extends PCollection implements Set<E> {
 			public E next() {
 				return next = it.next();
 			}
-			
+
 			@Override
 			public void remove() {
 				PSet.this.remove(next);

@@ -10,20 +10,20 @@ public final class GlobalClient extends Zeze.Net.Service {
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket so) throws Throwable {
-		// HandshakeDone 在 login|relogin 完成以后才设置。
+	public void OnHandshakeDone(AsyncSocket so) {
+		// HandshakeDone 在 login|reLogin 完成以后才设置。
 
 		var agent = (GlobalAgent.Agent)so.getUserState();
-		if (agent.getLoginedTimes().get() > 1) {
-			var relogin = new ReLogin();
-			relogin.Argument.ServerId = getZeze().getConfig().getServerId();
-			relogin.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
-			relogin.Send(so, (ThisRpc) -> {
-				if (relogin.isTimeout() || relogin.getResultCode() != 0) {
+		if (agent.getLoginTimes().get() > 1) {
+			var reLogin = new ReLogin();
+			reLogin.Argument.ServerId = getZeze().getConfig().getServerId();
+			reLogin.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
+			reLogin.Send(so, (ThisRpc) -> {
+				if (reLogin.isTimeout() || reLogin.getResultCode() != 0) {
 					so.close();
 				}
 				else {
-					agent.getLoginedTimes().incrementAndGet();
+					agent.getLoginTimes().incrementAndGet();
 					super.OnHandshakeDone(so);
 				}
 				return 0;
@@ -38,7 +38,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 					so.close();
 				}
 				else {
-					agent.getLoginedTimes().incrementAndGet();
+					agent.getLoginTimes().incrementAndGet();
 					super.OnHandshakeDone(so);
 				}
 				return 0;

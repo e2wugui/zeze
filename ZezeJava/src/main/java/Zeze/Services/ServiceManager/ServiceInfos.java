@@ -26,7 +26,7 @@ public final class ServiceInfos extends Bean {
 	public void setSerialId(long value) {
 		SerialId = value;
 	}
-	public ServiceInfo findServiceInfoByIndentity(String identity) {
+	public ServiceInfo findServiceInfoByIdentity(String identity) {
 		// _ServiceInfoListSortedByIdentity 排序的，可以优化为binarySearch。
 		for (var si : _ServiceInfoListSortedByIdentity) {
 			if (si.getServiceIdentity().equals(identity))
@@ -35,7 +35,7 @@ public final class ServiceInfos extends Bean {
 		return null;
 	}
 	public ServiceInfo findServiceInfoByServerId(int serverId) {
-		return findServiceInfoByIndentity(String.valueOf(serverId));
+		return findServiceInfoByIdentity(String.valueOf(serverId));
 	}
 
 	public ServiceInfos() {
