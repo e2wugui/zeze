@@ -308,7 +308,6 @@ namespace Zeze.Raft
                 value.Bytes, value.Size,
                 null, WriteOptionsSync
                 );
-            LastIndex = log.Index; // 记住最后一个Index，用来下一次生成。
 
             //if (Raft.IsLeader)
             //    logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Key={key} Count={GetTestStateMachineCount()}");
@@ -517,8 +516,7 @@ namespace Zeze.Raft
             TaskCompletionSource<int> future = null;
             lock (Raft)
             {
-                ++LastIndex;
-                var raftLog = new RaftLog(Term, LastIndex, log);
+                var raftLog = new RaftLog(Term, LastIndex + 1, log);
                 if (WaitApply)
                 {
                     future = new TaskCompletionSource<int>();
@@ -526,6 +524,7 @@ namespace Zeze.Raft
                         throw new Exception("Impossible");
                 }
                 SaveLog(raftLog);
+                LastIndex = raftLog.Index;
                 term = Term;
                 index = LastIndex;
             }
@@ -1012,9 +1011,10 @@ namespace Zeze.Raft
                 {
                     // 4. Append any new entries not already in the log
                     SaveLog(copyLog);
+                    LastIndex = copyLog.Index; // 记住最后一个Index，用来下一次生成。
+                    // 复用这个变量。当冲突需要删除时，精确指到前一个日志。
+                    prevLog = copyLog;
                 }
-                // 复用这个变量。当冲突需要删除时，精确指到前一个日志。
-                prevLog = copyLog;
             }
             // 5. If leaderCommit > commitIndex,
             // set commitIndex = min(leaderCommit, index of last new entry)

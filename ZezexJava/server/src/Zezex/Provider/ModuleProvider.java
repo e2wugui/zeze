@@ -263,7 +263,7 @@ public final class ModuleProvider extends AbstractModule {
 		}
 
 		// 生成代码实现。see Zezex.ModuleRedirect.cs
-		public long ProcessHashResult(int _hash_, long _returnCode_, Binary _params, List<Zezex.Provider.BActionParam> _actions_) {
+		public long ProcessHashResult(int _hash_, long _returnCode_, Binary _params, List<Zezex.Provider.BActionParam> _actions_) throws Throwable {
 			return Procedure.NotImplement;
 		}
 	}

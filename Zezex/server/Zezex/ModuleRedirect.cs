@@ -236,7 +236,9 @@ namespace Zezex
                 module.UnRegister();
                 //Console.WriteLine($"'{module.FullName}' Replaced.");
                 // from Game.App.Start. try load new module instance.
-                return (Zeze.IModule)Activator.CreateInstance(Type.GetType(genClassName));
+                var newModule = (Zeze.IModule)Activator.CreateInstance(Type.GetType(genClassName));
+                newModule.Initialize(Game.App.Instance);
+                return newModule;
             }
 
             string srcFileName = System.IO.Path.Combine(SrcDirWhenPostBuild,

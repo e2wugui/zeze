@@ -30,5 +30,10 @@ namespace Zeze
         {
             return Zeze.Net.Protocol.GetProtocolId(result);
         }
+
+        public virtual void Initialize(AppBase app)
+        {
+
+        }
     }
 }

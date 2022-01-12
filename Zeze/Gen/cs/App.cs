@@ -72,7 +72,8 @@ namespace Zeze.Gen.cs
             foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
-                sw.WriteLine("                " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
+                sw.WriteLine($"                {fullname} = new {m.Path(".", $"Module{m.Name}")}(this);");
+                sw.WriteLine($"                {fullname}.Initialize(this);");
                 sw.WriteLine($"                {fullname} = ({m.Path(".", $"Module{m.Name}")})ReplaceModuleInstance({fullname});");
                 sw.WriteLine($"                Modules.Add({fullname}.FullName, {fullname});");
             }
