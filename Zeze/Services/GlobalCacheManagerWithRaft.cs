@@ -12,6 +12,7 @@ using Zeze.Raft;
 using Zeze.Services.GlobalCacheManager;
 using System.IO;
 
+/*
 namespace Zeze.Services
 {
     public sealed class GlobalCacheManagerWithRaft
@@ -255,7 +256,8 @@ namespace Zeze.Services
                 {
                     case GlobalCacheManagerServer.StateInvalid: // realease
                         var session = rpc.Sender.UserState as CacheHolder;
-                        Release(rpc.Sender.RemoteAddress, rpc.UniqueRequestId, session, rpc.Argument.GlobalTableKey);
+                        var iraftrpc = rpc as IRaftRpc;
+                        Release(rpc.Sender.RemoteAddress, iraftrpc.UniqueRequestId, session, rpc.Argument.GlobalTableKey);
                         rpc.SendResult();
                         return 0;
 
@@ -352,6 +354,7 @@ namespace Zeze.Services
                         logger.Debug("3 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
                     }
+                    var iraftrpc = rpc as IRaftRpc;
                     var step0 = new OperatesLog(rpc.Sender.RemoteAddress, rpc.UniqueRequestId);
                     step0.SetCacheStateAcquireStatePending(gkey, GlobalCacheManagerServer.StateShare);
                     Raft.AppendLog(step0);
@@ -596,7 +599,8 @@ namespace Zeze.Services
                         }
                     }
 
-                    var step3 = new OperatesLog(rpc.Sender.RemoteAddress, rpc.UniqueRequestId);
+                    var iraftrpc = rpc as IRaftRpc;
+                    var step3 = new OperatesLog(rpc.Sender.RemoteAddress, iraftrpc.UniqueRequestId);
                     Zeze.Util.Task.Run(
                         () =>
                         {
@@ -1281,3 +1285,4 @@ namespace Zeze.Services
         }
     }
 }
+*/

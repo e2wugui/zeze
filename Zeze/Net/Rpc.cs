@@ -95,8 +95,6 @@ namespace Zeze.Net
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
             this.SessionId = so.Service.AddRpcContext(this);
-            if (base.UniqueRequestId == 0)
-                base.UniqueRequestId = this.SessionId;
 
             var timeoutTask = Schedule(so.Service, SessionId, millisecondsTimeout);
 
@@ -133,8 +131,6 @@ namespace Zeze.Net
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
             this.SessionId = service.AddRpcContext(this);
-            if (base.UniqueRequestId == 0)
-                base.UniqueRequestId = this.SessionId;
             Schedule(service, SessionId, millisecondsTimeout);
             base.Send(so);
         }
@@ -228,7 +224,6 @@ namespace Zeze.Net
             IsRequest = bb.ReadBool();
             SessionId = bb.ReadLong();
             ResultCode = bb.ReadLong();
-            UniqueRequestId = bb.ReadLong();
 
             if (IsRequest)
             {
@@ -245,7 +240,6 @@ namespace Zeze.Net
             bb.WriteBool(IsRequest);
             bb.WriteLong(SessionId);
             bb.WriteLong(ResultCode);
-            bb.WriteLong(UniqueRequestId);
 
             if (IsRequest)
             {
@@ -259,7 +253,7 @@ namespace Zeze.Net
 
         public override string ToString()
         {
-            return $"{GetType().FullName} SessionId={SessionId} UniqueRequestId={UniqueRequestId} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}{Environment.NewLine}\tResult={Result}";
+            return $"{GetType().FullName} SessionId={SessionId} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}{Environment.NewLine}\tResult={Result}";
         }
     }
 }

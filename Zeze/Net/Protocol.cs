@@ -60,8 +60,6 @@ namespace Zeze.Net
 			if (null == so)
 				return false;
 			Sender = so;
-			if (UniqueRequestId == 0)
-				UniqueRequestId = so.Service.NextSessionId();
 			return so.Send(Encode());
 		}
 
@@ -80,22 +78,8 @@ namespace Zeze.Net
 			ResultCode = code;
 		}
 
-		// 检查是否超时，如果超时返回Func，否则返回null。目前仅RaftRpc需要。
-		internal virtual Action CheckAndGetTimeoutTrigger(long now)
-		{
-			throw new NotImplementedException();
-		}
-
 		// always true for Protocol, Rpc Will override
 		public bool IsRequest { get; set; } = true;
-
-		/// <summary>
-		/// 唯一的请求编号，重发时保持不变。
-		/// 第一次发送的时候用Service.SessionIdGenerator生成。
-		/// Rpc才会实际使用这个。
-		/// </summary>
-		public long UniqueRequestId { get; protected set; }
-
 		public long ResultCode { get; set; }
 
 		/// <summary>
@@ -185,7 +169,7 @@ namespace Zeze.Net
 
 		public override string ToString()
         {
-			return $"{GetType().FullName}({ModuleId},{ProtocolId},{UniqueRequestId})";
+			return $"{GetType().FullName}({ModuleId},{ProtocolId})";
         }
     }
 
@@ -196,20 +180,18 @@ namespace Zeze.Net
 		public override void Decode(ByteBuffer bb)
         {
 			ResultCode = bb.ReadLong();
-			UniqueRequestId = bb.ReadLong();
 			Argument.Decode(bb);
 		}
 
 		public override void Encode(ByteBuffer bb)
         {
 			bb.WriteLong(ResultCode);
-			bb.WriteLong(UniqueRequestId);
 			Argument.Encode(bb);
 		}
 
         public override string ToString()
         {
-            return $"{GetType().FullName} UniqueRequestId={UniqueRequestId} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}";
+            return $"{GetType().FullName} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}";
         }
     }
 }

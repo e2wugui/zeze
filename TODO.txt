@@ -1,30 +1,24 @@
-#### TODO
-Zeze
-	打包和更新工具
-	async await?
-	GlobalTaskOneByOneByKey？？？
-	lua beankey 问题。
-ConfigEditor
-	自动完成: Foreign
-	自动完成：id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
-	更多自动完成？普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
-	增加一个工作线程，所有数据操作都放到这里面，和UI线程交互。看情况再决定做不做。
-	enum 现在不支持引用在其他文档定义的，有需要了再来加。
-war？
-	一个module集合。
-	定义export？private？
-	App.Instance？生成代码使用基类，不再使用具体类型，实际上就是把具体类型的功能尽量放到基类。
-	感觉没必要：应用使用独立进程更加安全灵活些。
-
-DatabaseTikv
-	OperatesTikv
-
-关联多用户数据的协议处理自动派发到热点所在Server。
+【TODO】
+	Zeze 打包和更新工具
+	Zeze GlobalTaskOneByOneByKey？？？
+	Zeze lua beankey 问题。
+	ConfigEditor 自动完成: Foreign
+	ConfigEditor 自动完成：id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
+	ConfigEditor 更多自动完成？普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
+	ConfigEditor 增加一个工作线程，所有数据操作都放到这里面，和UI线程交互。看情况再决定做不做。
+	ConfigEditor enum 现在不支持引用在其他文档定义的，有需要了再来加。
+	war？一个module集合。定义export？private？App.Instance？生成代码使用基类，不再使用具体类型，
+	实际上就是把具体类型的功能尽量放到基类。感觉没必要：应用使用独立进程更加安全灵活些。
+----------------------------------------------------------------------------------------------------------------------------------
+【INPROCESS】
+	DatabaseTikv OperatesTikv
+	关联多用户数据的协议处理自动派发到热点所在Server。
 	Global.Release并发问题【再次】确认
-
-Handshake 没有错误处理。
+	Handshake 没有错误处理。
 
 【进行中】
+	zeze async await?
+
 	RedoableTaskQueue
 App：RedoableTaskQueue 看完下面的，帮忙起个好名。
 1）存储：

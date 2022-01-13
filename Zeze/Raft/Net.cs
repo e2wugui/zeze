@@ -130,12 +130,13 @@ namespace Zeze.Raft
         {
             return Util.Task.Call(() =>
             {
+                var iraftrpc = p as IRaftRpc;
                 if (Raft.WaitLeaderReady())
                 {
                     if (Raft.LogSequence.LastAppliedAppRpcUniqueRequestId.TryGetValue(
                         p.Sender.RemoteAddress, out var max))
                     {
-                        if (p.UniqueRequestId <= max)
+                        if (iraftrpc.UniqueRequestId <= max)
                         {
                             p.SendResultCode(Procedure.DuplicateRequest);
                             return Procedure.DuplicateRequest;
@@ -166,10 +167,10 @@ namespace Zeze.Raft
                 return;
             }
             // User Request
-
+            var iraftrpc = p as IRaftRpc;
             if (Raft.IsLeader)
             {
-                if (p.UniqueRequestId <= 0)
+                if (iraftrpc.UniqueRequestId <= 0)
                 {
                     p.SendResultCode(Procedure.ErrorRequestId);
                     return;
@@ -223,7 +224,22 @@ namespace Zeze.Raft
         }
     }
 
-    public abstract class RaftRpc<TArgument, TResult> : Rpc<TArgument, TResult>
+    public interface IRaftRpc
+    {
+        /// <summary>
+        /// 唯一的请求编号，重发时保持不变。在一个ClientId内唯一即可。
+        /// </summary>
+        public abstract long UniqueRequestId { get; set; }
+
+        /// <summary>
+        /// 检查是否超时，如果超时返回Func，否则返回null。
+        /// </summary>
+        /// <param name="now"></param>
+        /// <returns></returns>
+        public Action CheckAndGetTimeoutTrigger(long now);
+    }
+
+    public abstract class RaftRpc<TArgument, TResult> : Rpc<TArgument, TResult>, IRaftRpc
         where TArgument : Bean, new()
         where TResult : Bean, new()
     {
@@ -235,7 +251,9 @@ namespace Zeze.Raft
         public TaskCompletionSource<RaftRpc<TArgument, TResult>> RealFuture { get; internal set; }
         public Func<Protocol, long> RealHandle { get; internal set; }
 
-        internal override Action CheckAndGetTimeoutTrigger(long now)
+        public long UniqueRequestId { get; set; }
+
+        public Action CheckAndGetTimeoutTrigger(long now)
         {
             if (now - RealStartTime > RealTimeout)
             {
@@ -258,6 +276,11 @@ namespace Zeze.Raft
             ResultCode = 0;
             IsTimeout = false;
             return base.Send(so);
+        }
+
+        public override string ToString()
+        {
+            return $"Client={Sender.RemoteAddress} UniqueRequestId={UniqueRequestId} {base.ToString()}";
         }
     }
 
@@ -582,66 +605,33 @@ namespace Zeze.Raft
             try
             {
                 var fails = new List<Protocol>();
-                var pendingNew = new List<Protocol>();
-                var pendingOld = new SortedDictionary<long, Protocol>(); // 按发送过的顺序发送。
-                int lastSentPendingNewIndex = 0;
-
                 lock (this)
                 {
-                    if (Pending.Count == 0)
-                        return;
-
                     try
                     {
                         long now = Util.Time.NowUnixMillis;
                         foreach (var rpc in Pending)
                         {
-                            var timeoutTrigger = rpc.CheckAndGetTimeoutTrigger(now);
+                            var timeoutTrigger = (rpc as IRaftRpc).CheckAndGetTimeoutTrigger(now);
                             if (null != timeoutTrigger)
                             {
                                 timeoutTriggers.Add(timeoutTrigger);
+                                continue;
                             }
-                            else
+                            
+                            if (false == rpc.Send(_Leader?.Socket))
                             {
-                                if (rpc.UniqueRequestId == 0)
-                                    pendingNew.Add(rpc);
-                                else
-                                    pendingOld.Add(rpc.UniqueRequestId, rpc);
+                                // 这里发送失败，等待新的 LeaderIs 通告再继续。
+                                fails.Add(rpc);
                             }
                         }
                         Pending.Clear();
-
-                        foreach (var rpc in pendingOld.Values)
-                        {
-                            if (false == rpc.Send(_Leader?.Socket))
-                            {
-                                // 这里发送失败，等待新的 LeaderIs 通告再继续。
-                                fails.Add(rpc);
-                            }
-                        }
-
-                        for (; lastSentPendingNewIndex < pendingNew.Count; ++lastSentPendingNewIndex)
-                        {
-                            var rpc = pendingNew[lastSentPendingNewIndex];
-                            if (false == rpc.Send(_Leader?.Socket))
-                            {
-                                // 这里发送失败，等待新的 LeaderIs 通告再继续。
-                                fails.Add(rpc);
-                            }
-                        }
                     }
                     finally
                     {
-                        lock (this)
+                        foreach (var fail in fails)
                         {
-                            foreach (var fail in fails)
-                            {
-                                Pending.Add(fail);
-                            }
-                            for (; lastSentPendingNewIndex < pendingNew.Count; ++lastSentPendingNewIndex)
-                            {
-                                Pending.Add(pendingNew[lastSentPendingNewIndex]);
-                            }
+                            Pending.Add(fail);
                         }
                     }
                 }
