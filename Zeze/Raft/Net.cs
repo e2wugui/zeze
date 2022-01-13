@@ -230,6 +230,7 @@ namespace Zeze.Raft
         /// 唯一的请求编号，重发时保持不变。在一个ClientId内唯一即可。
         /// </summary>
         public abstract long UniqueRequestId { get; set; }
+        public abstract long CreateTime { get; set; }
 
         /// <summary>
         /// 检查是否超时，如果超时返回Func，否则返回null。
@@ -246,7 +247,7 @@ namespace Zeze.Raft
         // 不能直接 Zeze.Net.Rpc.Timeout，因为当 Timeout 发生时可能发送给 Raft-Server 的请求是成功的。
         // 为了处理这种情况，Agent 在决定重发时自己判断是否超时。
         // 原则，只要rpc发送出去了，除了应用逻辑错误和重发时发现请求超时，其他错误全部重发。
-        public long RealStartTime { get; internal set; }
+        public long CreateTime { get; set; }
         public int RealTimeout { get; set; }
         public TaskCompletionSource<RaftRpc<TArgument, TResult>> RealFuture { get; internal set; }
         public Func<Protocol, long> RealHandle { get; internal set; }
@@ -255,7 +256,7 @@ namespace Zeze.Raft
 
         public Action CheckAndGetTimeoutTrigger(long now)
         {
-            if (now - RealStartTime > RealTimeout)
+            if (now - CreateTime > RealTimeout)
             {
                 IsTimeout = true;
                 ResultCode = Procedure.Timeout;
@@ -282,11 +283,49 @@ namespace Zeze.Raft
         {
             return $"Client={Sender.RemoteAddress} UniqueRequestId={UniqueRequestId} {base.ToString()}";
         }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteBool(IsRequest);
+            bb.WriteLong(SessionId);
+            bb.WriteLong(ResultCode);
+            bb.WriteLong(UniqueRequestId);
+
+            if (IsRequest)
+            {
+                Argument.Encode(bb);
+            }
+            else
+            {
+                Result.Encode(bb);
+            }
+        }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            IsRequest = bb.ReadBool();
+            SessionId = bb.ReadLong();
+            ResultCode = bb.ReadLong();
+            UniqueRequestId = bb.ReadLong();
+
+            if (IsRequest)
+            {
+                Argument.Decode(bb);
+            }
+            else
+            {
+                Result.Decode(bb);
+            }
+        }
     }
 
     public sealed class Agent
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+        // 保证在Raft-Server检查UniqueRequestId唯一性过期前唯一即可。
+        // 使用持久化是为了避免短时间重启，Id重复。
+        public Zeze.Util.PersistentAtomicLong UniqueRequestIdGenerator { get; }
 
         public RaftConfig RaftConfig { get; private set; }
         public NetClient Client { get; private set; }
@@ -325,11 +364,17 @@ namespace Zeze.Raft
                 throw new ArgumentException();
 
             if (timeout < 0)
-                timeout = RaftConfig.AppendEntriesTimeout + 1000;
-            rpc.RealStartTime = Util.Time.NowUnixMillis;
+                timeout = RaftConfig.AppendEntriesTimeout + 5000;
+
+            if (rpc.UniqueRequestId != 0)
+                throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
+
+            rpc.UniqueRequestId = UniqueRequestIdGenerator.Next();
+            rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.RealTimeout = timeout;
             rpc.RealHandle = handle;
             var resendTimeout = RaftConfig.AppendEntriesTimeout + 2000;
+
             lock (this)
             {
                 var tmp = _Leader;
@@ -413,8 +458,13 @@ namespace Zeze.Raft
             where TResult : Bean, new()
         {
             if (timeout < 0)
-                timeout = int.MaxValue; // RaftConfig.AppendEntriesTimeout + 1000;
-            rpc.RealStartTime = Util.Time.NowUnixMillis;
+                timeout = RaftConfig.AppendEntriesTimeout + 5000;
+
+            if (rpc.UniqueRequestId != 0)
+                throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
+
+            rpc.UniqueRequestId = UniqueRequestIdGenerator.Next();
+            rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.RealTimeout = timeout;
 
             var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
@@ -481,6 +531,7 @@ namespace Zeze.Raft
             )
         {
             InternalThreadPool = zeze.InternalThreadPool;
+            UniqueRequestIdGenerator = Zeze.Util.PersistentAtomicLong.GetOrAdd($"Zeze.Raft.Agent.UniqeRequestId.Generator.{zeze.Config.ServerId}");
             Init(new NetClient(this, name, zeze), raftconf, onLeaderChanged);
         }
 
@@ -502,6 +553,7 @@ namespace Zeze.Raft
             if (null == config)
                 config = Config.Load();
 
+            UniqueRequestIdGenerator = Zeze.Util.PersistentAtomicLong.GetOrAdd($"Zeze.Raft.Agent.UniqeRequestId.Generator.{config.ServerId}");
             Init(new NetClient(this, name, config), raftconf, onLeaderChanged);
         }
 
