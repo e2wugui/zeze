@@ -534,7 +534,7 @@ namespace Zeze.Transaction
             // 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
             // 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
             // 【注意】这个提前检测更容易忙等，因为都没去尝试锁（这会阻塞）。
-            if (ra.OriginRecord.Table.Zeze.Config.FastRedoWhenConfict
+            if (ra.OriginRecord.Table.Zeze.Config.FastRedoWhenConflict
                 && State != TransactionState.Completed && ra.OriginRecord.Timestamp != ra.Timestamp)
             {
                 ThrowRedo();
