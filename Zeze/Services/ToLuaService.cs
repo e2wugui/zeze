@@ -391,7 +391,7 @@ namespace Zeze.Services.ToLuaService
         internal void RegisterGlobalAndCallback(FromLua callback)
         {
             if (Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
-                throw new Exception("load Zeze.lua faild");
+                throw new Exception("load Zeze.lua failed");
             if (false == Lua.IsTable(-1))
                 throw new Exception("Zeze.lua not return a table");
 
@@ -683,7 +683,7 @@ namespace Zeze.Services.ToLuaService
                     }
                     break;
                 default:
-                    throw new Exception("Unkown Tag Type");
+                    throw new Exception("Unknown Tag Type");
             }
         }
 
@@ -932,7 +932,7 @@ namespace Zeze.Services.ToLuaService
                     }
                     break;
                 default:
-                    throw new Exception("Unkown Tag Type");
+                    throw new Exception("Unknown Tag Type");
             }
         }
 

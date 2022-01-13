@@ -128,10 +128,10 @@ namespace Zeze.Util
         }
 
         /// <summary>
-        /// perfrom action if cube exist.
+        /// perform action if cube exist.
         /// under lock (cube)
         /// </summary>
-        public void TryPerfrom(CubeIndex index, Action<CubeIndex, TCube> action)
+        public void TryPerform(CubeIndex index, Action<CubeIndex, TCube> action)
         {
             if (Cubes.TryGetValue(index, out var cube))
             {
@@ -146,7 +146,7 @@ namespace Zeze.Util
         }
 
         /// <summary>
-        /// perfrom action for Cubes.GetOrAdd.
+        /// perform action for Cubes.GetOrAdd.
         /// under lock (cube)
         /// </summary>
         public void Perform(CubeIndex index, Action<CubeIndex, TCube> action)
@@ -200,7 +200,7 @@ namespace Zeze.Util
             if (oIndex.Equals(nIndex))
                 return false;
 
-            TryPerfrom(oIndex, (index, cube) => RemoveObject(index, cube, obj));
+            TryPerform(oIndex, (index, cube) => RemoveObject(index, cube, obj));
             Perform(nIndex, (index, cube) => cube.Add(index, obj));
             return true;
         }
@@ -242,22 +242,22 @@ namespace Zeze.Util
         /// </summary>
         public void OnLeave(TObject obj, double x, double y, double z)
         {
-            TryPerfrom(ToIndex(x, y, z), (index, cube) => RemoveObject(index, cube, obj));
+            TryPerform(ToIndex(x, y, z), (index, cube) => RemoveObject(index, cube, obj));
         }
 
         public void OnLeave(TObject obj, float x, float y, float z)
         {
-            TryPerfrom(ToIndex(x, y, z), (index, cube) => RemoveObject(index, cube, obj));
+            TryPerform(ToIndex(x, y, z), (index, cube) => RemoveObject(index, cube, obj));
         }
 
         public void OnLeave(TObject obj, long x, long y, long z)
         {
-            TryPerfrom(ToIndex(x, y, z), (index, cube) => RemoveObject(index, cube, obj));
+            TryPerform(ToIndex(x, y, z), (index, cube) => RemoveObject(index, cube, obj));
         }
 
         public void OnLeave(TObject obj, CubeIndex index)
         {
-            TryPerfrom(index, (index, cube) => RemoveObject(index, cube, obj));
+            TryPerform(index, (index, cube) => RemoveObject(index, cube, obj));
         }
 
         public List<TCube> GetCubes(CubeIndex center, int rangeX, int rangeY, int rangeZ)

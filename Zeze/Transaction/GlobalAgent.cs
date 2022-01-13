@@ -18,7 +18,7 @@ namespace Zeze.Transaction
         {
             public bool ActiveClose { get; private set; } = false;
             public Connector Connector { get; private set; }
-            public Zeze.Util.AtomicLong LoginedTimes { get; } = new Util.AtomicLong();
+            public Zeze.Util.AtomicLong LoginTimes { get; } = new Util.AtomicLong();
             public int GlobalCacheManagerHashIndex { get; }
 
             private Zeze.Util.AtomicLong LastErrorTime = new Zeze.Util.AtomicLong();
@@ -47,7 +47,7 @@ namespace Zeze.Transaction
                     return so;
 
                 if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime.Get() < FastErrorPeriod)
-                    ThrowException("GloalAgent.Connect: In Forbit Login Period");
+                    ThrowException("GlobalAgent.Connect: In Forbid Login Period");
 
                 try
                 {
@@ -62,7 +62,7 @@ namespace Zeze.Transaction
                         if (now - LastErrorTime.Get() > FastErrorPeriod)
                             LastErrorTime.GetAndSet(now);
                     }
-                    ThrowException("GloalAgent.Connect: Login Timeout", e);
+                    ThrowException("GlobalAgent.Connect: Login Timeout", e);
                 }
                 return null; // never got here
             }
@@ -142,9 +142,9 @@ namespace Zeze.Transaction
                 */
                 switch (rpc.ResultCode)
                 {
-                    case GlobalCacheManagerServer.AcquireModifyFaild:
-                    case GlobalCacheManagerServer.AcquireShareFaild:
-                        Transaction.Current.ThrowAbort("GlobalAgent.Acquire Faild");
+                    case GlobalCacheManagerServer.AcquireModifyFailed:
+                    case GlobalCacheManagerServer.AcquireShareFailed:
+                        Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
                         break;
                 }
                 return rpc;
@@ -295,7 +295,7 @@ namespace Zeze.Transaction
         public override void OnHandshakeDone(AsyncSocket so)
         {
             var agent = so.UserState as GlobalAgent.Agent;
-            if (agent.LoginedTimes.Get() > 1)
+            if (agent.LoginTimes.Get() > 1)
             {
                 var relogin = new ReLogin();
                 relogin.Argument.ServerId = Zeze.Config.ServerId;
@@ -305,15 +305,15 @@ namespace Zeze.Transaction
                     {
                         if (relogin.IsTimeout)
                         {
-                            so.Close(new Exception("GloalAgent.Relogin Timeout"));
+                            so.Close(new Exception("GlobalAgent.ReLogin Timeout"));
                         }
                         else if (relogin.ResultCode != 0)
                         {
-                            so.Close(new Exception("GloalAgent.Relogin Fail code=" + relogin.ResultCode));
+                            so.Close(new Exception("GlobalAgent.ReLogin Fail code=" + relogin.ResultCode));
                         }
                         else
                         {
-                            agent.LoginedTimes.IncrementAndGet();
+                            agent.LoginTimes.IncrementAndGet();
                             base.OnHandshakeDone(so);
                         }
                         return 0;
@@ -329,7 +329,7 @@ namespace Zeze.Transaction
                     {
                         if (login.IsTimeout)
                         {
-                            so.Close(new Exception("GloalAgent.Login Timeout"));
+                            so.Close(new Exception("GlobalAgent.Login Timeout"));
                         }
                         else if (login.ResultCode != 0)
                         {
@@ -337,7 +337,7 @@ namespace Zeze.Transaction
                         }
                         else
                         {
-                            agent.LoginedTimes.IncrementAndGet();
+                            agent.LoginTimes.IncrementAndGet();
                             base.OnHandshakeDone(so);
                         }
                         return 0;

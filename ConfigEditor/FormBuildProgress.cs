@@ -181,7 +181,7 @@ namespace ConfigEditor
                         break;
 
                     default:
-                        this.AppendLine("unkown client language: " + FormMain.Instance.ConfigProject.ClientLanguage, Color.Red);
+                        this.AppendLine("unknown client language: " + FormMain.Instance.ConfigProject.ClientLanguage, Color.Red);
                         break;
                 }
             }

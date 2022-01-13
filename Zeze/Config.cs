@@ -40,7 +40,7 @@ namespace Zeze
         public ConcurrentDictionary<string, TableConf> TableConfMap { get; }
             = new ConcurrentDictionary<string, TableConf>();
         public TableConf DefaultTableConf { get; set; }
-        public bool AllowReadWhenRecoredNotAccessed { get; set; } = true;
+        public bool AllowReadWhenRecordNotAccessed { get; set; } = true;
         public bool AllowSchemasReuseVariableIdWithSameType { get; set; } = true;
         public bool FastRedoWhenConfict { get; set; } = false;
         public ConcurrentDictionary<string, ICustomize> Customize { get; }
@@ -204,8 +204,8 @@ namespace Zeze
             attr = self.GetAttribute("CompletionPortThreads");
             CompletionPortThreads = attr.Length > 0 ? int.Parse(attr) : -1;
 
-            attr = self.GetAttribute("AllowReadWhenRecoredNotAccessed");
-            AllowReadWhenRecoredNotAccessed = attr.Length > 0 ? bool.Parse(attr) : true;
+            attr = self.GetAttribute("AllowReadWhenRecordNotAccessed");
+            AllowReadWhenRecordNotAccessed = attr.Length > 0 ? bool.Parse(attr) : true;
             attr = self.GetAttribute("AllowSchemasReuseVariableIdWithSameType");
             AllowSchemasReuseVariableIdWithSameType = attr.Length > 0 ? bool.Parse(attr) : true;
 

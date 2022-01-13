@@ -8,7 +8,7 @@ using Zeze.Transaction;
 namespace UnitTest.Zeze.Trans
 {
     [TestClass]
-    public class TestProcdure
+    public class TestProcedure
     {
         TestBegin.MyBean bean = new TestBegin.MyBean();
 

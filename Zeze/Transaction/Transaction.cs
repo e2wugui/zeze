@@ -248,7 +248,7 @@ namespace Zeze.Transaction
                                         if (checkResult == CheckResult.Success)
                                         {
                                             _final_rollback_(procedure);
-                                            return Procedure.Excption;
+                                            return Procedure.Exception;
                                         }
                                         break; // retry
 
@@ -522,13 +522,13 @@ namespace Zeze.Transaction
 
         public void VerifyRecordAccessed(Bean bean, bool IsRead = false)
         {
-            //if (IsRead)// && App.Config.AllowReadWhenRecoredNotAccessed)
+            //if (IsRead)// && App.Config.AllowReadWhenRecordNotAccessed)
             //    return;
             if (bean.RootInfo.Record.State == GlobalCacheManagerServer.StateRemoved)
                 throw new Exception($"VerifyRecordAccessed: Record Has Bean Removed From Cache. {bean.TableKey}");
             var ra = GetRecordAccessed(bean.TableKey);
             if (ra == null)
-                throw new Exception($"VerifyRecordAccessed: Record Not Control Under Current Transastion. {bean.TableKey}");
+                throw new Exception($"VerifyRecordAccessed: Record Not Control Under Current Transaction. {bean.TableKey}");
             if (bean.RootInfo.Record != ra.OriginRecord)
                 throw new Exception($"VerifyRecordAccessed: Record Reloaded.{bean.TableKey}");
             // 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
@@ -568,12 +568,12 @@ namespace Zeze.Transaction
                                 ? CheckResult.Redo : CheckResult.Success;
 
                         case GlobalCacheManagerServer.StateShare:
-                            // 这里可能死锁：另一个先获得提升的请求要求本机Recude，但是本机Checkpoint无法进行下去，被当前事务挡住了。
+                            // 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                             // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
                             var acquire = e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify);
                             if (acquire.Result.State  != GlobalCacheManagerServer.StateModify)
                             {
-                                logger.Warn("Acquire Faild. Maybe DeadLock Found {0}", e.OriginRecord);
+                                logger.Warn("Acquire Failed. Maybe DeadLock Found {0}", e.OriginRecord);
                                 e.OriginRecord.State = GlobalCacheManagerServer.StateInvalid;
                                 LastTableKeyOfRedoAndRelease = e.TableKey;
                                 e.OriginRecord.LastErrorGlobalSerialId = acquire.Result.GlobalSerialId; // save
@@ -585,7 +585,7 @@ namespace Zeze.Transaction
                             return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
                     }
                     return e.Timestamp != e.OriginRecord.Timestamp
-                        ? CheckResult.Redo : CheckResult.Success; // imposible
+                        ? CheckResult.Redo : CheckResult.Success; // impossible
                 }
                 else
                 {

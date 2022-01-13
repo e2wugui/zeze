@@ -171,7 +171,7 @@ namespace Zeze.Net
             IsRequest = false;
             if (false == base.Send(Sender))
             {
-                logger.Warn($"Rpc.SendResult Faild {Sender.Socket} {this}");
+                logger.Warn($"Rpc.SendResult Failed {Sender.Socket} {this}");
             }
         }
 
@@ -185,7 +185,7 @@ namespace Zeze.Net
             IsRequest = false;
             if (false == base.Send(Sender))
             {
-                logger.Warn($"Rpc.SendResult Faild {Sender.Socket} {this}");
+                logger.Warn($"Rpc.SendResult Failed {Sender.Socket} {this}");
             }
         }
 

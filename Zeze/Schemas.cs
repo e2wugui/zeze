@@ -161,7 +161,7 @@ namespace Zeze
                 }
                 else if (other.Key != null)
                 {
-                    throw new Exception("(this.Key == null && other.Key != null) Imposible!");
+                    throw new Exception("(this.Key == null && other.Key != null) Impossible!");
                 }
 
                 if (null != Value)
@@ -179,7 +179,7 @@ namespace Zeze
                 }
                 else if (other.Value != null)
                 {
-                    throw new Exception("(this.Value == null && other.Value != null) Imposible!");
+                    throw new Exception("(this.Value == null && other.Value != null) Impossible!");
                 }
 
                 return true;

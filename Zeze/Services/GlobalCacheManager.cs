@@ -33,10 +33,10 @@ namespace Zeze.Services
         public const int AcquireModifyDeadLockFound = 3;
         public const int AcquireErrorState = 4;
         public const int AcquireModifyAlreadyIsModify = 5;
-        public const int AcquireShareFaild = 6;
-        public const int AcquireModifyFaild = 7;
+        public const int AcquireShareFailed = 6;
+        public const int AcquireModifyFailed = 7;
         public const int AcquireException = 8;
-        public const int AcquireInvalidFaild = 9;
+        public const int AcquireInvalidFailed = 9;
 
         public const int ReduceErrorState = 11;
         public const int ReduceShareAlreadyIsInvalid = 12;
@@ -65,7 +65,7 @@ namespace Zeze.Services
         /*
          * 会话。
          * key是 LogicServer.Id，现在的实现就是Zeze.Config.ServerId。
-         * 在连接建立后收到的Login Or Relogin 中设置。
+         * 在连接建立后收到的Login Or ReLogin 中设置。
          * 每个会话记住分配给自己的GlobalTableKey，用来在正常退出的时候释放。
          * 每个会话还需要记录该会话的Socket.SessionId。在连接重新建立时更新。
          * 总是GetOrAdd，不删除。按现在的cache-sync设计，
@@ -506,7 +506,7 @@ namespace Zeze.Services
                                 logger.Error("XXX 8 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                 rpc.Result.State = StateInvalid;
                                 rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                                rpc.SendResultCode(AcquireShareFaild);
+                                rpc.SendResultCode(AcquireShareFailed);
                                 return 0;
                         }
 
@@ -637,7 +637,7 @@ namespace Zeze.Services
                                 logger.Error("XXX 9 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                 rpc.Result.State = StateInvalid;
                                 rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                                rpc.SendResultCode(AcquireModifyFaild);
+                                rpc.SendResultCode(AcquireModifyFailed);
                                 return 0;
                         }
 
@@ -655,7 +655,7 @@ namespace Zeze.Services
 
                     List<Util.KV<CacheHolder, Reduce >> reducePending
                         = new List<Util.KV<CacheHolder, Reduce>>();
-                    HashSet<CacheHolder> reduceSuccessed = new HashSet<CacheHolder>();
+                    HashSet<CacheHolder> reduceSucceed = new HashSet<CacheHolder>();
                     bool senderIsShare = false;
                     // 先把降级请求全部发送给出去。
                     foreach (CacheHolder c in cs.Share)
@@ -663,7 +663,7 @@ namespace Zeze.Services
                         if (c == sender)
                         {
                             senderIsShare = true;
-                            reduceSuccessed.Add(sender);
+                            reduceSucceed.Add(sender);
                             continue;
                         }
                         Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId);
@@ -698,7 +698,7 @@ namespace Zeze.Services
                                         // 后面还有个成功的处理循环，但是那里可能包含sender，
                                         // 在这里更新吧。
                                         reduce.Key.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out var _);
-                                        reduceSuccessed.Add(reduce.Key);
+                                        reduceSucceed.Add(reduce.Key);
                                     }
                                     else
                                     {
@@ -724,9 +724,9 @@ namespace Zeze.Services
                     }
 
                     // 移除成功的。
-                    foreach (CacheHolder successed in reduceSuccessed)
+                    foreach (CacheHolder succeed in reduceSucceed)
                     {
-                        cs.Share.Remove(successed);
+                        cs.Share.Remove(succeed);
                     }
 
                     // 如果前面降级发生中断(break)，这里就不会为0。
@@ -755,7 +755,7 @@ namespace Zeze.Services
 
                         rpc.Result.State = StateInvalid;
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                        rpc.SendResultCode(AcquireModifyFaild);
+                        rpc.SendResultCode(AcquireModifyFailed);
                     }
                     // 很好，网络失败不再看成成功，发现除了加break，
                     // 其他处理已经能包容这个改动，都不用动。
@@ -874,7 +874,7 @@ namespace Zeze.Services
                 }
             }
 
-            public const long ForbitPeriod = 10 * 1000; // 10 seconds
+            public const long ForbidPeriod = 10 * 1000; // 10 seconds
             private long LastErrorTime = 0;
 
             public void SetError()
@@ -882,7 +882,7 @@ namespace Zeze.Services
                 lock (this)
                 {
                     long now = global::Zeze.Util.Time.NowUnixMillis;
-                    if (now - LastErrorTime > ForbitPeriod)
+                    if (now - LastErrorTime > ForbidPeriod)
                         LastErrorTime = now;
                 }
             }
@@ -898,7 +898,7 @@ namespace Zeze.Services
                 {
                     lock (this)
                     {
-                        if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbitPeriod)
+                        if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbidPeriod)
                             return null;
                     }
                     AsyncSocket peer = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);

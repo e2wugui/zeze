@@ -299,11 +299,11 @@ namespace Zeze.Transaction
                     case 2:
                         throw new Exception("Instance Exist.");
                     case 3:
-                        throw new Exception("Insert LocalId Faild");
+                        throw new Exception("Insert LocalId Failed");
                     case 4:
                         throw new Exception("Global Not Equals");
                     case 5:
-                        throw new Exception("Insert Global Faild");
+                        throw new Exception("Insert Global Failed");
                     case 6:
                         throw new Exception("Instance Greater Than One But No Global");
                     default:
@@ -746,11 +746,11 @@ namespace Zeze.Transaction
                     case 2:
                         throw new Exception("Instance Exist");
                     case 3:
-                        throw new Exception("Insert LocalId Faild");
+                        throw new Exception("Insert LocalId Failed");
                     case 4:
                         throw new Exception("Global Not Equals");
                     case 5:
-                        throw new Exception("Insert Global Faild");
+                        throw new Exception("Insert Global Failed");
                     case 6:
                         throw new Exception("Instance Greater Than One But No Global");
                     default:
@@ -1140,12 +1140,12 @@ namespace Zeze.Transaction
             Db.Dispose();
         }
 
-        public class RockdsDbTrans : Transaction
+        public class RocksDbTrans : Transaction
         {
             private DatabaseRocksDb Database;
             private WriteBatch Batch;
 
-            public RockdsDbTrans(DatabaseRocksDb database)
+            public RocksDbTrans(DatabaseRocksDb database)
             {
                 Database = database;
                 Batch = new WriteBatch();
@@ -1177,7 +1177,7 @@ namespace Zeze.Transaction
 
         public override Transaction BeginTransaction()
         {
-            return new RockdsDbTrans(this);
+            return new RocksDbTrans(this);
         }
 
         public override Table OpenTable(string name)
@@ -1241,14 +1241,14 @@ namespace Zeze.Transaction
 
             public void Remove(Transaction t, ByteBuffer _key)
             {
-                var txn = t as RockdsDbTrans;
+                var txn = t as RocksDbTrans;
                 var (key, keylen) = GetBytes(_key);
                 txn.Remove(key, keylen, ColumnFamily);
             }
 
             public void Replace(Transaction t, ByteBuffer _key, ByteBuffer _value)
             {
-                var txn = t as RockdsDbTrans;
+                var txn = t as RocksDbTrans;
                 var (key, keylen) = GetBytes(_key);
                 var (value, valuelen) = GetBytes(_value);
                 txn.Put(key, keylen, value, valuelen, ColumnFamily);

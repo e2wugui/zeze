@@ -49,7 +49,7 @@ func NewClient(pdAddrs string, outerr []byte) int {
 		ClientMap.Store(ClientIdSeed, client)
 		return ClientIdSeed
 	}
-	return -copy(outerr, "Imposible!")
+	return -copy(outerr, "Impossible!")
 }
 
 func DeleteClientMap(clientId int) *txnkv.Client {
@@ -99,7 +99,7 @@ func Begin(clientId int, outerr []byte) int {
 			TransactionMap.Store(TransactionIdSeed, tx)
 			return TransactionIdSeed
 		}
-		return -copy(outerr, "Imposible!")
+		return -copy(outerr, "Impossible!")
 	}
 	return -copy(outerr, "ClientId Not Exist!")
 }

@@ -111,7 +111,7 @@ namespace Zeze.Transaction
 			// 如果监听了整个记录的变化
 			if (variables.TryGetValue(0, out var beanCC))
 			{
-				beanCC.CollectChanged(null, null); // bean 发生了变化仅仅记录trur|false，不需要 path and note。
+				beanCC.CollectChanged(null, null); // bean 发生了变化仅仅记录true|false，不需要 path and note。
 				if (variables.Count == 1)
 					return; // 只有记录级别的监听者，已经完成收集，不再需要继续处理。
 			}

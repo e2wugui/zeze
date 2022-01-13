@@ -89,7 +89,7 @@ namespace Zeze.Gen
                         // Make 的时候解析。
                         break;
                     default:
-                        throw new Exception("unkown element name: " + e.Name);
+                        throw new Exception("unknown element name: " + e.Name);
                 }
             }
         }

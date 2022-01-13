@@ -455,7 +455,7 @@ namespace ConfigEditor
                         return true;
 
                     default:
-                        throw new Exception("unkown update type. end.");
+                        throw new Exception("unknown update type. end.");
                 }
             }
             return true;

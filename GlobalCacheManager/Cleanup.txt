@@ -82,7 +82,7 @@ LogicServer.ServerId。现在框架里面存在的Id就是AutoKeyLocalId。
 #        if (firstTime)
 #             Login().Send();
 #        else
-#             Relogin().Send();
+#             ReLogin().Send();
 #
 #
 # 更多实现细节看实现代码。计划修改的相关文件：

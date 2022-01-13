@@ -416,7 +416,7 @@ namespace Zeze.Services
                                 Monitor.Pulse(cs);
                                 logger.Error("XXX 8 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                                rpc.SendResultCode(GlobalCacheManagerServer.AcquireShareFaild);
+                                rpc.SendResultCode(GlobalCacheManagerServer.AcquireShareFailed);
                                 return 0;
                         }
 
@@ -549,7 +549,7 @@ namespace Zeze.Services
 
                                 logger.Error("XXX 9 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                                rpc.SendResultCode(GlobalCacheManagerServer.AcquireModifyFaild);
+                                rpc.SendResultCode(GlobalCacheManagerServer.AcquireModifyFailed);
                                 return 0;
                         }
 
@@ -570,7 +570,7 @@ namespace Zeze.Services
 
                     List<Util.KV<CacheHolder, GlobalCacheManager.Reduce >> reducePending
                         = new List<Util.KV<CacheHolder, GlobalCacheManager.Reduce>>();
-                    HashSet<CacheHolder> reduceSuccessed = new HashSet<CacheHolder>();
+                    HashSet<CacheHolder> reduceSucceed = new HashSet<CacheHolder>();
                     bool senderIsShare = false;
                     // 先把降级请求全部发送给出去。
                     foreach (var c in cs.Share)
@@ -578,7 +578,7 @@ namespace Zeze.Services
                         if (c == sender.Id)
                         {
                             senderIsShare = true;
-                            reduceSuccessed.Add(sender);
+                            reduceSucceed.Add(sender);
                             continue;
                         }
                         var shareHolder = GetSession(c);
@@ -612,7 +612,7 @@ namespace Zeze.Services
                                         // 后面还有个成功的处理循环，但是那里可能包含sender，在这里更新吧。
                                         step3.RemoveCacheHolderAcquired(reduce.Key.Id, gkey);
                                         //reduce.Key.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out var _);
-                                        reduceSuccessed.Add(reduce.Key);
+                                        reduceSucceed.Add(reduce.Key);
                                     }
                                     else
                                     {
@@ -636,10 +636,10 @@ namespace Zeze.Services
                     Monitor.Wait(cs);
 
                     // 移除成功的。
-                    foreach (CacheHolder successed in reduceSuccessed)
+                    foreach (CacheHolder succeed in reduceSucceed)
                     {
-                        step3.RemoveCacheStateShare(gkey, successed.Id);
-                        //cs.Share.Remove(successed.Id);
+                        step3.RemoveCacheStateShare(gkey, succeed.Id);
+                        //cs.Share.Remove(succeed.Id);
                     }
 
                     Raft.AppendLog(step3);
@@ -683,7 +683,7 @@ namespace Zeze.Services
                         logger.Error("XXX 10 {0} {1} {2}", sender, rpc.Argument.State, cs);
 
                         rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                        rpc.SendResultCode(GlobalCacheManagerServer.AcquireModifyFaild);
+                        rpc.SendResultCode(GlobalCacheManagerServer.AcquireModifyFailed);
                     }
                     // 很好，网络失败不再看成成功，发现除了加break，
                     // 其他处理已经能包容这个改动，都不用动。
@@ -1196,7 +1196,7 @@ namespace Zeze.Services
                 }
             }
 
-            public const long ForbitPeriod = 10 * 1000; // 10 seconds
+            public const long ForbidPeriod = 10 * 1000; // 10 seconds
             private long LastErrorTime = 0; // 本地变量，【不会系列化】。
 
             public void SetError()
@@ -1204,7 +1204,7 @@ namespace Zeze.Services
                 lock (this)
                 {
                     long now = global::Zeze.Util.Time.NowUnixMillis;
-                    if (now - LastErrorTime > ForbitPeriod)
+                    if (now - LastErrorTime > ForbidPeriod)
                         LastErrorTime = now;
                 }
             }
@@ -1221,7 +1221,7 @@ namespace Zeze.Services
                 {
                     lock (this)
                     {
-                        if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbitPeriod)
+                        if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbidPeriod)
                             return null;
                     }
                     Zeze.Net.AsyncSocket peer = Services.GlobalCacheManagerWithRaft.Instance.Raft.Server.GetSocket(SessionId);

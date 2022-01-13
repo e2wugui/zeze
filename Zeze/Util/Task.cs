@@ -73,9 +73,9 @@ namespace Zeze.Util
                     ex = inner;
                 }
 
-                var errorCode = Procedure.Excption;
+                var errorCode = Procedure.Exception;
                 if (ex is TaskCanceledException)
-                    errorCode = Procedure.CancelExcption;
+                    errorCode = Procedure.CancelException;
                 else if (ex is Raft.RaftRetryException)
                     errorCode = Procedure.RaftRetry;
 
@@ -99,7 +99,7 @@ namespace Zeze.Util
         }
 
         public static long Call(
-            Procedure procdure,
+            Procedure procedure,
             Net.Protocol from = null,
             Action<Net.Protocol, long> actionWhenError = null)
         {
@@ -108,7 +108,7 @@ namespace Zeze.Util
             {
                 // 日志在Call里面记录。因为要支持嵌套。
                 // 统计在Call里面实现。
-                long result = procdure.Call();
+                long result = procedure.Call();
                 if (result != 0 && null != isRequestSaved && isRequestSaved.Value)
                 {
                     actionWhenError?.Invoke(from, result);
@@ -120,19 +120,19 @@ namespace Zeze.Util
                 // Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
                 if (null != isRequestSaved && isRequestSaved.Value)
                 {
-                    actionWhenError?.Invoke(from, Procedure.Excption);
+                    actionWhenError?.Invoke(from, Procedure.Exception);
                 }
-                logger.Error(ex, procdure.ActionName);
-                return Procedure.Excption;
+                logger.Error(ex, procedure.ActionName);
+                return Procedure.Exception;
             }
         }
 
         public static System.Threading.Tasks.Task Run(
-            Procedure procdure,
+            Procedure procedure,
             Net.Protocol from = null,
             Action<Net.Protocol, long> actionWhenError = null)
         {
-            return System.Threading.Tasks.Task.Run(() => Call(procdure, from, actionWhenError));
+            return System.Threading.Tasks.Task.Run(() => Call(procedure, from, actionWhenError));
         }
         /*
         public static System.Threading.Tasks.Task Create(

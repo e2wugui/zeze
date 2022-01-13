@@ -55,7 +55,7 @@ namespace Zeze.Transaction
         {
             ChangeNoteMap1<K, V> another = (ChangeNoteMap1<K, V>)note;
             // Put,Remove 需要确认有没有顺序问题
-            // this: replace 1,3 remove 2,4 nest: repalce 2 remove 1
+            // this: replace 1,3 remove 2,4 nest: replace 2 remove 1
             foreach (var e in another.Replaced) LogPut(e.Key, e.Value); // replace 1,2,3 remove 4
             foreach (var e in another.Removed) LogRemove(e); // replace 2,3 remove 1,4
         }

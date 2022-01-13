@@ -41,7 +41,7 @@ namespace Zeze.Services
         /// 2. linkd启动时调用 UseService, UnUseService 向ServiceManager申请使用gs-list。
         /// 3. ServiceManager在RegisterService,UnRegisterService处理时发送 NotifyServiceList 给所有的 linkd。
         /// 4. linkd收到NotifyServiceList先记录到本地，同时持续关注自己和gs之间的连接，
-        ///    当列表中的所有serivce都准备完成时调用 ReadyServiceList。
+        ///    当列表中的所有service都准备完成时调用 ReadyServiceList。
         /// 5. ServiceManager收到所有的linkd的ReadyServiceList后，向所有的linkd广播 CommitServiceList。
         /// 6. linkd 收到 CommitServiceList 时，启用新的服务列表。
         /// 
@@ -58,7 +58,7 @@ namespace Zeze.Services
         ///       实际上raft不需要维护相同数据状态（gs-list），从空的开始即可，启用raft的话仅使用他的选举功能。
         ///    #) 由于ServiceManager可以较快恢复，暂时不考虑使用Raft，实现无聊了再来加这个吧
         /// 5. ServiceManager开启一轮变更通告过程中，有新的gs启动停止，将开启新的通告(NotifyServiceList)。
-        ///    ReadyServiceList时会检查ready中的列表是否和当前ServiceManagerlist一致，不一致直接忽略。
+        ///    ReadyServiceList时会检查ready中的列表是否和当前ServiceManagerList一致，不一致直接忽略。
         ///    新的通告流程会促使linkd继续发送ready。
         ///    另外为了更健壮的处理通告，通告加一个超时机制。超时没有全部ready，就启动一次新的通告。
         ///    原则是：总按最新的gs-list通告。中间不一致的ready全部忽略。
@@ -259,10 +259,10 @@ namespace Zeze.Services
                         return;
                     }
 
-                    if (!ReadyCommit.TryGetValue(session.SessionId, out var subcribeState))
+                    if (!ReadyCommit.TryGetValue(session.SessionId, out var subscribeState))
                         return;
 
-                    subcribeState.Ready = true;
+                    subscribeState.Ready = true;
                     TryCommit();
                 }
             }
@@ -299,7 +299,7 @@ namespace Zeze.Services
                         var s = ServiceManager.Server.GetSocket(SessionId);
                         try
                         {
-                            var r = new Keepalive();
+                            var r = new KeepAlive();
                             r.SendAndWaitCheckResultCode(s);
                         }
                         catch (Exception ex)
@@ -518,9 +518,9 @@ namespace Zeze.Services
                 Handle = ProcessReadyServiceList,
             });
 
-            Server.AddFactoryHandle(new Keepalive().TypeId, new Service.ProtocolFactoryHandle()
+            Server.AddFactoryHandle(new KeepAlive().TypeId, new Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Keepalive(),
+                Factory = () => new KeepAlive(),
             });
 
             Server.AddFactoryHandle(new AllocateId().TypeId, new Service.ProtocolFactoryHandle()
@@ -759,7 +759,7 @@ namespace Zeze.Services.ServiceManager
                 }
             }
 
-            private void PrepareAndTriggerOnchanged()
+            private void PrepareAndTriggerOnChanged()
             {
                 foreach (var info in ServiceInfos.ServiceInfoListSortedByIdentity)
                 {
@@ -780,7 +780,7 @@ namespace Zeze.Services.ServiceManager
                         case SubscribeInfo.SubscribeTypeSimple:
                             ServiceInfos = infos;
                             Committed = true;
-                            PrepareAndTriggerOnchanged();
+                            PrepareAndTriggerOnChanged();
                             break;
 
                         case SubscribeInfo.SubscribeTypeReadyCommit:
@@ -810,7 +810,7 @@ namespace Zeze.Services.ServiceManager
                     ServiceInfos = infos;
                     ServiceInfosPending = null;
                     Committed = true;
-                    PrepareAndTriggerOnchanged();
+                    PrepareAndTriggerOnChanged();
                 }
             }
 
@@ -823,7 +823,7 @@ namespace Zeze.Services.ServiceManager
                     Committed = true;
                     ServiceInfos = infos;
                     ServiceInfosPending = null;
-                    PrepareAndTriggerOnchanged();
+                    PrepareAndTriggerOnChanged();
                 }
             }
         }
@@ -900,7 +900,7 @@ namespace Zeze.Services.ServiceManager
         {
             if (type != SubscribeInfo.SubscribeTypeSimple
                 && type != SubscribeInfo.SubscribeTypeReadyCommit)
-                throw new Exception("Unkown SubscribeType");
+                throw new Exception("Unknown SubscribeType");
 
             return SubscribeService(new SubscribeInfo()
             {
@@ -987,11 +987,11 @@ namespace Zeze.Services.ServiceManager
             return Procedure.Success;
         }
 
-        private long ProcessKeepalive(Protocol p)
+        private long ProcessKeepAlive(Protocol p)
         {
-            var r = p as Keepalive;
+            var r = p as KeepAlive;
             OnKeepAlive?.Invoke();
-            r.SendResultCode(Keepalive.Success);
+            r.SendResultCode(KeepAlive.Success);
             return Procedure.Success;
         }
 
@@ -1130,10 +1130,10 @@ namespace Zeze.Services.ServiceManager
                 Handle = ProcessCommitServiceList,
             });
 
-            Client.AddFactoryHandle(new Keepalive().TypeId, new Service.ProtocolFactoryHandle()
+            Client.AddFactoryHandle(new KeepAlive().TypeId, new Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Keepalive(),
-                Handle = ProcessKeepalive,
+                Factory = () => new KeepAlive(),
+                Handle = ProcessKeepAlive,
             });
 
             Client.AddFactoryHandle(new SubscribeFirstCommit().TypeId, new Service.ProtocolFactoryHandle()
@@ -1537,9 +1537,9 @@ namespace Zeze.Services.ServiceManager
         }
     }
 
-    public sealed class Keepalive : Rpc<EmptyBean, EmptyBean>
+    public sealed class KeepAlive : Rpc<EmptyBean, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Keepalive).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(KeepAlive).FullName);
 
         public const int Success = 0;
 

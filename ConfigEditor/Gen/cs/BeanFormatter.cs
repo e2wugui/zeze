@@ -102,7 +102,7 @@ namespace ConfigEditor.Gen.cs
             }
 
             sw.WriteLine($"{prefix}                default:");
-            sw.WriteLine($"{prefix}                    throw new Exception(\"unkown var name: \" + e.Name);");
+            sw.WriteLine($"{prefix}                    throw new Exception(\"unknown var name: \" + e.Name);");
             sw.WriteLine($"{prefix}            }}");
             sw.WriteLine($"{prefix}        }}");
             sw.WriteLine($"{prefix}    }}");

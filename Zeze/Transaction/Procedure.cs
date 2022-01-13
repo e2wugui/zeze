@@ -8,7 +8,7 @@ namespace Zeze.Transaction
     public class Procedure
     {
         public const long Success = 0;
-        public const long Excption = -1;
+        public const long Exception = -1;
         public const long TooManyTry = -2;
         public const long NotImplement = -3;
         public const long Unknown = -4;
@@ -18,7 +18,7 @@ namespace Zeze.Transaction
         public const long AbortException = -8;
         public const long ProviderNotExist = -9;
         public const long Timeout = -10;
-        public const long CancelExcption = -11;
+        public const long CancelException = -11;
         public const long DuplicateRequest = -12;
         public const long ErrorRequestId = -13;
         public const long ErrorSendFail = -14;
@@ -116,7 +116,7 @@ namespace Zeze.Transaction
                 currentT.Rollback();
                 logger.Error(e, "Procedure {0} Exception UserState={1}", ToString(), UserState);
 #if ENABLE_STATISTICS
-                ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(Excption).IncrementAndGet();
+                ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(Exception).IncrementAndGet();
 #endif
                 currentT.VerifyRunning();
 #if DEBUG
@@ -126,7 +126,7 @@ namespace Zeze.Transaction
                     throw;
                 }
 #endif
-                return e is TaskCanceledException ? CancelExcption : Excption; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
+                return e is TaskCanceledException ? CancelException : Exception; // 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
             }
             finally
             {
