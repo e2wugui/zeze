@@ -366,6 +366,8 @@ namespace Zeze.Raft
             if (timeout < 0)
                 timeout = RaftConfig.AppendEntriesTimeout + 5000;
 
+            // 由于interface不能把setter弄成保护的，实际上外面可以修改。
+            // 简单检查一下吧。
             if (rpc.UniqueRequestId != 0)
                 throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
 
@@ -460,6 +462,8 @@ namespace Zeze.Raft
             if (timeout < 0)
                 timeout = RaftConfig.AppendEntriesTimeout + 5000;
 
+            // 由于interface不能把setter弄成保护的，实际上外面可以修改。
+            // 简单检查一下吧。
             if (rpc.UniqueRequestId != 0)
                 throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
 
