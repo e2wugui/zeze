@@ -42,7 +42,7 @@ namespace Zeze
         public TableConf DefaultTableConf { get; set; }
         public bool AllowReadWhenRecordNotAccessed { get; set; } = true;
         public bool AllowSchemasReuseVariableIdWithSameType { get; set; } = true;
-        public bool FastRedoWhenConfict { get; set; } = false;
+        public bool FastRedoWhenConflict { get; set; } = false;
         public ConcurrentDictionary<string, ICustomize> Customize { get; }
             = new ConcurrentDictionary<string, ICustomize>();
 
@@ -221,9 +221,9 @@ namespace Zeze
             if (attr.Length > 0)
                 DonotCheckSchemasWhenTableIsNew = bool.Parse(attr);
 
-            attr = self.GetAttribute("FastRedoWhenConfict");
+            attr = self.GetAttribute("FastRedoWhenConflict");
             if (attr.Length > 0)
-                FastRedoWhenConfict = bool.Parse(attr);
+                FastRedoWhenConflict = bool.Parse(attr);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
