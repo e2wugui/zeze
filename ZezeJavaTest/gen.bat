@@ -1,4 +1,0 @@
-
-..\publish\Gen.exe
-
-pause
