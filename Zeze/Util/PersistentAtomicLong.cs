@@ -79,8 +79,9 @@ namespace Zeze.Util
                     return; // has allocated. concurrent.
 
                 // 应该尽量减少allocate的次数，所以这里文件就不保持打开了。
-                File.WriteAllText(FileName, (allocated.Get() + AllocateSize).ToString());
-                allocated.AddAndGet(AllocateSize);
+                var newAllocated = allocated.Get() + AllocateSize;
+                File.WriteAllText(FileName, newAllocated.ToString());
+                allocated.GetAndSet(newAllocated);
             }
         }
     }
