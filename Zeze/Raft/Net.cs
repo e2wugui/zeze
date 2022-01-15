@@ -133,10 +133,10 @@ namespace Zeze.Raft
                 var iraftrpc = p as IRaftRpc;
                 if (Raft.WaitLeaderReady())
                 {
-                    if (Raft.LogSequence.LastAppliedAppRpcUniqueRequestId.TryGetValue(
-                        p.Sender.RemoteAddress, out var max))
+                    if (LogSequence.AppliedRpcs.TryGetValue(
+                        p.Sender.RemoteAddress, out var rpcs))
                     {
-                        if (iraftrpc.UniqueRequestId <= max)
+                        if (rpcs.ContainsKey(iraftrpc.UniqueRequestId))
                         {
                             p.SendResultCode(Procedure.DuplicateRequest);
                             return Procedure.DuplicateRequest;
@@ -281,7 +281,7 @@ namespace Zeze.Raft
 
         public override string ToString()
         {
-            return $"Client={Sender.RemoteAddress} UniqueRequestId={UniqueRequestId} {base.ToString()}";
+            return $"Client={Sender?.RemoteAddress} UniqueRequestId={UniqueRequestId} {base.ToString()}";
         }
 
         public override void Encode(ByteBuffer bb)
@@ -588,6 +588,7 @@ namespace Zeze.Raft
                 Handle = ProcessLeaderIs,
             });
 
+            RetryErrorCodes[Procedure.CancelException] = Procedure.CancelException;
             RetryErrorCodes[Procedure.RaftRetry] = Procedure.RaftRetry;
         }
 

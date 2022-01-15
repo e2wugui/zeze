@@ -2,16 +2,19 @@
 using System.Collections.Concurrent;
 using System;
 using System.IO;
+using System.Text;
+using System.Threading;
 
 namespace Zeze.Util
 {
     public class PersistentAtomicLong
     {
         private readonly AtomicLong CurrentId = new AtomicLong();
-        private AtomicLong allocated = new AtomicLong();
+        private AtomicLong allocated = new AtomicLong(); // for volatile long
 
         private readonly string FileName;
         private readonly int AllocateSize;
+        private Mutex Mutex;
 
         private static ConcurrentDictionary<string, PersistentAtomicLong> pals = new ConcurrentDictionary<string, PersistentAtomicLong>();
 
@@ -40,8 +43,8 @@ namespace Zeze.Util
         {
             if (allocateSize <= 0)
                 throw new ArgumentException();
-
             FileName = ProgramInstanceName + ".PersistentAtomicLong.txt";
+            Mutex = new Mutex(false, FileName);
             AllocateSize = allocateSize;
 
             if (File.Exists(FileName))
@@ -72,16 +75,33 @@ namespace Zeze.Util
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private void Allocate()
         {
-            lock (this) {
+            Mutex.WaitOne();
+            try
+            {
                 if (CurrentId.Get() < allocated.Get())
                     return; // has allocated. concurrent.
 
                 // 应该尽量减少allocate的次数，所以这里文件就不保持打开了。
-                var newAllocated = allocated.Get() + AllocateSize;
-                File.WriteAllText(FileName, newAllocated.ToString());
-                allocated.GetAndSet(newAllocated);
+                using var fs = new FileStream(FileName, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+                var buffer = new byte[100];
+                var rc = fs.Read(buffer);
+                var last = (rc <= 0) ? 0 : long.Parse(Encoding.UTF8.GetString(buffer, 0, rc));
+                var newlast = last + AllocateSize;
+                if (newlast < 0)
+                {
+                    CurrentId.GetAndSet(0);
+                    newlast = AllocateSize;
+                }
+                fs.SetLength(0);
+                fs.Write(Encoding.UTF8.GetBytes(newlast.ToString()));
+                allocated.GetAndSet(newlast);
+            }
+            finally
+            {
+                Mutex.ReleaseMutex();
             }
         }
     }
