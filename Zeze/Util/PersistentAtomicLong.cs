@@ -90,14 +90,15 @@ namespace Zeze.Util
                 var rc = fs.Read(buffer);
                 var last = (rc <= 0) ? 0 : long.Parse(Encoding.UTF8.GetString(buffer, 0, rc));
                 var newlast = last + AllocateSize;
-                if (newlast < 0)
-                {
-                    CurrentId.GetAndSet(0);
+                var reset = newlast < 0;
+                if (reset)
                     newlast = AllocateSize;
-                }
+
                 fs.SetLength(0);
                 fs.Write(Encoding.UTF8.GetBytes(newlast.ToString()));
-                allocated.GetAndSet(newlast);
+                allocated.GetAndSet(newlast); // first
+                if (reset)
+                    CurrentId.GetAndSet(0); // second
             }
             finally
             {
