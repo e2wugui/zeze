@@ -15,6 +15,7 @@
 	关联多用户数据的协议处理自动派发到热点所在Server。
 	Global.Release并发问题【再次】确认
 	Handshake 没有错误处理。
+	PersistentAtomicLong 使用文件锁，处理多进程（在同一个目录执行多份实例）。
 
 【进行中】
 	zeze async await?

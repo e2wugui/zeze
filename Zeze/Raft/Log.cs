@@ -476,8 +476,8 @@ namespace Zeze.Raft
 
                     // 这里不需要递增判断：由于请求是按网络传过来的顺序处理的，到达这里肯定是递增的。
                     // 如果来自客户端的请求Id不是增长的，在 Net.cs::Server 处理时会拒绝掉。
-                    LastAppliedAppRpcUniqueRequestId[raftLog.Log.AppInstance]
-                        = raftLog.Log.UniqueRequestId;
+                    var rpcs = AppliedRpcs.GetOrAdd(raftLog.Log.AppInstance, (k) => new ConcurrentDictionary<long, long>());
+                    rpcs.TryAdd(raftLog.Log.UniqueRequestId, raftLog.Log.UniqueRequestId);
                 }
                 raftLog.Log.Apply(raftLog, Raft.StateMachine);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
@@ -494,8 +494,8 @@ namespace Zeze.Raft
             return (Raft.StateMachine as Test.TestStateMachine).Count;
         }
 
-        public ConcurrentDictionary<string, long> LastAppliedAppRpcUniqueRequestId { get; }
-            = new ConcurrentDictionary<string, long>();
+        public static ConcurrentDictionary<string, ConcurrentDictionary<long, long>> AppliedRpcs { get; }
+            = new ConcurrentDictionary<string, ConcurrentDictionary<long, long>>();
 
         internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }
             = new ConcurrentDictionary<long, TaskCompletionSource<int>>();
