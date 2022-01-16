@@ -43,7 +43,7 @@ namespace Zeze.Util
         {
             if (allocateSize <= 0)
                 throw new ArgumentException();
-            FileName = ProgramInstanceName + ".PersistentAtomicLong.txt";
+            FileName = ProgramInstanceName + ".zeze.pal";
             Mutex = new Mutex(false, FileName);
             AllocateSize = allocateSize;
 
