@@ -32,28 +32,28 @@ namespace Zeze.Gen.java
             System.IO.Directory.CreateDirectory(fullDir);
             using System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
 
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("package " + project.Solution.Path() + ";");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport);
             ImportGen(sw);
             sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);
             sw.WriteLine();
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("public class App extends Zeze.AppBase {");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public static App Instance = new App();");
             sw.WriteLine("    public static App getInstance() {");
             sw.WriteLine("        return Instance;");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public void Start() throws Throwable {");
             sw.WriteLine("        Create();");
             sw.WriteLine("        Zeze.Start(); // 启动数据库");
             sw.WriteLine("        StartModules(); // 启动模块，装载配置什么的。");
             sw.WriteLine("        StartService(); // 启动网络");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public void Stop() throws Throwable {");
             sw.WriteLine("        StopService(); // 关闭网络");
             sw.WriteLine("        StopModules(); // 关闭模块,，卸载配置什么的。");
@@ -94,37 +94,37 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine("    public Zeze.Application Zeze;");
             sw.WriteLine("    public HashMap<String, Zeze.IModule> Modules = new HashMap<>();");
-            sw.WriteLine("");
+            sw.WriteLine();
 
             foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
                 sw.WriteLine($"    public {m.Path(".", $"Module{m.Name}")} {fullname};");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
 
             foreach (Service m in project.Services.Values)
             {
                 sw.WriteLine("    public " + m.FullName + " " + m.Name + ";");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
 
             sw.WriteLine("    public void Create() throws Throwable {");
             sw.WriteLine("        Create(null);");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public void Create(Zeze.Config config) throws Throwable {");
             sw.WriteLine("        synchronized (this) {");
             sw.WriteLine("            if (null != Zeze)");
             sw.WriteLine("                return;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine($"            Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
-            sw.WriteLine("");
+            sw.WriteLine();
             foreach (Service m in project.Services.Values)
             {
                 sw.WriteLine("            " + m.Name + " = new " + m.FullName + "(Zeze);");
             }
-            sw.WriteLine("");
+            sw.WriteLine();
             
             foreach (Module m in project.AllOrderDefineModules)
             {
@@ -136,11 +136,11 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"                throw new RuntimeException(\"duplicate module name: {fullname}\");");
                 sw.WriteLine($"            }}");
             }
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("            Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
             sw.WriteLine("        }");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public void Destroy() {");
             sw.WriteLine("        synchronized(this) {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
@@ -157,7 +157,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("            Zeze = null;");
             sw.WriteLine("        }");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public void StartModules() throws Throwable {");
             sw.WriteLine("        synchronized(this) {");
             foreach (var m in project.ModuleStartOrder)
@@ -170,10 +170,10 @@ namespace Zeze.Gen.java
                     continue;
                 sw.WriteLine("            " + m.Path("_") + ".Start(this);");
             }
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("        }");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public void StopModules() throws Throwable {");
             sw.WriteLine("        synchronized(this) {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
@@ -190,7 +190,7 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine("        }");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public void StartService() throws Throwable {");
             sw.WriteLine("        synchronized(this) {");
             foreach (Service m in project.Services.Values)
@@ -199,7 +199,7 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine("        }");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public void StopService() throws Throwable {");
             sw.WriteLine("        synchronized(this) {");
             foreach (Service m in project.Services.Values)

@@ -17,7 +17,7 @@ namespace Zeze.Gen.java
             foreach (Types.Variable var in bean.Variables)
             {
                 var.VariableType.Accept(new Log(bean, sw, var, prefix));
-                sw.WriteLine("");
+                sw.WriteLine();
             }
         }
 
@@ -36,7 +36,7 @@ namespace Zeze.Gen.java
         private void WriteLogValue(Types.Type type)
         {
             string valueName = BoxingName.GetBoxingName(type);
-            sw.WriteLine(prefix + "private final static class Log_" + var.NamePrivate + " extends Zeze.Transaction.Log1<" + bean.Name + ", " + valueName + "> {");
+            sw.WriteLine(prefix + "private static final class Log_" + var.NamePrivate + " extends Zeze.Transaction.Log1<" + bean.Name + ", " + valueName + "> {");
             sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " self, " + valueName + " value) { super(self, value); }");
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + "    public long getLogKey() { return this.getBean().getObjectId() + " + var.Id + "; }");
@@ -104,7 +104,7 @@ namespace Zeze.Gen.java
             var tn = new TypeName();
             type.Accept(tn);
 
-            sw.WriteLine(prefix + $"private final class Log_{var.NamePrivate} extends {tn.nameRaw}.LogV<{pn}> {{");
+            sw.WriteLine(prefix + $"private static final class Log_{var.NamePrivate} extends {tn.nameRaw}.LogV<{pn}> {{");
             sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " host, " + tn.nameCollectionImplement + " value) { super(host, value); }");
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + "    public long getLogKey() { return getBean().getObjectId() + " + var.Id + "; }");
@@ -145,7 +145,7 @@ namespace Zeze.Gen.java
             // 不再需要生成Log。在这里生成 DynamicBean 需要的两个方法。
             foreach (var real in type.RealBeans)
             {
-                sw.WriteLine($"{prefix}public final static long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
+                sw.WriteLine($"{prefix}public static final long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
             }
             if (type.RealBeans.Count > 0)
                 sw.WriteLine();

@@ -17,7 +17,7 @@ namespace Zeze.Gen.cs
             foreach (Types.Variable var in bean.Variables)
             {
                 var.VariableType.Accept(new Log(bean, sw, var, prefix));
-                sw.WriteLine("");
+                sw.WriteLine();
             }
         }
 

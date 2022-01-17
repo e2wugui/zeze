@@ -34,7 +34,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        }");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
         public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
@@ -58,7 +58,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        }");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
         public Decode(string varname, int id, string bufname, System.IO.StreamWriter sw, string prefix)
@@ -331,7 +331,7 @@ namespace Zeze.Gen.cs
             }
             else
             {
-                throw new Exception("invalie Variable.Id");
+                throw new Exception("invalid Variable.Id");
             }
         }
     }

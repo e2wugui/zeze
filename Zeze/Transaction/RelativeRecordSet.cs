@@ -460,7 +460,7 @@ namespace Zeze.Transaction
             }
         }
 
-        public static String RelativeRecordSetMapToString()
+        public static string RelativeRecordSetMapToString()
         {
             var sb = new StringBuilder();
             Zeze.Serialize.ByteBuffer.BuildString(sb, RelativeRecordSetMap.Keys);

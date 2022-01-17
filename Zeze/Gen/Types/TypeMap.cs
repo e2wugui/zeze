@@ -15,12 +15,12 @@ namespace Zeze.Gen.Types
 			visitor.Visit(this);
 		}
 
-		public override Type Compile(ModuleSpace space, String key, String value)
+		public override Type Compile(ModuleSpace space, string key, string value)
 		{
 			return new TypeMap(space, key, value);
 		}
 
-		public override String Name => "map";
+		public override string Name => "map";
 
 		public override void Depends(HashSet<Type> includes)
 		{
@@ -31,7 +31,7 @@ namespace Zeze.Gen.Types
 			}
 		}
 
-		private TypeMap(global::Zeze.Gen.ModuleSpace space, String key, String value)
+		private TypeMap(global::Zeze.Gen.ModuleSpace space, string key, string value)
 		{
 			if (key.Length == 0)
 				throw new Exception("map type need a key");
@@ -48,7 +48,7 @@ namespace Zeze.Gen.Types
 				throw new Exception(Name + " Error : value type is dynamic.");
 		}
 
-		internal TypeMap(SortedDictionary<String, Type> types)
+		internal TypeMap(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
 		}

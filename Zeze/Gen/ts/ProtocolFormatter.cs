@@ -18,7 +18,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine("export class " + p.Space.Path("_", p.Name) + " extends Zeze.ProtocolWithArgument<" + argument + "> {");
             sw.WriteLine("    public ModuleId(): number { return " + p.Space.Id + "; }");
             sw.WriteLine("    public ProtocolId(): number { return " + p.Id + "; }");
-            sw.WriteLine("");
+            sw.WriteLine();
             // declare enums
             foreach (Types.Enum e in p.Enums)
             {
@@ -26,7 +26,7 @@ namespace Zeze.Gen.ts
             }
             if (p.Enums.Count > 0)
             {
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             sw.WriteLine("    public constructor() {");
             sw.WriteLine("        super(new " + argument + "());");

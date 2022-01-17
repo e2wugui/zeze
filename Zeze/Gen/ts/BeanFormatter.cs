@@ -25,14 +25,14 @@ namespace Zeze.Gen.ts
             }
             if (bean.Enums.Count > 0)
             {
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             // declare variables
             foreach (Types.Variable v in bean.Variables)
             {
                 sw.WriteLine($"    public {v.Name}: {TypeName.GetName(v.VariableType)}; {v.Comment}");
             }
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine();
             Construct.Make(bean, sw, "    ");
             sw.WriteLine();

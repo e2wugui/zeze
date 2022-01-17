@@ -1,31 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
-    public class CreateChangeVariableCollector : Types.Visitor
+    public class CreateChangeVariableCollector : Visitor
     {
         public string ChangeVariableCollectorName { get; private set; }
-        //private Types.Variable var;
+        //private Variable var;
 
-        public static void Make(System.IO.StreamWriter sw, string prefix, Types.Bean bean)
+        public static void Make(StreamWriter sw, string prefix, Bean bean)
         {
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {");
-            sw.WriteLine(prefix + "    switch(variableId) {");
+            sw.WriteLine(prefix + "    switch (variableId) {");
             sw.WriteLine(prefix + "        case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();");
             foreach (var v in bean.Variables)
             {
-                CreateChangeVariableCollector vistor = new CreateChangeVariableCollector();
+                CreateChangeVariableCollector vistor = new();
                 v.VariableType.Accept(vistor);
-                sw.WriteLine(prefix + "        case " + v.Id + ": return new " + vistor .ChangeVariableCollectorName + ";");
+                sw.WriteLine(prefix + "        case " + v.Id + ": return new " + vistor.ChangeVariableCollectorName + ";");
             }
-            sw.WriteLine("                default: return null;");
-            sw.WriteLine("            }");
-            sw.WriteLine("        }");
-            sw.WriteLine();
+            sw.WriteLine(prefix + "        default: return null;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "}");
         }
 
         CreateChangeVariableCollector()

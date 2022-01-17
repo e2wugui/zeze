@@ -17,10 +17,10 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = p.Space.OpenWriter(baseDir, p.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + p.Space.Path());
             sw.WriteLine("{");
 
@@ -33,7 +33,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             sw.WriteLine("        public override int ModuleId => ModuleId_;");
             sw.WriteLine("        public override int ProtocolId => ProtocolId_;");
-            sw.WriteLine("");
+            sw.WriteLine();
             // declare enums
             foreach (Types.Enum e in p.Enums)
             {
@@ -41,12 +41,12 @@ namespace Zeze.Gen.cs
             }
             if (p.Enums.Count > 0)
             {
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             sw.WriteLine("        public " + p.Name + "()");
             sw.WriteLine("        {");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             /* 现在的bean不是所有的变量都可以赋值，还是先不支持吧。
             if (p.ArgumentType != null)
             {
@@ -56,7 +56,7 @@ namespace Zeze.Gen.cs
                 foreach (Types.Variable var in argBean.Variables)
                     sw.WriteLine("            this.Argument." + var.NameUpper1 + " = _" + var.Name + "_;");
                 sw.WriteLine("        }");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             */
             sw.WriteLine("    }");

@@ -85,7 +85,7 @@ namespace Zeze.Gen.Types
             }
         }
 
-        internal TypeDynamic(SortedDictionary<String, Type> types)
+        internal TypeDynamic(SortedDictionary<string, Type> types)
         {
             types.Add(Name, this);
         }

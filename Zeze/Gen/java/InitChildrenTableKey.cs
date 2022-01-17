@@ -23,7 +23,7 @@ namespace Zeze.Gen.java
                 }
             }
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
     }
 }

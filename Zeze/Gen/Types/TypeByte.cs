@@ -7,7 +7,7 @@ namespace Zeze.Gen.Types
 {
 	public class TypeByte : Type
 	{
-		public override Type Compile(ModuleSpace space, String key, String value)
+		public override Type Compile(ModuleSpace space, string key, string value)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);
@@ -32,7 +32,7 @@ namespace Zeze.Gen.Types
 
 		public override bool IsNeedNegativeCheck => false;
 
-		internal TypeByte(SortedDictionary<String, Type> types)
+		internal TypeByte(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
 		}

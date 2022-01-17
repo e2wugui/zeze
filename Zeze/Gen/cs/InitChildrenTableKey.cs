@@ -23,7 +23,7 @@ namespace Zeze.Gen.cs
                 }
             }
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
     }
 }

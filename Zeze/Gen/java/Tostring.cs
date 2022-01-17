@@ -10,10 +10,10 @@ namespace Zeze.Gen.java
 		private System.IO.StreamWriter sw;
 		private string varname;
         private string getter;
-        private String prefix;
-        private string sep;
+        private string prefix;
+        private char sep;
 
-		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, String prefix)
+		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
 		{
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public String toString() {");
@@ -25,20 +25,20 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void BuildString(StringBuilder sb, int level) {");
-            sw.WriteLine($"{prefix}    sb.append(\" \".repeat(level * 4)).append(\"{bean.FullName}: {{\").append(System.lineSeparator());");
+            sw.WriteLine($"{prefix}    sb.append(Zeze.Util.Str.indent(level * 4)).append(\"{bean.FullName}: {{\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "    level++;");
             for (int i = 0; i < bean.Variables.Count; ++i)
             {
                 var var = bean.Variables[i];
-                var sep = i == bean.Variables.Count - 1 ? "" : ",";
+                char sep = i == bean.Variables.Count - 1 ? '\0' : ',';
                 var.VariableType.Accept(new Tostring(sw, var.Name, var.Getter, prefix + "    ", sep));
             }
             sw.WriteLine(prefix + "    sb.append(\"}\");");
             sw.WriteLine(prefix + "}");
-			sw.WriteLine("");
+			sw.WriteLine();
 		}
 
-        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, String prefix)
+        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public String toString() {");
@@ -49,20 +49,20 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "public void BuildString(StringBuilder sb, int level) {");
-            sw.WriteLine($"{prefix}    sb.append(\" \".repeat(level * 4)).append(\"{bean.FullName}: {{\").append(System.lineSeparator());");
+            sw.WriteLine($"{prefix}    sb.append(Zeze.Util.Str.indent(level * 4)).append(\"{bean.FullName}: {{\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "    level++;");
             for (int i = 0; i < bean.Variables.Count; ++i)
             {
                 var var = bean.Variables[i];
-                var sep = i == bean.Variables.Count - 1 ? "" : ",";
+                char sep = i == bean.Variables.Count - 1 ? '\0' : ',';
                 var.VariableType.Accept(new Tostring(sw, var.Name, var.Getter, prefix + "    ", sep));
             }
             sw.WriteLine(prefix + "    sb.append(\"}\");");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
-        public Tostring(System.IO.StreamWriter sw, string varname, string getter, String prefix, string sep)
+        public Tostring(System.IO.StreamWriter sw, string varname, string getter, string prefix, char sep)
         {
             this.sw = sw;
             this.varname = varname;
@@ -73,22 +73,32 @@ namespace Zeze.Gen.java
 
         void Visitor.Visit(Bean type)
         {
-            sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"{varname}\").append(\"=\").append(System.lineSeparator());");
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level * 4)).append(\"{varname}\").append('=').append(System.lineSeparator());");
             sw.WriteLine(prefix + getter + ".BuildString(sb, level + 1);");
-            sw.WriteLine(prefix + $"sb.append(\"{sep}\").append(System.lineSeparator());");
+            sw.Write(prefix + "sb");
+            if (sep != 0)
+                sw.Write($".append('{sep}')");
+            sw.WriteLine(".append(System.lineSeparator());");
         }
 
         void Visitor.Visit(BeanKey type)
         {
-            sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"{varname}\").append(\"=\").append(System.lineSeparator());");
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level * 4)).append(\"{varname}\").append('=').append(System.lineSeparator());");
             sw.WriteLine(prefix + getter + ".BuildString(sb, level + 1);");
-            sw.WriteLine(prefix + $"sb.append(\"{sep}\").append(System.lineSeparator());");
+            sw.Write(prefix + "sb");
+            if (sep != 0)
+                sw.Write($".append('{sep}')");
+            sw.WriteLine(".append(System.lineSeparator());");
         }
 
         private void formatSimple()
         {
-            sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"{varname}\").append(\"=\").append({getter}).append(\"{sep}\").append(System.lineSeparator());");
+            sw.Write(prefix + $"sb.append(Zeze.Util.Str.indent(level * 4)).append(\"{varname}\").append('=').append({getter})");
+            if (sep != 0)
+                sw.Write($".append('{sep}')");
+            sw.WriteLine(".append(System.lineSeparator());");
         }
+
         void Visitor.Visit(TypeByte type)
         {
             formatSimple();
@@ -126,38 +136,47 @@ namespace Zeze.Gen.java
 
         void Visitor.Visit(TypeList type)
         {
-            sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level * 4)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "level++;");
             sw.WriteLine(prefix + $"for (var _item_ : {getter}) {{");
-            type.ValueType.Accept(new Tostring(sw, "Item", "_item_", prefix + "    ", ","));
+            type.ValueType.Accept(new Tostring(sw, "Item", "_item_", prefix + "    ", ','));
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "level--;");
-            sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"]{sep}\").append(System.lineSeparator());");
+            sw.Write(prefix + $"sb.append(Zeze.Util.Str.indent(level * 4)).append(']')");
+            if (sep != 0)
+                sw.Write($".append('{sep}')");
+            sw.WriteLine(".append(System.lineSeparator());");
         }
 
         void Visitor.Visit(TypeSet type)
         {
-            sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level * 4)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "level++;");
             sw.WriteLine(prefix + $"for (var _item_ : {getter}) {{");
-            type.ValueType.Accept(new Tostring(sw, "Item", "_item_", prefix + "    ", ","));
+            type.ValueType.Accept(new Tostring(sw, "Item", "_item_", prefix + "    ", ','));
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "level--;");
-            sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"]{sep}\").append(System.lineSeparator());");
+            sw.Write(prefix + $"sb.append(Zeze.Util.Str.indent(level * 4)).append(']')");
+            if (sep != 0)
+                sw.Write($".append('{sep}')");
+            sw.WriteLine(".append(System.lineSeparator());");
         }
 
         void Visitor.Visit(TypeMap type)
         {
-            sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level * 4)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "level++;");
             sw.WriteLine(prefix + $"for (var _kv_ : {getter}.entrySet()) {{");
             sw.WriteLine(prefix + "    sb.append(\"(\").append(System.lineSeparator());");
-            type.KeyType.Accept(new Tostring(sw, "Key", "_kv_.getKey()", prefix + "    ", ","));
-            type.ValueType.Accept(new Tostring(sw, "Value", "_kv_.getValue()", prefix + "    ", ","));
+            type.KeyType.Accept(new Tostring(sw, "Key", "_kv_.getKey()", prefix + "    ", ','));
+            type.ValueType.Accept(new Tostring(sw, "Value", "_kv_.getValue()", prefix + "    ", ','));
             sw.WriteLine(prefix + "    sb.append(\")\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "level--;");
-            sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"]{sep}\").append(System.lineSeparator());");
+            sw.Write(prefix + $"sb.append(Zeze.Util.Str.indent(level * 4)).append(']')");
+            if (sep != 0)
+                sw.Write($".append('{sep}')");
+            sw.WriteLine(".append(System.lineSeparator());");
         }
 
         void Visitor.Visit(TypeFloat type)
@@ -172,9 +191,12 @@ namespace Zeze.Gen.java
 
         void Visitor.Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + $"sb.append(\" \".repeat(level * 4)).append(\"{varname}\").append(\"=\").append(System.lineSeparator());");
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level * 4)).append(\"{varname}\").append('=').append(System.lineSeparator());");
             sw.WriteLine(prefix + getter + ".getBean().BuildString(sb, level + 1);");
-            sw.WriteLine(prefix + $"sb.append(\"{sep}\").append(System.lineSeparator());");
+            sw.Write(prefix + "sb");
+            if (sep != 0)
+                sw.Write($".append('{sep}')");
+            sw.WriteLine(".append(System.lineSeparator());");
         }
     }
 }

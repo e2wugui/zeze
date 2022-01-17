@@ -28,31 +28,31 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = project.Solution.OpenWriter(genDir, "App.cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("using System.Collections.Generic;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + project.Solution.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class App : Zeze.AppBase");
             sw.WriteLine("    {");
             sw.WriteLine("        public static App Instance { get; } = new App();");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("        public Zeze.Application Zeze { get; set; }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("        public Dictionary<string, Zeze.IModule> Modules { get; } = new Dictionary<string, Zeze.IModule>();");
-            sw.WriteLine("");
+            sw.WriteLine();
 
             foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
                 sw.WriteLine($"        public {m.Path(".", $"Module{m.Name}")} {fullname} {{ get; set; }}");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
 
             foreach (Service m in project.Services.Values)
             {
                 sw.WriteLine("        public " + m.FullName + " " + m.Name + " { get; set; }");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
 
             sw.WriteLine("        public void Create(Zeze.Config config = null)");
@@ -61,14 +61,14 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            {");
             sw.WriteLine("                if (null != Zeze)");
             sw.WriteLine("                    return;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine($"                Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
-            sw.WriteLine("");
+            sw.WriteLine();
             foreach (Service m in project.Services.Values)
             {
                 sw.WriteLine("                " + m.Name + " = new " + m.FullName + "(Zeze);");
             }
-            sw.WriteLine("");
+            sw.WriteLine();
             foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
@@ -77,11 +77,11 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"                {fullname} = ({m.Path(".", $"Module{m.Name}")})ReplaceModuleInstance({fullname});");
                 sw.WriteLine($"                Modules.Add({fullname}.FullName, {fullname});");
             }
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("                Zeze.Schemas = new " + project.Solution.Path(".", "Schemas") + "();");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("        public void Destroy()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
@@ -100,7 +100,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("                Zeze = null;");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("        public void StartModules()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
@@ -115,10 +115,10 @@ namespace Zeze.Gen.cs
                     continue;
                 sw.WriteLine("                " + m.Path("_") + ".Start(this);");
             }
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("            }");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("        public void StopModules()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
@@ -137,7 +137,7 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine("            }");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("        public void StartService()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
@@ -148,7 +148,7 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine("            }");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("        public void StopService()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
@@ -169,7 +169,7 @@ namespace Zeze.Gen.cs
             if (sw == null)
                 return;
 
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + project.Solution.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class App");
@@ -181,7 +181,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            StartModules(); // 启动模块，装载配置什么的。");
             sw.WriteLine("            StartService(); // 启动网络");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("        public void Stop()");
             sw.WriteLine("        {");
             sw.WriteLine("            StopService(); // 关闭网络");

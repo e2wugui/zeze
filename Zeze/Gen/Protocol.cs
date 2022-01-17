@@ -69,7 +69,7 @@ namespace Zeze.Gen
 
                 XmlElement e = (XmlElement)node;
 
-                String nodename = e.Name;
+                string nodename = e.Name;
                 switch (e.Name)
                 {
                     case "enum":

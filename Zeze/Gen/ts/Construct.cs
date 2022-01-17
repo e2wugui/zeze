@@ -9,9 +9,9 @@ namespace Zeze.Gen.ts
     {
 		private System.IO.StreamWriter sw;
 		private Types.Variable variable;
-		private String prefix;
+		private string prefix;
 
-		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, String prefix)
+		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
 		{
 			sw.WriteLine(prefix + "public constructor() {");
             foreach (Types.Variable var in bean.Variables)
@@ -19,10 +19,10 @@ namespace Zeze.Gen.ts
                 var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
             }
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
-        public Construct(System.IO.StreamWriter sw, Types.Variable variable, String prefix)
+        public Construct(System.IO.StreamWriter sw, Types.Variable variable, string prefix)
 		{
 			this.sw = sw;
 			this.variable = variable;
@@ -31,23 +31,23 @@ namespace Zeze.Gen.ts
 
 		private void Initial()
 		{
-			String value = variable.Initial;
+            string value = variable.Initial;
 			if (value.Length > 0)
 			{
-				String varname = variable.Name;
+                string varname = variable.Name;
 				sw.WriteLine(prefix + "this." + varname + " = " + value + ";");
 			}
 		}
 
         public void Visit(Bean type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + "this." + variable.Name + " = new " + typeName + "();");
         }
 
         public void Visit(BeanKey type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + "this." + variable.Name + " = new " + typeName + "();");
         }
 
@@ -84,26 +84,26 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeString type)
         {
-            String value = variable.Initial;
-            String varname = variable.Name;
+            string value = variable.Initial;
+            string varname = variable.Name;
             sw.WriteLine(prefix + "this." + varname + " = \"" + value + "\";");
         }
 
         public void Visit(TypeList type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + "this." + variable.Name + " = new " + typeName + "();");
         }
 
         public void Visit(TypeSet type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + "this." + variable.Name + " = new " + typeName + "();");
         }
 
         public void Visit(TypeMap type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + "this." + variable.Name + " = new " + typeName + "();");
         }
 

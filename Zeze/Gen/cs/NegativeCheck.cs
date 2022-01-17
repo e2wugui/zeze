@@ -11,7 +11,7 @@ namespace Zeze.Gen.cs
         private string varname;
         private string prefix;
 
-        public static void Make(Types.Bean bean, System.IO.StreamWriter sw, String prefix)
+        public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "public override bool NegativeCheck()");
             sw.WriteLine(prefix + "{");
@@ -23,10 +23,10 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
-        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, String prefix)
+        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "public bool NegativeCheck()");
             sw.WriteLine(prefix + "{");
@@ -38,7 +38,7 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
         NegativeCheck(System.IO.StreamWriter sw, string varname, string prefix)

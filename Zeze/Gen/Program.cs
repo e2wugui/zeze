@@ -174,7 +174,7 @@ namespace Zeze.Gen
             return fullNames;
         }
 
-        public static List<string> Refs(XmlElement self, String nodename, String refName)
+        public static List<string> Refs(XmlElement self, string nodename, string refName)
         {
             var refs = new List<string>();
             XmlNodeList childnodes = self.ChildNodes;
@@ -200,7 +200,7 @@ namespace Zeze.Gen
             return refs;
         }
 
-        public static ICollection<String> Refs(XmlElement self, String nodename)
+        public static ICollection<string> Refs(XmlElement self, string nodename)
         {
             return Refs(self, nodename, "ref");
         }

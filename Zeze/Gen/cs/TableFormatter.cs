@@ -21,10 +21,10 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + table.Space.Path());
             sw.WriteLine("{");
             string key = TypeName.GetName(table.KeyType);

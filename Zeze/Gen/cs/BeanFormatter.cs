@@ -20,11 +20,11 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("using Zeze.Serialize;");
             sw.WriteLine("using System;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
             sw.WriteLine($"    public interface {bean.Name}ReadOnly");
@@ -48,7 +48,7 @@ namespace Zeze.Gen.cs
             }
             if (bean.Enums.Count > 0)
             {
-                sw.WriteLine("");
+                sw.WriteLine();
             }
 
             // declare variables
@@ -65,7 +65,7 @@ namespace Zeze.Gen.cs
                     sw.WriteLine($"        private {readonlyTypeName} {v.NamePrivate}ReadOnly;");
                 }
             }
-            sw.WriteLine("");
+            sw.WriteLine();
 
             Property.Make(bean, sw, "        ");
             sw.WriteLine();

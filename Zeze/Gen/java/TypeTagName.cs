@@ -1,63 +1,41 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Zeze.Gen.Types;
+﻿using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
-    public class TypeTagName : Types.Visitor
+    public class TypeTagName : Visitor
     {
         public string Name { get; private set; }
-        public static string GetName(Types.Type type)
+ 
+        public static string GetName(Type type)
         {
             TypeTagName v = new TypeTagName();
             type.Accept(v);
             return v.Name;
         }
 
-        void Visitor.Visit(Bean type)
+        void Visitor.Visit(TypeBool type)
         {
-            Name = "ByteBuffer.BEAN";
-        }
-
-        void Visitor.Visit(BeanKey type)
-        {
-            Name = "ByteBuffer.BEAN";
+            Name = "ByteBuffer.INTEGER";
         }
 
         void Visitor.Visit(TypeByte type)
         {
-            Name = "ByteBuffer.BYTE";
+            Name = "ByteBuffer.INTEGER";
         }
 
         void Visitor.Visit(TypeShort type)
         {
-            Name = "ByteBuffer.SHORT";
+            Name = "ByteBuffer.INTEGER";
         }
 
         void Visitor.Visit(TypeInt type)
         {
-            Name = "ByteBuffer.INT";
+            Name = "ByteBuffer.INTEGER";
         }
 
         void Visitor.Visit(TypeLong type)
         {
-            Name = "ByteBuffer.LONG";
-        }
-
-        void Visitor.Visit(TypeBool type)
-        {
-            Name = "ByteBuffer.BOOL";
-        }
-
-        void Visitor.Visit(TypeBinary type)
-        {
-            Name = "ByteBuffer.BYTES";
-        }
-
-        void Visitor.Visit(TypeString type)
-        {
-            Name = "ByteBuffer.STRING";
+            Name = "ByteBuffer.INTEGER";
         }
 
         void Visitor.Visit(TypeFloat type)
@@ -70,6 +48,16 @@ namespace Zeze.Gen.java
             Name = "ByteBuffer.DOUBLE";
         }
 
+        void Visitor.Visit(TypeBinary type)
+        {
+            Name = "ByteBuffer.BYTES";
+        }
+
+        void Visitor.Visit(TypeString type)
+        {
+            Name = "ByteBuffer.BYTES";
+        }
+
         void Visitor.Visit(TypeList type)
         {
             Name = "ByteBuffer.LIST";
@@ -77,12 +65,22 @@ namespace Zeze.Gen.java
 
         void Visitor.Visit(TypeSet type)
         {
-            Name = "ByteBuffer.SET";
+            Name = "ByteBuffer.LIST";
         }
 
         void Visitor.Visit(TypeMap type)
         {
             Name = "ByteBuffer.MAP";
+        }
+
+        void Visitor.Visit(Bean type)
+        {
+            Name = "ByteBuffer.BEAN";
+        }
+
+        void Visitor.Visit(BeanKey type)
+        {
+            Name = "ByteBuffer.BEAN";
         }
 
         void Visitor.Visit(TypeDynamic type)

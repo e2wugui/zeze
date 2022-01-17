@@ -236,7 +236,7 @@ namespace Zeze.Gen.luaClient
                             {
                                 if (generatedHandlers.Contains(protocol.Name))
                                     continue;
-                                writer.WriteLine("");
+                                writer.WriteLine();
                                 writer.WriteLine($"---@param p msg.{protocol.FullName}");
                                 writer.WriteLine($"function {module.Name}.OnMsg_{protocol.Name}(p)");
                                 writer.WriteLine("end");

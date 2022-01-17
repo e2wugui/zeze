@@ -27,7 +27,7 @@ namespace Zeze.Gen.ts
             }
             if (rpc.Enums.Count > 0)
             {
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             sw.WriteLine("    public constructor() {");
             sw.WriteLine("        super(new " + argument + "(), new " + result + "());");

@@ -18,11 +18,11 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("using Zeze.Serialize;");
             sw.WriteLine("using System;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + beanKey.Space.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed class " + beanKey.Name + " : Serializable, System.IComparable");
@@ -34,7 +34,7 @@ namespace Zeze.Gen.cs
             }
             if (beanKey.Enums.Count > 0)
             {
-                sw.WriteLine("");
+                sw.WriteLine();
             }
 
             // declare variables
@@ -42,13 +42,13 @@ namespace Zeze.Gen.cs
             {
                 sw.WriteLine("        private " + TypeName.GetName(v.VariableType) + " " + v.NamePrivate + ";" + v.Comment);
             }
-            sw.WriteLine("");
+            sw.WriteLine();
 
             sw.WriteLine("        // for decode only");
             sw.WriteLine("        public " + beanKey.Name + "()");
             sw.WriteLine("        {");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
 
             // params construct
             {
@@ -59,10 +59,10 @@ namespace Zeze.Gen.cs
                     sw.WriteLine("            this." + v.NamePrivate + " = " + v.NamePrivate + "_;");
                 }
                 sw.WriteLine("        }");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             PropertyBeanKey.Make(beanKey, sw, "        ");
-            sw.WriteLine("");
+            sw.WriteLine();
             Tostring.Make(beanKey, sw, "        ");
             Encode.Make(beanKey, sw, "        ");
             Decode.Make(beanKey, sw, "        ");

@@ -20,11 +20,11 @@ namespace Zeze.Gen.java
         {
             using System.IO.StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".java");
 
-            sw.WriteLine("// auto-generated");
+            sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + table.Space.Path() + ";");
-            sw.WriteLine("");
-            sw.WriteLine("import Zeze.Serialize.*;");
-            sw.WriteLine("");
+            sw.WriteLine();
+            sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
+            sw.WriteLine();
             string key = TypeName.GetName(table.KeyType);
             string value = TypeName.GetName(table.ValueType);
             string keyboxing = BoxingName.GetBoxingName(table.KeyType);
@@ -43,10 +43,10 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return " + (table.IsAutoKey ? "true;" : "false;"));
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public final static int VAR_All = 0;");
+            sw.WriteLine("    public static final int VAR_All = 0;");
             foreach (var v in ((Types.Bean)table.ValueType).Variables)
             {
-                sw.WriteLine("    public final static int VAR_" + v.Name + " = " + v.Id + ";");
+                sw.WriteLine("    public static final int VAR_" + v.Name + " = " + v.Id + ";");
             }
             sw.WriteLine();
             if (table.IsAutoKey)
@@ -78,9 +78,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             CreateChangeVariableCollector.Make(sw, "    ", (Types.Bean)table.ValueType);
-            sw.WriteLine();
             sw.WriteLine("}");
-
         }
     }
 }

@@ -13,7 +13,7 @@ namespace Zeze.Gen.Types
 			visitor.Visit(this);
 		}
 
-		public override Type Compile(ModuleSpace space, String key, String value)
+		public override Type Compile(ModuleSpace space, string key, string value)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);
@@ -80,8 +80,8 @@ namespace Zeze.Gen.Types
 
 		public List<Variable> Variables { get; private set; } = new List<Variable>();
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
-		public String Comment { get; private set; }
-		public String FullName => Space.Path(".", Name);
+		public string Comment { get; private set; }
+		public string FullName => Space.Path(".", Name);
 		public long TypeId { get; private set; }
 
 		// ///////////////////////////////////////////
@@ -127,7 +127,7 @@ namespace Zeze.Gen.Types
 
 				XmlElement e = (XmlElement)node;
 
-				String nodename = e.Name;
+                string nodename = e.Name;
 				switch (e.Name)
 				{
 					case "variable":

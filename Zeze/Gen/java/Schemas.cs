@@ -37,9 +37,9 @@ namespace Zeze.Gen.java
         {
             using System.IO.StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.java");
 
-            sw.WriteLine("// auto-generated");
+            sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + Project.Solution.Path() + ";");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("public class Schemas extends Zeze.Schemas {");
             sw.WriteLine("    public Schemas() {");
 
@@ -50,7 +50,7 @@ namespace Zeze.Gen.java
 
             foreach (var type in Depends)
             {
-                if (false == type.IsBean)
+                if (!type.IsBean)
                     continue;
 
                 if (type.IsKeyable)

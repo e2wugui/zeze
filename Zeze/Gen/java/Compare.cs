@@ -1,37 +1,35 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
     public class Compare : Visitor
 	{
-		public static void Make(BeanKey bean, System.IO.StreamWriter sw, String prefix)
+		public static void Make(BeanKey bean, StreamWriter sw, string prefix)
 		{
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public int compareTo(" + bean.Name + " _o1_) {");
-            sw.WriteLine(prefix + "    if (_o1_ == this) return 0;");
-            sw.WriteLine(prefix + "    if (_o1_ instanceof " + bean.Name + ") {");
-            sw.WriteLine(prefix + "        var _o_ = (" + bean.Name + ")_o1_;");
+            sw.WriteLine(prefix + "public int compareTo(" + bean.Name + " _o_) {");
+            sw.WriteLine(prefix + "    if (_o_ == this) return 0;");
+            sw.WriteLine(prefix + "    if (_o_ != null) {");
             sw.WriteLine(prefix + "        int _c_" + (bean.Variables.Count > 0 ? ";" : " = 0;"));
             foreach (Variable var in bean.Variables)
 			{
                 Compare e = new Compare(var, "_o_");
 				var.VariableType.Accept(e);
 				sw.WriteLine(prefix + "        _c_ = " + e.text + ";");
-                sw.WriteLine(prefix + "        if (0 != _c_) return _c_;");
+                sw.WriteLine(prefix + "        if (_c_ != 0) return _c_;");
 			}
 			sw.WriteLine(prefix + "        return _c_;");
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    throw new RuntimeException(\"CompareTo: another object is not " + bean.FullName + "\");");
+            sw.WriteLine(prefix + "    throw new NullPointerException(\"compareTo: another object is null\");");
             sw.WriteLine(prefix + "}");
-			sw.WriteLine("");
+			sw.WriteLine();
 		}
 
         private Variable variable;
-        private String another;
-        private String text;
+        private string another;
+        private string text;
         
         public Compare(Variable var, string another)
         {

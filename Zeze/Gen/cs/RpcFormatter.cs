@@ -17,10 +17,10 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = rpc.Space.OpenWriter(baseDir, rpc.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + rpc.Space.Path());
             sw.WriteLine("{");
 
@@ -42,7 +42,7 @@ namespace Zeze.Gen.cs
             }
             if (rpc.Enums.Count > 0)
             {
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             sw.WriteLine("    }");
             sw.WriteLine("}");

@@ -93,7 +93,7 @@ namespace Zeze.Transaction
         public static long Hash64(string name)
         {
             // This is a Knuth hash
-            UInt64 hashedValue = 3074457345618258791ul;
+            ulong hashedValue = 3074457345618258791ul;
             for (int i = 0; i < name.Length; i++)
             {
                 hashedValue += name[i];

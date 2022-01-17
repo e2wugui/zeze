@@ -20,7 +20,7 @@ namespace Zeze.Gen.cs
         /// <param name="bean"></param>
         /// <param name="sw"></param>
         /// <param name="prefix"></param>
-        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, String prefix)
+        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "public override bool Equals(object _obj1_)");
             sw.WriteLine(prefix + "{");
@@ -37,7 +37,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
         public Equal(Variable var, string another, bool isEquals)

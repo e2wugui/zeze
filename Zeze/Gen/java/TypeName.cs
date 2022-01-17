@@ -10,12 +10,20 @@ namespace Zeze.Gen.java
         public string name;
         public string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
         public string nameRaw; // 容器，其他为null。
+        public string nameOmitted;
 
         public static string GetName(Types.Type type)
         {
             var visitor = new TypeName();
             type.Accept(visitor);
             return visitor.name;
+        }
+
+        public static string GetNameOmitted(Types.Type type)
+        {
+            var visitor = new TypeName();
+            type.Accept(visitor);
+            return visitor.nameOmitted;
         }
 
         public virtual void Visit(Bean type)
@@ -67,16 +75,18 @@ namespace Zeze.Gen.java
         {
             string valueName = BoxingName.GetBoxingName(type.ValueType);
             nameRaw = "Zeze.Transaction.Collections.PList";
-            name = nameRaw + (type.ValueType.IsNormalBean ? "2<" : "1<")  + valueName + ">";
-            nameCollectionImplement = "org.pcollections.PVector<" + valueName + ">";
+            nameOmitted = nameRaw + (type.ValueType.IsNormalBean ? '2' : '1');
+            name = nameOmitted + '<' + valueName + '>';
+            nameCollectionImplement = "org.pcollections.PVector<" + valueName + '>';
         }
 
         public virtual void Visit(TypeSet type)
         {
             string valueName = BoxingName.GetBoxingName(type.ValueType);
             nameRaw = "Zeze.Transaction.Collections.PSet";
-            name = nameRaw + "1<" + valueName + " >";
-            nameCollectionImplement = "org.pcollections.PSet<" + valueName + ">";
+            nameOmitted = nameRaw + '1';
+            name = nameOmitted + '<' + valueName + '>';
+            nameCollectionImplement = "org.pcollections.PSet<" + valueName + '>';
         }
 
         public virtual void Visit(TypeMap type)
@@ -84,8 +94,9 @@ namespace Zeze.Gen.java
             string key = BoxingName.GetBoxingName(type.KeyType);
             string value = BoxingName.GetBoxingName(type.ValueType);
             nameRaw = "Zeze.Transaction.Collections.PMap";
-            name = nameRaw + (type.ValueType.IsNormalBean ? "2<" : "1<") + key + ", " + value + ">";
-            nameCollectionImplement = "org.pcollections.PMap<" + key + ", " + value + ">";
+            nameOmitted = nameRaw + (type.ValueType.IsNormalBean ? '2' : '1');
+            name = nameOmitted + '<' + key + ", " + value + '>';
+            nameCollectionImplement = "org.pcollections.PMap<" + key + ", " + value + '>';
         }
 
         public virtual void Visit(TypeFloat type)

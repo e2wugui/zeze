@@ -8,7 +8,7 @@ namespace Zeze.Gen.java
 {
     public class HashCode : Visitor
     {
-		public static void Make(BeanKey bean, System.IO.StreamWriter sw, String prefix)
+		public static void Make(BeanKey bean, System.IO.StreamWriter sw, string prefix)
 		{
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int hashCode() {");
@@ -22,11 +22,11 @@ namespace Zeze.Gen.java
 			}
 			sw.WriteLine(prefix + "    return _h_;");
 			sw.WriteLine(prefix + "}");
-			sw.WriteLine("");
+			sw.WriteLine();
 		}
 
-        private String varname;
-        private String text;
+        private string varname;
+        private string text;
 
         public HashCode(string varname)
         {

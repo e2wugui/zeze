@@ -32,21 +32,21 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = module.OpenWriter(genDir, $"Module{module.Name}Gen.cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
             sw.WriteLine($"    public partial class Module{module.Name} : AbstractModule");
             sw.WriteLine("    {");
             sw.WriteLine($"        public const int ModuleId = {module.Id};");
-            sw.WriteLine("");
+            sw.WriteLine();
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen))
                     sw.WriteLine("        private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
             }
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine($"        public {project.Solution.Name}.App App {{ get; }}");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine($"        public Module{module.Name}({project.Solution.Name}.App app)");
             sw.WriteLine("        {");
             sw.WriteLine("            App = app;");
@@ -88,7 +88,7 @@ namespace Zeze.Gen.cs
                     sw.WriteLine($"            App.Zeze.AddTable(App.Zeze.Config.GetTableConf(_{table.Name}.Name).DatabaseName, _{table.Name});");
             }
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("        public override void UnRegister()");
             sw.WriteLine("        {");
             if (serv != null)
@@ -114,7 +114,7 @@ namespace Zeze.Gen.cs
                     sw.WriteLine($"            App.Zeze.RemoveTable(App.Zeze.Config.GetTableConf(_{table.Name}.Name).DatabaseName, _{table.Name});");
             }
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }
@@ -126,7 +126,7 @@ namespace Zeze.Gen.cs
             if (null == sw)
                 return;
 
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
             sw.WriteLine($"    public partial class Module{module.Name} : AbstractModule");
@@ -134,11 +134,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public void Start(" + project.Solution.Name + ".App app)");
             sw.WriteLine("        {");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("        public void Stop(" + project.Solution.Name + ".App app)");
             sw.WriteLine("        {");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             if (module.ReferenceService != null)
             {
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
@@ -153,7 +153,7 @@ namespace Zeze.Gen.cs
                             sw.WriteLine($"            var p = _p as {rpc.ShortNameIf(module)};");
                             sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("        }");
-                            sw.WriteLine("");
+                            sw.WriteLine();
                         }
                         continue;
                     }
@@ -164,7 +164,7 @@ namespace Zeze.Gen.cs
                         sw.WriteLine($"            var p = _p as {p.ShortNameIf(module)};");
                         sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
                         sw.WriteLine("        }");
-                        sw.WriteLine("");
+                        sw.WriteLine();
                     }
                 }
             }
@@ -177,7 +177,7 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public abstract class AbstractModule : Zeze.IModule");
@@ -185,7 +185,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"        public override string FullName => \"{module.Path()}\";");
             sw.WriteLine($"        public override string Name => \"{module.Name}\";");
             sw.WriteLine($"        public override int Id => {module.Id};");
-            sw.WriteLine("");
+            sw.WriteLine();
             // declare enums
             foreach (Types.Enum e in module.Enums)
             {
@@ -193,7 +193,7 @@ namespace Zeze.Gen.cs
             }
             if (module.Enums.Count > 0)
             {
-                sw.WriteLine("");
+                sw.WriteLine();
             }
 
             if (module.ReferenceService != null)
@@ -206,14 +206,14 @@ namespace Zeze.Gen.cs
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
                             sw.WriteLine("        protected abstract long Process" + rpc.Name + "Request(Zeze.Net.Protocol p);");
-                            sw.WriteLine("");
+                            sw.WriteLine();
                         }
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
                         sw.WriteLine("        protected abstract long Process" + p.Name + "(Zeze.Net.Protocol p);");
-                        sw.WriteLine("");
+                        sw.WriteLine();
                     }
                 }
             }

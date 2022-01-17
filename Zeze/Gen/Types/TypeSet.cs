@@ -12,19 +12,19 @@ namespace Zeze.Gen.Types
 			visitor.Visit(this);
 		}
 
-		public override Type Compile(ModuleSpace space, String key, String value)
+		public override Type Compile(ModuleSpace space, string key, string value)
 		{
 			return new TypeSet(space, key, value);
 		}
 
-		private TypeSet(ModuleSpace space, String key, String value)
+		private TypeSet(ModuleSpace space, string key, string value)
 		{
 			_compile(space, key, value);
 			if (!ValueType.IsKeyable)
 				throw new Exception("set value need a keyable type.");
 		}
 
-		internal TypeSet(SortedDictionary<String, Type> types)
+		internal TypeSet(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
 		}

@@ -9,7 +9,7 @@ namespace Zeze.Gen.cs
     {
         private System.IO.StreamWriter sw;
         private Types.Variable var;
-        private String prefix;
+        private string prefix;
 
         public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
         {
@@ -20,7 +20,7 @@ namespace Zeze.Gen.cs
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    "));
             }
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
         public Assign(Types.Variable var, System.IO.StreamWriter sw, string prefix)

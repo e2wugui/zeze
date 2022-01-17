@@ -34,7 +34,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
             //sw.WriteLine(prefix + typeNameReadOnly + " " + beanNameReadOnly + "." + var.NameUpper1 + " => " + var.NamePrivate + ";");
         }
 
@@ -42,7 +42,7 @@ namespace Zeze.Gen.java
         {
             var typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
-            sw.WriteLine(prefix + "    if (false == this.isManaged())");
+            sw.WriteLine(prefix + "    if (!isManaged())");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    if (txn == null) return " + var.NamePrivate + ";");
@@ -54,14 +54,15 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + "{");
             if (checkNull)
             {
-                sw.WriteLine(prefix + "        if (null == value)");
-                sw.WriteLine(prefix + "            throw new IllegalArgumentException();");
+                sw.WriteLine(prefix + "    if (value == null)");
+                sw.WriteLine(prefix + "        throw new IllegalArgumentException();");
             }
-            sw.WriteLine(prefix + "    if (false == this.isManaged()) {");
+            sw.WriteLine(prefix + "    if (!isManaged()) {");
             sw.WriteLine(prefix + "        " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrent();");
+            sw.WriteLine(prefix + "    assert txn != null;");
             sw.WriteLine(prefix + "    txn.VerifyRecordAccessed(this);");
             sw.WriteLine(prefix + "    txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
             sw.WriteLine(prefix + "}");
@@ -120,8 +121,8 @@ namespace Zeze.Gen.java
                 : TypeName.GetName(type.ValueType);
             var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
             sw.WriteLine($"{prefix}System.Collections.Generic.IReadOnlyList<{valueName}> {beanNameReadOnly}.{var.NameUpper1} => {var.NamePrivate};");
-            */
             sw.WriteLine();
+            */
         }
 
         public void Visit(TypeSet type)
@@ -178,7 +179,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    get");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrent();");
             sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
@@ -188,9 +189,9 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    private set");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (null == value)");
+            sw.WriteLine(prefix + "        if (value == null)");
             sw.WriteLine(prefix + "            throw new System.ArgumentNullException();");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "        {");
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "            return;");
@@ -198,6 +199,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "        value.InitRootInfo(RootInfo, this);");
             sw.WriteLine(prefix + "        value.VariableId = " + var.Id + ";");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrent();");
+            sw.WriteLine(prefix + "        assert txn != null;");
             sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this);");
             sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
             sw.WriteLine(prefix + "    }");

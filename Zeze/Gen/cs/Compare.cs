@@ -7,7 +7,7 @@ namespace Zeze.Gen.cs
 {
     public class Compare : Visitor
 	{
-		public static void Make(BeanKey bean, System.IO.StreamWriter sw, String prefix)
+		public static void Make(BeanKey bean, System.IO.StreamWriter sw, string prefix)
 		{
 			sw.WriteLine(prefix + "public int CompareTo(object _o1_)");
 			sw.WriteLine(prefix + "{");
@@ -26,12 +26,12 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    throw new System.Exception(\"CompareTo: another object is not " + bean.FullName + "\");");
             sw.WriteLine(prefix + "}");
-			sw.WriteLine("");
+			sw.WriteLine();
 		}
 
         private Variable variable;
-        private String another;
-        private String text;
+        private string another;
+        private string text;
         
         public Compare(Variable var, string another)
         {

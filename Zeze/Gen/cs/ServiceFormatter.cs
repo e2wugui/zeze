@@ -33,10 +33,10 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + service.Project.Solution.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class " + service.Name + " : " + BaseClass());
@@ -44,13 +44,13 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public " + service.Name + "(Zeze.Application zeze) : base(\"" + service.Name + "\", zeze)");
             sw.WriteLine("        {");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             /*
             if (service.IsProvider)
             {
                 sw.WriteLine("        // 用来同步等待Provider的静态绑定完成。");
                 sw.WriteLine("        public System.Threading.ManualResetEvent ProviderStaticBindCompleted = new System.Threading.ManualResetEvent(false);");
-                sw.WriteLine("");
+                sw.WriteLine();
                 sw.WriteLine("        public void ProviderStaticBind(Zeze.Net.AsyncSocket socket)");
                 sw.WriteLine("        {");
                 sw.WriteLine("            var rpc = new Zezex.Provider.Bind();");
@@ -63,7 +63,7 @@ namespace Zeze.Gen.cs
                 }
                 sw.WriteLine("            rpc.Send(socket, (protocol) => { ProviderStaticBindCompleted.Set(); return 0; });");
                 sw.WriteLine("        }");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             */
             sw.WriteLine("    }");
@@ -76,10 +76,10 @@ namespace Zeze.Gen.cs
             if (null == sw)
                 return;
 
-            sw.WriteLine("");
+            sw.WriteLine();
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + service.Project.Solution.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class " + service.Name);

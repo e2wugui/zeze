@@ -24,7 +24,7 @@ namespace Zeze.Gen.ts
             }
 
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
         public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
@@ -39,7 +39,7 @@ namespace Zeze.Gen.ts
             }
 
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
         public Encode(string varname, int id, string bufname, System.IO.StreamWriter sw, string prefix)
@@ -151,7 +151,7 @@ namespace Zeze.Gen.ts
         public void Visit(TypeList type)
         {
             if (id < 0)
-                throw new Exception("invalie Variable.Id");
+                throw new Exception("invalid Variable.Id");
             sw.WriteLine(prefix + bufname + ".WriteInt(Zeze.ByteBuffer.LIST | " + id + " << Zeze.ByteBuffer.TAG_SHIFT);");
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "{");
@@ -170,7 +170,7 @@ namespace Zeze.Gen.ts
         public void Visit(TypeSet type)
         {
             if (id < 0)
-                throw new Exception("invalie Variable.Id");
+                throw new Exception("invalid Variable.Id");
             sw.WriteLine(prefix + bufname + ".WriteInt(Zeze.ByteBuffer.SET | " + id + " << Zeze.ByteBuffer.TAG_SHIFT);");
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "{");
@@ -189,7 +189,7 @@ namespace Zeze.Gen.ts
         public void Visit(TypeMap type)
         {
             if (id < 0)
-                throw new Exception("invalie Variable.Id");
+                throw new Exception("invalid Variable.Id");
 
             Types.Type keytype = type.KeyType;
             Types.Type valuetype = type.ValueType;
@@ -245,7 +245,7 @@ namespace Zeze.Gen.ts
             }
             else
             {
-                throw new Exception("invalie Variable.Id");
+                throw new Exception("invalid Variable.Id");
             }
 
         }

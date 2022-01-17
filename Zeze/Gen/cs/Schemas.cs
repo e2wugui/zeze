@@ -37,7 +37,7 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + Project.Solution.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public class Schemas : Zeze.Schemas");

@@ -15,7 +15,7 @@ namespace Zeze.Gen
         public string ScriptDir { get; private set; }
         public string GenRelativeDir { get; private set; }
         public string GenCommonRelativeDir { get; private set; }
-        public HashSet<String> GenTables { get; } = new HashSet<string>();
+        public HashSet<string> GenTables { get; } = new HashSet<string>();
         public SortedDictionary<string, Service> Services { get; private set; } = new SortedDictionary<string, Service>();
 
         // setup when compile

@@ -1,29 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.Net.Mime;
-using System.Text;
+﻿using System.IO;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
     public class BeanFormatter
     {
-        Types.Bean bean;
+        Bean bean;
 
-        public BeanFormatter(Types.Bean bean)
+        public BeanFormatter(Bean bean)
         {
             this.bean = bean;
         }
 
         public void MakeReadOnly(string baseDir)
         {
-            using System.IO.StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + "ReadOnly.java");
+            using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + "ReadOnly.java");
 
-            sw.WriteLine("// auto-generated");
+            sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + bean.Space.Path() + ";");
-            sw.WriteLine("");
-            //sw.WriteLine("import Zeze.Serialize.*;");
-            sw.WriteLine("");
+            sw.WriteLine();
+            //sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
+            //sw.WriteLine();
             sw.WriteLine($"public interface {bean.Name}ReadOnly {{");
             //PropertyReadOnly.Make(bean, sw, "    "); // java 不支持ReadOnly
             sw.WriteLine("}");
@@ -32,37 +29,43 @@ namespace Zeze.Gen.java
         {
             MakeReadOnly(baseDir);
 
-            using System.IO.StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");
+            using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");
 
-            sw.WriteLine("// auto-generated");
+            sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + bean.Space.Path() + ";");
-            sw.WriteLine("");
-            sw.WriteLine("import Zeze.Serialize.*;");
-            sw.WriteLine("");
+            sw.WriteLine();
+            sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
+            sw.WriteLine();
             sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
             WriteDefine(sw);
             sw.WriteLine("}");
         }
 
-        public void WriteDefine(System.IO.StreamWriter sw)
+        public void WriteDefine(StreamWriter sw)
         {
             // declare enums
-            foreach (Types.Enum e in bean.Enums)
+            foreach (Enum e in bean.Enums)
             {
                 sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
             }
             if (bean.Enums.Count > 0)
             {
-                sw.WriteLine("");
+                sw.WriteLine();
             }
 
             // declare variables
-            foreach (Types.Variable v in bean.Variables)
+            foreach (Variable v in bean.Variables)
             {
-                sw.WriteLine("    private " + TypeName.GetName(v.VariableType) + " " + v.NamePrivate + ";" + v.Comment);
+                Type vt = v.VariableType;
+                string final = vt is TypeCollection
+                    || vt is TypeMap
+                    || vt is Bean
+                    || vt is TypeDynamic
+                    ? "final " : "";
+                sw.WriteLine("    private " + final + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
                 // ReadOnlyMap
                 /*
-                if (v.VariableType is Types.TypeMap pmap)
+                if (vt is TypeMap pmap)
                 {
                     var key = TypeName.GetName(pmap.KeyType);
                     var value = pmap.ValueType.IsNormalBean
@@ -73,10 +76,9 @@ namespace Zeze.Gen.java
                 }
                 */
             }
-            sw.WriteLine("");
+            sw.WriteLine();
 
             Property.Make(bean, sw, "    ");
-            sw.WriteLine();
             Construct.Make(bean, sw, "    ");
             Assign.Make(bean, sw, "    ");
             // Copy
@@ -101,7 +103,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return Copy();");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public final static long TYPEID = " + bean.TypeId + "L;");
+            sw.WriteLine("    public static final long TYPEID = " + bean.TypeId + "L;");
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public long getTypeId() {");

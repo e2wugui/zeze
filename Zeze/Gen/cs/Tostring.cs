@@ -9,10 +9,10 @@ namespace Zeze.Gen.cs
     {
 		private System.IO.StreamWriter sw;
 		private string var;
-		private String prefix;
+		private string prefix;
         private string sep;
 
-		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, String prefix)
+		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
 		{
             sw.WriteLine(prefix + "public override string ToString()");
             sw.WriteLine(prefix + "{");
@@ -34,10 +34,10 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine(prefix + "    sb.Append(\"}\");");
             sw.WriteLine(prefix + "}");
-			sw.WriteLine("");
+			sw.WriteLine();
 		}
 
-        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, String prefix)
+        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "public override string ToString()");
             sw.WriteLine(prefix + "{");
@@ -59,10 +59,10 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine(prefix + "    sb.Append(\"}\");");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
-        public Tostring(System.IO.StreamWriter sw, string var, String prefix, string sep)
+        public Tostring(System.IO.StreamWriter sw, string var, string prefix, string sep)
         {
             this.sw = sw;
             this.var = var;
