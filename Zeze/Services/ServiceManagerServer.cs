@@ -178,6 +178,32 @@ namespace Zeze.Services
                 }
             }
 
+            public int UpdateAndNotify(ServiceInfo si)
+            {
+                lock (this)
+                {
+                    if (false == ServiceInfos.TryGetValue(si.ServiceIdentity, out var exist))
+                        return Update.ServiceIndentityNotExist;
+
+                    exist.PassiveIp = si.PassiveIp;
+                    exist.PassivePort = si.PassivePort;
+                    exist.ExtraInfo = si.ExtraInfo;
+
+                    var updateBytes = new Update() { Argument = exist }.Encode();
+
+                    // 简单广播。
+                    foreach (var e in Simple)
+                    {
+                        ServiceManager.Server.GetSocket(e.Key)?.Send(updateBytes);
+                    }
+                    foreach (var e in ReadyCommit)
+                    {
+                        ServiceManager.Server.GetSocket(e.Key)?.Send(updateBytes);
+                    }
+                    return 0;
+                }
+            }
+
             public void TryCommit()
             {
                 lock (this)
@@ -366,6 +392,19 @@ namespace Zeze.Services
             return Procedure.Success;
         }
 
+        private long ProcessUpdate(Protocol p)
+        {
+            var r = p as Update;
+            var session = r.Sender.UserState as Session;
+            if (false == session.Registers.ContainsKey(r.Argument))
+                return Update.ServiceNotRetister;
+
+            if (false == ServerStates.TryGetValue(r.Argument.ServiceName, out var state))
+                return Update.ServerStateError;
+
+            return state.UpdateAndNotify(r.Argument);
+        }
+
         internal ServerState UnRegisterNow(long sessionId, ServiceInfo info)
         {
             if (ServerStates.TryGetValue(info.ServiceName, out var state))
@@ -492,6 +531,12 @@ namespace Zeze.Services
             {
                 Factory = () => new Register(),
                 Handle = ProcessRegister,
+            });
+
+            Server.AddFactoryHandle(new Update().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new Update(),
+                Handle = ProcessUpdate,
             });
 
             Server.AddFactoryHandle(new UnRegister().TypeId, new Service.ProtocolFactoryHandle()
@@ -658,6 +703,14 @@ namespace Zeze.Services
                 session?.OnClose();
                 base.OnSocketClose(so, e);
             }
+
+            public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+            {
+                if (null == factoryHandle)
+                    return;
+
+                Util.Task.Run(() => factoryHandle.Handle(p), p, (_, code) => p.SendResultCode(code));
+            }
         }
 
     }
@@ -679,6 +732,7 @@ namespace Zeze.Services.ServiceManager
         /// 如果需要处理这个事件，请在订阅前设置回调。
         /// </summary>
         public Action<SubscribeState> OnChanged { get; set; }
+        public Action<SubscribeState, ServiceInfo> OnUpdate { get; set; }
 
         // 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
         // ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -769,6 +823,22 @@ namespace Zeze.Services.ServiceManager
                     }
                 }
                 Agent.OnChanged?.Invoke(this);
+            }
+
+            internal void OnUpdate(ServiceInfo info)
+            {
+                lock (this)
+                {
+                    var exist = ServiceInfos.FindServiceInfoByIdentity(info.ServiceIdentity);
+                    if (null == exist)
+                        return;
+
+                    exist.PassiveIp = info.PassiveIp;
+                    exist.PassivePort = info.PassivePort;
+                    exist.ExtraInfo = info.ExtraInfo;
+
+                    Agent.OnUpdate?.Invoke(this, exist);
+                }
             }
 
             internal void OnNotify(ServiceInfos infos)
@@ -959,6 +1029,17 @@ namespace Zeze.Services.ServiceManager
             }
         }
 
+        private long ProcessUpdate(Protocol p)
+        {
+            var r = p as Update;
+            if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
+                return Update.ServiceNotSubscribe;
+
+            state.OnUpdate(r.Argument);
+
+            return 0;
+        }
+
         private long ProcessNotifyServiceList(Protocol p)
         {
             var r = p as NotifyServiceList;
@@ -1103,6 +1184,12 @@ namespace Zeze.Services.ServiceManager
                 Factory = () => new Register(),
             });
 
+            Client.AddFactoryHandle(new Update().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new Update(),
+                Handle = ProcessUpdate,
+            });
+
             Client.AddFactoryHandle(new UnRegister().TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new UnRegister(),
@@ -1207,7 +1294,7 @@ namespace Zeze.Services.ServiceManager
                 if (null != factoryHandle.Handle)
                 {
                     Agent.Zeze.InternalThreadPool.QueueUserWorkItem(
-                        () => Util.Task.Call(() => factoryHandle.Handle(p), p));
+                        () => Util.Task.Call(() => factoryHandle.Handle(p), p, (_, code) => p.SendResultCode(code)));
                 }
             }
 
@@ -1230,11 +1317,11 @@ namespace Zeze.Services.ServiceManager
         /// <summary>
         /// 服务ip-port，如果没有，保持空和0.
         /// </summary>
-        public string PassiveIp { get; private set; } = "";
-        public int PassivePort { get; private set; } = 0;
+        public string PassiveIp { get; internal set; } = "";
+        public int PassivePort { get; internal set; } = 0;
 
         // 服务扩展信息，可选。
-        public string ExtraInfo { get; private set; } = "";
+        public string ExtraInfo { get; internal set; } = "";
 
         // ServiceManager或者ServiceManager.Agent用来保存本地状态，不是协议一部分，不会被系列化。
         // 算是一个简单的策略，不怎么优美。一般仅设置一次，线程保护由使用者自己管理。
@@ -1322,6 +1409,20 @@ namespace Zeze.Services.ServiceManager
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
 
+    }
+
+    public sealed class Update : Rpc<ServiceInfo, EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Update).FullName);
+
+        public const int Success = 0;
+        public const int ServiceNotRetister = 1;
+        public const int ServerStateError = 2;
+        public const int ServiceIndentityNotExist = 3;
+        public const int ServiceNotSubscribe = 4;
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
     }
 
     /// <summary>
