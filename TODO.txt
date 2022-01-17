@@ -19,6 +19,8 @@
 
 【进行中】
 	zeze async await?
+	Zeze.Arch 
+	Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 
 	RedoableTaskQueue
 App：RedoableTaskQueue 看完下面的，帮忙起个好名。
@@ -36,9 +38,6 @@ Zeze.ServerApp
 参考很多MessageQueue的实现，这里由于重做，更像一个LogQueue。以前sybase的复制备份服务器也有一个差不多这样的logqueue
 concurrentId是个坑，只有一个肯定没问题，但是无法并发，允许并发，对某些逻辑可能无法使用，或者需要使用者自己把相关的task放到同一个concurrentId下。
 
-checkpointMode.Period 不能用
-CheckpointMode.Table 能不能用？
-
 	Raft.Revote 优先级++++++++++++++++++++++++++ 初步考虑仅使用不同的延迟。RandomDelay + DelayPriority;
 	Raft.GlobalWithRaft TODO
 	Raft.GlobalCacheManagerWithRaft
@@ -48,6 +47,8 @@ CheckpointMode.Table 能不能用？
 	Zezex.client: 可靠消息实现的错误检查。
 
 【新变动】
+	【已确认】checkpointMode.Period 不能用--->在启用Global情况下禁用。
+	【已确认】CheckpointMode.Table 能不能用？--->可以使用。
 
 【2022/1/10】
 	Zezex.Login.Onlines.Transmit 带参数。

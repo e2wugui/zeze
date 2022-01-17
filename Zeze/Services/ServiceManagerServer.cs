@@ -833,7 +833,7 @@ namespace Zeze.Services.ServiceManager
         public ServiceInfo RegisterService(
             string name, string identity,
             string ip = null, int port = 0,
-            Binary extrainfo = null)
+            string extrainfo = null)
         {
             return RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
         }
@@ -1234,7 +1234,7 @@ namespace Zeze.Services.ServiceManager
         public int PassivePort { get; private set; } = 0;
 
         // 服务扩展信息，可选。
-        public Binary ExtraInfo { get; private set; } = Binary.Empty;
+        public string ExtraInfo { get; private set; } = "";
 
         // ServiceManager或者ServiceManager.Agent用来保存本地状态，不是协议一部分，不会被系列化。
         // 算是一个简单的策略，不怎么优美。一般仅设置一次，线程保护由使用者自己管理。
@@ -1247,7 +1247,7 @@ namespace Zeze.Services.ServiceManager
         public ServiceInfo(
             string name, string identity,
             string ip = null, int port = 0,
-            Binary extrainfo = null)
+            string extrainfo = null)
         {
             ServiceName = name;
             ServiceIdentity = identity;
@@ -1264,7 +1264,7 @@ namespace Zeze.Services.ServiceManager
             ServiceIdentity = bb.ReadString();
             PassiveIp = bb.ReadString();
             PassivePort = bb.ReadInt();
-            ExtraInfo = bb.ReadBinary();
+            ExtraInfo = bb.ReadString();
         }
 
         public override void Encode(ByteBuffer bb)
@@ -1273,7 +1273,7 @@ namespace Zeze.Services.ServiceManager
             bb.WriteString(ServiceIdentity);
             bb.WriteString(PassiveIp);
             bb.WriteInt(PassivePort);
-            bb.WriteBinary(ExtraInfo);
+            bb.WriteString(ExtraInfo);
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
