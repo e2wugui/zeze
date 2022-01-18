@@ -908,10 +908,33 @@ namespace Zeze.Services.ServiceManager
             return RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
         }
 
+        public ServiceInfo UpdateService(
+            string name, string identity,
+            string ip, int port, string extrainfo)
+        {
+            return UpdateService(new ServiceInfo(name, identity, ip, port, extrainfo));
+        }
+
         public void WaitConnectorReady()
         {
             // 实际上只有一个连接，这样就不用查找了。
             Client.Config.ForEachConnector((c) => c.WaitReady());
+        }
+
+        private ServiceInfo UpdateService(ServiceInfo info)
+        {
+            WaitConnectorReady();
+            if (false == Registers.TryGetValue(info, out var reg))
+                return null;
+
+            var r = new Update() { Argument = info };
+            r.SendAndWaitCheckResultCode(Client.Socket);
+
+            reg.PassiveIp = info.PassiveIp;
+            reg.PassivePort = info.PassivePort;
+            reg.ExtraInfo = info.ExtraInfo;
+
+            return reg;
         }
 
         private ServiceInfo RegisterService(ServiceInfo info)
