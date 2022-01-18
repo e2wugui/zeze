@@ -77,7 +77,7 @@ namespace NPinyin
       {
         string py = GetPinyin(text[i]);
         if (py != "") sbPinyin.Append(py);
-        sbPinyin.Append(" ");
+        sbPinyin.Append(' ');
       }
 
       return sbPinyin.ToString().Trim();

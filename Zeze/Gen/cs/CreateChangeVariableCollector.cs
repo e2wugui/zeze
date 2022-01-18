@@ -31,72 +31,72 @@ namespace Zeze.Gen.cs
         {
         }
 
-        void Visitor.Visit(Bean type)
+        public void Visit(Bean type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(BeanKey type)
+        public void Visit(BeanKey type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeByte type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(TypeShort type)
+        public void Visit(TypeShort type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(TypeInt type)
+        public void Visit(TypeInt type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(TypeLong type)
+        public void Visit(TypeLong type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(TypeBool type)
+        public void Visit(TypeBool type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(TypeBinary type)
+        public void Visit(TypeBinary type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(TypeString type)
+        public void Visit(TypeString type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(TypeFloat type)
+        public void Visit(TypeFloat type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(TypeDouble type)
+        public void Visit(TypeDouble type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(TypeList type)
+        public void Visit(TypeList type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
-        void Visitor.Visit(TypeSet type)
+        public void Visit(TypeSet type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorSet()";
         }
 
-        void Visitor.Visit(TypeMap type)
+        public void Visit(TypeMap type)
         {
             string kv = TypeName.GetName(type.KeyType) + ", " + TypeName.GetName(type.ValueType);
             string factory = type.ValueType.IsNormalBean
@@ -105,7 +105,7 @@ namespace Zeze.Gen.cs
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorMap(" + factory + ")";
         }
 
-        void Visitor.Visit(TypeDynamic type)
+        public void Visit(TypeDynamic type)
         {
             ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }

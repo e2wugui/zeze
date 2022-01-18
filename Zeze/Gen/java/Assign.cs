@@ -1,14 +1,13 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
     public class Assign : Visitor
     {
-        private StreamWriter sw;
-        private Variable var;
-        private string prefix;
+        readonly StreamWriter sw;
+        readonly Variable var;
+        readonly string prefix;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
@@ -26,52 +25,52 @@ namespace Zeze.Gen.java
             this.prefix = prefix;
         }
 
-        void Visitor.Visit(Bean type)
-        {
-            sw.WriteLine(prefix + var.Getter + ".Assign(other." + var.Getter + ");");
-        }
-
-        void Visitor.Visit(BeanKey type)
+        public void Visit(TypeBool type)
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeByte type)
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
-        void Visitor.Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
-        void Visitor.Visit(TypeInt type)
+        public void Visit(TypeInt type)
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
-        void Visitor.Visit(TypeLong type)
+        public void Visit(TypeLong type)
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
-        void Visitor.Visit(TypeBool type)
+        public void Visit(TypeFloat type)
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
-        void Visitor.Visit(TypeBinary type)
+        public void Visit(TypeDouble type)
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
-        void Visitor.Visit(TypeString type)
+        public void Visit(TypeBinary type)
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
-        void Visitor.Visit(TypeList type)
+        public void Visit(TypeString type)
+        {
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+        }
+
+        public void Visit(TypeList type)
         {
             sw.WriteLine(prefix + var.Getter + ".clear();");
             string copyif = type.ValueType.IsNormalBean ? "e.Copy()" : "e";
@@ -80,7 +79,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    " + var.Getter + ".add(" + copyif + ");");
         }
 
-        void Visitor.Visit(TypeSet type)
+        public void Visit(TypeSet type)
         {
             sw.WriteLine(prefix + var.Getter + ".clear();");
             string copyif = type.ValueType.IsNormalBean ? "e.Copy()" : "e"; // set 里面现在不让放 bean，先这样写吧。
@@ -89,7 +88,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    " + var.Getter + ".add(" + copyif + ");");
         }
 
-        void Visitor.Visit(TypeMap type)
+        public void Visit(TypeMap type)
         {
             sw.WriteLine(prefix + var.Getter + ".clear();");
             string copyif = type.ValueType.IsNormalBean ? "e.getValue().Copy()" : "e.getValue()";
@@ -98,17 +97,17 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    " + var.Getter + ".put(e.getKey(), " + copyif + ");");
         }
 
-        void Visitor.Visit(TypeFloat type)
+        public void Visit(Bean type)
+        {
+            sw.WriteLine(prefix + var.Getter + ".Assign(other." + var.Getter + ");");
+        }
+
+        public void Visit(BeanKey type)
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
-        void Visitor.Visit(TypeShort type)
-        {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
-        }
-
-        void Visitor.Visit(TypeDynamic type)
+        public void Visit(TypeDynamic type)
         {
             sw.WriteLine(prefix + var.Getter + ".Assign(other." + var.Getter + ");");
         }

@@ -15,77 +15,77 @@ namespace Zeze.Gen.cs
             return v.Name;
         }
 
-        void Visitor.Visit(TypeBool type)
+        public void Visit(TypeBool type)
         {
             Name = "ByteBuffer.INTEGER";
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeByte type)
         {
             Name = "ByteBuffer.INTEGER";
         }
 
-        void Visitor.Visit(TypeShort type)
+        public void Visit(TypeShort type)
         {
             Name = "ByteBuffer.INTEGER";
         }
 
-        void Visitor.Visit(TypeInt type)
+        public void Visit(TypeInt type)
         {
             Name = "ByteBuffer.INTEGER";
         }
 
-        void Visitor.Visit(TypeLong type)
+        public void Visit(TypeLong type)
         {
             Name = "ByteBuffer.INTEGER";
         }
 
-        void Visitor.Visit(TypeFloat type)
+        public void Visit(TypeFloat type)
         {
             Name = "ByteBuffer.FLOAT";
         }
 
-        void Visitor.Visit(TypeDouble type)
+        public void Visit(TypeDouble type)
         {
             Name = "ByteBuffer.DOUBLE";
         }
 
-        void Visitor.Visit(TypeBinary type)
+        public void Visit(TypeBinary type)
         {
             Name = "ByteBuffer.BYTES";
         }
 
-        void Visitor.Visit(TypeString type)
+        public void Visit(TypeString type)
         {
             Name = "ByteBuffer.BYTES";
         }
 
-        void Visitor.Visit(TypeList type)
+        public void Visit(TypeList type)
         {
             Name = "ByteBuffer.LIST";
         }
 
-        void Visitor.Visit(TypeSet type)
+        public void Visit(TypeSet type)
         {
             Name = "ByteBuffer.LIST";
         }
 
-        void Visitor.Visit(TypeMap type)
+        public void Visit(TypeMap type)
         {
             Name = "ByteBuffer.MAP";
         }
 
-        void Visitor.Visit(Bean type)
+        public void Visit(Bean type)
         {
             Name = "ByteBuffer.BEAN";
         }
 
-        void Visitor.Visit(BeanKey type)
+        public void Visit(BeanKey type)
         {
             Name = "ByteBuffer.BEAN";
         }
 
-        void Visitor.Visit(TypeDynamic type)
+        public void Visit(TypeDynamic type)
         {
             Name = "ByteBuffer.DYNAMIC";
         }

@@ -450,7 +450,7 @@ namespace Zeze.Transaction
                     return Id + "-[Isolated]";
                 }
                 var sb = new StringBuilder();
-                sb.Append(Id).Append("-");
+                sb.Append(Id).Append('-');
                 Zeze.Serialize.ByteBuffer.BuildString(sb, RecordSet);
                 return sb.ToString();
             }

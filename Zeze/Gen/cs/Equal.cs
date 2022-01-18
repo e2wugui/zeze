@@ -51,77 +51,77 @@ namespace Zeze.Gen.cs
             text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
         }
 
-        void Visitor.Visit(TypeBool type)
+        public void Visit(TypeBool type)
         {
             CommonEquals();
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeByte type)
         {
             CommonEquals();
         }
 
-        void Visitor.Visit(TypeShort type)
+        public void Visit(TypeShort type)
         {
             CommonEquals();
         }
 
-        void Visitor.Visit(TypeInt type)
+        public void Visit(TypeInt type)
         {
             CommonEquals();
         }
 
-        void Visitor.Visit(TypeLong type)
+        public void Visit(TypeLong type)
         {
             CommonEquals();
         }
 
-        void Visitor.Visit(TypeFloat type)
+        public void Visit(TypeFloat type)
         {
             CommonEquals();
         }
 
-        void Visitor.Visit(TypeDouble type)
+        public void Visit(TypeDouble type)
         {
             CommonEquals();
         }
 
-        void Visitor.Visit(TypeBinary type)
+        public void Visit(TypeBinary type)
         {
             throw new NotImplementedException();
         }
 
-        void Visitor.Visit(TypeString type)
+        public void Visit(TypeString type)
         {
             text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
-        void Visitor.Visit(TypeList type)
+        public void Visit(TypeList type)
         {
             throw new NotImplementedException();
         }
 
-        void Visitor.Visit(TypeSet type)
+        public void Visit(TypeSet type)
         {
             throw new NotImplementedException();
         }
 
-        void Visitor.Visit(TypeMap type)
+        public void Visit(TypeMap type)
         {
             throw new NotImplementedException();
         }
 
-        void Visitor.Visit(Bean type)
+        public void Visit(Bean type)
         {
             text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
-        void Visitor.Visit(BeanKey type)
+        public void Visit(BeanKey type)
         {
             text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
-        void Visitor.Visit(TypeDynamic type)
+        public void Visit(TypeDynamic type)
         {
             throw new NotImplementedException();
         }

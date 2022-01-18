@@ -80,52 +80,52 @@ namespace Zeze.Gen.cs
             sw.WriteLine(".Append(Environment.NewLine);");
         }
 
-        void Visitor.Visit(TypeBool type)
+        public void Visit(TypeBool type)
         {
             FormatSimple();
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeByte type)
         {
             FormatSimple();
         }
 
-        void Visitor.Visit(TypeShort type)
+        public void Visit(TypeShort type)
         {
             FormatSimple();
         }
 
-        void Visitor.Visit(TypeInt type)
+        public void Visit(TypeInt type)
         {
             FormatSimple();
         }
 
-        void Visitor.Visit(TypeLong type)
+        public void Visit(TypeLong type)
         {
             FormatSimple();
         }
 
-        void Visitor.Visit(TypeFloat type)
+        public void Visit(TypeFloat type)
         {
             FormatSimple();
         }
 
-        void Visitor.Visit(TypeDouble type)
+        public void Visit(TypeDouble type)
         {
             FormatSimple();
         }
 
-        void Visitor.Visit(TypeBinary type)
+        public void Visit(TypeBinary type)
         {
             FormatSimple();
         }
 
-        void Visitor.Visit(TypeString type)
+        public void Visit(TypeString type)
         {
             FormatSimple();
         }
 
-        void Visitor.Visit(TypeList type)
+        public void Visit(TypeList type)
         {
             sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
             sw.WriteLine($"{prefix}level += {INDENT_SIZE};");
@@ -140,7 +140,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(".Append(Environment.NewLine);");
         }
 
-        void Visitor.Visit(TypeSet type)
+        public void Visit(TypeSet type)
         {
             sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
             sw.WriteLine($"{prefix}level += {INDENT_SIZE};");
@@ -155,7 +155,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(".Append(Environment.NewLine);");
         }
 
-        void Visitor.Visit(TypeMap type)
+        public void Visit(TypeMap type)
         {
             sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
             sw.WriteLine($"{prefix}level += {INDENT_SIZE};");
@@ -175,7 +175,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(".Append(Environment.NewLine);");
         }
 
-        void Visitor.Visit(Bean type)
+        public void Visit(Bean type)
         {
             sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + $"{var}.BuildString(sb, level + {INDENT_SIZE});");
@@ -185,7 +185,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(".Append(Environment.NewLine);");
         }
 
-        void Visitor.Visit(BeanKey type)
+        public void Visit(BeanKey type)
         {
             sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + $"{var}.BuildString(sb, level + {INDENT_SIZE});");
@@ -195,7 +195,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(".Append(Environment.NewLine);");
         }
 
-        void Visitor.Visit(TypeDynamic type)
+        public void Visit(TypeDynamic type)
         {
             sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=\").Append(Environment.NewLine);");
             sw.WriteLine(prefix + $"{var}.Bean.BuildString(sb, level + {INDENT_SIZE});");

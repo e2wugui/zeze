@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+using System.IO;
 
 namespace Zeze.Gen.java
 {
@@ -35,7 +34,7 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
-            using System.IO.StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.java");
+            using StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.java");
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + Project.Solution.Path() + ";");
@@ -44,9 +43,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public Schemas() {");
 
             foreach (var table in Project.AllTables.Values)
-            {
                 sw.WriteLine($"        AddTable(new Zeze.Schemas.Table(\"{table.Space.Path("_", table.Name)}\", \"{GetFullName(table.KeyType)}\", \"{GetFullName(table.ValueType)}\"));");
-            }
 
             foreach (var type in Depends)
             {
@@ -80,9 +77,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"            var.Name = \"{v.Name}\";");
                 sw.WriteLine($"            var.TypeName = \"{GetFullName(v.VariableType)}\";");
                 if (v.VariableType is Types.TypeCollection collection)
-                {
                     sw.WriteLine($"            var.ValueName = \"{GetFullName(collection.ValueType)}\";");
-                }
                 else if (v.VariableType is Types.TypeMap map)
                 {
                     sw.WriteLine($"            var.KeyName = \"{GetFullName(map.KeyType)}\";");

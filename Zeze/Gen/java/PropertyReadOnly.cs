@@ -1,47 +1,38 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
-    public class PropertyReadOnly : Types.Visitor
+    public class PropertyReadOnly : Visitor
     {
-        System.IO.StreamWriter sw;
-        Types.Variable var;
-        string prefix;
+        readonly StreamWriter sw;
+        readonly Variable var;
+        readonly string prefix;
 
-        public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine($"{prefix}public long getTypeId();");
             sw.WriteLine($"{prefix}public void Encode(Zeze.Serialize.ByteBuffer _os_);");
             sw.WriteLine($"{prefix}public boolean NegativeCheck();");
             sw.WriteLine($"{prefix}public Zeze.Transaction.Bean CopyBean();");
             sw.WriteLine();
-            foreach (Types.Variable var in bean.Variables)
-            {
+            foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new PropertyReadOnly(sw, var, prefix));
-            }
         }
 
-        public PropertyReadOnly(System.IO.StreamWriter sw, Types.Variable var, string prefix)
+        public PropertyReadOnly(StreamWriter sw, Variable var, string prefix)
         {
             this.sw = sw;
             this.var = var;
             this.prefix = prefix;
         }
 
-        public void Visit(Bean type)
-        {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + "ReadOnly " + var.Getter + ";");
-        }
-
-        private void WriteProperty(Types.Type type)
+        private void WriteProperty(Type type)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + ";");
         }
 
-        public void Visit(BeanKey type)
+        public void Visit(TypeBool type)
         {
             WriteProperty(type);
         }
@@ -51,7 +42,7 @@ namespace Zeze.Gen.java
             WriteProperty(type);
         }
 
-        public void Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
             WriteProperty(type);
         }
@@ -66,7 +57,12 @@ namespace Zeze.Gen.java
             WriteProperty(type);
         }
 
-        public void Visit(TypeBool type)
+        public void Visit(TypeFloat type)
+        {
+            WriteProperty(type);
+        }
+
+        public void Visit(TypeDouble type)
         {
             WriteProperty(type);
         }
@@ -105,12 +101,12 @@ namespace Zeze.Gen.java
             sw.WriteLine($"{prefix} public System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {var.NameUpper1} {{ get; }}");
         }
 
-        public void Visit(TypeFloat type)
+        public void Visit(Bean type)
         {
-            WriteProperty(type);
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + "ReadOnly " + var.Getter + ";");
         }
 
-        public void Visit(TypeShort type)
+        public void Visit(BeanKey type)
         {
             WriteProperty(type);
         }

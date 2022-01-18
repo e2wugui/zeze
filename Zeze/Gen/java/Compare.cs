@@ -37,14 +37,9 @@ namespace Zeze.Gen.java
             this.another = another;
         }
 
-        public void Visit(Bean type)
+        public void Visit(TypeBool type)
         {
-            text = variable.NamePrivate + ".compareTo(" + another + "." + variable.NamePrivate + ")";
-        }
-
-        public void Visit(BeanKey type)
-        {
-            text = variable.NamePrivate + ".compareTo(" + another + "." + variable.NamePrivate + ")";
+            text = $"Boolean.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
         public void Visit(TypeByte type)
@@ -52,9 +47,9 @@ namespace Zeze.Gen.java
             text = $"Byte.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
-        public void Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
-            text = $"Double.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+            text = $"Short.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
         public void Visit(TypeInt type)
@@ -67,9 +62,14 @@ namespace Zeze.Gen.java
             text = $"Long.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
-        public void Visit(TypeBool type)
+        public void Visit(TypeFloat type)
         {
-            text = $"Boolean.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+            text = $"Float.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+        }
+
+        public void Visit(TypeDouble type)
+        {
+            text = $"Double.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
         }
 
         public void Visit(TypeBinary type)
@@ -97,14 +97,14 @@ namespace Zeze.Gen.java
             throw new NotImplementedException();
         }
 
-        public void Visit(TypeFloat type)
+        public void Visit(Bean type)
         {
-            text = $"Float.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+            text = variable.NamePrivate + ".compareTo(" + another + "." + variable.NamePrivate + ")";
         }
 
-        public void Visit(TypeShort type)
+        public void Visit(BeanKey type)
         {
-            text = $"Short.compare({variable.NamePrivate}, {another}.{variable.NamePrivate})";
+            text = variable.NamePrivate + ".compareTo(" + another + "." + variable.NamePrivate + ")";
         }
 
         public void Visit(TypeDynamic type)

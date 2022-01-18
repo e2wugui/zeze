@@ -129,9 +129,9 @@ namespace Zeze.Gen.lua
                 using System.IO.StreamWriter swDispatcher = Program.OpenStreamWriter(dispatcherFileName);
 
                 swDispatcher.WriteLine();
-                swDispatcher.WriteLine("local Zeze = { }");
-                swDispatcher.WriteLine("Zeze.ProtocolHandles = { }");
-                swDispatcher.WriteLine("Zeze.RpcContext = { }");
+                swDispatcher.WriteLine("local Zeze = {}");
+                swDispatcher.WriteLine("Zeze.ProtocolHandles = {}");
+                swDispatcher.WriteLine("Zeze.RpcContext = {}");
                 swDispatcher.WriteLine("Zeze.RpcSidSeed = 1");
                 swDispatcher.WriteLine();
                 swDispatcher.WriteLine("function ZezeDispatchRequest(p)");

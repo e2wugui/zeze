@@ -30,52 +30,52 @@ namespace Zeze.Gen.lua
             return v;
         }
 
-        void Visitor.Visit(TypeBool type)
+        public void Visit(TypeBool type)
         {
             Type = ByteBuffer.LUA_BOOL;
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeByte type)
         {
             Type = ByteBuffer.INTEGER;
         }
 
-        void Visitor.Visit(TypeShort type)
+        public void Visit(TypeShort type)
         {
             Type = ByteBuffer.INTEGER;
         }
 
-        void Visitor.Visit(TypeInt type)
+        public void Visit(TypeInt type)
         {
             Type = ByteBuffer.INTEGER;
         }
 
-        void Visitor.Visit(TypeLong type)
+        public void Visit(TypeLong type)
         {
             Type = ByteBuffer.INTEGER;
         }
 
-        void Visitor.Visit(TypeFloat type)
+        public void Visit(TypeFloat type)
         {
             Type = ByteBuffer.FLOAT;
         }
 
-        void Visitor.Visit(TypeDouble type)
+        public void Visit(TypeDouble type)
         {
             Type = ByteBuffer.DOUBLE;
         }
 
-        void Visitor.Visit(TypeBinary type)
+        public void Visit(TypeBinary type)
         {
             Type = ByteBuffer.BYTES;
         }
 
-        void Visitor.Visit(TypeString type)
+        public void Visit(TypeString type)
         {
             Type = ByteBuffer.BYTES;
         }
 
-        void Visitor.Visit(TypeList type)
+        public void Visit(TypeList type)
         {
             Type = ByteBuffer.LIST;
             TypeMeta vm = Get(Var, type.ValueType);
@@ -83,7 +83,7 @@ namespace Zeze.Gen.lua
             ValueBeanTypeId = vm.TypeBeanTypeId;
         }
 
-        void Visitor.Visit(TypeSet type)
+        public void Visit(TypeSet type)
         {
             Type = ByteBuffer.LUA_SET;
             TypeMeta vm = Get(Var, type.ValueType);
@@ -91,7 +91,7 @@ namespace Zeze.Gen.lua
             ValueBeanTypeId = vm.TypeBeanTypeId;
         }
 
-        void Visitor.Visit(TypeMap type)
+        public void Visit(TypeMap type)
         {
             Type = ByteBuffer.MAP;
 
@@ -104,19 +104,19 @@ namespace Zeze.Gen.lua
             ValueBeanTypeId = vm.TypeBeanTypeId;
         }
 
-        void Visitor.Visit(Bean type)
+        public void Visit(Bean type)
         {
             Type = ByteBuffer.BEAN;
             TypeBeanTypeId = type.TypeId;
         }
 
-        void Visitor.Visit(BeanKey type)
+        public void Visit(BeanKey type)
         {
             Type = ByteBuffer.BEAN;
             TypeBeanTypeId = type.TypeId;
         }
 
-        void Visitor.Visit(TypeDynamic type)
+        public void Visit(TypeDynamic type)
         {
             Type = ByteBuffer.DYNAMIC;
             // TypeBeanTypeId = 使用的时候指定。

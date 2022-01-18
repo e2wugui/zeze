@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
+﻿using System.IO;
 
 namespace Zeze.Gen.cxx
 {
@@ -21,11 +18,11 @@ namespace Zeze.Gen.cxx
         public void Make()
         {
             string projectBasedir = Project.Gendir;
-            string projectDir = System.IO.Path.Combine(projectBasedir, Project.Name);
+            string projectDir = Path.Combine(projectBasedir, Project.Name);
             string genDir = projectDir;
 
             {
-                using System.IO.StreamWriter sw = Project.Solution.OpenWriter(genDir, "App.h");
+                using StreamWriter sw = Project.Solution.OpenWriter(genDir, "App.h");
                 sw.WriteLine("// auto-generated");
                 sw.WriteLine();
                 foreach (var m in Project.Services.Values)
@@ -50,7 +47,7 @@ namespace Zeze.Gen.cxx
 
             foreach (var m in Project.Services.Values)
             {
-                using System.IO.StreamWriter sw = Project.Solution.OpenWriter(genDir, $"{m.Name}.h", false);
+                using StreamWriter sw = Project.Solution.OpenWriter(genDir, $"{m.Name}.h", false);
                 if (null == sw)
                     continue;
                 //sw.WriteLine("// auto-generated");
@@ -62,7 +59,7 @@ namespace Zeze.Gen.cxx
                 sw.WriteLine($"    class {m.Name} : public {BaseClass(m)}");
                 sw.WriteLine($"    {{");
                 sw.WriteLine($"    public:");
-                sw.WriteLine($"        {m.Name}() : {BaseClass(m)}(\"{m.Name}\") {{ }}");
+                sw.WriteLine($"        {m.Name}() : {BaseClass(m)}(\"{m.Name}\") {{}}");
                 sw.WriteLine($"    }};");
                 sw.WriteLine($"}}");
             }

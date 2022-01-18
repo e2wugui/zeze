@@ -3,7 +3,7 @@ namespace Zeze.Gen.java
 {
     public class RpcFormatter
     {
-        Rpc rpc;
+        readonly Rpc rpc;
 
         public RpcFormatter(Rpc rpc)
         {
@@ -37,13 +37,9 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             // declare enums
             foreach (Types.Enum e in rpc.Enums)
-            {
                 sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
-            }
             if (rpc.Enums.Count > 0)
-            {
                 sw.WriteLine();
-            }
             sw.WriteLine($"    public {rpc.Name}() {{");
             sw.WriteLine($"        Argument = new {argument}();");
             sw.WriteLine($"        Result = new {result}();");

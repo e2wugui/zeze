@@ -38,7 +38,7 @@ namespace Zeze.Gen.cs
             string valueName = TypeName.GetName(type);
             sw.WriteLine(prefix + "private sealed class Log_" + var.NamePrivate + " : Zeze.Transaction.Log<" + bean.Name + ", " + valueName + ">");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " self, " + valueName + " value) : base(self, value) { }");
+            sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " self, " + valueName + " value) : base(self, value) {}");
             sw.WriteLine(prefix + "    public override long LogKey => this.Bean.ObjectId + " + var.Id + ";");
             sw.WriteLine(prefix + "    public override void Commit() { this.BeanTyped." + var.NamePrivate + " = this.Value; }");
             sw.WriteLine(prefix + "}");
@@ -91,7 +91,7 @@ namespace Zeze.Gen.cs
 
             sw.WriteLine(prefix + "private sealed class Log_" + var.NamePrivate + " : " + tn.name + ".LogV");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " host, " + tn.nameCollectionImplement + " value) : base(host, value) { }");
+            sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " host, " + tn.nameCollectionImplement + " value) : base(host, value) {}");
             sw.WriteLine(prefix + "    public override long LogKey => Bean.ObjectId + " + var.Id + ";");
             sw.WriteLine(prefix + "    public " + bean.Name + " BeanTyped => (" + bean.Name + ")Bean;");
             sw.WriteLine(prefix + "    public override void Commit() { Commit(BeanTyped." + var.NamePrivate + "); }");

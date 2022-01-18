@@ -102,7 +102,7 @@ namespace Zeze.Gen.cs
                 ? TypeName.GetName(type.ValueType) + "ReadOnly"
                 : TypeName.GetName(type.ValueType);
             var keyName = TypeName.GetName(type.KeyType);
-            sw.WriteLine($"{prefix} public System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {var.NameUpper1} {{ get; }}");
+            sw.WriteLine($"{prefix}public System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {var.NameUpper1} {{ get; }}");
         }
 
         public void Visit(TypeFloat type)

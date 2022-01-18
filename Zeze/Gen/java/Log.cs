@@ -1,27 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
-    public class Log : Types.Visitor
+    public class Log : Visitor
     {
-        System.IO.StreamWriter sw;
-        Types.Bean bean;
-        Types.Variable var;
-        string prefix;
+        readonly StreamWriter sw;
+        readonly Bean bean;
+        readonly Variable var;
+        readonly string prefix;
 
-        public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            foreach (Types.Variable var in bean.Variables)
+            foreach (Variable var in bean.Variables)
             {
                 var.VariableType.Accept(new Log(bean, sw, var, prefix));
                 sw.WriteLine();
             }
         }
 
-        public Log(Types.Bean bean, System.IO.StreamWriter sw, Types.Variable var, string prefix)
+        public Log(Bean bean, StreamWriter sw, Variable var, string prefix)
         {
             this.bean = bean;
             this.sw = sw;
@@ -45,7 +44,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "}");
         }
 
-        public void Visit(BeanKey type)
+        public void Visit(TypeBool type)
         {
             WriteLogValue(type);
         }
@@ -55,7 +54,7 @@ namespace Zeze.Gen.java
             WriteLogValue(type);
         }
 
-        public void Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
             WriteLogValue(type);
         }
@@ -70,7 +69,12 @@ namespace Zeze.Gen.java
             WriteLogValue(type);
         }
 
-        public void Visit(TypeBool type)
+        public void Visit(TypeFloat type)
+        {
+            WriteLogValue(type);
+        }
+
+        public void Visit(TypeDouble type)
         {
             WriteLogValue(type);
         }
@@ -129,12 +133,7 @@ namespace Zeze.Gen.java
             WriteCollectionLog(type);
         }
 
-        public void Visit(TypeFloat type)
-        {
-            WriteLogValue(type);
-        }
-
-        public void Visit(TypeShort type)
+        public void Visit(BeanKey type)
         {
             WriteLogValue(type);
         }

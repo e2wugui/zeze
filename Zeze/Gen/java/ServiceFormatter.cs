@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 
 namespace Zeze.Gen.java
 {
     public class ServiceFormatter
     {
-        Service service;
-        string genDir;
-        string srcDir;
+        readonly Service service;
+        readonly string genDir;
+        readonly string srcDir;
 
         public ServiceFormatter(Service service, string genDir, string srcDir)
         {
@@ -30,7 +28,7 @@ namespace Zeze.Gen.java
 
         public void MakePartialInGen()
         {
-            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + "Base.java");
+            using StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + "Base.java");
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + service.Project.Solution.Path() + ";");
@@ -66,7 +64,7 @@ namespace Zeze.Gen.java
 
         public void MakePartialInSrc()
         {
-            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".java", false);
+            using StreamWriter sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".java", false);
             if (sw == null)
                 return;
 

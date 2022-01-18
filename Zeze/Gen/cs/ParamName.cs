@@ -16,7 +16,7 @@ namespace Zeze.Gen.cs
 					first = false;
 				else
 					plist.Append(", ");
-				plist.Append(ParamName.GetName(var.VariableType)).Append(" _").Append(var.Name).Append("_");
+				plist.Append(ParamName.GetName(var.VariableType)).Append(" _").Append(var.Name).Append('_');
 			}
 			return plist.ToString();
 		}

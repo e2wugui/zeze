@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Text;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
     public class HashCode : Visitor
     {
-		public static void Make(BeanKey bean, System.IO.StreamWriter sw, string prefix)
+		public static void Make(BeanKey bean, StreamWriter sw, string prefix)
 		{
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int hashCode() {");
@@ -25,22 +23,17 @@ namespace Zeze.Gen.java
 			sw.WriteLine();
 		}
 
-        private string varname;
-        private string text;
+        readonly string varname;
+        string text;
 
         public HashCode(string varname)
         {
             this.varname = varname;
         }
 
-        public void Visit(Bean type)
+        public void Visit(TypeBool type)
         {
-            text = varname + ".hashCode()";
-        }
-
-        public void Visit(BeanKey type)
-        {
-            text = varname + ".hashCode()";
+            text = $"Boolean.hashCode({varname})";
         }
 
         public void Visit(TypeByte type)
@@ -48,9 +41,9 @@ namespace Zeze.Gen.java
             text = $"Byte.hashCode({varname})";
         }
 
-        public void Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
-            text = $"Double.hashCode({varname})";
+            text = $"Short.hashCode({varname})";
         }
 
         public void Visit(TypeInt type)
@@ -63,9 +56,14 @@ namespace Zeze.Gen.java
             text = $"Long.hashCode({varname})";
         }
 
-        public void Visit(TypeBool type)
+        public void Visit(TypeFloat type)
         {
-            text = $"Boolean.hashCode({varname})";
+            text = $"Float.hashCode({varname})";
+        }
+
+        public void Visit(TypeDouble type)
+        {
+            text = $"Double.hashCode({varname})";
         }
 
         public void Visit(TypeBinary type)
@@ -93,14 +91,14 @@ namespace Zeze.Gen.java
             throw new NotImplementedException();
         }
 
-        public void Visit(TypeFloat type)
+        public void Visit(Bean type)
         {
-            text = $"Float.hashCode({varname})";
+            text = varname + ".hashCode()";
         }
 
-        public void Visit(TypeShort type)
+        public void Visit(BeanKey type)
         {
-            text = $"Short.hashCode({varname})";
+            text = varname + ".hashCode()";
         }
 
         public void Visit(TypeDynamic type)

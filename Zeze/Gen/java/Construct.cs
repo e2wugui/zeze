@@ -5,10 +5,10 @@ namespace Zeze.Gen.java
 {
     public class Construct : Visitor
     {
-		private readonly StreamWriter sw;
-		private readonly Variable variable;
-		private readonly string prefix;
-        private readonly string beanName;
+		readonly StreamWriter sw;
+		readonly Variable variable;
+		readonly string prefix;
+        readonly string beanName;
 
 		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
@@ -19,9 +19,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "public " + bean.Name + "(int _varId_) {");
             sw.WriteLine(prefix + "    super(_varId_);");
             foreach (Variable var in bean.Variables)
-            {
                 var.VariableType.Accept(new Construct(sw, var, prefix + "    ", bean.Name));
-            }
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -44,16 +42,9 @@ namespace Zeze.Gen.java
 			}
 		}
 
-        public void Visit(Bean type)
+        public void Visit(TypeBool type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(" + variable.Id + ");");
-        }
-
-        public void Visit(BeanKey type)
-        {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            Initial();
         }
 
         public void Visit(TypeByte type)
@@ -61,7 +52,7 @@ namespace Zeze.Gen.java
             Initial();
         }
 
-        public void Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
             Initial();
         }
@@ -76,7 +67,12 @@ namespace Zeze.Gen.java
             Initial();
         }
 
-        public void Visit(TypeBool type)
+        public void Visit(TypeFloat type)
+        {
+            Initial();
+        }
+
+        public void Visit(TypeDouble type)
         {
             Initial();
         }
@@ -119,14 +115,16 @@ namespace Zeze.Gen.java
             */
         }
 
-        public void Visit(TypeFloat type)
+        public void Visit(Bean type)
         {
-            Initial();
+            string typeName = TypeName.GetName(type);
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(" + variable.Id + ");");
         }
 
-        public void Visit(TypeShort type)
+        public void Visit(BeanKey type)
         {
-            Initial();
+            string typeName = TypeName.GetName(type);
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
         }
 
         public void Visit(TypeDynamic type)

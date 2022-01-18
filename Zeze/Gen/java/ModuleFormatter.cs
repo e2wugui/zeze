@@ -7,10 +7,10 @@ namespace Zeze.Gen.java
 {
     public class ModuleFormatter
     {
-        Project project;
-        Module module;
-        string genDir;
-        string srcDir;
+        readonly Project project;
+        readonly Module module;
+        readonly string genDir;
+        readonly string srcDir;
 
         public ModuleFormatter(Project project, Module module, string genDir, string srcDir)
         {

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Zeze.Serialize;
+﻿using System.IO;
 
 namespace Zeze.Gen.java
 {
@@ -18,7 +15,7 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
-            using System.IO.StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".java");
+            using StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".java");
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + table.Space.Path() + ";");
@@ -45,9 +42,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("    public static final int VAR_All = 0;");
             foreach (var v in ((Types.Bean)table.ValueType).Variables)
-            {
                 sw.WriteLine("    public static final int VAR_" + v.Name + " = " + v.Id + ";");
-            }
             sw.WriteLine();
             if (table.IsAutoKey)
             {

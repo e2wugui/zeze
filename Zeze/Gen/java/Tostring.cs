@@ -73,7 +73,7 @@ namespace Zeze.Gen.java
             this.sep = sep;
         }
 
-        void Visitor.Visit(Bean type)
+        public void Visit(Bean type)
         {
             sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append('=').append(System.lineSeparator());");
             sw.WriteLine(prefix + getter + ".BuildString(sb, level + " + INDENT_SIZE + ");");
@@ -83,7 +83,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(".append(System.lineSeparator());");
         }
 
-        void Visitor.Visit(BeanKey type)
+        public void Visit(BeanKey type)
         {
             sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append('=').append(System.lineSeparator());");
             sw.WriteLine(prefix + getter + ".BuildString(sb, level + " + INDENT_SIZE + ");");
@@ -101,42 +101,52 @@ namespace Zeze.Gen.java
             sw.WriteLine(".append(System.lineSeparator());");
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeBool type)
         {
             formatSimple();
         }
 
-        void Visitor.Visit(TypeDouble type)
+        public void Visit(TypeByte type)
         {
             formatSimple();
         }
 
-        void Visitor.Visit(TypeInt type)
+        public void Visit(TypeShort type)
         {
             formatSimple();
         }
 
-        void Visitor.Visit(TypeLong type)
+        public void Visit(TypeInt type)
         {
             formatSimple();
         }
 
-        void Visitor.Visit(TypeBool type)
+        public void Visit(TypeLong type)
         {
             formatSimple();
         }
 
-        void Visitor.Visit(TypeBinary type)
+        public void Visit(TypeFloat type)
         {
             formatSimple();
         }
 
-        void Visitor.Visit(TypeString type)
+        public void Visit(TypeDouble type)
         {
             formatSimple();
         }
 
-        void Visitor.Visit(TypeList type)
+        public void Visit(TypeBinary type)
+        {
+            formatSimple();
+        }
+
+        public void Visit(TypeString type)
+        {
+            formatSimple();
+        }
+
+        public void Visit(TypeList type)
         {
             sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "level += " + INDENT_SIZE + ';');
@@ -150,7 +160,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(".append(System.lineSeparator());");
         }
 
-        void Visitor.Visit(TypeSet type)
+        public void Visit(TypeSet type)
         {
             sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "level += " + INDENT_SIZE + ';');
@@ -164,7 +174,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(".append(System.lineSeparator());");
         }
 
-        void Visitor.Visit(TypeMap type)
+        public void Visit(TypeMap type)
         {
             sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "level += " + INDENT_SIZE + ';');
@@ -181,17 +191,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(".append(System.lineSeparator());");
         }
 
-        void Visitor.Visit(TypeFloat type)
-        {
-            formatSimple();
-        }
-
-        void Visitor.Visit(TypeShort type)
-        {
-            formatSimple();
-        }
-
-        void Visitor.Visit(TypeDynamic type)
+        public void Visit(TypeDynamic type)
         {
             sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append('=').append(System.lineSeparator());");
             sw.WriteLine(prefix + getter + ".getBean().BuildString(sb, level + " + INDENT_SIZE + ");");

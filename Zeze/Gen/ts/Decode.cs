@@ -68,7 +68,7 @@ namespace Zeze.Gen.ts
             this.prefix = prefix;
         }
 
-        void Visitor.Visit(Bean type)
+        public void Visit(Bean type)
         {
             if (id >= 0)
             {
@@ -86,7 +86,7 @@ namespace Zeze.Gen.ts
             }
         }
 
-        void Visitor.Visit(BeanKey type)
+        public void Visit(BeanKey type)
         {
             if (id >= 0)
             {
@@ -104,7 +104,7 @@ namespace Zeze.Gen.ts
             }
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeByte type)
         {
             if (id >= 0)
             {
@@ -118,7 +118,7 @@ namespace Zeze.Gen.ts
             }
         }
 
-        void Visitor.Visit(TypeDouble type)
+        public void Visit(TypeDouble type)
         {
             if (id >= 0)
             {
@@ -132,7 +132,7 @@ namespace Zeze.Gen.ts
             }
         }
 
-        void Visitor.Visit(TypeInt type)
+        public void Visit(TypeInt type)
         {
             if (id >= 0)
             {
@@ -146,7 +146,7 @@ namespace Zeze.Gen.ts
             }
         }
 
-        void Visitor.Visit(TypeLong type)
+        public void Visit(TypeLong type)
         {
             if (id >= 0)
             {
@@ -160,7 +160,7 @@ namespace Zeze.Gen.ts
             }
         }
 
-        void Visitor.Visit(TypeBool type)
+        public void Visit(TypeBool type)
         {
             if (id >= 0)
             {
@@ -174,7 +174,7 @@ namespace Zeze.Gen.ts
             }
         }
 
-        void Visitor.Visit(TypeBinary type)
+        public void Visit(TypeBinary type)
         {
             if (id >= 0)
             {
@@ -188,7 +188,7 @@ namespace Zeze.Gen.ts
             }
         }
 
-        void Visitor.Visit(TypeString type)
+        public void Visit(TypeString type)
         {
             if (id >= 0)
             {
@@ -202,7 +202,7 @@ namespace Zeze.Gen.ts
             }
         }
 
-        void Visitor.Visit(TypeList type)
+        public void Visit(TypeList type)
         {
             if (id < 0)
                 throw new Exception("invalid variable.id");
@@ -226,7 +226,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "    break;");
         }
 
-        void Visitor.Visit(TypeSet type)
+        public void Visit(TypeSet type)
         {
             if (id < 0)
                 throw new Exception("invalid variable.id");
@@ -250,7 +250,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "    break;");
         }
 
-        void Visitor.Visit(TypeMap type)
+        public void Visit(TypeMap type)
         {
             if (id < 0)
                 throw new Exception("invalid variable.id");
@@ -279,7 +279,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "    break;");
         }
 
-        void Visitor.Visit(TypeFloat type)
+        public void Visit(TypeFloat type)
         {
             if (id >= 0)
             {
@@ -293,7 +293,7 @@ namespace Zeze.Gen.ts
             }
         }
 
-        void Visitor.Visit(TypeShort type)
+        public void Visit(TypeShort type)
         {
             if (id >= 0)
             {
@@ -307,7 +307,7 @@ namespace Zeze.Gen.ts
             }
         }
 
-        void Visitor.Visit(TypeDynamic type)
+        public void Visit(TypeDynamic type)
         {
             if (id >= 0)
             {

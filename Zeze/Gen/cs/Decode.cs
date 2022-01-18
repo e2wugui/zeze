@@ -229,7 +229,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        var _v_ = " + DecodeElement(vt, "_t_") + ';');
             sw.WriteLine(prefix + "        _x_.Add(_k_, _v_);");
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "} else");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine(prefix + "else");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
         }
 
