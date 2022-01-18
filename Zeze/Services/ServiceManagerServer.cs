@@ -137,7 +137,7 @@ namespace Zeze.Services
                 NotifyTimeoutTask = null;
             }
 
-            public void StartNotify()
+            public void StartReadyCommitNotify(bool notifySimple = false)
             {
                 lock (this)
                 {
@@ -150,10 +150,14 @@ namespace Zeze.Services
                     logger.Debug("StartNotify {0}", notify.Argument);
                     var notifyBytes = notify.Encode();
 
-                    foreach (var e in Simple)
+                    if (notifySimple)
                     {
-                        ServiceManager.Server.GetSocket(e.Key)?.Send(notifyBytes);
+                        foreach (var e in Simple)
+                        {
+                            ServiceManager.Server.GetSocket(e.Key)?.Send(notifyBytes);
+                        }
                     }
+
                     foreach (var e in ReadyCommit)
                     {
                         e.Value.Ready = false;
@@ -170,7 +174,7 @@ namespace Zeze.Services
                                     // NotifyTimeoutTask 会在下面两种情况下被修改：
                                     // 1. 在 Notify.ReadyCommit 完成以后会被清空。
                                     // 2. 启动了新的 Notify。
-                                    StartNotify(); // restart
+                                    StartReadyCommitNotify(); // restart
                                 }
                             },
                             ServiceManager.Config.RetryNotifyDelayWhenNotAllReady);
@@ -178,27 +182,47 @@ namespace Zeze.Services
                 }
             }
 
-            public int UpdateAndNotify(ServiceInfo si)
+            public void NotifySimpleOnRegister(ServiceInfo info)
             {
                 lock (this)
                 {
-                    if (false == ServiceInfos.TryGetValue(si.ServiceIdentity, out var exist))
+                    foreach (var e in Simple)
+                    {
+                        new Register() { Argument = info }.Send(ServiceManager.Server.GetSocket(e.Key));
+                    }
+                }
+            }
+
+            public void NotifySimpleOnUnRegister(ServiceInfo info)
+            {
+                lock (this)
+                {
+                    foreach (var e in Simple)
+                    {
+                        new UnRegister() { Argument = info }.Send(ServiceManager.Server.GetSocket(e.Key));
+                    }
+                }
+            }
+
+            public int UpdateAndNotify(ServiceInfo info)
+            {
+                lock (this)
+                {
+                    if (false == ServiceInfos.TryGetValue(info.ServiceIdentity, out var current))
                         return Update.ServiceIndentityNotExist;
 
-                    exist.PassiveIp = si.PassiveIp;
-                    exist.PassivePort = si.PassivePort;
-                    exist.ExtraInfo = si.ExtraInfo;
-
-                    var updateBytes = new Update() { Argument = exist }.Encode();
+                    current.PassiveIp = info.PassiveIp;
+                    current.PassivePort = info.PassivePort;
+                    current.ExtraInfo = info.ExtraInfo;
 
                     // 简单广播。
                     foreach (var e in Simple)
                     {
-                        ServiceManager.Server.GetSocket(e.Key)?.Send(updateBytes);
+                        new Update() { Argument = current }.Send(ServiceManager.Server.GetSocket(e.Key));
                     }
                     foreach (var e in ReadyCommit)
                     {
-                        ServiceManager.Server.GetSocket(e.Key)?.Send(updateBytes);
+                        new Update() { Argument = current }.Send(ServiceManager.Server.GetSocket(e.Key));
                     }
                     return 0;
                 }
@@ -362,7 +386,7 @@ namespace Zeze.Services
 
                 foreach (var state in changed.Values)
                 {
-                    state.StartNotify();
+                    state.StartReadyCommitNotify();
                 }
             }
         }
@@ -386,9 +410,10 @@ namespace Zeze.Services
             r.Argument.LocalState = r.Sender.SessionId;
 
             // AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-            state.ServiceInfos.AddOrUpdate(r.Argument.ServiceIdentity, r.Argument, (key, value) => r.Argument);
+            var current = state.ServiceInfos.AddOrUpdate(r.Argument.ServiceIdentity, r.Argument, (key, value) => r.Argument);
             r.SendResultCode(Register.Success);
-            state.StartNotify();
+            state.StartReadyCommitNotify();
+            state.NotifySimpleOnRegister(current);
             return Procedure.Success;
         }
 
@@ -413,14 +438,15 @@ namespace Zeze.Services
         {
             if (ServerStates.TryGetValue(info.ServiceName, out var state))
             {
-                if (state.ServiceInfos.TryGetValue(info.ServiceIdentity, out var exist))
+                if (state.ServiceInfos.TryGetValue(info.ServiceIdentity, out var current))
                 {
                     // 这里存在一个时间窗口，可能使得重复的注销会成功。注销一般比较特殊，忽略这个问题。
-                    long? existSessionId = exist.LocalState as long?;
+                    long? existSessionId = current.LocalState as long?;
                     if (existSessionId == null || sessionId == existSessionId.Value)
                     {
                         // 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
                         state.ServiceInfos.TryRemove(info.ServiceIdentity, out var _);
+                        state.NotifySimpleOnUnRegister(current);
                         return state;
                     }
                 }
@@ -661,7 +687,7 @@ namespace Zeze.Services
             StartNotifyDelayTask = null;
             foreach (var e in ServerStates)
             {
-                e.Value.StartNotify();
+                e.Value.StartReadyCommitNotify(true);
             }
         }
 
@@ -737,6 +763,7 @@ namespace Zeze.Services.ServiceManager
         /// </summary>
         public Action<SubscribeState> OnChanged { get; set; }
         public Action<SubscribeState, ServiceInfo> OnUpdate { get; set; }
+        public Action<SubscribeState, ServiceInfo> OnRemove { get; set; }
 
         // 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
         // ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -842,6 +869,25 @@ namespace Zeze.Services.ServiceManager
                     exist.ExtraInfo = info.ExtraInfo;
 
                     Agent.OnUpdate?.Invoke(this, exist);
+                }
+            }
+
+            internal void OnRegister(ServiceInfo info)
+            {
+                lock (this)
+                {
+                    info = ServiceInfos.Insert(info);
+                    Agent.OnUpdate?.Invoke(this, info);
+                }
+            }
+
+            internal void OnUnRegister(ServiceInfo info)
+            {
+                lock (this)
+                {
+                    info = ServiceInfos.Remove(info);
+                    if (null != info)
+                        Agent.OnRemove?.Invoke(this, info);
                 }
             }
 
@@ -1067,6 +1113,28 @@ namespace Zeze.Services.ServiceManager
             return 0;
         }
 
+        private long ProcessRegister(Protocol p)
+        {
+            var r = p as Register;
+            if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
+                return Update.ServiceNotSubscribe;
+
+            state.OnRegister(r.Argument);
+
+            return 0;
+        }
+
+        private long ProcessUnRegister(Protocol p)
+        {
+            var r = p as UnRegister;
+            if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
+                return Update.ServiceNotSubscribe;
+
+            state.OnUnRegister(r.Argument);
+
+            return 0;
+        }
+
         private long ProcessNotifyServiceList(Protocol p)
         {
             var r = p as NotifyServiceList;
@@ -1209,6 +1277,7 @@ namespace Zeze.Services.ServiceManager
             Client.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Register(),
+                Handle = ProcessRegister,
             });
 
             Client.AddFactoryHandle(new Update().TypeId, new Service.ProtocolFactoryHandle()
@@ -1220,6 +1289,7 @@ namespace Zeze.Services.ServiceManager
             Client.AddFactoryHandle(new UnRegister().TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new UnRegister(),
+                Handle = ProcessUnRegister,
             });
 
             Client.AddFactoryHandle(new Subscribe().TypeId, new Service.ProtocolFactoryHandle()
@@ -1533,7 +1603,7 @@ namespace Zeze.Services.ServiceManager
 
         private readonly static ServiceInfoIdentityComparer ServiceInfoIdentityComparer  = new ServiceInfoIdentityComparer();
 
-        public void Insert(ServiceInfo info)
+        public ServiceInfo Insert(ServiceInfo info)
         {
             var i = _ServiceInfoListSortedByIdentity.BinarySearch(info, ServiceInfoIdentityComparer);
             if (i >= 0)
@@ -1544,6 +1614,19 @@ namespace Zeze.Services.ServiceManager
             {
                 _ServiceInfoListSortedByIdentity.Insert(~i, info);
             }
+            return info;
+        }
+
+        public ServiceInfo Remove(ServiceInfo info)
+        {
+            var i = _ServiceInfoListSortedByIdentity.BinarySearch(info, ServiceInfoIdentityComparer);
+            if (i >= 0)
+            {
+                info = _ServiceInfoListSortedByIdentity[i];
+                _ServiceInfoListSortedByIdentity.RemoveAt(i);
+                return info;
+            }
+            return null;
         }
 
         public ServiceInfo FindServiceInfoByIdentity(string identity)
