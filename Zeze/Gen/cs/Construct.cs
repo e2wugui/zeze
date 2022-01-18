@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
-    public class Construct : Types.Visitor
+    public class Construct : Visitor
     {
-		private System.IO.StreamWriter sw;
-		private Types.Variable variable;
-		private string prefix;
+		private readonly StreamWriter sw;
+		private readonly Variable variable;
+		private readonly string prefix;
 
-		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
+		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
 			sw.WriteLine(prefix + "public " + bean.Name + "() : this(0)");
 			sw.WriteLine(prefix + "{");
@@ -19,15 +17,13 @@ namespace Zeze.Gen.cs
 			sw.WriteLine();
             sw.WriteLine(prefix + "public " + bean.Name + "(int _varId_) : base(_varId_)");
             sw.WriteLine(prefix + "{");
-            foreach (Types.Variable var in bean.Variables)
-            {
+            foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
-            }
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
 
-        public Construct(System.IO.StreamWriter sw, Types.Variable variable, string prefix)
+        public Construct(StreamWriter sw, Variable variable, string prefix)
 		{
 			this.sw = sw;
 			this.variable = variable;

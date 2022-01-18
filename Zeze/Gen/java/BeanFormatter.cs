@@ -54,6 +54,7 @@ namespace Zeze.Gen.java
             }
 
             // declare variables
+            bean.Variables.Sort((a, b) => a.Id - b.Id);
             foreach (Variable v in bean.Variables)
             {
                 Type vt = v.VariableType;

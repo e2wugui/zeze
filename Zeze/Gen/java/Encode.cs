@@ -268,11 +268,13 @@ namespace Zeze.Gen.java
             if (id > 0)
             {
                 sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + "_i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
                 sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
+                sw.WriteLine(prefix + "else");
+                sw.WriteLine(prefix + "    _i_ = _j_;");
             }
             else
                 sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
@@ -283,11 +285,13 @@ namespace Zeze.Gen.java
             if (id > 0)
             {
                 sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + "_i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
                 sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
+                sw.WriteLine(prefix + "else");
+                sw.WriteLine(prefix + "    _i_ = _j_;");
             }
             else
                 sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");

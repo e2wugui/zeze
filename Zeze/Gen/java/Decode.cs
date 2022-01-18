@@ -214,7 +214,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "var _x_ = " + var.Getter + ';');
             sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
-            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; --_n_)");
+            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
             sw.WriteLine(prefix + "        _x_.add(" + DecodeElement(vt, "_t_") + ");");
             sw.WriteLine(prefix + "} else");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
@@ -240,7 +240,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
-            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; --_n_) {");
+            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
             sw.WriteLine(prefix + "        var _k_ = " + DecodeElement(kt, "_s_") + ';');
             sw.WriteLine(prefix + "        var _v_ = " + DecodeElement(vt, "_t_") + ';');
             sw.WriteLine(prefix + "        _x_.put(_k_, _v_);");

@@ -1,26 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
     public class BeanKeyFormatter
     {
-        Types.BeanKey beanKey;
+        BeanKey beanKey;
 
-        public BeanKeyFormatter(Types.BeanKey beanKey)
+        public BeanKeyFormatter(BeanKey beanKey)
         {
             this.beanKey = beanKey;
         }
 
         public void Make(string baseDir)
         {
-            using System.IO.StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".cs");
+            using StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine();
-            sw.WriteLine("using Zeze.Serialize;");
             sw.WriteLine("using System;");
+            sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine();
             sw.WriteLine("namespace " + beanKey.Space.Path());
@@ -28,17 +26,13 @@ namespace Zeze.Gen.cs
             sw.WriteLine("    public sealed class " + beanKey.Name + " : Serializable, System.IComparable");
             sw.WriteLine("    {");
             // declare enums
-            foreach (Types.Enum e in beanKey.Enums)
-            {
+            foreach (Enum e in beanKey.Enums)
                 sw.WriteLine("        public const int " + e.Name + " = " + e.Value + ";" + e.Comment);
-            }
             if (beanKey.Enums.Count > 0)
-            {
                 sw.WriteLine();
-            }
 
             // declare variables
-            foreach (Types.Variable v in beanKey.Variables)
+            foreach (Variable v in beanKey.Variables)
             {
                 sw.WriteLine("        private " + TypeName.GetName(v.VariableType) + " " + v.NamePrivate + ";" + v.Comment);
             }
@@ -54,7 +48,7 @@ namespace Zeze.Gen.cs
             {
                 sw.WriteLine("        public " + beanKey.Name + "(" + ParamName.GetParamList(beanKey.Variables) + ")");
                 sw.WriteLine("        {");
-                foreach (Types.Variable v in beanKey.Variables)
+                foreach (Variable v in beanKey.Variables)
                 {
                     sw.WriteLine("            this." + v.NamePrivate + " = " + v.NamePrivate + "_;");
                 }
@@ -72,7 +66,6 @@ namespace Zeze.Gen.cs
             NegativeCheck.Make(beanKey, sw, "        ");
             sw.WriteLine("    }");
             sw.WriteLine("}");
-
         }
     }
 }

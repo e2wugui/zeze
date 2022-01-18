@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 
 namespace Zeze.Gen.cs
 {
     public class ServiceFormatter
     {
-        Service service;
-        string genDir;
-        string srcDir;
+        readonly Service service;
+        readonly string genDir;
+        readonly string srcDir;
 
         public ServiceFormatter(Service service, string genDir, string srcDir)
         {
@@ -30,7 +28,7 @@ namespace Zeze.Gen.cs
 
         public void MakePartialInGen()
         {
-            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + ".cs");
+            using StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();
@@ -72,8 +70,8 @@ namespace Zeze.Gen.cs
 
         public void MakePartialInSrc()
         {
-            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".cs", false);
-            if (null == sw)
+            using StreamWriter sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".cs", false);
+            if (sw == null)
                 return;
 
             sw.WriteLine();

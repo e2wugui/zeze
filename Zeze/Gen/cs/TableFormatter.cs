@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Zeze.Serialize;
+﻿using System.IO;
 
 namespace Zeze.Gen.cs
 {
@@ -18,10 +15,9 @@ namespace Zeze.Gen.cs
 
         public void Make()
         {
-            using System.IO.StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".cs");
+            using StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine();
             sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine();
@@ -40,9 +36,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             sw.WriteLine("        public const int VAR_All = 0;");
             foreach (var v in ((Types.Bean)table.ValueType).Variables)
-            {
                 sw.WriteLine("        public const int VAR_" + v.Name + " = " + v.Id + ";");
-            }
             sw.WriteLine();
             if (table.IsAutoKey)
             {
@@ -69,10 +63,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        }");
             sw.WriteLine();
             CreateChangeVariableCollector.Make(sw, "        ", (Types.Bean)table.ValueType);
-            sw.WriteLine();
             sw.WriteLine("    }");
             sw.WriteLine("}");
-
         }
     }
 }

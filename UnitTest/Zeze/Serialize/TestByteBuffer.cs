@@ -1,6 +1,9 @@
 using System;
+using System.Text;
+using demo;
+using demo.Module1;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-
+using Zeze.Net;
 using Zeze.Serialize;
 
 namespace UnitTest.Zeze.Serialize
@@ -108,45 +111,6 @@ namespace UnitTest.Zeze.Serialize
         }
 
         [TestMethod]
-        public void TestShort()
-        {
-            ByteBuffer bb = ByteBuffer.Allocate();
-            Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
-
-            short v = 1;
-            bb.WriteShort(v);
-            Assert.AreEqual(1, bb.Size);
-            //Console.WriteLine(bb);
-            Assert.AreEqual("01", bb.ToString());
-            Assert.AreEqual(v, bb.ReadShort());
-            Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
-
-            v = 0x80;
-            bb.WriteShort(v);
-            Assert.AreEqual(2, bb.Size);
-            //Console.WriteLine(bb);
-            Assert.AreEqual("80-80", bb.ToString());
-            Assert.AreEqual(v, bb.ReadShort());
-            Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
-
-            v = 0x4000;
-            bb.WriteShort(v);
-            Assert.AreEqual(3, bb.Size);
-            //Console.WriteLine(bb);
-            Assert.AreEqual("FF-40-00", bb.ToString());
-            Assert.AreEqual(v, bb.ReadShort());
-            Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
-
-            v = -1;
-            bb.WriteShort(v);
-            Assert.AreEqual(3, bb.Size);
-            //Console.WriteLine(bb);
-            Assert.AreEqual("FF-FF-FF", bb.ToString());
-            Assert.AreEqual(v, bb.ReadShort());
-            Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
-        }
-
-        [TestMethod]
         public void TestInt()
         {
             ByteBuffer bb = ByteBuffer.Allocate();
@@ -164,7 +128,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteInt(v);
             Assert.AreEqual(2, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("80-80", bb.ToString());
+            Assert.AreEqual("40-80", bb.ToString());
             Assert.AreEqual(v, bb.ReadInt());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
@@ -172,7 +136,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteInt(v);
             Assert.AreEqual(3, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("C0-40-00", bb.ToString());
+            Assert.AreEqual("60-40-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadInt());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
@@ -180,7 +144,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteInt(v);
             Assert.AreEqual(4, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("E0-20-00-00", bb.ToString());
+            Assert.AreEqual("70-20-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadInt());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
@@ -188,7 +152,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteInt(v);
             Assert.AreEqual(5, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("F0-10-00-00-00", bb.ToString());
+            Assert.AreEqual("78-10-00-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadInt());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
         }
@@ -211,7 +175,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteLong(v);
             Assert.AreEqual(2, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("80-80", bb.ToString());
+            Assert.AreEqual("40-80", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
@@ -219,7 +183,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteLong(v);
             Assert.AreEqual(3, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("C0-40-00", bb.ToString());
+            Assert.AreEqual("60-40-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
@@ -227,7 +191,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteLong(v);
             Assert.AreEqual(4, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("E0-20-00-00", bb.ToString());
+            Assert.AreEqual("70-20-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
@@ -235,7 +199,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteLong(v);
             Assert.AreEqual(5, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("F0-10-00-00-00", bb.ToString());
+            Assert.AreEqual("78-10-00-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
@@ -243,7 +207,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteLong(v);
             Assert.AreEqual(6, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("F8-08-00-00-00-00", bb.ToString());
+            Assert.AreEqual("7C-08-00-00-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
@@ -251,7 +215,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteLong(v);
             Assert.AreEqual(7, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("FC-04-00-00-00-00-00", bb.ToString());
+            Assert.AreEqual("7E-04-00-00-00-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
@@ -259,7 +223,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteLong(v);
             Assert.AreEqual(8, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("FE-02-00-00-00-00-00-00", bb.ToString());
+            Assert.AreEqual("7F-02-00-00-00-00-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
@@ -267,7 +231,7 @@ namespace UnitTest.Zeze.Serialize
             bb.WriteLong(v);
             Assert.AreEqual(9, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("FF-01-00-00-00-00-00-00-00", bb.ToString());
+            Assert.AreEqual("7F-81-00-00-00-00-00-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
 
@@ -277,9 +241,96 @@ namespace UnitTest.Zeze.Serialize
             Console.WriteLine(v);
             Assert.AreEqual(9, bb.Size);
             //Console.WriteLine(bb);
-            Assert.AreEqual("FF-80-00-00-00-00-00-00-00", bb.ToString());
+            Assert.AreEqual("80-00-00-00-00-00-00-00-00", bb.ToString());
             Assert.AreEqual(v, bb.ReadLong());
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+        }
+
+        static void TestInt(int x)
+        {
+            ByteBuffer bb = ByteBuffer.Allocate();
+            bb.WriteInt(x);
+            int y = bb.ReadInt();
+            Assert.AreEqual(x, y);
+            Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+        }
+
+        static void TestLong(long x)
+        {
+            ByteBuffer bb = ByteBuffer.Allocate();
+            bb.WriteLong(x);
+            long y = bb.ReadLong();
+            Assert.AreEqual(x, y);
+            Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+        }
+
+        static void TestUInt(int x)
+        {
+            ByteBuffer bb = ByteBuffer.Allocate();
+            bb.WriteUInt(x);
+            int y = bb.ReadUInt();
+            Assert.AreEqual(x, y);
+            Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+        }
+
+        static void TestAll(long x)
+        {
+            TestInt((int)x);
+            TestInt((int)-x);
+            TestUInt((int)x);
+            TestUInt((int)-x);
+            TestLong(x);
+            TestLong(-x);
+        }
+
+        [TestMethod]
+        public void TestInteger()
+        {
+            for (int i = 0; i <= 64; ++i)
+            {
+                TestAll(1L << i);
+                TestAll((1L << i) - 1);
+                unchecked
+                {
+                    TestAll(((1L << i) - 1) & 0x5555_5555_5555_5555L);
+                    TestAll(((1L << i) - 1) & (long)0xaaaa_aaaa_aaaa_aaaaL);
+                }
+            }
+            TestInt(int.MinValue);
+            TestInt(int.MaxValue);
+            TestLong(int.MinValue);
+            TestLong(int.MaxValue);
+            TestLong(long.MinValue);
+            TestLong(long.MaxValue);
+            TestUInt(int.MaxValue);
+        }
+
+        [TestMethod]
+        public void TestBean()
+        {
+            Value v = new();
+            v.String3 = "abc";
+            v.Bytes8 = new Binary(Encoding.UTF8.GetBytes("xyz"));
+            Bean1 bean1 = new(123);
+            bean1.V2.Add(12, 34);
+            v.List9.Add(bean1);
+            Simple simple = new();
+            simple.Removed.Int1 = 999;
+            v.Map16.Add(new Key(11), simple);
+
+            ByteBuffer bb = ByteBuffer.Allocate();
+            v.Encode(bb);
+            Value v2 = new Value();
+            v2.Decode(bb);
+            bb.ReadIndex = 0;
+            ByteBuffer bb2 = ByteBuffer.Allocate();
+            v2.Encode(bb2);
+
+            // Console.WriteLine(v);
+            // Console.WriteLine(v2);
+
+            Assert.AreEqual(bb.Size, bb2.Size);
+            Assert.AreEqual(bb, bb2);
         }
     }
 }

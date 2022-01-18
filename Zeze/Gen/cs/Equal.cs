@@ -1,17 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
     // 现在这个类仅用于BeanKey，如果普通Bean要支持，
     // 需要使用NameUpper1进行比较，而不是NamePrivate。
-    public class Equal : Types.Visitor
+    public class Equal : Visitor
     {
-        private Types.Variable var;
-        private string another;
-        private bool isEquals;
+        private readonly Variable var;
+        private readonly string another;
+        private readonly bool isEquals;
         private string text;
 
         /// <summary>
@@ -20,14 +19,14 @@ namespace Zeze.Gen.cs
         /// <param name="bean"></param>
         /// <param name="sw"></param>
         /// <param name="prefix"></param>
-        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "public override bool Equals(object _obj1_)");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    if (_obj1_ == this) return true;");
             sw.WriteLine(prefix + "    if (_obj1_ is " + bean.Name + " _obj_)");
             sw.WriteLine(prefix + "    {");
-            foreach (Types.Variable var in bean.Variables)
+            foreach (Variable var in bean.Variables)
             {
                 var v = new Equal(var, "_obj_", false);
                 var.VariableType.Accept(v);
@@ -47,39 +46,44 @@ namespace Zeze.Gen.cs
             this.isEquals = isEquals;
         }
 
-        void Visitor.Visit(Bean type)
-        {
-            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
-        }
-
-        void Visitor.Visit(BeanKey type)
-        {
-            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
-        }
-
-        void Visitor.Visit(TypeByte type)
-        {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
-        }
-
-        void Visitor.Visit(TypeDouble type)
-        {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
-        }
-
-        void Visitor.Visit(TypeInt type)
-        {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
-        }
-
-        void Visitor.Visit(TypeLong type)
+        void CommonEquals()
         {
             text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
         }
 
         void Visitor.Visit(TypeBool type)
         {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
+            CommonEquals();
+        }
+
+        void Visitor.Visit(TypeByte type)
+        {
+            CommonEquals();
+        }
+
+        void Visitor.Visit(TypeShort type)
+        {
+            CommonEquals();
+        }
+
+        void Visitor.Visit(TypeInt type)
+        {
+            CommonEquals();
+        }
+
+        void Visitor.Visit(TypeLong type)
+        {
+            CommonEquals();
+        }
+
+        void Visitor.Visit(TypeFloat type)
+        {
+            CommonEquals();
+        }
+
+        void Visitor.Visit(TypeDouble type)
+        {
+            CommonEquals();
         }
 
         void Visitor.Visit(TypeBinary type)
@@ -107,14 +111,14 @@ namespace Zeze.Gen.cs
             throw new NotImplementedException();
         }
 
-        void Visitor.Visit(TypeFloat type)
+        void Visitor.Visit(Bean type)
         {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
-        void Visitor.Visit(TypeShort type)
+        void Visitor.Visit(BeanKey type)
         {
-            text = var.NamePrivate + (isEquals ? " == " : " != ") + another + "." + var.NamePrivate;
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
         void Visitor.Visit(TypeDynamic type)

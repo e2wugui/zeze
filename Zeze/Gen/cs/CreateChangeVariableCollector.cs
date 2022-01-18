@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
-    public class CreateChangeVariableCollector : Types.Visitor
+    public class CreateChangeVariableCollector : Visitor
     {
         public string ChangeVariableCollectorName { get; private set; }
-        //private Types.Variable var;
+        //private Variable var;
 
-        public static void Make(System.IO.StreamWriter sw, string prefix, Types.Bean bean)
+        public static void Make(StreamWriter sw, string prefix, Bean bean)
         {
             sw.WriteLine(prefix + "public override Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId)");
             sw.WriteLine(prefix + "{");
@@ -19,13 +17,13 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        0 => new Zeze.Transaction.ChangeVariableCollectorChanged(),");
             foreach (var v in bean.Variables)
             {
-                CreateChangeVariableCollector vistor = new CreateChangeVariableCollector();
+                CreateChangeVariableCollector vistor = new();
                 v.VariableType.Accept(vistor);
                 sw.WriteLine(prefix + "        " + v.Id + " => new " + vistor .ChangeVariableCollectorName + ",");
             }
-            sw.WriteLine("                _ => null,");
-            sw.WriteLine("            };");
-            sw.WriteLine("        }");
+            sw.WriteLine(prefix + "        _ => null,");
+            sw.WriteLine(prefix + "    };");
+            sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
 

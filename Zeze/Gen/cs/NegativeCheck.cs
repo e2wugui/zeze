@@ -23,7 +23,6 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine();
         }
 
         public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
@@ -38,7 +37,6 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine();
         }
 
         NegativeCheck(System.IO.StreamWriter sw, string varname, string prefix)

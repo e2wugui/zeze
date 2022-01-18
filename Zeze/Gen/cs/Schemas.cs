@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace Zeze.Gen.cs
 {
@@ -57,7 +55,7 @@ namespace Zeze.Gen.cs
 
             foreach (var type in Depends)
             {
-                if (false == type.IsBean)
+                if (!type.IsBean)
                     continue;
 
                 if (type.IsKeyable)
@@ -88,9 +86,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"                    Name = \"{v.Name}\",");
                 sw.WriteLine($"                    TypeName = \"{GetFullName(v.VariableType)}\",");
                 if (v.VariableType is Types.TypeCollection collection)
-                {
                     sw.WriteLine($"                    ValueName = \"{GetFullName(collection.ValueType)}\",");
-                }
                 else if (v.VariableType is Types.TypeMap map)
                 {
                     sw.WriteLine($"                    KeyName = \"{GetFullName(map.KeyType)}\",");

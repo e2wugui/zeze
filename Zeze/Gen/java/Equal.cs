@@ -44,7 +44,7 @@ namespace Zeze.Gen.java
             this.isEquals = isEquals;
         }
 
-        void EqualsOnNumber()
+        void CommonEquals()
         {
             var eq = isEquals ? "==" : "!=";
             text = $"{var.Getter} {eq} {another}.{var.Getter}";
@@ -52,37 +52,37 @@ namespace Zeze.Gen.java
 
         void Visitor.Visit(TypeBool type)
         {
-            EqualsOnNumber();
+            CommonEquals();
         }
 
         void Visitor.Visit(TypeByte type)
         {
-            EqualsOnNumber();
+            CommonEquals();
         }
 
         void Visitor.Visit(TypeShort type)
         {
-            EqualsOnNumber();
+            CommonEquals();
         }
 
         void Visitor.Visit(TypeInt type)
         {
-            EqualsOnNumber();
+            CommonEquals();
         }
 
         void Visitor.Visit(TypeLong type)
         {
-            EqualsOnNumber();
+            CommonEquals();
         }
 
         void Visitor.Visit(TypeFloat type)
         {
-            EqualsOnNumber();
+            CommonEquals();
         }
 
         void Visitor.Visit(TypeDouble type)
         {
-            EqualsOnNumber();
+            CommonEquals();
         }
 
         void Visitor.Visit(TypeBinary type)

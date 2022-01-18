@@ -1,25 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
-    public class Property : Types.Visitor
+    public class Property : Visitor
     {
-        System.IO.StreamWriter sw;
-        Types.Variable var;
-        string prefix;
+        readonly StreamWriter sw;
+        readonly Variable var;
+        readonly string prefix;
 
-        public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            foreach (Types.Variable var in bean.Variables)
-            {
+            foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Property(sw, var, prefix));
-            }
         }
 
-        public Property(System.IO.StreamWriter sw, Types.Variable var, string prefix)
+        public Property(StreamWriter sw, Variable var, string prefix)
         {
             this.sw = sw;
             this.var = var;
@@ -35,27 +31,27 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + typeNameReadOnly + " " + beanNameReadOnly + "." + var.NameUpper1 + " => " + var.NamePrivate + ";");
         }
 
-        private void WriteProperty(Types.Type type, bool checkNull = false)
+        private void WriteProperty(Type type, bool checkNull = false)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    get");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
             sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this, true);");
-            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
+            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(ObjectId + " + var.Id + ");");
             sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    set");
             sw.WriteLine(prefix + "    {");
             if (checkNull)
             {
-                sw.WriteLine(prefix + "        if (null == value) throw new System.ArgumentNullException();");
+                sw.WriteLine(prefix + "        if (value == null) throw new System.ArgumentNullException();");
             }
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "        {");
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "            return;");
@@ -74,19 +70,19 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    get");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
             sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this, true);");
-            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
+            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(ObjectId + " + var.Id + ");");
             sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    set");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (null == value)");
+            sw.WriteLine(prefix + "        if (value == null)");
             sw.WriteLine(prefix + "            throw new System.ArgumentNullException();");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "        {");
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "            return;");
@@ -130,18 +126,18 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    get");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
             sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this, true);");
-            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
+            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(ObjectId + " + var.Id + ");");
             sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    set");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (null == value) throw new System.ArgumentNullException();");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        if (value == null) throw new System.ArgumentNullException();");
+            sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "        {");
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "            return;");
@@ -212,19 +208,19 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    get");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
             sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this, true);");
-            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.ObjectId + " + var.Id + ");");
+            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(ObjectId + " + var.Id + ");");
             sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    private set");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (null == value)");
+            sw.WriteLine(prefix + "        if (value == null)");
             sw.WriteLine(prefix + "            throw new System.ArgumentNullException();");
-            sw.WriteLine(prefix + "        if (false == this.IsManaged)");
+            sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "        {");
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "            return;");

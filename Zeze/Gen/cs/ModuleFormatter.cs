@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using NLog.Layouts;
+﻿using System.IO;
 
 namespace Zeze.Gen.cs
 {
     public class ModuleFormatter
     {
-        Project project;
-        Module module;
-        string genDir;
-        string srcDir;
+        readonly Project project;
+        readonly Module module;
+        readonly string genDir;
+        readonly string srcDir;
 
         public ModuleFormatter(Project project, Module module, string genDir, string srcDir)
         {
@@ -29,7 +26,7 @@ namespace Zeze.Gen.cs
 
         public void MakePartialImplementInGen()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(genDir, $"Module{module.Name}Gen.cs");
+            using StreamWriter sw = module.OpenWriter(genDir, $"Module{module.Name}Gen.cs");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();
@@ -114,16 +111,14 @@ namespace Zeze.Gen.cs
                     sw.WriteLine($"            App.Zeze.RemoveTable(App.Zeze.Config.GetTableConf(_{table.Name}.Name).DatabaseName, _{table.Name});");
             }
             sw.WriteLine("        }");
-            sw.WriteLine();
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }
 
         public void MakePartialImplement()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(srcDir, $"Module{module.Name}.cs", false);
-
-            if (null == sw)
+            using StreamWriter sw = module.OpenWriter(srcDir, $"Module{module.Name}.cs", false);
+            if (sw == null)
                 return;
 
             sw.WriteLine();
@@ -174,7 +169,7 @@ namespace Zeze.Gen.cs
 
         public void MakeInterface()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.cs");
+            using StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.cs");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();
@@ -185,16 +180,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"        public override string FullName => \"{module.Path()}\";");
             sw.WriteLine($"        public override string Name => \"{module.Name}\";");
             sw.WriteLine($"        public override int Id => {module.Id};");
-            sw.WriteLine();
             // declare enums
-            foreach (Types.Enum e in module.Enums)
-            {
-                sw.WriteLine("        public const int " + e.Name + " = " + e.Value + ";" + e.Comment);
-            }
             if (module.Enums.Count > 0)
-            {
                 sw.WriteLine();
-            }
+            foreach (Types.Enum e in module.Enums)
+                sw.WriteLine("        public const int " + e.Name + " = " + e.Value + ";" + e.Comment);
 
             if (module.ReferenceService != null)
             {
@@ -205,19 +195,18 @@ namespace Zeze.Gen.cs
                     {
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
-                            sw.WriteLine("        protected abstract long Process" + rpc.Name + "Request(Zeze.Net.Protocol p);");
                             sw.WriteLine();
+                            sw.WriteLine("        protected abstract long Process" + rpc.Name + "Request(Zeze.Net.Protocol p);");
                         }
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine("        protected abstract long Process" + p.Name + "(Zeze.Net.Protocol p);");
                         sw.WriteLine();
+                        sw.WriteLine("        protected abstract long Process" + p.Name + "(Zeze.Net.Protocol p);");
                     }
                 }
             }
- 
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }

@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Zeze.Gen.Types;
+﻿using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
-    public class TypeName : Types.Visitor
+    public class TypeName : Visitor
     {
         public string name;
         public string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
@@ -64,22 +61,22 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeList type)
         {
-            string valueName = TypeName.GetName(type.ValueType);
+            string valueName = GetName(type.ValueType);
             name = "Zeze.Transaction.Collections.PList" + (type.ValueType.IsNormalBean ? "2<" : "1<")  + valueName + ">";
             nameCollectionImplement = "System.Collections.Immutable.ImmutableList<" + valueName + ">";
         }
 
         public void Visit(TypeSet type)
         {
-            string valueName = TypeName.GetName(type.ValueType);
+            string valueName = GetName(type.ValueType);
             name = "Zeze.Transaction.Collections.PSet1<" + valueName + ">";
             nameCollectionImplement = "System.Collections.Immutable.ImmutableHashSet<" + valueName + ">";
         }
 
         public void Visit(TypeMap type)
         {
-            string key = TypeName.GetName(type.KeyType);
-            string value = TypeName.GetName(type.ValueType);
+            string key = GetName(type.KeyType);
+            string value = GetName(type.ValueType);
             name = "Zeze.Transaction.Collections.PMap" + (type.ValueType.IsNormalBean ? "2<" : "1<") + key + ", " + value + ">";
             nameCollectionImplement = "System.Collections.Immutable.ImmutableDictionary<" + key + ", " + value + ">";
         }
