@@ -63,6 +63,15 @@ namespace UnitTest.Zeze.Misc
             Console.WriteLine("ConnectNow");
             future.Task.Wait();
 
+            future = new TaskCompletionSource<int>();
+            agent.OnUpdate = (state, info) =>
+            {
+                Console.WriteLine("OnUpdate: " + info.ExtraInfo);
+                this.future.SetResult(0);
+            };
+            agent.UpdateService(serviceName, "1", "1.1.1.1", 1, "extra info");
+            future.Task.Wait();
+
             Console.WriteLine("RegisterService 2");
             future = new TaskCompletionSource<int>();
             agent.RegisterService(serviceName, "2");

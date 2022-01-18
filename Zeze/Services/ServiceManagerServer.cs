@@ -402,7 +402,11 @@ namespace Zeze.Services
             if (false == ServerStates.TryGetValue(r.Argument.ServiceName, out var state))
                 return Update.ServerStateError;
 
-            return state.UpdateAndNotify(r.Argument);
+            var rc = state.UpdateAndNotify(r.Argument);
+            if (rc != Procedure.Success)
+                return rc;
+            r.SendResult();
+            return 0;
         }
 
         internal ServerState UnRegisterNow(long sessionId, ServiceInfo info)
@@ -1527,9 +1531,11 @@ namespace Zeze.Services.ServiceManager
         public IReadOnlyList<ServiceInfo> ServiceInfoListSortedByIdentity => _ServiceInfoListSortedByIdentity;
         public long SerialId { get; set; }
 
+        private readonly static ServiceInfoIdentityComparer ServiceInfoIdentityComparer  = new ServiceInfoIdentityComparer();
+
         public ServiceInfo FindServiceInfoByIdentity(string identity)
         {
-            var i = _ServiceInfoListSortedByIdentity.BinarySearch(new ServiceInfo(ServiceName, identity));
+            var i = _ServiceInfoListSortedByIdentity.BinarySearch(new ServiceInfo(ServiceName, identity), ServiceInfoIdentityComparer);
             if (i >= 0 && i < _ServiceInfoListSortedByIdentity.Count)
                 return _ServiceInfoListSortedByIdentity[i];
             return null;
@@ -1562,7 +1568,7 @@ namespace Zeze.Services.ServiceManager
         public bool TryGetServiceInfo(string identity, out ServiceInfo info)
         {
             var cur = new ServiceInfo(ServiceName, identity);
-            int index = _ServiceInfoListSortedByIdentity.BinarySearch(cur, new ServiceInfoIdentityComparer());
+            int index = _ServiceInfoListSortedByIdentity.BinarySearch(cur, ServiceInfoIdentityComparer);
             if (index >= 0)
             {
                 info = ServiceInfoListSortedByIdentity[index];
