@@ -18,15 +18,25 @@ namespace UnitTest.Zeze.Misc
         {
             demo.App.Instance.Start();
         }
-        ServiceManagerServer ServiceManager;
+        ServiceManagerServer Sm;
         [TestCleanup]
         public void TestCleanup()
         {
-            ServiceManager?.Dispose();
-            ServiceManager = null;
+            Sm?.Dispose();
+            Sm = null;
             demo.App.Instance.Stop();
         }
         TaskCompletionSource<int> future;
+
+        [TestMethod]
+        public void TestBase()
+        {
+            var infos = new ServiceInfos("TestBase");
+            infos.Insert(new ServiceInfo("TestBase", "1"));
+            infos.Insert(new ServiceInfo("TestBase", "3"));
+            infos.Insert(new ServiceInfo("TestBase", "2"));
+            Assert.AreEqual("TestBase=[1,2,3,]", infos.ToString());
+        }
 
         [TestMethod]
         public void Test1()
@@ -40,8 +50,8 @@ namespace UnitTest.Zeze.Misc
                 : System.Net.IPAddress.Parse(ip);
 
             // 后面需要手动销毁重建进行重连测试。不用using了，使用TestCleanup关闭最后的实例。
-            ServiceManager?.Dispose();
-            ServiceManager = new ServiceManagerServer(address, port, global::Zeze.Config.Load(), 0);
+            Sm?.Dispose();
+            Sm = new ServiceManagerServer(address, port, global::Zeze.Config.Load(), 0);
             var serviceName = "TestServiceManager";
 
             future = new TaskCompletionSource<int>();
@@ -96,11 +106,11 @@ namespace UnitTest.Zeze.Misc
             future.Task.Wait();
 
             Console.WriteLine("Test Reconnect");
-            ServiceManager.Dispose();
+            Sm.Dispose();
             future = new TaskCompletionSource<int>();
-            ServiceManager = new ServiceManagerServer(address, port, global::Zeze.Config.Load(), 0);
+            Sm = new ServiceManagerServer(address, port, global::Zeze.Config.Load(), 0);
             future.Task.Wait();
-            ServiceManager?.Dispose();
+            Sm?.Dispose();
         }
     }
 }

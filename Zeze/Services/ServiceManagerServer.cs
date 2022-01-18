@@ -1533,10 +1533,23 @@ namespace Zeze.Services.ServiceManager
 
         private readonly static ServiceInfoIdentityComparer ServiceInfoIdentityComparer  = new ServiceInfoIdentityComparer();
 
+        public void Insert(ServiceInfo info)
+        {
+            var i = _ServiceInfoListSortedByIdentity.BinarySearch(info, ServiceInfoIdentityComparer);
+            if (i >= 0)
+            {
+                _ServiceInfoListSortedByIdentity[i] = info;
+            }
+            else
+            {
+                _ServiceInfoListSortedByIdentity.Insert(~i, info);
+            }
+        }
+
         public ServiceInfo FindServiceInfoByIdentity(string identity)
         {
             var i = _ServiceInfoListSortedByIdentity.BinarySearch(new ServiceInfo(ServiceName, identity), ServiceInfoIdentityComparer);
-            if (i >= 0 && i < _ServiceInfoListSortedByIdentity.Count)
+            if (i >= 0)
                 return _ServiceInfoListSortedByIdentity[i];
             return null;
         }
