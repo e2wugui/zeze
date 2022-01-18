@@ -868,7 +868,10 @@ namespace Zeze.Services.ServiceManager
                     exist.PassivePort = info.PassivePort;
                     exist.ExtraInfo = info.ExtraInfo;
 
-                    Agent.OnUpdate?.Invoke(this, exist);
+                    if (Agent.OnUpdate != null)
+                        Agent.OnUpdate.Invoke(this, exist);
+                    else
+                        Agent.OnChanged?.Invoke(this); // 兼容
                 }
             }
 
@@ -877,7 +880,10 @@ namespace Zeze.Services.ServiceManager
                 lock (this)
                 {
                     info = ServiceInfos.Insert(info);
-                    Agent.OnUpdate?.Invoke(this, info);
+                    if (Agent.OnUpdate != null)
+                        Agent.OnUpdate.Invoke(this, info);
+                    else
+                        Agent.OnChanged?.Invoke(this); // 兼容
                 }
             }
 
@@ -887,7 +893,12 @@ namespace Zeze.Services.ServiceManager
                 {
                     info = ServiceInfos.Remove(info);
                     if (null != info)
-                        Agent.OnRemove?.Invoke(this, info);
+                    {
+                        if (null != Agent.OnRemove)
+                            Agent.OnRemove.Invoke(this, info);
+                        else
+                            Agent.OnChanged?.Invoke(this); // 兼容
+                    }
                 }
             }
 
