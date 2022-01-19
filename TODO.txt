@@ -14,31 +14,24 @@
 	DatabaseTikv OperatesTikv
 	关联多用户数据的协议处理自动派发到热点所在Server。
 	Global.Release并发问题【再次】确认
-	Handshake 没有错误处理。
-	PersistentAtomicLong 使用文件锁，处理多进程（在同一个目录执行多份实例）。
 
-【进行中】
 	zeze async await?
 	Zeze.Arch 
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
 	Raft TaskOneByOneByKey Key=(ClientId, UniqueRequestId)
+	Handshake 没有错误处理。Timeout Remove Context.
 
 	RedoableQueue
-App：RedoableQueue 看完下面的，帮忙起个好名。
-1）存储：
-	QueueId。
-	RocksDb<TaskId, EncodedRpc> 持久化的。
-2）Task.Id
-	long 递增
-	Rpc
-Zeze.ServerApp
-1) zeze.table<concurrentKey, lastTaskId> 记住已经同步的最后的任务id，
-2) 功能：每个ConcurrentId，for Queue(lastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
-* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
-比如充值系统等zeze外的交易系统本质上需要zeze.server一起完成一个分布式事务时用。zeze.server执行任务失败需要不停尝试。按顺序处理queue.task。
-参考很多MessageQueue的实现，这里由于重做，更像一个LogQueue。以前sybase的复制备份服务器也有一个差不多这样的logqueue
-concurrentId是个坑，只有一个肯定没问题，但是无法并发，允许并发，对某些逻辑可能无法使用，或者需要使用者自己把相关的task放到同一个concurrentId下。
+	1）存储：QueueId。 RocksDb<TaskId, EncodedRpc> 持久化的。
+	2）Task.Id long 递增 Rpc
+	Zeze.ServerApp
+	1) zeze.table<concurrentKey, lastTaskId> 记住已经同步的最后的任务id，
+	2) 功能：每个ConcurrentId，for Queue(lastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
+	* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
+	比如充值系统等zeze外的交易系统本质上需要zeze.server一起完成一个分布式事务时用。zeze.server执行任务失败需要不停尝试。按顺序处理queue.task。
+	参考很多MessageQueue的实现，这里由于重做，更像一个LogQueue。以前sybase的复制备份服务器也有一个差不多这样的logqueue
+	concurrentId是个坑，只有一个肯定没问题，但是无法并发，允许并发，对某些逻辑可能无法使用，或者需要使用者自己把相关的task放到同一个concurrentId下。
 
 	Raft.Revote 优先级++++++++++++++++++++++++++ 初步考虑仅使用不同的延迟。RandomDelay + DelayPriority;
 	Raft.GlobalWithRaft TODO
@@ -49,6 +42,7 @@ concurrentId是个坑，只有一个肯定没问题，但是无法并发，允许并发，对某些逻辑可能无
 	Zezex.client: 可靠消息实现的错误检查。
 
 【新变动】
+	PersistentAtomicLong 使用文件锁，处理多进程（在同一个目录执行多份实例）。
 	Raft AppendLogActiveTime 移到 Connector 中，只要有一个 Connector 超过一定时间不发送数据，就启动整体的Heartbeat。
 	ServiceManager Simple 模式不通知整个列表！改成OnRegister OnUnRegister。
 	【已确认】checkpointMode.Period 不能用--->在启用Global情况下禁用。
