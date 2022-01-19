@@ -401,7 +401,7 @@ namespace Zeze.Raft
                 null, WriteOptionsSync
                 );
 
-            logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Key={key} Count={GetTestStateMachineCount()}");
+            logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
         }
 
         private RaftLog ReadLog(long index)
@@ -572,7 +572,8 @@ namespace Zeze.Raft
                 }
                 raftLog.Log.Apply(raftLog, Raft.StateMachine);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
-                logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={raftLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
+                if (LastIndex - LastApplied < 10)
+                    logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={raftLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
 
                 if (WaitApplyFutures.TryRemove(raftLog.Index, out var future))
                     future.SetResult(0);
