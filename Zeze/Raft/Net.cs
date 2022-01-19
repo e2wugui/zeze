@@ -543,7 +543,28 @@ namespace Zeze.Raft
                 Handle = ProcessLeaderIs,
             });
 
-            Util.Scheduler.Instance.Schedule((thisTask) => ReSend(), 1000, 1000); // ugly
+            Util.Scheduler.Instance.Schedule(ChoiceLeaderAndReSend, 1000, RaftConfig.AppendEntriesTimeout + 1000); // ugly
+        }
+
+        private void ChoiceLeaderAndReSend(Util.SchedulerTask thisTask)
+        {
+            lock (this)
+            {
+                if (_Leader == null)
+                {
+                    var randIndex = Util.Random.Instance.Next(Client.Config.ConnectorCount());
+                    Client.Config.ForEachConnector((c) =>
+                    {
+                        if (--randIndex < 0)
+                        {
+                            _Leader = c as ConnectorEx;
+                            return false;
+                        }
+                        return true;
+                    });
+                }
+            }
+            ReSend();
         }
 
         private long ProcessLeaderIs(Protocol p)
@@ -615,10 +636,14 @@ namespace Zeze.Raft
             // ReSendPendingRpc
             lock (this)
             {
+                var tmp = _Leader;
+                if (null == tmp || false == tmp.IsHandshakeDone)
+                    return;
+
                 foreach (var rpc in Pending)
                 {
                     // 这里发送失败，等待新的 LeaderIs 通告再继续。
-                    if (rpc.Send(_Leader?.Socket))
+                    if (rpc.Send(tmp.Socket))
                     {
                         Pending.Remove(rpc);
                     }
