@@ -156,7 +156,7 @@ namespace Zeze
                 std::shared_ptr<Socket> sender = service->GetSocket(e.first);
                 if (NULL == sender.get())
                     continue;
-                Zeze::Serialize::ByteBuffer bb((unsigned char *)e.second.data(), 0, e.second.size());
+                Zeze::Serialize::ByteBuffer bb((unsigned char*)e.second.data(), 0, (int)e.second.size());
                 Protocol::DecodeProtocol(service, sender, bb, this);
                 e.second.erase(0, bb.ReadIndex);
             }

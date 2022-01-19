@@ -120,13 +120,13 @@ namespace Net
 			{
 			}
 		};
-		void AddProtocolFactory(int typeId, const ProtocolFactoryHandle& func)
+		void AddProtocolFactory(long long typeId, const ProtocolFactoryHandle& func)
 		{
-			std::pair<ProtocolFactoryMap::iterator, bool> r = ProtocolFactory.insert(std::pair<int, ProtocolFactoryHandle>(typeId, func));
+			std::pair<ProtocolFactoryMap::iterator, bool> r = ProtocolFactory.insert(std::pair<long long, ProtocolFactoryHandle>(typeId, func));
 			if (false == r.second)
 				throw std::exception("duplicate protocol TypeId");
 		}
-		bool FindProtocolFactoryHandle(int typeId, ProtocolFactoryHandle& outFactoryHandle)
+		bool FindProtocolFactoryHandle(long long typeId, ProtocolFactoryHandle& outFactoryHandle)
 		{
 			ProtocolFactoryMap::iterator it = ProtocolFactory.find(typeId);
 			if (it != ProtocolFactory.end())
@@ -158,7 +158,7 @@ namespace Net
 		friend class Protocol;
 
 	private:
-		typedef std::unordered_map<int, ProtocolFactoryHandle> ProtocolFactoryMap;
+		typedef std::unordered_map<long long, ProtocolFactoryHandle> ProtocolFactoryMap;
 		ProtocolFactoryMap ProtocolFactory;
 		void StartConnect(const std::string& host, int port, int delay, int timeoutSecondsPerConnect);
 

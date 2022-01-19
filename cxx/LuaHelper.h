@@ -41,12 +41,12 @@ public:
 		lua_pushnumber(L, n);
 	}
 
-	void PushBuffer(const char* buffer, int length)
+	void PushBuffer(const char* buffer, size_t length)
 	{
 		lua_pushlstring(L, buffer, length);
 	}
 
-	void PushString(const char* s, int length)
+	void PushString(const char* s, size_t length)
 	{
 		PushBuffer(s, length);
 	}
@@ -61,7 +61,7 @@ public:
 		PushString(s.data(), s.size());
 	}
 
-	void PushLightUserData(void * data)
+	void PushLightUserData(void* data)
 	{
 		lua_pushlightuserdata(L, data);
 	}
@@ -107,7 +107,7 @@ public:
 		ErrErr = 5
 	};
 
-	LuaStatus LoadBuffer(const char * buffer, int length)
+	LuaStatus LoadBuffer(const char* buffer, size_t length)
 	{
 		return (LuaStatus)luaL_loadbufferx(L, buffer, length, NULL, NULL);
 	}
@@ -117,7 +117,7 @@ public:
 		return (LuaStatus)lua_pcallk(L, arguments, results, errorFunctionIndex, 0, 0);
 	}
 
-	bool DoString(const char* code, int length)
+	bool DoString(const char* code, size_t length)
 	{
 		return LoadBuffer(code, length) != LuaStatus::OK || PCall(0, -1, 0) != LuaStatus::OK;
 	}

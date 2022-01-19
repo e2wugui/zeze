@@ -42,7 +42,7 @@ namespace Zeze
 				Zeze::Serialize::ByteBuffer pbb(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
 				Service::ProtocolFactoryHandle factoryHandle;
-				long long type = (long long)moduleId << 32 | (protocolId & 0xffffffff);
+				long long type = ((long long)moduleId << 32) | (unsigned int)protocolId;
 				if (service->FindProtocolFactoryHandle(type, factoryHandle))
 				{
 					std::auto_ptr<Protocol> p(factoryHandle.Factory());

@@ -67,3 +67,13 @@ autokeys
 /ZezeJava/target
 /ZezeJavaTest/dbhome
 /UnitTest/Properties
+/Release
+/lua/csharp/LuaGen
+/lua/csharp/bin
+/lua/csharp/obj
+/lua/cxx/LuaGen
+/lua/cxx/Debug
+/lua/cxx/Release
+/lua/cxx/lua-5.4.1
+/lua/cxx/x64
+/x64
