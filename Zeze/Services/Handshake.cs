@@ -51,9 +51,19 @@ namespace Zeze.Services
 
         private HashSet<long> HandshakeProtocols = new HashSet<long>();
 
+        class Context
+        {
+            public BigInteger DhRandom { get; set; }
+            public Util.SchedulerTask TimeoutTask { get; set; }
+
+            public Context(BigInteger rand)
+            {
+                DhRandom = rand;
+            }
+        }
         // For Client Only
-        private ConcurrentDictionary<long, BigInteger> DHContext
-            = new ConcurrentDictionary<long, BigInteger>();
+        private ConcurrentDictionary<long, Context> DHContext
+            = new ConcurrentDictionary<long, Context>();
 
         public HandshakeBase(string name, Zeze.Config config) : base(name, config)
         { 
@@ -166,32 +176,36 @@ namespace Zeze.Services
             try
             {
                 Handshake.SHandshake p = (Handshake.SHandshake)_p;
-                if (DHContext.TryGetValue(p.Sender.SessionId, out var dhRandom))
+                if (DHContext.TryRemove(p.Sender.SessionId, out var ctx))
                 {
-                    Array.Reverse(p.Argument.dh_data);
-                    byte[] material = Handshake.Helper.computeDHKey(
-                        Config.HandshakeOptions.DhGroup,
-                        new BigInteger(p.Argument.dh_data),
-                        dhRandom).ToByteArray();
-                    Array.Reverse(material);
-                    System.Net.IPAddress ipaddress =
-                        ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
-                    if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
-                    byte[] key = ipaddress.GetAddressBytes();
-                    logger.Debug("{0} remoteip={1}", p.Sender.SessionId, BitConverter.ToString(key));
+                    try
+                    {
+                        Array.Reverse(p.Argument.dh_data);
+                        byte[] material = Handshake.Helper.computeDHKey(
+                            Config.HandshakeOptions.DhGroup,
+                            new BigInteger(p.Argument.dh_data),
+                            ctx.DhRandom).ToByteArray();
+                        Array.Reverse(material);
+                        System.Net.IPAddress ipaddress =
+                            ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
+                        if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
+                        byte[] key = ipaddress.GetAddressBytes();
+                        logger.Debug("{0} remoteip={1}", p.Sender.SessionId, BitConverter.ToString(key));
 
-                    int half = material.Length / 2;
-                    byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-                    p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
-                    hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
-                    p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
+                        int half = material.Length / 2;
+                        byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
+                        p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
+                        hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
+                        p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
 
-                    DHContext.TryRemove(p.Sender.SessionId, out var _);
-                    new Handshake.CHandshakeDone().Send(p.Sender);
-                    OnHandshakeDone(p.Sender);
-
-                    HandshakeTimeoutTask?.Cancel();
-                    HandshakeTimeoutTask = null;
+                        DHContext.TryRemove(p.Sender.SessionId, out var _);
+                        new Handshake.CHandshakeDone().Send(p.Sender);
+                        OnHandshakeDone(p.Sender);
+                    }
+                    finally
+                    {
+                        ctx.TimeoutTask?.Cancel();
+                    }
                     return 0;
                 }
                 p.Sender.Close(new Exception("handshake lost context."));
@@ -203,20 +217,18 @@ namespace Zeze.Services
             return 0;
         }
 
-        private Util.SchedulerTask HandshakeTimeoutTask;
-
         protected void StartHandshake(AsyncSocket so)
         {
             try
             {
-                BigInteger dhRandom = Handshake.Helper.makeDHRandom();
-                if (!DHContext.TryAdd(so.SessionId, dhRandom))
+                var ctx = new Context(Handshake.Helper.makeDHRandom());
+                if (!DHContext.TryAdd(so.SessionId, ctx))
                     throw new Exception("handshake duplicate context for same session.");
                 byte[] response = Handshake.Helper.generateDHResponse(
-                    Config.HandshakeOptions.DhGroup, dhRandom).ToByteArray();
+                    Config.HandshakeOptions.DhGroup, ctx.DhRandom).ToByteArray();
                 Array.Reverse(response);
                 new Handshake.CHandshake(Config.HandshakeOptions.DhGroup, response).Send(so);
-                HandshakeTimeoutTask = Util.Scheduler.Instance.Schedule((thisTask) => so.Close(new Exception("Handshake Timeout")), 5000);
+                ctx.TimeoutTask = Util.Scheduler.Instance.Schedule((thisTask) => so.Close(new Exception("Handshake Timeout")), 5000);
             }
             catch (Exception ex)
             {
