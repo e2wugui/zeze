@@ -31,9 +31,9 @@ namespace Zeze.Raft
 
         public StateMachine StateMachine { get; }
 
-        public void AppendLog(Log log, bool ApplySync = true)
+        public void AppendLog(Log log)
         {
-            LogSequence.AppendLog(log, ApplySync);
+            LogSequence.AppendLog(log, true);
         }
 
         //public bool IsShutdown { get; private set; }

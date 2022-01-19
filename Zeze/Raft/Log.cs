@@ -587,11 +587,6 @@ namespace Zeze.Raft
         internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }
             = new ConcurrentDictionary<long, TaskCompletionSource<int>>();
 
-        public void AppendLog(Log log)
-        {
-            AppendLog(log, true);
-        }
-
         internal void AppendLog(Log log, bool WaitApply)
         {
             AppendLog(log, WaitApply, out _, out _);
@@ -1105,12 +1100,8 @@ namespace Zeze.Raft
                         // delete the existing entry and all that follow it(§5.3)
                         // raft.pdf 5.3
                         RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
-                        LastIndex = prevLog.Index;
-                    }
-                    else
-                    {
-                        // 复用这个变量。当冲突需要删除时，精确指到前一个日志。
-                        prevLog = conflictCheck;
+                        SaveLog(copyLog);
+                        LastIndex = copyLog.Index;
                     }
                 }
                 else
@@ -1118,8 +1109,6 @@ namespace Zeze.Raft
                     // 4. Append any new entries not already in the log
                     SaveLog(copyLog);
                     LastIndex = copyLog.Index; // 记住最后一个Index，用来下一次生成。
-                    // 复用这个变量。当冲突需要删除时，精确指到前一个日志。
-                    prevLog = copyLog;
                 }
             }
             // 5. If leaderCommit > commitIndex,
