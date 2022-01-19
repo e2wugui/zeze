@@ -22,12 +22,13 @@
 	Zeze.Arch 
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
+	Raft TaskOneByOneByKey Key=(ClientId, UniqueRequestId)
 
-	RedoableTaskQueue
-App：RedoableTaskQueue 看完下面的，帮忙起个好名。
+	RedoableQueue
+App：RedoableQueue 看完下面的，帮忙起个好名。
 1）存储：
-	inT ConcurrentId 暂定int，一定范围，以后和serverId映射，不直接使用serverId，解耦。
-	Queue<Task> 持久化的。
+	QueueId。
+	RocksDb<TaskId, EncodedRpc> 持久化的。
 2）Task.Id
 	long 递增
 	Rpc

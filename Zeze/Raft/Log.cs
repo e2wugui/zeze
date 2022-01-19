@@ -516,9 +516,9 @@ namespace Zeze.Raft
             connector.NextIndex = rpc.Argument.LastEntryIndex + 1;
             connector.MatchIndex = rpc.Argument.LastEntryIndex;
 
-            // 已经提交的，旧的 AppendEntries 的结果，不用继续处理了。
+            // 已经Applied的，旧的 AppendEntries 的结果，不用继续处理了。
             // 【注意】这个不是必要的，是一个小优化。
-            if (rpc.Argument.LastEntryIndex <= CommitIndex)
+            if (rpc.Argument.LastEntryIndex <= LastApplied)
                 return;
 
             // Rules for Servers

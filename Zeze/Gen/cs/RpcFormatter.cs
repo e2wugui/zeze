@@ -26,8 +26,9 @@ namespace Zeze.Gen.cs
 
             string argument = rpc.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ArgumentType);
             string result = rpc.ResultType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ResultType);
+            string baseclass = string.IsNullOrEmpty(rpc.Base) ? "Zeze.Net.Rpc" : rpc.Base;
 
-            sw.WriteLine("    public sealed class " + rpc.Name + " : Zeze.Net.Rpc<" + argument + ", " + result + ">");
+            sw.WriteLine($"    public sealed class {rpc.Name} : {baseclass}<{argument}, {result}>");
             sw.WriteLine("    {");
             sw.WriteLine("        public const int ModuleId_ = " + rpc.Space.Id + ";");
             sw.WriteLine("        public const int ProtocolId_ = " + rpc.Id + ";");

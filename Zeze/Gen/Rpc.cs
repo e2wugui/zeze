@@ -11,10 +11,12 @@ namespace Zeze.Gen
 
         // setup in compile
         public Types.Type ResultType { get; private set;  }
+        public string Base { get; private set; }
 
         public Rpc(ModuleSpace space, XmlElement self) : base(space, self)
         {
             Result = self.GetAttribute("result");
+            Base = self.GetAttribute("base");
         }
 
         public override void Compile()
