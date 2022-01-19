@@ -212,48 +212,56 @@ namespace Zeze.Net
         {
             ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
-            lock (this)
+            try
             {
-                if (null == Socket)
-                    return false;
-                if (null != outputCodecChain)
+                lock (this)
                 {
-                    // 压缩加密等 codec 链操作。
-                    outputCodecBuffer.Buffer.EnsureWrite(length); // reserve
-                    outputCodecChain.update(bytes, offset, length);
-                    outputCodecChain.flush();
-
-                    // 修改参数，后面继续使用处理过的数据继续发送。
-                    bytes = outputCodecBuffer.Buffer.Bytes;
-                    offset = outputCodecBuffer.Buffer.ReadIndex;
-                    length = outputCodecBuffer.Buffer.Size;
-
-                    // outputBufferCodec 释放对byte[]的引用。
-                    outputCodecBuffer.Buffer.FreeInternalBuffer();
-                }
-
-                if (null == _outputBufferList)
-                    _outputBufferList = new List<ArraySegment<byte>>();
-                _outputBufferList.Add(new ArraySegment<byte>(bytes, offset, length));
-                _outputBufferListCountSum += length;
-
-                if (null == _outputBufferListSending) // 没有在发送中，马上请求发送，否则等回调处理。
-                {
-                    _outputBufferListSending = _outputBufferList;
-                    _outputBufferList = null;
-                    _outputBufferListSendingCountSum = _outputBufferListCountSum;
-                    _outputBufferListCountSum = 0;
-
-                    if (null == eventArgsSend)
+                    if (null == Socket)
+                        return false;
+                    if (null != outputCodecChain)
                     {
-                        eventArgsSend = new SocketAsyncEventArgs();
-                        eventArgsSend.Completed += OnAsyncIOCompleted;
+                        // 压缩加密等 codec 链操作。
+                        outputCodecBuffer.Buffer.EnsureWrite(length); // reserve
+                        outputCodecChain.update(bytes, offset, length);
+                        outputCodecChain.flush();
+
+                        // 修改参数，后面继续使用处理过的数据继续发送。
+                        bytes = outputCodecBuffer.Buffer.Bytes;
+                        offset = outputCodecBuffer.Buffer.ReadIndex;
+                        length = outputCodecBuffer.Buffer.Size;
+
+                        // outputBufferCodec 释放对byte[]的引用。
+                        outputCodecBuffer.Buffer.FreeInternalBuffer();
                     }
-                    eventArgsSend.BufferList = _outputBufferListSending;
-                    if (false == Socket.SendAsync(eventArgsSend))
-                        ProcessSend(eventArgsSend);
+
+                    if (null == _outputBufferList)
+                        _outputBufferList = new List<ArraySegment<byte>>();
+                    _outputBufferList.Add(new ArraySegment<byte>(bytes, offset, length));
+                    _outputBufferListCountSum += length;
+
+                    if (null == _outputBufferListSending) // 没有在发送中，马上请求发送，否则等回调处理。
+                    {
+                        _outputBufferListSending = _outputBufferList;
+                        _outputBufferList = null;
+                        _outputBufferListSendingCountSum = _outputBufferListCountSum;
+                        _outputBufferListCountSum = 0;
+
+                        if (null == eventArgsSend)
+                        {
+                            eventArgsSend = new SocketAsyncEventArgs();
+                            eventArgsSend.Completed += OnAsyncIOCompleted;
+                        }
+                        eventArgsSend.BufferList = _outputBufferListSending;
+                        if (false == Socket.SendAsync(eventArgsSend))
+                            ProcessSend(eventArgsSend);
+                    }
+                    return true;
                 }
-                return true;
+            }
+            catch (Exception ex)
+            {
+                Close(ex);
+                return false;
             }
         }
 

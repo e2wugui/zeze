@@ -100,44 +100,52 @@ namespace Zeze.Services
 
         private long ProcessCHandshake(Protocol _p)
         {
-            Handshake.CHandshake p = (Handshake.CHandshake)_p;
-            int group = p.Argument.dh_group;
-            if (false == Config.HandshakeOptions.DhGroups.Contains(group))
+            try
             {
-                p.Sender.Close(new Exception("dhGroup Not Supported"));
+                Handshake.CHandshake p = (Handshake.CHandshake)_p;
+                int group = p.Argument.dh_group;
+                if (false == Config.HandshakeOptions.DhGroups.Contains(group))
+                {
+                    p.Sender.Close(new Exception("dhGroup Not Supported"));
+                    return 0;
+                }
+                Array.Reverse(p.Argument.dh_data);
+                BigInteger data = new BigInteger(p.Argument.dh_data);
+                BigInteger rand = Handshake.Helper.makeDHRandom();
+                byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
+                Array.Reverse(material);
+                System.Net.IPAddress ipaddress =
+                    ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
+                //logger.Debug(ipaddress);
+                if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
+                byte[] key = Config.HandshakeOptions.SecureIp != null
+                    ? Config.HandshakeOptions.SecureIp
+                    : ipaddress.GetAddressBytes();
+                logger.Debug("{0} localip={1}", p.Sender.SessionId, BitConverter.ToString(key));
+                int half = material.Length / 2;
+                byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
+                p.Sender.SetInputSecurityCodec(hmacMd5, Config.HandshakeOptions.C2sNeedCompress);
+                byte[] response = Handshake.Helper.generateDHResponse(group, rand).ToByteArray();
+                Array.Reverse(response);
+                new Handshake.SHandshake(response,
+                    Config.HandshakeOptions.S2cNeedCompress,
+                    Config.HandshakeOptions.C2sNeedCompress)
+                    .Send(p.Sender);
+                hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
+                p.Sender.SetOutputSecurityCodec(hmacMd5, Config.HandshakeOptions.S2cNeedCompress);
+
+                // 为了防止服务器在Handshake以后马上发送数据，
+                // 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
+                // 这个本质上是协议相关的问题：就是前面一个协议的处理结果影响后面数据处理。
+                // 所以增加CHandshakeDone协议，在Client进入加密以后发送给Server。
+                // OnHandshakeDone(p.Sender);
+
                 return 0;
             }
-            Array.Reverse(p.Argument.dh_data);
-            BigInteger data = new BigInteger(p.Argument.dh_data);
-            BigInteger rand = Handshake.Helper.makeDHRandom();
-            byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
-            Array.Reverse(material);
-            System.Net.IPAddress ipaddress =
-                ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
-            //logger.Debug(ipaddress);
-            if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
-            byte[] key = Config.HandshakeOptions.SecureIp != null
-                ? Config.HandshakeOptions.SecureIp
-                : ipaddress.GetAddressBytes();
-            logger.Debug("{0} localip={1}", p.Sender.SessionId, BitConverter.ToString(key));
-            int half = material.Length / 2;
-            byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-            p.Sender.SetInputSecurityCodec(hmacMd5, Config.HandshakeOptions.C2sNeedCompress);
-            byte[] response = Handshake.Helper.generateDHResponse(group, rand).ToByteArray();
-            Array.Reverse(response);
-            new Handshake.SHandshake(response,
-                Config.HandshakeOptions.S2cNeedCompress,
-                Config.HandshakeOptions.C2sNeedCompress)
-                .Send(p.Sender);
-            hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
-            p.Sender.SetOutputSecurityCodec(hmacMd5, Config.HandshakeOptions.S2cNeedCompress);
-
-            // 为了防止服务器在Handshake以后马上发送数据，
-            // 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
-            // 这个本质上是协议相关的问题：就是前面一个协议的处理结果影响后面数据处理。
-            // 所以增加CHandshakeDone协议，在Client进入加密以后发送给Server。
-            // OnHandshakeDone(p.Sender);
-
+            catch (Exception ex)
+            {
+                _p.Sender.Close(ex);
+            }
             return 0;
         }
 
@@ -155,44 +163,65 @@ namespace Zeze.Services
 
         private long ProcessSHandshake(Protocol _p)
         {
-            Handshake.SHandshake p = (Handshake.SHandshake)_p;
-            if (DHContext.TryGetValue(p.Sender.SessionId, out var dhRandom))
+            try
             {
-                Array.Reverse(p.Argument.dh_data);
-                byte[] material = Handshake.Helper.computeDHKey(
-                    Config.HandshakeOptions.DhGroup,
-                    new BigInteger(p.Argument.dh_data),
-                    dhRandom).ToByteArray();
-                Array.Reverse(material);
-                System.Net.IPAddress ipaddress =
-                    ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
-                if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
-                byte[] key = ipaddress.GetAddressBytes();
-                logger.Debug("{0} remoteip={1}", p.Sender.SessionId, BitConverter.ToString(key));
+                Handshake.SHandshake p = (Handshake.SHandshake)_p;
+                if (DHContext.TryGetValue(p.Sender.SessionId, out var dhRandom))
+                {
+                    Array.Reverse(p.Argument.dh_data);
+                    byte[] material = Handshake.Helper.computeDHKey(
+                        Config.HandshakeOptions.DhGroup,
+                        new BigInteger(p.Argument.dh_data),
+                        dhRandom).ToByteArray();
+                    Array.Reverse(material);
+                    System.Net.IPAddress ipaddress =
+                        ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
+                    if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
+                    byte[] key = ipaddress.GetAddressBytes();
+                    logger.Debug("{0} remoteip={1}", p.Sender.SessionId, BitConverter.ToString(key));
 
-                int half = material.Length / 2;
-                byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-                p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
-                hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
-                p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
+                    int half = material.Length / 2;
+                    byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
+                    p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
+                    hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
+                    p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
 
-                DHContext.TryRemove(p.Sender.SessionId, out var _);
-                new Handshake.CHandshakeDone().Send(p.Sender);
-                OnHandshakeDone(p.Sender);
-                return 0;
+                    DHContext.TryRemove(p.Sender.SessionId, out var _);
+                    new Handshake.CHandshakeDone().Send(p.Sender);
+                    OnHandshakeDone(p.Sender);
+
+                    HandshakeTimeoutTask?.Cancel();
+                    HandshakeTimeoutTask = null;
+                    return 0;
+                }
+                p.Sender.Close(new Exception("handshake lost context."));
             }
-            throw new Exception("handshake lost context.");
+            catch (Exception ex)
+            {
+                _p.Sender.Close(ex);
+            }
+            return 0;
         }
+
+        private Util.SchedulerTask HandshakeTimeoutTask;
 
         protected void StartHandshake(AsyncSocket so)
         {
-            BigInteger dhRandom = Handshake.Helper.makeDHRandom();
-            if (!DHContext.TryAdd(so.SessionId, dhRandom))
-                throw new Exception("handshake duplicate context for same session.");
-            byte[] response = Handshake.Helper.generateDHResponse(
-                Config.HandshakeOptions.DhGroup, dhRandom).ToByteArray();
-            Array.Reverse(response);
-            new Handshake.CHandshake(Config.HandshakeOptions.DhGroup, response).Send(so);
+            try
+            {
+                BigInteger dhRandom = Handshake.Helper.makeDHRandom();
+                if (!DHContext.TryAdd(so.SessionId, dhRandom))
+                    throw new Exception("handshake duplicate context for same session.");
+                byte[] response = Handshake.Helper.generateDHResponse(
+                    Config.HandshakeOptions.DhGroup, dhRandom).ToByteArray();
+                Array.Reverse(response);
+                new Handshake.CHandshake(Config.HandshakeOptions.DhGroup, response).Send(so);
+                HandshakeTimeoutTask = Util.Scheduler.Instance.Schedule((thisTask) => so.Close(new Exception("Handshake Timeout")), 5000);
+            }
+            catch (Exception ex)
+            {
+                so.Close(ex);
+            }
         }
     }
 
