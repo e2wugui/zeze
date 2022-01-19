@@ -209,13 +209,19 @@ namespace Zeze.Raft
             base.OnHandshakeDone(so);
 
             // 没有判断是否和其他Raft-Node的连接。
-            if (Raft.IsLeader && Raft.LeaderReadyEvent.WaitOne(0))
+            Util.Task.Run(() =>
             {
-                var r = new LeaderIs();
-                r.Argument.Term = Raft.LogSequence.Term;
-                r.Argument.LeaderId = Raft.LeaderId;
-                r.Send(so); // skip result
-            }
+                lock (Raft)
+                {
+                    if (Raft.IsLeader && Raft.LeaderReadyEvent.WaitOne(0))
+                    {
+                        var r = new LeaderIs();
+                        r.Argument.Term = Raft.LogSequence.Term;
+                        r.Argument.LeaderId = Raft.LeaderId;
+                        r.Send(so); // skip result
+                    }
+                }
+            }, "Raft.LeaderIs.Me");
         }
     }
 

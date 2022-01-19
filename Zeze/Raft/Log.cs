@@ -208,7 +208,7 @@ namespace Zeze.Raft
             {
                 var key = ByteBuffer.Allocate();
                 key.WriteLong(index);
-                Logs.Remove(key.Bytes, key.Size);
+                Logs.Remove(key.Bytes, key.Size, null, WriteOptionsSync);
             }
         }
 
@@ -516,9 +516,9 @@ namespace Zeze.Raft
             connector.NextIndex = rpc.Argument.LastEntryIndex + 1;
             connector.MatchIndex = rpc.Argument.LastEntryIndex;
 
-            // 已经Applied的，旧的 AppendEntries 的结果，不用继续处理了。
+            // 旧的 AppendEntries 的结果，不用继续处理了。
             // 【注意】这个不是必要的，是一个小优化。
-            if (rpc.Argument.LastEntryIndex <= LastApplied)
+            if (rpc.Argument.LastEntryIndex <= CommitIndex)
                 return;
 
             // Rules for Servers

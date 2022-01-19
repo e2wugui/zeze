@@ -292,10 +292,13 @@ namespace Zeze.Raft
                         // 全部发送。
                         // 另外Raft之间有两个连接，会收到多次，Raft不处理这个通告。
                         // 由于Raft数量不多，不会造成大的浪费，不做处理了。
-                        var r = new LeaderIs();
-                        r.Argument.Term = LogSequence.Term;
-                        r.Argument.LeaderId = LeaderId;
-                        r.Send(allsocket); // skip response.
+                        if (allsocket.IsHandshakeDone)
+                        {
+                            var r = new LeaderIs();
+                            r.Argument.Term = LogSequence.Term;
+                            r.Argument.LeaderId = LeaderId;
+                            r.Send(allsocket); // skip response.
+                        }
                     });
             }
         }
