@@ -529,8 +529,18 @@ namespace Zeze.Raft
                     HearbeatTimerTask = Scheduler.Instance.Schedule(
                         (ThisTask) =>
                         {
-                            var elapse = Util.Time.NowUnixMillis - LogSequence.AppendLogActiveTime;
-                            if (elapse < RaftConfig.LeaderHeartbeatTimer)
+                            var now = Time.NowUnixMillis;
+                            bool hearbeatNow = Server.Config.ForEachConnector(
+                                (c) =>
+                                {
+                                    var cex = c as Server.ConnectorEx;
+                                    if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
+                                        return false;
+
+                                    return true;
+                                });
+
+                            if (hearbeatNow)
                             {
                                 LogSequence.AppendLog(new HeartbeatLog(), false);
                             }

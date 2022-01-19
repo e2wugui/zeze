@@ -103,8 +103,15 @@ namespace Zeze.Net
         public AsyncSocket TryGetReadySocket()
         {
             var volatileTmp = FutureSocket;
-            if (volatileTmp.Task.Wait(0))
-                return volatileTmp.Task.Result;
+            try
+            {
+                if (volatileTmp.Task.Wait(0))
+                    return volatileTmp.Task.Result;
+            }
+            catch (Exception)
+            {
+                // skip
+            }
             return null;
         }
 

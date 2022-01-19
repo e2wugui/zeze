@@ -63,6 +63,7 @@ namespace Zeze.Raft
             /// 每个连接只允许存在一个AppendEntries。
             /// </summary>
             internal AppendEntries Pending { get; set; }
+            internal long AppendLogActiveTime { get; set; } = Util.Time.NowUnixMillis;
 
             public override void OnSocketClose(AsyncSocket closed, Exception e)
             {
@@ -130,17 +131,12 @@ namespace Zeze.Raft
         {
             return Util.Task.Call(() =>
             {
-                var iraftrpc = p as IRaftRpc;
                 if (Raft.WaitLeaderReady())
                 {
-                    if (LogSequence.AppliedRpcs.TryGetValue(
-                        p.Sender.RemoteAddress, out var rpcs))
+                    if (Raft.LogSequence.HasApplied(p))
                     {
-                        if (rpcs.ContainsKey(iraftrpc.UniqueRequestId))
-                        {
-                            p.SendResultCode(Procedure.DuplicateRequest);
-                            return Procedure.DuplicateRequest;
-                        }
+                        p.SendResultCode(Procedure.DuplicateRequest);
+                        return Procedure.DuplicateRequest;
                     }
                     return factoryHandle.Handle(p);
                 }
@@ -167,21 +163,20 @@ namespace Zeze.Raft
                 return;
             }
             // User Request
-            var iraftrpc = p as IRaftRpc;
             if (Raft.IsLeader)
             {
+                var iraftrpc = p as IRaftRpc;
                 if (iraftrpc.UniqueRequestId <= 0)
                 {
                     p.SendResultCode(Procedure.ErrorRequestId);
                     return;
                 }
 
-                // 默认0，每个远程ip地址允许并发。
-                // 不直接包含port信息，client.port容易改变。
-
+                // 默认0，每个远程ip地址允许并发。不直接包含port信息，client.port容易改变。
                 //【防止重复的请求】
+                iraftrpc.ClientId = p.Sender.RemoteAddress;
                 // see Log.cs::LogSequence.TryApply
-                TaskOneByOne.Execute(p.Sender.RemoteAddress,
+                TaskOneByOne.Execute(iraftrpc.ClientId,
                     () => ProcessRequest(p, factoryHandle),
                     p.GetType().FullName,
                     () => p.SendResultCode(Procedure.RaftRetry)
@@ -231,45 +226,18 @@ namespace Zeze.Raft
         /// </summary>
         public abstract long UniqueRequestId { get; set; }
         public abstract long CreateTime { get; set; }
-
-        /// <summary>
-        /// 检查是否超时，如果超时返回Func，否则返回null。
-        /// </summary>
-        /// <param name="now"></param>
-        /// <returns></returns>
-        public Action CheckAndGetTimeoutTrigger(long now);
+        public abstract string ClientId { get; set; } // 不系列化，由Raft-Server使用。
     }
 
     public abstract class RaftRpc<TArgument, TResult> : Rpc<TArgument, TResult>, IRaftRpc
         where TArgument : Bean, new()
         where TResult : Bean, new()
     {
-        // 不能直接 Zeze.Net.Rpc.Timeout，因为当 Timeout 发生时可能发送给 Raft-Server 的请求是成功的。
-        // 为了处理这种情况，Agent 在决定重发时自己判断是否超时。
-        // 原则，只要rpc发送出去了，除了应用逻辑错误和重发时发现请求超时，其他错误全部重发。
         public long CreateTime { get; set; }
-        public int RealTimeout { get; set; }
         public TaskCompletionSource<RaftRpc<TArgument, TResult>> RealFuture { get; internal set; }
         public Func<Protocol, long> RealHandle { get; internal set; }
-
         public long UniqueRequestId { get; set; }
-
-        public Action CheckAndGetTimeoutTrigger(long now)
-        {
-            if (now - CreateTime > RealTimeout)
-            {
-                IsTimeout = true;
-                ResultCode = Procedure.Timeout;
-
-                if (null != RealFuture)
-                {
-                    return () => RealFuture.TrySetException(new RpcTimeoutException());
-                }
-                return () => RealHandle(this);
-            }
-
-            return null;
-        }
+        public string ClientId { get; set; }
 
         public override bool Send(AsyncSocket so)
         {
@@ -290,6 +258,7 @@ namespace Zeze.Raft
             bb.WriteLong(SessionId);
             bb.WriteLong(ResultCode);
             bb.WriteLong(UniqueRequestId);
+            bb.WriteLong(CreateTime);
 
             if (IsRequest)
             {
@@ -307,6 +276,7 @@ namespace Zeze.Raft
             SessionId = bb.ReadLong();
             ResultCode = bb.ReadLong();
             UniqueRequestId = bb.ReadLong();
+            CreateTime = bb.ReadLong();
 
             if (IsRequest)
             {
@@ -338,8 +308,6 @@ namespace Zeze.Raft
         public Util.SimpleThreadPool InternalThreadPool { get; }
 
         public Action<Agent, Action> OnLeaderChanged { get; private set; }
-        // 发生这些错误，自动重发请求。好像没有public的必要。
-        public ConcurrentDictionary<long, long> RetryErrorCodes { get; } = new ConcurrentDictionary<long, long>();
 
         /// <summary>
         /// 发送Rpc请求。
@@ -355,16 +323,12 @@ namespace Zeze.Raft
         /// <returns></returns>
         public bool Send<TArgument, TResult>(
             RaftRpc<TArgument, TResult> rpc,
-            Func<Protocol, long> handle,
-            int timeout = -1)
+            Func<Protocol, long> handle)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
             if (null == handle)
                 throw new ArgumentException();
-
-            if (timeout < 0)
-                timeout = RaftConfig.AppendEntriesTimeout + 5000;
 
             // 由于interface不能把setter弄成保护的，实际上外面可以修改。
             // 简单检查一下吧。
@@ -373,7 +337,6 @@ namespace Zeze.Raft
 
             rpc.UniqueRequestId = UniqueRequestIdGenerator.Next();
             rpc.CreateTime = Util.Time.NowUnixMillis;
-            rpc.RealTimeout = timeout;
             rpc.RealHandle = handle;
             var resendTimeout = RaftConfig.AppendEntriesTimeout + 2000;
 
@@ -398,20 +361,10 @@ namespace Zeze.Raft
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
-            if (rpc.IsTimeout)
+            if (rpc.IsTimeout || IsRetryError(rpc.ResultCode))
             {
-                CollectAndReSend();
+                CollectAndReSend(rpc);
                 return 0;
-            }
-
-            if (RetryErrorCodes.ContainsKey(rpc.ResultCode))
-            {
-                lock (this)
-                {
-                    Pending.Add(rpc);
-                }
-
-                return Procedure.Success;
             }
 
             // DuplicateRequest as success
@@ -421,25 +374,26 @@ namespace Zeze.Raft
             return userHandle(rpc);
         }
 
+        private bool IsRetryError(long error)
+        {
+            switch (error)
+            {
+                case Procedure.CancelException:
+                case Procedure.RaftRetry:
+                    return true;
+            }
+            return false;
+        }
+
         private long SendForWaitHandle<TArgument, TResult>(
             TaskCompletionSource<RaftRpc<TArgument, TResult>> future,
             RaftRpc<TArgument, TResult> rpc)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
-            if (rpc.IsTimeout)
+            if (rpc.IsTimeout || IsRetryError(rpc.ResultCode))
             {
-                CollectAndReSend();
-                return Procedure.Success;
-            }
-
-            if (RetryErrorCodes.ContainsKey(rpc.ResultCode))
-            {
-                lock (this)
-                {
-                    Pending.Add(rpc);
-                }
-
+                CollectAndReSend(rpc);
                 return Procedure.Success;
             }
 
@@ -454,14 +408,10 @@ namespace Zeze.Raft
 
         public TaskCompletionSource<RaftRpc<TArgument, TResult>>
             SendForWait<TArgument, TResult>(
-            RaftRpc<TArgument, TResult> rpc,
-            int timeout = -1)
+            RaftRpc<TArgument, TResult> rpc)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
-            if (timeout < 0)
-                timeout = RaftConfig.AppendEntriesTimeout + 5000;
-
             // 由于interface不能把setter弄成保护的，实际上外面可以修改。
             // 简单检查一下吧。
             if (rpc.UniqueRequestId != 0)
@@ -469,7 +419,6 @@ namespace Zeze.Raft
 
             rpc.UniqueRequestId = UniqueRequestIdGenerator.Next();
             rpc.CreateTime = Util.Time.NowUnixMillis;
-            rpc.RealTimeout = timeout;
 
             var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
             rpc.RealFuture = future;
@@ -588,8 +537,7 @@ namespace Zeze.Raft
                 Handle = ProcessLeaderIs,
             });
 
-            RetryErrorCodes[Procedure.CancelException] = Procedure.CancelException;
-            RetryErrorCodes[Procedure.RaftRetry] = Procedure.RaftRetry;
+            Util.Scheduler.Instance.Schedule((thisTask) => ReSend(), 1000, 1000); // ugly
         }
 
         private long ProcessLeaderIs(Protocol p)
@@ -646,64 +594,27 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
-        private void CollectAndReSend()
+        private void CollectAndReSend(Protocol rpc)
         {
             lock (this)
             {
-                CollectPendingRpc(_Leader?.Socket);
-                ReSend();
+                Pending.Add(rpc);
+                //CollectPendingRpc(_Leader);
             }
+            ReSend();
         }
 
         private void ReSend()
         {
             // ReSendPendingRpc
-            var timeoutTriggers = new List<Action>();
-            try
+            lock (this)
             {
-                var fails = new List<Protocol>();
-                lock (this)
+                foreach (var rpc in Pending)
                 {
-                    try
+                    // 这里发送失败，等待新的 LeaderIs 通告再继续。
+                    if (rpc.Send(_Leader?.Socket))
                     {
-                        long now = Util.Time.NowUnixMillis;
-                        foreach (var rpc in Pending)
-                        {
-                            var timeoutTrigger = (rpc as IRaftRpc).CheckAndGetTimeoutTrigger(now);
-                            if (null != timeoutTrigger)
-                            {
-                                timeoutTriggers.Add(timeoutTrigger);
-                                continue;
-                            }
-                            
-                            if (false == rpc.Send(_Leader?.Socket))
-                            {
-                                // 这里发送失败，等待新的 LeaderIs 通告再继续。
-                                fails.Add(rpc);
-                            }
-                        }
-                        Pending.Clear();
-                    }
-                    finally
-                    {
-                        foreach (var fail in fails)
-                        {
-                            Pending.Add(fail);
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                foreach (var trigger in timeoutTriggers)
-                {
-                    try
-                    {
-                        trigger.Invoke();
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "Invoke Timeout Handle");
+                        Pending.Remove(rpc);
                     }
                 }
             }
@@ -726,7 +637,7 @@ namespace Zeze.Raft
                     || oldLeader.Socket != newLeader.Socket // leader socket changed
                     )
                 {
-                    CollectPendingRpc(oldLeader?.Socket);
+                    CollectPendingRpc(oldLeader);
                 }
 
                 _Leader = newLeader; // change current Leader
@@ -740,7 +651,7 @@ namespace Zeze.Raft
             lock (this)
             {
                 // Always Collect Pending
-                CollectPendingRpc(oldSocket);
+                CollectPendingRpc(oldLeader);
 
                 if (_Leader == oldLeader)
                 {
@@ -752,9 +663,9 @@ namespace Zeze.Raft
         }
 
         // under lock
-        private void CollectPendingRpc(AsyncSocket oldSocket)
+        private void CollectPendingRpc(Connector oldLeader)
         {
-            var ctxSends = Client.GetRpcContexts((p) => p.Sender == oldSocket);
+            var ctxSends = Client.GetRpcContexts((p) => p.Sender.Connector == oldLeader);
             var ctxPending = Client.RemoveRpcContexts(ctxSends.Keys);
             foreach (var rpc in ctxPending)
             {

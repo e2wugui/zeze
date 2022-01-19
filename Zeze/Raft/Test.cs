@@ -160,11 +160,11 @@ namespace Zeze.Raft
             {
                 Task.WaitAll(tasks.ToArray());
             }
-            catch (AggregateException)
+            catch (AggregateException ex)
             {
                 // 这里只会发生超时错误RpcTimeoutException。
                 // 后面会处理每个requests，这里不做处理了。
-                // logger.Warn(ex);
+                logger.Warn(ex);
             }
             foreach (var request in requests)
             {
@@ -421,9 +421,13 @@ namespace Zeze.Raft
             for (int i = 0; i < trycount; ++i)
             {
                 var check = CheckCurrentCount(testname, false);
-                logger.Info($"____________________________________________________________________________________________________________________________________");
+                logger.Info($"");
+                logger.Info($"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                logger.Info($"");
                 logger.Info($"Check={check} Step={i} ExpectCount={ExpectCount.Get()} Errors={GetErrorsString()}");
-                logger.Info($"____________________________________________________________________________________________________________________________________");
+                logger.Info($"");
+                logger.Info($"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                logger.Info($"");
                 if (check)
                 {
                     return true;
@@ -560,14 +564,15 @@ namespace Zeze.Raft
         {
             public long Count { get; set; }
 
-            public void AddCountAndWait(string appInstance, long requestId)
+            public void AddCountAndWait(IRaftRpc req)
             {
-                Raft.AppendLog(new AddCount(appInstance, requestId));
+                Raft.AppendLog(new AddCount(req));
             }
 
             public sealed class AddCount : Log
             {
-                public AddCount(string appInstance, long requestId) : base(appInstance, requestId)
+                public AddCount(IRaftRpc req)
+                    : base(req)
                 {
 
                 }
@@ -621,7 +626,7 @@ namespace Zeze.Raft
 
             public TestStateMachine()
             {
-                AddFactory(new AddCount("", 0).TypeId, () => new AddCount("", 0));
+                AddFactory(new AddCount(null).TypeId, () => new AddCount(null));
             }
         }
 
@@ -713,7 +718,7 @@ namespace Zeze.Raft
                 var r = p as AddCount;
                 lock (StateMachine)
                 {
-                    StateMachine.AddCountAndWait(r.Sender.RemoteAddress, r.UniqueRequestId);
+                    StateMachine.AddCountAndWait(r);
                     r.SendResultCode(0);
                 }
                 return Procedure.Success;

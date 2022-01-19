@@ -48,6 +48,7 @@ concurrentId是个坑，只有一个肯定没问题，但是无法并发，允许并发，对某些逻辑可能无
 	Zezex.client: 可靠消息实现的错误检查。
 
 【新变动】
+	Raft AppendLogActiveTime 移到 Connector 中，只要有一个 Connector 超过一定时间不发送数据，就启动整体的Heartbeat。
 	ServiceManager Simple 模式不通知整个列表！改成OnRegister OnUnRegister。
 	【已确认】checkpointMode.Period 不能用--->在启用Global情况下禁用。
 	【已确认】CheckpointMode.Table 能不能用？--->可以使用。

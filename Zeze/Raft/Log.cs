@@ -36,12 +36,17 @@ namespace Zeze.Raft
         // 启用这个功能要求应用的RpcSessionId持久化，并且全局唯一，对每个AutoKeyLocalStep递增。
         // 【注意】应用生成的Id必须大于0；0保留给内部；小于0未使用。
         public long UniqueRequestId { get; set; }
-        public string AppInstance { get; set; }
+        public string ClientId { get; set; } = "";
+        public long CreateTime { get; set; }
 
-        public Log(string appInstance, long requestId)
+        public Log(IRaftRpc req)
         {
-            AppInstance = appInstance;
-            UniqueRequestId = requestId;
+            if (null != req)
+            {
+                ClientId = req.ClientId;
+                UniqueRequestId = req.UniqueRequestId;
+                CreateTime = req.CreateTime;
+            }
             _TypeId = (int)Bean.Hash32(GetType().FullName);
         }
 
@@ -54,13 +59,15 @@ namespace Zeze.Raft
         public virtual void Decode(ByteBuffer bb)
         {
             UniqueRequestId = bb.ReadLong();
-            AppInstance = bb.ReadString();
+            ClientId = bb.ReadString();
+            CreateTime = bb.ReadLong();
         }
 
         public virtual void Encode(ByteBuffer bb)
         {
             bb.WriteLong(UniqueRequestId);
-            bb.WriteString(AppInstance);
+            bb.WriteString(ClientId);
+            bb.WriteLong(CreateTime);
         }
     }
 
@@ -70,7 +77,8 @@ namespace Zeze.Raft
 
         public int Operate { get; private set; }
 
-        public HeartbeatLog(int operate = 0) : base("", 0)
+        public HeartbeatLog(int operate = 0)
+            : base(null)
         {
             Operate = operate;
         }
@@ -205,12 +213,76 @@ namespace Zeze.Raft
         }
 
         // Leader
-        public long AppendLogActiveTime { get; internal set; } = Zeze.Util.Time.NowUnixMillis;
         // Follower
         public long LeaderActiveTime { get; private set; } = Zeze.Util.Time.NowUnixMillis;
 
         private RocksDb Logs { get; set; }
         private RocksDb Rafts { get; set; }
+
+        internal sealed class AppliedSet
+        { 
+            private RocksDb Db { get; set; }
+            public string DbName { get; set; }
+
+            public LogSequence LogSequence { get; set; }
+
+            public AppliedSet(LogSequence lq, string dbName)
+            {
+                LogSequence = lq;
+                DbName = dbName;
+            }
+
+            static ConcurrentDictionary<string, ConcurrentDictionary<long, long>> unique
+                = new ConcurrentDictionary<string,ConcurrentDictionary<long, long>>(); 
+
+            public void Apply(Log log)
+            {
+                unique.GetOrAdd(log.ClientId, (_) => new ConcurrentDictionary<long, long>())
+                    .TryAdd(log.UniqueRequestId, log.UniqueRequestId);
+                /*/
+                var key = EncodeKey(log.ClientId, log.UniqueRequestId);
+                OpenDb().Put(key.Bytes, key.Size, Array.Empty<byte>(), 0, null, LogSequence.WriteOptionsSync);
+                // */
+            }
+
+            public bool HasApplied(IRaftRpc iraftrpc)
+            {
+                return unique.GetOrAdd(iraftrpc.ClientId, (_) => new ConcurrentDictionary<long, long>())
+                    .ContainsKey(iraftrpc.UniqueRequestId);
+                /*/
+                var key = EncodeKey(iraftrpc.ClientId, iraftrpc.UniqueRequestId);
+                return OpenDb().Get(key.Bytes, key.Size) != null;
+                // */
+            }
+
+            private RocksDb OpenDb()
+            {
+                lock (this)
+                {
+                    if (null == Db)
+                    {
+                        Db = RocksDb.Open(new DbOptions().SetCreateIfMissing(true),
+                            Path.Combine(LogSequence.Raft.RaftConfig.DbHome, "unique", DbName));
+                    }
+                    return Db;
+                }
+            }
+
+            private ByteBuffer EncodeKey(string clientId, long uniqueRequestId)
+            {
+                var bb = ByteBuffer.Allocate();
+                bb.WriteString(clientId);
+                bb.WriteLong(uniqueRequestId);
+                return bb;
+            }
+
+            public void Dispose()
+            {
+                Db?.Dispose();
+            }
+        }
+        private ConcurrentDictionary<string, AppliedSet> AppliedSets { get; }
+            = new ConcurrentDictionary<string, AppliedSet>();
 
         internal void Close()
         {
@@ -220,6 +292,11 @@ namespace Zeze.Raft
                 Logs = null;
                 Rafts?.Dispose();
                 Rafts = null;
+                foreach (var db in AppliedSets.Values)
+                {
+                    db.Dispose();
+                }
+                AppliedSets.Clear();
             }
         }
 
@@ -293,9 +370,24 @@ namespace Zeze.Raft
             }
         }
 
+        internal bool HasApplied(Protocol p)
+        {
+            var iraftrpc = p as IRaftRpc;
+            if (null == iraftrpc)
+                return false;
+            return OpenAppliedSet(iraftrpc.CreateTime).HasApplied(iraftrpc);
+        }
+
+        private AppliedSet OpenAppliedSet(long time)
+        {
+            var dateTime = Util.Time.UnixMillisToDateTime(time);
+            var dbName = $"{dateTime.Year}.{dateTime.Month}.{dateTime.Day}";
+            return AppliedSets.GetOrAdd(dbName, (db) => new AppliedSet(this, db));
+        }
+
         private readonly byte[] RaftsTermKey;
         private readonly byte[] RaftsVoteForKey;
-        private readonly WriteOptions WriteOptionsSync = new WriteOptions().SetSync(true);
+        internal readonly WriteOptions WriteOptionsSync = new WriteOptions().SetSync(true);
 
         private void SaveLog(RaftLog log)
         {
@@ -309,8 +401,7 @@ namespace Zeze.Raft
                 null, WriteOptionsSync
                 );
 
-            //if (Raft.IsLeader)
-            //    logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Key={key} Count={GetTestStateMachineCount()}");
+            //logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Key={key} Count={GetTestStateMachineCount()}");
         }
 
         private RaftLog ReadLog(long index)
@@ -330,6 +421,10 @@ namespace Zeze.Raft
             Older
         }
 
+        // Rules for Servers
+        // All Servers:
+        // If RPC request or response contains term T > currentTerm:
+        // set currentTerm = T, convert to follower(§5.1)
         internal SetTermResult TrySetTerm(long term)
         {
             if (term > Term)
@@ -473,11 +568,7 @@ namespace Zeze.Raft
                     // 这是防止请求重复执行用的。
                     // 需要对每个Raft.Agent的请求排队处理。
                     // see Net.cs Server.DispatchProtocol
-
-                    // 这里不需要递增判断：由于请求是按网络传过来的顺序处理的，到达这里肯定是递增的。
-                    // 如果来自客户端的请求Id不是增长的，在 Net.cs::Server 处理时会拒绝掉。
-                    var rpcs = AppliedRpcs.GetOrAdd(raftLog.Log.AppInstance, (k) => new ConcurrentDictionary<long, long>());
-                    rpcs.TryAdd(raftLog.Log.UniqueRequestId, raftLog.Log.UniqueRequestId);
+                    OpenAppliedSet(raftLog.Log.CreateTime).Apply(raftLog.Log);
                 }
                 raftLog.Log.Apply(raftLog, Raft.StateMachine);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
@@ -485,8 +576,7 @@ namespace Zeze.Raft
                 if (WaitApplyFutures.TryRemove(raftLog.Index, out var future))
                     future.SetResult(0);
             }
-            //if (Raft.IsLeader)
-                logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={lastApplyableLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
+            logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={lastApplyableLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
         }
 
         internal long GetTestStateMachineCount()
@@ -494,13 +584,15 @@ namespace Zeze.Raft
             return (Raft.StateMachine as Test.TestStateMachine).Count;
         }
 
-        public static ConcurrentDictionary<string, ConcurrentDictionary<long, long>> AppliedRpcs { get; }
-            = new ConcurrentDictionary<string, ConcurrentDictionary<long, long>>();
-
         internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }
             = new ConcurrentDictionary<long, TaskCompletionSource<int>>();
 
-        public void AppendLog(Log log, bool WaitApply = true)
+        public void AppendLog(Log log)
+        {
+            AppendLog(log, true);
+        }
+
+        internal void AppendLog(Log log, bool WaitApply)
         {
             AppendLog(log, WaitApply, out _, out _);
         }
@@ -802,11 +894,13 @@ namespace Zeze.Raft
         {
             // 这个rpc处理流程总是返回 Success，需要统计观察不同的分支的发生情况，再来定义不同的返回值。
 
-            if (false == Raft.IsLeader)
-                return Procedure.Success; // maybe close.
-
             var r = p as AppendEntries;
-            if (r.IsTimeout)
+            bool resend = false;
+            lock (Raft)
+            {
+                resend = r.IsTimeout && Raft.IsLeader;
+            }
+            if (resend)
             {
                 TrySendAppendEntries(connector, r);  //resend
                 return Procedure.Success;
@@ -825,7 +919,7 @@ namespace Zeze.Raft
                     return Procedure.Success;
                 }
 
-                if (Raft.State != Raft.RaftState.Leader)
+                if (false == Raft.IsLeader)
                 {
                     connector.Pending = null;
                     return Procedure.Success;
@@ -862,7 +956,7 @@ namespace Zeze.Raft
             lock (Raft)
             {
                 // 按理说，多个Follower设置一次就够了，这里就不做这个处理了。
-                AppendLogActiveTime = Util.Time.NowUnixMillis;
+                connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
                 if (false == Raft.IsLeader)
                     return; // skip if is not a leader
 
@@ -953,7 +1047,7 @@ namespace Zeze.Raft
 
                 var key = ByteBuffer.Allocate();
                 key.WriteLong(index);
-                Logs.Remove(key.Bytes, key.Size);
+                Logs.Remove(key.Bytes, key.Size, null, WriteOptionsSync);
             }
         }
 
@@ -962,8 +1056,12 @@ namespace Zeze.Raft
             switch (TrySetTerm(r.Argument.Term))
             {
                 case SetTermResult.Newer:
+                    Raft.ConvertStateTo(Raft.RaftState.Follower);
+                    Raft.LeaderId = r.Argument.LeaderId;
+                    break;
+
                 case SetTermResult.Same:
-                    // see raft.pdf 文档. 仅在 Candidate 才转。
+                    // see raft.pdf 文档. 仅在 Candidate 才转。【找不到在文档哪里了，需要确认这点】
                     if (Raft.State == Raft.RaftState.Candidate)
                     {
                         Raft.ConvertStateTo(Raft.RaftState.Follower);
