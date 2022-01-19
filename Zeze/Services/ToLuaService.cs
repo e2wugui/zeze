@@ -321,7 +321,7 @@ namespace Zeze.Services.ToLuaService
 
         internal void CallSocketClose(FromLua service, long socketSessionId)
         {
-            if (LuaType.Function != Lua.GetGlobal("ZezeSocketClose")) // push func onto stack
+            if (Lua.GetGlobal("ZezeSocketClose") != LuaType.Function) // push func onto stack
             {
                 Lua.Pop(1);
                 return;
@@ -335,7 +335,7 @@ namespace Zeze.Services.ToLuaService
         internal void CallHandshakeDone(FromLua service, long socketSessionId)
         {
             // void OnHandshakeDone(service, long sessionId)
-            if (LuaType.Function != Lua.GetGlobal("ZezeHandshakeDone")) // push func onto stack
+            if (Lua.GetGlobal("ZezeHandshakeDone") != LuaType.Function) // push func onto stack
             {
                 Lua.Pop(1);
                 throw new Exception("ZezeHandshakeDone is not a function");
@@ -498,27 +498,19 @@ namespace Zeze.Services.ToLuaService
         {
             if (!Lua.IsTable(-1))
                 throw new Exception("encodebean need a table");
-
-            if (beanTypeId == EmptyBean.TYPEID)
+            if (beanTypeId != EmptyBean.TYPEID)
             {
-                bb.WriteByte(0);
-                return;
-            }
-            if (!BeanMetas.TryGetValue(beanTypeId, out var beanMeta))
-                throw new Exception("bean not found in meta for beanTypeId=" + beanTypeId);
-
-            int lastId = 0;
-            foreach (var v in beanMeta.Variables)
-            {
-                Lua.PushInteger(v.Id);
-                Lua.GetTable(-2);
-                if (Lua.IsNil(-1)) // allow var not set
+                if (!BeanMetas.TryGetValue(beanTypeId, out var beanMeta))
+                    throw new Exception("bean not found in meta for beanTypeId=" + beanTypeId);
+                int lastId = 0;
+                foreach (var v in beanMeta.Variables)
                 {
+                    Lua.PushInteger(v.Id);
+                    Lua.GetTable(-2);
+                    if (!Lua.IsNil(-1)) // allow var not set
+                        lastId = EncodeVariable(bb, v, lastId, -1);
                     Lua.Pop(1);
-                    continue;
                 }
-                lastId = EncodeVariable(bb, v, lastId);
-                Lua.Pop(1);
             }
             bb.WriteByte(0);
         }
@@ -528,16 +520,12 @@ namespace Zeze.Services.ToLuaService
             if (!Lua.IsTable(-1))
                 throw new Exception("EncodeGetTableLength: not a table");
             int len = 0;
-            Lua.PushNil();
-            while (Lua.Next(-2))
-            {
-                ++len;
-                Lua.Pop(1);
-            }
+            for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1))
+                len++;
             return len;
         }
 
-        int EncodeVariable(ByteBuffer bb, VariableMeta v, int lastId = 0, int index = -1)
+        int EncodeVariable(ByteBuffer bb, VariableMeta v, int lastId, int index)
         {
             int id = v.Id;
             switch (v.Type)
@@ -597,12 +585,8 @@ namespace Zeze.Services.ToLuaService
                     {
                         lastId = bb.WriteTag(lastId, id, ByteBuffer.LIST);
                         bb.WriteListType(n, v.Value & ByteBuffer.TAG_MASK);
-                        Lua.PushNil();
-                        while (Lua.Next(-2))
-                        {
-                            EncodeVariable(bb, new VariableMeta() { Id = 0, Type = v.Value, TypeBeanTypeId = v.ValueBeanTypeId });
-                            Lua.Pop(1);
-                        }
+                        for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1))
+                            EncodeVariable(bb, new VariableMeta() { Id = 0, Type = v.Value, TypeBeanTypeId = v.ValueBeanTypeId }, 0, -1);
                     }
                     break;
                 case ByteBuffer.LUA_SET:
@@ -615,12 +599,8 @@ namespace Zeze.Services.ToLuaService
                     {
                         lastId = bb.WriteTag(lastId, id, ByteBuffer.LIST);
                         bb.WriteListType(n, v.Value & ByteBuffer.TAG_MASK);
-                        Lua.PushNil();
-                        while (Lua.Next(-2))
-                        {
-                            Lua.Pop(1); // set：encode key
-                            EncodeVariable(bb, new VariableMeta() { Id = 0, Type = v.Value, TypeBeanTypeId = v.ValueBeanTypeId });
-                        }
+                        for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1))
+                            EncodeVariable(bb, new VariableMeta() { Id = 0, Type = v.Value, TypeBeanTypeId = v.ValueBeanTypeId }, 0, -2); // set：encode key
                     }
                     break;
                 case ByteBuffer.MAP:
@@ -633,12 +613,10 @@ namespace Zeze.Services.ToLuaService
                     {
                         lastId = bb.WriteTag(lastId, id, ByteBuffer.MAP);
                         bb.WriteMapType(n, v.Key & ByteBuffer.TAG_MASK, v.Value & ByteBuffer.TAG_MASK);
-                        Lua.PushNil();
-                        while (Lua.Next(-2))
+                        for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1))
                         {
                             EncodeVariable(bb, new VariableMeta() { Id = 0, Type = v.Key, TypeBeanTypeId = v.KeyBeanTypeId }, 0, -2);
-                            EncodeVariable(bb, new VariableMeta() { Id = 0, Type = v.Value, TypeBeanTypeId = v.ValueBeanTypeId });
-                            Lua.Pop(1);
+                            EncodeVariable(bb, new VariableMeta() { Id = 0, Type = v.Value, TypeBeanTypeId = v.ValueBeanTypeId }, 0, -1);
                         }
                     }
                     break;
@@ -666,15 +644,15 @@ namespace Zeze.Services.ToLuaService
                     long beanTypeId = Lua.ToInteger(-1);
                     Lua.Pop(1);
 
-                    var funcName = $"Zeze_GetRealBeanTypeIdFromSpecial_{v.BeanMeta.Name}_{v.Name}";
-                    if (LuaType.Function != Lua.GetGlobal(funcName)) // push func onto stack
+                    string funcName = $"Zeze_GetRealBeanTypeIdFromSpecial_{v.BeanMeta.Name}_{v.Name}";
+                    if (Lua.GetGlobal(funcName) != LuaType.Function) // push func onto stack
                     {
                         Lua.Pop(1);
                         throw new Exception($"{funcName} is not a function");
                     }
                     Lua.PushInteger(beanTypeId);
                     Lua.Call(1, 1);
-                    var realBeanTypeId = Lua.ToInteger(-1);
+                    long realBeanTypeId = Lua.ToInteger(-1);
                     Lua.Pop(1);
 
                     if (id > 0)
@@ -690,7 +668,7 @@ namespace Zeze.Services.ToLuaService
 
         void CallRpcTimeout(long sid)
         {
-            if (LuaType.Function != Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
+            if (Lua.GetGlobal("ZezeDispatchProtocol") != LuaType.Function) // push func onto stack
             {
                 Lua.Pop(1);
                 return;
@@ -720,7 +698,7 @@ namespace Zeze.Services.ToLuaService
 
         public bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer _os_)
         {
-            if (LuaType.Function != Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
+            if (Lua.GetGlobal("ZezeDispatchProtocol") != LuaType.Function) // push func onto stack
             {
                 Lua.Pop(1);
                 return false;
@@ -745,11 +723,11 @@ namespace Zeze.Services.ToLuaService
             Lua.SetTable(-3);
 
             Lua.PushString("ModuleId");
-            Lua.PushInteger((typeId >> 16) & 0xffff);
+            Lua.PushInteger(typeId >> 32);
             Lua.SetTable(-3);
 
             Lua.PushString("ProtcolId");
-            Lua.PushInteger(typeId & 0xffff);
+            Lua.PushInteger((int)typeId);
             Lua.SetTable(-3);
 
             Lua.PushString("TypeId");
@@ -823,13 +801,13 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
-        void DecodeVariable(ByteBuffer bb, int id, int type, BeanMeta beanMeta, bool inCollection = false)
+        void DecodeVariable(ByteBuffer bb, int id, int type, BeanMeta beanMeta)
         {
             switch (type)
             {
                 case ByteBuffer.INTEGER:
-                    VariableMeta v = beanMeta?.Variables.Find(x => x.Id == id);
-                    if (v != null && v.Type == ByteBuffer.LUA_BOOL)
+                    VariableMeta varMeta = beanMeta?.Variables.Find(x => x.Id == id);
+                    if (varMeta != null && varMeta.Type == ByteBuffer.LUA_BOOL)
                         Lua.PushBoolean(bb.ReadBool());
                     else
                         Lua.PushInteger(bb.ReadLong());
@@ -847,13 +825,13 @@ namespace Zeze.Services.ToLuaService
                     int t = bb.ReadByte();
                     int n = bb.ReadTagSize(t);
                     t &= ByteBuffer.TAG_MASK;
-                    v = beanMeta?.Variables.Find(x => x.Id == id);
-                    if (v != null && v.Type == ByteBuffer.LUA_SET)
+                    varMeta = beanMeta?.Variables.Find(x => x.Id == id);
+                    if (varMeta != null && varMeta.Type == ByteBuffer.LUA_SET)
                     {
                         Lua.CreateTable(0, Math.Min(n, 1000));
                         for (; n > 0; n--)
                         {
-                            DecodeVariable(bb, 0, t, null, true);
+                            DecodeVariable(bb, 0, t, null);
                             Lua.PushInteger(0);
                             Lua.SetTable(-3);
                         }
@@ -864,7 +842,7 @@ namespace Zeze.Services.ToLuaService
                         for (int i = 1; i <= n; i++) // 从1开始？
                         {
                             Lua.PushInteger(i);
-                            DecodeVariable(bb, 0, t, null, true);
+                            DecodeVariable(bb, 0, t, null);
                             Lua.SetTable(-3);
                         }
                     }
@@ -877,14 +855,14 @@ namespace Zeze.Services.ToLuaService
                     Lua.CreateTable(0, Math.Min(n, 1000));
                     for (; n > 0; n--)
                     {
-                        DecodeVariable(bb, 0, s, null, true);
-                        DecodeVariable(bb, 0, t, null, true);
+                        DecodeVariable(bb, 0, s, null);
+                        DecodeVariable(bb, 0, t, null);
                         Lua.SetTable(-3);
                     }
                     break;
                 case ByteBuffer.BEAN:
-                    v = beanMeta?.Variables.Find(x => x.Id == id);
-                    DecodeBean(bb, v != null ? v.TypeBeanTypeId : 0);
+                    varMeta = beanMeta?.Variables.Find(x => x.Id == id);
+                    DecodeBean(bb, varMeta != null ? varMeta.TypeBeanTypeId : 0);
                     break;
                 case ByteBuffer.DYNAMIC:
                     long beanTypeId = bb.ReadLong();

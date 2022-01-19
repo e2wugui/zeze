@@ -1,23 +1,26 @@
-
 #pragma once
 
-#include "IDecodeAndDispatcher.h"
-#include "LuaHelper.h"
-#include "ByteBuffer.h"
-#include <unordered_map>
-#include <unordered_set>
+#include <string>
 #include <vector>
+#include <unordered_set>
+#include <unordered_map>
 #include <mutex>
+#include <algorithm>
+#include <utility>
+#include "ByteBuffer.h"
+#include "LuaHelper.h"
+#include "IDecodeAndDispatcher.h"
 
 namespace Zeze
 {
 namespace Net
 {
+    using ByteBuffer = Zeze::Serialize::ByteBuffer;
     class Service;
     class Socket;
     class ToLuaService;
 
-	class ToLua : public IDecodeAndDispatcher
+    class ToLua : public IDecodeAndDispatcher
     {
         LuaHelper Lua;
     public:
@@ -33,19 +36,18 @@ namespace Net
         class VariableMeta
         {
         public:
-            int Id = 0;
-
-            int Type = 0;
-            long long TypeBeanTypeId = 0;
-            int Key = 0;
-            long long KeyBeanTypeId = 0;
-            int Value = 0;
-            long long ValueBeanTypeId = 0;
+            int Id{0};
+            int Type{0};
+            int Key{0};
+            int Value{0};
+            long long TypeBeanTypeId{0};
+            long long KeyBeanTypeId{0};
+            long long ValueBeanTypeId{0};
             std::string Name;
 
             // 这个变量目前仅用于dynamic访问得到var所在bean的名字，
             // 容器之类的不会直接包含dynamic，所以动态构造的var是没有初始化这个变量的。
-            BeanMeta* BeanMeta = NULL;
+            BeanMeta* BeanMeta{nullptr};
 
             VariableMeta()
             {
@@ -68,9 +70,9 @@ namespace Net
         class ProtocolArgument
         {
         public:
-            long long ArgumentBeanTypeId = 0;
-            long long ResultBeanTypeId = 0;
-            bool IsRpc = false;
+            long long ArgumentBeanTypeId{0};
+            long long ResultBeanTypeId{0};
+            bool IsRpc{false};
         };
 
         typedef std::unordered_map<long long, BeanMeta> BeanMetasMap;
@@ -80,7 +82,7 @@ namespace Net
         ProtocolMetasMap ProtocolMetas; // protocol.TypeId -> Bean.TypeId
 
     public:
-        void LoadMeta(lua_State * L)
+        void LoadMeta(lua_State* L)
         {
             Lua.L = L;
 
@@ -92,14 +94,14 @@ namespace Net
 
             if (Lua.DoString("local meta = require 'ZezeMeta'\nreturn meta"))
                 throw std::exception("load ZezeMeta.lua error");
-            if (false == Lua.IsTable(-1))
+            if (!Lua.IsTable(-1))
                 throw std::exception("ZezeMeta not return a table");
             Lua.GetField(-1, "beans");
             Lua.PushNil();
             while (Lua.Next(-2)) // -1 value of vars(table) -2 key of bean.TypeId
             {
                 long long beanTypeId = Lua.ToInteger(-2);
-                BeanMeta & beanMeta = BeanMetas[beanTypeId];
+                BeanMeta& beanMeta = BeanMetas[beanTypeId];
                 Lua.PushNil();
                 while (Lua.Next(-2)) // -1 value of varmeta(table) -2 key of varid
                 {
@@ -132,6 +134,10 @@ namespace Net
                     Lua.Pop(1); // pop value
                     beanMeta.Variables.push_back(var);
                 }
+                std::sort(beanMeta.Variables.begin(), beanMeta.Variables.end(), [](const auto& a, const auto& b)
+                {
+                    return a.Id < b.Id;
+                });
                 Lua.Pop(1); // pop value
             }
             Lua.Pop(1);
@@ -160,7 +166,7 @@ namespace Net
 
         void CallSocketClose(Service* service, long long socketSessionId)
         {
-            if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeSocketClose")) // push func onto stack
+            if (Lua.GetGlobal("ZezeSocketClose") != LuaHelper::LuaType::Function) // push func onto stack
             {
                 Lua.Pop(1);
                 return;
@@ -171,9 +177,9 @@ namespace Net
             Lua.Call(2, 0);
         }
 
-        void CallHandshakeDone(Service * service, long long socketSessionId)
+        void CallHandshakeDone(Service* service, long long socketSessionId)
         {
-            if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeHandshakeDone")) // push func onto stack
+            if (Lua.GetGlobal("ZezeHandshakeDone") != LuaHelper::LuaType::Function) // push func onto stack
             {
                 Lua.Pop(1);
                 throw std::exception("ZezeHandshakeDone is not a function");
@@ -189,177 +195,170 @@ namespace Net
         static int ZezeConnect(lua_State* luaState);
 
         void RegisterGlobalAndCallback(ToLuaService* service);
-        void SendProtocol(Socket * socket);
+        void SendProtocol(Socket* socket);
 
-        void EncodeBean(Zeze::Serialize::ByteBuffer & bb, long long beanTypeId)
+        void EncodeBean(ByteBuffer& bb, long long beanTypeId)
         {
-            if (false == Lua.IsTable(-1))
-                throw std::exception("encodebean need a table");
-
-            if (beanTypeId == 0) // EmptyBean
+            if (!Lua.IsTable(-1))
+                throw std::exception("EncodeBean need a table");
+            if (beanTypeId != 0)
             {
-                bb.WriteInt(0);
-                return;
-            }
-
-            BeanMetasMap::iterator bit = BeanMetas.find(beanTypeId);
-            if (bit == BeanMetas.end())
-                throw std::exception("bean not found in meta for beanTypeId=" + beanTypeId);
-
-            BeanMeta & beanMeta = bit->second;
-            // 先遍历一遍，得到填写了的var的数量
-            int varsCount = 0;
-            for (auto & v : beanMeta.Variables)
-            {
-                Lua.PushInteger(v.Id);
-                Lua.GetTable(-2);
-                if (false == Lua.IsNil(-1))
-                    ++varsCount;
-                Lua.Pop(1);
-            }
-            bb.WriteInt(varsCount);
-
-            for (auto & v : beanMeta.Variables)
-            {
-                Lua.PushInteger(v.Id);
-                Lua.GetTable(-2);
-                if (Lua.IsNil(-1)) // allow var not set
+                BeanMetasMap::const_iterator bit = BeanMetas.find(beanTypeId);
+                if (bit == BeanMetas.cend())
+                    throw std::exception("bean not found in meta for beanTypeId=" + beanTypeId);
+                int lastId = 0;
+                for (const auto& v : bit->second.Variables)
                 {
+                    Lua.PushInteger(v.Id);
+                    Lua.GetTable(-2);
+                    if (!Lua.IsNil(-1)) // allow var not set
+                        lastId = EncodeVariable(bb, v, lastId, -1);
                     Lua.Pop(1);
-                    continue;
                 }
-                EncodeVariable(bb, v);
-                Lua.Pop(1);
             }
+            bb.WriteByte(0);
         }
 
         int EncodeGetTableLength()
         {
-            if (false == Lua.IsTable(-1))
+            if (!Lua.IsTable(-1))
                 throw std::exception("EncodeGetTableLength: not a table");
             int len = 0;
-            Lua.PushNil();
-            while (Lua.Next(-2))
-            {
-                ++len;
-                Lua.Pop(1);
-            }
+            for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1))
+                len++;
             return len;
         }
 
-        void EncodeVariable(Zeze::Serialize::ByteBuffer & _os_, const VariableMeta & v, int index = -1)
+        int EncodeVariable(ByteBuffer& bb, const VariableMeta& v, int lastId, int index)
         {
-            if (v.Id > 0) // 编码容器中项时，Id为0，此时不需要编码 tagid.
-                _os_.WriteInt(v.Type | v.Id << Zeze::Serialize::ByteBuffer::TAG_SHIFT);
-
+            int id = v.Id;
             switch (v.Type)
             {
-            case Zeze::Serialize::ByteBuffer::BOOL:
-                _os_.WriteBool(Lua.ToBoolean(index));
-                break;
-            case Zeze::Serialize::ByteBuffer::BYTE:
-                _os_.WriteByte((char)Lua.ToInteger(index));
-                break;
-            case Zeze::Serialize::ByteBuffer::SHORT:
-                _os_.WriteShort((short)Lua.ToInteger(index));
-                break;
-            case Zeze::Serialize::ByteBuffer::INT:
-                _os_.WriteInt((int)Lua.ToInteger(index));
-                break;
-            case Zeze::Serialize::ByteBuffer::LONG:
-                _os_.WriteLong(Lua.ToInteger(index));
-                break;
-            case Zeze::Serialize::ByteBuffer::FLOAT:
-                _os_.WriteFloat((float)Lua.ToNumber(index));
-                break;
-            case Zeze::Serialize::ByteBuffer::DOUBLE:
-                _os_.WriteDouble(Lua.ToNumber(index));
-                break;
-            case Zeze::Serialize::ByteBuffer::STRING:
-                _os_.WriteString(Lua.ToString(index));
-                break;
-            case Zeze::Serialize::ByteBuffer::BYTES:
-                _os_.WriteBytes(Lua.ToBuffer(index));
-                break;
-            case Zeze::Serialize::ByteBuffer::LIST:
+            case ByteBuffer::LUA_BOOL:
             {
-                if (false == Lua.IsTable(-1))
+                bool vb = Lua.ToBoolean(index);
+                if (vb || id <= 0)
+                {
+                    if (id > 0)
+                        lastId = bb.WriteTag(lastId, id, ByteBuffer::INTEGER);
+                    bb.WriteBool(vb);
+                }
+                break;
+            }
+            case ByteBuffer::INTEGER:
+            {
+                long long vi = Lua.ToInteger(index);
+                if (vi != 0 || id <= 0)
+                {
+                    if (id > 0)
+                        lastId = bb.WriteTag(lastId, id, ByteBuffer::INTEGER);
+                    bb.WriteLong(vi);
+                }
+                break;
+            }
+            case ByteBuffer::FLOAT:
+            {
+                float vf = (float)Lua.ToNumber(index);
+                if (vf != 0 || id <= 0)
+                {
+                    if (id > 0)
+                        lastId = bb.WriteTag(lastId, id, ByteBuffer::FLOAT);
+                    bb.WriteFloat(vf);
+                }
+                break;
+            }
+            case ByteBuffer::DOUBLE:
+            {
+                double vd = Lua.ToNumber(index);
+                if (vd != 0 || id <= 0)
+                {
+                    if (id > 0)
+                        lastId = bb.WriteTag(lastId, id, ByteBuffer::DOUBLE);
+                    bb.WriteDouble(vd);
+                }
+                break;
+            }
+            case ByteBuffer::BYTES:
+            {
+                const std::string str = Lua.ToBuffer(index);
+                if (!str.empty() || id <= 0)
+                {
+                    if (id > 0)
+                        lastId = bb.WriteTag(lastId, id, ByteBuffer::BYTES);
+                    bb.WriteBytes(str);
+                }
+                break;
+            }
+            case ByteBuffer::LIST:
+            {
+                if (!Lua.IsTable(-1))
                     throw std::exception("list must be a table");
-                if (v.Id <= 0)
-                    throw std::exception("list cannot define in collection");
-                int outstate;
-                _os_.BeginWriteSegment(outstate);
-                _os_.WriteInt(v.Value);
-                _os_.WriteInt(EncodeGetTableLength());
-                Lua.PushNil();
-                while (Lua.Next(-2))
+                if (id <= 0)
+                    throw std::exception("list cannot be defined in container");
+                int n = EncodeGetTableLength();
+                if (n > 0)
                 {
-                    EncodeVariable(_os_, VariableMeta(0, v.Value, v.ValueBeanTypeId));
-                    Lua.Pop(1);
+                    lastId = bb.WriteTag(lastId, id, ByteBuffer::LIST);
+                    bb.WriteListType(n, v.Value & ByteBuffer::TAG_MASK);
+                    for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1))
+                        EncodeVariable(bb, VariableMeta(0, v.Value, v.ValueBeanTypeId), 0, -1);
                 }
-                _os_.EndWriteSegment(outstate);
                 break;
             }
-            case Zeze::Serialize::ByteBuffer::SET:
+            case ByteBuffer::LUA_SET:
             {
-                if (false == Lua.IsTable(-1))
+                if (!Lua.IsTable(-1))
                     throw std::exception("set must be a table");
-                if (v.Id <= 0)
-                    throw std::exception("set cannot define in collection");
-                int outstate;
-                _os_.BeginWriteSegment(outstate);
-                _os_.WriteInt(v.Value);
-                _os_.WriteInt(EncodeGetTableLength());
-                Lua.PushNil();
-                while (Lua.Next(-2))
+                if (id <= 0)
+                    throw std::exception("set cannot be defined in container");
+                int n = EncodeGetTableLength();
+                if (n > 0)
                 {
-                    Lua.Pop(1); // set：encode key
-                    EncodeVariable(_os_, VariableMeta(0, v.Value, v.ValueBeanTypeId));
+                    lastId = bb.WriteTag(lastId, id, ByteBuffer::LIST);
+                    bb.WriteListType(n, v.Value & ByteBuffer::TAG_MASK);
+                    for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1))
+                        EncodeVariable(bb, VariableMeta(0, v.Value, v.ValueBeanTypeId), 0, -2); // set：encode key
                 }
-                _os_.EndWriteSegment(outstate);
                 break;
             }
-            case Zeze::Serialize::ByteBuffer::MAP:
+            case ByteBuffer::MAP:
             {
-                if (false == Lua.IsTable(-1))
+                if (!Lua.IsTable(-1))
                     throw std::exception("map must be a table");
-                if (v.Id <= 0)
-                    throw std::exception("map cannot define in collection");
-                int outstate;
-                _os_.BeginWriteSegment(outstate);
-                _os_.WriteInt(v.Key);
-                _os_.WriteInt(v.Value);
-                _os_.WriteInt(EncodeGetTableLength());
-                Lua.PushNil();
-                while (Lua.Next(-2))
+                if (id <= 0)
+                    throw std::exception("map cannot be defined in container");
+                int n = EncodeGetTableLength();
+                if (n > 0)
                 {
-                    EncodeVariable(_os_, VariableMeta(0, v.Key, v.KeyBeanTypeId), -2);
-                    EncodeVariable(_os_, VariableMeta(0, v.Value, v.ValueBeanTypeId), -1);
-                    Lua.Pop(1);
+                    lastId = bb.WriteTag(lastId, id, ByteBuffer::MAP);
+                    bb.WriteMapType(n, v.Key & ByteBuffer::TAG_MASK, v.Value & ByteBuffer::TAG_MASK);
+                    for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1))
+                    {
+                        EncodeVariable(bb, VariableMeta(0, v.Key, v.KeyBeanTypeId), 0, -2);
+                        EncodeVariable(bb, VariableMeta(0, v.Value, v.ValueBeanTypeId), 0, -1);
+                    }
                 }
-                _os_.EndWriteSegment(outstate);
                 break;
             }
-            case Zeze::Serialize::ByteBuffer::BEAN:
-            {
-                if (v.Id > 0)
+            case ByteBuffer::BEAN:
+                if (id > 0)
                 {
-                    int outstate;
-                    _os_.BeginWriteSegment(outstate);
-                    EncodeBean(_os_, v.TypeBeanTypeId);
-                    _os_.EndWriteSegment(outstate);
+                    int a = bb.WriteIndex;
+                    int j = bb.WriteTag(lastId, id, ByteBuffer::BEAN);
+                    int b = bb.WriteIndex;
+                    EncodeBean(bb, v.TypeBeanTypeId);
+                    if (b + 1 == bb.WriteIndex) // only bean end mark
+                        bb.WriteIndex = a;
+                    else
+                        lastId = j;
                 }
                 else
-                {
-                    // in collection. direct encode
-                    EncodeBean(_os_, v.TypeBeanTypeId);
-                }
+                    EncodeBean(bb, v.TypeBeanTypeId);
                 break;
-            }
-            case Zeze::Serialize::ByteBuffer::DYNAMIC:
+            case ByteBuffer::DYNAMIC:
             {
-                if (v.Id <= 0)
-                    throw std::exception("dynamic cannot define in collection");
+                if (id <= 0)
+                    throw std::exception("dynamic cannot be defined in container");
                 Lua.GetField(-1, "_TypeId_");
                 if (Lua.IsNil(-1))
                     throw std::exception("'_TypeId_' not found. dynamic bean needed.");
@@ -367,7 +366,7 @@ namespace Net
                 Lua.Pop(1);
 
                 std::string funcName = "Zeze_GetRealBeanTypeIdFromSpecial_" + v.BeanMeta->Name + "_" + v.Name;
-                if (LuaHelper::LuaType::Function != Lua.GetGlobal(funcName.c_str())) // push func onto stack
+                if (Lua.GetGlobal(funcName.c_str()) != LuaHelper::LuaType::Function) // push func onto stack
                 {
                     Lua.Pop(1);
                     throw std::exception((funcName + " is not a function").c_str());
@@ -377,160 +376,131 @@ namespace Net
                 long long realBeanTypeId = Lua.ToInteger(-1);
                 Lua.Pop(1);
 
-                _os_.WriteLong8(beanTypeId);
-                int outstate;
-                _os_.BeginWriteSegment(outstate);
-                EncodeBean(_os_, realBeanTypeId);
-                _os_.EndWriteSegment(outstate);
+                if (id > 0)
+                    lastId = bb.WriteTag(lastId, id, ByteBuffer::DYNAMIC);
+                bb.WriteLong(beanTypeId);
+                EncodeBean(bb, realBeanTypeId);
                 break;
             }
             default:
-                    throw std::exception("Unkown Tag Type");
+                throw std::exception("Unkown Tag Type");
             }
+            return lastId;
         }
     public:
-        virtual bool DecodeAndDispatch(Service* service, long long sessionId, int moduleId, int protocolId, Zeze::Serialize::ByteBuffer& _os_) override;
+        virtual bool DecodeAndDispatch(Service* service, long long sessionId, int moduleId, int protocolId, ByteBuffer& bb) override;
         void CallRpcTimeout(long long sid);
 
     private:
-        void DecodeBean(Zeze::Serialize::ByteBuffer & _os_)
+        void DecodeBean(ByteBuffer& bb, long long typeId)
         {
+            BeanMetasMap::const_iterator it = BeanMetas.find(typeId);
+            const BeanMeta* const beanMeta = it != BeanMetas.cend() ? &it->second : nullptr;
             Lua.CreateTable(0, 32);
-            for (int _varnum_ = _os_.ReadInt(); _varnum_ > 0; --_varnum_)
+            for (int id = 0;;)
             {
-                int _tagid_ = _os_.ReadInt();
-                int _varid_ = (_tagid_ >> Zeze::Serialize::ByteBuffer::TAG_SHIFT) & Zeze::Serialize::ByteBuffer::ID_MASK;
-                int _tagType_ = _tagid_ & Zeze::Serialize::ByteBuffer::TAG_MASK;
-                Lua.PushInteger(_varid_);
-                DecodeVariable(_os_, _tagType_);
+                int t = bb.ReadByte();
+                if (t == 0)
+                    return;
+                id += bb.ReadTagSize(t);
+                Lua.PushInteger(id);
+                DecodeVariable(bb, id, t, beanMeta);
                 Lua.SetTable(-3);
             }
         }
 
-        void DecodeVariable(Zeze::Serialize::ByteBuffer & _os_, int _tagType_, bool inCollection = false)
+    private:
+        static const VariableMeta* FindVarMeta(const BeanMeta* const beanMeta, int id)
         {
-            switch (_tagType_)
+            if (!beanMeta)
+                return nullptr;
+            auto it = std::find_if(beanMeta->Variables.cbegin(), beanMeta->Variables.cend(), [id](const VariableMeta& varMeta)
             {
-            case Zeze::Serialize::ByteBuffer::BOOL:
-                Lua.PushBoolean(_os_.ReadBool());
-                break;
-            case Zeze::Serialize::ByteBuffer::BYTE:
-                Lua.PushInteger(_os_.ReadByte());
-                break;
-            case Zeze::Serialize::ByteBuffer::SHORT:
-                Lua.PushInteger(_os_.ReadShort());
-                break;
-            case Zeze::Serialize::ByteBuffer::INT:
-                Lua.PushInteger(_os_.ReadInt());
-                break;
-            case Zeze::Serialize::ByteBuffer::LONG:
-                Lua.PushInteger(_os_.ReadLong());
-                break;
-            case Zeze::Serialize::ByteBuffer::FLOAT:
-                Lua.PushNumber(_os_.ReadFloat());
-                break;
-            case Zeze::Serialize::ByteBuffer::DOUBLE:
-                Lua.PushNumber(_os_.ReadDouble());
-                break;
-            case Zeze::Serialize::ByteBuffer::STRING:
+                return varMeta.Id == id;
+            });
+            return it != beanMeta->Variables.cend() ? &*it : nullptr;
+        }
+
+    public:
+        void DecodeVariable(ByteBuffer& bb, int id, int type, const BeanMeta* const beanMeta)
+        {
+            switch (type)
             {
-                const char* outstr;
-                int outlen;
-                _os_.ReadStringNoCopy(outstr, outlen);
-                Lua.PushString(outstr, outlen);
+            case ByteBuffer::INTEGER:
+            {
+                const VariableMeta* const varMeta = FindVarMeta(beanMeta, id);
+                if (varMeta && varMeta->Type == ByteBuffer::LUA_BOOL)
+                    Lua.PushBoolean(bb.ReadBool());
+                else
+                    Lua.PushInteger(bb.ReadLong());
                 break;
             }
-            case Zeze::Serialize::ByteBuffer::BYTES:
+            case ByteBuffer::FLOAT:
+                Lua.PushNumber(bb.ReadFloat());
+                break;
+            case ByteBuffer::DOUBLE:
+                Lua.PushNumber(bb.ReadDouble());
+                break;
+            case ByteBuffer::BYTES:
             {
-                const char* outstr;
                 int outlen;
-                _os_.ReadStringNoCopy(outstr, outlen);
+                const char* outstr = bb.ReadStringNoCopy(outlen);
                 Lua.PushBuffer(outstr, outlen);
                 break;
             }
-            case Zeze::Serialize::ByteBuffer::LIST:
+            case ByteBuffer::LIST:
             {
-                int outstate;
-                _os_.BeginReadSegment(outstate);
-                int _valueTagType_ = _os_.ReadInt();
-                Lua.CreateTable(128, 128); // 不知道用哪个参数。
-                int i = 1; // 从1开始？
-                for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)
+                int t = bb.ReadByte();
+                int n = bb.ReadTagSize(t);
+                t &= ByteBuffer::TAG_MASK;
+                const VariableMeta* const varMeta = FindVarMeta(beanMeta, id);
+                if (varMeta && varMeta->Type == ByteBuffer::LUA_SET)
                 {
-                    Lua.PushInteger(i);
-                    DecodeVariable(_os_, _valueTagType_, true);
-                    Lua.SetTable(-3);
-                    ++i;
-                }
-                _os_.EndReadSegment(outstate);
-                break;
-            }
-            case Zeze::Serialize::ByteBuffer::SET:
-            {
-                int outstate;
-                _os_.BeginReadSegment(outstate);
-                int _valueTagType_ = _os_.ReadInt();
-                Lua.CreateTable(128, 128); // 不知道用哪个参数。
-                int i = 1;
-                for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)
-                {
-                    DecodeVariable(_os_, _valueTagType_, true);
-                    Lua.PushInteger(0);
-                    Lua.SetTable(-3);
-                    ++i;
-                }
-                _os_.EndReadSegment(outstate);
-                break;
-            }
-            case Zeze::Serialize::ByteBuffer::MAP:
-            {
-                int outstate;
-                _os_.BeginReadSegment(outstate);
-                int _keyTagType_ = _os_.ReadInt();
-                int _valueTagType_ = _os_.ReadInt();
-                Lua.CreateTable(128, 0);
-                for (int _size_ = _os_.ReadInt(); _size_ > 0; --_size_)
-                {
-                    DecodeVariable(_os_, _keyTagType_, true);
-                    DecodeVariable(_os_, _valueTagType_, true);
-                    Lua.SetTable(-3);
-                }
-                _os_.EndReadSegment(outstate);
-                break;
-            }
-            case Zeze::Serialize::ByteBuffer::BEAN:
-            {
-                if (inCollection)
-                {
-                    DecodeBean(_os_);
+                    Lua.CreateTable(0, std::min(n, 1000));
+                    for (; n > 0; n--)
+                    {
+                        DecodeVariable(bb, 0, t, nullptr);
+                        Lua.PushInteger(0);
+                        Lua.SetTable(-3);
+                    }
                 }
                 else
                 {
-                    int outstate;
-                    _os_.BeginReadSegment(outstate);
-                    DecodeBean(_os_);
-                    _os_.EndReadSegment(outstate);
+                    Lua.CreateTable(std::min(n, 1000), 0);
+                    for (int i = 1; i <= n; i++) // 从1开始？
+                    {
+                        Lua.PushInteger(i);
+                        DecodeVariable(bb, 0, t, nullptr);
+                        Lua.SetTable(-3);
+                    }
                 }
                 break;
             }
-            case Zeze::Serialize::ByteBuffer::DYNAMIC:
+            case ByteBuffer::MAP:
             {
-                long long beanTypeId = _os_.ReadLong8();
-                if (beanTypeId == 0)
+                int t = bb.ReadByte();
+                int s = t >> ByteBuffer::TAG_SHIFT;
+                t &= ByteBuffer::TAG_MASK;
+                int n = bb.ReadUInt();
+                Lua.CreateTable(0, std::min(n, 1000));
+                for (; n > 0; n--)
                 {
-                    // 这个EmptyBean完全没有实现Encode,Decode，没有遵守Bean的系列化协议，所以需要特殊处理一下。
-                    int outstate;
-                    _os_.BeginReadSegment(outstate);
-                    _os_.EndReadSegment(outstate);
-                    Lua.CreateTable(0, 0);
+                    DecodeVariable(bb, 0, s, nullptr);
+                    DecodeVariable(bb, 0, t, nullptr);
+                    Lua.SetTable(-3);
                 }
-                else
-                {
-                    int outstate;
-                    _os_.BeginReadSegment(outstate);
-                    DecodeBean(_os_);
-                    _os_.EndReadSegment(outstate);
-                }
+                break;
+            }
+            case ByteBuffer::BEAN:
+            {
+                const VariableMeta* const varMeta = FindVarMeta(beanMeta, id);
+                DecodeBean(bb, varMeta ? varMeta->TypeBeanTypeId : 0);
+                break;
+            }
+            case ByteBuffer::DYNAMIC:
+            {
+                long long beanTypeId = bb.ReadLong();
+                DecodeBean(bb, beanTypeId);
                 // 动态bean额外把TypeId加到变量里面。总是使用varid==0表示。程序可以使用这个动态判断是哪个具体的bean。
                 Lua.PushInteger(0);
                 Lua.PushInteger(beanTypeId);
@@ -538,7 +508,7 @@ namespace Net
                 break;
             }
             default:
-                    throw std::exception("Unkown Tag Type");
+                throw std::exception("Unkown Tag Type");
             }
         }
 
@@ -571,7 +541,7 @@ namespace Net
             ToLuaSocketClose[socketSessionId] = service;
         }
 
-        void AppendInputBuffer(long long socketSessionId, Zeze::Serialize::ByteBuffer& buffer)
+        void AppendInputBuffer(long long socketSessionId, ByteBuffer& buffer)
         {
             std::lock_guard<std::mutex> lock(mutex);
             ToLuaBuffer[socketSessionId].append((const char*)(buffer.Bytes + buffer.ReadIndex), buffer.Size());

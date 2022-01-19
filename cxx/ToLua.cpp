@@ -1,4 +1,3 @@
-
 #include "ToLua.h"
 #include "Net.h"
 #include "Protocol.h"
@@ -6,9 +5,9 @@
 
 namespace Zeze
 {
-	namespace Net
-	{
-		int ToLua::ZezeSendProtocol(lua_State* luaState)
+    namespace Net
+    {
+        int ToLua::ZezeSendProtocol(lua_State* luaState)
         {
             LuaHelper lua(luaState);
             Service* service = lua.ToObject<Service*>(-3);
@@ -57,7 +56,7 @@ namespace Zeze
             long long resultCode = Lua.ToInteger(-1);
             Lua.Pop(1);
 
-			long typeId = (long long)ModuleId << 32 | (ProtocolId & 0xffffffff);
+            long long typeId = (long long)ModuleId << 32 | (unsigned int)ProtocolId;
             ProtocolMetasMap::iterator pit = ProtocolMetas.find(typeId);
             if (pit == ProtocolMetas.end())
                 throw std::exception("protocol not found in meta for typeid=" + typeId);
@@ -91,7 +90,7 @@ namespace Zeze
                 // see Rpc.Encode
                 Zeze::Serialize::ByteBuffer bb(1024);
                 bb.WriteInt4(ModuleId);
-				bb.WriteInt4(ProtocolId);
+                bb.WriteInt4(ProtocolId);
                 int outstate;
                 bb.BeginWriteWithSize4(outstate);
                 bb.WriteBool(isRequest);
@@ -113,7 +112,7 @@ namespace Zeze
                 // see Protocol.Encode
                 Zeze::Serialize::ByteBuffer bb(1024);
                 bb.WriteInt4(ModuleId);
-				bb.WriteInt4(ProtocolId);
+                bb.WriteInt4(ProtocolId);
                 int outstate;
                 bb.BeginWriteWithSize4(outstate);
                 bb.WriteLong(resultCode);
@@ -163,7 +162,7 @@ namespace Zeze
 
             {
                 std::lock_guard<std::mutex> lock(mutex);
-                for (auto & e : inputTmp)
+                for (auto& e : inputTmp)
                 {
                     if (e.second.empty())
                         continue; // 数据全部处理完成。
@@ -210,7 +209,7 @@ namespace Zeze
 
         void ToLua::CallRpcTimeout(long long sid)
         {
-            if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
+            if (Lua.GetGlobal("ZezeDispatchProtocol") != LuaHelper::LuaType::Function) // push func onto stack
             {
                 Lua.Pop(1);
                 return;
@@ -240,7 +239,7 @@ namespace Zeze
 
         bool ToLua::DecodeAndDispatch(Service* service, long long sessionId, int moduleId, int protocolId, Zeze::Serialize::ByteBuffer& _os_)
         {
-            if (LuaHelper::LuaType::Function != Lua.GetGlobal("ZezeDispatchProtocol")) // push func onto stack
+            if (Lua.GetGlobal("ZezeDispatchProtocol") != LuaHelper::LuaType::Function) // push func onto stack
             {
                 Lua.Pop(1);
                 return false;
@@ -265,7 +264,7 @@ namespace Zeze
             Lua.PushInteger(protocolId);
             Lua.SetTable(-3);
 
-			long long typeId = (long long)moduleId << 32 | (protocolId & 0xffffffff);
+            long long typeId = (long long)moduleId << 32 | (unsigned int)protocolId;
             Lua.PushString("TypeId");
             Lua.PushInteger(typeId);
             Lua.SetTable(-3);
@@ -279,13 +278,16 @@ namespace Zeze
                 bool IsRequest = _os_.ReadBool();
                 long long sid = _os_.ReadLong();
                 long long resultCode = _os_.ReadLong();
-                const char * argument;
+                long long argumentBeanTypeId;
+                const char* argument;
                 if (IsRequest)
                 {
+                    argumentBeanTypeId = pit->second.ArgumentBeanTypeId;
                     argument = "Argument";
                 }
                 else
                 {
+                    argumentBeanTypeId = pit->second.ResultBeanTypeId;
                     argument = "Result";
                 }
                 Lua.PushString("IsRpc");
@@ -301,7 +303,7 @@ namespace Zeze
                 Lua.PushInteger(resultCode);
                 Lua.SetTable(-3);
                 Lua.PushString(argument);
-                DecodeBean(_os_);
+                DecodeBean(_os_, argumentBeanTypeId);
                 Lua.SetTable(-3);
             }
             else
@@ -311,13 +313,13 @@ namespace Zeze
                 Lua.SetTable(-3);
 
                 Lua.PushString("Argument");
-                DecodeBean(_os_);
+                DecodeBean(_os_, pit->second.ArgumentBeanTypeId);
                 Lua.SetTable(-3);
             }
 
             Lua.Call(1, 1);
             bool result = false;
-            if (false == Lua.IsNil(-1))
+            if (!Lua.IsNil(-1))
                 result = Lua.ToBoolean(-1);
             Lua.Pop(1);
             return result;
