@@ -1,15 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
 
 namespace Zeze.Gen.lua
 {
     public class ModuleFormatter
     {
-        Project project;
-        ModuleSpace module;
-        string genDir;
-        string srcDir;
+        readonly Project project;
+        readonly ModuleSpace module;
+        readonly string genDir;
+        readonly string srcDir;
 
         public ModuleFormatter(Project project, ModuleSpace module, string genDir, string srcDir)
         {
@@ -27,15 +26,15 @@ namespace Zeze.Gen.lua
 
         public void MakeGen()
         {
-            using System.IO.StreamWriter sw = (null == module.Parent)
-                ? Program.OpenStreamWriter(System.IO.Path.Combine(genDir, module.Name + ".lua"))
+            using StreamWriter sw = (module.Parent == null)
+                ? Program.OpenStreamWriter(Path.Combine(genDir, module.Name + ".lua"))
                 : module.Parent.OpenWriter(genDir, module.Name + ".lua");
             MakeGen(sw);
             sw.WriteLine();
             sw.WriteLine("return " + module.Name + "");
         }
 
-        public void MakeGen(System.IO.StreamWriter sw)
+        public void MakeGen(StreamWriter sw)
         {
             sw.WriteLine("-- auto-generated");
             sw.WriteLine();
@@ -65,9 +64,9 @@ namespace Zeze.Gen.lua
             }
         }
 
-        private const string ChunkNameRegisterProtocol = "REGISTER PROTOCOL";
+        const string ChunkNameRegisterProtocol = "REGISTER PROTOCOL";
 
-        private void GenChunkByName(System.IO.StreamWriter writer, Zeze.Util.FileChunkGen.Chunk chunk)
+        void GenChunkByName(StreamWriter writer, Util.FileChunkGen.Chunk chunk)
         {
             switch (chunk.Name)
             {
@@ -79,7 +78,7 @@ namespace Zeze.Gen.lua
             }
         }
 
-        private void RegisterProtocol(System.IO.StreamWriter sw)
+        void RegisterProtocol(StreamWriter sw)
         {
             Module realmod = (Module)module;
             Service serv = realmod.ReferenceService;
@@ -107,20 +106,18 @@ namespace Zeze.Gen.lua
 
         public void MakeSrc()
         {
-            if (null == module.Parent)
+            if (module.Parent == null)
                 return; // must be solution
 
-            Zeze.Util.FileChunkGen fcg = new Util.FileChunkGen("-- ZEZE_FILE_CHUNK {{{", "-- ZEZE_FILE_CHUNK }}}");
+            Util.FileChunkGen fcg = new("-- ZEZE_FILE_CHUNK {{{", "-- ZEZE_FILE_CHUNK }}}");
             string fullDir = module.Parent.GetFullPath(srcDir);
-            string fullFileName = System.IO.Path.Combine(fullDir, module.Name + "Impl.lua");
+            string fullFileName = Path.Combine(fullDir, module.Name + "Impl.lua");
             if (fcg.LoadFile(fullFileName))
-            {
                 fcg.SaveFile(fullFileName, GenChunkByName);
-            }
             else
             {
-                System.IO.Directory.CreateDirectory(fullDir);
-                using System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+                Directory.CreateDirectory(fullDir);
+                using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
 
                 sw.WriteLine($"local {module.Name}Impl = {{}}");
                 sw.WriteLine();

@@ -24,7 +24,6 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        _ => null,");
             sw.WriteLine(prefix + "    };");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine();
         }
 
         CreateChangeVariableCollector()

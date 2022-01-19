@@ -27,7 +27,7 @@ namespace Zeze.Gen.java
             this.prefix = prefix;
         }
 
-        private void WriteProperty(Type type)
+        void WriteProperty(Type type)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + ";");
         }

@@ -16,7 +16,6 @@ namespace Zeze.Gen.cs
             using StreamWriter sw = rpc.Space.OpenWriter(baseDir, rpc.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine();
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine();

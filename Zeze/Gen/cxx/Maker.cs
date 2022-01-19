@@ -15,6 +15,7 @@ namespace Zeze.Gen.cxx
         {
             return s.Base.Length > 0 ? s.Base : "Zeze::Net::ToLuaService";
         }
+ 
         public void Make()
         {
             string projectBasedir = Project.Gendir;
@@ -26,9 +27,7 @@ namespace Zeze.Gen.cxx
                 sw.WriteLine("// auto-generated");
                 sw.WriteLine();
                 foreach (var m in Project.Services.Values)
-                {
                     sw.WriteLine($"#include \"{m.Name}.h\"");
-                }
                 sw.WriteLine();
                 sw.WriteLine($"namespace {Project.Solution.Name}");
                 sw.WriteLine($"{{");
@@ -38,9 +37,7 @@ namespace Zeze.Gen.cxx
                 sw.WriteLine($"        static App & Instance() {{ static App instance; return instance; }}");
                 sw.WriteLine();
                 foreach (var m in Project.Services.Values)
-                {
                     sw.WriteLine($"        {Project.Solution.Path("::", m.Name)} {m.Name};");
-                }
                 sw.WriteLine($"    }};");
                 sw.WriteLine($"}}");
             }
@@ -48,7 +45,7 @@ namespace Zeze.Gen.cxx
             foreach (var m in Project.Services.Values)
             {
                 using StreamWriter sw = Project.Solution.OpenWriter(genDir, $"{m.Name}.h", false);
-                if (null == sw)
+                if (sw == null)
                     continue;
                 //sw.WriteLine("// auto-generated");
                 sw.WriteLine();

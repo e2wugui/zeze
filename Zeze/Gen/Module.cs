@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Xml;
 using Zeze.Gen.Types;
 
@@ -9,7 +8,7 @@ namespace Zeze.Gen
     public class Module : ModuleSpace
     {
         public Service ReferenceService => _ReferenceService;
-        private Service _ReferenceService;
+        Service _ReferenceService;
 
         public void SetReferenceService(Service service)
         {

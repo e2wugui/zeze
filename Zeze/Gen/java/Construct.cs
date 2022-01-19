@@ -32,7 +32,7 @@ namespace Zeze.Gen.java
             this.beanName = beanName;
         }
 
-		private void Initial()
+		void Initial()
 		{
             string value = variable.Initial;
 			if (value.Length > 0)

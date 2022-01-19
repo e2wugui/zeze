@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 
 namespace Zeze.Gen.cs
 {
     public class App
     {
-        Project project;
-        string genDir;
-        string srcDir;
+        readonly Project project;
+        readonly string genDir;
+        readonly string srcDir;
 
         public App(Project project, string genDir, string srcDir)
         {
@@ -25,7 +23,7 @@ namespace Zeze.Gen.cs
 
         public void MakePartialGen()
         {
-            using System.IO.StreamWriter sw = project.Solution.OpenWriter(genDir, "App.cs");
+            using StreamWriter sw = project.Solution.OpenWriter(genDir, "App.cs");
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();
@@ -59,15 +57,13 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
-            sw.WriteLine("                if (null != Zeze)");
+            sw.WriteLine("                if (Zeze != null)");
             sw.WriteLine("                    return;");
             sw.WriteLine();
             sw.WriteLine($"                Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
             sw.WriteLine();
             foreach (Service m in project.Services.Values)
-            {
                 sw.WriteLine("                " + m.Name + " = new " + m.FullName + "(Zeze);");
-            }
             sw.WriteLine();
             foreach (Module m in project.AllOrderDefineModules)
             {
@@ -94,9 +90,7 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine("                Modules.Clear();");
             foreach (Service m in project.Services.Values)
-            {
                 sw.WriteLine("                " + m.Name + " = null;");
-            }
             sw.WriteLine("                Zeze = null;");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
@@ -106,9 +100,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
             foreach (var m in project.ModuleStartOrder)
-            {
                 sw.WriteLine("                " + m.Path("_") + ".Start(this);");
-            }
             foreach (Module m in project.AllOrderDefineModules)
             {
                 if (project.ModuleStartOrder.Contains(m))
@@ -143,9 +135,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
             foreach (Service m in project.Services.Values)
-            {
                 sw.WriteLine("                " + m.Name + ".Start();");
-            }
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine();
@@ -154,9 +144,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
             foreach (Service m in project.Services.Values)
-            {
                 sw.WriteLine("                " + m.Name + ".Stop();");
-            }
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine("    }");
@@ -185,7 +173,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public void Stop()");
             sw.WriteLine("        {");
             sw.WriteLine("            StopService(); // 关闭网络");
-            sw.WriteLine("            StopModules(); // 关闭模块,，卸载配置什么的。");
+            sw.WriteLine("            StopModules(); // 关闭模块，卸载配置什么的。");
             sw.WriteLine("            Zeze.Stop(); // 关闭数据库");
             sw.WriteLine("            Destroy();");
             sw.WriteLine("        }");

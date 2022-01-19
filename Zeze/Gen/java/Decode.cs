@@ -6,12 +6,12 @@ namespace Zeze.Gen.java
 {
     public class Decode : Visitor
     {
-        private readonly Variable var;
-        private readonly string tmpvarname;
-        private readonly int id;
-        private readonly string bufname;
-        private readonly StreamWriter sw;
-        private readonly string prefix;
+        readonly Variable var;
+        readonly string tmpvarname;
+        readonly int id;
+        readonly string bufname;
+        readonly StreamWriter sw;
+        readonly string prefix;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
@@ -89,14 +89,14 @@ namespace Zeze.Gen.java
             this.prefix = prefix;
         }
 
-        private string GetVarName()
+        string GetVarName()
         {
             if (var != null)
                 return var.Bean.IsNormalBean ? var.Getter : var.NamePrivate;
             return tmpvarname;
         }
 
-        private string AssignText(string value)
+        string AssignText(string value)
         {
             if (var != null)
                 return var.Bean.IsNormalBean ? var.Setter(value) : $"{var.NamePrivate} = {value}";
@@ -175,7 +175,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + AssignText($"{bufname}.ReadString()") + ';');
         }
 
-        private string DecodeElement(Types.Type type, string typeVar)
+        string DecodeElement(Types.Type type, string typeVar)
         {
             switch (type)
             {
@@ -206,7 +206,7 @@ namespace Zeze.Gen.java
             }
         }
 
-        private void DecodeCollection(TypeCollection type)
+        void DecodeCollection(TypeCollection type)
         {
             if (id <= 0)
                 throw new Exception("invalid variable.id");

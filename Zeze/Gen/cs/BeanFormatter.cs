@@ -17,8 +17,8 @@ namespace Zeze.Gen.cs
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("using System;");
-            sw.WriteLine("using Zeze.Serialize;");
+            sw.WriteLine("using ByteBuffer = Zeze.Serialize.ByteBuffer;");
+            sw.WriteLine("using Environment = System.Environment;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine();
             sw.WriteLine("namespace " + bean.Space.Path());

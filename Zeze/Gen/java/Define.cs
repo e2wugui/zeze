@@ -16,13 +16,13 @@ namespace Zeze.Gen.java
             this.prefix = prefix;
         }
 
-        private void DefineNew(Type type)
+        void DefineNew(Type type)
         {
             string tName = TypeName.GetName(type);
             sw.WriteLine(prefix + tName + " " + varname + " = new " + tName + "();");
         }
 
-        private void DefineStack(Type type)
+        void DefineStack(Type type)
         {
             string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + typeName + " " + varname + ";");

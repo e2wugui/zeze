@@ -60,7 +60,7 @@ namespace Zeze.Gen
 
             //Program.AddNamedObject(FullName, this);
 
-            this.Self = self; // 保存，在编译的时候使用。
+            Self = self; // 保存，在编译的时候使用。
 
             if (Solution.Projects.ContainsKey(Name))
                 throw new Exception("duplicate project name: " + Name);
@@ -106,7 +106,7 @@ namespace Zeze.Gen
 
                 Modules = Program.CompileModuleRef(refFulNames, $"Project={Name} module ref ");
             }
-            if (null != ModuleStartSelf)
+            if (ModuleStartSelf != null)
             {
                 var refs = Program.Refs(ModuleStartSelf, "start", "module");
                 List<string> refFulNames = Program.ToFullNameIfNot(Solution.Name, refs);

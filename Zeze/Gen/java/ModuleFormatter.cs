@@ -20,7 +20,7 @@ namespace Zeze.Gen.java
             this.srcDir = srcDir;
         }
 
-        private FileChunkGen FileChunkGen;
+        FileChunkGen FileChunkGen;
  
         public void Make()
         {
@@ -84,17 +84,17 @@ namespace Zeze.Gen.java
             sw.WriteLine("}");
         }
 
-        private const string ChunkNameModuleGen = "GEN MODULE";
-        private const string ChunkNameImport = "IMPORT GEN";
+        const string ChunkNameModuleGen = "GEN MODULE";
+        const string ChunkNameImport = "IMPORT GEN";
 
-        private string GetHandleName(Protocol p)
+        string GetHandleName(Protocol p)
         {
             if (p is Rpc rpc)
                 return $"Process{rpc.Name}Request";
             return $"Process{p.Name}";
         }
 
-        private void NewProtocolHandle(StreamWriter sw)
+        void NewProtocolHandle(StreamWriter sw)
         {
             var handles = GetProcessProtocols();
             // 找出现有的可能是协议实现的函数
@@ -133,7 +133,7 @@ namespace Zeze.Gen.java
             }
         }
 
-        private void GenChunkByName(StreamWriter writer, FileChunkGen.Chunk chunk)
+        void GenChunkByName(StreamWriter writer, FileChunkGen.Chunk chunk)
         {
             switch (chunk.Name)
             {
@@ -148,7 +148,7 @@ namespace Zeze.Gen.java
             }
         }
 
-        private void GenBeforeChunkByName(StreamWriter writer, FileChunkGen.Chunk chunk)
+        void GenBeforeChunkByName(StreamWriter writer, FileChunkGen.Chunk chunk)
         {
             switch (chunk.Name)
             {
@@ -158,11 +158,11 @@ namespace Zeze.Gen.java
             }
         }
 
-        private void ImportGen(StreamWriter sw)
+        void ImportGen(StreamWriter sw)
         {
         }
 
-        private void ModuleGen(StreamWriter sw)
+        void ModuleGen(StreamWriter sw)
         {
             sw.WriteLine($"    public static final int ModuleId = {module.Id};");
             sw.WriteLine();
@@ -290,7 +290,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("}");
         }
 
-        private List<Protocol> GetProcessProtocols()
+        List<Protocol> GetProcessProtocols()
         {
             var result = new List<Protocol>();
             if (module.ReferenceService != null)

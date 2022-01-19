@@ -107,7 +107,7 @@ namespace Zeze.Gen.Types
 			Comment = self.GetAttribute("comment");
 			if (Comment.Length == 0)
 			{
-				for (XmlNode c = self.PreviousSibling; null != c; c = c.PreviousSibling)
+				for (XmlNode c = self.PreviousSibling; c != null; c = c.PreviousSibling)
 				{
 					if (XmlNodeType.Element == c.NodeType)
 						break;

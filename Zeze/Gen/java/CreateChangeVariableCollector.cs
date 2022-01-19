@@ -6,7 +6,7 @@ namespace Zeze.Gen.java
     public class CreateChangeVariableCollector : Visitor
     {
         public string ChangeVariableCollectorName { get; private set; }
-        //private Variable var;
+        // Variable var;
 
         public static void Make(StreamWriter sw, string prefix, Bean bean)
         {

@@ -11,14 +11,14 @@ namespace Zeze.Gen.luaClient
 {
     public class Maker
     {
-        private Project Project { get; }
+        Project Project { get; }
 
         public Maker(Project project)
         {
             Project = project;
         }
 
-        private static string GetTemplate(string fileName)
+        static string GetTemplate(string fileName)
         {
             using var stream = Assembly.GetEntryAssembly()?.GetManifestResourceStream($"Gen.templates.{fileName}");
             if (stream == null) return "";

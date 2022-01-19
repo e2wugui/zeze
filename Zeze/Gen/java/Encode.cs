@@ -6,11 +6,11 @@ namespace Zeze.Gen.java
 {
     public class Encode : Visitor
     {
-        private readonly string varname;
-        private readonly int id;
-        private readonly string bufname;
-        private readonly StreamWriter sw;
-        private readonly string prefix;
+        readonly string varname;
+        readonly int id;
+        readonly string bufname;
+        readonly StreamWriter sw;
+        readonly string prefix;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
@@ -185,7 +185,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + bufname + ".WriteString(" + varname + ");");
         }
 
-        private void EncodeElement(Types.Type type, string prefix, string varName)
+        void EncodeElement(Types.Type type, string prefix, string varName)
         {
             switch (type)
             {
@@ -220,7 +220,7 @@ namespace Zeze.Gen.java
             }
         }
 
-        private void EncodeCollection(TypeCollection type)
+        void EncodeCollection(TypeCollection type)
         {
             if (id <= 0)
                 throw new Exception("invalid variable.id");

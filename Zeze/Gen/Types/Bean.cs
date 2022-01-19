@@ -1,7 +1,5 @@
-
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Xml;
 
 namespace Zeze.Gen.Types
@@ -45,7 +43,7 @@ namespace Zeze.Gen.Types
 					try
 					{
 						Type type = Type.Compile(Space, beanNameMabe);
-						if (null != type)
+						if (type != null)
 							includes.Add(type); // type.depends(type); 肯定是 Bean，不需要递归包含。 
 					}
 					catch (Exception ex)
@@ -120,7 +118,7 @@ namespace Zeze.Gen.Types
 
 			if (Comment.Length == 0)
 			{
-				for (XmlNode c = self.PreviousSibling; null != c; c = c.PreviousSibling)
+				for (XmlNode c = self.PreviousSibling; c != null; c = c.PreviousSibling)
 				{
 					if (XmlNodeType.Element == c.NodeType)
 						break;

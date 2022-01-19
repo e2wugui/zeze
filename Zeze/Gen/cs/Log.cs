@@ -1,27 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
-    public class Log : Types.Visitor
+    public class Log : Visitor
     {
-        System.IO.StreamWriter sw;
-        Types.Bean bean;
-        Types.Variable var;
-        string prefix;
+        readonly StreamWriter sw;
+        readonly Bean bean;
+        readonly Variable var;
+        readonly string prefix;
 
-        public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            foreach (Types.Variable var in bean.Variables)
+            foreach (Variable var in bean.Variables)
             {
                 var.VariableType.Accept(new Log(bean, sw, var, prefix));
                 sw.WriteLine();
             }
         }
 
-        public Log(Types.Bean bean, System.IO.StreamWriter sw, Types.Variable var, string prefix)
+        public Log(Bean bean, StreamWriter sw, Variable var, string prefix)
         {
             this.bean = bean;
             this.sw = sw;
@@ -33,7 +31,7 @@ namespace Zeze.Gen.cs
         {
         }
 
-        private void WriteLogValue(Types.Type type)
+        private void WriteLogValue(Type type)
         {
             string valueName = TypeName.GetName(type);
             sw.WriteLine(prefix + "private sealed class Log_" + var.NamePrivate + " : Zeze.Transaction.Log<" + bean.Name + ", " + valueName + ">");
@@ -84,7 +82,7 @@ namespace Zeze.Gen.cs
             WriteLogValue(type);
         }
 
-        private void WriteCollectionLog(Types.Type type)
+        private void WriteCollectionLog(Type type)
         {
             var tn = new TypeName();
             type.Accept(tn);
@@ -128,9 +126,7 @@ namespace Zeze.Gen.cs
             // TypeDynamic 使用写好的类 Zeze.Transaction.DynamicBean，
             // 不再需要生成Log。在这里生成 DynamicBean 需要的两个方法。
             foreach (var real in type.RealBeans)
-            {
                 sw.WriteLine($"{prefix}public const long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key};");
-            }
             if (type.RealBeans.Count > 0)
                 sw.WriteLine();
 
@@ -140,9 +136,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"{prefix}    {{");
             sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;");
             foreach (var real in type.RealBeans)
-            {
                 sw.WriteLine($"{prefix}        case {real.Value.TypeId}: return {real.Key}; // {real.Value.FullName}");
-            }
             sw.WriteLine($"{prefix}    }}");
             sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{(var.Bean as Bean).FullName}:{var.Name}\");");
             sw.WriteLine($"{prefix}}}");
@@ -153,13 +147,10 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"{prefix}    {{");
             //sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             foreach (var real in type.RealBeans)
-            {
                 sw.WriteLine($"{prefix}        case {real.Key}: return new {real.Value.FullName}();");
-            }
             sw.WriteLine($"{prefix}    }}");
             sw.WriteLine($"{prefix}    return null;");
             sw.WriteLine($"{prefix}}}");
-            sw.WriteLine();
         }
     }
 }

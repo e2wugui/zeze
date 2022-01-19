@@ -262,7 +262,7 @@ namespace Zeze.Serialize
                 EnsureWrite(2); // 10xx xxxx +1B
                 byte[] bytes = Bytes;
                 int writeIndex = WriteIndex;
-                bytes[writeIndex] = (byte)((u >> 8) | 0x80);
+                bytes[writeIndex] = (byte)((u >> 8) + 0x80);
                 bytes[writeIndex + 1] = (byte)u;
                 WriteIndex = writeIndex + 2;
             }
@@ -271,7 +271,7 @@ namespace Zeze.Serialize
                 EnsureWrite(3); // 110x xxxx +2B
                 byte[] bytes = Bytes;
                 int writeIndex = WriteIndex;
-                bytes[writeIndex] = (byte)((u >> 16) | 0xc0);
+                bytes[writeIndex] = (byte)((u >> 16) + 0xc0);
                 bytes[writeIndex + 1] = (byte)(u >> 8);
                 bytes[writeIndex + 2] = (byte)u;
                 WriteIndex = writeIndex + 3;
@@ -281,7 +281,7 @@ namespace Zeze.Serialize
                 EnsureWrite(4); // 1110 xxxx +3B
                 byte[] bytes = Bytes;
                 int writeIndex = WriteIndex;
-                bytes[writeIndex] = (byte)((u >> 24) | 0xe0);
+                bytes[writeIndex] = (byte)((u >> 24) + 0xe0);
                 bytes[writeIndex + 1] = (byte)(u >> 16);
                 bytes[writeIndex + 2] = (byte)(u >> 8);
                 bytes[writeIndex + 3] = (byte)u;
@@ -303,9 +303,9 @@ namespace Zeze.Serialize
 
         public int ReadUInt()
         {
+            EnsureRead(1);
             byte[] bytes = Bytes;
             int readIndex = ReadIndex;
-            EnsureRead(1);
             int x = bytes[readIndex];
             if (x < 0x80)
                 ReadIndex = readIndex + 1;
@@ -567,7 +567,7 @@ namespace Zeze.Serialize
         public long ReadLong1()
         {
             EnsureRead(1);
-            return Bytes[ReadIndex++] & 0xffL;
+            return Bytes[ReadIndex++];
         }
 
         public long ReadLong2BE()
@@ -576,8 +576,8 @@ namespace Zeze.Serialize
             byte[] bytes = Bytes;
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 2;
-            return ((bytes[readIndex] & 0xffL) << 8) +
-                    (bytes[readIndex + 1] & 0xffL);
+            return (bytes[readIndex] << 8) +
+                    bytes[readIndex + 1];
         }
 
         public long ReadLong3BE()
@@ -586,9 +586,9 @@ namespace Zeze.Serialize
             byte[] bytes = Bytes;
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 3;
-            return ((bytes[readIndex] & 0xffL) << 16) +
-                    ((bytes[readIndex + 1] & 0xffL) << 8) +
-                    (bytes[readIndex + 2] & 0xffL);
+            return (bytes[readIndex] << 16) +
+                    (bytes[readIndex + 1] << 8) +
+                    bytes[readIndex + 2];
         }
 
         public long ReadLong4BE()
@@ -597,10 +597,10 @@ namespace Zeze.Serialize
             byte[] bytes = Bytes;
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 4;
-            return ((bytes[readIndex] & 0xffL) << 24) +
-                    ((bytes[readIndex + 1] & 0xffL) << 16) +
-                    ((bytes[readIndex + 2] & 0xffL) << 8) +
-                    (bytes[readIndex + 3] & 0xffL);
+            return ((long)bytes[readIndex] << 24) +
+                    (bytes[readIndex + 1] << 16) +
+                    (bytes[readIndex + 2] << 8) +
+                    bytes[readIndex + 3];
         }
 
         public long ReadLong5BE()
@@ -609,11 +609,11 @@ namespace Zeze.Serialize
             byte[] bytes = Bytes;
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 5;
-            return ((bytes[readIndex] & 0xffL) << 32) +
-                    ((bytes[readIndex + 1] & 0xffL) << 24) +
-                    ((bytes[readIndex + 2] & 0xffL) << 16) +
-                    ((bytes[readIndex + 3] & 0xffL) << 8) +
-                    (bytes[readIndex + 4] & 0xffL);
+            return ((long)bytes[readIndex] << 32) +
+                    ((long)bytes[readIndex + 1] << 24) +
+                    (bytes[readIndex + 2] << 16) +
+                    (bytes[readIndex + 3] << 8) +
+                    bytes[readIndex + 4];
         }
 
         public long ReadLong6BE()
@@ -622,12 +622,12 @@ namespace Zeze.Serialize
             byte[] bytes = Bytes;
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 6;
-            return ((bytes[readIndex] & 0xffL) << 40) +
-                    ((bytes[readIndex + 1] & 0xffL) << 32) +
-                    ((bytes[readIndex + 2] & 0xffL) << 24) +
-                    ((bytes[readIndex + 3] & 0xffL) << 16) +
-                    ((bytes[readIndex + 4] & 0xffL) << 8) +
-                    (bytes[readIndex + 5] & 0xffL);
+            return ((long)bytes[readIndex] << 40) +
+                    ((long)bytes[readIndex + 1] << 32) +
+                    ((long)bytes[readIndex + 2] << 24) +
+                    (bytes[readIndex + 3] << 16) +
+                    (bytes[readIndex + 4] << 8) +
+                    bytes[readIndex + 5];
         }
 
         public long ReadLong7BE()
@@ -636,13 +636,13 @@ namespace Zeze.Serialize
             byte[] bytes = Bytes;
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 7;
-            return ((bytes[readIndex] & 0xffL) << 48) +
-                    ((bytes[readIndex + 1] & 0xffL) << 40) +
-                    ((bytes[readIndex + 2] & 0xffL) << 32) +
-                    ((bytes[readIndex + 3] & 0xffL) << 24) +
-                    ((bytes[readIndex + 4] & 0xffL) << 16) +
-                    ((bytes[readIndex + 5] & 0xffL) << 8) +
-                    (bytes[readIndex + 6] & 0xffL);
+            return ((long)bytes[readIndex] << 48) +
+                    ((long)bytes[readIndex + 1] << 40) +
+                    ((long)bytes[readIndex + 2] << 32) +
+                    ((long)bytes[readIndex + 3] << 24) +
+                    (bytes[readIndex + 4] << 16) +
+                    (bytes[readIndex + 5] << 8) +
+                    bytes[readIndex + 6];
         }
 
         public long ReadLong()
@@ -660,7 +660,7 @@ namespace Zeze.Serialize
 		    case 0x11:                                  return ((b + 0x70L) << 24) + ReadLong3BE();
 		    case 0x0f:
 			    switch (b & 7) {
-			    case 0: case 1: case 2: case 3: return ((long)(b - 0x78) << 32) + (ReadLong4BE() & 0xffff_ffffL);
+			    case 0: case 1: case 2: case 3: return ((long)(b - 0x78) << 32) + ReadLong4BE();
 			    case 4: case 5:                 return ((long)(b - 0x7c) << 40) + ReadLong5BE();
 			    case 6:                         return ReadLong6BE();
 			    default: long r = ReadLong7BE(); return r < 0x80_0000_0000_0000L ?
@@ -668,7 +668,7 @@ namespace Zeze.Serialize
 			    }
 		    default: // 0x10
 			    switch (b & 7) {
-			    case 4: case 5: case 6: case 7: return ((long)(b + 0x78) << 32) + (ReadLong4BE() & 0xffff_ffffL);
+			    case 4: case 5: case 6: case 7: return ((long)(b + 0x78) << 32) + ReadLong4BE();
 			    case 2: case 3:                 return ((long)(b + 0x7c) << 40) + ReadLong5BE();
 			    case 1:                         return -0x0001_0000_0000_0000L  + ReadLong6BE();
 			    default: long r = ReadLong7BE(); return r >= 0x80_0000_0000_0000L ?
@@ -693,7 +693,7 @@ namespace Zeze.Serialize
         public void WriteFloat(float x)
         {
             byte[] bs = BitConverter.GetBytes(x);
-            //if (false == BitConverter.IsLittleEndian)
+            //if (!BitConverter.IsLittleEndian)
             //    Array.Reverse(bs);
             Append(bs);
         }
@@ -711,7 +711,7 @@ namespace Zeze.Serialize
         public void WriteDouble(double x)
         {
             byte[] bs = BitConverter.GetBytes(x);
-            //if (false == BitConverter.IsLittleEndian)
+            //if (!BitConverter.IsLittleEndian)
             //    Array.Reverse(bs);
             Append(bs);
         }
@@ -901,7 +901,7 @@ namespace Zeze.Serialize
             if (id < 0 || id > ID_MASK)
                 throw new OverflowException("id < 0 || id > ID_MASK");
 
-            return (id << TAG_SHIFT) | tag;
+            return (id << TAG_SHIFT) + tag;
         }
 
         public static int GetTag(int tagid)

@@ -21,7 +21,7 @@ namespace Zeze.Gen.java
             }
         }
 
-        private string GetFullName(Types.Type type)
+        string GetFullName(Types.Type type)
         {
             if (type.IsBean)
             {
@@ -65,7 +65,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("}");
         }
 
-        private void GenAddBean(System.IO.StreamWriter sw, string name, bool isBeanKey, List<Types.Variable> vars)
+        void GenAddBean(StreamWriter sw, string name, bool isBeanKey, List<Types.Variable> vars)
         {
             sw.WriteLine($"        {{");
             sw.WriteLine($"            var bean = new Zeze.Schemas.Bean(\"{name}\", {isBeanKey.ToString().ToLower()});");

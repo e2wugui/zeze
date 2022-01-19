@@ -32,7 +32,7 @@ namespace Zeze.Gen.java
         {
         }
 
-        private void WriteLogValue(Types.Type type)
+        void WriteLogValue(Types.Type type)
         {
             string valueName = BoxingName.GetBoxingName(type);
             sw.WriteLine(prefix + "private static final class Log_" + var.NamePrivate + " extends Zeze.Transaction.Log1<" + bean.Name + ", " + valueName + "> {");
@@ -89,7 +89,7 @@ namespace Zeze.Gen.java
             WriteLogValue(type);
         }
 
-        private string GetTemplatParams(Types.Type type)
+        string GetTemplatParams(Types.Type type)
         {
             if (type is TypeCollection coll)
             {
@@ -102,7 +102,7 @@ namespace Zeze.Gen.java
             throw new Exception("Not A Container Type");
         }
 
-        private void WriteCollectionLog(Types.Type type)
+        void WriteCollectionLog(Types.Type type)
         {
             var pn = GetTemplatParams(type);
             var tn = new TypeName();

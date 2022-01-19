@@ -34,7 +34,7 @@ namespace Zeze.Gen.java
                 var.VariableType.Accept(new Tostring(sw, var.Name, var.Getter, prefix + "    ", sep));
             }
             sw.WriteLine(prefix + "    level -= " + INDENT_SIZE + ';');
-            sw.WriteLine(prefix + "    sb.append(Zeze.Util.Str.indent(level)).append(\"}\");");
+            sw.WriteLine(prefix + "    sb.append(Zeze.Util.Str.indent(level)).append('}');");
             sw.WriteLine(prefix + "}");
 			sw.WriteLine();
 		}
@@ -59,7 +59,7 @@ namespace Zeze.Gen.java
                 var.VariableType.Accept(new Tostring(sw, var.Name, var.Getter, prefix + "    ", sep));
             }
             sw.WriteLine(prefix + "    level -= " + INDENT_SIZE + ';');
-            sw.WriteLine(prefix + "    sb.append(Zeze.Util.Str.indent(level)).append(\"}\");");
+            sw.WriteLine(prefix + "    sb.append(Zeze.Util.Str.indent(level)).append('}');");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -93,7 +93,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(".append(System.lineSeparator());");
         }
 
-        private void formatSimple()
+        void formatSimple()
         {
             sw.Write(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append('=').append({getter})");
             if (sep != 0)
