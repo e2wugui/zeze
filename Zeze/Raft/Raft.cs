@@ -319,10 +319,12 @@ namespace Zeze.Raft
             lock (this)
             {
                 var r = p as RequestVote;
+                var isNewer = false;
                 if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
                 {
                     // new term found.
                     ConvertStateTo(RaftState.Follower);
+                    isNewer = true; // 必须Newer才给投票。
                 }
                 // else continue process
 
@@ -332,8 +334,7 @@ namespace Zeze.Raft
                 // 1.Reply false if term < currentTerm(§5.1)
                 // 2.If votedFor is null or candidateId, and candidate’s log is at
                 // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
-                r.Result.VoteGranted = (r.Argument.Term >= LogSequence.Term)
-                    && LogSequence.CanVoteFor(r.Argument.CandidateId)
+                r.Result.VoteGranted = isNewer && LogSequence.CanVoteFor(r.Argument.CandidateId)
                     && IsCandidateLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
                 if (r.Result.VoteGranted)
                 {

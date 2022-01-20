@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Zeze.Serialize;
 using Zeze.Transaction;
+using RocksDbSharp;
+using Zeze.Net;
 
 namespace Zeze.Raft
 {
@@ -23,8 +25,71 @@ namespace Zeze.Raft
 
         private Agent Agent { get; set; }
 
-        public void Run()
+        private void LogCheck()
         {
+            var options = new DbOptions().SetCreateIfMissing(true);
+            using var r1 = RocksDb.Open(options, Path.Combine("127.0.0.1_6000", "logs"));
+            using var r2 = RocksDb.Open(options, Path.Combine("127.0.0.1_6001", "logs"));
+            using var r3 = RocksDb.Open(options, Path.Combine("127.0.0.1_6002", "logs"));
+
+            using var it1 = r1.NewIterator();
+            using var it2 = r2.NewIterator();
+            using var it3 = r3.NewIterator();
+            it1.SeekToFirst();
+            it2.SeekToFirst();
+            it3.SeekToFirst();
+
+            var StateMachine = new TestStateMachine();
+            // skip same
+            while (it1.Valid() && it2.Valid() && it3.Valid())
+            {
+                var l1 = RaftLog.Decode(new Binary(it1.Value()), StateMachine.LogFactory);
+                var l2 = RaftLog.Decode(new Binary(it2.Value()), StateMachine.LogFactory);
+                var l3 = RaftLog.Decode(new Binary(it3.Value()), StateMachine.LogFactory);
+                if (l1.Index != l2.Index || l2.Index != l3.Index)
+                    break;
+                if (l1.Log.UniqueRequestId != l2.Log.UniqueRequestId || l2.Log.UniqueRequestId != l3.Log.UniqueRequestId)
+                    break;
+                it1.Next();
+                it2.Next();
+                it3.Next();
+            }
+            // dump difference
+            var hasNext = true;
+            while (hasNext)
+            {
+                hasNext = false;
+                if (it1.Valid())
+                {
+                    var log = RaftLog.Decode(new Binary(it1.Value()), StateMachine.LogFactory);
+                    Console.Write($" 127.0.0.1_6000: Term={log.Term} Index={log.Index} Unique={log.Log.UniqueRequestId}");
+                    it1.Next();
+                    hasNext = true;
+                }
+                if (it2.Valid())
+                {
+                    var log = RaftLog.Decode(new Binary(it2.Value()), StateMachine.LogFactory);
+                    Console.Write($" 127.0.0.1_6001: Term={log.Term} Index={log.Index} Unique={log.Log.UniqueRequestId}");
+                    it2.Next();
+                    hasNext = true;
+                }
+                if (it3.Valid())
+                {
+                    var log = RaftLog.Decode(new Binary(it3.Value()), StateMachine.LogFactory);
+                    Console.Write($" 127.0.0.1_6002: Term={log.Term} Index={log.Index} Unique={log.Log.UniqueRequestId}");
+                    it3.Next();
+                    hasNext = true;
+                }
+                Console.WriteLine();
+            }
+        }
+
+        public void Run(string command)
+        {
+            LogCheck();
+            if (command.Equals("RaftCheck"))
+                return;
+
             logger.Debug("Start.");
             var raftConfigStart = RaftConfig.Load(RaftConfigFileName);
             foreach (var node in raftConfigStart.Nodes)
