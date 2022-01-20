@@ -35,16 +35,14 @@ namespace Zeze.Raft
         // RaftConfig里面配置AutoKeyLocalStep开启这个功能。
         // 启用这个功能要求应用的RpcSessionId持久化，并且全局唯一，对每个AutoKeyLocalStep递增。
         // 【注意】应用生成的Id必须大于0；0保留给内部；小于0未使用。
-        public long UniqueRequestId { get; set; }
-        public string ClientId { get; set; } = "";
+        public UniqueRequestId Unique { get; } = new UniqueRequestId();
         public long CreateTime { get; set; }
 
         public Log(IRaftRpc req)
         {
             if (null != req)
             {
-                ClientId = req.ClientId;
-                UniqueRequestId = req.UniqueRequestId;
+                Unique = req.Unique;
                 CreateTime = req.CreateTime;
             }
             _TypeId = (int)Bean.Hash32(GetType().FullName);
@@ -58,15 +56,13 @@ namespace Zeze.Raft
 
         public virtual void Decode(ByteBuffer bb)
         {
-            UniqueRequestId = bb.ReadLong();
-            ClientId = bb.ReadString();
+            Unique.Decode(bb);
             CreateTime = bb.ReadLong();
         }
 
         public virtual void Encode(ByteBuffer bb)
         {
-            bb.WriteLong(UniqueRequestId);
-            bb.WriteString(ClientId);
+            Unique.Encode(bb);
             bb.WriteLong(CreateTime);
         }
     }
@@ -206,9 +202,7 @@ namespace Zeze.Raft
 
             for (var index = startIndex; index >= firstIndex; --index)
             {
-                var key = ByteBuffer.Allocate();
-                key.WriteLong(index);
-                Logs.Remove(key.Bytes, key.Size, null, WriteOptionsSync);
+                RemoveLog(index);
             }
         }
 
@@ -219,14 +213,14 @@ namespace Zeze.Raft
         private RocksDb Logs { get; set; }
         private RocksDb Rafts { get; set; }
 
-        internal sealed class AppliedSet
+        internal sealed class UniqueRequestSet
         { 
             private RocksDb Db { get; set; }
             public string DbName { get; set; }
 
             public LogSequence LogSequence { get; set; }
 
-            public AppliedSet(LogSequence lq, string dbName)
+            public UniqueRequestSet(LogSequence lq, string dbName)
             {
                 LogSequence = lq;
                 DbName = dbName;
@@ -235,24 +229,46 @@ namespace Zeze.Raft
             static ConcurrentDictionary<string, ConcurrentDictionary<long, long>> unique
                 = new ConcurrentDictionary<string,ConcurrentDictionary<long, long>>(); 
 
-            public void Apply(Log log)
+            private void Put(RaftLog log, long value)
             {
-                unique.GetOrAdd(log.ClientId, (_) => new ConcurrentDictionary<long, long>())
-                    .TryAdd(log.UniqueRequestId, log.UniqueRequestId);
-                /*/
-                var key = EncodeKey(log.ClientId, log.UniqueRequestId);
-                OpenDb().Put(key.Bytes, key.Size, Array.Empty<byte>(), 0, null, LogSequence.WriteOptionsSync);
-                // */
+                var db = OpenDb();
+                var key = ByteBuffer.Allocate();
+                log.Log.Unique.Encode(key);
+                if (value > 0 && db.Get(key.Bytes, key.Size) != null)
+                {
+                    throw new RaftRetryException($"Duplicate Request Found = {log.Log.Unique}");
+                }
+                var val = ByteBuffer.Allocate();
+                val.WriteLong(value);
+                db.Put(key.Bytes, key.Size, val.Bytes, val.Size, null, LogSequence.WriteOptionsSync);
             }
 
-            public bool HasApplied(IRaftRpc iraftrpc)
+            public void Save(RaftLog log)
             {
-                return unique.GetOrAdd(iraftrpc.ClientId, (_) => new ConcurrentDictionary<long, long>())
-                    .ContainsKey(iraftrpc.UniqueRequestId);
-                /*/
-                var key = EncodeKey(iraftrpc.ClientId, iraftrpc.UniqueRequestId);
-                return OpenDb().Get(key.Bytes, key.Size) != null;
-                // */
+                Put(log, log.Index);
+            }
+
+            public void Apply(RaftLog log)
+            {
+                Put(log, -log.Index);
+            }
+
+            public void Remove(RaftLog log)
+            {
+                var key = ByteBuffer.Allocate();
+                log.Log.Unique.Encode(key);
+                OpenDb().Remove(key.Bytes, key.Size, null, LogSequence.WriteOptionsSync);
+            }
+
+            public long GetRequestState(IRaftRpc iraftrpc)
+            {
+                var key = ByteBuffer.Allocate();
+                iraftrpc.Unique.Encode(key);
+                var val = OpenDb().Get(key.Bytes, key.Size);
+                if (null == val)
+                    return 0;
+                var bb = ByteBuffer.Wrap(val);
+                return bb.ReadLong();
             }
 
             private RocksDb OpenDb()
@@ -268,21 +284,13 @@ namespace Zeze.Raft
                 }
             }
 
-            private ByteBuffer EncodeKey(string clientId, long uniqueRequestId)
-            {
-                var bb = ByteBuffer.Allocate();
-                bb.WriteString(clientId);
-                bb.WriteLong(uniqueRequestId);
-                return bb;
-            }
-
             public void Dispose()
             {
                 Db?.Dispose();
             }
         }
-        private ConcurrentDictionary<string, AppliedSet> AppliedSets { get; }
-            = new ConcurrentDictionary<string, AppliedSet>();
+        private ConcurrentDictionary<string, UniqueRequestSet> UniqueRequestSets { get; }
+            = new ConcurrentDictionary<string, UniqueRequestSet>();
 
         internal void Close()
         {
@@ -292,11 +300,11 @@ namespace Zeze.Raft
                 Logs = null;
                 Rafts?.Dispose();
                 Rafts = null;
-                foreach (var db in AppliedSets.Values)
+                foreach (var db in UniqueRequestSets.Values)
                 {
                     db.Dispose();
                 }
-                AppliedSets.Clear();
+                UniqueRequestSets.Clear();
             }
         }
 
@@ -370,19 +378,19 @@ namespace Zeze.Raft
             }
         }
 
-        internal bool HasApplied(Protocol p)
+        internal long GetRequestState(Protocol p)
         {
             var iraftrpc = p as IRaftRpc;
             if (null == iraftrpc)
-                return false;
-            return OpenAppliedSet(iraftrpc.CreateTime).HasApplied(iraftrpc);
+                return 0;
+            return OpenUniqueRequests(iraftrpc.CreateTime).GetRequestState(iraftrpc);
         }
 
-        private AppliedSet OpenAppliedSet(long time)
+        private UniqueRequestSet OpenUniqueRequests(long time)
         {
             var dateTime = Util.Time.UnixMillisToDateTime(time);
             var dbName = $"{dateTime.Year}.{dateTime.Month}.{dateTime.Day}";
-            return AppliedSets.GetOrAdd(dbName, (db) => new AppliedSet(this, db));
+            return UniqueRequestSets.GetOrAdd(dbName, (db) => new UniqueRequestSet(this, db));
         }
 
         private readonly byte[] RaftsTermKey;
@@ -562,15 +570,8 @@ namespace Zeze.Raft
                 }
 
                 index = raftLog.Index + 1;
-
-                if (raftLog.Log.UniqueRequestId > 0)
-                {
-                    // 这是防止请求重复执行用的。
-                    // 需要对每个Raft.Agent的请求排队处理。
-                    // see Net.cs Server.DispatchProtocol
-                    OpenAppliedSet(raftLog.Log.CreateTime).Apply(raftLog.Log);
-                }
                 raftLog.Log.Apply(raftLog, Raft.StateMachine);
+                OpenUniqueRequests(raftLog.Log.CreateTime).Apply(raftLog);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
                 /*
                 if (LastIndex - LastApplied < 10)
@@ -658,6 +659,7 @@ namespace Zeze.Raft
                     if (false == WaitApplyFutures.TryAdd(raftLog.Index, future))
                         throw new Exception("Impossible");
                 }
+                OpenUniqueRequests(raftLog.Log.CreateTime).Save(raftLog);
                 SaveLog(raftLog);
                 LastIndex = raftLog.Index;
                 term = Term;
@@ -1088,10 +1090,19 @@ namespace Zeze.Raft
                     // Apply的时候已经TryRemove了，仅会成功一次。
                     future.SetCanceled();
                 }
+                RemoveLog(index);
+            }
+        }
 
+        private void RemoveLog(long index)
+        {
+            var raftLog = ReadLog(index);
+            if (null != raftLog)
+            {
                 var key = ByteBuffer.Allocate();
                 key.WriteLong(index);
                 Logs.Remove(key.Bytes, key.Size, null, WriteOptionsSync);
+                OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
             }
         }
 

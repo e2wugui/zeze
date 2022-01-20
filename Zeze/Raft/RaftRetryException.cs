@@ -8,5 +8,15 @@ namespace Zeze.Raft
 {
     public class RaftRetryException : Exception
     {
+        public RaftRetryException()
+        {
+
+        }
+
+        public RaftRetryException(string msg)
+            : base(msg)
+        {
+
+        }
     }
 }

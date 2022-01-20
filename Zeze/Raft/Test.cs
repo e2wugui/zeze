@@ -48,7 +48,7 @@ namespace Zeze.Raft
                 var l3 = RaftLog.Decode(new Binary(it3.Value()), StateMachine.LogFactory);
                 if (l1.Index != l2.Index || l2.Index != l3.Index)
                     break;
-                if (l1.Log.UniqueRequestId != l2.Log.UniqueRequestId || l2.Log.UniqueRequestId != l3.Log.UniqueRequestId)
+                if (!l1.Log.Unique.Equals(l2.Log.Unique) || !l2.Log.Unique.Equals(l3.Log.Unique))
                     break;
                 it1.Next();
                 it2.Next();
@@ -62,21 +62,21 @@ namespace Zeze.Raft
                 if (it1.Valid())
                 {
                     var log = RaftLog.Decode(new Binary(it1.Value()), StateMachine.LogFactory);
-                    Console.Write($" 127.0.0.1_6000: Term={log.Term} Index={log.Index} Unique={log.Log.UniqueRequestId}");
+                    Console.Write($" 127.0.0.1_6000: Term={log.Term} Index={log.Index} Unique={log.Log.Unique}");
                     it1.Next();
                     hasNext = true;
                 }
                 if (it2.Valid())
                 {
                     var log = RaftLog.Decode(new Binary(it2.Value()), StateMachine.LogFactory);
-                    Console.Write($" 127.0.0.1_6001: Term={log.Term} Index={log.Index} Unique={log.Log.UniqueRequestId}");
+                    Console.Write($" 127.0.0.1_6001: Term={log.Term} Index={log.Index} Unique={log.Log.Unique}");
                     it2.Next();
                     hasNext = true;
                 }
                 if (it3.Valid())
                 {
                     var log = RaftLog.Decode(new Binary(it3.Value()), StateMachine.LogFactory);
-                    Console.Write($" 127.0.0.1_6002: Term={log.Term} Index={log.Index} Unique={log.Log.UniqueRequestId}");
+                    Console.Write($" 127.0.0.1_6002: Term={log.Term} Index={log.Index} Unique={log.Log.Unique}");
                     it3.Next();
                     hasNext = true;
                 }

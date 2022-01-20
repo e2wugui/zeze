@@ -133,11 +133,19 @@ namespace Zeze.Raft
             {
                 if (Raft.WaitLeaderReady())
                 {
-                    if (Raft.LogSequence.HasApplied(p))
+                    var state = Raft.LogSequence.GetRequestState(p);
+                    if (state > 0)
                     {
                         p.SendResultCode(Procedure.DuplicateRequest);
                         return Procedure.DuplicateRequest;
                     }
+
+                    if (state < 0)
+                    {
+                        p.SendResultCode(Procedure.RaftApplied);
+                        return Procedure.RaftApplied;
+                    }
+                    
                     return factoryHandle.Handle(p);
                 }
                 TrySendLeaderIs(p.Sender);
@@ -166,7 +174,7 @@ namespace Zeze.Raft
             if (Raft.IsLeader)
             {
                 var iraftrpc = p as IRaftRpc;
-                if (iraftrpc.UniqueRequestId <= 0)
+                if (iraftrpc.Unique.RequestId <= 0)
                 {
                     p.SendResultCode(Procedure.ErrorRequestId);
                     return;
@@ -174,7 +182,7 @@ namespace Zeze.Raft
 
                 //【防止重复的请求】
                 // see Log.cs::LogSequence.TryApply
-                TaskOneByOne.Execute(iraftrpc.ClientId,
+                TaskOneByOne.Execute(iraftrpc.Unique,
                     () => ProcessRequest(p, factoryHandle),
                     p.GetType().FullName,
                     () => p.SendResultCode(Procedure.RaftRetry)
@@ -223,15 +231,55 @@ namespace Zeze.Raft
         }
     }
 
+    public class UniqueRequestId : Serializable
+    {
+        public string ClientId { get; set; }
+        public long RequestId { get; set; }
+
+        public override int GetHashCode()
+        {
+            const int _prime_ = 31;
+            int _h_ = 0;
+            _h_ = _h_ * _prime_ + ClientId.GetHashCode();
+            _h_ = _h_ * _prime_ + RequestId.GetHashCode();
+            return _h_;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == this)
+                return true;
+            if (obj is UniqueRequestId other)
+                return ClientId.Equals(other.ClientId) && RequestId == other.RequestId;
+            return false;
+        }
+
+        public void Decode(ByteBuffer bb)
+        {
+            ClientId = bb.ReadString();
+            RequestId = bb.ReadLong();
+        }
+
+        public void Encode(ByteBuffer bb)
+        {
+            bb.WriteString(ClientId);
+            bb.WriteLong(RequestId);
+        }
+
+        public override string ToString()
+        {
+            return $"ClientId={ClientId} RequestId={RequestId}";
+        }
+    }
+
     public interface IRaftRpc
     {
+        public abstract long CreateTime { get; set; }
         /// <summary>
         /// 唯一的请求编号，重发时保持不变。在一个ClientId内唯一即可。
         /// </summary>
-        public abstract long UniqueRequestId { get; set; }
-        public abstract long CreateTime { get; set; }
-        public abstract string ClientId { get; set; } // 不系列化，由Raft-Server使用。
-        public abstract long SendTime { get; set; }
+        public abstract UniqueRequestId Unique { get; set; }
+        public abstract long SendTime { get; set; } // 不系列化，Agent本地只用。
     }
 
     public abstract class RaftRpc<TArgument, TResult> : Rpc<TArgument, TResult>, IRaftRpc
@@ -239,8 +287,7 @@ namespace Zeze.Raft
         where TResult : Bean, new()
     {
         public long CreateTime { get; set; }
-        public long UniqueRequestId { get; set; }
-        public string ClientId { get; set; }
+        public UniqueRequestId Unique { get; set; } = new UniqueRequestId();
         public long SendTime { get; set; }
 
         public override bool Send(AsyncSocket so)
@@ -253,7 +300,7 @@ namespace Zeze.Raft
 
         public override string ToString()
         {
-            return $"Client={Sender?.RemoteAddress} UniqueRequestId={UniqueRequestId} {base.ToString()}";
+            return $"Client={Sender?.RemoteAddress} Unique={Unique} {base.ToString()}";
         }
 
         public override void Encode(ByteBuffer bb)
@@ -261,9 +308,8 @@ namespace Zeze.Raft
             bb.WriteBool(IsRequest);
             bb.WriteLong(SessionId);
             bb.WriteLong(ResultCode);
-            bb.WriteLong(UniqueRequestId);
+            Unique.Encode(bb);
             bb.WriteLong(CreateTime);
-            bb.WriteString(ClientId);
 
             if (IsRequest)
             {
@@ -280,9 +326,8 @@ namespace Zeze.Raft
             IsRequest = bb.ReadBool();
             SessionId = bb.ReadLong();
             ResultCode = bb.ReadLong();
-            UniqueRequestId = bb.ReadLong();
+            Unique.Decode(bb);
             CreateTime = bb.ReadLong();
-            ClientId = bb.ReadString();
 
             if (IsRequest)
             {
@@ -334,11 +379,11 @@ namespace Zeze.Raft
 
             // 由于interface不能把setter弄成保护的，实际上外面可以修改。
             // 简单检查一下吧。
-            if (rpc.UniqueRequestId != 0)
+            if (rpc.Unique.RequestId != 0)
                 throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
 
-            rpc.UniqueRequestId = UniqueRequestIdGenerator.Next();
-            rpc.ClientId = UniqueRequestIdGenerator.FileName;
+            rpc.Unique.RequestId = UniqueRequestIdGenerator.Next();
+            rpc.Unique.ClientId = UniqueRequestIdGenerator.FileName;
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
 
@@ -359,8 +404,7 @@ namespace Zeze.Raft
                 return 0;
             }
 
-            // DuplicateRequest as success
-            if (rpc.ResultCode == Procedure.DuplicateRequest)
+            if (rpc.ResultCode == Procedure.RaftApplied)
                 rpc.ResultCode = Procedure.Success;
 
             if (Pending.Remove(rpc))
@@ -374,6 +418,7 @@ namespace Zeze.Raft
             {
                 case Procedure.CancelException:
                 case Procedure.RaftRetry:
+                case Procedure.DuplicateRequest:
                     return true;
             }
             return false;
@@ -390,8 +435,7 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
-            // TODO DuplicateRequest as success
-            if (rpc.ResultCode == Procedure.DuplicateRequest)
+            if (rpc.ResultCode == Procedure.RaftApplied)
                 rpc.ResultCode = Procedure.Success;
 
             if (Pending.Remove(rpc))
@@ -407,11 +451,11 @@ namespace Zeze.Raft
         {
             // 由于interface不能把setter弄成保护的，实际上外面可以修改。
             // 简单检查一下吧。
-            if (rpc.UniqueRequestId != 0)
+            if (rpc.Unique.RequestId != 0)
                 throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
 
-            rpc.UniqueRequestId = UniqueRequestIdGenerator.Next();
-            rpc.ClientId = UniqueRequestIdGenerator.FileName;
+            rpc.Unique.RequestId = UniqueRequestIdGenerator.Next();
+            rpc.Unique.ClientId = UniqueRequestIdGenerator.FileName;
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
 

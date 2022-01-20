@@ -23,6 +23,7 @@ namespace Zeze.Transaction
         public const long ErrorRequestId = -13;
         public const long ErrorSendFail = -14;
         public const long RaftRetry = -15;
+        public const long RaftApplied = -16;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
