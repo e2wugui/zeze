@@ -104,12 +104,9 @@ namespace Zeze.Net
             // 发送失败，一般是连接失效，此时删除上下文。
             // 其中rpc-trigger-result的原子性由RemoveRpcContext保证。
             // Cancel不是必要的。
-            timeoutTask?.Cancel(); 
-            // 【注意】当上下文已经其他并发过程删除（得到了处理），那么这里就返回成功。
-            // see OnSocketDisposed
-            // 这里返回 false 表示真的没有发送成功，外面根据自己需要决定是否重连并再次发送。
-            Rpc<TArgument, TResult> context = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(this.SessionId);
-            return context == null;
+            timeoutTask?.Cancel();
+            so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(this.SessionId);
+            return false;
         }
 
         /// <summary>

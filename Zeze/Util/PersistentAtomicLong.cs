@@ -12,7 +12,7 @@ namespace Zeze.Util
         private readonly AtomicLong CurrentId = new AtomicLong();
         private AtomicLong allocated = new AtomicLong(); // for volatile long
 
-        private readonly string FileName;
+        public string FileName { get; }
         private readonly int AllocateSize;
         private Mutex Mutex;
 

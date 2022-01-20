@@ -172,9 +172,7 @@ namespace Zeze.Raft
                     return;
                 }
 
-                // 默认0，每个远程ip地址允许并发。不直接包含port信息，client.port容易改变。
                 //【防止重复的请求】
-                iraftrpc.ClientId = p.Sender.RemoteAddress;
                 // see Log.cs::LogSequence.TryApply
                 TaskOneByOne.Execute(iraftrpc.ClientId,
                     () => ProcessRequest(p, factoryHandle),
@@ -233,6 +231,7 @@ namespace Zeze.Raft
         public abstract long UniqueRequestId { get; set; }
         public abstract long CreateTime { get; set; }
         public abstract string ClientId { get; set; } // 不系列化，由Raft-Server使用。
+        public abstract long SendTime { get; set; }
     }
 
     public abstract class RaftRpc<TArgument, TResult> : Rpc<TArgument, TResult>, IRaftRpc
@@ -240,10 +239,9 @@ namespace Zeze.Raft
         where TResult : Bean, new()
     {
         public long CreateTime { get; set; }
-        public TaskCompletionSource<RaftRpc<TArgument, TResult>> RealFuture { get; internal set; }
-        public Func<Protocol, long> RealHandle { get; internal set; }
         public long UniqueRequestId { get; set; }
         public string ClientId { get; set; }
+        public long SendTime { get; set; }
 
         public override bool Send(AsyncSocket so)
         {
@@ -265,6 +263,7 @@ namespace Zeze.Raft
             bb.WriteLong(ResultCode);
             bb.WriteLong(UniqueRequestId);
             bb.WriteLong(CreateTime);
+            bb.WriteString(ClientId);
 
             if (IsRequest)
             {
@@ -283,6 +282,7 @@ namespace Zeze.Raft
             ResultCode = bb.ReadLong();
             UniqueRequestId = bb.ReadLong();
             CreateTime = bb.ReadLong();
+            ClientId = bb.ReadString();
 
             if (IsRequest)
             {
@@ -313,21 +313,17 @@ namespace Zeze.Raft
 
         public Util.SimpleThreadPool InternalThreadPool { get; }
 
-        public Action<Agent, Action> OnLeaderChanged { get; private set; }
+        public Action<Agent> OnLeaderChanged { get; private set; }
 
         /// <summary>
         /// 发送Rpc请求。
-        /// 如果 autoResend == true，那么总是返回成功。内部会在需要的时候重发请求。
-        /// 如果 autoResend == false，那么返回结果表示是否成功。
         /// </summary>
         /// <typeparam name="TArgument"></typeparam>
         /// <typeparam name="TResult"></typeparam>
         /// <param name="rpc"></param>
         /// <param name="handle"></param>
-        /// <param name="autoResend"></param>
-        /// <param name="timeout"></param>
         /// <returns></returns>
-        public bool Send<TArgument, TResult>(
+        public void Send<TArgument, TResult>(
             RaftRpc<TArgument, TResult> rpc,
             Func<Protocol, long> handle)
             where TArgument : Bean, new()
@@ -342,25 +338,16 @@ namespace Zeze.Raft
                 throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
 
             rpc.UniqueRequestId = UniqueRequestIdGenerator.Next();
+            rpc.ClientId = UniqueRequestIdGenerator.FileName;
             rpc.CreateTime = Util.Time.NowUnixMillis;
-            rpc.RealHandle = handle;
+            rpc.SendTime = rpc.CreateTime;
+
             var resendTimeout = RaftConfig.AppendEntriesTimeout + 2000;
+            rpc.Timeout = resendTimeout;
+            rpc.ResponseHandle = (p) => SendHandle(handle, rpc);
+            Pending.Add(rpc);
 
-            lock (this)
-            {
-                var tmp = _Leader;
-                if (null != tmp
-                    && tmp.IsHandshakeDone
-                    && Pending.Count == 0 // has Pending! Send Later!
-                    && rpc.Send(tmp.Socket, (p) => SendHandle(handle, rpc), resendTimeout))
-                    return true;
-
-                rpc.ResponseHandle = (p) => SendHandle(handle, rpc);
-                rpc.Timeout = resendTimeout;
-
-                Pending.Add(rpc);
-                return true;
-            }
+            rpc.Send(_Leader?.TryGetReadySocket(), (p) => SendHandle(handle, rpc), resendTimeout);
         }
 
         private long SendHandle<TArgument, TResult>(Func<Protocol, long> userHandle, RaftRpc<TArgument, TResult> rpc)
@@ -369,7 +356,6 @@ namespace Zeze.Raft
         {
             if (rpc.IsTimeout || IsRetryError(rpc.ResultCode))
             {
-                CollectAndReSend(rpc);
                 return 0;
             }
 
@@ -377,6 +363,7 @@ namespace Zeze.Raft
             if (rpc.ResultCode == Procedure.DuplicateRequest)
                 rpc.ResultCode = Procedure.Success;
 
+            Pending.Remove(rpc);
             return userHandle(rpc);
         }
 
@@ -399,16 +386,15 @@ namespace Zeze.Raft
         {
             if (rpc.IsTimeout || IsRetryError(rpc.ResultCode))
             {
-                CollectAndReSend(rpc);
                 return Procedure.Success;
             }
 
-            // DuplicateRequest as success
+            // TODO DuplicateRequest as success
             if (rpc.ResultCode == Procedure.DuplicateRequest)
                 rpc.ResultCode = Procedure.Success;
 
+            Pending.Remove(rpc);
             future.SetResult(rpc);
-
             return Procedure.Success;
         }
 
@@ -424,26 +410,18 @@ namespace Zeze.Raft
                 throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
 
             rpc.UniqueRequestId = UniqueRequestIdGenerator.Next();
+            rpc.ClientId = UniqueRequestIdGenerator.FileName;
             rpc.CreateTime = Util.Time.NowUnixMillis;
-
-            var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
-            rpc.RealFuture = future;
+            rpc.SendTime = rpc.CreateTime;
 
             var resendTimeout = RaftConfig.AppendEntriesTimeout + 2000;
+            var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
+            rpc.ResponseHandle = (p) => SendForWaitHandle(future, rpc);
+            rpc.Timeout = resendTimeout;
+            Pending.Add(rpc);
 
-            lock (this)
-            {
-                var tmp = _Leader;
-                if (null != tmp
-                    && tmp.IsHandshakeDone
-                    && rpc.Send(tmp.Socket, (p) => SendForWaitHandle(future, rpc), resendTimeout))
-                    return future;
-
-                rpc.ResponseHandle = (p) => SendForWaitHandle(future, rpc);
-                rpc.Timeout = resendTimeout;
-                Pending.Add(rpc);
-                return future;
-            }
+            rpc.Send(_Leader?.TryGetReadySocket(), (p) => SendForWaitHandle(future, rpc), resendTimeout);
+            return future;
         }
 
         public long Term { get; internal set; }
@@ -453,14 +431,6 @@ namespace Zeze.Raft
             public ConnectorEx(string host, int port = 0)
                 : base(host, port)
             {
-            }
-
-            public override void OnSocketClose(AsyncSocket closed, Exception e)
-            {
-                // 先关闭重连，防止后面重发收集前又连上。
-                // see Agent.NetClient
-                base.IsAutoReconnect = false;
-                base.OnSocketClose(closed, e);
             }
         }
 
@@ -486,7 +456,7 @@ namespace Zeze.Raft
             string name,
             Application zeze,
             RaftConfig raftconf = null,
-            Action<Agent, Action> onLeaderChanged = null
+            Action<Agent> onLeaderChanged = null
             )
         {
             InternalThreadPool = zeze.InternalThreadPool;
@@ -505,7 +475,7 @@ namespace Zeze.Raft
             string name,
             RaftConfig raftconf = null,
             Zeze.Config config = null,
-            Action<Agent, Action> onLeaderChanged = null
+            Action<Agent> onLeaderChanged = null
             )
         {
             InternalThreadPool = new Util.SimpleThreadPool(5, "RaftAgentThreadPool");
@@ -516,7 +486,7 @@ namespace Zeze.Raft
             Init(new NetClient(this, name, config), raftconf, onLeaderChanged);
         }
 
-        private void Init(NetClient client, RaftConfig raftconf, Action<Agent, Action> onLeaderChanged)
+        private void Init(NetClient client, RaftConfig raftconf, Action<Agent> onLeaderChanged)
         {
             OnLeaderChanged = onLeaderChanged;
 
@@ -543,34 +513,14 @@ namespace Zeze.Raft
                 Handle = ProcessLeaderIs,
             });
 
-            Util.Scheduler.Instance.Schedule(ChoiceLeaderAndReSend, 1000, RaftConfig.AppendEntriesTimeout + 1000); // ugly
-        }
-
-        private void ChoiceLeaderAndReSend(Util.SchedulerTask thisTask)
-        {
-            lock (this)
-            {
-                if (_Leader == null)
-                {
-                    var randIndex = Util.Random.Instance.Next(Client.Config.ConnectorCount());
-                    Client.Config.ForEachConnector((c) =>
-                    {
-                        if (--randIndex < 0)
-                        {
-                            _Leader = c as ConnectorEx;
-                            return false;
-                        }
-                        return true;
-                    });
-                }
-            }
-            ReSend();
+            // ugly
+            Util.Scheduler.Instance.Schedule((thisTask) => ReSend(), 1000, 1000);
         }
 
         private long ProcessLeaderIs(Protocol p)
         {
             var r = p as LeaderIs;
-            logger.Debug("{0}: {1}", Name, r);
+            logger.Info("=============== LEADERIS ================{0}: {1}", Name, r);
 
             var node = Client.Config.FindConnector(r.Argument.LeaderId);
             if (null == node)
@@ -588,64 +538,27 @@ namespace Zeze.Raft
 
             if (TrySetLeader(r, node as ConnectorEx))
             {
-                if (r.Sender.Connector.Name.Equals(r.Argument.LeaderId))
-                {
-                    // 来自 Leader 的公告。
-                    if (null != OnLeaderChanged)
-                    {
-                        OnLeaderChanged(this, ReSend);
-                    }
-                    else
-                    {
-                        ReSend();
-                    }
-                }
-                else
-                {
-                    // 从 Follower 得到的重定向，原则上不需要处理。
-                    // 等待 LeaderIs 的通告即可。但是为了防止LeaderIs丢失，就处理一下吧。
-                    // 【实际上和上面的处理逻辑一样】。
-                    // 此时Leader可能没有准备好，但是提前给Leader发送请求是可以的。
-                    if (null != OnLeaderChanged)
-                    {
-                        OnLeaderChanged(this, ReSend);
-                    }
-                    else
-                    {
-                        ReSend();
-                    }
-                }
-
+                // 来自 Leader 的公告。
+                OnLeaderChanged?.Invoke(this);
             }
             r.SendResultCode(0);
             return Procedure.Success;
         }
 
-        private void CollectAndReSend(Protocol rpc)
-        {
-            lock (this)
-            {
-                Pending.Add(rpc);
-                //CollectPendingRpc(_Leader);
-            }
-            ReSend();
-        }
-
         private void ReSend()
         {
             // ReSendPendingRpc
-            lock (this)
+            var leaderSocket = _Leader?.TryGetReadySocket();
+            if (null != leaderSocket)
             {
-                var tmp = _Leader;
-                if (null == tmp || false == tmp.IsHandshakeDone)
-                    return;
-
+                var now = Util.Time.NowUnixMillis;
                 foreach (var rpc in Pending)
                 {
-                    // 这里发送失败，等待新的 LeaderIs 通告再继续。
-                    if (rpc.Send(tmp.Socket))
+                    var iraft = rpc as IRaftRpc;
+                    if (now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 3000)
                     {
-                        Pending.Remove(rpc);
+                        iraft.SendTime = now;
+                        rpc.Send(leaderSocket);
                     }
                 }
             }
@@ -661,15 +574,7 @@ namespace Zeze.Raft
                     return false;
                 }
 
-                var oldLeader = _Leader;
-                // 把旧的_Leader的没有返回结果的请求收集起来，准备重新发送。
-                if (   oldLeader != newLeader // leader changed
-                    || r.Argument.Term > Term // 新的任期
-                    || oldLeader.Socket != newLeader.Socket // leader socket changed
-                    )
-                {
-                    CollectPendingRpc(oldLeader);
-                }
+                //CollectPendingRpc(_Leader);
 
                 _Leader = newLeader; // change current Leader
                 Term = r.Argument.Term;
@@ -677,32 +582,18 @@ namespace Zeze.Raft
             }
         }
 
-        internal bool TryClearLeader(ConnectorEx oldLeader, AsyncSocket oldSocket)
-        {
-            lock (this)
-            {
-                // Always Collect Pending
-                CollectPendingRpc(oldLeader);
-
-                if (_Leader == oldLeader)
-                {
-                    _Leader = null;
-                    return true;
-                }
-                return false;
-            }
-        }
-
-        // under lock
+        /*
         private void CollectPendingRpc(Connector oldLeader)
         {
             var ctxSends = Client.GetRpcContexts((p) => p.Sender.Connector == oldLeader);
             var ctxPending = Client.RemoveRpcContexts(ctxSends.Keys);
+
             foreach (var rpc in ctxPending)
             {
                 Pending.Add(rpc);
             }
         }
+        */
 
         public sealed class NetClient : Services.HandshakeClient
         {
@@ -720,19 +611,6 @@ namespace Zeze.Raft
                 : base(name, config)
             {
                 Agent = agent;
-            }
-
-            public override void OnSocketDisposed(AsyncSocket so)
-            {
-                base.OnSocketDisposed(so);
-                Agent.InternalThreadPool.QueueUserWorkItem(
-                    () => Util.Task.Call(() =>
-                    {
-                        var connector = so.Connector as ConnectorEx;
-                        Agent.TryClearLeader(connector, so);
-                        connector.IsAutoReconnect = true;
-                        connector.TryReconnect();
-                    }, "OnSocketDisposed"));
             }
 
             public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, long> responseHandle, ProtocolFactoryHandle factoryHandle)

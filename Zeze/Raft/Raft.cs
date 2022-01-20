@@ -533,7 +533,7 @@ namespace Zeze.Raft
                         (ThisTask) =>
                         {
                             var now = Time.NowUnixMillis;
-                            bool hearbeatNow = Server.Config.ForEachConnector(
+                            bool hearbeatBreak = Server.Config.ForEachConnector(
                                 (c) =>
                                 {
                                     var cex = c as Server.ConnectorEx;
@@ -543,7 +543,7 @@ namespace Zeze.Raft
                                     return true;
                                 });
 
-                            if (hearbeatNow)
+                            if (false == hearbeatBreak)
                             {
                                 LogSequence.AppendLog(new HeartbeatLog(), false);
                             }

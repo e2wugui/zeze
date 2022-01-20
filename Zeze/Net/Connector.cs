@@ -198,5 +198,10 @@ namespace Zeze.Net
             }
             tmp?.Dispose();
         }
+
+        public override string ToString()
+        {
+            return $"{Name}-{Socket}-{Socket.Socket}";
+        }
     }
 }
