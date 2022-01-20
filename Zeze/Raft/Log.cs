@@ -277,8 +277,9 @@ namespace Zeze.Raft
                 {
                     if (null == Db)
                     {
-                        Db = RocksDb.Open(new DbOptions().SetCreateIfMissing(true),
-                            Path.Combine(LogSequence.Raft.RaftConfig.DbHome, "unique", DbName));
+                        var dir = Path.Combine(LogSequence.Raft.RaftConfig.DbHome, "unique");
+                        Directory.CreateDirectory(dir);
+                        Db = RocksDb.Open(new DbOptions().SetCreateIfMissing(true), Path.Combine(dir, DbName));
                     }
                     return Db;
                 }

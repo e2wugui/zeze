@@ -65,6 +65,7 @@ namespace Zeze.Util
             }
             catch (Exception ex)
             {
+                logger.Warn(ex);
                 while (true)
                 {
                     var inner = ex.InnerException;

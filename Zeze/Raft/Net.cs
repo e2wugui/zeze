@@ -233,7 +233,7 @@ namespace Zeze.Raft
 
     public class UniqueRequestId : Serializable
     {
-        public string ClientId { get; set; }
+        public string ClientId { get; set; } = string.Empty;
         public long RequestId { get; set; }
 
         public override int GetHashCode()

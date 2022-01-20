@@ -27,6 +27,13 @@ namespace Zeze.Raft
 
         private void LogCheck()
         {
+            if (!Directory.Exists("127.0.0.1_6000")
+                || !Directory.Exists("127.0.0.1_6001")
+                || !Directory.Exists("127.0.0.1_6002"))
+            {
+                return;
+            }
+
             var options = new DbOptions().SetCreateIfMissing(true);
             using var r1 = RocksDb.Open(options, Path.Combine("127.0.0.1_6000", "logs"));
             using var r2 = RocksDb.Open(options, Path.Combine("127.0.0.1_6001", "logs"));
