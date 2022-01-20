@@ -4,7 +4,7 @@ namespace Zeze.Gen.cs
 {
     public class ProtocolFormatter
     {
-        Protocol p;
+        readonly Protocol p;
  
         public ProtocolFormatter(Protocol p)
         {

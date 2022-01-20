@@ -1,21 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
-    class NegativeCheck : Types.Visitor
+    class NegativeCheck : Visitor
     {
-        private System.IO.StreamWriter sw;
-        private string varname;
-        private string prefix;
+        readonly StreamWriter sw;
+        readonly string varname;
+        readonly string prefix;
 
-        public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "public override bool NegativeCheck()");
             sw.WriteLine(prefix + "{");
-            foreach (Types.Variable var in bean.Variables)
+            foreach (Variable var in bean.Variables)
             {
                 if (var.AllowNegative)
                     continue;
@@ -25,11 +23,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "}");
         }
 
-        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "public bool NegativeCheck()");
             sw.WriteLine(prefix + "{");
-            foreach (Types.Variable var in bean.Variables)
+            foreach (Variable var in bean.Variables)
             {
                 if (var.AllowNegative)
                     continue;
@@ -39,7 +37,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "}");
         }
 
-        NegativeCheck(System.IO.StreamWriter sw, string varname, string prefix)
+        NegativeCheck(StreamWriter sw, string varname, string prefix)
         {
             this.sw = sw;
             this.varname = varname;

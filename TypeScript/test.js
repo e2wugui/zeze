@@ -183,20 +183,20 @@ class Test {
             assert("7E-04-00-00-00-00-00" == bb.toString(), "assert 104");
             assert(longv == bb.ReadLong(), "assert 105");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 106");
-            longv = 0x2000000000000n; //new Long(0, 0x20000, true);
+            longv = 0x2000000000000n; //new Long(0, 0x2_0000, true);
             bb.WriteLong(longv);
             assert(8 == bb.Size(), "assert 107");
             assert("7F-02-00-00-00-00-00-00" == bb.toString(), "assert 108");
             assert(longv == bb.ReadLong(), "assert 109");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 110");
-            longv = 0x100000000000000n; // new Long(0, 0x1000000, true);
+            longv = 0x100000000000000n; // new Long(0, 0x100_0000, true);
             bb.WriteLong(longv);
             assert(9 == bb.Size(), "assert 111");
             //console.log(bb.toString());
             assert("7F-81-00-00-00-00-00-00-00" == bb.toString(), "assert 112");
             assert(longv == bb.ReadLong(), "assert 113");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 114");
-            longv = -9223372036854775808n; // 0x8000_0000_0000_0000n new Long(0, 0x1000000, true);
+            longv = -9223372036854775808n; // 0x8000_0000_0000_0000n new Long(0, 0x100_0000, true);
             //console.log("---" + longv.toString(16));
             bb.WriteLong(longv);
             assert(9 == bb.Size(), "assert 115");
@@ -211,8 +211,6 @@ class Test {
             assert(bb.ReadIndex == bb.WriteIndex, "assert 122");
         }
         {
-            bb.WriteInt(-268435456);
-            var b1 = bb.ReadByte() - 0x100;
             for (var i = 0; i <= 64; ++i) {
                 Test.testAll(1n << BigInt(i));
                 Test.testAll((1n << BigInt(i)) - 1n);
@@ -237,7 +235,7 @@ class Test {
         var s = bb.toString();
         var y = bb.ReadInt();
         assert(x == y, "testInt 1: " + s + ": " + x + " != " + y);
-        assert(bb.ReadIndex == bb.WriteIndex, "testInt 2: " + x);
+        assert(bb.ReadIndex == bb.WriteIndex, "testInt 2: " + s + ": " + x);
     }
     static testLong(x) {
         if (x < -0x8000000000000000n || x > 0x7fffffffffffffffn)
@@ -247,7 +245,7 @@ class Test {
         var s = bb.toString();
         var y = bb.ReadLong();
         assert(x == y, "testLong 1: " + s + ": " + x + " != " + y);
-        assert(bb.ReadIndex == bb.WriteIndex, "testLong 2: " + x);
+        assert(bb.ReadIndex == bb.WriteIndex, "testLong 2: " + s + ": " + x);
     }
     static testUInt(x) {
         if (x < -2147483648 || x > 2147483647)
@@ -257,7 +255,7 @@ class Test {
         var s = bb.toString();
         var y = bb.ReadUInt();
         assert(x == y, "testUInt 1: " + s + ": " + x + " != " + y);
-        assert(bb.ReadIndex == bb.WriteIndex, "testUInt 2: " + x);
+        assert(bb.ReadIndex == bb.WriteIndex, "testUInt 2: " + s + ": " + x);
     }
     static testAll(x) {
         Test.testInt(Number(x));

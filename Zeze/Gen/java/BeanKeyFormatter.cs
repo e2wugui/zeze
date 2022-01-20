@@ -1,21 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
     public class BeanKeyFormatter
     {
-        Types.BeanKey beanKey;
+        readonly BeanKey beanKey;
 
-        public BeanKeyFormatter(Types.BeanKey beanKey)
+        public BeanKeyFormatter(BeanKey beanKey)
         {
             this.beanKey = beanKey;
         }
 
         public void Make(string baseDir)
         {
-            using System.IO.StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".java");
+            using StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".java");
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + beanKey.Space.Path() + ";");
@@ -27,20 +26,14 @@ namespace Zeze.Gen.java
             sw.WriteLine($"public final class {beanKey.Name} implements Serializable, Comparable<{beanKey.Name}> {{");
 
             // declare enums
-            foreach (Types.Enum e in beanKey.Enums)
-            {
+            foreach (Enum e in beanKey.Enums)
                 sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
-            }
             if (beanKey.Enums.Count > 0)
-            {
                 sw.WriteLine();
-            }
 
             // declare variables
-            foreach (Types.Variable v in beanKey.Variables)
-            {
+            foreach (Variable v in beanKey.Variables)
                 sw.WriteLine("    private " + TypeName.GetName(v.VariableType) + " " + v.NamePrivate + ";" + v.Comment);
-            }
             sw.WriteLine();
 
             sw.WriteLine("    // for decode only");
@@ -51,10 +44,8 @@ namespace Zeze.Gen.java
             // params construct
             {
                 sw.WriteLine("    public " + beanKey.Name + "(" + ParamName.GetParamList(beanKey.Variables) + ") {");
-                foreach (Types.Variable v in beanKey.Variables)
-                {
+                foreach (Variable v in beanKey.Variables)
                     sw.WriteLine("        this." + v.NamePrivate + " = " + v.NamePrivate + "_;");
-                }
                 sw.WriteLine("    }");
                 sw.WriteLine();
             }

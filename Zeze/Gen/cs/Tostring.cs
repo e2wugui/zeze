@@ -72,7 +72,7 @@ namespace Zeze.Gen.cs
             this.sep = sep;
         }
 
-        private void FormatSimple()
+        void FormatSimple()
         {
             sw.Write(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append('=').Append({var})");
             if (sep != 0)

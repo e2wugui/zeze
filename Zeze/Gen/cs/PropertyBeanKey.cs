@@ -1,25 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
     public class PropertyBeanKey : Visitor
     {
-        System.IO.StreamWriter sw;
-        Types.Variable var;
-        string prefix;
+        readonly StreamWriter sw;
+        readonly Variable var;
+        readonly string prefix;
 
-        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            foreach (Types.Variable var in bean.Variables)
-            {
+            foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new PropertyBeanKey(sw, var, prefix));
-            }
         }
 
-        public PropertyBeanKey(System.IO.StreamWriter sw, Types.Variable var, string prefix)
+        public PropertyBeanKey(StreamWriter sw, Variable var, string prefix)
         {
             this.sw = sw;
             this.var = var;
@@ -31,7 +28,7 @@ namespace Zeze.Gen.cs
             throw new NotImplementedException();
         }
 
-        private void WriteProperty(Types.Type type)
+        void WriteProperty(Types.Type type)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
         }

@@ -5,9 +5,9 @@ namespace Zeze.Gen.cs
 {
     public class Assign : Visitor
     {
-        private StreamWriter sw;
-        private Variable var;
-        private string prefix;
+        readonly StreamWriter sw;
+        readonly Variable var;
+        readonly string prefix;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {

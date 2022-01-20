@@ -8,10 +8,10 @@ namespace Zeze.Gen.cs
     // 需要使用NameUpper1进行比较，而不是NamePrivate。
     public class Equal : Visitor
     {
-        private readonly Variable var;
-        private readonly string another;
-        private readonly bool isEquals;
-        private string text;
+        readonly Variable var;
+        readonly string another;
+        readonly bool isEquals;
+        string text;
 
         /// <summary>
         /// 实际上 BeanKey 很多类型都不支持，下面先尽量实现，以后可能用来实现 Bean 的 Equals.

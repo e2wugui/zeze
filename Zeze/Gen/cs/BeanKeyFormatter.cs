@@ -5,7 +5,7 @@ namespace Zeze.Gen.cs
 {
     public class BeanKeyFormatter
     {
-        BeanKey beanKey;
+        readonly BeanKey beanKey;
 
         public BeanKeyFormatter(BeanKey beanKey)
         {
@@ -33,9 +33,7 @@ namespace Zeze.Gen.cs
 
             // declare variables
             foreach (Variable v in beanKey.Variables)
-            {
-                sw.WriteLine("        private " + TypeName.GetName(v.VariableType) + " " + v.NamePrivate + ";" + v.Comment);
-            }
+                sw.WriteLine("        " + TypeName.GetName(v.VariableType) + " " + v.NamePrivate + ";" + v.Comment);
             sw.WriteLine();
 
             sw.WriteLine("        // for decode only");
@@ -49,9 +47,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("        public " + beanKey.Name + "(" + ParamName.GetParamList(beanKey.Variables) + ")");
                 sw.WriteLine("        {");
                 foreach (Variable v in beanKey.Variables)
-                {
                     sw.WriteLine("            this." + v.NamePrivate + " = " + v.NamePrivate + "_;");
-                }
                 sw.WriteLine("        }");
                 sw.WriteLine();
             }

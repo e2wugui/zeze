@@ -32,7 +32,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + "ReadOnly " + var.NameUpper1 + " { get; }");
         }
 
-        private void WriteProperty(Type type)
+        void WriteProperty(Type type)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " { get; }");
         }

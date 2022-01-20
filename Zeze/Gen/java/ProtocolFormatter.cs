@@ -3,7 +3,7 @@ namespace Zeze.Gen.java
 {
     public class ProtocolFormatter
     {
-        Protocol p;
+        readonly Protocol p;
  
         public ProtocolFormatter(Protocol p)
         {

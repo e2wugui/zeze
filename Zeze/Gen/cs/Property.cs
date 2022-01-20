@@ -31,7 +31,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + typeNameReadOnly + " " + beanNameReadOnly + "." + var.NameUpper1 + " => " + var.NamePrivate + ";");
         }
 
-        private void WriteProperty(Type type, bool checkNull = false)
+        void WriteProperty(Type type, bool checkNull = false)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
             sw.WriteLine(prefix + "{");

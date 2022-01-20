@@ -64,7 +64,10 @@ namespace UnitTest.Zeze.Net
                 en.update(buffer, 0, buffer.Length);
                 en.flush();
 
-                Assert.AreNotEqual(ByteBuffer.Wrap(buffer), encrypt.Buffer);
+                if (buffer.Length > 0)
+                    Assert.AreNotEqual(ByteBuffer.Wrap(buffer), encrypt.Buffer);
+                else
+                    Assert.AreEqual(ByteBuffer.Wrap(buffer), encrypt.Buffer);
 
                 BufferCodec decrypt = new BufferCodec();
                 Decrypt de = new Decrypt(decrypt, key);

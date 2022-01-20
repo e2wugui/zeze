@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Zeze.Gen.Types;
+﻿using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
-    public class TypeTagName : Types.Visitor
+    public class TypeTagName : Visitor
     {
         public string Name { get; private set; }
-        public static string GetName(Types.Type type)
+
+        public static string GetName(Type type)
         {
             TypeTagName v = new TypeTagName();
             type.Accept(v);

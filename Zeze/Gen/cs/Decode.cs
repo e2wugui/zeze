@@ -147,7 +147,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine(prefix + $"{varname} = {bufname}.ReadString();");
         }
  
-        private string DecodeElement(Types.Type type, string typeVar)
+        string DecodeElement(Types.Type type, string typeVar)
         {
             switch (type)
             {
@@ -178,7 +178,7 @@ namespace Zeze.Gen.cs
             }
         }
  
-        private void DecodeCollection(TypeCollection type)
+        void DecodeCollection(TypeCollection type)
         {
             if (id <= 0)
                 throw new Exception("invalid variable.id");

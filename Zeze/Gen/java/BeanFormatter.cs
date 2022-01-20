@@ -5,7 +5,7 @@ namespace Zeze.Gen.java
 {
     public class BeanFormatter
     {
-        Bean bean;
+        readonly Bean bean;
 
         public BeanFormatter(Bean bean)
         {

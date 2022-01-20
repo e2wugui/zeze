@@ -5,7 +5,7 @@ namespace Zeze.Gen.cs
 {
     public class BeanFormatter
     {
-        Bean bean;
+        readonly Bean bean;
 
         public BeanFormatter(Bean bean)
         {
@@ -53,7 +53,7 @@ namespace Zeze.Gen.cs
                     || vt is Bean
                     || vt is TypeDynamic
                     ? "readonly " : "";
-                sw.WriteLine("        private " + ro + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
+                sw.WriteLine("        " + ro + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
                 if (vt is TypeMap pmap)
                 {
                     var key = TypeName.GetName(pmap.KeyType);
@@ -61,7 +61,7 @@ namespace Zeze.Gen.cs
                         ? TypeName.GetName(pmap.ValueType) + "ReadOnly"
                         : TypeName.GetName(pmap.ValueType);
                     var readonlyTypeName = $"Zeze.Transaction.Collections.PMapReadOnly<{key},{value},{TypeName.GetName(pmap.ValueType)}>";
-                    sw.WriteLine($"        private {readonlyTypeName} {v.NamePrivate}ReadOnly;");
+                    sw.WriteLine($"        {readonlyTypeName} {v.NamePrivate}ReadOnly;");
                 }
             }
             sw.WriteLine();

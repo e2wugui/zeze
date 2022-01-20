@@ -28,9 +28,9 @@ namespace Zeze.Gen.cs
 			sw.WriteLine();
 		}
 
-        private Variable variable;
-        private string another;
-        private string text;
+        readonly Variable variable;
+        readonly string another;
+        string text;
         
         public Compare(Variable var, string another)
         {

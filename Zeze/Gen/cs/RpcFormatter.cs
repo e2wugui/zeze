@@ -4,7 +4,7 @@ namespace Zeze.Gen.cs
 {
     public class RpcFormatter
     {
-        Rpc rpc;
+        readonly Rpc rpc;
  
         public RpcFormatter(Rpc rpc)
         {

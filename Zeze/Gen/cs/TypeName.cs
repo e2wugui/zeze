@@ -4,24 +4,19 @@ namespace Zeze.Gen.cs
 {
     public class TypeName : Visitor
     {
-        public string name;
-        public string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
+        internal string name;
+        internal string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
 
-        public static string GetName(Types.Type type)
+        public static string GetName(Type type)
         {
-            var visitor = new TypeName();
+            TypeName visitor = new();
             type.Accept(visitor);
             return visitor.name;
         }
 
-        public void Visit(Bean type)
+        public void Visit(TypeBool type)
         {
-            name = type.Space.Path(".", type.Name);
-        }
-
-        public void Visit(BeanKey type)
-        {
-            name = type.Space.Path(".", type.Name);
+            name = "bool";
         }
 
         public void Visit(TypeByte type)
@@ -29,9 +24,9 @@ namespace Zeze.Gen.cs
             name = "byte";
         }
 
-        public void Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
-            name = "double";
+            name = "short";
         }
 
         public void Visit(TypeInt type)
@@ -44,9 +39,14 @@ namespace Zeze.Gen.cs
             name = "long";
         }
 
-        public void Visit(TypeBool type)
+        public void Visit(TypeFloat type)
         {
-            name = "bool";
+            name = "float";
+        }
+
+        public void Visit(TypeDouble type)
+        {
+            name = "double";
         }
 
         public void Visit(TypeBinary type)
@@ -81,14 +81,14 @@ namespace Zeze.Gen.cs
             nameCollectionImplement = "System.Collections.Immutable.ImmutableDictionary<" + key + ", " + value + ">";
         }
 
-        public void Visit(TypeFloat type)
+        public void Visit(Bean type)
         {
-            name = "float";
+            name = type.Space.Path(".", type.Name);
         }
 
-        public void Visit(TypeShort type)
+        public void Visit(BeanKey type)
         {
-            name = "short";
+            name = type.Space.Path(".", type.Name);
         }
 
         public void Visit(TypeDynamic type)

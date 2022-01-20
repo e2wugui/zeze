@@ -39,7 +39,7 @@ namespace Zeze.Gen.cs
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen))
-                    sw.WriteLine("        private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
+                    sw.WriteLine("        " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
             }
             sw.WriteLine();
             sw.WriteLine($"        public {project.Solution.Name}.App App {{ get; }}");

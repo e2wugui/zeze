@@ -1,30 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
-    public class Define : Types.Visitor
+    public class Define : Visitor
     {
-        private string varname;
-        private System.IO.StreamWriter sw;
-        private string prefix;
+        readonly string varname;
+        readonly StreamWriter sw;
+        readonly string prefix;
 
-        public Define(string varname, System.IO.StreamWriter sw, string prefix)
+        public Define(string varname, StreamWriter sw, string prefix)
         {
             this.varname = varname;
             this.sw = sw;
             this.prefix = prefix;
         }
 
-        private void DefineNew(Types.Type type)
+        void DefineNew(Type type)
         {
             string tName = TypeName.GetName(type);
             sw.WriteLine(prefix + tName + " " + varname + " = new " + tName + "();");
         }
 
-        private void DefineStack(Types.Type type)
+        void DefineStack(Type type)
         {
             string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + typeName + " " + varname + ";");

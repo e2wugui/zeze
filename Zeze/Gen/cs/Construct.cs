@@ -5,9 +5,9 @@ namespace Zeze.Gen.cs
 {
     public class Construct : Visitor
     {
-		private readonly StreamWriter sw;
-		private readonly Variable variable;
-		private readonly string prefix;
+		readonly StreamWriter sw;
+		readonly Variable variable;
+		readonly string prefix;
 
 		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
@@ -30,7 +30,7 @@ namespace Zeze.Gen.cs
 			this.prefix = prefix;
 		}
 
-		private void Initial()
+		void Initial()
 		{
             string value = variable.Initial;
 			if (value.Length > 0)

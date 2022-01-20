@@ -223,7 +223,7 @@ namespace Zeze.Gen.cs
             }
         }
 
-        private void EncodeCollection(TypeCollection type)
+        void EncodeCollection(TypeCollection type)
         {
             if (id <= 0)
                 throw new Exception("invalid variable.id");
