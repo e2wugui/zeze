@@ -52,9 +52,7 @@ namespace Zeze.Services
                 input.ReadIndex = input.WriteIndex;
             }
             else
-            {
                 base.OnSocketProcessInputBuffer(so, input);
-            }
         }
 
         public override void OnSocketClose(AsyncSocket so, Exception e)
@@ -94,9 +92,7 @@ namespace Zeze.Services
                 input.ReadIndex = input.WriteIndex;
             }
             else
-            {
                 base.OnSocketProcessInputBuffer(so, input);
-            }
         }
     }
 }
@@ -194,8 +190,8 @@ namespace Zeze.Services.ToLuaService
         public void InitializeLua(ILua lua)
         {
             Lua = lua;
-            if (lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
-                throw new Exception("load  'Zeze.lua' Error.");
+            if (lua.DoString("return require 'Zeze'"))
+                throw new Exception("require 'Zeze' failed");
             LoadMeta();
         }
 
@@ -240,31 +236,26 @@ namespace Zeze.Services.ToLuaService
             BeanMetas.Clear();
             ProtocolMetas.Clear();
 
-            if (Lua.DoString("local meta = require 'ZezeMeta'\nreturn meta"))
-                throw new Exception("load ZezeMeta.lua error");
+            if (Lua.DoString("return require 'ZezeMeta'"))
+                throw new Exception("require 'ZezeMeta' failed");
             if (!Lua.IsTable(-1))
-                throw new Exception("ZezeMeta not return a table");
+                throw new Exception("require 'ZezeMeta' not return a table");
             Lua.GetField(-1, "beans");
-            Lua.PushNil();
-            while (Lua.Next(-2)) // -1 value of vars(table) -2 key of bean.TypeId
+            for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of vars(table) -2 key of bean.TypeId
             {
                 long beanTypeId = Lua.ToInteger(-2);
                 BeanMeta beanMeta = new();
-                Lua.PushNil();
-                while (Lua.Next(-2)) // -1 value of varmeta(table) -2 key of varid
+                for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of varmeta(table) -2 key of varid
                 {
-                    var varId = (int)Lua.ToInteger(-2);
-                    if (0 == varId)
+                    int varId = (int)Lua.ToInteger(-2);
+                    if (varId == 0)
                     {
-                        // bean full name
-                        beanMeta.Name = Lua.ToString(-1);
-                        Lua.Pop(1); // pop value XXX 忘了这里要不要Pop一次了。
+                        beanMeta.Name = Lua.ToString(-1); // bean full name
                         continue;
                     }
                     VariableMeta var = new() { BeanMeta = beanMeta };
                     var.Id = varId;
-                    Lua.PushNil();
-                    while (Lua.Next(-2)) // -1 value of typetag -2 key of index
+                    for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of typetag -2 key of index
                     {
                         switch (Lua.ToInteger(-2))
                         {
@@ -277,24 +268,19 @@ namespace Zeze.Services.ToLuaService
                             case 7: var.Name = Lua.ToString(-1); break;
                             default: throw new Exception("error index for typetag");
                         }
-                        Lua.Pop(1); // pop value
                     }
-                    Lua.Pop(1); // pop value
                     beanMeta.Variables.Add(var);
                 }
                 beanMeta.Variables.Sort((a, b) => a.Id - b.Id);
                 BeanMetas.Add(beanTypeId, beanMeta);
-                Lua.Pop(1); // pop value
             }
             Lua.Pop(1);
 
             Lua.GetField(-1, "protocols");
-            Lua.PushNil();
-            while (Lua.Next(-2)) // -1 value of Protocol.Argument.BeanTypeId -2 Protocol.TypeId
+            for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of Protocol.Argument.BeanTypeId -2 Protocol.TypeId
             {
                 ProtocolArgument pa = new();
-                Lua.PushNil();
-                while (Lua.Next(-2)) // -1 value of beantypeid -2 key of index
+                for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of beantypeid -2 key of index
                 {
                     switch (Lua.ToInteger(-2))
                     {
@@ -302,19 +288,15 @@ namespace Zeze.Services.ToLuaService
                             pa.ArgumentBeanTypeId = Lua.ToInteger(-1);
                             pa.IsRpc = false;
                             break;
-
                         case 2:
                             pa.ResultBeanTypeId = Lua.ToInteger(-1);
                             pa.IsRpc = true;
                             break;
-
                         default:
                             throw new Exception("error index for protocol argument bean typeid");
                     }
-                    Lua.Pop(1);
                 }
                 ProtocolMetas.Add(Lua.ToInteger(-2), pa);
-                Lua.Pop(1); // pop value
             }
             Lua.Pop(1);
         }
@@ -387,10 +369,10 @@ namespace Zeze.Services.ToLuaService
 
         internal void RegisterGlobalAndCallback(FromLua callback)
         {
-            if (Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
-                throw new Exception("load Zeze.lua failed");
+            if (Lua.DoString("return require 'Zeze'"))
+                throw new Exception("require 'Zeze' failed");
             if (!Lua.IsTable(-1))
-                throw new Exception("Zeze.lua not return a table");
+                throw new Exception("require 'Zeze' not return a table");
 
             Lua.PushString("Service" + callback.Name);
             Lua.PushObject(callback);
@@ -925,7 +907,7 @@ namespace Zeze.Services.ToLuaService
         {
             Dictionary<long, FromLua> handshakeTmp;
             Dictionary<long, FromLua> socketCloseTmp;
-            Dictionary<long, Serialize.ByteBuffer> inputTmp;
+            Dictionary<long, ByteBuffer> inputTmp;
             HashSet<long> rpcTimeout;
             lock (this)
             {
@@ -940,19 +922,13 @@ namespace Zeze.Services.ToLuaService
             }
 
             foreach (var e in socketCloseTmp)
-            {
                 CallSocketClose(e.Value, e.Key);
-            }
 
             foreach (var e in handshakeTmp)
-            {
                 CallHandshakeDone(e.Value, e.Key);
-            }
 
             foreach (var sid in rpcTimeout)
-            {
                 CallRpcTimeout(sid);
-            }
 
             foreach (var e in inputTmp)
             {

@@ -67,34 +67,6 @@ class Test {
         }
         {
             var bb = new zeze_1.Zeze.ByteBuffer();
-            assert(bb.ReadIndex == bb.WriteIndex, "assert 26");
-            var shortv = 1;
-            bb.WriteShort(shortv);
-            assert(1 == bb.Size(), "assert 27");
-            assert("01" == bb.toString(), "assert 28");
-            assert(shortv == bb.ReadShort(), "assert 29");
-            assert(bb.ReadIndex == bb.WriteIndex, "assert 30");
-            shortv = 0x80;
-            bb.WriteShort(shortv);
-            assert(2 == bb.Size(), "assert 31");
-            assert("80-80" == bb.toString(), "assert 32");
-            assert(shortv == bb.ReadShort(), "assert 33");
-            assert(bb.ReadIndex == bb.WriteIndex, "assert 34");
-            shortv = 0x4000;
-            bb.WriteShort(shortv);
-            assert(3 == bb.Size(), "assert 35");
-            assert("FF-40-00" == bb.toString(), "assert 36");
-            assert(shortv == bb.ReadShort(), "assert 37");
-            assert(bb.ReadIndex == bb.WriteIndex, "assert 38");
-            shortv = -1;
-            bb.WriteShort(shortv);
-            assert(3 == bb.Size(), "assert 39");
-            assert("FF-FF-FF" == bb.toString(), "assert 40");
-            assert(shortv == bb.ReadShort(), "assert 41");
-            assert(bb.ReadIndex == bb.WriteIndex, "assert 42");
-        }
-        {
-            var bb = new zeze_1.Zeze.ByteBuffer();
             assert(bb.ReadIndex == bb.WriteIndex, "assert 43");
             var int4 = 0x1234;
             bb.WriteInt4(int4);
@@ -129,40 +101,40 @@ class Test {
             var bb = new zeze_1.Zeze.ByteBuffer();
             assert(bb.ReadIndex == bb.WriteIndex, "assert 53");
             var intv = 1;
-            bb.WriteInt(intv);
+            bb.WriteUInt(intv);
             assert(1 == bb.Size(), "assert 54");
             assert("01" == bb.toString(), "assert 55");
-            assert(intv == bb.ReadInt(), "assert 56");
+            assert(intv == bb.ReadUInt(), "assert 56");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 57");
             intv = 0x80;
-            bb.WriteInt(intv);
+            bb.WriteUInt(intv);
             assert(2 == bb.Size(), "assert 58");
             assert("80-80" == bb.toString(), "assert 59");
-            assert(intv == bb.ReadInt(), "assert 60");
+            assert(intv == bb.ReadUInt(), "assert 60");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 61");
             intv = 0x4000;
-            bb.WriteInt(intv);
+            bb.WriteUInt(intv);
             assert(3 == bb.Size(), "assert 62");
             assert("C0-40-00" == bb.toString(), "assert 63");
-            assert(intv == bb.ReadInt(), "assert 64");
+            assert(intv == bb.ReadUInt(), "assert 64");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 65");
-            intv = 0x200000;
-            bb.WriteInt(intv);
+            intv = 2097152;
+            bb.WriteUInt(intv);
             assert(4 == bb.Size(), "assert 66");
             assert("E0-20-00-00" == bb.toString(), "assert 67");
-            assert(intv == bb.ReadInt(), "assert 68");
+            assert(intv == bb.ReadUInt(), "assert 68");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 69");
-            intv = 0x10000000;
-            bb.WriteInt(intv);
+            intv = 268435456;
+            bb.WriteUInt(intv);
             assert(5 == bb.Size(), "assert 70");
             assert("F0-10-00-00-00" == bb.toString(), "assert 71");
-            assert(intv == bb.ReadInt(), "assert 72");
+            assert(intv == bb.ReadUInt(), "assert 72");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 73");
             intv = -1;
-            bb.WriteInt(intv);
+            bb.WriteUInt(intv);
             assert(5 == bb.Size(), "assert 74");
             assert("F0-FF-FF-FF-FF" == bb.toString(), "assert 75");
-            assert(intv == bb.ReadInt(), "assert 76");
+            assert(intv == bb.ReadUInt(), "assert 76");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 77");
         }
         {
@@ -177,68 +149,123 @@ class Test {
             longv = 0x80n;
             bb.WriteLong(longv);
             assert(2 == bb.Size(), "assert 83");
-            assert("80-80" == bb.toString(), "assert 84");
+            assert("40-80" == bb.toString(), "assert 84");
             assert(longv == bb.ReadLong(), "assert 85");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 86");
             longv = 0x4000n;
             bb.WriteLong(longv);
             assert(3 == bb.Size(), "assert 87");
-            assert("C0-40-00" == bb.toString(), "assert 88");
+            assert("60-40-00" == bb.toString(), "assert 88");
             assert(longv == bb.ReadLong(), "assert 89");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 90");
             longv = 0x200000n;
             bb.WriteLong(longv);
             assert(4 == bb.Size(), "assert 91");
-            assert("E0-20-00-00" == bb.toString(), "assert 92");
+            assert("70-20-00-00" == bb.toString(), "assert 92");
             assert(longv == bb.ReadLong(), "assert 93");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 94");
             longv = 0x10000000n;
             bb.WriteLong(longv);
             assert(5 == bb.Size(), "assert 95");
-            assert("F0-10-00-00-00" == bb.toString(), "assert 96");
+            assert("78-10-00-00-00" == bb.toString(), "assert 96");
             assert(longv == bb.ReadLong(), "assert 97");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 98");
             longv = 0x800000000n; //new Long(0, 0x8, true);
             bb.WriteLong(longv);
             assert(6 == bb.Size(), "assert 99");
             //Console.WriteLine(bb);
-            assert("F8-08-00-00-00-00" == bb.toString(), "assert 100");
+            assert("7C-08-00-00-00-00" == bb.toString(), "assert 100");
             assert(longv == bb.ReadLong(), "assert 101");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 102");
             longv = 0x40000000000n; //new Long(0, 0x400, true);
             bb.WriteLong(longv);
             assert(7 == bb.Size(), "assert 103");
-            assert("FC-04-00-00-00-00-00" == bb.toString(), "assert 104");
+            assert("7E-04-00-00-00-00-00" == bb.toString(), "assert 104");
             assert(longv == bb.ReadLong(), "assert 105");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 106");
-            longv = 0x200000000000n; //new Long(0, 0x2000, true);
+            longv = 0x2000000000000n; //new Long(0, 0x20000, true);
             bb.WriteLong(longv);
             assert(8 == bb.Size(), "assert 107");
-            assert("FE-00-20-00-00-00-00-00" == bb.toString(), "assert 108");
+            assert("7F-02-00-00-00-00-00-00" == bb.toString(), "assert 108");
             assert(longv == bb.ReadLong(), "assert 109");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 110");
             longv = 0x100000000000000n; // new Long(0, 0x1000000, true);
             bb.WriteLong(longv);
             assert(9 == bb.Size(), "assert 111");
             //console.log(bb.toString());
-            assert("FF-01-00-00-00-00-00-00-00" == bb.toString(), "assert 112");
+            assert("7F-81-00-00-00-00-00-00-00" == bb.toString(), "assert 112");
             assert(longv == bb.ReadLong(), "assert 113");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 114");
-            longv = -9223372036854775808n; // 0x8000000000000000L new Long(0, 0x1000000, true);
+            longv = -9223372036854775808n; // 0x8000_0000_0000_0000n new Long(0, 0x1000000, true);
             //console.log("---" + longv.toString(16));
             bb.WriteLong(longv);
             assert(9 == bb.Size(), "assert 115");
-            assert("FF-80-00-00-00-00-00-00-00" == bb.toString(), "assert 116");
+            assert("80-00-00-00-00-00-00-00-00" == bb.toString(), "assert 116");
             assert(longv == bb.ReadLong(), "assert 117");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 118");
             longv = -1n; // new Long(-1, -1, true);
             bb.WriteLong(longv);
-            assert(9 == bb.Size(), "assert 119");
-            assert("FF-FF-FF-FF-FF-FF-FF-FF-FF" == bb.toString(), "assert 120");
+            assert(1 == bb.Size(), "assert 119");
+            assert("FF" == bb.toString(), "assert 120");
             assert(longv == bb.ReadLong(), "assert 121");
             assert(bb.ReadIndex == bb.WriteIndex, "assert 122");
         }
+        {
+            bb.WriteInt(-268435456);
+            var b1 = bb.ReadByte() - 0x100;
+            for (var i = 0; i <= 64; ++i) {
+                Test.testAll(1n << BigInt(i));
+                Test.testAll((1n << BigInt(i)) - 1n);
+                Test.testAll(((1n << BigInt(i)) - 1n) & 0x5555555555555555n);
+                Test.testAll(((1n << BigInt(i)) - 1n) & 0xaaaaaaaaaaaaaaaan);
+            }
+            Test.testInt(-2147483648);
+            Test.testInt(2147483647);
+            Test.testLong(-0x80000000n);
+            Test.testLong(0x7fffffffn);
+            Test.testLong(-0x8000000000000000n);
+            Test.testLong(0x7fffffffffffffffn);
+            Test.testUInt(2147483647);
+        }
         return "ok";
+    }
+    static testInt(x) {
+        if (x < -2147483648 || x > 2147483647)
+            return;
+        var bb = new zeze_1.Zeze.ByteBuffer();
+        bb.WriteInt(x);
+        var s = bb.toString();
+        var y = bb.ReadInt();
+        assert(x == y, "testInt 1: " + s + ": " + x + " != " + y);
+        assert(bb.ReadIndex == bb.WriteIndex, "testInt 2: " + x);
+    }
+    static testLong(x) {
+        if (x < -0x8000000000000000n || x > 0x7fffffffffffffffn)
+            return;
+        var bb = new zeze_1.Zeze.ByteBuffer();
+        bb.WriteLong(x);
+        var s = bb.toString();
+        var y = bb.ReadLong();
+        assert(x == y, "testLong 1: " + s + ": " + x + " != " + y);
+        assert(bb.ReadIndex == bb.WriteIndex, "testLong 2: " + x);
+    }
+    static testUInt(x) {
+        if (x < -2147483648 || x > 2147483647)
+            return;
+        var bb = new zeze_1.Zeze.ByteBuffer();
+        bb.WriteUInt(x);
+        var s = bb.toString();
+        var y = bb.ReadUInt();
+        assert(x == y, "testUInt 1: " + s + ": " + x + " != " + y);
+        assert(bb.ReadIndex == bb.WriteIndex, "testUInt 2: " + x);
+    }
+    static testAll(x) {
+        Test.testInt(Number(x));
+        Test.testInt(Number(-x));
+        Test.testUInt(Number(x));
+        Test.testUInt(Number(-x));
+        Test.testLong(x);
+        Test.testLong(-x);
     }
 }
 exports.Test = Test;

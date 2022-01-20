@@ -57,7 +57,7 @@ namespace Zeze
 				Argument.Decode(bb);
 			}
 
-			virtual void Encode(Zeze::Serialize::ByteBuffer& bb) override
+			virtual void Encode(Zeze::Serialize::ByteBuffer& bb) const override
 			{
 				bb.WriteLong(ResultCode);
 				Argument.Encode(bb);

@@ -22,16 +22,6 @@ namespace Net
 
     class ToLua : public IDecodeAndDispatcher
     {
-        LuaHelper Lua;
-    public:
-        ToLua()
-        {
-        }
-
-        ToLua(const ToLua&) = delete;
-        ToLua& operator=(const ToLua&) = delete;
-
-    private:
         class BeanMeta;
         class VariableMeta
         {
@@ -75,6 +65,8 @@ namespace Net
             bool IsRpc{false};
         };
 
+        LuaHelper Lua;
+
         typedef std::unordered_map<long long, BeanMeta> BeanMetasMap;
         typedef std::unordered_map<long long, ProtocolArgument> ProtocolMetasMap;
 
@@ -82,41 +74,44 @@ namespace Net
         ProtocolMetasMap ProtocolMetas; // protocol.TypeId -> Bean.TypeId
 
     public:
+        ToLua()
+        {
+        }
+
+        ToLua(const ToLua&) = delete;
+        ToLua& operator=(const ToLua&) = delete;
+
         void LoadMeta(lua_State* L)
         {
             Lua.L = L;
 
-            if (Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
-                throw std::exception("load  'Zeze.lua' Error.");
+            if (Lua.DoString("return require 'Zeze'"))
+                throw std::exception("require 'Zeze' failed");
 
             BeanMetas.clear();
             ProtocolMetas.clear();
 
-            if (Lua.DoString("local meta = require 'ZezeMeta'\nreturn meta"))
-                throw std::exception("load ZezeMeta.lua error");
+            if (Lua.DoString("return require 'ZezeMeta'"))
+                throw std::exception("require 'ZezeMeta' failed");
             if (!Lua.IsTable(-1))
-                throw std::exception("ZezeMeta not return a table");
+                throw std::exception("require 'ZezeMeta' not return a table");
             Lua.GetField(-1, "beans");
-            Lua.PushNil();
-            while (Lua.Next(-2)) // -1 value of vars(table) -2 key of bean.TypeId
+            for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of vars(table) -2 key of bean.TypeId
             {
                 long long beanTypeId = Lua.ToInteger(-2);
                 BeanMeta& beanMeta = BeanMetas[beanTypeId];
-                Lua.PushNil();
-                while (Lua.Next(-2)) // -1 value of varmeta(table) -2 key of varid
+                for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of varmeta(table) -2 key of varid
                 {
                     int varId = (int)Lua.ToInteger(-2);
-                    if (0 == varId)
+                    if (varId == 0)
                     {
                         beanMeta.Name = Lua.ToString(-1);
-                        Lua.Pop(1);
                         continue;
                     }
                     VariableMeta var;
                     var.BeanMeta = &beanMeta;
                     var.Id = varId;
-                    Lua.PushNil();
-                    while (Lua.Next(-2)) // -1 value of typetag -2 key of index
+                    for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of typetag -2 key of index
                     {
                         switch (Lua.ToInteger(-2))
                         {
@@ -129,37 +124,30 @@ namespace Net
                             case 7: var.Name = Lua.ToString(-1); break;
                             default: throw std::exception("error index for typetag");
                         }
-                        Lua.Pop(1); // pop value
                     }
-                    Lua.Pop(1); // pop value
                     beanMeta.Variables.push_back(var);
                 }
                 std::sort(beanMeta.Variables.begin(), beanMeta.Variables.end(), [](const auto& a, const auto& b)
                 {
                     return a.Id < b.Id;
                 });
-                Lua.Pop(1); // pop value
             }
             Lua.Pop(1);
 
             Lua.GetField(-1, "protocols");
-            Lua.PushNil();
-            while (Lua.Next(-2)) // -1 value of Protocol.Argument(is table) -2 Protocol.TypeId
+            for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of Protocol.Argument(is table) -2 Protocol.TypeId
             {
                 ProtocolArgument pa;
-                Lua.PushNil();
-                while (Lua.Next(-2)) // -1 value of beantypeid -2 key of index
+                for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of beantypeid -2 key of index
                 {
                     switch (Lua.ToInteger(-2))
                     {
-                    case 1: pa.ArgumentBeanTypeId = Lua.ToInteger(-1); pa.IsRpc = false;  break;
-                    case 2: pa.ResultBeanTypeId = Lua.ToInteger(-1); pa.IsRpc = true; break;
-                    default: throw std::exception("error index for protocol argument bean typeid");
+                    case 1: pa.ArgumentBeanTypeId = Lua.ToInteger(-1); pa.IsRpc = false; break;
+                    case 2: pa.ResultBeanTypeId   = Lua.ToInteger(-1); pa.IsRpc = true;  break;
+                    default: throw std::exception("error index for protocol argument bean typeId");
                     }
-                    Lua.Pop(1);
                 }
                 ProtocolMetas[Lua.ToInteger(-2)] = pa;
-                Lua.Pop(1); // pop value
             }
             Lua.Pop(1);
         }

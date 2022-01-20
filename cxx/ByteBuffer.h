@@ -13,9 +13,9 @@ namespace Serialize
     class Serializable
     {
     public:
+        virtual ~Serializable() {}
+        virtual void Encode(ByteBuffer& bb) const = 0;
         virtual void Decode(ByteBuffer& bb) = 0;
-        virtual void Encode(ByteBuffer& bb) = 0;
-        virtual ~Serializable() { }
     };
 
     class ByteBuffer
@@ -29,11 +29,12 @@ namespace Serialize
         int ReadIndex;
         int WriteIndex;
         int Capacity;
-        int Size() { return WriteIndex - ReadIndex; }
+    private:
+        const bool IsEncodeMode;
 
-        explicit ByteBuffer(int capacity)
+    public:
+        explicit ByteBuffer(int capacity) : IsEncodeMode(true)
         {
-            IsEncodeMode = true;
             Capacity = ToPower2(capacity);
             Bytes = new unsigned char[(size_t)Capacity];
             ReadIndex = 0;
@@ -41,13 +42,17 @@ namespace Serialize
         }
 
         // 应该仅用于Decode。
-        ByteBuffer(unsigned char* bytes, int offset, int length)
+        ByteBuffer(unsigned char* bytes, int offset, int length) : IsEncodeMode(false)
         {
-            IsEncodeMode = false;
             Bytes = bytes;
-            Capacity = length; // XXX
             ReadIndex = offset;
             WriteIndex = offset + length;
+            Capacity = length; // XXX
+        }
+
+        int Size() const
+        {
+            return WriteIndex - ReadIndex;
         }
 
         ~ByteBuffer()
@@ -55,10 +60,7 @@ namespace Serialize
             if (IsEncodeMode)
                 delete[] Bytes;
         }
-    private:
-        bool IsEncodeMode;
 
-    public:
         void Append(char b)
         {
             EnsureWrite(1);
@@ -150,7 +152,7 @@ namespace Serialize
             }
         }
 
-        void EnsureRead(int size)
+        void EnsureRead(int size) const
         {
             if (IsEncodeMode)
                 throw std::exception("not decode mode");

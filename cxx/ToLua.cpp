@@ -13,9 +13,8 @@ namespace Zeze
             Service* service = lua.ToObject<Service*>(-3);
             //long long sessionId = lua.ToInteger(-2); // 只有一个连接，先不使用这个参数，保留。
             std::shared_ptr<Socket> socket = service->GetSocket();
-            if (NULL == socket.get())
-                return 0;
-            service->SendProtocol(socket.get());
+            if (socket.get())
+                service->SendProtocol(socket.get());
             return 0;
         }
 
@@ -42,7 +41,7 @@ namespace Zeze
 
         void ToLua::SendProtocol(Socket* socket)
         {
-            if (false == Lua.IsTable(-1))
+            if (!Lua.IsTable(-1))
                 throw std::exception("SendProtocol param is not a table.");
 
             Lua.GetField(-1, "ModuleId");
@@ -103,9 +102,7 @@ namespace Zeze
                 socket->Send((const char*)bb.Bytes, bb.ReadIndex, bb.Size());
 
                 if (timeout > 0)
-                {
                     Zeze::Net::SetTimeout([this, sid]() { return SetRpcTimeout(sid); }, 5);
-                }
             }
             else
             {
@@ -138,17 +135,11 @@ namespace Zeze
                 rpcTimeoutTmp.swap(ToLuaRpcTimeout);
             }
             for (auto& sid : rpcTimeoutTmp)
-            {
                 CallRpcTimeout(sid);
-            }
             for (auto& e : socketCloseTmp)
-            {
                 CallSocketClose(e.second, e.first);
-            }
             for (auto& e : handshakeTmp)
-            {
                 CallHandshakeDone(e.second, e.first);
-            }
 
             for (auto& e : inputTmp)
             {
@@ -187,7 +178,7 @@ namespace Zeze
         {
             if (Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
                 throw std::exception("load Zeze.lua faild");
-            if (false == Lua.IsTable(-1))
+            if (!Lua.IsTable(-1))
                 throw std::exception("Zeze.lua not return a table");
 
             Lua.PushString(std::string("Service") + service->Name);

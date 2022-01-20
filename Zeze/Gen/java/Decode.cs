@@ -25,12 +25,12 @@ namespace Zeze.Gen.java
             {
                 if (v.Id > 0)
                     sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ") {");
+                else
+                    sw.WriteLine(prefix + "    {");
                 v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, prefix + "        "));
                 if (v.Id > 0)
-                {
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                    sw.WriteLine(prefix + "    }");
-                }
+                sw.WriteLine(prefix + "    }");
             }
 
             sw.WriteLine(prefix + "    while (_t_ != 0) {");
@@ -53,12 +53,12 @@ namespace Zeze.Gen.java
             {
                 if (v.Id > 0)
                     sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ") {");
+                else
+                    sw.WriteLine(prefix + "    {");
                 v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, prefix + "        "));
                 if (v.Id > 0)
-                {
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                    sw.WriteLine(prefix + "    }");
-                }
+                sw.WriteLine(prefix + "    }");
             }
 
             sw.WriteLine(prefix + "    while (_t_ != 0) {");

@@ -54,7 +54,7 @@ var Zeze;
             }
             var bytes = hex.length / 2;
             if (bytes > bytesCount)
-                throw new Error("bigint too big. bytesCount=" + bytesCount);
+                throw new Error("bigint too big. bytes=" + bytes + ", bytesCount=" + bytesCount);
             var prefixBytes = bytesCount - bytes;
             if (prefixBytes > 0) {
                 var prefix = '';
@@ -133,11 +133,11 @@ var Zeze;
         TypeId() {
             return EmptyBean.TYPEID;
         }
-        Encode(_os_) {
-            _os_.WriteInt(0);
+        Encode(bb) {
+            bb.SkipUnknownField(ByteBuffer.BEAN);
         }
-        Decode(_os_) {
-            _os_.ReadInt();
+        Decode(bb) {
+            bb.WriteByte(0);
         }
     }
     EmptyBean.TYPEID = 0n;
@@ -160,24 +160,23 @@ var Zeze;
             this._Bean = bean;
             this._TypeId = typeId;
         }
-        Encode(_os_) {
-            _os_.WriteLong8(this.TypeId());
-            var _state_ = _os_.BeginWriteSegment();
-            this._Bean.Encode(_os_);
-            _os_.EndWriteSegment(_state_);
+        isEmpty() {
+            return this._TypeId == EmptyBean.TYPEID && this._Bean instanceof EmptyBean;
         }
-        Decode(_os_) {
-            var typeId = _os_.ReadLong8();
+        Encode(bb) {
+            bb.WriteLong(this.TypeId());
+            this._Bean.Encode(bb);
+        }
+        Decode(bb) {
+            var typeId = bb.ReadLong();
             var real = this.CreateBeanFromSpecialTypeId(typeId);
-            if (null != real) {
-                var _state_ = _os_.BeginReadSegment();
-                real.Decode(_os_);
-                _os_.EndReadSegment(_state_);
+            if (real != null) {
+                real.Decode(bb);
                 this._Bean = real;
                 this._TypeId = typeId;
             }
             else {
-                _os_.SkipBytes();
+                bb.SkipUnknownField(ByteBuffer.BEAN);
                 this._Bean = new EmptyBean();
                 this._TypeId = EmptyBean.TYPEID;
             }
@@ -511,106 +510,9 @@ var Zeze;
             var oldWriteIndex = state + this.ReadIndex;
             this.View.setInt32(oldWriteIndex, this.WriteIndex - oldWriteIndex - 4, true);
         }
-        BeginWriteSegment() {
-            var oldSize = this.Size();
-            this.EnsureWrite(1);
-            this.WriteIndex += 1;
-            return oldSize;
-        }
-        EndWriteSegment(oldSize) {
-            var startPos = this.ReadIndex + oldSize;
-            var segmentSize = this.WriteIndex - startPos - 1;
-            // 0 111 1111
-            if (segmentSize < 0x80) {
-                this.Bytes[startPos] = segmentSize;
-            }
-            else if (segmentSize < 0x4000) // 10 11 1111, -
-             {
-                this.EnsureWrite(1);
-                this.Bytes[this.WriteIndex] = this.Bytes[startPos + 1];
-                this.Bytes[startPos + 1] = segmentSize;
-                this.Bytes[startPos] = ((segmentSize >> 8) | 0x80);
-                this.WriteIndex += 1;
-            }
-            else if (segmentSize < 0x200000) // 110 1 1111, -,-
-             {
-                this.EnsureWrite(2);
-                this.Bytes[this.WriteIndex + 1] = this.Bytes[startPos + 2];
-                this.Bytes[startPos + 2] = segmentSize;
-                this.Bytes[this.WriteIndex] = this.Bytes[startPos + 1];
-                this.Bytes[startPos + 1] = (segmentSize >> 8);
-                this.Bytes[startPos] = ((segmentSize >> 16) | 0xc0);
-                this.WriteIndex += 2;
-            }
-            else if (segmentSize < 0x10000000) // 1110 1111,-,-,-
-             {
-                this.EnsureWrite(3);
-                this.Bytes[this.WriteIndex + 2] = this.Bytes[startPos + 3];
-                this.Bytes[startPos + 3] = segmentSize;
-                this.Bytes[this.WriteIndex + 1] = this.Bytes[startPos + 2];
-                this.Bytes[startPos + 2] = (segmentSize >> 8);
-                this.Bytes[this.WriteIndex] = this.Bytes[startPos + 1];
-                this.Bytes[startPos + 1] = (segmentSize >> 16);
-                this.Bytes[startPos] = ((segmentSize >> 24) | 0xe0);
-                this.WriteIndex += 3;
-            }
-            else {
-                throw new Error("exceed max segment size");
-            }
-        }
         EnsureRead(size) {
             if (this.ReadIndex + size > this.WriteIndex)
                 throw new Error("EnsureRead " + size);
-        }
-        ReadSegment() {
-            this.EnsureRead(1);
-            var h = this.Bytes[this.ReadIndex++];
-            var startIndex = this.ReadIndex;
-            var segmentSize = 0;
-            if (h < 0x80) {
-                segmentSize = h;
-                this.ReadIndex += segmentSize;
-            }
-            else if (h < 0xc0) {
-                this.EnsureRead(1);
-                segmentSize = ((h & 0x3f) << 8) | this.Bytes[this.ReadIndex];
-                var endPos = this.ReadIndex + segmentSize;
-                this.Bytes[this.ReadIndex] = this.Bytes[endPos];
-                this.ReadIndex += segmentSize + 1;
-            }
-            else if (h < 0xe0) {
-                this.EnsureRead(2);
-                segmentSize = ((h & 0x1f) << 16) | (this.Bytes[this.ReadIndex] << 8) | this.Bytes[this.ReadIndex + 1];
-                var endPos = this.ReadIndex + segmentSize;
-                this.Bytes[this.ReadIndex] = this.Bytes[endPos];
-                this.Bytes[this.ReadIndex + 1] = this.Bytes[endPos + 1];
-                this.ReadIndex += segmentSize + 2;
-            }
-            else if (h < 0xf0) {
-                this.EnsureRead(3);
-                segmentSize = ((h & 0x0f) << 24) | (this.Bytes[this.ReadIndex] << 16) | (this.Bytes[this.ReadIndex + 1] << 8) | this.Bytes[this.ReadIndex + 2];
-                var endPos = this.ReadIndex + segmentSize;
-                this.Bytes[this.ReadIndex] = this.Bytes[endPos];
-                this.Bytes[this.ReadIndex + 1] = this.Bytes[endPos + 1];
-                this.Bytes[this.ReadIndex + 2] = this.Bytes[endPos + 2];
-                this.ReadIndex += segmentSize + 3;
-            }
-            else {
-                throw new Error("exceed max size");
-            }
-            if (this.ReadIndex > this.WriteIndex) {
-                throw new Error("segment data not enough");
-            }
-            return { startIndex: startIndex, segmentSize: segmentSize };
-        }
-        BeginReadSegment() {
-            const { startIndex, segmentSize } = this.ReadSegment();
-            var saveState = this.ReadIndex;
-            this.ReadIndex = startIndex;
-            return saveState;
-        }
-        EndReadSegment(saveState) {
-            this.ReadIndex = saveState;
         }
         Campact() {
             var size = this.Size();
@@ -621,9 +523,8 @@ var Zeze;
                     this.WriteIndex = size;
                 }
             }
-            else {
+            else
                 this.Reset();
-            }
         }
         Reset() {
             this.ReadIndex = 0;
@@ -634,8 +535,7 @@ var Zeze;
             this.Bytes[this.WriteIndex++] = b ? 1 : 0;
         }
         ReadBool() {
-            this.EnsureRead(1);
-            return this.Bytes[this.ReadIndex++] != 0;
+            return this.ReadLong() != 0n;
         }
         WriteByte(byte) {
             this.EnsureWrite(1);
@@ -644,47 +544,6 @@ var Zeze;
         ReadByte() {
             this.EnsureRead(1);
             return this.Bytes[this.ReadIndex++];
-        }
-        WriteShort(x) {
-            if (x >= 0) {
-                if (x < 0x80) {
-                    this.EnsureWrite(1);
-                    this.Bytes[this.WriteIndex++] = x;
-                    return;
-                }
-                if (x < 0x4000) {
-                    this.EnsureWrite(2);
-                    this.Bytes[this.WriteIndex + 1] = x;
-                    this.Bytes[this.WriteIndex] = ((x >> 8) | 0x80);
-                    this.WriteIndex += 2;
-                    return;
-                }
-            }
-            this.EnsureWrite(3);
-            this.Bytes[this.WriteIndex] = 0xff;
-            this.View.setInt16(this.WriteIndex + 1, x, false);
-            this.WriteIndex += 3;
-        }
-        ReadShort() {
-            this.EnsureRead(1);
-            var h = this.Bytes[this.ReadIndex];
-            if (h < 0x80) {
-                this.ReadIndex++;
-                return h;
-            }
-            if (h < 0xc0) {
-                this.EnsureRead(2);
-                var x = ((h & 0x3f) << 8) | this.Bytes[this.ReadIndex + 1];
-                this.ReadIndex += 2;
-                return x;
-            }
-            if ((h == 0xff)) {
-                this.EnsureRead(3);
-                var x = this.View.getInt16(this.ReadIndex + 1, false);
-                this.ReadIndex += 3;
-                return x;
-            }
-            throw new Error();
         }
         WriteInt4(x) {
             this.EnsureWrite(4);
@@ -700,9 +559,8 @@ var Zeze;
         WriteLong8(x) {
             this.EnsureWrite(8);
             var u8 = Long.ToUint8Array(x, 8);
-            for (var i = u8.length - 1, j = this.WriteIndex; i >= 0; --i, ++j) {
+            for (var i = u8.length - 1, j = this.WriteIndex; i >= 0; --i, ++j)
                 this.Bytes[j] = u8[i];
-            }
             this.WriteIndex += 8;
         }
         ReadLong8() {
@@ -711,218 +569,351 @@ var Zeze;
             this.ReadIndex += 8;
             return x;
         }
-        WriteInt(x) {
-            if (x >= 0) {
-                // 0 111 1111
-                if (x < 0x80) {
-                    this.EnsureWrite(1);
-                    this.Bytes[this.WriteIndex++] = x;
+        WriteUInt(u) {
+            if (u >= 0) {
+                if (u < 0x80) {
+                    this.EnsureWrite(1); // 0xxx xxxx
+                    this.Bytes[this.WriteIndex++] = (u > 0 ? u : 0);
                     return;
                 }
-                if (x < 0x4000) // 10 11 1111, -
-                 {
-                    this.EnsureWrite(2);
-                    this.Bytes[this.WriteIndex + 1] = x;
-                    this.Bytes[this.WriteIndex] = ((x >> 8) | 0x80);
-                    this.WriteIndex += 2;
+                else if (u < 0x4000) {
+                    this.EnsureWrite(2); // 10xx xxxx +1B
+                    var bytes = this.Bytes;
+                    var writeIndex = this.WriteIndex;
+                    bytes[writeIndex] = (u >> 8) + 0x80;
+                    bytes[writeIndex + 1] = u;
+                    this.WriteIndex = writeIndex + 2;
                     return;
                 }
-                if (x < 0x200000) // 110 1 1111, -,-
-                 {
-                    this.EnsureWrite(3);
-                    this.Bytes[this.WriteIndex + 2] = x;
-                    this.Bytes[this.WriteIndex + 1] = (x >> 8);
-                    this.Bytes[this.WriteIndex] = ((x >> 16) | 0xc0);
-                    this.WriteIndex += 3;
+                else if (u < 2097152) {
+                    this.EnsureWrite(3); // 110x xxxx +2B
+                    var bytes = this.Bytes;
+                    var writeIndex = this.WriteIndex;
+                    bytes[writeIndex] = (u >> 16) + 0xc0;
+                    bytes[writeIndex + 1] = u >> 8;
+                    bytes[writeIndex + 2] = u;
+                    this.WriteIndex = writeIndex + 3;
                     return;
                 }
-                if (x < 0x10000000) // 1110 1111,-,-,-
-                 {
-                    this.EnsureWrite(4);
-                    this.Bytes[this.WriteIndex + 3] = x;
-                    this.Bytes[this.WriteIndex + 2] = (x >> 8);
-                    this.Bytes[this.WriteIndex + 1] = (x >> 16);
-                    this.Bytes[this.WriteIndex] = ((x >> 24) | 0xe0);
-                    this.WriteIndex += 4;
+                else if (u < 268435456) {
+                    this.EnsureWrite(4); // 1110 xxxx +3B
+                    var bytes = this.Bytes;
+                    var writeIndex = this.WriteIndex;
+                    bytes[writeIndex] = (u >> 24) + 0xe0;
+                    bytes[writeIndex + 1] = u >> 16;
+                    bytes[writeIndex + 2] = u >> 8;
+                    bytes[writeIndex + 3] = u;
+                    this.WriteIndex = writeIndex + 4;
                     return;
                 }
             }
-            this.EnsureWrite(5);
-            this.Bytes[this.WriteIndex] = 0xf0;
-            this.View.setInt32(this.WriteIndex + 1, x, false);
-            this.WriteIndex += 5;
+            this.EnsureWrite(5); // 1111 0000 +4B
+            var bytes = this.Bytes;
+            var writeIndex = this.WriteIndex;
+            bytes[writeIndex] = 0xf0;
+            bytes[writeIndex + 1] = u >> 24;
+            bytes[writeIndex + 2] = u >> 16;
+            bytes[writeIndex + 3] = u >> 8;
+            bytes[writeIndex + 4] = u;
+            this.WriteIndex = writeIndex + 5;
         }
-        ReadInt() {
+        ReadUInt() {
             this.EnsureRead(1);
-            var h = this.Bytes[this.ReadIndex];
-            if (h < 0x80) {
-                this.ReadIndex++;
-                return h;
+            var bytes = this.Bytes;
+            var readIndex = this.ReadIndex;
+            var x = bytes[readIndex];
+            if (x < 0x80) {
+                this.ReadIndex = readIndex + 1;
             }
-            if (h < 0xc0) {
+            else if (x < 0xc0) {
                 this.EnsureRead(2);
-                var x = ((h & 0x3f) << 8) | this.Bytes[this.ReadIndex + 1];
-                this.ReadIndex += 2;
-                return x;
+                x = ((x & 0x3f) << 8)
+                    + bytes[readIndex + 1];
+                this.ReadIndex = readIndex + 2;
             }
-            if (h < 0xe0) {
+            else if (x < 0xe0) {
                 this.EnsureRead(3);
-                var x = ((h & 0x1f) << 16) | (this.Bytes[this.ReadIndex + 1] << 8) | this.Bytes[this.ReadIndex + 2];
-                this.ReadIndex += 3;
-                return x;
+                x = ((x & 0x1f) << 16)
+                    + (bytes[readIndex + 1] << 8)
+                    + bytes[readIndex + 2];
+                this.ReadIndex = readIndex + 3;
             }
-            if (h < 0xf0) {
+            else if (x < 0xf0) {
                 this.EnsureRead(4);
-                var x = ((h & 0x0f) << 24) | (this.Bytes[this.ReadIndex + 1] << 16) | (this.Bytes[this.ReadIndex + 2] << 8) | this.Bytes[this.ReadIndex + 3];
-                this.ReadIndex += 4;
-                return x;
+                x = ((x & 0xf) << 24)
+                    + (bytes[readIndex + 1] << 16)
+                    + (bytes[readIndex + 2] << 8)
+                    + bytes[readIndex + 3];
+                this.ReadIndex = readIndex + 4;
             }
-            this.EnsureRead(5);
-            var x = this.View.getInt32(this.ReadIndex + 1, false);
-            this.ReadIndex += 5;
+            else {
+                this.EnsureRead(5);
+                x = (bytes[readIndex + 1] << 24)
+                    + (bytes[readIndex + 2] << 16)
+                    + (bytes[readIndex + 3] << 8)
+                    + bytes[readIndex + 4];
+                this.ReadIndex = readIndex + 5;
+            }
             return x;
         }
         WriteLong(x) {
-            // 0 111 1111
             if (x >= 0) {
-                if (x < 0x80) {
-                    this.EnsureWrite(1);
+                if (x < 0x40) {
+                    this.EnsureWrite(1); // 00xx xxxx
                     this.Bytes[this.WriteIndex++] = Number(x);
-                    return;
                 }
-                if (x < 0x4000) // 10 11 1111, -
-                 {
-                    this.EnsureWrite(2);
-                    var uint16 = Number(x);
-                    this.Bytes[this.WriteIndex + 1] = uint16 & 0xff;
-                    this.Bytes[this.WriteIndex] = ((uint16 >> 8) | 0x80);
-                    this.WriteIndex += 2;
-                    return;
+                else if (x < 0x2000) {
+                    this.EnsureWrite(2); // 010x xxxx +1B
+                    var bytes = this.Bytes;
+                    var writeIndex = this.WriteIndex;
+                    var v = Number(x);
+                    bytes[writeIndex] = (v >> 8) + 0x40;
+                    bytes[writeIndex + 1] = v;
+                    this.WriteIndex = writeIndex + 2;
                 }
-                if (x < 0x200000) // 110 1 1111, -,-
-                 {
-                    this.EnsureWrite(3);
-                    var uint32 = Number(x);
-                    this.Bytes[this.WriteIndex + 2] = uint32 & 0xff;
-                    this.Bytes[this.WriteIndex + 1] = (uint32 >> 8 & 0xff);
-                    this.Bytes[this.WriteIndex] = ((uint32 >> 16) | 0xc0);
-                    this.WriteIndex += 3;
-                    return;
+                else if (x < 1048576) {
+                    this.EnsureWrite(3); // 0110 xxxx +2B
+                    var bytes = this.Bytes;
+                    var writeIndex = this.WriteIndex;
+                    var v = Number(x);
+                    bytes[writeIndex] = (v >> 16) + 0x60;
+                    bytes[writeIndex + 1] = v >> 8;
+                    bytes[writeIndex + 2] = v;
+                    this.WriteIndex = writeIndex + 3;
                 }
-                if (x < 0x10000000) // 1110 1111,-,-,-
-                 {
-                    this.EnsureWrite(4);
-                    var uint32 = Number(x);
-                    this.Bytes[this.WriteIndex + 3] = uint32 & 0xff;
-                    this.Bytes[this.WriteIndex + 2] = (uint32 >> 8 & 0xff);
-                    this.Bytes[this.WriteIndex + 1] = (uint32 >> 16 & 0xff);
-                    this.Bytes[this.WriteIndex] = ((uint32 >> 24) | 0xe0);
-                    this.WriteIndex += 4;
-                    return;
+                else if (x < 134217728) {
+                    this.EnsureWrite(4); // 0111 0xxx +3B
+                    var bytes = this.Bytes;
+                    var writeIndex = this.WriteIndex;
+                    var v = Number(x);
+                    bytes[writeIndex] = (v >> 24) + 0x70;
+                    bytes[writeIndex + 1] = v >> 16;
+                    bytes[writeIndex + 2] = v >> 8;
+                    bytes[writeIndex + 3] = v;
+                    this.WriteIndex = writeIndex + 4;
                 }
-                if (x < 0x800000000) // 1111 0xxx,-,-,-,-
-                 {
-                    this.EnsureWrite(5);
+                else if (x < 0x400000000n) {
+                    this.EnsureWrite(5); // 0111 10xx +4B
                     var u8 = Long.ToUint8Array(x, 5);
-                    this.Bytes[this.WriteIndex] = (u8[0] | 0xf0);
+                    this.Bytes[this.WriteIndex] = u8[0] + 0x78;
                     ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 4);
                     this.WriteIndex += 5;
-                    return;
                 }
-                if (x < 0x40000000000n) // 1111 10xx, 
-                 {
-                    this.EnsureWrite(6);
+                else if (x < 0x20000000000n) {
+                    this.EnsureWrite(6); // 0111 110x +5B
                     var u8 = Long.ToUint8Array(x, 6);
-                    this.Bytes[this.WriteIndex] = (u8[0] | 0xf8);
+                    this.Bytes[this.WriteIndex] = u8[0] + 0x7c;
                     ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 5);
                     this.WriteIndex += 6;
-                    return;
                 }
-                if (x < 0x2000000000000n) // 1111 110x,
-                 {
-                    this.EnsureWrite(7);
+                else if (x < 0x1000000000000n) {
+                    this.EnsureWrite(7); // 0111 1110 +6B
                     var u8 = Long.ToUint8Array(x, 7);
-                    this.Bytes[this.WriteIndex] = (u8[0] | 0xfc);
+                    this.Bytes[this.WriteIndex] = u8[0] + 0x7e;
                     ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 6);
                     this.WriteIndex += 7;
-                    return;
                 }
-                if (x < 0x100000000000000n) // 1111 1110
-                 {
-                    this.EnsureWrite(8);
+                else if (x < 0x80000000000000n) {
+                    this.EnsureWrite(8); // 0111 1111 0 +7B
                     var u8 = Long.ToUint8Array(x, 8);
-                    this.Bytes[this.WriteIndex] = 0xfe;
+                    this.Bytes[this.WriteIndex] = u8[0] + 0x7f;
                     ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 7);
                     this.WriteIndex += 8;
-                    return;
                 }
-                // else fall down
+                else {
+                    this.EnsureWrite(9); // 0111 1111 1 +8B
+                    var u8 = Long.ToUint8Array(x, 8);
+                    this.Bytes[this.WriteIndex] = 0x7f;
+                    this.Bytes[this.WriteIndex + 1] = u8[0] + 0x80;
+                    ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 2, 7);
+                    this.WriteIndex += 9;
+                }
             }
-            // 1111 1111
-            this.EnsureWrite(9);
-            this.Bytes[this.WriteIndex] = 0xff;
-            var u8 = Long.ToUint8Array(x, 8);
-            ByteBuffer.BlockCopy(u8, 0, this.Bytes, this.WriteIndex + 1, 8);
-            this.WriteIndex += 9;
+            else {
+                if (x >= -0x40) {
+                    this.EnsureWrite(1); // 11xx xxxx
+                    this.Bytes[this.WriteIndex++] = Number(x);
+                }
+                else if (x >= -0x2000) {
+                    this.EnsureWrite(2); // 101x xxxx +1B
+                    var bytes = this.Bytes;
+                    var writeIndex = this.WriteIndex;
+                    var v = Number(x);
+                    bytes[writeIndex] = (v >> 8) - 0x40;
+                    bytes[writeIndex + 1] = v;
+                    this.WriteIndex = writeIndex + 2;
+                }
+                else if (x >= -1048576) {
+                    this.EnsureWrite(3); // 1001 xxxx +2B
+                    var bytes = this.Bytes;
+                    var writeIndex = this.WriteIndex;
+                    var v = Number(x);
+                    bytes[writeIndex] = (v >> 16) - 0x60;
+                    bytes[writeIndex + 1] = v >> 8;
+                    bytes[writeIndex + 2] = v;
+                    this.WriteIndex = writeIndex + 3;
+                }
+                else if (x >= -134217728) {
+                    this.EnsureWrite(4); // 1000 1xxx +3B
+                    var bytes = this.Bytes;
+                    var writeIndex = this.WriteIndex;
+                    var v = Number(x);
+                    bytes[writeIndex] = (v >> 24) - 0x70;
+                    bytes[writeIndex + 1] = v >> 16;
+                    bytes[writeIndex + 2] = v >> 8;
+                    bytes[writeIndex + 3] = v;
+                    this.WriteIndex = writeIndex + 4;
+                }
+                else if (x >= -0x400000000n) {
+                    this.EnsureWrite(5); // 1000 01xx +4B
+                    var u8 = Long.ToUint8Array(x, 8);
+                    this.Bytes[this.WriteIndex] = u8[3] - 0x78;
+                    ByteBuffer.BlockCopy(u8, 4, this.Bytes, this.WriteIndex + 1, 4);
+                    this.WriteIndex += 5;
+                }
+                else if (x >= -0x20000000000n) {
+                    this.EnsureWrite(6); // 1000 001x +5B
+                    var u8 = Long.ToUint8Array(x, 8);
+                    this.Bytes[this.WriteIndex] = u8[2] - 0x7c;
+                    ByteBuffer.BlockCopy(u8, 3, this.Bytes, this.WriteIndex + 1, 5);
+                    this.WriteIndex += 6;
+                }
+                else if (x >= -0x1000000000000n) {
+                    this.EnsureWrite(7); // 1000 0001 +6B
+                    var u8 = Long.ToUint8Array(x, 8);
+                    this.Bytes[this.WriteIndex] = 0x81;
+                    ByteBuffer.BlockCopy(u8, 2, this.Bytes, this.WriteIndex + 1, 6);
+                    this.WriteIndex += 7;
+                }
+                else if (x >= -0x80000000000000n) {
+                    this.EnsureWrite(8); // 1000 0000 1 +7B
+                    var u8 = Long.ToUint8Array(x, 8);
+                    this.Bytes[this.WriteIndex] = 0x80;
+                    ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 7);
+                    this.WriteIndex += 8;
+                }
+                else {
+                    this.EnsureWrite(9); // 1000 0000 0 +8B
+                    var u8 = Long.ToUint8Array(x, 8);
+                    this.Bytes[this.WriteIndex] = 0x80;
+                    this.Bytes[this.WriteIndex + 1] = u8[0] - 0x80;
+                    ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 2, 7);
+                    this.WriteIndex += 9;
+                }
+            }
+        }
+        ReadLong2BE() {
+            this.EnsureRead(2);
+            var bytes = this.Bytes;
+            var readIndex = this.ReadIndex;
+            this.ReadIndex = readIndex + 2;
+            return (bytes[readIndex] << 8) +
+                bytes[readIndex + 1];
+        }
+        ReadLong3BE() {
+            this.EnsureRead(3);
+            var bytes = this.Bytes;
+            var readIndex = this.ReadIndex;
+            this.ReadIndex = readIndex + 3;
+            return (bytes[readIndex] << 16) +
+                (bytes[readIndex + 1] << 8) +
+                bytes[readIndex + 2];
+        }
+        ReadLong4BE() {
+            this.EnsureRead(4);
+            var readIndex = this.ReadIndex;
+            this.ReadIndex = readIndex + 4;
+            return Long.FromUint8ArrayBigEndian(this.Bytes, readIndex, 4) & 0xffffffffn;
+        }
+        ReadLong5BE() {
+            this.EnsureRead(5);
+            var readIndex = this.ReadIndex;
+            this.ReadIndex = readIndex + 5;
+            return Long.FromUint8ArrayBigEndian(this.Bytes, readIndex, 5) & 0xffffffffffn;
+        }
+        ReadLong6BE() {
+            this.EnsureRead(6);
+            var readIndex = this.ReadIndex;
+            this.ReadIndex = readIndex + 6;
+            return Long.FromUint8ArrayBigEndian(this.Bytes, readIndex, 6) & 0xffffffffffffn;
+        }
+        ReadLong7BE() {
+            this.EnsureRead(7);
+            var readIndex = this.ReadIndex;
+            this.ReadIndex = readIndex + 7;
+            return Long.FromUint8ArrayBigEndian(this.Bytes, readIndex, 7) & 0xffffffffffffffn;
         }
         ReadLong() {
             this.EnsureRead(1);
-            var h = this.Bytes[this.ReadIndex];
-            if (h < 0x80) {
-                this.ReadIndex++;
-                return BigInt(h);
+            var b = this.Bytes[this.ReadIndex++];
+            b = b < 0x80 ? b : b - 0x100;
+            switch ((b >> 3) & 0x1f) {
+                case 0x00:
+                case 0x01:
+                case 0x02:
+                case 0x03:
+                case 0x04:
+                case 0x05:
+                case 0x06:
+                case 0x07:
+                case 0x18:
+                case 0x19:
+                case 0x1a:
+                case 0x1b:
+                case 0x1c:
+                case 0x1d:
+                case 0x1e:
+                case 0x1f: return BigInt(b);
+                case 0x08:
+                case 0x09:
+                case 0x0a:
+                case 0x0b: return BigInt(((b - 0x40) << 8) + this.ReadByte());
+                case 0x14:
+                case 0x15:
+                case 0x16:
+                case 0x17: return BigInt(((b + 0x40) << 8) + this.ReadByte());
+                case 0x0c:
+                case 0x0d: return BigInt(((b - 0x60) << 16) + this.ReadLong2BE());
+                case 0x12:
+                case 0x13: return BigInt(((b + 0x60) << 16) + this.ReadLong2BE());
+                case 0x0e: return BigInt(((b - 0x70) << 24) + this.ReadLong3BE());
+                case 0x11: return BigInt(((b + 0x70) << 24) + this.ReadLong3BE());
+                case 0x0f:
+                    switch (b & 7) {
+                        case 0:
+                        case 1:
+                        case 2:
+                        case 3: return (BigInt(b - 0x78) << 32n) + this.ReadLong4BE();
+                        case 4:
+                        case 5: return (BigInt(b - 0x7c) << 40n) + this.ReadLong5BE();
+                        case 6: return this.ReadLong6BE();
+                        default:
+                            var r = this.ReadLong7BE();
+                            return r < 0x80000000000000n ?
+                                r : ((r - 0x80000000000000n) << 8n) + BigInt(this.ReadByte());
+                    }
+                default: // 0x10
+                    switch (b & 7) {
+                        case 4:
+                        case 5:
+                        case 6:
+                        case 7: return (BigInt(b + 0x78) << 32n) + this.ReadLong4BE();
+                        case 2:
+                        case 3: return (BigInt(b + 0x7c) << 40n) + this.ReadLong5BE();
+                        case 1: return -0x1000000000000n + this.ReadLong6BE();
+                        default:
+                            var r = this.ReadLong7BE();
+                            r = r >= 0x80000000000000n ?
+                                -0x100000000000000n + r : ((r + 0x80000000000000n) << 8n) + BigInt(this.ReadByte());
+                            return r < 0x8000000000000000n ? r : r - 0x10000000000000000n; // special fix
+                    }
             }
-            if (h < 0xc0) {
-                this.EnsureRead(2);
-                var x = ((h & 0x3f) << 8) | this.Bytes[this.ReadIndex + 1];
-                this.ReadIndex += 2;
-                return BigInt(x);
-            }
-            if (h < 0xe0) {
-                this.EnsureRead(3);
-                var x = ((h & 0x1f) << 16) | (this.Bytes[this.ReadIndex + 1] << 8) | this.Bytes[this.ReadIndex + 2];
-                this.ReadIndex += 3;
-                return BigInt(x);
-            }
-            if (h < 0xf0) {
-                this.EnsureRead(4);
-                var x = ((h & 0x0f) << 24) | (this.Bytes[this.ReadIndex + 1] << 16) | (this.Bytes[this.ReadIndex + 2] << 8) | this.Bytes[this.ReadIndex + 3];
-                this.ReadIndex += 4;
-                return BigInt(x);
-            }
-            if (h < 0xf8) {
-                this.EnsureRead(5);
-                this.Bytes[this.ReadIndex] = this.Bytes[this.ReadIndex] & 0x07;
-                var bn = Long.FromUint8ArrayBigEndian(this.Bytes, this.ReadIndex, 5);
-                this.ReadIndex += 5;
-                return bn;
-            }
-            if (h < 0xfc) {
-                this.EnsureRead(6);
-                this.Bytes[this.ReadIndex] = this.Bytes[this.ReadIndex] & 0x03;
-                var bn = Long.FromUint8ArrayBigEndian(this.Bytes, this.ReadIndex, 6);
-                this.ReadIndex += 6;
-                return bn;
-            }
-            if (h < 0xfe) {
-                this.EnsureRead(7);
-                this.Bytes[this.ReadIndex] = this.Bytes[this.ReadIndex] & 0x01;
-                var bn = Long.FromUint8ArrayBigEndian(this.Bytes, this.ReadIndex, 7);
-                this.ReadIndex += 7;
-                return bn;
-            }
-            if (h < 0xff) {
-                this.EnsureRead(8);
-                var bn = Long.FromUint8ArrayBigEndian(this.Bytes, this.ReadIndex + 1, 7);
-                this.ReadIndex += 8;
-                return bn;
-            }
-            {
-                this.EnsureRead(9);
-                var bn = Long.FromUint8ArrayBigEndian(this.Bytes, this.ReadIndex + 1, 8);
-                this.ReadIndex += 9;
-                return bn;
-            }
+        }
+        WriteInt(x) {
+            this.WriteLong(BigInt(x));
+        }
+        ReadInt() {
+            return Number(this.ReadLong());
         }
         WriteFloat(x) {
             this.EnsureWrite(4);
@@ -956,13 +947,13 @@ var Zeze;
         WriteBytes(x, offset = 0, length = -1) {
             if (length == -1)
                 length = x.byteLength;
-            this.WriteInt(length);
+            this.WriteUInt(length);
             this.EnsureWrite(length);
             ByteBuffer.BlockCopy(x, offset, this.Bytes, this.WriteIndex, length);
             this.WriteIndex += length;
         }
         ReadBytes() {
-            var n = this.ReadInt();
+            var n = this.ReadUInt();
             this.EnsureRead(n);
             var x = new Uint8Array(n);
             ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, x, 0, n);
@@ -970,7 +961,7 @@ var Zeze;
             return x;
         }
         SkipBytes() {
-            var n = this.ReadInt();
+            var n = this.ReadUInt();
             this.EnsureRead(n);
             this.ReadIndex += n;
         }
@@ -1009,42 +1000,172 @@ var Zeze;
         toString() {
             return ByteBuffer.toString(this.Bytes, this.ReadIndex, this.WriteIndex);
         }
-        static SkipUnknownField(tagid, bb) {
-            var tagType = tagid & ByteBuffer.TAG_MASK;
-            switch (tagType) {
-                case ByteBuffer.BOOL:
-                    bb.ReadBool();
-                    break;
-                case ByteBuffer.BYTE:
-                    bb.ReadByte();
-                    break;
-                case ByteBuffer.SHORT:
-                    bb.ReadShort();
-                    break;
-                case ByteBuffer.INT:
-                    bb.ReadInt();
-                    break;
-                case ByteBuffer.LONG:
-                    bb.ReadLong();
-                    break;
+        WriteTag(lastVarId, varId, type) {
+            var deltaId = varId - lastVarId;
+            if (deltaId < 0xf)
+                this.WriteByte((deltaId << ByteBuffer.TAG_SHIFT) + type);
+            else {
+                this.WriteByte(0xf0 + type);
+                this.WriteUInt(deltaId - 0xf);
+            }
+            return varId;
+        }
+        WriteListType(listSize, elemType) {
+            if (listSize < 0xf)
+                this.WriteByte((listSize << ByteBuffer.TAG_SHIFT) + elemType);
+            else {
+                this.WriteByte(0xf0 + elemType);
+                this.WriteUInt(listSize - 0xf);
+            }
+        }
+        WriteMapType(mapSize, keyType, valueType) {
+            this.WriteByte((keyType << ByteBuffer.TAG_SHIFT) + valueType);
+            this.WriteUInt(mapSize);
+        }
+        ReadTagSize(tagByte) {
+            var deltaId = (tagByte & ByteBuffer.ID_MASK) >> ByteBuffer.TAG_SHIFT;
+            return deltaId < 0xf ? deltaId : 0xf + this.ReadUInt();
+        }
+        ReadBoolT(type) {
+            type &= ByteBuffer.TAG_MASK;
+            if (type == ByteBuffer.INTEGER)
+                return this.ReadLong() != 0n;
+            if (type == ByteBuffer.FLOAT)
+                return this.ReadFloat() != 0;
+            if (type == ByteBuffer.DOUBLE)
+                return this.ReadDouble() != 0;
+            this.SkipUnknownField(type);
+            return false;
+        }
+        ReadIntT(type) {
+            type &= ByteBuffer.TAG_MASK;
+            if (type == ByteBuffer.INTEGER)
+                return Number(this.ReadLong());
+            if (type == ByteBuffer.FLOAT)
+                return this.ReadFloat();
+            if (type == ByteBuffer.DOUBLE)
+                return this.ReadDouble();
+            this.SkipUnknownField(type);
+            return 0;
+        }
+        ReadLongT(type) {
+            type &= ByteBuffer.TAG_MASK;
+            if (type == ByteBuffer.INTEGER)
+                return this.ReadLong();
+            if (type == ByteBuffer.FLOAT)
+                return BigInt(this.ReadFloat());
+            if (type == ByteBuffer.DOUBLE)
+                return BigInt(this.ReadDouble());
+            this.SkipUnknownField(type);
+            return 0n;
+        }
+        ReadFloatT(type) {
+            type &= ByteBuffer.TAG_MASK;
+            if (type == ByteBuffer.FLOAT)
+                return this.ReadFloat();
+            if (type == ByteBuffer.DOUBLE)
+                return this.ReadDouble();
+            if (type == ByteBuffer.INTEGER)
+                return Number(this.ReadLong());
+            this.SkipUnknownField(type);
+            return 0;
+        }
+        ReadDoubleT(type) {
+            type &= ByteBuffer.TAG_MASK;
+            if (type == ByteBuffer.DOUBLE)
+                return this.ReadDouble();
+            if (type == ByteBuffer.FLOAT)
+                return this.ReadFloat();
+            if (type == ByteBuffer.INTEGER)
+                return Number(this.ReadLong());
+            this.SkipUnknownField(type);
+            return 0;
+        }
+        ReadBytesT(type) {
+            type &= ByteBuffer.TAG_MASK;
+            if (type == ByteBuffer.BYTES)
+                return this.ReadBytes();
+            this.SkipUnknownField(type);
+            return new Uint8Array(0);
+        }
+        ReadStringT(type) {
+            type &= ByteBuffer.TAG_MASK;
+            if (type == ByteBuffer.BYTES)
+                return this.ReadString();
+            this.SkipUnknownField(type);
+            return "";
+        }
+        ReadBean(bean, type) {
+            type &= ByteBuffer.TAG_MASK;
+            if (type == ByteBuffer.BEAN)
+                bean.Decode(this);
+            else if (type == ByteBuffer.DYNAMIC) {
+                this.ReadLong();
+                bean.Decode(this);
+            }
+            else
+                this.SkipUnknownField(type);
+            return bean;
+        }
+        ReadDynamic(dynBean, type) {
+            type &= ByteBuffer.TAG_MASK;
+            if (type == ByteBuffer.DYNAMIC) {
+                dynBean.Decode(this);
+                return dynBean;
+            }
+            if (type == ByteBuffer.BEAN) {
+                var bean = dynBean.CreateBeanFromSpecialTypeId(0);
+                if (bean != null) {
+                    bean.Decode(this);
+                    return dynBean;
+                }
+            }
+            this.SkipUnknownField(type);
+            return dynBean;
+        }
+        SkipUnknownList(type, count) {
+            while (--count >= 0)
+                this.SkipUnknownField(type);
+        }
+        SkipUnknownMap(type1, type2, count) {
+            while (--count >= 0) {
+                this.SkipUnknownField(type1);
+                this.SkipUnknownField(type2);
+            }
+        }
+        SkipUnknownField(type) {
+            switch (type & ByteBuffer.TAG_MASK) {
+                case ByteBuffer.INTEGER:
+                    this.ReadLong();
+                    return;
                 case ByteBuffer.FLOAT:
-                    bb.ReadFloat();
-                    break;
+                    this.EnsureRead(4);
+                    this.ReadIndex += 4;
+                    return;
                 case ByteBuffer.DOUBLE:
-                    bb.ReadDouble();
-                    break;
-                case ByteBuffer.STRING:
+                    this.EnsureRead(8);
+                    this.ReadIndex += 8;
+                    return;
                 case ByteBuffer.BYTES:
+                    this.SkipBytes();
+                    return;
                 case ByteBuffer.LIST:
-                case ByteBuffer.SET:
+                    var t = this.ReadByte();
+                    this.SkipUnknownList(t, this.ReadTagSize(t));
+                    return;
                 case ByteBuffer.MAP:
-                case ByteBuffer.BEAN:
-                    bb.SkipBytes();
-                    break;
+                    t = this.ReadByte();
+                    this.SkipUnknownMap(t >> ByteBuffer.TAG_SHIFT, t, this.ReadUInt());
+                    return;
                 case ByteBuffer.DYNAMIC:
-                    bb.ReadLong8();
-                    bb.SkipBytes();
-                    break;
+                    this.ReadLong();
+                case ByteBuffer.BEAN:
+                    while ((t = this.ReadByte()) != 0) {
+                        if ((t & ByteBuffer.ID_MASK) == 0xf0)
+                            this.ReadUInt();
+                        this.SkipUnknownField(t);
+                    }
+                    return;
                 default:
                     throw new Error("SkipUnknownField");
             }
@@ -1054,24 +1175,17 @@ var Zeze;
     ByteBuffer.Decoder = new text_encoding_1.TextDecoder();
     ByteBuffer.HEX = "0123456789ABCDEF";
     // ֻ�������µ����Ͷ��壬����ʱ�ǵ�ͬ�� SkipUnknownField
-    ByteBuffer.INT = 0;
-    ByteBuffer.LONG = 1;
-    ByteBuffer.STRING = 2;
-    ByteBuffer.BOOL = 3;
-    ByteBuffer.BYTE = 4;
-    ByteBuffer.SHORT = 5;
-    ByteBuffer.FLOAT = 6;
-    ByteBuffer.DOUBLE = 7;
-    ByteBuffer.BYTES = 8;
-    ByteBuffer.LIST = 9;
-    ByteBuffer.SET = 10;
-    ByteBuffer.MAP = 11;
-    ByteBuffer.BEAN = 12;
-    ByteBuffer.DYNAMIC = 13;
-    ByteBuffer.TAG_MAX = 31;
-    ByteBuffer.TAG_SHIFT = 5;
+    ByteBuffer.INTEGER = 0; // byte,short,int,long,bool
+    ByteBuffer.FLOAT = 1; // float
+    ByteBuffer.DOUBLE = 2; // double
+    ByteBuffer.BYTES = 3; // binary,string
+    ByteBuffer.LIST = 4; // list,set
+    ByteBuffer.MAP = 5; // map
+    ByteBuffer.BEAN = 6; // bean
+    ByteBuffer.DYNAMIC = 7; // dynamic
+    ByteBuffer.TAG_SHIFT = 4;
     ByteBuffer.TAG_MASK = (1 << ByteBuffer.TAG_SHIFT) - 1;
-    ByteBuffer.ID_MASK = (1 << (31 - ByteBuffer.TAG_SHIFT)) - 1;
+    ByteBuffer.ID_MASK = 0xff - ByteBuffer.TAG_MASK;
     Zeze.ByteBuffer = ByteBuffer;
 })(Zeze = exports.Zeze || (exports.Zeze = {}));
 //# sourceMappingURL=zeze.js.map

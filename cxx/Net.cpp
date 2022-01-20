@@ -22,7 +22,7 @@ namespace Net
             dh_data = bb.ReadBytes();
         }
 
-        void Encode(Zeze::Serialize::ByteBuffer& bb) override
+        void Encode(Zeze::Serialize::ByteBuffer& bb) const override
         {
             bb.WriteByte(dh_group);
             bb.WriteBytes(dh_data);
@@ -43,7 +43,7 @@ namespace Net
             c2sneedcompress = bb.ReadBool();
         }
 
-        void Encode(Zeze::Serialize::ByteBuffer& bb) override
+        void Encode(Zeze::Serialize::ByteBuffer& bb) const override
         {
             bb.WriteBytes(dh_data);
             bb.WriteBool(s2cneedcompress);
