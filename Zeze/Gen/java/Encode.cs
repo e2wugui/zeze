@@ -77,28 +77,28 @@ namespace Zeze.Gen.java
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "long _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "int _x_ = " + varname + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
-                sw.WriteLine(prefix + "    " + bufname + ".WriteLong(_x_);");
+                sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteLong(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteInt(" + varname + ");");
         }
 
         public void Visit(TypeShort type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "long _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "int _x_ = " + varname + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
-                sw.WriteLine(prefix + "    " + bufname + ".WriteLong(_x_);");
+                sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteLong(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteInt(" + varname + ");");
         }
 
         public void Visit(TypeInt type)
@@ -108,11 +108,11 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "int _x_ = " + varname + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
-                sw.WriteLine(prefix + "    " + bufname + ".WriteLong(_x_);");
+                sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteLong(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteInt(" + varname + ");");
         }
 
         public void Visit(TypeLong type)
