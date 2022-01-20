@@ -34,8 +34,8 @@ namespace Zeze.Net
             set
             {
                 _MaxReconnectDelay = value;
-                if (_MaxReconnectDelay < 8000)
-                    _MaxReconnectDelay = 8000;
+                if (_MaxReconnectDelay < 1000)
+                    _MaxReconnectDelay = 1000;
             }
         }
         public bool IsConnected { get; private set; } = false;
@@ -135,12 +135,19 @@ namespace Zeze.Net
             }
         }
 
-        //internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public virtual void OnSocketHandshakeDone(AsyncSocket so)
         {
             //logger.Warn("Socket={0}, Context={1}", Socket, so);
-            FutureSocket.TrySetResult(so);
+            lock (this)
+            {
+                while (false == FutureSocket.TrySetResult(so))
+                {
+                    logger.Info("FutureSocket.SetResult Fail.");
+                    // do nothing for volatile
+                }
+            }
         }
 
         public virtual void TryReconnect()
@@ -201,7 +208,7 @@ namespace Zeze.Net
 
         public override string ToString()
         {
-            return $"{Name}-{Socket}-{Socket.Socket}";
+            return $"{Name}-{Socket}-{Socket?.Socket}";
         }
     }
 }

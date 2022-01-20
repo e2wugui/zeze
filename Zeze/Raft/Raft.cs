@@ -319,12 +319,10 @@ namespace Zeze.Raft
             lock (this)
             {
                 var r = p as RequestVote;
-                var isNewer = false;
                 if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
                 {
                     // new term found.
                     ConvertStateTo(RaftState.Follower);
-                    isNewer = true; // 必须Newer才给投票。
                 }
                 // else continue process
 
@@ -334,7 +332,8 @@ namespace Zeze.Raft
                 // 1.Reply false if term < currentTerm(§5.1)
                 // 2.If votedFor is null or candidateId, and candidate’s log is at
                 // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
-                r.Result.VoteGranted = isNewer && LogSequence.CanVoteFor(r.Argument.CandidateId)
+                r.Result.VoteGranted = (r.Argument.Term >= LogSequence.Term)
+                    && LogSequence.CanVoteFor(r.Argument.CandidateId)
                     && IsCandidateLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
                 if (r.Result.VoteGranted)
                 {
@@ -534,20 +533,13 @@ namespace Zeze.Raft
                         (ThisTask) =>
                         {
                             var now = Time.NowUnixMillis;
-                            bool hearbeatBreak = Server.Config.ForEachConnector(
+                            Server.Config.ForEachConnector(
                                 (c) =>
                                 {
                                     var cex = c as Server.ConnectorEx;
                                     if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
-                                        return false;
-
-                                    return true;
+                                        LogSequence.SendHearbeatTo(cex);
                                 });
-
-                            if (false == hearbeatBreak)
-                            {
-                                LogSequence.AppendLog(new HeartbeatLog(), false);
-                            }
                         },
                         1000,
                         1000);

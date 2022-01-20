@@ -198,7 +198,6 @@ namespace Zeze.Services
                         hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
                         p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
 
-                        DHContext.TryRemove(p.Sender.SessionId, out var _);
                         new Handshake.CHandshakeDone().Send(p.Sender);
                         OnHandshakeDone(p.Sender);
                     }

@@ -34,7 +34,7 @@ namespace Zeze.Raft
             public ConnectorEx(string host, int port)
                 : base(host, port)
             {
-
+                MaxReconnectDelay = 1000;
             }
 
             ////////////////////////////////////////////////
@@ -363,8 +363,9 @@ namespace Zeze.Raft
             if (rpc.ResultCode == Procedure.DuplicateRequest)
                 rpc.ResultCode = Procedure.Success;
 
-            Pending.Remove(rpc);
-            return userHandle(rpc);
+            if (Pending.Remove(rpc))
+                return userHandle(rpc);
+            return 0;
         }
 
         private bool IsRetryError(long error)
@@ -393,8 +394,8 @@ namespace Zeze.Raft
             if (rpc.ResultCode == Procedure.DuplicateRequest)
                 rpc.ResultCode = Procedure.Success;
 
-            Pending.Remove(rpc);
-            future.SetResult(rpc);
+            if (Pending.Remove(rpc))
+                future.SetResult(rpc);
             return Procedure.Success;
         }
 
@@ -520,7 +521,7 @@ namespace Zeze.Raft
         private long ProcessLeaderIs(Protocol p)
         {
             var r = p as LeaderIs;
-            logger.Info("=============== LEADERIS ================{0}: {1}", Name, r);
+            logger.Info("=============== LEADERIS Old={0} New={1} From={2}", _Leader?.Name, r.Argument.LeaderId, p.Sender);
 
             var node = Client.Config.FindConnector(r.Argument.LeaderId);
             if (null == node)
@@ -536,16 +537,16 @@ namespace Zeze.Raft
                 }
             }
 
-            if (TrySetLeader(r, node as ConnectorEx))
+            if (SetLeader(r, node as ConnectorEx))
             {
-                // 来自 Leader 的公告。
-                OnLeaderChanged?.Invoke(this);
+                ReSend(true);
             }
+            OnLeaderChanged?.Invoke(this);
             r.SendResultCode(0);
             return Procedure.Success;
         }
 
-        private void ReSend()
+        private void ReSend(bool immediately = false)
         {
             // ReSendPendingRpc
             var leaderSocket = _Leader?.TryGetReadySocket();
@@ -555,30 +556,31 @@ namespace Zeze.Raft
                 foreach (var rpc in Pending)
                 {
                     var iraft = rpc as IRaftRpc;
-                    if (now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 3000)
+                    if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 3000)
                     {
                         iraft.SendTime = now;
-                        rpc.Send(leaderSocket);
+                        if (false == rpc.Send(leaderSocket))
+                            logger.Warn("SendRequest faild {0}", rpc);
                     }
                 }
             }
         }
 
-        internal bool TrySetLeader(LeaderIs r, ConnectorEx newLeader)
+        internal bool SetLeader(LeaderIs r, ConnectorEx newLeader)
         {
             lock (this)
             {
                 if (r.Argument.Term < Term)
                 {
-                    logger.Warn("Skip LeaderIs {0} {1}", Name, r);
+                    logger.Warn("Skip LeaderIs {0} {1}", newLeader.Name, r);
                     return false;
                 }
 
                 //CollectPendingRpc(_Leader);
-
+                var newone = _Leader != newLeader || r.Argument.Term > Term;
                 _Leader = newLeader; // change current Leader
                 Term = r.Argument.Term;
-                return true;
+                return newone;
             }
         }
 

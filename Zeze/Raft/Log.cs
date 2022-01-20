@@ -401,7 +401,7 @@ namespace Zeze.Raft
                 null, WriteOptionsSync
                 );
 
-            logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
+            //logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
         }
 
         private RaftLog ReadLog(long index)
@@ -572,12 +572,14 @@ namespace Zeze.Raft
                 }
                 raftLog.Log.Apply(raftLog, Raft.StateMachine);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
+                /*
                 if (LastIndex - LastApplied < 10)
                     logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={raftLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
-
+                // */
                 if (WaitApplyFutures.TryRemove(raftLog.Index, out var future))
                     future.SetResult(0);
             }
+            //logger.Info($"{Raft.Name}-{Raft.IsLeader} CommitIndex={CommitIndex} RequestId={lastApplyableLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
         }
 
         internal long GetTestStateMachineCount()
@@ -587,6 +589,51 @@ namespace Zeze.Raft
 
         internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }
             = new ConcurrentDictionary<long, TaskCompletionSource<int>>();
+
+        internal void SendHearbeatTo(Server.ConnectorEx connector)
+        {
+            lock (Raft)
+            {
+                connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
+
+                if (false == Raft.IsLeader)
+                    return; // skip if is not a leader
+
+                if (connector.Pending != null)
+                    return;
+
+                if (connector.InstallSnapshotting)
+                    return;
+
+                var socket = connector.TryGetReadySocket();
+                if (null == socket)
+                {
+                    // Hearbeat Will Retry
+                    return;
+                }
+
+                var hearbeat = new AppendEntries();
+                hearbeat.Argument.Term = Term;
+                hearbeat.Argument.LeaderId = Raft.Name;
+                hearbeat.Send(socket, (p) =>
+                {
+                    if (hearbeat.IsTimeout)
+                        return 0; // skip
+
+                    lock (Raft)
+                    {
+                        if (Raft.LogSequence.TrySetTerm(hearbeat.Result.Term) == SetTermResult.Newer)
+                        {
+                            Raft.LeaderId = string.Empty; // 此时不知道谁是Leader。
+                                                          // new term found.
+                            Raft.ConvertStateTo(Raft.RaftState.Follower);
+                            return Procedure.Success;
+                        }
+                    }
+                    return 0;
+                }, Raft.RaftConfig.AppendEntriesTimeout);
+            }
+        }
 
         internal void AppendLog(Log log, bool WaitApply)
         {
@@ -791,10 +838,11 @@ namespace Zeze.Raft
 
                     while (Raft.IsLeader)
                     {
-                        connector.WaitReady();
+                        var socket = connector.WaitReady();
+                        connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
                         var future = new TaskCompletionSource<int>();
                         var r = new InstallSnapshot() { Argument = trunkArg };
-                        if (!r.Send(connector.Socket,
+                        if (!r.Send(socket,
                             (_) =>
                             {
                                 future.SetResult(0);
@@ -951,7 +999,6 @@ namespace Zeze.Raft
         {
             lock (Raft)
             {
-                // 按理说，多个Follower设置一次就够了，这里就不做这个处理了。
                 connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
                 if (false == Raft.IsLeader)
                     return; // skip if is not a leader
@@ -961,17 +1008,19 @@ namespace Zeze.Raft
 
                 // 先清除，下面中断(return)不用每次自己清除。
                 connector.Pending = null;
-                if (false == connector.IsHandshakeDone)
-                {
-                    // Hearbeat Will Retry
-                    return;
-                }
 
                 // 【注意】
                 // 正在安装Snapshot，此时不复制日志，肯定失败。
                 // 不做这个判断也是可以工作的，算是优化。
                 if (connector.InstallSnapshotting)
                     return;
+
+                var socket = connector.TryGetReadySocket();
+                if (null == socket)
+                {
+                    // Hearbeat Will Retry
+                    return;
+                }
 
                 if (connector.NextIndex > LastIndex)
                     return;
@@ -1011,8 +1060,7 @@ namespace Zeze.Raft
                     connector.Pending.Argument.Entries.Add(new Binary(copyLog.Encode()));
                 }
                 connector.Pending.Argument.LastEntryIndex = lastCopyLog.Index;
-                if (false == connector.Pending.Send(
-                    connector.Socket,
+                if (false == connector.Pending.Send(socket,
                     (p) => ProcessAppendEntriesResult(connector, p),
                     Raft.RaftConfig.AppendEntriesTimeout))
                 {
@@ -1054,9 +1102,19 @@ namespace Zeze.Raft
                 case SetTermResult.Newer:
                     Raft.ConvertStateTo(Raft.RaftState.Follower);
                     Raft.LeaderId = r.Argument.LeaderId;
+
+                    // 有Leader，清除一下上一次选举的投票。要不然可能下一次选举无法给别人投票。
+                    // 这个不是必要的：因为要进行选举的时候，自己肯定也会尝试选自己，会重置，
+                    // 但是清除一下，可以让选举更快进行。不用等待选举TimerTask。
+                    SetVoteFor(string.Empty);
                     break;
 
                 case SetTermResult.Same:
+                    // 有Leader，清除一下上一次选举的投票。要不然可能下一次选举无法给别人投票。
+                    // 这个不是必要的：因为要进行选举的时候，自己肯定也会尝试选自己，会重置，
+                    // 但是清除一下，可以让选举更快进行。不用等待选举TimerTask。
+                    SetVoteFor(string.Empty);
+
                     // see raft.pdf 文档. 仅在 Candidate 才转。【找不到在文档哪里了，需要确认这点】
                     if (Raft.State == Raft.RaftState.Candidate)
                     {
@@ -1078,6 +1136,15 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
+            // is Hearbeat(KeepAlive)
+            if (r.Argument.Entries.Count == 0)
+            {
+                r.Result.Success = true;
+                r.SendResult();
+                return Procedure.Success;
+            }
+
+            // check and copy log ...
             var prevLog = ReadLog(r.Argument.PrevLogIndex);
             if (prevLog == null || prevLog.Term != r.Argument.PrevLogTerm)
             {
@@ -1123,10 +1190,6 @@ namespace Zeze.Raft
             logger.Debug("{0}: {1}", Raft.Name, r);
             r.SendResultCode(0);
 
-            // 有Leader，清除一下上一次选举的投票。要不然可能下一次选举无法给别人投票。
-            // 这个不是必要的：因为要进行选举的时候，自己肯定也会尝试选自己，会重置，
-            // 但是清除一下，可以让选举更快进行。不用等待选举TimerTask。
-            SetVoteFor(string.Empty);
             return Procedure.Success;
         }
     }

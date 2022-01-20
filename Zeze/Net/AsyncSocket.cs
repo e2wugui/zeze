@@ -606,7 +606,7 @@ namespace Zeze.Net
             }
             else
             {
-                // 为了简化并发问题，只能加入Service以后的Socket的SessionId。
+                // 为了简化并发问题，只能处理加入Service以后的Socket的SessionId。
                 throw new Exception($"Not Exist In Service {this}");
             }
         }
