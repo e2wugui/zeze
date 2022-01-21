@@ -409,6 +409,8 @@ namespace Zeze.Raft
         {
             if (rpc.IsTimeout || IsRetryError(rpc.ResultCode))
             {
+                rpc.IsTimeout = false;
+                rpc.ResultCode = 0;
                 return 0;
             }
 
@@ -440,6 +442,8 @@ namespace Zeze.Raft
         {
             if (rpc.IsTimeout || IsRetryError(rpc.ResultCode))
             {
+                rpc.IsTimeout = false;
+                rpc.ResultCode = 0;
                 return Procedure.Success;
             }
 

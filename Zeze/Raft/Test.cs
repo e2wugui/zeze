@@ -561,7 +561,7 @@ namespace Zeze.Raft
                     }
                     // 等待失败的节点恢复正常并且服务了一些请求。
                     // 由于一个follower失败时，请求处理是能持续进行的，这个等待可能不够。
-                    WaitExpectCountGrow(100);
+                    WaitExpectCountGrow(110);
                 }
             }
             var sb = new StringBuilder();

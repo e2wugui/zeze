@@ -245,14 +245,12 @@ namespace Zeze.Raft
 
             public void Save(RaftLog log)
             {
-                if (log.Log.Unique.RequestId > 0)
-                    Put(log, log.Index);
+                Put(log, log.Index);
             }
 
             public void Apply(RaftLog log)
             {
-                if (log.Log.Unique.RequestId > 0)
-                    Put(log, -log.Index);
+                Put(log, -log.Index);
             }
 
             public void Remove(RaftLog log)
@@ -574,7 +572,8 @@ namespace Zeze.Raft
 
                 index = raftLog.Index + 1;
                 raftLog.Log.Apply(raftLog, Raft.StateMachine);
-                OpenUniqueRequests(raftLog.Log.CreateTime).Apply(raftLog);
+                if (raftLog.Log.Unique.RequestId > 0)
+                    OpenUniqueRequests(raftLog.Log.CreateTime).Apply(raftLog);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
                 /*
                 if (LastIndex - LastApplied < 10)
@@ -662,7 +661,8 @@ namespace Zeze.Raft
                     if (false == WaitApplyFutures.TryAdd(raftLog.Index, future))
                         throw new Exception("Impossible");
                 }
-                OpenUniqueRequests(raftLog.Log.CreateTime).Save(raftLog);
+                if (raftLog.Log.Unique.RequestId > 0)
+                    OpenUniqueRequests(raftLog.Log.CreateTime).Save(raftLog);
                 SaveLog(raftLog);
                 LastIndex = raftLog.Index;
                 term = Term;
@@ -1102,7 +1102,8 @@ namespace Zeze.Raft
                 var key = ByteBuffer.Allocate();
                 key.WriteLong(index);
                 Logs.Remove(key.Bytes, key.Size, null, WriteOptionsSync);
-                OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
+                if (raftLog.Log.Unique.RequestId > 0)
+                    OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
             }
         }
 

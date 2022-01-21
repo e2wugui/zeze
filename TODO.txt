@@ -23,6 +23,7 @@
 
 	Raft.Agent TryGetReadySocket 总是 null。
 	Net.Connector.OnSocketHandshakeDone Fail 原因。
+	Raft.Agent.Test 有错误返回。怎么回事？
 
 	RedoableQueue
 	{
