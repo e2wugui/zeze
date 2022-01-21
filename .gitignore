@@ -26,6 +26,7 @@
 /TypeScript/bin
 /TypeScript/obj
 /TypeScript/webpack/node_modules
+/TypeScript/gen.ts
 /UnitTest/bin
 /UnitTest/gsd/Gen
 /UnitTest/obj

@@ -190,7 +190,7 @@ namespace Zeze.Services.ToLuaService
         public void InitializeLua(ILua lua)
         {
             Lua = lua;
-            if (lua.DoString("return require 'Zeze'"))
+            if (lua.DoString("return (require 'Zeze')"))
                 throw new Exception("require 'Zeze' failed");
             LoadMeta();
         }
@@ -236,7 +236,7 @@ namespace Zeze.Services.ToLuaService
             BeanMetas.Clear();
             ProtocolMetas.Clear();
 
-            if (Lua.DoString("return require 'ZezeMeta'"))
+            if (Lua.DoString("return (require 'ZezeMeta')"))
                 throw new Exception("require 'ZezeMeta' failed");
             if (!Lua.IsTable(-1))
                 throw new Exception("require 'ZezeMeta' not return a table");
@@ -369,7 +369,7 @@ namespace Zeze.Services.ToLuaService
 
         internal void RegisterGlobalAndCallback(FromLua callback)
         {
-            if (Lua.DoString("return require 'Zeze'"))
+            if (Lua.DoString("return (require 'Zeze')"))
                 throw new Exception("require 'Zeze' failed");
             if (!Lua.IsTable(-1))
                 throw new Exception("require 'Zeze' not return a table");
