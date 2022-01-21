@@ -176,10 +176,10 @@ namespace Zeze
 
 		void ToLua::RegisterGlobalAndCallback(ToLuaService* service)
 		{
-			if (Lua.DoString("local Zeze = require 'Zeze'\nreturn Zeze"))
-				throw std::exception("load Zeze.lua faild");
+			if (Lua.DoString("return (require 'Zeze')"))
+				throw std::exception("require 'Zeze' failed");
 			if (!Lua.IsTable(-1))
-				throw std::exception("Zeze.lua not return a table");
+				throw std::exception("require 'Zeze' not return a table");
 
 			Lua.PushString(std::string("Service") + service->Name);
 			Lua.PushObject(service);

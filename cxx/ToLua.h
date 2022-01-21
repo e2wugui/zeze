@@ -85,13 +85,13 @@ namespace Net
 		{
 			Lua.L = L;
 
-			if (Lua.DoString("return require 'Zeze'"))
+			if (Lua.DoString("return (require 'Zeze')"))
 				throw std::exception("require 'Zeze' failed");
 
 			BeanMetas.clear();
 			ProtocolMetas.clear();
 
-			if (Lua.DoString("return require 'ZezeMeta'"))
+			if (Lua.DoString("return (require 'ZezeMeta')"))
 				throw std::exception("require 'ZezeMeta' failed");
 			if (!Lua.IsTable(-1))
 				throw std::exception("require 'ZezeMeta' not return a table");
