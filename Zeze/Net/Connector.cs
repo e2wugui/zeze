@@ -131,8 +131,6 @@ namespace Zeze.Net
             }
         }
 
-        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
         public virtual void OnSocketHandshakeDone(AsyncSocket so)
         {
             lock (this)

@@ -49,7 +49,7 @@ namespace Zeze.Services
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private readonly HashSet<long> HandshakeProtocols = new();
+        private readonly HashSet<long> HandshakeProtocols = new HashSet<long>();
 
         class Context
         {
@@ -62,7 +62,7 @@ namespace Zeze.Services
             }
         }
         // For Client Only
-        private readonly ConcurrentDictionary<long, Context> DHContext = new();
+        private readonly ConcurrentDictionary<long, Context> DHContext = new ConcurrentDictionary<long, Context>();
 
         public HandshakeBase(string name, Config config) : base(name, config)
         { 
@@ -119,7 +119,7 @@ namespace Zeze.Services
                     return 0;
                 }
                 Array.Reverse(p.Argument.dh_data);
-                BigInteger data = new(p.Argument.dh_data);
+                BigInteger data = new BigInteger(p.Argument.dh_data);
                 BigInteger rand = Handshake.Helper.makeDHRandom();
                 byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
                 Array.Reverse(material);
@@ -342,7 +342,7 @@ namespace Zeze.Services.Handshake
 {
     public static class Helper
     {
-        private static readonly BigInteger dh_g = new(2);
+        private static readonly BigInteger dh_g = new BigInteger(2);
         private static readonly BigInteger[] dh_group = new BigInteger[] {
             BigInteger.Zero,
             BigInteger.Parse(
