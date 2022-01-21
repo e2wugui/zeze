@@ -206,6 +206,9 @@ namespace Zeze.Raft
 
         private void TrySendLeaderIs(AsyncSocket sender)
         {
+            if (string.IsNullOrEmpty(Raft.LeaderId))
+                return;
+
             // redirect
             var redirect = new LeaderIs();
             redirect.Argument.Term = Raft.LogSequence.Term;
@@ -359,6 +362,8 @@ namespace Zeze.Raft
         private volatile ConnectorEx _Leader;
         private Util.IdentityHashSet<Protocol> Pending = new Util.IdentityHashSet<Protocol>();
 
+        public long ActiveTime { get; private set; } = Util.Time.NowUnixMillis;
+
         public Util.SimpleThreadPool InternalThreadPool { get; }
 
         public Action<Agent> OnLeaderChanged { get; private set; }
@@ -413,7 +418,10 @@ namespace Zeze.Raft
                 rpc.ResultCode = Procedure.Success;
 
             if (Pending.Remove(rpc))
+            {
+                ActiveTime = Util.Time.NowUnixMillis;
                 return userHandle(rpc);
+            }
             return 0;
         }
 
@@ -446,7 +454,10 @@ namespace Zeze.Raft
                 rpc.ResultCode = Procedure.Success;
 
             if (Pending.Remove(rpc))
+            {
+                ActiveTime = Util.Time.NowUnixMillis;
                 future.SetResult(rpc);
+            }
             return Procedure.Success;
         }
 
@@ -569,47 +580,26 @@ namespace Zeze.Raft
             Util.Scheduler.Instance.Schedule((thisTask) => ReSend(), 1000, 1000);
         }
 
-        private Connector FindConnector(string leaderId)
+        private long ProcessLeaderIs(Protocol p)
         {
-            if (string.IsNullOrEmpty(leaderId))
-            {
-                // 服务器不知道谁是Leader。随便选择一个进行尝试。
-                Connector rand = null;
-                var randIdx = Util.Random.Instance.Next(Client.Config.ConnectorCount());
-                Client.Config.ForEachConnector((c) =>
-                {
-                    if (--randIdx < 0)
-                    {
-                        rand = c;
-                        return false; // break foreach
-                    }
-                    return true;
-                });
-                return rand;
-            }
+            var r = p as LeaderIs;
+            logger.Info("=============== LEADERIS Old={0} New={1} From={2}", _Leader?.Name, r.Argument.LeaderId, p.Sender);
 
-            var node = Client.Config.FindConnector(leaderId);
+            var node = Client.Config.FindConnector(r.Argument.LeaderId);
             if (null == node)
             {
                 // 当前 Agent 没有 Leader 的配置，创建一个。
                 // 由于 Agent 在新增 node 时也会得到新配置广播，
                 // 一般不会发生这种情况。
-                var address = leaderId.Split(':');
+                var address = r.Argument.LeaderId.Split(':');
                 if (Client.Config.TryGetOrAddConnector(
                     address[0], int.Parse(address[1]), true, out node))
                 {
                     node.Start();
                 }
             }
-            return node;
-        }
 
-        private long ProcessLeaderIs(Protocol p)
-        {
-            var r = p as LeaderIs;
-            logger.Info("=============== LEADERIS Old={0} New={1} From={2}", _Leader?.Name, r.Argument.LeaderId, p.Sender);
-
-            if (SetLeader(r, FindConnector(r.Argument.LeaderId) as ConnectorEx))
+            if (SetLeader(r, node as ConnectorEx))
             {
                 ReSend(true);
             }
@@ -621,6 +611,14 @@ namespace Zeze.Raft
         private void ReSend(bool immediately = false)
         {
             // ReSendPendingRpc
+            if (Pending.Count > 0 && Util.Time.NowUnixMillis - ActiveTime > RaftConfig.AppendEntriesTimeout * 3)
+            {
+                var leader = _Leader;
+                leader?.Stop();
+                leader?.Start();
+                return;
+            }
+
             var leaderSocket = _Leader?.TryGetReadySocket();
             if (null != leaderSocket)
             {
@@ -648,26 +646,12 @@ namespace Zeze.Raft
                     return false;
                 }
 
-                //CollectPendingRpc(_Leader);
                 var newone = _Leader != newLeader || r.Argument.Term > Term;
                 _Leader = newLeader; // change current Leader
                 Term = r.Argument.Term;
                 return newone;
             }
         }
-
-        /*
-        private void CollectPendingRpc(Connector oldLeader)
-        {
-            var ctxSends = Client.GetRpcContexts((p) => p.Sender.Connector == oldLeader);
-            var ctxPending = Client.RemoveRpcContexts(ctxSends.Keys);
-
-            foreach (var rpc in ctxPending)
-            {
-                Pending.Add(rpc);
-            }
-        }
-        */
 
         public sealed class NetClient : Services.HandshakeClient
         {

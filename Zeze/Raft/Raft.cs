@@ -61,11 +61,11 @@ namespace Zeze.Raft
             {
                 // see WaitLeaderReady.
                 // 可以避免状态设置不对的问题。关闭时转换成Follower也是对的。
-                LeaderId = string.Empty;
                 ConvertStateTo(RaftState.Follower);
                 // Cancel Follower TimerTask
                 LeaderLostTimerTask?.Cancel();
                 LeaderLostTimerTask = null;
+                LeaderId = string.Empty;
             }
 
             // 3. close LogSequence (rocksdb)
@@ -235,7 +235,8 @@ namespace Zeze.Raft
             Leader,
         }
 
-        public RaftState State { get; private set; } = RaftState.Follower;
+        private volatile RaftState _State = RaftState.Follower;
+        public RaftState State { get { return _State; } private set { _State = value; } }
 
         // Candidate
         private SchedulerTask StartRequestVoteDelayTask;

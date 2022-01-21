@@ -144,7 +144,10 @@ namespace Zeze.Net
                 if (FutureSocket.TrySetResult(so))
                     return;
             }
+            // error recover?
             so.Close(new Exception("FutureSocket.SetResult Fail. Close New Socket."));
+            Stop();
+            Start();
         }
 
         public virtual void TryReconnect()
