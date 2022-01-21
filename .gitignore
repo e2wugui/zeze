@@ -23,10 +23,12 @@
 /ServiceManager/bin
 /ServiceManager/obj
 /TestResults
+/TypeScript/**/*.js
+/TypeScript/**/*.js.map
 /TypeScript/bin
+/TypeScript/gen.ts
 /TypeScript/obj
 /TypeScript/webpack/node_modules
-/TypeScript/gen.ts
 /UnitTest/bin
 /UnitTest/gsd/Gen
 /UnitTest/obj
