@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "common.h"
@@ -67,7 +66,7 @@ namespace Net
 		void Close(std::exception* e);
 		void Send(const char* data, int length) { Send(data, 0, length); }
 		void Send(const char* data, int offset, int length);
-		// ³É¹¦Ê±£¬·µ»Ø³É¹¦Á¬½ÓµÄµØÖ·¡£·µ»Ø empty string ±íÊ¾Ê§°Ü¡£
+		// æˆåŠŸæ—¶ï¼Œè¿”å›æˆåŠŸè¿æ¥çš„åœ°å€ã€‚è¿”å› empty string è¡¨ç¤ºå¤±è´¥ã€‚
 		bool Connect(const std::string& host, int port, const std::string& lastSuccessAddress, int timeoutSecondsPerConnect);
 	};
 
@@ -96,12 +95,12 @@ namespace Net
 		// for ToLua interface
 		virtual void Update()
 		{
-			// ToLuaService ÊµÏÖ
+			// ToLuaService å®ç°
 		}
 		virtual void SendProtocol(Socket * so)
 		{
 			so;
-			// ToLuaService ÊµÏÖ
+			// ToLuaService å®ç°
 		}
 
 		class ProtocolFactoryHandle
