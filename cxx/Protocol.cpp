@@ -1,4 +1,3 @@
-
 #include "Protocol.h"
 
 namespace Zeze
@@ -7,10 +6,10 @@ namespace Zeze
 	{
 		void Protocol::DecodeProtocol(Service * service, const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& bb, IDecodeAndDispatcher* toLua /*= NULL*/)
 		{
-			Zeze::Serialize::ByteBuffer os(bb.Bytes, bb.ReadIndex, bb.Size()); // ´´½¨Ò»¸öÐÂµÄByteBuffer£¬½âÂëÈ·ÈÏÁË²ÅÐÞ¸ÄbbË÷Òý¡£
+			Zeze::Serialize::ByteBuffer os(bb.Bytes, bb.ReadIndex, bb.Size()); // åˆ›å»ºä¸€ä¸ªæ–°çš„ByteBufferï¼Œè§£ç ç¡®è®¤äº†æ‰ä¿®æ”¹bbç´¢å¼•ã€‚
 			while (os.Size() > 0)
 			{
-				// ³¢ÊÔ¶ÁÈ¡Ð­ÒéÀàÐÍºÍ´óÐ¡
+				// å°è¯•è¯»å–åè®®ç±»åž‹å’Œå¤§å°
 				int moduleId;
 				int protocolId;
 				int size;
@@ -24,14 +23,14 @@ namespace Zeze
 				}
 				else
 				{
-					// SKIP! Ö»ÓÐÐ­Òé·¢ËÍ±»·Ö³ÉºÜÐ¡µÄ°ü£¬Ð­ÒéÍ·¶¼²»¹»µÄÊ±ºò²Å»á·¢ÉúÕâ¸öÒì³£¡£¼¸ºõ²»¿ÉÄÜ·¢Éú¡£
+					// SKIP! åªæœ‰åè®®å‘é€è¢«åˆ†æˆå¾ˆå°çš„åŒ…ï¼Œåè®®å¤´éƒ½ä¸å¤Ÿçš„æ—¶å€™æ‰ä¼šå‘ç”Ÿè¿™ä¸ªå¼‚å¸¸ã€‚å‡ ä¹Žä¸å¯èƒ½å‘ç”Ÿã€‚
 					bb.ReadIndex = readIndexSaved;
 					return;
 				}
 
-				// ÒÔÇ°Ð´¹ýµÄÊµÏÖÔÚÊý¾Ý²»¹»Ö®Ç°»á¸ù¾Ýtype¼ì²ésizeÊÇ·ñÌ«´ó¡£
-				// ÏÖÔÚÈ¥µôÐ­ÒéµÄ×î´ó´óÐ¡µÄÅäÖÃÁË.ÓÉ×ÜµÄ²ÎÊý SocketOptions.InputBufferMaxProtocolSize ÏÞÖÆ¡£
-				// ²Î¿¼ AsyncSocket
+				// ä»¥å‰å†™è¿‡çš„å®žçŽ°åœ¨æ•°æ®ä¸å¤Ÿä¹‹å‰ä¼šæ ¹æ®typeæ£€æŸ¥sizeæ˜¯å¦å¤ªå¤§ã€‚
+				// çŽ°åœ¨åŽ»æŽ‰åè®®çš„æœ€å¤§å¤§å°çš„é…ç½®äº†.ç”±æ€»çš„å‚æ•° SocketOptions.InputBufferMaxProtocolSize é™åˆ¶ã€‚
+				// å‚è€ƒ AsyncSocket
 				if (size > os.Size())
 				{
 					// not enough data. try next time.
@@ -42,7 +41,7 @@ namespace Zeze
 				Zeze::Serialize::ByteBuffer pbb(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
 				Service::ProtocolFactoryHandle factoryHandle;
-				long long type = (long long)moduleId << 32 | (protocolId & 0xffffffff);
+				long long type = ((long long)moduleId << 32) | (unsigned int)protocolId;
 				if (service->FindProtocolFactoryHandle(type, factoryHandle))
 				{
 					std::auto_ptr<Protocol> p(factoryHandle.Factory());
@@ -51,7 +50,7 @@ namespace Zeze
 					p.release()->Dispatch(service, factoryHandle);
 					continue;
 				}
-				// ÓÅÏÈÅÉ·¢c++ÊµÏÖ£¬È»ºó³¢ÊÔluaÊµÏÖ£¬×îºóUnknownProtocol¡£
+				// ä¼˜å…ˆæ´¾å‘c++å®žçŽ°ï¼Œç„¶åŽå°è¯•luaå®žçŽ°ï¼Œæœ€åŽUnknownProtocolã€‚
 				if (NULL != toLua && toLua->DecodeAndDispatch(service, sender->SessionId, moduleId, protocolId, pbb))
 					continue;
 				service->DispatchUnknownProtocol(sender, moduleId, protocolId, pbb);

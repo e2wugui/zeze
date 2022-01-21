@@ -7,7 +7,7 @@ namespace Zeze.Gen.Types
 {
 	public class TypeBool : Type
 	{
-		public override Type Compile(ModuleSpace space, String key, String value)
+		public override Type Compile(ModuleSpace space, string key, string value)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);
@@ -28,7 +28,7 @@ namespace Zeze.Gen.Types
 			includes.Add(this);
 		}
 
-		internal TypeBool(SortedDictionary<String, Type> types)
+		internal TypeBool(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
 		}

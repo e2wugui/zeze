@@ -1,65 +1,68 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.ts
 {
-    public class Decode : Types.Visitor
+    public class Decode : Visitor
     {
-        private string varname;
-        private int id;
-        private string bufname;
-        private System.IO.StreamWriter sw;
-        private string prefix;
+        readonly string varname;
+        readonly int id;
+        readonly string bufname;
+        readonly StreamWriter sw;
+        readonly string prefix;
 
-        public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "public Decode(_os_: Zeze.ByteBuffer): void {");
-            sw.WriteLine(prefix + "    for (var _varnum_ = _os_.ReadInt(); _varnum_ > 0; --_varnum_) // Variables.Count");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        var _tagid_ = _os_.ReadInt();");
-            sw.WriteLine(prefix + "        switch (_tagid_)");
-            sw.WriteLine(prefix + "        {");
+            sw.WriteLine(prefix + "public Decode(_o_: Zeze.ByteBuffer) {");
+            sw.WriteLine(prefix + "    var _t_ = _o_.ReadByte();");
+            sw.WriteLine(prefix + "    var _i_ = _o_.ReadTagSize(_t_);");
 
-            foreach (Types.Variable v in bean.Variables)
+            foreach (Variable v in bean.Variables)
             {
-                v.VariableType.Accept(new Decode("this." + v.Name, v.Id, "_os_", sw, prefix + "            "));
+                if (v.Id > 0)
+                    sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ") {");
+                else
+                    sw.WriteLine(prefix + "    {");
+                v.VariableType.Accept(new Decode("this." + v.Name, v.Id, "_o_", sw, prefix + "        "));
+                if (v.Id > 0)
+                    sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
+                sw.WriteLine(prefix + "    }");
             }
 
-            sw.WriteLine(prefix + "            default:");
-            sw.WriteLine(prefix + "                Zeze.ByteBuffer.SkipUnknownField(_tagid_, _os_);");
-            sw.WriteLine(prefix + "                break;");
-            sw.WriteLine(prefix + "        }");
+            sw.WriteLine(prefix + "    while (_t_ != 0) {");
+            sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
+            sw.WriteLine(prefix + "        _o_.ReadTagSize(_t_ = _o_.ReadByte());");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
         }
 
-        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "public Decode(_os_: Zeze.ByteBuffer): void {");
-            sw.WriteLine(prefix + "    for (var _varnum_ = _os_.ReadInt(); _varnum_ > 0; --_varnum_) // Variables.Count");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        var _tagid_ = _os_.ReadInt();");
-            sw.WriteLine(prefix + "        switch (_tagid_)");
-            sw.WriteLine(prefix + "        {");
+            sw.WriteLine(prefix + "public Decode(_o_: Zeze.ByteBuffer) {");
+            sw.WriteLine(prefix + "    var _t_ = _o_.ReadByte();");
+            sw.WriteLine(prefix + "    var _i_ = _o_.ReadTagSize(_t_);");
 
-            foreach (Types.Variable v in bean.Variables)
+            foreach (Variable v in bean.Variables)
             {
-                v.VariableType.Accept(new Decode("this." + v.Name, v.Id, "_os_", sw, prefix + "            "));
+                if (v.Id > 0)
+                    sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ") {");
+                else
+                    sw.WriteLine(prefix + "    {");
+                v.VariableType.Accept(new Decode("this." + v.Name, v.Id, "_o_", sw, prefix + "        "));
+                if (v.Id > 0)
+                    sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
+                sw.WriteLine(prefix + "    }");
             }
 
-            sw.WriteLine(prefix + "            default:");
-            sw.WriteLine(prefix + "                Zeze.ByteBuffer.SkipUnknownField(_tagid_, _os_);");
-            sw.WriteLine(prefix + "                break;");
-            sw.WriteLine(prefix + "        }");
+            sw.WriteLine(prefix + "    while (_t_ != 0) {");
+            sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
+            sw.WriteLine(prefix + "        _o_.ReadTagSize(_t_ = _o_.ReadByte());");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
         }
 
-        public Decode(string varname, int id, string bufname, System.IO.StreamWriter sw, string prefix)
+        public Decode(string varname, int id, string bufname, StreamWriter sw, string prefix)
         {
             this.varname = varname;
             this.id = id;
@@ -68,281 +71,182 @@ namespace Zeze.Gen.ts
             this.prefix = prefix;
         }
 
-        void Visitor.Visit(Bean type)
+        public void Visit(TypeBool type)
         {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.BEAN | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    {");
-                sw.WriteLine(prefix + "        var _state_ = " + bufname + ".BeginReadSegment();");
-                sw.WriteLine(prefix + "        " + varname + ".Decode(" + bufname + ");");
-                sw.WriteLine(prefix + "        " + bufname + ".EndReadSegment(_state_);");
-                sw.WriteLine(prefix + "    }");
-                sw.WriteLine(prefix + "    break;");
-            }
+            if (id > 0)
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadBoolT(_t_);");
             else
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadBool();");
+        }
+
+        public void Visit(TypeByte type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadIntT(_t_);");
+            else
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadInt();");
+        }
+
+        public void Visit(TypeShort type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadIntT(_t_);");
+            else
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadInt();");
+        }
+
+        public void Visit(TypeInt type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadIntT(_t_);");
+            else
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadInt();");
+        }
+
+        public void Visit(TypeLong type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadLongT(_t_);");
+            else
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadLong();");
+        }
+
+        public void Visit(TypeFloat type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadFloatT(_t_);");
+            else
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadFloat();");
+        }
+
+        public void Visit(TypeDouble type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadDoubleT(_t_);");
+            else
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadDouble();");
+        }
+
+        public void Visit(TypeBinary type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadBytesT(_t_);");
+            else
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadBytes();");
+        }
+
+        public void Visit(TypeString type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadStringT(_t_);");
+            else
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadString();");
+        }
+
+        private string DecodeElement(Types.Type type, string typeVar)
+        {
+            switch (type)
             {
+                case TypeBool:
+                    return bufname + ".ReadBoolT(" + typeVar + ')';
+                case TypeByte:
+                    return bufname + ".ReadIntT(" + typeVar + ')';
+                case TypeShort:
+                    return bufname + ".ReadIntT(" + typeVar + ')';
+                case TypeInt:
+                    return bufname + ".ReadIntT(" + typeVar + ')';
+                case TypeLong:
+                    return bufname + ".ReadLongT(" + typeVar + ')';
+                case TypeFloat:
+                    return bufname + ".ReadFloatT(" + typeVar + ')';
+                case TypeDouble:
+                    return bufname + ".ReadDoubleT(" + typeVar + ')';
+                case TypeBinary:
+                    return bufname + ".ReadBytesT(" + typeVar + ')';
+                case TypeString:
+                    return bufname + ".ReadStringT(" + typeVar + ')';
+                case Bean:
+                case BeanKey:
+                case TypeDynamic:
+                    return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
+                default:
+                    throw new Exception("invalid collection element type: " + type);
+            }
+        }
+
+        public void Visit(TypeList type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Types.Type vt = type.ValueType;
+            sw.WriteLine(prefix + "var _x" + id + "_ = new " + TypeName.GetName(type) + "();");
+            sw.WriteLine(prefix + varname + " = _x" + id + "_;");
+            sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ")");
+            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
+            sw.WriteLine(prefix + "        _x" + id + "_.push(" + DecodeElement(vt, "_t_") + ");");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine(prefix + "else");
+            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
+        }
+
+        public void Visit(TypeSet type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Types.Type vt = type.ValueType;
+            sw.WriteLine(prefix + "var _x" + id + "_ = " + varname + ';');
+            sw.WriteLine(prefix + "_x" + id + "_.clear();");
+            sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ")");
+            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
+            sw.WriteLine(prefix + "        _x" + id + "_.add(" + DecodeElement(vt, "_t_") + ");");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine(prefix + "else");
+            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
+        }
+
+        public void Visit(TypeMap type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Types.Type kt = type.KeyType;
+            Types.Type vt = type.ValueType;
+            sw.WriteLine(prefix + "var _x" + id + "_ = " + varname + ';');
+            sw.WriteLine(prefix + "_x" + id + "_.clear();");
+            sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
+            sw.WriteLine(prefix + "    var _s_ = (_t_ = " + bufname + ".ReadByte()) >> Zeze.ByteBuffer.TAG_SHIFT;");
+            sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
+            sw.WriteLine(prefix + "        var _k" + id + "_ = " + DecodeElement(kt, "_s_") + ';');
+            sw.WriteLine(prefix + "        var _v" + id + "_ = " + DecodeElement(vt, "_t_") + ';');
+            sw.WriteLine(prefix + "        _x" + id + "_.set(_k" + id + "_, _v" + id + "_);");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "} else");
+            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
+        }
+
+        public void Visit(Bean type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + bufname + ".ReadBean(" + varname + ", _t_);");
+            else
                 sw.WriteLine(prefix + varname + ".Decode(" + bufname + ");");
-            }
         }
 
-        void Visitor.Visit(BeanKey type)
+        public void Visit(BeanKey type)
         {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.BEAN | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    {");
-                sw.WriteLine(prefix + "        var _state_ = " + bufname + ".BeginReadSegment();");
-                sw.WriteLine(prefix + "        " + varname + ".Decode(" + bufname + ");");
-                sw.WriteLine(prefix + "        " + bufname + ".EndReadSegment(_state_);");
-                sw.WriteLine(prefix + "    }");
-                sw.WriteLine(prefix + "    break;");
-            }
+            if (id > 0)
+                sw.WriteLine(prefix + bufname + ".ReadBean(" + varname + ", _t_);");
             else
-            {
                 sw.WriteLine(prefix + varname + ".Decode(" + bufname + ");");
-            }
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeDynamic type)
         {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.BYTE | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + " = " + bufname + ".ReadByte();");
-                sw.WriteLine(prefix + "    break;");
-            }
+            if (id > 0)
+                sw.WriteLine(prefix + bufname + ".ReadDynamic(" + varname + ", _t_);");
             else
-            {
-                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadByte();");
-            }
-        }
-
-        void Visitor.Visit(TypeDouble type)
-        {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.DOUBLE | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + " = " + bufname + ".ReadDouble();");
-                sw.WriteLine(prefix + "    break;");
-            }
-            else
-            {
-                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadDouble();");
-            }
-        }
-
-        void Visitor.Visit(TypeInt type)
-        {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.INT | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + " = " + bufname + ".ReadInt();");
-                sw.WriteLine(prefix + "    break;");
-            }
-            else
-            {
-                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadInt();");
-            }
-        }
-
-        void Visitor.Visit(TypeLong type)
-        {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.LONG | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + " = " + bufname + ".ReadLong();");
-                sw.WriteLine(prefix + "    break;");
-            }
-            else
-            {
-                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadLong();");
-            }
-        }
-
-        void Visitor.Visit(TypeBool type)
-        {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.BOOL | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + " = " + bufname + ".ReadBool();");
-                sw.WriteLine(prefix + "    break;");
-            }
-            else
-            {
-                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadBool();");
-            }
-        }
-
-        void Visitor.Visit(TypeBinary type)
-        {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.BYTES | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + " = " + bufname + ".ReadBytes();");
-                sw.WriteLine(prefix + "    break;");
-            }
-            else
-            {
-                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadBytes();");
-            }
-        }
-
-        void Visitor.Visit(TypeString type)
-        {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.STRING | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + " = " + bufname + ".ReadString();");
-                sw.WriteLine(prefix + "    break;");
-            }
-            else
-            {
-                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadString();");
-            }
-        }
-
-        void Visitor.Visit(TypeList type)
-        {
-            if (id < 0)
                 throw new Exception("invalid variable.id");
-
-            sw.WriteLine(prefix + "case (Zeze.ByteBuffer.LIST | " + id + " << Zeze.ByteBuffer.TAG_SHIFT):");
-            Types.Type valuetype = type.ValueType;
-
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        var _state_ = _os_.BeginReadSegment();");
-            sw.WriteLine(prefix + "        _os_.ReadInt(); // skip collection.value typetag");
-            sw.WriteLine(prefix + "        " + varname + " = new " + TypeName.GetName(type) + "();");
-            sw.WriteLine(prefix + "        for (var _size_ = _os_.ReadInt(); _size_ > 0; --_size_)");
-            sw.WriteLine(prefix + "        {");
-            string vartmpname = Program.GenUniqVarName();
-            valuetype.Accept(new Define(vartmpname, sw, prefix + "            "));
-            valuetype.Accept(new Decode(vartmpname, -1, "_os_", sw, prefix + "            "));
-            sw.WriteLine(prefix + "            " + varname + ".push(" + vartmpname + ");");
-            sw.WriteLine(prefix + "        }");
-            sw.WriteLine(prefix + "        _os_.EndReadSegment(_state_);");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    break;");
-        }
-
-        void Visitor.Visit(TypeSet type)
-        {
-            if (id < 0)
-                throw new Exception("invalid variable.id");
-
-            sw.WriteLine(prefix + "case (Zeze.ByteBuffer.SET | " + id + " << Zeze.ByteBuffer.TAG_SHIFT):");
-            Types.Type valuetype = type.ValueType;
-
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        var _state_ = _os_.BeginReadSegment();");
-            sw.WriteLine(prefix + "        _os_.ReadInt(); // skip collection.value typetag");
-            sw.WriteLine(prefix + "        " + varname + ".clear();");
-            sw.WriteLine(prefix + "        for (var _size_ = _os_.ReadInt(); _size_ > 0; --_size_)");
-            sw.WriteLine(prefix + "        {");
-            string vartmpname = Program.GenUniqVarName();
-            valuetype.Accept(new Define(vartmpname, sw, prefix + "            "));
-            valuetype.Accept(new Decode(vartmpname, -1, "_os_", sw, prefix + "            "));
-            sw.WriteLine(prefix + "            " + varname + ".add(" + vartmpname + ");");
-            sw.WriteLine(prefix + "        }");
-            sw.WriteLine(prefix + "        _os_.EndReadSegment(_state_);");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    break;");
-        }
-
-        void Visitor.Visit(TypeMap type)
-        {
-            if (id < 0)
-                throw new Exception("invalid variable.id");
-
-            Types.Type keytype = type.KeyType;
-            Types.Type valuetype = type.ValueType;
-
-            sw.WriteLine(prefix + "case (Zeze.ByteBuffer.MAP | " + id + " << Zeze.ByteBuffer.TAG_SHIFT):");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        var _state_ = _os_.BeginReadSegment();");
-            sw.WriteLine(prefix + "        _os_.ReadInt(); // skip key typetag");
-            sw.WriteLine(prefix + "        _os_.ReadInt(); // skip value typetag");
-            sw.WriteLine(prefix + "        " + varname + ".clear();");
-            sw.WriteLine(prefix + "        for (var size = _os_.ReadInt(); size > 0; --size)");
-            sw.WriteLine(prefix + "        {");
-            string vartmpkey = Program.GenUniqVarName();
-            string vartmpvalue = Program.GenUniqVarName();
-            keytype.Accept(new Define(vartmpkey, sw, prefix + "            "));
-            keytype.Accept(new Decode(vartmpkey, -1, "_os_", sw, prefix + "            "));
-            valuetype.Accept(new Define(vartmpvalue, sw, prefix + "            "));
-            valuetype.Accept(new Decode(vartmpvalue, -1, "_os_", sw, prefix + "            "));
-            sw.WriteLine(prefix + "            " + varname + ".set(" + vartmpkey + ", " + vartmpvalue + ");");
-            sw.WriteLine(prefix + "        }");
-            sw.WriteLine(prefix + "        _os_.EndReadSegment(_state_);");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    break;");
-        }
-
-        void Visitor.Visit(TypeFloat type)
-        {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.FLOAT | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + " = " + bufname + ".ReadFloat();");
-                sw.WriteLine(prefix + "    break;");
-            }
-            else
-            {
-                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadFloat();");
-            }
-        }
-
-        void Visitor.Visit(TypeShort type)
-        {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.SHORT | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + "    " + varname + " = " + bufname + ".ReadShort();");
-                sw.WriteLine(prefix + "    break;");
-            }
-            else
-            {
-                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadShort();");
-            }
-        }
-
-        void Visitor.Visit(TypeDynamic type)
-        {
-            if (id >= 0)
-            {
-                sw.WriteLine(prefix + "case (Zeze.ByteBuffer.DYNAMIC | " + id + " << Zeze.ByteBuffer.TAG_SHIFT): ");
-                sw.WriteLine(prefix + $"    {varname}.Decode({bufname});");
-                /*
-                sw.WriteLine(prefix + "    switch (" + bufname + ".ReadLong8())");
-                sw.WriteLine(prefix + "    {");
-                foreach (Bean real in type.RealBeans)
-                {
-                    string realName = TypeName.GetName(real);
-                    sw.WriteLine(prefix + "        case " + realName + ".TYPEID:");
-                    sw.WriteLine(prefix + "            {");
-                    sw.WriteLine(prefix + "                var _state_ = " + bufname + ".BeginReadSegment();");
-                    sw.WriteLine(prefix + "                " + varname + " = new " + realName + "();");
-                    sw.WriteLine(prefix + "                " + varname + ".Decode(" + bufname + ");");
-                    sw.WriteLine(prefix + "                " + bufname + ".EndReadSegment(_state_);");
-                    sw.WriteLine(prefix + "            }");
-                    sw.WriteLine(prefix + "            break;");
-                }
-                sw.WriteLine(prefix + "        case Zeze.EmptyBean.TYPEID:");
-                sw.WriteLine(prefix + "            " + varname + " = new Zeze.EmptyBean();");
-                sw.WriteLine(prefix + "            " + bufname + ".SkipBytes();");
-                sw.WriteLine(prefix + "            break;");
-                sw.WriteLine(prefix + "        default:");
-                sw.WriteLine(prefix + "            " + bufname + ".SkipBytes();");
-                sw.WriteLine(prefix + "            break;");
-                sw.WriteLine(prefix + "    }");
-                */
-                sw.WriteLine(prefix + "    break;");
-            }
-            else
-            {
-                throw new Exception("invalie Variable.Id");
-            }
         }
     }
 }

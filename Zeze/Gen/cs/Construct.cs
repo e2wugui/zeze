@@ -1,58 +1,54 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
-    public class Construct : Types.Visitor
+    public class Construct : Visitor
     {
-		private System.IO.StreamWriter sw;
-		private Types.Variable variable;
-		private String prefix;
+		readonly StreamWriter sw;
+		readonly Variable variable;
+		readonly string prefix;
 
-		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, String prefix)
+		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
 			sw.WriteLine(prefix + "public " + bean.Name + "() : this(0)");
 			sw.WriteLine(prefix + "{");
 			sw.WriteLine(prefix + "}");
-			sw.WriteLine("");
+			sw.WriteLine();
             sw.WriteLine(prefix + "public " + bean.Name + "(int _varId_) : base(_varId_)");
             sw.WriteLine(prefix + "{");
-            foreach (Types.Variable var in bean.Variables)
-            {
+            foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
-            }
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
-        public Construct(System.IO.StreamWriter sw, Types.Variable variable, String prefix)
+        public Construct(StreamWriter sw, Variable variable, string prefix)
 		{
 			this.sw = sw;
 			this.variable = variable;
 			this.prefix = prefix;
 		}
 
-		private void Initial()
+		void Initial()
 		{
-			String value = variable.Initial;
+            string value = variable.Initial;
 			if (value.Length > 0)
 			{
-				String varname = variable.NamePrivate;
+                string varname = variable.NamePrivate;
 				sw.WriteLine(prefix + varname + " = " + value + ";");
 			}
 		}
 
         public void Visit(Bean type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(" + variable.Id + ");");
         }
 
         public void Visit(BeanKey type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
         }
 
@@ -88,26 +84,26 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeString type)
         {
-            String value = variable.Initial;
-            String varname = variable.NamePrivate;
+            string value = variable.Initial;
+            string varname = variable.NamePrivate;
             sw.WriteLine(prefix + varname + " = \"" + value + "\";");
         }
 
         public void Visit(TypeList type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(ObjectId + " + variable.Id + ", _v => new Log_" + variable.NamePrivate + "(this, _v));");
         }
 
         public void Visit(TypeSet type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(ObjectId + " + variable.Id + ", _v => new Log_" + variable.NamePrivate + "(this, _v));");
         }
 
         public void Visit(TypeMap type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(ObjectId + " + variable.Id + ", _v => new Log_" + variable.NamePrivate + "(this, _v));");
             var key = TypeName.GetName(type.KeyType);
             var value = type.ValueType.IsNormalBean

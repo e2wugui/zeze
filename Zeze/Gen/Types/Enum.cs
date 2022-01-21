@@ -8,11 +8,11 @@ namespace Zeze.Gen.Types
 {
 	public class Enum
 	{
-		public String Name { get; private set; }
+		public string Name { get; private set; }
 		public string NamePinyin => Program.ToPinyin(Name);
 
-		public String Value { get; private set; }
-		public String Comment { get; private set; } = "";
+		public string Value { get; private set; }
+		public string Comment { get; private set; } = "";
 
 		public Enum(XmlElement self)
 		{

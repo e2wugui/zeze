@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace Zeze.Gen.cs
 {
@@ -22,7 +20,7 @@ namespace Zeze.Gen.cs
             }
         }
 
-        private string GetFullName(Types.Type type)
+        string GetFullName(Types.Type type)
         {
             if (type.IsBean)
             {
@@ -37,7 +35,7 @@ namespace Zeze.Gen.cs
             using System.IO.StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + Project.Solution.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public class Schemas : Zeze.Schemas");
@@ -57,7 +55,7 @@ namespace Zeze.Gen.cs
 
             foreach (var type in Depends)
             {
-                if (false == type.IsBean)
+                if (!type.IsBean)
                     continue;
 
                 if (type.IsKeyable)
@@ -76,7 +74,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("}");
         }
 
-        private void GenAddBean(System.IO.StreamWriter sw, string name, bool isBeanKey, List<Types.Variable> vars)
+        void GenAddBean(System.IO.StreamWriter sw, string name, bool isBeanKey, List<Types.Variable> vars)
         {
             sw.WriteLine($"            {{");
             sw.WriteLine($"                var bean = new Zeze.Schemas.Bean() {{ Name = \"{name}\", IsBeanKey = {isBeanKey.ToString().ToLower()} }};");
@@ -88,9 +86,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"                    Name = \"{v.Name}\",");
                 sw.WriteLine($"                    TypeName = \"{GetFullName(v.VariableType)}\",");
                 if (v.VariableType is Types.TypeCollection collection)
-                {
                     sw.WriteLine($"                    ValueName = \"{GetFullName(collection.ValueType)}\",");
-                }
                 else if (v.VariableType is Types.TypeMap map)
                 {
                     sw.WriteLine($"                    KeyName = \"{GetFullName(map.KeyType)}\",");

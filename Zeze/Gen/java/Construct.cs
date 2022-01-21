@@ -1,59 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
-    public class Construct : Types.Visitor
+    public class Construct : Visitor
     {
-		private System.IO.StreamWriter sw;
-		private Types.Variable variable;
-		private String prefix;
+		readonly StreamWriter sw;
+		readonly Variable variable;
+		readonly string prefix;
+        readonly string beanName;
 
-		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, String prefix)
+		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
 			sw.WriteLine(prefix + "public " + bean.Name + "() {");
 			sw.WriteLine(prefix + "     this(0);");
 			sw.WriteLine(prefix + "}");
-			sw.WriteLine("");
+			sw.WriteLine();
             sw.WriteLine(prefix + "public " + bean.Name + "(int _varId_) {");
             sw.WriteLine(prefix + "    super(_varId_);");
-            foreach (Types.Variable var in bean.Variables)
-            {
-                var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
-            }
+            foreach (Variable var in bean.Variables)
+                var.VariableType.Accept(new Construct(sw, var, prefix + "    ", bean.Name));
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
+            sw.WriteLine();
         }
 
-        public Construct(System.IO.StreamWriter sw, Types.Variable variable, String prefix)
+        public Construct(StreamWriter sw, Variable variable, string prefix, string beanName)
 		{
 			this.sw = sw;
 			this.variable = variable;
 			this.prefix = prefix;
-		}
+            this.beanName = beanName;
+        }
 
-		private void Initial()
+		void Initial()
 		{
-			String value = variable.Initial;
+            string value = variable.Initial;
 			if (value.Length > 0)
 			{
-				String varname = variable.NamePrivate;
+                string varname = variable.NamePrivate;
 				sw.WriteLine(prefix + varname + " = " + value + ";");
 			}
 		}
 
-        public void Visit(Bean type)
+        public void Visit(TypeBool type)
         {
-            String typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(" + variable.Id + ");");
-        }
-
-        public void Visit(BeanKey type)
-        {
-            String typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            Initial();
         }
 
         public void Visit(TypeByte type)
@@ -61,7 +52,7 @@ namespace Zeze.Gen.java
             Initial();
         }
 
-        public void Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
             Initial();
         }
@@ -76,7 +67,12 @@ namespace Zeze.Gen.java
             Initial();
         }
 
-        public void Visit(TypeBool type)
+        public void Visit(TypeFloat type)
+        {
+            Initial();
+        }
+
+        public void Visit(TypeDouble type)
         {
             Initial();
         }
@@ -88,26 +84,26 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeString type)
         {
-            String value = variable.Initial;
-            String varname = variable.NamePrivate;
+            string value = variable.Initial;
+            string varname = variable.NamePrivate;
             sw.WriteLine(prefix + varname + " = \"" + value + "\";");
         }
 
         public void Visit(TypeList type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetNameOmitted(type) + "<>";
             sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(getObjectId() + " + variable.Id + ", (_v) -> new Log_" + variable.NamePrivate + "(this, _v));");
         }
 
         public void Visit(TypeSet type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetNameOmitted(type) + "<>";
             sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(getObjectId() + " + variable.Id + ", (_v) -> new Log_" + variable.NamePrivate + "(this, _v));");
         }
 
         public void Visit(TypeMap type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetNameOmitted(type) + "<>";
             sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(getObjectId() + " + variable.Id + ", (_v) -> new Log_" + variable.NamePrivate + "(this, _v));");
             /*
             var key = TypeName.GetName(type.KeyType);
@@ -119,20 +115,23 @@ namespace Zeze.Gen.java
             */
         }
 
-        public void Visit(TypeFloat type)
+        public void Visit(Bean type)
         {
-            Initial();
+            string typeName = TypeName.GetName(type);
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(" + variable.Id + ");");
         }
 
-        public void Visit(TypeShort type)
+        public void Visit(BeanKey type)
         {
-            Initial();
+            string typeName = TypeName.GetName(type);
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
         }
 
         public void Visit(TypeDynamic type)
         {
             sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean"
-                + $"({variable.Id}, (_b_) -> GetSpecialTypeIdFromBean_{variable.NameUpper1}(_b_), (_i_) -> CreateBeanFromSpecialTypeId_{variable.NameUpper1}(_i_));");
+                + $"({variable.Id}, {beanName}::GetSpecialTypeIdFromBean_{variable.NameUpper1}, "
+                + $"{beanName}::CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
         }
     }
 }

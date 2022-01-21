@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "common.h"
@@ -67,7 +66,7 @@ namespace Net
 		void Close(std::exception* e);
 		void Send(const char* data, int length) { Send(data, 0, length); }
 		void Send(const char* data, int offset, int length);
-		// ³É¹¦Ê±£¬·µ»Ø³É¹¦Á¬½ÓµÄµØÖ·¡£·µ»Ø empty string ±íÊ¾Ê§°Ü¡£
+		// æˆåŠŸæ—¶ï¼Œè¿”å›æˆåŠŸè¿æ¥çš„åœ°å€ã€‚è¿”å› empty string è¡¨ç¤ºå¤±è´¥ã€‚
 		bool Connect(const std::string& host, int port, const std::string& lastSuccessAddress, int timeoutSecondsPerConnect);
 	};
 
@@ -96,12 +95,12 @@ namespace Net
 		// for ToLua interface
 		virtual void Update()
 		{
-			// ToLuaService ÊµÏÖ
+			// ToLuaService å®ç°
 		}
 		virtual void SendProtocol(Socket * so)
 		{
 			so;
-			// ToLuaService ÊµÏÖ
+			// ToLuaService å®ç°
 		}
 
 		class ProtocolFactoryHandle
@@ -120,13 +119,13 @@ namespace Net
 			{
 			}
 		};
-		void AddProtocolFactory(int typeId, const ProtocolFactoryHandle& func)
+		void AddProtocolFactory(long long typeId, const ProtocolFactoryHandle& func)
 		{
-			std::pair<ProtocolFactoryMap::iterator, bool> r = ProtocolFactory.insert(std::pair<int, ProtocolFactoryHandle>(typeId, func));
+			std::pair<ProtocolFactoryMap::iterator, bool> r = ProtocolFactory.insert(std::pair<long long, ProtocolFactoryHandle>(typeId, func));
 			if (false == r.second)
 				throw std::exception("duplicate protocol TypeId");
 		}
-		bool FindProtocolFactoryHandle(int typeId, ProtocolFactoryHandle& outFactoryHandle)
+		bool FindProtocolFactoryHandle(long long typeId, ProtocolFactoryHandle& outFactoryHandle)
 		{
 			ProtocolFactoryMap::iterator it = ProtocolFactory.find(typeId);
 			if (it != ProtocolFactory.end())
@@ -158,7 +157,7 @@ namespace Net
 		friend class Protocol;
 
 	private:
-		typedef std::unordered_map<int, ProtocolFactoryHandle> ProtocolFactoryMap;
+		typedef std::unordered_map<long long, ProtocolFactoryHandle> ProtocolFactoryMap;
 		ProtocolFactoryMap ProtocolFactory;
 		void StartConnect(const std::string& host, int port, int delay, int timeoutSecondsPerConnect);
 

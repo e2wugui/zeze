@@ -10,7 +10,7 @@ namespace Zeze.Gen.Types
 	public class TypeLong : Type
 	{
 
-		public override Type Compile(ModuleSpace space, String key, String value)
+		public override Type Compile(ModuleSpace space, string key, string value)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);
@@ -31,12 +31,12 @@ namespace Zeze.Gen.Types
 			includes.Add(this);
 		}
 
-		public override String Name => "long";
+		public override string Name => "long";
 
         public override bool IsImmutable => true;
 		public override bool IsNeedNegativeCheck => true;
 
-		internal TypeLong(SortedDictionary<String, Type> types)
+		internal TypeLong(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
 		}

@@ -1,4 +1,3 @@
-
 #include "LuaHelper.h"
 #include <iostream>
 #include "Net.h"
@@ -17,11 +16,11 @@ int main(int argc, char* argv[])
 	try
 	{
 		Zeze::LuaHelper lua(L);
-		if (lua.DoString("package.path = package.path .. ';../UnitTestClientCxx/LuaSrc/?.lua;../UnitTestClientCxx/LuaGen/?.lua'"))
+		if (lua.DoString("package.path = package.path .. ';./LuaSrc/?.lua;./LuaGen/?.lua'"))
 			throw std::exception("package.path");
 		demo::App::Instance().Client.InitializeLua(L);
 		demo::App::Instance().Client.SetAutoConnect(true);
-		//demo::App::Instance().Client.Connect("::1", 9999); // ¸Äµ½ÔÚ main.lua ÖÐÁ¬½Ó¡£
+		//demo::App::Instance().Client.Connect("::1", 9999); // æ”¹åˆ°åœ¨ main.lua ä¸­è¿žæŽ¥ã€‚
 		if (lua.DoString("require 'main'"))
 		{
 			std::cout << "run main error: " << lua.ToString(-1) << std::endl;

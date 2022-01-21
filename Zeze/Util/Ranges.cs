@@ -13,8 +13,8 @@ namespace Zeze.Util
 
 			public Range(string[] pair)
 			{
-				first = Int32.Parse(pair[0]);
-				last = pair.Length > 1 ? Int32.Parse(pair[1]) + 1 : first + 1;
+				first = int.Parse(pair[0]);
+				last = pair.Length > 1 ? int.Parse(pair[1]) + 1 : first + 1;
 				if (first < 0 || last < 0 || first >= last)
 					throw new Exception("error new range : " + this);
 			}
@@ -31,7 +31,7 @@ namespace Zeze.Util
 				return !(r.last <= first || r.first >= last);
 			}
 
-			public override String ToString()
+			public override string ToString()
 			{
 				if (first + 1 == last)
 					return first.ToString();

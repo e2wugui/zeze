@@ -1,64 +1,56 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
     public class BeanKeyFormatter
     {
-        Types.BeanKey beanKey;
+        readonly BeanKey beanKey;
 
-        public BeanKeyFormatter(Types.BeanKey beanKey)
+        public BeanKeyFormatter(BeanKey beanKey)
         {
             this.beanKey = beanKey;
         }
 
         public void Make(string baseDir)
         {
-            using System.IO.StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".java");
+            using StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".java");
 
-            sw.WriteLine("// auto-generated");
+            sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + beanKey.Space.Path() + ";");
-            sw.WriteLine("");
-            sw.WriteLine("import Zeze.Serialize.*;");
+            sw.WriteLine();
+            sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
+            sw.WriteLine("import Zeze.Serialize.Serializable;");
 
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine($"public final class {beanKey.Name} implements Serializable, Comparable<{beanKey.Name}> {{");
 
             // declare enums
-            foreach (Types.Enum e in beanKey.Enums)
-            {
-                sw.WriteLine("    public final static int " + e.Name + " = " + e.Value + ";" + e.Comment);
-            }
+            foreach (Enum e in beanKey.Enums)
+                sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
             if (beanKey.Enums.Count > 0)
-            {
-                sw.WriteLine("");
-            }
+                sw.WriteLine();
 
             // declare variables
-            foreach (Types.Variable v in beanKey.Variables)
-            {
+            foreach (Variable v in beanKey.Variables)
                 sw.WriteLine("    private " + TypeName.GetName(v.VariableType) + " " + v.NamePrivate + ";" + v.Comment);
-            }
-            sw.WriteLine("");
+            sw.WriteLine();
 
             sw.WriteLine("    // for decode only");
             sw.WriteLine("    public " + beanKey.Name + "() {");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
 
             // params construct
             {
                 sw.WriteLine("    public " + beanKey.Name + "(" + ParamName.GetParamList(beanKey.Variables) + ") {");
-                foreach (Types.Variable v in beanKey.Variables)
-                {
+                foreach (Variable v in beanKey.Variables)
                     sw.WriteLine("        this." + v.NamePrivate + " = " + v.NamePrivate + "_;");
-                }
                 sw.WriteLine("    }");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             PropertyBeanKey.Make(beanKey, sw, "    ");
-            sw.WriteLine("");
+            sw.WriteLine();
             Tostring.Make(beanKey, sw, "    ");
             Encode.Make(beanKey, sw, "    ");
             Decode.Make(beanKey, sw, "    ");
@@ -67,7 +59,6 @@ namespace Zeze.Gen.java
             Compare.Make(beanKey, sw, "    ");
             NegativeCheck.Make(beanKey, sw, "    ");
             sw.WriteLine("}");
-
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 
 namespace Zeze.Gen.cs
@@ -16,7 +15,7 @@ namespace Zeze.Gen.cs
 					first = false;
 				else
 					plist.Append(", ");
-				plist.Append(ParamName.GetName(var.VariableType)).Append(" _").Append(var.Name).Append("_");
+				plist.Append(ParamName.GetName(var.VariableType)).Append(" _").Append(var.Name).Append('_');
 			}
 			return plist.ToString();
 		}

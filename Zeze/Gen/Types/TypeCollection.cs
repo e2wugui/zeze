@@ -1,8 +1,5 @@
-
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Xml;
 
 namespace Zeze.Gen.Types
 {
@@ -16,7 +13,7 @@ namespace Zeze.Gen.Types
 				ValueType.Depends(includes);
 		}
 
-		protected void _compile(ModuleSpace space, String key, String value)
+		protected void _compile(ModuleSpace space, string key, string value)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);

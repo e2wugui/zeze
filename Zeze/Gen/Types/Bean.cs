@@ -1,7 +1,5 @@
-
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Xml;
 
 namespace Zeze.Gen.Types
@@ -13,7 +11,7 @@ namespace Zeze.Gen.Types
 			visitor.Visit(this);
 		}
 
-		public override Type Compile(ModuleSpace space, String key, String value)
+		public override Type Compile(ModuleSpace space, string key, string value)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);
@@ -30,10 +28,10 @@ namespace Zeze.Gen.Types
 				{
 					var.VariableType.Depends(includes);
 
-					// 常量初始化引用到的Bean也加入depends中。 BeanName.ConstStaticVarName
-					// 
-					String[] initial = var.Initial.Split('.');
-					String beanNameMabe = "";
+                    // 常量初始化引用到的Bean也加入depends中。 BeanName.ConstStaticVarName
+                    // 
+                    string[] initial = var.Initial.Split('.');
+                    string beanNameMabe = "";
 					for (int i = 0; i < initial.Length - 1; ++i)
 					{
 						if (i > 0)
@@ -45,7 +43,7 @@ namespace Zeze.Gen.Types
 					try
 					{
 						Type type = Type.Compile(Space, beanNameMabe);
-						if (null != type)
+						if (type != null)
 							includes.Add(type); // type.depends(type); 肯定是 Bean，不需要递归包含。 
 					}
 					catch (Exception ex)
@@ -99,8 +97,8 @@ namespace Zeze.Gen.Types
 		}
         public List<Variable> Variables { get; private set; } = new List<Variable>();
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
-		public String Comment { get; private set; }
-		public String FullName => Space.Path(".", Name);
+		public string Comment { get; private set; }
+		public string FullName => Space.Path(".", Name);
 		public long TypeId { get; private set; }
 		// ///////////////////////////////////////////
 		public Bean(ModuleSpace space, XmlElement self)
@@ -120,7 +118,7 @@ namespace Zeze.Gen.Types
 
 			if (Comment.Length == 0)
 			{
-				for (XmlNode c = self.PreviousSibling; null != c; c = c.PreviousSibling)
+				for (XmlNode c = self.PreviousSibling; c != null; c = c.PreviousSibling)
 				{
 					if (XmlNodeType.Element == c.NodeType)
 						break;
@@ -140,7 +138,7 @@ namespace Zeze.Gen.Types
 
 				XmlElement e = (XmlElement)node;
 
-				String nodename = e.Name;
+                string nodename = e.Name;
 				switch (e.Name)
 				{
 					case "variable":

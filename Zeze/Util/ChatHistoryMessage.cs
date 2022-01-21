@@ -14,7 +14,7 @@ namespace Zeze.Util
         public int Tag { get; set; }
         public long Id { get; set; }
         public long TimeTicks { get; set; }
-        public String Sender { get; set; }
+        public string Sender { get; set; }
         public int Type { get; set; }
         public byte[] Content { get; set; }
         public Dictionary<int, byte[]> Properties { get; set; } = new Dictionary<int, byte[]>();

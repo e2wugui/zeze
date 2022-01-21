@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.IO;
 using System.Xml;
 
 namespace Zeze.Gen
@@ -10,7 +10,7 @@ namespace Zeze.Gen
         public string Name { get; private set; }
         public string NamePinyin => Program.ToPinyin(Name);
         public ModuleSpace Parent { get; private set; }
-        public global::Zeze.Util.Ranges ProtocolIdRanges { get; } = new global::Zeze.Util.Ranges();
+        public Util.Ranges ProtocolIdRanges { get; } = new Util.Ranges();
         public int Id { get; }
 
         public XmlElement Self { get; }
@@ -18,10 +18,8 @@ namespace Zeze.Gen
         public ModuleSpace GetRootModuleSpace()
         {
             ModuleSpace last = this;
-            for (ModuleSpace p = Parent; null != p; p = p.Parent)
-            {
+            for (ModuleSpace p = Parent; p != null; p = p.Parent)
                 last = p;
-            }
             return last;
         }
 
@@ -30,7 +28,7 @@ namespace Zeze.Gen
         public int PathDepth()
         {
             int depth = 0;
-            for (ModuleSpace p = Parent; null != p; p = p.Parent)
+            for (ModuleSpace p = Parent; p != null; p = p.Parent)
                 ++depth;
             return depth;
         }
@@ -38,11 +36,9 @@ namespace Zeze.Gen
         public string Path(string sep = ".", string ObjectName = null)
         {
             string path = Name;
-            for (ModuleSpace p = Parent; null != p; p = p.Parent)
-            {
+            for (ModuleSpace p = Parent; p != null; p = p.Parent)
                 path = p.Name + sep + path;
-            }
-            if (null == ObjectName)
+            if (ObjectName == null)
                 return path;
 
             return path + sep + ObjectName;
@@ -51,11 +47,9 @@ namespace Zeze.Gen
         public string PathPinyin(string sep = ".", string ObjectName = null)
         {
             string path = NamePinyin;
-            for (ModuleSpace p = Parent; null != p; p = p.Parent)
-            {
+            for (ModuleSpace p = Parent; p != null; p = p.Parent)
                 path = p.NamePinyin + sep + path;
-            }
-            if (null == ObjectName)
+            if (ObjectName == null)
                 return path;
 
             return path + sep + ObjectName;
@@ -70,18 +64,17 @@ namespace Zeze.Gen
             return fullDir;
         }
 
-
-        public System.IO.StreamWriter OpenWriter(string baseDir, string fileName, bool overwrite = true)
+        public StreamWriter OpenWriter(string baseDir, string fileName, bool overwrite = true)
         {
             string fullDir = GetFullPath(baseDir);
             //Program.Print("CreateDirectory:" + fullDir);
-            System.IO.Directory.CreateDirectory(fullDir);
+            Directory.CreateDirectory(fullDir);
             string fullFileName = System.IO.Path.Combine(fullDir, fileName);
-            bool exists = System.IO.File.Exists(fullFileName);
+            bool exists = File.Exists(fullFileName);
             if (!exists || overwrite)
             {
                 //Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
-                System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+                StreamWriter sw = Program.OpenStreamWriter(fullFileName);
                 return sw;
             }
             //Program.Print("file skip '" + fullFileName + "'");

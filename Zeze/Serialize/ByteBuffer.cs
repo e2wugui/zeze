@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Runtime.CompilerServices;
-using System.Diagnostics.CodeAnalysis;
+using Zeze.Net;
+using Zeze.Transaction;
 
 namespace Zeze.Serialize
 {
@@ -21,11 +22,11 @@ namespace Zeze.Serialize
 
         public static ByteBuffer Wrap(byte[] bytes, int offset, int length)
         {
-            ByteBuffer.VerifyArrayIndex(bytes, offset, length);
+            VerifyArrayIndex(bytes, offset, length);
             return new ByteBuffer(bytes, offset, offset + length);
         }
 
-        public static ByteBuffer Wrap(Zeze.Net.Binary binary)
+        public static ByteBuffer Wrap(Binary binary)
         {
             return Wrap(binary.Bytes, binary.Offset, binary.Count);
         }
@@ -46,18 +47,18 @@ namespace Zeze.Serialize
             return new ByteBuffer(capacity);
         }
 
-        private ByteBuffer(int capacity)
+        ByteBuffer(int capacity)
         {
-            this.Bytes = new byte[ToPower2(capacity)];
-            this.ReadIndex = 0;
-            this.WriteIndex = 0;
+            Bytes = new byte[ToPower2(capacity)];
+            ReadIndex = 0;
+            WriteIndex = 0;
         }
 
-        private ByteBuffer(byte[] bytes, int readIndex, int writeIndex)
+        ByteBuffer(byte[] bytes, int readIndex, int writeIndex)
         {
-            this.Bytes = bytes;
-            this.ReadIndex = readIndex;
-            this.WriteIndex = writeIndex;
+            Bytes = bytes;
+            ReadIndex = readIndex;
+            WriteIndex = writeIndex;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -71,8 +72,7 @@ namespace Zeze.Serialize
         public void Append(byte b)
         {
             EnsureWrite(1);
-            Bytes[WriteIndex] = b;
-            WriteIndex += 1;
+            Bytes[WriteIndex++] = b;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -98,9 +98,9 @@ namespace Zeze.Serialize
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Replace(int writeIndex, byte[] src, int offset, int len)
         {
-            if (writeIndex < this.ReadIndex || writeIndex + len > this.WriteIndex)
+            if (writeIndex < ReadIndex || writeIndex + len > WriteIndex)
                 throw new Exception();
-            Buffer.BlockCopy(src, offset, this.Bytes, writeIndex, len);
+            Buffer.BlockCopy(src, offset, Bytes, writeIndex, len);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -118,132 +118,6 @@ namespace Zeze.Serialize
             Replace(oldWriteIndex, BitConverter.GetBytes(WriteIndex - oldWriteIndex - 4));
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void BeginWriteSegment(out int oldSize)
-        {
-            oldSize = Size;
-            EnsureWrite(1);
-            WriteIndex += 1;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void EndWriteSegment(int oldSize)
-        {
-            int startPos = ReadIndex + oldSize;
-            int segmentSize = WriteIndex - startPos - 1;
-
-            // 0 111 1111
-            if (segmentSize < 0x80)
-            {
-                Bytes[startPos] = (byte)segmentSize;
-            }
-            else if (segmentSize < 0x4000) // 10 11 1111, -
-            {
-                EnsureWrite(1);
-                Bytes[WriteIndex] = Bytes[startPos + 1];
-                Bytes[startPos + 1] = (byte)segmentSize;
-
-                Bytes[startPos] = (byte)((segmentSize >> 8) | 0x80);
-                WriteIndex += 1;
-            }
-            else if (segmentSize < 0x200000) // 110 1 1111, -,-
-            {
-                EnsureWrite(2);
-                Bytes[WriteIndex + 1] = Bytes[startPos + 2];
-                Bytes[startPos + 2] = (byte)segmentSize;
-
-                Bytes[WriteIndex] = Bytes[startPos + 1];
-                Bytes[startPos + 1] = (byte)(segmentSize >> 8);
-
-                Bytes[startPos] = (byte)((segmentSize >> 16) | 0xc0);
-                WriteIndex += 2;
-            }
-            else if (segmentSize < 0x10000000) // 1110 1111,-,-,-
-            {
-                EnsureWrite(3);
-                Bytes[WriteIndex + 2] = Bytes[startPos + 3];
-                Bytes[startPos + 3] = (byte)segmentSize;
-
-                Bytes[WriteIndex + 1] = Bytes[startPos + 2];
-                Bytes[startPos + 2] = (byte)(segmentSize >> 8);
-
-                Bytes[WriteIndex] = Bytes[startPos + 1];
-                Bytes[startPos + 1] = (byte)(segmentSize >> 16);
-
-                Bytes[startPos] = (byte)((segmentSize >> 24) | 0xe0);
-                WriteIndex += 3;
-            }
-            else
-            {
-                throw new Exception("exceed max segment size");
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadSegment(out int startIndex, out int segmentSize)
-        {
-            EnsureRead(1);
-            int h = Bytes[ReadIndex++];
-
-            startIndex = ReadIndex;
-
-            if (h < 0x80)
-            {
-                segmentSize = h;
-                ReadIndex += segmentSize;
-            }
-            else if (h < 0xc0)
-            {
-                EnsureRead(1);
-                segmentSize = ((h & 0x3f) << 8) | Bytes[ReadIndex];
-                int endPos = ReadIndex + segmentSize;
-                Bytes[ReadIndex] = Bytes[endPos];
-                ReadIndex += segmentSize + 1;
-            }
-            else if (h < 0xe0)
-            {
-                EnsureRead(2);
-                segmentSize = ((h & 0x1f) << 16) | ((int)Bytes[ReadIndex] << 8) | Bytes[ReadIndex + 1];
-                int endPos = ReadIndex + segmentSize;
-                Bytes[ReadIndex] = Bytes[endPos];
-                Bytes[ReadIndex + 1] = Bytes[endPos + 1];
-                ReadIndex += segmentSize + 2;
-            }
-            else if (h < 0xf0)
-            {
-                EnsureRead(3);
-                segmentSize = ((h & 0x0f) << 24) | ((int)Bytes[ReadIndex] << 16) | ((int)Bytes[ReadIndex + 1] << 8) | Bytes[ReadIndex + 2];
-                int endPos = ReadIndex + segmentSize;
-                Bytes[ReadIndex] = Bytes[endPos];
-                Bytes[ReadIndex + 1] = Bytes[endPos + 1];
-                Bytes[ReadIndex + 2] = Bytes[endPos + 2];
-                ReadIndex += segmentSize + 3;
-            }
-            else
-            {
-                throw new Exception("exceed max size");
-            }
-            if (ReadIndex > WriteIndex)
-            {
-                throw new Exception("segment data not enough");
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void BeginReadSegment(out int saveState)
-        {
-            ReadSegment(out int startPos, out int _);
-
-            saveState = ReadIndex;
-            ReadIndex = startPos;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void EndReadSegment(int saveState)
-        {
-            ReadIndex = saveState;
-        }
-
         /// <summary>
         /// 这个方法把剩余可用数据移到buffer开头。
         /// 【注意】这个方法会修改ReadIndex，WriteIndex。
@@ -253,7 +127,7 @@ namespace Zeze.Serialize
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Campact()
         {
-            int size = this.Size;
+            int size = Size;
             if (size > 0)
             {
                 if (ReadIndex > 0)
@@ -264,9 +138,7 @@ namespace Zeze.Serialize
                 }
             }
             else
-            {
                 Reset();
-            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -284,14 +156,13 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int ToPower2(int needSize)
+        static int ToPower2(int needSize)
         {
             int size = 1024;
             while (size < needSize)
                 size <<= 1;
             return size;
         }
-
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EnsureWrite(int size)
@@ -300,15 +171,14 @@ namespace Zeze.Serialize
             if (newSize > Capacity)
             {
                 byte[] newBytes = new byte[ToPower2(newSize)];
-                WriteIndex -= ReadIndex;
-                Buffer.BlockCopy(Bytes, ReadIndex, newBytes, 0, WriteIndex);
+                Buffer.BlockCopy(Bytes, ReadIndex, newBytes, 0, WriteIndex -= ReadIndex);
                 ReadIndex = 0;
                 Bytes = newBytes;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EnsureRead(int size)
+        void EnsureRead(int size)
         {
             if (ReadIndex + size > WriteIndex)
                  throw new Exception("EnsureRead " + size);
@@ -322,8 +192,7 @@ namespace Zeze.Serialize
 
         public bool ReadBool()
         {
-            EnsureRead(1);
-            return Bytes[ReadIndex++] != 0;
+            return ReadLong() != 0;
         }
 
         public void WriteByte(byte x)
@@ -332,63 +201,16 @@ namespace Zeze.Serialize
             Bytes[WriteIndex++] = x;
         }
 
+        public void WriteByte(int x)
+        {
+            EnsureWrite(1);
+            Bytes[WriteIndex++] = (byte)x;
+        }
+
         public byte ReadByte()
         {
             EnsureRead(1);
             return Bytes[ReadIndex++];
-        }
-
-        public void WriteShort(short x)
-        {
-            if (x >= 0)
-            {
-                if (x < 0x80)
-                {
-                    EnsureWrite(1);
-                    Bytes[WriteIndex++] = (byte)x;
-                    return;
-                }
-
-                if (x < 0x4000)
-                {
-                    EnsureWrite(2);
-                    Bytes[WriteIndex + 1] = (byte)x;
-                    Bytes[WriteIndex] = (byte)((x >> 8) | 0x80);
-                    WriteIndex += 2;
-                    return;
-                }
-            }
-            EnsureWrite(3);
-            Bytes[WriteIndex] = 0xff;
-            Bytes[WriteIndex + 2] = (byte)x;
-            Bytes[WriteIndex + 1] = (byte)(x >> 8);
-            WriteIndex += 3;
-        }
-
-        public short ReadShort()
-        {
-            EnsureRead(1);
-            int h = Bytes[ReadIndex];
-            if (h < 0x80)
-            {
-                ReadIndex++;
-                return (short)h;
-            }
-            if (h < 0xc0)
-            {
-                EnsureRead(2);
-                int x = ((h & 0x3f) << 8) | Bytes[ReadIndex + 1];
-                ReadIndex += 2;
-                return (short)x;
-            }
-            if ((h == 0xff))
-            {
-                EnsureRead(3);
-                int x = (Bytes[ReadIndex + 1] << 8) | Bytes[ReadIndex + 2];
-                ReadIndex += 3;
-                return (short)x;
-            }
-            throw new Exception();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -427,285 +249,451 @@ namespace Zeze.Serialize
             return x;
         }
 
+        public void WriteUInt(int x)
+        {
+            uint u = (uint)x;
+            if (u < 0x80)
+            {
+                EnsureWrite(1); // 0xxx xxxx
+                Bytes[WriteIndex++] = (byte)u;
+            }
+            else if (u < 0x4000)
+            {
+                EnsureWrite(2); // 10xx xxxx +1B
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = (byte)((u >> 8) + 0x80);
+                bytes[writeIndex + 1] = (byte)u;
+                WriteIndex = writeIndex + 2;
+            }
+            else if (u < 0x20_0000)
+            {
+                EnsureWrite(3); // 110x xxxx +2B
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = (byte)((u >> 16) + 0xc0);
+                bytes[writeIndex + 1] = (byte)(u >> 8);
+                bytes[writeIndex + 2] = (byte)u;
+                WriteIndex = writeIndex + 3;
+            }
+            else if (u < 0x1000_0000)
+            {
+                EnsureWrite(4); // 1110 xxxx +3B
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = (byte)((u >> 24) + 0xe0);
+                bytes[writeIndex + 1] = (byte)(u >> 16);
+                bytes[writeIndex + 2] = (byte)(u >> 8);
+                bytes[writeIndex + 3] = (byte)u;
+                WriteIndex = writeIndex + 4;
+            }
+            else
+            {
+                EnsureWrite(5); // 1111 0000 +4B
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = 0xf0;
+                bytes[writeIndex + 1] = (byte)(u >> 24);
+                bytes[writeIndex + 2] = (byte)(u >> 16);
+                bytes[writeIndex + 3] = (byte)(u >> 8);
+                bytes[writeIndex + 4] = (byte)u;
+                WriteIndex = writeIndex + 5;
+            }
+        }
+
+        public int ReadUInt()
+        {
+            EnsureRead(1);
+            byte[] bytes = Bytes;
+            int readIndex = ReadIndex;
+            int x = bytes[readIndex];
+            if (x < 0x80)
+                ReadIndex = readIndex + 1;
+            else if (x < 0xc0)
+            {
+                EnsureRead(2);
+                x = ((x & 0x3f) << 8)
+                        + bytes[readIndex + 1];
+                ReadIndex = readIndex + 2;
+            }
+            else if (x < 0xe0)
+            {
+                EnsureRead(3);
+                x = ((x & 0x1f) << 16)
+                        + ((bytes[readIndex + 1]) << 8)
+                        + bytes[readIndex + 2];
+                ReadIndex = readIndex + 3;
+            }
+            else if (x < 0xf0)
+            {
+                EnsureRead(4);
+                x = ((x & 0xf) << 24)
+                        + ((bytes[readIndex + 1]) << 16)
+                        + ((bytes[readIndex + 2]) << 8)
+                        + bytes[readIndex + 3];
+                ReadIndex = readIndex + 4;
+            }
+            else
+            {
+                EnsureRead(5);
+                x = (bytes[readIndex + 1] << 24)
+                        + ((bytes[readIndex + 2]) << 16)
+                        + ((bytes[readIndex + 3]) << 8)
+                        + bytes[readIndex + 4];
+                ReadIndex = readIndex + 5;
+            }
+            return x;
+        }
+
+        public void WriteLong(long x)
+        {
+            if (x >= 0)
+            {
+                if (x < 0x40)
+                {
+                    EnsureWrite(1); // 00xx xxxx
+                    Bytes[WriteIndex++] = (byte)x;
+                }
+                else if (x < 0x2000)
+                {
+                    EnsureWrite(2); // 010x xxxx +1B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = (byte)((x >> 8) + 0x40);
+                    bytes[writeIndex + 1] = (byte)x;
+                    WriteIndex = writeIndex + 2;
+                }
+                else if (x < 0x10_0000)
+                {
+                    EnsureWrite(3); // 0110 xxxx +2B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = (byte)((x >> 16) + 0x60);
+                    bytes[writeIndex + 1] = (byte)(x >> 8);
+                    bytes[writeIndex + 2] = (byte)x;
+                    WriteIndex = writeIndex + 3;
+                }
+                else if (x < 0x800_0000)
+                {
+                    EnsureWrite(4); // 0111 0xxx +3B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = (byte)((x >> 24) + 0x70);
+                    bytes[writeIndex + 1] = (byte)(x >> 16);
+                    bytes[writeIndex + 2] = (byte)(x >> 8);
+                    bytes[writeIndex + 3] = (byte)x;
+                    WriteIndex = writeIndex + 4;
+                }
+                else if (x < 0x4_0000_0000L)
+                {
+                    EnsureWrite(5); // 0111 10xx +4B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = (byte)((x >> 32) + 0x78);
+                    bytes[writeIndex + 1] = (byte)(x >> 24);
+                    bytes[writeIndex + 2] = (byte)(x >> 16);
+                    bytes[writeIndex + 3] = (byte)(x >> 8);
+                    bytes[writeIndex + 4] = (byte)x;
+                    WriteIndex = writeIndex + 5;
+                }
+                else if (x < 0x200_0000_0000L)
+                {
+                    EnsureWrite(6); // 0111 110x +5B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = (byte)((x >> 40) + 0x7c);
+                    bytes[writeIndex + 1] = (byte)(x >> 32);
+                    bytes[writeIndex + 2] = (byte)(x >> 24);
+                    bytes[writeIndex + 3] = (byte)(x >> 16);
+                    bytes[writeIndex + 4] = (byte)(x >> 8);
+                    bytes[writeIndex + 5] = (byte)x;
+                    WriteIndex = writeIndex + 6;
+                }
+                else if (x < 0x1_0000_0000_0000L)
+                {
+                    EnsureWrite(7); // 0111 1110 +6B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = 0x7e;
+                    bytes[writeIndex + 1] = (byte)(x >> 40);
+                    bytes[writeIndex + 2] = (byte)(x >> 32);
+                    bytes[writeIndex + 3] = (byte)(x >> 24);
+                    bytes[writeIndex + 4] = (byte)(x >> 16);
+                    bytes[writeIndex + 5] = (byte)(x >> 8);
+                    bytes[writeIndex + 6] = (byte)x;
+                    WriteIndex = writeIndex + 7;
+                }
+                else if (x < 0x80_0000_0000_0000L)
+                {
+                    EnsureWrite(8); // 0111 1111 0 +7B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = 0x7f;
+                    bytes[writeIndex + 1] = (byte)(x >> 48);
+                    bytes[writeIndex + 2] = (byte)(x >> 40);
+                    bytes[writeIndex + 3] = (byte)(x >> 32);
+                    bytes[writeIndex + 4] = (byte)(x >> 24);
+                    bytes[writeIndex + 5] = (byte)(x >> 16);
+                    bytes[writeIndex + 6] = (byte)(x >> 8);
+                    bytes[writeIndex + 7] = (byte)x;
+                    WriteIndex = writeIndex + 8;
+                }
+                else
+                {
+                    EnsureWrite(9); // 0111 1111 1 +8B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = 0x7f;
+                    bytes[writeIndex + 1] = (byte)((x >> 56) + 0x80);
+                    bytes[writeIndex + 2] = (byte)(x >> 48);
+                    bytes[writeIndex + 3] = (byte)(x >> 40);
+                    bytes[writeIndex + 4] = (byte)(x >> 32);
+                    bytes[writeIndex + 5] = (byte)(x >> 24);
+                    bytes[writeIndex + 6] = (byte)(x >> 16);
+                    bytes[writeIndex + 7] = (byte)(x >> 8);
+                    bytes[writeIndex + 8] = (byte)x;
+                    WriteIndex = writeIndex + 9;
+                }
+            }
+            else
+            {
+                if (x >= -0x40)
+                {
+                    EnsureWrite(1); // 11xx xxxx
+                    Bytes[WriteIndex++] = (byte)x;
+                }
+                else if (x >= -0x2000)
+                {
+                    EnsureWrite(2); // 101x xxxx +1B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = (byte)((x >> 8) - 0x40);
+                    bytes[writeIndex + 1] = (byte)x;
+                    WriteIndex = writeIndex + 2;
+                }
+                else if (x >= -0x10_0000)
+                {
+                    EnsureWrite(3); // 1001 xxxx +2B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = (byte)((x >> 16) - 0x60);
+                    bytes[writeIndex + 1] = (byte)(x >> 8);
+                    bytes[writeIndex + 2] = (byte)x;
+                    WriteIndex = writeIndex + 3;
+                }
+                else if (x >= -0x800_0000)
+                {
+                    EnsureWrite(4); // 1000 1xxx +3B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = (byte)((x >> 24) - 0x70);
+                    bytes[writeIndex + 1] = (byte)(x >> 16);
+                    bytes[writeIndex + 2] = (byte)(x >> 8);
+                    bytes[writeIndex + 3] = (byte)x;
+                    WriteIndex = writeIndex + 4;
+                }
+                else if (x >= -0x4_0000_0000L)
+                {
+                    EnsureWrite(5); // 1000 01xx +4B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = (byte)((x >> 32) - 0x78);
+                    bytes[writeIndex + 1] = (byte)(x >> 24);
+                    bytes[writeIndex + 2] = (byte)(x >> 16);
+                    bytes[writeIndex + 3] = (byte)(x >> 8);
+                    bytes[writeIndex + 4] = (byte)x;
+                    WriteIndex = writeIndex + 5;
+                }
+                else if (x >= -0x200_0000_0000L)
+                {
+                    EnsureWrite(6); // 1000 001x +5B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = (byte)((x >> 40) - 0x7c);
+                    bytes[writeIndex + 1] = (byte)(x >> 32);
+                    bytes[writeIndex + 2] = (byte)(x >> 24);
+                    bytes[writeIndex + 3] = (byte)(x >> 16);
+                    bytes[writeIndex + 4] = (byte)(x >> 8);
+                    bytes[writeIndex + 5] = (byte)x;
+                    WriteIndex = writeIndex + 6;
+                }
+                else if (x >= -0x1_0000_0000_0000L)
+                {
+                    EnsureWrite(7); // 1000 0001 +6B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = 0x81;
+                    bytes[writeIndex + 1] = (byte)(x >> 40);
+                    bytes[writeIndex + 2] = (byte)(x >> 32);
+                    bytes[writeIndex + 3] = (byte)(x >> 24);
+                    bytes[writeIndex + 4] = (byte)(x >> 16);
+                    bytes[writeIndex + 5] = (byte)(x >> 8);
+                    bytes[writeIndex + 6] = (byte)x;
+                    WriteIndex = writeIndex + 7;
+                }
+                else if (x >= -0x80_0000_0000_0000L)
+                {
+                    EnsureWrite(8); // 1000 0000 1 +7B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = 0x80;
+                    bytes[writeIndex + 1] = (byte)(x >> 48);
+                    bytes[writeIndex + 2] = (byte)(x >> 40);
+                    bytes[writeIndex + 3] = (byte)(x >> 32);
+                    bytes[writeIndex + 4] = (byte)(x >> 24);
+                    bytes[writeIndex + 5] = (byte)(x >> 16);
+                    bytes[writeIndex + 6] = (byte)(x >> 8);
+                    bytes[writeIndex + 7] = (byte)x;
+                    WriteIndex = writeIndex + 8;
+                }
+                else
+                {
+                    EnsureWrite(9); // 1000 0000 0 +8B
+                    byte[] bytes = Bytes;
+                    int writeIndex = WriteIndex;
+                    bytes[writeIndex] = 0x80;
+                    bytes[writeIndex + 1] = (byte)((x >> 56) - 0x80);
+                    bytes[writeIndex + 2] = (byte)(x >> 48);
+                    bytes[writeIndex + 3] = (byte)(x >> 40);
+                    bytes[writeIndex + 4] = (byte)(x >> 32);
+                    bytes[writeIndex + 5] = (byte)(x >> 24);
+                    bytes[writeIndex + 6] = (byte)(x >> 16);
+                    bytes[writeIndex + 7] = (byte)(x >> 8);
+                    bytes[writeIndex + 8] = (byte)x;
+                    WriteIndex = writeIndex + 9;
+                }
+            }
+        }
+        public long ReadLong1()
+        {
+            EnsureRead(1);
+            return Bytes[ReadIndex++];
+        }
+
+        public long ReadLong2BE()
+        {
+            EnsureRead(2);
+            byte[] bytes = Bytes;
+            int readIndex = ReadIndex;
+            ReadIndex = readIndex + 2;
+            return (bytes[readIndex] << 8) +
+                    bytes[readIndex + 1];
+        }
+
+        public long ReadLong3BE()
+        {
+            EnsureRead(3);
+            byte[] bytes = Bytes;
+            int readIndex = ReadIndex;
+            ReadIndex = readIndex + 3;
+            return (bytes[readIndex] << 16) +
+                    (bytes[readIndex + 1] << 8) +
+                    bytes[readIndex + 2];
+        }
+
+        public long ReadLong4BE()
+        {
+            EnsureRead(4);
+            byte[] bytes = Bytes;
+            int readIndex = ReadIndex;
+            ReadIndex = readIndex + 4;
+            return ((long)bytes[readIndex] << 24) +
+                    (bytes[readIndex + 1] << 16) +
+                    (bytes[readIndex + 2] << 8) +
+                    bytes[readIndex + 3];
+        }
+
+        public long ReadLong5BE()
+        {
+            EnsureRead(5);
+            byte[] bytes = Bytes;
+            int readIndex = ReadIndex;
+            ReadIndex = readIndex + 5;
+            return ((long)bytes[readIndex] << 32) +
+                    ((long)bytes[readIndex + 1] << 24) +
+                    (bytes[readIndex + 2] << 16) +
+                    (bytes[readIndex + 3] << 8) +
+                    bytes[readIndex + 4];
+        }
+
+        public long ReadLong6BE()
+        {
+            EnsureRead(6);
+            byte[] bytes = Bytes;
+            int readIndex = ReadIndex;
+            ReadIndex = readIndex + 6;
+            return ((long)bytes[readIndex] << 40) +
+                    ((long)bytes[readIndex + 1] << 32) +
+                    ((long)bytes[readIndex + 2] << 24) +
+                    (bytes[readIndex + 3] << 16) +
+                    (bytes[readIndex + 4] << 8) +
+                    bytes[readIndex + 5];
+        }
+
+        public long ReadLong7BE()
+        {
+            EnsureRead(7);
+            byte[] bytes = Bytes;
+            int readIndex = ReadIndex;
+            ReadIndex = readIndex + 7;
+            return ((long)bytes[readIndex] << 48) +
+                    ((long)bytes[readIndex + 1] << 40) +
+                    ((long)bytes[readIndex + 2] << 32) +
+                    ((long)bytes[readIndex + 3] << 24) +
+                    (bytes[readIndex + 4] << 16) +
+                    (bytes[readIndex + 5] << 8) +
+                    bytes[readIndex + 6];
+        }
+
+        public long ReadLong()
+        {
+ 		    EnsureRead(1);
+		    int b = (sbyte)Bytes[ReadIndex++];
+		    switch ((b >> 3) & 0x1f) {
+		    case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
+		    case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return b;
+		    case 0x08: case 0x09: case 0x0a: case 0x0b: return ((b - 0x40 ) <<  8) + ReadLong1();
+		    case 0x14: case 0x15: case 0x16: case 0x17: return ((b + 0x40 ) <<  8) + ReadLong1();
+		    case 0x0c: case 0x0d:                       return ((b - 0x60 ) << 16) + ReadLong2BE();
+		    case 0x12: case 0x13:                       return ((b + 0x60 ) << 16) + ReadLong2BE();
+		    case 0x0e:                                  return ((b - 0x70L) << 24) + ReadLong3BE();
+		    case 0x11:                                  return ((b + 0x70L) << 24) + ReadLong3BE();
+		    case 0x0f:
+			    switch (b & 7) {
+			    case 0: case 1: case 2: case 3: return ((long)(b - 0x78) << 32) + ReadLong4BE();
+			    case 4: case 5:                 return ((long)(b - 0x7c) << 40) + ReadLong5BE();
+			    case 6:                         return ReadLong6BE();
+			    default: long r = ReadLong7BE(); return r < 0x80_0000_0000_0000L ?
+					    r : ((r - 0x80_0000_0000_0000L) << 8) + ReadLong1();
+			    }
+		    default: // 0x10
+			    switch (b & 7) {
+			    case 4: case 5: case 6: case 7: return ((long)(b + 0x78) << 32) + ReadLong4BE();
+			    case 2: case 3:                 return ((long)(b + 0x7c) << 40) + ReadLong5BE();
+			    case 1:                         return -0x0001_0000_0000_0000L  + ReadLong6BE();
+			    default: long r = ReadLong7BE(); return r >= 0x80_0000_0000_0000L ?
+					    -0x0100_0000_0000_0000L + r : ((r + 0x80_0000_0000_0000L) << 8) + ReadLong1();
+			    }
+		    }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteInt(int x)
         {
-            WriteUint((uint)x);
+            WriteLong(x);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int ReadInt()
         {
-            return (int)ReadUint();
-        }
-
-        public void WriteUint(uint x)
-        {
-            // 0 111 1111
-            if (x < 0x80)
-            {
-                EnsureWrite(1);
-                Bytes[WriteIndex++] = (byte)x;
-            }
-            else if (x < 0x4000) // 10 11 1111, -
-            {
-                EnsureWrite(2);
-                Bytes[WriteIndex + 1] = (byte)x;
-                Bytes[WriteIndex] = (byte)((x >> 8) | 0x80);
-                WriteIndex += 2;
-            }
-            else if (x < 0x200000) // 110 1 1111, -,-
-            {
-                EnsureWrite(3);
-                Bytes[WriteIndex + 2] = (byte)x;
-                Bytes[WriteIndex + 1] = (byte)(x >> 8);
-                Bytes[WriteIndex] = (byte)((x >> 16) | 0xc0);
-                WriteIndex += 3;
-            }
-            else if (x < 0x10000000) // 1110 1111,-,-,-
-            {
-                EnsureWrite(4);
-                Bytes[WriteIndex + 3] = (byte)x;
-                Bytes[WriteIndex + 2] = (byte)(x >> 8);
-                Bytes[WriteIndex + 1] = (byte)(x >> 16);
-                Bytes[WriteIndex] = (byte)((x >> 24) | 0xe0);
-                WriteIndex += 4;
-            }
-            else
-            {
-                EnsureWrite(5);
-                Bytes[WriteIndex] = 0xf0;
-                Bytes[WriteIndex + 4] = (byte)x;
-                Bytes[WriteIndex + 3] = (byte)(x >> 8);
-                Bytes[WriteIndex + 2] = (byte)(x >> 16);
-                Bytes[WriteIndex + 1] = (byte)(x >> 24);
-                WriteIndex += 5;
-            }
-        }
-
-        public uint ReadUint()
-        {
-            EnsureRead(1);
-            uint h = Bytes[ReadIndex];
-            if (h < 0x80)
-            {
-                ReadIndex++;
-                return h;
-            }
-            else if (h < 0xc0)
-            {
-                EnsureRead(2);
-                uint x = ((h & 0x3f) << 8) | Bytes[ReadIndex + 1];
-                ReadIndex += 2;
-                return x;
-            }
-            else if (h < 0xe0)
-            {
-                EnsureRead(3);
-                uint x = ((h & 0x1f) << 16) | ((uint)Bytes[ReadIndex + 1] << 8) | Bytes[ReadIndex + 2];
-                ReadIndex += 3;
-                return x;
-            }
-            else if (h < 0xf0)
-            {
-
-                EnsureRead(4);
-                uint x = ((h & 0x0f) << 24) | ((uint)Bytes[ReadIndex + 1] << 16) | ((uint)Bytes[ReadIndex + 2] << 8) | Bytes[ReadIndex + 3];
-                ReadIndex += 4;
-                return x;
-            }
-            else
-            {
-                EnsureRead(5);
-                uint x = ((uint)Bytes[ReadIndex + 1] << 24) | ((uint)(Bytes[ReadIndex + 2] << 16)) | ((uint)Bytes[ReadIndex + 3] << 8) | Bytes[ReadIndex + 4];
-                ReadIndex += 5;
-                return x;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteLong(long x)
-        {
-            WriteUlong((ulong)x);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public long ReadLong()
-        {
-            return (long)ReadUlong();
-        }
-
-        public void WriteUlong(ulong x)
-        {
-            // 0 111 1111
-            if (x < 0x80)
-            {
-                EnsureWrite(1);
-                Bytes[WriteIndex++] = (byte)x;
-            }
-            else if (x < 0x4000) // 10 11 1111, -
-            {
-                EnsureWrite(2);
-                Bytes[WriteIndex + 1] = (byte)x;
-                Bytes[WriteIndex] = (byte)((x >> 8) | 0x80);
-                WriteIndex += 2;
-            }
-            else if (x < 0x200000) // 110 1 1111, -,-
-            {
-                EnsureWrite(3);
-                Bytes[WriteIndex + 2] = (byte)x;
-                Bytes[WriteIndex + 1] = (byte)(x >> 8);
-                Bytes[WriteIndex] = (byte)((x >> 16) | 0xc0);
-                WriteIndex += 3;
-            }
-            else if (x < 0x10000000) // 1110 1111,-,-,-
-            {
-                EnsureWrite(4);
-                Bytes[WriteIndex + 3] = (byte)x;
-                Bytes[WriteIndex + 2] = (byte)(x >> 8);
-                Bytes[WriteIndex + 1] = (byte)(x >> 16);
-                Bytes[WriteIndex] = (byte)((x >> 24) | 0xe0);
-                WriteIndex += 4;
-            }
-            else if (x < 0x800000000L) // 1111 0xxx,-,-,-,-
-            {
-                EnsureWrite(5);
-                Bytes[WriteIndex + 4] = (byte)x;
-                Bytes[WriteIndex + 3] = (byte)(x >> 8);
-                Bytes[WriteIndex + 2] = (byte)(x >> 16);
-                Bytes[WriteIndex + 1] = (byte)(x >> 24);
-                Bytes[WriteIndex] = (byte)((x >> 32) | 0xf0);
-                WriteIndex += 5;
-            }
-            else if (x < 0x40000000000L) // 1111 10xx, 
-            {
-                EnsureWrite(6);
-                Bytes[WriteIndex + 5] = (byte)x;
-                Bytes[WriteIndex + 4] = (byte)(x >> 8);
-                Bytes[WriteIndex + 3] = (byte)(x >> 16);
-                Bytes[WriteIndex + 2] = (byte)(x >> 24);
-                Bytes[WriteIndex + 1] = (byte)(x >> 32);
-                Bytes[WriteIndex] = (byte)((x >> 40) | 0xf8);
-                WriteIndex += 6;
-            }
-            else if (x < 0x2000000000000L) // 1111 110x,
-            {
-                EnsureWrite(7);
-                Bytes[WriteIndex + 6] = (byte)x;
-                Bytes[WriteIndex + 5] = (byte)(x >> 8);
-                Bytes[WriteIndex + 4] = (byte)(x >> 16);
-                Bytes[WriteIndex + 3] = (byte)(x >> 24);
-                Bytes[WriteIndex + 2] = (byte)(x >> 32);
-                Bytes[WriteIndex + 1] = (byte)(x >> 40);
-                Bytes[WriteIndex] = (byte)((x >> 48) | 0xfc);
-                WriteIndex += 7;
-            }
-            else if (x < 0x100000000000000L) // 1111 1110
-            {
-                EnsureWrite(8);
-                Bytes[WriteIndex + 7] = (byte)x;
-                Bytes[WriteIndex + 6] = (byte)(x >> 8);
-                Bytes[WriteIndex + 5] = (byte)(x >> 16);
-                Bytes[WriteIndex + 4] = (byte)(x >> 24);
-                Bytes[WriteIndex + 3] = (byte)(x >> 32);
-                Bytes[WriteIndex + 2] = (byte)(x >> 40);
-                Bytes[WriteIndex + 1] = (byte)(x >> 48);
-                Bytes[WriteIndex] = 0xfe;
-                WriteIndex += 8;
-            }
-            else // 1111 1111
-            {
-                EnsureWrite(9);
-                Bytes[WriteIndex] = 0xff;
-                Bytes[WriteIndex + 8] = (byte)x;
-                Bytes[WriteIndex + 7] = (byte)(x >> 8);
-                Bytes[WriteIndex + 6] = (byte)(x >> 16);
-                Bytes[WriteIndex + 5] = (byte)(x >> 24);
-                Bytes[WriteIndex + 4] = (byte)(x >> 32);
-                Bytes[WriteIndex + 3] = (byte)(x >> 40);
-                Bytes[WriteIndex + 2] = (byte)(x >> 48);
-                Bytes[WriteIndex + 1] = (byte)(x >> 56);
-                WriteIndex += 9;
-            }
-        }
-
-        public ulong ReadUlong()
-        {
-            EnsureRead(1);
-            uint h = Bytes[ReadIndex];
-            if (h < 0x80)
-            {
-                ReadIndex++;
-                return h;
-            }
-            else if (h < 0xc0)
-            {
-                EnsureRead(2);
-                uint x = ((h & 0x3f) << 8) | Bytes[ReadIndex + 1];
-                ReadIndex += 2;
-                return x;
-            }
-            else if (h < 0xe0)
-            {
-                EnsureRead(3);
-                uint x = ((h & 0x1f) << 16) | ((uint)Bytes[ReadIndex + 1] << 8) | Bytes[ReadIndex + 2];
-                ReadIndex += 3;
-                return x;
-            }
-            else if (h < 0xf0)
-            {
-                EnsureRead(4);
-                uint x = ((h & 0x0f) << 24) | ((uint)Bytes[ReadIndex + 1] << 16) | ((uint)Bytes[ReadIndex + 2] << 8) | Bytes[ReadIndex + 3];
-                ReadIndex += 4;
-                return x;
-            }
-            else if (h < 0xf8)
-            {
-                EnsureRead(5);
-                uint xl = ((uint)Bytes[ReadIndex + 1] << 24) | ((uint)(Bytes[ReadIndex + 2] << 16)) | ((uint)Bytes[ReadIndex + 3] << 8) | (Bytes[ReadIndex + 4]);
-                uint xh = h & 0x07;
-                ReadIndex += 5;
-                return ((ulong)xh << 32) | xl;
-            }
-            else if (h < 0xfc)
-            {
-                EnsureRead(6);
-                uint xl = ((uint)Bytes[ReadIndex + 2] << 24) | ((uint)(Bytes[ReadIndex + 3] << 16)) | ((uint)Bytes[ReadIndex + 4] << 8) | (Bytes[ReadIndex + 5]);
-                uint xh = ((h & 0x03) << 8) | Bytes[ReadIndex + 1];
-                ReadIndex += 6;
-                return ((ulong)xh << 32) | xl;
-            }
-            else if (h < 0xfe)
-            {
-                EnsureRead(7);
-                uint xl = ((uint)Bytes[ReadIndex + 3] << 24) | ((uint)(Bytes[ReadIndex + 4] << 16)) | ((uint)Bytes[ReadIndex + 5] << 8) | (Bytes[ReadIndex + 6]);
-                uint xh = ((h & 0x01) << 16) | ((uint)Bytes[ReadIndex + 1] << 8) | Bytes[ReadIndex + 2];
-                ReadIndex += 7;
-                return ((ulong)xh << 32) | xl;
-            }
-            else if (h < 0xff)
-            {
-                EnsureRead(8);
-                uint xl = ((uint)Bytes[ReadIndex + 4] << 24) | ((uint)(Bytes[ReadIndex + 5] << 16)) | ((uint)Bytes[ReadIndex + 6] << 8) | (Bytes[ReadIndex + 7]);
-                uint xh = /*((h & 0x01) << 24) |*/ ((uint)Bytes[ReadIndex + 1] << 16) | ((uint)Bytes[ReadIndex + 2] << 8) | Bytes[ReadIndex + 3];
-                ReadIndex += 8;
-                return ((ulong)xh << 32) | xl;
-            }
-            else
-            {
-                EnsureRead(9);
-                uint xl = ((uint)Bytes[ReadIndex + 5] << 24) | ((uint)(Bytes[ReadIndex + 6] << 16)) | ((uint)Bytes[ReadIndex + 7] << 8) | (Bytes[ReadIndex + 8]);
-                uint xh = ((uint)Bytes[ReadIndex + 1] << 24) | ((uint)Bytes[ReadIndex + 2] << 16) | ((uint)Bytes[ReadIndex + 3] << 8) | Bytes[ReadIndex + 4];
-                ReadIndex += 9;
-                return ((ulong)xh << 32) | xl;
-            }
+            return (int)ReadLong();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteFloat(float x)
         {
             byte[] bs = BitConverter.GetBytes(x);
-            //if (false == BitConverter.IsLittleEndian)
+            //if (!BitConverter.IsLittleEndian)
             //    Array.Reverse(bs);
             Append(bs);
         }
@@ -723,7 +711,7 @@ namespace Zeze.Serialize
         public void WriteDouble(double x)
         {
             byte[] bs = BitConverter.GetBytes(x);
-            //if (false == BitConverter.IsLittleEndian)
+            //if (!BitConverter.IsLittleEndian)
             //    Array.Reverse(bs);
             Append(bs);
         }
@@ -760,14 +748,14 @@ namespace Zeze.Serialize
 
         public void WriteBytes(byte[] x, int offset, int length)
         {
-            WriteInt(length);
+            WriteUInt(length);
             EnsureWrite(length);
             Buffer.BlockCopy(x, offset, Bytes, WriteIndex, length);
             WriteIndex += length;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteBinary(Zeze.Net.Binary binary)
+        public void WriteBinary(Binary binary)
         {
             WriteBytes(binary.Bytes, binary.Offset, binary.Count);
         }
@@ -775,16 +763,16 @@ namespace Zeze.Serialize
         public static bool BinaryNoCopy { get; set; } = false; // 没有线程保护
         // XXX 对于byte[]类型直接使用引用，不拷贝。全局配置，只能用于Linkd这种纯转发的程序，优化。
 
-        public Zeze.Net.Binary ReadBinary()
+        public Binary ReadBinary()
         {
             if (BinaryNoCopy)
-                return new Net.Binary(ReadByteBuffer());
-            return new Zeze.Net.Binary(ReadBytes());
+                return new Binary(ReadByteBuffer());
+            return new Binary(ReadBytes());
         }
 
         public byte[] ReadBytes()
         {
-            int n = ReadInt();
+            int n = ReadUInt();
             EnsureRead(n);
             byte[] x = new byte[n];
             Buffer.BlockCopy(Bytes, ReadIndex, x, 0, n);
@@ -795,7 +783,7 @@ namespace Zeze.Serialize
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SkipBytes()
         {
-            int n = ReadInt();
+            int n = ReadUInt();
             EnsureRead(n);
             ReadIndex += n;
         }
@@ -815,11 +803,11 @@ namespace Zeze.Serialize
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ByteBuffer ReadByteBuffer()
         {
-            int n = ReadInt();
+            int n = ReadUInt();
             EnsureRead(n);
             int cur = ReadIndex;
             ReadIndex += n;
-            return ByteBuffer.Wrap(Bytes, cur, n);
+            return Wrap(Bytes, cur, n);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -843,10 +831,10 @@ namespace Zeze.Serialize
             if (other == null)
                 return false;
 
-            if (this.Size != other.Size)
+            if (Size != other.Size)
                 return false;
 
-            for (int i = 0, n = this.Size; i < n; i++)
+            for (int i = 0, n = Size; i < n; i++)
             {
                 if (Bytes[ReadIndex + i] != other.Bytes[other.ReadIndex + i])
                     return false;
@@ -870,44 +858,38 @@ namespace Zeze.Serialize
             return calc_hashnr(keys, 0, keys.Length);
         }
 
-        public static int calc_hashnr(byte[] keys, int offset, int len) 
+        public static int calc_hashnr(byte[] keys, int offset, int len)
         {
-            int end = offset + len;
-            uint hash = 0;
-            for (int i = offset; i < end; ++i)
-            {
-                hash *= 16777619;
-                hash ^= (uint)keys[i];
-            }            
-            return (int)hash; 
+            int hash = 0;
+            for (int end = offset + len; offset < end; offset++)
+                hash = hash * 16777619 ^ keys[offset];
+            return hash;
         }
 
         public override int GetHashCode()
         {
-            return (int)calc_hashnr(Bytes, ReadIndex, Size);
+            return calc_hashnr(Bytes, ReadIndex, Size);
         }
 
         // 只能增加新的类型定义，增加时记得同步 SkipUnknownField
         public const int
-        INT = 0,
-        LONG = 1,
-        STRING = 2,
-        BOOL = 3,
-        BYTE = 4,
-        SHORT = 5,
-        FLOAT = 6,
-        DOUBLE = 7,
-        BYTES = 8,
-        LIST = 9,
-        SET = 10,
-        MAP = 11,
-        BEAN = 12,
-        DYNAMIC = 13,
-        TAG_MAX = 31;
+            INTEGER = 0, // byte,short,int,long,bool
+            FLOAT = 1, // float
+            DOUBLE = 2, // double
+            BYTES = 3, // binary,string
+            LIST = 4, // list,set
+            MAP = 5, // map
+            BEAN = 6, // bean
+            DYNAMIC = 7; // dynamic
 
-        public const int TAG_SHIFT = 5;
+        public const int TAG_SHIFT = 4;
         public const int TAG_MASK = (1 << TAG_SHIFT) - 1;
-        public const int ID_MASK = (1 << (31 - TAG_SHIFT)) - 1;
+        public const int ID_MASK = 0xff - TAG_MASK;
+
+        // 只用于lua描述特殊类型
+        public const int
+            LUA_BOOL = INTEGER + (1 << TAG_SHIFT),
+            LUA_SET = LIST + (1 << TAG_SHIFT);
 
         /*
         // 在生成代码的时候使用这个方法检查。生成后的代码不使用这个方法。
@@ -919,7 +901,7 @@ namespace Zeze.Serialize
             if (id < 0 || id > ID_MASK)
                 throw new OverflowException("id < 0 || id > ID_MASK");
 
-            return (id << TAG_SHIFT) | tag;
+            return (id << TAG_SHIFT) + tag;
         }
 
         public static int GetTag(int tagid)
@@ -945,49 +927,244 @@ namespace Zeze.Serialize
 
         public static ByteBuffer Encode(Serializable sa)
         {
-            ByteBuffer bb = ByteBuffer.Allocate();
+            ByteBuffer bb = Allocate();
             sa.Encode(bb);
             return bb;
         }
 
-        public static void SkipUnknownField(int tagid, ByteBuffer bb)
+        public int WriteTag(int lastVarId, int varId, int type)
         {
-            int tagType = tagid & TAG_MASK;
-            switch (tagType)
+            int deltaId = varId - lastVarId;
+            if (deltaId < 0xf)
+                WriteByte((deltaId << TAG_SHIFT) + type);
+            else
             {
-                case BOOL:
-                    bb.ReadBool();
-                    break;
-                case BYTE:
-                    bb.ReadByte();
-                    break;
-                case SHORT:
-                    bb.ReadShort();
-                    break;
-                case INT:
-                    bb.ReadInt();
-                    break;
-                case LONG:
-                    bb.ReadLong();
-                    break;
+                WriteByte(0xf0 + type);
+                WriteUInt(deltaId - 0xf);
+            }
+            return varId;
+        }
+
+        public void WriteListType(int listSize, int elemType)
+        {
+            if (listSize < 0xf)
+                WriteByte((listSize << TAG_SHIFT) + elemType);
+            else
+            {
+                WriteByte(0xf0 + elemType);
+                WriteUInt(listSize - 0xf);
+            }
+        }
+
+        public void WriteMapType(int mapSize, int keyType, int valueType)
+        {
+            WriteByte((keyType << TAG_SHIFT) + valueType);
+            WriteUInt(mapSize);
+        }
+
+        public int ReadTagSize(int tagByte)
+        {
+            int deltaId = (tagByte & ID_MASK) >> TAG_SHIFT;
+            return deltaId < 0xf ? deltaId : 0xf + ReadUInt();
+        }
+
+        public bool ReadBool(int type)
+        {
+            type &= TAG_MASK;
+            if (type == INTEGER)
+                return ReadLong() != 0;
+            if (type == FLOAT)
+                return ReadFloat() != 0;
+            if (type == DOUBLE)
+                return ReadDouble() != 0;
+            SkipUnknownField(type);
+            return false;
+        }
+
+        public byte ReadByte(int type)
+        {
+            type &= TAG_MASK;
+            if (type == INTEGER)
+                return (byte)ReadLong();
+            if (type == FLOAT)
+                return (byte)ReadFloat();
+            if (type == DOUBLE)
+                return (byte)ReadDouble();
+            SkipUnknownField(type);
+            return 0;
+        }
+
+        public short ReadShort(int type)
+        {
+            type &= TAG_MASK;
+            if (type == INTEGER)
+                return (short)ReadLong();
+            if (type == FLOAT)
+                return (short)ReadFloat();
+            if (type == DOUBLE)
+                return (short)ReadDouble();
+            SkipUnknownField(type);
+            return 0;
+        }
+
+        public int ReadInt(int type)
+        {
+            type &= TAG_MASK;
+            if (type == INTEGER)
+                return (int)ReadLong();
+            if (type == FLOAT)
+                return (int)ReadFloat();
+            if (type == DOUBLE)
+                return (int)ReadDouble();
+            SkipUnknownField(type);
+            return 0;
+        }
+
+        public long ReadLong(int type)
+        {
+            type &= TAG_MASK;
+            if (type == INTEGER)
+                return ReadLong();
+            if (type == FLOAT)
+                return (long)ReadFloat();
+            if (type == DOUBLE)
+                return (long)ReadDouble();
+            SkipUnknownField(type);
+            return 0;
+        }
+
+        public float ReadFloat(int type)
+        {
+            type &= TAG_MASK;
+            if (type == FLOAT)
+                return ReadFloat();
+            if (type == DOUBLE)
+                return (float)ReadDouble();
+            if (type == INTEGER)
+                return ReadLong();
+            SkipUnknownField(type);
+            return 0;
+        }
+
+        public double ReadDouble(int type)
+        {
+            type &= TAG_MASK;
+            if (type == DOUBLE)
+                return ReadDouble();
+            if (type == FLOAT)
+                return ReadFloat();
+            if (type == INTEGER)
+                return ReadLong();
+            SkipUnknownField(type);
+            return 0;
+        }
+
+        public Binary ReadBinary(int type)
+        {
+            type &= TAG_MASK;
+            if (type == BYTES)
+                return ReadBinary();
+            SkipUnknownField(type);
+            return Binary.Empty;
+        }
+
+        public string ReadString(int type)
+        {
+            type &= TAG_MASK;
+            if (type == BYTES)
+                return ReadString();
+            SkipUnknownField(type);
+            return "";
+        }
+
+        public T ReadBean<T>(T bean, int type) where T : Serializable
+        {
+            type &= TAG_MASK;
+            if (type == BEAN)
+                bean.Decode(this);
+            else if (type == DYNAMIC)
+            {
+                ReadLong();
+                bean.Decode(this);
+            }
+            else
+                SkipUnknownField(type);
+            return bean;
+        }
+
+        public DynamicBean ReadDynamic(DynamicBean dynBean, int type)
+        {
+            type &= TAG_MASK;
+            if (type == DYNAMIC)
+            {
+                dynBean.Decode(this);
+                return dynBean;
+            }
+            if (type == BEAN)
+            {
+                Bean bean = dynBean.CreateBeanFromSpecialTypeId(0);
+                if (bean != null)
+                {
+                    bean.Decode(this);
+                    return dynBean;
+                }
+            }
+            SkipUnknownField(type);
+            return dynBean;
+        }
+
+        public void SkipUnknownField(int type, int count)
+        {
+            while (--count >= 0)
+                SkipUnknownField(type);
+        }
+
+        public void SkipUnknownField(int type1, int type2, int count)
+        {
+            while (--count >= 0)
+            {
+                SkipUnknownField(type1);
+                SkipUnknownField(type2);
+            }
+        }
+
+        public void SkipUnknownField(int type)
+        {
+            switch (type & TAG_MASK)
+            {
+                case INTEGER:
+                    ReadLong();
+                    return;
                 case FLOAT:
-                    bb.ReadFloat();
-                    break;
+                    EnsureRead(4);
+                    ReadIndex += 4;
+                    return;
                 case DOUBLE:
-                    bb.ReadDouble();
-                    break;
-                case STRING:
+                    EnsureRead(8);
+                    ReadIndex += 8;
+                    return;
                 case BYTES:
+                    SkipBytes();
+                    return;
                 case LIST:
-                case SET:
+                    int t = ReadByte();
+                    SkipUnknownField(t, ReadTagSize(t));
+                    return;
                 case MAP:
-                case BEAN:
-                    bb.SkipBytes();
-                    break;
+                    t = ReadByte();
+                    SkipUnknownField(t >> TAG_SHIFT, t, ReadUInt());
+                    return;
                 case DYNAMIC:
-                    bb.ReadLong8();
-                    bb.SkipBytes();
-                    break;
+                    ReadLong();
+                    goto case BEAN;
+                case BEAN:
+                    while ((t = ReadByte()) != 0)
+                    {
+                        if ((t & ID_MASK) == 0xf0)
+                            ReadUInt();
+                        SkipUnknownField(t);
+                    }
+                    return;
                 default:
                     throw new Exception("SkipUnknownField");
             }
@@ -995,43 +1172,40 @@ namespace Zeze.Serialize
 
         public static void BuildString<T>(StringBuilder sb, IEnumerable<T> c)
         {
-            sb.Append("[");
+            sb.Append('[');
+            int i = sb.Length;
             foreach (var e in c)
-            {
-                sb.Append(e);
-                sb.Append(",");
-            }
-            sb.Append("]");
+                sb.Append(e).Append(',');
+            int j = sb.Length;
+            if (i == j)
+                sb.Append(']');
+            else
+                sb[j - 1] = ']';
         }
-
 
         public static void BuildString<TK, TV>(StringBuilder sb, IDictionary<TK, TV> dic)
         {
-            sb.Append("{");
-            foreach (var e in dic)
+            sb.Append('{');
+            if (dic.Count == 0)
+                sb.Append('}');
+            else
             {
-                sb.Append(e.Key).Append(':');
-                sb.Append(e.Value).Append(',');
+                foreach (var e in dic)
+                    sb.Append(e.Key).Append(':').Append(e.Value).Append(',');
+                sb[^1] = '}';
             }
-            sb.Append('}');
         }
 
         public static bool Equals(byte[] left, byte[] right)
         {
             if (left == null || right == null)
-            {
                 return left == right;
-            }
             if (left.Length != right.Length)
-            {
                 return false;
-            }
             for (int i = 0; i < left.Length; i++)
             {
                 if (left[i] != right[i])
-                {
                     return false;
-                }
             }
             return true;
         }
@@ -1047,14 +1221,12 @@ namespace Zeze.Serialize
                 return 1;
             }
             if (left.Length != right.Length)
-            {
                 return left.Length.CompareTo(right.Length); // shorter is small
-            }
 
             for (int i = 0; i < left.Length; i++)
             {
                 int c = left[i].CompareTo(right[i]);
-                if (0 != c)
+                if (c != 0)
                     return c;
             }
             return 0;

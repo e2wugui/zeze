@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 
 namespace Zeze.Gen.cs
 {
     public class ServiceFormatter
     {
-        Service service;
-        string genDir;
-        string srcDir;
+        readonly Service service;
+        readonly string genDir;
+        readonly string srcDir;
 
         public ServiceFormatter(Service service, string genDir, string srcDir)
         {
@@ -30,13 +28,13 @@ namespace Zeze.Gen.cs
 
         public void MakePartialInGen()
         {
-            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + ".cs");
+            using StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + service.Project.Solution.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class " + service.Name + " : " + BaseClass());
@@ -44,13 +42,13 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public " + service.Name + "(Zeze.Application zeze) : base(\"" + service.Name + "\", zeze)");
             sw.WriteLine("        {");
             sw.WriteLine("        }");
-            sw.WriteLine("");
+            sw.WriteLine();
             /*
             if (service.IsProvider)
             {
                 sw.WriteLine("        // 用来同步等待Provider的静态绑定完成。");
                 sw.WriteLine("        public System.Threading.ManualResetEvent ProviderStaticBindCompleted = new System.Threading.ManualResetEvent(false);");
-                sw.WriteLine("");
+                sw.WriteLine();
                 sw.WriteLine("        public void ProviderStaticBind(Zeze.Net.AsyncSocket socket)");
                 sw.WriteLine("        {");
                 sw.WriteLine("            var rpc = new Zezex.Provider.Bind();");
@@ -63,7 +61,7 @@ namespace Zeze.Gen.cs
                 }
                 sw.WriteLine("            rpc.Send(socket, (protocol) => { ProviderStaticBindCompleted.Set(); return 0; });");
                 sw.WriteLine("        }");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             */
             sw.WriteLine("    }");
@@ -72,14 +70,14 @@ namespace Zeze.Gen.cs
 
         public void MakePartialInSrc()
         {
-            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".cs", false);
-            if (null == sw)
+            using StreamWriter sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".cs", false);
+            if (sw == null)
                 return;
 
-            sw.WriteLine("");
+            sw.WriteLine();
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + service.Project.Solution.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class " + service.Name);

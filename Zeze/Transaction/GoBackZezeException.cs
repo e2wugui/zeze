@@ -8,7 +8,7 @@ namespace Zeze.Transaction
 {
     public class GoBackZezeException : Exception
     {
-        public GoBackZezeException(String msg = null, Exception cause = null)
+        public GoBackZezeException(string msg = null, Exception cause = null)
             : base(msg, cause)
         {
         }

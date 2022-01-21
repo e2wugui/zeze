@@ -1,37 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
     public class PropertyBeanKey : Visitor
     {
-        System.IO.StreamWriter sw;
-        Types.Variable var;
-        string prefix;
+        readonly StreamWriter sw;
+        readonly Variable var;
+        readonly string prefix;
 
-        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            foreach (Types.Variable var in bean.Variables)
-            {
+            foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new PropertyBeanKey(sw, var, prefix));
-            }
         }
 
-        public PropertyBeanKey(System.IO.StreamWriter sw, Types.Variable var, string prefix)
+        public PropertyBeanKey(StreamWriter sw, Variable var, string prefix)
         {
             this.sw = sw;
             this.var = var;
             this.prefix = prefix;
         }
 
-        public void Visit(Bean type)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void WriteProperty(Types.Type type)
+        void WriteProperty(Types.Type type)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + "{");
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
@@ -39,7 +31,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
-        public void Visit(BeanKey type)
+        public void Visit(TypeBool type)
         {
             WriteProperty(type);
         }
@@ -49,7 +41,7 @@ namespace Zeze.Gen.java
             WriteProperty(type);
         }
 
-        public void Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
             WriteProperty(type);
         }
@@ -64,7 +56,12 @@ namespace Zeze.Gen.java
             WriteProperty(type);
         }
 
-        public void Visit(TypeBool type)
+        public void Visit(TypeFloat type)
+        {
+            WriteProperty(type);
+        }
+
+        public void Visit(TypeDouble type)
         {
             WriteProperty(type);
         }
@@ -94,12 +91,12 @@ namespace Zeze.Gen.java
             throw new NotImplementedException();
         }
 
-        public void Visit(TypeFloat type)
+        public void Visit(Bean type)
         {
-            WriteProperty(type);
+            throw new NotImplementedException();
         }
 
-        public void Visit(TypeShort type)
+        public void Visit(BeanKey type)
         {
             WriteProperty(type);
         }

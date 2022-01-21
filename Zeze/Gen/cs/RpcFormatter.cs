@@ -1,26 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 
 namespace Zeze.Gen.cs
 {
     public class RpcFormatter
     {
-        global::Zeze.Gen.Rpc rpc;
-        public RpcFormatter(global::Zeze.Gen.Rpc p)
+        readonly Rpc rpc;
+ 
+        public RpcFormatter(Rpc rpc)
         {
-            this.rpc = p;
+            this.rpc = rpc;
         }
 
         public void Make(string baseDir)
         {
-            using System.IO.StreamWriter sw = rpc.Space.OpenWriter(baseDir, rpc.Name + ".cs");
+            using StreamWriter sw = rpc.Space.OpenWriter(baseDir, rpc.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + rpc.Space.Path());
             sw.WriteLine("{");
 
@@ -38,13 +36,9 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public override int ProtocolId => ProtocolId_;");
             // declare enums
             foreach (Types.Enum e in rpc.Enums)
-            {
                 sw.WriteLine("        public const int " + e.Name + " = " + e.Value + ";" + e.Comment);
-            }
             if (rpc.Enums.Count > 0)
-            {
-                sw.WriteLine("");
-            }
+                sw.WriteLine();
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }

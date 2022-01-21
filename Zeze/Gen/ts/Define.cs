@@ -20,13 +20,13 @@ namespace Zeze.Gen.ts
 
         private void DefineNew(Types.Type type)
         {
-            String tName = TypeName.GetName(type);
+            string tName = TypeName.GetName(type);
             sw.WriteLine(prefix + "var " + varname + ": " + tName + " = new " + tName + "();");
         }
 
         private void DefineStack(Types.Type type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + "var " + varname + ": " + typeName + ";");
         }
 

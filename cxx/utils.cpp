@@ -25,59 +25,59 @@ namespace limax {
 		for (auto& task : tmp)
 			task();
 	}
-    
-    void uiThreadScheduleTime(int ms)
-    {
-        std::vector<Runnable> tmp;
-        {
-            std::lock_guard<std::mutex> l(uithread::mutex);
-            tmp.swap(uithread::tasks);
-        }
-        auto rt = std::chrono::high_resolution_clock::now();
-        auto timeouted = false;
-        std::vector<Runnable> unrun;
-        unrun.reserve(tmp.size());
-        for (auto& task : tmp) {
-            if( timeouted)
-            {
-                unrun.push_back(task);
-            }
-            else
-            {
-                task();
-                auto dt = std::chrono::high_resolution_clock::now() - rt;
-                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(dt).count();
-                timeouted = elapsed >= ms;
-            }
-        }
-        if(!unrun.empty()) {
-            std::lock_guard<std::mutex> l(uithread::mutex);
-            uithread::tasks.insert(uithread::tasks.begin(), unrun.begin(), unrun.end());
-        }
-    }
-    
-    void uiThreadScheduleCount(size_t count)
-    {
-        std::vector<Runnable> tmp;
-        {
-            std::lock_guard<std::mutex> l(uithread::mutex);
-            if( uithread::tasks.size() <= count)
-            {
-                tmp.swap(uithread::tasks);
-            }
-            else
-            {
-                tmp.reserve(count);
-                auto b = uithread::tasks.begin();
-                auto e = b + count;
-                tmp.insert(tmp.begin(), b, e);
-                uithread::tasks.erase(b, e);
-            }
-        }
-        for (auto& task : tmp)
-            task();
-    }
-    
+
+	void uiThreadScheduleTime(int ms)
+	{
+		std::vector<Runnable> tmp;
+		{
+			std::lock_guard<std::mutex> l(uithread::mutex);
+			tmp.swap(uithread::tasks);
+		}
+		auto rt = std::chrono::high_resolution_clock::now();
+		auto timeouted = false;
+		std::vector<Runnable> unrun;
+		unrun.reserve(tmp.size());
+		for (auto& task : tmp) {
+			if( timeouted)
+			{
+				unrun.push_back(task);
+			}
+			else
+			{
+				task();
+				auto dt = std::chrono::high_resolution_clock::now() - rt;
+				auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(dt).count();
+				timeouted = elapsed >= ms;
+			}
+		}
+		if(!unrun.empty()) {
+			std::lock_guard<std::mutex> l(uithread::mutex);
+			uithread::tasks.insert(uithread::tasks.begin(), unrun.begin(), unrun.end());
+		}
+	}
+
+	void uiThreadScheduleCount(size_t count)
+	{
+		std::vector<Runnable> tmp;
+		{
+			std::lock_guard<std::mutex> l(uithread::mutex);
+			if( uithread::tasks.size() <= count)
+			{
+				tmp.swap(uithread::tasks);
+			}
+			else
+			{
+				tmp.reserve(count);
+				auto b = uithread::tasks.begin();
+				auto e = b + count;
+				tmp.insert(tmp.begin(), b, e);
+				uithread::tasks.erase(b, e);
+			}
+		}
+		for (auto& task : tmp)
+			task();
+	}
+
 #pragma endregion
 #pragma region class Resource
 
@@ -142,7 +142,7 @@ namespace limax {
 		Octets out = Base64Encode::transform(data);
 		return std::string((char *)out.begin(), out.size());
 	}
-	
+
 	std::string tostring36(int64_t n)
 	{
 		static char map[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' };

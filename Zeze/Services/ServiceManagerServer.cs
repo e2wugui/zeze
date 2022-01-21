@@ -1716,14 +1716,14 @@ namespace Zeze.Services.ServiceManager
         public override string ToString()
         {
             var sb = new StringBuilder();
-            sb.Append(ServiceName).Append("=");
-            sb.Append("[");
+            sb.Append(ServiceName).Append('=');
+            sb.Append('[');
             foreach (var e in ServiceInfoListSortedByIdentity)
             {
                 sb.Append(e.ServiceIdentity);
-                sb.Append(",");
+                sb.Append(',');
             }
-            sb.Append("]");
+            sb.Append(']');
             return sb.ToString();
         }
     }

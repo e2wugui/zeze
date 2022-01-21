@@ -11,14 +11,14 @@ namespace Zeze
 		class Protocol : public Zeze::Serialize::Serializable
 		{
 		public:
-			long ResultCode = 0;
+			long long ResultCode = 0;
 			std::shared_ptr<Socket> Sender;
 
 			Protocol() : Sender(NULL) { }
 			virtual int ModuleId() = 0;
 			virtual int ProtocolId() = 0;
 
-			int TypeId() { return (long long)ModuleId() << 32 | (ProtocolId() & 0xffffffff); }
+			long long TypeId() { return ((long long)ModuleId() << 32) | (unsigned int)ProtocolId(); }
 
 			void EncodeProtcocol(Zeze::Serialize::ByteBuffer& bb)
 			{
@@ -57,7 +57,7 @@ namespace Zeze
 				Argument.Decode(bb);
 			}
 
-			virtual void Encode(Zeze::Serialize::ByteBuffer& bb) override
+			virtual void Encode(Zeze::Serialize::ByteBuffer& bb) const override
 			{
 				bb.WriteLong(ResultCode);
 				Argument.Encode(bb);

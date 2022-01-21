@@ -93,7 +93,7 @@ namespace Zeze.Transaction
         public static long Hash64(string name)
         {
             // This is a Knuth hash
-            UInt64 hashedValue = 3074457345618258791ul;
+            ulong hashedValue = 3074457345618258791ul;
             for (int i = 0; i < name.Length; i++)
             {
                 hashedValue += name[i];
@@ -214,6 +214,11 @@ namespace Zeze.Transaction
             CreateBeanFromSpecialTypeId = create;
         }
 
+        public bool IsEmpty()
+        {
+            return _TypeId == EmptyBean.TYPEID && _Bean.GetType() == typeof(EmptyBean);
+        }
+
         public void Assign(DynamicBean other)
         {
             Bean = other.Bean.CopyBean();
@@ -253,28 +258,24 @@ namespace Zeze.Transaction
         {
             // 由于可能在事务中执行，这里仅修改Bean
             // TypeId 在 Bean 提交时才修改，但是要在事务中读到最新值，参见 TypeId 的 getter 实现。
-            long typeId = bb.ReadLong8();
+            long typeId = bb.ReadLong();
             Bean real = CreateBeanFromSpecialTypeId(typeId);
-            if (null != real)
+            if (real != null)
             {
-                bb.BeginReadSegment(out var _state_);
                 real.Decode(bb);
-                bb.EndReadSegment(_state_);
                 SetBeanWithSpecialTypeId(typeId, real);
             }
             else
             {
-                bb.SkipBytes();
+                bb.SkipUnknownField(ByteBuffer.BEAN);
                 SetBeanWithSpecialTypeId(EmptyBean.TYPEID, new EmptyBean());
             }
         }
 
         public override void Encode(ByteBuffer bb)
         {
-            bb.WriteLong8(TypeId);
-            bb.BeginWriteSegment(out var _state_);
+            bb.WriteLong(TypeId);
             Bean.Encode(bb);
-            bb.EndWriteSegment(_state_);
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)

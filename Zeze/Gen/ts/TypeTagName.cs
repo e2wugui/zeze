@@ -1,91 +1,89 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Zeze.Gen.Types;
+﻿using Zeze.Gen.Types;
 
 namespace Zeze.Gen.ts
 {
-    public class TypeTagName : Types.Visitor
+    public class TypeTagName : Visitor
     {
         public string Name { get; private set; }
-        public static string GetName(Types.Type type)
+ 
+        public static string GetName(Type type)
         {
-            TypeTagName v = new TypeTagName();
+            TypeTagName v = new();
             type.Accept(v);
             return v.Name;
         }
 
-        void Visitor.Visit(Bean type)
+        public void Visit(TypeBool type)
         {
-            Name = "Zeze.ByteBuffer.BEAN";
+            Name = "Zeze.ByteBuffer.INTEGER";
         }
 
-        void Visitor.Visit(BeanKey type)
+        public void Visit(TypeByte type)
         {
-            Name = "Zeze.ByteBuffer.BEAN";
+            Name = "Zeze.ByteBuffer.INTEGER";
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeShort type)
         {
-            Name = "Zeze.ByteBuffer.BYTE";
+            Name = "Zeze.ByteBuffer.INTEGER";
         }
 
-        void Visitor.Visit(TypeShort type)
+        public void Visit(TypeInt type)
         {
-            Name = "Zeze.ByteBuffer.SHORT";
+            Name = "Zeze.ByteBuffer.INTEGER";
         }
 
-        void Visitor.Visit(TypeInt type)
+        public void Visit(TypeLong type)
         {
-            Name = "Zeze.ByteBuffer.INT";
+            Name = "Zeze.ByteBuffer.INTEGER";
         }
 
-        void Visitor.Visit(TypeLong type)
-        {
-            Name = "Zeze.ByteBuffer.LONG";
-        }
-
-        void Visitor.Visit(TypeBool type)
-        {
-            Name = "Zeze.ByteBuffer.BOOL";
-        }
-
-        void Visitor.Visit(TypeBinary type)
-        {
-            Name = "Zeze.ByteBuffer.BYTES";
-        }
-
-        void Visitor.Visit(TypeString type)
-        {
-            Name = "Zeze.ByteBuffer.STRING";
-        }
-
-        void Visitor.Visit(TypeFloat type)
+        public void Visit(TypeFloat type)
         {
             Name = "Zeze.ByteBuffer.FLOAT";
         }
 
-        void Visitor.Visit(TypeDouble type)
+        public void Visit(TypeDouble type)
         {
             Name = "Zeze.ByteBuffer.DOUBLE";
         }
 
-        void Visitor.Visit(TypeList type)
+        public void Visit(TypeBinary type)
+        {
+            Name = "Zeze.ByteBuffer.BYTES";
+        }
+
+        public void Visit(TypeString type)
+        {
+            Name = "Zeze.ByteBuffer.BYTES";
+        }
+
+        public void Visit(TypeList type)
         {
             Name = "Zeze.ByteBuffer.LIST";
         }
 
-        void Visitor.Visit(TypeSet type)
+        public void Visit(TypeSet type)
         {
-            Name = "Zeze.ByteBuffer.SET";
+            Name = "Zeze.ByteBuffer.LIST";
         }
 
-        void Visitor.Visit(TypeMap type)
+        public void Visit(TypeMap type)
         {
             Name = "Zeze.ByteBuffer.MAP";
         }
 
-        void Visitor.Visit(TypeDynamic type)
+        public void Visit(Bean type)
+        {
+            Name = "Zeze.ByteBuffer.BEAN";
+        }
+
+        public void Visit(BeanKey type)
+        {
+            Name = "Zeze.ByteBuffer.BEAN";
+        }
+
+        public void Visit(TypeDynamic type)
         {
             Name = "Zeze.ByteBuffer.DYNAMIC";
         }

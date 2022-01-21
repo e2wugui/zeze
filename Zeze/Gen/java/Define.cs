@@ -1,43 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
-    public class Define : Types.Visitor
+    public class Define : Visitor
     {
-        private string varname;
-        private System.IO.StreamWriter sw;
-        private string prefix;
+        readonly string varname;
+        readonly StreamWriter sw;
+        readonly string prefix;
 
-        public Define(string varname, System.IO.StreamWriter sw, string prefix)
+        public Define(string varname, StreamWriter sw, string prefix)
         {
             this.varname = varname;
             this.sw = sw;
             this.prefix = prefix;
         }
 
-        private void DefineNew(Types.Type type)
+        void DefineNew(Type type)
         {
-            String tName = TypeName.GetName(type);
+            string tName = TypeName.GetName(type);
             sw.WriteLine(prefix + tName + " " + varname + " = new " + tName + "();");
         }
 
-        private void DefineStack(Types.Type type)
+        void DefineStack(Type type)
         {
-            String typeName = TypeName.GetName(type);
+            string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + typeName + " " + varname + ";");
         }
 
-        public void Visit(Bean type)
+        public void Visit(TypeBool type)
         {
-            DefineNew(type);
-        }
-
-        public void Visit(BeanKey type)
-        {
-            DefineNew(type);
+            DefineStack(type);
         }
 
         public void Visit(TypeByte type)
@@ -45,7 +38,7 @@ namespace Zeze.Gen.java
             DefineStack(type);
         }
 
-        public void Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
             DefineStack(type);
         }
@@ -60,7 +53,12 @@ namespace Zeze.Gen.java
             DefineStack(type);
         }
 
-        public void Visit(TypeBool type)
+        public void Visit(TypeFloat type)
+        {
+            DefineStack(type);
+        }
+
+        public void Visit(TypeDouble type)
         {
             DefineStack(type);
         }
@@ -90,14 +88,14 @@ namespace Zeze.Gen.java
             DefineNew(type);
         }
 
-        public void Visit(TypeFloat type)
+        public void Visit(Bean type)
         {
-            DefineStack(type);
+            DefineNew(type);
         }
 
-        public void Visit(TypeShort type)
+        public void Visit(BeanKey type)
         {
-            DefineStack(type);
+            DefineNew(type);
         }
 
         public void Visit(TypeDynamic type)

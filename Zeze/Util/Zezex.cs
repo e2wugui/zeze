@@ -229,7 +229,7 @@ namespace Zeze.Util
             }
         }
 
-        private void RemoveServiceRef(XmlElement project, String skipRef)
+        private void RemoveServiceRef(XmlElement project, string skipRef)
         {
             for (int i = project.ChildNodes.Count - 1; i >= 0; --i)
             {

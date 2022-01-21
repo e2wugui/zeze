@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
+﻿using System.IO;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
     public class Maker
     {
-        public Project Project { get;  }
+        public Project Project { get; }
 
         public Maker(Project project)
         {
@@ -17,25 +15,21 @@ namespace Zeze.Gen.java
         public void Make()
         {
             string projectBasedir = Project.Gendir;
-            string projectDir = System.IO.Path.Combine(projectBasedir, Project.Name);
-            string genDir = System.IO.Path.Combine(projectDir, Project.GenRelativeDir, "Gen");
+            string projectDir = Path.Combine(projectBasedir, Project.Name);
+            string genDir = Path.Combine(projectDir, Project.GenRelativeDir, "Gen");
             string genCommonDir = string.IsNullOrEmpty(Project.GenCommonRelativeDir)
-                ? genDir : System.IO.Path.Combine(projectDir, Project.GenCommonRelativeDir, "Gen");
+                ? genDir : Path.Combine(projectDir, Project.GenCommonRelativeDir, "Gen");
 
             string srcDir = Project.ScriptDir.Length > 0
-                ? System.IO.Path.Combine(projectDir, Project.ScriptDir) : projectDir;
+                ? Path.Combine(projectDir, Project.ScriptDir) : projectDir;
 
             Program.AddGenDir(genDir);
 
             // gen common
-            foreach (Types.Bean bean in Project.AllBeans.Values)
-            {
+            foreach (Bean bean in Project.AllBeans.Values)
                 new BeanFormatter(bean).Make(genCommonDir);
-            }
-            foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
-            {
+            foreach (BeanKey beanKey in Project.AllBeanKeys.Values)
                 new BeanKeyFormatter(beanKey).Make(genCommonDir);
-            }
             foreach (Protocol protocol in Project.AllProtocols.Values)
             {
                 if (protocol is Rpc rpc)
@@ -46,13 +40,9 @@ namespace Zeze.Gen.java
 
             // gen project
             foreach (Module mod in Project.AllOrderDefineModules)
-            {
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
-            }
             foreach (Service ma in Project.Services.Values)
-            {
                 new ServiceFormatter(ma, genDir, srcDir).Make();
-            }
             foreach (Table table in Project.AllTables.Values)
             {
                 if (Project.GenTables.Contains(table.Gen))
@@ -62,6 +52,5 @@ namespace Zeze.Gen.java
 
             new App(Project, genDir, srcDir).Make();
         }
-
     }
 }

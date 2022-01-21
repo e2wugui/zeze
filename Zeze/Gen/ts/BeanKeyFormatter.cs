@@ -38,7 +38,7 @@ namespace Zeze.Gen.ts
             }
             if (beanKey.Enums.Count > 0)
             {
-                sw.WriteLine("");
+                sw.WriteLine();
             }
 
             // declare variables
@@ -46,7 +46,7 @@ namespace Zeze.Gen.ts
             {
                 sw.WriteLine($"    public {v.Name}: {TypeName.GetName(v.VariableType)}; {v.Comment}");
             }
-            sw.WriteLine("");
+            sw.WriteLine();
 
             // params construct with init
             {
@@ -56,12 +56,12 @@ namespace Zeze.Gen.ts
                     sw.WriteLine("        this." + v.Name + " = " + v.NamePrivate + "_;");
                 }
                 sw.WriteLine("    }");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             sw.WriteLine("    public static readonly TYPEID: bigint = " + beanKey.TypeId + "n;");
             sw.WriteLine("    public TypeId(): bigint { return " + beanKey.Space.Path("_", beanKey.Name) + ".TYPEID; }");
             sw.WriteLine();
-            sw.WriteLine("");
+            sw.WriteLine();
             Encode.Make(beanKey, sw, "    ");
             Decode.Make(beanKey, sw, "    ");
             sw.WriteLine("}");

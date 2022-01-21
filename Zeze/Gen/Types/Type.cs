@@ -6,7 +6,7 @@ namespace Zeze.Gen.Types
 {
 	public abstract class Type
 	{
-		public abstract Type Compile(ModuleSpace space, String key, String value);
+		public abstract Type Compile(ModuleSpace space, string key, string value);
 		public abstract void Depends(HashSet<Type> includes);
 		public abstract void Accept(Visitor visitor);
 
@@ -18,17 +18,17 @@ namespace Zeze.Gen.Types
 		public virtual bool IsNormalBean => IsBean && !IsKeyable; // 普通的bean，不是beankey
 		public virtual bool IsCollection => false;
 		public abstract bool IsNeedNegativeCheck { get; }
-		public override String ToString()
+		public override string ToString()
 		{
 			return Name;
 		}
 
 		/////////////////////////////////////////////////////////////////////////////
-		public static SortedDictionary<String, Type> Types { get; private set; } = new SortedDictionary<String, Type>();
+		public static SortedDictionary<string, Type> Types { get; private set; } = new SortedDictionary<string, Type>();
 
 		public static void Add(global::Zeze.Gen.ModuleSpace space, Type type)
 		{
-			String fullName = space.Path(".", type.Name);
+            string fullName = space.Path(".", type.Name);
 
 			if (Types.ContainsKey(fullName))
 				throw new Exception("duplicate type: " + fullName);
@@ -36,12 +36,12 @@ namespace Zeze.Gen.Types
 			Types.Add(fullName, type);
 		}
 
-		public static Type Compile(global::Zeze.Gen.ModuleSpace space, String name)
+		public static Type Compile(global::Zeze.Gen.ModuleSpace space, string name)
 		{
 			return Compile(space, name, null, null);
 		}
 
-		public static Type Compile(ModuleSpace space, String name, String key, String value)
+		public static Type Compile(ModuleSpace space, string name, string key, string value)
 		{
 			Type type = null;
 

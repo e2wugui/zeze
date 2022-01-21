@@ -1,31 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Zeze.Gen.Types;
+﻿using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
-    public class TypeName : Types.Visitor
+    public class TypeName : Visitor
     {
-        public string name;
-        public string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
-        public string nameRaw; // 容器，其他为null。
+        protected string name;
+        internal string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
+        internal string nameRaw; // 容器，其他为null。
+        string nameOmitted;
 
-        public static string GetName(Types.Type type)
+        public static string GetName(Type type)
         {
-            var visitor = new TypeName();
+            TypeName visitor = new();
             type.Accept(visitor);
             return visitor.name;
         }
 
-        public virtual void Visit(Bean type)
+        public static string GetNameOmitted(Type type)
         {
-            name = type.Space.Path(".", type.Name);
+            var visitor = new TypeName();
+            type.Accept(visitor);
+            return visitor.nameOmitted;
         }
 
-        public virtual void Visit(BeanKey type)
+        public virtual void Visit(TypeBool type)
         {
-            name = type.Space.Path(".", type.Name);
+            name = "boolean";
         }
 
         public virtual void Visit(TypeByte type)
@@ -33,9 +33,9 @@ namespace Zeze.Gen.java
             name = "byte";
         }
 
-        public virtual void Visit(TypeDouble type)
+        public virtual void Visit(TypeShort type)
         {
-            name = "double";
+            name = "short";
         }
 
         public virtual void Visit(TypeInt type)
@@ -48,9 +48,14 @@ namespace Zeze.Gen.java
             name = "long";
         }
 
-        public virtual void Visit(TypeBool type)
+        public virtual void Visit(TypeFloat type)
         {
-            name = "boolean";
+            name = "float";
+        }
+
+        public virtual void Visit(TypeDouble type)
+        {
+            name = "double";
         }
 
         public virtual void Visit(TypeBinary type)
@@ -67,16 +72,18 @@ namespace Zeze.Gen.java
         {
             string valueName = BoxingName.GetBoxingName(type.ValueType);
             nameRaw = "Zeze.Transaction.Collections.PList";
-            name = nameRaw + (type.ValueType.IsNormalBean ? "2<" : "1<")  + valueName + ">";
-            nameCollectionImplement = "org.pcollections.PVector<" + valueName + ">";
+            nameOmitted = nameRaw + (type.ValueType.IsNormalBean ? '2' : '1');
+            name = nameOmitted + '<' + valueName + '>';
+            nameCollectionImplement = "org.pcollections.PVector<" + valueName + '>';
         }
 
         public virtual void Visit(TypeSet type)
         {
             string valueName = BoxingName.GetBoxingName(type.ValueType);
             nameRaw = "Zeze.Transaction.Collections.PSet";
-            name = nameRaw + "1<" + valueName + " >";
-            nameCollectionImplement = "org.pcollections.PSet<" + valueName + ">";
+            nameOmitted = nameRaw + '1';
+            name = nameOmitted + '<' + valueName + '>';
+            nameCollectionImplement = "org.pcollections.PSet<" + valueName + '>';
         }
 
         public virtual void Visit(TypeMap type)
@@ -84,18 +91,19 @@ namespace Zeze.Gen.java
             string key = BoxingName.GetBoxingName(type.KeyType);
             string value = BoxingName.GetBoxingName(type.ValueType);
             nameRaw = "Zeze.Transaction.Collections.PMap";
-            name = nameRaw + (type.ValueType.IsNormalBean ? "2<" : "1<") + key + ", " + value + ">";
-            nameCollectionImplement = "org.pcollections.PMap<" + key + ", " + value + ">";
+            nameOmitted = nameRaw + (type.ValueType.IsNormalBean ? '2' : '1');
+            name = nameOmitted + '<' + key + ", " + value + '>';
+            nameCollectionImplement = "org.pcollections.PMap<" + key + ", " + value + '>';
         }
 
-        public virtual void Visit(TypeFloat type)
+        public virtual void Visit(Bean type)
         {
-            name = "float";
+            name = type.Space.Path(".", type.Name);
         }
 
-        public virtual void Visit(TypeShort type)
+        public virtual void Visit(BeanKey type)
         {
-            name = "short";
+            name = type.Space.Path(".", type.Name);
         }
 
         public virtual void Visit(TypeDynamic type)

@@ -27,77 +27,77 @@ namespace Zeze.Gen.ts
             Value = (variable.Initial.Length > 0) ? variable.Initial : def;
         }
 
-        void Visitor.Visit(Bean type)
+        public void Visit(Bean type)
         {
             Value = "null";
         }
 
-        void Visitor.Visit(BeanKey type)
+        public void Visit(BeanKey type)
         {
             Value = "null";
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeByte type)
         {
             SetDefaultValue("0");
         }
 
-        void Visitor.Visit(TypeShort type)
+        public void Visit(TypeShort type)
         {
             SetDefaultValue("0");
         }
 
-        void Visitor.Visit(TypeInt type)
+        public void Visit(TypeInt type)
         {
             Value = "null";
         }
 
-        void Visitor.Visit(TypeLong type)
+        public void Visit(TypeLong type)
         {
             SetDefaultValue("0n");
         }
 
-        void Visitor.Visit(TypeBool type)
+        public void Visit(TypeBool type)
         {
             SetDefaultValue("false");
         }
 
-        void Visitor.Visit(TypeBinary type)
+        public void Visit(TypeBinary type)
         {
             Value = "null";
         }
 
-        void Visitor.Visit(TypeString type)
+        public void Visit(TypeString type)
         {
             SetDefaultValue("\"\"");
         }
 
-        void Visitor.Visit(TypeFloat type)
+        public void Visit(TypeFloat type)
         {
             SetDefaultValue("0");
         }
 
-        void Visitor.Visit(TypeDouble type)
+        public void Visit(TypeDouble type)
         {
             SetDefaultValue("0");
         }
 
-        void Visitor.Visit(TypeList type)
+        public void Visit(TypeList type)
         {
             Value = "null";
         }
 
-        void Visitor.Visit(TypeSet type)
+        public void Visit(TypeSet type)
         {
             Value = "null";
         }
 
-        void Visitor.Visit(TypeMap type)
+        public void Visit(TypeMap type)
         {
             Value = "null";
         }
 
-        void Visitor.Visit(TypeDynamic type)
+        public void Visit(TypeDynamic type)
         {
             Value = "null";
         }

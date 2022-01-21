@@ -9,21 +9,21 @@ namespace Zeze.Gen.Types
 	public class Variable
 	{
 		public Type Bean { get; private set; } // Bean or BeanKey
-		public String Name { get; private set; }
+		public string Name { get; private set; }
 		public string NamePinyin => Program.ToPinyin(Name);
-		public String NamePrivate => "_" + Name;
-		public String NameUpper1 => Name.Substring(0, 1).ToUpper() + Name.Substring(1);
-		public String NameGetter => Type.Equals("bool") ? $"is{NameUpper1}" : $"get{NameUpper1}";
-		public String NameSetter => $"set{NameUpper1}";
-		public String Getter => $"{NameGetter}()";
-		public String Setter(string value) { return $"{NameSetter}({value})"; }
+		public string NamePrivate => "_" + Name;
+		public string NameUpper1 => Name.Substring(0, 1).ToUpper() + Name.Substring(1);
+		public string NameGetter => Type.Equals("bool") ? $"is{NameUpper1}" : $"get{NameUpper1}";
+		public string NameSetter => $"set{NameUpper1}";
+		public string Getter => $"{NameGetter}()";
+		public string Setter(string value) { return $"{NameSetter}({value})"; }
 		public int Id { get; private set; }
-		public String Type { get; private set; }
-		public String Key { get; private set; }
-		public String Value { get; private set; }
-		public String Initial { get; private set; }
-		public String Comment { get; private set; }
-		public String Validator { get; private set; }
+		public string Type { get; private set; }
+		public string Key { get; private set; }
+		public string Value { get; private set; }
+		public string Initial { get; private set; }
+		public string Comment { get; private set; }
+		public string Validator { get; private set; }
 		public bool AllowNegative { get; private set; } = false;
 
 		public string GetBeanFullName()
@@ -79,7 +79,7 @@ namespace Zeze.Gen.Types
 
 				XmlElement e = (XmlElement)node;
 
-				String nodename = e.Name;
+                string nodename = e.Name;
 				switch (e.Name)
 				{
 					case "value":

@@ -1,30 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
-    public class PropertyReadOnly : Types.Visitor
+    public class PropertyReadOnly : Visitor
     {
-        System.IO.StreamWriter sw;
-        Types.Variable var;
-        string prefix;
+        readonly StreamWriter sw;
+        readonly Variable var;
+        readonly string prefix;
 
-        public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine($"{prefix}public long TypeId {{ get; }}");
-            sw.WriteLine($"{prefix}public void Encode(Zeze.Serialize.ByteBuffer _os_);");
+            sw.WriteLine($"{prefix}public void Encode(ByteBuffer _os_);");
             sw.WriteLine($"{prefix}public bool NegativeCheck();");
             sw.WriteLine($"{prefix}public Zeze.Transaction.Bean CopyBean();");
             sw.WriteLine();
-            foreach (Types.Variable var in bean.Variables)
-            {
+            foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new PropertyReadOnly(sw, var, prefix));
-            }
         }
 
-        public PropertyReadOnly(System.IO.StreamWriter sw, Types.Variable var, string prefix)
+        public PropertyReadOnly(StreamWriter sw, Variable var, string prefix)
         {
             this.sw = sw;
             this.var = var;
@@ -36,7 +32,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + "ReadOnly " + var.NameUpper1 + " { get; }");
         }
 
-        private void WriteProperty(Types.Type type)
+        void WriteProperty(Type type)
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " { get; }");
         }
@@ -102,7 +98,7 @@ namespace Zeze.Gen.cs
                 ? TypeName.GetName(type.ValueType) + "ReadOnly"
                 : TypeName.GetName(type.ValueType);
             var keyName = TypeName.GetName(type.KeyType);
-            sw.WriteLine($"{prefix} public System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {var.NameUpper1} {{ get; }}");
+            sw.WriteLine($"{prefix}public System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {var.NameUpper1} {{ get; }}");
         }
 
         public void Visit(TypeFloat type)

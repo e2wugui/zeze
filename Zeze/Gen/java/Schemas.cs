@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+using System.IO;
 
 namespace Zeze.Gen.java
 {
@@ -22,7 +21,7 @@ namespace Zeze.Gen.java
             }
         }
 
-        private string GetFullName(Types.Type type)
+        string GetFullName(Types.Type type)
         {
             if (type.IsBean)
             {
@@ -35,22 +34,20 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
-            using System.IO.StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.java");
+            using StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.java");
 
-            sw.WriteLine("// auto-generated");
+            sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + Project.Solution.Path() + ";");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("public class Schemas extends Zeze.Schemas {");
             sw.WriteLine("    public Schemas() {");
 
             foreach (var table in Project.AllTables.Values)
-            {
                 sw.WriteLine($"        AddTable(new Zeze.Schemas.Table(\"{table.Space.Path("_", table.Name)}\", \"{GetFullName(table.KeyType)}\", \"{GetFullName(table.ValueType)}\"));");
-            }
 
             foreach (var type in Depends)
             {
-                if (false == type.IsBean)
+                if (!type.IsBean)
                     continue;
 
                 if (type.IsKeyable)
@@ -68,7 +65,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("}");
         }
 
-        private void GenAddBean(System.IO.StreamWriter sw, string name, bool isBeanKey, List<Types.Variable> vars)
+        void GenAddBean(StreamWriter sw, string name, bool isBeanKey, List<Types.Variable> vars)
         {
             sw.WriteLine($"        {{");
             sw.WriteLine($"            var bean = new Zeze.Schemas.Bean(\"{name}\", {isBeanKey.ToString().ToLower()});");
@@ -80,9 +77,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"            var.Name = \"{v.Name}\";");
                 sw.WriteLine($"            var.TypeName = \"{GetFullName(v.VariableType)}\";");
                 if (v.VariableType is Types.TypeCollection collection)
-                {
                     sw.WriteLine($"            var.ValueName = \"{GetFullName(collection.ValueType)}\";");
-                }
                 else if (v.VariableType is Types.TypeMap map)
                 {
                     sw.WriteLine($"            var.KeyName = \"{GetFullName(map.KeyType)}\";");

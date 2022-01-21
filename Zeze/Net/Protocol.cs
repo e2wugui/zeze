@@ -10,21 +10,21 @@ namespace Zeze.Net
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
 
-		public long TypeId => (long)ModuleId << 32 | (ProtocolId & 0xffff_ffff);
+		public long TypeId => (long)ModuleId << 32 | (uint)ProtocolId;
 
 		public static int GetModuleId(long typeId)
         {
-			return (int)((ulong)typeId >> 32);
+			return (int)(typeId >> 32);
         }
 
 		public static int GetProtocolId(long typeId)
         {
-			return (int)(typeId & 0xffff_ffff);
+			return (int)typeId;
         }
 
 		public static long MakeTypeId(int moduleId, int protocolId)
         {
-			return (long)moduleId << 32 | (protocolId & 0xffff_ffff);
+			return (long)moduleId << 32 | (uint)protocolId;
         }
 
 		public Service Service { get; set; }

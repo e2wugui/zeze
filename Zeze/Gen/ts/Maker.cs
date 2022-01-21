@@ -23,9 +23,9 @@ namespace Zeze.Gen.ts
 
             using System.IO.StreamWriter sw = Program.OpenWriterNoPath(genDir, "gen.ts");
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("import { Zeze } from \"zeze\"");
-            sw.WriteLine("");
+            sw.WriteLine();
             foreach (Types.Bean bean in Project.AllBeans.Values)
             {
                 new BeanFormatter(bean).Make(sw);

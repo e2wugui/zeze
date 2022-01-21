@@ -12,12 +12,12 @@ namespace Zeze.Gen.Types
 			visitor.Visit(this);
 		}
 
-		public override Type Compile(ModuleSpace space, String key, String value)
+		public override Type Compile(ModuleSpace space, string key, string value)
 		{
 			return new TypeList(space, key, value);
 		}
 
-		private TypeList(global::Zeze.Gen.ModuleSpace space, String key, String value)
+		private TypeList(global::Zeze.Gen.ModuleSpace space, string key, string value)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);
@@ -29,12 +29,12 @@ namespace Zeze.Gen.Types
 				throw new Exception(Name + " Error : value type is dynamic.");
 		}
 
-		internal TypeList(SortedDictionary<String, Type> types)
+		internal TypeList(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
 		}
 
-		public override String Name => "list";
+		public override string Name => "list";
 		public override bool IsNeedNegativeCheck => ValueType.IsNeedNegativeCheck;
 
 	}

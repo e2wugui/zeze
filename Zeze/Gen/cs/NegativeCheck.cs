@@ -1,21 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
-    class NegativeCheck : Types.Visitor
+    class NegativeCheck : Visitor
     {
-        private System.IO.StreamWriter sw;
-        private string varname;
-        private string prefix;
+        readonly StreamWriter sw;
+        readonly string varname;
+        readonly string prefix;
 
-        public static void Make(Types.Bean bean, System.IO.StreamWriter sw, String prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "public override bool NegativeCheck()");
             sw.WriteLine(prefix + "{");
-            foreach (Types.Variable var in bean.Variables)
+            foreach (Variable var in bean.Variables)
             {
                 if (var.AllowNegative)
                     continue;
@@ -23,14 +21,13 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
         }
 
-        public static void Make(Types.BeanKey bean, System.IO.StreamWriter sw, String prefix)
+        public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "public bool NegativeCheck()");
             sw.WriteLine(prefix + "{");
-            foreach (Types.Variable var in bean.Variables)
+            foreach (Variable var in bean.Variables)
             {
                 if (var.AllowNegative)
                     continue;
@@ -38,59 +35,58 @@ namespace Zeze.Gen.cs
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine("");
         }
 
-        NegativeCheck(System.IO.StreamWriter sw, string varname, string prefix)
+        NegativeCheck(StreamWriter sw, string varname, string prefix)
         {
             this.sw = sw;
             this.varname = varname;
             this.prefix = prefix;
         }
 
-        void Visitor.Visit(Bean type)
+        public void Visit(Bean type)
         {
             if (type.IsNeedNegativeCheck)
                 sw.WriteLine(prefix + "if (" + varname + ".NegativeCheck()) return true;");
         }
 
-        void Visitor.Visit(BeanKey type)
+        public void Visit(BeanKey type)
         {
             if (type.IsNeedNegativeCheck)
                 sw.WriteLine(prefix + "if (" + varname + ".NegativeCheck()) return true;");
         }
 
-        void Visitor.Visit(TypeByte type)
+        public void Visit(TypeByte type)
         {
         }
 
-        void Visitor.Visit(TypeDouble type)
+        public void Visit(TypeDouble type)
         {
         }
 
-        void Visitor.Visit(TypeInt type)
-        {
-            sw.WriteLine(prefix + "if (" + varname + " < 0) return true;");
-        }
-
-        void Visitor.Visit(TypeLong type)
+        public void Visit(TypeInt type)
         {
             sw.WriteLine(prefix + "if (" + varname + " < 0) return true;");
         }
 
-        void Visitor.Visit(TypeBool type)
+        public void Visit(TypeLong type)
+        {
+            sw.WriteLine(prefix + "if (" + varname + " < 0) return true;");
+        }
+
+        public void Visit(TypeBool type)
         {
         }
 
-        void Visitor.Visit(TypeBinary type)
+        public void Visit(TypeBinary type)
         {
         }
 
-        void Visitor.Visit(TypeString type)
+        public void Visit(TypeString type)
         {
         }
 
-        void Visitor.Visit(TypeList type)
+        public void Visit(TypeList type)
         {
             if (type.IsNeedNegativeCheck)
             {
@@ -101,7 +97,7 @@ namespace Zeze.Gen.cs
             }
         }
 
-        void Visitor.Visit(TypeSet type)
+        public void Visit(TypeSet type)
         {
             if (type.IsNeedNegativeCheck)
             {
@@ -112,7 +108,7 @@ namespace Zeze.Gen.cs
             }
         }
 
-        void Visitor.Visit(TypeMap type)
+        public void Visit(TypeMap type)
         {
             if (type.IsNeedNegativeCheck)
             {
@@ -123,16 +119,16 @@ namespace Zeze.Gen.cs
             }
         }
 
-        void Visitor.Visit(TypeFloat type)
+        public void Visit(TypeFloat type)
         {
         }
 
-        void Visitor.Visit(TypeShort type)
+        public void Visit(TypeShort type)
         {
             sw.WriteLine(prefix + "if (" + varname + " < 0) return true;");
         }
 
-        void Visitor.Visit(TypeDynamic type)
+        public void Visit(TypeDynamic type)
         {
             if (type.IsNeedNegativeCheck)
                 sw.WriteLine(prefix + "if (" + varname + ".NegativeCheck()) return true;");

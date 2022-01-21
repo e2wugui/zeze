@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using NLog.Layouts;
+using System.IO;
 using Zeze.Util;
 
 namespace Zeze.Gen.java
 {
     public class ModuleFormatter
     {
-        Project project;
-        Module module;
-        string genDir;
-        string srcDir;
+        readonly Project project;
+        readonly Module module;
+        readonly string genDir;
+        readonly string srcDir;
 
         public ModuleFormatter(Project project, Module module, string genDir, string srcDir)
         {
@@ -21,23 +20,24 @@ namespace Zeze.Gen.java
             this.srcDir = srcDir;
         }
 
-        private FileChunkGen FileChunkGen;
+        FileChunkGen FileChunkGen;
+ 
         public void Make()
         {
             MakeInterface();
             FileChunkGen = new FileChunkGen();
             string fullDir = module.GetFullPath(srcDir);
-            string fullFileName = System.IO.Path.Combine(fullDir, $"Module{module.Name}.java");
+            string fullFileName = Path.Combine(fullDir, $"Module{module.Name}.java");
             if (FileChunkGen.LoadFile(fullFileName))
             {
                 FileChunkGen.SaveFile(fullFileName, GenChunkByName, GenBeforeChunkByName);
                 return;
             }
             // new file
-            System.IO.Directory.CreateDirectory(fullDir);
-            using System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+            Directory.CreateDirectory(fullDir);
+            using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
             sw.WriteLine("package " + module.Path() + ";");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine(FileChunkGen.ChunkStartTag + " " + ChunkNameImport);
             ImportGen(sw);
             sw.WriteLine(FileChunkGen.ChunkEndTag + " " + ChunkNameImport);
@@ -45,10 +45,10 @@ namespace Zeze.Gen.java
             sw.WriteLine($"public class Module{module.Name} extends AbstractModule {{");
             sw.WriteLine("    public void Start(" + project.Solution.Name + ".App app) throws Throwable {");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public void Stop(" + project.Solution.Name + ".App app) throws Throwable {");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             if (module.ReferenceService != null)
             {
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
@@ -63,7 +63,7 @@ namespace Zeze.Gen.java
                             sw.WriteLine($"        var r = ({rpc.ShortNameIf(module)})_r;");
                             sw.WriteLine($"        return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("    }");
-                            sw.WriteLine("");
+                            sw.WriteLine();
                         }
                         continue;
                     }
@@ -74,28 +74,27 @@ namespace Zeze.Gen.java
                         sw.WriteLine($"        var p = ({p.ShortNameIf(module)})_p;");
                         sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
                         sw.WriteLine("    }");
-                        sw.WriteLine("");
+                        sw.WriteLine();
                     }
                 }
             }
             sw.WriteLine("    " + FileChunkGen.ChunkStartTag + " " + ChunkNameModuleGen);
             ModuleGen(sw);
             sw.WriteLine("    " + FileChunkGen.ChunkEndTag + " " + ChunkNameModuleGen);
-            sw.WriteLine("");
             sw.WriteLine("}");
         }
 
-        private const string ChunkNameModuleGen = "GEN MODULE";
-        private const string ChunkNameImport = "IMPORT GEN";
+        const string ChunkNameModuleGen = "GEN MODULE";
+        const string ChunkNameImport = "IMPORT GEN";
 
-        private string GetHandleName(Protocol p)
+        string GetHandleName(Protocol p)
         {
             if (p is Rpc rpc)
                 return $"Process{rpc.Name}Request";
             return $"Process{p.Name}";
         }
 
-        private void NewProtocolHandle(System.IO.StreamWriter sw)
+        void NewProtocolHandle(StreamWriter sw)
         {
             var handles = GetProcessProtocols();
             // 找出现有的可能是协议实现的函数
@@ -130,11 +129,11 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"        var p = ({h.ShortNameIf(module)})_p;");
                 sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
                 sw.WriteLine("    }");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
         }
 
-        private void GenChunkByName(System.IO.StreamWriter writer, FileChunkGen.Chunk chunk)
+        void GenChunkByName(StreamWriter writer, FileChunkGen.Chunk chunk)
         {
             switch (chunk.Name)
             {
@@ -149,7 +148,7 @@ namespace Zeze.Gen.java
             }
         }
 
-        private void GenBeforeChunkByName(System.IO.StreamWriter writer, FileChunkGen.Chunk chunk)
+        void GenBeforeChunkByName(StreamWriter writer, FileChunkGen.Chunk chunk)
         {
             switch (chunk.Name)
             {
@@ -159,22 +158,22 @@ namespace Zeze.Gen.java
             }
         }
 
-        private void ImportGen(System.IO.StreamWriter sw)
+        void ImportGen(StreamWriter sw)
         {
         }
 
-        private void ModuleGen(System.IO.StreamWriter sw)
+        void ModuleGen(StreamWriter sw)
         {
             sw.WriteLine($"    public static final int ModuleId = {module.Id};");
-            sw.WriteLine("");
+            sw.WriteLine();
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen))
                     sw.WriteLine("    private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
             }
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine($"    public {project.Solution.Name}.App App;");
-            sw.WriteLine("");
+            sw.WriteLine();
 
             sw.WriteLine($"    public Module{module.Name}({project.Solution.Name}.App app) {{");
             sw.WriteLine("        App = app;");
@@ -218,7 +217,7 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
             }
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public void UnRegister() {");
             if (serv != null)
             {
@@ -247,54 +246,51 @@ namespace Zeze.Gen.java
 
         public void MakePartialImplement()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(srcDir, $"Module{module.Name}.java", false);
+            using StreamWriter sw = module.OpenWriter(srcDir, $"Module{module.Name}.java", false);
 
-            if (null == sw)
+            if (sw == null)
                 return;
 
             sw.WriteLine("package " + module.Path() + ";");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine($"public class Module{module.Name} extends AbstractModule{module.Name} {{");
             sw.WriteLine("}");
         }
 
         public void MakeInterface()
         {
-            using System.IO.StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.java");
+            using StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.java");
 
-            sw.WriteLine("// auto-generated");
+            sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + module.Path() + ";");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("public abstract class AbstractModule extends Zeze.IModule {");
             sw.WriteLine($"    public String getFullName() {{ return \"{module.Path()}\"; }}");
             sw.WriteLine($"    public String getName() {{ return \"{module.Name}\"; }}");
             sw.WriteLine($"    public int getId() {{ return {module.Id}; }}");
-            sw.WriteLine("");
             // declare enums
+            if (module.Enums.Count > 0)
+                sw.WriteLine();
             foreach (Types.Enum e in module.Enums)
             {
-                sw.WriteLine("    public final static int " + e.Name + " = " + e.Value + ";" + e.Comment);
-            }
-            if (module.Enums.Count > 0)
-            {
-                sw.WriteLine("");
+                sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
             }
 
             foreach (Protocol p in GetProcessProtocols())
             {
                 if (p is Rpc rpc)
                 {
+                    sw.WriteLine();
                     sw.WriteLine("    protected abstract long Process" + rpc.Name + "Request(Zeze.Net.Protocol _p) throws Throwable;");
-                    sw.WriteLine("");
                     continue;
                 }
+                sw.WriteLine();
                 sw.WriteLine("    protected abstract long Process" + p.Name + "(Zeze.Net.Protocol _p) throws Throwable;");
-                sw.WriteLine("");
             }
             sw.WriteLine("}");
         }
 
-        private List<Protocol> GetProcessProtocols()
+        List<Protocol> GetProcessProtocols()
         {
             var result = new List<Protocol>();
             if (module.ReferenceService != null)

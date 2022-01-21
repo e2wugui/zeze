@@ -14,62 +14,62 @@
 class ToTypeScriptService : public Zeze::Net::Service
 {
 public:
-    virtual void OnSocketClose(const std::shared_ptr<Zeze::Net::Socket>& sender, const std::exception* e) override
-    {
-        if (sender.get() == socket.get())
-        {
-            SetSocketClose(sender->SessionId);
-            socket.reset();
-        }
-        Service::OnSocketClose(sender, e);
-    }
+	virtual void OnSocketClose(const std::shared_ptr<Zeze::Net::Socket>& sender, const std::exception* e) override
+	{
+		if (sender.get() == socket.get())
+		{
+			SetSocketClose(sender->SessionId);
+			socket.reset();
+		}
+		Service::OnSocketClose(sender, e);
+	}
 
-    virtual void OnHandshakeDone(const std::shared_ptr<Zeze::Net::Socket>& sender) override
-    {
-        Service::OnHandshakeDone(sender);
-        SetHandshakeDone(sender->SessionId);
-    }
+	virtual void OnHandshakeDone(const std::shared_ptr<Zeze::Net::Socket>& sender) override
+	{
+		Service::OnHandshakeDone(sender);
+		SetHandshakeDone(sender->SessionId);
+	}
 
-    virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Zeze::Net::Socket>& sender, Zeze::Serialize::ByteBuffer& input) override
-    {
-        if (sender->IsHandshakeDone)
-        {
-            AppendInputBuffer(sender->SessionId, input);
-            input.ReadIndex = input.WriteIndex;
-        }
-        else
-        {
-            Zeze::Net::Protocol::DecodeProtocol(this, sender, input);
-        }
-    }
-    std::unordered_map<int64, std::string> ToBuffer;
-    std::unordered_set<int64> ToHandshakeDone;
-    std::unordered_set<int64> ToSocketClose;
-    std::mutex mutex;
+	virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Zeze::Net::Socket>& sender, Zeze::Serialize::ByteBuffer& input) override
+	{
+		if (sender->IsHandshakeDone)
+		{
+			AppendInputBuffer(sender->SessionId, input);
+			input.ReadIndex = input.WriteIndex;
+		}
+		else
+		{
+			Zeze::Net::Protocol::DecodeProtocol(this, sender, input);
+		}
+	}
+	std::unordered_map<int64, std::string> ToBuffer;
+	std::unordered_set<int64> ToHandshakeDone;
+	std::unordered_set<int64> ToSocketClose;
+	std::mutex mutex;
 
-    void SetHandshakeDone(long long socketSessionId)
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        {
-            ToHandshakeDone.insert(socketSessionId);
-        }
-    }
+	void SetHandshakeDone(long long socketSessionId)
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		{
+			ToHandshakeDone.insert(socketSessionId);
+		}
+	}
 
-    void SetSocketClose(long long socketSessionId)
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        {
-            ToSocketClose.insert(socketSessionId);
-        }
-    }
+	void SetSocketClose(long long socketSessionId)
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		{
+			ToSocketClose.insert(socketSessionId);
+		}
+	}
 
-    void AppendInputBuffer(long long socketSessionId, Zeze::Serialize::ByteBuffer& buffer)
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        {
-            ToBuffer[socketSessionId].append((const char*)buffer.Bytes + buffer.ReadIndex, buffer.Size());
-        }
-    }
+	void AppendInputBuffer(long long socketSessionId, Zeze::Serialize::ByteBuffer& buffer)
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		{
+			ToBuffer[socketSessionId].append((const char*)buffer.Bytes + buffer.ReadIndex, buffer.Size());
+		}
+	}
 
 };
 
@@ -81,83 +81,83 @@ DECLARE_DYNAMIC_DELEGATE_FourParams(FCallbackOnSocketProcessInputBuffer, int64, 
 UCLASS()
 class ZEZEUNREAL_API UToTypeScriptService : public UObject
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
-        ToTypeScriptService RealService;
+		ToTypeScriptService RealService;
 public:
-    UPROPERTY()
-        FCallbackOnSocketHandshakeDone CallbackWhenSocketHandshakeDone;
+	UPROPERTY()
+		FCallbackOnSocketHandshakeDone CallbackWhenSocketHandshakeDone;
 
-    UPROPERTY()
-        FCallbackOnSocketClose CallbackWhenSocketClose;
+	UPROPERTY()
+		FCallbackOnSocketClose CallbackWhenSocketClose;
 
-    UPROPERTY()
-        FCallbackOnSocketProcessInputBuffer CallbackWhenSocketProcessInputBuffer;
+	UPROPERTY()
+		FCallbackOnSocketProcessInputBuffer CallbackWhenSocketProcessInputBuffer;
 
-    UToTypeScriptService()
-    {
-    }
+	UToTypeScriptService()
+	{
+	}
 
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Connect", ScriptName = "Connect", Keywords = "Zeze"), Category = "Zeze")
-        void Connect(const FString& host, int port, bool autoReconnect)
-    {
-        RealService.SetAutoConnect(autoReconnect);
-        RealService.Connect(std::string(TCHAR_TO_UTF8(*host)), port);
-    }
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Connect", ScriptName = "Connect", Keywords = "Zeze"), Category = "Zeze")
+		void Connect(const FString& host, int port, bool autoReconnect)
+	{
+		RealService.SetAutoConnect(autoReconnect);
+		RealService.Connect(std::string(TCHAR_TO_UTF8(*host)), port);
+	}
 
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Send", ScriptName = "Send", Keywords = "Zeze"), Category = "Zeze")
-        void Send(int64 sessionId, const FArrayBuffer& buffer, int offset, int len)
-    {
-        if (Zeze::Net::Socket* so = RealService.socket.get())
-        {
-            if (so->SessionId == sessionId)
-            {
-                so->Send((const char*)buffer.Data, offset, len);
-            }
-        }
-    }
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Send", ScriptName = "Send", Keywords = "Zeze"), Category = "Zeze")
+		void Send(int64 sessionId, const FArrayBuffer& buffer, int offset, int len)
+	{
+		if (Zeze::Net::Socket* so = RealService.socket.get())
+		{
+			if (so->SessionId == sessionId)
+			{
+				so->Send((const char*)buffer.Data, offset, len);
+			}
+		}
+	}
 
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Close", ScriptName = "Close", Keywords = "Zeze"), Category = "Zeze")
-        void Close(int64 sessionId)
-    {
-        if (Zeze::Net::Socket* so = RealService.socket.get())
-        {
-            if (so->SessionId == sessionId)
-            {
-                so->Close(NULL);
-            }
-        }
-    }
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Close", ScriptName = "Close", Keywords = "Zeze"), Category = "Zeze")
+		void Close(int64 sessionId)
+	{
+		if (Zeze::Net::Socket* so = RealService.socket.get())
+		{
+			if (so->SessionId == sessionId)
+			{
+				so->Close(NULL);
+			}
+		}
+	}
 
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "TickUpdate", ScriptName = "TickUpdate", Keywords = "Zeze"), Category = "Zeze")
-        void TickUpdate()
-    {
-        std::unordered_set<long long> handshakeTmp;
-        std::unordered_set<long long> socketCloseTmp;
-        std::unordered_map<long long, std::string> inputTmp;
-        std::lock_guard<std::mutex> lock(RealService.mutex);
-        {
-            handshakeTmp.swap(RealService.ToHandshakeDone);
-            socketCloseTmp.swap(RealService.ToSocketClose);
-            inputTmp.swap(RealService.ToBuffer);
-        }
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "TickUpdate", ScriptName = "TickUpdate", Keywords = "Zeze"), Category = "Zeze")
+		void TickUpdate()
+	{
+		std::unordered_set<long long> handshakeTmp;
+		std::unordered_set<long long> socketCloseTmp;
+		std::unordered_map<long long, std::string> inputTmp;
+		std::lock_guard<std::mutex> lock(RealService.mutex);
+		{
+			handshakeTmp.swap(RealService.ToHandshakeDone);
+			socketCloseTmp.swap(RealService.ToSocketClose);
+			inputTmp.swap(RealService.ToBuffer);
+		}
 
-        for (auto& e : socketCloseTmp)
-        {
-            CallbackWhenSocketClose.ExecuteIfBound(e);
-        }
+		for (auto& e : socketCloseTmp)
+		{
+			CallbackWhenSocketClose.ExecuteIfBound(e);
+		}
 
-        for (auto& e : handshakeTmp)
-        {
-            CallbackWhenSocketHandshakeDone.ExecuteIfBound(e);
-        }
+		for (auto& e : handshakeTmp)
+		{
+			CallbackWhenSocketHandshakeDone.ExecuteIfBound(e);
+		}
 
-        for (auto& e : inputTmp)
-        {
-            FArrayBuffer ab;
-            ab.Data = (void*)e.second.data();
-            ab.Length = e.second.size();
-            CallbackWhenSocketProcessInputBuffer.ExecuteIfBound(e.first, ab, 0, e.second.size());
-        }
-    }
+		for (auto& e : inputTmp)
+		{
+			FArrayBuffer ab;
+			ab.Data = (void*)e.second.data();
+			ab.Length = e.second.size();
+			CallbackWhenSocketProcessInputBuffer.ExecuteIfBound(e.first, ab, 0, e.second.size());
+		}
+	}
 };

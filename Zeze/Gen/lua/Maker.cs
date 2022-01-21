@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
+using System.IO;
 
 namespace Zeze.Gen.lua
 {
@@ -14,7 +13,7 @@ namespace Zeze.Gen.lua
             Project = project;
         }
 
-        private string GetBeanTypeId(Types.Type type)
+        string GetBeanTypeId(Types.Type type)
         {
             if (null == type)
                 return "0";
@@ -26,9 +25,9 @@ namespace Zeze.Gen.lua
         public void Make()
         {
             string projectBasedir = Project.Gendir;
-            string projectDir = System.IO.Path.Combine(projectBasedir, Project.Name);
-            string genDir = System.IO.Path.Combine(projectDir, "LuaGen");
-            string srcDir = System.IO.Path.Combine(projectDir, "LuaSrc");
+            string projectDir = Path.Combine(projectBasedir, Project.Name);
+            string genDir = Path.Combine(projectDir, "LuaGen");
+            string srcDir = Path.Combine(projectDir, "LuaSrc");
 
             Program.AddGenDir(genDir);
 
@@ -36,10 +35,10 @@ namespace Zeze.Gen.lua
             foreach (Module mod in Project.AllOrderDefineModules)
                 allRefModules.Add(mod);
 
-            System.IO.Directory.CreateDirectory(genDir);
+            Directory.CreateDirectory(genDir);
 
-            string metaFileName = System.IO.Path.Combine(genDir, "ZezeMeta.lua");
-            using System.IO.StreamWriter swMeta = Program.OpenStreamWriter(metaFileName);
+            string metaFileName = Path.Combine(genDir, "ZezeMeta.lua");
+            using StreamWriter swMeta = Program.OpenStreamWriter(metaFileName);
             swMeta.WriteLine("-- auto-generated");
             swMeta.WriteLine("local meta = {}");
             swMeta.WriteLine("meta.beans = {}");
@@ -95,11 +94,9 @@ namespace Zeze.Gen.lua
             {
                 ModuleSpace solution = Project.Solution;
 
-                using System.IO.StreamWriter sw = Program.OpenStreamWriter(System.IO.Path.Combine(genDir, solution.Name + ".lua"));
-                if (null != depth0) // 引用了solution内定义的bean，先调用ModuleFormatter生成
-                {
+                using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(genDir, solution.Name + ".lua"));
+                if (depth0 != null) // 引用了solution内定义的bean，先调用ModuleFormatter生成
                     new ModuleFormatter(Project, solution, genDir, srcDir).MakeGen(sw);
-                }
                 else
                 {
                     sw.WriteLine("-- auto-generated");
@@ -108,32 +105,30 @@ namespace Zeze.Gen.lua
                     //sw.WriteLine("" + module.Name + ".ModuleId = " + module.Id);
                     sw.WriteLine();
                 }
-                sw.WriteLine("");
+                sw.WriteLine();
                 foreach (var es in sortDepth)
                 {
                     if (es.Key == 0)
                         continue; // solution 已经生成了。
 
                     foreach (var e in es.Value)
-                    {
                         sw.WriteLine($"{e.Path(".", null)} = require '{e.Path(".", null)}'");
-                    }
                 }
-                sw.WriteLine("");
+                sw.WriteLine();
                 sw.WriteLine($"return {solution.Name}");
             }
 
-            string dispatcherFileName = System.IO.Path.Combine(srcDir, "Zeze.lua");
-            if (false == System.IO.File.Exists(dispatcherFileName))
+            string dispatcherFileName = Path.Combine(srcDir, "Zeze.lua");
+            if (false == File.Exists(dispatcherFileName))
             {
-                using System.IO.StreamWriter swDispatcher = Program.OpenStreamWriter(dispatcherFileName);
+                using StreamWriter swDispatcher = Program.OpenStreamWriter(dispatcherFileName);
 
-                swDispatcher.WriteLine("");
-                swDispatcher.WriteLine("local Zeze = { }");
-                swDispatcher.WriteLine("Zeze.ProtocolHandles = { }");
-                swDispatcher.WriteLine("Zeze.RpcContext = { }");
+                swDispatcher.WriteLine();
+                swDispatcher.WriteLine("local Zeze = {}");
+                swDispatcher.WriteLine("Zeze.ProtocolHandles = {}");
+                swDispatcher.WriteLine("Zeze.RpcContext = {}");
                 swDispatcher.WriteLine("Zeze.RpcSidSeed = 1");
-                swDispatcher.WriteLine("");
+                swDispatcher.WriteLine();
                 swDispatcher.WriteLine("function ZezeDispatchRequest(p)");
                 swDispatcher.WriteLine("    local handle = Zeze.ProtocolHandles[p.TypeId]");
                 swDispatcher.WriteLine("    if (nil == handle) then");
@@ -142,7 +137,7 @@ namespace Zeze.Gen.lua
                 swDispatcher.WriteLine("    handle(p)");
                 swDispatcher.WriteLine("    return 1-- 1 if found.not result of handle");
                 swDispatcher.WriteLine("end");
-                swDispatcher.WriteLine("");
+                swDispatcher.WriteLine();
                 swDispatcher.WriteLine("function ZezeDispatchProtocol(p)");
                 swDispatcher.WriteLine("    if (p.IsRpc) then");
                 swDispatcher.WriteLine("        if (p.IsRequest) then");
@@ -164,11 +159,11 @@ namespace Zeze.Gen.lua
                 swDispatcher.WriteLine("    end");
                 swDispatcher.WriteLine("    return ZezeDispatchRequest(p)");
                 swDispatcher.WriteLine("end");
-                swDispatcher.WriteLine("");
+                swDispatcher.WriteLine();
                 swDispatcher.WriteLine("function ZezeSocketClose(service, sessionId)");
                 swDispatcher.WriteLine("    print('ZezeSocketClose')");
                 swDispatcher.WriteLine("end");
-                swDispatcher.WriteLine("");
+                swDispatcher.WriteLine();
                 swDispatcher.WriteLine("function ZezeSendRpc(service, session, r, functionHandleResult)");
                 swDispatcher.WriteLine("    r.IsRequest = true");
                 swDispatcher.WriteLine("    r.Service = service");
@@ -179,19 +174,19 @@ namespace Zeze.Gen.lua
                 swDispatcher.WriteLine("    Zeze.RpcContext[r.Sid] = r");
                 swDispatcher.WriteLine("    ZezeSendProtocol(service, session, r)");
                 swDispatcher.WriteLine("end");
-                swDispatcher.WriteLine("");
+                swDispatcher.WriteLine();
                 swDispatcher.WriteLine("function ZezeSendRpcResult(r)");
                 swDispatcher.WriteLine("    r.IsRequest = false");
                 swDispatcher.WriteLine("    -- r.Sid same as request");
                 swDispatcher.WriteLine("    ZezeSendProtocol(r.Service, r.SessionId, r)");
                 swDispatcher.WriteLine("end");
-                swDispatcher.WriteLine("");
+                swDispatcher.WriteLine();
                 swDispatcher.WriteLine("function ZezeHandshakeDone(service, sessionId)");
                 swDispatcher.WriteLine("    Zeze.CurrentService = service");
                 swDispatcher.WriteLine("    Zeze.CurrentSessionId = sessionId");
                 swDispatcher.WriteLine("    -- connection ready. write you code here.");
                 swDispatcher.WriteLine("end");
-                swDispatcher.WriteLine("");
+                swDispatcher.WriteLine();
                 swDispatcher.WriteLine("return Zeze");
             }
         }

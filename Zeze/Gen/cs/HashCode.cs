@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Text;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
     public class HashCode : Visitor
     {
-		public static void Make(BeanKey bean, System.IO.StreamWriter sw, String prefix)
+		public static void Make(BeanKey bean, StreamWriter sw, string prefix)
 		{
 			sw.WriteLine(prefix + "public override int GetHashCode()");
 			sw.WriteLine(prefix + "{");
@@ -22,11 +20,11 @@ namespace Zeze.Gen.cs
 			}
 			sw.WriteLine(prefix + "    return _h_;");
 			sw.WriteLine(prefix + "}");
-			sw.WriteLine("");
+			sw.WriteLine();
 		}
 
-        private String varname;
-        private String text;
+        readonly string varname;
+        string text;
 
         public HashCode(string varname)
         {

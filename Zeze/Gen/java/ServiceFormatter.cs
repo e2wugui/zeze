@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
 
 namespace Zeze.Gen.java
 {
     public class ServiceFormatter
     {
-        Service service;
-        string genDir;
-        string srcDir;
+        readonly Service service;
+        readonly string genDir;
+        readonly string srcDir;
 
         public ServiceFormatter(Service service, string genDir, string srcDir)
         {
@@ -30,22 +28,22 @@ namespace Zeze.Gen.java
 
         public void MakePartialInGen()
         {
-            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + "Base.java");
+            using StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + "Base.java");
 
-            sw.WriteLine("// auto-generated");
+            sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + service.Project.Solution.Path() + ";");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("public class " + service.Name + "Base extends " + BaseClass() + " {");
             sw.WriteLine("    public " + service.Name + "Base(Zeze.Application zeze) throws Throwable {");
             sw.WriteLine("        super(\"" + service.Name + "\", zeze);");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             /*
             if (service.IsProvider)
             {
                 sw.WriteLine("        // 用来同步等待Provider的静态绑定完成。");
                 sw.WriteLine("        public System.Threading.ManualResetEvent ProviderStaticBindCompleted = new System.Threading.ManualResetEvent(false);");
-                sw.WriteLine("");
+                sw.WriteLine();
                 sw.WriteLine("        public void ProviderStaticBind(Zeze.Net.AsyncSocket socket)");
                 sw.WriteLine("        {");
                 sw.WriteLine("            var rpc = new Zezex.Provider.Bind();");
@@ -58,7 +56,7 @@ namespace Zeze.Gen.java
                 }
                 sw.WriteLine("            rpc.Send(socket, (protocol) => { ProviderStaticBindCompleted.Set(); return 0; });");
                 sw.WriteLine("        }");
-                sw.WriteLine("");
+                sw.WriteLine();
             }
             */
             sw.WriteLine("}");
@@ -66,12 +64,12 @@ namespace Zeze.Gen.java
 
         public void MakePartialInSrc()
         {
-            using System.IO.StreamWriter sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".java", false);
-            if (null == sw)
+            using StreamWriter sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".java", false);
+            if (sw == null)
                 return;
 
             sw.WriteLine("package " + service.Project.Solution.Path() + ";");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine($"public class {service.Name} extends {service.Name}Base {{");
             sw.WriteLine("    public " + service.Name + "(Zeze.Application zeze) throws Throwable {");
             sw.WriteLine("        super(zeze);");

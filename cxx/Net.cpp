@@ -1,11 +1,10 @@
-
+#include <unordered_map>
+#include <iostream>
 #include "Net.h"
 #include "Protocol.h"
-#include <iostream>
 #include "ByteBuffer.h"
 #include "security.h"
 #include "rfc2118.h"
-#include <unordered_map>
 
 namespace Zeze
 {
@@ -23,7 +22,7 @@ namespace Net
 			dh_data = bb.ReadBytes();
 		}
 
-		void Encode(Zeze::Serialize::ByteBuffer& bb) override
+		void Encode(Zeze::Serialize::ByteBuffer& bb) const override
 		{
 			bb.WriteByte(dh_group);
 			bb.WriteBytes(dh_data);
@@ -44,7 +43,7 @@ namespace Net
 			c2sneedcompress = bb.ReadBool();
 		}
 
-		void Encode(Zeze::Serialize::ByteBuffer& bb) override
+		void Encode(Zeze::Serialize::ByteBuffer& bb) const override
 		{
 			bb.WriteBytes(dh_data);
 			bb.WriteBool(s2cneedcompress);
@@ -252,7 +251,7 @@ namespace Net
 
 	void Service::DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int moduleId, int protocolId, Zeze::Serialize::ByteBuffer& data)
 	{
-		sender; protocolId; data;
+		sender; moduleId; protocolId; data;
 	}
 
 	void Service::StartConnect(const std::string& host, int port, int delay, int timeoutSecondsPerConnect)
@@ -269,11 +268,11 @@ namespace Net
 						lastSuccessAddress = at->LastAddress;
 						return;
 					}
-					// Á¬½ÓÊ§°Ü£¬ÄÚ²¿ÒÑ¾­µ÷ÓÃCloseÊÍ·Åshared_ptr¡£
+					// è¿æ¥å¤±è´¥ï¼Œå†…éƒ¨å·²ç»è°ƒç”¨Closeé‡Šæ”¾shared_ptrã€‚
 				}
 				catch (...)
 				{
-					at->Close(NULL); // XXX Òì³£µÄÊ±ºòĞèÒªÊÖ¶¯ÊÍ·ÅSocketÄÚ²¿µÄshared_ptr¡£
+					at->Close(NULL); // XXX å¼‚å¸¸çš„æ—¶å€™éœ€è¦æ‰‹åŠ¨é‡Šæ”¾Socketå†…éƒ¨çš„shared_ptrã€‚
 				}
 			}).detach();
 	}
@@ -297,7 +296,7 @@ namespace Net
 	}
 
 	/// <summary>
-	/// ÏÂÃæÊ¹ÓÃÏµÍ³socket-apiÊµÏÖÕæÕıµÄÍøÂç²Ù×÷¡£¾¡Á¿Ê¹ÓÃÆÕÍ¨api£¬Æ½Ì¨Ïà¹Ø¡£
+	/// ä¸‹é¢ä½¿ç”¨ç³»ç»Ÿsocket-apiå®ç°çœŸæ­£çš„ç½‘ç»œæ“ä½œã€‚å°½é‡ä½¿ç”¨æ™®é€šapiï¼Œå¹³å°ç›¸å…³ã€‚
 	/// </summary>
 
 	class Selector
@@ -321,7 +320,7 @@ namespace Net
 			{
 				sock->selectorFlags = newFlags;
 				auto rc = pending.insert(std::make_pair(sock, newFlags));
-				if (false == rc.second) // ÒÑ¾­´æÔÚ£¬¸üĞÂflags
+				if (false == rc.second) // å·²ç»å­˜åœ¨ï¼Œæ›´æ–°flags
 					rc.first->second = newFlags;
 				Wakeup();
 			}
@@ -391,7 +390,7 @@ namespace Net
 					if (FD_ISSET(wakeupfds[0], &setread))
 					{
 						char buf[256];
-						while (true) // È·±£¶ÁÍêËùÓĞµÄwakeupÏûÏ¢¡£
+						while (true) // ç¡®ä¿è¯»å®Œæ‰€æœ‰çš„wakeupæ¶ˆæ¯ã€‚
 						{
 							if (::recv(wakeupfds[0], buf, sizeof(buf), 0) < sizeof(buf))
 								break;
@@ -449,8 +448,8 @@ namespace Net
 			::send(wakeupfds[1], " ", 1, 0);
 		}
 
-		// ¿Í»§¶Ë²»ĞèÒª´óÁ¿Á¬½Ó£¬ÏÈÊµÏÖÒ»¸ö×ÜÊÇÊ¹ÓÃselectµÄ°æ±¾¡£
-		// ¿´ĞèÒªÔÙÊµÏÖÆäËû°æ±¾¡£
+		// å®¢æˆ·ç«¯ä¸éœ€è¦å¤§é‡è¿æ¥ï¼Œå…ˆå®ç°ä¸€ä¸ªæ€»æ˜¯ä½¿ç”¨selectçš„ç‰ˆæœ¬ã€‚
+		// çœ‹éœ€è¦å†å®ç°å…¶ä»–ç‰ˆæœ¬ã€‚
 #ifdef LIMAX_OS_WINDOWS
 		int pipe(unsigned int fildes[2])
 		{
@@ -610,14 +609,14 @@ namespace Net
 		{
 			InputCodec->update((int8_t*)recvbuf.data, 0, rc);
 			InputCodec->flush();
-			Zeze::Serialize::ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, InputBuffer->buffer.size());
+			Zeze::Serialize::ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, (int)InputBuffer->buffer.size());
 			service->OnSocketProcessInputBuffer(This, bb);
 			InputBuffer->buffer.erase(0, bb.ReadIndex);
 		}
 		else if (InputBuffer->buffer.size() > 0)
 		{
 			InputBuffer->buffer.append(recvbuf.data, rc);
-			Zeze::Serialize::ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, InputBuffer->buffer.size());
+			Zeze::Serialize::ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, (int)InputBuffer->buffer.size());
 			service->OnSocketProcessInputBuffer(This, bb);
 			InputBuffer->buffer.erase(0, bb.ReadIndex);
 		}
@@ -637,7 +636,7 @@ namespace Net
 	{
 		std::lock_guard<std::recursive_mutex> g(mutex);
 
-		int rc = ::send(socket, OutputBuffer->buffer.data(), OutputBuffer->buffer.size(), 0);
+		int rc = ::send(socket, OutputBuffer->buffer.data(), (int)OutputBuffer->buffer.size(), 0);
 		if (-1 == rc)
 		{
 			if (false == platform_ignore_error_for_send())
@@ -665,7 +664,7 @@ namespace Net
 			OutputCodec->flush();
 			data = OutputBuffer->buffer.data();
 			offset = 0;
-			length = OutputBuffer->buffer.size();
+			length = (int)OutputBuffer->buffer.size();
 			hasCodec = true;
 		}
 
@@ -703,7 +702,7 @@ namespace Net
 			return;
 		}
 		// in sending
-		if (false == hasCodec) // Èç¹ûÓĞCodec£¬ÄÇÃ´½«Òª·¢ËÍµÄÊı¾İÒÑ¾­±»´¦Àí(update)µ½bufferÖĞ£¬²»ĞèÒªÔÙ´ÎÌí¼Ó¡£
+		if (false == hasCodec) // å¦‚æœæœ‰Codecï¼Œé‚£ä¹ˆå°†è¦å‘é€çš„æ•°æ®å·²ç»è¢«å¤„ç†(update)åˆ°bufferä¸­ï¼Œä¸éœ€è¦å†æ¬¡æ·»åŠ ã€‚
 			OutputBuffer->buffer.append(data + offset, length);
 	}
 
@@ -759,9 +758,9 @@ namespace Net
 			if (so == 0)
 				continue;
 
-			// ÉèÖÃÒì²½Ä£Ê½
+			// è®¾ç½®å¼‚æ­¥æ¨¡å¼
 #ifdef LIMAX_OS_WINDOWS
-			unsigned long ul = 1;
+			u_long ul = 1;
 			if (SOCKET_ERROR == ::ioctlsocket(so, FIONBIO, &ul))
 #else
 			if (-1 == fcntl(so, F_SETFL, fcntl(sock, F_GETFL) | O_NONBLOCK))
@@ -772,16 +771,16 @@ namespace Net
 			}
 
 			int ret = ::connect(so, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
-			if (ret != -1) // Á¬½ÓÂíÉÏ³É¹¦£¬Òì²½socket£¬windowsÓ¦¸Ã²»»áÁ¢¼´·µ»Ø³É¹¦¡£±£ÏÕĞ´·¨
+			if (ret != -1) // è¿æ¥é©¬ä¸ŠæˆåŠŸï¼Œå¼‚æ­¥socketï¼Œwindowsåº”è¯¥ä¸ä¼šç«‹å³è¿”å›æˆåŠŸã€‚ä¿é™©å†™æ³•
 			{
 				AssignAddressBytes(ai, LastAddressBytes);
 				char addrName[256];
 				if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) == 0)
-					LastAddress = addrName; // ÉèÖÃ³É¹¦Á¬½ÓµÄµØÖ·
+					LastAddress = addrName; // è®¾ç½®æˆåŠŸè¿æ¥çš„åœ°å€
 				break;
 			}
 #ifdef LIMAX_OS_WINDOWS
-			if (::WSAGetLastError() == WSAEWOULDBLOCK) // Á¬½Ó´¦ÀíÖĞ¡£¡£¡£
+			if (::WSAGetLastError() == WSAEWOULDBLOCK) // è¿æ¥å¤„ç†ä¸­ã€‚ã€‚ã€‚
 #else
 			if (errno == EINPROGRESS)
 #endif
@@ -795,7 +794,7 @@ namespace Net
 				ret = ::select(so + 1, NULL, &setw, NULL, &timeout);
 				if (ret <= 0)
 				{
-					// ´íÎó»òÕß³¬Ê±
+					// é”™è¯¯æˆ–è€…è¶…æ—¶
 					platform_close_socket(so);
 					continue;
 				}
@@ -808,7 +807,7 @@ namespace Net
 						AssignAddressBytes(ai, LastAddressBytes);
 						char addrName[256];
 						if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) == 0)
-							LastAddress = addrName; // ÉèÖÃ³É¹¦Á¬½ÓµÄµØÖ·
+							LastAddress = addrName; // è®¾ç½®æˆåŠŸè¿æ¥çš„åœ°å€
 						break;
 					}
 				}

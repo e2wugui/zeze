@@ -450,7 +450,7 @@ namespace Zeze.Transaction
                     return Id + "-[Isolated]";
                 }
                 var sb = new StringBuilder();
-                sb.Append(Id).Append("-");
+                sb.Append(Id).Append('-');
                 Zeze.Serialize.ByteBuffer.BuildString(sb, RecordSet);
                 return sb.ToString();
             }
@@ -460,7 +460,7 @@ namespace Zeze.Transaction
             }
         }
 
-        public static String RelativeRecordSetMapToString()
+        public static string RelativeRecordSetMapToString()
         {
             var sb = new StringBuilder();
             Zeze.Serialize.ByteBuffer.BuildString(sb, RelativeRecordSetMap.Keys);

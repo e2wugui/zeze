@@ -1,30 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Zeze.Gen.Types;
+﻿using Zeze.Gen.Types;
 
 namespace Zeze.Gen.ts
 {
-    public class TypeName : Types.Visitor
+    public class TypeName : Visitor
     {
         public string name;
         public string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
 
-        public static string GetName(Types.Type type)
+        public static string GetName(Type type)
         {
-            var visitor = new TypeName();
+            TypeName visitor = new();
             type.Accept(visitor);
             return visitor.name;
         }
 
-        public void Visit(Bean type)
+        public void Visit(TypeBool type)
         {
-            name = type.Space.Path("_", type.Name);
-        }
-
-        public void Visit(BeanKey type)
-        {
-            name = type.Space.Path("_", type.Name);
+            name = "boolean";
         }
 
         public void Visit(TypeByte type)
@@ -32,7 +24,7 @@ namespace Zeze.Gen.ts
             name = "number";
         }
 
-        public void Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
             name = "number";
         }
@@ -47,9 +39,14 @@ namespace Zeze.Gen.ts
             name = "bigint";
         }
 
-        public void Visit(TypeBool type)
+        public void Visit(TypeFloat type)
         {
-            name = "boolean";
+            name = "number";
+        }
+
+        public void Visit(TypeDouble type)
+        {
+            name = "number";
         }
 
         public void Visit(TypeBinary type)
@@ -64,31 +61,31 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeList type)
         {
-            string valueName = TypeName.GetName(type.ValueType);
+            string valueName = GetName(type.ValueType);
             name = "Array<" + valueName + ">";
         }
 
         public void Visit(TypeSet type)
         {
-            string valueName = TypeName.GetName(type.ValueType);
+            string valueName = GetName(type.ValueType);
             name = "Set<" + valueName + ">";
         }
 
         public void Visit(TypeMap type)
         {
-            string key = TypeName.GetName(type.KeyType);
-            string value = TypeName.GetName(type.ValueType);
+            string key = GetName(type.KeyType);
+            string value = GetName(type.ValueType);
             name = "Map<" + key + ", " + value + ">";
         }
 
-        public void Visit(TypeFloat type)
+        public void Visit(Bean type)
         {
-            name = "number";
+            name = type.Space.Path("_", type.Name);
         }
 
-        public void Visit(TypeShort type)
+        public void Visit(BeanKey type)
         {
-            name = "number";
+            name = type.Space.Path("_", type.Name);
         }
 
         public void Visit(TypeDynamic type)

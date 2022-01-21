@@ -1,27 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
-    public class Log : Types.Visitor
+    public class Log : Visitor
     {
-        System.IO.StreamWriter sw;
-        Types.Bean bean;
-        Types.Variable var;
-        string prefix;
+        readonly StreamWriter sw;
+        readonly Bean bean;
+        readonly Variable var;
+        readonly string prefix;
 
-        public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            foreach (Types.Variable var in bean.Variables)
+            foreach (Variable var in bean.Variables)
             {
                 var.VariableType.Accept(new Log(bean, sw, var, prefix));
-                sw.WriteLine("");
+                sw.WriteLine();
             }
         }
 
-        public Log(Types.Bean bean, System.IO.StreamWriter sw, Types.Variable var, string prefix)
+        public Log(Bean bean, StreamWriter sw, Variable var, string prefix)
         {
             this.bean = bean;
             this.sw = sw;
@@ -33,10 +32,10 @@ namespace Zeze.Gen.java
         {
         }
 
-        private void WriteLogValue(Types.Type type)
+        void WriteLogValue(Types.Type type)
         {
             string valueName = BoxingName.GetBoxingName(type);
-            sw.WriteLine(prefix + "private final static class Log_" + var.NamePrivate + " extends Zeze.Transaction.Log1<" + bean.Name + ", " + valueName + "> {");
+            sw.WriteLine(prefix + "private static final class Log_" + var.NamePrivate + " extends Zeze.Transaction.Log1<" + bean.Name + ", " + valueName + "> {");
             sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " self, " + valueName + " value) { super(self, value); }");
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + "    public long getLogKey() { return this.getBean().getObjectId() + " + var.Id + "; }");
@@ -45,7 +44,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "}");
         }
 
-        public void Visit(BeanKey type)
+        public void Visit(TypeBool type)
         {
             WriteLogValue(type);
         }
@@ -55,7 +54,7 @@ namespace Zeze.Gen.java
             WriteLogValue(type);
         }
 
-        public void Visit(TypeDouble type)
+        public void Visit(TypeShort type)
         {
             WriteLogValue(type);
         }
@@ -70,7 +69,12 @@ namespace Zeze.Gen.java
             WriteLogValue(type);
         }
 
-        public void Visit(TypeBool type)
+        public void Visit(TypeFloat type)
+        {
+            WriteLogValue(type);
+        }
+
+        public void Visit(TypeDouble type)
         {
             WriteLogValue(type);
         }
@@ -85,7 +89,7 @@ namespace Zeze.Gen.java
             WriteLogValue(type);
         }
 
-        private string GetTemplatParams(Types.Type type)
+        string GetTemplatParams(Types.Type type)
         {
             if (type is TypeCollection coll)
             {
@@ -98,13 +102,13 @@ namespace Zeze.Gen.java
             throw new Exception("Not A Container Type");
         }
 
-        private void WriteCollectionLog(Types.Type type)
+        void WriteCollectionLog(Types.Type type)
         {
             var pn = GetTemplatParams(type);
             var tn = new TypeName();
             type.Accept(tn);
 
-            sw.WriteLine(prefix + $"private final class Log_{var.NamePrivate} extends {tn.nameRaw}.LogV<{pn}> {{");
+            sw.WriteLine(prefix + $"private static final class Log_{var.NamePrivate} extends {tn.nameRaw}.LogV<{pn}> {{");
             sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " host, " + tn.nameCollectionImplement + " value) { super(host, value); }");
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + "    public long getLogKey() { return getBean().getObjectId() + " + var.Id + "; }");
@@ -129,12 +133,7 @@ namespace Zeze.Gen.java
             WriteCollectionLog(type);
         }
 
-        public void Visit(TypeFloat type)
-        {
-            WriteLogValue(type);
-        }
-
-        public void Visit(TypeShort type)
+        public void Visit(BeanKey type)
         {
             WriteLogValue(type);
         }
@@ -145,7 +144,7 @@ namespace Zeze.Gen.java
             // 不再需要生成Log。在这里生成 DynamicBean 需要的两个方法。
             foreach (var real in type.RealBeans)
             {
-                sw.WriteLine($"{prefix}public final static long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
+                sw.WriteLine($"{prefix}public static final long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
             }
             if (type.RealBeans.Count > 0)
                 sw.WriteLine();

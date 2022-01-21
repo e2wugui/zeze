@@ -7,7 +7,7 @@ namespace Zeze.Gen.Types
 {
 	public class TypeString : Type
 	{
-		public override Type Compile(ModuleSpace space, String key, String value)
+		public override Type Compile(ModuleSpace space, string key, string value)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);
@@ -28,11 +28,11 @@ namespace Zeze.Gen.Types
 			includes.Add(this);
 		}
 
-		public override String Name => "string";
+		public override string Name => "string";
         public override bool IsImmutable => true; // xxx language depends
 		public override bool IsNeedNegativeCheck => false;
 
-		internal TypeString(SortedDictionary<String, Type> types)
+		internal TypeString(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
 		}

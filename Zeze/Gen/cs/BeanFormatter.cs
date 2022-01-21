@@ -1,30 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.Net.Mime;
-using System.Text;
+﻿using System.IO;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
     public class BeanFormatter
     {
-        Types.Bean bean;
+        readonly Bean bean;
 
-        public BeanFormatter(Types.Bean bean)
+        public BeanFormatter(Bean bean)
         {
             this.bean = bean;
         }
 
         public void Make(string baseDir)
         {
-            using System.IO.StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".cs");
+            using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".cs");
 
             sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
-            sw.WriteLine("using Zeze.Serialize;");
-            sw.WriteLine("using System;");
+            sw.WriteLine("using ByteBuffer = Zeze.Serialize.ByteBuffer;");
+            sw.WriteLine("using Environment = System.Environment;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
             sw.WriteLine($"    public interface {bean.Name}ReadOnly");
@@ -39,36 +35,38 @@ namespace Zeze.Gen.cs
             sw.WriteLine("}");
         }
 
-        public void WriteDefine(System.IO.StreamWriter sw)
+        public void WriteDefine(StreamWriter sw)
         {
             // declare enums
-            foreach (Types.Enum e in bean.Enums)
-            {
+            foreach (Enum e in bean.Enums)
                 sw.WriteLine("        public const int " + e.Name + " = " + e.Value + ";" + e.Comment);
-            }
             if (bean.Enums.Count > 0)
-            {
-                sw.WriteLine("");
-            }
+                sw.WriteLine();
 
             // declare variables
-            foreach (Types.Variable v in bean.Variables)
+            bean.Variables.Sort((a, b) => a.Id - b.Id);
+            foreach (Variable v in bean.Variables)
             {
-                sw.WriteLine("        private " + TypeName.GetName(v.VariableType) + " " + v.NamePrivate + ";" + v.Comment);
-                if (v.VariableType is Types.TypeMap pmap)
+                Type vt = v.VariableType;
+                string ro = vt is TypeCollection
+                    || vt is TypeMap
+                    || vt is Bean
+                    || vt is TypeDynamic
+                    ? "readonly " : "";
+                sw.WriteLine("        " + ro + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
+                if (vt is TypeMap pmap)
                 {
                     var key = TypeName.GetName(pmap.KeyType);
                     var value = pmap.ValueType.IsNormalBean
                         ? TypeName.GetName(pmap.ValueType) + "ReadOnly"
                         : TypeName.GetName(pmap.ValueType);
                     var readonlyTypeName = $"Zeze.Transaction.Collections.PMapReadOnly<{key},{value},{TypeName.GetName(pmap.ValueType)}>";
-                    sw.WriteLine($"        private {readonlyTypeName} {v.NamePrivate}ReadOnly;");
+                    sw.WriteLine($"        {readonlyTypeName} {v.NamePrivate}ReadOnly;");
                 }
             }
-            sw.WriteLine("");
+            sw.WriteLine();
 
             Property.Make(bean, sw, "        ");
-            sw.WriteLine();
             Construct.Make(bean, sw, "        ");
             Assign.Make(bean, sw, "        ");
             // Copy

@@ -146,13 +146,13 @@ namespace Zeze.Gen.ts
                 RegisterProtocol(sw);
                 sw.WriteLine("        " + fcg.ChunkEndTag + " " + ChunkNameRegisterProtocol);
                 sw.WriteLine("    }");
-                sw.WriteLine("");
+                sw.WriteLine();
                 sw.WriteLine("    public Start(app: " + module.Solution.Name + "_App): void {");
                 sw.WriteLine("    }");
-                sw.WriteLine("");
+                sw.WriteLine();
                 sw.WriteLine("    public Stop(app: " + module.Solution.Name + "_App): void {");
                 sw.WriteLine("    }");
-                sw.WriteLine("");
+                sw.WriteLine();
                 if (module.ReferenceService != null)
                 {
                     int serviceHandleFlags = module.ReferenceService.HandleFlags;
@@ -166,7 +166,7 @@ namespace Zeze.Gen.ts
                                 sw.WriteLine("    public Process" + rpc.Name + "Request(rpc: " + fullName + "): number {");
                                 sw.WriteLine("        return 0;");
                                 sw.WriteLine("    }");
-                                sw.WriteLine("");
+                                sw.WriteLine();
                             }
                             continue;
                         }
@@ -175,7 +175,7 @@ namespace Zeze.Gen.ts
                             sw.WriteLine("    public Process" + p.Name + "(protocol: " + fullName + "): number {");
                             sw.WriteLine("        return 0;");
                             sw.WriteLine("    }");
-                            sw.WriteLine("");
+                            sw.WriteLine();
                         }
                     }
                 }

@@ -1,13 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
     public class Compare : Visitor
 	{
-		public static void Make(BeanKey bean, System.IO.StreamWriter sw, String prefix)
+		public static void Make(BeanKey bean, StreamWriter sw, string prefix)
 		{
 			sw.WriteLine(prefix + "public int CompareTo(object _o1_)");
 			sw.WriteLine(prefix + "{");
@@ -20,22 +19,22 @@ namespace Zeze.Gen.cs
                 Compare e = new Compare(var, "_o_");
 				var.VariableType.Accept(e);
 				sw.WriteLine(prefix + "        _c_ = " + e.text + ";");
-                sw.WriteLine(prefix + "        if (0 != _c_) return _c_;");
+                sw.WriteLine(prefix + "        if (_c_ != 0) return _c_;");
 			}
 			sw.WriteLine(prefix + "        return _c_;");
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    throw new System.Exception(\"CompareTo: another object is not " + bean.FullName + "\");");
+            sw.WriteLine(prefix + "    throw new Exception(\"CompareTo: another object is not " + bean.FullName + "\");");
             sw.WriteLine(prefix + "}");
-			sw.WriteLine("");
+			sw.WriteLine();
 		}
 
-        private Variable variable;
-        private String another;
-        private String text;
+        readonly Variable variable;
+        readonly string another;
+        string text;
         
         public Compare(Variable var, string another)
         {
-            this.variable = var;
+            variable = var;
             this.another = another;
         }
 

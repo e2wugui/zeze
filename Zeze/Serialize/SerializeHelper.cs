@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Zeze.Net;
 
 namespace Zeze.Serialize
 {
@@ -15,13 +12,13 @@ namespace Zeze.Serialize
             if (type == typeof(byte))
             {
                 return (Func<ByteBuffer, T>)(Delegate)(new Func<ByteBuffer, byte>(
-                    (ByteBuffer bb) => bb.ReadByte()));
+                    (ByteBuffer bb) => (byte)bb.ReadLong()));
             }
 
             if (type == typeof(short))
             {
                 return (Func<ByteBuffer, T>)(Delegate)(new Func<ByteBuffer, short>(
-                    (ByteBuffer bb) => bb.ReadShort()));
+                    (ByteBuffer bb) => (short)bb.ReadLong()));
             }
 
             if (type == typeof(int))
@@ -42,9 +39,9 @@ namespace Zeze.Serialize
                     (ByteBuffer bb) => bb.ReadString()));
             }
 
-            if (type == typeof(Zeze.Net.Binary))
+            if (type == typeof(Binary))
             {
-                return (Func<ByteBuffer, T>)(Delegate)(new Func<ByteBuffer, Zeze.Net.Binary>(
+                return (Func<ByteBuffer, T>)(Delegate)(new Func<ByteBuffer, Binary>(
                     (ByteBuffer bb) => bb.ReadBinary()));
             }
 
@@ -75,13 +72,13 @@ namespace Zeze.Serialize
             if (type == typeof(byte))
             {
                 return (Action<ByteBuffer, T>)(Delegate)(new Action<ByteBuffer, byte>(
-                        (ByteBuffer buf, byte x) => buf.WriteByte(x)));
+                        (ByteBuffer buf, byte x) => buf.WriteLong((sbyte)x)));
             }
 
             if (type == typeof(short))
             {
                 return (Action<ByteBuffer, T>)(Delegate)(new Action<ByteBuffer, short>(
-                        (ByteBuffer buf, short x) => buf.WriteShort(x)));
+                        (ByteBuffer buf, short x) => buf.WriteLong(x)));
             }
 
             if (type == typeof(int))
@@ -102,10 +99,10 @@ namespace Zeze.Serialize
                         (ByteBuffer buf, string x) => buf.WriteString(x)));
             }
 
-            if (type == typeof(Zeze.Net.Binary))
+            if (type == typeof(Binary))
             {
-                return (Action<ByteBuffer, T>)(Delegate)(new Action<ByteBuffer, Zeze.Net.Binary>(
-                        (ByteBuffer buf, Zeze.Net.Binary x) => buf.WriteBinary(x)));
+                return (Action<ByteBuffer, T>)(Delegate)(new Action<ByteBuffer, Binary>(
+                        (ByteBuffer buf, Binary x) => buf.WriteBinary(x)));
             }
 
             if (typeof(Serializable).IsAssignableFrom(typeof(T)))

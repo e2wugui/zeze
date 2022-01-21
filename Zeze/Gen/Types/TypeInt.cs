@@ -8,7 +8,7 @@ namespace Zeze.Gen.Types
 	public class TypeInt : Type
 	{
 
-		public override Type Compile(ModuleSpace space, String key, String value)
+		public override Type Compile(ModuleSpace space, string key, string value)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);
@@ -34,7 +34,7 @@ namespace Zeze.Gen.Types
         public override bool IsImmutable => true;
 		public override bool IsNeedNegativeCheck => true;
 
-		internal TypeInt(SortedDictionary<String, Type> types)
+		internal TypeInt(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
 		}
