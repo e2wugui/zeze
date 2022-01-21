@@ -142,12 +142,10 @@ namespace Zeze.Net
             //logger.Warn("Socket={0}, Context={1}", Socket, so);
             lock (this)
             {
-                while (false == FutureSocket.TrySetResult(so))
-                {
-                    logger.Info("FutureSocket.SetResult Fail.");
-                    // do nothing for volatile
-                }
+                if (FutureSocket.TrySetResult(so))
+                    return;
             }
+            so.Close(new Exception("FutureSocket.SetResult Fail."));
         }
 
         public virtual void TryReconnect()

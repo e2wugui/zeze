@@ -474,8 +474,8 @@ namespace Zeze.Raft
             var lastExpectCount = ExpectCount.Get();
             while (false == Console.KeyAvailable)
             {
-                ExpectCount.AddAndGet(ConcurrentAddCount(testname, 5));
-                if (ExpectCount.Get() - lastExpectCount > 5 * 10)
+                ExpectCount.AddAndGet(ConcurrentAddCount(testname, 20));
+                if (ExpectCount.Get() - lastExpectCount > 20 * 5)
                 {
                     lastExpectCount = ExpectCount.Get();
                     if (false == Check(testname))

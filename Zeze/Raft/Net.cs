@@ -85,7 +85,9 @@ namespace Zeze.Raft
             public override void OnSocketHandshakeDone(AsyncSocket so)
             {
                 base.OnSocketHandshakeDone(so);
-                Util.Task.Run(() => (Service as Server).Raft.LogSequence.TrySendAppendEntries(this, null), "TryStartLogCopy");
+                var raft = (Service as Server).Raft;
+                raft.ImportantThreadPool.QueueUserWorkItem(
+                    () => Util.Task.Call(() => raft.LogSequence.TrySendAppendEntries(this, null), "TryStartLogCopy"));
             }
         }
 
