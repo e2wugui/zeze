@@ -741,9 +741,6 @@ namespace Zeze.Raft
                     StateMachine = new TestStateMachine();
 
                     var raftConfig = RaftConfig.Load(RaftConfigFileName);
-                    raftConfig.AppendEntriesTimeout = 1000;
-                    raftConfig.LeaderHeartbeatTimer = 1500;
-                    raftConfig.LeaderLostTimeout = 2000;
                     raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
                     if (resetLog)
                     {
