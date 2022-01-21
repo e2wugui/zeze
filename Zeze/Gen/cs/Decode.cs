@@ -19,10 +19,23 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
 
+            int lastId = 0;
             foreach (Variable v in bean.Variables)
             {
                 if (v.Id > 0)
+                {
+                    if (v.Id <= lastId)
+                        throw new Exception("unordered var.id");
+                    if (v.Id - lastId > 1)
+                    {
+                         sw.WriteLine(prefix + "    while (_t_ != 0 && _i_ < " + v.Id + ") {");
+                         sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
+                         sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
+                         sw.WriteLine(prefix + "    }");
+                    }
+                    lastId = v.Id;
                     sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ")");
+                }
                 sw.WriteLine(prefix + "    {");
                 v.VariableType.Accept(new Decode(v.NameUpper1, v.Id, "_o_", sw, prefix + "        "));
                 if (v.Id > 0)
