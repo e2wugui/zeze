@@ -49,7 +49,7 @@ namespace Zeze.Services
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private HashSet<long> HandshakeProtocols = new HashSet<long>();
+        private readonly HashSet<long> HandshakeProtocols = new();
 
         class Context
         {
@@ -62,14 +62,13 @@ namespace Zeze.Services
             }
         }
         // For Client Only
-        private ConcurrentDictionary<long, Context> DHContext
-            = new ConcurrentDictionary<long, Context>();
+        private readonly ConcurrentDictionary<long, Context> DHContext = new();
 
-        public HandshakeBase(string name, Zeze.Config config) : base(name, config)
+        public HandshakeBase(string name, Config config) : base(name, config)
         { 
         }
 
-        public HandshakeBase(string name, Zeze.Application app) : base(name, app)
+        public HandshakeBase(string name, Application app) : base(name, app)
         {
         }
 
@@ -83,7 +82,7 @@ namespace Zeze.Services
             {
                 var tmp = new Handshake.CHandshake();
                 HandshakeProtocols.Add(tmp.TypeId);
-                AddFactoryHandle(tmp.TypeId, new Service.ProtocolFactoryHandle()
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
                 {
                     Factory = () => new Handshake.CHandshake(),
                     Handle = ProcessCHandshake,
@@ -93,7 +92,7 @@ namespace Zeze.Services
             {
                 var tmp = new Handshake.CHandshakeDone();
                 HandshakeProtocols.Add(tmp.TypeId);
-                AddFactoryHandle(tmp.TypeId, new Service.ProtocolFactoryHandle()
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
                 {
                     Factory = () => new Handshake.CHandshakeDone(),
                     Handle = ProcessCHandshakeDone,
@@ -120,17 +119,14 @@ namespace Zeze.Services
                     return 0;
                 }
                 Array.Reverse(p.Argument.dh_data);
-                BigInteger data = new BigInteger(p.Argument.dh_data);
+                BigInteger data = new(p.Argument.dh_data);
                 BigInteger rand = Handshake.Helper.makeDHRandom();
                 byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
                 Array.Reverse(material);
-                System.Net.IPAddress ipaddress =
-                    ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
+                IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
                 //logger.Debug(ipaddress);
                 if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
-                byte[] key = Config.HandshakeOptions.SecureIp != null
-                    ? Config.HandshakeOptions.SecureIp
-                    : ipaddress.GetAddressBytes();
+                byte[] key = Config.HandshakeOptions.SecureIp ?? ipaddress.GetAddressBytes();
                 logger.Debug("{0} localip={1}", p.Sender.SessionId, BitConverter.ToString(key));
                 int half = material.Length / 2;
                 byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
@@ -163,7 +159,7 @@ namespace Zeze.Services
         {
             var tmp = new Handshake.SHandshake();
             HandshakeProtocols.Add(tmp.TypeId);
-            AddFactoryHandle(tmp.TypeId, new Service.ProtocolFactoryHandle()
+            AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
             {
                 Factory = () => new Handshake.SHandshake(),
                 Handle = ProcessSHandshake,
@@ -186,8 +182,7 @@ namespace Zeze.Services
                             new BigInteger(p.Argument.dh_data),
                             ctx.DhRandom).ToByteArray();
                         Array.Reverse(material);
-                        System.Net.IPAddress ipaddress =
-                            ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
+                        IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
                         if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
                         byte[] key = ipaddress.GetAddressBytes();
                         logger.Debug("{0} remoteip={1}", p.Sender.SessionId, BitConverter.ToString(key));
@@ -347,7 +342,7 @@ namespace Zeze.Services.Handshake
 {
     public static class Helper
     {
-        private static readonly BigInteger dh_g = new BigInteger(2);
+        private static readonly BigInteger dh_g = new(2);
         private static readonly BigInteger[] dh_group = new BigInteger[] {
             BigInteger.Zero,
             BigInteger.Parse(
@@ -413,7 +408,7 @@ namespace Zeze.Services.Handshake
         }
     }
 
-    public sealed class CHandshakeArgument : Zeze.Transaction.Bean
+    public sealed class CHandshakeArgument : Bean
     {
         public byte dh_group;
         public byte[] dh_data;
@@ -435,7 +430,7 @@ namespace Zeze.Services.Handshake
         }
     }
 
-    public sealed class SHandshakeArgument : Zeze.Transaction.Bean
+    public sealed class SHandshakeArgument : Bean
     {
         public byte[] dh_data;
         public bool s2cneedcompress;
@@ -479,7 +474,7 @@ namespace Zeze.Services.Handshake
         }
     }
 
-    public sealed class SHandshake : Zeze.Net.Protocol<SHandshakeArgument>
+    public sealed class SHandshake : Protocol<SHandshakeArgument>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(SHandshake).FullName);
 

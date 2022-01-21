@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Zeze.Util
 {
@@ -194,7 +191,7 @@ namespace Zeze.Util
                         }
                         TryRemove(e.Key, out var _);
                     }
-                    if (node.Count == 0)
+                    if (node.IsEmpty)
                     {
                         LruQueue.TryDequeue(out var _);
                     }

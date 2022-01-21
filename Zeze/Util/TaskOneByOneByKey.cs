@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -21,7 +19,7 @@ namespace Zeze.Util
     {
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-		private TaskOneByOne[] concurrency;
+		private readonly TaskOneByOne[] concurrency;
 
 		public TaskOneByOneByKey() : this(1024)
         {

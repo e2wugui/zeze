@@ -6,7 +6,7 @@ namespace Zeze.Util
 {
     public class Benchmark
     {
-        private long startTime;
+        private readonly long startTime;
         private PerformanceCounter counter;
 
         [SupportedOSPlatform("windows")]

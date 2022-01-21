@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Net.Sockets;
-using System.Diagnostics;
 using Zeze.Serialize;
 using System.Net;
+using Zeze.Util;
 
 namespace Zeze.Net
 {
@@ -18,10 +17,10 @@ namespace Zeze.Net
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         private byte[] _inputBuffer;
-        private List<System.ArraySegment<byte>> _outputBufferList = null;
-        private int _outputBufferListCountSum = 0;
-        private List<System.ArraySegment<byte>> _outputBufferListSending = null; // 正在发送的 buffers.
-        private int _outputBufferListSendingCountSum = 0;
+        private List<ArraySegment<byte>> _outputBufferList;
+        private int _outputBufferListCountSum;
+        private List<ArraySegment<byte>> _outputBufferListSending; // 正在发送的 buffers.
+        private int _outputBufferListSendingCountSum;
         public Service Service { get; private set; }
         public Connector Connector { get; }
         public Acceptor Acceptor { get; }
@@ -38,22 +37,22 @@ namespace Zeze.Net
         public object UserState { get; set; } 
         public bool IsHandshakeDone { get; set; }
 
-        private static global::Zeze.Util.AtomicLong SessionIdGen = new global::Zeze.Util.AtomicLong();
+        private static readonly AtomicLong SessionIdGen = new AtomicLong();
         public static Func<long> SessionIdGenFunc;
 
-        private SocketAsyncEventArgs eventArgsAccept;
+        private readonly SocketAsyncEventArgs eventArgsAccept;
         private SocketAsyncEventArgs eventArgsReceive;
         private SocketAsyncEventArgs eventArgsSend;
 
-        private BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
-        private BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
+        private readonly BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
+        private readonly BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
 
         private Codec inputCodecChain;
         private Codec outputCodecChain;
 
         public string RemoteAddress { get; private set; }
 
-        private long NextSessionId()
+        private static long NextSessionId()
         {
             if (null != SessionIdGenFunc)
                 return SessionIdGenFunc();
@@ -62,13 +61,15 @@ namespace Zeze.Net
         /// <summary>
         /// for server socket
         /// </summary>
-        public AsyncSocket(Service service, System.Net.EndPoint localEP, Acceptor acceptor)
+        public AsyncSocket(Service service, EndPoint localEP, Acceptor acceptor)
         {
             this.Service = service;
             this.Acceptor = acceptor;
 
-            Socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-            Socket.Blocking = false;
+            Socket = new Socket(SocketType.Stream, ProtocolType.Tcp)
+            {
+                Blocking = false
+            };
             Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
             // xxx 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
@@ -126,8 +127,10 @@ namespace Zeze.Net
             this.Service = service;
             this.Connector = connector;
 
-            Socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-            Socket.Blocking = false;
+            Socket = new Socket(SocketType.Stream, ProtocolType.Tcp)
+            {
+                Blocking = false
+            };
             UserState = userState;
 
             if (null != service.SocketOptions.ReceiveBuffer)
@@ -187,7 +190,7 @@ namespace Zeze.Net
             return Send(protocol.Encode());
         }
 
-        public bool Send(global::Zeze.Serialize.ByteBuffer bb)
+        public bool Send(ByteBuffer bb)
         {
             return Send(bb.Bytes, bb.ReadIndex, bb.Size);
         }
@@ -345,7 +348,7 @@ namespace Zeze.Net
             try
             {
                 int port = (int)ar.AsyncState;
-                System.Net.IPAddress[] addrs = System.Net.Dns.EndGetHostAddresses(ar);
+                IPAddress[] addrs = System.Net.Dns.EndGetHostAddresses(ar);
                 Socket.BeginConnect(addrs, port, OnAsyncConnect, this);
             }
             catch (Exception e)
@@ -529,7 +532,7 @@ namespace Zeze.Net
                 else
                 {
                     // 没有发送完，也没有要发送的
-                    _outputBufferListSendingCountSum = _outputBufferListSendingCountSum - _bytesTransferred;
+                    _outputBufferListSendingCountSum -= _bytesTransferred;
                 }
 
                 if (null != _outputBufferListSending) // 全部发送完，并且 _outputBufferList == null 时，可能为 null

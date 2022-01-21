@@ -1,17 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Collections.Concurrent;
-using Zeze.Serialize;
-using Zeze.Net;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.Net;
-using System.Threading;
 using System.Text;
-using Zeze.Transaction;
+using System.Threading;
 using System.Xml;
-using System.Collections;
+using Zeze.Net;
+using Zeze.Serialize;
 using Zeze.Services.GlobalCacheManager;
+using Zeze.Transaction;
 
 namespace Zeze.Services
 {
@@ -60,7 +57,7 @@ namespace Zeze.Services
         public ServerService Server { get; private set; }
         public AsyncSocket ServerSocket { get; private set; }
         private ConcurrentDictionary<GlobalTableKey, CacheState> global;
-        private Zeze.Util.AtomicLong SerialIdGenerator = new Util.AtomicLong();
+        private readonly Util.AtomicLong SerialIdGenerator = new();
 
         /*
          * 会话。
@@ -198,7 +195,7 @@ namespace Zeze.Services
         /// </summary>
         /// <param name="p"></param>
         /// <returns></returns>
-        private long ProcessCleanup(Zeze.Net.Protocol p)
+        private long ProcessCleanup(Protocol p)
         {
             var rpc = p as Cleanup;
 
@@ -242,7 +239,7 @@ namespace Zeze.Services
             return 0;
         }
 
-        private long ProcessLogin(Zeze.Net.Protocol p)
+        private long ProcessLogin(Protocol p)
         {
             var rpc = p as Login;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
@@ -261,7 +258,7 @@ namespace Zeze.Services
             return 0;
         }
 
-        private long ProcessReLogin(Zeze.Net.Protocol p)
+        private long ProcessReLogin(Protocol p)
         {
             var rpc = p as ReLogin;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
@@ -274,11 +271,10 @@ namespace Zeze.Services
             return 0;
         }
         
-        private long ProcessNormalClose(Zeze.Net.Protocol p)
+        private long ProcessNormalClose(Protocol p)
         {
             var rpc = p as NormalClose;
-            var session = rpc.Sender.UserState as CacheHolder;
-            if (null == session)
+            if (rpc.Sender.UserState is not CacheHolder session)
             {
                 rpc.SendResultCode(AcquireNotLogin);
                 return 0; // not login
@@ -298,8 +294,7 @@ namespace Zeze.Services
             return 0;
         }
 
-
-        private long ProcessAcquireRequest(Zeze.Net.Protocol p)
+        private long ProcessAcquireRequest(Protocol p)
         {
             Acquire rpc = (Acquire)p;
             rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
@@ -653,9 +648,8 @@ namespace Zeze.Services
                         return 0;
                     }
 
-                    List<Util.KV<CacheHolder, Reduce >> reducePending
-                        = new List<Util.KV<CacheHolder, Reduce>>();
-                    HashSet<CacheHolder> reduceSucceed = new HashSet<CacheHolder>();
+                    List<Util.KV<CacheHolder, Reduce >> reducePending = new();
+                    HashSet<CacheHolder> reduceSucceed = new();
                     bool senderIsShare = false;
                     // 先把降级请求全部发送给出去。
                     foreach (CacheHolder c in cs.Share)
@@ -772,7 +766,7 @@ namespace Zeze.Services
             internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
             public override string ToString()
             {
-                StringBuilder sb = new StringBuilder();
+                StringBuilder sb = new();
                 ByteBuffer.BuildString(sb, Share);
                 return $"P{AcquireStatePending} M{Modify} S{sb}";
             }
@@ -904,7 +898,7 @@ namespace Zeze.Services
                     AsyncSocket peer = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
                     if (null != peer)
                     {
-                        Reduce reduce = new Reduce(gkey, state, globalSerialId);
+                        Reduce reduce = new(gkey, state, globalSerialId);
                         reduce.SendForWait(peer, 10000);
                         return reduce;
                     }
@@ -923,7 +917,7 @@ namespace Zeze.Services
 
 namespace Zeze.Services.GlobalCacheManager
 {
-    public sealed class Param : Zeze.Transaction.Bean
+    public sealed class Param : Bean
     {
         public GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
         public int State { get; set; }
@@ -953,7 +947,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class Param2 : Zeze.Transaction.Bean
+    public sealed class Param2 : Bean
     {
         public GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
         public int State { get; set; }
@@ -988,7 +982,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class Acquire : Zeze.Net.Rpc<Param, Param2>
+    public sealed class Acquire : Rpc<Param, Param2>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(Acquire).FullName);
 
@@ -1006,7 +1000,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class Reduce : Zeze.Net.Rpc<Param2, Param2>
+    public sealed class Reduce : Rpc<Param2, Param2>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(Reduce).FullName);
 
@@ -1025,7 +1019,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class LoginParam : Zeze.Transaction.Bean
+    public sealed class LoginParam : Bean
     {
         public int ServerId { get; set; }
 
@@ -1053,7 +1047,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class Login : Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean>
+    public sealed class Login : Rpc<LoginParam, EmptyBean>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(Login).FullName);
 
@@ -1070,7 +1064,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class ReLogin : Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean>
+    public sealed class ReLogin : Rpc<LoginParam, EmptyBean>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(ReLogin).FullName);
 
@@ -1087,7 +1081,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class NormalClose : Zeze.Net.Rpc<Zeze.Transaction.EmptyBean, Zeze.Transaction.EmptyBean>
+    public sealed class NormalClose : Rpc<EmptyBean, EmptyBean>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(NormalClose).FullName);
 
@@ -1095,7 +1089,7 @@ namespace Zeze.Services.GlobalCacheManager
         public override int ProtocolId => ProtocolId_;
     }
 
-    public sealed class AchillesHeel : Zeze.Transaction.Bean
+    public sealed class AchillesHeel : Bean
     {
         public int AutoKeyLocalId { get; set; } // 必须的。
 
@@ -1130,7 +1124,7 @@ namespace Zeze.Services.GlobalCacheManager
         public override int ProtocolId => ProtocolId_;
     }
 
-    public sealed class ServerService : Zeze.Net.Service
+    public sealed class ServerService : Service
     {
         public ServerService(Config config) : base("GlobalCacheManager", config)
         {

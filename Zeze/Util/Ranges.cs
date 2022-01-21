@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Zeze.Util
 {
@@ -8,8 +7,8 @@ namespace Zeze.Util
 	{
 		public sealed class Range
 		{
-			private int first; // [first, last)
-			private int last;
+			private readonly int first; // [first, last)
+			private readonly int last;
 
 			public Range(string[] pair)
 			{
@@ -44,11 +43,10 @@ namespace Zeze.Util
 			}
 		}
 
-		private List<Range> ranges = new List<Range>();
+		private readonly List<Range> ranges = new List<Range>();
 
 		public Ranges()
 		{
-
 		}
 
 		public Ranges(string str)

@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 using System.Collections.Concurrent;
+using Zeze.Services;
 
 namespace Zeze.Net
 {
@@ -12,8 +10,8 @@ namespace Zeze.Net
     {
         public Service Service { get; private set; }
         public string Name { get; }
-        public Net.SocketOptions SocketOptions { get; set; } = new Net.SocketOptions();
-        public Services.HandshakeOptions HandshakeOptions { get; set; } = new Services.HandshakeOptions();
+        public SocketOptions SocketOptions { get; set; } = new SocketOptions();
+        public HandshakeOptions HandshakeOptions { get; set; } = new HandshakeOptions();
 
         private ConcurrentDictionary<string, Acceptor> Acceptors { get; }
             = new ConcurrentDictionary<string, Acceptor>();

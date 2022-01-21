@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 
@@ -198,7 +194,7 @@ namespace Zeze.Net
                     return; // not start or has stopped.
 
                 IsConnected = false;
-                FutureSocket.TrySetException(null != e ? e : new Exception("Connector Stopped: " + Name));
+                FutureSocket.TrySetException(e ?? new Exception("Connector Stopped: " + Name));
                 FutureSocket = new TaskCompletionSource<AsyncSocket>();
                 tmp = Socket;
                 Socket = null; // 阻止递归。

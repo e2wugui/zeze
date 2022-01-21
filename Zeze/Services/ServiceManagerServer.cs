@@ -7,12 +7,12 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
 using Zeze.Services.ServiceManager;
+using Zeze.Util;
 
 namespace Zeze.Services
 {
@@ -64,12 +64,12 @@ namespace Zeze.Services
         ///    原则是：总按最新的gs-list通告。中间不一致的ready全部忽略。
 
         // ServiceInfo.Name -> ServiceState
-        private ConcurrentDictionary<string, ServerState> ServerStates = new ConcurrentDictionary<string, ServerState>();
+        private readonly ConcurrentDictionary<string, ServerState> ServerStates = new();
         public NetServer Server { get; private set; }
         private AsyncSocket ServerSocket;
-        private volatile Util.SchedulerTask StartNotifyDelayTask;
+        private volatile SchedulerTask StartNotifyDelayTask;
 
-        public sealed class Conf : Zeze.Config.ICustomize
+        public sealed class Conf : Config.ICustomize
         {
             public string Name => "Zeze.Services.ServiceManager";
 
@@ -122,7 +122,7 @@ namespace Zeze.Services
             public ConcurrentDictionary<long, SubscribeState> ReadyCommit { get; }
                 = new ConcurrentDictionary<long, SubscribeState>();
 
-            private Zeze.Util.SchedulerTask NotifyTimeoutTask;
+            private SchedulerTask NotifyTimeoutTask;
             private long SerialId;
 
             public ServerState(ServiceManagerServer sm, string serviceName)
@@ -163,11 +163,10 @@ namespace Zeze.Services
                         e.Value.Ready = false;
                         ServiceManager.Server.GetSocket(e.Key)?.Send(notifyBytes);
                     }
-                    if (ReadyCommit.Count > 0)
+                    if (!ReadyCommit.IsEmpty)
                     {
                         // 只有两段公告模式需要回应处理。
-                        NotifyTimeoutTask = Zeze.Util.Scheduler.Instance.Schedule(
-                            (ThisTask) =>
+                        NotifyTimeoutTask = Scheduler.Instance.Schedule(ThisTask =>
                             {
                                 if (NotifyTimeoutTask == ThisTask)
                                 {
@@ -337,7 +336,7 @@ namespace Zeze.Services
             // key is ServiceName: 会话订阅
             public ConcurrentDictionary<string, SubscribeInfo> Subscribes { get; }
                 = new ConcurrentDictionary<string, SubscribeInfo>();
-            private Util.SchedulerTask KeepAliveTimerTask;
+            private SchedulerTask KeepAliveTimerTask;
 
             public Session(ServiceManagerServer sm, long ssid)
             {
@@ -372,8 +371,7 @@ namespace Zeze.Services
                     ServiceManager.UnSubscribeNow(SessionId, info);
                 }
 
-                Dictionary<string, ServerState> changed
-                    = new Dictionary<string, ServerState>(Registers.Count);
+                Dictionary<string, ServerState> changed = new(Registers.Count);
 
                 foreach (var info in Registers.Values)
                 {
@@ -619,7 +617,7 @@ namespace Zeze.Services
             Server.Start();
         }
 
-        private RocksDb AutoKeysDb;
+        private readonly RocksDb AutoKeysDb;
         private ConcurrentDictionary<string, AutoKey> AutoKeys { get; }
             = new ConcurrentDictionary<string, AutoKey>();
 
@@ -630,7 +628,7 @@ namespace Zeze.Services
             private byte[] Key { get; }
             private long Current { get; set; }
 
-            public AutoKey(string name, RocksDbSharp.RocksDb db)
+            public AutoKey(string name, RocksDb db)
             {
                 Name = name;
                 Db = db;
@@ -647,7 +645,7 @@ namespace Zeze.Services
                 }
             }
 
-            private WriteOptions WriteOptions = new WriteOptions().SetSync(true);
+            private readonly WriteOptions WriteOptions = new WriteOptions().SetSync(true);
             public void Allocate(AllocateId rpc)
             {
                 lock (this)
@@ -682,7 +680,7 @@ namespace Zeze.Services
             return 0;
         }
 
-        private void StartNotifyAll(Util.SchedulerTask ThisTask)
+        private void StartNotifyAll(SchedulerTask ThisTask)
         {
             StartNotifyDelayTask = null;
             foreach (var e in ServerStates)
@@ -1409,7 +1407,7 @@ namespace Zeze.Services.ServiceManager
         }
     }
 
-    public sealed class ServiceInfo : Zeze.Transaction.Bean
+    public sealed class ServiceInfo : Bean
     {
         /// <summary>
         /// 服务名，比如"GameServer"
@@ -1612,7 +1610,7 @@ namespace Zeze.Services.ServiceManager
         public IReadOnlyList<ServiceInfo> ServiceInfoListSortedByIdentity => _ServiceInfoListSortedByIdentity;
         public long SerialId { get; set; }
 
-        private readonly static ServiceInfoIdentityComparer ServiceInfoIdentityComparer  = new ServiceInfoIdentityComparer();
+        private readonly static ServiceInfoIdentityComparer ServiceInfoIdentityComparer = new();
 
         public ServiceInfo Insert(ServiceInfo info)
         {

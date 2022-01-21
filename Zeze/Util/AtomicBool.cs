@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Threading;
 
 namespace Zeze.Util
 {
@@ -17,7 +15,7 @@ namespace Zeze.Util
         {
             int n = newValue ? 1 : 0;
             int e = expectedValue ? 1 : 0;
-            int r = System.Threading.Interlocked.CompareExchange(ref _value, n, e);
+            int r = Interlocked.CompareExchange(ref _value, n, e);
             return r != 0;
         }
 
@@ -33,7 +31,7 @@ namespace Zeze.Util
         /// <returns></returns>
         public bool GetAndSet(bool newValue)
         {
-            return System.Threading.Interlocked.Exchange(ref _value, newValue ? 1 : 0) != 0;
+            return Interlocked.Exchange(ref _value, newValue ? 1 : 0) != 0;
         }
     }
 }

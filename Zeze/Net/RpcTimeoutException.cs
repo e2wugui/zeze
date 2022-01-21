@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Zeze.Net
 {
@@ -8,12 +6,10 @@ namespace Zeze.Net
     {
         public RpcTimeoutException()
         {
-
         }
 
         public RpcTimeoutException(string str) : base(str)
         {
-
         }
     }
 }

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace Zeze.Util
 {
@@ -11,8 +9,8 @@ namespace Zeze.Util
     /// </summary>
     public sealed class Scheduler
     {
-        private SortedDictionary<SchedulerTask, SchedulerTask> scheduled = new SortedDictionary<SchedulerTask, SchedulerTask>();
-        private System.Threading.Thread thread;
+        private readonly SortedDictionary<SchedulerTask, SchedulerTask> scheduled = new SortedDictionary<SchedulerTask, SchedulerTask>();
+        private readonly Thread thread;
         private volatile bool isRunning;
 
         public static Scheduler Instance { get; } = new Scheduler();
@@ -20,8 +18,10 @@ namespace Zeze.Util
         public Scheduler()
         {
             isRunning = true;
-            thread = new System.Threading.Thread(ThreadRun);
-            thread.IsBackground = true;
+            thread = new Thread(ThreadRun)
+            {
+                IsBackground = true
+            };
             thread.Start();
         }
 
@@ -41,7 +41,7 @@ namespace Zeze.Util
 
                 SchedulerTask t = new SchedulerTask(this, action, initialDelay, period);
                 scheduled.Add(t, t);
-                System.Threading.Monitor.Pulse(this);
+                Monitor.Pulse(this);
                 return t;
             }
         }
@@ -54,7 +54,7 @@ namespace Zeze.Util
             isRunning = false;
             lock (this)
             {
-                System.Threading.Monitor.Pulse(this);
+                Monitor.Pulse(this);
             }
             thread.Join();
         }
@@ -64,7 +64,7 @@ namespace Zeze.Util
             lock (this)
             {
                 scheduled.Add(t, t);
-                System.Threading.Monitor.Pulse(this);
+                Monitor.Pulse(this);
             }
         }
 
@@ -102,33 +102,31 @@ namespace Zeze.Util
 
                 lock (this)
                 {
-                    int waitTime = System.Threading.Timeout.Infinite;
+                    int waitTime = Timeout.Infinite;
                     if (nextTime > now)
                         waitTime = (int)(nextTime - now);
-                    System.Threading.Monitor.Wait(this, waitTime); // wait until new task or nextTime.
+                    Monitor.Wait(this, waitTime); // wait until new task or nextTime.
                 }
             }
         }
     }
     public class SchedulerTask : IComparable<SchedulerTask>
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
         public Scheduler Scheduler { get; private set; }
         public long Time { get; private set; }
         public long Period { get; private set; }
         public long SequenceNumber { get; private set; }
 
         private volatile bool canceled;
-        private Action<SchedulerTask> action;
+        private readonly Action<SchedulerTask> action;
 
-        private static AtomicLong sequencer = new AtomicLong();
+        private static readonly AtomicLong sequencer = new AtomicLong();
 
         internal SchedulerTask(Scheduler scheduler, Action<SchedulerTask> action, long initialDelay, long period)
         {
             this.Scheduler = scheduler;
             this.action = action;
-            this.Time = global::Zeze.Util.Time.NowUnixMillis + initialDelay;
+            this.Time = Util.Time.NowUnixMillis + initialDelay;
             this.Period = period;
             this.SequenceNumber = sequencer.IncrementAndGet();
             this.canceled = false;
@@ -145,7 +143,7 @@ namespace Zeze.Util
                 return;
 
             // 派发出去运行，让系统管理大量任务的线程问题。
-            Zeze.Util.Task.Run(() => action(this), "SchedulerTask.Run");
+            Task.Run(() => action(this), "SchedulerTask.Run");
 
             if (this.Period > 0)
             {

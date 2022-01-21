@@ -1,14 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using Zeze.Serialize;
+using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Net
 {
     public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>
-        where TArgument: global::Zeze.Transaction.Bean, new()
-        where TResult: global::Zeze.Transaction.Bean, new()
+        where TArgument: Bean, new()
+        where TResult: Bean, new()
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
@@ -41,11 +41,11 @@ namespace Zeze.Net
             return Send(so, ResponseHandle, Timeout);
         }
 
-        private Util.SchedulerTask Schedule(Service service, long sessionId, int millisecondsTimeout)
+        private static SchedulerTask Schedule(Service service, long sessionId, int millisecondsTimeout)
         {
             if (millisecondsTimeout > 0)
             {
-                return global::Zeze.Util.Scheduler.Instance.Schedule(
+                return Scheduler.Instance.Schedule(
                     (ThisTask) =>
                     {
                         Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
@@ -53,7 +53,7 @@ namespace Zeze.Net
                             return;
 
                         context.IsTimeout = true;
-                        context.ResultCode = Zeze.Transaction.Procedure.Timeout;
+                        context.ResultCode = Procedure.Timeout;
 
                         if (null != context.Future)
                         {

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Collections.Concurrent;
 
@@ -10,8 +9,8 @@ namespace Zeze.Util
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private BlockingCollection<Action> taskQueue = new BlockingCollection<Action>();
-        private List<Thread> workers = new List<Thread>();
+        private readonly BlockingCollection<Action> taskQueue = new BlockingCollection<Action>();
+        private readonly List<Thread> workers = new List<Thread>();
         public string Name { get; }
 
         public bool QueueUserWorkItem(Action action)

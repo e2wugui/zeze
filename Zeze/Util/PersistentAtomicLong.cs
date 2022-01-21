@@ -1,6 +1,5 @@
-
-using System.Collections.Concurrent;
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -10,14 +9,15 @@ namespace Zeze.Util
     public class PersistentAtomicLong
     {
         private readonly AtomicLong CurrentId = new AtomicLong();
-        private AtomicLong allocated = new AtomicLong(); // for volatile long
+        private readonly AtomicLong allocated = new AtomicLong(); // for volatile long
 
         public string Name { get; }
         public string FileName { get; }
         private readonly int AllocateSize;
-        private Mutex Mutex;
+        private readonly Mutex Mutex;
 
-        private static ConcurrentDictionary<string, PersistentAtomicLong> pals = new ConcurrentDictionary<string, PersistentAtomicLong>();
+        private static readonly ConcurrentDictionary<string, PersistentAtomicLong> pals
+            = new ConcurrentDictionary<string, PersistentAtomicLong>();
 
         /**
          * 【小优化】请保存返回值，重复使用。
@@ -77,7 +77,6 @@ namespace Zeze.Util
             }
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private void Allocate()
         {
             Mutex.WaitOne();

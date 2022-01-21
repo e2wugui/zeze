@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using Zeze.Serialize;
 
 namespace Zeze.Util
 {
     // binary: msgsize4bytes + tag4bytes + others
-    public sealed class ChatHistoryMessage : global::Zeze.Serialize.Serializable
+    public sealed class ChatHistoryMessage : Serializable
     {
         public const int TagDeleted = 1;
         public const int TagSeparate = 2;
@@ -24,23 +26,23 @@ namespace Zeze.Util
 
         public void SaveContentToFile(string path)
         {
-            using System.IO.FileStream fs = System.IO.File.Create(path);
+            using FileStream fs = File.Create(path);
             fs.Write(this.Content, 0, this.Content.Length);
         }
 
         public static byte[] LoadContentFromFile(string path)
         {
-            if (false == System.IO.File.Exists(path))
+            if (false == File.Exists(path))
                 return Array.Empty<byte>();
 
-            using System.IO.FileStream fs = System.IO.File.Open(path, System.IO.FileMode.Open);
+            using FileStream fs = File.Open(path, FileMode.Open);
             byte[] bytes = new byte[fs.Length];
             fs.Read(bytes, 0, bytes.Length);
 
             return bytes;
         }
 
-        public void Decode(global::Zeze.Serialize.ByteBuffer bb)
+        public void Decode(ByteBuffer bb)
         {
             this.Tag = bb.ReadInt4();
             this.Id = bb.ReadLong();
@@ -58,7 +60,7 @@ namespace Zeze.Util
             }
         }
 
-        public void Encode(global::Zeze.Serialize.ByteBuffer bb)
+        public void Encode(ByteBuffer bb)
         {
             bb.WriteInt4(this.Tag);
             bb.WriteLong(this.Id);

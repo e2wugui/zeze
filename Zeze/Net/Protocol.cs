@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Zeze.Serialize;
 
 namespace Zeze.Net
@@ -173,7 +171,7 @@ namespace Zeze.Net
         }
     }
 
-    public abstract class Protocol<TArgument> : Protocol where TArgument : global::Zeze.Transaction.Bean, new()
+    public abstract class Protocol<TArgument> : Protocol where TArgument : Transaction.Bean, new()
     {
         public TArgument Argument { get; set; } = new TArgument();
 

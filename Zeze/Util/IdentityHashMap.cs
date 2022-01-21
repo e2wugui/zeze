@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace Zeze.Util
 {
@@ -21,7 +18,7 @@ namespace Zeze.Util
                 return RuntimeHelpers.GetHashCode(obj);
             }
         }
-        private static IdentityEqualityComparer comparer = new IdentityEqualityComparer();
+        private static readonly IdentityEqualityComparer comparer = new IdentityEqualityComparer();
 
         public IdentityHashMap() : base(comparer)
         { 

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Zeze.Net
 {
@@ -9,7 +7,7 @@ namespace Zeze.Net
     // byte[] bytes 参数传入以后，就不能再修改了。
     public sealed class Binary
     {
-        private byte[] _Bytes;
+        private readonly byte[] _Bytes;
 
         public byte this[int index] { get { return _Bytes[index]; } }
 

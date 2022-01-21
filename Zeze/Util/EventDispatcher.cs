@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Zeze.Util
 {
@@ -39,7 +36,7 @@ namespace Zeze.Util
         {
             foreach (var e in Handles)
             {
-                Zeze.Util.Task.Run(app.NewProcedure(() => e.Value(sender, args), e.Key));
+                Task.Run(app.NewProcedure(() => e.Value(sender, args), e.Key));
             }
         }
     }

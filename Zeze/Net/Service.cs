@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Net.NetworkInformation;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Net
 {
@@ -374,7 +375,7 @@ namespace Zeze.Net
 
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// Rpc Context. 模板不好放进去，使用基类 Protocol
-        private static Util.AtomicLong StaticSessionIdAtomicLong { get; } = new Util.AtomicLong();
+        private static AtomicLong StaticSessionIdAtomicLong { get; } = new AtomicLong();
         public Func<long> SessionIdGenerator { get; set; }
 
         private readonly ConcurrentDictionary<long, Protocol> _RpcContexts
@@ -422,7 +423,6 @@ namespace Zeze.Net
             public virtual void OnTimeout()
             {
             }
-
         }
 
         private readonly ConcurrentDictionary<long, ManualContext> ManualContexts = new ConcurrentDictionary<long, ManualContext>();
@@ -469,7 +469,7 @@ namespace Zeze.Net
             }
         }
 
-        public string GetOneNetworkInterfaceIpAddress(AddressFamily family = AddressFamily.Unspecified)
+        public static string GetOneNetworkInterfaceIpAddress(AddressFamily family = AddressFamily.Unspecified)
         {
             foreach (NetworkInterface neti in NetworkInterface.GetAllNetworkInterfaces())
             {

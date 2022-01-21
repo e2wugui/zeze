@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Threading;
 
 namespace Zeze.Util
 {
@@ -15,17 +13,17 @@ namespace Zeze.Util
 
         public long IncrementAndGet()
         {
-            return System.Threading.Interlocked.Increment(ref _value);
+            return Interlocked.Increment(ref _value);
         }
 
         public long AddAndGet(long delta)
         {
-            return System.Threading.Interlocked.Add(ref _value, delta);
+            return Interlocked.Add(ref _value, delta);
         }
 
         public long CompareAndExchange(long expectedValue, long newValue)
         {
-            return System.Threading.Interlocked.CompareExchange(ref _value, newValue, expectedValue);
+            return Interlocked.CompareExchange(ref _value, newValue, expectedValue);
         }
 
         public bool CompareAndSet(long expectedValue, long newValue)
@@ -35,12 +33,12 @@ namespace Zeze.Util
 
         public long Get()
         {
-            return System.Threading.Interlocked.Read(ref _value);
+            return Interlocked.Read(ref _value);
         }
 
         public long GetAndSet(long newValue)
         {
-            return System.Threading.Interlocked.Exchange(ref _value, newValue);
+            return Interlocked.Exchange(ref _value, newValue);
         }
     }
 }

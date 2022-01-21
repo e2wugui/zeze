@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Zeze.Transaction;
 
@@ -30,7 +29,7 @@ namespace Zeze.Util
         {
             var actionName = p.GetType().FullName;
             if (IsRequestSaved == false)
-                actionName = actionName + ":Response";
+                actionName += ":Response";
 
             if (result != 0)
             {

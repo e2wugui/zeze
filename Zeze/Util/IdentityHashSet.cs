@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Zeze.Util
 {
     internal class IdentityHashSet<E> : IEnumerable<E>
     {
-        private IdentityHashMap<E, E> Impl = new IdentityHashMap<E, E>();
+        private readonly IdentityHashMap<E, E> Impl = new IdentityHashMap<E, E>();
 
         public bool Add(E e)
         {

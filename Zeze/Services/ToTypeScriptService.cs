@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using Zeze.Net;
+using Zeze.Serialize;
 
 namespace Zeze.Services
 {
     public class ToTypeScriptService0 : HandshakeClient
     {
-        public ToTypeScriptService0(string name) : base(name, (Zeze.Application)null)
+        public ToTypeScriptService0(string name) : base(name, (Application)null)
         {
-
         }
 
-        public override void OnSocketProcessInputBuffer(Zeze.Net.AsyncSocket so, Zeze.Serialize.ByteBuffer input)
+        public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
             if (so.IsHandshakeDone)
             {
@@ -23,19 +24,19 @@ namespace Zeze.Services
             }
         }
 
-        public override void OnSocketClose(Zeze.Net.AsyncSocket so, Exception e)
+        public override void OnSocketClose(AsyncSocket so, Exception e)
         {
             SetSocketClose(so.SessionId);
             base.OnSocketClose(so, e);
         }
 
-        public override void OnHandshakeDone(Zeze.Net.AsyncSocket sender)
+        public override void OnHandshakeDone(AsyncSocket sender)
         {
             sender.IsHandshakeDone = true;
             SetHandshakeDone(sender.SessionId);
         }
 
-        protected Dictionary<long, Zeze.Serialize.ByteBuffer> ToBuffer = new Dictionary<long, Zeze.Serialize.ByteBuffer>();
+        protected Dictionary<long, ByteBuffer> ToBuffer = new Dictionary<long, ByteBuffer>();
         protected HashSet<long> ToHandshakeDone = new HashSet<long>();
         protected HashSet<long> ToSocketClose = new HashSet<long>();
 
@@ -55,7 +56,7 @@ namespace Zeze.Services
             }
         }
 
-        internal void AppendInputBuffer(long socketSessionId, Zeze.Serialize.ByteBuffer buffer)
+        internal void AppendInputBuffer(long socketSessionId, ByteBuffer buffer)
         {
             lock (this)
             {
@@ -64,7 +65,7 @@ namespace Zeze.Services
                     exist.Append(buffer.Bytes, buffer.ReadIndex, buffer.Size);
                     return;
                 }
-                Serialize.ByteBuffer newBuffer = Serialize.ByteBuffer.Allocate();
+                ByteBuffer newBuffer = ByteBuffer.Allocate();
                 ToBuffer.Add(socketSessionId, newBuffer);
                 newBuffer.Append(buffer.Bytes, buffer.ReadIndex, buffer.Size);
             }

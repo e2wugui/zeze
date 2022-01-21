@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
@@ -77,7 +75,7 @@ namespace Zeze.Util
     /// </summary>
     public class CubeIndexMap<TCube, TObject> where TCube : Cube<TObject>, new()
     {
-        private ConcurrentDictionary<CubeIndex, TCube> Cubes
+        private readonly ConcurrentDictionary<CubeIndex, TCube> Cubes
             = new ConcurrentDictionary<CubeIndex, TCube>();
 
         public int CubeSizeX { get; }

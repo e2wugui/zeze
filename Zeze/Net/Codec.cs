@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Security.Cryptography;
 using Zeze.Serialize;
 
@@ -18,7 +16,7 @@ namespace Zeze.Net
     /// </summary>
     public sealed class BufferCodec : Codec
     {
-        public Serialize.ByteBuffer Buffer { get; } = Serialize.ByteBuffer.Allocate();
+        public ByteBuffer Buffer { get; } = ByteBuffer.Allocate();
 
         public BufferCodec()
         {
@@ -273,8 +271,8 @@ namespace Zeze.Net
 
         private int pos = 0;
         private int rem = 0;
-        private byte[] dict = new byte[8192];
-        private short[] hash = new short[65536];
+        private readonly byte[] dict = new byte[8192];
+        private readonly short[] hash = new short[65536];
         private int idx = 0;
         private int match_idx;
         private int match_off = -1;
@@ -435,13 +433,13 @@ namespace Zeze.Net
     // RFC2118
     public sealed class Decompress : Codec
     {
-        private Codec sink;
+        private readonly Codec sink;
 
         private int rem = 0;
         private int pos = 0;
         private int off = -1;
         private int len;
-        private byte[] hist = new byte[8192 * 3];
+        private readonly byte[] hist = new byte[8192 * 3];
         private int hpos = 0;
         public sealed class UncompressException : Exception { }
 

@@ -219,7 +219,7 @@ namespace Zeze.Services.ToLuaService
         {
             public long ArgumentBeanTypeId { get; set; }
             public long ResultBeanTypeId { get; set; }
-            public bool IsRpc { get; set; } = false;
+            public bool IsRpc { get; set; }
         };
 
         class BeanMeta
@@ -228,8 +228,8 @@ namespace Zeze.Services.ToLuaService
             public List<VariableMeta> Variables { get; } = new List<VariableMeta>();
         }
 
-        readonly Dictionary<long, BeanMeta> BeanMetas = new(); // Bean.TypeId -> vars
-        readonly Dictionary<long, ProtocolArgument> ProtocolMetas = new(); // protocol.TypeId -> Bean.TypeId
+        readonly Dictionary<long, BeanMeta> BeanMetas = new Dictionary<long, BeanMeta>(); // Bean.TypeId -> vars
+        readonly Dictionary<long, ProtocolArgument> ProtocolMetas = new Dictionary<long, ProtocolArgument>(); // protocol.TypeId -> Bean.TypeId
 
         public void LoadMeta()
         {
@@ -244,7 +244,7 @@ namespace Zeze.Services.ToLuaService
             for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of vars(table) -2 key of bean.TypeId
             {
                 long beanTypeId = Lua.ToInteger(-2);
-                BeanMeta beanMeta = new();
+                var beanMeta = new BeanMeta();
                 for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of varmeta(table) -2 key of varid
                 {
                     int varId = (int)Lua.ToInteger(-2);
@@ -253,7 +253,7 @@ namespace Zeze.Services.ToLuaService
                         beanMeta.Name = Lua.ToString(-1); // bean full name
                         continue;
                     }
-                    VariableMeta var = new() { BeanMeta = beanMeta };
+                    var var = new VariableMeta() { BeanMeta = beanMeta };
                     var.Id = varId;
                     for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of typetag -2 key of index
                     {
@@ -279,7 +279,7 @@ namespace Zeze.Services.ToLuaService
             Lua.GetField(-1, "protocols");
             for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of Protocol.Argument.BeanTypeId -2 Protocol.TypeId
             {
-                ProtocolArgument pa = new();
+                var pa = new ProtocolArgument();
                 for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of beantypeid -2 key of index
                 {
                     switch (Lua.ToInteger(-2))
@@ -365,7 +365,7 @@ namespace Zeze.Services.ToLuaService
         static KeraLua.LuaFunction ZezeSendProtocolFunction;
         static KeraLua.LuaFunction ZezeConnectFunction;
 #endif // USE_KERA_LUA
-        static object RegisterCallbackLock = new();
+        static readonly object RegisterCallbackLock = new object();
 
         internal void RegisterGlobalAndCallback(FromLua callback)
         {
@@ -859,10 +859,10 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
-        Dictionary<long, ByteBuffer> ToLuaBuffer = new();
-        Dictionary<long, FromLua> ToLuaHandshakeDone = new();
-        Dictionary<long, FromLua> ToLuaSocketClose = new();
-        HashSet<long> ToLuaRpcTimeout = new();
+        Dictionary<long, ByteBuffer> ToLuaBuffer = new Dictionary<long, ByteBuffer>();
+        Dictionary<long, FromLua> ToLuaHandshakeDone = new Dictionary<long, FromLua>();
+        Dictionary<long, FromLua> ToLuaSocketClose = new Dictionary<long, FromLua>();
+        HashSet<long> ToLuaRpcTimeout = new HashSet<long>();
 
         internal void SetRpcTimeout(long sid)
         {

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.Xml;
 using System.Diagnostics;
@@ -11,19 +9,19 @@ namespace Zeze.Util
 {
     public class Zezex
     {
-        private string modules = "Login";
-        private Encoding utf8NoBom = new UTF8Encoding(false);
+        private readonly string modules = "Login";
+        private readonly Encoding utf8NoBom = new UTF8Encoding(false);
 
-        private string SolutionName = null;
-        private string ServerProjectName = "server";
-        private string ClientProjectName = "client";
-        private string ClientPlatform = null;
+        private readonly string SolutionName;
+        private readonly string ServerProjectName = "server";
+        private readonly string ClientProjectName = "client";
+        private readonly string ClientPlatform;
         private string ExportDirectory = "../../";
         private readonly string ZezexDirectory = "./";
-        private string Lang = "cs";
-        private string InnerSrcDir = "";
+        private readonly string Lang = "cs";
+        private readonly string InnerSrcDir = "";
 
-        private Zezex(string [] args)
+        private Zezex(string[] args)
         {
             for (int i = 0; i < args.Length; ++i)
             {
@@ -288,8 +286,8 @@ namespace Zeze.Util
             }
         }
 
-        private HashSet<string> ModulesExported = new HashSet<string>();
-        private string ClientHandle = null;
+        private readonly HashSet<string> ModulesExported = new HashSet<string>();
+        private string ClientHandle;
 
         private void ParseModulesAndTryExportSolutionXml()
         {
@@ -560,8 +558,7 @@ namespace Zeze.Util
         }
 
         bool IsNewest;
-
-        Dictionary<string, FileCoping> FileCopings = new Dictionary<string, FileCoping>();
+        readonly Dictionary<string, FileCoping> FileCopings = new Dictionary<string, FileCoping>();
 
         private FileCoping AddToFileCopings(bool isNewest, string srcText,
             string relativeSrcFile, string relativeDstFileName)
