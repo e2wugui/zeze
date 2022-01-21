@@ -24,7 +24,6 @@ namespace Zeze.Raft
         public RaftConfig RaftConfig { get; }
         public LogSequence LogSequence { get; }
         public bool IsLeader => this.State == RaftState.Leader;
-        public bool HasLeader => false == string.IsNullOrEmpty(LeaderId);
         public Server Server { get; }
 
         internal SimpleThreadPool ImportantThreadPool { get; }
@@ -62,6 +61,7 @@ namespace Zeze.Raft
             {
                 // see WaitLeaderReady.
                 // 可以避免状态设置不对的问题。关闭时转换成Follower也是对的。
+                LeaderId = string.Empty;
                 ConvertStateTo(RaftState.Follower);
                 // Cancel Follower TimerTask
                 LeaderLostTimerTask?.Cancel();
@@ -420,10 +420,8 @@ namespace Zeze.Raft
                 Server.Config.ForEachConnector(
                     (c) =>
                     {
-                        if (false == c.IsHandshakeDone)
-                            return;
                         var rpc = new RequestVote() { Argument = arg };
-                        var sendresult = rpc.Send(c.Socket, (p) => ProcessRequestVoteResult(rpc, c));
+                        var sendresult = rpc.Send(c.TryGetReadySocket(), (p) => ProcessRequestVoteResult(rpc, c));
                         logger.Debug("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
                     });
 
@@ -608,7 +606,7 @@ namespace Zeze.Raft
 
             StartRequestVoteDelayTask = Scheduler.Instance.Schedule(
                 SendRequestVote,
-                Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout + 1000));
+                Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout * 2 + 1000));
         }
 
         private void RegisterInternalRpc()

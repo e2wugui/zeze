@@ -93,14 +93,14 @@ namespace Zeze.Net
             return GetReadySocket();
         }
 
-        public AsyncSocket GetReadySocket()
+        public virtual AsyncSocket GetReadySocket()
         {
             var volatileTmp = FutureSocket;
             volatileTmp.Task.Wait();
             return volatileTmp.Task.Result;
         }
 
-        public AsyncSocket TryGetReadySocket()
+        public virtual AsyncSocket TryGetReadySocket()
         {
             var volatileTmp = FutureSocket;
             try
@@ -139,13 +139,12 @@ namespace Zeze.Net
 
         public virtual void OnSocketHandshakeDone(AsyncSocket so)
         {
-            //logger.Warn("Socket={0}, Context={1}", Socket, so);
             lock (this)
             {
                 if (FutureSocket.TrySetResult(so))
                     return;
             }
-            so.Close(new Exception("FutureSocket.SetResult Fail."));
+            so.Close(new Exception("FutureSocket.SetResult Fail. Close New Socket."));
         }
 
         public virtual void TryReconnect()

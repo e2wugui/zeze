@@ -410,7 +410,7 @@ namespace Zeze.Raft
                 null, WriteOptionsSync
                 );
 
-            //logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={log.Log.UniqueRequestId} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
+            logger.Info($"{Raft.Name}-{Raft.IsLeader} RequestId={log.Log.Unique.RequestId} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
         }
 
         private RaftLog ReadLog(long index)
@@ -575,7 +575,7 @@ namespace Zeze.Raft
                 if (raftLog.Log.Unique.RequestId > 0)
                     OpenUniqueRequests(raftLog.Log.CreateTime).Apply(raftLog);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
-                /*
+                //*
                 if (LastIndex - LastApplied < 10)
                     logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={raftLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
                 // */

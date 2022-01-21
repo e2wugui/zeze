@@ -206,16 +206,11 @@ namespace Zeze.Raft
 
         private void TrySendLeaderIs(AsyncSocket sender)
         {
-            if (Raft.HasLeader)
-            {
-                // redirect
-                var redirect = new LeaderIs();
-                redirect.Argument.Term = Raft.LogSequence.Term;
-                redirect.Argument.LeaderId = Raft.LeaderId;
-                redirect.Send(sender); // ignore response
-                // DONOT process application request.
-                return;
-            }
+            // redirect
+            var redirect = new LeaderIs();
+            redirect.Argument.Term = Raft.LogSequence.Term;
+            redirect.Argument.LeaderId = Raft.LeaderId; // maybe empty
+            redirect.Send(sender); // ignore response
         }
 
         public override void OnHandshakeDone(AsyncSocket so)
@@ -574,26 +569,47 @@ namespace Zeze.Raft
             Util.Scheduler.Instance.Schedule((thisTask) => ReSend(), 1000, 1000);
         }
 
-        private long ProcessLeaderIs(Protocol p)
+        private Connector FindConnector(string leaderId)
         {
-            var r = p as LeaderIs;
-            logger.Info("=============== LEADERIS Old={0} New={1} From={2}", _Leader?.Name, r.Argument.LeaderId, p.Sender);
+            if (string.IsNullOrEmpty(leaderId))
+            {
+                // 服务器不知道谁是Leader。随便选择一个进行尝试。
+                Connector rand = null;
+                var randIdx = Util.Random.Instance.Next(Client.Config.ConnectorCount());
+                Client.Config.ForEachConnector((c) =>
+                {
+                    if (--randIdx < 0)
+                    {
+                        rand = c;
+                        return false; // break foreach
+                    }
+                    return true;
+                });
+                return rand;
+            }
 
-            var node = Client.Config.FindConnector(r.Argument.LeaderId);
+            var node = Client.Config.FindConnector(leaderId);
             if (null == node)
             {
                 // 当前 Agent 没有 Leader 的配置，创建一个。
                 // 由于 Agent 在新增 node 时也会得到新配置广播，
                 // 一般不会发生这种情况。
-                var address = r.Argument.LeaderId.Split(':');
+                var address = leaderId.Split(':');
                 if (Client.Config.TryGetOrAddConnector(
                     address[0], int.Parse(address[1]), true, out node))
                 {
                     node.Start();
                 }
             }
+            return node;
+        }
 
-            if (SetLeader(r, node as ConnectorEx))
+        private long ProcessLeaderIs(Protocol p)
+        {
+            var r = p as LeaderIs;
+            logger.Info("=============== LEADERIS Old={0} New={1} From={2}", _Leader?.Name, r.Argument.LeaderId, p.Sender);
+
+            if (SetLeader(r, FindConnector(r.Argument.LeaderId) as ConnectorEx))
             {
                 ReSend(true);
             }
