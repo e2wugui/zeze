@@ -22,7 +22,7 @@
 	Raft TaskOneByOneByKey Key=(ClientId, UniqueRequestId)
 
 	Raft.Agent TryGetReadySocket 总是 null。
-	Net.Service Start Stop Flag 避免并发的接受到新的请求。
+	Net.Connector.OnSocketHandshakeDone Fail 原因。
 
 	RedoableQueue
 	{
@@ -44,6 +44,8 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【新变动】
+
+【2022/1/21】
 	Raft.Agent Resend 简化模型。
 	Raft BUG Follower 复制日志时，如果冲突，没有把当前冲突的日志写入，造成丢失。
 	Handshake 没有错误处理。Timeout Remove Context.
