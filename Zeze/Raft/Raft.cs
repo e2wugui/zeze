@@ -36,11 +36,17 @@ namespace Zeze.Raft
             LogSequence.AppendLog(log, true);
         }
 
-        //public bool IsShutdown { get; private set; }
+        private volatile bool IsShutdown = false;
 
         public void Shutdown()
         {
-            //IsShutdown = true;
+            lock (this)
+            {
+                if (IsShutdown)
+                    return;
+
+                IsShutdown = true;
+            }
 
             // 0 clear pending task if is leader
             if (IsLeader)
