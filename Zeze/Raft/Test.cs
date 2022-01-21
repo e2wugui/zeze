@@ -69,21 +69,21 @@ namespace Zeze.Raft
                 if (it1.Valid())
                 {
                     var log = RaftLog.Decode(new Binary(it1.Value()), StateMachine.LogFactory);
-                    Console.Write($" 127.0.0.1_6000: Term={log.Term} Index={log.Index} Unique={log.Log.Unique}");
+                    Console.Write($" 127.0.0.1_6000: Term={log.Term} Index={log.Index} {log.Log.Unique}");
                     it1.Next();
                     hasNext = true;
                 }
                 if (it2.Valid())
                 {
                     var log = RaftLog.Decode(new Binary(it2.Value()), StateMachine.LogFactory);
-                    Console.Write($" 127.0.0.1_6001: Term={log.Term} Index={log.Index} Unique={log.Log.Unique}");
+                    Console.Write($" 127.0.0.1_6001: Term={log.Term} Index={log.Index} {log.Log.Unique}");
                     it2.Next();
                     hasNext = true;
                 }
                 if (it3.Valid())
                 {
                     var log = RaftLog.Decode(new Binary(it3.Value()), StateMachine.LogFactory);
-                    Console.Write($" 127.0.0.1_6002: Term={log.Term} Index={log.Index} Unique={log.Log.Unique}");
+                    Console.Write($" 127.0.0.1_6002: Term={log.Term} Index={log.Index} {log.Log.Unique}");
                     it3.Next();
                     hasNext = true;
                 }

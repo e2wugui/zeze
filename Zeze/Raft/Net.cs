@@ -81,6 +81,12 @@ namespace Zeze.Raft
                 }, "InstallSnapshotting.Remove");
                 base.OnSocketClose(closed, e);
             }
+
+            public override void OnSocketHandshakeDone(AsyncSocket so)
+            {
+                base.OnSocketHandshakeDone(so);
+                Util.Task.Run(() => (Service as Server).Raft.LogSequence.TrySendAppendEntries(this, null), "TryStartLogCopy");
+            }
         }
 
         public static void CreateConnector(Service service, RaftConfig raftconf)
@@ -383,7 +389,7 @@ namespace Zeze.Raft
                 throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
 
             rpc.Unique.RequestId = UniqueRequestIdGenerator.Next();
-            rpc.Unique.ClientId = UniqueRequestIdGenerator.FileName;
+            rpc.Unique.ClientId = UniqueRequestIdGenerator.Name;
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
 
@@ -455,7 +461,7 @@ namespace Zeze.Raft
                 throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
 
             rpc.Unique.RequestId = UniqueRequestIdGenerator.Next();
-            rpc.Unique.ClientId = UniqueRequestIdGenerator.FileName;
+            rpc.Unique.ClientId = UniqueRequestIdGenerator.Name;
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
 
@@ -505,7 +511,7 @@ namespace Zeze.Raft
             )
         {
             InternalThreadPool = zeze.InternalThreadPool;
-            UniqueRequestIdGenerator = Zeze.Util.PersistentAtomicLong.GetOrAdd($"Zeze.Raft.Agent.UniqeRequestId.Generator.{zeze.Config.ServerId}");
+            UniqueRequestIdGenerator = Zeze.Util.PersistentAtomicLong.GetOrAdd($"{name}.{zeze.Config.ServerId}");
             Init(new NetClient(this, name, zeze), raftconf, onLeaderChanged);
         }
 
@@ -527,7 +533,7 @@ namespace Zeze.Raft
             if (null == config)
                 config = Config.Load();
 
-            UniqueRequestIdGenerator = Zeze.Util.PersistentAtomicLong.GetOrAdd($"Zeze.Raft.Agent.UniqeRequestId.Generator.{config.ServerId}");
+            UniqueRequestIdGenerator = Zeze.Util.PersistentAtomicLong.GetOrAdd($"{name}.{config.ServerId}");
             Init(new NetClient(this, name, config), raftconf, onLeaderChanged);
         }
 

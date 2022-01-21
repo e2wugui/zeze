@@ -245,12 +245,14 @@ namespace Zeze.Raft
 
             public void Save(RaftLog log)
             {
-                Put(log, log.Index);
+                if (log.Log.Unique.RequestId > 0)
+                    Put(log, log.Index);
             }
 
             public void Apply(RaftLog log)
             {
-                Put(log, -log.Index);
+                if (log.Log.Unique.RequestId > 0)
+                    Put(log, -log.Index);
             }
 
             public void Remove(RaftLog log)
@@ -576,12 +578,12 @@ namespace Zeze.Raft
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
                 /*
                 if (LastIndex - LastApplied < 10)
-                    logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={raftLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
+                    logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={raftLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
                 // */
                 if (WaitApplyFutures.TryRemove(raftLog.Index, out var future))
                     future.SetResult(0);
             }
-            //logger.Info($"{Raft.Name}-{Raft.IsLeader} CommitIndex={CommitIndex} RequestId={lastApplyableLog.Log.UniqueRequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
+            //logger.Info($"{Raft.Name}-{Raft.IsLeader} CommitIndex={CommitIndex} RequestId={lastApplyableLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
         }
 
         internal long GetTestStateMachineCount()
@@ -998,7 +1000,7 @@ namespace Zeze.Raft
             }
         }
 
-        private void TrySendAppendEntries(Server.ConnectorEx connector, AppendEntries pending)
+        internal void TrySendAppendEntries(Server.ConnectorEx connector, AppendEntries pending)
         {
             lock (Raft)
             {
@@ -1020,10 +1022,7 @@ namespace Zeze.Raft
 
                 var socket = connector.TryGetReadySocket();
                 if (null == socket)
-                {
-                    // Hearbeat Will Retry
                     return;
-                }
 
                 if (connector.NextIndex > LastIndex)
                     return;

@@ -12,6 +12,7 @@ namespace Zeze.Util
         private readonly AtomicLong CurrentId = new AtomicLong();
         private AtomicLong allocated = new AtomicLong(); // for volatile long
 
+        public string Name { get; }
         public string FileName { get; }
         private readonly int AllocateSize;
         private Mutex Mutex;
@@ -43,6 +44,7 @@ namespace Zeze.Util
         {
             if (allocateSize <= 0)
                 throw new ArgumentException();
+            Name = ProgramInstanceName;
             FileName = ProgramInstanceName + ".zeze.pal";
             Mutex = new Mutex(false, FileName);
             AllocateSize = allocateSize;
