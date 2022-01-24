@@ -105,8 +105,9 @@ namespace Zeze.Net
             // 其中rpc-trigger-result的原子性由RemoveRpcContext保证。
             // Cancel不是必要的。
             timeoutTask?.Cancel();
-            so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(this.SessionId);
-            return false;
+            var ctx = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(this.SessionId);
+            // 恢复最初的语义吧：如果ctx已经被并发的Remove，也就是被处理了，这里返回true。
+            return null == ctx;
         }
 
         /// <summary>

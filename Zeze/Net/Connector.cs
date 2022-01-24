@@ -135,13 +135,11 @@ namespace Zeze.Net
         {
             lock (this)
             {
-                if (FutureSocket.TrySetResult(so))
+                if (Socket == so && FutureSocket.TrySetResult(so))
                     return;
             }
-            // error recover?
-            so.Close(new Exception("FutureSocket.SetResult Fail. Close New Socket."));
-            Stop();
-            Start();
+            // not owner. close now.
+            so.Close(new Exception("not owner?"));
         }
 
         public virtual void TryReconnect()
