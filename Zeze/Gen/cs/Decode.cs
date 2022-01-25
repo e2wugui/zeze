@@ -28,7 +28,8 @@ namespace Zeze.Gen.cs
                         throw new Exception("unordered var.id");
                     if (v.Id - lastId > 1)
                     {
-                         sw.WriteLine(prefix + "    while (_t_ != 0 && _i_ < " + v.Id + ") {");
+                         sw.WriteLine(prefix + "    while (_t_ != 0 && _i_ < " + v.Id + ")");
+                         sw.WriteLine(prefix + "    {");
                          sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
                          sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
                          sw.WriteLine(prefix + "    }");
