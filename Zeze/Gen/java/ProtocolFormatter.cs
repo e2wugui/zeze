@@ -21,7 +21,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("public class " + p.Name + " extends Zeze.Net.Protocol1<" + argument + "> {");
             sw.WriteLine("    public static final int ModuleId_ = " + p.Space.Id + ";");
             sw.WriteLine("    public static final int ProtocolId_ = " + p.Id + ";");
-            sw.WriteLine("    public static final long TypeId_ = (long)ModuleId_ << 32 | (ProtocolId_ & 0xffff_ffffL); ");
+            sw.WriteLine("    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);");
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public int getModuleId() {");

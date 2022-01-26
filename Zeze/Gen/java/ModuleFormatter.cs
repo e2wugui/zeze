@@ -171,7 +171,8 @@ namespace Zeze.Gen.java
                 if (project.GenTables.Contains(table.Gen))
                     sw.WriteLine("    private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
             }
-            sw.WriteLine();
+            if (module.Tables.Count > 0)
+                sw.WriteLine();
             sw.WriteLine($"    public {project.Solution.Name}.App App;");
             sw.WriteLine();
 
@@ -190,9 +191,9 @@ namespace Zeze.Gen.java
                         // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
                         sw.WriteLine("        {");
                         sw.WriteLine("            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();");
-                        sw.WriteLine($"            factoryHandle.Factory = () -> new {rpc.Space.Path(".", rpc.Name)}();");
+                        sw.WriteLine($"            factoryHandle.Factory = {rpc.Space.Path(".", rpc.Name)}::new;");
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
-                            sw.WriteLine($"            factoryHandle.Handle = (_p) -> Process{rpc.Name}Request(_p);");
+                            sw.WriteLine($"            factoryHandle.Handle = this::Process{rpc.Name}Request;");
                         sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}Request\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
                         sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({rpc.TypeId}L, factoryHandle);");
                         sw.WriteLine("        }");
@@ -202,8 +203,8 @@ namespace Zeze.Gen.java
                     {
                         sw.WriteLine("        {");
                         sw.WriteLine("            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();");
-                        sw.WriteLine($"            factoryHandle.Factory = () -> new {p.Space.Path(".", p.Name)}();");
-                        sw.WriteLine($"            factoryHandle.Handle = (_p) -> Process{p.Name}(_p);");
+                        sw.WriteLine($"            factoryHandle.Factory = {p.Space.Path(".", p.Name)}::new;");
+                        sw.WriteLine($"            factoryHandle.Handle = this::Process{p.Name};");
                         sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{p.Name}\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
                         sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({p.TypeId}L, factoryHandle);");
                         sw.WriteLine( "        }");

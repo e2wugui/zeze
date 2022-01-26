@@ -71,23 +71,23 @@ namespace Zeze.Gen.java
             sw.WriteLine($"            var bean = new Zeze.Schemas.Bean(\"{name}\", {isBeanKey.ToString().ToLower()});");
             foreach (var v in vars)
             {
-                sw.WriteLine($"        {{");
-                sw.WriteLine($"            var var = new Zeze.Schemas.Variable();");
-                sw.WriteLine($"            var.Id = {v.Id};");
-                sw.WriteLine($"            var.Name = \"{v.Name}\";");
-                sw.WriteLine($"            var.TypeName = \"{GetFullName(v.VariableType)}\";");
+                sw.WriteLine($"            {{");
+                sw.WriteLine($"                var var = new Zeze.Schemas.Variable();");
+                sw.WriteLine($"                var.Id = {v.Id};");
+                sw.WriteLine($"                var.Name = \"{v.Name}\";");
+                sw.WriteLine($"                var.TypeName = \"{GetFullName(v.VariableType)}\";");
                 if (v.VariableType is Types.TypeCollection collection)
-                    sw.WriteLine($"            var.ValueName = \"{GetFullName(collection.ValueType)}\";");
+                    sw.WriteLine($"                var.ValueName = \"{GetFullName(collection.ValueType)}\";");
                 else if (v.VariableType is Types.TypeMap map)
                 {
-                    sw.WriteLine($"            var.KeyName = \"{GetFullName(map.KeyType)}\";");
-                    sw.WriteLine($"            var.ValueName = \"{GetFullName(map.ValueType)}\";");
+                    sw.WriteLine($"                var.KeyName = \"{GetFullName(map.KeyType)}\";");
+                    sw.WriteLine($"                var.ValueName = \"{GetFullName(map.ValueType)}\";");
                 }
-                sw.WriteLine($"            bean.AddVariable(var);");
-                sw.WriteLine($"        }}");
+                sw.WriteLine($"                bean.AddVariable(var);");
+                sw.WriteLine($"            }}");
             }
-            sw.WriteLine($"        AddBean(bean);");
-            sw.WriteLine($"    }}");
+            sw.WriteLine($"            AddBean(bean);");
+            sw.WriteLine($"        }}");
         }
     }
 }

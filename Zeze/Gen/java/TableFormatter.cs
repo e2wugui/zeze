@@ -62,7 +62,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public ByteBuffer EncodeKey(" + keyboxing + " _v_) {");
-            sw.WriteLine("        ByteBuffer _os_ = ByteBuffer.Allocate();");            
+            sw.WriteLine("        ByteBuffer _os_ = ByteBuffer.Allocate(16);");
             table.KeyType.Accept(new Encode("_v_", -1, "_os_", sw, "        "));
             sw.WriteLine("        return _os_;");
             sw.WriteLine("    }");

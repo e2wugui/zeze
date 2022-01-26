@@ -37,8 +37,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public " + service.Name + "Base(Zeze.Application zeze) throws Throwable {");
             sw.WriteLine("        super(\"" + service.Name + "\", zeze);");
             sw.WriteLine("    }");
-            sw.WriteLine();
             /*
+            sw.WriteLine();
             if (service.IsProvider)
             {
                 sw.WriteLine("        // 用来同步等待Provider的静态绑定完成。");

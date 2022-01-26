@@ -11,6 +11,7 @@ namespace Zeze.Gen.java
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine(prefix + "@SuppressWarnings(\"RedundantIfStatement\")");
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public boolean NegativeCheck() {");
             foreach (Variable var in bean.Variables)
