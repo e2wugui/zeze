@@ -15,6 +15,7 @@ namespace Zeze.Serialize
         public int Capacity { get { return Bytes.Length; } }
         public int Size { get { return WriteIndex - ReadIndex; } }
 
+        // decode
         public static ByteBuffer Wrap(byte[] bytes)
         {
             return new ByteBuffer(bytes, 0, bytes.Length);
@@ -31,29 +32,31 @@ namespace Zeze.Serialize
             return Wrap(binary.Bytes, binary.Offset, binary.Count);
         }
 
+        // encode
         public static ByteBuffer Allocate()
         {
-            return Allocate(1024);
+            return Allocate(16);
         }
 
         public static ByteBuffer Allocate(int capacity)
         {
-            // add pool?
-            // 缓存 ByteBuffer 还是 byte[] 呢？
-            // 最大的问题是怎么归还？而且 Bytes 是公开的，可能会被其他地方引用，很难确定什么时候回收。
-            // buffer 使用2的幂，数量有限，使用简单策略即可。
-            // Dictionary<capacity, List<byte[]>> pool;
-            // socket的内存可以归还。
-            return new ByteBuffer(capacity);
+            return new ByteBuffer(new byte[ToPower2(capacity)]);
+        }
+        
+        public static ByteBuffer Allocate(byte[] initBytes)
+        { 
+            return new ByteBuffer(initBytes);
         }
 
-        ByteBuffer(int capacity)
+        // encode
+        ByteBuffer(byte[] initBytes)
         {
-            Bytes = new byte[ToPower2(capacity)];
+            Bytes = initBytes;
             ReadIndex = 0;
             WriteIndex = 0;
         }
 
+        // decode
         ByteBuffer(byte[] bytes, int readIndex, int writeIndex)
         {
             Bytes = bytes;
@@ -158,7 +161,7 @@ namespace Zeze.Serialize
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static int ToPower2(int needSize)
         {
-            int size = 1024;
+            int size = 16;
             while (size < needSize)
                 size <<= 1;
             return size;

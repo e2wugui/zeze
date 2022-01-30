@@ -42,7 +42,7 @@ namespace Zeze.Net
 
 		public ByteBuffer Encode()
         {
-			ByteBuffer bb = ByteBuffer.Allocate();
+			ByteBuffer bb = ByteBuffer.Allocate(1024);
 
 			bb.WriteInt4(ModuleId);
 			bb.WriteInt4(ProtocolId);
