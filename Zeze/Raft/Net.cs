@@ -213,6 +213,7 @@ namespace Zeze.Raft
             var redirect = new LeaderIs();
             redirect.Argument.Term = Raft.LogSequence.Term;
             redirect.Argument.LeaderId = Raft.LeaderId; // maybe empty
+            redirect.Argument.IsLeader = Raft.IsLeader;
             redirect.Send(sender); // ignore response
         }
 
@@ -230,6 +231,7 @@ namespace Zeze.Raft
                         var r = new LeaderIs();
                         r.Argument.Term = Raft.LogSequence.Term;
                         r.Argument.LeaderId = Raft.LeaderId;
+                        r.Argument.IsLeader = Raft.IsLeader;
                         r.Send(so); // skip result
                     }
                 }
@@ -591,10 +593,23 @@ namespace Zeze.Raft
                 // 由于 Agent 在新增 node 时也会得到新配置广播，
                 // 一般不会发生这种情况。
                 var address = r.Argument.LeaderId.Split(':');
-                if (Client.Config.TryGetOrAddConnector(
-                    address[0], int.Parse(address[1]), true, out node))
+                if (address.Length == 2)
                 {
-                    node.Start();
+                    if (Client.Config.TryGetOrAddConnector(
+                        address[0], int.Parse(address[1]), true, out node))
+                    {
+                        node.Start();
+                    }
+                }
+            }
+            else if (false == r.Argument.IsLeader && r.Argument.LeaderId.Equals(node.Name))
+            {
+                // 发送者不是Leader，但它的发送的LeaderId又是自己，【尝试选择另外一个Node】。
+                var notme = new List<Connector>(Client.Config.ConnectorCount());
+                Client.Config.ForEachConnector((c) => { if (c != node) notme.Add(c); });
+                if (notme.Count > 0)
+                {
+                    node = notme[Util.Random.Instance.Next(notme.Count)];
                 }
             }
 
@@ -945,6 +960,7 @@ namespace Zeze.Raft
     {
         public long Term { get; set; }
         public string LeaderId { get; set; }
+        public bool IsLeader { get; set; }
 
         public override void Decode(ByteBuffer bb)
         {

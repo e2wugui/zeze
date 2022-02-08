@@ -370,6 +370,7 @@ namespace Zeze.Raft
                             var r = new LeaderIs();
                             r.Argument.Term = LogSequence.Term;
                             r.Argument.LeaderId = LeaderId;
+                            r.Argument.IsLeader = IsLeader;
                             r.Send(allsocket); // skip response.
                         }
                     });
