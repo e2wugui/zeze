@@ -91,112 +91,96 @@ namespace Zeze.Gen.java
 
         void AppGen(StreamWriter sw)
         {
+            sw.WriteLine("    // @formatter:off");
             sw.WriteLine("    public Zeze.Application Zeze;");
-            sw.WriteLine("    public HashMap<String, Zeze.IModule> Modules = new HashMap<>();");
+            sw.WriteLine("    public final HashMap<String, Zeze.IModule> Modules = new HashMap<>();");
             sw.WriteLine();
 
             foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
                 sw.WriteLine($"    public {m.Path(".", $"Module{m.Name}")} {fullname};");
-                sw.WriteLine();
             }
+            sw.WriteLine();
 
             foreach (Service m in project.Services.Values)
-            {
                 sw.WriteLine("    public " + m.FullName + " " + m.Name + ";");
-                sw.WriteLine();
-            }
+            sw.WriteLine();
 
             sw.WriteLine("    public void Create() throws Throwable {");
             sw.WriteLine("        Create(null);");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void Create(Zeze.Config config) throws Throwable {");
-            sw.WriteLine("        synchronized (this) {");
-            sw.WriteLine("            if (Zeze != null)");
-            sw.WriteLine("                return;");
+            sw.WriteLine("    public synchronized void Create(Zeze.Config config) throws Throwable {");
+            sw.WriteLine("        if (Zeze != null)");
+            sw.WriteLine("            return;");
             sw.WriteLine();
-            sw.WriteLine($"            Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
+            sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
             sw.WriteLine();
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("            " + m.Name + " = new " + m.FullName + "(Zeze);");
+                sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
             sw.WriteLine();
-            
+
             foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
-                sw.WriteLine("            " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
-                sw.WriteLine($"            {fullname}.Initialize(this);");
-                sw.WriteLine($"            {fullname} = ({m.Path(".", $"Module{m.Name}")})ReplaceModuleInstance({fullname});");
-                sw.WriteLine($"            if (Modules.put({fullname}.getFullName(), {fullname}) != null) {{");
-                sw.WriteLine($"                throw new RuntimeException(\"duplicate module name: {fullname}\");");
-                sw.WriteLine($"            }}");
+                sw.WriteLine("        " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
+                sw.WriteLine($"        {fullname}.Initialize(this);");
+                sw.WriteLine($"        {fullname} = ({m.Path(".", $"Module{m.Name}")})ReplaceModuleInstance({fullname});");
+                sw.WriteLine($"        if (Modules.put({fullname}.getFullName(), {fullname}) != null)");
+                sw.WriteLine($"            throw new RuntimeException(\"duplicate module name: {fullname}\");");
+                sw.WriteLine();
             }
-            sw.WriteLine();
-            sw.WriteLine("            Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
-            sw.WriteLine("        }");
+            sw.WriteLine("        Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void Destroy() {");
-            sw.WriteLine("        synchronized(this) {");
+            sw.WriteLine("    public synchronized void Destroy() {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
                 var fullname = m.Path("_");
-                sw.WriteLine("            " + fullname + " = null;");
+                sw.WriteLine("        " + fullname + " = null;");
             }
-            sw.WriteLine("            Modules.clear();");
+            sw.WriteLine("        Modules.clear();");
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("            " + m.Name + " = null;");
-            sw.WriteLine("            Zeze = null;");
-            sw.WriteLine("        }");
+                sw.WriteLine("        " + m.Name + " = null;");
+            sw.WriteLine("        Zeze = null;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void StartModules() throws Throwable {");
-            sw.WriteLine("        synchronized(this) {");
+            sw.WriteLine("    public synchronized void StartModules() throws Throwable {");
             foreach (var m in project.ModuleStartOrder)
-                sw.WriteLine("            " + m.Path("_") + ".Start(this);");
+                sw.WriteLine("        " + m.Path("_") + ".Start(this);");
             foreach (Module m in project.AllOrderDefineModules)
             {
-                if (project.ModuleStartOrder.Contains(m))
-                    continue;
-                sw.WriteLine("            " + m.Path("_") + ".Start(this);");
+                if (!project.ModuleStartOrder.Contains(m))
+                    sw.WriteLine("        " + m.Path("_") + ".Start(this);");
             }
-            sw.WriteLine();
-            sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void StopModules() throws Throwable {");
-            sw.WriteLine("        synchronized(this) {");
+            sw.WriteLine("    public synchronized void StopModules() throws Throwable {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
-                if (project.ModuleStartOrder.Contains(m))
-                    continue; // Stop later
-                sw.WriteLine("            " + m.Path("_") + ".Stop(this);");
+                if (!project.ModuleStartOrder.Contains(m))
+                    sw.WriteLine("        " + m.Path("_") + ".Stop(this);");
             }
             for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
             {
                 var m= project.ModuleStartOrder[i];
-                sw.WriteLine("            " + m.Path("_") + ".Stop(this);");
+                sw.WriteLine("        " + m.Path("_") + ".Stop(this);");
             }
-            sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void StartService() throws Throwable {");
-            sw.WriteLine("        synchronized(this) {");
+            sw.WriteLine("    public synchronized void StartService() throws Throwable {");
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("            " + m.Name + ".Start();");
-            sw.WriteLine("        }");
+                sw.WriteLine("        " + m.Name + ".Start();");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void StopService() throws Throwable {");
-            sw.WriteLine("        synchronized(this) {");
+            sw.WriteLine("    public synchronized void StopService() throws Throwable {");
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("            " + m.Name + ".Stop();");
-            sw.WriteLine("        }");
+                sw.WriteLine("        " + m.Name + ".Stop();");
             sw.WriteLine("    }");
+            sw.WriteLine("    // @formatter:on");
         }
     }
 }

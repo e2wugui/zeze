@@ -21,7 +21,7 @@ namespace Zeze.Gen.java
         }
 
         FileChunkGen FileChunkGen;
- 
+
         public void Make()
         {
             MakeInterface();
@@ -164,12 +164,13 @@ namespace Zeze.Gen.java
 
         void ModuleGen(StreamWriter sw)
         {
+            sw.WriteLine("\t// @formatter:off");
             sw.WriteLine($"    public static final int ModuleId = {module.Id};");
             sw.WriteLine();
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen))
-                    sw.WriteLine("    private " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
+                    sw.WriteLine("    private final " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
             }
             if (module.Tables.Count > 0)
                 sw.WriteLine();
@@ -179,15 +180,20 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    public Module{module.Name}({project.Solution.Name}.App app) {{");
             sw.WriteLine("        App = app;");
             sw.WriteLine("        // register protocol factory and handles");
-            sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(this.getClass());");
             Service serv = module.ReferenceService;
             if (serv != null)
             {
+                bool defReflect = false;
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
                 foreach (Protocol p in module.Protocols.Values)
                 {
                     if (p is Rpc rpc)
                     {
+                        if (!defReflect)
+                        {
+                            defReflect = true;
+                            sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(this.getClass());");
+                        }
                         // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
                         sw.WriteLine("        {");
                         sw.WriteLine("            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();");
@@ -201,6 +207,11 @@ namespace Zeze.Gen.java
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
+                        if (!defReflect)
+                        {
+                            defReflect = true;
+                            sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(this.getClass());");
+                        }
                         sw.WriteLine("        {");
                         sw.WriteLine("            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle();");
                         sw.WriteLine($"            factoryHandle.Factory = {p.Space.Path(".", p.Name)}::new;");
@@ -243,6 +254,7 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
             }
             sw.WriteLine("    }");
+            sw.WriteLine("    // @formatter:on");
         }
 
         public void MakePartialImplement()
