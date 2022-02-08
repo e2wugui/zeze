@@ -11,6 +11,7 @@
 	实际上就是把具体类型的功能尽量放到基类。感觉没必要：应用使用独立进程更加安全灵活些。
 ----------------------------------------------------------------------------------------------------------------------------------
 【INPROCESS】
+	【应该是请求量加多了，出现Leader出错时一起返回的结果】一堆的ProcessLeaderIs
 	DatabaseTikv OperatesTikv
 	关联多用户数据的协议处理自动派发到热点所在Server。
 	Global.Release并发问题【再次】确认
@@ -19,7 +20,6 @@
 	Zeze.Arch 
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
-	Raft TaskOneByOneByKey Key=(ClientId, UniqueRequestId)
 
 	Raft.Agent TryGetReadySocket 总是 null。
 	Net.Connector.OnSocketHandshakeDone Fail 原因。
@@ -46,6 +46,7 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【新变动】
+	Raft TaskOneByOneByKey Key=Unique=(ClientId, UniqueRequestId)
 
 【2022/1/21】
 	Raft.Agent Resend 简化模型。

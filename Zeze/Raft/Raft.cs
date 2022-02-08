@@ -41,11 +41,15 @@ namespace Zeze.Raft
         {
             lock (this)
             {
+                // shutdown 只做一次。
                 if (IsShutdown)
                     return;
 
                 IsShutdown = true;
             }
+
+            TimerTask?.Cancel();
+            TimerTask = null;
 
             // 0 clear pending task if is leader
             if (IsLeader)
@@ -62,9 +66,6 @@ namespace Zeze.Raft
                 // see WaitLeaderReady.
                 // 可以避免状态设置不对的问题。关闭时转换成Follower也是对的。
                 ConvertStateTo(RaftState.Follower);
-                // Cancel Follower TimerTask
-                LeaderLostTimerTask?.Cancel();
-                LeaderLostTimerTask = null;
                 LeaderId = string.Empty;
             }
 
@@ -112,9 +113,9 @@ namespace Zeze.Raft
             LogSequence = new LogSequence(this);
 
             RegisterInternalRpc();
-            StartLeaderLostTimerTask();
             LogSequence.StartSnapshotPerDayTimer();
             AppDomain.CurrentDomain.ProcessExit += ProcessExit;
+            TimerTask = Scheduler.Instance.Schedule(OnTimer, 1000, 200);
         }
 
         private long ProcessAppendEntries(Protocol p)
@@ -238,20 +239,62 @@ namespace Zeze.Raft
         private volatile RaftState _State = RaftState.Follower;
         public RaftState State { get { return _State; } private set { _State = value; } }
 
+        private SchedulerTask TimerTask;
         // Candidate
-        private SchedulerTask StartRequestVoteDelayTask;
-        private SchedulerTask WaitMajorityVoteTimoutTask;
+        //private SchedulerTask StartRequestVoteDelayTask;
+        //private SchedulerTask WaitMajorityVoteTimoutTask;
         private ConcurrentDictionary<string, Connector> VoteSuccess
             = new ConcurrentDictionary<string, Connector>();
+        private long SendRequestVoteTime = Time.NowUnixMillis;
         // Leader
-        private SchedulerTask HearbeatTimerTask;
+        //private SchedulerTask HearbeatTimerTask;
         private long LeaderWaitReadyTerm;
         private long LeaderWaitReadyIndex;
         internal ManualResetEvent LeaderReadyEvent { get; } = new ManualResetEvent(false);
         // Follower
-        private SchedulerTask LeaderLostTimerTask;
+        //private SchedulerTask LeaderLostTimerTask;
 
-        /// <summary>
+         /// <summary>
+        /// 每个Raft使用一个固定Timer，根据不同的状态执行相应操作。
+        /// 【简化】不同状态下不管维护管理不同的Timer了。
+        /// </summary>
+        /// <param name="ThisTask"></param>
+        private void OnTimer(SchedulerTask ThisTask)
+        {
+            lock (this)
+            {
+                switch (State)
+                {
+                    case RaftState.Follower:
+                        var elapse = Time.NowUnixMillis - LogSequence.LeaderActiveTime;
+                        if (elapse > RaftConfig.LeaderLostTimeout)
+                        {
+                            ConvertStateTo(RaftState.Candidate);
+                        }
+                        break;
+
+                    case RaftState.Candidate:
+                        if (Time.NowUnixMillis - SendRequestVoteTime > RaftConfig.AppendEntriesTimeout + 2000)
+                        {
+                            ConvertStateTo(RaftState.Candidate);
+                        }
+                        break;
+
+                    case RaftState.Leader:
+                        var now = Time.NowUnixMillis;
+                        Server.Config.ForEachConnector(
+                            (c) =>
+                            {
+                                var cex = c as Server.ConnectorEx;
+                                if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
+                                    LogSequence.SendHearbeatTo(cex);
+                            });
+                        break;
+                }
+            }
+        }
+
+       /// <summary>
         /// true，IsLeader && LeaderReady;
         /// false, !IsLeader
         /// </summary>
@@ -398,47 +441,29 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
-        private void SendRequestVote(SchedulerTask ThisTask)
+        private void SendRequestVote()
         {
-            lock (this)
-            {
-                if (null != WaitMajorityVoteTimoutTask)
-                    return;
+            VoteSuccess.Clear(); // 每次选举开始清除。
 
-                VoteSuccess.Clear(); // 每次选举开始清除。
+            LeaderId = string.Empty;
+            LogSequence.SetVoteFor(Name); // Vote Self First.
+            LogSequence.TrySetTerm(LogSequence.Term + 1);
 
-                LeaderId = string.Empty;
-                LogSequence.SetVoteFor(Name); // Vote Self First.
-                LogSequence.TrySetTerm(LogSequence.Term + 1);
+            var arg = new RequestVoteArgument();
+            arg.Term = LogSequence.Term;
+            arg.CandidateId = Name;
+            var log = LogSequence.LastRaftLog();
+            arg.LastLogIndex = log.Index;
+            arg.LastLogTerm = log.Term;
 
-                var arg = new RequestVoteArgument();
-                arg.Term = LogSequence.Term;
-                arg.CandidateId = Name;
-                var log = LogSequence.LastRaftLog();
-                arg.LastLogIndex = log.Index;
-                arg.LastLogTerm = log.Term;
-
-                Server.Config.ForEachConnector(
-                    (c) =>
-                    {
-                        var rpc = new RequestVote() { Argument = arg };
-                        var sendresult = rpc.Send(c.TryGetReadySocket(), (p) => ProcessRequestVoteResult(rpc, c));
-                        logger.Debug("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
-                    });
-
-                // 定时，如果超时选举还未完成，再次发起选举。
-                WaitMajorityVoteTimoutTask = Scheduler.Instance.Schedule(
-                    (ThisTask) =>
-                    {
-                        lock (this)
-                        {
-                            StartRequestVoteDelayTask?.Cancel();
-                            StartRequestVoteDelayTask = null;
-                            ConvertStateTo(RaftState.Candidate);
-                        }
-                    },
-                    RaftConfig.AppendEntriesTimeout + 1000);
-            }
+            SendRequestVoteTime = Time.NowUnixMillis;
+            Server.Config.ForEachConnector(
+                (c) =>
+                {
+                    var rpc = new RequestVote() { Argument = arg };
+                    var sendresult = rpc.Send(c.TryGetReadySocket(), (p) => ProcessRequestVoteResult(rpc, c));
+                    logger.Debug("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
+                });
         }
 
         private void ConvertStateFromFollwerTo(RaftState newState)
@@ -452,10 +477,8 @@ namespace Zeze.Raft
                 case RaftState.Candidate:
                     logger.Info($"RaftState {Name}: Follower->Candidate");
                     State = RaftState.Candidate;
-                    LeaderLostTimerTask?.Cancel();
-                    LeaderLostTimerTask = null;
                     LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
-                    StartRequestVote();
+                    SendRequestVote();
                     return;
 
                 case RaftState.Leader:
@@ -464,23 +487,6 @@ namespace Zeze.Raft
                     logger.Info($"RaftState {Name} Impossible! Follower->Leader");
                     return;
             }
-        }
-
-        private void StartLeaderLostTimerTask()
-        {
-            // 每次LeaderActive启动一个Timer会很精确，但需要创建很多Task。
-            // 下面这种定时检测的方法在精度方面也可以。只是需要定时check。
-            LeaderLostTimerTask = Scheduler.Instance.Schedule(
-                (ThisTask) =>
-                {
-                    var elapse = Time.NowUnixMillis - LogSequence.LeaderActiveTime;
-                    if (elapse > RaftConfig.LeaderLostTimeout)
-                    {
-                        ConvertStateTo(RaftState.Candidate);
-                    }
-                },
-                Util.Random.Instance.Next(1000),
-                1000);
         }
 
         private void ConvertStateFromCandidateTo(RaftState newState)
@@ -493,24 +499,15 @@ namespace Zeze.Raft
                     VoteSuccess.Clear(); // 选举结束清除。
 
                     LogSequence.SetVoteFor(string.Empty);
-                    StartRequestVoteDelayTask?.Cancel();
-                    StartRequestVoteDelayTask = null;
-                    WaitMajorityVoteTimoutTask?.Cancel();
-                    WaitMajorityVoteTimoutTask = null;
-                    StartLeaderLostTimerTask();
                     return;
 
                 case RaftState.Candidate:
                     logger.Info($"RaftState {Name}: Candidate->Candidate");
                     LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
-                    StartRequestVote();
+                    SendRequestVote();
                     return;
 
                 case RaftState.Leader:
-                    StartRequestVoteDelayTask?.Cancel();
-                    StartRequestVoteDelayTask = null;
-                    WaitMajorityVoteTimoutTask?.Cancel();
-                    WaitMajorityVoteTimoutTask = null;
                     VoteSuccess.Clear(); // 选举结束清除。
 
                     logger.Info($"RaftState {Name}: Candidate->Leader");
@@ -534,20 +531,6 @@ namespace Zeze.Raft
                     // idle periods to prevent election timeouts(§5.2)
                     LogSequence.AppendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent),
                         false, out LeaderWaitReadyTerm, out LeaderWaitReadyIndex);
-                    HearbeatTimerTask = Scheduler.Instance.Schedule(
-                        (ThisTask) =>
-                        {
-                            var now = Time.NowUnixMillis;
-                            Server.Config.ForEachConnector(
-                                (c) =>
-                                {
-                                    var cex = c as Server.ConnectorEx;
-                                    if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
-                                        LogSequence.SendHearbeatTo(cex);
-                                });
-                        },
-                        1000,
-                        1000);
                     return;
             }
         }
@@ -560,11 +543,6 @@ namespace Zeze.Raft
                     logger.Info($"RaftState {Name}: Leader->Follower");
                     State = RaftState.Follower;
                     ResetLeaderReadyAfterChangeState();
-
-                    HearbeatTimerTask?.Cancel();
-                    HearbeatTimerTask = null;
-
-                    StartLeaderLostTimerTask();
                     return;
 
                 case RaftState.Candidate:
@@ -594,20 +572,6 @@ namespace Zeze.Raft
                     ConvertStateFromLeaderTo(newState);
                     return;
             }
-        }
-
-        private void StartRequestVote()
-        {
-            // 已经在锁内
-            if (null != StartRequestVoteDelayTask)
-                return;
-
-            WaitMajorityVoteTimoutTask?.Cancel();
-            WaitMajorityVoteTimoutTask = null;
-
-            StartRequestVoteDelayTask = Scheduler.Instance.Schedule(
-                SendRequestVote,
-                Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout * 2 + 1000));
         }
 
         private void RegisterInternalRpc()
