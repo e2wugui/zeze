@@ -208,7 +208,7 @@ namespace Zeze.Raft
 
         // Leader
         // Follower
-        public long LeaderActiveTime { get; private set; } = Zeze.Util.Time.NowUnixMillis;
+        public long LeaderActiveTime { get; internal set; } = Zeze.Util.Time.NowUnixMillis;
 
         private RocksDb Logs { get; set; }
         private RocksDb Rafts { get; set; }

@@ -250,7 +250,21 @@ namespace Zeze.Raft
         internal volatile TaskCompletionSource<bool> LeaderReadyFuture = new TaskCompletionSource<bool>();
         // Follower
 
-         /// <summary>
+        // 重置 OnTimer 需要的所有时间。
+        private void ResetTimerTime()
+        {
+            var now = Time.NowUnixMillis;
+            LogSequence.LeaderActiveTime = now;
+            SendRequestVoteTime = now;
+            Server.Config.ForEachConnector(
+                (c) =>
+                {
+                    var cex = c as Server.ConnectorEx;
+                    cex.AppendLogActiveTime = now;
+                });
+        }
+
+        /// <summary>
         /// 每个Raft使用一个固定Timer，根据不同的状态执行相应操作。
         /// 【简化】不同状态下不管维护管理不同的Timer了。
         /// </summary>
@@ -528,10 +542,12 @@ namespace Zeze.Raft
 
                     // (Reinitialized after election)
                     var nextIndex = LogSequence.LastIndex + 1;
+
                     Server.Config.ForEachConnector(
                         (c) =>
                         {
                             var cex = c as Server.ConnectorEx;
+                            cex.Start(); // 马上尝试连接。
                             cex.NextIndex = nextIndex;
                             cex.MatchIndex = 0;
                         });
@@ -568,6 +584,7 @@ namespace Zeze.Raft
 
         internal void ConvertStateTo(RaftState newState)
         {
+            ResetTimerTime();
             // 按真值表处理所有情况。
             switch (State)
             {

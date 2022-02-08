@@ -50,13 +50,12 @@
 	--- 【Net.Service.TryRemoveRpcContext 发送前总是尝试删除旧的上下文】
 	Raft.LeaderReadyFuture
 
-
 【2022/1/21】
 	Raft.Agent Resend 简化模型。
 	Raft BUG Follower 复制日志时，如果冲突，没有把当前冲突的日志写入，造成丢失。
 	Handshake 没有错误处理。Timeout Remove Context.
 	PersistentAtomicLong 使用文件锁，处理多进程（在同一个目录执行多份实例）。
-	Raft AppendLogActiveTime 移到 Connector 中，只要有一个 Connector 超过一定时间不发送数据，就启动整体的Heartbeat。
+	Raft AppendLogActiveTime 移到 Connector 中，每个Connector判断自己的超时，并Heartbeat。
 	ServiceManager Simple 模式不通知整个列表！改成OnRegister OnUnRegister。
 	【已确认】checkpointMode.Period 不能用--->在启用Global情况下禁用。
 	【已确认】CheckpointMode.Table 能不能用？--->可以使用。
