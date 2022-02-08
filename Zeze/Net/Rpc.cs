@@ -94,6 +94,8 @@ namespace Zeze.Net
             this.IsRequest = true;
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
+            // try remove . 只维护一个上下文。
+            so.Service.TryRemoveRpcContext(SessionId, this);
             this.SessionId = so.Service.AddRpcContext(this);
 
             var timeoutTask = Schedule(so.Service, SessionId, millisecondsTimeout);
@@ -128,6 +130,8 @@ namespace Zeze.Net
             this.IsRequest = true;
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
+            // try remove . 只维护一个上下文。
+            so.Service.TryRemoveRpcContext(SessionId, this);
             this.SessionId = service.AddRpcContext(this);
             Schedule(service, SessionId, millisecondsTimeout);
             base.Send(so);

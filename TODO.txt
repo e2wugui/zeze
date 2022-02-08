@@ -23,8 +23,6 @@
 
 	Raft.Agent TryGetReadySocket 总是 null。
 	Net.Connector.OnSocketHandshakeDone Fail 原因。
-	【Rpc会有并发访问（违背了rpc单线程使用原则，需要修改）】Raft.Agent.Test 有错误返回。怎么回事？
-	Raft 统一Timer，根据State处理不同的分支。
 
 	RedoableQueue
 	{
@@ -47,6 +45,11 @@
 
 【新变动】
 	Raft TaskOneByOneByKey Key=Unique=(ClientId, UniqueRequestId)
+	Raft 统一Timer，根据State处理不同的分支。
+	【Rpc会有并发访问（违背了rpc单线程使用原则，需要修改）】Raft.Agent.Test 有错误返回。怎么回事？
+	--- 【Net.Service.TryRemoveRpcContext 发送前总是尝试删除旧的上下文】
+	Raft.LeaderReadyFuture
+
 
 【2022/1/21】
 	Raft.Agent Resend 简化模型。

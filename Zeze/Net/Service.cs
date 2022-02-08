@@ -401,6 +401,11 @@ namespace Zeze.Net
             }
         }
 
+        internal void TryRemoveRpcContext(long sid, Protocol current)
+        {
+            _RpcContexts.TryRemove(KeyValuePair.Create(sid, current));
+        }
+
         internal T RemoveRpcContext<T>(long sid) where T : Protocol
         {
             if (_RpcContexts.TryRemove(sid, out var p))

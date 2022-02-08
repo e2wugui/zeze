@@ -225,7 +225,7 @@ namespace Zeze.Raft
             {
                 lock (Raft)
                 {
-                    if (Raft.IsLeader && Raft.LeaderReadyEvent.WaitOne(0))
+                    if (Raft.IsReadyLeader)
                     {
                         var r = new LeaderIs();
                         r.Argument.Term = Raft.LogSequence.Term;
@@ -366,7 +366,7 @@ namespace Zeze.Raft
 
         public Util.SimpleThreadPool InternalThreadPool { get; }
 
-        public Action<Agent> OnLeaderChanged { get; private set; }
+        //public Action<Agent> OnLeaderChanged { get; set; }
 
         /// <summary>
         /// 发送Rpc请求。
@@ -414,12 +414,14 @@ namespace Zeze.Raft
                 return 0;
             }
 
-            if (rpc.ResultCode == Procedure.RaftApplied)
-                rpc.ResultCode = Procedure.Success;
-
             if (Pending.Remove(rpc))
             {
                 ActiveTime = Util.Time.NowUnixMillis;
+                if (rpc.ResultCode == Procedure.RaftApplied)
+                {
+                    rpc.IsTimeout = false;
+                    rpc.ResultCode = Procedure.Success;
+                }
                 return userHandle(rpc);
             }
             return 0;
@@ -450,12 +452,14 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
-            if (rpc.ResultCode == Procedure.RaftApplied)
-                rpc.ResultCode = Procedure.Success;
-
             if (Pending.Remove(rpc))
             {
                 ActiveTime = Util.Time.NowUnixMillis;
+                if (rpc.ResultCode == Procedure.RaftApplied)
+                {
+                    rpc.IsTimeout = false;
+                    rpc.ResultCode = Procedure.Success;
+                }
                 future.SetResult(rpc);
             }
             return Procedure.Success;
@@ -518,13 +522,12 @@ namespace Zeze.Raft
         public Agent(
             string name,
             Application zeze,
-            RaftConfig raftconf = null,
-            Action<Agent> onLeaderChanged = null
+            RaftConfig raftconf = null
             )
         {
             InternalThreadPool = zeze.InternalThreadPool;
             UniqueRequestIdGenerator = Zeze.Util.PersistentAtomicLong.GetOrAdd($"{name}.{zeze.Config.ServerId}");
-            Init(new NetClient(this, name, zeze), raftconf, onLeaderChanged);
+            Init(new NetClient(this, name, zeze), raftconf);
         }
 
         /// <summary>
@@ -532,13 +535,11 @@ namespace Zeze.Raft
         /// </summary>
         /// <param name="raftconf"></param>
         /// <param name="config"></param>
-        /// <param name="onLeaderChanged"></param>
         /// <param name="name"></param>
         public Agent(
             string name,
             RaftConfig raftconf = null,
-            Zeze.Config config = null,
-            Action<Agent> onLeaderChanged = null
+            Zeze.Config config = null
             )
         {
             InternalThreadPool = new Util.SimpleThreadPool(5, "RaftAgentThreadPool");
@@ -546,13 +547,11 @@ namespace Zeze.Raft
                 config = Config.Load();
 
             UniqueRequestIdGenerator = Zeze.Util.PersistentAtomicLong.GetOrAdd($"{name}.{config.ServerId}");
-            Init(new NetClient(this, name, config), raftconf, onLeaderChanged);
+            Init(new NetClient(this, name, config), raftconf);
         }
 
-        private void Init(NetClient client, RaftConfig raftconf, Action<Agent> onLeaderChanged)
+        private void Init(NetClient client, RaftConfig raftconf)
         {
-            OnLeaderChanged = onLeaderChanged;
-
             if (null == raftconf)
                 raftconf = RaftConfig.Load();
 
@@ -603,7 +602,7 @@ namespace Zeze.Raft
             {
                 ReSend(true);
             }
-            OnLeaderChanged?.Invoke(this);
+            //OnLeaderChanged?.Invoke(this);
             r.SendResultCode(0);
             return Procedure.Success;
         }

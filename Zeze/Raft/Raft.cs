@@ -241,18 +241,14 @@ namespace Zeze.Raft
 
         private SchedulerTask TimerTask;
         // Candidate
-        //private SchedulerTask StartRequestVoteDelayTask;
-        //private SchedulerTask WaitMajorityVoteTimoutTask;
         private ConcurrentDictionary<string, Connector> VoteSuccess
             = new ConcurrentDictionary<string, Connector>();
         private long SendRequestVoteTime = Time.NowUnixMillis;
         // Leader
-        //private SchedulerTask HearbeatTimerTask;
         private long LeaderWaitReadyTerm;
         private long LeaderWaitReadyIndex;
-        internal ManualResetEvent LeaderReadyEvent { get; } = new ManualResetEvent(false);
+        internal volatile TaskCompletionSource<bool> LeaderReadyFuture = new TaskCompletionSource<bool>();
         // Follower
-        //private SchedulerTask LeaderLostTimerTask;
 
          /// <summary>
         /// 每个Raft使用一个固定Timer，根据不同的状态执行相应操作。
@@ -303,19 +299,29 @@ namespace Zeze.Raft
         {
             lock (this)
             {
+                var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
                 while (IsLeader)
                 {
-                    if (LeaderReadyEvent.WaitOne(0))
-                        return true;
+                    if (volatileTmp.Task.Wait(0))
+                        return volatileTmp.Task.Result;
                     Monitor.Wait(this);
                 }
                 return false;
             }
         }
 
+        public bool IsReadyLeader
+        {
+            get
+            {
+                var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
+                return IsLeader && volatileTmp.Task.Wait(0) && volatileTmp.Task.Result;
+            }
+        }
+
         internal void ResetLeaderReadyAfterChangeState()
         {
-            LeaderReadyEvent.Reset();
+            LeaderReadyFuture.TrySetResult(false);
             Monitor.PulseAll(this); // has under lock(this)
         }
 
@@ -323,6 +329,9 @@ namespace Zeze.Raft
         {
             if (IsLeader)
             {
+                // 是否过期First-Hearbeat。
+                // 使用 LeaderReadyFuture 可以更加精确的识别。
+                // 但是，由于RaftLog不是常驻内存的，保存不了进程级别的变量。
                 if (heart.Term != LeaderWaitReadyTerm || heart.Index != LeaderWaitReadyIndex)
                     return;
 
@@ -331,7 +340,7 @@ namespace Zeze.Raft
 
                 logger.Info($"{Name} {RaftConfig.DbHome} LastIndex={LogSequence.LastIndex} Count={LogSequence.GetTestStateMachineCount()}");
 
-                LeaderReadyEvent.Set();
+                LeaderReadyFuture.TrySetResult(true);
                 Monitor.PulseAll(this); // has under lock(this)
 
                 Server.Foreach(
@@ -514,6 +523,8 @@ namespace Zeze.Raft
                     State = RaftState.Leader;
                     LogSequence.SetVoteFor(string.Empty);
                     LeaderId = Name; // set to self
+                    LeaderReadyFuture.TrySetResult(false);
+                    LeaderReadyFuture = new TaskCompletionSource<bool>();
 
                     // (Reinitialized after election)
                     var nextIndex = LogSequence.LastIndex + 1;
