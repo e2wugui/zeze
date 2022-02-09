@@ -58,7 +58,7 @@ namespace Zeze.Raft
                 {
                     foreach (var e in LogSequence.WaitApplyFutures)
                     {
-                        e.Value.TrySetException(new Exception("Shutdown Now"));
+                        e.Value.SetCanceled();
                         LogSequence.WaitApplyFutures.TryRemove(e.Key, out _);
                     }
                 });
@@ -250,7 +250,8 @@ namespace Zeze.Raft
         // Candidate
         private ConcurrentDictionary<string, Connector> VoteSuccess
             = new ConcurrentDictionary<string, Connector>();
-        private long SendRequestVoteTime; // 负数表示延迟启动
+        private long NextVoteTime;
+        private long SendRequestVoteTime;
         // Leader
         private long LeaderWaitReadyTerm;
         private long LeaderWaitReadyIndex;
@@ -291,12 +292,12 @@ namespace Zeze.Raft
                         break;
 
                     case RaftState.Candidate:
-                        if (SendRequestVoteTime < 0)
+                        if (SendRequestVoteTime > 0)
                         {
-                            if (Time.NowUnixMillis > -SendRequestVoteTime)
+                            if (Time.NowUnixMillis > SendRequestVoteTime)
                                 SendRequestVote();
                         }
-                        else if (Time.NowUnixMillis > SendRequestVoteTime + RaftConfig.AppendEntriesTimeout)
+                        else if (Time.NowUnixMillis > NextVoteTime)
                         {
                             // vote timeout. restart
                             ConvertStateTo(RaftState.Candidate);
@@ -481,6 +482,12 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
+        private void PrepareSendRequestVote()
+        {
+            SendRequestVoteTime = Time.NowUnixMillis + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout);
+            Server.Config.ForEachConnector((c) => c.Start());
+        }
+
         private void SendRequestVote()
         {
             VoteSuccess.Clear(); // 每次选举开始清除。
@@ -496,14 +503,14 @@ namespace Zeze.Raft
             arg.LastLogIndex = log.Index;
             arg.LastLogTerm = log.Term;
 
-            SendRequestVoteTime = Time.NowUnixMillis;
-            Server.Config.ForEachConnector(
-                (c) =>
-                {
-                    var rpc = new RequestVote() { Argument = arg };
-                    var sendresult = rpc.Send(c.TryGetReadySocket(), (p) => ProcessRequestVoteResult(rpc, c));
-                    logger.Debug("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
-                });
+            SendRequestVoteTime = 0;
+            NextVoteTime = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout);
+            Server.Config.ForEachConnector((c) =>
+            {
+                var rpc = new RequestVote() { Argument = arg };
+                var sendresult = rpc.Send(c.TryGetReadySocket(), (p) => ProcessRequestVoteResult(rpc, c));
+                logger.Debug("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
+            });
         }
 
         private void ConvertStateFromFollwerTo(RaftState newState)
@@ -518,7 +525,7 @@ namespace Zeze.Raft
                     logger.Info($"RaftState {Name}: Follower->Candidate");
                     State = RaftState.Candidate;
                     LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
-                    SendRequestVoteTime = -(Time.NowUnixMillis + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout));
+                    PrepareSendRequestVote();
                     return;
 
                 case RaftState.Leader:
@@ -543,7 +550,7 @@ namespace Zeze.Raft
                 case RaftState.Candidate:
                     logger.Info($"RaftState {Name}: Candidate->Candidate");
                     LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
-                    SendRequestVoteTime = -(Time.NowUnixMillis + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout));
+                    PrepareSendRequestVote();
                     return;
 
                 case RaftState.Leader:

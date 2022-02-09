@@ -42,7 +42,9 @@
 		关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 	Zezex.client: 可靠消息实现的错误检查。
 
-【2022/2/】
+【2022/3/】
+
+【2022/2/10】
 	Raft.Shutdown 的时候快速失败-Cancel在Future上等待的任务。
 	【应该是请求量加多了，出现Leader出错时一起返回的结果】一堆的ProcessLeaderIs
 	Raft.Test Procedure.RaftApplied 错误怎么跑出去的。
