@@ -209,6 +209,9 @@ namespace Zeze.Raft
             if (string.IsNullOrEmpty(Raft.LeaderId))
                 return;
 
+            if (Raft.Name.Equals(Raft.LeaderId) && false == Raft.IsLeader)
+                return;
+
             // redirect
             var redirect = new LeaderIs();
             redirect.Argument.Term = Raft.LogSequence.Term;
