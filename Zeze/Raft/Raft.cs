@@ -243,7 +243,7 @@ namespace Zeze.Raft
         // Candidate
         private ConcurrentDictionary<string, Connector> VoteSuccess
             = new ConcurrentDictionary<string, Connector>();
-        private long NextSendRequestVoteTime;
+        private long SendRequestVoteTime; // 负数表示延迟启动
         // Leader
         private long LeaderWaitReadyTerm;
         private long LeaderWaitReadyIndex;
@@ -284,9 +284,15 @@ namespace Zeze.Raft
                         break;
 
                     case RaftState.Candidate:
-                        if (NextSendRequestVoteTime < Time.NowUnixMillis)
+                        if (SendRequestVoteTime < 0)
                         {
-                            SendRequestVote();
+                            if (Time.NowUnixMillis > -SendRequestVoteTime)
+                                SendRequestVote();
+                        }
+                        else if (Time.NowUnixMillis > SendRequestVoteTime + RaftConfig.AppendEntriesTimeout)
+                        {
+                            // vote timeout. restart
+                            ConvertStateTo(RaftState.Candidate);
                         }
 
                         break;
@@ -482,12 +488,7 @@ namespace Zeze.Raft
             arg.LastLogIndex = log.Index;
             arg.LastLogTerm = log.Term;
 
-            NextSendRequestVoteTime =
-                Time.NowUnixMillis
-                + Util.Random.Instance.Next(RaftConfig.LeaderHeartbeatTimer)
-                + RaftConfig.AppendEntriesTimeout
-                + 1000;
-
+            SendRequestVoteTime = Time.NowUnixMillis;
             Server.Config.ForEachConnector(
                 (c) =>
                 {
@@ -509,7 +510,7 @@ namespace Zeze.Raft
                     logger.Info($"RaftState {Name}: Follower->Candidate");
                     State = RaftState.Candidate;
                     LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
-                    NextSendRequestVoteTime = Time.NowUnixMillis;
+                    SendRequestVoteTime = -(Time.NowUnixMillis + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout));
                     return;
 
                 case RaftState.Leader:
@@ -528,14 +529,13 @@ namespace Zeze.Raft
                     logger.Info($"RaftState {Name}: Candidate->Follower");
                     State = RaftState.Follower;
                     VoteSuccess.Clear(); // 选举结束清除。
-
                     LogSequence.SetVoteFor(string.Empty);
                     return;
 
                 case RaftState.Candidate:
                     logger.Info($"RaftState {Name}: Candidate->Candidate");
                     LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
-                    NextSendRequestVoteTime = Time.NowUnixMillis;
+                    SendRequestVoteTime = -(Time.NowUnixMillis + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout));
                     return;
 
                 case RaftState.Leader:
