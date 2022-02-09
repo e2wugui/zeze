@@ -400,7 +400,8 @@ namespace Zeze.Raft
             lock (this)
             {
                 var r = p as RequestVote;
-                if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
+                var newer = LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer;
+                if (newer)
                 {
                     // new term found. 选举中的状态不改变。如果是Leader，马上切换到Follower。
                     if (State == RaftState.Leader)
@@ -414,7 +415,7 @@ namespace Zeze.Raft
                 // 1.Reply false if term < currentTerm(§5.1)
                 // 2.If votedFor is null or candidateId, and candidate’s log is at
                 // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
-                r.Result.VoteGranted = (r.Argument.Term >= LogSequence.Term)
+                r.Result.VoteGranted = newer // 1. 【change】term > currentTerm
                     && LogSequence.CanVoteFor(r.Argument.CandidateId)
                     && IsCandidateLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
                 if (r.Result.VoteGranted)

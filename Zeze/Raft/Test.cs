@@ -159,12 +159,17 @@ namespace Zeze.Raft
 
         private void ErrorsAdd(long resultCode)
         {
-            if (0 == resultCode || Procedure.DuplicateRequest == resultCode)
+            if (0 == resultCode)
                 return;
             if (Errors.ContainsKey(resultCode))
                 Errors[resultCode] = Errors[resultCode] + 1;
             else
                 Errors[resultCode] = 1;
+            if (resultCode == Procedure.RaftApplied)
+            {
+                logger.Fatal("Procedure.RaftApplied!!!");
+                Environment.Exit(0);
+            }
         }
 
         private long ErrorsSum()
@@ -600,8 +605,9 @@ namespace Zeze.Raft
         {
             public readonly static int ProtocolId_ = Bean.Hash32(typeof(AddCount).FullName);
 
-            public override int ModuleId => 0;
-            public override int ProtocolId => ProtocolId_;
+            public AddCount() : base(0, ProtocolId_)
+            { 
+            }
         }
 
         public sealed class GetCountResult : Bean
@@ -628,8 +634,9 @@ namespace Zeze.Raft
         {
             public readonly static int ProtocolId_ = Bean.Hash32(typeof(GetCount).FullName);
 
-            public override int ModuleId => 0;
-            public override int ProtocolId => ProtocolId_;
+            public GetCount() : base(0, ProtocolId_)
+            { 
+            }
         }
 
         public class TestStateMachine : StateMachine

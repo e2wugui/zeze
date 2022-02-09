@@ -293,20 +293,34 @@ namespace Zeze.Raft
         public abstract long SendTime { get; set; } // 不系列化，Agent本地只用。
     }
 
-    public abstract class RaftRpc<TArgument, TResult> : Rpc<TArgument, TResult>, IRaftRpc
+    public class RaftRpc<TArgument, TResult> : Rpc<TArgument, TResult>, IRaftRpc
         where TArgument : Bean, new()
         where TResult : Bean, new()
     {
         public long CreateTime { get; set; }
         public UniqueRequestId Unique { get; set; } = new UniqueRequestId();
         public long SendTime { get; set; }
+        
+        private int _ModuleId;
+        private int _ProtocolId;
 
-        public override bool Send(AsyncSocket so)
+        public override int ModuleId => _ModuleId;
+        public override int ProtocolId => _ProtocolId;
+
+        public RaftRpc(int moduleId, int protocolId)
+        { 
+            _ModuleId = moduleId;
+            _ProtocolId = protocolId;
+        }
+
+        public override bool Send(AsyncSocket socket)
         {
-            // reset before re-send
-            ResultCode = 0;
-            IsTimeout = false;
-            return base.Send(so);
+            var sending = new RaftRpc<TArgument, TResult>(this.ModuleId, this.ProtocolId);
+            sending.ResponseHandle = (p) => this.ResponseHandle(p);
+            sending.Argument = this.Argument;
+            sending.CreateTime = this.CreateTime;
+            sending.Unique = this.Unique;
+            return sending.Send(socket, sending.ResponseHandle, -1);
         }
 
         public override string ToString()
@@ -365,7 +379,7 @@ namespace Zeze.Raft
 
         public ConnectorEx Leader => _Leader;
         private volatile ConnectorEx _Leader;
-        private Util.IdentityHashSet<Protocol> Pending = new Util.IdentityHashSet<Protocol>();
+        private ConcurrentDictionary<long, Protocol> Pending = new ConcurrentDictionary<long, Protocol>();
 
         public long ActiveTime { get; private set; } = Util.Time.NowUnixMillis;
 
@@ -400,33 +414,41 @@ namespace Zeze.Raft
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
 
-            var resendTimeout = RaftConfig.AppendEntriesTimeout + 2000;
-            rpc.Timeout = resendTimeout;
-            rpc.ResponseHandle = (p) => SendHandle(handle, rpc);
-            Pending.Add(rpc);
+            if (!Pending.TryAdd(rpc.Unique.RequestId, rpc))
+                throw new Exception("duplicate requestid rpc=" + rpc);
 
-            rpc.Send(_Leader?.TryGetReadySocket(), (p) => SendHandle(handle, rpc), resendTimeout);
+            rpc.ResponseHandle = (p) => SendHandle(p, handle, rpc);
+            rpc.Send(_Leader?.TryGetReadySocket());
         }
 
-        private long SendHandle<TArgument, TResult>(Func<Protocol, long> userHandle, RaftRpc<TArgument, TResult> rpc)
+        private long SendHandle<TArgument, TResult>(Protocol p, Func<Protocol, long> userHandle, RaftRpc<TArgument, TResult> rpc)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
             if (rpc.IsTimeout || IsRetryError(rpc.ResultCode))
             {
-                rpc.IsTimeout = false;
-                rpc.ResultCode = 0;
+                // Pending Will Resend.
                 return 0;
             }
 
-            if (Pending.Remove(rpc))
+            if (Pending.TryRemove(rpc.Unique.RequestId, out _))
             {
+                var net = p as RaftRpc<TArgument, TResult>;
+
                 ActiveTime = Util.Time.NowUnixMillis;
+
+                rpc.IsRequest = net.IsRequest;
+                rpc.Result = net.Result;
+                rpc.Sender = net.Sender;
+                rpc.ResultCode = net.ResultCode;
+                rpc.UserState = net.UserState;
+
                 if (rpc.ResultCode == Procedure.RaftApplied)
                 {
                     rpc.IsTimeout = false;
                     rpc.ResultCode = Procedure.Success;
                 }
+
                 return userHandle(rpc);
             }
             return 0;
@@ -445,6 +467,7 @@ namespace Zeze.Raft
         }
 
         private long SendForWaitHandle<TArgument, TResult>(
+            Protocol p,
             TaskCompletionSource<RaftRpc<TArgument, TResult>> future,
             RaftRpc<TArgument, TResult> rpc)
             where TArgument : Bean, new()
@@ -452,14 +475,22 @@ namespace Zeze.Raft
         {
             if (rpc.IsTimeout || IsRetryError(rpc.ResultCode))
             {
-                rpc.IsTimeout = false;
-                rpc.ResultCode = 0;
+                // Pending Will Resend.
                 return Procedure.Success;
             }
 
-            if (Pending.Remove(rpc))
+            if (Pending.TryRemove(rpc.Unique.RequestId, out _))
             {
+                var net = p as RaftRpc<TArgument, TResult>;
+
                 ActiveTime = Util.Time.NowUnixMillis;
+
+                rpc.IsRequest = net.IsRequest;
+                rpc.Result = net.Result;
+                rpc.Sender = net.Sender;
+                rpc.ResultCode = net.ResultCode;
+                rpc.UserState = net.UserState;
+
                 if (rpc.ResultCode == Procedure.RaftApplied)
                 {
                     rpc.IsTimeout = false;
@@ -486,13 +517,12 @@ namespace Zeze.Raft
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
 
-            var resendTimeout = RaftConfig.AppendEntriesTimeout + 2000;
             var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
-            rpc.ResponseHandle = (p) => SendForWaitHandle(future, rpc);
-            rpc.Timeout = resendTimeout;
-            Pending.Add(rpc);
+            if (!Pending.TryAdd(rpc.Unique.RequestId, rpc))
+                throw new Exception("duplicate requestid rpc=" + rpc);
 
-            rpc.Send(_Leader?.TryGetReadySocket(), (p) => SendForWaitHandle(future, rpc), resendTimeout);
+            rpc.ResponseHandle = (p) => SendForWaitHandle(p, future, rpc);
+            rpc.Send(_Leader?.TryGetReadySocket());
             return future;
         }
 
@@ -643,7 +673,7 @@ namespace Zeze.Raft
             var leaderSocket = _Leader?.TryGetReadySocket();
             if (null != leaderSocket)
             {
-                foreach (var rpc in Pending)
+                foreach (var rpc in Pending.Values)
                 {
                     var iraft = rpc as IRaftRpc;
                     if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 2000)

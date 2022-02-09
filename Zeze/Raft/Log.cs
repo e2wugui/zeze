@@ -410,7 +410,7 @@ namespace Zeze.Raft
                 null, WriteOptionsSync
                 );
 
-            logger.Info($"{Raft.Name}-{Raft.IsLeader} RequestId={log.Log.Unique.RequestId} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
+            logger.Info($"{Raft.Name}-{Raft.IsLeader} RequestId={log.Log.Unique.RequestId} Index={log.Index} Count={GetTestStateMachineCount()}");
         }
 
         private RaftLog ReadLog(long index)
