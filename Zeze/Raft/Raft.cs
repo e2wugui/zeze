@@ -54,7 +54,14 @@ namespace Zeze.Raft
             // 0 clear pending task if is leader
             if (IsLeader)
             {
-                Server.TaskOneByOne.Shutdown();
+                Server.TaskOneByOne.Shutdown(() =>
+                {
+                    foreach (var e in LogSequence.WaitApplyFutures)
+                    {
+                        e.Value.TrySetException(new Exception("Shutdown Now"));
+                        LogSequence.WaitApplyFutures.TryRemove(e.Key, out _);
+                    }
+                });
             }
             ImportantThreadPool.Shutdown();
 

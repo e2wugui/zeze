@@ -69,12 +69,13 @@ namespace Zeze.Util
 			concurrency[index].Execute(procedure.Call, procedure.ActionName, cancel);
 		}
 
-		public void Shutdown(bool cancel = true)
+		public void Shutdown(Action beforeWait = null, bool cancel = true)
         {
 			foreach (var ts in concurrency)
             {
 				ts.Shutdown(cancel);
             }
+			beforeWait?.Invoke();
 			foreach (var ts in concurrency)
             {
 				ts.WaitComplete();
