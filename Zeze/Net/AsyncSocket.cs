@@ -547,6 +547,8 @@ namespace Zeze.Net
         public void Close(Exception e)
         {
             this.LastException = e;
+            if (null != e)
+                logger.Log(Service.SocketOptions.SocketLogLevel, e, "Close");
             Dispose();
         }
 

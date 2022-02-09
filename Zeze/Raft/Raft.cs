@@ -52,11 +52,13 @@ namespace Zeze.Raft
             TimerTask = null;
 
             // 0 clear pending task if is leader
+            /*
             if (IsLeader)
             {
                 Server.TaskOneByOne.Shutdown();
             }
             ImportantThreadPool.Shutdown();
+            */
 
             // 1. close network.
             Server.Stop();

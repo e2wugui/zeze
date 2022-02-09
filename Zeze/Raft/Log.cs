@@ -232,7 +232,7 @@ namespace Zeze.Raft
             private void Put(RaftLog log, long value)
             {
                 var db = OpenDb();
-                var key = ByteBuffer.Allocate();
+                var key = ByteBuffer.Allocate(100);
                 log.Log.Unique.Encode(key);
                 if (value > 0 && db.Get(key.Bytes, key.Size) != null)
                 {
@@ -262,7 +262,7 @@ namespace Zeze.Raft
 
             public long GetRequestState(IRaftRpc iraftrpc)
             {
-                var key = ByteBuffer.Allocate();
+                var key = ByteBuffer.Allocate(100);
                 iraftrpc.Unique.Encode(key);
                 var val = OpenDb().Get(key.Bytes, key.Size);
                 if (null == val)

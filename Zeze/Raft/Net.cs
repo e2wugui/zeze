@@ -145,13 +145,13 @@ namespace Zeze.Raft
                     if (state > 0)
                     {
                         p.SendResultCode(Procedure.DuplicateRequest);
-                        return Procedure.DuplicateRequest;
+                        return 0;
                     }
 
                     if (state < 0)
                     {
                         p.SendResultCode(Procedure.RaftApplied);
-                        return Procedure.RaftApplied;
+                        return 0;
                     }
                     
                     return factoryHandle.Handle(p);
@@ -593,13 +593,13 @@ namespace Zeze.Raft
                 // 由于 Agent 在新增 node 时也会得到新配置广播，
                 // 一般不会发生这种情况。
                 var address = r.Argument.LeaderId.Split(':');
-                if (address.Length == 2)
+                if (address.Length != 2)
+                    return 0;
+
+                if (Client.Config.TryGetOrAddConnector(
+                    address[0], int.Parse(address[1]), true, out node))
                 {
-                    if (Client.Config.TryGetOrAddConnector(
-                        address[0], int.Parse(address[1]), true, out node))
-                    {
-                        node.Start();
-                    }
+                    node.Start();
                 }
             }
             else if (false == r.Argument.IsLeader && r.Argument.LeaderId.Equals(node.Name))
@@ -966,12 +966,14 @@ namespace Zeze.Raft
         {
             Term = bb.ReadLong();
             LeaderId = bb.ReadString();
+            IsLeader = bb.ReadBool();
         }
 
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteLong(Term);
             bb.WriteString(LeaderId);
+            bb.WriteBool(IsLeader);
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
@@ -981,7 +983,7 @@ namespace Zeze.Raft
 
         public override string ToString()
         {
-            return $"(Term={Term} LeaderId={LeaderId})";
+            return $"(Term={Term} LeaderId={LeaderId} IsLeader={IsLeader})";
         }
 
         public override bool Equals(object obj)
