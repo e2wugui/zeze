@@ -20,6 +20,7 @@
 	Zeze.Arch 
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
+	Raft Vote 机制需要重新考虑。
 
 	Raft.Agent TryGetReadySocket 总是 null。
 	Net.Connector.OnSocketHandshakeDone Fail 原因。

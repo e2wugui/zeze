@@ -52,13 +52,11 @@ namespace Zeze.Raft
             TimerTask = null;
 
             // 0 clear pending task if is leader
-            /*
             if (IsLeader)
             {
                 Server.TaskOneByOne.Shutdown();
             }
             ImportantThreadPool.Shutdown();
-            */
 
             // 1. close network.
             Server.Stop();
@@ -245,7 +243,7 @@ namespace Zeze.Raft
         // Candidate
         private ConcurrentDictionary<string, Connector> VoteSuccess
             = new ConcurrentDictionary<string, Connector>();
-        private long SendRequestVoteTime = Time.NowUnixMillis;
+        private long NextSendRequestVoteTime;
         // Leader
         private long LeaderWaitReadyTerm;
         private long LeaderWaitReadyIndex;
@@ -257,7 +255,7 @@ namespace Zeze.Raft
         {
             var now = Time.NowUnixMillis;
             LogSequence.LeaderActiveTime = now;
-            SendRequestVoteTime = now;
+            //SendRequestVoteTime = now;
             Server.Config.ForEachConnector(
                 (c) =>
                 {
@@ -286,10 +284,11 @@ namespace Zeze.Raft
                         break;
 
                     case RaftState.Candidate:
-                        if (Time.NowUnixMillis - SendRequestVoteTime > RaftConfig.AppendEntriesTimeout + 2000)
+                        if (NextSendRequestVoteTime < Time.NowUnixMillis)
                         {
-                            ConvertStateTo(RaftState.Candidate);
+                            SendRequestVote();
                         }
+
                         break;
 
                     case RaftState.Leader:
@@ -397,8 +396,9 @@ namespace Zeze.Raft
                 var r = p as RequestVote;
                 if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
                 {
-                    // new term found.
-                    ConvertStateTo(RaftState.Follower);
+                    // new term found. 选举中的状态不改变。如果是Leader，马上切换到Follower。
+                    if (State == RaftState.Leader)
+                        ConvertStateTo(RaftState.Follower);
                 }
                 // else continue process
 
@@ -482,7 +482,12 @@ namespace Zeze.Raft
             arg.LastLogIndex = log.Index;
             arg.LastLogTerm = log.Term;
 
-            SendRequestVoteTime = Time.NowUnixMillis;
+            NextSendRequestVoteTime =
+                Time.NowUnixMillis
+                + Util.Random.Instance.Next(RaftConfig.LeaderHeartbeatTimer)
+                + RaftConfig.AppendEntriesTimeout
+                + 1000;
+
             Server.Config.ForEachConnector(
                 (c) =>
                 {
@@ -504,7 +509,7 @@ namespace Zeze.Raft
                     logger.Info($"RaftState {Name}: Follower->Candidate");
                     State = RaftState.Candidate;
                     LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
-                    SendRequestVote();
+                    NextSendRequestVoteTime = Time.NowUnixMillis;
                     return;
 
                 case RaftState.Leader:
@@ -530,7 +535,7 @@ namespace Zeze.Raft
                 case RaftState.Candidate:
                     logger.Info($"RaftState {Name}: Candidate->Candidate");
                     LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
-                    SendRequestVote();
+                    NextSendRequestVoteTime = Time.NowUnixMillis;
                     return;
 
                 case RaftState.Leader:

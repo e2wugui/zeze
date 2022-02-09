@@ -602,8 +602,10 @@ namespace Zeze.Raft
                     node.Start();
                 }
             }
-            else if (false == r.Argument.IsLeader && r.Argument.LeaderId.Equals(node.Name))
+            else if (false == r.Argument.IsLeader && r.Argument.LeaderId.Equals(p.Sender.Connector.Name))
             {
+                // 【错误处理】用来观察。
+                logger.Warn("New Leader Is Not A Leader.");
                 // 发送者不是Leader，但它的发送的LeaderId又是自己，【尝试选择另外一个Node】。
                 var notme = new List<Connector>(Client.Config.ConnectorCount());
                 Client.Config.ForEachConnector((c) => { if (c != node) notme.Add(c); });
@@ -641,7 +643,7 @@ namespace Zeze.Raft
                 foreach (var rpc in Pending)
                 {
                     var iraft = rpc as IRaftRpc;
-                    if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 3000)
+                    if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 2000)
                     {
                         iraft.SendTime = now;
                         if (false == rpc.Send(leaderSocket))

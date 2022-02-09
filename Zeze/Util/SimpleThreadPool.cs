@@ -18,15 +18,23 @@ namespace Zeze.Util
             return taskQueue.TryAdd(action);
         }
 
-        public void Shutdown()
+        public void Shutdown(bool immediately = true)
         {
             lock (this)
             {
-                taskQueue.CompleteAdding();
-
-                while (taskQueue.IsCompleted == false)
+                if (immediately)
                 {
-                    Monitor.Wait(this);
+                    foreach (var worker in workers)
+                        taskQueue.Add(null);
+                    taskQueue.CompleteAdding();
+                }
+                else
+                {
+                    taskQueue.CompleteAdding();
+                    while (taskQueue.IsCompleted == false)
+                    {
+                        Monitor.Wait(this);
+                    }
                 }
             }
         }
