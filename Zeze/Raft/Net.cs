@@ -425,7 +425,8 @@ namespace Zeze.Raft
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
-            if (rpc.IsTimeout || IsRetryError(rpc.ResultCode))
+            var net = p as RaftRpc<TArgument, TResult>;
+            if (net.IsTimeout || IsRetryError(net.ResultCode))
             {
                 // Pending Will Resend.
                 return 0;
@@ -433,8 +434,6 @@ namespace Zeze.Raft
 
             if (Pending.TryRemove(rpc.Unique.RequestId, out _))
             {
-                var net = p as RaftRpc<TArgument, TResult>;
-
                 ActiveTime = Util.Time.NowUnixMillis;
 
                 rpc.IsRequest = net.IsRequest;
@@ -473,7 +472,8 @@ namespace Zeze.Raft
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
-            if (rpc.IsTimeout || IsRetryError(rpc.ResultCode))
+            var net = p as RaftRpc<TArgument, TResult>;
+            if (net.IsTimeout || IsRetryError(net.ResultCode))
             {
                 // Pending Will Resend.
                 return Procedure.Success;
@@ -481,8 +481,6 @@ namespace Zeze.Raft
 
             if (Pending.TryRemove(rpc.Unique.RequestId, out _))
             {
-                var net = p as RaftRpc<TArgument, TResult>;
-
                 ActiveTime = Util.Time.NowUnixMillis;
 
                 rpc.IsRequest = net.IsRequest;
