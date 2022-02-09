@@ -659,6 +659,7 @@ namespace Zeze.Raft
         {
             // ReSendPendingRpc
             var now = Util.Time.NowUnixMillis;
+            /*
             if (Pending.Count > 0 && now - ActiveTime > RaftConfig.AppendEntriesTimeout * 3)
             {
                 ActiveTime = now;
@@ -667,6 +668,7 @@ namespace Zeze.Raft
                 leader?.Start();
                 return;
             }
+            */
 
             var leaderSocket = _Leader?.TryGetReadySocket();
             if (null != leaderSocket)
