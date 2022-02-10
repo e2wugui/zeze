@@ -657,12 +657,12 @@ namespace Zeze.Raft
             term = 0;
             index = 0;
 
-            if (false == Raft.IsLeader)
-                throw new RaftRetryException(); // 快速失败
-
             TaskCompletionSource<int> future = null;
             lock (Raft)
             {
+                if (false == Raft.IsLeader)
+                    throw new RaftRetryException(); // 快速失败
+
                 var raftLog = new RaftLog(Term, LastIndex + 1, log);
                 if (WaitApply)
                 {
@@ -1097,7 +1097,7 @@ namespace Zeze.Raft
                     // 需要取消。
                     // 其中判断：index > LastApplied 不是必要的。
                     // Apply的时候已经TryRemove了，仅会成功一次。
-                    future.SetCanceled();
+                    future.TrySetCanceled();
                 }
                 RemoveLog(index);
             }

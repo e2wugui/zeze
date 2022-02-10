@@ -58,7 +58,7 @@ namespace Zeze.Raft
                 {
                     foreach (var e in LogSequence.WaitApplyFutures)
                     {
-                        e.Value.SetCanceled();
+                        e.Value.TrySetCanceled();
                         LogSequence.WaitApplyFutures.TryRemove(e.Key, out _);
                     }
                 }, true);
@@ -343,8 +343,11 @@ namespace Zeze.Raft
         {
             get
             {
-                var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
-                return IsLeader && volatileTmp.Task.Wait(0) && volatileTmp.Task.Result;
+                lock (this)
+                {
+                    var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
+                    return IsLeader && volatileTmp.Task.Wait(0) && volatileTmp.Task.Result;
+                }
             }
         }
 
