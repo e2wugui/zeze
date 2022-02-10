@@ -25,19 +25,22 @@ namespace Zeze.Raft
 
         private Agent Agent { get; set; }
 
-        private void LogCheck()
+        private void LogCheck(RaftConfig rconf)
         {
-            if (!Directory.Exists("127.0.0.1_6000")
-                || !Directory.Exists("127.0.0.1_6001")
-                || !Directory.Exists("127.0.0.1_6002"))
+            var nodes = rconf.Nodes.Values.ToArray();
+            var dir1 = $"{nodes[0].Host}_{nodes[0].Port}";
+            var dir2 = $"{nodes[1].Host}_{nodes[1].Port}";
+            var dir3 = $"{nodes[2].Host}_{nodes[2].Port}";
+
+            if (!Directory.Exists(dir1) || !Directory.Exists(dir2) || !Directory.Exists(dir3))
             {
                 return;
             }
 
             var options = new DbOptions().SetCreateIfMissing(true);
-            using var r1 = RocksDb.Open(options, Path.Combine("127.0.0.1_6000", "logs"));
-            using var r2 = RocksDb.Open(options, Path.Combine("127.0.0.1_6001", "logs"));
-            using var r3 = RocksDb.Open(options, Path.Combine("127.0.0.1_6002", "logs"));
+            using var r1 = RocksDb.Open(options, Path.Combine(dir1, "logs"));
+            using var r2 = RocksDb.Open(options, Path.Combine(dir2, "logs"));
+            using var r3 = RocksDb.Open(options, Path.Combine(dir2, "logs"));
 
             using var it1 = r1.NewIterator();
             using var it2 = r2.NewIterator();
@@ -69,33 +72,26 @@ namespace Zeze.Raft
                 if (it1.Valid())
                 {
                     var log = RaftLog.Decode(new Binary(it1.Value()), StateMachine.LogFactory);
-                    Console.Write($" 127.0.0.1_6000: Term={log.Term} Index={log.Index} {log.Log.Unique}");
+                    Console.Write($" {dir1}: Term={log.Term} Index={log.Index} {log.Log.Unique}");
                     it1.Next();
                     hasNext = true;
                 }
                 if (it2.Valid())
                 {
                     var log = RaftLog.Decode(new Binary(it2.Value()), StateMachine.LogFactory);
-                    Console.Write($" 127.0.0.1_6001: Term={log.Term} Index={log.Index} {log.Log.Unique}");
+                    Console.Write($" {dir2}: Term={log.Term} Index={log.Index} {log.Log.Unique}");
                     it2.Next();
                     hasNext = true;
                 }
                 if (it3.Valid())
                 {
                     var log = RaftLog.Decode(new Binary(it3.Value()), StateMachine.LogFactory);
-                    Console.Write($" 127.0.0.1_6002: Term={log.Term} Index={log.Index} {log.Log.Unique}");
+                    Console.Write($" {dir3}: Term={log.Term} Index={log.Index} {log.Log.Unique}");
                     it3.Next();
                     hasNext = true;
                 }
                 Console.WriteLine();
             }
-        }
-
-        private void LogDump()
-        {
-            LogDump("127.0.0.1_6000");
-            LogDump("127.0.0.1_6001");
-            LogDump("127.0.0.1_6002");
         }
 
         private void LogDump(string db)
@@ -115,20 +111,52 @@ namespace Zeze.Raft
             }
         }
 
-        public void Run(string command)
+        public void Run(string command, string[] args)
         {
-            if (command.Equals("RaftDump"))
+            try
             {
-                LogDump();
-                return;
+                _Run(command, args);
             }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
+            }
+            Console.WriteLine("___________________________________________");
+            Console.WriteLine("___________________________________________");
+            Console.WriteLine("___________________________________________");
+            Console.WriteLine("Press [X] Enter To Exit.");
+            Console.WriteLine("___________________________________________");
+            Console.WriteLine("___________________________________________");
+            Console.WriteLine("___________________________________________");
+            while (Console.ReadKey().Key != ConsoleKey.X)
+            {
+            }
+        }
 
-            LogCheck();
-            if (command.Equals("RaftCheck"))
-                return;
+        public void _Run(string command, string[] args)
+        {
+            for (int i = 0; i < args.Length; ++i)
+            {
+                if (args[i].Equals("-Config"))
+                    RaftConfigFileName = args[++i];
+            }
 
             logger.Debug("Start.");
             var raftConfigStart = RaftConfig.Load(RaftConfigFileName);
+
+            if (command.Equals("RaftDump"))
+            {
+                foreach (var node in raftConfigStart.Nodes.Values)
+                {
+                    LogDump($"{node.Host}_{node.Port}");
+                }
+                return;
+            }
+
+            LogCheck(raftConfigStart);
+            if (command.Equals("RaftCheck"))
+                return;
+
             foreach (var node in raftConfigStart.Nodes)
             {
                 // every node need a private config-file.
@@ -162,7 +190,6 @@ namespace Zeze.Raft
             {
                 raft.StopRaft();
             }
-            logger.Debug("End.");
         }
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -587,6 +614,7 @@ namespace Zeze.Raft
                     catch (Exception ex)
                     {
                         logger.Error(ex, "FailAction {0}", fa.Name);
+                        Environment.Exit(1);
                         /*
                         foreach (var raft in Rafts.Values)
                         {
