@@ -41,6 +41,7 @@ namespace Gen
 
                 case "RaftTest":
                 case "RaftCheck":
+                case "RaftDump":
                     new Zeze.Raft.Test().Run(command);
                     break;
             }

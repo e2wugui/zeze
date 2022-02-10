@@ -100,6 +100,11 @@ namespace Zeze.Raft
             base.Encode(bb);
             bb.WriteInt(Operate);
         }
+
+        public override string ToString()
+        {
+            return GetType().FullName;
+        }
     }
 
     public sealed class RaftLog : Serializable
@@ -111,6 +116,10 @@ namespace Zeze.Raft
         // 不会被系列化。Local Only.
         public Func<int, Log> LogFactory { get; }
 
+        public override string ToString()
+        {
+            return $"Term={Term} Index={Index} Log={Log}";
+        }
         public RaftLog(long term, long index, Log log)
         {
             Term = term;

@@ -91,8 +91,38 @@ namespace Zeze.Raft
             }
         }
 
+        private void LogDump()
+        {
+            LogDump("127.0.0.1_6000");
+            LogDump("127.0.0.1_6001");
+            LogDump("127.0.0.1_6002");
+        }
+
+        private void LogDump(string db)
+        {
+            var options = new DbOptions().SetCreateIfMissing(true);
+            using var r1 = RocksDb.Open(options, Path.Combine(db, "logs"));
+            using var it1 = r1.NewIterator();
+            it1.SeekToFirst();
+            var StateMachine = new TestStateMachine();
+            using var dumpFile = new FileStream(db + ".txt", FileMode.Create);
+            while (it1.Valid())
+            {
+                var l1 = RaftLog.Decode(new Binary(it1.Value()), StateMachine.LogFactory);
+                dumpFile.Write(Encoding.UTF8.GetBytes(l1.ToString()));
+                dumpFile.Write(Encoding.UTF8.GetBytes("\n"));
+                it1.Next();
+            }
+        }
+
         public void Run(string command)
         {
+            if (command.Equals("RaftDump"))
+            {
+                LogDump();
+                return;
+            }
+
             LogCheck();
             if (command.Equals("RaftCheck"))
                 return;
@@ -675,6 +705,11 @@ namespace Zeze.Raft
                 public override void Encode(ByteBuffer bb)
                 {
                     base.Encode(bb);
+                }
+
+                public override string ToString()
+                {
+                    return GetType().Name;
                 }
             }
 

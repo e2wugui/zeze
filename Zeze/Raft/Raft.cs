@@ -350,7 +350,16 @@ namespace Zeze.Raft
 
         internal void ResetLeaderReadyAfterChangeState()
         {
+            Server.TaskOneByOne.Shutdown(() =>
+            {
+                foreach (var e in LogSequence.WaitApplyFutures)
+                {
+                    e.Value.SetCanceled();
+                    LogSequence.WaitApplyFutures.TryRemove(e.Key, out _);
+                }
+            });
             LeaderReadyFuture.TrySetResult(false);
+            LeaderReadyFuture = new TaskCompletionSource<bool>(); // prepare for next leader
             Monitor.PulseAll(this); // has under lock(this)
         }
 
@@ -509,7 +518,7 @@ namespace Zeze.Raft
             {
                 var rpc = new RequestVote() { Argument = arg };
                 var sendresult = rpc.Send(c.TryGetReadySocket(), (p) => ProcessRequestVoteResult(rpc, c));
-                logger.Debug("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
+                logger.Info("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
             });
         }
 
@@ -560,8 +569,6 @@ namespace Zeze.Raft
                     State = RaftState.Leader;
                     LogSequence.SetVoteFor(string.Empty);
                     LeaderId = Name; // set to self
-                    LeaderReadyFuture.TrySetResult(false);
-                    LeaderReadyFuture = new TaskCompletionSource<bool>();
 
                     // (Reinitialized after election)
                     var nextIndex = LogSequence.LastIndex + 1;
@@ -587,12 +594,12 @@ namespace Zeze.Raft
 
         private void ConvertStateFromLeaderTo(RaftState newState)
         {
+            ResetLeaderReadyAfterChangeState(); // 本来 Leader -> Follower 需要，为了健壮性，全部改变都重置。
             switch (newState)
             {
                 case RaftState.Follower:
                     logger.Info($"RaftState {Name}: Leader->Follower");
                     State = RaftState.Follower;
-                    ResetLeaderReadyAfterChangeState();
                     return;
 
                 case RaftState.Candidate:
