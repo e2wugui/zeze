@@ -54,14 +54,14 @@ namespace Zeze.Raft
             // 0 clear pending task if is leader
             if (IsLeader)
             {
-                Server.TaskOneByOne.Shutdown(() =>
+                Server.TaskOneByOne.Shutdown(false, () =>
                 {
                     foreach (var e in LogSequence.WaitApplyFutures)
                     {
                         e.Value.SetCanceled();
                         LogSequence.WaitApplyFutures.TryRemove(e.Key, out _);
                     }
-                });
+                }, true);
             }
             ImportantThreadPool.Shutdown();
 
@@ -350,14 +350,14 @@ namespace Zeze.Raft
 
         internal void ResetLeaderReadyAfterChangeState()
         {
-            Server.TaskOneByOne.Shutdown(() =>
+            Server.TaskOneByOne.Shutdown(true, () =>
             {
                 foreach (var e in LogSequence.WaitApplyFutures)
                 {
                     e.Value.SetCanceled();
                     LogSequence.WaitApplyFutures.TryRemove(e.Key, out _);
                 }
-            });
+            }, true);
             LeaderReadyFuture.TrySetResult(false);
             LeaderReadyFuture = new TaskCompletionSource<bool>(); // prepare for next leader
             Monitor.PulseAll(this); // has under lock(this)
