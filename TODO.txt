@@ -20,6 +20,7 @@
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
 
+	Raft.Agent ActiveTime 重连功能？？？
 	Raft.Agent TryGetReadySocket 总是 null。
 	Net.Connector.OnSocketHandshakeDone Fail 原因。
 
@@ -31,9 +32,6 @@
 		1) zeze.table<concurrentKey, lastTaskId> 记住已经同步的最后的任务id，
 		2) 功能：每个ConcurrentId，for Queue(lastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
 		* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
-		比如充值系统等zeze外的交易系统本质上需要zeze.server一起完成一个分布式事务时用。zeze.server执行任务失败需要不停尝试。按顺序处理queue.task。
-		参考很多MessageQueue的实现，这里由于重做，更像一个LogQueue。以前sybase的复制备份服务器也有一个差不多这样的logqueue
-		concurrentId是个坑，只有一个肯定没问题，但是无法并发，允许并发，对某些逻辑可能无法使用，或者需要使用者自己把相关的task放到同一个concurrentId下。
 	}
 
 	Raft.Revote 优先级++++++++++++++++++++++++++ 初步考虑仅使用不同的延迟。RandomDelay + DelayPriority;
@@ -42,7 +40,7 @@
 		关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 	Zezex.client: 可靠消息实现的错误检查。
 
-【2022/3/】
+【2022/3/11】
 
 【2022/2/10】
 	Raft.Shutdown 的时候快速失败-Cancel在Future上等待的任务。

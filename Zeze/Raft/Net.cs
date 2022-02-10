@@ -293,34 +293,24 @@ namespace Zeze.Raft
         public abstract long SendTime { get; set; } // 不系列化，Agent本地只用。
     }
 
-    public class RaftRpc<TArgument, TResult> : Rpc<TArgument, TResult>, IRaftRpc
+    public abstract class RaftRpc<TArgument, TResult> : Rpc<TArgument, TResult>, IRaftRpc
         where TArgument : Bean, new()
         where TResult : Bean, new()
     {
         public long CreateTime { get; set; }
         public UniqueRequestId Unique { get; set; } = new UniqueRequestId();
         public long SendTime { get; set; }
-        
-        private int _ModuleId;
-        private int _ProtocolId;
-
-        public override int ModuleId => _ModuleId;
-        public override int ProtocolId => _ProtocolId;
-
-        public RaftRpc(int moduleId, int protocolId)
-        { 
-            _ModuleId = moduleId;
-            _ProtocolId = protocolId;
-        }
 
         public override bool Send(AsyncSocket socket)
         {
-            var sending = new RaftRpc<TArgument, TResult>(this.ModuleId, this.ProtocolId);
-            sending.ResponseHandle = (p) => this.ResponseHandle(p);
-            sending.Argument = this.Argument;
-            sending.CreateTime = this.CreateTime;
-            sending.Unique = this.Unique;
-            return sending.Send(socket, sending.ResponseHandle, -1);
+            var bridge = new RaftRpcBridge<TArgument, TResult>(this);
+
+            bridge.ResponseHandle = this.ResponseHandle;
+            bridge.Argument = this.Argument;
+            bridge.CreateTime = this.CreateTime;
+            bridge.Unique = this.Unique;
+
+            return bridge.Send(socket, bridge.ResponseHandle, -1);
         }
 
         public override string ToString()
@@ -365,6 +355,20 @@ namespace Zeze.Raft
         }
     }
 
+    internal sealed class RaftRpcBridge<TArgument, TResult> : RaftRpc<TArgument, TResult>
+        where TArgument : Bean, new()
+        where TResult : Bean, new()
+    {
+        private RaftRpc<TArgument, TResult> Real { get; }
+
+        internal RaftRpcBridge(RaftRpc<TArgument, TResult> real)
+        {
+            Real = real;
+        }
+
+        public override int ModuleId => Real.ModuleId;
+        public override int ProtocolId => Real.ProtocolId;
+    }
     public sealed class Agent
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();

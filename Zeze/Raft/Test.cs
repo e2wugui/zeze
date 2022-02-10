@@ -605,7 +605,10 @@ namespace Zeze.Raft
         {
             public readonly static int ProtocolId_ = Bean.Hash32(typeof(AddCount).FullName);
 
-            public AddCount() : base(0, ProtocolId_)
+            public override int ModuleId => 0;
+            public override int ProtocolId => ProtocolId_;
+
+            public AddCount()
             { 
             }
         }
@@ -634,7 +637,10 @@ namespace Zeze.Raft
         {
             public readonly static int ProtocolId_ = Bean.Hash32(typeof(GetCount).FullName);
 
-            public GetCount() : base(0, ProtocolId_)
+            public override int ModuleId => 0;
+            public override int ProtocolId => ProtocolId_;
+
+            public GetCount()
             { 
             }
         }
