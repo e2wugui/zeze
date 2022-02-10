@@ -124,7 +124,7 @@ namespace Zeze.Raft
             Console.WriteLine("___________________________________________");
             Console.WriteLine("___________________________________________");
             Console.WriteLine("___________________________________________");
-            Console.WriteLine("Press [X] Enter To Exit.");
+            Console.WriteLine("Press [x] Enter To Exit.");
             Console.WriteLine("___________________________________________");
             Console.WriteLine("___________________________________________");
             Console.WriteLine("___________________________________________");
@@ -133,7 +133,7 @@ namespace Zeze.Raft
             }
         }
 
-        public void _Run(string command, string[] args)
+        private void _Run(string command, string[] args)
         {
             for (int i = 0; i < args.Length; ++i)
             {
@@ -184,11 +184,17 @@ namespace Zeze.Raft
                     Factory = () => new GetCount(),
                 });
             Agent.Client.Start();
-            RunTrace();
-            Agent.Client.Stop();
-            foreach (var raft in Rafts.Values)
+            try
             {
-                raft.StopRaft();
+                RunTrace();
+            }
+            finally
+            {
+                Agent.Client.Stop();
+                foreach (var raft in Rafts.Values)
+                {
+                    raft.StopRaft();
+                }
             }
         }
 
