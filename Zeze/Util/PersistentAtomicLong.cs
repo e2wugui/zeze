@@ -49,17 +49,25 @@ namespace Zeze.Util
             Mutex = new Mutex(false, FileName);
             AllocateSize = allocateSize;
 
-            if (File.Exists(FileName))
+            Mutex.WaitOne();
+            try
             {
-                var lines = File.ReadAllLines(FileName);
-                if (lines.Length > 0)
+                if (File.Exists(FileName))
                 {
-                    var alloc = long.Parse(lines[0]);
-                    allocated.GetAndSet(alloc);
-                    CurrentId.GetAndSet(alloc);
+                    var lines = File.ReadAllLines(FileName);
+                    if (lines.Length > 0)
+                    {
+                        var alloc = long.Parse(lines[0]);
+                        allocated.GetAndSet(alloc);
+                        CurrentId.GetAndSet(alloc);
+                    }
                 }
+                // 初始化的时候不allocate，如果程序启动，没有分配就退出，保持原来的值。
             }
-            // 初始化的时候不allocate，如果程序启动，没有分配就退出，保持原来的值。
+            finally
+            {
+                Mutex.ReleaseMutex();
+            }
         }
 
         public long Next()
