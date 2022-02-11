@@ -488,7 +488,7 @@ namespace Zeze.Raft
 
         private void PrepareSendRequestVote()
         {
-            SendRequestVoteTime = Time.NowUnixMillis + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout);
+            SendRequestVoteTime = Time.NowUnixMillis + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout*2);
             Server.Config.ForEachConnector((c) => c.Start());
         }
 
