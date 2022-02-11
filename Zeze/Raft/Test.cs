@@ -655,12 +655,15 @@ namespace Zeze.Raft
 
         private TestRaft GetLeader()
         { 
-            foreach (var raft in Rafts.Values)
+            while (true)
             {
-                if (raft.Raft.IsLeader)
-                    return raft;
+                foreach (var raft in Rafts.Values)
+                {
+                    if (raft.Raft.IsLeader)
+                        return raft;
+                }
+                System.Threading.Thread.Sleep(1000);
             }
-            return null;
         }
 
         private List<TestRaft> GetNodeNotLeaders()
