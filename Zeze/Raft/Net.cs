@@ -616,6 +616,17 @@ namespace Zeze.Raft
             Util.Scheduler.Instance.Schedule((thisTask) => ReSend(), 1000, 1000);
         }
 
+        private Connector GetRandomConnector(Connector except)
+        {
+            var notme = new List<Connector>(Client.Config.ConnectorCount());
+            Client.Config.ForEachConnector((c) => { if (c != except) notme.Add(c); });
+            if (notme.Count > 0)
+            {
+                return notme[Util.Random.Instance.Next(notme.Count)];
+            }
+            return null;
+        }
+
         private long ProcessLeaderIs(Protocol p)
         {
             var r = p as LeaderIs;
@@ -642,12 +653,7 @@ namespace Zeze.Raft
                 // 【错误处理】用来观察。
                 logger.Warn("New Leader Is Not A Leader.");
                 // 发送者不是Leader，但它的发送的LeaderId又是自己，【尝试选择另外一个Node】。
-                var notme = new List<Connector>(Client.Config.ConnectorCount());
-                Client.Config.ForEachConnector((c) => { if (c != node) notme.Add(c); });
-                if (notme.Count > 0)
-                {
-                    node = notme[Util.Random.Instance.Next(notme.Count)];
-                }
+                node = GetRandomConnector(node);
             }
 
             if (SetLeader(r, node as ConnectorEx))
@@ -663,16 +669,14 @@ namespace Zeze.Raft
         {
             // ReSendPendingRpc
             var now = Util.Time.NowUnixMillis;
-            /*
+
             if (Pending.Count > 0 && now - ActiveTime > RaftConfig.AppendEntriesTimeout * 3)
             {
                 ActiveTime = now;
-                var leader = _Leader;
-                leader?.Stop();
-                leader?.Start();
+                _Leader = GetRandomConnector(_Leader) as ConnectorEx;
+                _Leader?.Start();
                 return;
             }
-            */
 
             var leaderSocket = _Leader?.TryGetReadySocket();
             if (null != leaderSocket)
