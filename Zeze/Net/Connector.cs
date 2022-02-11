@@ -47,7 +47,7 @@ namespace Zeze.Net
 
             ReConnectManager()
             {
-                Timer = Util.Scheduler.Instance.Schedule(ReConnect, 2000, 2000);
+                Timer = Util.Scheduler.Instance.Schedule(ReConnect, 1000, 1000);
             }
 
             private void ReConnect(Util.SchedulerTask ThisTask)

@@ -24,6 +24,7 @@
 	Raft.Agent TryGetReadySocket 总是 null。
 	Net.Connector.OnSocketHandshakeDone Fail 原因。
 	Raft.Test 关闭2节点后，一直没有重启。
+	Raft.Agent 客户端卡住了?
 
 	RedoableQueue
 	{
