@@ -508,7 +508,7 @@ namespace Zeze.Raft
             arg.LastLogTerm = log.Term;
 
             SendRequestVoteTime = 0;
-            NextVoteTime = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout);
+            NextVoteTime = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout;
             Server.Config.ForEachConnector((c) =>
             {
                 var rpc = new RequestVote() { Argument = arg };
