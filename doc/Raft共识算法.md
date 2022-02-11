@@ -21,7 +21,7 @@
 
 #### RequestVote RPC (向其它节点请求给自己即将成为leader投票)
 ###### 请求字段
-* `term`: 自己的新term
+* `term`: 自己的currentTerm
 * `candidateId`: 自己的节点ID
 * `lastLogIndex`: 自己的log[]中的最新log的索引
 * `lastLogTerm`: 自己的log[]中的最新log的term
@@ -30,9 +30,12 @@
 * `voteGranted`: 是否给发起者投票成功
 ###### 处理请求流程
 * 如果`term < currentTerm`: 投票失败
-* 如果`votedFor`为空或等于请求的`candidateId`, 且请求的`lastLogIndex`和`lastLogTerm`都不小于自身的对应值:
+* 如果`votedFor`为null或等于请求的`candidateId`, 且请求的`lastLogIndex`和`lastLogTerm`都不小于自身的对应值:
   * 更新`votedFor`, 重置选举超时(在固定时间基础上略微随机调节), 并回复投票成功
   * 否则投票失败
+###### 处理回复流程
+* 如果达到半数以上节点`RequestVote`的回复是投票成功: 自己转成leader
+
 
 #### AppendEntries RPC (只由leader发起, 用于复制log给其它节点,也用于心跳)
 ###### 请求字段:
@@ -56,20 +59,20 @@
 ## 流程
 
 ###### 所有节点通用的运行流程
-* 如果`commitIndex > lastApplied`: 在状态机上执行`log[++lastApplied]`
-* 如果发现接收的RPC请求和回复中的`term > currentTerm`: 设置`currentTerm = term`并把自己转为follower
+* 如果`commitIndex > lastApplied`: 在状态机上执行`log[++lastApplied]`中的命令
+* 如果发现接收的RPC请求和回复中的`term > currentTerm`: 设置`currentTerm = term`并把自己转成follower
 
 ###### 所有follower节点的运行流程
 * 处理和回复candidate发来的`RequestVote`和leader发来的`AppendEntries`
-* 如果选举超时: 把自己转为candidate
+* 如果选举超时: 把自己转成candidate
 
 ###### 所有candidate节点的运行流程
 * 刚转成candidate时开始选举,执行:
   * `currentTerm++`
+  * 设置`votedFor=自己的节点ID`
   * 重置选举超时(在固定时间基础上略微随机调节)
-  * 发送`RequestVote`给其它节点
-* 如果收到半数以上节点`RequestVote`的回复是投票成功: 自己转成leader
-* 如果从新的leader收到`AppendEntries`: 把自己转为follower
+  * 广播`RequestVote`给其它节点
+* 如果从新的leader收到`AppendEntries`: 把自己转成follower
 * 如果选举超时: 按刚转成candidate时一样重新选举
 
 ###### leader节点的运行流程
@@ -79,3 +82,119 @@
   * 如果回复成功: 在`nextIndex[]`和`matchIndex[]`中更新它的`nextIndex`和`matchIndex`
   * 如果回复失败: 如果由于log一致性原因导致, 则自减nextIndex[]中它的nextIndex并重试`AppendEntries`
 * 如果存在`N`满足`N > commitIndex`,且`超半数matchIndex[]都 >= N`,且`log[N].term == currentTerm`: 设置`commitIndex = N`
+
+## 重新整理的伪实现(持续完善中)
+
+#### 状态
+* `int selfId`: [readonly] 自身节点ID. 有效值>=0
+* `int role`: 自身身份枚举. follower/candidate/leader之一, 初始为follower
+* `int leaderId`: 当前的leader节点ID. 初始为-1表示未知
+* `long timeout`: 超时时间戳(毫秒). <=当前时间戳表示应该触发超时, 初始为`curTime+random(150)`
+* `long currentTerm`: [持久化] 已知的最新term. 初始为0, 但实际有效值一定>0
+* `int votedFor`: [持久化] 为currentTerm投票的节点ID. 初始为-1表示没有
+* `int successCount`: [持久化] 给自己投票成功的次数/复制log请求成功次数
+* `list<LogEntry> logEntries`: [持久化] 已存储的log序列. 按索引需从小到大连续保存, 初始为空
+  * `long LogEntry.index`: 每条log的索引
+  * `long LogEntry.term`: 每条log的term值
+  * `Command LogEntry.cmd`: 每条log的命令对象. 有执行和序列化接口
+* `long commitIndex`: 当前最大的已经提交的log索引. 初始为0
+* `long lastApplied`: 当前最大的已经执行的log索引. 初始为0
+* `long[] nextIndexes`: [仅leader用] 各节点最大已被复制的log索引. 初始为0
+* `long[] appendingTimeouts`: [仅leader用] 各节点的AppendEntries请求超时时间戳(毫秒). 初始为0表示无超时
+
+#### 流程(无阻塞的事件响应模式)
+* if role == follower || role == candidate:
+  * while 收到通信协议:
+    * if 收到RequestVote请求:
+      * if currentTerm > RequestVote.term:
+        * 回复投票失败, 重新执行当前流程
+      * if currentTerm < RequestVote.term:
+        * currentTerm = RequestVote.term
+      * if (votedFor == -1 || votedFor == RequestVote.candidateId) && RequestVote.lastLogIndex >= logEntries[newest].index && RequestVote.term >= logEntries[newest].lastLogTerm
+        * votedFor = RequestVote.candidateId
+        * 回复投票成功
+      * else
+        * 回复投票失败
+    * else if 收到AppendEntries请求:
+      * if currentTerm > AppendEntries.term:
+        * 回复失败, 重新执行当前流程
+      * role = follower
+      * leaderId = AppendEntries.leaderId
+      * timeout = curTime + LEADER_TIMEOUT + random(150)
+      * if currentTerm < RequestVote.term:
+        * currentTerm = RequestVote.term
+      * votedFor = -1
+      * if AppendEntries.prevLogIndex != 0 && AppendEntries.prevLogTerm != 0:
+        * 如果logEntries里找不到AppendEntries.prevLogIndex和AppendEntries.prevLogTerm对应的log:
+          * 回复失败, 重新执行当前流程
+      * if AppendEntries.entries.size > 0
+        * 取entry = AppendEntries.entries的首个
+        * 如果在logEntries中找到entry.index
+          * 删除logEntries[>=entry.index]的项
+        * 追加AppendEntries.entries到logEntries
+        * if commitIndex < AppendEntries.leaderCommit:
+          * commitIndex = min(AppendEntries.leaderCommit, logEntries最大的index)
+          * while lastApplied < commitIndex:
+            * 执行logEntries[++lastApplied].cmd
+    * else if 收到RequestVote回复:
+      * if role == follower:
+        * 丢弃(只应该由candidate处理)
+      * if currentTerm != RequestVote.term
+        * 丢弃
+      * if ++successCount > NODE_COUNT / 2
+        * role = leader
+        * successCount = 0
+        * nextIndexes和appendingTimeouts全部清0
+    * else if 收到AppendEntries回复:
+      * 丢弃(只应该由leader处理)
+    * else if 收到客户端请求:
+      * 如果leaderId无效则回复失败, 否则回复leaderId让客户端重新发请求给leader
+  * else if timeout超时:
+    * timeout = curTime + VOTE_TIMEOUT + random(150)
+    * currentTerm++
+    * votedFor = selfId
+    * successCount = 1
+    * role = candidate
+    * 广播RequestVote(term=currentTerm, candidateId=selfId, lastLogIndex=logEntries[newest].index, lastLogTerm=logEntries[newest].term)
+* else if role == leader:
+  * while 收到通信协议:
+    * if 收到RequestVote请求:
+      * if currentTerm < RequestVote.term:
+        * role = follower
+        * 保留RequestVote请求下次处理
+      * else
+        * 回复失败
+    * else if 收到AppendEntries请求:
+      * if currentTerm < RequestVote.term:
+        * role = follower
+        * 保留AppendEntries请求下次处理
+      * else
+        * 回复失败
+    * else if 收到RequestVote回复:
+      * 丢弃(只应该由candidate处理)
+    * else if 收到AppendEntries回复:
+      * 如果回复成功:
+        * 取nodeId=AppendEntries.nodeId
+        * nextIndexes[nodeId] = AppendEntries.entries[最新的index] + 1
+        * 计算出当前最大的commitIndex, 满足commitIndex <= nextIndexes中超半数的值
+        * while lastApplied < commitIndex:
+          * 执行logEntries[++lastApplied].cmd
+        * 如果当前客户端请求中的命令都被leader执行了, 则回复成功
+        * 取nextIndex=nextIndexes[nodeId]
+        * if nextIndex <= logEntries的最大index:
+          * 继续给nodeId发送AppendEntries(term=currentTerm, leaderId=selfId, prevLogIndex=logEntries[nextIndex-1].index or 0, lastLogTerm=logEntries[nextIndex-1].term or 0, entries=logEntries[nextIndex...], leaderCommit=commitIndex)
+          * appendingTimeouts[nodeId] = curTime + APPEND_TIMEOUT (结果为0则置1)
+        * else
+          * appendingTimeouts[nodeId] = 0
+    * else if 收到客户端请求:
+      * if 请求的命令列表为空:
+        * 直接回复成功, 重新执行当前流程
+      * else
+        * 为每个命令定义index(从logEntries的最大index开始自增,初始为1)形成log并追加到自己的logEntries中
+        * 遍历appendingTimeouts, 如果appendingTimeouts[nodeId] == 0:
+          * 取nextIndex=nextIndexes[nodeId]
+          * 给nodeId发送AppendEntries(term=currentTerm, leaderId=selfId, prevLogIndex=logEntries[nextIndex-1].index or 0, lastLogTerm=logEntries[nextIndex-1].term or 0, entries=logEntries[nextIndex...], leaderCommit=commitIndex)
+          * appendingTimeouts[nodeId] = curTime + APPEND_TIMEOUT (结果为0则置1)
+  * while appendingTimeouts中有appendingTimeouts[nodeId]超时:
+    * appendingTimeouts[nodeId] = curTime + APPEND_TIMEOUT (结果为0则置1)
+    * 给nodeId发送空的AppendEntries
