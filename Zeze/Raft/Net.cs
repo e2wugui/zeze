@@ -34,7 +34,6 @@ namespace Zeze.Raft
             public ConnectorEx(string host, int port)
                 : base(host, port)
             {
-                MaxReconnectDelay = 1000;
             }
 
             ////////////////////////////////////////////////
@@ -385,8 +384,6 @@ namespace Zeze.Raft
         private volatile ConnectorEx _Leader;
         private ConcurrentDictionary<long, Protocol> Pending = new ConcurrentDictionary<long, Protocol>();
 
-        public long ActiveTime { get; private set; } = Util.Time.NowUnixMillis;
-
         public Util.SimpleThreadPool InternalThreadPool { get; }
 
         //public Action<Agent> OnLeaderChanged { get; set; }
@@ -438,8 +435,6 @@ namespace Zeze.Raft
 
             if (Pending.TryRemove(rpc.Unique.RequestId, out _))
             {
-                ActiveTime = Util.Time.NowUnixMillis;
-
                 rpc.IsRequest = net.IsRequest;
                 rpc.Result = net.Result;
                 rpc.Sender = net.Sender;
@@ -485,8 +480,6 @@ namespace Zeze.Raft
 
             if (Pending.TryRemove(rpc.Unique.RequestId, out _))
             {
-                ActiveTime = Util.Time.NowUnixMillis;
-
                 rpc.IsRequest = net.IsRequest;
                 rpc.Result = net.Result;
                 rpc.Sender = net.Sender;
@@ -669,15 +662,6 @@ namespace Zeze.Raft
         {
             // ReSendPendingRpc
             var now = Util.Time.NowUnixMillis;
-
-            if (Pending.Count > 0 && now - ActiveTime > RaftConfig.AppendEntriesTimeout * 3)
-            {
-                ActiveTime = now;
-                _Leader = GetRandomConnector(_Leader) as ConnectorEx;
-                _Leader?.Start();
-                return;
-            }
-
             var leaderSocket = _Leader?.TryGetReadySocket();
             if (null != leaderSocket)
             {
@@ -707,6 +691,7 @@ namespace Zeze.Raft
                 var newone = _Leader != newLeader || r.Argument.Term > Term;
                 _Leader = newLeader; // change current Leader
                 Term = r.Argument.Term;
+                _Leader?.Start(); // try connect immediately
                 return newone;
             }
         }

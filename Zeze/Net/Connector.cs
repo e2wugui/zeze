@@ -19,30 +19,49 @@ namespace Zeze.Net
         public string HostNameOrAddress { get; }
         public int Port { get; } = 0;
         public bool IsAutoReconnect { get; set; } = true;
-        private int _MaxReconnectDelay = 8000;
-        public int MaxReconnectDelay
-        {
-            get
-            {
-                return _MaxReconnectDelay;
-            }
-
-            set
-            {
-                _MaxReconnectDelay = value;
-                if (_MaxReconnectDelay < 1000)
-                    _MaxReconnectDelay = 1000;
-            }
-        }
         public bool IsConnected { get; private set; } = false;
-        private int ConnectDelay;
         public bool IsHandshakeDone => TryGetReadySocket() != null;
         private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new TaskCompletionSource<AsyncSocket>();
         public string Name => $"{HostNameOrAddress}:{Port}";
 
         public AsyncSocket Socket { get; private set; }
-        public Util.SchedulerTask ReconnectTask { get; private set; }
         public object UserState;
+
+        internal class ReConnectManager
+        {
+            public static ReConnectManager Instance = new ReConnectManager();
+
+            private Util.IdentityHashSet<Service> Services = new Util.IdentityHashSet<Service>();
+
+            internal void Add(Service c)
+            {
+                Services.Add(c);
+            }
+
+            internal void Remove(Service c)
+            {
+                Services.Remove(c);
+            }
+
+            private Util.SchedulerTask Timer;
+
+            ReConnectManager()
+            {
+                Timer = Util.Scheduler.Instance.Schedule(ReConnect, 2000, 2000);
+            }
+
+            private void ReConnect(Util.SchedulerTask ThisTask)
+            {
+                foreach (var service in Services)
+                {
+                    service.Config.ForEachConnector((c) =>
+                    {
+                        if (c.IsAutoReconnect)
+                            c.Start();
+                    });
+                }
+            }
+        }
 
         public Connector(string host, int port = 0, bool autoReconnect = true)
         {
@@ -68,9 +87,6 @@ namespace Zeze.Net
             attr = self.GetAttribute("IsAutoReconnect");
             if (attr.Length > 0)
                 IsAutoReconnect = bool.Parse(attr);
-            attr = self.GetAttribute("MaxReconnectDelay");
-            if (attr.Length > 0)
-                MaxReconnectDelay = int.Parse(attr) * 1000;
         }
 
         internal void SetService(Service service)
@@ -115,10 +131,8 @@ namespace Zeze.Net
         {
             lock (this)
             {
-                if (Socket != closed)
-                    return;
-                Stop(e);
-                TryReconnect();
+                if (Socket == closed)
+                    Stop(e);
             }
         }
 
@@ -126,7 +140,6 @@ namespace Zeze.Net
         {
             lock (this)
             {
-                ConnectDelay = 0;
                 IsConnected = true;
             }
         }
@@ -142,41 +155,12 @@ namespace Zeze.Net
             so.Close(new Exception("not owner?"));
         }
 
-        public virtual void TryReconnect()
-        {
-            lock (this)
-            {
-                if (false == IsAutoReconnect
-                    || null != Socket
-                    || null != ReconnectTask)
-                {
-                    return;
-                }
-
-                if (ConnectDelay <= 0)
-                {
-                    ConnectDelay = 1000;
-                }
-                else
-                {
-                    ConnectDelay *= 2;
-                    if (ConnectDelay > MaxReconnectDelay)
-                        ConnectDelay = MaxReconnectDelay;
-                }
-                ReconnectTask = Util.Scheduler.Instance.Schedule((ThisTask) => Start(), ConnectDelay); ;
-            }
-        }
-
         public virtual void Start()
         {
             lock (this)
             {
-                ReconnectTask?.Cancel();
-                ReconnectTask = null;
-
                 if (null != Socket)
                     return;
-
                 Socket = Service.NewClientSocket(HostNameOrAddress, Port, UserState, this);
             }
         }

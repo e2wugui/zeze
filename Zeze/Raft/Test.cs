@@ -140,6 +140,14 @@ namespace Zeze.Raft
                 if (args[i].Equals("-Config"))
                     RaftConfigFileName = args[++i];
             }
+            var logTarget = new NLog.Targets.FileTarget(RaftConfigFileName);
+            logTarget.Layout = "${longdate} ${ threadid} ${callsite} ${level} ${message} ${exception: format=Message,StackTrace}";
+            logTarget.FileName = RaftConfigFileName + ".log";
+
+            var loggingRule = new NLog.Config.LoggingRule("*", NLog.LogLevel.Trace, logTarget);
+            NLog.LogManager.Configuration.AddTarget("LogFile", logTarget);
+            NLog.LogManager.Configuration.LoggingRules.Add(loggingRule);
+            //NLog.LogManager.Configuration.Reload();
 
             logger.Debug("Start.");
             var raftConfigStart = RaftConfig.Load(RaftConfigFileName);
