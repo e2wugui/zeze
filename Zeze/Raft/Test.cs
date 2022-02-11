@@ -830,6 +830,7 @@ namespace Zeze.Raft
                     StateMachine = new TestStateMachine();
 
                     var raftConfig = RaftConfig.Load(RaftConfigFileName);
+                    raftConfig.SnapshotHourOfDay = -1;
                     raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
                     if (resetLog)
                     {

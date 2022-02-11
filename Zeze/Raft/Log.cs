@@ -306,6 +306,7 @@ namespace Zeze.Raft
         {
             lock (Raft)
             {
+                SnapshotTimer?.Cancel();
                 Logs?.Dispose();
                 Logs = null;
                 Rafts?.Dispose();
@@ -743,7 +744,7 @@ namespace Zeze.Raft
                         firstTime = firstTime.AddDays(1);
                     var delay = Util.Time.DateTimeToUnixMillis(firstTime) - Util.Time.DateTimeToUnixMillis(now);
                     SnapshotTimer = Zeze.Util.Scheduler.Instance.Schedule(
-                        (ThisTask) => StartSnapshot(false), delay, 20 * 3600 * 1000);
+                        (ThisTask) => StartSnapshot(false), delay, 24 * 3600 * 1000);
                 }
             }
         }
