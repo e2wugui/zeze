@@ -540,7 +540,7 @@ namespace Zeze.Raft
             Util.Task.Run(RandomTriggerFailActions, "RandomTriggerFailActions");
             var testname = "RealConcurrentDoRequest";
             var lastExpectCount = ExpectCount.Get();
-            while (false == Console.KeyAvailable)
+            while (true)
             {
                 ExpectCount.AddAndGet(ConcurrentAddCount(testname, 20));
                 if (ExpectCount.Get() - lastExpectCount > 20 * 5)
