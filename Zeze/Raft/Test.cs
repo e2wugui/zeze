@@ -620,6 +620,13 @@ namespace Zeze.Raft
                     catch (Exception ex)
                     {
                         logger.Error(ex, "FailAction {0}", fa.Name);
+                        Console.WriteLine("___________________________________________");
+                        Console.WriteLine("___________________________________________");
+                        Console.WriteLine("___________________________________________");
+                        Console.WriteLine("Press [y] Enter To Exit.");
+                        Console.WriteLine("___________________________________________");
+                        Console.WriteLine("___________________________________________");
+                        Console.WriteLine("___________________________________________");
                         Environment.Exit(1);
                         /*
                         foreach (var raft in Rafts.Values)
