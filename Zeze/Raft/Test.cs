@@ -659,6 +659,9 @@ namespace Zeze.Raft
             {
                 foreach (var raft in Rafts.Values)
                 {
+                    if (null == raft.Raft)
+                        continue;
+
                     if (raft.Raft.IsLeader)
                         return raft;
                 }
