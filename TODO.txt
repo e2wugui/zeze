@@ -25,6 +25,7 @@
 	Net.Connector.OnSocketHandshakeDone Fail 原因。
 	Raft.Test 关闭2节点后，一直没有重启。
 	Raft.Agent 客户端卡住了?
+	Net.Connector 轮询重连？以后恢复成连接断开才启动timer？先轮询，等raft稳定了再考虑。
 
 	RedoableQueue
 	{
@@ -43,7 +44,8 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
-	Raft.Agent ActiveTime 重连功能？？？【请求没有进行下去，随机选择另外一个Node尝试】
+	Raft.Agent ActiveTime 重连功能删除，
+	Net.Connector 轮询重连，
 
 【2022/2/10】
 	【应该是请求量加多了，出现Leader出错时一起返回的结果】一堆的ProcessLeaderIs

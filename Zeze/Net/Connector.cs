@@ -27,41 +27,23 @@ namespace Zeze.Net
         public AsyncSocket Socket { get; private set; }
         public object UserState;
 
-        internal class ReConnectManager
+        private int _MaxReconnectDelay = 8000;
+        public int MaxReconnectDelay
         {
-            public static ReConnectManager Instance = new ReConnectManager();
-
-            private Util.IdentityHashSet<Service> Services = new Util.IdentityHashSet<Service>();
-
-            internal void Add(Service c)
+            get
             {
-                Services.Add(c);
+                return _MaxReconnectDelay;
             }
 
-            internal void Remove(Service c)
+            set
             {
-                Services.Remove(c);
-            }
-
-            private Util.SchedulerTask Timer;
-
-            ReConnectManager()
-            {
-                Timer = Util.Scheduler.Instance.Schedule(ReConnect, 1000, 1000);
-            }
-
-            private void ReConnect(Util.SchedulerTask ThisTask)
-            {
-                foreach (var service in Services)
-                {
-                    service.Config.ForEachConnector((c) =>
-                    {
-                        if (c.IsAutoReconnect)
-                            c.Start();
-                    });
-                }
+                _MaxReconnectDelay = value;
+                if (_MaxReconnectDelay < 1000)
+                    _MaxReconnectDelay = 1000;
             }
         }
+        private int ReConnectDelay;
+        public Util.SchedulerTask ReconnectTask { get; private set; }
 
         public Connector(string host, int port = 0, bool autoReconnect = true)
         {
@@ -87,6 +69,9 @@ namespace Zeze.Net
             attr = self.GetAttribute("IsAutoReconnect");
             if (attr.Length > 0)
                 IsAutoReconnect = bool.Parse(attr);
+            attr = self.GetAttribute("MaxReconnectDelay");
+            if (attr.Length > 0)
+                MaxReconnectDelay = int.Parse(attr) * 1000;
         }
 
         internal void SetService(Service service)
@@ -132,7 +117,10 @@ namespace Zeze.Net
             lock (this)
             {
                 if (Socket == closed)
+                {
                     Stop(e);
+                    TryReconnect();
+                }
             }
         }
 
@@ -140,6 +128,7 @@ namespace Zeze.Net
         {
             lock (this)
             {
+                ReConnectDelay = 0;
                 IsConnected = true;
             }
         }
@@ -155,10 +144,38 @@ namespace Zeze.Net
             so.Close(new Exception("not owner?"));
         }
 
+        public virtual void TryReconnect()
+        {
+            lock (this)
+            {
+                if (false == IsAutoReconnect
+                    || null != Socket
+                    || null != ReconnectTask)
+                {
+                    return;
+                }
+
+                if (ReConnectDelay <= 0)
+                {
+                    ReConnectDelay = 1000;
+                }
+                else
+                {
+                    ReConnectDelay *= 2;
+                    if (ReConnectDelay > MaxReconnectDelay)
+                        ReConnectDelay = MaxReconnectDelay;
+                }
+                ReconnectTask = Util.Scheduler.Instance.Schedule((ThisTask) => Start(), ReConnectDelay); ;
+            }
+        }
+
         public virtual void Start()
         {
             lock (this)
             {
+                ReconnectTask?.Cancel();
+                ReconnectTask = null;
+
                 if (null != Socket)
                     return;
                 Socket = Service.NewClientSocket(HostNameOrAddress, Port, UserState, this);
@@ -170,6 +187,9 @@ namespace Zeze.Net
             AsyncSocket tmp = null;
             lock (this)
             {
+                ReconnectTask?.Cancel();
+                ReconnectTask = null;
+
                 if (null == Socket)
                     return; // not start or has stopped.
 
@@ -186,5 +206,43 @@ namespace Zeze.Net
         {
             return $"{Name}-{Socket}-{Socket?.Socket}";
         }
+
+        // AutoReconnect 失败恢复。以后可能移除。
+        internal class UglyReconnectRecover
+        {
+            public static UglyReconnectRecover Instance = new UglyReconnectRecover();
+
+            private Util.IdentityHashSet<Service> Services = new Util.IdentityHashSet<Service>();
+
+            internal void Add(Service c)
+            {
+                Services.Add(c);
+            }
+
+            internal void Remove(Service c)
+            {
+                Services.Remove(c);
+            }
+
+            private Util.SchedulerTask Timer;
+
+            UglyReconnectRecover()
+            {
+                Timer = Util.Scheduler.Instance.Schedule(ReConnect, 600000, 600000);
+            }
+
+            private void ReConnect(Util.SchedulerTask ThisTask)
+            {
+                foreach (var service in Services)
+                {
+                    service.Config.ForEachConnector((c) =>
+                    {
+                        if (c.IsAutoReconnect)
+                            c.Start();
+                    });
+                }
+            }
+        }
+
     }
 }

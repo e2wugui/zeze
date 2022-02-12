@@ -34,6 +34,7 @@ namespace Zeze.Raft
             public ConnectorEx(string host, int port)
                 : base(host, port)
             {
+                MaxReconnectDelay = 1000;
             }
 
             ////////////////////////////////////////////////
