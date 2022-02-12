@@ -87,13 +87,13 @@ namespace Zeze.Net
 
         public virtual void Start()
         {
-            Connector.ReConnectManager.Instance.Add(this);
+            Connector.UglyReconnectRecover.Instance.Add(this);
             Config?.Start();
         }
 
         public virtual void Stop()
         {
-            Connector.ReConnectManager.Instance.Remove(this);
+            Connector.UglyReconnectRecover.Instance.Remove(this);
             Config?.Stop();
 
             foreach (var e in SocketMap)
