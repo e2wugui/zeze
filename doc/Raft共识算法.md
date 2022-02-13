@@ -86,24 +86,23 @@
 ## 重新整理的伪实现(持续完善中)
 
 #### 状态
-* `int selfId`: [readonly] 自身节点ID. 有效值>=0
-* `int role`: 自身身份枚举. follower/candidate/leader之一, 初始为follower
-* `int leaderId`: 当前的leader节点ID. 初始为-1表示未知
-* `long timeout`: 超时时间戳(毫秒). <=当前时间戳表示应该触发超时, 初始为`curTime+random(150)`
-* `long currentTerm`: [持久化] 已知的最新term. 初始为0, 但实际有效值一定>0
-* `int votedFor`: [持久化] 为currentTerm投票的节点ID. 初始为-1表示没有
-* `int successCount`: [持久化] 给自己投票成功的次数/复制log请求成功次数
-* `list<LogEntry> logEntries`: [持久化] 已存储的log序列. 按索引需从小到大连续保存, 初始为空
-  * `long LogEntry.index`: 每条log的索引
-  * `long LogEntry.term`: 每条log的term值
-  * `Command LogEntry.cmd`: 每条log的命令对象. 有执行和序列化接口
-* `long commitIndex`: 当前最大的已经提交的log索引. 初始为0
-* `long lastApplied`: 当前最大的已经执行的log索引. 初始为0
-* `long[] nextIndexes`: [仅leader用] 各节点最大已被复制的log索引. 初始为0
-* `long[] appendingTimeouts`: [仅leader用] 各节点的AppendEntries请求超时时间戳(毫秒). 初始为0表示无超时
+* `int selfId` [readonly] 自身节点ID. 有效值>=0
+* `int leaderId` 当前的leader节点ID. -1表示自己是follower, -2表示自己是candidate, 初始为-1
+* `int votedFor` [持久化] 为currentTerm投票的节点ID. 初始为-1表示没有
+* `int successCount` [持久化] 给自己投票成功的次数/复制log请求成功次数
+* `long timeout` 下次投票的超时时间戳(毫秒). `<=当前时间戳`表示应该触发超时, 初始为`当前时间戳+INIT_TIMEOUT+random(150)`
+* `long currentTerm` [持久化] 已知的最新term. 初始为0, 实际有效值一定>0
+* `list<LogEntry> logEntries` [持久化] 已存储的log序列. 按log的索引需从小到大连续保存, 初始为空
+  * `long LogEntry.index` 每条log的索引. 在log序列中不会重复
+  * `long LogEntry.term` 每条log的term值
+  * `Command LogEntry.cmd` 每条log的命令对象. 有执行和序列化接口
+* `long commitIndex` 当前最大的已经提交的log索引. 初始为0
+* `long lastApplied` 当前最大的已经执行的log索引. 初始为0
+* `long[] nextIndexes` [仅leader用] 各节点最大已被复制的log索引. 初始为0
+* `long[] appendingTimeouts` [仅leader用] 各节点的AppendEntries请求超时时间戳(毫秒). 初始为0表示无超时
 
 #### 流程(无阻塞的事件响应模式)
-* if role == follower || role == candidate:
+* if selfId != leaderId:
   * while 收到通信协议:
     * if 收到RequestVote请求:
       * if currentTerm > RequestVote.term:
@@ -117,13 +116,12 @@
         * 回复投票失败
     * else if 收到AppendEntries请求:
       * if currentTerm > AppendEntries.term:
-        * 回复失败, 重新执行当前流程
-      * role = follower
+        * 回复失败或不回复, 重新执行当前流程
       * leaderId = AppendEntries.leaderId
-      * timeout = curTime + LEADER_TIMEOUT + random(150)
+      * votedFor = -1
+      * timeout = 当前时间戳 + LEADER_TIMEOUT + random(150)
       * if currentTerm < RequestVote.term:
         * currentTerm = RequestVote.term
-      * votedFor = -1
       * if AppendEntries.prevLogIndex != 0 && AppendEntries.prevLogTerm != 0:
         * 如果logEntries里找不到AppendEntries.prevLogIndex和AppendEntries.prevLogTerm对应的log:
           * 回复失败, 重新执行当前流程
@@ -137,36 +135,42 @@
           * while lastApplied < commitIndex:
             * 执行logEntries[++lastApplied].cmd
     * else if 收到RequestVote回复:
-      * if role == follower:
+      * if leaderId != CANDIDATE(-2):
         * 丢弃(只应该由candidate处理)
       * if currentTerm != RequestVote.term
         * 丢弃
       * if ++successCount > NODE_COUNT / 2
-        * role = leader
+        * leaderId = selfId
+        * votedFor = -1
         * successCount = 0
         * nextIndexes和appendingTimeouts全部清0
     * else if 收到AppendEntries回复:
       * 丢弃(只应该由leader处理)
     * else if 收到客户端请求:
-      * 如果leaderId无效则回复失败, 否则回复leaderId让客户端重新发请求给leader
+      * if leaderId >= 0:
+        * 回复leaderId让客户端重新发请求给leader
+      * else
+        * 回复失败
   * else if timeout超时:
-    * timeout = curTime + VOTE_TIMEOUT + random(150)
     * currentTerm++
+    * leaderId = CANDIDATE(-2)
     * votedFor = selfId
+    * timeout = 当前时间戳 + VOTE_TIMEOUT + random(150)
     * successCount = 1
-    * role = candidate
     * 广播RequestVote(term=currentTerm, candidateId=selfId, lastLogIndex=logEntries[newest].index, lastLogTerm=logEntries[newest].term)
-* else if role == leader:
+* else
   * while 收到通信协议:
     * if 收到RequestVote请求:
       * if currentTerm < RequestVote.term:
-        * role = follower
+        * leaderId = FOLLOWER(-1)
+        * timeout = 当前时间戳 + LEADER_TIMEOUT + random(150)
         * 保留RequestVote请求下次处理
       * else
         * 回复失败
     * else if 收到AppendEntries请求:
-      * if currentTerm < RequestVote.term:
-        * role = follower
+      * if currentTerm < AppendEntries.term:
+        * leaderId = AppendEntries.leaderId
+        * timeout = 当前时间戳 + LEADER_TIMEOUT + random(150)
         * 保留AppendEntries请求下次处理
       * else
         * 回复失败
@@ -183,9 +187,14 @@
         * 取nextIndex=nextIndexes[nodeId]
         * if nextIndex <= logEntries的最大index:
           * 继续给nodeId发送AppendEntries(term=currentTerm, leaderId=selfId, prevLogIndex=logEntries[nextIndex-1].index or 0, lastLogTerm=logEntries[nextIndex-1].term or 0, entries=logEntries[nextIndex...], leaderCommit=commitIndex)
-          * appendingTimeouts[nodeId] = curTime + APPEND_TIMEOUT (结果为0则置1)
+          * appendingTimeouts[nodeId] = 当前时间戳 + APPEND_TIMEOUT (结果为0则置1)
         * else
           * appendingTimeouts[nodeId] = 0
+      * else if currentTerm < AppendEntries.term:
+        * leaderId = FOLLOWER(-1)
+        * timeout = 当前时间戳 + LEADER_TIMEOUT + random(150)
+      * else
+        * nextIndexes[nodeId]--
     * else if 收到客户端请求:
       * if 请求的命令列表为空:
         * 直接回复成功, 重新执行当前流程
@@ -194,7 +203,7 @@
         * 遍历appendingTimeouts, 如果appendingTimeouts[nodeId] == 0:
           * 取nextIndex=nextIndexes[nodeId]
           * 给nodeId发送AppendEntries(term=currentTerm, leaderId=selfId, prevLogIndex=logEntries[nextIndex-1].index or 0, lastLogTerm=logEntries[nextIndex-1].term or 0, entries=logEntries[nextIndex...], leaderCommit=commitIndex)
-          * appendingTimeouts[nodeId] = curTime + APPEND_TIMEOUT (结果为0则置1)
+          * appendingTimeouts[nodeId] = 当前时间戳 + APPEND_TIMEOUT (结果为0则置1)
   * while appendingTimeouts中有appendingTimeouts[nodeId]超时:
-    * appendingTimeouts[nodeId] = curTime + APPEND_TIMEOUT (结果为0则置1)
+    * appendingTimeouts[nodeId] = 当前时间戳 + APPEND_TIMEOUT (结果为0则置1)
     * 给nodeId发送空的AppendEntries
