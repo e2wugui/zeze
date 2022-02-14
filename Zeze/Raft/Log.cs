@@ -501,31 +501,12 @@ namespace Zeze.Raft
             }
         }
 
-        /// <summary>
-        /// 从startIndex开始，直到找到一个存在的日志。
-        /// 最多找到结束Index。这是为了能处理Index不连续。
-        /// 虽然算法上不可能，但花几行代码这样处理一下吧。
-        /// 这个方法看起来也有可能返回null，实际上应该不会发生。
-        /// </summary>
-        /// <param name="startIndex"></param>
-        /// <returns></returns>
-        private RaftLog ReadLogStart(long startIndex)
-        {
-            for (long index = startIndex; index <= LastIndex; ++index)
-            {
-                var raftLog = ReadLog(index);
-                if (null != raftLog)
-                    return raftLog;
-            }
-            return null;
-        }
-
         private RaftLog FindMaxMajorityLog(long startIndex)
         {
             RaftLog lastMajorityLog = null;
             for (long index = startIndex; index <= LastIndex; /**/)
             {
-                var raftLog = ReadLogStart(index);
+                var raftLog = ReadLog(index);
                 if (null == raftLog)
                     break;
                 index = raftLog.Index + 1;
@@ -590,7 +571,7 @@ namespace Zeze.Raft
                 index <= lastApplyableLog.Index;
                 /**/)
             {
-                var raftLog = ReadLogStart(index);
+                var raftLog = ReadLog(index);
                 if (null == raftLog)
                 {
                     logger.Warn("What Happened! index={0} lastApplyable={1} LastApplied={2}",
@@ -934,8 +915,7 @@ namespace Zeze.Raft
                     if (InstallSuccess)
                     {
                         // 安装完成，重新初始化，使得以后的AppendEnties能继续工作。
-                        // = FirstIndex + 1，防止Index跳着分配，使用ReadLogStart。
-                        var next = ReadLogStart(FirstIndex + 1);
+                        var next = ReadLog(FirstIndex + 1);
                         connector.NextIndex = next == null ? FirstIndex + 1 : next.Index;
                     }
                 }
@@ -1083,7 +1063,7 @@ namespace Zeze.Raft
                 RaftLog lastCopyLog = nextLog;
                 for (var copyLog = nextLog;
                     maxCount > 0 && null != copyLog && copyLog.Index <= LastIndex;
-                    copyLog = ReadLogStart(copyLog.Index + 1), --maxCount
+                    copyLog = ReadLog(copyLog.Index + 1), --maxCount
                     )
                 {
                     lastCopyLog = copyLog;
@@ -1206,10 +1186,15 @@ namespace Zeze.Raft
             }
 
             int entryIndex = 0;
-
-            for (; entryIndex < r.Argument.Entries.Count; ++ entryIndex)
+            var copyLogIndex = prevLog.Index + 1;
+            for (; entryIndex < r.Argument.Entries.Count; ++entryIndex, ++copyLogIndex)
             {
                 var copyLog = RaftLog.Decode(r.Argument.Entries[entryIndex], Raft.StateMachine.LogFactory);
+                if (copyLog.Index != copyLogIndex)
+                {
+                    logger.Fatal($"copyLog.Index != copyLogIndex Leader={r.Argument.LeaderId} this={Raft.Name}");
+                    Environment.Exit(0);
+                }
                 if (copyLog.Index < FirstIndex)
                     continue; // 快照建立以前的日志忽略。
 
@@ -1235,14 +1220,14 @@ namespace Zeze.Raft
             }
             // Append this and all following entries.
             // 4. Append any new entries not already in the log
-            for (; entryIndex < r.Argument.Entries.Count; ++entryIndex)
+            for (; entryIndex < r.Argument.Entries.Count; ++entryIndex, ++copyLogIndex)
             {
-                // 【TODO】优化，不需要Decode/Encode，直接把数据加入日志。
-                //SaveLogRaw(index, r.Argument.Entries[entryIndex].Bytes);
-                var copyLog = RaftLog.Decode(r.Argument.Entries[entryIndex], Raft.StateMachine.LogFactory);
-                SaveLog(copyLog);
-                LastIndex = copyLog.Index; // 优化，最后赋值一次。
+                SaveLogRaw(copyLogIndex, r.Argument.Entries[entryIndex].Bytes);
             }
+            LastIndex = copyLogIndex - 1;
+
+            CheckDump(prevLog.Index, LastIndex, r.Argument.Entries);
+
             // 5. If leaderCommit > commitIndex,
             // set commitIndex = min(leaderCommit, index of last new entry)
             if (r.Argument.LeaderCommit > CommitIndex)
@@ -1255,6 +1240,29 @@ namespace Zeze.Raft
             r.SendResultCode(0);
 
             return Procedure.Success;
+        }
+
+        private void CheckDump(long prevLogIndex, long lastIndex, List<Binary> entries)
+        {
+            var logs = new StringBuilder();
+            for (var index = prevLogIndex + 1; index <= lastIndex; ++index)
+            {
+                logs.Append(ReadLog(index).ToString()).Append("\n");
+            }
+            var copies = new StringBuilder();
+            foreach (var entry in entries)
+            {
+                copies.Append(RaftLog.Decode(entry, Raft.StateMachine.LogFactory).ToString()).Append("\n");
+            }
+
+            if (logs.ToString().Equals(copies.ToString()))
+                return;
+
+            logger.Fatal("================= logs ======================");
+            logger.Fatal(logs);
+            logger.Fatal("================= copies ======================");
+            logger.Fatal(copies);
+            Environment.Exit(0);
         }
     }
 }
