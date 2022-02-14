@@ -264,7 +264,7 @@ namespace Zeze.Raft
 
             public void Remove(RaftLog log)
             {
-                var key = ByteBuffer.Allocate();
+                var key = ByteBuffer.Allocate(100);
                 log.Log.Unique.Encode(key);
                 OpenDb().Remove(key.Bytes, key.Size, null, LogSequence.WriteOptionsSync);
             }
@@ -1198,7 +1198,8 @@ namespace Zeze.Raft
                 {
                     // 4. Append any new entries not already in the log
                     SaveLog(copyLog);
-                    LastIndex = copyLog.Index; // 记住最后一个Index，用来下一次生成。
+                    if (copyLog.Index > LastIndex) // Append! 必须判断，否则会丢失LastIndex。
+                        LastIndex = copyLog.Index; // 记住最后一个Index，用来下一次生成。
                 }
             }
             // 5. If leaderCommit > commitIndex,

@@ -466,11 +466,8 @@ namespace Zeze.Raft
                     ConvertStateTo(RaftState.Follower);
                     return Procedure.Success;
                 }
-            }
 
-            if (rpc.Result.VoteGranted && VoteSuccess.TryAdd(c.Name, c))
-            {
-                lock (this)
+                if (rpc.Result.VoteGranted && VoteSuccess.TryAdd(c.Name, c))
                 {
                     if (
                         // 确保当前状态是选举中。没有判断这个，
@@ -483,6 +480,7 @@ namespace Zeze.Raft
                     }
                 }
             }
+
             return Procedure.Success;
         }
 
