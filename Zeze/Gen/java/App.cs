@@ -162,12 +162,17 @@ namespace Zeze.Gen.java
             {
                 var m = project.AllOrderDefineModules[i];
                 if (!project.ModuleStartOrder.Contains(m))
-                    sw.WriteLine("        " + m.Path("_") + ".Stop(this);");
+                {
+                    var name = m.Path("_");
+                    sw.WriteLine("        if (" + name + " != null)");
+                    sw.WriteLine("            " + name + ".Stop(this);");
+                }
             }
             for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
             {
-                var m= project.ModuleStartOrder[i];
-                sw.WriteLine("        " + m.Path("_") + ".Stop(this);");
+                var name = project.ModuleStartOrder[i].Path("_");
+                sw.WriteLine("        if (" + name + " != null)");
+                sw.WriteLine("            " + name + ".Stop(this);");
             }
             sw.WriteLine("    }");
             sw.WriteLine();
@@ -178,7 +183,10 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("    public synchronized void StopService() throws Throwable {");
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("        " + m.Name + ".Stop();");
+            {
+                sw.WriteLine("        if (" + m.Name + " != null)");
+                sw.WriteLine("            " + m.Name + ".Stop();");
+            }
             sw.WriteLine("    }");
             sw.WriteLine("    // @formatter:on");
         }

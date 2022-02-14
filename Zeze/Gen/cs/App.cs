@@ -120,12 +120,12 @@ namespace Zeze.Gen.cs
                 var m = project.AllOrderDefineModules[i];
                 if (project.ModuleStartOrder.Contains(m))
                     continue; // Stop later
-                sw.WriteLine("                " + m.Path("_") + ".Stop(this);");
+                sw.WriteLine("                " + m.Path("_") + "?.Stop(this);");
             }
             for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
             {
                 var m = project.ModuleStartOrder[i];
-                sw.WriteLine("                " + m.Path("_") + ".Stop(this);");
+                sw.WriteLine("                " + m.Path("_") + "?.Stop(this);");
             }
             sw.WriteLine("            }");
             sw.WriteLine("        }");
@@ -144,7 +144,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("                " + m.Name + ".Stop();");
+                sw.WriteLine("                " + m.Name + "?.Stop();");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine("    }");
