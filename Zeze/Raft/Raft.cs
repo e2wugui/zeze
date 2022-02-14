@@ -25,6 +25,16 @@ namespace Zeze.Raft
         public LogSequence LogSequence { get; }
         public bool IsLeader => this.State == RaftState.Leader;
         public Server Server { get; }
+        public bool IsWorkingLeader
+        {
+            get
+            {
+                lock (this)
+                {
+                    return this.State == RaftState.Leader && false == IsShutdown;
+                }
+            }
+        }
 
         internal SimpleThreadPool ImportantThreadPool { get; }
 
@@ -46,38 +56,14 @@ namespace Zeze.Raft
                     return;
 
                 IsShutdown = true;
-            }
-
-            TimerTask?.Cancel();
-            TimerTask = null;
-
-            // 0 clear pending task if is leader
-            if (IsLeader)
-            {
-                Server.TaskOneByOne.Shutdown(false, () =>
-                {
-                    foreach (var e in LogSequence.WaitApplyFutures)
-                    {
-                        e.Value.TrySetCanceled();
-                        LogSequence.WaitApplyFutures.TryRemove(e.Key, out _);
-                    }
-                }, true);
+                TimerTask?.Cancel();
+                TimerTask = null;
+                ConvertStateTo(RaftState.Follower);
+                Server.Stop();
+                LogSequence.Close();
             }
             ImportantThreadPool.Shutdown();
 
-            // 1. close network.
-            Server.Stop();
-
-            lock (this)
-            {
-                // see WaitLeaderReady.
-                // 可以避免状态设置不对的问题。关闭时转换成Follower也是对的。
-                ConvertStateTo(RaftState.Follower);
-                LeaderId = string.Empty;
-            }
-
-            // 3. close LogSequence (rocksdb)
-            LogSequence.Close();
         }
 
         private void ProcessExit(object sender, EventArgs e)

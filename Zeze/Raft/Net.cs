@@ -179,7 +179,7 @@ namespace Zeze.Raft
                 return;
             }
             // User Request
-            if (Raft.IsLeader)
+            if (Raft.IsWorkingLeader)
             {
                 var iraftrpc = p as IRaftRpc;
                 if (iraftrpc.Unique.RequestId <= 0)

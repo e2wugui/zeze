@@ -1,4 +1,6 @@
 
+del *.log
+
 start gen -c RaftTest -Config raft.xml
 
 start gen -c RaftTest -Config raft3.xml
