@@ -60,9 +60,14 @@ namespace Zeze.Raft
                 TimerTask = null;
                 ConvertStateTo(RaftState.Follower);
                 Server.Stop();
+                foreach (var job in LogSequence.WaitApplyFutures)
+                {
+                    job.Value.TrySetCanceled();
+                    LogSequence.WaitApplyFutures.TryRemove(job.Key, out _);
+                }
                 LogSequence.Close();
             }
-            ImportantThreadPool.Shutdown();
+            ImportantThreadPool.Shutdown(); // 需要停止线程。
 
         }
 
