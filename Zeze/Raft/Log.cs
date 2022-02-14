@@ -423,6 +423,20 @@ namespace Zeze.Raft
             logger.Info($"{Raft.Name}-{Raft.IsLeader} RequestId={log.Log.Unique.RequestId} Index={log.Index} Count={GetTestStateMachineCount()}");
         }
 
+        private void SaveLogRaw(long index, byte[] rawValue)
+        {
+            var key = ByteBuffer.Allocate();
+            key.WriteLong(index);
+
+            Logs.Put(
+                key.Bytes, key.Size,
+                rawValue, rawValue.Length,
+                null, WriteOptionsSync
+                );
+
+            logger.Info($"{Raft.Name}-{Raft.IsLeader} RequestId=? Index={index} Count={GetTestStateMachineCount()}");
+        }
+
         private RaftLog ReadLog(long index)
         {
             var key = ByteBuffer.Allocate();
@@ -1119,11 +1133,24 @@ namespace Zeze.Raft
 
         internal long FollowerOnAppendEntries(AppendEntries r)
         {
+            LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
+            r.Result.Term = Term;
+            r.Result.Success = false; // set default false
+
+            if (r.Argument.Term < Term)
+            {
+                // 1. Reply false if term < currentTerm (§5.1)
+                r.SendResult();
+                logger.Info("this={0} Leader={1} Index={2} term < currentTerm", Raft.Name, r.Argument.LeaderId, r.Argument.PrevLogIndex);
+                return Procedure.Success;
+            }
+
             switch (TrySetTerm(r.Argument.Term))
             {
                 case SetTermResult.Newer:
                     Raft.ConvertStateTo(Raft.RaftState.Follower);
                     Raft.LeaderId = r.Argument.LeaderId;
+                    r.Result.Term = Term; // new term
 
                     // 有Leader，清除一下上一次选举的投票。要不然可能下一次选举无法给别人投票。
                     // 这个不是必要的：因为要进行选举的时候，自己肯定也会尝试选自己，会重置，
@@ -1137,25 +1164,20 @@ namespace Zeze.Raft
                     // 但是清除一下，可以让选举更快进行。不用等待选举TimerTask。
                     SetVoteFor(string.Empty);
 
-                    // see raft.pdf 文档. 仅在 Candidate 才转。【找不到在文档哪里了，需要确认这点】
-                    if (Raft.State == Raft.RaftState.Candidate)
+                    switch (Raft.State)
                     {
-                        Raft.ConvertStateTo(Raft.RaftState.Follower);
-                        Raft.LeaderId = r.Argument.LeaderId;
+                        case Raft.RaftState.Candidate:
+                            // see raft.pdf 文档. 仅在 Candidate 才转。【找不到在文档哪里了，需要确认这点】
+                            Raft.ConvertStateTo(Raft.RaftState.Follower);
+                            Raft.LeaderId = r.Argument.LeaderId;
+                            break;
+
+                        case Raft.RaftState.Leader:
+                            logger.Fatal($"Receive AppendEntries from another leader={r.Argument.LeaderId} with same term={Term}, there must be a bug. this={Raft.LeaderId}");
+                            Environment.Exit(0);
+                            return 0;
                     }
                     break;
-            }
-
-            LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
-            r.Result.Term = Term;
-            r.Result.Success = false; // set default false
-
-            if (r.Argument.Term < Term)
-            {
-                // 1. Reply false if term < currentTerm (§5.1)
-                r.SendResult();
-                logger.Info("this={0} Leader={1} Index={2} term < currentTerm", Raft.Name, r.Argument.LeaderId, r.Argument.PrevLogIndex);
-                return Procedure.Success;
             }
 
             // is Hearbeat(KeepAlive)
@@ -1177,30 +1199,43 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
-            foreach (var raftLogData in r.Argument.Entries)
+            int entryIndex = 0;
+
+            for (; entryIndex < r.Argument.Entries.Count; ++ entryIndex)
             {
-                var copyLog = RaftLog.Decode(raftLogData, Raft.StateMachine.LogFactory);
-                var conflictCheck = ReadLog(copyLog.Index);
-                if (null != conflictCheck)
+                var copyLog = RaftLog.Decode(r.Argument.Entries[entryIndex], Raft.StateMachine.LogFactory);
+                if (copyLog.Index < FirstIndex)
+                    continue; // 快照建立以前的日志忽略。
+
+                // 本地已经存在日志。
+                if (copyLog.Index <= LastIndex)
                 {
-                    if (conflictCheck.Term != copyLog.Term)
+                    var conflictCheck = ReadLog(copyLog.Index);
+                    if (conflictCheck.Term == copyLog.Term)
+                        continue;
+
+                    // 3. If an existing entry conflicts
+                    // with a new one (same index but different terms),
+                    // delete the existing entry and all that follow it(§5.3)
+                    // raft.pdf 5.3
+                    if (conflictCheck.Index <= CommitIndex)
                     {
-                        // 3. If an existing entry conflicts
-                        // with a new one (same index but different terms),
-                        // delete the existing entry and all that follow it(§5.3)
-                        // raft.pdf 5.3
-                        RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
-                        SaveLog(copyLog);
-                        LastIndex = copyLog.Index;
+                        logger.Fatal("truncate committed entries");
+                        Environment.Exit(0);
                     }
+                    RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
                 }
-                else
-                {
-                    // 4. Append any new entries not already in the log
-                    SaveLog(copyLog);
-                    if (copyLog.Index > LastIndex) // Append! 必须判断，否则会丢失LastIndex。
-                        LastIndex = copyLog.Index; // 记住最后一个Index，用来下一次生成。
-                }
+                break;
+            }
+            // Append this and all following entries.
+            // 4. Append any new entries not already in the log
+            for (; entryIndex < r.Argument.Entries.Count; ++entryIndex)
+            {
+                // 【TODO】优化，不需要Decode/Encode，直接把数据加入日志。
+                //SaveLogRaw(index, r.Argument.Entries[entryIndex].Bytes);
+                var copyLog = RaftLog.Decode(r.Argument.Entries[entryIndex], Raft.StateMachine.LogFactory);
+                SaveLog(copyLog);
+                LastIndex = copyLog.Index; // 优化，最后赋值一次。
             }
             // 5. If leaderCommit > commitIndex,
             // set commitIndex = min(leaderCommit, index of last new entry)

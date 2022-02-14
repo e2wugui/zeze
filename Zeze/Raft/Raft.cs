@@ -140,6 +140,9 @@ namespace Zeze.Raft
         private long ProcessInstallSnapshot(Protocol p)
         {
             var r = p as InstallSnapshot;
+
+            r.Result.Term = LogSequence.Term;
+
             lock (this)
             {
                 if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
@@ -149,7 +152,6 @@ namespace Zeze.Raft
                     ConvertStateTo(RaftState.Follower);
                 }
             }
-            r.Result.Term = LogSequence.Term;
             if (r.Argument.Term < LogSequence.Term)
             {
                 // 1. Reply immediately if term < currentTerm
@@ -412,6 +414,9 @@ namespace Zeze.Raft
             lock (this)
             {
                 var r = p as RequestVote;
+
+                r.Result.Term = LogSequence.Term;
+
                 var newer = LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer;
                 if (newer)
                 {
@@ -421,7 +426,6 @@ namespace Zeze.Raft
                 }
                 // else continue process
 
-                r.Result.Term = LogSequence.Term;
                 // RequestVote RPC
                 // Receiver implementation:
                 // 1.Reply false if term < currentTerm(§5.1)
@@ -432,6 +436,9 @@ namespace Zeze.Raft
                     && IsCandidateLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
                 if (r.Result.VoteGranted)
                 {
+                    // 如果自己处于 Candidate 状态，这个将延迟自己启动选举，投完票后给候选Leader时间。
+                    // 【XXX】可能存在日志复制的bug，先不保护，让错误更加容易出现。
+                    // NextVoteTime += RaftConfig.AppendEntriesTimeout;
                     LogSequence.SetVoteFor(r.Argument.CandidateId);
                 }
                 logger.Info("{0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
