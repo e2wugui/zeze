@@ -72,11 +72,13 @@ namespace Zeze.Raft
         public const int SetLeaderReadyEvent = 1;
 
         public int Operate { get; private set; }
+        public string Info { get; private set; }
 
-        public HeartbeatLog(int operate = 0)
+        public HeartbeatLog(int operate = 0, string info = null)
             : base(null)
         {
             Operate = operate;
+            Info = null == info ? string.Empty : info;
         }
 
         public override void Apply(RaftLog holder, StateMachine stateMachine)
@@ -93,17 +95,19 @@ namespace Zeze.Raft
         {
             base.Decode(bb);
             Operate = bb.ReadInt();
+            Info = bb.ReadString();
         }
 
         public override void Encode(ByteBuffer bb)
         {
             base.Encode(bb);
             bb.WriteInt(Operate);
+            bb.WriteString(Info);
         }
 
         public override string ToString()
         {
-            return GetType().FullName;
+            return $"{GetType().FullName}:{Info}";
         }
     }
 
@@ -1134,7 +1138,7 @@ namespace Zeze.Raft
         internal long FollowerOnAppendEntries(AppendEntries r)
         {
             LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
-            r.Result.Term = Term;
+            r.Result.Term = Term; // maybe rewrite later
             r.Result.Success = false; // set default false
 
             if (r.Argument.Term < Term)
@@ -1179,6 +1183,8 @@ namespace Zeze.Raft
                     }
                     break;
             }
+
+            Raft.SetWithholdVotesUntil();
 
             // is Hearbeat(KeepAlive)
             if (r.Argument.Entries.Count == 0)

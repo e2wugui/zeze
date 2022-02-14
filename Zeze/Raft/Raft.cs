@@ -158,6 +158,7 @@ namespace Zeze.Raft
                 r.SendResultCode(InstallSnapshot.ResultCodeTermError);
                 return Procedure.LogicError;
             }
+            SetWithholdVotesUntil();
 
             // 2. Create new snapshot file if first chunk(offset is 0)
             // 把 LastIncludedIndex 放到文件名中，
@@ -252,20 +253,27 @@ namespace Zeze.Raft
         // Candidate
         private ConcurrentDictionary<string, Connector> VoteSuccess
             = new ConcurrentDictionary<string, Connector>();
-        private long NextVoteTime;
-        private long SendRequestVoteTime;
+
+        private long SendRequestVoteRandomDelayTime; // 真正发起选举随机延时。这个让每个节点都有机会发起选举。
+        private long NextRequestVoteTime; // 等待当前轮选举结果超时；用来启动下一次选举。
+        private long WithholdVotesUntil; // 拒绝投票一定时间；
+
         // Leader
         private long LeaderWaitReadyTerm;
         private long LeaderWaitReadyIndex;
         internal volatile TaskCompletionSource<bool> LeaderReadyFuture = new TaskCompletionSource<bool>();
         // Follower
 
+        internal void SetWithholdVotesUntil()
+        {
+            WithholdVotesUntil = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout;
+        }
+
         // 重置 OnTimer 需要的所有时间。
         private void ResetTimerTime()
         {
             var now = Time.NowUnixMillis;
             LogSequence.LeaderActiveTime = now;
-            //SendRequestVoteTime = now;
             Server.Config.ForEachConnector(
                 (c) =>
                 {
@@ -294,12 +302,12 @@ namespace Zeze.Raft
                         break;
 
                     case RaftState.Candidate:
-                        if (SendRequestVoteTime > 0)
+                        if (SendRequestVoteRandomDelayTime > 0)
                         {
-                            if (Time.NowUnixMillis > SendRequestVoteTime)
+                            if (Time.NowUnixMillis > SendRequestVoteRandomDelayTime)
                                 SendRequestVote();
                         }
-                        else if (Time.NowUnixMillis > NextVoteTime)
+                        else if (Time.NowUnixMillis > NextRequestVoteTime)
                         {
                             // vote timeout. restart
                             ConvertStateTo(RaftState.Candidate);
@@ -417,6 +425,14 @@ namespace Zeze.Raft
 
                 r.Result.Term = LogSequence.Term;
 
+                if (Time.NowUnixMillis < WithholdVotesUntil) // leader will reject
+                {
+                    r.Result.VoteGranted = false;
+                    logger.Info("WithholdVotesUntil！ {0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
+                    r.SendResultCode(0);
+                    return Procedure.Success;
+                }
+
                 var newer = LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer;
                 if (newer)
                 {
@@ -424,6 +440,7 @@ namespace Zeze.Raft
                     if (State == RaftState.Leader)
                         ConvertStateTo(RaftState.Follower);
                 }
+
                 // else continue process
 
                 // RequestVote RPC
@@ -431,14 +448,15 @@ namespace Zeze.Raft
                 // 1.Reply false if term < currentTerm(§5.1)
                 // 2.If votedFor is null or candidateId, and candidate’s log is at
                 // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
-                r.Result.VoteGranted = newer // 1. 【change】term > currentTerm
+                r.Result.VoteGranted = r.Argument.Term >= LogSequence.Term // 改成大于关系？ 使用 newer 判断。
                     && LogSequence.CanVoteFor(r.Argument.CandidateId)
                     && IsCandidateLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
+
                 if (r.Result.VoteGranted)
                 {
-                    // 如果自己处于 Candidate 状态，这个将延迟自己启动选举，投完票后给候选Leader时间。
-                    // 【XXX】可能存在日志复制的bug，先不保护，让错误更加容易出现。
-                    // NextVoteTime += RaftConfig.AppendEntriesTimeout;
+                    // 如果自己处于 Candidate 状态，延迟选自己。投完票后给候选Leader时间。
+                    if (SendRequestVoteRandomDelayTime > 0)
+                        SendRequestVoteRandomDelayTime += RaftConfig.AppendEntriesTimeout;
                     LogSequence.SetVoteFor(r.Argument.CandidateId);
                 }
                 logger.Info("{0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
@@ -493,7 +511,7 @@ namespace Zeze.Raft
 
         private void PrepareSendRequestVote()
         {
-            SendRequestVoteTime = Time.NowUnixMillis + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout*2);
+            SendRequestVoteRandomDelayTime = Time.NowUnixMillis + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout*2);
             Server.Config.ForEachConnector((c) => c.Start());
         }
 
@@ -512,8 +530,8 @@ namespace Zeze.Raft
             arg.LastLogIndex = log.Index;
             arg.LastLogTerm = log.Term;
 
-            SendRequestVoteTime = 0;
-            NextVoteTime = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout;
+            SendRequestVoteRandomDelayTime = 0;
+            NextRequestVoteTime = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout;
             Server.Config.ForEachConnector((c) =>
             {
                 var rpc = new RequestVote() { Argument = arg };
@@ -565,6 +583,8 @@ namespace Zeze.Raft
                 case RaftState.Leader:
                     VoteSuccess.Clear(); // 选举结束清除。
 
+                    WithholdVotesUntil = long.MaxValue;
+
                     logger.Info($"RaftState {Name}: Candidate->Leader");
                     State = RaftState.Leader;
                     LogSequence.SetVoteFor(string.Empty);
@@ -586,7 +606,7 @@ namespace Zeze.Raft
                     // send initial empty AppendEntries RPCs
                     // (heartbeat)to each server; repeat during
                     // idle periods to prevent election timeouts(§5.2)
-                    LogSequence.AppendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent),
+                    LogSequence.AppendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent, Name),
                         false, out LeaderWaitReadyTerm, out LeaderWaitReadyIndex);
                     return;
             }
@@ -628,6 +648,7 @@ namespace Zeze.Raft
 
                 case RaftState.Leader:
                     ConvertStateFromLeaderTo(newState);
+                    WithholdVotesUntil = 0;
                     return;
             }
         }

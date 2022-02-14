@@ -25,75 +25,6 @@ namespace Zeze.Raft
 
         private Agent Agent { get; set; }
 
-        private void LogCheck(RaftConfig rconf)
-        {
-            var nodes = rconf.Nodes.Values.ToArray();
-            var dir1 = $"{nodes[0].Host}_{nodes[0].Port}";
-            var dir2 = $"{nodes[1].Host}_{nodes[1].Port}";
-            var dir3 = $"{nodes[2].Host}_{nodes[2].Port}";
-
-            if (!Directory.Exists(dir1) || !Directory.Exists(dir2) || !Directory.Exists(dir3))
-            {
-                return;
-            }
-
-            var options = new DbOptions().SetCreateIfMissing(true);
-            using var r1 = RocksDb.Open(options, Path.Combine(dir1, "logs"));
-            using var r2 = RocksDb.Open(options, Path.Combine(dir2, "logs"));
-            using var r3 = RocksDb.Open(options, Path.Combine(dir2, "logs"));
-
-            using var it1 = r1.NewIterator();
-            using var it2 = r2.NewIterator();
-            using var it3 = r3.NewIterator();
-            it1.SeekToFirst();
-            it2.SeekToFirst();
-            it3.SeekToFirst();
-
-            var StateMachine = new TestStateMachine();
-            // skip same
-            while (it1.Valid() && it2.Valid() && it3.Valid())
-            {
-                var l1 = RaftLog.Decode(new Binary(it1.Value()), StateMachine.LogFactory);
-                var l2 = RaftLog.Decode(new Binary(it2.Value()), StateMachine.LogFactory);
-                var l3 = RaftLog.Decode(new Binary(it3.Value()), StateMachine.LogFactory);
-                if (l1.Index != l2.Index || l2.Index != l3.Index)
-                    break;
-                if (!l1.Log.Unique.Equals(l2.Log.Unique) || !l2.Log.Unique.Equals(l3.Log.Unique))
-                    break;
-                it1.Next();
-                it2.Next();
-                it3.Next();
-            }
-            // dump difference
-            var hasNext = true;
-            while (hasNext)
-            {
-                hasNext = false;
-                if (it1.Valid())
-                {
-                    var log = RaftLog.Decode(new Binary(it1.Value()), StateMachine.LogFactory);
-                    Console.Write($" {dir1}: Term={log.Term} Index={log.Index} {log.Log.Unique}");
-                    it1.Next();
-                    hasNext = true;
-                }
-                if (it2.Valid())
-                {
-                    var log = RaftLog.Decode(new Binary(it2.Value()), StateMachine.LogFactory);
-                    Console.Write($" {dir2}: Term={log.Term} Index={log.Index} {log.Log.Unique}");
-                    it2.Next();
-                    hasNext = true;
-                }
-                if (it3.Valid())
-                {
-                    var log = RaftLog.Decode(new Binary(it3.Value()), StateMachine.LogFactory);
-                    Console.Write($" {dir3}: Term={log.Term} Index={log.Index} {log.Log.Unique}");
-                    it3.Next();
-                    hasNext = true;
-                }
-                Console.WriteLine();
-            }
-        }
-
         private void LogDump(string db)
         {
             var options = new DbOptions().SetCreateIfMissing(true);
@@ -160,10 +91,6 @@ namespace Zeze.Raft
                 }
                 return;
             }
-
-            LogCheck(raftConfigStart);
-            if (command.Equals("RaftCheck"))
-                return;
 
             foreach (var node in raftConfigStart.Nodes)
             {
