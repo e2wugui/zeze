@@ -1215,6 +1215,7 @@ namespace Zeze.Raft
                         Environment.Exit(0);
                     }
                     RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
+                    LastIndex = conflictCheck.Index - 1;
                 }
                 break;
             }

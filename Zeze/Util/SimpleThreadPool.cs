@@ -13,6 +13,20 @@ namespace Zeze.Util
         private readonly List<Thread> workers = new List<Thread>();
         public string Name { get; }
 
+        public int AliveThreadCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (var worker in workers)
+                {
+                    if (worker.IsAlive)
+                        count++;
+                }
+                return count;
+            }
+        }
+
         public bool QueueUserWorkItem(Action action)
         {
             return taskQueue.TryAdd(action);

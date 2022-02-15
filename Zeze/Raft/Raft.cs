@@ -68,7 +68,18 @@ namespace Zeze.Raft
                 LogSequence.Close();
             }
             ImportantThreadPool.Shutdown(); // 需要停止线程。
-
+            Scheduler.Instance.Schedule((ThisTask) =>
+            {
+                var count = ImportantThreadPool.AliveThreadCount;
+                if (count > 0)
+                {
+                    logger.Warn("ImportantThreadPool Remain");
+                }
+                else
+                {
+                    ThisTask.Cancel();
+                }
+            }, 10000, 10000);
         }
 
         private void ProcessExit(object sender, EventArgs e)
@@ -508,18 +519,18 @@ namespace Zeze.Raft
 
         private void SendRequestVote()
         {
-            VoteSuccess.Clear(); // 每次选举开始清除。
-
-            LeaderId = string.Empty;
-            LogSequence.SetVoteFor(Name); // Vote Self First.
-            LogSequence.TrySetTerm(LogSequence.Term + 1);
-
             var arg = new RequestVoteArgument();
             arg.Term = LogSequence.Term;
             arg.CandidateId = Name;
             var log = LogSequence.LastRaftLog();
             arg.LastLogIndex = log.Index;
             arg.LastLogTerm = log.Term;
+
+            VoteSuccess.Clear(); // 每次选举开始清除。
+
+            LeaderId = string.Empty;
+            LogSequence.SetVoteFor(Name); // Vote Self First.
+            LogSequence.TrySetTerm(LogSequence.Term + 1);
 
             SendRequestVoteRandomDelayTime = 0;
             NextRequestVoteTime = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout;
