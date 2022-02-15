@@ -268,7 +268,7 @@ namespace Zeze.Raft
 
         internal void SetWithholdVotesUntil()
         {
-            WithholdVotesUntil = 0; // Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout;
+            WithholdVotesUntil = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout;
         }
 
         // 重置 OnTimer 需要的所有时间。
@@ -426,7 +426,7 @@ namespace Zeze.Raft
                 var r = p as RequestVote;
 
                 r.Result.Term = LogSequence.Term;
-
+                /*
                 if (Time.NowUnixMillis < WithholdVotesUntil) // leader will reject
                 {
                     r.Result.VoteGranted = false;
@@ -434,6 +434,7 @@ namespace Zeze.Raft
                     r.SendResultCode(0);
                     return Procedure.Success;
                 }
+                */
 
                 var newer = LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer;
                 if (newer)

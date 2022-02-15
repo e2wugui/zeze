@@ -226,6 +226,24 @@ namespace Zeze.Raft
         private RocksDb Logs { get; set; }
         private RocksDb Rafts { get; set; }
 
+        internal static RocksDb OpenDb(DbOptions options, string path)
+        {
+            Exception laste = null;
+            for (int i = 0; i < 5; ++i)
+            {
+                try
+                {
+                    return RocksDb.Open(options, path);
+                }
+                catch (Exception e)
+                {
+                    logger.Info(e, $"RocksDb.Open {path}");
+                    laste = e;
+                }
+            }
+            throw laste;
+        }
+
         internal sealed class UniqueRequestSet
         { 
             private RocksDb Db { get; set; }
@@ -292,7 +310,7 @@ namespace Zeze.Raft
                     {
                         var dir = Path.Combine(LogSequence.Raft.RaftConfig.DbHome, "unique");
                         Directory.CreateDirectory(dir);
-                        Db = RocksDb.Open(new DbOptions().SetCreateIfMissing(true), Path.Combine(dir, DbName));
+                        Db = LogSequence.OpenDb(new DbOptions().SetCreateIfMissing(true), Path.Combine(dir, DbName));
                     }
                     return Db;
                 }
@@ -328,7 +346,7 @@ namespace Zeze.Raft
             Raft = raft;
             var options = new DbOptions().SetCreateIfMissing(true);
 
-            Rafts = RocksDb.Open(options, Path.Combine(Raft.RaftConfig.DbHome, "rafts"));
+            Rafts = OpenDb(options, Path.Combine(Raft.RaftConfig.DbHome, "rafts"));
             {
                 // Read Term
                 var termKey = ByteBuffer.Allocate();
@@ -361,7 +379,7 @@ namespace Zeze.Raft
             }
 
 
-            Logs = RocksDb.Open(options, Path.Combine(Raft.RaftConfig.DbHome, "logs"));
+            Logs = OpenDb(options, Path.Combine(Raft.RaftConfig.DbHome, "logs"));
             {
                 // Read Last Log Index
                 using var itLast = Logs.NewIterator();
