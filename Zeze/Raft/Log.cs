@@ -1224,9 +1224,13 @@ namespace Zeze.Raft
             {
                 SaveLogRaw(copyLogIndex, r.Argument.Entries[entryIndex].Bytes);
             }
-            LastIndex = copyLogIndex - 1;
 
-            CheckDump(prevLog.Index, LastIndex, r.Argument.Entries);
+            copyLogIndex--;
+            // 必须判断，防止本次AppendEntries都是旧的。
+            if (copyLogIndex > LastIndex)
+                LastIndex = copyLogIndex;
+
+            CheckDump(prevLog.Index, copyLogIndex, r.Argument.Entries);
 
             // 5. If leaderCommit > commitIndex,
             // set commitIndex = min(leaderCommit, index of last new entry)

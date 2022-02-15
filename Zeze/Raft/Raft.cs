@@ -257,7 +257,7 @@ namespace Zeze.Raft
 
         internal void SetWithholdVotesUntil()
         {
-            WithholdVotesUntil = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout;
+            WithholdVotesUntil = 0; // Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout;
         }
 
         // 重置 OnTimer 需要的所有时间。
@@ -446,8 +446,8 @@ namespace Zeze.Raft
                 if (r.Result.VoteGranted)
                 {
                     // 如果自己处于 Candidate 状态，延迟选自己。投完票后给候选Leader时间。
-                    if (SendRequestVoteRandomDelayTime > 0)
-                        SendRequestVoteRandomDelayTime += RaftConfig.AppendEntriesTimeout;
+                    //if (SendRequestVoteRandomDelayTime > 0)
+                    //    SendRequestVoteRandomDelayTime += RaftConfig.AppendEntriesTimeout;
                     LogSequence.SetVoteFor(r.Argument.CandidateId);
                 }
                 logger.Info("{0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
