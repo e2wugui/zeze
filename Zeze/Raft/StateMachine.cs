@@ -10,6 +10,8 @@ namespace Zeze.Raft
 {
     public abstract class StateMachine
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public Raft Raft { get; internal set; }
 
         public StateMachine()
@@ -34,7 +36,9 @@ namespace Zeze.Raft
             {
                 return factory();
             }
-            Environment.Exit(7777);
+            logger.Fatal($"Unknown Log{logTypeId}");
+            NLog.LogManager.Shutdown();
+            System.Diagnostics.Process.GetCurrentProcess().Kill();
             return null;
         }
 

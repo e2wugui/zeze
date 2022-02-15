@@ -68,18 +68,6 @@ namespace Zeze.Raft
                 LogSequence.Close();
             }
             ImportantThreadPool.Shutdown(); // 需要停止线程。
-            Scheduler.Instance.Schedule((ThisTask) =>
-            {
-                var count = ImportantThreadPool.AliveThreadCount;
-                if (count > 0)
-                {
-                    logger.Warn("ImportantThreadPool Remain");
-                }
-                else
-                {
-                    ThisTask.Cancel();
-                }
-            }, 10000, 10000);
         }
 
         private void ProcessExit(object sender, EventArgs e)
@@ -124,7 +112,7 @@ namespace Zeze.Raft
             RegisterInternalRpc();
             LogSequence.StartSnapshotPerDayTimer();
             AppDomain.CurrentDomain.ProcessExit += ProcessExit;
-            TimerTask = Scheduler.Instance.Schedule(OnTimer, 1000, 200);
+            TimerTask = Scheduler.Instance.Schedule(OnTimer, 456);
         }
 
         private long ProcessAppendEntries(Protocol p)
@@ -291,43 +279,50 @@ namespace Zeze.Raft
         /// <param name="ThisTask"></param>
         private void OnTimer(SchedulerTask ThisTask)
         {
-            lock (this)
+            try
             {
-                switch (State)
+                lock (this)
                 {
-                    case RaftState.Follower:
-                        var elapse = Time.NowUnixMillis - LogSequence.LeaderActiveTime;
-                        if (elapse > RaftConfig.LeaderLostTimeout)
-                        {
-                            ConvertStateTo(RaftState.Candidate);
-                        }
-                        break;
-
-                    case RaftState.Candidate:
-                        if (SendRequestVoteRandomDelayTime > 0)
-                        {
-                            if (Time.NowUnixMillis > SendRequestVoteRandomDelayTime)
-                                SendRequestVote();
-                        }
-                        else if (Time.NowUnixMillis > NextRequestVoteTime)
-                        {
-                            // vote timeout. restart
-                            ConvertStateTo(RaftState.Candidate);
-                        }
-
-                        break;
-
-                    case RaftState.Leader:
-                        var now = Time.NowUnixMillis;
-                        Server.Config.ForEachConnector(
-                            (c) =>
+                    switch (State)
+                    {
+                        case RaftState.Follower:
+                            var elapse = Time.NowUnixMillis - LogSequence.LeaderActiveTime;
+                            if (elapse > RaftConfig.LeaderLostTimeout)
                             {
-                                var cex = c as Server.ConnectorEx;
-                                if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
-                                    LogSequence.SendHearbeatTo(cex);
-                            });
-                        break;
+                                ConvertStateTo(RaftState.Candidate);
+                            }
+                            break;
+
+                        case RaftState.Candidate:
+                            if (SendRequestVoteRandomDelayTime > 0)
+                            {
+                                if (Time.NowUnixMillis > SendRequestVoteRandomDelayTime)
+                                    SendRequestVote();
+                            }
+                            else if (Time.NowUnixMillis > NextRequestVoteTime)
+                            {
+                                // vote timeout. restart
+                                ConvertStateTo(RaftState.Candidate);
+                            }
+
+                            break;
+
+                        case RaftState.Leader:
+                            var now = Time.NowUnixMillis;
+                            Server.Config.ForEachConnector(
+                                (c) =>
+                                {
+                                    var cex = c as Server.ConnectorEx;
+                                    if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
+                                        LogSequence.SendHearbeatTo(cex);
+                                });
+                            break;
+                    }
                 }
+            }
+            finally
+            {
+                TimerTask = Scheduler.Instance.Schedule(OnTimer, 456);
             }
         }
 
@@ -436,8 +431,8 @@ namespace Zeze.Raft
                 }
                 */
 
-                var newer = LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer;
-                if (newer)
+                var newTerm = LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer;
+                if (newTerm)
                 {
                     // new term found. 选举中的状态不改变。如果是Leader，马上切换到Follower。
                     if (State == RaftState.Leader)
@@ -451,7 +446,7 @@ namespace Zeze.Raft
                 // 1.Reply false if term < currentTerm(§5.1)
                 // 2.If votedFor is null or candidateId, and candidate’s log is at
                 // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
-                r.Result.VoteGranted = r.Argument.Term >= LogSequence.Term // 改成大于关系？ 使用 newer 判断。
+                r.Result.VoteGranted = newTerm // BUG? 1. raft.pdf is new or same
                     && LogSequence.CanVoteFor(r.Argument.CandidateId)
                     && IsCandidateLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
 

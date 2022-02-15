@@ -61,8 +61,7 @@ namespace Zeze.Net
 
         public void Decode(Zeze.Serialize.Serializable _s_)
         {
-            var _copy_ = Zeze.Serialize.ByteBuffer.Wrap(_Bytes, Offset, Count).Copy();
-            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_copy_);
+            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_Bytes, Offset, Count);
             _s_.Decode(_bb_);
         }
 

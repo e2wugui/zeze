@@ -402,7 +402,8 @@ namespace Zeze.Transaction
                 catch (Exception e)
                 {
                     logger.Error(e, "Transaction._final_commit_ {0}", procedure);
-                    Environment.Exit(54321);
+                    NLog.LogManager.Shutdown();
+                    System.Diagnostics.Process.GetCurrentProcess().Kill();
                 }
             });
 

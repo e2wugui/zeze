@@ -228,7 +228,8 @@ namespace Zeze.Transaction
                 catch (Exception ex)
                 {
                     logger.Fatal(ex);
-                    Environment.Exit(54321);
+                    NLog.LogManager.Shutdown();
+                    System.Diagnostics.Process.GetCurrentProcess().Kill();
                 }
             }
             catch (Exception)
@@ -313,7 +314,8 @@ namespace Zeze.Transaction
                 catch (Exception ex)
                 {
                     logger.Fatal(ex);
-                    Environment.Exit(54321);
+                    NLog.LogManager.Shutdown();
+                    System.Diagnostics.Process.GetCurrentProcess().Kill();
                 }
             }
             catch (Exception)

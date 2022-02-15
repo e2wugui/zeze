@@ -78,7 +78,7 @@ namespace Zeze.Raft
             var loggingRule = new NLog.Config.LoggingRule("*", NLog.LogLevel.Trace, logTarget);
             NLog.LogManager.Configuration.AddTarget("LogFile", logTarget);
             NLog.LogManager.Configuration.LoggingRules.Add(loggingRule);
-            //NLog.LogManager.Configuration.Reload();
+            NLog.LogManager.ReconfigExistingLoggers();
 
             logger.Debug("Start.");
             var raftConfigStart = RaftConfig.Load(RaftConfigFileName);
@@ -166,7 +166,8 @@ namespace Zeze.Raft
             if (resultCode == Procedure.RaftApplied)
             {
                 logger.Fatal("Procedure.RaftApplied!!!");
-                Environment.Exit(0);
+                NLog.LogManager.Shutdown();
+                System.Diagnostics.Process.GetCurrentProcess().Kill();
             }
         }
 
@@ -562,7 +563,8 @@ namespace Zeze.Raft
                         Console.WriteLine("___________________________________________");
                         Console.WriteLine("___________________________________________");
                         Console.WriteLine("___________________________________________");
-                        Environment.Exit(1);
+                        NLog.LogManager.Shutdown();
+                        System.Diagnostics.Process.GetCurrentProcess().Kill();
                         /*
                         foreach (var raft in Rafts.Values)
                         {

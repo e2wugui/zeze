@@ -1177,7 +1177,8 @@ namespace Zeze.Raft
 
                         case Raft.RaftState.Leader:
                             logger.Fatal($"Receive AppendEntries from another leader={r.Argument.LeaderId} with same term={Term}, there must be a bug. this={Raft.LeaderId}");
-                            Environment.Exit(0);
+                            NLog.LogManager.Shutdown();
+                            System.Diagnostics.Process.GetCurrentProcess().Kill();
                             return 0;
                     }
                     break;
@@ -1212,7 +1213,8 @@ namespace Zeze.Raft
                 if (copyLog.Index != copyLogIndex)
                 {
                     logger.Fatal($"copyLog.Index != copyLogIndex Leader={r.Argument.LeaderId} this={Raft.Name}");
-                    Environment.Exit(0);
+                    NLog.LogManager.Shutdown();
+                    System.Diagnostics.Process.GetCurrentProcess().Kill();
                 }
                 if (copyLog.Index < FirstIndex)
                     continue; // 快照建立以前的日志忽略。
@@ -1231,7 +1233,8 @@ namespace Zeze.Raft
                     if (conflictCheck.Index <= CommitIndex)
                     {
                         logger.Fatal("truncate committed entries");
-                        Environment.Exit(0);
+                        NLog.LogManager.Shutdown();
+                        System.Diagnostics.Process.GetCurrentProcess().Kill();
                     }
                     RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
                     LastIndex = conflictCheck.Index - 1;
@@ -1286,7 +1289,8 @@ namespace Zeze.Raft
             logger.Fatal(logs);
             logger.Fatal("================= copies ======================");
             logger.Fatal(copies);
-            Environment.Exit(0);
+            NLog.LogManager.Shutdown();
+            System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
     }
 }
