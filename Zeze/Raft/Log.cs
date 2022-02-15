@@ -229,7 +229,7 @@ namespace Zeze.Raft
         internal static RocksDb OpenDb(DbOptions options, string path)
         {
             Exception laste = null;
-            for (int i = 0; i < 5; ++i)
+            for (int i = 0; i < 10; ++i)
             {
                 try
                 {
@@ -239,6 +239,7 @@ namespace Zeze.Raft
                 {
                     logger.Info(e, $"RocksDb.Open {path}");
                     laste = e;
+                    Thread.Sleep(1000);
                 }
             }
             throw laste;
