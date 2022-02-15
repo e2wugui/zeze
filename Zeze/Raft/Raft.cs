@@ -279,54 +279,51 @@ namespace Zeze.Raft
         /// <param name="ThisTask"></param>
         private void OnTimer(SchedulerTask ThisTask)
         {
-            try
+            lock (this)
             {
-                lock (this)
+                if (IsShutdown)
+                    return;
+
+                switch (State)
                 {
-                    switch (State)
-                    {
-                        case RaftState.Follower:
-                            var elapse = Time.NowUnixMillis - LogSequence.LeaderActiveTime;
-                            if (elapse > RaftConfig.LeaderLostTimeout)
-                            {
-                                ConvertStateTo(RaftState.Candidate);
-                            }
-                            break;
+                    case RaftState.Follower:
+                        var elapse = Time.NowUnixMillis - LogSequence.LeaderActiveTime;
+                        if (elapse > RaftConfig.LeaderLostTimeout)
+                        {
+                            ConvertStateTo(RaftState.Candidate);
+                        }
+                        break;
 
-                        case RaftState.Candidate:
-                            if (SendRequestVoteRandomDelayTime > 0)
-                            {
-                                if (Time.NowUnixMillis > SendRequestVoteRandomDelayTime)
-                                    SendRequestVote();
-                            }
-                            else if (Time.NowUnixMillis > NextRequestVoteTime)
-                            {
-                                // vote timeout. restart
-                                ConvertStateTo(RaftState.Candidate);
-                            }
+                    case RaftState.Candidate:
+                        if (SendRequestVoteRandomDelayTime > 0)
+                        {
+                            if (Time.NowUnixMillis > SendRequestVoteRandomDelayTime)
+                                SendRequestVote();
+                        }
+                        else if (Time.NowUnixMillis > NextRequestVoteTime)
+                        {
+                            // vote timeout. restart
+                            ConvertStateTo(RaftState.Candidate);
+                        }
 
-                            break;
+                        break;
 
-                        case RaftState.Leader:
-                            var now = Time.NowUnixMillis;
-                            Server.Config.ForEachConnector(
-                                (c) =>
-                                {
-                                    var cex = c as Server.ConnectorEx;
-                                    if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
-                                        LogSequence.SendHearbeatTo(cex);
-                                });
-                            break;
-                    }
+                    case RaftState.Leader:
+                        var now = Time.NowUnixMillis;
+                        Server.Config.ForEachConnector(
+                            (c) =>
+                            {
+                                var cex = c as Server.ConnectorEx;
+                                if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
+                                    LogSequence.SendHearbeatTo(cex);
+                            });
+                        break;
                 }
-            }
-            finally
-            {
                 TimerTask = Scheduler.Instance.Schedule(OnTimer, 456);
             }
         }
 
-       /// <summary>
+        /// <summary>
         /// true，IsLeader && LeaderReady;
         /// false, !IsLeader
         /// </summary>
