@@ -17,7 +17,7 @@ namespace Game
 
         public override Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
         {
-            return Zezex.ModuleRedirect.Instance.ReplaceModuleInstance(module);
+            return module; //TODO Zezex.ModuleRedirect.Instance.ReplaceModuleInstance(module);
         }
 
         public Config Config { get; private set; }

@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
 using static Zezex.Provider.ModuleProvider;
-
+using Zeze.Arch.Rpc;
+    
 namespace Game.Rank
 {
     /// <summary>
@@ -207,7 +208,7 @@ namespace Game.Rank
         /// <param name="roleId"></param>
         /// <param name="value"></param>
         /// <param name="valueEx">只保存，不参与比较。如果需要参与比较，需要另行实现自己的Update和Get。</param>
-        [Zezex.ModuleRedirect()]
+        [Redirect()]
         public virtual void RunUpdateRank(
             BConcurrentKey keyHint,
             long roleId, long value, Zeze.Net.Binary valueEx)
@@ -225,7 +226,7 @@ namespace Game.Rank
             return UpdateRank(hash, keyHint, roleId, value, valueEx);
         }
 
-        [Zezex.ModuleRedirectWithHash()]
+        [RedirectHash()]
         public virtual void RunUpdateRankWithHash(
             int hash, BConcurrentKey keyHint,
             long roleId, long value, Zeze.Net.Binary valueEx)
@@ -236,7 +237,7 @@ namespace Game.Rank
                 Zeze.TransactionModes.ExecuteInAnotherThread, hash);
         }
 
-        [Zezex.ModuleRedirectToServer()]
+        [RedirectToServer()]
         public virtual void RunTestToServer(int serverId)
         {
             App.Zeze.Run(() => TestToServer(serverId),
@@ -274,7 +275,7 @@ namespace Game.Rank
 
         // 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
         // 需要注意在子类上下文中可以编译通过。可以是常量。
-        [Zezex.ModuleRedirectAll("GetConcurrentLevel(keyHint.RankType)")]
+        [RedirectAllHash("GetConcurrentLevel(keyHint.RankType)")]
         public virtual void RunGetRank(BConcurrentKey keyHint,
             System.Action<long, int, long, BRankList> onHashResult,
             Action<ModuleRedirectAllContext> onHashEnd
@@ -478,7 +479,7 @@ namespace Game.Rank
         }
 
         /******************************** ModuleRedirect 测试 *****************************************/
-        [Zezex.ModuleRedirect()]
+        [Redirect()]
         public virtual TaskCompletionSource<long> RunTest1(Zeze.TransactionModes mode)
         {
             int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
@@ -490,7 +491,7 @@ namespace Game.Rank
             return Procedure.Success;
         }
 
-        [Zezex.ModuleRedirect()]
+        [Redirect()]
         public virtual void RunTest2(int inData, ref int refData, out int outData)
         {
             int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
@@ -509,7 +510,7 @@ namespace Game.Rank
             return Procedure.Success;
         }
 
-        [Zezex.ModuleRedirect()]
+        [Redirect()]
         public virtual void RunTest3(int inData, ref int refData, out int outData, System.Action<int> resultCallback)
         {
             int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
