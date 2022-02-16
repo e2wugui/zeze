@@ -310,7 +310,7 @@ namespace Zeze.Raft
             bridge.CreateTime = this.CreateTime;
             bridge.Unique = this.Unique;
 
-            return bridge.Send(socket, bridge.ResponseHandle, -1);
+            return bridge.Send(socket, bridge.ResponseHandle, this.Timeout);
         }
 
         public override string ToString()
@@ -415,6 +415,7 @@ namespace Zeze.Raft
             rpc.Unique.ClientId = UniqueRequestIdGenerator.Name;
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
+            rpc.Timeout = RaftConfig.AppendEntriesTimeout;
 
             if (!Pending.TryAdd(rpc.Unique.RequestId, rpc))
                 throw new Exception("duplicate requestid rpc=" + rpc);
@@ -512,6 +513,7 @@ namespace Zeze.Raft
             rpc.Unique.ClientId = UniqueRequestIdGenerator.Name;
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
+            rpc.Timeout = RaftConfig.AppendEntriesTimeout;
 
             var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
             if (!Pending.TryAdd(rpc.Unique.RequestId, rpc))
@@ -669,7 +671,7 @@ namespace Zeze.Raft
                 foreach (var rpc in Pending.Values)
                 {
                     var iraft = rpc as IRaftRpc;
-                    if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 2000)
+                    if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
                     {
                         iraft.SendTime = now;
                         if (false == rpc.Send(leaderSocket))

@@ -25,22 +25,25 @@ namespace Zeze.Raft
         public int HalfCount => Nodes.Count / 2;
         public string DbHome { get; set; } = "./";
 
+        public const int DefaultAppendEntriesTimeout = 2000;
+        public const int DefaultLeaderHeartbeatTimer = DefaultAppendEntriesTimeout + 300;
+        public const int DefaultLeaderLostTimeout = DefaultLeaderHeartbeatTimer; // 真正的LeaderLostTimeout计算出来。
+
         /// <summary>
         /// 复制日志超时，以及发送失败重试超时。
         /// </summary>
-        public int AppendEntriesTimeout { get; set; } = 2500;
+        public int AppendEntriesTimeout { get; set; } = DefaultAppendEntriesTimeout;
         /// <summary>
         /// 不精确 Heartbeat Idle 算法：
-        /// 如果 AppendLogActive 则设为 false，然后等待下一次timer。
-        /// 否则发送 AppendLog。
-        /// LeaderHeartbeatTimer > AppendEntriesTimeout + 1000
         /// </summary>
-        public int LeaderHeartbeatTimer { get; set; } = 2500 + 1000;
+        public int LeaderHeartbeatTimer { get; set; } = DefaultLeaderHeartbeatTimer;
         /// <summary>
         /// Leader失效检测超时，超时没有从Leader得到AppendEntries及启动新的选举。
         /// 【注意】LeaderLostTimeout > LeaderHeartbeatTimer + 1000
         /// </summary>
-        public int LeaderLostTimeout { get; set; } = 2500 + 1000 + 1000;
+        public int LeaderLostTimeout { get; set; } = DefaultLeaderLostTimeout;
+
+        public int LeaderLostPriority { get; set; } = 0;
 
         /// <summary>
         /// 限制每次复制日志时打包的最大数量。
@@ -109,10 +112,10 @@ namespace Zeze.Raft
         {
             if (AppendEntriesTimeout < 1000)
                 throw new Exception("AppendEntriesTimeout < 1000");
-            if (LeaderHeartbeatTimer < AppendEntriesTimeout + 500)
-                throw new Exception("LeaderHeartbeatTimer < AppendEntriesTimeout + 500");
-            if (LeaderLostTimeout < LeaderHeartbeatTimer + 1000)
-                throw new Exception("LeaderLostTimeout < LeaderHeartbeatTimer + 1000");
+            if (LeaderHeartbeatTimer < AppendEntriesTimeout + 300)
+                throw new Exception("LeaderHeartbeatTimer < AppendEntriesTimeout + 300");
+            if (LeaderLostTimeout < LeaderHeartbeatTimer)
+                throw new Exception("LeaderLostTimeout < LeaderHeartbeatTimer + 300");
 
             if (MaxAppendEntiresCount < 100)
                 MaxAppendEntiresCount = 100;

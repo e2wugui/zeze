@@ -25,9 +25,9 @@
 	Net.Connector.OnSocketHandshakeDone Fail 原因。
 	Net.Connector.ReConnect 应该存在BUG。
 	Raft.Vote 优先级++++++++++++++++++++++++++ 初步考虑仅使用不同的延迟。RandomDelay + DelayPriority;
-	Raft.Vote 被拒绝以后，再次尝试时间延长。
 	Raft.WithholdVotesUtil
 	RaftLog.ToString More Detail
+	Raft.State.Timeout 恢复状态模式。
 
 	RedoableQueue
 	{

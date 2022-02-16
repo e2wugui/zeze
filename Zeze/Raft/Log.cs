@@ -1244,7 +1244,7 @@ namespace Zeze.Raft
             if (copyLogIndex > LastIndex)
                 LastIndex = copyLogIndex;
 
-            CheckDump(prevLog.Index, copyLogIndex, r.Argument.Entries);
+            //CheckDump(prevLog.Index, copyLogIndex, r.Argument.Entries);
 
             // 5. If leaderCommit > commitIndex,
             // set commitIndex = min(leaderCommit, index of last new entry)

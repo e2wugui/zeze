@@ -43,36 +43,31 @@ namespace Zeze.Net
 
         private static SchedulerTask Schedule(Service service, long sessionId, int millisecondsTimeout)
         {
-            if (millisecondsTimeout > 0)
-            {
-                return Scheduler.Instance.Schedule(
-                    (ThisTask) =>
-                    {
-                        Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
-                        if (null == context) // 一般来说，此时结果已经返回。
+            return Scheduler.Instance.Schedule(
+                (ThisTask) =>
+                {
+                    Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
+                    if (null == context) // 一般来说，此时结果已经返回。
                             return;
 
-                        context.IsTimeout = true;
-                        context.ResultCode = Procedure.Timeout;
+                    context.IsTimeout = true;
+                    context.ResultCode = Procedure.Timeout;
 
-                        if (null != context.Future)
-                        {
-                            context.Future.TrySetException(new RpcTimeoutException());
-                        }
-                        else if (context.ResponseHandle != null)
-                        {
+                    if (null != context.Future)
+                    {
+                        context.Future.TrySetException(new RpcTimeoutException());
+                    }
+                    else if (context.ResponseHandle != null)
+                    {
                             // 本来Schedule已经在Task中执行了，这里又派发一次。
                             // 主要是为了让应用能拦截修改Response的处理方式。
                             // Timeout 应该是少的，先这样了。
                             var factoryHandle = service.FindProtocolFactoryHandle(context.TypeId);
-                            if (null != factoryHandle)
-                                service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
-                        }
-                    },
-                    millisecondsTimeout,
-                    -1);
-            }
-            return null;
+                        if (null != factoryHandle)
+                            service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
+                    }
+                },
+                millisecondsTimeout);
         }
 
         /// <summary>

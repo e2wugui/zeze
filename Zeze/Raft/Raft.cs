@@ -112,7 +112,7 @@ namespace Zeze.Raft
             RegisterInternalRpc();
             LogSequence.StartSnapshotPerDayTimer();
             AppDomain.CurrentDomain.ProcessExit += ProcessExit;
-            TimerTask = Scheduler.Instance.Schedule(OnTimer, 456);
+            TimerTask = Scheduler.Instance.Schedule(OnTimer, 10);
         }
 
         private long ProcessAppendEntries(Protocol p)
@@ -240,19 +240,19 @@ namespace Zeze.Raft
         public RaftState State { get { return _State; } private set { _State = value; } }
 
         private SchedulerTask TimerTask;
-        // Candidate
-        private ConcurrentDictionary<string, Connector> VoteSuccess
-            = new ConcurrentDictionary<string, Connector>();
 
-        private long SendRequestVoteRandomDelayTime; // 真正发起选举随机延时。这个让每个节点都有机会发起选举。
-        private long NextRequestVoteTime; // 等待当前轮选举结果超时；用来启动下一次选举。
+        // Candidate
+        private IdentityHashSet<RequestVote> RequestVotes = new IdentityHashSet<RequestVote>();
+        private long NextVoteTime;       // 等待当前轮选举结果超时；用来启动下一次选举。
         private long WithholdVotesUntil; // 拒绝投票一定时间；
 
         // Leader
         private long LeaderWaitReadyTerm;
         private long LeaderWaitReadyIndex;
         internal volatile TaskCompletionSource<bool> LeaderReadyFuture = new TaskCompletionSource<bool>();
+
         // Follower
+        private long LeaderLostTimeout;
 
         internal void SetWithholdVotesUntil()
         {
@@ -287,20 +287,14 @@ namespace Zeze.Raft
                 switch (State)
                 {
                     case RaftState.Follower:
-                        var elapse = Time.NowUnixMillis - LogSequence.LeaderActiveTime;
-                        if (elapse > RaftConfig.LeaderLostTimeout)
+                        if (Time.NowUnixMillis - LogSequence.LeaderActiveTime > LeaderLostTimeout)
                         {
                             ConvertStateTo(RaftState.Candidate);
                         }
                         break;
 
                     case RaftState.Candidate:
-                        if (SendRequestVoteRandomDelayTime > 0)
-                        {
-                            if (Time.NowUnixMillis > SendRequestVoteRandomDelayTime)
-                                SendRequestVote();
-                        }
-                        else if (Time.NowUnixMillis > NextRequestVoteTime)
+                        if (Time.NowUnixMillis > NextVoteTime)
                         {
                             // vote timeout. restart
                             ConvertStateTo(RaftState.Candidate);
@@ -319,7 +313,7 @@ namespace Zeze.Raft
                             });
                         break;
                 }
-                TimerTask = Scheduler.Instance.Schedule(OnTimer, 456);
+                TimerTask = Scheduler.Instance.Schedule(OnTimer, 10);
             }
         }
 
@@ -449,9 +443,6 @@ namespace Zeze.Raft
 
                 if (r.Result.VoteGranted)
                 {
-                    // 如果自己处于 Candidate 状态，延迟选自己。投完票后给候选Leader时间。
-                    //if (SendRequestVoteRandomDelayTime > 0)
-                    //    SendRequestVoteRandomDelayTime += RaftConfig.AppendEntriesTimeout;
                     LogSequence.SetVoteFor(r.Argument.CandidateId);
                 }
                 logger.Info("{0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
@@ -482,32 +473,38 @@ namespace Zeze.Raft
             {
                 if (LogSequence.TrySetTerm(rpc.Result.Term) == LogSequence.SetTermResult.Newer)
                 {
-                    // new term found
-                    ConvertStateTo(RaftState.Follower);
+                    // new term found 保持选举状态。
+                    if (State == RaftState.Leader)
+                    {
+                        // 这个最终导致新的选举。
+                        ConvertStateTo(RaftState.Follower);
+                    }
                     return Procedure.Success;
                 }
 
-                if (rpc.Result.VoteGranted && VoteSuccess.TryAdd(c.Name, c))
+                if (RequestVotes.Contains(rpc) && rpc.Result.VoteGranted)
                 {
+                    int granteds = 0;
+                    foreach (var vote in RequestVotes)
+                    {
+                        if (vote.Result.VoteGranted)
+                            ++granteds;
+                    }
                     if (
                         // 确保当前状态是选举中。没有判断这个，
                         // 后面 ConvertStateTo 也会忽略不正确的状态转换。
                         State == RaftState.Candidate
                         // 加上自己就是多数派了。
-                        && VoteSuccess.Count >= RaftConfig.HalfCount)
+                        && granteds >= RaftConfig.HalfCount
+                        && LogSequence.CanVoteFor(Name))
                     {
+                        LogSequence.SetVoteFor(Name);
                         ConvertStateTo(RaftState.Leader);
                     }
                 }
             }
 
             return Procedure.Success;
-        }
-
-        private void PrepareSendRequestVote()
-        {
-            SendRequestVoteRandomDelayTime = Time.NowUnixMillis + Util.Random.Instance.Next(RaftConfig.AppendEntriesTimeout*2);
-            Server.Config.ForEachConnector((c) => c.Start());
         }
 
         private void SendRequestVote()
@@ -519,23 +516,19 @@ namespace Zeze.Raft
             arg.LastLogIndex = log.Index;
             arg.LastLogTerm = log.Term;
 
-            VoteSuccess.Clear(); // 每次选举开始清除。
-
+            RequestVotes.Clear(); // 每次选举开始清除。
             LeaderId = string.Empty;
-            // 1. 进入 Candidate 马上发送 RequestVote：由于 LeaderLostTimeout 一样，所有Follower几乎一起发送。
-            // 2. 收集足够的 RequestVote 并集中判断（可实现优先级）投票：不会慢，估计比随机Delay方式更快。【多数】
-            // 2.#投过票以后收到的 RequestVote 马上投票。
-            // 3. 处理 RequestVoteResult 的结果看自己是否成为 Leader。
-            // 4. 按 pdf 规则退出 Candidate。否则发送下一轮 RequestVote。
-            //LogSequence.SetVoteFor(Name); // Vote Self First.???????????????????????感觉这个不对。
+            //LogSequence.SetVoteFor(Name); // 先收集结果，达到 RaftConfig.HalfCount 才判断是否给自己投票。
             LogSequence.TrySetTerm(LogSequence.Term + 1);
 
-            SendRequestVoteRandomDelayTime = 0;
-            NextRequestVoteTime = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout;
+            NextVoteTime = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout
+                + Util.Random.Instance.Next(RaftConfig.Nodes.Count) * RaftConfig.AppendEntriesTimeout / RaftConfig.Nodes.Count;
+
             Server.Config.ForEachConnector((c) =>
             {
                 var rpc = new RequestVote() { Argument = arg };
-                var sendresult = rpc.Send(c.TryGetReadySocket(), (p) => ProcessRequestVoteResult(rpc, c));
+                RequestVotes.Add(rpc);
+                var sendresult = rpc.Send(c.TryGetReadySocket(), (p) => ProcessRequestVoteResult(rpc, c), RaftConfig.AppendEntriesTimeout - 100);
                 logger.Info("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
             });
         }
@@ -551,7 +544,7 @@ namespace Zeze.Raft
                 case RaftState.Candidate:
                     logger.Info($"RaftState {Name}: Follower->Candidate");
                     State = RaftState.Candidate;
-                    PrepareSendRequestVote();
+                    SendRequestVote();
                     return;
 
                 case RaftState.Leader:
@@ -568,18 +561,17 @@ namespace Zeze.Raft
             {
                 case RaftState.Follower:
                     logger.Info($"RaftState {Name}: Candidate->Follower");
+                    LeaderLostTimeout = RaftConfig.LeaderLostTimeout + RaftConfig.LeaderLostPriority
+                        + Util.Random.Instance.Next(RaftConfig.Nodes.Count) * 100;
                     State = RaftState.Follower;
-                    VoteSuccess.Clear(); // 选举结束清除。
                     return;
 
                 case RaftState.Candidate:
                     logger.Info($"RaftState {Name}: Candidate->Candidate");
-                    PrepareSendRequestVote();
+                    SendRequestVote();
                     return;
 
                 case RaftState.Leader:
-                    VoteSuccess.Clear(); // 选举结束清除。
-
                     WithholdVotesUntil = long.MaxValue;
 
                     logger.Info($"RaftState {Name}: Candidate->Leader");
@@ -616,6 +608,8 @@ namespace Zeze.Raft
                 case RaftState.Follower:
                     logger.Info($"RaftState {Name}: Leader->Follower");
                     State = RaftState.Follower;
+                    LeaderLostTimeout = RaftConfig.LeaderLostTimeout + RaftConfig.LeaderLostPriority
+                        + Util.Random.Instance.Next(RaftConfig.Nodes.Count) * 100 / RaftConfig.Nodes.Count;
                     return;
 
                 case RaftState.Candidate:
