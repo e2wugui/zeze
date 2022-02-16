@@ -522,7 +522,12 @@ namespace Zeze.Raft
             VoteSuccess.Clear(); // 每次选举开始清除。
 
             LeaderId = string.Empty;
-            LogSequence.SetVoteFor(Name); // Vote Self First.
+            // 1. 进入 Candidate 马上发送 RequestVote：由于 LeaderLostTimeout 一样，所有Follower几乎一起发送。
+            // 2. 收集足够的 RequestVote 并集中判断（可实现优先级）投票：不会慢，估计比随机Delay方式更快。【多数】
+            // 2.#投过票以后收到的 RequestVote 马上投票。
+            // 3. 处理 RequestVoteResult 的结果看自己是否成为 Leader。
+            // 4. 按 pdf 规则退出 Candidate。否则发送下一轮 RequestVote。
+            //LogSequence.SetVoteFor(Name); // Vote Self First.???????????????????????感觉这个不对。
             LogSequence.TrySetTerm(LogSequence.Term + 1);
 
             SendRequestVoteRandomDelayTime = 0;
@@ -546,7 +551,6 @@ namespace Zeze.Raft
                 case RaftState.Candidate:
                     logger.Info($"RaftState {Name}: Follower->Candidate");
                     State = RaftState.Candidate;
-                    LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
                     PrepareSendRequestVote();
                     return;
 
@@ -566,12 +570,10 @@ namespace Zeze.Raft
                     logger.Info($"RaftState {Name}: Candidate->Follower");
                     State = RaftState.Follower;
                     VoteSuccess.Clear(); // 选举结束清除。
-                    LogSequence.SetVoteFor(string.Empty);
                     return;
 
                 case RaftState.Candidate:
                     logger.Info($"RaftState {Name}: Candidate->Candidate");
-                    LogSequence.SetVoteFor(string.Empty); // 先清除，在真正自荐前可以给别人投票。
                     PrepareSendRequestVote();
                     return;
 
@@ -582,7 +584,6 @@ namespace Zeze.Raft
 
                     logger.Info($"RaftState {Name}: Candidate->Leader");
                     State = RaftState.Leader;
-                    LogSequence.SetVoteFor(string.Empty);
                     LeaderId = Name; // set to self
 
                     // (Reinitialized after election)

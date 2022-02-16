@@ -493,6 +493,7 @@ namespace Zeze.Raft
                     termValue.Bytes, termValue.Size,
                     null, WriteOptionsSync
                     );
+                SetVoteFor(string.Empty);
                 return SetTermResult.Newer;
             }
             if (term == Term)
@@ -1154,19 +1155,9 @@ namespace Zeze.Raft
                     Raft.ConvertStateTo(Raft.RaftState.Follower);
                     Raft.LeaderId = r.Argument.LeaderId;
                     r.Result.Term = Term; // new term
-
-                    // 有Leader，清除一下上一次选举的投票。要不然可能下一次选举无法给别人投票。
-                    // 这个不是必要的：因为要进行选举的时候，自己肯定也会尝试选自己，会重置，
-                    // 但是清除一下，可以让选举更快进行。不用等待选举TimerTask。
-                    SetVoteFor(string.Empty);
                     break;
 
                 case SetTermResult.Same:
-                    // 有Leader，清除一下上一次选举的投票。要不然可能下一次选举无法给别人投票。
-                    // 这个不是必要的：因为要进行选举的时候，自己肯定也会尝试选自己，会重置，
-                    // 但是清除一下，可以让选举更快进行。不用等待选举TimerTask。
-                    SetVoteFor(string.Empty);
-
                     switch (Raft.State)
                     {
                         case Raft.RaftState.Candidate:
