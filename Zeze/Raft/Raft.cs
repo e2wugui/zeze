@@ -411,6 +411,10 @@ namespace Zeze.Raft
             {
                 var r = p as RequestVote;
 
+                // 不管任何状态重置下一次时间，使得每个node从大概一个时刻开始。
+                NextVoteTime = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout
+                    + Util.Random.Instance.Next(RaftConfig.Nodes.Count) * RaftConfig.AppendEntriesTimeout / RaftConfig.Nodes.Count;
+
                 r.Result.Term = LogSequence.Term;
                 /*
                 if (Time.NowUnixMillis < WithholdVotesUntil) // leader will reject
@@ -437,7 +441,7 @@ namespace Zeze.Raft
                 // 1.Reply false if term < currentTerm(§5.1)
                 // 2.If votedFor is null or candidateId, and candidate’s log is at
                 // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
-                r.Result.VoteGranted = newTerm // BUG? 1. raft.pdf is new or same
+                r.Result.VoteGranted = r.Argument.Term == LogSequence.Term
                     && LogSequence.CanVoteFor(r.Argument.CandidateId)
                     && IsCandidateLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
 

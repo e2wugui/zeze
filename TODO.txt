@@ -24,7 +24,6 @@
 	Raft.Agent TryGetReadySocket 总是 null。
 	Net.Connector.OnSocketHandshakeDone Fail 原因。
 	Net.Connector.ReConnect 应该存在BUG。
-	Raft.Vote 优先级++++++++++++++++++++++++++ 初步考虑仅使用不同的延迟。RandomDelay + DelayPriority;
 	Raft.WithholdVotesUtil
 	RaftLog.ToString More Detail
 	Raft.State.Timeout 恢复状态模式。
@@ -45,6 +44,7 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	Raft.Vote 优先级++++++++++++++++++++++++++ 初步考虑仅使用不同的延迟。RandomDelay + DelayPriority;
 	Raft.Agent 客户端卡住了? 【锁内 Env.Exit卡住了，导致OnTimer任务不停积累，最终线程数量巨大】
 	Raft.RocksDb.Open Try N Times
 	Raft.Vote 投票后推迟自己再次选举的时间，免得浪费。【现在代码注释掉了】
