@@ -419,15 +419,6 @@ namespace Zeze.Raft
                     + Util.Random.Instance.Next(RaftConfig.Nodes.Count) * RaftConfig.AppendEntriesTimeout / RaftConfig.Nodes.Count;
 
                 r.Result.Term = LogSequence.Term;
-                /*
-                if (Time.NowUnixMillis < WithholdVotesUntil) // leader will reject
-                {
-                    r.Result.VoteGranted = false;
-                    logger.Info("WithholdVotesUntil！ {0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
-                    r.SendResultCode(0);
-                    return Procedure.Success;
-                }
-                */
 
                 var newTerm = LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer;
                 if (newTerm)

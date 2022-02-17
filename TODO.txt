@@ -25,11 +25,11 @@
 
 	RedoableQueue
 	{
-		1）存储：QueueId。 RocksDb<TaskId, EncodedRpc> 持久化的。
+		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
 		2）Task.Id long 递增 Rpc
 		Zeze.ServerApp
-		1) zeze.table<concurrentKey, lastTaskId> 记住已经同步的最后的任务id，
-		2) 功能：每个ConcurrentId，for Queue(lastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
+		1) zeze.table<QueueId, LastTaskId> 记住已经同步的最后的任务id，
+		2) 功能：每个QueueId，for (LastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
 		* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
 	}
 
@@ -41,16 +41,12 @@
 【2022/3/11】
 	Raft.State.Timeout 恢复状态模式。【不恢复，就轮询了】
 	RaftLog.ToString More Detail
-	Raft.Agent TryGetReadySocket 总是 null。
-	Net.Connector.OnSocketHandshakeDone Fail 原因。
+	Raft.Agent TryGetReadySocket 总是 null。【没有发现问题】
+	Net.Connector.OnSocketHandshakeDone Fail 原因。【没有发现问题】
 	Raft.Shutdown 的时候快速失败-Cancel在Future上等待的任务。【有时shutdown会很慢】
 	2. Raft.Vote Leader 第一个Hearbeat被拒绝;  导致不停的选举。
 	   SaveLog.RocksDb.Put 卡住导致超时？
-	3. Raft.Count 错误处理问题？请求已经被处理，但是结果丢失，重发请求发生了不会重做的异常，这会导致Count统计不正确。
-		public void AppendLog(Log log)
-		{
-		    LogSequence?.AppendLog(log, true); // 加了？以后好像不会出现了。
-		}
+	3. Raft.Count 错误处理问题？请求已经被处理，但是结果丢失，重发请求发生了不会重做的异常，这会导致Count统计不正确。【Raft.AppendLog 检查LogSequence是否null】
 	Raft.Vote 优先级++++++++++++++++++++++++++ 初步考虑仅使用不同的延迟。RandomDelay + DelayPriority;
 	Raft.Agent 客户端卡住了? 【锁内 Env.Exit卡住了，导致OnTimer任务不停积累，最终线程数量巨大】
 	Raft.RocksDb.Open Try N Times

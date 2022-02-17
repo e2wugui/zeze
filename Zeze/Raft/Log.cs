@@ -693,7 +693,10 @@ namespace Zeze.Raft
                 {
                     future = new TaskCompletionSource<int>();
                     if (false == WaitApplyFutures.TryAdd(raftLog.Index, future))
+                    {
+                        Raft.FatalKill();
                         throw new Exception("Impossible");
+                    }
                 }
                 if (raftLog.Log.Unique.RequestId > 0)
                     OpenUniqueRequests(raftLog.Log.CreateTime).Save(raftLog);
