@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -25,6 +26,16 @@ namespace Zeze.Gen.luaClient
             TextReader tr = new StreamReader(stream);
 
             return tr.ReadToEnd();
+        }
+        public string FirstLetterToUpper(string str)
+        {
+            if (str == null)
+                return null;
+
+            if (str.Length > 1)
+                return char.ToUpper(str[0]) + str.Substring(1);
+
+            return str.ToUpper();
         }
 
         public void Make()
@@ -187,7 +198,7 @@ namespace Zeze.Gen.luaClient
                     }
 
                     string fullDir = module.GetFullPath(srcDir);
-                    string fullFileName = Path.Combine(fullDir, $"Module{module.Name}.lua");
+                    string fullFileName = Path.Combine(fullDir, $"Module{FirstLetterToUpper(module.Name)}.lua");
 
                     if (!fileChunkGen.LoadFile(fullFileName))
                     {
