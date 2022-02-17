@@ -1037,15 +1037,15 @@ namespace Zeze.Raft
         {
             lock (Raft)
             {
+                // Pending 处理必须完成。
                 connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
-                if (false == Raft.IsLeader)
-                    return; // skip if is not a leader
-
                 if (connector.Pending != pending)
                     return;
-
                 // 先清除，下面中断(return)不用每次自己清除。
                 connector.Pending = null;
+
+                if (false == Raft.IsLeader)
+                    return; // skip if is not a leader
 
                 // 【注意】
                 // 正在安装Snapshot，此时不复制日志，肯定失败。
