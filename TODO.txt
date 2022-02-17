@@ -20,21 +20,10 @@
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
 
-	Raft.Shutdown 的时候快速失败-Cancel在Future上等待的任务。【有时shutdown会很慢】
-	Raft.Agent TryGetReadySocket 总是 null。
-	Net.Connector.OnSocketHandshakeDone Fail 原因。
-	Net.Connector.ReConnect 应该存在BUG。
 	Raft.WithholdVotesUtil
-	RaftLog.ToString More Detail
 	Raft.State.Timeout 恢复状态模式。
 	1. Log.cs: logger.Fatal("truncate committed entries"); Fatal!
-	2. Raft.Vote Leader 第一个Hearbeat被拒绝;  导致不停的选举。
-	3. Raft.Count 错误处理问题？请求已经被处理，但是结果丢失，重发请求发生了不会重做的异常，这会导致Count统计不正确。
-		public void AppendLog(Log log)
-		{
-		    LogSequence?.AppendLog(log, true); // 加了？以后好像不会出现了。
-		}
-	4. Raft.AppendLog Future Add Duplicate Index. Fatal! Maybe 3) 1)
+	4. Raft.AppendLog Future Add Duplicate Index. Fatal!
 
 	RedoableQueue
 	{
@@ -52,6 +41,17 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	RaftLog.ToString More Detail
+	Raft.Agent TryGetReadySocket 总是 null。
+	Net.Connector.OnSocketHandshakeDone Fail 原因。
+	Raft.Shutdown 的时候快速失败-Cancel在Future上等待的任务。【有时shutdown会很慢】
+	2. Raft.Vote Leader 第一个Hearbeat被拒绝;  导致不停的选举。
+	   SaveLog.RocksDb.Put 卡住导致超时？
+	3. Raft.Count 错误处理问题？请求已经被处理，但是结果丢失，重发请求发生了不会重做的异常，这会导致Count统计不正确。
+		public void AppendLog(Log log)
+		{
+		    LogSequence?.AppendLog(log, true); // 加了？以后好像不会出现了。
+		}
 	Raft.Vote 优先级++++++++++++++++++++++++++ 初步考虑仅使用不同的延迟。RandomDelay + DelayPriority;
 	Raft.Agent 客户端卡住了? 【锁内 Env.Exit卡住了，导致OnTimer任务不停积累，最终线程数量巨大】
 	Raft.RocksDb.Open Try N Times
