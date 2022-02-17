@@ -163,12 +163,6 @@ namespace Zeze.Raft
                 Errors[resultCode] = Errors[resultCode] + 1;
             else
                 Errors[resultCode] = 1;
-            if (resultCode == Procedure.RaftApplied)
-            {
-                logger.Fatal("Procedure.RaftApplied!!!");
-                NLog.LogManager.Shutdown();
-                System.Diagnostics.Process.GetCurrentProcess().Kill();
-            }
         }
 
         private long ErrorsSum()
@@ -563,6 +557,10 @@ namespace Zeze.Raft
                         Console.WriteLine("___________________________________________");
                         Console.WriteLine("___________________________________________");
                         Console.WriteLine("___________________________________________");
+                        foreach (var raft in Rafts.Values)
+                        {
+                            raft.Raft.LogSequence.Close();
+                        }
                         NLog.LogManager.Shutdown();
                         System.Diagnostics.Process.GetCurrentProcess().Kill();
                         /*
@@ -781,6 +779,7 @@ namespace Zeze.Raft
                     Directory.CreateDirectory(raftConfig.DbHome);
 
                     Raft = new Raft(StateMachine, RaftName, raftConfig);
+                    Raft.LogSequence.WriteOptions.SetSync(false);
                     Raft.Server.AddFactoryHandle(
                         new AddCount().TypeId,
                         new Net.Service.ProtocolFactoryHandle()

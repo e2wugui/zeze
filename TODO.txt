@@ -27,6 +27,14 @@
 	Raft.WithholdVotesUtil
 	RaftLog.ToString More Detail
 	Raft.State.Timeout 恢复状态模式。
+	1. Log.cs: logger.Fatal("truncate committed entries"); Fatal!
+	2. Raft.Vote Leader 第一个Hearbeat被拒绝;  导致不停的选举。
+	3. Raft.Count 错误处理问题？请求已经被处理，但是结果丢失，重发请求发生了不会重做的异常，这会导致Count统计不正确。
+		public void AppendLog(Log log)
+		{
+		    LogSequence?.AppendLog(log, true); // 加了？以后好像不会出现了。
+		}
+	4. Raft.AppendLog Future Add Duplicate Index. Fatal! Maybe 3) 1)
 
 	RedoableQueue
 	{

@@ -22,7 +22,8 @@ namespace Zeze.Raft
         public string Name => RaftConfig.Name;
         public string LeaderId { get; internal set; }
         public RaftConfig RaftConfig { get; }
-        internal volatile LogSequence LogSequence;
+        private volatile LogSequence _LogSequence;
+        public LogSequence LogSequence { get { return _LogSequence; } }
         public bool IsLeader => this.State == RaftState.Leader;
         public Server Server { get; }
         public bool IsWorkingLeader
@@ -39,6 +40,13 @@ namespace Zeze.Raft
         internal SimpleThreadPool ImportantThreadPool { get; }
 
         public StateMachine StateMachine { get; }
+
+        public void FatalKill()
+        {
+            LogSequence.Close();
+            NLog.LogManager.Shutdown();
+            System.Diagnostics.Process.GetCurrentProcess().Kill();
+        }
 
         public void AppendLog(Log log)
         {
@@ -107,7 +115,7 @@ namespace Zeze.Raft
             Server.CreateAcceptor(Server, raftconf);
             Server.CreateConnector(Server, raftconf);
 
-            LogSequence = new LogSequence(this);
+            _LogSequence = new LogSequence(this);
 
             RegisterInternalRpc();
             LogSequence.StartSnapshotPerDayTimer();
@@ -397,7 +405,7 @@ namespace Zeze.Raft
         private bool IsCandidateLastLogUpToDate(long lastTerm, long lastIndex)
         {
             var last = LogSequence.LastRaftLog();
-            logger.Info($"{Name}-{IsLeader} {RaftConfig.DbHome} CTerm={lastTerm} Term={last.Term} LastIndex={last.Index} Count={LogSequence.GetTestStateMachineCount()}");
+            //logger.Info($"{Name}-{IsLeader} {RaftConfig.DbHome} CTerm={lastTerm} Term={last.Term} LastIndex={last.Index} Count={LogSequence.GetTestStateMachineCount()}");
             if (lastTerm > last.Term)
                 return true;
             if (lastTerm < last.Term)

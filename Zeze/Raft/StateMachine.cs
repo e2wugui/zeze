@@ -37,8 +37,7 @@ namespace Zeze.Raft
                 return factory();
             }
             logger.Fatal($"Unknown Log{logTypeId}");
-            NLog.LogManager.Shutdown();
-            System.Diagnostics.Process.GetCurrentProcess().Kill();
+            Raft.FatalKill();
             return null;
         }
 

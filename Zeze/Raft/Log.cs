@@ -277,7 +277,7 @@ namespace Zeze.Raft
                 }
                 var val = ByteBuffer.Allocate();
                 val.WriteLong(value);
-                db.Put(key.Bytes, key.Size, val.Bytes, val.Size, null, LogSequence.WriteOptionsSync);
+                db.Put(key.Bytes, key.Size, val.Bytes, val.Size, null, LogSequence.WriteOptions);
             }
 
             public void Save(RaftLog log)
@@ -294,7 +294,7 @@ namespace Zeze.Raft
             {
                 var key = ByteBuffer.Allocate(100);
                 log.Log.Unique.Encode(key);
-                OpenDb().Remove(key.Bytes, key.Size, null, LogSequence.WriteOptionsSync);
+                OpenDb().Remove(key.Bytes, key.Size, null, LogSequence.WriteOptions);
             }
 
             public long GetRequestState(IRaftRpc iraftrpc)
@@ -434,7 +434,7 @@ namespace Zeze.Raft
 
         private readonly byte[] RaftsTermKey;
         private readonly byte[] RaftsVoteForKey;
-        internal readonly WriteOptions WriteOptionsSync = new WriteOptions().SetSync(true);
+        public WriteOptions WriteOptions { get; set; } = new WriteOptions().SetSync(true);
 
         private void SaveLog(RaftLog log)
         {
@@ -445,7 +445,7 @@ namespace Zeze.Raft
             Logs.Put(
                 key.Bytes, key.Size,
                 value.Bytes, value.Size,
-                null, WriteOptionsSync
+                null, WriteOptions
                 );
 
             logger.Debug($"{Raft.Name}-{Raft.IsLeader} RequestId={log.Log.Unique.RequestId} Index={log.Index} Count={GetTestStateMachineCount()}");
@@ -459,7 +459,7 @@ namespace Zeze.Raft
             Logs.Put(
                 key.Bytes, key.Size,
                 rawValue, rawValue.Length,
-                null, WriteOptionsSync
+                null, WriteOptions
                 );
 
             logger.Debug($"{Raft.Name}-{Raft.IsLeader} RequestId=? Index={index} Count={GetTestStateMachineCount()}");
@@ -496,7 +496,7 @@ namespace Zeze.Raft
                 Rafts.Put(
                     RaftsTermKey, RaftsTermKey.Length,
                     termValue.Bytes, termValue.Size,
-                    null, WriteOptionsSync
+                    null, WriteOptions
                     );
                 SetVoteFor(string.Empty);
                 return SetTermResult.Newer;
@@ -521,7 +521,7 @@ namespace Zeze.Raft
                 Rafts.Put(
                     RaftsVoteForKey, RaftsVoteForKey.Length,
                     voteForValue.Bytes, voteForValue.Size,
-                    null, WriteOptionsSync
+                    null, WriteOptions
                     );
             }
         }
@@ -1134,7 +1134,7 @@ namespace Zeze.Raft
             {
                 var key = ByteBuffer.Allocate();
                 key.WriteLong(index);
-                Logs.Remove(key.Bytes, key.Size, null, WriteOptionsSync);
+                Logs.Remove(key.Bytes, key.Size, null, WriteOptions);
                 if (raftLog.Log.Unique.RequestId > 0)
                     OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
             }
@@ -1173,8 +1173,7 @@ namespace Zeze.Raft
 
                         case Raft.RaftState.Leader:
                             logger.Fatal($"Receive AppendEntries from another leader={r.Argument.LeaderId} with same term={Term}, there must be a bug. this={Raft.LeaderId}");
-                            NLog.LogManager.Shutdown();
-                            System.Diagnostics.Process.GetCurrentProcess().Kill();
+                            Raft.FatalKill();
                             return 0;
                     }
                     break;
@@ -1209,8 +1208,7 @@ namespace Zeze.Raft
                 if (copyLog.Index != copyLogIndex)
                 {
                     logger.Fatal($"copyLog.Index != copyLogIndex Leader={r.Argument.LeaderId} this={Raft.Name}");
-                    NLog.LogManager.Shutdown();
-                    System.Diagnostics.Process.GetCurrentProcess().Kill();
+                    Raft.FatalKill();
                 }
                 if (copyLog.Index < FirstIndex)
                     continue; // 快照建立以前的日志忽略。
@@ -1229,8 +1227,7 @@ namespace Zeze.Raft
                     if (conflictCheck.Index <= CommitIndex)
                     {
                         logger.Fatal("truncate committed entries");
-                        NLog.LogManager.Shutdown();
-                        System.Diagnostics.Process.GetCurrentProcess().Kill();
+                        Raft.FatalKill();
                     }
                     RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
                     LastIndex = conflictCheck.Index - 1;
@@ -1285,8 +1282,7 @@ namespace Zeze.Raft
             logger.Fatal(logs);
             logger.Fatal("================= copies ======================");
             logger.Fatal(copies);
-            NLog.LogManager.Shutdown();
-            System.Diagnostics.Process.GetCurrentProcess().Kill();
+            Raft.FatalKill();
         }
     }
 }
