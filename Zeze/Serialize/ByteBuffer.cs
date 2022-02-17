@@ -736,7 +736,7 @@ namespace Zeze.Serialize
 
         public string ReadString()
         {
-            int n = ReadInt();
+            int n = ReadUInt();
             EnsureRead(n);
             string x = Encoding.UTF8.GetString(Bytes, ReadIndex, n);
             ReadIndex += n;
