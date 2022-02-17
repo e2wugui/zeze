@@ -22,7 +22,7 @@ namespace Zeze.Raft
         public string Name => RaftConfig.Name;
         public string LeaderId { get; internal set; }
         public RaftConfig RaftConfig { get; }
-        public LogSequence LogSequence { get; }
+        internal volatile LogSequence LogSequence;
         public bool IsLeader => this.State == RaftState.Leader;
         public Server Server { get; }
         public bool IsWorkingLeader
@@ -42,7 +42,7 @@ namespace Zeze.Raft
 
         public void AppendLog(Log log)
         {
-            LogSequence.AppendLog(log, true);
+            LogSequence?.AppendLog(log, true);
         }
 
         private volatile bool IsShutdown = false;
@@ -543,6 +543,8 @@ namespace Zeze.Raft
             {
                 case RaftState.Follower:
                     logger.Info($"RaftState {Name}: Follower->Follower");
+                    LeaderLostTimeout = RaftConfig.LeaderLostTimeout + RaftConfig.LeaderLostPriority
+                        + Util.Random.Instance.Next(RaftConfig.Nodes.Count) * 100;
                     return;
 
                 case RaftState.Candidate:

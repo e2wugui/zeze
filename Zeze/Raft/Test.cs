@@ -690,11 +690,6 @@ namespace Zeze.Raft
                 {
                     base.Encode(bb);
                 }
-
-                public override string ToString()
-                {
-                    return GetType().Name;
-                }
             }
 
             public override void LoadFromSnapshot(string path)

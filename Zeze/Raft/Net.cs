@@ -448,7 +448,7 @@ namespace Zeze.Raft
                     rpc.IsTimeout = false;
                     rpc.ResultCode = Procedure.Success;
                 }
-
+                logger.Info($"Agent Rpc={rpc.GetType().Name} RequestId={rpc.Unique.RequestId} ResultCode={rpc.ResultCode} Sender={rpc.Sender}");
                 return userHandle(rpc);
             }
             return 0;
@@ -493,6 +493,7 @@ namespace Zeze.Raft
                     rpc.IsTimeout = false;
                     rpc.ResultCode = Procedure.Success;
                 }
+                logger.Info($"Agent Rpc={rpc.GetType().Name} RequestId={rpc.Unique.RequestId} ResultCode={rpc.ResultCode} Sender={rpc.Sender}");
                 future.SetResult(rpc);
             }
             return Procedure.Success;

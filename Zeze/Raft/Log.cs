@@ -65,6 +65,11 @@ namespace Zeze.Raft
             Unique.Encode(bb);
             bb.WriteLong(CreateTime);
         }
+
+        public override string ToString()
+        {
+            return $"{GetType().Name} RequestId={Unique.RequestId} Create={CreateTime}";
+        }
     }
 
     public sealed class HeartbeatLog : Log
@@ -107,7 +112,7 @@ namespace Zeze.Raft
 
         public override string ToString()
         {
-            return $"{GetType().FullName}:{Info}";
+            return $"{base.ToString()} Info={Info}";
         }
     }
 
