@@ -206,43 +206,5 @@ namespace Zeze.Net
         {
             return $"{Name}-{Socket}-{Socket?.Socket}";
         }
-
-        // AutoReconnect 失败恢复。以后可能移除。
-        internal class UglyReconnectRecover
-        {
-            public static UglyReconnectRecover Instance = new UglyReconnectRecover();
-
-            private Util.IdentityHashSet<Service> Services = new Util.IdentityHashSet<Service>();
-
-            internal void Add(Service c)
-            {
-                Services.Add(c);
-            }
-
-            internal void Remove(Service c)
-            {
-                Services.Remove(c);
-            }
-
-            private Util.SchedulerTask Timer;
-
-            UglyReconnectRecover()
-            {
-                Timer = Util.Scheduler.Instance.Schedule(ReConnect, 600000, 600000);
-            }
-
-            private void ReConnect(Util.SchedulerTask ThisTask)
-            {
-                foreach (var service in Services)
-                {
-                    service.Config.ForEachConnector((c) =>
-                    {
-                        if (c.IsAutoReconnect)
-                            c.Start();
-                    });
-                }
-            }
-        }
-
     }
 }

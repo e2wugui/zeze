@@ -1179,8 +1179,6 @@ namespace Zeze.Raft
                     break;
             }
 
-            Raft.SetWithholdVotesUntil();
-
             // is Hearbeat(KeepAlive)
             if (r.Argument.Entries.Count == 0)
             {

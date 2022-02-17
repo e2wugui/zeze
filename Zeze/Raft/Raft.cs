@@ -50,7 +50,9 @@ namespace Zeze.Raft
 
         public void AppendLog(Log log)
         {
-            LogSequence?.AppendLog(log, true);
+            if (null == LogSequence)
+                throw new RaftRetryException("LogSequence is null.");
+            LogSequence.AppendLog(log, true);
         }
 
         private volatile bool IsShutdown = false;
@@ -156,7 +158,6 @@ namespace Zeze.Raft
                 r.SendResultCode(InstallSnapshot.ResultCodeTermError);
                 return Procedure.LogicError;
             }
-            SetWithholdVotesUntil();
 
             // 2. Create new snapshot file if first chunk(offset is 0)
             // 把 LastIncludedIndex 放到文件名中，
@@ -252,7 +253,6 @@ namespace Zeze.Raft
         // Candidate
         private IdentityHashSet<RequestVote> RequestVotes = new IdentityHashSet<RequestVote>();
         private long NextVoteTime;       // 等待当前轮选举结果超时；用来启动下一次选举。
-        private long WithholdVotesUntil; // 拒绝投票一定时间；
 
         // Leader
         private long LeaderWaitReadyTerm;
@@ -261,11 +261,6 @@ namespace Zeze.Raft
 
         // Follower
         private long LeaderLostTimeout;
-
-        internal void SetWithholdVotesUntil()
-        {
-            WithholdVotesUntil = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout;
-        }
 
         // 重置 OnTimer 需要的所有时间。
         private void ResetTimerTime()
@@ -586,8 +581,6 @@ namespace Zeze.Raft
                     return;
 
                 case RaftState.Leader:
-                    WithholdVotesUntil = long.MaxValue;
-
                     logger.Info($"RaftState {Name}: Candidate->Leader");
                     State = RaftState.Leader;
                     LeaderId = Name; // set to self
@@ -652,7 +645,6 @@ namespace Zeze.Raft
 
                 case RaftState.Leader:
                     ConvertStateFromLeaderTo(newState);
-                    WithholdVotesUntil = 0;
                     return;
             }
         }
