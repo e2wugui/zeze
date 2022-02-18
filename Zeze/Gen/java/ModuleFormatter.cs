@@ -11,7 +11,7 @@ namespace Zeze.Gen.java
         readonly Module module;
         readonly string genDir;
         readonly string srcDir;
-        string moduleName;
+        readonly string moduleName;
 
         public ModuleFormatter(Project project, Module module, string genDir, string srcDir)
         {
