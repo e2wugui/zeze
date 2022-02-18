@@ -57,7 +57,7 @@ namespace Zeze.Util
             if (result > 0)
                 module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
 
-            logger.Log(ll, ex, $"{message} Return={result}{module} {message}");
+            logger.Log(ll, ex, $"{message} Return={result}{module}");
         }
 
         public static long Call(Func<long> func, Net.Protocol p,
