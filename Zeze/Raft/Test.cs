@@ -119,6 +119,26 @@ namespace Zeze.Raft
                     Factory = () => new GetCount(),
                 });
             Agent.Client.Start();
+
+            Util.Scheduler.Instance.Schedule((ThisTask) =>
+            {
+                var sb = new StringBuilder();
+                sb.Append($"----------------------------------{raftConfigStart.XmlFileName}-------------------------------------\n");
+                foreach (var r in Rafts.Values)
+                {
+                    var l = r.Raft.LogSequence;
+                    sb.Append($"{r.Raft.Name} CommitIndex={l.CommitIndex} LastApplied={l.LastApplied} LastIndex={l.LastIndex} Count={r.StateMachine.Count}");
+                    sb.Append("\n");
+                }
+                foreach (var f in FailActions)
+                {
+                    sb.Append($"{f.Name} TestCount={f.Count}");
+                    sb.Append("\n");
+                }
+                sb.Append($"-----------------------------------{raftConfigStart.XmlFileName}------------------------------------\n");
+                Console.WriteLine(sb.ToString());
+            }, 2000, 2000);
+
             try
             {
                 RunTrace();
@@ -312,8 +332,9 @@ namespace Zeze.Raft
             logger.Debug("Leader节点重启网络，【选举】");
             var leader = GetLeader();
             leader.Raft.Server.Stop();
-            Util.Scheduler.Instance.Schedule((ThisTask) => leader.Raft.Server.Start(),
-                leader.Raft.RaftConfig.LeaderLostTimeout + 2000);
+            Util.Scheduler.Instance.Schedule(
+                (ThisTask) => leader.Raft.Server.Start(),
+                leader.Raft.RaftConfig.ElectionTimeoutMax);
             TestConcurrent("TestLeaderNodeRestartNet_NewVote", 1);
 
             // 普通节点重启一。
@@ -341,7 +362,7 @@ namespace Zeze.Raft
             // Leader节点重启。
             logger.Debug("Leader节点重启");
             leader = GetLeader();
-            var StartDely = leader.Raft.RaftConfig.LeaderLostTimeout + 2000;
+            var StartDely = leader.Raft.RaftConfig.ElectionTimeoutMax;
             leader.StopRaft();
             Util.Scheduler.Instance.Schedule((ThisTask) => leader.StartRaft(), StartDely);
             TestConcurrent("TestLeaderNodeRestartRaft", 1);
@@ -399,7 +420,7 @@ namespace Zeze.Raft
                         }
                         leader.Raft.Server.Stop();
                         // delay for vote
-                        System.Threading.Thread.Sleep(leader.Raft.RaftConfig.LeaderLostTimeout + 2000);
+                        System.Threading.Thread.Sleep(leader.Raft.RaftConfig.ElectionTimeoutMax);
                         leader.Raft.Server.Start();
                         break;
                     }
@@ -456,7 +477,7 @@ namespace Zeze.Raft
                             System.Threading.Thread.Sleep(10); // wait a Leader
                             continue;
                         }
-                        var startVoteDelay = leader.Raft.RaftConfig.LeaderLostTimeout + 2000;
+                        var startVoteDelay = leader.Raft.RaftConfig.ElectionTimeoutMax;
                         leader.StopRaft();
                         // delay for vote
                         System.Threading.Thread.Sleep(startVoteDelay);
@@ -493,9 +514,9 @@ namespace Zeze.Raft
                 var check = CheckCurrentCount(testname, false);
                 logger.Info($"");
                 logger.Info($"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-                logger.Info($"");
+                logger.Info($"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
                 logger.Info($"Check={check} Step={i} ExpectCount={ExpectCount.Get()} Errors={GetErrorsString()}");
-                logger.Info($"");
+                logger.Info($"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
                 logger.Info($"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
                 logger.Info($"");
                 if (check)
