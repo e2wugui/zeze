@@ -58,6 +58,7 @@ namespace Zeze.Net
 			if (null == so)
 				return false;
 			Sender = so;
+			Service = Sender.Service;
 			return so.Send(Encode());
 		}
 

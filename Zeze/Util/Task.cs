@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Zeze.Transaction;
 
@@ -25,27 +26,38 @@ namespace Zeze.Util
             return System.Threading.Tasks.Task.Run(() => Call(action, actionName));
         }
 
-        public static void LogAndStatistics(long result, Net.Protocol p, bool IsRequestSaved)
+        public static volatile Action<NLog.LogLevel, Exception, long, string> LogAction = DefaultLogAction;
+        public static ConcurrentDictionary<string, string> LogIgnoreExceptionNames { get; } = new ConcurrentDictionary<string, string>();
+
+        public static void LogAndStatistics(Exception ex, long result, Net.Protocol p, bool IsRequestSaved)
         {
             var actionName = p.GetType().FullName;
             if (IsRequestSaved == false)
                 actionName += ":Response";
 
-            if (result != 0)
-            {
-                var logLevel = (null != p.Service.Zeze)
-                    ? p.Service.Zeze.Config.ProcessReturnErrorLogLevel
-                    : NLog.LogLevel.Info;
-                var module = "";
-                if (result > 0)
-                    module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
-                logger.Log(logLevel,
-                    "Task {0} Return={1}{2} UserState={3}",
-                    actionName, result, module, p.UserState);
-            }
+            var ll = (null != p.Service.Zeze) ? p.Service.Zeze.Config.ProcessReturnErrorLogLevel : NLog.LogLevel.Trace;
+            LogAction?.Invoke(ll, ex, result, $"Action={actionName} UserState={p.UserState}");
+
 #if ENABLE_STATISTICS
             ProcedureStatistics.Instance.GetOrAdd(actionName).GetOrAdd(result).IncrementAndGet();
 #endif
+        }
+
+        public static void DefaultLogAction(NLog.LogLevel level, Exception ex, long result, string message)
+        {
+            if (null != ex && LogIgnoreExceptionNames.ContainsKey(ex.GetType().FullName))
+                return;
+
+            // exception -> Error
+            // 0 != result -> level from parameter
+            // others -> Trace
+            NLog.LogLevel ll = (null != ex) ? NLog.LogLevel.Error
+                : (0 != result) ? level : NLog.LogLevel.Trace;
+            var module = "";
+            if (result > 0)
+                module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
+
+            logger.Log(ll, ex, $"{message} Return={result}{module} {message}");
         }
 
         public static long Call(Func<long> func, Net.Protocol p,
@@ -59,12 +71,12 @@ namespace Zeze.Util
                 {
                     actionWhenError?.Invoke(p, result);
                 }
-                LogAndStatistics(result, p, IsRequestSaved);
+                LogAndStatistics(null, result, p, IsRequestSaved);
                 return result;
             }
             catch (Exception ex)
             {
-                logger.Warn(ex);
+                var originex = ex;
                 while (true)
                 {
                     var inner = ex.InnerException;
@@ -82,10 +94,7 @@ namespace Zeze.Util
                 if (IsRequestSaved)
                     actionWhenError?.Invoke(p, errorCode);
 
-                LogAndStatistics(errorCode, p, IsRequestSaved);
-                // 使用 InnerException
-                logger.Error(ex, "Task {0} Exception UserState={1}",
-                    p.GetType().FullName, p.UserState);
+                LogAndStatistics(originex, errorCode, p, IsRequestSaved);
                 return errorCode;
             }
         }
@@ -117,12 +126,12 @@ namespace Zeze.Util
             }
             catch (Exception ex)
             {
-                // Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
+                // Procedure.Call处理了所有错误。除非内部错误，不会到这里。
                 if (null != isRequestSaved && isRequestSaved.Value)
                 {
                     actionWhenError?.Invoke(from, Procedure.Exception);
                 }
-                logger.Error(ex, procedure.ActionName);
+                LogAction?.Invoke(NLog.LogLevel.Error, ex, Procedure.Exception, procedure.ActionName);
                 return Procedure.Exception;
             }
         }

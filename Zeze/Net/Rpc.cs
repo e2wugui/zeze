@@ -58,10 +58,10 @@ namespace Zeze.Net
                 }
                 else if (context.ResponseHandle != null)
                 {
-                        // 本来Schedule已经在Task中执行了，这里又派发一次。
-                        // 主要是为了让应用能拦截修改Response的处理方式。
-                        // Timeout 应该是少的，先这样了。
-                        var factoryHandle = service.FindProtocolFactoryHandle(context.TypeId);
+                    // 本来Schedule已经在Task中执行了，这里又派发一次。
+                    // 主要是为了让应用能拦截修改Response的处理方式。
+                    // Timeout 应该是少的，先这样了。
+                    var factoryHandle = service.FindProtocolFactoryHandle(context.TypeId);
                     if (null != factoryHandle)
                         service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
                 }
@@ -88,6 +88,7 @@ namespace Zeze.Net
             this.IsRequest = true;
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
+
             // try remove . 只维护一个上下文。
             so.Service.TryRemoveRpcContext(SessionId, this);
             this.SessionId = so.Service.AddRpcContext(this);
@@ -124,6 +125,8 @@ namespace Zeze.Net
             this.IsRequest = true;
             this.ResponseHandle = responseHandle;
             this.Timeout = millisecondsTimeout;
+            this.Service = service;
+
             // try remove . 只维护一个上下文。
             so.Service.TryRemoveRpcContext(SessionId, this);
             this.SessionId = service.AddRpcContext(this);
