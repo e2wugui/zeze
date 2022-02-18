@@ -27,7 +27,6 @@ namespace Zeze.Raft
 
         public const int DefaultAppendEntriesTimeout = 2000;
         public const int DefaultLeaderHeartbeatTimer = DefaultAppendEntriesTimeout + 300;
-        public const int DefaultLeaderLostTimeout = DefaultLeaderHeartbeatTimer; // 真正的LeaderLostTimeout计算出来。
 
         /// <summary>
         /// 复制日志超时，以及发送失败重试超时。
@@ -37,14 +36,10 @@ namespace Zeze.Raft
         /// 不精确 Heartbeat Idle 算法：
         /// </summary>
         public int LeaderHeartbeatTimer { get; set; } = DefaultLeaderHeartbeatTimer;
-        /// <summary>
-        /// Leader失效检测超时，超时没有从Leader得到AppendEntries及启动新的选举。
-        /// 【注意】LeaderLostTimeout > LeaderHeartbeatTimer + 1000
-        /// </summary>
-        public int LeaderLostTimeout { get; set; } = DefaultLeaderLostTimeout;
 
-        public int LeaderLostPriority { get; set; } = 0;
-
+        public int ElectionRandomMax { get; set; } = 300;
+        public int ElectionTimeout => LeaderHeartbeatTimer + Util.Random.Instance.Next(ElectionRandomMax);
+        public int ElectionTimeoutMax => LeaderHeartbeatTimer + ElectionRandomMax * 2;
         /// <summary>
         /// 限制每次复制日志时打包的最大数量。
         /// </summary>
@@ -81,8 +76,6 @@ namespace Zeze.Raft
             if (!string.IsNullOrEmpty(attr)) AppendEntriesTimeout = int.Parse(attr);
             attr = self.GetAttribute("LeaderHeartbeatTimer");
             if (!string.IsNullOrEmpty(attr)) LeaderHeartbeatTimer = int.Parse(attr);
-            attr = self.GetAttribute("LeaderLostTimeout");
-            if (!string.IsNullOrEmpty(attr)) LeaderLostTimeout = int.Parse(attr);
             attr = self.GetAttribute("MaxAppendEntiresCount");
             if (!string.IsNullOrEmpty(attr)) MaxAppendEntiresCount = int.Parse(attr);
             attr = self.GetAttribute("SnapshotMinLogCount");
@@ -91,6 +84,8 @@ namespace Zeze.Raft
             if (!string.IsNullOrEmpty(attr)) SnapshotHourOfDay = int.Parse(attr);
             attr = self.GetAttribute("SnapshotMinute");
             if (!string.IsNullOrEmpty(attr)) SnapshotMinute = int.Parse(attr);
+            attr = self.GetAttribute("ElectionRandomMax");
+            if (!string.IsNullOrEmpty(attr)) ElectionRandomMax = int.Parse(attr);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
@@ -114,8 +109,6 @@ namespace Zeze.Raft
                 throw new Exception("AppendEntriesTimeout < 1000");
             if (LeaderHeartbeatTimer < AppendEntriesTimeout + 300)
                 throw new Exception("LeaderHeartbeatTimer < AppendEntriesTimeout + 300");
-            if (LeaderLostTimeout < LeaderHeartbeatTimer)
-                throw new Exception("LeaderLostTimeout < LeaderHeartbeatTimer + 300");
 
             if (MaxAppendEntiresCount < 100)
                 MaxAppendEntiresCount = 100;
@@ -130,7 +123,7 @@ namespace Zeze.Raft
         {
             Self.SetAttribute("AppendEntriesTimeout", AppendEntriesTimeout.ToString());
             Self.SetAttribute("LeaderHeartbeatTimer", LeaderHeartbeatTimer.ToString());
-            Self.SetAttribute("LeaderLostTimeout", LeaderLostTimeout.ToString());
+            Self.SetAttribute("ElectionRandomMax", ElectionRandomMax.ToString());
             Self.SetAttribute("MaxAppendEntiresCount", MaxAppendEntiresCount.ToString());
             Self.SetAttribute("SnapshotMinLogCount", SnapshotMinLogCount.ToString());
             Self.SetAttribute("SnapshotHourOfDay", SnapshotHourOfDay.ToString());

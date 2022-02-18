@@ -448,7 +448,7 @@ namespace Zeze.Raft
                     rpc.IsTimeout = false;
                     rpc.ResultCode = Procedure.Success;
                 }
-                logger.Info($"Agent Rpc={rpc.GetType().Name} RequestId={rpc.Unique.RequestId} ResultCode={rpc.ResultCode} Sender={rpc.Sender}");
+                logger.Debug($"Agent Rpc={rpc.GetType().Name} RequestId={rpc.Unique.RequestId} ResultCode={rpc.ResultCode} Sender={rpc.Sender}");
                 return userHandle(rpc);
             }
             return 0;
@@ -493,7 +493,7 @@ namespace Zeze.Raft
                     rpc.IsTimeout = false;
                     rpc.ResultCode = Procedure.Success;
                 }
-                logger.Info($"Agent Rpc={rpc.GetType().Name} RequestId={rpc.Unique.RequestId} ResultCode={rpc.ResultCode} Sender={rpc.Sender}");
+                logger.Debug($"Agent Rpc={rpc.GetType().Name} RequestId={rpc.Unique.RequestId} ResultCode={rpc.ResultCode} Sender={rpc.Sender}");
                 future.SetResult(rpc);
             }
             return Procedure.Success;
@@ -856,17 +856,20 @@ namespace Zeze.Raft
     {
         public long Term { get; set; }
         public bool Success { get; set; }
+        public long NextIndex { get; set; } // for fast locate when mismatch
 
         public override void Decode(ByteBuffer bb)
         {
             Term = bb.ReadLong();
             Success = bb.ReadBool();
+            NextIndex = bb.ReadLong();
         }
 
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteLong(Term);
             bb.WriteBool(Success);
+            bb.WriteLong(NextIndex);
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)

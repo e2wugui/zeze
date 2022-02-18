@@ -498,6 +498,7 @@ namespace Zeze.Raft
                     termValue.Bytes, termValue.Size,
                     null, WriteOptions
                     );
+                Raft.LeaderId = string.Empty;
                 SetVoteFor(string.Empty);
                 return SetTermResult.Newer;
             }
@@ -661,8 +662,7 @@ namespace Zeze.Raft
                     {
                         if (Raft.LogSequence.TrySetTerm(hearbeat.Result.Term) == SetTermResult.Newer)
                         {
-                            Raft.LeaderId = string.Empty; // 此时不知道谁是Leader。
-                                                          // new term found.
+                            // new term found.
                             Raft.ConvertStateTo(Raft.RaftState.Follower);
                             return Procedure.Success;
                         }
@@ -718,23 +718,6 @@ namespace Zeze.Raft
                     throw new RaftRetryException();
                 }
             }
-        }
-
-        /// <summary>
-        /// see ReadLogStart
-        /// </summary>
-        /// <param name="startIndex"></param>
-        /// <returns></returns>
-        private RaftLog ReadLogReverse(long startIndex)
-        {
-            for (long index = startIndex; index >= FirstIndex; --index)
-            {
-                var raftLog = ReadLog(index);
-                if (null != raftLog)
-                    return raftLog;
-            }
-            logger.Error($"impossible"); // 日志列表肯定不会为空。
-            return null;
         }
 
         // 是否正在创建Snapshot过程中，用来阻止新的创建请求。
@@ -995,8 +978,7 @@ namespace Zeze.Raft
             {
                 if (Raft.LogSequence.TrySetTerm(r.Result.Term) == SetTermResult.Newer)
                 {
-                    Raft.LeaderId = string.Empty; // 此时不知道谁是Leader。
-                                                  // new term found.
+                    // new term found.
                     Raft.ConvertStateTo(Raft.RaftState.Follower);
                     // 发现新的 Term，已经不是Leader，不能继续处理了。
                     // 直接返回。
@@ -1029,8 +1011,26 @@ namespace Zeze.Raft
             // 日志同步失败，调整NextIndex，再次尝试。
             lock (Raft)
             {
-                // TODO raft.pdf 提到一个优化
-                connector.NextIndex--;
+                if (r.Result.NextIndex == 0)
+                {
+                    // 默认的回退模式。
+                    --connector.NextIndex;
+                }
+                else if (r.Result.NextIndex <= FirstIndex)
+                {
+                    // leader snapshot，follower 完全没法匹配了，后续的 TrySendAppendEntries 将启动 InstallSnapshot。
+                    connector.NextIndex = FirstIndex;
+                }
+                else if (r.Result.NextIndex >= LastIndex)
+                {
+                    logger.Fatal("Impossible r.Result.NextIndex >= LastIndex there must be a bug.");
+                    Raft.FatalKill();
+                }
+                else
+                {
+                    // fast locate
+                    connector.NextIndex = r.Result.NextIndex;
+                }
                 TrySendAppendEntries(connector, r);  //resend. use new NextIndex。
                 return Procedure.Success;
             }
@@ -1061,10 +1061,9 @@ namespace Zeze.Raft
                     return;
 
                 if (connector.NextIndex > LastIndex)
-                    return;
+                    return; // copy end.
 
-                var nextLog = ReadLogReverse(connector.NextIndex);
-                if (nextLog.Index == FirstIndex)
+                if (connector.NextIndex == FirstIndex)
                 {
                     // 已经到了日志开头，此时不会有prev-log，无法复制日志了。
                     // 这一般发生在Leader进行了Snapshot，但是Follower的日志还更老。
@@ -1073,8 +1072,7 @@ namespace Zeze.Raft
                     return;
                 }
 
-                // 现在Index总是递增，但没有确认步长总是为1，这样能处理不为1的情况。
-                connector.NextIndex = nextLog.Index;
+                var nextLog = ReadLog(connector.NextIndex);
 
                 connector.Pending = new AppendEntries();
                 connector.Pending.Argument.Term = Term;
@@ -1082,7 +1080,7 @@ namespace Zeze.Raft
                 connector.Pending.Argument.LeaderCommit = CommitIndex;
 
                 // 肯定能找到的。
-                var prevLog = ReadLogReverse(nextLog.Index - 1);
+                var prevLog = ReadLog(nextLog.Index - 1);
                 connector.Pending.Argument.PrevLogIndex = prevLog.Index;
                 connector.Pending.Argument.PrevLogTerm = prevLog.Term;
 
@@ -1196,6 +1194,11 @@ namespace Zeze.Raft
             {
                 // 2. Reply false if log doesn’t contain an entry
                 // at prevLogIndex whose term matches prevLogTerm(§5.3)
+
+
+                // fast locate when mismatch
+                r.Result.NextIndex = r.Argument.PrevLogIndex > LastIndex ? LastIndex + 1 : 0;
+
                 r.SendResult();
                 logger.Debug("this={0} Leader={1} Index={2} prevLog mismatch", Raft.Name, r.Argument.LeaderId, r.Argument.PrevLogIndex);
                 return Procedure.Success;

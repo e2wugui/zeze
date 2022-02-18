@@ -415,19 +415,13 @@ namespace Zeze.Raft
                 var r = p as RequestVote;
 
                 // 不管任何状态重置下一次时间，使得每个node从大概一个时刻开始。
-                NextVoteTime = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout
-                    + Util.Random.Instance.Next(RaftConfig.Nodes.Count) * RaftConfig.AppendEntriesTimeout / RaftConfig.Nodes.Count;
+                NextVoteTime = Time.NowUnixMillis + RaftConfig.ElectionTimeout;
 
-                r.Result.Term = LogSequence.Term;
-
-                var newTerm = LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer;
-                if (newTerm)
+                if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
                 {
-                    // new term found. 选举中的状态不改变。如果是Leader，马上切换到Follower。
-                    if (State == RaftState.Leader)
-                        ConvertStateTo(RaftState.Follower);
+                    // new term found.
+                    ConvertStateTo(RaftState.Follower);
                 }
-
                 // else continue process
 
                 // RequestVote RPC
@@ -435,6 +429,8 @@ namespace Zeze.Raft
                 // 1.Reply false if term < currentTerm(§5.1)
                 // 2.If votedFor is null or candidateId, and candidate’s log is at
                 // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
+
+                r.Result.Term = LogSequence.Term;
                 r.Result.VoteGranted = r.Argument.Term == LogSequence.Term
                     && LogSequence.CanVoteFor(r.Argument.CandidateId)
                     && IsCandidateLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
@@ -469,14 +465,17 @@ namespace Zeze.Raft
 
             lock (this)
             {
+                if (LogSequence.Term != rpc.Argument.Term || State != RaftState.Candidate)
+                {
+                    // 结果回来时，上下文已经发生变化，忽略这个结果。
+                    logger.Info($"NotOwner={LogSequence.Term != rpc.Argument.Term} NotCandidate={State != RaftState.Candidate}");
+                    return 0;
+                }
+
                 if (LogSequence.TrySetTerm(rpc.Result.Term) == LogSequence.SetTermResult.Newer)
                 {
-                    // new term found 保持选举状态。
-                    if (State == RaftState.Leader)
-                    {
-                        // 这个最终导致新的选举。
-                        ConvertStateTo(RaftState.Follower);
-                    }
+                    // new term found
+                    ConvertStateTo(RaftState.Follower);
                     return Procedure.Success;
                 }
 
@@ -507,6 +506,10 @@ namespace Zeze.Raft
 
         private void SendRequestVote()
         {
+            RequestVotes.Clear(); // 每次选举开始清除。
+            //LogSequence.SetVoteFor(Name); // 先收集结果，达到 RaftConfig.HalfCount 才判断是否给自己投票。
+            LogSequence.TrySetTerm(LogSequence.Term + 1);
+
             var arg = new RequestVoteArgument();
             arg.Term = LogSequence.Term;
             arg.CandidateId = Name;
@@ -514,13 +517,7 @@ namespace Zeze.Raft
             arg.LastLogIndex = log.Index;
             arg.LastLogTerm = log.Term;
 
-            RequestVotes.Clear(); // 每次选举开始清除。
-            LeaderId = string.Empty;
-            //LogSequence.SetVoteFor(Name); // 先收集结果，达到 RaftConfig.HalfCount 才判断是否给自己投票。
-            LogSequence.TrySetTerm(LogSequence.Term + 1);
-
-            NextVoteTime = Time.NowUnixMillis + RaftConfig.AppendEntriesTimeout
-                + Util.Random.Instance.Next(RaftConfig.Nodes.Count) * RaftConfig.AppendEntriesTimeout / RaftConfig.Nodes.Count;
+            NextVoteTime = Time.NowUnixMillis + RaftConfig.ElectionTimeout;
 
             Server.Config.ForEachConnector((c) =>
             {
@@ -537,8 +534,7 @@ namespace Zeze.Raft
             {
                 case RaftState.Follower:
                     logger.Info($"RaftState {Name}: Follower->Follower");
-                    LeaderLostTimeout = RaftConfig.LeaderLostTimeout + RaftConfig.LeaderLostPriority
-                        + Util.Random.Instance.Next(RaftConfig.Nodes.Count) * 100;
+                    LeaderLostTimeout = RaftConfig.ElectionTimeout;
                     return;
 
                 case RaftState.Candidate:
@@ -561,8 +557,7 @@ namespace Zeze.Raft
             {
                 case RaftState.Follower:
                     logger.Info($"RaftState {Name}: Candidate->Follower");
-                    LeaderLostTimeout = RaftConfig.LeaderLostTimeout + RaftConfig.LeaderLostPriority
-                        + Util.Random.Instance.Next(RaftConfig.Nodes.Count) * 100;
+                    LeaderLostTimeout = RaftConfig.ElectionTimeout;
                     State = RaftState.Follower;
                     return;
 
@@ -606,8 +601,7 @@ namespace Zeze.Raft
                 case RaftState.Follower:
                     logger.Info($"RaftState {Name}: Leader->Follower");
                     State = RaftState.Follower;
-                    LeaderLostTimeout = RaftConfig.LeaderLostTimeout + RaftConfig.LeaderLostPriority
-                        + Util.Random.Instance.Next(RaftConfig.Nodes.Count) * 100 / RaftConfig.Nodes.Count;
+                    LeaderLostTimeout = RaftConfig.ElectionTimeout;
                     return;
 
                 case RaftState.Candidate:
