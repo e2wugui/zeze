@@ -139,6 +139,7 @@ namespace Zeze.Raft
                 Console.WriteLine(sb.ToString());
             }, 2000, 2000);
 
+            Util.Task.LogIgnoreExceptionNames.TryAdd(typeof(RaftRetryException).FullName, typeof(RaftRetryException).FullName);
             try
             {
                 RunTrace();

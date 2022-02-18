@@ -54,6 +54,22 @@ namespace Zeze.Transaction
                 UserState = Transaction.Current?.TopProcedure?.UserState;
         }
 
+        public static volatile Action<Exception, long, Procedure, string> LogAction = DefaultLogAction;
+
+        public static void DefaultLogAction(Exception ex, long result, Procedure p, string message)
+        {
+            NLog.LogLevel ll = (null != ex) ? NLog.LogLevel.Error
+                : (0 != result) ? p.Zeze.Config.ProcessReturnErrorLogLevel
+                : NLog.LogLevel.Trace;
+
+            var module = "";
+            if (result > 0)
+                module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
+
+            logger.Log(ll, ex, $"Procedure={p} Return={result}{module} {message} UserState={p.UserState}");
+        }
+
+
         /// <summary>
         /// 创建 Savepoint 并执行。
         /// 嵌套 Procedure 实现，
@@ -92,13 +108,7 @@ namespace Zeze.Transaction
                     return Success;
                 }
                 currentT.Rollback();
-                var module = "";
-                if (result > 0)
-                    module = "@" + IModule.GetModuleId(result)
-                        + ":" + IModule.GetErrorCode(result);
-                logger.Log(Zeze.Config.ProcessReturnErrorLogLevel,
-                    "Procedure {0} Return{1}@{2} UserState={3}",
-                    ToString(), result, module, UserState);
+                LogAction?.Invoke(null, result, this, "");
 #if ENABLE_STATISTICS
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(result).IncrementAndGet();
 #endif
@@ -115,7 +125,7 @@ namespace Zeze.Transaction
             catch (Exception e)
             {
                 currentT.Rollback();
-                logger.Error(e, "Procedure {0} Exception UserState={1}", ToString(), UserState);
+                LogAction?.Invoke(e, Exception, this, "");
 #if ENABLE_STATISTICS
                 ProcedureStatistics.Instance.GetOrAdd(ActionName).GetOrAdd(Exception).IncrementAndGet();
 #endif
