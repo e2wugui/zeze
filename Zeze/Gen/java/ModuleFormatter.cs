@@ -11,6 +11,7 @@ namespace Zeze.Gen.java
         readonly Module module;
         readonly string genDir;
         readonly string srcDir;
+        string moduleName;
 
         public ModuleFormatter(Project project, Module module, string genDir, string srcDir)
         {
@@ -18,6 +19,7 @@ namespace Zeze.Gen.java
             this.module = module;
             this.genDir = genDir;
             this.srcDir = srcDir;
+            moduleName = string.Concat(module.Name[..1].ToUpper(), module.Name.AsSpan(1));
         }
 
         FileChunkGen FileChunkGen;
@@ -27,7 +29,7 @@ namespace Zeze.Gen.java
             MakeInterface();
             FileChunkGen = new FileChunkGen();
             string fullDir = module.GetFullPath(srcDir);
-            string fullFileName = Path.Combine(fullDir, $"Module{module.Name}.java");
+            string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.java");
             if (FileChunkGen.LoadFile(fullFileName))
             {
                 FileChunkGen.SaveFile(fullFileName, GenChunkByName, GenBeforeChunkByName);
@@ -42,7 +44,7 @@ namespace Zeze.Gen.java
             ImportGen(sw);
             sw.WriteLine(FileChunkGen.ChunkEndTag + " " + ChunkNameImport);
             sw.WriteLine();
-            sw.WriteLine($"public class Module{module.Name} extends AbstractModule {{");
+            sw.WriteLine($"public class Module{moduleName} extends AbstractModule {{");
             sw.WriteLine("    public void Start(" + project.Solution.Name + ".App app) throws Throwable {");
             sw.WriteLine("    }");
             sw.WriteLine();
@@ -124,12 +126,22 @@ namespace Zeze.Gen.java
                     continue;
 
                 var hName = GetHandleName(h);
+                if (h is Rpc rpc)
+                {
+                    sw.WriteLine("    @Override");
+                    sw.WriteLine("    protected long " + hName + "(Zeze.Net.Protocol _r) {");
+                    sw.WriteLine($"        var r = ({rpc.ShortNameIf(module)})_r;");
+                    sw.WriteLine($"        return Zeze.Transaction.Procedure.NotImplement;");
+                    sw.WriteLine("    }");
+                    sw.WriteLine("");
+                    continue;
+                }
                 sw.WriteLine("    @Override");
-                sw.WriteLine("    public long " + hName + "(Zeze.Net.Protocol _p) {");
+                sw.WriteLine("    protected long " + hName + "(Zeze.Net.Protocol _p) {");
                 sw.WriteLine($"        var p = ({h.ShortNameIf(module)})_p;");
                 sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
                 sw.WriteLine("    }");
-                sw.WriteLine();
+                sw.WriteLine("");
             }
         }
 
@@ -177,7 +189,7 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    public {project.Solution.Name}.App App;");
             sw.WriteLine();
 
-            sw.WriteLine($"    public Module{module.Name}({project.Solution.Name}.App app) {{");
+            sw.WriteLine($"    public Module{moduleName}({project.Solution.Name}.App app) {{");
             sw.WriteLine("        App = app;");
             sw.WriteLine("        // register protocol factory and handles");
             Service serv = module.ReferenceService;
@@ -259,14 +271,14 @@ namespace Zeze.Gen.java
 
         public void MakePartialImplement()
         {
-            using StreamWriter sw = module.OpenWriter(srcDir, $"Module{module.Name}.java", false);
+            using StreamWriter sw = module.OpenWriter(srcDir, $"Module{moduleName}.java", false);
 
             if (sw == null)
                 return;
 
             sw.WriteLine("package " + module.Path() + ";");
             sw.WriteLine();
-            sw.WriteLine($"public class Module{module.Name} extends AbstractModule{module.Name} {{");
+            sw.WriteLine($"public class Module{moduleName} extends AbstractModule{moduleName} {{");
             sw.WriteLine("}");
         }
 
@@ -279,7 +291,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("public abstract class AbstractModule extends Zeze.IModule {");
             sw.WriteLine($"    public String getFullName() {{ return \"{module.Path()}\"; }}");
-            sw.WriteLine($"    public String getName() {{ return \"{module.Name}\"; }}");
+            sw.WriteLine($"    public String getName() {{ return \"{moduleName}\"; }}");
             sw.WriteLine($"    public int getId() {{ return {module.Id}; }}");
             // declare enums
             if (module.Enums.Count > 0)
