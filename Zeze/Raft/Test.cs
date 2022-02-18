@@ -120,26 +120,36 @@ namespace Zeze.Raft
                 });
             Agent.Client.Start();
 
-            Util.Scheduler.Instance.Schedule((ThisTask) =>
-            {
-                var sb = new StringBuilder();
-                sb.Append($"----------------------------------{raftConfigStart.XmlFileName}-------------------------------------\n");
-                foreach (var r in Rafts.Values)
-                {
-                    var l = r.Raft.LogSequence;
-                    sb.Append($"{r.Raft.Name} CommitIndex={l.CommitIndex} LastApplied={l.LastApplied} LastIndex={l.LastIndex} Count={r.StateMachine.Count}");
-                    sb.Append("\n");
-                }
-                foreach (var f in FailActions)
-                {
-                    sb.Append($"{f.Name} TestCount={f.Count}");
-                    sb.Append("\n");
-                }
-                sb.Append($"-----------------------------------{raftConfigStart.XmlFileName}------------------------------------\n");
-                Console.WriteLine(sb.ToString());
-            }, 2000, 2000);
-
             Util.Task.LogIgnoreExceptionNames.TryAdd(typeof(RaftRetryException).FullName, typeof(RaftRetryException).FullName);
+            Util.Task.Run(() =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        Console.ReadKey();
+                        var sb = new StringBuilder();
+                        sb.Append($"----------------------------------{raftConfigStart.XmlFileName}-------------------------------------\n");
+                        foreach (var r in Rafts.Values)
+                        {
+                            var l = r.Raft?.LogSequence;
+                            sb.Append($"{r.RaftName} CommitIndex={l?.CommitIndex} LastApplied={l?.LastApplied} LastIndex={l?.LastIndex} Count={r.StateMachine?.Count}");
+                            sb.Append("\n");
+                        }
+                        foreach (var f in FailActions)
+                        {
+                            sb.Append($"{f.Name} TestCount={f.Count}");
+                            sb.Append("\n");
+                        }
+                        sb.Append($"-----------------------------------{raftConfigStart.XmlFileName}------------------------------------\n");
+                        Console.WriteLine(sb.ToString());
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex);
+                    }
+                }
+            }, "DumpWorker");
             try
             {
                 RunTrace();
@@ -514,11 +524,11 @@ namespace Zeze.Raft
             {
                 var check = CheckCurrentCount(testname, false);
                 logger.Info($"");
-                logger.Info($"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-                logger.Info($"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                logger.Info($"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                logger.Info($"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
                 logger.Info($"Check={check} Step={i} ExpectCount={ExpectCount.Get()} Errors={GetErrorsString()}");
-                logger.Info($"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-                logger.Info($"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                logger.Info($"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                logger.Info($"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
                 logger.Info($"");
                 if (check)
                 {
