@@ -43,6 +43,7 @@ namespace Zeze.Raft
 
         public void FatalKill()
         {
+            IsShutdown = true;
             LogSequence.Close();
             NLog.LogManager.Shutdown();
             System.Diagnostics.Process.GetCurrentProcess().Kill();
@@ -55,7 +56,7 @@ namespace Zeze.Raft
             LogSequence.AppendLog(log, true);
         }
 
-        private volatile bool IsShutdown = false;
+        internal volatile bool IsShutdown = false;
 
         public void Shutdown()
         {

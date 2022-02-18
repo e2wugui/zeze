@@ -591,7 +591,11 @@ namespace Zeze.Raft
                         Console.WriteLine("___________________________________________");
                         foreach (var raft in Rafts.Values)
                         {
-                            raft.Raft.LogSequence.Close();
+                            if (raft.Raft != null && raft.Raft.LogSequence != null)
+                            {
+                                raft.Raft.IsShutdown = true;
+                                raft.Raft.LogSequence.Close();
+                            }
                         }
                         NLog.LogManager.Shutdown();
                         System.Diagnostics.Process.GetCurrentProcess().Kill();
