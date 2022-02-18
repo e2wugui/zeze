@@ -212,11 +212,11 @@
           }
         }
       },
-      "Scriban/5.3.0": {
+      "Scriban/5.4.0": {
         "runtime": {
           "lib/net6.0/Scriban.dll": {
-            "assemblyVersion": "5.3.0.0",
-            "fileVersion": "5.3.0.0"
+            "assemblyVersion": "5.4.0.0",
+            "fileVersion": "5.4.0.0"
           }
         }
       },
@@ -433,7 +433,7 @@
           "MySql.Data": "8.0.28",
           "NLog": "4.7.13",
           "RocksDB": "6.28.2.25302",
-          "Scriban": "5.3.0",
+          "Scriban": "5.4.0",
           "System.Collections.Immutable": "6.0.0",
           "System.Data.SqlClient": "4.8.3",
           "System.Diagnostics.PerformanceCounter": "6.0.0"
@@ -569,12 +569,12 @@
       "path": "runtime.win-x86.runtime.native.system.data.sqlclient.sni/4.4.0",
       "hashPath": "runtime.win-x86.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512"
     },
-    "Scriban/5.3.0": {
+    "Scriban/5.4.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-NY0Xr6JYo2KCngweDpFSArN+t8CoqJewbSGPEsDVs2liVnI+74KiWY6n1qyW5QoLJOY7eBU0atYFfC9fZZNtZw==",
-      "path": "scriban/5.3.0",
-      "hashPath": "scriban.5.3.0.nupkg.sha512"
+      "sha512": "sha512-gx+ArfJeanLPO2b5mnSsK8FqgMvhrRqqOOisRPhofWU44qfuCQU4G0GJfJziauu4PLMdMg2ArnhD7CMHaFwzLQ==",
+      "path": "scriban/5.4.0",
+      "hashPath": "scriban.5.4.0.nupkg.sha512"
     },
     "System.Buffers/4.5.1": {
       "type": "package",
