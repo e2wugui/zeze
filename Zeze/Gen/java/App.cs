@@ -98,8 +98,9 @@ namespace Zeze.Gen.java
 
             foreach (Module m in project.AllOrderDefineModules)
             {
+                string moduleName = string.Concat(m.Name[..1].ToUpper(), m.Name.AsSpan(1));
                 var fullname = m.Path("_");
-                sw.WriteLine($"    public {m.Path(".", $"Module{m.Name}")} {fullname};");
+                sw.WriteLine($"    public {m.Path(".", $"Module{moduleName}")} {fullname};");
             }
             sw.WriteLine();
 
@@ -123,10 +124,11 @@ namespace Zeze.Gen.java
 
             foreach (Module m in project.AllOrderDefineModules)
             {
+                string moduleName = string.Concat(m.Name[..1].ToUpper(), m.Name.AsSpan(1));
                 var fullname = m.Path("_");
-                sw.WriteLine("        " + fullname + " = new " + m.Path(".", $"Module{m.Name}") + "(this);");
+                sw.WriteLine("        " + fullname + " = new " + m.Path(".", $"Module{moduleName}") + "(this);");
                 sw.WriteLine($"        {fullname}.Initialize(this);");
-                sw.WriteLine($"        {fullname} = ({m.Path(".", $"Module{m.Name}")})ReplaceModuleInstance({fullname});");
+                sw.WriteLine($"        {fullname} = ({m.Path(".", $"Module{moduleName}")})({fullname});");
                 sw.WriteLine($"        if (Modules.put({fullname}.getFullName(), {fullname}) != null)");
                 sw.WriteLine($"            throw new RuntimeException(\"duplicate module name: {fullname}\");");
                 sw.WriteLine();
