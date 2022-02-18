@@ -14,20 +14,12 @@
 	DatabaseTikv OperatesTikv
 	关联多用户数据的协议处理自动派发到热点所在Server。
 	Global.Release并发问题【再次】确认
-
 	zeze async await?
 	Zeze.Arch 
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
-
-	1. Log.cs: logger.Fatal("truncate committed entries"); Fatal!
-	还有个问题，数量上去一次，Leader第一个Heartbeat发出成功以后，进入apply，
-	这个耗时不可小看，这里不能阻止正常的heartbeat，否则会超时。
-	启动后的第一批apply需要特别处理。Leader 不能阻止 Keepalive——Heartbeat，
-	Follower 可以分批apply，不阻止正常的响应，阻止的话，Leader发送的log达不成多数，
-	最终超时，Agent重发，影响没有Leader Apply那么坏。
 	4. Raft.AppendLog Future Add Duplicate Index. Fatal!
-
+	Raft.LogSequence.FindMaxMajorityLogReverse 用来初始化的时候用。【现在看来不是很有必要了】
 	RedoableQueue
 	{
 		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
@@ -37,13 +29,15 @@
 		2) 功能：每个QueueId，for (LastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
 		* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
 	}
-
 	Raft.GlobalCacheManagerWithRaft
 		优化。改成一次AppendLog。
 		关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	Raft.LogSequence.FindMaxMajorityLog 里面的 ReadLog 优化掉。
+	1. Log.cs: logger.Fatal("truncate committed entries"); Fatal!【选举移动代码的BUG：Term在递增前使用】
+	Raft.Apply 分批进行，让其他操作有运行机会。解决启动时，apply整个日志锁住时间太长的问题。
 	Raft.State.Timeout 恢复状态模式。【不恢复，就轮询了】
 	RaftLog.ToString More Detail
 	Raft.Agent TryGetReadySocket 总是 null。【没有发现问题】

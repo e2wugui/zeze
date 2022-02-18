@@ -529,21 +529,17 @@ namespace Zeze.Raft
             }
         }
 
-        private RaftLog FindMaxMajorityLog(long startIndex, int count)
+        private long FindMaxMajorityLog(long startIndex, int count)
         {
-            RaftLog lastMajorityLog = null;
-            for (long index = startIndex; index <= LastIndex && count > 0; --count)
+            long lastMajorityLogIndex = 0;
+            for (long index = startIndex; index <= LastIndex && count > 0; ++index, --count)
             {
-                var raftLog = ReadLog(index);
-                if (null == raftLog)
-                    break;
-                index = raftLog.Index + 1;
                 int MajorityCount = 0;
                 Raft.Server.Config.ForEachConnector(
                     (c) =>
                     {
                         var cex = c as Server.ConnectorEx;
-                        if (cex.MatchIndex >= raftLog.Index)
+                        if (cex.MatchIndex >= index)
                         {
                             ++MajorityCount;
                         }
@@ -552,9 +548,9 @@ namespace Zeze.Raft
                 // 等于的时候加上自己就是多数派了。
                 if (MajorityCount < Raft.RaftConfig.HalfCount)
                     break;
-                lastMajorityLog = raftLog;
+                lastMajorityLogIndex = index;
             }
-            return lastMajorityLog;
+            return lastMajorityLogIndex;
         }
 
         private void TryCommit(AppendEntries rpc, Server.ConnectorEx connector)
@@ -598,7 +594,7 @@ namespace Zeze.Raft
             // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
             // set commitIndex = N(§5.3, §5.4).
 
-            RaftLog lastMajorityLog = null;
+            long lastMajorityLogIndex = 0;
             long startIndex;
             lock (Raft)
             {
@@ -609,18 +605,19 @@ namespace Zeze.Raft
                 lock (Raft)
                 {
                     // 对于 Leader CommitIndex 初始化问题。
-                    var majorityLog = FindMaxMajorityLog(startIndex, 500);
-                    if (null == majorityLog)
+                    var majorityLogIndex = FindMaxMajorityLog(startIndex, 10000);
+                    if (0 == majorityLogIndex)
                         break; // 已经到结束了。
-                    lastMajorityLog = majorityLog;
-                    startIndex = majorityLog.Index + 1;
+                    lastMajorityLogIndex = majorityLogIndex;
+                    startIndex = majorityLogIndex + 1;
                 }
                 //System.Threading.Thread.Sleep(1);
             }
 
-            if (null == lastMajorityLog)
+            if (0 == lastMajorityLogIndex)
                 return;
 
+            var lastMajorityLog = ReadLog(lastMajorityLogIndex);
             lock (Raft)
             {
                 if (lastMajorityLog.Term != Term)
