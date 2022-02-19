@@ -76,7 +76,6 @@ namespace Zeze.Util
             }
             catch (Exception ex)
             {
-                var originex = ex;
                 while (true)
                 {
                     var inner = ex.InnerException;
@@ -93,8 +92,8 @@ namespace Zeze.Util
 
                 if (IsRequestSaved)
                     actionWhenError?.Invoke(p, errorCode);
-
-                LogAndStatistics(originex, errorCode, p, IsRequestSaved);
+                // use last inner cause
+                LogAndStatistics(ex, errorCode, p, IsRequestSaved);
                 return errorCode;
             }
         }

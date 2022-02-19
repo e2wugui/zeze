@@ -19,7 +19,7 @@
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
 	4. Raft.AppendLog Future Add Duplicate Index. Fatal!
-	Raft.LogSequence.FindMaxMajorityLogReverse 用来初始化的时候用。【现在看来不是很有必要了】
+	Raft.LogSequence.FindMaxMajorityLogReverseOrFindBinary 用来初始化的时候用。【张路实现】
 	RedoableQueue
 	{
 		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。

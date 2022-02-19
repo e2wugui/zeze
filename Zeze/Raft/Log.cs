@@ -529,30 +529,6 @@ namespace Zeze.Raft
             }
         }
 
-        private long FindMaxMajorityLog(long startIndex, int count)
-        {
-            long lastMajorityLogIndex = 0;
-            for (long index = startIndex; index <= LastIndex && count > 0; ++index, --count)
-            {
-                int MajorityCount = 0;
-                Raft.Server.Config.ForEachConnector(
-                    (c) =>
-                    {
-                        var cex = c as Server.ConnectorEx;
-                        if (cex.MatchIndex >= index)
-                        {
-                            ++MajorityCount;
-                        }
-                    });
-                // 没有达成多数派，中断循环。后面返回上一个majority，仍可能为null。
-                // 等于的时候加上自己就是多数派了。
-                if (MajorityCount < Raft.RaftConfig.HalfCount)
-                    break;
-                lastMajorityLogIndex = index;
-            }
-            return lastMajorityLogIndex;
-        }
-
         private void TryCommit(AppendEntries rpc, Server.ConnectorEx connector)
         {
             connector.NextIndex = rpc.Argument.LastEntryIndex + 1;
@@ -563,20 +539,50 @@ namespace Zeze.Raft
             if (rpc.Argument.LastEntryIndex <= CommitIndex)
                 return;
 
-            TryStartApplyTask(BackgroundLeaderApply);
+            // find MaxMajorityLogIndex
+            // Rules for Servers
+            // If there exists an N such that N > commitIndex, a majority
+            // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
+            // set commitIndex = N(§5.3, §5.4).
+            var followers = new List<Server.ConnectorEx>();
+            Raft.Server.Config.ForEachConnector((c) => followers.Add(c as Server.ConnectorEx));
+            followers.Sort((a, b) => b.MatchIndex.CompareTo(a.MatchIndex));
+            var maxMajorityLogIndex = followers[Raft.RaftConfig.HalfCount - 1].MatchIndex;
+            if (maxMajorityLogIndex > CommitIndex)
+            {
+                var maxMajorityLog = ReadLog(maxMajorityLogIndex);
+                if (maxMajorityLog.Term != Term)
+                {
+                    // 如果是上一个 Term 未提交的日志在这一次形成的多数派，
+                    // 不自动提交。
+                    // 总是等待当前 Term 推进时，顺便提交它。
+                    return;
+                }
+                // 推进！
+                CommitIndex = maxMajorityLogIndex;
+                TryStartApplyTask(maxMajorityLog);
+            }
         }
 
         private volatile TaskCompletionSource<bool> ApplyTask; // follower background apply task
 
         // under lock (Raft)
-        private void TryStartApplyTask(Action background)
+        private void TryStartApplyTask(RaftLog lastApplyableLog)
         {
             if (null == ApplyTask)
             {
+                // 仅在没有 apply 进行中才尝试进行处理。
+                if (CommitIndex - LastApplied < 500)
+                {
+                    // apply immediately in current thread
+                    TryApply(lastApplyableLog, long.MaxValue);
+                    return;
+                }
+
                 ApplyTask = new TaskCompletionSource<bool>();
                 Raft.ImportantThreadPool.QueueUserWorkItem(() =>
                 {
-                    Util.Task.Call(background, "BackgroundApplyTask");
+                    Util.Task.Call(BackgroundApply, "BackgroundApply");
                     ApplyTask.SetResult(true); // 如果有人等待。
 
                     lock (Raft)
@@ -587,71 +593,7 @@ namespace Zeze.Raft
             }
         }
 
-        private void BackgroundLeaderApply()
-        {
-            // Rules for Servers
-            // If there exists an N such that N > commitIndex, a majority
-            // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
-            // set commitIndex = N(§5.3, §5.4).
-
-            long lastMajorityLogIndex = 0;
-            long startIndex;
-            lock (Raft)
-            {
-                startIndex = CommitIndex + 1;
-            }
-            while (false == Raft.IsShutdown)
-            {
-                lock (Raft)
-                {
-                    // 对于 Leader CommitIndex 初始化问题。
-                    var majorityLogIndex = FindMaxMajorityLog(startIndex, 10000);
-                    if (0 == majorityLogIndex)
-                        break; // 已经到结束了。
-                    lastMajorityLogIndex = majorityLogIndex;
-                    startIndex = majorityLogIndex + 1;
-                }
-                //System.Threading.Thread.Sleep(1);
-            }
-
-            if (0 == lastMajorityLogIndex)
-                return;
-
-            var lastMajorityLog = ReadLog(lastMajorityLogIndex);
-            lock (Raft)
-            {
-                if (lastMajorityLog.Term != Term)
-                {
-                    // 【注意】由于这个条件，在上一步，必须找到最后的多数派日志。
-
-                    // 如果是上一个 Term 未提交的日志在这一次形成的多数派，
-                    // 不自动提交。
-                    // 总是等待当前 Term 推进时，顺便提交它。
-                    // 【优化？】
-                    // 记住lastMajorityLog用来再次查找，
-                    // 由于Leader起来第一个Hearbeat只要成功多数，就一定是当前Term。
-                    // 所以这个优化看起来没有必要。【确认】。
-                    return;
-                }
-                // 推进！
-                CommitIndex = lastMajorityLog.Index;
-            }
-
-            while (false == Raft.IsShutdown)
-            {
-                lock (Raft)
-                {
-                    TryApply(lastMajorityLog, 500);
-                    if (LastApplied == lastMajorityLog.Index)
-                    {
-                        return; // 本次Apply结束。
-                    }
-                }
-                //System.Threading.Thread.Sleep(1);
-            }
-        }
-
-        private void BackgroundFollowerApply()
+        private void BackgroundApply()
         {
             while (false == Raft.IsShutdown)
             {
@@ -1340,7 +1282,7 @@ namespace Zeze.Raft
             if (r.Argument.LeaderCommit > CommitIndex)
             {
                 CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLog().Index);
-                TryStartApplyTask(BackgroundFollowerApply);
+                TryStartApplyTask(ReadLog(CommitIndex));
             }
             r.Result.Success = true;
             logger.Debug("{0}: {1}", Raft.Name, r);
