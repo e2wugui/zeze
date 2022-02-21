@@ -26,7 +26,7 @@ namespace Zeze.Raft
         public string DbHome { get; set; } = "./";
 
         public const int DefaultAppendEntriesTimeout = 2000;
-        public const int DefaultLeaderHeartbeatTimer = DefaultAppendEntriesTimeout + 300;
+        public const int DefaultLeaderHeartbeatTimer = DefaultAppendEntriesTimeout + 200;
 
         /// <summary>
         /// 复制日志超时，以及发送失败重试超时。
@@ -38,8 +38,8 @@ namespace Zeze.Raft
         public int LeaderHeartbeatTimer { get; set; } = DefaultLeaderHeartbeatTimer;
 
         public int ElectionRandomMax { get; set; } = 300;
-        public int ElectionTimeout => LeaderHeartbeatTimer + Util.Random.Instance.Next(ElectionRandomMax);
-        public int ElectionTimeoutMax => LeaderHeartbeatTimer + ElectionRandomMax * 2;
+        public int ElectionTimeout => LeaderHeartbeatTimer + 100 + Util.Random.Instance.Next(ElectionRandomMax);
+        public int ElectionTimeoutMax => LeaderHeartbeatTimer + 100 + ElectionRandomMax * 2;
         /// <summary>
         /// 限制每次复制日志时打包的最大数量。
         /// </summary>
@@ -60,6 +60,8 @@ namespace Zeze.Raft
         /// </summary>
         public int SnapshotHourOfDay { get; set; } = 6;
         public int SnapshotMinute { get; set; } = 0;
+        // 需要的时间应小于LeaderHeartbeatTimer
+        public int BackgroundApplyCount { get; set; } = 500;
 
         private RaftConfig(XmlDocument xml, string filename, XmlElement self)
         {
@@ -86,6 +88,8 @@ namespace Zeze.Raft
             if (!string.IsNullOrEmpty(attr)) SnapshotMinute = int.Parse(attr);
             attr = self.GetAttribute("ElectionRandomMax");
             if (!string.IsNullOrEmpty(attr)) ElectionRandomMax = int.Parse(attr);
+            attr = self.GetAttribute("BackgroundApplyCount");
+            if (!string.IsNullOrEmpty(attr)) BackgroundApplyCount = int.Parse(attr);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
@@ -107,8 +111,8 @@ namespace Zeze.Raft
         {
             if (AppendEntriesTimeout < 1000)
                 throw new Exception("AppendEntriesTimeout < 1000");
-            if (LeaderHeartbeatTimer < AppendEntriesTimeout + 300)
-                throw new Exception("LeaderHeartbeatTimer < AppendEntriesTimeout + 300");
+            if (LeaderHeartbeatTimer < AppendEntriesTimeout + 200)
+                throw new Exception("LeaderHeartbeatTimer < AppendEntriesTimeout + 200");
 
             if (MaxAppendEntiresCount < 100)
                 MaxAppendEntiresCount = 100;
@@ -128,6 +132,7 @@ namespace Zeze.Raft
             Self.SetAttribute("SnapshotMinLogCount", SnapshotMinLogCount.ToString());
             Self.SetAttribute("SnapshotHourOfDay", SnapshotHourOfDay.ToString());
             Self.SetAttribute("SnapshotMinute", SnapshotMinute.ToString());
+            Self.SetAttribute("BackgroundApplyCount", BackgroundApplyCount.ToString());
 
             foreach (var node in Nodes)
             {

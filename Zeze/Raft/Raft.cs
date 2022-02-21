@@ -469,7 +469,7 @@ namespace Zeze.Raft
                 if (LogSequence.Term != rpc.Argument.Term || State != RaftState.Candidate)
                 {
                     // 结果回来时，上下文已经发生变化，忽略这个结果。
-                    logger.Info($"NotOwner={LogSequence.Term != rpc.Argument.Term} NotCandidate={State != RaftState.Candidate}");
+                    logger.Info($"{Name} NotOwner={LogSequence.Term != rpc.Argument.Term} NotCandidate={State != RaftState.Candidate}");
                     return 0;
                 }
 
@@ -519,7 +519,6 @@ namespace Zeze.Raft
             arg.LastLogTerm = log.Term;
 
             NextVoteTime = Time.NowUnixMillis + RaftConfig.ElectionTimeout;
-
             Server.Config.ForEachConnector((c) =>
             {
                 var rpc = new RequestVote() { Argument = arg };

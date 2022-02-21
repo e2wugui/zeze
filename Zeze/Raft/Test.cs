@@ -44,6 +44,7 @@ namespace Zeze.Raft
 
         public void Run(string command, string[] args)
         {
+            Console.WriteLine(command); // 初始化Console，ReadKey死锁问题？
             try
             {
                 _Run(command, args);

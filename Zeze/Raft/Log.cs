@@ -572,7 +572,7 @@ namespace Zeze.Raft
             if (null == ApplyTask)
             {
                 // 仅在没有 apply 进行中才尝试进行处理。
-                if (CommitIndex - LastApplied < 500)
+                if (CommitIndex - LastApplied < Raft.RaftConfig.BackgroundApplyCount)
                 {
                     // apply immediately in current thread
                     TryApply(lastApplyableLog, long.MaxValue);
@@ -601,13 +601,13 @@ namespace Zeze.Raft
                 {
                     // ReadLog Again，CommitIndex Maybe Grow.
                     var lastApplyableLog = ReadLog(CommitIndex);
-                    TryApply(lastApplyableLog, 500);
+                    TryApply(lastApplyableLog, Raft.RaftConfig.BackgroundApplyCount);
                     if (LastApplied == lastApplyableLog.Index)
                     {
                         return; // 本次Apply结束。
                     }
                 }
-                //System.Threading.Thread.Sleep(1);
+                System.Threading.Thread.Yield();
             }
         }
 
