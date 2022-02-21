@@ -741,15 +741,13 @@ namespace Zeze.Services
                 Storage.Backup(checkpointDir, path);
                 Directory.Delete(checkpointDir, true);
 
-                long oldFirstIndex = 0;
                 lock (Raft)
                 {
                     // 先关闭文件，结束Snapshot。
                     // 马上调整FirstIndex允许请求在新的状态上工作。
                     // 然后在锁外，慢慢删除旧的日志。
-                    oldFirstIndex = Raft.LogSequence.GetAndSetFirstIndex(LastIncludedIndex);
+                    Raft.LogSequence.CommitSnapshot(path, LastIncludedIndex);
                 }
-                Raft.LogSequence.RemoveLogBeforeLastApplied(oldFirstIndex);
                 return true;
             }
         }

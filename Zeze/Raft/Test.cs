@@ -60,8 +60,9 @@ namespace Zeze.Raft
             Console.WriteLine("___________________________________________");
             Console.WriteLine("___________________________________________");
             Console.WriteLine("___________________________________________");
-            while (Console.ReadKey().Key != ConsoleKey.X)
+            while (true)
             {
+                System.Threading.Thread.Sleep(1000);
             }
         }
 
@@ -378,6 +379,12 @@ namespace Zeze.Raft
             leader.StopRaft();
             Util.Scheduler.Instance.Schedule((ThisTask) => leader.StartRaft(), StartDely);
             TestConcurrent("TestLeaderNodeRestartRaft", 1);
+
+            // Snapshot & Load
+            leader = GetLeader();
+            leader.Raft.LogSequence.Snapshot();
+            leader.StopRaft();
+            leader.StartRaft();
 
             // InstallSnapshot;
 
@@ -727,11 +734,11 @@ namespace Zeze.Raft
                 }
             }
 
-            public override void LoadFromSnapshot(string path)
+            public override void LoadSnapshot(string path)
             {
                 lock (Raft)
                 {
-                    using var file = new System.IO.FileStream(path, System.IO.FileMode.Open);
+                    using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
                     var bytes = new byte[1024];
                     int rc = file.Read(bytes);
                     var bb = ByteBuffer.Wrap(bytes, 0, rc);
@@ -739,22 +746,27 @@ namespace Zeze.Raft
                 }
             }
 
+            // 这里没有处理重入，调用者需要保证。
             public override bool Snapshot(string path, out long LastIncludedIndex, out long LastIncludedTerm)
             {
-                using var file = new System.IO.FileStream(path, System.IO.FileMode.Create);
-                long oldFirstIndex = 0;
+                LastIncludedIndex = 0;
+                LastIncludedTerm = 0;
+
                 lock (Raft)
                 {
-                    var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
-                    LastIncludedIndex = lastAppliedLog.Index;
-                    LastIncludedTerm = lastAppliedLog.Term;
-                    var bb = ByteBuffer.Allocate();
-                    bb.WriteLong(Count);
-                    file.Write(bb.Bytes, bb.ReadIndex, bb.Size);
-                    file.Close();
-                    oldFirstIndex = Raft.LogSequence.GetAndSetFirstIndex(LastIncludedIndex);
+                    if (null != Raft.LogSequence)
+                    {
+                        using var file = new FileStream(path, FileMode.Create);
+                        var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
+                        LastIncludedIndex = lastAppliedLog.Index;
+                        LastIncludedTerm = lastAppliedLog.Term;
+                        var bb = ByteBuffer.Allocate();
+                        bb.WriteLong(Count);
+                        file.Write(bb.Bytes, bb.ReadIndex, bb.Size);
+                        file.Close();
+                        Raft.LogSequence.CommitSnapshot(path, LastIncludedIndex);
+                    }
                 }
-                Raft.LogSequence.RemoveLogBeforeLastApplied(oldFirstIndex);
                 return true;
             }
 
@@ -778,13 +790,15 @@ namespace Zeze.Raft
                 Raft?.Server.Start();
             }
 
+            Util.SchedulerTask SnapshotTimer;
+
             public void StopRaft()
             {
                 lock (this)
                 {
                     logger.Debug("Raft {0} Stop ...", RaftName);
                     // 在同一个进程中，没法模拟进程退出，
-                    // 此时RocksDb应该需要关闭，否则重启回失败吧。
+                    // 此时RocksDb应该需要关闭，否则重启会失败吧。
                     Raft?.Shutdown();
                     Raft = null;
                 }
@@ -803,7 +817,7 @@ namespace Zeze.Raft
                     StateMachine = new TestStateMachine();
 
                     var raftConfig = RaftConfig.Load(RaftConfigFileName);
-                    raftConfig.SnapshotHourOfDay = -1;
+                    raftConfig.SnapshotMinLogCount = 10;
                     raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
                     if (resetLog)
                     {
@@ -841,6 +855,8 @@ namespace Zeze.Raft
                 RaftName = raftName;
                 RaftConfigFileName = raftConfigFileName;
                 StartRaft(true);
+                SnapshotTimer = Util.Scheduler.Instance.Schedule(
+                    (ThisTask) => Raft?.LogSequence?.Snapshot(false), 1 * 60 * 1000, 1 * 60 * 1000);
             }
 
             private long ProcessAddCount(Zeze.Net.Protocol p)

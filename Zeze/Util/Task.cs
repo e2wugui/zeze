@@ -21,6 +21,19 @@ namespace Zeze.Util
             }
         }
 
+        public static long Call(Func<long> action, string actionName)
+        {
+            try
+            {
+                return action();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, actionName);
+                return Procedure.Exception;
+            }
+        }
+
         public static System.Threading.Tasks.Task Run(Action action, string actionName)
         {
             return System.Threading.Tasks.Task.Run(() => Call(action, actionName));

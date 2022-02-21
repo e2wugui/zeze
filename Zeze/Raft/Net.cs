@@ -55,11 +55,6 @@ namespace Zeze.Raft
             internal long MatchIndex { get; set; }
 
             /// <summary>
-            /// 正在安装Snapshot，用来阻止新的安装。
-            /// </summary>
-            internal bool InstallSnapshotting { get; set; }
-
-            /// <summary>
             /// 每个连接只允许存在一个AppendEntries。
             /// </summary>
             internal AppendEntries Pending { get; set; }
@@ -68,17 +63,10 @@ namespace Zeze.Raft
             public override void OnSocketClose(AsyncSocket closed, Exception e)
             {
                 var server = closed.Service as Server;
-                // 不能在网络回调中锁Raft，会死锁。因为在锁内发送数据是常用操作。
-                Util.Task.Run(() =>
+                if (server.Raft.LogSequence.InstallSnapshotting.TryRemove(Name, out var future))
                 {
-                    lock (server.Raft)
-                    {
-                        // 安装快照服务器端不考虑续传，网络断开以后，重置状态。
-                        // 以后需要的时候，再次启动新的安装流程。
-                        InstallSnapshotting = false;
-                        server.Raft.LogSequence.InstallSnapshotting.Remove(Name);
-                    }
-                }, "InstallSnapshotting.Remove");
+                    future.TrySetResult(false);
+                }
                 base.OnSocketClose(closed, e);
             }
 

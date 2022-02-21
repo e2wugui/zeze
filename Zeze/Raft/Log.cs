@@ -197,21 +197,81 @@ namespace Zeze.Raft
             return ReadLog(LastApplied);
         }
 
-        public long GetAndSetFirstIndex(long newFirstIndex)
+        private void SaveFirstIndex(long newFirstIndex)
+        {
+            var firstIndexValue = ByteBuffer.Allocate();
+            firstIndexValue.WriteLong(newFirstIndex);
+            Rafts.Put(
+                RaftsFirstIndexKey, RaftsFirstIndexKey.Length,
+                firstIndexValue.Bytes, firstIndexValue.Size,
+                null, WriteOptions
+                );
+            FirstIndex = newFirstIndex;
+        }
+
+        public void CommitSnapshot(string path, long newFirstIndex)
         {
             lock (Raft)
             {
-                long tmp = FirstIndex;
-                FirstIndex = newFirstIndex;
-                return tmp;
+                File.Move(path, SnapshotFullName, true);
+                SaveFirstIndex(newFirstIndex);
+                StartRemoveLogBefore(newFirstIndex);
             }
         }
 
-        public void RemoveLogBeforeLastApplied(long oldFirstIndex)
+        private Iterator NewLogsIterator()
         {
-            RemoveLogReverse(LastApplied - 1, oldFirstIndex);
+            lock (Raft)
+            {
+                return Logs.NewIterator();
+            }
         }
 
+        internal volatile TaskCompletionSource<bool> RemoveLogBeforeFuture;
+
+        private void StartRemoveLogBefore(long index)
+        {
+            lock (Raft)
+            {
+                if (null != RemoveLogBeforeFuture)
+                    return;
+                RemoveLogBeforeFuture = new TaskCompletionSource<bool>();
+            }
+
+            // 直接对 RocksDb 多线程访问，这里就不做多线程保护了。
+            Util.Task.Run(() =>
+            {
+                try
+                {
+                    using var it = NewLogsIterator();
+                    it.SeekToFirst();
+                    while (it.Valid() && false == Raft.IsShutdown)
+                    {
+                        var raftLog = RaftLog.Decode(new Binary(it.Value()), Raft.StateMachine.LogFactory);
+                        if (raftLog.Index >= index)
+                        {
+                            RemoveLogBeforeFuture.SetResult(true);
+                            return;
+                        }
+
+                        var key = it.Key();
+                        Logs.Remove(key, key.Length, null, WriteOptions);
+                        if (raftLog.Log.Unique.RequestId > 0)
+                            OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
+                    }
+                }
+                finally
+                {
+                    RemoveLogBeforeFuture.TrySetResult(false);
+                    lock (Raft)
+                    {
+                        RemoveLogBeforeFuture = null;
+                    }
+                }
+            }, $"RemoveLogBefore{index}");
+        }
+
+        /*
         private void RemoveLogReverse(long startIndex, long firstIndex)
         {
             if (startIndex >= LastApplied)
@@ -222,6 +282,7 @@ namespace Zeze.Raft
                 RemoveLog(index);
             }
         }
+        */
 
         // Leader
         // Follower
@@ -329,10 +390,19 @@ namespace Zeze.Raft
         private ConcurrentDictionary<string, UniqueRequestSet> UniqueRequestSets { get; }
             = new ConcurrentDictionary<string, UniqueRequestSet>();
 
+        private void CancelPendingAppendLogFutures()
+        {
+            foreach (var job in WaitApplyFutures)
+            {
+                job.Value.TrySetCanceled();
+                WaitApplyFutures.TryRemove(job.Key, out _);
+            }
+        }
+
         internal void Close()
         {
             // must after set Raft.IsShutdown = false;
-            // ApplyTask?.Task.Wait(); // 此方法极有可能在lock(Raft)内调用，这里等待会死锁。不用安全等待结束也是可以的。
+            CancelPendingAppendLogFutures();
 
             lock (Raft)
             {
@@ -384,6 +454,20 @@ namespace Zeze.Raft
                 {
                     VoteFor = string.Empty;
                 }
+                // Read FirstIndex 由于snapshot并发，Logs中的第一条记录可能不是FirstIndex了。
+                var firstIndexKey = ByteBuffer.Allocate();
+                firstIndexKey.WriteInt(2);
+                RaftsFirstIndexKey = firstIndexKey.Copy();
+                var firstIndexValue = Rafts.Get(RaftsFirstIndexKey);
+                if (null != firstIndexValue)
+                {
+                    var bb = ByteBuffer.Wrap(firstIndexValue);
+                    FirstIndex = bb.ReadLong();
+                }
+                else
+                {
+                    FirstIndex = -1; // never snapshot. will re-initialize later.
+                }
             }
 
 
@@ -407,16 +491,19 @@ namespace Zeze.Raft
                 }
                 logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
 
-                using var itFirst = Logs.NewIterator();
-                itFirst.SeekToFirst();
-                FirstIndex = RaftLog.Decode(
-                    new Binary(itFirst.Value()),
-                    Raft.StateMachine.LogFactory
-                    ).Index;
                 // 【注意】snapshot 以后 FirstIndex 会推进，不再是从0开始。
+                if (FirstIndex == -1) // never snapshot
+                {
+                    using var itFirst = Logs.NewIterator();
+                    itFirst.SeekToFirst();
+                    FirstIndex = RaftLog.Decode(new Binary(itFirst.Value()), Raft.StateMachine.LogFactory).Index;
+                }
                 LastApplied = FirstIndex;
                 CommitIndex = FirstIndex;
             }
+
+            // 可能有没有被清除的日志存在。启动任务。
+            StartRemoveLogBefore(FirstIndex);
         }
 
         internal long GetRequestState(Protocol p)
@@ -436,6 +523,8 @@ namespace Zeze.Raft
 
         private readonly byte[] RaftsTermKey;
         private readonly byte[] RaftsVoteForKey;
+        private readonly byte[] RaftsFirstIndexKey;
+
         public WriteOptions WriteOptions { get; set; } = new WriteOptions().SetSync(true);
 
         private void SaveLog(RaftLog log)
@@ -495,11 +584,7 @@ namespace Zeze.Raft
                 Term = term;
                 var termValue = ByteBuffer.Allocate();
                 termValue.WriteLong(term);
-                Rafts.Put(
-                    RaftsTermKey, RaftsTermKey.Length,
-                    termValue.Bytes, termValue.Size,
-                    null, WriteOptions
-                    );
+                Rafts.Put(RaftsTermKey, RaftsTermKey.Length, termValue.Bytes, termValue.Size, null, WriteOptions);
                 Raft.LeaderId = string.Empty;
                 SetVoteFor(string.Empty);
                 return SetTermResult.Newer;
@@ -521,11 +606,7 @@ namespace Zeze.Raft
                 VoteFor = voteFor;
                 var voteForValue = ByteBuffer.Allocate();
                 voteForValue.WriteString(voteFor);
-                Rafts.Put(
-                    RaftsVoteForKey, RaftsVoteForKey.Length,
-                    voteForValue.Bytes, voteForValue.Size,
-                    null, WriteOptions
-                    );
+                Rafts.Put(RaftsVoteForKey, RaftsVoteForKey.Length, voteForValue.Bytes, voteForValue.Size, null, WriteOptions);
             }
         }
 
@@ -564,12 +645,12 @@ namespace Zeze.Raft
             }
         }
 
-        private volatile TaskCompletionSource<bool> ApplyTask; // follower background apply task
+        internal volatile TaskCompletionSource<bool> ApplyFuture; // follower background apply task
 
         // under lock (Raft)
         private void TryStartApplyTask(RaftLog lastApplyableLog)
         {
-            if (null == ApplyTask)
+            if (null == ApplyFuture)
             {
                 // 仅在没有 apply 进行中才尝试进行处理。
                 if (CommitIndex - LastApplied < Raft.RaftConfig.BackgroundApplyCount)
@@ -579,21 +660,25 @@ namespace Zeze.Raft
                     return;
                 }
 
-                ApplyTask = new TaskCompletionSource<bool>();
+                ApplyFuture = new TaskCompletionSource<bool>();
                 Raft.ImportantThreadPool.QueueUserWorkItem(() =>
                 {
-                    Util.Task.Call(BackgroundApply, "BackgroundApply");
-                    ApplyTask.SetResult(true); // 如果有人等待。
-
-                    lock (Raft)
+                    try
                     {
-                        ApplyTask = null; // 允许再次启动，不需要等待了。
+                        ApplyFuture.SetResult(Util.Task.Call(BackgroundApply, "BackgroundApply") == 0); // 如果有人等待。
+                    }
+                    finally
+                    {
+                        lock (Raft)
+                        {
+                            ApplyFuture = null; // 允许再次启动，不需要等待了。
+                        }
                     }
                 });
             }
         }
 
-        private void BackgroundApply()
+        private long BackgroundApply()
         {
             while (false == Raft.IsShutdown)
             {
@@ -604,11 +689,12 @@ namespace Zeze.Raft
                     TryApply(lastApplyableLog, Raft.RaftConfig.BackgroundApplyCount);
                     if (LastApplied == lastApplyableLog.Index)
                     {
-                        return; // 本次Apply结束。
+                        return 0; // 本次Apply结束。
                     }
                 }
                 System.Threading.Thread.Yield();
             }
+            return Procedure.CancelException;
         }
 
         private void TryApply(RaftLog lastApplyableLog, long count)
@@ -665,7 +751,7 @@ namespace Zeze.Raft
                 if (connector.Pending != null)
                     return;
 
-                if (connector.InstallSnapshotting)
+                if (InstallSnapshotting.ContainsKey(connector.Name))
                     return;
 
                 var socket = connector.TryGetReadySocket();
@@ -748,38 +834,36 @@ namespace Zeze.Raft
         // 是否正在创建Snapshot过程中，用来阻止新的创建请求。
         private bool Snapshotting { get; set; } = false;
         // 是否有安装进程正在进行中，用来阻止新的创建请求。
-        internal Dictionary<string, Server.ConnectorEx> InstallSnapshotting { get; }
-            = new Dictionary<string, Server.ConnectorEx>();
+        internal ConcurrentDictionary<string, TaskCompletionSource<bool>> InstallSnapshotting { get; }
+            = new ConcurrentDictionary<string, TaskCompletionSource<bool>>(); // key is Server.ConnectorEx.Name
 
-        public const string SnapshotFileName = "snapshot";
+        public const string SnapshotFileName = "snapshot.dat";
+        public string SnapshotFullName => Path.Combine(Raft.RaftConfig.DbHome, SnapshotFileName);
+
         private Util.SchedulerTask SnapshotTimer;
 
-        public void StopSnapshotPerDayTimer()
-        { 
-            lock (Raft)
-            {
-                SnapshotTimer?.Cancel();
-                SnapshotTimer = null;
-            }
-        }
-
-        public void StartSnapshotPerDayTimer()
+        public void StartSnapshotTimer()
         {
             lock (Raft)
             {
-                if (null != SnapshotTimer)
-                    return;
+                SnapshotTimer?.Cancel();
 
                 if (Raft.RaftConfig.SnapshotHourOfDay >= 0 && Raft.RaftConfig.SnapshotHourOfDay < 24)
                 {
+                    // 每天定点执行。
                     var now = DateTime.Now;
                     var firstTime = new DateTime(now.Year, now.Month, now.Day,
                         Raft.RaftConfig.SnapshotHourOfDay, Raft.RaftConfig.SnapshotMinute, 0);
                     if (firstTime.CompareTo(now) < 0)
                         firstTime = firstTime.AddDays(1);
                     var delay = Util.Time.DateTimeToUnixMillis(firstTime) - Util.Time.DateTimeToUnixMillis(now);
+                    SnapshotTimer = Zeze.Util.Scheduler.Instance.Schedule((ThisTask) => Snapshot(false), delay);
+                }
+                else
+                {
+                    // 此时 SnapshotMinute 表示Period。
                     SnapshotTimer = Zeze.Util.Scheduler.Instance.Schedule(
-                        (ThisTask) => StartSnapshot(false), delay, 24 * 3600 * 1000);
+                        (ThisTask) => Snapshot(false), Raft.RaftConfig.SnapshotMinute * 60 * 1000);
                 }
             }
         }
@@ -803,23 +887,28 @@ namespace Zeze.Raft
                 // 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
                 // 【除了快照最后包含的日志，其他都删除。】
                 var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
+                CommitSnapshot(s.Name, lastIncludedLog.Index);
+
+                Logs.Dispose();
+                CancelPendingAppendLogFutures();
+                var logsdir = Path.Combine(Raft.RaftConfig.DbHome, "logs");
+                Directory.Delete(logsdir, true);
+                var options = new DbOptions().SetCreateIfMissing(true);
+                Logs = OpenDb(options, logsdir);
                 SaveLog(lastIncludedLog);
-                // follower 没有并发请求需要处理，在锁内删除。
-                RemoveLogReverse(lastIncludedLog.Index - 1, FirstIndex);
-                RemoveLogAndCancelStart(lastIncludedLog.Index + 1, LastIndex);
+
                 LastIndex = lastIncludedLog.Index;
-                FirstIndex = lastIncludedLog.Index;
                 CommitIndex = FirstIndex;
                 LastApplied = FirstIndex;
 
                 // 8. Reset state machine using snapshot contents (and load
                 // snapshot’s cluster configuration)
-                Raft.StateMachine.LoadFromSnapshot(s.Name);
-                logger.Debug("{0} EndReceiveInstallSnapshot Path={1}", Raft.Name, s.Name);
+                Raft.StateMachine.LoadSnapshot(SnapshotFullName);
+                logger.Info($"{Raft.Name} EndReceiveInstallSnapshot Path={s.Name}");
             }
         }
 
-        public void StartSnapshot(bool NeedNow = false)
+        public void Snapshot(bool NeedNow = false)
         {
             lock (Raft)
             {
@@ -839,13 +928,11 @@ namespace Zeze.Raft
             {
                 long LastIncludedIndex;
                 long LastIncludedTerm;
-                var path = Path.Combine(Raft.RaftConfig.DbHome, SnapshotFileName);
-
                 // 忽略Snapshot返回结果。肯定是重复调用导致的。
                 // out 结果这里没有使用，定义在参数里面用来表示这个很重要。
+                var path = Path.Combine(SnapshotFullName + ".tmp");
                 Raft.StateMachine.Snapshot(path, out LastIncludedIndex, out LastIncludedTerm);
-                logger.Debug("{0} Snapshot Path={1} LastIndex={2} LastTerm={3}",
-                    Raft.Name, path, LastIncludedIndex, LastIncludedTerm);
+                logger.Info($"{Raft.Name} Snapshot Path={path} LastIndex={LastIncludedIndex} LastTerm={LastIncludedTerm}");
             }
             finally
             {
@@ -853,6 +940,9 @@ namespace Zeze.Raft
                 {
                     Snapshotting = false;
                 }
+
+                // restart
+                StartSnapshotTimer();
             }
         }
 
@@ -861,11 +951,10 @@ namespace Zeze.Raft
             // 整个安装成功结束时设置。中间Break(return)不设置。
             // 后面 finally 里面使用这个标志
             bool InstallSuccess = false;
-            logger.Debug("{0} InstallSnapshot Start... Path={1} ToConnector={2}",
-                Raft.Name, path, connector.Name);
+            logger.Info($"{Raft.Name} InstallSnapshot Start... Path={path} ToConnector={connector.Name}");
             try
             {
-                var snapshotFile = new FileStream(path, FileMode.Open);
+                using var snapshotFile = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
                 long offset = 0;
                 var buffer = new byte[32 * 1024];
                 var FirstLog = ReadLog(FirstIndex);
@@ -875,7 +964,7 @@ namespace Zeze.Raft
                 trunkArg.LastIncludedIndex = FirstLog.Index;
                 trunkArg.LastIncludedTerm = FirstLog.Term;
 
-                while (!trunkArg.Done && Raft.IsLeader)
+                while (!trunkArg.Done && Raft.IsLeader && false == Raft.IsShutdown)
                 {
                     int rc = snapshotFile.Read(buffer);
                     trunkArg.Offset = offset;
@@ -886,7 +975,7 @@ namespace Zeze.Raft
                     if (trunkArg.Done)
                         trunkArg.LastIncludedLog = new Binary(FirstLog.Encode());
 
-                    while (Raft.IsLeader)
+                    while (Raft.IsLeader && false == Raft.IsShutdown)
                     {
                         var socket = connector.WaitReady();
                         connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
@@ -939,20 +1028,20 @@ namespace Zeze.Raft
                     }
                 }
                 InstallSuccess = Raft.IsLeader;
-                logger.Debug("{0} InstallSnapshot [SUCCESS] Path={1} ToConnector={2}",
-                    Raft.Name, path, connector.Name);
+                logger.Info($"{Raft.Name} InstallSnapshot [SUCCESS] Path={path} ToConnector={connector.Name}");
             }
             finally
             {
                 lock (Raft)
                 {
-                    connector.InstallSnapshotting = false;
-                    InstallSnapshotting.Remove(connector.Name);
                     if (InstallSuccess)
                     {
                         // 安装完成，重新初始化，使得以后的AppendEnties能继续工作。
-                        var next = ReadLog(FirstIndex + 1);
-                        connector.NextIndex = next == null ? FirstIndex + 1 : next.Index;
+                        connector.NextIndex = FirstIndex + 1;
+                    }
+                    if (InstallSnapshotting.TryRemove(connector.Name, out var future))
+                    {
+                        future.TrySetResult(InstallSuccess);
                     }
                 }
             }
@@ -960,26 +1049,24 @@ namespace Zeze.Raft
 
         private void StartInstallSnapshot(Server.ConnectorEx connector)
         {
-            if (connector.InstallSnapshotting)
+            if (InstallSnapshotting.ContainsKey(connector.Name))
             {
                 return;
             }
-            var path = Path.Combine(Raft.RaftConfig.DbHome, SnapshotFileName);
+            var path = SnapshotFullName;
             // 如果 Snapshotting，此时不启动安装。
             // 以后重试 AppendEntries 时会重新尝试 Install.
             if (File.Exists(path) && false == Snapshotting)
             {
-                connector.InstallSnapshotting = true;
-                InstallSnapshotting[connector.Name] = connector;
-                Zeze.Util.Task.Run(() => InstallSnapshot(path, connector),
-                    $"InstallSnapshot To '{connector.Name}'");
+                if (InstallSnapshotting.TryAdd(connector.Name, new TaskCompletionSource<bool>()))
+                    Zeze.Util.Task.Run(() => InstallSnapshot(path, connector), $"InstallSnapshot To '{connector.Name}'");
             }
             else
             {
                 // 这一般的情况是snapshot文件被删除了。
                 // 【注意】这种情况也许报错更好？
                 // 内部会判断，不会启动多个snapshot。
-                StartSnapshot(true);
+                Snapshot(true);
             }
         }
 
@@ -1078,7 +1165,7 @@ namespace Zeze.Raft
                 // 【注意】
                 // 正在安装Snapshot，此时不复制日志，肯定失败。
                 // 不做这个判断也是可以工作的，算是优化。
-                if (connector.InstallSnapshotting)
+                if (InstallSnapshotting.ContainsKey(connector.Name))
                     return;
 
                 var socket = connector.TryGetReadySocket();
@@ -1176,7 +1263,7 @@ namespace Zeze.Raft
             {
                 // 1. Reply false if term < currentTerm (§5.1)
                 r.SendResult();
-                logger.Info("this={0} Leader={1} Index={2} term < currentTerm", Raft.Name, r.Argument.LeaderId, r.Argument.PrevLogIndex);
+                logger.Info($"this={Raft.Name} Leader={r.Argument.LeaderId} PrevLogIndex={r.Argument.PrevLogIndex} term < currentTerm");
                 return Procedure.Success;
             }
 
@@ -1240,7 +1327,7 @@ namespace Zeze.Raft
                     Raft.FatalKill();
                 }
                 if (copyLog.Index < FirstIndex)
-                    continue; // 快照建立以前的日志忽略。
+                    continue; // 快照以前的日志忽略。
 
                 // 本地已经存在日志。
                 if (copyLog.Index <= LastIndex)

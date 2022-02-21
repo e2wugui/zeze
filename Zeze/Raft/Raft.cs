@@ -67,15 +67,27 @@ namespace Zeze.Raft
                     return;
 
                 IsShutdown = true;
+            }
+
+            LogSequence.RemoveLogBeforeFuture?.Task.Wait();
+            LogSequence.ApplyFuture?.Task.Wait();
+            foreach (var installing in LogSequence.InstallSnapshotting.Values)
+            {
+                installing.Task.Wait();
+            }
+
+            lock (this)
+            {
+                foreach (var file in ReceiveSnapshotting.Values)
+                {
+                    file.Close();
+                }
+                ReceiveSnapshotting.Clear();
+
                 TimerTask?.Cancel();
                 TimerTask = null;
                 ConvertStateTo(RaftState.Follower);
                 Server.Stop();
-                foreach (var job in LogSequence.WaitApplyFutures)
-                {
-                    job.Value.TrySetCanceled();
-                    LogSequence.WaitApplyFutures.TryRemove(job.Key, out _);
-                }
                 LogSequence.Close();
             }
             ImportantThreadPool.Shutdown(); // 需要停止线程。
@@ -121,9 +133,16 @@ namespace Zeze.Raft
             _LogSequence = new LogSequence(this);
 
             RegisterInternalRpc();
-            LogSequence.StartSnapshotPerDayTimer();
+
+            var snapshot = LogSequence.SnapshotFullName;
+            if (File.Exists(snapshot))
+                sm.LoadSnapshot(snapshot);
+
+            LogSequence.StartSnapshotTimer();
+
             AppDomain.CurrentDomain.ProcessExit += ProcessExit;
             TimerTask = Scheduler.Instance.Schedule(OnTimer, 10);
+
         }
 
         private long ProcessAppendEntries(Protocol p)
@@ -135,8 +154,7 @@ namespace Zeze.Raft
             }
         }
 
-        private ConcurrentDictionary<long, FileStream> ReceiveSnapshotting
-            = new ConcurrentDictionary<long, FileStream>();
+        private ConcurrentDictionary<long, FileStream> ReceiveSnapshotting = new ConcurrentDictionary<long, FileStream>();
 
         private long ProcessInstallSnapshot(Protocol p)
         {
@@ -164,7 +182,7 @@ namespace Zeze.Raft
             // 把 LastIncludedIndex 放到文件名中，
             // 新的InstallSnapshot不覆盖原来进行中或中断的。
             var path = Path.Combine(RaftConfig.DbHome,
-                $"{LogSequence.SnapshotFileName}.{r.Argument.LastIncludedIndex}");
+                $"{LogSequence.SnapshotFileName}.installing.{r.Argument.LastIncludedIndex}");
 
             FileStream outputFileStream = null;
             if (r.Argument.Offset == 0)
@@ -227,8 +245,8 @@ namespace Zeze.Raft
                     if (e.Key < r.Argument.LastIncludedIndex)
                     {
                         e.Value.Close();
-                        var pathDelete = Path.Combine(RaftConfig.DbHome, $"{LogSequence.SnapshotFileName}.{e.Key}");
-                        File.Delete(path);
+                        var pathDelete = Path.Combine(RaftConfig.DbHome, $"{LogSequence.SnapshotFileName}.installing.{e.Key}");
+                        File.Delete(pathDelete);
                         ReceiveSnapshotting.TryRemove(e.Key, out var _);
                     }
                 }
