@@ -174,7 +174,7 @@ namespace Zeze.Raft
 
     public class LogSequence
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public Raft Raft { get; }
 
@@ -234,7 +234,7 @@ namespace Zeze.Raft
         {
             lock (Raft)
             {
-                if (null != RemoveLogBeforeFuture || false == LogsAvailable)
+                if (null != RemoveLogBeforeFuture || false == LogsAvailable || Raft.IsShutdown)
                     return;
                 RemoveLogBeforeFuture = new TaskCompletionSource<bool>();
             }
@@ -652,7 +652,7 @@ namespace Zeze.Raft
         // under lock (Raft)
         private void TryStartApplyTask(RaftLog lastApplyableLog)
         {
-            if (null == ApplyFuture)
+            if (null == ApplyFuture && false == Raft.IsShutdown)
             {
                 // 仅在没有 apply 进行中才尝试进行处理。
                 if (CommitIndex - LastApplied < Raft.RaftConfig.BackgroundApplyCount)
@@ -836,8 +836,8 @@ namespace Zeze.Raft
         // 是否正在创建Snapshot过程中，用来阻止新的创建请求。
         private bool Snapshotting { get; set; } = false;
         // 是否有安装进程正在进行中，用来阻止新的创建请求。
-        internal ConcurrentDictionary<string, TaskCompletionSource<bool>> InstallSnapshotting { get; }
-            = new ConcurrentDictionary<string, TaskCompletionSource<bool>>(); // key is Server.ConnectorEx.Name
+        internal ConcurrentDictionary<string, Server.ConnectorEx> InstallSnapshotting { get; }
+            = new ConcurrentDictionary<string, Server.ConnectorEx>(); // key is Server.ConnectorEx.Name
 
         public const string SnapshotFileName = "snapshot.dat";
         public string SnapshotFullName => Path.Combine(Raft.RaftConfig.DbHome, SnapshotFileName);
@@ -961,110 +961,26 @@ namespace Zeze.Raft
             }
         }
 
-        private void InstallSnapshot(string path, Server.ConnectorEx connector)
+        private long ProcessInstallSnapshotResult(Server.ConnectorEx connector, Protocol p)
         {
-            // 整个安装成功结束时设置。中间Break(return)不设置。
-            // 后面 finally 里面使用这个标志
-            bool InstallSuccess = false;
-            logger.Info($"{Raft.Name} InstallSnapshot Start... Path={path} ToConnector={connector.Name}");
-            try
-            {
-                using var snapshotFile = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-                long offset = 0;
-                var buffer = new byte[32 * 1024];
-                var FirstLog = ReadLog(FirstIndex);
-                var trunkArg = new InstallSnapshotArgument();
-                trunkArg.Term = Term;
-                trunkArg.LeaderId = Raft.LeaderId;
-                trunkArg.LastIncludedIndex = FirstLog.Index;
-                trunkArg.LastIncludedTerm = FirstLog.Term;
+            var r = p as InstallSnapshot;
 
-                while (!trunkArg.Done && Raft.IsLeader && false == Raft.IsShutdown)
-                {
-                    int rc = snapshotFile.Read(buffer);
-                    trunkArg.Offset = offset;
-                    trunkArg.Data = new Binary(buffer, 0, rc);
-                    trunkArg.Done = rc < buffer.Length;
-                    offset += rc;
-
-                    if (trunkArg.Done)
-                        trunkArg.LastIncludedLog = new Binary(FirstLog.Encode());
-
-                    while (Raft.IsLeader && false == Raft.IsShutdown)
-                    {
-                        var socket = connector.WaitReady();
-                        connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
-                        var future = new TaskCompletionSource<int>();
-                        var r = new InstallSnapshot() { Argument = trunkArg };
-                        if (!r.Send(socket,
-                            (_) =>
-                            {
-                                future.SetResult(0);
-                                return Procedure.Success;
-                            }))
-                        {
-                            continue;
-                        }
-                        future.Task.Wait();
-                        if (r.IsTimeout)
-                            continue;
-
-                        lock (Raft)
-                        {
-                            if (this.TrySetTerm(r.Result.Term) == SetTermResult.Newer)
-                            {
-                                // new term found.
-                                Raft.ConvertStateTo(Raft.RaftState.Follower);
-                                return;
-                            }
-                        }
-
-                        switch (r.ResultCode)
-                        {
-                            case global::Zeze.Raft.InstallSnapshot.ResultCodeNewOffset:
-                                break;
-
-                            default:
-                                logger.Warn($"InstallSnapshot Break ResultCode={r.ResultCode}");
-                                return;
-                        }
-
-                        if (r.Result.Offset >= 0)
-                        {
-                            if (r.Result.Offset > snapshotFile.Length)
-                            {
-                                logger.Error($"InstallSnapshot.Result.Offset Too Big.{r.Result.Offset}/{snapshotFile.Length}");
-                                return; // 中断安装。
-                            }
-                            offset = r.Result.Offset;
-                            snapshotFile.Seek(offset, SeekOrigin.Begin);
-                        }
-                        break;
-                    }
-                }
-                InstallSuccess = Raft.IsLeader;
-                logger.Info($"{Raft.Name} InstallSnapshot [SUCCESS] Path={path} ToConnector={connector.Name}");
-            }
-            finally
-            {
-                lock (Raft)
-                {
-                    if (InstallSuccess)
-                    {
-                        // 安装完成，重新初始化，使得以后的AppendEnties能继续工作。
-                        connector.NextIndex = FirstIndex + 1;
-                    }
-                    if (InstallSnapshotting.TryRemove(connector.Name, out var future))
-                    {
-                        future.TrySetResult(InstallSuccess);
-                    }
-                }
-            }
+            return 0;
         }
 
-        private void StartInstallSnapshot(Server.ConnectorEx connector)
+        internal void EndInstallSnapshot(Server.ConnectorEx c)
         {
-            if (InstallSnapshotting.ContainsKey(connector.Name))
+            if (InstallSnapshotting.TryRemove(c.Name, out var cex))
+            {
+                cex.InstallSnapshotState.File.Close();
+                logger.Info($"{Raft.Name} InstallSnapshot Done={cex.InstallSnapshotState.SharedArgument.Done} c={c.Name}");
+            }
+            c.InstallSnapshotState = null;
+        }
+
+        private void StartInstallSnapshot(Server.ConnectorEx c)
+        {
+            if (InstallSnapshotting.ContainsKey(c.Name))
             {
                 return;
             }
@@ -1073,8 +989,21 @@ namespace Zeze.Raft
             // 以后重试 AppendEntries 时会重新尝试 Install.
             if (File.Exists(path) && false == Snapshotting)
             {
-                if (InstallSnapshotting.TryAdd(connector.Name, new TaskCompletionSource<bool>()))
-                    Zeze.Util.Task.Run(() => InstallSnapshot(path, connector), $"InstallSnapshot To '{connector.Name}'");
+                if (false == InstallSnapshotting.TryAdd(c.Name, c))
+                    throw new Exception("Impossible");
+
+                c.InstallSnapshotState = new Server.InstallSnapshotState();
+                var st = c.InstallSnapshotState;
+                st.File = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read); ;
+                st.FirstLog = ReadLog(FirstIndex);
+                st.SharedArgument = new InstallSnapshotArgument();
+                st.SharedArgument.Term = Term;
+                st.SharedArgument.LeaderId = Raft.LeaderId;
+                st.SharedArgument.LastIncludedIndex = st.FirstLog.Index;
+                st.SharedArgument.LastIncludedTerm = st.FirstLog.Term;
+
+                logger.Info($"{Raft.Name} InstallSnapshot Start... Path={path} c={c.Name}");
+                st.TrySend(this, c);
             }
             else
             {

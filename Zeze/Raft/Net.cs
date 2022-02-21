@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -27,6 +28,96 @@ namespace Zeze.Raft
         public Server(Raft raft, string name, Zeze.Config config) : base(name, config)
         {
             Raft = raft;
+        }
+
+        public class InstallSnapshotState
+        {
+            public InstallSnapshotArgument SharedArgument { get; set; }
+            public RaftLog FirstLog { get; set; }
+            public FileStream File { get; set; }
+            public long Offset { get; set; }
+
+            public void TrySend(LogSequence ls, ConnectorEx c)
+            {
+                lock (ls.Raft)
+                {
+                    if (SharedArgument.Done || ls.Raft.IsShutdown || false == ls.Raft.IsLeader)
+                    {
+                        ls.EndInstallSnapshot(c);
+                        return; // install done
+                    }
+
+                    if (false == ls.InstallSnapshotting.TryGetValue(c.Name, out _))
+                    {
+                        return; // 安装取消了。
+                    }
+
+                    c.AppendLogActiveTime = Util.Time.NowUnixMillis;
+
+                    var buffer = new byte[32 * 1024];
+                    int rc = File.Read(buffer);
+                    SharedArgument.Offset = Offset;
+                    SharedArgument.Data = new Binary(buffer, 0, rc);
+                    SharedArgument.Done = rc < buffer.Length;
+                    Offset += rc;
+                    if (SharedArgument.Done)
+                    {
+                        SharedArgument.LastIncludedLog = new Binary(FirstLog.Encode());
+                    }
+
+                    var r = new InstallSnapshot() { Argument = SharedArgument };
+                    var timeout = ls.Raft.RaftConfig.AppendEntriesTimeout;
+                    if (!r.Send(c.TryGetReadySocket(), (p) => ProcessResult(ls, c, p), timeout))
+                    {
+                        ls.EndInstallSnapshot(c);
+                    }
+                }
+            }
+
+            private long ProcessResult(LogSequence ls, ConnectorEx c, Protocol p)
+            {
+                var r = p as InstallSnapshot;
+
+                lock (ls.Raft)
+                {
+                    if (r.IsTimeout)
+                    {
+                        ls.EndInstallSnapshot(c);
+                        return 0;
+                    }
+
+                    if (ls.TrySetTerm(r.Result.Term) == LogSequence.SetTermResult.Newer)
+                    {
+                        // new term found.
+                        ls.Raft.ConvertStateTo(Raft.RaftState.Follower);
+                        return 0; // break install
+                    }
+
+                    switch (r.ResultCode)
+                    {
+                        case Procedure.Success:
+                        case InstallSnapshot.ResultCodeNewOffset:
+                            break;
+
+                        default:
+                            LogSequence.logger.Warn($"InstallSnapshot Break ResultCode={r.ResultCode}");
+                            return 0; // break install
+                    }
+
+                    if (r.Result.Offset >= 0)
+                    {
+                        if (r.Result.Offset > File.Length)
+                        {
+                            LogSequence.logger.Error($"InstallSnapshot.Result.Offset Too Big.{r.Result.Offset}/{File.Length}");
+                            return 0; // 中断安装。
+                        }
+                        Offset = r.Result.Offset;
+                        File.Seek(Offset, SeekOrigin.Begin);
+                    }
+                }
+                TrySend(ls, c);
+                return 0;
+            }
         }
 
         public class ConnectorEx : Connector
@@ -58,15 +149,22 @@ namespace Zeze.Raft
             /// 每个连接只允许存在一个AppendEntries。
             /// </summary>
             internal AppendEntries Pending { get; set; }
+
+            internal InstallSnapshotState InstallSnapshotState { get; set; }
+
             internal long AppendLogActiveTime { get; set; } = Util.Time.NowUnixMillis;
 
             public override void OnSocketClose(AsyncSocket closed, Exception e)
             {
                 var server = closed.Service as Server;
-                if (server.Raft.LogSequence.InstallSnapshotting.TryRemove(Name, out var future))
+                server.Raft.ImportantThreadPool.QueueUserWorkItem(() =>
                 {
-                    future.TrySetResult(false);
-                }
+                    // avoid deadlock: lock(socket), lock (Raft).
+                    lock (server.Raft)
+                    {
+                        server.Raft.LogSequence.EndInstallSnapshot(this);
+                    }
+                });
                 base.OnSocketClose(closed, e);
             }
 
@@ -434,7 +532,6 @@ namespace Zeze.Raft
                 if (rpc.ResultCode == Procedure.RaftApplied)
                 {
                     rpc.IsTimeout = false;
-                    rpc.ResultCode = Procedure.Success;
                 }
                 logger.Debug($"Agent Rpc={rpc.GetType().Name} RequestId={rpc.Unique.RequestId} ResultCode={rpc.ResultCode} Sender={rpc.Sender}");
                 return userHandle(rpc);
@@ -479,7 +576,6 @@ namespace Zeze.Raft
                 if (rpc.ResultCode == Procedure.RaftApplied)
                 {
                     rpc.IsTimeout = false;
-                    rpc.ResultCode = Procedure.Success;
                 }
                 logger.Debug($"Agent Rpc={rpc.GetType().Name} RequestId={rpc.Unique.RequestId} ResultCode={rpc.ResultCode} Sender={rpc.Sender}");
                 future.SetResult(rpc);

@@ -71,13 +71,13 @@ namespace Zeze.Raft
 
             LogSequence.RemoveLogBeforeFuture?.Task.Wait();
             LogSequence.ApplyFuture?.Task.Wait();
-            foreach (var installing in LogSequence.InstallSnapshotting.Values)
-            {
-                installing.Task.Wait();
-            }
 
             lock (this)
             {
+                foreach (var installing in LogSequence.InstallSnapshotting.Values)
+                {
+                    LogSequence.EndInstallSnapshot(installing);
+                }
                 foreach (var file in ReceiveSnapshotting.Values)
                 {
                     file.Close();
