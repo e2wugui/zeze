@@ -228,12 +228,13 @@ namespace Zeze.Raft
         }
 
         internal volatile TaskCompletionSource<bool> RemoveLogBeforeFuture;
+        internal volatile bool LogsAvailable = false;
 
         private void StartRemoveLogBefore(long index)
         {
             lock (Raft)
             {
-                if (null != RemoveLogBeforeFuture)
+                if (null != RemoveLogBeforeFuture || false == LogsAvailable)
                     return;
                 RemoveLogBeforeFuture = new TaskCompletionSource<bool>();
             }
@@ -245,12 +246,12 @@ namespace Zeze.Raft
                 {
                     using var it = NewLogsIterator();
                     it.SeekToFirst();
-                    while (it.Valid() && false == Raft.IsShutdown)
+                    while (LogsAvailable && false == Raft.IsShutdown && it.Valid())
                     {
                         var raftLog = RaftLog.Decode(new Binary(it.Value()), Raft.StateMachine.LogFactory);
                         if (raftLog.Index >= index)
                         {
-                            RemoveLogBeforeFuture.SetResult(true);
+                            RemoveLogBeforeFuture.TrySetResult(true);
                             return;
                         }
 
@@ -311,7 +312,7 @@ namespace Zeze.Raft
         }
 
         internal sealed class UniqueRequestSet
-        { 
+        {
             private RocksDb Db { get; set; }
             public string DbName { get; set; }
 
@@ -324,7 +325,7 @@ namespace Zeze.Raft
             }
 
             static ConcurrentDictionary<string, ConcurrentDictionary<long, long>> unique
-                = new ConcurrentDictionary<string,ConcurrentDictionary<long, long>>(); 
+                = new ConcurrentDictionary<string, ConcurrentDictionary<long, long>>();
 
             private void Put(RaftLog log, long value)
             {
@@ -501,6 +502,7 @@ namespace Zeze.Raft
                 LastApplied = FirstIndex;
                 CommitIndex = FirstIndex;
             }
+            LogsAvailable = true;
 
             // 可能有没有被清除的日志存在。启动任务。
             StartRemoveLogBefore(FirstIndex);
@@ -721,7 +723,7 @@ namespace Zeze.Raft
                 if (raftLog.Log.Unique.RequestId > 0)
                     OpenUniqueRequests(raftLog.Log.CreateTime).Apply(raftLog);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
-                                                //*
+                                             //*
                 if (LastIndex - LastApplied < 10)
                     logger.Debug($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={raftLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
                 // */
@@ -872,39 +874,52 @@ namespace Zeze.Raft
         {
             lock (Raft)
             {
-                // 6. If existing log entry has same index and term as snapshot’s
-                // last included entry, retain log entries following it and reply
-                var last = ReadLog(r.Argument.LastIncludedIndex);
-                if (null != last && last.Term == r.Argument.LastIncludedTerm)
+                LogsAvailable = false; // cancel RemoveLogBefore
+            }
+            RemoveLogBeforeFuture?.Task.Wait();
+            lock (Raft)
+            {
+                try
                 {
-                    // 这里全部保留更简单吧，否则如果没有applied，那不就糟了吗？
-                    // RemoveLogReverse(r.Argument.LastIncludedIndex - 1);
-                    return;
+                    // 6. If existing log entry has same index and term as snapshot’s
+                    // last included entry, retain log entries following it and reply
+                    var last = ReadLog(r.Argument.LastIncludedIndex);
+                    if (null != last && last.Term == r.Argument.LastIncludedTerm)
+                    {
+                        // 这里全部保留更简单吧，否则如果没有applied，那不就糟了吗？
+                        // RemoveLogReverse(r.Argument.LastIncludedIndex - 1);
+                        return;
+                    }
+                    // 7. Discard the entire log
+                    // 整个删除，那么下一次AppendEnties又会找不到prev。不就xxx了吗?
+                    // 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
+                    // 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
+                    // 【除了快照最后包含的日志，其他都删除。】
+                    var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
+                    CommitSnapshot(s.Name, lastIncludedLog.Index);
+
+                    Logs.Dispose();
+                    Logs = null;
+                    CancelPendingAppendLogFutures();
+                    var logsdir = Path.Combine(Raft.RaftConfig.DbHome, "logs");
+                    Directory.Delete(logsdir, true);
+                    var options = new DbOptions().SetCreateIfMissing(true);
+                    Logs = OpenDb(options, logsdir);
+                    SaveLog(lastIncludedLog);
+
+                    LastIndex = lastIncludedLog.Index;
+                    CommitIndex = FirstIndex;
+                    LastApplied = FirstIndex;
+
+                    // 8. Reset state machine using snapshot contents (and load
+                    // snapshot’s cluster configuration)
+                    Raft.StateMachine.LoadSnapshot(SnapshotFullName);
+                    logger.Info($"{Raft.Name} EndReceiveInstallSnapshot Path={s.Name}");
                 }
-                // 7. Discard the entire log
-                // 整个删除，那么下一次AppendEnties又会找不到prev。不就xxx了吗?
-                // 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
-                // 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
-                // 【除了快照最后包含的日志，其他都删除。】
-                var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
-                CommitSnapshot(s.Name, lastIncludedLog.Index);
-
-                Logs.Dispose();
-                CancelPendingAppendLogFutures();
-                var logsdir = Path.Combine(Raft.RaftConfig.DbHome, "logs");
-                Directory.Delete(logsdir, true);
-                var options = new DbOptions().SetCreateIfMissing(true);
-                Logs = OpenDb(options, logsdir);
-                SaveLog(lastIncludedLog);
-
-                LastIndex = lastIncludedLog.Index;
-                CommitIndex = FirstIndex;
-                LastApplied = FirstIndex;
-
-                // 8. Reset state machine using snapshot contents (and load
-                // snapshot’s cluster configuration)
-                Raft.StateMachine.LoadSnapshot(SnapshotFullName);
-                logger.Info($"{Raft.Name} EndReceiveInstallSnapshot Path={s.Name}");
+                finally
+                {
+                    LogsAvailable = true;
+                }
             }
         }
 
