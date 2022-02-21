@@ -34,9 +34,9 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("package " + project.Solution.Path() + ";");
             sw.WriteLine();
-            sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport);
+            sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport + " @formatter:off");
             ImportGen(sw);
-            sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);
+            sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport + " @formatter:on");
             sw.WriteLine();
             sw.WriteLine();
             sw.WriteLine("public class App extends Zeze.AppBase {");
@@ -60,9 +60,9 @@ namespace Zeze.Gen.java
             sw.WriteLine("        Destroy();");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNameAppGen);
+            sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNameAppGen + " @formatter:off");
             AppGen(sw);
-            sw.WriteLine("    " + fcg.ChunkEndTag + " " + ChunkNameAppGen);
+            sw.WriteLine("    " + fcg.ChunkEndTag + " " + ChunkNameAppGen + " @formatter:on");
             sw.WriteLine("}");
         }
 
@@ -128,7 +128,7 @@ namespace Zeze.Gen.java
                 var fullname = m.Path("_");
                 sw.WriteLine("        " + fullname + " = new " + m.Path(".", $"Module{moduleName}") + "(this);");
                 sw.WriteLine($"        {fullname}.Initialize(this);");
-                sw.WriteLine($"        {fullname} = ({m.Path(".", $"Module{moduleName}")})({fullname});");
+                sw.WriteLine($"        {fullname} = ({m.Path(".", $"Module{moduleName}")}){fullname};");
                 sw.WriteLine($"        if (Modules.put({fullname}.getFullName(), {fullname}) != null)");
                 sw.WriteLine($"            throw new RuntimeException(\"duplicate module name: {fullname}\");");
                 sw.WriteLine();

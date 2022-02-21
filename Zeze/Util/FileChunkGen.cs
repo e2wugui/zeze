@@ -155,18 +155,25 @@ namespace Zeze.Util
             if (lineTrim.StartsWith(ChunkStartTag))
             {
                 state = State.ChunkStart;
-                name = lineTrim.Substring(ChunkStartTag.Length).Trim();
+                name = lineTrim.Substring(ChunkStartTag.Length);
+                int p = name.IndexOf("@formatter:");
+                if (p >= 0)
+                    name = name.Substring(0, p);
+                name = name.Trim();
                 return;
             }
             if (lineTrim.StartsWith(ChunkEndTag))
             {
                 state = State.ChunkEnd;
-                name = lineTrim.Substring(ChunkEndTag.Length).Trim();
+                name = lineTrim.Substring(ChunkEndTag.Length);
+                int p = name.IndexOf("@formatter:");
+                if (p >= 0)
+                    name = name.Substring(0, p);
+                name = name.Trim();
                 return;
             }
             state = State.Normal;
             name = "";
         }
-
     }
 }
