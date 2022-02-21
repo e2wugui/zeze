@@ -46,10 +46,10 @@ namespace Zeze.Gen.java
             // sw.WriteLine(FileChunkGen.ChunkEndTag + " " + ChunkNameImport);
             // sw.WriteLine();
             sw.WriteLine($"public class Module{moduleName} extends AbstractModule {{");
-            sw.WriteLine($"    public Module{moduleName}({project.Solution.Name}.App app) {{");
-            sw.WriteLine("        super(app);");
-            sw.WriteLine("    }");
-            sw.WriteLine();
+            // sw.WriteLine($"    public Module{moduleName}({project.Solution.Name}.App app) {{");
+            // sw.WriteLine("        super(app);");
+            // sw.WriteLine("    }");
+            // sw.WriteLine();
             sw.WriteLine("    public void Start(" + project.Solution.Name + ".App app) throws Throwable {");
             sw.WriteLine("    }");
             sw.WriteLine();
