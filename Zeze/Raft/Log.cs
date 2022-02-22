@@ -215,7 +215,7 @@ namespace Zeze.Raft
             {
                 File.Move(path, SnapshotFullName, true);
                 SaveFirstIndex(newFirstIndex);
-                StartRemoveLogBefore(newFirstIndex);
+                StartRemoveLogOnlyBefore(newFirstIndex);
             }
         }
 
@@ -230,7 +230,7 @@ namespace Zeze.Raft
         internal volatile TaskCompletionSource<bool> RemoveLogBeforeFuture;
         internal volatile bool LogsAvailable = false;
 
-        private void StartRemoveLogBefore(long index)
+        private void StartRemoveLogOnlyBefore(long index)
         {
             lock (Raft)
             {
@@ -257,8 +257,16 @@ namespace Zeze.Raft
 
                         var key = it.Key();
                         Logs.Remove(key, key.Length, null, WriteOptions);
-                        if (raftLog.Log.Unique.RequestId > 0)
-                            OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
+
+                        // 删除快照前的日志时，不删除唯一请求存根，否则快照建立时刻前面一点时间的请求无法保证唯一。
+                        // 唯一请求存根自己管理删除，【TODO】
+                        // 【注意】
+                        // 服务器完全奔溃（数据全部丢失）后，重新配置一台新的服务器，仍然又很小的机会存在无法判断唯一。
+                        // 此时比较好的做法时，从工作节点的数据库(uniqe/)复制出一份，作为开始数据。
+                        // 参考 RemoveLogAndCancelStart 
+
+                        //if (raftLog.Log.Unique.RequestId > 0)
+                        //    OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
                         it.Next();
                     }
                 }
@@ -506,7 +514,7 @@ namespace Zeze.Raft
             LogsAvailable = true;
 
             // 可能有没有被清除的日志存在。启动任务。
-            StartRemoveLogBefore(FirstIndex);
+            StartRemoveLogOnlyBefore(FirstIndex);
         }
 
         internal long GetRequestState(Protocol p)
