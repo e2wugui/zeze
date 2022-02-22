@@ -32,7 +32,7 @@ namespace Zeze.Raft
 
         public class InstallSnapshotState
         {
-            public InstallSnapshotArgument SharedArgument { get; set; }
+            public InstallSnapshotArgument ReuseArgument { get; set; }
             public RaftLog FirstLog { get; set; }
             public FileStream File { get; set; }
             public long Offset { get; set; }
@@ -41,31 +41,31 @@ namespace Zeze.Raft
             {
                 lock (ls.Raft)
                 {
-                    if (SharedArgument.Done || ls.Raft.IsShutdown || false == ls.Raft.IsLeader)
-                    {
-                        ls.EndInstallSnapshot(c);
-                        return; // install done
-                    }
-
                     if (false == ls.InstallSnapshotting.TryGetValue(c.Name, out _))
                     {
                         return; // 安装取消了。
+                    }
+
+                    if (ReuseArgument.Done || ls.Raft.IsShutdown || false == ls.Raft.IsLeader)
+                    {
+                        ls.EndInstallSnapshot(c);
+                        return; // install done
                     }
 
                     c.AppendLogActiveTime = Util.Time.NowUnixMillis;
 
                     var buffer = new byte[32 * 1024];
                     int rc = File.Read(buffer);
-                    SharedArgument.Offset = Offset;
-                    SharedArgument.Data = new Binary(buffer, 0, rc);
-                    SharedArgument.Done = rc < buffer.Length;
+                    ReuseArgument.Offset = Offset;
+                    ReuseArgument.Data = new Binary(buffer, 0, rc);
+                    ReuseArgument.Done = rc < buffer.Length;
                     Offset += rc;
-                    if (SharedArgument.Done)
+                    if (ReuseArgument.Done)
                     {
-                        SharedArgument.LastIncludedLog = new Binary(FirstLog.Encode());
+                        ReuseArgument.LastIncludedLog = new Binary(FirstLog.Encode());
                     }
 
-                    var r = new InstallSnapshot() { Argument = SharedArgument };
+                    var r = new InstallSnapshot() { Argument = ReuseArgument };
                     var timeout = ls.Raft.RaftConfig.AppendEntriesTimeout;
                     if (!r.Send(c.TryGetReadySocket(), (p) => ProcessResult(ls, c, p), timeout))
                     {

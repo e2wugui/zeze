@@ -965,19 +965,17 @@ namespace Zeze.Raft
             }
         }
 
-        private long ProcessInstallSnapshotResult(Server.ConnectorEx connector, Protocol p)
-        {
-            var r = p as InstallSnapshot;
-
-            return 0;
-        }
-
         internal void EndInstallSnapshot(Server.ConnectorEx c)
         {
             if (InstallSnapshotting.TryRemove(c.Name, out var cex))
             {
+                if (cex.InstallSnapshotState.ReuseArgument.Done)
+                { 
+                    cex.NextIndex = FirstIndex + 1;
+                    cex.MatchIndex = FirstIndex;
+                }
                 cex.InstallSnapshotState.File.Close();
-                logger.Info($"{Raft.Name} InstallSnapshot Done={cex.InstallSnapshotState.SharedArgument.Done} c={c.Name}");
+                logger.Info($"{Raft.Name} InstallSnapshot Done={cex.InstallSnapshotState.ReuseArgument.Done} c={c.Name}");
             }
             c.InstallSnapshotState = null;
         }
@@ -1000,11 +998,11 @@ namespace Zeze.Raft
                 var st = c.InstallSnapshotState;
                 st.File = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read); ;
                 st.FirstLog = ReadLog(FirstIndex);
-                st.SharedArgument = new InstallSnapshotArgument();
-                st.SharedArgument.Term = Term;
-                st.SharedArgument.LeaderId = Raft.LeaderId;
-                st.SharedArgument.LastIncludedIndex = st.FirstLog.Index;
-                st.SharedArgument.LastIncludedTerm = st.FirstLog.Term;
+                st.ReuseArgument = new InstallSnapshotArgument();
+                st.ReuseArgument.Term = Term;
+                st.ReuseArgument.LeaderId = Raft.LeaderId;
+                st.ReuseArgument.LastIncludedIndex = st.FirstLog.Index;
+                st.ReuseArgument.LastIncludedTerm = st.FirstLog.Term;
 
                 logger.Info($"{Raft.Name} InstallSnapshot Start... Path={path} c={c.Name}");
                 st.TrySend(this, c);
