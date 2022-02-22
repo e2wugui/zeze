@@ -392,7 +392,7 @@ namespace Zeze.Raft
             logger.Fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
             logger.Fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
-            SetLogLevel(NLog.LogLevel.Info);
+            //SetLogLevel(NLog.LogLevel.Info);
 
             FailActions.Add(new FailAction()
             {

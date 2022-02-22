@@ -422,6 +422,14 @@ namespace Zeze.Raft
         {
             var last = LogSequence.LastRaftLog();
             //logger.Info($"{Name}-{IsLeader} {RaftConfig.DbHome} CTerm={lastTerm} Term={last.Term} LastIndex={last.Index} Count={LogSequence.GetTestStateMachineCount()}");
+
+            // 初始状态只允许给初始状态投票。
+            // 节点完全毁坏以后，新节点是初始状态。
+            // 此时它不能给已经在工作中的节点投同意票，否则有可能会导致不正确的Leader。
+            // 但是系统初始化时，全部节点都是初始状态，此时允许正常投票。
+            if (last.Index == 1 && lastIndex > 1)
+                return false;
+
             if (lastTerm > last.Term)
                 return true;
             if (lastTerm < last.Term)
@@ -444,7 +452,7 @@ namespace Zeze.Raft
                     ConvertStateTo(RaftState.Follower);
                 }
                 // else continue process
-
+                
                 // RequestVote RPC
                 // Receiver implementation:
                 // 1.Reply false if term < currentTerm(§5.1)

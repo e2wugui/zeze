@@ -49,7 +49,7 @@ namespace Zeze.Util
                 actionName += ":Response";
 
             var ll = (null != p.Service.Zeze) ? p.Service.Zeze.Config.ProcessReturnErrorLogLevel : NLog.LogLevel.Trace;
-            LogAction?.Invoke(ll, ex, result, $"Action={actionName} UserState={p.UserState}");
+            LogAction?.Invoke(ll, ex, result, $"Action={actionName} {p}");
 
 #if ENABLE_STATISTICS
             ProcedureStatistics.Instance.GetOrAdd(actionName).GetOrAdd(result).IncrementAndGet();
@@ -70,7 +70,7 @@ namespace Zeze.Util
             if (result > 0)
                 module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
 
-            logger.Log(ll, ex, $"{message} Return={result}{module}");
+            logger.Log(ll, ex, $"Return={result}{module} {message}");
         }
 
         public static long Call(Func<long> func, Net.Protocol p,

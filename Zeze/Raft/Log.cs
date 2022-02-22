@@ -259,6 +259,7 @@ namespace Zeze.Raft
                         Logs.Remove(key, key.Length, null, WriteOptions);
                         if (raftLog.Log.Unique.RequestId > 0)
                             OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
+                        it.Next();
                     }
                 }
                 finally
