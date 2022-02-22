@@ -71,15 +71,17 @@ namespace Zeze.Gen.java
                             sw.WriteLine("    }");
                             sw.WriteLine();
                         }
-                        continue;
                     }
-                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
+                    else
                     {
-                        sw.WriteLine("    @Override");
-                        sw.WriteLine($"    protected long Process{p.Name}({p.Space.Path(".", p.Name)} p) {{");
-                        sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
-                        sw.WriteLine("    }");
-                        sw.WriteLine();
+                        if ((p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        {
+                            sw.WriteLine("    @Override");
+                            sw.WriteLine($"    protected long Process{p.Name}({p.Space.Path(".", p.Name)} p) {{");
+                            sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
+                            sw.WriteLine("    }");
+                            sw.WriteLine();
+                        }
                     }
                 }
             }
@@ -247,12 +249,16 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine($"    public static final int ModuleId = {module.Id};");
             sw.WriteLine();
+            bool genTable = false;
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen))
+                {
                     sw.WriteLine("    protected final " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
+                    genTable = true;
+                }
             }
-            if (module.Tables.Count > 0)
+            if (genTable)
                 sw.WriteLine();
             sw.WriteLine($"    public {project.Solution.Name}.App App;");
             sw.WriteLine();
@@ -362,12 +368,12 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    public String getFullName() {{ return \"{module.Path()}\"; }}");
             sw.WriteLine($"    public String getName() {{ return \"{moduleName}\"; }}");
             sw.WriteLine($"    public int getId() {{ return {module.Id}; }}");
+            sw.WriteLine();
             // declare enums
-            if (module.Enums.Count > 0)
-                sw.WriteLine();
             foreach (Types.Enum e in module.Enums)
                 sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
-            sw.WriteLine();
+            if (module.Enums.Count > 0)
+                sw.WriteLine();
 
             foreach (Protocol p in GetProcessProtocols())
             {

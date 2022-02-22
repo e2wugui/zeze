@@ -21,14 +21,16 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public boolean equals(Object _obj1_) {");
-            sw.WriteLine(prefix + "    if (_obj1_ == this) return true;");
+            sw.WriteLine(prefix + "    if (_obj1_ == this)");
+            sw.WriteLine(prefix + "        return true;");
             sw.WriteLine(prefix + "    if (_obj1_ instanceof " + bean.Name + ") {");
             sw.WriteLine(prefix + $"        var _obj_ = ({bean.Name})_obj1_;");
             foreach (Variable var in bean.Variables)
             {
                 var v = new Equal(var, "_obj_", false);
                 var.VariableType.Accept(v);
-                sw.WriteLine(prefix + "        if (" + v.text + ") return false;");
+                sw.WriteLine(prefix + "        if (" + v.text + ")");
+                sw.WriteLine(prefix + "            return false;");
             }
             sw.WriteLine(prefix + "        return true;");
             sw.WriteLine(prefix + "    }");

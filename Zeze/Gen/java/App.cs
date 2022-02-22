@@ -31,16 +31,13 @@ namespace Zeze.Gen.java
             Directory.CreateDirectory(fullDir);
             using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
 
-            sw.WriteLine();
             sw.WriteLine("package " + project.Solution.Path() + ";");
             sw.WriteLine();
-            sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport + " @formatter:off");
-            ImportGen(sw);
-            sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport + " @formatter:on");
-            sw.WriteLine();
-            sw.WriteLine();
+            // sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport + " @formatter:off");
+            // ImportGen(sw);
+            // sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport + " @formatter:on");
+            // sw.WriteLine();
             sw.WriteLine("public class App extends Zeze.AppBase {");
-            sw.WriteLine();
             sw.WriteLine("    public static App Instance = new App();");
             sw.WriteLine("    public static App getInstance() {");
             sw.WriteLine("        return Instance;");
@@ -86,15 +83,19 @@ namespace Zeze.Gen.java
 
         void ImportGen(StreamWriter sw)
         {
-            sw.WriteLine("import java.util.*;");
+            // sw.WriteLine("import java.util.*;");
         }
 
         void AppGen(StreamWriter sw)
         {
-            sw.WriteLine("    // @formatter:off");
             sw.WriteLine("    public Zeze.Application Zeze;");
-            sw.WriteLine("    public final HashMap<String, Zeze.IModule> Modules = new HashMap<>();");
+            sw.WriteLine("    public final java.util.HashMap<String, Zeze.IModule> Modules = new java.util.HashMap<>();");
             sw.WriteLine();
+
+            foreach (Service m in project.Services.Values)
+                sw.WriteLine("    public " + m.FullName + " " + m.Name + ";");
+            if (project.Services.Count > 0)
+                sw.WriteLine();
 
             foreach (Module m in project.AllOrderDefineModules)
             {
@@ -102,11 +103,8 @@ namespace Zeze.Gen.java
                 var fullname = m.Path("_");
                 sw.WriteLine($"    public {m.Path(".", $"Module{moduleName}")} {fullname};");
             }
-            sw.WriteLine();
-
-            foreach (Service m in project.Services.Values)
-                sw.WriteLine("    public " + m.FullName + " " + m.Name + ";");
-            sw.WriteLine();
+            if (project.AllOrderDefineModules.Count > 0)
+                sw.WriteLine();
 
             sw.WriteLine("    public void Create() throws Throwable {");
             sw.WriteLine("        Create(null);");
@@ -120,7 +118,8 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
-            sw.WriteLine();
+            if (project.Services.Count > 0)
+                sw.WriteLine();
 
             foreach (Module m in project.AllOrderDefineModules)
             {
@@ -128,7 +127,7 @@ namespace Zeze.Gen.java
                 var fullname = m.Path("_");
                 sw.WriteLine("        " + fullname + " = new " + m.Path(".", $"Module{moduleName}") + "(this);");
                 sw.WriteLine($"        {fullname}.Initialize(this);");
-                sw.WriteLine($"        {fullname} = ({m.Path(".", $"Module{moduleName}")}){fullname};");
+                // sw.WriteLine($"        {fullname} = ({m.Path(".", $"Module{moduleName}")}){fullname};");
                 sw.WriteLine($"        if (Modules.put({fullname}.getFullName(), {fullname}) != null)");
                 sw.WriteLine($"            throw new RuntimeException(\"duplicate module name: {fullname}\");");
                 sw.WriteLine();
@@ -190,7 +189,6 @@ namespace Zeze.Gen.java
                 sw.WriteLine("            " + m.Name + ".Stop();");
             }
             sw.WriteLine("    }");
-            sw.WriteLine("    // @formatter:on");
         }
     }
 }

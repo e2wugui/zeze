@@ -29,7 +29,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    if (!isManaged())");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrent();");
-            sw.WriteLine(prefix + "    if (txn == null) return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    if (txn == null)");
+            sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    txn.VerifyRecordAccessed(this, true);");
             sw.WriteLine(prefix + "    var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.getObjectId() + " + var.Id + ");");
             sw.WriteLine(prefix + "    return log != null ? log.getValue() : " + var.NamePrivate + ";");

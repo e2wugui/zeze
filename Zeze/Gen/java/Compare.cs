@@ -10,7 +10,8 @@ namespace Zeze.Gen.java
 		{
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int compareTo(" + bean.Name + " _o_) {");
-            sw.WriteLine(prefix + "    if (_o_ == this) return 0;");
+            sw.WriteLine(prefix + "    if (_o_ == this)");
+            sw.WriteLine(prefix + "        return 0;");
             sw.WriteLine(prefix + "    if (_o_ != null) {");
             sw.WriteLine(prefix + "        int _c_" + (bean.Variables.Count > 0 ? ";" : " = 0;"));
             foreach (Variable var in bean.Variables)
@@ -18,7 +19,8 @@ namespace Zeze.Gen.java
                 Compare e = new Compare(var, "_o_");
 				var.VariableType.Accept(e);
 				sw.WriteLine(prefix + "        _c_ = " + e.text + ";");
-                sw.WriteLine(prefix + "        if (_c_ != 0) return _c_;");
+                sw.WriteLine(prefix + "        if (_c_ != 0)");
+                sw.WriteLine(prefix + "            return _c_;");
 			}
 			sw.WriteLine(prefix + "        return _c_;");
             sw.WriteLine(prefix + "    }");
