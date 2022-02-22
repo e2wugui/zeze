@@ -177,6 +177,8 @@ namespace Zeze.Raft
                 }
                 LeaderId = r.Argument.LeaderId;
                 LogSequence.LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
+                // 【关键】记录这个，放弃当前Term的投票。
+                LogSequence.SetVoteFor(LeaderId);
             }
 
             // 2. Create new snapshot file if first chunk(offset is 0)

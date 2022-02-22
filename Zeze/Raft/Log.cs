@@ -907,14 +907,6 @@ namespace Zeze.Raft
                     CommitSnapshot(s.Name, lastIncludedLog.Index);
                     SaveLog(lastIncludedLog);
 
-                    Term = 0;
-                    TrySetTerm(lastIncludedLog.Term);
-                    // lastIncludedLog是Applied，当时的Leader没有记录，但肯定存在。
-                    // 如果重置状态，没有保存SetVoteFor，可能引起投票混乱。
-                    // 这里把当前InstallSnapshot的LeaderId作为投过的票。
-                    // 【关键】记录这个，放弃当前Term的投票。
-                    SetVoteFor(Raft.LeaderId);
-
                     LastIndex = lastIncludedLog.Index;
                     CommitIndex = FirstIndex;
                     LastApplied = FirstIndex;
