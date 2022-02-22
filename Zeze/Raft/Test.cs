@@ -26,13 +26,18 @@ namespace Zeze.Raft
         private Agent Agent { get; set; }
 
         private void LogDump(string db)
-        {
+        {            
             var options = new DbOptions().SetCreateIfMissing(true);
             using var r1 = RocksDb.Open(options, Path.Combine(db, "logs"));
             using var it1 = r1.NewIterator();
             it1.SeekToFirst();
+
             var StateMachine = new TestStateMachine();
+            var snapshot = Path.Combine(db, LogSequence.SnapshotFileName);
+            if (File.Exists(snapshot))
+                StateMachine._LoadSnapshot(snapshot);
             using var dumpFile = new FileStream(db + ".txt", FileMode.Create);
+            dumpFile.Write(Encoding.UTF8.GetBytes($"SnapshotCount = {StateMachine.Count}\n"));
             while (it1.Valid())
             {
                 var l1 = RaftLog.Decode(new Binary(it1.Value()), StateMachine.LogFactory);
@@ -191,6 +196,8 @@ namespace Zeze.Raft
         private void ErrorsAdd(long resultCode)
         {
             if (0 == resultCode)
+                return;
+            if (resultCode == Procedure.RaftApplied)
                 return;
             if (Errors.ContainsKey(resultCode))
                 Errors[resultCode] = Errors[resultCode] + 1;
@@ -745,15 +752,20 @@ namespace Zeze.Raft
                 }
             }
 
+            internal void _LoadSnapshot(string path)
+            {
+                using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var bytes = new byte[1024];
+                int rc = file.Read(bytes);
+                var bb = ByteBuffer.Wrap(bytes, 0, rc);
+                Count = bb.ReadLong();
+            }
+
             public override void LoadSnapshot(string path)
             {
                 lock (Raft)
                 {
-                    using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    var bytes = new byte[1024];
-                    int rc = file.Read(bytes);
-                    var bb = ByteBuffer.Wrap(bytes, 0, rc);
-                    Count = bb.ReadLong();
+                    _LoadSnapshot(path);
                     logger.Info($"{Raft.Name} LoadSnapshot Count={Count}");
                 }
             }
