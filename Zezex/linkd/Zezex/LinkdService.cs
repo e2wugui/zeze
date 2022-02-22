@@ -95,7 +95,7 @@ namespace Zezex
                 {
                     var isRequestSaved = p.IsRequest;
                     var result = factoryHandle.Handle(p); // 不启用新的Task，直接在io-thread里面执行。
-                    global::Zeze.Util.Task.LogAndStatistics(result, p, isRequestSaved);
+                    global::Zeze.Util.Task.LogAndStatistics(null, result, p, isRequestSaved);
                 }
                 catch (System.Exception ex)
                 {
@@ -215,7 +215,7 @@ namespace Zezex
             KeepAliveTask = global::Zeze.Util.Scheduler.Instance.Schedule((ThisTask) =>
             {
                 App.Instance.LinkdService.GetSocket(SessionId)?.Close(null);
-            }, 3000000);
+            }, 300000);
         }
 
         public void OnClose()
