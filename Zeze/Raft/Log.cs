@@ -965,6 +965,14 @@ namespace Zeze.Raft
             }
         }
 
+        internal void CancelAllInstallSnapshot()
+        {
+            foreach (var installing in InstallSnapshotting.Values)
+            {
+                EndInstallSnapshot(installing);
+            }
+        }
+
         internal void EndInstallSnapshot(Server.ConnectorEx c)
         {
             if (InstallSnapshotting.TryRemove(c.Name, out var cex))
@@ -994,13 +1002,13 @@ namespace Zeze.Raft
                 if (false == InstallSnapshotting.TryAdd(c.Name, c))
                     throw new Exception("Impossible");
 
-                c.InstallSnapshotState = new Server.InstallSnapshotState();
+                c.InstallSnapshotState = new InstallSnapshotState();
                 var st = c.InstallSnapshotState;
                 st.File = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read); ;
                 st.FirstLog = ReadLog(FirstIndex);
                 st.ReuseArgument = new InstallSnapshotArgument();
                 st.ReuseArgument.Term = Term;
-                st.ReuseArgument.LeaderId = Raft.LeaderId;
+                st.ReuseArgument.LeaderId = Raft.Name;
                 st.ReuseArgument.LastIncludedIndex = st.FirstLog.Index;
                 st.ReuseArgument.LastIncludedTerm = st.FirstLog.Term;
 

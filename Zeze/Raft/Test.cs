@@ -507,14 +507,9 @@ namespace Zeze.Raft
             });
             FailActions.Add(new FailAction()
             {
-                Name = "InstallSnapshot",
+                Name = "InstallSnapshot Clean One Node Data",
                 Action = () =>
                 {
-                    foreach (var test in Rafts.Values)
-                    {
-                        test.Raft?.LogSequence.Snapshot(true);
-                        test.StopRaft();
-                    }
                     for (int i = 0; i < Rafts.Count; ++i)
                     {
                         Rafts.Values.ElementAt(i).StartRaft(i == 0);

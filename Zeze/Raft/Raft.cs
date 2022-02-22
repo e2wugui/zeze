@@ -58,6 +58,15 @@ namespace Zeze.Raft
 
         internal volatile bool IsShutdown = false;
 
+        private void CancelAllReceiveSnapshotting()
+        {
+            foreach (var file in ReceiveSnapshotting.Values)
+            {
+                file.Close();
+            }
+            ReceiveSnapshotting.Clear();
+        }
+
         public void Shutdown()
         {
             lock (this)
@@ -74,15 +83,8 @@ namespace Zeze.Raft
 
             lock (this)
             {
-                foreach (var installing in LogSequence.InstallSnapshotting.Values)
-                {
-                    LogSequence.EndInstallSnapshot(installing);
-                }
-                foreach (var file in ReceiveSnapshotting.Values)
-                {
-                    file.Close();
-                }
-                ReceiveSnapshotting.Clear();
+                LogSequence.CancelAllInstallSnapshot();
+                CancelAllReceiveSnapshotting();
 
                 TimerTask?.Cancel();
                 TimerTask = null;
@@ -595,6 +597,8 @@ namespace Zeze.Raft
                     return;
 
                 case RaftState.Leader:
+                    CancelAllReceiveSnapshotting();
+
                     logger.Info($"RaftState {Name}: Candidate->Leader");
                     State = RaftState.Leader;
                     LeaderId = Name; // set to self
@@ -623,7 +627,10 @@ namespace Zeze.Raft
 
         private void ConvertStateFromLeaderTo(RaftState newState)
         {
-            ResetLeaderReadyAfterChangeState(); // 本来 Leader -> Follower 需要，为了健壮性，全部改变都重置。
+            // 本来 Leader -> Follower 需要，为了健壮性，全部改变都重置。
+            ResetLeaderReadyAfterChangeState();
+            LogSequence.CancelAllInstallSnapshot();
+
             switch (newState)
             {
                 case RaftState.Follower:
